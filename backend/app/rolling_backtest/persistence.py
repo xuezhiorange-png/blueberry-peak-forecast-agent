@@ -118,6 +118,20 @@ class RollingBacktestPersistenceCommand:
     nodes: tuple[RollingNodePersistenceCommand, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class S2HistoricalBindingReadModel:
+    """Verified S2 evidence returned to a consumer of the read adapter."""
+
+    run_id: int
+    request: S2HistoricalBacktestRequest
+    instance_hash: str
+    manifest_hash: str
+    coverage_manifest: Mapping[str, object]
+    exclusion_manifest: Mapping[str, object]
+    authority_references: Mapping[str, object]
+    rows: tuple[S2HistoricalBindingRow, ...]
+
+
 _CreateOrLoadHook = Callable[[str], Awaitable[None] | None]
 _CREATE_OR_LOAD_SYNC_HOOK: _CreateOrLoadHook | None = None
 _ATTEMPT_ALLOCATION_SYNC_HOOK: _CreateOrLoadHook | None = None
@@ -853,6 +867,57 @@ async def _load_s2_logical_run_with_integrity(
         manifest_hash=expected_manifest_hash,
     )
     return run
+
+
+async def load_s2_historical_binding_by_instance_hash(
+    session: AsyncSession,
+    *,
+    instance_hash: str,
+) -> S2HistoricalBindingReadModel:
+    """Load a complete S2 binding by its immutable instance identity."""
+
+    if re.fullmatch(r"[0-9a-f]{64}", instance_hash) is None:
+        raise RollingBacktestCanonicalParityError("S2 instance hash is not canonical")
+    result = await session.execute(
+        select(RollingBacktestRun).where(RollingBacktestRun.instance_hash == instance_hash)
+    )
+    run = result.scalar_one_or_none()
+    if run is None or run.s2_contract_version != "v0.2-s2-historical-binding-v1":
+        raise RollingBacktestCanonicalParityError("S2 instance evidence is missing")
+    await _load_s2_logical_run_with_integrity(session, run)
+    try:
+        request = S2HistoricalBacktestRequest.model_validate(run.backtest_request_payload)
+    except ValidationError as exc:
+        raise RollingBacktestCanonicalParityError("S2 request payload is invalid") from exc
+    manifest = (
+        await session.execute(
+            select(RollingBacktestManifest).where(RollingBacktestManifest.rolling_run_id == run.id)
+        )
+    ).scalar_one_or_none()
+    if manifest is None or manifest.instance_hash != instance_hash:
+        raise RollingBacktestCanonicalParityError("S2 manifest identity is incomplete")
+    rows_result = await session.execute(
+        select(RollingBacktestBindingRow)
+        .where(RollingBacktestBindingRow.rolling_run_id == run.id)
+        .order_by(RollingBacktestBindingRow.binding_key_hash)
+    )
+    try:
+        rows = tuple(
+            S2HistoricalBindingRow.model_validate(row.canonical_payload)
+            for row in rows_result.scalars().all()
+        )
+    except ValidationError as exc:
+        raise RollingBacktestCanonicalParityError("S2 binding row payload is invalid") from exc
+    return S2HistoricalBindingReadModel(
+        run_id=run.id,
+        request=request,
+        instance_hash=instance_hash,
+        manifest_hash=manifest.manifest_hash,
+        coverage_manifest=dict(manifest.coverage_manifest_payload),
+        exclusion_manifest=dict(manifest.exclusion_manifest_payload),
+        authority_references=dict(manifest.authority_reference_payload),
+        rows=rows,
+    )
 
 
 async def load_logical_run_with_integrity(

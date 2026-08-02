@@ -9,13 +9,14 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Any, Protocol
+from typing import Annotated, Any, Literal, Protocol, cast
 
 from fastapi import Depends
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
@@ -61,6 +62,21 @@ from backend.app.actual_harvest_import.spreadsheet_parser import (
     parse_xlsx,
 )
 from backend.app.actual_harvest_import.spreadsheet_policy import DEFAULT_SPREADSHEET_POLICY
+from backend.app.actual_harvest_labels.enums import ActualHarvestLabelVisibilityMode
+from backend.app.actual_harvest_labels.hashes import (
+    AGGREGATION_POLICY_VERSION,
+    SNAPSHOT_POLICY_VERSION,
+    WINNER_POLICY_VERSION,
+)
+from backend.app.actual_harvest_labels.persistence import (
+    load_label_rows_for_snapshot,
+    load_winners_for_snapshot,
+)
+from backend.app.actual_harvest_labels.schemas import ActualHarvestLabelSnapshotRequest
+from backend.app.actual_harvest_labels.service import (
+    ActualHarvestLabelSnapshotError,
+    create_label_snapshot,
+)
 from backend.app.api.actual_harvest_imports import _run_mutation
 from backend.app.core_forecast.application import execute_core_forecast_run
 from backend.app.core_forecast.persistence import (
@@ -78,11 +94,54 @@ from backend.app.core_forecast.schemas import (
     CoreForecastScope,
     ExecuteCoreForecastRunRequest,
 )
+from backend.app.forecast_quality.baseline import resolve_baseline_point_forecast
+from backend.app.forecast_quality.breakdown import calculate_breakdown_cells
+from backend.app.forecast_quality.calculator_daily import compute_daily_metrics
 from backend.app.forecast_quality.canonical import emit_s3_decimal
-from backend.app.models.core_forecast import CoreForecastCodeAuthorityModel
+from backend.app.forecast_quality.comparison import (
+    ComparisonBaselineRecord,
+    compute_model_baseline_comparisons,
+)
+from backend.app.forecast_quality.enums import (
+    FrozenVersion,
+    SupportedQuantile,
+)
+from backend.app.forecast_quality.persistence import (
+    ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+    BaselinePersistenceRecord,
+    ForecastQualityConflictError,
+    ForecastQualityContractError,
+    ForecastQualityPartialResultError,
+    ForecastQualityPersistenceError,
+    load_quality_evaluation_by_instance_hash,
+    persist_quality_evaluation,
+    resolve_trial_quality_request_replay,
+)
+from backend.app.forecast_quality.schemas import (
+    BaselineRequest,
+    BaselineSourceSnapshot,
+    BreakdownSpec,
+    DailyMetricResult,
+    QualityStatusEvidenceCell,
+    S3BindingRow,
+    S3EvaluationInput,
+)
+from backend.app.forecast_quality.status_evidence import (
+    build_frozen_quality_status_evidence,
+)
+from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
+from backend.app.models.core_forecast import (
+    CoreForecastCodeAuthorityModel,
+    CoreForecastDailyRowModel,
+    CoreForecastRunModel,
+)
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
+from backend.app.models.residual_model import (
+    ResidualModelPredictionRun,
+    ResidualModelTrainingRun,
+)
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
     CoreForecastMarketablePolicyModel,
@@ -98,7 +157,37 @@ from backend.app.repositories.trial_forecast_evidence import (
     compute_trial_business_scope_hash,
     create_forecast_evidence_and_binding_in_result_boundary,
 )
+from backend.app.repositories.trial_resource_binding import (
+    TrialResourceBindingError,
+    TrialResourceKind,
+    TrialResourceNotFoundError,
+    authorize_trial_resource,
+    create_quality_binding_in_result_boundary,
+)
+from backend.app.residual_model.persistence import (
+    load_residual_prediction_run_by_id,
+    load_residual_training_run_by_id,
+)
+from backend.app.residual_model.schemas import (
+    ResidualPredictionExecutionResult,
+    ResidualPredictionRow,
+    ResidualTrainingExecutionResult,
+)
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
+from backend.app.rolling_backtest.errors import RollingBacktestCanonicalParityError
+from backend.app.rolling_backtest.orchestration import (
+    _task9_member_identity_hash,
+    run_s2_historical_binding,
+)
+from backend.app.rolling_backtest.persistence import (
+    load_s2_historical_binding_by_instance_hash,
+)
+from backend.app.rolling_backtest.schemas import (
+    S2ForecastAuthorityBundle,
+    S2HistoricalBacktestRequest,
+    S2HistoricalBindingCandidate,
+    S2PersistedAuthorityReferences,
+)
 
 
 class TrialApiErrorCode(StrEnum):
@@ -116,6 +205,8 @@ class TrialApiErrorCode(StrEnum):
     EXACT_REPLAY = "EXACT_REPLAY"
     CONFLICTING_REPLAY = "CONFLICTING_REPLAY"
     LABEL_SNAPSHOT_UNAVAILABLE = "LABEL_SNAPSHOT_UNAVAILABLE"
+    QUALITY_AUTHORITY_UNAVAILABLE = "QUALITY_AUTHORITY_UNAVAILABLE"
+    QUALITY_PERSISTENCE_UNAVAILABLE = "QUALITY_PERSISTENCE_UNAVAILABLE"
     QUALITY_NOT_COMPUTABLE = "QUALITY_NOT_COMPUTABLE"
     PARTIAL_RESULT_REJECTED = "PARTIAL_RESULT_REJECTED"
     CONCURRENCY_CONFLICT = "CONCURRENCY_CONFLICT"
@@ -408,13 +499,15 @@ class TrialActualHarvestCommitResponse(_FrozenModel):
 
 
 class TrialQualityReportCreateRequest(_FrozenModel):
-    forecast_run_id: StrictStr = Field(min_length=1, max_length=256)
-    actual_label_snapshot_identity: StrictStr = Field(min_length=1, max_length=256)
+    forecast_run_id: StrictStr = Field(
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    actual_harvest_import_id: StrictStr = Field(min_length=1, max_length=256)
     forecast_cutoff_at: datetime
     label_observation_cutoff_at: datetime
-    forecast_horizon_days: StrictInt = Field(gt=0)
-    quality_policy_version: StrictStr = Field(min_length=1, max_length=128)
-    baseline_policy_version: StrictStr = Field(min_length=1, max_length=128)
+    requested_horizons_days: tuple[StrictInt, ...]
     request_idempotency_key: StrictStr = Field(min_length=1, max_length=256)
 
     @field_validator("forecast_cutoff_at", "label_observation_cutoff_at")
@@ -424,36 +517,322 @@ class TrialQualityReportCreateRequest(_FrozenModel):
             raise ValueError("timestamps must be timezone-aware")
         return value
 
+    @field_validator("requested_horizons_days", mode="before")
+    @classmethod
+    def _exact_horizons(cls, value: object) -> tuple[int, ...]:
+        if not isinstance(value, (tuple, list)):
+            raise ValueError("requested_horizons_days must be a tuple or list")
+        if any(isinstance(item, bool) or not isinstance(item, int) for item in value):
+            raise ValueError("requested_horizons_days must contain strict integers")
+        result = tuple(value)
+        if result != (7, 14, 21):
+            raise ValueError("requested_horizons_days must be exactly (7, 14, 21)")
+        return result
+
+
+class TrialQualityDailyOverlayRow(_FrozenModel):
+    business_date: date
+    forecast_p50_kg_or_null: Decimal | None
+    forecast_p80_kg_or_null: Decimal | None
+    forecast_p90_kg_or_null: Decimal | None
+    actual_quantity_kg_or_null: Decimal | None
+    actual_available: bool
+    coverage_state: Literal["AVAILABLE", "EXCLUDED", "NOT_COMPUTABLE"]
+    exclusion_reason_codes: tuple[StrictStr, ...] = ()
+
+    @field_validator(
+        "forecast_p50_kg_or_null",
+        "forecast_p80_kg_or_null",
+        "forecast_p90_kg_or_null",
+        "actual_quantity_kg_or_null",
+        mode="before",
+    )
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityMetric(_FrozenModel):
+    metric_name: StrictStr
+    metric_status: StrictStr
+    metric_value_or_null: Decimal | None
+    numerator_or_null: Decimal | None
+    denominator_or_null: Decimal | None
+    reason_codes: tuple[StrictStr, ...] = ()
+
+    @field_validator(
+        "metric_value_or_null",
+        "numerator_or_null",
+        "denominator_or_null",
+        mode="before",
+    )
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityPeakMetric(_FrozenModel):
+    metric_status: StrictStr
+    metric_value_or_null: Decimal | None
+    business_date_or_null: date | None
+    window_start_date_or_null: date | None
+    window_end_date_or_null: date | None
+    reason_codes: tuple[StrictStr, ...] = ()
+    quantile: Literal["P50", "P80", "P90"] = "P50"
+    forecast_horizon_days: StrictInt = 7
+
+    @field_validator("metric_value_or_null", mode="before")
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityCoverageMetric(_FrozenModel):
+    quantile: Literal["P80", "P90"]
+    metric_status: StrictStr
+    covered_count_or_null: StrictInt | None = None
+    total_count: StrictInt
+    coverage_ratio_or_null: Decimal | None
+    reason_codes: tuple[StrictStr, ...] = ()
+    forecast_horizon_days: StrictInt = 7
+
+    @field_validator("coverage_ratio_or_null", mode="before")
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityIntervalMetric(_FrozenModel):
+    metric_status: StrictStr
+    lower_bound_available: bool
+    lower_bound_value_or_null: Decimal | None
+    upper_bound_value_or_null: Decimal | None
+    metric_value_or_null: Decimal | None
+    reason_codes: tuple[StrictStr, ...] = ()
+    quantile: Literal["P80", "P90"] = "P80"
+    forecast_horizon_days: StrictInt = 7
+
+    @field_validator(
+        "lower_bound_value_or_null",
+        "upper_bound_value_or_null",
+        "metric_value_or_null",
+        mode="before",
+    )
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityBreakdownIdentity(_FrozenModel):
+    forecast_horizon_days: Literal[7, 14, 21]
+    farm_business_key: StrictStr
+    subfarm_business_key: StrictStr
+    variety_business_key: StrictStr
+    season_business_key: StrictStr
+    model_identity: StrictStr
+
+
+class TrialQualityMetricValues(_FrozenModel):
+    daily_mae: Decimal | None = None
+    daily_wape: Decimal | None = None
+    daily_smape: Decimal | None = None
+    daily_mape: Decimal | None = None
+    daily_bias_kg: Decimal | None = None
+    daily_relative_bias: Decimal | None = None
+    daily_absolute_error_sum_kg: Decimal | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityRowCounts(_FrozenModel):
+    total: StrictInt = 0
+    comparable: StrictInt = 0
+    covered: StrictInt = 0
+    excluded: StrictInt = 0
+    not_computable: StrictInt = 0
+
+
+class TrialQualityBreakdown(_FrozenModel):
+    breakdown_identity: TrialQualityBreakdownIdentity
+    metric_status: StrictStr
+    coverage_ratio_or_null: Decimal | None
+    comparable_row_count: StrictInt
+    excluded_row_count: StrictInt
+    not_computable_row_count: StrictInt
+    metric_values: TrialQualityMetricValues
+    reason_codes: tuple[StrictStr, ...] = ()
+
+    @field_validator("coverage_ratio_or_null", mode="before")
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityBaselineResult(_FrozenModel):
+    baseline_quantile: StrictStr
+    metric_status: StrictStr
+    baseline_value_kg_or_null: Decimal | None
+    comparison_availability: StrictStr
+    analog_date_or_null: date | None
+    reason_codes: tuple[StrictStr, ...] = ()
+
+    @field_validator("baseline_value_kg_or_null", mode="before")
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityComparisonDelta(_FrozenModel):
+    comparison_name: StrictStr
+    comparison_availability: StrictStr
+    metric_status: StrictStr
+    model_value_or_null: Decimal | None
+    baseline_value_or_null: Decimal | None
+    delta_value_or_null: Decimal | None
+    forecast_horizon_days: StrictInt
+    common_comparable_row_count: StrictInt
+    model_only_row_count: StrictInt
+    baseline_only_row_count: StrictInt
+    excluded_row_count: StrictInt
+    not_computable_row_count: StrictInt
+    reason_codes: tuple[StrictStr, ...] = ()
+    baseline_member_set_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    comparison_key_hash: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    canonical_hash: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator(
+        "model_value_or_null",
+        "baseline_value_or_null",
+        "delta_value_or_null",
+        mode="before",
+    )
+    @classmethod
+    def _reject_float(cls, value: object) -> object:
+        if isinstance(value, float):
+            raise ValueError("native float is not a canonical Decimal")
+        return value
+
+
+class TrialQualityEvidenceIdentity(_FrozenModel):
+    forecast_run_id: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    actual_harvest_import_id: StrictStr = Field(min_length=1, max_length=256)
+    actual_label_snapshot_identity: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    s2_run_identity: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    s2_manifest_identity: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    s2_binding_row_set_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    evaluation_request_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    evaluation_instance_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    quality_manifest_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    metric_result_set_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    breakdown_result_set_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    baseline_result_set_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    comparison_result_set_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
+    metric_policy_version: StrictStr
+    baseline_policy_version: StrictStr
+    comparison_policy_version_or_null: StrictStr | None
+    model_identity: StrictStr
+
 
 class TrialQualityReportResponse(_FrozenModel):
-    report_id: StrictStr
-    forecast_identity: dict[str, object]
+    report_id: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+    forecast_identity: TrialQualityEvidenceIdentity
     actual_label_snapshot_identity: StrictStr
     forecast_cutoff_at: datetime
     label_observation_cutoff_at: datetime
-    forecast_horizon_days: StrictInt
-    daily_metrics: tuple[dict[str, object], ...]
-    cumulative_error_status: StrictStr
-    single_day_peak_error_status: StrictStr
-    sustained_seven_day_peak_error_status: StrictStr
-    p80_p90_metric_status: StrictStr
-    interval_metric_status: StrictStr
-    breakdowns: tuple[dict[str, object], ...]
-    naive_baseline_result: dict[str, object] | None
+    requested_horizons_days: tuple[StrictInt, ...]
+    horizons: tuple[TrialQualityHorizonMetrics, ...]
+    daily_metrics: tuple[TrialQualityMetric, ...]
+    cumulative_error: TrialQualityMetric
+    single_day_peak: TrialQualityPeakMetric
+    sustained_seven_day_peak: TrialQualityPeakMetric
+    p80_coverage: TrialQualityCoverageMetric
+    p90_coverage: TrialQualityCoverageMetric
+    interval_metric: TrialQualityIntervalMetric
+    breakdowns: tuple[TrialQualityBreakdown, ...]
+    naive_baseline_results: tuple[TrialQualityBaselineResult, ...]
     computability_status: StrictStr
     reason_codes: tuple[StrictStr, ...]
-    coverage_counts: dict[str, StrictInt]
-    excluded_row_counts: dict[str, StrictInt]
+    coverage_counts: TrialQualityRowCounts
+    excluded_row_counts: TrialQualityRowCounts
+
+    @field_validator("forecast_cutoff_at", "label_observation_cutoff_at")
+    @classmethod
+    def _response_timezone_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("timestamps must be timezone-aware")
+        return value
+
+
+class TrialQualityHorizonMetrics(_FrozenModel):
+    horizon_days: Literal[7, 14, 21]
+    daily_overlay: tuple[TrialQualityDailyOverlayRow, ...]
+    daily_metrics: tuple[TrialQualityMetric, ...]
+    cumulative_metric: TrialQualityMetric
+    single_day_peak: TrialQualityPeakMetric
+    sustained_seven_day_peak: TrialQualityPeakMetric
+    p80_coverage: TrialQualityCoverageMetric
+    p90_coverage: TrialQualityCoverageMetric
+    interval_metric: TrialQualityIntervalMetric
+    coverage_counts: TrialQualityRowCounts
+    excluded_row_counts: TrialQualityRowCounts
+    reason_codes: tuple[StrictStr, ...] = ()
+    single_day_peaks: tuple[TrialQualityPeakMetric, ...] = ()
+    sustained_seven_day_peaks: tuple[TrialQualityPeakMetric, ...] = ()
+    interval_metrics: tuple[TrialQualityIntervalMetric, ...] = ()
+
+
+TrialQualityReportResponse.model_rebuild()
 
 
 class TrialQualityComparisonResponse(_FrozenModel):
-    report_id: StrictStr
+    report_id: StrictStr = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
     comparison_availability: StrictStr
     comparison_status: StrictStr
     comparison_policy_version: StrictStr
-    model_baseline_deltas: tuple[dict[str, object], ...]
+    model_baseline_deltas: tuple[TrialQualityComparisonDelta, ...]
     reason_codes: tuple[StrictStr, ...]
-    comparison_public_hash: StrictStr
+    comparison_public_hash: StrictStr = Field(
+        min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"
+    )
 
 
 class TrialErrorResponse(_FrozenModel):
@@ -986,26 +1365,1510 @@ class DefaultTrialApplicationService:
         request: TrialQualityReportCreateRequest,
         actor: ActualHarvestActorContext,
     ) -> TrialQualityReportResponse:
-        del session, request, actor
-        raise _service_unavailable("quality persistence adapter")
+        _require_quality_permission(actor, "may_create_quality")
+        return await _run_mutation(
+            session,
+            lambda: _create_quality_report(
+                session,
+                request=request,
+                actor=actor,
+                clock=self.clock,
+            ),
+        )
 
     async def get_quality_report(
         self, session: AsyncSession, report_id: str, actor: ActualHarvestActorContext
     ) -> TrialQualityReportResponse:
-        del session, report_id, actor
-        raise _service_unavailable("quality read adapter")
+        _require_quality_permission(actor, "may_read_quality")
+        read_model = await _load_quality_read_model(session, report_id, actor)
+        return await _project_quality_report(session, read_model, actor)
 
     async def get_quality_comparison(
         self, session: AsyncSession, report_id: str, actor: ActualHarvestActorContext
     ) -> TrialQualityComparisonResponse:
-        del session, report_id, actor
-        raise _service_unavailable("quality comparison adapter")
+        _require_quality_permission(actor, "may_read_quality_comparison")
+        read_model = await _load_quality_read_model(session, report_id, actor)
+        return _project_quality_comparison(read_model)
 
     async def export_quality_report(
         self, session: AsyncSession, report_id: str, actor: ActualHarvestActorContext
     ) -> TrialCsvDocument:
-        del session, report_id, actor
-        raise _service_unavailable("quality export adapter")
+        _require_quality_permission(actor, "may_export_quality")
+        read_model = await _load_quality_read_model(session, report_id, actor)
+        report = await _project_quality_report(session, read_model, actor)
+        return _project_quality_csv(report)
+
+
+@dataclass(frozen=True)
+class _QualityReadContext:
+    quality: Any
+    s2: Any
+    forecast_evidence: TrialForecastEvidence
+    parent_forecast_public_id: str
+    parent_import_id: str
+
+
+def _require_quality_permission(actor: ActualHarvestActorContext, permission: str) -> None:
+    if (
+        not actor.identity.strip()
+        or not actor.allowed_source_systems
+        or not all(item.strip() for item in actor.allowed_source_systems)
+        or ActualHarvestImportChannel.API not in actor.allowed_channels
+    ):
+        raise _resource_not_found()
+    try:
+        require_actor_scope(
+            actor,
+            source_system=sorted(actor.allowed_source_systems)[0],
+            channel=ActualHarvestImportChannel.API,
+            permission=permission,
+        )
+    except ActualHarvestApiError as error:
+        raise _resource_not_found() from error
+
+
+def _quality_error(
+    code: TrialApiErrorCode,
+    *,
+    status_code: int,
+    retryable: bool = False,
+) -> TrialApiError:
+    return TrialApiError(
+        code,
+        status_code=status_code,
+        message="The Quality request could not be completed.",
+        retryable=retryable,
+    )
+
+
+def _persisted_subfarm_identity_matches(
+    persisted_subfarm_business_key: str,
+    *,
+    farm_business_key: str,
+    subfarm_business_key_or_null: str | None,
+) -> bool:
+    """Compare the two persisted public spellings of a subfarm key."""
+
+    if subfarm_business_key_or_null is None:
+        return False
+    return persisted_subfarm_business_key in {
+        subfarm_business_key_or_null,
+        f"{farm_business_key}/{subfarm_business_key_or_null}",
+    }
+
+
+async def _load_quality_parent_forecast(
+    session: AsyncSession,
+    *,
+    request: TrialQualityReportCreateRequest,
+    actor: ActualHarvestActorContext,
+) -> tuple[TrialForecastEvidence, Any, ActualHarvestImportBatchModel]:
+    try:
+        evidence = await authorize_and_load_forecast_evidence(
+            session,
+            public_forecast_id=request.forecast_run_id,
+            owner_identity=actor.identity,
+        )
+    except (TrialForecastEvidenceNotFoundError, TrialResourceNotFoundError) as error:
+        raise _resource_not_found() from error
+    except (TrialForecastEvidenceIntegrityError, TrialForecastEvidenceConflictError) as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except TrialForecastEvidenceError as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+
+    try:
+        persisted = await CoreForecastRunRepository(session).get_run_by_request_hash(
+            request.forecast_run_id
+        )
+    except CoreForecastPersistenceIntegrityError as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    if persisted is None or persisted.run.request_hash != request.forecast_run_id:
+        raise _resource_not_found()
+    if persisted.run.forecast_effective_cutoff_at is None:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    cutoff = _aware_datetime(persisted.run.forecast_effective_cutoff_at)
+    if cutoff != _aware_datetime(request.forecast_cutoff_at):
+        raise _quality_error(TrialApiErrorCode.REQUEST_INVALID, status_code=422)
+    core_request = persisted.request.curve_request
+    resolved_identity = persisted.request.resolved_identity
+    if (
+        resolved_identity is None
+        or len(core_request.scopes) != 1
+        or len(resolved_identity.scopes) != 1
+        or core_request.forecast_season_id != persisted.run.forecast_season_id
+        or core_request.destination_factory_id != persisted.run.destination_factory_id
+        or resolved_identity.season_business_key != evidence.season_business_key
+        or resolved_identity.factory_business_key != evidence.destination_factory_business_key
+    ):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    resolved_scope = resolved_identity.scopes[0]
+    if (
+        resolved_scope.farm_business_key != evidence.farm_business_key
+        or not _persisted_subfarm_identity_matches(
+            resolved_scope.subfarm_business_key,
+            farm_business_key=evidence.farm_business_key,
+            subfarm_business_key_or_null=evidence.subfarm_business_key_or_null,
+        )
+        or resolved_scope.variety_business_key != evidence.variety_business_key
+    ):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    import_batch = await session.scalar(
+        select(ActualHarvestImportBatchModel).where(
+            ActualHarvestImportBatchModel.import_id == request.actual_harvest_import_id,
+            ActualHarvestImportBatchModel.submitted_by_identity == actor.identity,
+            ActualHarvestImportBatchModel.status == ActualHarvestImportBatchStatus.COMMITTED.value,
+        )
+    )
+    if import_batch is None or import_batch.source_system not in actor.allowed_source_systems:
+        raise _resource_not_found()
+    return evidence, persisted, import_batch
+
+
+def _quality_request_identity(
+    request: TrialQualityReportCreateRequest,
+    *,
+    actor_identity: str,
+    server_owned_evidence: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    identity: dict[str, object] = {
+        "schema_version": ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+        "actor_identity": actor_identity,
+        "request_idempotency_key": request.request_idempotency_key,
+        "canonical_request": {
+            "forecast_run_id": request.forecast_run_id,
+            "actual_harvest_import_id": request.actual_harvest_import_id,
+            "forecast_cutoff_at": _aware_datetime(request.forecast_cutoff_at).isoformat(),
+            "label_observation_cutoff_at": _aware_datetime(
+                request.label_observation_cutoff_at
+            ).isoformat(),
+            "requested_horizons_days": request.requested_horizons_days,
+        },
+    }
+    if server_owned_evidence is not None:
+        identity["server_owned_evidence"] = dict(server_owned_evidence)
+    return identity
+
+
+async def _create_quality_label_snapshot(
+    session: AsyncSession,
+    *,
+    request: TrialQualityReportCreateRequest,
+    actor: ActualHarvestActorContext,
+    evidence: TrialForecastEvidence,
+    persisted: Any,
+    import_batch: ActualHarvestImportBatchModel,
+) -> Any:
+    snapshot_key = hashlib.sha256(
+        canonical_json_dumps(
+            {
+                "actor_identity": actor.identity,
+                "request_idempotency_key": request.request_idempotency_key,
+                "canonical_request": _quality_request_identity(
+                    request,
+                    actor_identity=actor.identity,
+                )["canonical_request"],
+            }
+        ).encode("utf-8")
+    ).hexdigest()
+    snapshot_request = ActualHarvestLabelSnapshotRequest(
+        snapshot_idempotency_key=f"trial-quality:{snapshot_key}",
+        source_system=import_batch.source_system,
+        visibility_mode=ActualHarvestLabelVisibilityMode.AS_OF_EVALUATION,
+        label_observation_cutoff_at_or_null=_aware_datetime(request.label_observation_cutoff_at),
+        harvest_date_start=persisted.run.forecast_start_date,
+        harvest_date_end=persisted.run.forecast_end_date,
+        season_business_keys=(evidence.season_business_key,),
+        farm_business_keys_or_empty_for_all=(evidence.farm_business_key,),
+        variety_business_keys_or_empty_for_all=(evidence.variety_business_key,),
+        snapshot_policy_version=SNAPSHOT_POLICY_VERSION,
+        winner_policy_version=WINNER_POLICY_VERSION,
+        aggregation_policy_version=AGGREGATION_POLICY_VERSION,
+    )
+    try:
+        return await create_label_snapshot(
+            session,
+            request=snapshot_request,
+            created_by_identity=actor.identity,
+        )
+    except ActualHarvestLabelSnapshotError as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+
+
+async def _build_quality_s2_candidates(
+    session: AsyncSession,
+    *,
+    request: TrialQualityReportCreateRequest,
+    evidence: TrialForecastEvidence,
+    persisted: Any,
+    snapshot: Any,
+) -> tuple[S2HistoricalBacktestRequest, tuple[S2HistoricalBindingCandidate, ...]]:
+    """Bind the existing persisted authorities into the S2 runner contract."""
+
+    core_run = await session.get(CoreForecastRunModel, persisted.run.run_id)
+    if core_run is None:
+        raise _quality_error(TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE, status_code=503)
+    core_rows = tuple(
+        await session.scalars(
+            select(CoreForecastDailyRowModel).where(
+                CoreForecastDailyRowModel.core_forecast_run_id == core_run.id
+            )
+        )
+    )
+    if not core_rows:
+        raise _quality_error(TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE, status_code=503)
+    core_repository = SqlAlchemyCoreForecastRepository(session)
+    task9_authority = await core_repository.load_task9_authority(
+        core_run.task9_harvest_state_run_id
+    )
+    task9_output = await load_harvest_state_output_by_id(
+        session,
+        run_id=core_run.task9_harvest_state_run_id,
+    )
+    task9_run = await session.get(HarvestStateRun, core_run.task9_harvest_state_run_id)
+    code_authority = persisted.code_authority
+    if (
+        task9_authority is None
+        or task9_output is None
+        or task9_run is None
+        or code_authority is None
+    ):
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
+            status_code=503,
+        )
+
+    prediction_runs = tuple(
+        await session.scalars(
+            select(ResidualModelPredictionRun).where(
+                ResidualModelPredictionRun.task9_run_id == task9_run.id,
+                ResidualModelPredictionRun.execution_status == "completed",
+            )
+        )
+    )
+    prediction_outputs: list[
+        tuple[
+            ResidualModelPredictionRun,
+            ResidualPredictionExecutionResult,
+            ResidualTrainingExecutionResult,
+            ResidualModelTrainingRun,
+        ]
+    ] = []
+    for persisted_prediction_run in prediction_runs:
+        if (
+            persisted_prediction_run.id <= 0
+            or persisted_prediction_run.task9_run_id != task9_run.id
+            or persisted_prediction_run.execution_status != "completed"
+        ):
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        output = await load_residual_prediction_run_by_id(
+            session,
+            run_id=persisted_prediction_run.id,
+        )
+        if output is None or output.model_run_id is None:
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        if (
+            output.model_run_id != persisted_prediction_run.training_run_id
+            or output.task9_run_id != persisted_prediction_run.task9_run_id
+            or output.task9_result_hash != persisted_prediction_run.task9_result_hash
+            or output.prediction_hash != persisted_prediction_run.prediction_hash
+        ):
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        training_output = await load_residual_training_run_by_id(
+            session,
+            run_id=output.model_run_id,
+        )
+        training_row = await session.get(ResidualModelTrainingRun, output.model_run_id)
+        if training_output is None or training_row is None:
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        prediction_outputs.append(
+            (
+                persisted_prediction_run,
+                output,
+                training_output,
+                training_row,
+            )
+        )
+    if not prediction_outputs:
+        raise _quality_error(TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE, status_code=503)
+
+    label_rows = tuple(await load_label_rows_for_snapshot(session, snapshot.header.snapshot_id))
+    winner_rows = tuple(await load_winners_for_snapshot(session, snapshot.header.snapshot_id))
+    mapping_version = next(
+        (row.mapping_policy_version for row in winner_rows if row.mapping_policy_version),
+        "actual-harvest-mapping-v1",
+    )
+    resolver_version = next(
+        (row.season_resolver_version for row in winner_rows if row.season_resolver_version),
+        "actual-harvest-season-resolver-v1",
+    )
+    resolved_identity_snapshot_hash = next(
+        (
+            row.resolved_identity_snapshot_hash
+            for row in winner_rows
+            if row.resolved_identity_snapshot_hash
+        ),
+        snapshot.header.label_snapshot_hash,
+    )
+    s2_request = S2HistoricalBacktestRequest(
+        season_business_keys=(evidence.season_business_key,),
+        farm_business_keys=(evidence.farm_business_key,),
+        subfarm_business_keys=(evidence.subfarm_business_key_or_null or "",),
+        variety_business_keys=(evidence.variety_business_key,),
+        master_identity_resolver_version=resolver_version,
+        mapping_policy_version=mapping_version,
+        resolved_identity_snapshot_hash=resolved_identity_snapshot_hash,
+        authority_selection_policy_version="v0.2-s2-authority-v1",
+        forecast_cutoff_at=_aware_datetime(request.forecast_cutoff_at),
+        label_observation_cutoff_at=_aware_datetime(request.label_observation_cutoff_at),
+        label_visibility_mode="AS_OF_EVALUATION",
+        requested_horizons_days=request.requested_horizons_days,
+    )
+
+    candidates: list[S2HistoricalBindingCandidate] = []
+    for horizon in request.requested_horizons_days:
+        target_date = request.forecast_cutoff_at.date() + timedelta(days=horizon)
+        for quantile in ("P50", "P80", "P90"):
+            matching_core = tuple(
+                row
+                for row in core_rows
+                if row.date == target_date
+                and row.forecast_quantile == quantile
+                and row.farm_id == core_rows[0].farm_id
+                and row.subfarm_id == core_rows[0].subfarm_id
+                and row.variety_id == core_rows[0].variety_id
+                and row.destination_factory_id == core_run.destination_factory_id
+            )
+            if len(matching_core) != 1:
+                raise _quality_error(
+                    TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
+                    status_code=503,
+                )
+            core_row = matching_core[0]
+            matching_members = tuple(
+                member
+                for member in task9_authority.member_rows
+                if member.state_date == target_date
+                and member.forecast_quantile == quantile
+                and member.farm_id == core_row.farm_id
+                and member.subfarm_id == core_row.subfarm_id
+                and member.variety_id == core_row.variety_id
+                and member.destination_factory_id == core_row.destination_factory_id
+            )
+            if len(matching_members) != 1:
+                raise _quality_error(
+                    TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
+                    status_code=503,
+                )
+            task9_member = matching_members[0]
+            task9_member_hash = _task9_member_identity_hash(task9_member)
+            matching_predictions: list[
+                tuple[
+                    ResidualModelPredictionRun,
+                    ResidualPredictionExecutionResult,
+                    ResidualTrainingExecutionResult,
+                    ResidualModelTrainingRun,
+                    ResidualPredictionRow,
+                ]
+            ] = []
+            for (
+                persisted_prediction_run,
+                output,
+                training_output,
+                training_row,
+            ) in prediction_outputs:
+                rows = tuple(
+                    row
+                    for row in output.rows
+                    if row.arrival_local_date == target_date
+                    and row.forecast_horizon_days == horizon
+                    and row.destination_factory_id == core_run.destination_factory_id
+                )
+                if len(rows) == 1:
+                    matching_predictions.append(
+                        (
+                            persisted_prediction_run,
+                            output,
+                            training_output,
+                            training_row,
+                            rows[0],
+                        )
+                    )
+            if not matching_predictions:
+                raise _quality_error(
+                    TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
+                    status_code=503,
+                )
+            if len(matching_predictions) > 1:
+                raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+            (
+                persisted_prediction_run,
+                prediction_output,
+                training_output,
+                training_row,
+                prediction_row,
+            ) = matching_predictions[0]
+
+            exact_labels = tuple(
+                row
+                for row in label_rows
+                if row.season_business_key == evidence.season_business_key
+                and row.farm_business_key == evidence.farm_business_key
+                and row.subfarm_business_key == evidence.subfarm_business_key_or_null
+                and row.variety_business_key == evidence.variety_business_key
+                and row.harvest_business_date == target_date
+            )
+            if len(exact_labels) > 1:
+                raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+            label_row = exact_labels[0] if exact_labels else None
+            winner_row = None
+            if label_row is not None:
+                try:
+                    contributing_hashes = tuple(json.loads(label_row.contributing_winner_hashes))
+                except (TypeError, json.JSONDecodeError) as error:
+                    raise _quality_error(
+                        TrialApiErrorCode.EVIDENCE_CONFLICT,
+                        status_code=409,
+                    ) from error
+                matching_winners = tuple(
+                    row for row in winner_rows if row.winner_row_hash in contributing_hashes
+                )
+                if len(matching_winners) != len(contributing_hashes) or not matching_winners:
+                    raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+                winner_row = sorted(matching_winners, key=lambda row: row.winner_row_hash)[0]
+
+            authority = S2ForecastAuthorityBundle(
+                forecast_run_identity_hash=core_run.result_hash,
+                daily_row_identity_hash=core_row.row_hash,
+                task9_authority_identity_hash=task9_output.result_hash,
+                task9_member_identity_hash=task9_member_hash,
+                task10_authority_identity_hash=prediction_output.prediction_hash,
+                task10_model_identity_hash=training_output.training_signature,
+                task10_replay_identity_hash=prediction_output.prediction_input_signature,
+                task10_prediction_row_identity_hash=prediction_row.prediction_hash,
+                historical_code_authority_id=code_authority.authority_id,
+                forecast_code_identity=code_authority.authority_hash,
+                historical_code_identity=code_authority.source_commit_sha,
+                build_artifact_hash=code_authority.build_artifact_hash,
+                config_bundle_hash=code_authority.config_bundle_hash,
+                model_identity=core_run.task8_artifact_hash,
+                parameter_identity=core_row.marketable_policy_hash,
+                data_identity=core_run.forecast_input_hash,
+                available_at=task9_run.forecast_effective_cutoff_at,
+                task10_model_available_at=training_row.finished_at,
+                historical_code_available_at=code_authority.available_at,
+            )
+            candidates.append(
+                S2HistoricalBindingCandidate(
+                    season_id=core_run.forecast_season_id,
+                    season_business_key=evidence.season_business_key,
+                    farm_business_key=evidence.farm_business_key,
+                    subfarm_business_key=evidence.subfarm_business_key_or_null or "",
+                    variety_business_key=evidence.variety_business_key,
+                    forecast_quantile=quantile,
+                    horizon_days=horizon,
+                    target_date=target_date,
+                    forecast_cutoff_at=_aware_datetime(request.forecast_cutoff_at),
+                    forecast_value_kg=core_row.model_harvested_marketable_quantity_kg,
+                    forecast_authority=authority,
+                    persisted_authority_references=S2PersistedAuthorityReferences(
+                        core_forecast_run_id=core_run.id,
+                        core_forecast_daily_row_id=core_row.id,
+                        task9_run_id=task9_run.id,
+                        task10_prediction_run_id=persisted_prediction_run.id,
+                        label_snapshot_id=snapshot.header.snapshot_id,
+                        label_row_id=None if label_row is None else label_row.id,
+                        label_winner_id=None if winner_row is None else winner_row.id,
+                    ),
+                    authority_verification="PERSISTED",
+                )
+            )
+    return s2_request, tuple(candidates)
+
+
+def _quality_s2_row_set_hash(rows: Sequence[Any]) -> str:
+    return hashlib.sha256(
+        canonical_json_dumps({"row_hashes": sorted(row.row_hash for row in rows)}).encode("utf-8")
+    ).hexdigest()
+
+
+def _quality_s3_rows(s2: Any) -> tuple[S3BindingRow, ...]:
+    result: list[S3BindingRow] = []
+    for row in s2.rows:
+        actual = row.actual_label
+        result.append(
+            S3BindingRow(
+                forecast_business_key=row.binding_key_hash,
+                actual_physical_key=(None if actual is None else actual.label_row_identity_hash),
+                stable_actual_identity=(None if actual is None else actual.label_row_identity_hash),
+                forecast_value_kg=Decimal(row.forecast_value_kg),
+                actual_value_kg=(
+                    None if row.actual_value_kg is None else Decimal(row.actual_value_kg)
+                ),
+                forecast_quantile=SupportedQuantile(row.forecast_quantile),
+                forecast_horizon_days=row.horizon_days,
+                forecast_target_date=row.target_date,
+                forecast_cutoff_at=_aware_datetime(row.forecast_cutoff_at),
+                s2_status=row.row_status,
+                season_business_key=row.season_business_key,
+                farm_business_key=row.farm_business_key,
+                subfarm_business_key=row.subfarm_business_key,
+                variety_business_key=row.variety_business_key,
+                model_identity=row.forecast_authority.model_identity,
+                actual_visibility_timestamp=(
+                    None if actual is None else _aware_datetime(actual.visibility_timestamp)
+                ),
+            )
+        )
+    return tuple(result)
+
+
+def _quality_snapshot_source_rows(snapshot: Any, cutoff: datetime) -> tuple[dict[str, object], ...]:
+    rows: list[dict[str, object]] = []
+    for row in snapshot.label_rows:
+        rows.append(
+            {
+                "target_date": row["harvest_business_date"],
+                "farm_business_key": row["farm_business_key"],
+                "subfarm_business_key": row["subfarm_business_key"],
+                "variety_business_key": row["variety_business_key"],
+                "actual_value_kg": Decimal(str(row["exact_decimal_quantity_sum_kg"])),
+                "physical_key": row["label_row_hash"],
+                "source_kind": "FARM_PICK",
+                "visibility_timestamp": cutoff,
+            }
+        )
+    return tuple(rows)
+
+
+async def _build_quality_calculation_inputs(
+    session: AsyncSession,
+    *,
+    request: TrialQualityReportCreateRequest,
+    evidence: TrialForecastEvidence,
+    persisted: Any,
+    s2: Any,
+    snapshot: Any,
+) -> tuple[
+    S3EvaluationInput,
+    tuple[DailyMetricResult, ...],
+    tuple[dict[str, object], ...],
+    tuple[BaselinePersistenceRecord, ...],
+    tuple[Any, ...],
+]:
+    row_set_hash = _quality_s2_row_set_hash(s2.rows)
+    evaluation_input = S3EvaluationInput(
+        rows=_quality_s3_rows(s2),
+        s2_run_identity=s2.instance_hash,
+        s2_manifest_identity=s2.manifest_hash,
+        s2_binding_row_set_hash=row_set_hash,
+        metric_policy_version=FrozenVersion.METRIC_INPUT_MASK_V1,
+        baseline_policy_version=FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+    )
+    season = await session.get(Season, persisted.run.forecast_season_id)
+    if season is None:
+        raise _quality_error(TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE, status_code=503)
+    label_cutoff = _aware_datetime(request.label_observation_cutoff_at)
+    source_rows = _quality_snapshot_source_rows(snapshot, label_cutoff)
+    metric_results: list[DailyMetricResult] = []
+    breakdown_results: list[dict[str, object]] = []
+    baseline_records: list[BaselinePersistenceRecord] = []
+    comparison_records: list[Any] = []
+    for horizon in request.requested_horizons_days:
+        spec = BreakdownSpec(
+            forecast_horizon_days=horizon,
+            farm_business_key=evidence.farm_business_key,
+            subfarm_business_key=evidence.subfarm_business_key_or_null or "",
+            variety_business_key=evidence.variety_business_key,
+            season_business_key=evidence.season_business_key,
+            model_identity=next(
+                row.forecast_authority.model_identity
+                for row in s2.rows
+                if row.horizon_days == horizon and row.forecast_quantile == "P50"
+            ),
+        )
+        metric = compute_daily_metrics(evaluation_input, spec)
+        metric_results.append(metric)
+        breakdown_results.extend(calculate_breakdown_cells(evaluation_input.rows, spec))
+        p50_row = next(
+            row for row in s2.rows if row.horizon_days == horizon and row.forecast_quantile == "P50"
+        )
+        baseline_request = BaselineRequest(
+            current_target_date=p50_row.target_date,
+            current_season_start=season.start_date,
+            current_season_end=season.end_date,
+            prior_season_start=season.start_date - timedelta(days=365),
+            prior_season_end=season.end_date - timedelta(days=365),
+            prior_season_identity=f"{season.code}-prior",
+            current_forecast_cutoff_at=_aware_datetime(request.forecast_cutoff_at),
+            farm_business_key=evidence.farm_business_key,
+            subfarm_business_key=evidence.subfarm_business_key_or_null or "",
+            variety_business_key=evidence.variety_business_key,
+            requested_quantile="P50",
+            metric_policy_version=FrozenVersion.METRIC_INPUT_MASK_V1,
+            baseline_policy_version=FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+        )
+        baseline_snapshot = BaselineSourceSnapshot(
+            source_snapshot_identity=snapshot.header.snapshot_instance_identity_hash,
+            source_snapshot_hash=snapshot.header.label_snapshot_hash,
+            source_row_set_hash=snapshot.header.label_row_set_hash,
+            visibility_manifest_hash=snapshot.header.winner_manifest_hash,
+            visibility_cutoff_at=label_cutoff,
+            season_analog_mapping_policy_version=FrozenVersion.SEASON_ANALOG_MAPPING_V1,
+            actual_rows=source_rows,
+        )
+        baseline_result = resolve_baseline_point_forecast(baseline_request, baseline_snapshot)
+        baseline_records.append(
+            BaselinePersistenceRecord(
+                request=baseline_request,
+                snapshot=baseline_snapshot,
+                result=baseline_result,
+            )
+        )
+        comparison_records.extend(
+            compute_model_baseline_comparisons(
+                evaluation_input=evaluation_input,
+                breakdown_spec=spec,
+                baseline_records=(
+                    ComparisonBaselineRecord(
+                        request=baseline_request,
+                        snapshot=baseline_snapshot,
+                        result=baseline_result,
+                    ),
+                ),
+            )
+        )
+    return (
+        evaluation_input,
+        tuple(metric_results),
+        tuple(breakdown_results),
+        tuple(baseline_records),
+        tuple(comparison_records),
+    )
+
+
+async def _create_quality_report(
+    session: AsyncSession,
+    *,
+    request: TrialQualityReportCreateRequest,
+    actor: ActualHarvestActorContext,
+    clock: Clock,
+) -> TrialQualityReportResponse:
+    del clock
+    request_identity = _quality_request_identity(request, actor_identity=actor.identity)
+    try:
+        replay = await session.run_sync(
+            lambda sync_session: resolve_trial_quality_request_replay(
+                sync_session,
+                schema_version=ROUND_C_PERSISTENCE_SCHEMA_VERSION,
+                actor_identity=actor.identity,
+                request_idempotency_key=request.request_idempotency_key,
+                canonical_request=cast(Mapping[str, object], request_identity["canonical_request"]),
+            )
+        )
+    except ForecastQualityConflictError as error:
+        raise TrialApiError(
+            TrialApiErrorCode.CONFLICTING_REPLAY,
+            status_code=409,
+            message="Request conflicts with an existing replay.",
+        ) from error
+    except (ForecastQualityPartialResultError, ForecastQualityContractError) as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except ForecastQualityPersistenceError as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+    if replay is not None:
+        try:
+            binding = await authorize_trial_resource(
+                session,
+                resource_kind=TrialResourceKind.QUALITY_REPORT,
+                public_resource_id=replay.evaluation_instance_hash,
+                owner_identity=actor.identity,
+            )
+        except TrialResourceNotFoundError as error:
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+        if (
+            binding.parent_forecast_public_id_or_null != request.forecast_run_id
+            or binding.parent_import_id_or_null != request.actual_harvest_import_id
+        ):
+            raise TrialApiError(
+                TrialApiErrorCode.CONFLICTING_REPLAY,
+                status_code=409,
+                message="Request conflicts with an existing replay.",
+            )
+        read_model = await _load_quality_read_model(session, replay.evaluation_instance_hash, actor)
+        return await _project_quality_report(session, read_model, actor)
+    evidence, persisted, import_batch = await _load_quality_parent_forecast(
+        session,
+        request=request,
+        actor=actor,
+    )
+    snapshot = await _create_quality_label_snapshot(
+        session,
+        request=request,
+        actor=actor,
+        evidence=evidence,
+        persisted=persisted,
+        import_batch=import_batch,
+    )
+    s2_request, candidates = await _build_quality_s2_candidates(
+        session,
+        request=request,
+        evidence=evidence,
+        persisted=persisted,
+        snapshot=snapshot,
+    )
+    try:
+        s2_run = await run_s2_historical_binding(
+            session,
+            request=s2_request,
+            candidates=candidates,
+        )
+        s2 = await load_s2_historical_binding_by_instance_hash(
+            session,
+            instance_hash=s2_run.instance_hash,
+        )
+        (
+            evaluation_input,
+            metric_results,
+            breakdown_results,
+            baseline_records,
+            comparison_records,
+        ) = await _build_quality_calculation_inputs(
+            session,
+            request=request,
+            evidence=evidence,
+            persisted=persisted,
+            s2=s2,
+            snapshot=snapshot,
+        )
+        status_evidence: tuple[QualityStatusEvidenceCell, ...] = (
+            build_frozen_quality_status_evidence(
+                requested_horizons_days=request.requested_horizons_days,
+                rows=evaluation_input.rows,
+                source_s2_run_identity=evaluation_input.s2_run_identity,
+                source_s2_manifest_identity=evaluation_input.s2_manifest_identity,
+                source_s2_binding_row_set_hash=evaluation_input.s2_binding_row_set_hash,
+            )
+        )
+        request_identity = _quality_request_identity(
+            request,
+            actor_identity=actor.identity,
+            server_owned_evidence={
+                "label_snapshot_identity": snapshot.header.snapshot_instance_identity_hash,
+                "label_snapshot_hash": snapshot.header.label_snapshot_hash,
+                "s2_instance_hash": s2.instance_hash,
+                "s2_manifest_hash": s2.manifest_hash,
+            },
+        )
+        persisted_quality = await session.run_sync(
+            lambda sync_session: persist_quality_evaluation(
+                sync_session,
+                evaluation_input=evaluation_input,
+                metric_results=metric_results,
+                status_evidence=status_evidence,
+                breakdown_results=breakdown_results,
+                baseline_records=baseline_records,
+                comparison_records=comparison_records,
+                manifest_payload={},
+                comparison_contract_enabled=True,
+                request_identity_payload=request_identity,
+            )
+        )
+        await create_quality_binding_in_result_boundary(
+            session,
+            public_quality_report_id=persisted_quality.evaluation_instance_hash,
+            owner_identity=actor.identity,
+            business_scope_hash=evidence.business_scope_hash,
+            parent_forecast_public_id=request.forecast_run_id,
+            parent_import_id=request.actual_harvest_import_id,
+        )
+        await session.flush()
+    except TrialResourceNotFoundError as error:
+        raise _resource_not_found() from error
+    except (ForecastQualityConflictError, TrialResourceBindingError) as error:
+        raise TrialApiError(
+            TrialApiErrorCode.CONFLICTING_REPLAY,
+            status_code=409,
+            message="Request conflicts with an existing replay.",
+        ) from error
+    except (ForecastQualityPartialResultError, ForecastQualityContractError) as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except ForecastQualityPersistenceError as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+    except (RollingBacktestCanonicalParityError, ValueError) as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_AUTHORITY_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+    read_model = await _load_quality_read_model(
+        session,
+        persisted_quality.evaluation_instance_hash,
+        actor,
+    )
+    return await _project_quality_report(session, read_model, actor)
+
+
+async def _load_quality_read_model(
+    session: AsyncSession,
+    report_id: str,
+    actor: ActualHarvestActorContext,
+) -> _QualityReadContext:
+    if re.fullmatch(r"[0-9a-f]{64}", report_id) is None:
+        raise _resource_not_found()
+    try:
+        binding = await authorize_trial_resource(
+            session,
+            resource_kind=TrialResourceKind.QUALITY_REPORT,
+            public_resource_id=report_id,
+            owner_identity=actor.identity,
+        )
+    except TrialResourceNotFoundError as error:
+        raise _resource_not_found() from error
+    try:
+        quality = await session.run_sync(
+            lambda sync_session: load_quality_evaluation_by_instance_hash(
+                sync_session,
+                evaluation_instance_hash=report_id,
+            )
+        )
+    except (ForecastQualityPartialResultError, ForecastQualityContractError) as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    run_identity = quality.run_payload.get("trial_request_identity")
+    if not isinstance(run_identity, Mapping):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    canonical_request = run_identity.get("canonical_request")
+    if not isinstance(canonical_request, Mapping):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    parent_forecast_id = canonical_request.get("forecast_run_id")
+    parent_import_id = canonical_request.get("actual_harvest_import_id")
+    s2_identity = quality.run_payload.get("s2_run_identity")
+    if (
+        not isinstance(parent_forecast_id, str)
+        or not isinstance(parent_import_id, str)
+        or not isinstance(s2_identity, str)
+        or binding.parent_forecast_public_id_or_null != parent_forecast_id
+        or binding.parent_import_id_or_null != parent_import_id
+    ):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    try:
+        s2 = await load_s2_historical_binding_by_instance_hash(
+            session,
+            instance_hash=s2_identity,
+        )
+        forecast_evidence = await authorize_and_load_forecast_evidence(
+            session,
+            public_forecast_id=parent_forecast_id,
+            owner_identity=actor.identity,
+        )
+    except (TrialForecastEvidenceNotFoundError, TrialResourceNotFoundError) as error:
+        raise _resource_not_found() from error
+    except (TrialForecastEvidenceIntegrityError, TrialForecastEvidenceConflictError) as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except RollingBacktestCanonicalParityError as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except ForecastQualityPartialResultError as error:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409) from error
+    except ForecastQualityPersistenceError as error:
+        raise _quality_error(
+            TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE,
+            status_code=503,
+            retryable=True,
+        ) from error
+    if binding.business_scope_hash != forecast_evidence.business_scope_hash:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    return _QualityReadContext(
+        quality=quality,
+        s2=s2,
+        forecast_evidence=forecast_evidence,
+        parent_forecast_public_id=parent_forecast_id,
+        parent_import_id=parent_import_id,
+    )
+
+
+def _quality_decimal(value: object) -> Decimal | None:
+    if value is None:
+        return None
+    return Decimal(str(value)).quantize(Decimal("0.000001"))
+
+
+def _quality_metric_from_cell(
+    payload: Mapping[str, object], *, name: str | None = None
+) -> TrialQualityMetric:
+    cell = payload.get("metric_cell")
+    if not isinstance(cell, Mapping):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    reason = str(cell.get("reason_code", "EVIDENCE_CONFLICT"))
+    return TrialQualityMetric(
+        metric_name=name or str(cell.get("metric_name", "")),
+        metric_status=str(cell.get("metric_status", "NOT_COMPUTABLE")),
+        metric_value_or_null=_quality_decimal(cell.get("metric_value")),
+        numerator_or_null=_quality_decimal(cell.get("numerator")),
+        denominator_or_null=_quality_decimal(cell.get("denominator")),
+        reason_codes=(reason,),
+    )
+
+
+def _quality_overlay_rows(
+    rows: Sequence[Any],
+    *,
+    horizon: int,
+) -> tuple[TrialQualityDailyOverlayRow, ...]:
+    grouped: dict[date, list[Any]] = {}
+    for row in rows:
+        if row.horizon_days == horizon:
+            grouped.setdefault(row.target_date, []).append(row)
+    output: list[TrialQualityDailyOverlayRow] = []
+    for target_date in sorted(grouped):
+        values = grouped[target_date]
+        by_quantile = {row.forecast_quantile: row for row in values}
+        if set(by_quantile) != {"P50", "P80", "P90"} or len(by_quantile) != len(values):
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        p50, p80, p90 = (by_quantile[name] for name in ("P50", "P80", "P90"))
+        actuals = {row.actual_value_kg for row in values}
+        statuses = {row.row_status for row in values}
+        reasons = tuple(sorted({str(row.reason_code) for row in values if row.reason_code}))
+        if len(actuals) != 1 or len(statuses) != 1:
+            raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+        status = next(iter(statuses))
+        if status == "COMPARABLE":
+            coverage_state = "AVAILABLE"
+        elif status == "EXCLUDED":
+            coverage_state = "EXCLUDED"
+        else:
+            coverage_state = "NOT_COMPUTABLE"
+        output.append(
+            TrialQualityDailyOverlayRow(
+                business_date=target_date,
+                forecast_p50_kg_or_null=_quality_decimal(p50.forecast_value_kg),
+                forecast_p80_kg_or_null=_quality_decimal(p80.forecast_value_kg),
+                forecast_p90_kg_or_null=_quality_decimal(p90.forecast_value_kg),
+                actual_quantity_kg_or_null=_quality_decimal(next(iter(actuals))),
+                actual_available=status == "COMPARABLE",
+                coverage_state=coverage_state,
+                exclusion_reason_codes=reasons,
+            )
+        )
+    return tuple(output)
+
+
+def _quality_status_payload(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    metric_name: str,
+    horizon: int,
+    quantile: str,
+) -> Mapping[str, object]:
+    matches = []
+    for payload in metric_payloads:
+        status = payload.get("status_evidence")
+        if not isinstance(status, Mapping):
+            continue
+        if (
+            status.get("metric_name") == metric_name
+            and status.get("forecast_horizon_days") == horizon
+            and status.get("forecast_quantile") == quantile
+        ):
+            matches.append(status)
+    if len(matches) != 1:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    return matches[0]
+
+
+def _quality_status_reason(payload: Mapping[str, object]) -> tuple[str, ...]:
+    reason = payload.get("reason_code")
+    return () if reason in (None, "") else (str(reason),)
+
+
+def _quality_status_coverage(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    horizon: int,
+    quantile: Literal["P80", "P90"],
+) -> TrialQualityCoverageMetric:
+    payload = _quality_status_payload(
+        metric_payloads,
+        metric_name=f"{quantile.lower()}_upper_coverage",
+        horizon=horizon,
+        quantile=quantile,
+    )
+    candidate_count = payload.get("candidate_row_count_or_null")
+    if (
+        not isinstance(candidate_count, int)
+        or isinstance(candidate_count, bool)
+        or candidate_count < 0
+    ):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    return TrialQualityCoverageMetric(
+        quantile=quantile,
+        forecast_horizon_days=horizon,
+        metric_status=str(payload.get("metric_status", "")),
+        covered_count_or_null=None,
+        total_count=candidate_count,
+        coverage_ratio_or_null=None,
+        reason_codes=_quality_status_reason(payload),
+    )
+
+
+def _quality_status_peak(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    metric_name: str,
+    horizon: int,
+    quantile: Literal["P50", "P80", "P90"],
+) -> TrialQualityPeakMetric:
+    payload = _quality_status_payload(
+        metric_payloads,
+        metric_name=metric_name,
+        horizon=horizon,
+        quantile=quantile,
+    )
+    return TrialQualityPeakMetric(
+        quantile=quantile,
+        forecast_horizon_days=horizon,
+        metric_status=str(payload.get("metric_status", "")),
+        metric_value_or_null=_quality_decimal(payload.get("metric_value")),
+        business_date_or_null=(
+            None
+            if payload.get("business_date_or_null") is None
+            else date.fromisoformat(str(payload["business_date_or_null"]))
+        ),
+        window_start_date_or_null=(
+            None
+            if payload.get("window_start_date_or_null") is None
+            else date.fromisoformat(str(payload["window_start_date_or_null"]))
+        ),
+        window_end_date_or_null=(
+            None
+            if payload.get("window_end_date_or_null") is None
+            else date.fromisoformat(str(payload["window_end_date_or_null"]))
+        ),
+        reason_codes=_quality_status_reason(payload),
+    )
+
+
+def _quality_status_interval(
+    metric_payloads: Sequence[Mapping[str, object]],
+    *,
+    horizon: int,
+    quantile: Literal["P80", "P90"],
+) -> TrialQualityIntervalMetric:
+    payload = _quality_status_payload(
+        metric_payloads,
+        metric_name="prediction_interval",
+        horizon=horizon,
+        quantile=quantile,
+    )
+    lower_available = payload.get("lower_bound_available_or_null")
+    if not isinstance(lower_available, bool):
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    return TrialQualityIntervalMetric(
+        quantile=quantile,
+        forecast_horizon_days=horizon,
+        metric_status=str(payload.get("metric_status", "")),
+        lower_bound_available=lower_available,
+        lower_bound_value_or_null=_quality_decimal(payload.get("lower_bound_value_or_null")),
+        upper_bound_value_or_null=_quality_decimal(payload.get("upper_bound_value_or_null")),
+        metric_value_or_null=_quality_decimal(payload.get("metric_value")),
+        reason_codes=_quality_status_reason(payload),
+    )
+
+
+async def _project_quality_report(
+    session: AsyncSession,
+    context: _QualityReadContext,
+    actor: ActualHarvestActorContext,
+) -> TrialQualityReportResponse:
+    del session, actor
+    quality = context.quality
+    s2 = context.s2
+    run_identity = quality.run_payload["trial_request_identity"]
+    request_payload = run_identity["canonical_request"]
+    server_owned = run_identity.get("server_owned_evidence", {})
+    if not isinstance(server_owned, Mapping):
+        server_owned = {}
+    overlays: list[TrialQualityHorizonMetrics] = []
+    metric_payloads = quality.metrics
+    for horizon in (7, 14, 21):
+        overlay = _quality_overlay_rows(s2.rows, horizon=horizon)
+        metrics: list[TrialQualityMetric] = []
+        for payload in metric_payloads:
+            daily = payload.get("daily_metric_result")
+            if (
+                isinstance(daily, Mapping)
+                and daily.get("breakdown_identity", {}).get("forecast_horizon_days") == horizon
+            ):
+                metrics.append(_quality_metric_from_cell(payload))
+        cumulative = next(
+            (item for item in metrics if item.metric_name == "daily_absolute_error_sum_kg"),
+            TrialQualityMetric(
+                metric_name="cumulative_error",
+                metric_status="NOT_COMPUTABLE",
+                metric_value_or_null=None,
+                numerator_or_null=None,
+                denominator_or_null=None,
+                reason_codes=("NO_S2_BINDING_ROWS",),
+            ),
+        )
+        if cumulative.metric_name != "cumulative_error":
+            cumulative = cumulative.model_copy(update={"metric_name": "cumulative_error"})
+        coverage_p80 = _quality_status_coverage(metric_payloads, horizon=horizon, quantile="P80")
+        coverage_p90 = _quality_status_coverage(metric_payloads, horizon=horizon, quantile="P90")
+        single_day_peaks = tuple(
+            _quality_status_peak(
+                metric_payloads,
+                metric_name="single_day_peak",
+                horizon=horizon,
+                quantile=quantile,
+            )
+            for quantile in cast(tuple[Literal["P50", "P80", "P90"], ...], ("P50", "P80", "P90"))
+        )
+        sustained_peaks = tuple(
+            _quality_status_peak(
+                metric_payloads,
+                metric_name="sustained_seven_day_peak",
+                horizon=horizon,
+                quantile=quantile,
+            )
+            for quantile in cast(tuple[Literal["P50", "P80", "P90"], ...], ("P50", "P80", "P90"))
+        )
+        interval_metrics = tuple(
+            _quality_status_interval(metric_payloads, horizon=horizon, quantile=quantile)
+            for quantile in cast(tuple[Literal["P80", "P90"], ...], ("P80", "P90"))
+        )
+        overlays.append(
+            TrialQualityHorizonMetrics(
+                horizon_days=horizon,
+                daily_overlay=overlay,
+                daily_metrics=tuple(metrics),
+                cumulative_metric=cumulative,
+                single_day_peak=single_day_peaks[0],
+                sustained_seven_day_peak=sustained_peaks[0],
+                p80_coverage=coverage_p80,
+                p90_coverage=coverage_p90,
+                interval_metric=interval_metrics[0],
+                coverage_counts={
+                    "total": len(overlay),
+                    "covered": sum(item.actual_available for item in overlay),
+                },
+                excluded_row_counts={
+                    "total": len(overlay),
+                    "excluded": sum(item.coverage_state == "EXCLUDED" for item in overlay),
+                    "not_computable": sum(
+                        item.coverage_state == "NOT_COMPUTABLE" for item in overlay
+                    ),
+                },
+                single_day_peaks=single_day_peaks,
+                sustained_seven_day_peaks=sustained_peaks,
+                interval_metrics=interval_metrics,
+            )
+        )
+    first_row = s2.rows[0]
+    label_snapshot_identity = server_owned.get("label_snapshot_identity")
+    if not isinstance(label_snapshot_identity, str) or not label_snapshot_identity:
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    model_identity = first_row.forecast_authority.model_identity
+    if not isinstance(model_identity, str) or not model_identity.strip():
+        raise _quality_error(TrialApiErrorCode.EVIDENCE_CONFLICT, status_code=409)
+    identity = TrialQualityEvidenceIdentity(
+        forecast_run_id=context.parent_forecast_public_id,
+        actual_harvest_import_id=context.parent_import_id,
+        actual_label_snapshot_identity=label_snapshot_identity,
+        s2_run_identity=str(quality.run_payload["s2_run_identity"]),
+        s2_manifest_identity=str(quality.run_payload["s2_manifest_identity"]),
+        s2_binding_row_set_hash=str(quality.run_payload["s2_binding_row_set_hash"]),
+        evaluation_request_hash=quality.evaluation_request_hash,
+        evaluation_instance_hash=quality.evaluation_instance_hash,
+        quality_manifest_hash=hashlib.sha256(
+            canonical_json_dumps(quality.manifest_payload).encode("utf-8")
+        ).hexdigest(),
+        metric_result_set_hash=str(quality.manifest_payload["metric_result_set_hash"]),
+        breakdown_result_set_hash=str(quality.manifest_payload["breakdown_result_set_hash"]),
+        baseline_result_set_hash=str(quality.manifest_payload["baseline_result_set_hash"]),
+        comparison_result_set_hash=str(quality.manifest_payload["comparison_result_set_hash"]),
+        metric_policy_version=str(quality.run_payload["metric_policy_version"]),
+        baseline_policy_version=str(quality.run_payload["baseline_policy_version"]),
+        comparison_policy_version_or_null=quality.run_payload.get("comparison_policy_version"),
+        model_identity=model_identity,
+    )
+    top = overlays[0]
+    all_reasons = tuple(
+        sorted(
+            {
+                reason
+                for horizon in overlays
+                for reason in horizon.reason_codes
+                + tuple(
+                    code for row in horizon.daily_overlay for code in row.exclusion_reason_codes
+                )
+            }
+        )
+    )
+    return TrialQualityReportResponse(
+        report_id=quality.evaluation_instance_hash,
+        forecast_identity=identity,
+        actual_label_snapshot_identity=identity.actual_label_snapshot_identity,
+        forecast_cutoff_at=_aware_datetime(
+            datetime.fromisoformat(str(request_payload["forecast_cutoff_at"]))
+        ),
+        label_observation_cutoff_at=_aware_datetime(
+            datetime.fromisoformat(str(request_payload["label_observation_cutoff_at"]))
+        ),
+        requested_horizons_days=tuple(request_payload["requested_horizons_days"]),
+        horizons=tuple(overlays),
+        daily_metrics=top.daily_metrics,
+        cumulative_error=top.cumulative_metric,
+        single_day_peak=top.single_day_peak,
+        sustained_seven_day_peak=top.sustained_seven_day_peak,
+        p80_coverage=top.p80_coverage,
+        p90_coverage=top.p90_coverage,
+        interval_metric=top.interval_metric,
+        breakdowns=tuple(
+            TrialQualityBreakdown(
+                breakdown_identity=TrialQualityBreakdownIdentity.model_validate(
+                    dict(payload.get("cell_identity", {}))
+                ),
+                metric_status=str(payload.get("metric_status", "NOT_COMPUTABLE")),
+                coverage_ratio_or_null=_quality_decimal(payload.get("coverage_ratio")),
+                comparable_row_count=int(payload.get("s2_comparable_row_count", 0)),
+                excluded_row_count=int(payload.get("s2_excluded_row_count", 0)),
+                not_computable_row_count=int(payload.get("s2_not_computable_row_count", 0)),
+                metric_values=TrialQualityMetricValues.model_validate(
+                    {
+                        str(key): _quality_decimal(value)
+                        for key, value in dict(payload.get("metric_values", {})).items()
+                    }
+                ),
+                reason_codes=(str(payload.get("reason_code", "")),),
+            )
+            for payload in quality.breakdowns
+        ),
+        naive_baseline_results=tuple(
+            TrialQualityBaselineResult(
+                baseline_quantile=str(payload.get("result", {}).get("baseline_quantile", "P50")),
+                metric_status=str(payload.get("result", {}).get("metric_status", "NOT_COMPUTABLE")),
+                baseline_value_kg_or_null=_quality_decimal(
+                    payload.get("result", {}).get("baseline_point_forecast_kg")
+                ),
+                comparison_availability=str(
+                    payload.get("result", {}).get("comparison_availability", "BLOCKED")
+                ),
+                analog_date_or_null=(
+                    None
+                    if payload.get("result", {}).get("analog_date") is None
+                    else date.fromisoformat(str(payload["result"]["analog_date"]))
+                ),
+                reason_codes=(str(payload.get("result", {}).get("reason_code", "")),),
+            )
+            for payload in quality.baselines
+        ),
+        computability_status="COMPUTED"
+        if any(item.coverage_state == "AVAILABLE" for item in top.daily_overlay)
+        else "NOT_COMPUTABLE",
+        reason_codes=all_reasons,
+        coverage_counts=top.coverage_counts,
+        excluded_row_counts=top.excluded_row_counts,
+    )
+
+
+def _project_quality_comparison(
+    context: _QualityReadContext,
+) -> TrialQualityComparisonResponse:
+    quality = context.quality
+    deltas: list[TrialQualityComparisonDelta] = []
+    for payload in quality.comparisons:
+        identity = payload.get("normalized_breakdown_identity", {})
+        deltas.append(
+            TrialQualityComparisonDelta(
+                comparison_name=str(payload.get("comparison_name", "")),
+                comparison_availability=str(payload.get("comparison_availability", "BLOCKED")),
+                metric_status=str(payload.get("metric_status", "NOT_COMPUTABLE")),
+                model_value_or_null=_quality_decimal(payload.get("model_value")),
+                baseline_value_or_null=_quality_decimal(payload.get("baseline_value")),
+                delta_value_or_null=_quality_decimal(payload.get("delta_value")),
+                forecast_horizon_days=int(
+                    str(
+                        payload.get(
+                            "forecast_horizon_days",
+                            identity.get("forecast_horizon_days", 0),
+                        )
+                    )
+                ),
+                common_comparable_row_count=int(payload.get("common_comparable_row_count", 0)),
+                model_only_row_count=int(payload.get("model_only_row_count", 0)),
+                baseline_only_row_count=int(payload.get("baseline_only_row_count", 0)),
+                excluded_row_count=int(payload.get("excluded_row_count", 0)),
+                not_computable_row_count=int(payload.get("not_computable_row_count", 0)),
+                reason_codes=(str(payload.get("reason_code", "")),),
+                baseline_member_set_hash=str(payload.get("baseline_member_set_hash", "")),
+                comparison_key_hash=str(payload.get("comparison_key_hash", "")),
+                canonical_hash=hashlib.sha256(
+                    canonical_json_dumps(payload).encode("utf-8")
+                ).hexdigest(),
+            )
+        )
+    manifest = quality.manifest_payload
+    return TrialQualityComparisonResponse(
+        report_id=quality.evaluation_instance_hash,
+        comparison_availability="AVAILABLE" if deltas else "BLOCKED",
+        comparison_status="COMPUTED" if deltas else "NOT_COMPUTABLE",
+        comparison_policy_version=str(
+            quality.run_payload.get("comparison_policy_version", "v0.2-s3-comparison-policy-v1")
+        ),
+        model_baseline_deltas=tuple(deltas),
+        reason_codes=() if deltas else ("NO_COMPARISON_ROWS",),
+        comparison_public_hash=str(manifest["comparison_result_set_hash"]),
+    )
+
+
+def _project_quality_csv(report: TrialQualityReportResponse) -> TrialCsvDocument:
+    rows: list[tuple[object, ...]] = []
+    type_order = {"OVERLAY": 0, "METRIC": 1, "PEAK": 2, "COVERAGE": 3, "INTERVAL": 4}
+    for horizon in report.horizons:
+        for overlay in horizon.daily_overlay:
+            for quantile, value in (
+                ("P50", overlay.forecast_p50_kg_or_null),
+                ("P80", overlay.forecast_p80_kg_or_null),
+                ("P90", overlay.forecast_p90_kg_or_null),
+            ):
+                rows.append(
+                    (
+                        "OVERLAY",
+                        horizon.horizon_days,
+                        overlay.business_date,
+                        "",
+                        quantile,
+                        value,
+                        overlay.actual_quantity_kg_or_null,
+                        overlay.coverage_state,
+                        None,
+                        None,
+                        None,
+                        overlay.coverage_state,
+                        "|".join(sorted(overlay.exclusion_reason_codes)),
+                    )
+                )
+        for metric in horizon.daily_metrics + (horizon.cumulative_metric,):
+            rows.append(
+                (
+                    "METRIC",
+                    horizon.horizon_days,
+                    None,
+                    metric.metric_name,
+                    "",
+                    None,
+                    None,
+                    None,
+                    metric.metric_value_or_null,
+                    metric.numerator_or_null,
+                    metric.denominator_or_null,
+                    None,
+                    "|".join(sorted(metric.reason_codes)),
+                )
+            )
+        for name, peak_metrics in (
+            ("single_day_peak", horizon.single_day_peaks),
+            ("sustained_seven_day_peak", horizon.sustained_seven_day_peaks),
+        ):
+            for peak_metric in peak_metrics:
+                rows.append(
+                    (
+                        "PEAK",
+                        horizon.horizon_days,
+                        peak_metric.business_date_or_null,
+                        name,
+                        peak_metric.quantile,
+                        None,
+                        None,
+                        peak_metric.metric_status,
+                        peak_metric.metric_value_or_null,
+                        None,
+                        None,
+                        None,
+                        "|".join(sorted(peak_metric.reason_codes)),
+                    )
+                )
+        for coverage in (horizon.p80_coverage, horizon.p90_coverage):
+            rows.append(
+                (
+                    "COVERAGE",
+                    horizon.horizon_days,
+                    None,
+                    "",
+                    coverage.quantile,
+                    None,
+                    None,
+                    coverage.metric_status,
+                    coverage.coverage_ratio_or_null,
+                    coverage.covered_count_or_null,
+                    coverage.total_count,
+                    coverage.metric_status,
+                    "|".join(sorted(coverage.reason_codes)),
+                )
+            )
+        for interval in horizon.interval_metrics:
+            rows.append(
+                (
+                    "INTERVAL",
+                    horizon.horizon_days,
+                    None,
+                    "prediction_interval",
+                    interval.quantile,
+                    None,
+                    None,
+                    interval.metric_status,
+                    interval.metric_value_or_null,
+                    None,
+                    None,
+                    None,
+                    "|".join(sorted(interval.reason_codes)),
+                )
+            )
+    rows.sort(
+        key=lambda row: (
+            type_order[str(row[0])],
+            int(str(row[1])),
+            row[2] or date.min,
+            str(row[3]),
+            {"P50": 0, "P80": 1, "P90": 2, "": 3}.get(str(row[4]), 4),
+        )
+    )
+    return TrialCsvDocument(
+        filename=f"{report.report_id}.csv",
+        content=serialize_csv(
+            (
+                "record_type",
+                "horizon_days",
+                "business_date",
+                "metric_name",
+                "quantile",
+                "forecast_value_kg",
+                "actual_quantity_kg",
+                "metric_status",
+                "metric_value",
+                "numerator",
+                "denominator",
+                "coverage_state",
+                "reason_codes",
+            ),
+            rows,
+        ),
+    )
 
 
 @dataclass(frozen=True)
@@ -2193,7 +4056,20 @@ __all__ = [
     "TrialForecastSummaryResponse",
     "TrialCsvExportResponse",
     "TrialQualityComparisonResponse",
+    "TrialQualityComparisonDelta",
     "TrialQualityCsvExportResponse",
+    "TrialQualityCoverageMetric",
+    "TrialQualityDailyOverlayRow",
+    "TrialQualityEvidenceIdentity",
+    "TrialQualityHorizonMetrics",
+    "TrialQualityIntervalMetric",
+    "TrialQualityMetric",
+    "TrialQualityPeakMetric",
+    "TrialQualityBaselineResult",
+    "TrialQualityBreakdown",
+    "TrialQualityBreakdownIdentity",
+    "TrialQualityMetricValues",
+    "TrialQualityRowCounts",
     "TrialQualityReportCreateRequest",
     "TrialQualityReportResponse",
     "TrialServiceDep",
