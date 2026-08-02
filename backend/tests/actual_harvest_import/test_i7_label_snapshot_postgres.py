@@ -58,6 +58,7 @@ production I5 persistence path.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
@@ -202,6 +203,8 @@ def _i7_request(
     ),
     label_observation_cutoff_at_or_null: datetime | None = None,
     season_business_keys: tuple[str, ...] | None = None,
+    farm_business_keys_or_empty_for_all: tuple[str, ...] = (),
+    variety_business_keys_or_empty_for_all: tuple[str, ...] = (),
     harvest_date_start: date = date(2026, 1, 1),
     harvest_date_end: date = date(2026, 12, 31),
 ) -> ActualHarvestLabelSnapshotRequest:
@@ -222,8 +225,8 @@ def _i7_request(
             "harvest_date_start": harvest_date_start,
             "harvest_date_end": harvest_date_end,
             "season_business_keys": list(season_business_keys),
-            "farm_business_keys_or_empty_for_all": [],
-            "variety_business_keys_or_empty_for_all": [],
+            "farm_business_keys_or_empty_for_all": list(farm_business_keys_or_empty_for_all),
+            "variety_business_keys_or_empty_for_all": list(variety_business_keys_or_empty_for_all),
             "snapshot_policy_version": SNAPSHOT_POLICY_VERSION,
             "winner_policy_version": WINNER_POLICY_VERSION,
             "aggregation_policy_version": AGGREGATION_POLICY_VERSION,
@@ -397,9 +400,9 @@ async def _plant_full_i7_snapshot(*, snapshot_id: str) -> tuple[int, int, int, i
                 label_observation_cutoff_at_or_null=datetime(2024, 6, 30, tzinfo=UTC),
                 harvest_date_start=date(2024, 1, 1),
                 harvest_date_end=date(2024, 12, 31),
-                season_business_keys="season-business-key-1",
-                farm_business_keys_or_empty_for_all="",
-                variety_business_keys_or_empty_for_all="",
+                season_business_keys='["season-business-key-1"]',
+                farm_business_keys_or_empty_for_all="[]",
+                variety_business_keys_or_empty_for_all="[]",
                 snapshot_policy_version=SNAPSHOT_POLICY_VERSION,
                 winner_policy_version=WINNER_POLICY_VERSION,
                 aggregation_policy_version=AGGREGATION_POLICY_VERSION,
@@ -1144,6 +1147,86 @@ async def test_e5_3_pg_uncommitted_snapshot_not_visible_to_other_session() -> No
 
 
 # ===========================================================================
+# E5.3 — canonical scope persistence
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_e5_3_pg_scope_json_arrays_round_trip_and_hashes() -> None:
+    """Persist multi-key scope arrays and preserve hashes on exact replay."""
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e5-3-scope-{suffix}",
+            season_business_keys=(f"season-{suffix}", "season-extra"),
+            farm_business_keys_or_empty_for_all=(
+                f"farm-master-{suffix}",
+                "farm-extra",
+            ),
+            variety_business_keys_or_empty_for_all=(
+                f"variety-master-{suffix}",
+                "variety-extra",
+            ),
+        )
+
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                first = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-e5-3-scope",
+                )
+
+        async with AsyncSessionMaker() as session:
+            header = await session.scalar(
+                select(ActualHarvestLabelSnapshotModel).where(
+                    ActualHarvestLabelSnapshotModel.snapshot_idempotency_key
+                    == request.snapshot_idempotency_key
+                )
+            )
+        assert header is not None
+        assert json.loads(header.season_business_keys) == list(request.season_business_keys)
+        assert json.loads(header.farm_business_keys_or_empty_for_all) == list(
+            request.farm_business_keys_or_empty_for_all
+        )
+        assert json.loads(header.variety_business_keys_or_empty_for_all) == list(
+            request.variety_business_keys_or_empty_for_all
+        )
+        assert header.snapshot_request_identity_hash == first.header.snapshot_request_identity_hash
+        assert (
+            header.snapshot_instance_identity_hash == first.header.snapshot_instance_identity_hash
+        )
+        assert header.label_snapshot_hash == first.header.label_snapshot_hash
+
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                replay = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-e5-3-scope-replay",
+                )
+
+        assert replay.header.snapshot_id == first.header.snapshot_id
+        assert replay.header.snapshot_request_identity_hash == (
+            first.header.snapshot_request_identity_hash
+        )
+        assert replay.header.snapshot_instance_identity_hash == (
+            first.header.snapshot_instance_identity_hash
+        )
+        assert replay.header.label_snapshot_hash == first.header.label_snapshot_hash
+        counts = await _i7_table_counts()
+        assert counts[HEADER_TABLE_NAME] == 1
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+# ===========================================================================
 # E5.4 — concurrent identical snapshot
 # ===========================================================================
 
@@ -1295,7 +1378,7 @@ async def test_e5_5_pg_idempotency_conflict() -> None:
             )
             assert header is not None
             assert header.snapshot_idempotency_key == f"idem-e5-5-{suffix}"
-            assert f"season-{suffix}" in header.season_business_keys
+            assert json.loads(header.season_business_keys) == [f"season-{suffix}"]
     finally:
         await _cleanup_batch(external_batch_id)
 
