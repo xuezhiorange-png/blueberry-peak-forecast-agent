@@ -786,6 +786,47 @@ async def test_postgres_default_trial_service_create_replay_and_owner_readback(
         variety_business_key=evidence.variety_business_key,
         destination_factory_business_key=evidence.destination_factory_business_key,
     )
+    persisted = await CoreForecastRunRepository(transactional_pg_session).get_run_by_request_hash(
+        created.run_id
+    )
+    assert persisted is not None
+    persisted_p50 = next(
+        item for item in persisted.metrics.metrics if item.forecast_quantile == "P50"
+    )
+    persisted_last_p50 = next(
+        row for row in reversed(persisted.daily_curve.rows) if row.forecast_quantile == "P50"
+    )
+    assert created.single_day_peak.date == persisted_p50.single_day_peak.date
+    assert created.single_day_peak.quantity_kg == Decimal(persisted_p50.single_day_peak.quantity_kg)
+    assert created.single_day_peak.tie_break == persisted_p50.single_day_peak.tie_break
+    assert (
+        created.sustained_seven_day_peak.start_date == persisted_p50.sustained_7day_peak.start_date
+    )
+    assert created.sustained_seven_day_peak.end_date == persisted_p50.sustained_7day_peak.end_date
+    assert created.sustained_seven_day_peak.cumulative_quantity_kg == Decimal(
+        persisted_p50.sustained_7day_peak.cumulative_quantity_kg
+    )
+    assert created.sustained_seven_day_peak.daily_average_kg_per_day == Decimal(
+        persisted_p50.sustained_7day_peak.daily_average_kg_per_day
+    )
+    assert (
+        created.sustained_seven_day_peak.window_days
+        == persisted_p50.sustained_7day_peak.window_days
+    )
+    assert created.sustained_seven_day_peak.metric == persisted_p50.sustained_7day_peak.metric
+    assert (
+        created.sustained_seven_day_peak.date_continuity
+        == persisted_p50.sustained_7day_peak.date_continuity
+    )
+    assert created.sustained_seven_day_peak.tie_break == persisted_p50.sustained_7day_peak.tie_break
+    assert created.mature_inventory_summary.opening_quantity_kg == Decimal(
+        persisted_last_p50.opening_mature_inventory_kg
+    )
+    assert created.mature_inventory_summary.closing_quantity_kg == Decimal(
+        persisted_last_p50.closing_mature_inventory_kg
+    )
+    assert created.backlog_summary.quantity_kg == Decimal(persisted_last_p50.unharvested_backlog_kg)
+    assert created.policy_versions.forecast == persisted_last_p50.marketable_policy_version
     binding = await transactional_pg_session.scalar(
         select(TrialResourceBindingModel).where(
             TrialResourceBindingModel.resource_kind == "FORECAST",

@@ -19,7 +19,15 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal, Protocol, cast
 
 from fastapi import Depends
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -373,22 +381,94 @@ class TrialForecastDailyRow(_FrozenModel):
         return value
 
 
+def _canonical_public_quantity(value: object) -> Decimal:
+    if isinstance(value, (bool, float)) or value is None:
+        raise ValueError("quantities must be finite canonical Decimal values")
+    try:
+        quantity = value if isinstance(value, Decimal) else Decimal(str(value))
+    except Exception as error:
+        raise ValueError("quantities must be finite canonical Decimal values") from error
+    if not quantity.is_finite() or quantity < 0:
+        raise ValueError("quantities must be finite and non-negative")
+    exponent = quantity.as_tuple().exponent
+    if not isinstance(exponent, int) or exponent < -6:
+        raise ValueError("quantities must use at most six decimal places")
+    try:
+        return quantity.quantize(Decimal("0.000001"))
+    except Exception as error:
+        raise ValueError("quantities must use canonical six-place precision") from error
+
+
+class TrialForecastSingleDayPeakResponse(_FrozenModel):
+    date: date
+    quantity_kg: Decimal
+    tie_break: Literal["EARLIEST_DATE"]
+
+    _canonical_quantity = field_validator("quantity_kg", mode="before")(_canonical_public_quantity)
+
+
+class TrialForecastSustainedSevenDayPeakResponse(_FrozenModel):
+    start_date: date
+    end_date: date
+    cumulative_quantity_kg: Decimal
+    daily_average_kg_per_day: Decimal
+    window_days: Literal[7]
+    metric: Literal["ROLLING_CUMULATIVE"]
+    date_continuity: Literal["STRICT_CALENDAR_DAYS"]
+    tie_break: Literal["EARLIEST_START_DATE"]
+
+    _canonical_quantity = field_validator(
+        "cumulative_quantity_kg", "daily_average_kg_per_day", mode="before"
+    )(_canonical_public_quantity)
+
+    @model_validator(mode="after")
+    def _require_contiguous_window(self) -> TrialForecastSustainedSevenDayPeakResponse:
+        if self.end_date != self.start_date + timedelta(days=6):
+            raise ValueError("sustained peak window must contain seven calendar days")
+        return self
+
+
+class TrialForecastInventorySummaryResponse(_FrozenModel):
+    opening_quantity_kg: Decimal
+    closing_quantity_kg: Decimal
+
+    _canonical_quantity = field_validator(
+        "opening_quantity_kg", "closing_quantity_kg", mode="before"
+    )(_canonical_public_quantity)
+
+
+class TrialForecastBacklogSummaryResponse(_FrozenModel):
+    quantity_kg: Decimal
+
+    _canonical_quantity = field_validator("quantity_kg", mode="before")(_canonical_public_quantity)
+
+
+class TrialForecastPolicyVersionsResponse(_FrozenModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        str_strip_whitespace=True,
+    )
+
+    forecast: StrictStr = Field(min_length=1)
+
+
 class TrialForecastSummaryResponse(_FrozenModel):
     run_id: StrictStr
     status: StrictStr
     daily_p50_series: tuple[TrialForecastDailyRow, ...]
     daily_p80_series: tuple[TrialForecastDailyRow, ...]
     daily_p90_series: tuple[TrialForecastDailyRow, ...]
-    single_day_peak: dict[str, object] | None = None
-    sustained_seven_day_peak: dict[str, object] | None = None
+    single_day_peak: TrialForecastSingleDayPeakResponse
+    sustained_seven_day_peak: TrialForecastSustainedSevenDayPeakResponse
     season_cumulative_quantity: Decimal | None = None
-    mature_inventory_summary: dict[str, object] | None = None
-    backlog_summary: dict[str, object] | None = None
+    mature_inventory_summary: TrialForecastInventorySummaryResponse
+    backlog_summary: TrialForecastBacklogSummaryResponse
     data_gap_summaries: tuple[StrictStr, ...] = ()
     blocker_summaries: tuple[StrictStr, ...] = ()
     model_version: StrictStr
     parameter_version: StrictStr
-    policy_versions: dict[StrictStr, StrictStr]
+    policy_versions: TrialForecastPolicyVersionsResponse
     canonical_public_hash: StrictStr
     forecast_scope: TrialForecastScope | None = None
     forecast_start_date: date | None = None
@@ -3597,9 +3677,13 @@ def _project_forecast_summary(
     metrics = {item.forecast_quantile: item for item in execution.metrics.metrics}
     p50 = metrics.get("P50")
     last_p50 = next((row for row in reversed(rows) if row.forecast_quantile == "P50"), None)
+    if not rows or p50 is None or last_p50 is None:
+        raise _evidence_conflict()
     first_row = rows[0]
     policy_version = first_row.marketable_policy_version
     policy_hash = first_row.marketable_policy_hash
+    if not isinstance(policy_version, str) or not policy_version.strip():
+        raise _evidence_conflict()
     scope = evidence.scope.model_copy(
         update={"subfarm_business_key_or_null": evidence.scope.subfarm_business_key_or_null}
     )
@@ -3612,27 +3696,34 @@ def _project_forecast_summary(
         daily_p50_series=tuple(row for row in daily_rows),
         daily_p80_series=tuple(row for row in daily_rows),
         daily_p90_series=tuple(row for row in daily_rows),
-        single_day_peak=(p50.single_day_peak.model_dump(mode="json") if p50 is not None else None),
-        sustained_seven_day_peak=(
-            p50.sustained_7day_peak.model_dump(mode="json") if p50 is not None else None
+        single_day_peak=TrialForecastSingleDayPeakResponse(
+            date=p50.single_day_peak.date,
+            quantity_kg=Decimal(p50.single_day_peak.quantity_kg),
+            tie_break=p50.single_day_peak.tie_break,
+        ),
+        sustained_seven_day_peak=TrialForecastSustainedSevenDayPeakResponse(
+            start_date=p50.sustained_7day_peak.start_date,
+            end_date=p50.sustained_7day_peak.end_date,
+            cumulative_quantity_kg=Decimal(p50.sustained_7day_peak.cumulative_quantity_kg),
+            daily_average_kg_per_day=Decimal(p50.sustained_7day_peak.daily_average_kg_per_day),
+            window_days=p50.sustained_7day_peak.window_days,
+            metric=p50.sustained_7day_peak.metric,
+            date_continuity=p50.sustained_7day_peak.date_continuity,
+            tie_break=p50.sustained_7day_peak.tie_break,
         ),
         season_cumulative_quantity=(
             Decimal(p50.season_cumulative_effective_marketable_kg) if p50 is not None else None
         ),
-        mature_inventory_summary=(
-            {
-                "opening_quantity_kg": last_p50.opening_mature_inventory_kg,
-                "closing_quantity_kg": last_p50.closing_mature_inventory_kg,
-            }
-            if last_p50 is not None
-            else None
+        mature_inventory_summary=TrialForecastInventorySummaryResponse(
+            opening_quantity_kg=Decimal(last_p50.opening_mature_inventory_kg),
+            closing_quantity_kg=Decimal(last_p50.closing_mature_inventory_kg),
         ),
-        backlog_summary=(
-            {"quantity_kg": last_p50.unharvested_backlog_kg} if last_p50 is not None else None
+        backlog_summary=TrialForecastBacklogSummaryResponse(
+            quantity_kg=Decimal(last_p50.unharvested_backlog_kg),
         ),
         model_version=first_row.task8_artifact_hash,
         parameter_version=first_row.task9_result_hash,
-        policy_versions={"forecast": policy_version},
+        policy_versions=TrialForecastPolicyVersionsResponse(forecast=policy_version),
         canonical_public_hash=run.request_hash,
         forecast_scope=scope,
         forecast_start_date=run.forecast_start_date,
@@ -4050,6 +4141,11 @@ __all__ = [
     "TrialForecastCsvExportResponse",
     "TrialForecastDailyCurveResponse",
     "TrialForecastDailyRow",
+    "TrialForecastSingleDayPeakResponse",
+    "TrialForecastSustainedSevenDayPeakResponse",
+    "TrialForecastInventorySummaryResponse",
+    "TrialForecastBacklogSummaryResponse",
+    "TrialForecastPolicyVersionsResponse",
     "TrialForecastInputAuthorityItem",
     "TrialForecastInputAuthorityResponse",
     "TrialForecastScope",
