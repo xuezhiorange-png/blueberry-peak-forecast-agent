@@ -48,6 +48,7 @@ from backend.app.forecast_quality.persistence import (
     ForecastQualityConflictError,
     ForecastQualityContractError,
     ForecastQualityPartialResultError,
+    ForecastQualityPersistenceError,
     PersistedQualityEvaluation,
     _validate_evaluation_input,
     load_quality_evaluation_by_instance_hash,
@@ -97,6 +98,7 @@ from backend.app.models.harvest_state import (
 from backend.app.models.master_data import Season
 from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.app.models.trial import TrialResourceBindingModel
+from backend.app.repositories.trial_resource_binding import TrialResourceBindingError
 from backend.app.residual_model.canonical import (
     canonical_payload_hash,
     prediction_input_signature_hash,
@@ -1509,6 +1511,179 @@ async def _align_i7_seed_to_forecast_scope(
         await session.commit()
 
 
+@dataclasses.dataclass(frozen=True)
+class _QualityServicePostgresCase:
+    db_name: str
+    engine: AsyncEngine
+    sessionmaker: async_sessionmaker[AsyncSession]
+    service: DefaultTrialApplicationService
+    request: TrialQualityReportCreateRequest
+    actor: ActualHarvestActorContext
+    prediction_run_id: int
+
+
+async def _prepare_default_quality_service_case(
+    label: str,
+) -> _QualityServicePostgresCase:
+    """Build the real PostgreSQL parent graph used by negative service tests."""
+
+    _live_env()
+    db_name = await _create_temporary_database(label)
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        async with sessionmaker() as session:
+            (
+                forecast_service,
+                forecast_request,
+                forecast_actor,
+            ) = await _prepare_default_trial_forecast(session)
+            await _repair_task9_fixture_for_quality(session)
+            forecast = await forecast_service.create_forecast(
+                session, forecast_request, forecast_actor
+            )
+            task9_run = await session.get(HarvestStateRun, 910001)
+            assert task9_run is not None
+            prediction_run = await _seed_quality_task10_fixture(
+                session,
+                task9_run_id=task9_run.id,
+                task9_result_hash=task9_run.result_hash,
+                forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            )
+            assert prediction_run.id > 0
+            forecast_scope = forecast.forecast_scope
+            assert forecast_scope is not None
+
+        import_id = f"{label}-import"
+        record = _build_i7_record(
+            source_system="source-test",
+            external_logical_record_id=f"{label}-logical",
+            external_revision_id=f"{label}-revision",
+            harvest_date=date(2026, 3, 8),
+            season_code="season-1",
+        )
+        seeded = await _seed_quality_service_batch(
+            sessionmaker,
+            import_id=import_id,
+            records=[record],
+            source_system="source-test",
+            registry_suffix=label,
+        )
+        await _align_i7_seed_to_forecast_scope(
+            sessionmaker,
+            batch_id=cast(int, seeded["batch_id"]),
+            actor_identity=forecast_actor.identity,
+            scope=forecast_scope,
+        )
+
+        actor = ActualHarvestActorContext(
+            identity=forecast_actor.identity,
+            allowed_source_systems=frozenset({"source-test"}),
+            allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+            may_read_forecast_authority=True,
+            may_create_forecast=True,
+            may_read_forecast=True,
+            may_export_forecast=True,
+            may_create_quality=True,
+            may_read_quality=True,
+            may_read_quality_comparison=True,
+            may_export_quality=True,
+        )
+        request = TrialQualityReportCreateRequest(
+            forecast_run_id=forecast.run_id,
+            actual_harvest_import_id=import_id,
+            forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
+            label_observation_cutoff_at=datetime(2030, 1, 1, tzinfo=UTC),
+            requested_horizons_days=(7, 14, 21),
+            request_idempotency_key=f"{label}-key",
+        )
+        return _QualityServicePostgresCase(
+            db_name=db_name,
+            engine=engine,
+            sessionmaker=sessionmaker,
+            service=DefaultTrialApplicationService(),
+            request=request,
+            actor=actor,
+            prediction_run_id=prediction_run.id,
+        )
+    except BaseException:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+        raise
+
+
+async def _seed_cross_run_task10_prediction(
+    session: AsyncSession,
+    *,
+    source_prediction_run_id: int,
+) -> ResidualModelPredictionRun:
+    """Persist a second Task 10 parent with the same business axis.
+
+    The projection version changes the immutable prediction input identity while
+    preserving the Task 9 and row axis.  This creates a real ambiguity for the
+    Quality authority resolver without modifying Task 10 persistence semantics.
+    """
+
+    source = await load_residual_prediction_run_by_id(
+        session,
+        run_id=source_prediction_run_id,
+    )
+    assert source is not None
+    snapshot = dict(source.input_snapshot)
+    snapshot["projection_version"] = "quality-task10-cross-run-v2"
+    artifact_hashes = cast(list[str], snapshot.get("artifact_hashes", []))
+    input_signature = prediction_input_signature_hash(
+        model_run_id=source.model_run_id,
+        training_signature=cast(str, snapshot["training_signature"]),
+        task9_run_id=cast(int, source.task9_run_id),
+        task9_result_hash=cast(str, source.task9_result_hash),
+        feature_analytics_build_run_id=cast(
+            int | None,
+            snapshot.get("feature_analytics_build_run_id"),
+        ),
+        feature_actual_snapshot=cast(
+            dict[str, Any] | None,
+            snapshot.get("feature_actual_snapshot"),
+        ),
+        supplemental_feature_values=cast(
+            list[object], snapshot.get("supplemental_feature_values", [])
+        ),
+        feature_audit_hashes=cast(list[str], snapshot.get("feature_audit_hashes", [])),
+        feature_rows=cast(list[object], snapshot.get("feature_rows", [])),
+        artifact_hashes=artifact_hashes,
+        config_hash=source.config_hash,
+        feature_schema_version=cast(str, snapshot["feature_schema_version"]),
+        feature_schema_hash=cast(str, snapshot["feature_schema_hash"]),
+        projection_version=cast(str, snapshot["projection_version"]),
+        fallback_policy_version=cast(str, snapshot["fallback_policy"]),
+    )
+    duplicate = source.model_copy(
+        update={
+            "input_snapshot": snapshot,
+            "prediction_input_signature": input_signature,
+        }
+    )
+    duplicate = duplicate.model_copy(
+        update={"prediction_hash": _prediction_hash_from_result(duplicate)}
+    )
+    assert duplicate.prediction_input_signature != source.prediction_input_signature
+    assert duplicate.prediction_hash != source.prediction_hash
+    return await save_residual_prediction_run(
+        session,
+        result=duplicate,
+        feature_schema_version=cast(str, snapshot["feature_schema_version"]),
+        feature_schema_hash=cast(str, snapshot["feature_schema_hash"]),
+        artifact_hashes=artifact_hashes,
+    )
+
+
+async def _assert_quality_chain_is_empty(
+    sessionmaker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with sessionmaker() as session:
+        assert await _quality_chain_counts(session) == (0,) * 8
+
+
 @pytest.mark.asyncio
 async def test_default_trial_quality_service_postgres_create_replay_and_status_readback() -> None:
     """Exercise the real Trial Quality service against PostgreSQL persistence."""
@@ -1724,6 +1899,153 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
     finally:
         await engine.dispose()
         await _drop_temporary_database(db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_persistence_failure_rolls_back_everything(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Quality persistence error rolls back I7, S2, Quality, and binding rows."""
+
+    case = await _prepare_default_quality_service_case("quality_persistence_failure")
+    injected_calls = 0
+
+    def fail_quality_persistence(*args: object, **kwargs: object) -> object:
+        nonlocal injected_calls
+        del args, kwargs
+        injected_calls += 1
+        raise ForecastQualityPersistenceError("injected PostgreSQL persistence failure")
+
+    monkeypatch.setattr(
+        "backend.app.trial.persist_quality_evaluation",
+        fail_quality_persistence,
+    )
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert injected_calls == 1
+        assert caught.value.code is TrialApiErrorCode.QUALITY_PERSISTENCE_UNAVAILABLE
+        assert caught.value.status_code == 503
+        assert caught.value.retryable is True
+        await _assert_quality_chain_is_empty(case.sessionmaker)
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_binding_failure_rolls_back_everything(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Quality binding failure rolls back flushed Quality evidence and parents."""
+
+    case = await _prepare_default_quality_service_case("quality_binding_failure")
+    injected_calls = 0
+
+    async def fail_quality_binding(*args: object, **kwargs: object) -> None:
+        nonlocal injected_calls
+        del args, kwargs
+        injected_calls += 1
+        raise TrialResourceBindingError("injected Quality binding failure")
+
+    monkeypatch.setattr(
+        "backend.app.trial.create_quality_binding_in_result_boundary",
+        fail_quality_binding,
+    )
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert injected_calls == 1
+        assert caught.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
+        assert caught.value.status_code == 409
+        await _assert_quality_chain_is_empty(case.sessionmaker)
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_readback_integrity_failure_rolls_back_everything(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A final persisted-readback integrity failure rolls back the outer mutation."""
+
+    case = await _prepare_default_quality_service_case("quality_readback_failure")
+    injected_calls = 0
+
+    def fail_quality_readback(*args: object, **kwargs: object) -> object:
+        nonlocal injected_calls
+        del args, kwargs
+        injected_calls += 1
+        raise ForecastQualityPartialResultError("injected readback integrity failure")
+
+    monkeypatch.setattr(
+        "backend.app.trial.load_quality_evaluation_by_instance_hash",
+        fail_quality_readback,
+    )
+    try:
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert injected_calls == 1
+        assert caught.value.code is TrialApiErrorCode.EVIDENCE_CONFLICT
+        assert caught.value.status_code == 409
+        await _assert_quality_chain_is_empty(case.sessionmaker)
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
+@pytest.mark.asyncio
+async def test_default_trial_quality_postgres_task10_cross_run_substitution_rejected() -> None:
+    """A second matching Task 10 parent is an evidence conflict, never a fallback."""
+
+    case = await _prepare_default_quality_service_case("quality_task10_cross_run")
+    try:
+        async with case.sessionmaker() as session:
+            duplicate = await _seed_cross_run_task10_prediction(
+                session,
+                source_prediction_run_id=case.prediction_run_id,
+            )
+            assert duplicate.id > 0
+            assert duplicate.id != case.prediction_run_id
+
+        async with case.sessionmaker() as session:
+            counts_before = await _quality_chain_counts(session)
+
+        with pytest.raises(TrialApiError) as caught:
+            async with case.sessionmaker() as session:
+                async with session.begin():
+                    await case.service.create_quality_report(
+                        session,
+                        case.request,
+                        case.actor,
+                    )
+        assert caught.value.code is TrialApiErrorCode.EVIDENCE_CONFLICT
+        assert caught.value.status_code == 409
+
+        async with case.sessionmaker() as session:
+            assert await _quality_chain_counts(session) == counts_before
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
 
 
 @pytest.mark.asyncio
