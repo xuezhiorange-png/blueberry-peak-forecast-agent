@@ -1589,7 +1589,7 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
             forecast_run_id=forecast.run_id,
             actual_harvest_import_id=import_id,
             forecast_cutoff_at=cast(datetime, forecast.forecast_cutoff_at),
-            label_observation_cutoff_at=datetime(2026, 3, 1, tzinfo=UTC),
+            label_observation_cutoff_at=datetime(2030, 1, 1, tzinfo=UTC),
             requested_horizons_days=(7, 14, 21),
             request_idempotency_key="quality-service-key",
         )
