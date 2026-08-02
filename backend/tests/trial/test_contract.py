@@ -11,10 +11,16 @@ from backend.app.forecast_quality.persistence import _validate_evaluation_input
 from backend.app.forecast_quality.schemas import S3EvaluationInput
 from backend.app.trial import (
     TrialActualHarvestImportCreateRequest,
+    TrialForecastBacklogSummaryResponse,
     TrialForecastCreateRequest,
     TrialForecastDailyCurveResponse,
     TrialForecastDailyRow,
     TrialForecastInputAuthorityResponse,
+    TrialForecastInventorySummaryResponse,
+    TrialForecastPolicyVersionsResponse,
+    TrialForecastSingleDayPeakResponse,
+    TrialForecastSummaryResponse,
+    TrialForecastSustainedSevenDayPeakResponse,
     TrialQualityReportCreateRequest,
     serialize_csv,
 )
@@ -271,3 +277,182 @@ def test_csv_formula_injection_is_escaped_and_decimal_format_is_fixed() -> None:
     ).decode("utf-8")
     assert "'=SUM(A1:A2),1.200000" in content
     assert "safe,0.000000" in content
+
+
+def _single_day_peak_payload() -> dict[str, object]:
+    return {
+        "date": "2026-01-02",
+        "quantity_kg": "14.000000",
+        "tie_break": "EARLIEST_DATE",
+    }
+
+
+def _sustained_peak_payload() -> dict[str, object]:
+    return {
+        "start_date": "2026-01-02",
+        "end_date": "2026-01-08",
+        "cumulative_quantity_kg": "98.000000",
+        "daily_average_kg_per_day": "14.000000",
+        "window_days": 7,
+        "metric": "ROLLING_CUMULATIVE",
+        "date_continuity": "STRICT_CALENDAR_DAYS",
+        "tie_break": "EARLIEST_START_DATE",
+    }
+
+
+def _inventory_payload() -> dict[str, object]:
+    return {
+        "opening_quantity_kg": "3.000000",
+        "closing_quantity_kg": "2.000000",
+    }
+
+
+def _backlog_payload() -> dict[str, object]:
+    return {"quantity_kg": "0.000000"}
+
+
+def _summary_payload() -> dict[str, object]:
+    daily_row = {
+        "target_date": "2026-01-02",
+        "p50_value_kg": "10.000000",
+        "p80_value_kg": "11.000000",
+        "p90_value_kg": "12.000000",
+        "row_status": "COMPLETED",
+    }
+    return {
+        "run_id": "forecast-public-1",
+        "status": "COMPLETED",
+        "daily_p50_series": [daily_row],
+        "daily_p80_series": [daily_row],
+        "daily_p90_series": [daily_row],
+        "single_day_peak": _single_day_peak_payload(),
+        "sustained_seven_day_peak": _sustained_peak_payload(),
+        "season_cumulative_quantity": "22.000000",
+        "mature_inventory_summary": _inventory_payload(),
+        "backlog_summary": _backlog_payload(),
+        "model_version": "model-v1",
+        "parameter_version": "parameter-v1",
+        "policy_versions": {"forecast": "policy-v1"},
+        "canonical_public_hash": "a" * 64,
+    }
+
+
+def test_forecast_public_nested_fields_are_typed_openapi_refs() -> None:
+    schema = TrialForecastSummaryResponse.model_json_schema()
+    properties = schema["properties"]
+    definitions = schema["$defs"]
+    targets = {
+        "single_day_peak": "TrialForecastSingleDayPeakResponse",
+        "sustained_seven_day_peak": "TrialForecastSustainedSevenDayPeakResponse",
+        "mature_inventory_summary": "TrialForecastInventorySummaryResponse",
+        "backlog_summary": "TrialForecastBacklogSummaryResponse",
+        "policy_versions": "TrialForecastPolicyVersionsResponse",
+    }
+    assert set(targets).issubset(set(schema["required"]))
+    for field_name, definition_name in targets.items():
+        assert properties[field_name] == {"$ref": f"#/$defs/{definition_name}"}
+        assert definitions[definition_name]["additionalProperties"] is False
+    assert schema["additionalProperties"] is False
+
+
+def test_forecast_public_nested_dtos_are_frozen_and_extra_forbid() -> None:
+    dto_types = (
+        TrialForecastSingleDayPeakResponse,
+        TrialForecastSustainedSevenDayPeakResponse,
+        TrialForecastInventorySummaryResponse,
+        TrialForecastBacklogSummaryResponse,
+        TrialForecastPolicyVersionsResponse,
+    )
+    for dto_type in dto_types:
+        assert dto_type.model_config["extra"] == "forbid"
+        assert dto_type.model_config["frozen"] is True
+        assert dto_type.model_json_schema()["additionalProperties"] is False
+
+    with pytest.raises(ValidationError):
+        TrialForecastSummaryResponse.model_validate({**_summary_payload(), "single_day_peak": None})
+    with pytest.raises(ValidationError):
+        TrialForecastSummaryResponse.model_validate(
+            {**_summary_payload(), "sustained_seven_day_peak": None}
+        )
+    with pytest.raises(ValidationError):
+        TrialForecastSummaryResponse.model_validate(
+            {**_summary_payload(), "mature_inventory_summary": None}
+        )
+    with pytest.raises(ValidationError):
+        TrialForecastSummaryResponse.model_validate({**_summary_payload(), "backlog_summary": None})
+    with pytest.raises(ValidationError):
+        TrialForecastSummaryResponse.model_validate({**_summary_payload(), "policy_versions": None})
+
+
+def test_single_day_peak_contract_rejects_legacy_shape_and_tie_break() -> None:
+    with pytest.raises(ValidationError):
+        TrialForecastSingleDayPeakResponse.model_validate(
+            {**_single_day_peak_payload(), "target_date": "2026-01-02"}
+        )
+    with pytest.raises(ValidationError):
+        TrialForecastSingleDayPeakResponse.model_validate(
+            {**_single_day_peak_payload(), "tie_break": "LATEST_DATE"}
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("window_days", 6),
+        ("metric", "SUM"),
+        ("date_continuity", "ALLOW_GAPS"),
+        ("tie_break", "LATEST_START_DATE"),
+        ("end_date", "2026-01-09"),
+    ),
+)
+def test_sustained_peak_contract_rejects_invalid_window_values(field: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        TrialForecastSustainedSevenDayPeakResponse.model_validate(
+            {**_sustained_peak_payload(), field: value}
+        )
+
+
+def test_inventory_and_policy_contracts_reject_legacy_or_open_shapes() -> None:
+    with pytest.raises(ValidationError):
+        TrialForecastInventorySummaryResponse.model_validate({"quantity_kg": "3.000000"})
+    with pytest.raises(ValidationError):
+        TrialForecastPolicyVersionsResponse.model_validate({})
+    with pytest.raises(ValidationError):
+        TrialForecastPolicyVersionsResponse.model_validate(
+            {"forecast": "policy-v1", "quality": "quality-v1"}
+        )
+    with pytest.raises(ValidationError):
+        TrialForecastPolicyVersionsResponse.model_validate({"forecast": " "})
+
+
+def test_forecast_nested_quantities_reject_float_negative_and_excess_precision() -> None:
+    with pytest.raises(ValidationError):
+        TrialForecastSingleDayPeakResponse.model_validate(
+            {**_single_day_peak_payload(), "quantity_kg": 14.0}
+        )
+    with pytest.raises(ValidationError):
+        TrialForecastBacklogSummaryResponse.model_validate({"quantity_kg": "-0.000001"})
+    with pytest.raises(ValidationError):
+        TrialForecastInventorySummaryResponse.model_validate(
+            {"opening_quantity_kg": "3.0000001", "closing_quantity_kg": "2.000000"}
+        )
+
+
+def test_forecast_nested_values_have_canonical_json_decimal_and_date_serialization() -> None:
+    summary = TrialForecastSummaryResponse.model_validate(_summary_payload())
+    dumped = summary.model_dump(mode="json")
+    assert dumped["single_day_peak"] == {
+        "date": "2026-01-02",
+        "quantity_kg": "14.000000",
+        "tie_break": "EARLIEST_DATE",
+    }
+    assert dumped["sustained_seven_day_peak"]["start_date"] == "2026-01-02"
+    assert dumped["sustained_seven_day_peak"]["end_date"] == "2026-01-08"
+    assert dumped["sustained_seven_day_peak"]["cumulative_quantity_kg"] == "98.000000"
+    assert dumped["sustained_seven_day_peak"]["daily_average_kg_per_day"] == "14.000000"
+    assert dumped["mature_inventory_summary"] == {
+        "opening_quantity_kg": "3.000000",
+        "closing_quantity_kg": "2.000000",
+    }
+    assert dumped["backlog_summary"] == {"quantity_kg": "0.000000"}
+    assert dumped["policy_versions"] == {"forecast": "policy-v1"}
