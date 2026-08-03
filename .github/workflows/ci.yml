@@ -2217,7 +2217,41 @@ jobs:
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
         run: |
-          nohup uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 > /tmp/frontend-e2e-backend.log 2>&1 &
+          nohup python - <<'PY' > /tmp/frontend-e2e-backend.log 2>&1 &
+          import functools
+          import traceback
+
+          import uvicorn
+
+          import backend.app.trial as trial
+
+          def trace_async(name, function):
+              @functools.wraps(function)
+              async def traced(*args, **kwargs):
+                  try:
+                      return await function(*args, **kwargs)
+                  except BaseException as error:
+                      print(
+                          f"QUALITY_E2E_INTERNAL_FAILURE stage={name} "
+                          f"type={type(error).__name__} message={error!s}",
+                          flush=True,
+                      )
+                      traceback.print_exc()
+                      raise
+
+              return traced
+
+          for name in (
+              "_create_quality_label_snapshot",
+              "_build_quality_s2_candidates",
+              "_build_quality_calculation_inputs",
+          ):
+              setattr(trial, name, trace_async(name, getattr(trial, name)))
+
+          from backend.app.main import app
+
+          uvicorn.run(app, host="127.0.0.1", port=8000)
+          PY
           echo $! > /tmp/frontend-e2e-backend.pid
           python - <<'PY'
           import time

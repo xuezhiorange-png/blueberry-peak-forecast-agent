@@ -107,7 +107,9 @@ async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity) {
   const commitButton = page.getByRole("button", { name: "提交导入" });
   await expect(commitButton).toBeEnabled({ timeout: 30_000 });
   await commitButton.click();
-  await expect(lifecycle).toContainText("COMMITTED", { timeout: 30_000 });
+  await expect(lifecycle.locator(".lifecycle-step.active")).toContainText("COMMITTED", {
+    timeout: 30_000,
+  });
 }
 
 async function createForecastForQuality(page: Page): Promise<string> {
@@ -200,7 +202,9 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     const commitButton = page.getByRole("button", { name: "提交导入" });
     await expect(commitButton).toBeEnabled({ timeout: 30_000 });
     await commitButton.click();
-    await expect(lifecycle).toContainText("COMMITTED", { timeout: 30_000 });
+    await expect(lifecycle.locator(".lifecycle-step.active")).toContainText("COMMITTED", {
+      timeout: 30_000,
+    });
   });
 
   test("keeps the import and quality surfaces within a mobile viewport", async ({
