@@ -24,11 +24,12 @@ function safeSlug(value: string): string {
 function projectScopedIdentity(testInfo: TestInfo, scenario: string): ProjectScopedIdentity {
   const project = safeSlug(testInfo.project.name);
   const scenarioSlug = safeSlug(scenario);
+  const projectOrder = project === "chromium-mobile" ? "0" : "1";
   const executionSuffix = `${project}-w${testInfo.workerIndex}-r${testInfo.retry}`;
   return {
     externalBatchId: `trial-harvest-${scenarioSlug}-${executionSuffix}`,
-    externalLogicalRecordId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-row-1`,
-    externalRevisionId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-rev-1`,
+    externalLogicalRecordId: `frontend-e2e-${scenarioSlug}-${projectOrder}-${executionSuffix}-row-1`,
+    externalRevisionId: `frontend-e2e-${scenarioSlug}-${projectOrder}-${executionSuffix}-rev-1`,
     sourceNote: `frontend-e2e-${scenarioSlug}-${project}`,
     actualQuantityKg: project === "chromium-mobile" ? "6.000000" : "5.000000",
     harvestBusinessDate: project === "chromium-mobile" ? "2026-03-14" : "2026-03-08",
