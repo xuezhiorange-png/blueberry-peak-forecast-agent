@@ -110,6 +110,7 @@ from backend.app.actual_harvest_labels.service import (
     create_label_snapshot,
 )
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.tests.actual_harvest_import.test_lifecycle_postgres import (
     _extract_server_message,
     _extract_sqlstate,
@@ -1226,6 +1227,113 @@ async def test_e5_3_pg_scope_json_arrays_round_trip_and_hashes() -> None:
 
 
 # ===========================================================================
+# E5.3 — winner numeric identity persistence
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_e5_3_pg_winner_numeric_ids_round_trip_and_replay() -> None:
+    """New winners persist the frozen mapping evidence's numeric IDs.
+
+    The IDs are database references only: replay must read the same
+    persisted values while the winner, manifest, and snapshot hashes
+    remain unchanged.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e5-3-numeric-id-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                first = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-e5-3-numeric-id",
+                )
+
+        assert first.header.winner_count == 1
+        first_winner = first.winners[0]
+        assert all(
+            isinstance(first_winner[field], int) and first_winner[field] > 0
+            for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+        )
+
+        async with AsyncSessionMaker() as session:
+            persisted_winner = await session.scalar(
+                select(ActualHarvestLabelSnapshotWinnerModel).where(
+                    ActualHarvestLabelSnapshotWinnerModel.snapshot_id == first.header.snapshot_id
+                )
+            )
+            evidence_rows = (
+                await session.scalars(
+                    select(ActualHarvestValidationMappingEvidenceModel).where(
+                        ActualHarvestValidationMappingEvidenceModel.external_revision_id
+                        == f"rev-i7-pg-{suffix}-b"
+                    )
+                )
+            ).all()
+            season = (
+                await session.get(Season, persisted_winner.season_id) if persisted_winner else None
+            )
+            farm = await session.get(Farm, persisted_winner.farm_id) if persisted_winner else None
+            subfarm = (
+                await session.get(Subfarm, persisted_winner.subfarm_id)
+                if persisted_winner
+                else None
+            )
+            variety = (
+                await session.get(Variety, persisted_winner.variety_id)
+                if persisted_winner
+                else None
+            )
+
+        assert persisted_winner is not None
+        evidence_by_type = {row.target_type: row for row in evidence_rows}
+        assert set(evidence_by_type) == {"SEASON", "FARM", "SUBFARM", "VARIETY"}
+        assert persisted_winner.season_id == evidence_by_type["SEASON"].resolved_season_id
+        assert persisted_winner.farm_id == evidence_by_type["FARM"].resolved_farm_id
+        assert persisted_winner.subfarm_id == evidence_by_type["SUBFARM"].resolved_subfarm_id
+        assert persisted_winner.variety_id == evidence_by_type["VARIETY"].resolved_variety_id
+        assert season is not None and season.code == f"season-{suffix}"
+        assert farm is not None and farm.name == f"farm-master-{suffix}"
+        assert subfarm is not None and subfarm.name == f"subfarm-master-{suffix}"
+        assert variety is not None and variety.code == f"variety-master-{suffix}"
+        assert subfarm.farm_id == farm.id
+
+        counts_before_replay = await _i7_table_counts()
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                replay = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-e5-3-numeric-id-replay",
+                )
+        counts_after_replay = await _i7_table_counts()
+
+        assert counts_after_replay == counts_before_replay
+        assert replay.header.snapshot_id == first.header.snapshot_id
+        assert replay.header.winner_manifest_hash == first.header.winner_manifest_hash
+        assert replay.header.label_snapshot_hash == first.header.label_snapshot_hash
+        assert replay.winners[0]["winner_row_hash"] == first_winner["winner_row_hash"]
+        assert tuple(
+            replay.winners[0][field]
+            for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+        ) == tuple(
+            first_winner[field] for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+        )
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
 # E5.4 — concurrent identical snapshot
 # ===========================================================================
 
