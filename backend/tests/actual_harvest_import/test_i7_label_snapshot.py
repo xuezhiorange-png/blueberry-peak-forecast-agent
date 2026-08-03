@@ -89,6 +89,8 @@ from backend.app.actual_harvest_labels.models import (
 )
 from backend.app.actual_harvest_labels.persistence import (
     get_existing_snapshot_by_idempotency_key,
+    winner_row_hash_for,
+    winner_to_value_object,
 )
 from backend.app.actual_harvest_labels.schemas import (
     ActualHarvestLabelSnapshotRequest,
@@ -699,6 +701,184 @@ def _build_record(
         season_code=season_code,
         finalized_at=finalized_at,
     )
+
+
+def _winner_mapping_evidence(
+    *,
+    season_id: object = 1,
+    farm_id: object = 1,
+    subfarm_id: object = 1,
+    variety_id: object = 1,
+) -> dict[str, Any]:
+    return {
+        "season_business_key": "season-business-key-1",
+        "farm_business_key": "farm-business-key-1",
+        "subfarm_business_key": "sub-business-key-1",
+        "variety_business_key": "var-business-key-1",
+        "season_id": season_id,
+        "farm_id": farm_id,
+        "subfarm_id": subfarm_id,
+        "variety_id": variety_id,
+        "mapping_registry_version": "registry-v1",
+        "mapping_policy_version": "mapping-test-v1",
+        "season_resolver_version": "actual-harvest-season-resolver-v1",
+        "mapping_registry_entry_hash": "a" * 64,
+        "resolved_master_business_key": "season-business-key-1",
+        "resolved_master_parent_business_key": None,
+        "resolved_master_record_hash": "b" * 64,
+        "mapping_snapshot_hash": "c" * 64,
+        "resolved_identity_snapshot_hash": "d" * 64,
+        "registry_content_hash": "e" * 64,
+    }
+
+
+def test_winner_numeric_identity_survives_builder_and_dict_projection() -> None:
+    record = _build_record(
+        external_logical_record_id="logical-numeric-identity",
+        external_revision_id="rev-numeric-identity",
+    )
+    winner = label_service._build_winner_row(
+        terminal_entry=_preflight_entry(record, validation_run_id=41),
+        mapping_evidence=_winner_mapping_evidence(
+            season_id=11,
+            farm_id=22,
+            subfarm_id=33,
+            variety_id=44,
+        ),
+        request=_base_request(snapshot_idempotency_key="idem-numeric-identity"),
+        effective_status="ACTIVE",
+    )
+
+    assert (winner.season_id, winner.farm_id, winner.subfarm_id, winner.variety_id) == (
+        11,
+        22,
+        33,
+        44,
+    )
+    winner_payload = label_service._winner_value_object_to_dict(winner)
+    assert {
+        field: winner_payload[field]
+        for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+    } == {
+        "season_id": 11,
+        "farm_id": 22,
+        "subfarm_id": 33,
+        "variety_id": 44,
+    }
+
+    # Numeric lookup IDs are persistence references, not canonical
+    # winner identity inputs. Changing them must not change the row
+    # hash or the manifest-facing winner hash.
+    changed_ids = winner_payload | {
+        "season_id": 101,
+        "farm_id": 202,
+        "subfarm_id": 303,
+        "variety_id": 404,
+    }
+    assert winner_row_hash_for(changed_ids) == winner.winner_row_hash
+    assert winner_row_hash_for(winner_payload) == winner.winner_row_hash
+
+
+def test_winner_orm_projection_replays_numeric_identity_and_legacy_nulls() -> None:
+    record = _build_record(
+        external_logical_record_id="logical-orm-identity",
+        external_revision_id="rev-orm-identity",
+    )
+    winner = label_service._build_winner_row(
+        terminal_entry=_preflight_entry(record, validation_run_id=42),
+        mapping_evidence=_winner_mapping_evidence(
+            season_id=12,
+            farm_id=23,
+            subfarm_id=34,
+            variety_id=45,
+        ),
+        request=_base_request(snapshot_idempotency_key="idem-orm-identity"),
+        effective_status="ACTIVE",
+    )
+    winner_payload = label_service._winner_value_object_to_dict(winner)
+    persisted = ActualHarvestLabelSnapshotWinnerModel(
+        snapshot_id=1,
+        winner_sort_key="source-test|logical-orm-identity|rev-orm-identity",
+        **winner_payload,
+    )
+
+    replayed = winner_to_value_object(persisted)
+    assert (replayed.season_id, replayed.farm_id, replayed.subfarm_id, replayed.variety_id) == (
+        12,
+        23,
+        34,
+        45,
+    )
+
+    legacy = ActualHarvestLabelSnapshotWinnerModel(
+        snapshot_id=2,
+        winner_sort_key="source-test|logical-orm-identity|rev-legacy",
+        **(
+            winner_payload
+            | {
+                "season_id": None,
+                "farm_id": None,
+                "subfarm_id": None,
+                "variety_id": None,
+            }
+        ),
+    )
+    legacy_replayed = winner_to_value_object(legacy)
+    assert (
+        legacy_replayed.season_id,
+        legacy_replayed.farm_id,
+        legacy_replayed.subfarm_id,
+        legacy_replayed.variety_id,
+    ) == (None, None, None, None)
+
+
+@pytest.mark.parametrize("missing_field", ("season_id", "farm_id", "subfarm_id", "variety_id"))
+async def test_missing_numeric_identity_fails_closed_before_snapshot_write(
+    session_maker: async_sessionmaker[AsyncSession],
+    missing_field: str,
+) -> None:
+    record = _build_record(
+        external_logical_record_id=f"logical-missing-{missing_field}",
+        external_revision_id=f"rev-missing-{missing_field}",
+    )
+    await _seed_seeded_batch(
+        session_maker,
+        import_id=f"imp-missing-{missing_field}",
+        records=[record],
+    )
+
+    real_mapping_evidence = label_service._mapping_evidence_for_record
+
+    async def _missing_mapping_evidence(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        evidence = await real_mapping_evidence(*args, **kwargs)
+        evidence[missing_field] = None
+        return evidence
+
+    request = _base_request(snapshot_idempotency_key=f"idem-missing-{missing_field}")
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            label_service,
+            "_mapping_evidence_for_record",
+            _missing_mapping_evidence,
+        )
+        with pytest.raises(ActualHarvestLabelStructuralFailureError) as exc_info:
+            async with session_maker() as session:
+                async with session.begin():
+                    await create_label_snapshot(
+                        session,
+                        request=request,
+                        created_by_identity="op-missing-numeric-identity",
+                    )
+
+    assert exc_info.value.failure == ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING
+    assert exc_info.value.details["reason"] == "resolved_numeric_identity_missing"
+    assert exc_info.value.details["missing_fields"] == [missing_field]
+    assert await _i7_four_table_counts(session_maker) == {
+        HEADER_TABLE_NAME: 0,
+        WINNER_TABLE_NAME: 0,
+        LABEL_TABLE_NAME: 0,
+        EXCLUSION_TABLE_NAME: 0,
+    }
 
 
 def _build_commit_manifest(
@@ -3347,6 +3527,9 @@ __all__ = [
     "test_request_identity_hash_is_deterministic",
     "test_label_row_set_hash_is_canonical",
     "test_winner_row_hash_is_stable_against_dict_order",
+    "test_winner_numeric_identity_survives_builder_and_dict_projection",
+    "test_winner_orm_projection_replays_numeric_identity_and_legacy_nulls",
+    "test_missing_numeric_identity_fails_closed_before_snapshot_write",
     "test_instance_identity_hash_is_independent_of_snapshot_executed_at",
 ]
 
@@ -3660,3 +3843,21 @@ async def test_e5_3_successful_call_plus_caller_commit_persists_complete_rows(
     assert counts[EXCLUSION_TABLE_NAME] == result.header.exclusion_row_count
     assert result.header.winner_count == 1
     assert result.header.label_row_count == 1
+    assert result.winners[0]["season_id"] == 1
+    assert result.winners[0]["farm_id"] == 1
+    assert result.winners[0]["subfarm_id"] == 1
+    assert result.winners[0]["variety_id"] == 1
+
+    async with session_maker() as session:
+        persisted_winner = await session.scalar(
+            select(ActualHarvestLabelSnapshotWinnerModel).where(
+                ActualHarvestLabelSnapshotWinnerModel.snapshot_id == result.header.snapshot_id
+            )
+        )
+    assert persisted_winner is not None
+    assert (
+        persisted_winner.season_id,
+        persisted_winner.farm_id,
+        persisted_winner.subfarm_id,
+        persisted_winner.variety_id,
+    ) == (1, 1, 1, 1)

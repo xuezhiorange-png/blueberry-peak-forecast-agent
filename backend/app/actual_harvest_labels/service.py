@@ -622,6 +622,10 @@ def _winner_value_object_to_dict(winner: ActualHarvestWinnerRow) -> dict[str, An
         "farm_business_key": winner.farm_business_key,
         "subfarm_business_key": winner.subfarm_business_key,
         "variety_business_key": winner.variety_business_key,
+        "season_id": winner.season_id,
+        "farm_id": winner.farm_id,
+        "subfarm_id": winner.subfarm_id,
+        "variety_id": winner.variety_id,
         "mapping_registry_version": winner.mapping_registry_version,
         "mapping_policy_version": winner.mapping_policy_version,
         "season_resolver_version": winner.season_resolver_version,
@@ -1983,6 +1987,28 @@ def _build_winner_row(
     effective_status: str,
 ) -> ActualHarvestWinnerRow:
     record = terminal_entry["record"]
+    numeric_identity_fields = ("season_id", "farm_id", "subfarm_id", "variety_id")
+    missing_numeric_identity_fields = [
+        field
+        for field in numeric_identity_fields
+        if (
+            not isinstance(mapping_evidence.get(field), int)
+            or isinstance(mapping_evidence.get(field), bool)
+            or mapping_evidence[field] <= 0
+        )
+    ]
+    if missing_numeric_identity_fields:
+        raise ActualHarvestLabelStructuralFailureError(
+            ActualHarvestLabelStructuralFailure.MAPPING_EVIDENCE_MISSING,
+            details={
+                "reason": "resolved_numeric_identity_missing",
+                "missing_fields": missing_numeric_identity_fields,
+                "validation_run_id": terminal_entry["validation_run_id"],
+                "source_system": record.source_system,
+                "external_logical_record_id": record.external_logical_record_id,
+                "external_revision_id": record.external_revision_id,
+            },
+        )
     winner_payload: dict[str, Any] = {
         "source_system": record.source_system,
         "external_logical_record_id": record.external_logical_record_id,
@@ -2039,6 +2065,10 @@ def _build_winner_row(
         farm_business_key=str(winner_payload["farm_business_key"]),
         subfarm_business_key=str(winner_payload["subfarm_business_key"]),
         variety_business_key=str(winner_payload["variety_business_key"]),
+        season_id=int(winner_payload["season_id"]),
+        farm_id=int(winner_payload["farm_id"]),
+        subfarm_id=int(winner_payload["subfarm_id"]),
+        variety_id=int(winner_payload["variety_id"]),
         mapping_registry_version=str(winner_payload["mapping_registry_version"]),
         mapping_policy_version=str(winner_payload["mapping_policy_version"]),
         season_resolver_version=str(winner_payload["season_resolver_version"]),

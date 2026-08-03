@@ -76,9 +76,11 @@ from backend.app.actual_harvest_import.enums import (
     ActualHarvestRecordStatus,
     SourceRecordedAtAuthorityStatus,
 )
+from backend.app.actual_harvest_import.models import ActualHarvestImportBatchModel
 from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestValidationLineageBasisMemberModel,
     ActualHarvestValidationMappingEvidenceModel,
+    ActualHarvestValidationRunModel,
 )
 from backend.app.actual_harvest_labels import service as label_service
 from backend.app.actual_harvest_labels.enums import (
@@ -110,6 +112,10 @@ from backend.app.actual_harvest_labels.service import (
     create_label_snapshot,
 )
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.forecast_quality.persistence import load_quality_evaluation_by_instance_hash
+from backend.app.models.master_data import Farm, Season, Subfarm, Variety
+from backend.app.rolling_backtest.orchestration import resolve_s2_persisted_authorities
+from backend.app.rolling_backtest.persistence import load_s2_historical_binding_by_instance_hash
 from backend.tests.actual_harvest_import.test_lifecycle_postgres import (
     _extract_server_message,
     _extract_sqlstate,
@@ -1226,6 +1232,489 @@ async def test_e5_3_pg_scope_json_arrays_round_trip_and_hashes() -> None:
 
 
 # ===========================================================================
+# E5.3 — winner numeric identity persistence
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_e5_3_pg_winner_numeric_ids_round_trip_and_replay() -> None:
+    """New winners persist the frozen mapping evidence's numeric IDs.
+
+    The IDs are database references only: replay must read the same
+    persisted values while the winner, manifest, and snapshot hashes
+    remain unchanged.
+    """
+    _require_postgres()
+    suffix = uuid4().hex
+    external_batch_id, _import_id = await _seed_i5_persisted_finalized_batch(
+        suffix=suffix,
+    )
+
+    try:
+        await _truncate_i7_tables()
+        request = _i7_request(
+            snapshot_idempotency_key=f"idem-e5-3-numeric-id-{suffix}",
+            season_business_keys=(f"season-{suffix}",),
+        )
+
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                first = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-e5-3-numeric-id",
+                )
+
+        assert first.header.winner_count == 1
+        first_winner = first.winners[0]
+        assert all(
+            isinstance(first_winner[field], int) and first_winner[field] > 0
+            for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+        )
+
+        async with AsyncSessionMaker() as session:
+            persisted_winner = await session.scalar(
+                select(ActualHarvestLabelSnapshotWinnerModel).where(
+                    ActualHarvestLabelSnapshotWinnerModel.snapshot_id == first.header.snapshot_id
+                )
+            )
+            evidence_rows = (
+                await session.scalars(
+                    select(ActualHarvestValidationMappingEvidenceModel).where(
+                        ActualHarvestValidationMappingEvidenceModel.external_revision_id
+                        == f"rev-i7-pg-{suffix}-b"
+                    )
+                )
+            ).all()
+            season = (
+                await session.get(Season, persisted_winner.season_id) if persisted_winner else None
+            )
+            farm = await session.get(Farm, persisted_winner.farm_id) if persisted_winner else None
+            subfarm = (
+                await session.get(Subfarm, persisted_winner.subfarm_id)
+                if persisted_winner
+                else None
+            )
+            variety = (
+                await session.get(Variety, persisted_winner.variety_id)
+                if persisted_winner
+                else None
+            )
+
+        assert persisted_winner is not None
+        evidence_by_type = {row.target_type: row for row in evidence_rows}
+        assert set(evidence_by_type) == {"SEASON", "FARM", "SUBFARM", "VARIETY"}
+        assert persisted_winner.season_id == evidence_by_type["SEASON"].resolved_season_id
+        assert persisted_winner.farm_id == evidence_by_type["FARM"].resolved_farm_id
+        assert persisted_winner.subfarm_id == evidence_by_type["SUBFARM"].resolved_subfarm_id
+        assert persisted_winner.variety_id == evidence_by_type["VARIETY"].resolved_variety_id
+        assert season is not None and season.code == f"season-{suffix}"
+        assert farm is not None and farm.name == f"farm-master-{suffix}"
+        assert subfarm is not None and subfarm.name == f"subfarm-master-{suffix}"
+        assert variety is not None and variety.code == f"variety-master-{suffix}"
+        assert subfarm.farm_id == farm.id
+
+        counts_before_replay = await _i7_table_counts()
+        async with AsyncSessionMaker() as session:
+            async with session.begin():
+                replay = await create_label_snapshot(
+                    session,
+                    request=request,
+                    created_by_identity="op-e5-3-numeric-id-replay",
+                )
+        counts_after_replay = await _i7_table_counts()
+
+        assert counts_after_replay == counts_before_replay
+        assert replay.header.snapshot_id == first.header.snapshot_id
+        assert replay.header.winner_manifest_hash == first.header.winner_manifest_hash
+        assert replay.header.label_snapshot_hash == first.header.label_snapshot_hash
+        assert replay.winners[0]["winner_row_hash"] == first_winner["winner_row_hash"]
+        assert tuple(
+            replay.winners[0][field]
+            for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+        ) == tuple(
+            first_winner[field] for field in ("season_id", "farm_id", "subfarm_id", "variety_id")
+        )
+    finally:
+        await _cleanup_batch(external_batch_id)
+
+
+@pytest.mark.asyncio
+async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_postgres() -> None:
+    """A production-created I7 winner must support the persisted Quality chain."""
+
+    _require_postgres()
+    from backend.app.actual_harvest_import.api_schemas import (
+        ActualHarvestApiAppendRecordsRequest,
+        ActualHarvestApiCommitRequest,
+        ActualHarvestApiRecordInput,
+    )
+    from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
+    from backend.app.actual_harvest_import.lifecycle import (
+        append_import_records,
+        seal_import,
+        validate_import,
+    )
+    from backend.app.actual_harvest_import.validation_service import (
+        create_mapping_registry,
+        seal_mapping_registry,
+    )
+    from backend.app.trial import (
+        TrialActualHarvestImportCreateRequest,
+        _build_quality_s2_candidates,
+        _load_quality_parent_forecast,
+    )
+    from backend.tests.actual_harvest_import.test_api_schemas import _record_payload
+    from backend.tests.forecast_quality.test_persistence import (
+        _drop_temporary_database,
+        _prepare_default_quality_service_case,
+    )
+
+    case = await _prepare_default_quality_service_case("i7_quality_authority")
+    try:
+        async with case.sessionmaker() as session:
+            evidence, persisted, _import_batch = await _load_quality_parent_forecast(
+                session,
+                request=case.request,
+                actor=case.actor,
+            )
+
+        forecast_row = next(
+            row for row in persisted.daily_curve.rows if row.forecast_quantile == "P50"
+        )
+        async with case.sessionmaker() as session:
+            season = await session.get(Season, persisted.run.forecast_season_id)
+            farm = await session.get(Farm, forecast_row.farm_id)
+            subfarm = await session.get(Subfarm, forecast_row.subfarm_id)
+            variety = await session.get(Variety, forecast_row.variety_id)
+        assert season is not None
+        assert farm is not None
+        assert subfarm is not None
+        assert variety is not None
+        assert subfarm.farm_id == farm.id
+
+        source_system = "source-test-winner"
+        mapping_policy_version = "mapping-i7-quality-winner"
+        async with case.sessionmaker() as session:
+            async with session.begin():
+                await session.run_sync(
+                    lambda sync_session: create_mapping_registry(
+                        sync_session,
+                        registry_version="registry-i7-quality-winner",
+                        source_system=source_system,
+                        mapping_policy_version=mapping_policy_version,
+                        entries=(
+                            {
+                                "source_field": "season_code",
+                                "source_code": season.code,
+                                "target_type": "SEASON",
+                                "target_business_key": season.code,
+                            },
+                            {
+                                "source_field": "farm_code",
+                                "source_code": "farm-1",
+                                "target_type": "FARM",
+                                "target_business_key": farm.name,
+                            },
+                            {
+                                "source_field": "subfarm_or_plot_code",
+                                "source_code": "plot-1",
+                                "target_type": "SUBFARM",
+                                "target_business_key": subfarm.name,
+                                "target_parent_business_key": farm.name,
+                            },
+                            {
+                                "source_field": "variety_code",
+                                "source_code": "variety-1",
+                                "target_type": "VARIETY",
+                                "target_business_key": variety.code,
+                            },
+                        ),
+                        now=datetime(2026, 3, 1, tzinfo=UTC),
+                    )
+                )
+                await session.run_sync(
+                    lambda sync_session: seal_mapping_registry(
+                        sync_session,
+                        mapping_policy_version=mapping_policy_version,
+                        now=datetime(2026, 3, 1, tzinfo=UTC),
+                    )
+                )
+
+        quality_actor = case.actor.model_copy(
+            update={
+                "allowed_source_systems": frozenset({source_system}),
+                "allowed_channels": frozenset({ActualHarvestImportChannel.API}),
+                "may_create": True,
+                "may_append": True,
+                "may_seal": True,
+                "may_validate": True,
+                "may_commit": True,
+            }
+        )
+        external_batch_id = f"{case.request.actual_harvest_import_id}-winner-batch"
+        create_request = TrialActualHarvestImportCreateRequest(
+            source_system=source_system,
+            source_dataset="actual-harvest",
+            source_version="i7-quality-winner",
+            external_batch_id=external_batch_id,
+            expected_record_count_or_null=1,
+            request_idempotency_key=f"{case.request.request_idempotency_key}-winner-import",
+        )
+        async with case.sessionmaker() as session:
+            created_import = await case.service.create_import(
+                session,
+                create_request,
+                quality_actor,
+            )
+
+        record_payload = _record_payload()
+        record_payload.update(
+            {
+                "source_system": source_system,
+                "external_batch_id": external_batch_id,
+                "external_logical_record_id": "i7-quality-winner-logical",
+                "external_revision_id": "i7-quality-winner-revision",
+                "harvest_business_date": "2026-03-07",
+                "season_code": season.code,
+                "record_status": ActualHarvestRecordStatus.FINALIZED.value,
+                "finalized_at": "2026-03-06T12:00:00Z",
+                "source_recorded_at": "2026-03-07T08:00:00Z",
+                "source_recorded_at_authority_reference_or_null": "i7-quality-winner-source",
+            }
+        )
+        record = ActualHarvestApiRecordInput.model_validate(record_payload)
+        async with case.sessionmaker() as session:
+            async with session.begin():
+                await append_import_records(
+                    session,
+                    created_import.import_id,
+                    ActualHarvestApiAppendRecordsRequest(records=(record,)),
+                )
+        async with case.sessionmaker() as session:
+            async with session.begin():
+                await seal_import(
+                    session,
+                    created_import.import_id,
+                    actor_identity=quality_actor.identity,
+                )
+        async with case.sessionmaker() as session:
+            validation = await validate_import(session, created_import.import_id)
+        assert validation.validation_status == "VALIDATED"
+        assert validation.validation_run_identity is not None
+
+        async with case.sessionmaker() as session:
+            committed = await case.service.commit_import(
+                session,
+                created_import.import_id,
+                ActualHarvestApiCommitRequest(
+                    validation_run_instance_identity_hash=validation.validation_run_identity,
+                ),
+                quality_actor,
+            )
+        assert committed.status == "COMMITTED"
+
+        async with case.sessionmaker() as session:
+            batch = await session.scalar(
+                select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == created_import.import_id
+                )
+            )
+            assert batch is not None
+            validation_run = await session.scalar(
+                select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == batch.id,
+                    ActualHarvestValidationRunModel.is_current.is_(True),
+                )
+            )
+            assert validation_run is not None
+            evidence_rows = (
+                await session.scalars(
+                    select(ActualHarvestValidationMappingEvidenceModel).where(
+                        ActualHarvestValidationMappingEvidenceModel.validation_run_id
+                        == validation_run.id
+                    )
+                )
+            ).all()
+        evidence_by_type = {row.target_type: row for row in evidence_rows}
+        assert set(evidence_by_type) == {"SEASON", "FARM", "SUBFARM", "VARIETY"}
+        expected_numeric_identity = {
+            "SEASON": persisted.run.forecast_season_id,
+            "FARM": forecast_row.farm_id,
+            "SUBFARM": forecast_row.subfarm_id,
+            "VARIETY": forecast_row.variety_id,
+        }
+        frozen_numeric_identity = dict(expected_numeric_identity)
+        for target_type, expected_id in expected_numeric_identity.items():
+            evidence_row = evidence_by_type[target_type]
+            actual_id = {
+                "SEASON": evidence_row.resolved_season_id,
+                "FARM": evidence_row.resolved_farm_id,
+                "SUBFARM": evidence_row.resolved_subfarm_id,
+                "VARIETY": evidence_row.resolved_variety_id,
+            }[target_type]
+            assert type(actual_id) is int and actual_id > 0
+            assert actual_id == expected_id
+
+        quality_request = case.request.model_copy(
+            update={
+                "actual_harvest_import_id": created_import.import_id,
+                "request_idempotency_key": f"{case.request.request_idempotency_key}-winner",
+            }
+        )
+
+        async with case.sessionmaker() as session:
+            created = await case.service.create_quality_report(
+                session,
+                quality_request,
+                quality_actor,
+            )
+
+        async with case.sessionmaker() as session:
+            quality = await session.run_sync(
+                lambda sync_session: load_quality_evaluation_by_instance_hash(
+                    sync_session,
+                    evaluation_instance_hash=created.report_id,
+                )
+            )
+            s2_identity = quality.run_payload.get("s2_run_identity")
+            assert isinstance(s2_identity, str)
+            s2 = await load_s2_historical_binding_by_instance_hash(
+                session,
+                instance_hash=s2_identity,
+            )
+            assert s2.rows
+            assert all(row.authority_verification == "PERSISTED" for row in s2.rows)
+
+            trial_request_identity = quality.run_payload.get("trial_request_identity")
+            assert isinstance(trial_request_identity, dict)
+            server_owned_evidence = trial_request_identity.get("server_owned_evidence")
+            assert isinstance(server_owned_evidence, dict)
+            label_snapshot_identity = server_owned_evidence.get("label_snapshot_identity")
+            assert isinstance(label_snapshot_identity, str)
+            snapshot = await session.scalar(
+                select(ActualHarvestLabelSnapshotModel).where(
+                    ActualHarvestLabelSnapshotModel.snapshot_instance_identity_hash
+                    == label_snapshot_identity
+                )
+            )
+            assert snapshot is not None
+
+            evidence, persisted, import_batch = await _load_quality_parent_forecast(
+                session,
+                request=quality_request,
+                actor=quality_actor,
+            )
+            batch = await session.scalar(
+                select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id
+                    == quality_request.actual_harvest_import_id
+                )
+            )
+            assert batch is not None
+            assert import_batch.id == batch.id
+            snapshot_result = await label_service._replay_existing_snapshot(
+                session,
+                existing_snapshot=snapshot,
+                request_identity_hash=snapshot.snapshot_request_identity_hash,
+            )
+            s2_request, candidates = await _build_quality_s2_candidates(
+                session,
+                request=quality_request,
+                evidence=evidence,
+                persisted=persisted,
+                snapshot=snapshot_result,
+            )
+            rows_with_winners = tuple(
+                candidate
+                for candidate in candidates
+                if candidate.persisted_authority_references is not None
+                and candidate.persisted_authority_references.label_winner_id is not None
+            )
+            assert rows_with_winners
+            references = rows_with_winners[0].persisted_authority_references
+            assert references is not None
+            assert references.label_winner_id is not None
+
+            winner = await session.get(
+                ActualHarvestLabelSnapshotWinnerModel,
+                references.label_winner_id,
+            )
+            assert snapshot is not None
+            assert winner is not None
+            assert winner.snapshot_id == snapshot.id
+            assert all(
+                value is not None and value > 0
+                for value in (
+                    winner.season_id,
+                    winner.farm_id,
+                    winner.subfarm_id,
+                    winner.variety_id,
+                )
+            )
+
+            batch = await session.scalar(
+                select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id
+                    == quality_request.actual_harvest_import_id
+                )
+            )
+            assert batch is not None
+            validation_run = await session.scalar(
+                select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == batch.id
+                )
+            )
+            assert validation_run is not None
+            evidence_rows = (
+                await session.scalars(
+                    select(ActualHarvestValidationMappingEvidenceModel).where(
+                        ActualHarvestValidationMappingEvidenceModel.validation_run_id
+                        == validation_run.id
+                    )
+                )
+            ).all()
+            evidence_by_type = {row.target_type: row for row in evidence_rows}
+            assert set(evidence_by_type) == {"SEASON", "FARM", "SUBFARM", "VARIETY"}
+            assert winner.season_id == evidence_by_type["SEASON"].resolved_season_id
+            assert winner.farm_id == evidence_by_type["FARM"].resolved_farm_id
+            assert winner.subfarm_id == evidence_by_type["SUBFARM"].resolved_subfarm_id
+            assert winner.variety_id == evidence_by_type["VARIETY"].resolved_variety_id
+            assert {
+                "SEASON": evidence_by_type["SEASON"].resolved_season_id,
+                "FARM": evidence_by_type["FARM"].resolved_farm_id,
+                "SUBFARM": evidence_by_type["SUBFARM"].resolved_subfarm_id,
+                "VARIETY": evidence_by_type["VARIETY"].resolved_variety_id,
+            } == frozen_numeric_identity
+
+            resolved = await resolve_s2_persisted_authorities(
+                session,
+                request=s2_request,
+                candidates=candidates,
+            )
+            assert resolved
+            assert all(candidate.authority_verification == "PERSISTED" for candidate in resolved)
+            resolved_winners = tuple(
+                candidate
+                for candidate in resolved
+                if candidate.persisted_authority_references is not None
+                and candidate.persisted_authority_references.label_winner_id
+                == references.label_winner_id
+            )
+            assert resolved_winners
+
+            fresh_readback = await case.service.get_quality_report(
+                session,
+                created.report_id,
+                quality_actor,
+            )
+            assert fresh_readback.report_id == created.report_id
+            assert fresh_readback.model_dump(mode="json") == created.model_dump(mode="json")
+    finally:
+        await case.engine.dispose()
+        await _drop_temporary_database(case.db_name)
+
+
 # E5.4 — concurrent identical snapshot
 # ===========================================================================
 
