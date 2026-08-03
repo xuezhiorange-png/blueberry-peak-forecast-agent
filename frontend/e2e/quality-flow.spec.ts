@@ -1,4 +1,41 @@
-import { expect, test, type Page } from "@playwright/test";
+import { basename, join } from "node:path";
+
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
+
+type ProjectScopedIdentity = {
+  externalBatchId: string;
+  externalLogicalRecordId: string;
+  externalRevisionId: string;
+  sourceNote: string;
+};
+
+function safeSlug(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  if (!slug) throw new Error(`Unable to create a safe test identity from ${value}`);
+  return slug;
+}
+
+function projectScopedIdentity(testInfo: TestInfo, scenario: string): ProjectScopedIdentity {
+  const project = safeSlug(testInfo.project.name);
+  const scenarioSlug = safeSlug(scenario);
+  const executionSuffix = `${project}-w${testInfo.workerIndex}-r${testInfo.retry}`;
+  return {
+    externalBatchId: `trial-harvest-${scenarioSlug}-${executionSuffix}`,
+    externalLogicalRecordId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-row-1`,
+    externalRevisionId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-rev-1`,
+    sourceNote: `frontend-e2e-${scenarioSlug}-${project}`,
+  };
+}
+
+function xlsxPathForProject(testInfo: TestInfo): string {
+  const directory = process.env.FRONTEND_E2E_XLSX_DIR;
+  if (!directory) throw new Error("FRONTEND_E2E_XLSX_DIR is required for real XLSX acceptance");
+  return join(directory, `frontend-e2e-${safeSlug(testInfo.project.name)}.xlsx`);
+}
 
 const csvHeaders = [
   "external_logical_record_id",
@@ -23,14 +60,14 @@ const csvHeaders = [
   "source_note",
 ].join(",");
 
-function qualityCsv(batchId = "trial-harvest-batch") {
+function qualityCsv(identity: ProjectScopedIdentity) {
   return [
     csvHeaders,
     [
-      "frontend-e2e-row-1",
-      "frontend-e2e-rev-1",
+      identity.externalLogicalRecordId,
+      identity.externalRevisionId,
       "trial-api",
-      batchId,
+      identity.externalBatchId,
       "2026-03-08",
       "farm-1",
       "sub-1",
@@ -46,19 +83,20 @@ function qualityCsv(batchId = "trial-harvest-batch") {
       "Asia/Shanghai",
       "2026-03-08T10:00:00+00:00",
       "",
-      "frontend-e2e",
+      identity.sourceNote,
     ].join(","),
   ].join("\n");
 }
 
-async function uploadAndCommitCsv(page: Page, batchId = "trial-harvest-batch") {
+async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity) {
   await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles({
-    name: `${batchId}.csv`,
+    name: `${identity.externalBatchId}.csv`,
     mimeType: "text/csv",
-    buffer: Buffer.from(qualityCsv(batchId), "utf8"),
+    buffer: Buffer.from(qualityCsv(identity), "utf8"),
   });
   await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
-  await page.getByLabel("external batch id").fill(batchId);
+  await page.getByLabel("external batch id").fill(identity.externalBatchId);
+  await expect(page.getByLabel("external batch id")).toHaveValue(identity.externalBatchId);
   await page.getByRole("button", { name: "上传并校验" }).click();
   const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
   await expect(lifecycle).toContainText("VALIDATED", { timeout: 30_000 });
@@ -82,9 +120,9 @@ async function createForecastForQuality(page: Page): Promise<string> {
   return runId.innerText();
 }
 
-async function createQualityReport(page: Page, runId: string) {
+async function createQualityReport(page: Page, runId: string, testInfo: TestInfo) {
   await page.goto("/trial/quality");
-  await uploadAndCommitCsv(page);
+  await uploadAndCommitCsv(page, projectScopedIdentity(testInfo, "quality-csv"));
   await page.getByLabel("Forecast public run ID").fill(runId);
   await page.getByRole("button", { name: "读取 Forecast" }).click();
   await expect(page.getByLabel("Persisted Forecast cutoff")).not.toHaveValue("—");
@@ -105,7 +143,7 @@ async function createQualityReport(page: Page, runId: string) {
 test.describe("production Actual Harvest and Quality Trial integration", () => {
   test("uploads raw CSV, commits it, creates persisted Quality, and exports CSV", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const apiRequests: string[] = [];
     page.on("request", (request) => {
@@ -114,7 +152,7 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     });
 
     const runId = await createForecastForQuality(page);
-    const reportId = await createQualityReport(page, runId);
+    const reportId = await createQualityReport(page, runId, testInfo);
     expect(reportId).toMatch(/^[0-9a-f]{64}$/);
     expect(apiRequests).toContain("/api/v1/trial/actual-harvest/imports");
     expect(apiRequests.some((path) => path.includes("/upload"))).toBe(true);
@@ -141,11 +179,11 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     ).toBe(true);
   });
 
-  test("accepts and commits a real XLSX upload", async ({ page }) => {
-    const xlsxPath = process.env.FRONTEND_E2E_XLSX;
-    if (!xlsxPath) throw new Error("FRONTEND_E2E_XLSX is required for the real XLSX acceptance");
+  test("accepts and commits a real XLSX upload", async ({ page }, testInfo) => {
+    const xlsxPath = xlsxPathForProject(testInfo);
     await page.goto("/trial/quality");
     await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles(xlsxPath);
+    await expect(page.getByText(basename(xlsxPath), { exact: true })).toBeVisible();
     await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "上传并校验" }).click();
     const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
@@ -156,16 +194,19 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     await expect(lifecycle).toContainText("COMMITTED", { timeout: 30_000 });
   });
 
-  test("keeps the import and quality surfaces within a mobile viewport", async ({ page }) => {
+  test("keeps the import and quality surfaces within a mobile viewport", async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/trial/quality");
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+    const identity = projectScopedIdentity(testInfo, "quality-mobile-preview");
     await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles({
-      name: "mobile.csv",
+      name: `${identity.externalBatchId}.csv`,
       mimeType: "text/csv",
-      buffer: Buffer.from(qualityCsv("mobile-batch"), "utf8"),
+      buffer: Buffer.from(qualityCsv(identity), "utf8"),
     });
     await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
     expect(

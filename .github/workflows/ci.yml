@@ -2179,26 +2179,28 @@ jobs:
           import openpyxl
           from backend.app.actual_harvest_import.spreadsheet_parser import canonical_spreadsheet_headers
           from backend.app.actual_harvest_import.spreadsheet_template import generate_xlsx_template
-          workbook = openpyxl.load_workbook(io.BytesIO(generate_xlsx_template()))
-          worksheet = workbook.active
-          values = {
-              "external_logical_record_id": "frontend-e2e-xlsx-row-1",
-              "external_revision_id": "frontend-e2e-xlsx-rev-1",
-              "source_system": "trial-api", "external_batch_id": "trial-harvest-xlsx",
-              "harvest_business_date": "2026-03-09", "farm_code": "farm-1",
-              "subfarm_or_plot_code": "sub-1", "variety_code": "var-1",
-              "actual_harvest_quantity_kg": "6.000000",
-              "source_recorded_at": "2026-03-09T10:00:00+00:00",
-              "source_recorded_at_authority_status": "TRUSTED_SOURCE_TIMESTAMP",
-              "source_recorded_at_authority_reference_or_null": "farm-source",
-              "revision_number": "1", "record_status": "ACTIVE",
-              "supersedes_external_revision_id": "", "season_code": "2026-DEMO",
-              "farm_timezone": "Asia/Shanghai", "revised_at": "2026-03-09T10:00:00+00:00",
-              "finalized_at": "", "source_note": "frontend-e2e-xlsx",
-          }
-          worksheet.append([values[column] for column in canonical_spreadsheet_headers()])
-          workbook.save("/tmp/frontend-e2e.xlsx")
-          workbook.close()
+          for project in ("chromium-desktop", "chromium-mobile"):
+              workbook = openpyxl.load_workbook(io.BytesIO(generate_xlsx_template()))
+              worksheet = workbook.active
+              values = {
+                  "external_logical_record_id": f"frontend-e2e-xlsx-{project}-row-1",
+                  "external_revision_id": f"frontend-e2e-xlsx-{project}-rev-1",
+                  "source_system": "trial-api",
+                  "external_batch_id": f"trial-harvest-xlsx-{project}",
+                  "harvest_business_date": "2026-03-09", "farm_code": "farm-1",
+                  "subfarm_or_plot_code": "sub-1", "variety_code": "var-1",
+                  "actual_harvest_quantity_kg": "6.000000",
+                  "source_recorded_at": "2026-03-09T10:00:00+00:00",
+                  "source_recorded_at_authority_status": "TRUSTED_SOURCE_TIMESTAMP",
+                  "source_recorded_at_authority_reference_or_null": "farm-source",
+                  "revision_number": "1", "record_status": "ACTIVE",
+                  "supersedes_external_revision_id": "", "season_code": "2026-DEMO",
+                  "farm_timezone": "Asia/Shanghai", "revised_at": "2026-03-09T10:00:00+00:00",
+                  "finalized_at": "", "source_note": f"frontend-e2e-xlsx-{project}",
+              }
+              worksheet.append([values[column] for column in canonical_spreadsheet_headers()])
+              workbook.save(f"/tmp/frontend-e2e-{project}.xlsx")
+              workbook.close()
           PY
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
@@ -2226,7 +2228,7 @@ jobs:
       - name: Run real browser acceptance
         env:
           VITE_TRIAL_API_PROXY_TARGET: http://127.0.0.1:8000
-          FRONTEND_E2E_XLSX: /tmp/frontend-e2e.xlsx
+          FRONTEND_E2E_XLSX_DIR: /tmp
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: reports/test-results/frontend-e2e.xml
         run: |
           mkdir -p frontend/reports/test-results
