@@ -1375,7 +1375,11 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             assert s2.rows
             assert all(row.authority_verification == "PERSISTED" for row in s2.rows)
 
-            label_snapshot_identity = quality.run_payload.get("label_snapshot_identity")
+            trial_request_identity = quality.run_payload.get("trial_request_identity")
+            assert isinstance(trial_request_identity, dict)
+            server_owned_evidence = trial_request_identity.get("server_owned_evidence")
+            assert isinstance(server_owned_evidence, dict)
+            label_snapshot_identity = server_owned_evidence.get("label_snapshot_identity")
             assert isinstance(label_snapshot_identity, str)
             snapshot = await session.scalar(
                 select(ActualHarvestLabelSnapshotModel).where(
