@@ -1080,8 +1080,7 @@ async def test_postgres_trial_api_created_import_accepts_file_upload_and_commit(
     )
 
     async with AsyncSessionMaker() as session:
-        async with session.begin():
-            created = await service.create_import(session, request, actor)
+        created = await service.create_import(session, request, actor)
 
     assert created.status == "UPLOADING"
     async with AsyncSessionMaker() as session:
@@ -1106,14 +1105,13 @@ async def test_postgres_trial_api_created_import_accepts_file_upload_and_commit(
     )
     metadata = _trial_upload_metadata(upload_channel)
     async with AsyncSessionMaker() as session:
-        async with session.begin():
-            uploaded = await service.upload_import(
-                session,
-                created.import_id,
-                content,
-                metadata,
-                actor,
-            )
+        uploaded = await service.upload_import(
+            session,
+            created.import_id,
+            content,
+            metadata,
+            actor,
+        )
 
     assert uploaded.server_status == "VALIDATED"
     assert uploaded.validation_status == "VALIDATED"
@@ -1135,13 +1133,12 @@ async def test_postgres_trial_api_created_import_accepts_file_upload_and_commit(
         )
     )
     async with AsyncSessionMaker() as session:
-        async with session.begin():
-            committed = await service.commit_import(
-                session,
-                created.import_id,
-                commit_request,
-                actor,
-            )
+        committed = await service.commit_import(
+            session,
+            created.import_id,
+            commit_request,
+            actor,
+        )
 
     assert committed.status == "COMMITTED"
     assert committed.committed_record_count > 0
@@ -1198,8 +1195,7 @@ async def test_postgres_trial_api_upload_requires_file_channel_without_writes() 
         request_idempotency_key=f"request-{suffix}",
     )
     async with AsyncSessionMaker() as session:
-        async with session.begin():
-            created = await service.create_import(session, request, actor)
+        created = await service.create_import(session, request, actor)
 
     row = _trial_upload_row(
         source_system=source_system,
@@ -1208,14 +1204,13 @@ async def test_postgres_trial_api_upload_requires_file_channel_without_writes() 
     )
     with pytest.raises(ActualHarvestApiError) as error:
         async with AsyncSessionMaker() as session:
-            async with session.begin():
-                await service.upload_import(
-                    session,
-                    created.import_id,
-                    _trial_upload_csv(row),
-                    _trial_upload_metadata(ActualHarvestImportChannel.CSV),
-                    actor,
-                )
+            await service.upload_import(
+                session,
+                created.import_id,
+                _trial_upload_csv(row),
+                _trial_upload_metadata(ActualHarvestImportChannel.CSV),
+                actor,
+            )
 
     assert error.value.code is ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND
     assert error.value.status_code == 404
