@@ -125,6 +125,147 @@ def _record() -> ActualHarvestImportRecordInput:
     )
 
 
+def _upload_metadata(channel: ActualHarvestImportChannel) -> TrialActualHarvestUploadMetadata:
+    if channel is ActualHarvestImportChannel.CSV:
+        return TrialActualHarvestUploadMetadata(
+            file_name="harvest.csv",
+            mime_type="text/csv",
+            channel=channel,
+        )
+    return TrialActualHarvestUploadMetadata(
+        file_name="harvest.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        channel=channel,
+    )
+
+
+async def _assert_api_created_upload_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    channel: ActualHarvestImportChannel,
+) -> None:
+    service = DefaultTrialApplicationService()
+    calls: list[str] = []
+    parser_called = False
+    session = SimpleNamespace()
+    batch = _batch(channel=ActualHarvestImportChannel.API)
+    summary = SimpleNamespace(
+        validation_status="VALIDATED",
+        valid_count=1,
+        invalid_count=0,
+        validation_run_identity="a" * 64,
+        validation_result_hash="b" * 64,
+    )
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return batch
+
+    def parser(content):
+        nonlocal parser_called
+        parser_called = True
+        del content
+        return SimpleNamespace(records=(_record(),))
+
+    async def run_mutation(session, operation):
+        del session
+        calls.append("mutate")
+        return await operation()
+
+    async def run_sync(callback):
+        return callback(None)
+
+    session.run_sync = run_sync
+
+    async def append(session, import_id, request):
+        del session, import_id, request
+        calls.append("append")
+        return (None, (), False)
+
+    async def seal(session, import_id, *, actor_identity):
+        del session, import_id, actor_identity
+        calls.append("seal")
+
+    async def validate(session, import_id):
+        del session, import_id
+        calls.append("validate")
+        return summary
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "parse_csv", parser)
+    monkeypatch.setattr(trial_module, "parse_xlsx", parser)
+    monkeypatch.setattr(trial_module, "_run_mutation", run_mutation)
+    monkeypatch.setattr(trial_module, "_store_upload_metadata", lambda *args, **kwargs: None)
+    monkeypatch.setattr(trial_module, "append_import_records", append)
+    monkeypatch.setattr(trial_module, "seal_import", seal)
+    monkeypatch.setattr(trial_module, "validate_import", validate)
+
+    response = await service.upload_import(
+        session,
+        "import-1",
+        b"raw-content",
+        _upload_metadata(channel),
+        _actor(channels=frozenset({ActualHarvestImportChannel.API, channel})),
+    )
+
+    assert response.validation_status == "VALIDATED"
+    assert parser_called is True
+    assert calls == ["mutate", "append", "mutate", "seal", "validate"]
+
+
+async def _assert_upload_scope_failure_is_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    actor: ActualHarvestActorContext,
+    channel: ActualHarvestImportChannel,
+) -> None:
+    service = DefaultTrialApplicationService()
+    parser_called = False
+    mutation_called = False
+    metadata_store_called = False
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return _batch(channel=ActualHarvestImportChannel.API)
+
+    def parser(content):
+        nonlocal parser_called
+        parser_called = True
+        del content
+        return SimpleNamespace(records=())
+
+    async def mutation(*args, **kwargs):
+        nonlocal mutation_called
+        mutation_called = True
+        del args, kwargs
+        raise AssertionError("upload mutation must not run")
+
+    def store_metadata(*args, **kwargs):
+        nonlocal metadata_store_called
+        metadata_store_called = True
+        del args, kwargs
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "parse_csv", parser)
+    monkeypatch.setattr(trial_module, "parse_xlsx", parser)
+    monkeypatch.setattr(trial_module, "_run_mutation", mutation)
+    monkeypatch.setattr(trial_module, "_store_upload_metadata", store_metadata)
+
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.upload_import(
+            None,
+            "import-1",
+            b"raw-content",
+            _upload_metadata(channel),
+            actor,
+        )
+
+    assert error.value.status_code == 404
+    assert parser_called is False
+    assert mutation_called is False
+    assert metadata_store_called is False
+
+
 def test_all_server_import_statuses_are_preserved() -> None:
     for status in ActualHarvestImportBatchStatus:
         assert _public_import_status(status.value) == status.value
@@ -308,6 +449,81 @@ async def test_xlsx_upload_reuses_parser_and_lifecycle(monkeypatch: pytest.Monke
 
     assert response.validation_status == "VALIDATED"
     assert calls == ["append", "seal", "validate"]
+
+
+@pytest.mark.asyncio
+async def test_api_created_batch_accepts_authorized_csv_upload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_api_created_upload_succeeds(
+        monkeypatch,
+        channel=ActualHarvestImportChannel.CSV,
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_created_batch_accepts_authorized_xlsx_upload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_api_created_upload_succeeds(
+        monkeypatch,
+        channel=ActualHarvestImportChannel.XLSX,
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_created_batch_csv_upload_requires_api_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_upload_scope_failure_is_preflight(
+        monkeypatch,
+        actor=_actor(channels=frozenset({ActualHarvestImportChannel.CSV})),
+        channel=ActualHarvestImportChannel.CSV,
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_created_batch_csv_upload_requires_csv_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_upload_scope_failure_is_preflight(
+        monkeypatch,
+        actor=_actor(channels=frozenset({ActualHarvestImportChannel.API})),
+        channel=ActualHarvestImportChannel.CSV,
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_created_batch_xlsx_upload_requires_xlsx_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_upload_scope_failure_is_preflight(
+        monkeypatch,
+        actor=_actor(channels=frozenset({ActualHarvestImportChannel.API})),
+        channel=ActualHarvestImportChannel.XLSX,
+    )
+
+
+@pytest.mark.asyncio
+async def test_upload_channel_scope_failure_occurs_before_parser(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_upload_scope_failure_is_preflight(
+        monkeypatch,
+        actor=_actor(channels=frozenset({ActualHarvestImportChannel.API})),
+        channel=ActualHarvestImportChannel.CSV,
+    )
+
+
+@pytest.mark.asyncio
+async def test_upload_channel_scope_failure_occurs_before_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_upload_scope_failure_is_preflight(
+        monkeypatch,
+        actor=_actor(channels=frozenset({ActualHarvestImportChannel.API})),
+        channel=ActualHarvestImportChannel.XLSX,
+    )
 
 
 @pytest.mark.asyncio
@@ -788,6 +1004,82 @@ async def test_upload_channel_must_match_persisted_batch_channel(
     assert append_called is False
     assert seal_called is False
     assert validate_called is False
+
+
+async def _assert_non_api_channel_mismatch_is_concealed(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    persisted_channel: ActualHarvestImportChannel,
+    upload_channel: ActualHarvestImportChannel,
+) -> None:
+    service = DefaultTrialApplicationService()
+    parser_called = False
+    mutation_called = False
+    actor = _actor(
+        channels=frozenset(
+            {
+                ActualHarvestImportChannel.API,
+                ActualHarvestImportChannel.CSV,
+                ActualHarvestImportChannel.XLSX,
+            }
+        )
+    )
+
+    async def get_batch(session, import_id):
+        del session, import_id
+        return _batch(channel=persisted_channel)
+
+    def parser(content):
+        nonlocal parser_called
+        parser_called = True
+        del content
+        return SimpleNamespace(records=())
+
+    async def mutation(*args, **kwargs):
+        nonlocal mutation_called
+        mutation_called = True
+        del args, kwargs
+        raise AssertionError("incompatible upload must not mutate")
+
+    monkeypatch.setattr(trial_module, "get_import", get_batch)
+    monkeypatch.setattr(trial_module, "parse_csv", parser)
+    monkeypatch.setattr(trial_module, "parse_xlsx", parser)
+    monkeypatch.setattr(trial_module, "_run_mutation", mutation)
+
+    with pytest.raises(ActualHarvestApiError) as error:
+        await service.upload_import(
+            None,
+            "import-1",
+            b"raw-content",
+            _upload_metadata(upload_channel),
+            actor,
+        )
+
+    assert error.value.status_code == 404
+    assert parser_called is False
+    assert mutation_called is False
+
+
+@pytest.mark.asyncio
+async def test_non_api_csv_batch_still_rejects_xlsx_upload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_non_api_channel_mismatch_is_concealed(
+        monkeypatch,
+        persisted_channel=ActualHarvestImportChannel.CSV,
+        upload_channel=ActualHarvestImportChannel.XLSX,
+    )
+
+
+@pytest.mark.asyncio
+async def test_non_api_xlsx_batch_still_rejects_csv_upload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _assert_non_api_channel_mismatch_is_concealed(
+        monkeypatch,
+        persisted_channel=ActualHarvestImportChannel.XLSX,
+        upload_channel=ActualHarvestImportChannel.CSV,
+    )
 
 
 @pytest.mark.asyncio

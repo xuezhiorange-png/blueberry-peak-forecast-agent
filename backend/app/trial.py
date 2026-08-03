@@ -1211,12 +1211,11 @@ class DefaultTrialApplicationService:
         actor: ActualHarvestActorContext,
     ) -> TrialActualHarvestUploadResponse:
         batch = await _load_scoped_import_batch(session, import_id, actor, "may_append")
-        _require_import_scope(
+        _require_import_upload_scope(
             batch,
             actor,
             "may_append",
-            channel=metadata.channel,
-            conceal_mismatch=True,
+            upload_channel=metadata.channel,
         )
         if not content:
             raise TrialApiError(
@@ -3899,6 +3898,50 @@ def _require_import_scope(
             )
     except ActualHarvestApiError as error:
         if conceal_mismatch and error.code in {
+            ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH,
+            ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN,
+        }:
+            raise _concealed_import_scope_error() from error
+        raise
+
+
+def _require_import_upload_scope(
+    batch: ActualHarvestApiBatchSummary,
+    actor: ActualHarvestActorContext,
+    permission: str,
+    *,
+    upload_channel: ActualHarvestImportChannel,
+) -> None:
+    """Authorize a file transport without changing the persisted batch channel."""
+
+    _require_import_scope(batch, actor, permission, conceal_mismatch=True)
+    try:
+        persisted_channel = ActualHarvestImportChannel(batch.import_channel)
+    except ValueError as error:
+        raise _concealed_import_scope_error() from error
+
+    if upload_channel not in {
+        ActualHarvestImportChannel.CSV,
+        ActualHarvestImportChannel.XLSX,
+    }:
+        raise _concealed_import_scope_error()
+    if (
+        persisted_channel is not ActualHarvestImportChannel.API
+        and persisted_channel is not upload_channel
+    ):
+        raise _concealed_import_scope_error()
+
+    try:
+        require_actor_scope(
+            actor,
+            source_system=batch.source_system,
+            channel=upload_channel,
+            permission=permission,
+            submitted_by_identity=batch.submitted_by_identity,
+            hide_identity_mismatch=True,
+        )
+    except ActualHarvestApiError as error:
+        if error.code in {
             ActualHarvestApiErrorCode.ACTUAL_HARVEST_ACTOR_MISMATCH,
             ActualHarvestApiErrorCode.ACTUAL_HARVEST_SCOPE_FORBIDDEN,
         }:
