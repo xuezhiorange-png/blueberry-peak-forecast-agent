@@ -43,7 +43,11 @@ function assertTrialPath(path: string): void {
 }
 
 function isJsonContentType(value: string | null): boolean {
-  return value === null || /(^|;)\s*application\/json\s*(;|$)/i.test(value);
+  return value !== null && /(^|;)\s*application\/json\s*(;|$)/i.test(value);
+}
+
+function isCsvContentType(value: string | null): boolean {
+  return value !== null && /(^|;)\s*text\/csv\s*(;|$)/i.test(value);
 }
 
 async function parseError(response: Response): Promise<TrialClientError> {
@@ -179,10 +183,15 @@ export async function downloadCsv(
   }
   if (!response.ok) throw await parseError(response);
   const contentType = response.headers.get("content-type");
-  if (contentType && !/^text\/csv\s*(;|$)/i.test(contentType)) {
+  if (!isCsvContentType(contentType)) {
     throw new TrialClientError("TRIAL_RESPONSE_CONTRACT_INVALID", 502);
   }
-  const blob = await response.blob();
+  let blob: Blob;
+  try {
+    blob = await response.blob();
+  } catch {
+    throw new TrialClientError("TRIAL_RESPONSE_CONTRACT_INVALID", 502);
+  }
   if (blob.size === 0) throw new TrialClientError("TRIAL_RESPONSE_CONTRACT_INVALID", 502);
   return { blob, filename: safeFilename(response.headers.get("content-disposition")) };
 }

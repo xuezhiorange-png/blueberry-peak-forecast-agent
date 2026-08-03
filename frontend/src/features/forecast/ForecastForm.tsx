@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type {
   ForecastInputAuthority,
   ForecastInputAuthorityItem,
@@ -20,6 +20,18 @@ const authorityFields: Array<[AuthorityKey, string]> = [
   ["variety_business_key", "品种"],
 ];
 
+function authorityItemKey(item: ForecastInputAuthorityItem | null): string | null {
+  if (!item) return null;
+  return [
+    item.farm_business_key,
+    item.subfarm_business_key_or_null ?? "",
+    item.season_business_key,
+    item.variety_business_key,
+    item.destination_factory_business_key,
+    item.plan_row_hash,
+  ].join("\u001f");
+}
+
 export function ForecastForm({
   authority,
   selectedItem,
@@ -39,7 +51,13 @@ export function ForecastForm({
   const [floweringDate, setFloweringDate] = useState("");
   const [maturityStage, setMaturityStage] = useState("");
   const [alreadyPicked, setAlreadyPicked] = useState("");
-  const [confirmedArea, setConfirmedArea] = useState(false);
+  const [confirmedItemKey, setConfirmedItemKey] = useState<string | null>(null);
+  const selectedItemKey = authorityItemKey(selectedItem);
+  const confirmedArea = selectedItemKey !== null && selectedItemKey === confirmedItemKey;
+
+  useEffect(() => {
+    setConfirmedItemKey(null);
+  }, [authority?.forecast_input_authority_hash]);
 
   const optionsByField = useMemo(() => {
     const output = new Map<AuthorityKey, string[]>();
@@ -48,6 +66,7 @@ export function ForecastForm({
       for (const item of authority?.items ?? []) {
         const value = item[key];
         if (value !== null) values.add(value);
+        else if (key === "subfarm_business_key_or_null") values.add("");
       }
       output.set(key, [...values].sort());
     }
@@ -69,15 +88,27 @@ export function ForecastForm({
       forecast_input_authority_hash: authority.forecast_input_authority_hash,
       plan_row_hash: selectedItem.plan_row_hash,
       planting_area_mu: selectedItem.planting_area_mu,
-      flowering_date_or_null: floweringDate || null,
-      maturity_stage_or_null: maturityStage.trim() || null,
-      already_picked_quantity_kg_or_null: alreadyPicked.trim() || null,
+      flowering_date_or_null: null,
+      maturity_stage_or_null: null,
+      already_picked_quantity_kg_or_null: null,
     });
   }
 
   function changeField(key: AuthorityKey, value: string) {
-    const candidate = authority?.items.find((item) => item[key] === value);
-    if (candidate) onSelectItem(candidate);
+    const requestedValue = key === "subfarm_business_key_or_null" && value === "" ? null : value;
+    const candidates = (authority?.items ?? []).filter((item) => item[key] === requestedValue);
+    if (candidates.length === 0) return;
+    const candidate = [...candidates].sort((left, right) => {
+      const score = (item: ForecastInputAuthorityItem) =>
+        authorityFields.reduce(
+          (total, [field]) =>
+            total + (field === key || item[field] === selectedItem?.[field] ? 1 : 0),
+          0,
+        );
+      return score(right) - score(left);
+    })[0];
+    setConfirmedItemKey(null);
+    onSelectItem(candidate);
   }
 
   return (
@@ -169,7 +200,9 @@ export function ForecastForm({
                 id="forecast-area-confirmed"
                 type="checkbox"
                 checked={confirmedArea}
-                onChange={(event) => setConfirmedArea(event.target.checked)}
+                onChange={(event) =>
+                  setConfirmedItemKey(event.target.checked ? selectedItemKey : null)
+                }
                 disabled={!selectedItem || submitting}
               />
               我确认使用服务端权威面积
@@ -182,7 +215,8 @@ export function ForecastForm({
               type="date"
               value={floweringDate}
               onChange={(event) => setFloweringDate(event.target.value)}
-              disabled={submitting}
+              disabled
+              aria-disabled="true"
             />
           </div>
           <div className="field">
@@ -191,7 +225,8 @@ export function ForecastForm({
               id="forecast-maturity-stage"
               value={maturityStage}
               onChange={(event) => setMaturityStage(event.target.value)}
-              disabled={submitting}
+              disabled
+              aria-disabled="true"
               placeholder="按服务端合同填写"
             />
           </div>
@@ -201,7 +236,8 @@ export function ForecastForm({
               id="forecast-picked-quantity"
               value={alreadyPicked}
               onChange={(event) => setAlreadyPicked(event.target.value)}
-              disabled={submitting}
+              disabled
+              aria-disabled="true"
               placeholder="canonical Decimal string"
               inputMode="decimal"
             />

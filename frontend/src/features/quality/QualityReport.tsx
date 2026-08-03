@@ -50,7 +50,7 @@ export function QualityReport({
           <p>Quality scope 来自 persisted Forecast 与 committed Actual Harvest evidence。</p>
         </div>
         <ExportButton
-          disabled={!report}
+          disabled={!report || !comparison || !selectedHorizon}
           label="导出质量 CSV"
           onClick={() => void onExport()}
           busy={exporting}
@@ -157,67 +157,114 @@ export function QualityReport({
               </button>
             ))}
           </div>
-          <QualityOverlay report={report} horizonDays={horizonDays} />
-          <div className="metric-grid" aria-label="质量指标">
-            {[
-              ["日级指标", report.daily_metrics[0]?.metric_value_or_null ?? null],
-              ["累计指标", report.cumulative_error.metric_value_or_null],
-              ["P80 coverage", report.p80_coverage.coverage_ratio_or_null],
-              ["P90 coverage", report.p90_coverage.coverage_ratio_or_null],
-              ["单日峰值", report.single_day_peak.metric_value_or_null],
-              ["连续 7 日峰值", report.sustained_seven_day_peak.metric_value_or_null],
-            ].map(([label, value]) => (
-              <div className="metric" key={label}>
-                <span className="metric-label">{label}</span>
-                <strong className="metric-value">{formatDecimal(value as string | null)}</strong>
-                <small>
-                  状态：{selectedHorizon?.reason_codes.join(" · ") || report.computability_status}
-                </small>
+          {selectedHorizon ? (
+            <>
+              <QualityOverlay report={report} horizonDays={horizonDays} />
+              <div className="metric-grid" aria-label={`质量指标 ${horizonDays} 天`}>
+                {[
+                  [
+                    "日级指标",
+                    selectedHorizon.daily_metrics[0]?.metric_value_or_null ?? null,
+                    selectedHorizon.daily_metrics[0]?.metric_status,
+                  ],
+                  [
+                    "累计指标",
+                    selectedHorizon.cumulative_metric.metric_value_or_null,
+                    selectedHorizon.cumulative_metric.metric_status,
+                  ],
+                  [
+                    "P80 coverage",
+                    selectedHorizon.p80_coverage.coverage_ratio_or_null,
+                    selectedHorizon.p80_coverage.metric_status,
+                  ],
+                  [
+                    "P90 coverage",
+                    selectedHorizon.p90_coverage.coverage_ratio_or_null,
+                    selectedHorizon.p90_coverage.metric_status,
+                  ],
+                  [
+                    "单日峰值",
+                    selectedHorizon.single_day_peak.metric_value_or_null,
+                    selectedHorizon.single_day_peak.metric_status,
+                  ],
+                  [
+                    "连续 7 日峰值",
+                    selectedHorizon.sustained_seven_day_peak.metric_value_or_null,
+                    selectedHorizon.sustained_seven_day_peak.metric_status,
+                  ],
+                ].map(([label, value, status]) => (
+                  <div className="metric" key={label}>
+                    <span className="metric-label">{label}</span>
+                    <strong className="metric-value">
+                      {formatDecimal(value as string | null)}
+                    </strong>
+                    <small>状态：{status}</small>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="result-grid" aria-label="覆盖与区间状态">
-            <div className="result-line">
-              <span>P80 状态 / 原因</span>
-              <span>
-                {report.p80_coverage.metric_status} ·{" "}
-                {formatReasons(report.p80_coverage.reason_codes)}
-              </span>
-            </div>
-            <div className="result-line">
-              <span>P90 状态 / 原因</span>
-              <span>
-                {report.p90_coverage.metric_status} ·{" "}
-                {formatReasons(report.p90_coverage.reason_codes)}
-              </span>
-            </div>
-            <div className="result-line">
-              <span>区间下界</span>
-              <span>
-                {report.interval_metric.lower_bound_available
-                  ? formatDecimal(report.interval_metric.lower_bound_value_or_null)
-                  : "不可用"}
-              </span>
-            </div>
-            <div className="result-line">
-              <span>排除原因</span>
-              <span>{formatReasons(report.reason_codes)}</span>
-            </div>
-          </div>
-          {comparison && (
-            <div className="comparison-panel" aria-label="baseline comparison">
-              <h3>Persisted baseline comparison</h3>
-              {comparison.model_baseline_deltas.map((delta) => (
-                <div className="result-line" key={delta.comparison_key_hash}>
+              <div className="result-grid" aria-label="覆盖与区间状态">
+                <div className="result-line">
+                  <span>P80 状态 / 原因</span>
                   <span>
-                    {delta.comparison_name} / {delta.forecast_horizon_days} 天
-                  </span>
-                  <span>
-                    {delta.comparison_availability} · {formatDecimal(delta.delta_value_or_null)} ·{" "}
-                    {formatReasons(delta.reason_codes)}
+                    {selectedHorizon.p80_coverage.metric_status} ·{" "}
+                    {formatReasons(selectedHorizon.p80_coverage.reason_codes)}
                   </span>
                 </div>
-              ))}
+                <div className="result-line">
+                  <span>P90 状态 / 原因</span>
+                  <span>
+                    {selectedHorizon.p90_coverage.metric_status} ·{" "}
+                    {formatReasons(selectedHorizon.p90_coverage.reason_codes)}
+                  </span>
+                </div>
+                <div className="result-line">
+                  <span>区间下界</span>
+                  <span>
+                    {selectedHorizon.interval_metric.lower_bound_available
+                      ? formatDecimal(selectedHorizon.interval_metric.lower_bound_value_or_null)
+                      : "不可用"}
+                  </span>
+                </div>
+                <div className="result-line">
+                  <span>coverage counts</span>
+                  <span>
+                    total {selectedHorizon.coverage_counts.total} · comparable{" "}
+                    {selectedHorizon.coverage_counts.comparable} · covered{" "}
+                    {selectedHorizon.coverage_counts.covered}
+                  </span>
+                </div>
+                <div className="result-line">
+                  <span>excluded rows</span>
+                  <span>
+                    {selectedHorizon.excluded_row_counts.excluded} · not computable{" "}
+                    {selectedHorizon.excluded_row_counts.not_computable}
+                  </span>
+                </div>
+                <div className="result-line">
+                  <span>原因</span>
+                  <span>{formatReasons(selectedHorizon.reason_codes)}</span>
+                </div>
+              </div>
+              {comparison && (
+                <div className="comparison-panel" aria-label="baseline comparison">
+                  <h3>Persisted baseline comparison</h3>
+                  {comparison.model_baseline_deltas.map((delta) => (
+                    <div className="result-line" key={delta.comparison_key_hash}>
+                      <span>
+                        {delta.comparison_name} / {delta.forecast_horizon_days} 天
+                      </span>
+                      <span>
+                        {delta.comparison_availability} · {formatDecimal(delta.delta_value_or_null)}{" "}
+                        · {formatReasons(delta.reason_codes)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="notice notice-danger" role="alert">
+              当前选择的 {horizonDays} 天 horizon 未返回，已停止展示其他 horizon 或顶层指标。
             </div>
           )}
         </>

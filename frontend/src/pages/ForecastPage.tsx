@@ -49,6 +49,8 @@ export function ForecastPage() {
         if (controller.signal.aborted) return;
         setAuthority(value);
         setSelectedItem(value.items[0] ?? null);
+        setSummary(null);
+        setDaily(null);
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setAuthorityError(safeErrorMessage(error));
@@ -67,6 +69,8 @@ export function ForecastPage() {
     mutationAbort.current = controller;
     setSubmitting(true);
     setResultError(null);
+    setSummary(null);
+    setDaily(null);
     try {
       const created = await forecastApi.create(request, undefined, controller.signal);
       const persisted = await forecastApi.read(created.run_id, undefined, controller.signal);
@@ -82,6 +86,8 @@ export function ForecastPage() {
       setDaily(curve);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setSummary(null);
+        setDaily(null);
         setResultError(safeErrorMessage(error));
       }
     } finally {
@@ -93,7 +99,7 @@ export function ForecastPage() {
   }
 
   async function exportForecast(): Promise<void> {
-    if (!summary || exporting) return;
+    if (!summary || !daily || resultError || exporting || submitting) return;
     setExporting(true);
     setResultError(null);
     try {

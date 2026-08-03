@@ -26,7 +26,7 @@ export function ForecastResult({
           <p>POST 成功后重新读取 persisted summary 与 daily curve，浏览器不重算指标。</p>
         </div>
         <ExportButton
-          disabled={!summary}
+          disabled={!summary || !daily || Boolean(errorMessage)}
           label="导出 Forecast CSV"
           onClick={() => void onExport()}
           busy={exporting}

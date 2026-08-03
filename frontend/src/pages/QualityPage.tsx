@@ -23,6 +23,10 @@ type HashState = "IDLE" | "HASHING" | "COMPLETED" | "ERROR";
 type ActionState =
   "IDLE" | "UPLOADING" | "POLLING" | "COMMITTING" | "LOADING" | "CREATING" | "EXPORTING";
 
+const MAX_IMPORT_POLL_ATTEMPTS = 12;
+const MAX_INVALID_ROW_PAGES = 100;
+const IMPORT_POLL_INTERVAL_MS = 500;
+
 function safeErrorMessage(error: unknown): string {
   if (error instanceof TrialClientError) return error.message;
   if (error instanceof Error && error.message === "UNSUPPORTED_FILE")
@@ -39,6 +43,65 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+function isTerminalImportStatus(status: ImportStatus["status"]): boolean {
+  return [
+    "VALIDATED",
+    "VALIDATION_FAILED",
+    "PARSE_FAILED",
+    "COMMITTED",
+    "COMMIT_FAILED",
+    "CANCELLED",
+  ].includes(status);
+}
+
+export function qualityReportRequestScope(values: {
+  forecastRunId: string;
+  importId: string;
+  forecastCutoffAt: string;
+  labelCutoffAt: string;
+  horizons: readonly number[];
+}): string {
+  return [
+    "quality-report",
+    values.forecastRunId,
+    values.importId,
+    values.forecastCutoffAt,
+    values.labelCutoffAt,
+    values.horizons.join(","),
+  ].join("|");
+}
+
+type InvalidRowPage = {
+  rows: readonly ImportInvalidRow[];
+  next_page_token: string | null;
+};
+
+export async function collectInvalidRows(
+  loadPage: (pageToken?: string, signal?: AbortSignal) => Promise<InvalidRowPage>,
+  signal?: AbortSignal,
+): Promise<ImportInvalidRow[]> {
+  const rows: ImportInvalidRow[] = [];
+  const seenTokens = new Set<string>();
+  let pageToken: string | undefined;
+  for (let page = 0; page < MAX_INVALID_ROW_PAGES; page += 1) {
+    if (signal?.aborted) return rows;
+    const response = await loadPage(pageToken, signal);
+    rows.push(...response.rows);
+    if (response.next_page_token === null) return rows;
+    const nextToken = response.next_page_token;
+    if (!nextToken || seenTokens.has(nextToken)) {
+      throw new TrialClientError("TRIAL_RESPONSE_CONTRACT_INVALID", 502);
+    }
+    seenTokens.add(nextToken);
+    pageToken = nextToken;
+  }
+  throw new TrialClientError("TRIAL_RESPONSE_CONTRACT_INVALID", 502);
+}
+
 export function QualityPage() {
   const [file, setFile] = useState<File | null>(null);
   const [hash, setHash] = useState<string | null>(null);
@@ -50,6 +113,7 @@ export function QualityPage() {
   const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [uploadResult, setUploadResult] = useState<ImportUploadResponse | null>(null);
   const [invalidRows, setInvalidRows] = useState<ImportInvalidRow[]>([]);
+  const [pollingTimedOut, setPollingTimedOut] = useState(false);
   const [sourceSystem, setSourceSystem] = useState("trial-api");
   const [sourceDataset, setSourceDataset] = useState("daily-harvest");
   const [sourceVersion, setSourceVersion] = useState("2026-01");
@@ -62,8 +126,21 @@ export function QualityPage() {
   const [qualityError, setQualityError] = useState<string | null>(null);
   const selectionId = useRef(0);
   const actionAbort = useRef<AbortController | null>(null);
+  const previousCommittedImportId = useRef<string | null | undefined>(undefined);
+  const committedImportId = importStatus?.status === "COMMITTED" ? importId : null;
 
   useEffect(() => () => actionAbort.current?.abort(), []);
+
+  useEffect(() => {
+    if (
+      previousCommittedImportId.current !== undefined &&
+      previousCommittedImportId.current !== committedImportId
+    ) {
+      setReport(null);
+      setComparison(null);
+    }
+    previousCommittedImportId.current = committedImportId;
+  }, [committedImportId]);
 
   function startAction(state: ActionState): AbortController {
     actionAbort.current?.abort();
@@ -73,15 +150,29 @@ export function QualityPage() {
     return controller;
   }
 
+  function cancelCurrentAction(): void {
+    actionAbort.current?.abort();
+    actionAbort.current = null;
+    setActionState("IDLE");
+  }
+
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null;
     const currentSelection = ++selectionId.current;
+    cancelCurrentAction();
     setFile(selected);
     setHash(null);
     setFileError(null);
+    setImportId(null);
+    setImportStatus(null);
     setUploadResult(null);
+    setInvalidRows([]);
+    setPollingTimedOut(false);
     setImportError(null);
+    setReport(null);
+    setComparison(null);
     setHashState("IDLE");
+    setActionState("IDLE");
     if (!selected) return;
     if (!fileMimeType(selected)) {
       setFileError("不支持的文件类型或 MIME，仅允许 .csv 或 .xlsx。文件未上传。");
@@ -109,32 +200,47 @@ export function QualityPage() {
   ): Promise<void> {
     let current =
       initialStatus ?? (await importApi.status(currentImportId, undefined, controller.signal));
-    for (let attempt = 0; attempt < 12; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_IMPORT_POLL_ATTEMPTS; attempt += 1) {
       if (controller.signal.aborted) return;
       setImportStatus(current);
-      if (
-        [
-          "VALIDATED",
-          "VALIDATION_FAILED",
-          "PARSE_FAILED",
-          "COMMITTED",
-          "COMMIT_FAILED",
-          "CANCELLED",
-        ].includes(current.status)
-      )
-        break;
-      await wait(500);
+      if (isTerminalImportStatus(current.status)) {
+        if (current.status === "VALIDATION_FAILED")
+          await readAllInvalidRows(currentImportId, controller);
+        return;
+      }
+      if (attempt === MAX_IMPORT_POLL_ATTEMPTS - 1) break;
+      await wait(IMPORT_POLL_INTERVAL_MS);
+      if (controller.signal.aborted) return;
       current = await importApi.status(currentImportId, undefined, controller.signal);
     }
+    if (controller.signal.aborted) return;
     setImportStatus(current);
-    if (current.status === "VALIDATION_FAILED") {
-      const errors = await importApi.errors(
-        currentImportId,
-        undefined,
-        undefined,
-        controller.signal,
-      );
-      setInvalidRows([...errors.rows]);
+    setPollingTimedOut(true);
+    setImportError("状态读取超时，未自动重新创建或上传。请重新读取状态。");
+  }
+
+  async function readAllInvalidRows(
+    currentImportId: string,
+    controller: AbortController,
+  ): Promise<void> {
+    const rows = await collectInvalidRows(
+      (pageToken, signal) => importApi.errors(currentImportId, pageToken, undefined, signal),
+      controller.signal,
+    );
+    if (!controller.signal.aborted) setInvalidRows(rows);
+  }
+
+  async function retryImportStatus(): Promise<void> {
+    if (!importId) return;
+    const controller = startAction("POLLING");
+    setPollingTimedOut(false);
+    setImportError(null);
+    try {
+      await refreshImport(importId, controller);
+    } catch (error) {
+      if (!isAbortError(error)) setImportError(safeErrorMessage(error));
+    } finally {
+      if (actionAbort.current === controller) setActionState("IDLE");
     }
   }
 
@@ -142,7 +248,13 @@ export function QualityPage() {
     if (!file || !hash || hashState !== "COMPLETED") return;
     const controller = startAction("UPLOADING");
     setImportError(null);
+    setImportId(null);
+    setImportStatus(null);
+    setUploadResult(null);
     setInvalidRows([]);
+    setPollingTimedOut(false);
+    setReport(null);
+    setComparison(null);
     try {
       const created = await importApi.create(
         {
@@ -181,6 +293,7 @@ export function QualityPage() {
     if (!importId || !evidenceIdentity || importStatus?.status !== "VALIDATED") return;
     const controller = startAction("COMMITTING");
     setImportError(null);
+    setPollingTimedOut(false);
     try {
       await importApi.commit(importId, evidenceIdentity, undefined, controller.signal);
       await refreshImport(importId, controller);
@@ -196,14 +309,21 @@ export function QualityPage() {
     if (!forecastRunId) return;
     const controller = startAction("LOADING");
     setQualityError(null);
+    setForecastCutoffAt(null);
+    setReport(null);
+    setComparison(null);
     try {
       const forecast = await forecastApi.read(forecastRunId.trim(), undefined, controller.signal);
       if (!forecast.forecast_cutoff_at) throw new TrialClientError("EVIDENCE_CONFLICT", 409);
       setForecastRunId(forecast.run_id);
       setForecastCutoffAt(forecast.forecast_cutoff_at);
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError"))
+      if (!isAbortError(error)) {
+        setForecastCutoffAt(null);
+        setReport(null);
+        setComparison(null);
         setQualityError(safeErrorMessage(error));
+      }
     } finally {
       if (actionAbort.current === controller) setActionState("IDLE");
     }
@@ -214,14 +334,23 @@ export function QualityPage() {
     if (!importId || importStatus?.status !== "COMMITTED" || !forecastCutoffAt || !cutoff) return;
     const controller = startAction("CREATING");
     setQualityError(null);
+    setReport(null);
+    setComparison(null);
     try {
+      const requestScope = qualityReportRequestScope({
+        forecastRunId: forecastRunId.trim(),
+        importId,
+        forecastCutoffAt,
+        labelCutoffAt: cutoff,
+        horizons: [7, 14, 21],
+      });
       const request = {
         forecast_run_id: forecastRunId.trim(),
         actual_harvest_import_id: importId,
         forecast_cutoff_at: forecastCutoffAt,
         label_observation_cutoff_at: cutoff,
         requested_horizons_days: [7, 14, 21] as [7, 14, 21],
-        request_idempotency_key: getOrCreateIdempotencyKey("quality-report"),
+        request_idempotency_key: getOrCreateIdempotencyKey(requestScope),
       };
       const created = await qualityApi.create(request, undefined, controller.signal);
       const persisted = await qualityApi.read(created.report_id, undefined, controller.signal);
@@ -237,15 +366,18 @@ export function QualityPage() {
       setReport(persisted);
       setComparison(persistedComparison);
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError"))
+      if (!isAbortError(error)) {
+        setReport(null);
+        setComparison(null);
         setQualityError(safeErrorMessage(error));
+      }
     } finally {
       if (actionAbort.current === controller) setActionState("IDLE");
     }
   }
 
   async function exportQuality(): Promise<void> {
-    if (!report) return;
+    if (!report || !comparison || qualityError) return;
     const controller = startAction("EXPORTING");
     setQualityError(null);
     try {
@@ -262,6 +394,22 @@ export function QualityPage() {
     } finally {
       if (actionAbort.current === controller) setActionState("IDLE");
     }
+  }
+
+  function handleForecastRunIdChange(value: string): void {
+    cancelCurrentAction();
+    setForecastRunId(value);
+    setForecastCutoffAt(null);
+    setReport(null);
+    setComparison(null);
+    setQualityError(null);
+  }
+
+  function handleLabelCutoffChange(value: string): void {
+    cancelCurrentAction();
+    setLabelCutoffAt(value);
+    setReport(null);
+    setComparison(null);
   }
 
   return (
@@ -293,7 +441,9 @@ export function QualityPage() {
               <h2 id="import-title">实际采摘文件导入</h2>
               <p>CREATE → raw bytes → poll → invalid rows → COMMIT。</p>
             </div>
-            <span className="eyebrow-tag">{importStatus?.status ?? "待开始"}</span>
+            <span className="eyebrow-tag">
+              {pollingTimedOut ? "POLLING_TIMEOUT" : (importStatus?.status ?? "待开始")}
+            </span>
           </div>
           {importError && (
             <div className="notice notice-danger" role="alert">
@@ -330,6 +480,24 @@ export function QualityPage() {
                 !
               </span>
               <div>{fileError}</div>
+            </div>
+          )}
+          {pollingTimedOut && (
+            <div className="notice notice-danger compact-notice" role="alert">
+              <span className="notice-icon" aria-hidden="true">
+                !
+              </span>
+              <div>
+                <strong>状态读取超时</strong>未自动重新创建或上传；可以重新读取当前 import 状态。
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={() => void retryImportStatus()}
+                  disabled={!importId || actionState !== "IDLE"}
+                >
+                  重新读取状态
+                </button>
+              </div>
             </div>
           )}
           <div className="state-row" role="status" aria-busy={hashState === "HASHING"}>
@@ -413,8 +581,8 @@ export function QualityPage() {
           {invalidRows.length > 0 && (
             <div className="invalid-rows" aria-label="服务端 invalid rows">
               <h3>服务端校验错误行</h3>
-              {invalidRows.map((row) => (
-                <div className="result-line" key={`${row.record_index}-${row.error_code}`}>
+              {invalidRows.map((row, index) => (
+                <div className="result-line" key={`${row.record_index}-${row.error_code}-${index}`}>
                   <span>
                     {row.record_index ?? "—"} · {row.field_path ?? "row"}
                   </span>
@@ -457,13 +625,13 @@ export function QualityPage() {
         </section>
         <QualityReport
           forecastRunId={forecastRunId}
-          onForecastRunIdChange={setForecastRunId}
+          onForecastRunIdChange={handleForecastRunIdChange}
           forecastCutoffAt={forecastCutoffAt}
           labelCutoffAt={labelCutoffAt}
-          onLabelCutoffAtChange={setLabelCutoffAt}
+          onLabelCutoffAtChange={handleLabelCutoffChange}
           onLoadForecast={loadForecast}
           loadingForecast={actionState === "LOADING"}
-          committedImportId={importStatus?.status === "COMMITTED" ? importId : null}
+          committedImportId={committedImportId}
           onCreateReport={createQualityReport}
           report={report}
           comparison={comparison}
