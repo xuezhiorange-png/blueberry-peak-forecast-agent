@@ -22,6 +22,7 @@ export function QualityReport({
   onExport,
   exporting,
   errorMessage,
+  exportErrorMessage,
 }: {
   forecastRunId: string;
   onForecastRunIdChange: (value: string) => void;
@@ -38,6 +39,7 @@ export function QualityReport({
   onExport: () => Promise<void>;
   exporting: boolean;
   errorMessage: string | null;
+  exportErrorMessage: string | null;
 }) {
   const [horizonDays, setHorizonDays] = useState<7 | 14 | 21>(7);
   const selectedHorizon = report?.horizons.find((item) => item.horizon_days === horizonDays);
@@ -50,7 +52,7 @@ export function QualityReport({
           <p>Quality scope 来自 persisted Forecast 与 committed Actual Harvest evidence。</p>
         </div>
         <ExportButton
-          disabled={!report || !comparison || !selectedHorizon}
+          disabled={!report || !comparison || !selectedHorizon || Boolean(errorMessage)}
           label="导出质量 CSV"
           onClick={() => void onExport()}
           busy={exporting}
@@ -64,6 +66,17 @@ export function QualityReport({
           <div>
             <strong>质量链路未完成</strong>
             {errorMessage}
+          </div>
+        </div>
+      )}
+      {exportErrorMessage && (
+        <div className="notice notice-danger" role="alert">
+          <span className="notice-icon" aria-hidden="true">
+            !
+          </span>
+          <div>
+            <strong>质量 CSV 导出未完成</strong>
+            {exportErrorMessage}
           </div>
         </div>
       )}

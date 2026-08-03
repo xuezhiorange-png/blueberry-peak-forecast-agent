@@ -106,6 +106,7 @@ export type ImportStatus = z.infer<typeof importReadStatusResponseSchema>;
 export type ImportCreateResponse = z.infer<typeof importCreateResponseSchema>;
 export type ImportUploadResponse = z.infer<typeof importUploadResponseSchema>;
 export type ImportInvalidRow = z.infer<typeof importInvalidRowSchema>;
+export type ImportInvalidRowsResponse = z.infer<typeof importInvalidRowsResponseSchema>;
 export type ImportCommitResponse = z.infer<typeof importCommitResponseSchema>;
 
 export type TrialImportCreateRequest = {
@@ -178,10 +179,17 @@ export const importApi = {
       signal,
     );
   },
-  errors(importId: string, pageToken?: string, fetcher?: Fetcher, signal?: AbortSignal) {
-    const suffix = pageToken ? `?page_token=${encodeURIComponent(pageToken)}` : "";
+  errors(
+    importId: string,
+    pageToken?: string,
+    fetcher?: Fetcher,
+    signal?: AbortSignal,
+    pageSize = 100,
+  ) {
+    const params = new URLSearchParams({ page_size: String(pageSize) });
+    if (pageToken) params.set("page_token", pageToken);
     return getJson(
-      `/api/v1/trial/actual-harvest/imports/${encodeURIComponent(importId)}/errors${suffix}`,
+      `/api/v1/trial/actual-harvest/imports/${encodeURIComponent(importId)}/errors?${params.toString()}`,
       importInvalidRowsResponseSchema,
       fetcher,
       signal,
