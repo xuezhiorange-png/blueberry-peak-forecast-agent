@@ -21,6 +21,13 @@ async function selectForecastAuthority(page: import("@playwright/test").Page) {
   await page.getByLabel("我确认使用服务端权威面积").check();
 }
 
+async function selectSecondForecastAuthority(page: import("@playwright/test").Page) {
+  await page.getByLabel("农场").selectOption("s2-fixture-farm-west");
+  await expect(page.getByLabel("分场")).toHaveValue("s2-fixture-west");
+  await expect(page.getByLabel("品种")).toHaveValue("S2-VAR-B");
+  await expect(page.getByLabel("权威种植面积（亩）")).toHaveValue("8.000000");
+}
+
 async function createForecast(page: import("@playwright/test").Page) {
   await page.goto("/trial/forecast");
   await selectForecastAuthority(page);
@@ -114,5 +121,46 @@ test.describe("production Forecast Trial integration", () => {
     await expect(page.getByText("预测结果不可用", { exact: true })).toBeVisible();
     await expect(page.getByTestId("forecast-run-id")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "导出 Forecast CSV" })).toBeDisabled();
+  });
+
+  test("resets area confirmation when switching to a second real authority item", async ({
+    page,
+  }) => {
+    await page.goto("/trial/forecast");
+    await selectForecastAuthority(page);
+    await selectSecondForecastAuthority(page);
+    await expect(page.getByLabel("我确认使用服务端权威面积")).not.toBeChecked();
+    await expect(page.getByRole("button", { name: "生成预测" })).toBeDisabled();
+    await page.getByLabel("我确认使用服务端权威面积").check();
+    await expect(page.getByRole("button", { name: "生成预测" })).toBeEnabled();
+  });
+
+  test("rejects a planting-area mismatch through the real server", async ({ page }) => {
+    await page.goto("/trial/forecast");
+    await selectForecastAuthority(page);
+    await page.route("**/api/v1/trial/forecasts", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      await route.continue({
+        postData: JSON.stringify({ ...body, planting_area_mu: "999.000000" }),
+      });
+    });
+    await page.getByRole("button", { name: "生成预测" }).click();
+    await expect(page.getByRole("alert")).toContainText("提交内容未通过校验");
+    await expect(page.getByTestId("forecast-run-id")).toHaveCount(0);
+  });
+
+  test("keeps concealed Forecast not-found responses safe for a public ID", async ({ page }) => {
+    await page.goto("/trial/forecast");
+    const publicId = "f".repeat(64);
+    const result = await page.evaluate(async (runId) => {
+      const response = await fetch(`/api/v1/trial/forecasts/${runId}`);
+      return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+    }, publicId);
+    expect(result.status).toBe(404);
+    expect(result.body.code).toBe("RESOURCE_NOT_FOUND");
+    const encoded = JSON.stringify(result.body);
+    expect(encoded).not.toMatch(/owner|database|traceback|exception|stack/i);
+    expect(encoded).not.toContain(publicId);
   });
 });

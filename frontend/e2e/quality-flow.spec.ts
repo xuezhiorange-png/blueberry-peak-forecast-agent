@@ -102,6 +102,52 @@ function qualityCsv(identity: ProjectScopedIdentity) {
   ].join("\n");
 }
 
+function validationFailureCsv(identity: ProjectScopedIdentity, rowCount = 101) {
+  const rows = Array.from({ length: rowCount }, (_, index) => {
+    const logicalId = `${identity.externalLogicalRecordId}-${index + 1}`;
+    const revisionId = `${identity.externalRevisionId}-${index + 1}`;
+    return [
+      logicalId,
+      revisionId,
+      "trial-api",
+      identity.externalBatchId,
+      identity.harvestBusinessDate,
+      `unknown-farm-${safeSlug(identity.externalBatchId)}-${index + 1}`,
+      `unknown-subfarm-${index + 1}`,
+      `unknown-variety-${index + 1}`,
+      "5.000000",
+      `${identity.harvestBusinessDate}T10:00:00+00:00`,
+      "TRUSTED_SOURCE_TIMESTAMP",
+      "farm-source",
+      "1",
+      "ACTIVE",
+      "",
+      "2026-DEMO",
+      "Asia/Shanghai",
+      `${identity.harvestBusinessDate}T10:00:00+00:00`,
+      "",
+      `${identity.sourceNote}-${index + 1}`,
+    ].join(",");
+  });
+  return [csvHeaders, ...rows].join("\n");
+}
+
+async function selectCsvFile(
+  page: Page,
+  identity: ProjectScopedIdentity,
+  contents = qualityCsv(identity),
+  fileName = `${identity.externalBatchId}.csv`,
+) {
+  await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles({
+    name: fileName,
+    mimeType: "text/csv",
+    buffer: Buffer.from(contents, "utf8"),
+  });
+  await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
+  await page.getByLabel("external batch id").fill(identity.externalBatchId);
+  await expect(page.getByLabel("external batch id")).toHaveValue(identity.externalBatchId);
+}
+
 async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity, testInfo: TestInfo) {
   const contents = qualityCsv(identity);
   const project = safeSlug(testInfo.project.name);
@@ -110,14 +156,7 @@ async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity, t
   expect(contents).toContain(identity.externalBatchId);
   expect(contents).toContain(identity.externalLogicalRecordId);
   expect(contents).toContain(identity.externalRevisionId);
-  await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles({
-    name: `${identity.externalBatchId}.csv`,
-    mimeType: "text/csv",
-    buffer: Buffer.from(contents, "utf8"),
-  });
-  await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
-  await page.getByLabel("external batch id").fill(identity.externalBatchId);
-  await expect(page.getByLabel("external batch id")).toHaveValue(identity.externalBatchId);
+  await selectCsvFile(page, identity, contents);
   await page.getByRole("button", { name: "上传并校验" }).click();
   const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
   await expect(lifecycle).toContainText("VALIDATED", { timeout: 30_000 });
@@ -279,5 +318,81 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+  });
+
+  test("rejects an unsafe filename through the real upload endpoint", async ({
+    page,
+  }, testInfo) => {
+    const identity = projectScopedIdentity(testInfo, "unsafe-filename");
+    await page.goto("/trial/quality");
+    await selectCsvFile(page, identity);
+    await page.route("**/api/v1/trial/actual-harvest/imports/*/upload", async (route) => {
+      const headers = { ...route.request().headers(), "x-file-name": "../unsafe.csv" };
+      await route.continue({ headers });
+    });
+    await page.getByRole("button", { name: "上传并校验" }).click();
+    await expect(page.getByRole("alert")).toContainText("文件名不符合安全要求");
+  });
+
+  test("rejects an unsupported MIME through the real upload endpoint", async ({
+    page,
+  }, testInfo) => {
+    const identity = projectScopedIdentity(testInfo, "unsupported-mime");
+    await page.goto("/trial/quality");
+    await selectCsvFile(page, identity);
+    await page.route("**/api/v1/trial/actual-harvest/imports/*/upload", async (route) => {
+      const headers = { ...route.request().headers(), "content-type": "application/octet-stream" };
+      await route.continue({ headers });
+    });
+    await page.getByRole("button", { name: "上传并校验" }).click();
+    await expect(page.getByRole("alert")).toContainText("文件类型不受支持");
+  });
+
+  test("rejects an oversized upload through the real server", async ({ page }, testInfo) => {
+    const identity = projectScopedIdentity(testInfo, "oversized-upload");
+    await page.goto("/trial/quality");
+    await selectCsvFile(
+      page,
+      identity,
+      "external_logical_record_id,\n" + "x".repeat(10 * 1024 * 1024 + 1),
+    );
+    await page.getByRole("button", { name: "上传并校验" }).click();
+    await expect(page.getByRole("alert")).toContainText("文件超过允许大小", { timeout: 30_000 });
+  });
+
+  test("reads all validation-failed rows across real server pages and disables commit", async ({
+    page,
+  }, testInfo) => {
+    const identity = projectScopedIdentity(testInfo, "validation-failed-pages");
+    const errorRequests: string[] = [];
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname.endsWith("/errors")) errorRequests.push(request.url());
+    });
+    await page.goto("/trial/quality");
+    await selectCsvFile(page, identity, validationFailureCsv(identity));
+    await page.getByRole("button", { name: "上传并校验" }).click();
+    const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
+    await expect(lifecycle).toContainText("VALIDATION_FAILED", { timeout: 60_000 });
+    const invalidRows = page.locator('[aria-label="服务端 invalid rows"] .result-line');
+    await expect(invalidRows).toHaveCount(101, { timeout: 60_000 });
+    expect(errorRequests.length).toBeGreaterThanOrEqual(2);
+    for (const url of errorRequests) {
+      expect(new URL(url).searchParams.get("page_size")).toBe("100");
+    }
+    await expect(page.getByRole("button", { name: "提交导入" })).toBeDisabled();
+  });
+
+  test("keeps concealed import not-found responses safe for a public ID", async ({ page }) => {
+    await page.goto("/trial/quality");
+    const publicId = "e".repeat(64);
+    const result = await page.evaluate(async (importId) => {
+      const response = await fetch(`/api/v1/trial/actual-harvest/imports/${importId}`);
+      return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+    }, publicId);
+    expect(result.status).toBe(404);
+    expect(result.body.code).toBe("RESOURCE_NOT_FOUND");
+    const encoded = JSON.stringify(result.body);
+    expect(encoded).not.toMatch(/owner|database|traceback|exception|stack/i);
+    expect(encoded).not.toContain(publicId);
   });
 });
