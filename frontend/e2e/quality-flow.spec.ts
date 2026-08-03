@@ -8,6 +8,7 @@ type ProjectScopedIdentity = {
   externalRevisionId: string;
   sourceNote: string;
   actualQuantityKg: string;
+  harvestBusinessDate: string;
 };
 
 function safeSlug(value: string): string {
@@ -30,6 +31,7 @@ function projectScopedIdentity(testInfo: TestInfo, scenario: string): ProjectSco
     externalRevisionId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-rev-1`,
     sourceNote: `frontend-e2e-${scenarioSlug}-${project}`,
     actualQuantityKg: project === "chromium-mobile" ? "6.000000" : "5.000000",
+    harvestBusinessDate: project === "chromium-mobile" ? "2026-03-14" : "2026-03-08",
   };
 }
 
@@ -80,12 +82,12 @@ function qualityCsv(identity: ProjectScopedIdentity) {
       identity.externalRevisionId,
       "trial-api",
       identity.externalBatchId,
-      "2026-03-08",
+      identity.harvestBusinessDate,
       "farm-1",
       "sub-1",
       "var-1",
       identity.actualQuantityKg,
-      "2026-03-08T10:00:00+00:00",
+      `${identity.harvestBusinessDate}T10:00:00+00:00`,
       "TRUSTED_SOURCE_TIMESTAMP",
       "farm-source",
       "1",
@@ -93,7 +95,7 @@ function qualityCsv(identity: ProjectScopedIdentity) {
       "",
       "2026-DEMO",
       "Asia/Shanghai",
-      "2026-03-08T10:00:00+00:00",
+      `${identity.harvestBusinessDate}T10:00:00+00:00`,
       "",
       identity.sourceNote,
     ].join(","),
