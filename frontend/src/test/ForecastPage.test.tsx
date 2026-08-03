@@ -168,9 +168,12 @@ describe("ForecastPage", () => {
     );
     fireEvent.click(screen.getByLabelText("我确认使用服务端权威面积"));
     await waitFor(() =>
-      expect((screen.getByRole("button", { name: "生成预测" }) as HTMLButtonElement).disabled).toBe(
-        false,
+      expect((screen.getByLabelText("我确认使用服务端权威面积") as HTMLInputElement).checked).toBe(
+        true,
       ),
+    );
+    expect((screen.getByRole("button", { name: "生成预测" }) as HTMLButtonElement).disabled).toBe(
+      false,
     );
 
     fireEvent.change(screen.getByLabelText("农场"), { target: { value: "farm-2" } });

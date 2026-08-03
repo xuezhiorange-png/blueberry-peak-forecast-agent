@@ -2117,8 +2117,10 @@ jobs:
           from backend.app.models.master_data import Farm, Subfarm
           from backend.app.models.production_plan import FarmSeasonVarietyPlan
           from backend.app.models.trial import CoreForecastMarketablePolicyEntryModel, CoreForecastMarketablePolicyModel
+          from backend.app.trial import TrialForecastCreateRequest
           from backend.tests.forecast_quality.test_persistence import (
               _repair_task9_fixture_for_quality,
+              _seed_marketable_policy,
               _seed_quality_task10_fixture,
           )
           from backend.tests.integration.test_core_forecast_persistence_postgres import (
@@ -2128,14 +2130,15 @@ jobs:
           async def main() -> None:
               async with AsyncSessionMaker() as session:
                   forecast_service, request, forecast_actor = (
-                      await _prepare_default_trial_forecast(session)
+                      await _prepare_default_trial_forecast(session, seed_policy=False)
+                  )
+                  await _seed_marketable_policy(
+                      session,
+                      public_hash="a" * 64,
+                      sorting_retention_rate=Decimal("1.000000"),
+                      postharvest_retention_rate=Decimal("1.000000"),
                   )
                   await _repair_task9_fixture_for_quality(session)
-                  forecast = await forecast_service.create_forecast(
-                      session,
-                      request,
-                      forecast_actor,
-                  )
                   task9 = await session.scalar(
                       select(HarvestStateRun).where(HarvestStateRun.id == 910001)
                   )
@@ -2207,6 +2210,33 @@ jobs:
                           source_version="frontend-e2e-v2",
                           row_hash="d" * 64,
                       )
+                  )
+                  authority = await forecast_service.get_forecast_input_authority(
+                      session, forecast_actor
+                  )
+                  default_item = next(
+                      item
+                      for item in authority.items
+                      if item.farm_business_key == request.farm_business_key
+                      and item.subfarm_business_key_or_null
+                      == request.subfarm_business_key_or_null
+                      and item.variety_business_key == request.variety_business_key
+                  )
+                  request = TrialForecastCreateRequest(
+                      farm_business_key=default_item.farm_business_key,
+                      subfarm_business_key_or_null=default_item.subfarm_business_key_or_null,
+                      variety_business_key=default_item.variety_business_key,
+                      season_business_key=default_item.season_business_key,
+                      destination_factory_business_key=default_item.destination_factory_business_key,
+                      forecast_cutoff_at=request.forecast_cutoff_at,
+                      forecast_input_authority_hash=authority.forecast_input_authority_hash,
+                      plan_row_hash=default_item.plan_row_hash,
+                      planting_area_mu=default_item.planting_area_mu,
+                  )
+                  forecast = await forecast_service.create_forecast(
+                      session,
+                      request,
+                      forecast_actor,
                   )
                   await session.commit()
               entries = (
