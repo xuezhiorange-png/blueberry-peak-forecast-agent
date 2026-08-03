@@ -2144,12 +2144,6 @@ jobs:
                   )
                   if task9 is None or task9.result_hash is None:
                       raise SystemExit("Task 9 fixture did not provide a result hash")
-                  await _seed_quality_task10_fixture(
-                      session,
-                      task9_run_id=910001,
-                      task9_result_hash=task9.result_hash,
-                      forecast_cutoff_at=forecast.forecast_cutoff_at,
-                  )
                   policy = await session.scalar(
                       select(CoreForecastMarketablePolicyModel).where(
                           CoreForecastMarketablePolicyModel.public_policy_hash == "a" * 64
@@ -2211,6 +2205,7 @@ jobs:
                           row_hash="d" * 64,
                       )
                   )
+                  await session.flush()
                   authority = await forecast_service.get_forecast_input_authority(
                       session, forecast_actor
                   )
@@ -2237,6 +2232,12 @@ jobs:
                       session,
                       request,
                       forecast_actor,
+                  )
+                  await _seed_quality_task10_fixture(
+                      session,
+                      task9_run_id=910001,
+                      task9_result_hash=task9.result_hash,
+                      forecast_cutoff_at=forecast.forecast_cutoff_at,
                   )
                   await session.commit()
               entries = (
