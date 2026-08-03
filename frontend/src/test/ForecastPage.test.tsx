@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { ForecastForm } from "../features/forecast/ForecastForm";
 import { ForecastPage } from "../pages/ForecastPage";
 
 const authority = {
@@ -187,6 +188,45 @@ describe("ForecastPage", () => {
       true,
     );
     fetchSpy.mockRestore();
+  });
+
+  it("resets area confirmation when the authority hash changes for the same item", () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const { rerender } = render(
+      <ForecastForm
+        authority={authority}
+        selectedItem={authority.items[0]}
+        onSelectItem={vi.fn()}
+        onSubmit={onSubmit}
+        submitting={false}
+        errorMessage={null}
+      />,
+    );
+
+    const confirmation = screen.getByLabelText("我确认使用服务端权威面积");
+    fireEvent.click(confirmation);
+    expect((confirmation as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole("button", { name: "生成预测" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+
+    rerender(
+      <ForecastForm
+        authority={{ ...authority, forecast_input_authority_hash: "c".repeat(64) }}
+        selectedItem={authority.items[0]}
+        onSelectItem={vi.fn()}
+        onSubmit={onSubmit}
+        submitting={false}
+        errorMessage={null}
+      />,
+    );
+
+    expect((screen.getByLabelText("我确认使用服务端权威面积") as HTMLInputElement).checked).toBe(
+      false,
+    );
+    expect((screen.getByRole("button", { name: "生成预测" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 
   it("disables unsupported optional inputs and submits them as null", async () => {

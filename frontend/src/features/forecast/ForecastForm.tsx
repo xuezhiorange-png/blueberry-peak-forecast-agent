@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import type {
   ForecastInputAuthority,
   ForecastInputAuthorityItem,
@@ -32,6 +32,15 @@ function authorityItemKey(item: ForecastInputAuthorityItem | null): string | nul
   ].join("\u001f");
 }
 
+function confirmationIdentity(
+  authority: ForecastInputAuthority | null,
+  item: ForecastInputAuthorityItem | null,
+): string | null {
+  const itemKey = authorityItemKey(item);
+  if (!authority || itemKey === null) return null;
+  return [authority.forecast_input_authority_hash, itemKey].join("\u001e");
+}
+
 export function ForecastForm({
   authority,
   selectedItem,
@@ -51,13 +60,13 @@ export function ForecastForm({
   const [floweringDate, setFloweringDate] = useState("");
   const [maturityStage, setMaturityStage] = useState("");
   const [alreadyPicked, setAlreadyPicked] = useState("");
-  const [confirmedItemKey, setConfirmedItemKey] = useState<string | null>(null);
-  const selectedItemKey = authorityItemKey(selectedItem);
-  const confirmedArea = selectedItemKey !== null && selectedItemKey === confirmedItemKey;
-
-  useEffect(() => {
-    setConfirmedItemKey(null);
-  }, [authority?.forecast_input_authority_hash]);
+  const [confirmedConfirmationIdentity, setConfirmedConfirmationIdentity] = useState<string | null>(
+    null,
+  );
+  const selectedConfirmationIdentity = confirmationIdentity(authority, selectedItem);
+  const confirmedArea =
+    selectedConfirmationIdentity !== null &&
+    selectedConfirmationIdentity === confirmedConfirmationIdentity;
 
   const optionsByField = useMemo(() => {
     const output = new Map<AuthorityKey, string[]>();
@@ -107,7 +116,7 @@ export function ForecastForm({
         );
       return score(right) - score(left);
     })[0];
-    setConfirmedItemKey(null);
+    setConfirmedConfirmationIdentity(null);
     onSelectItem(candidate);
   }
 
@@ -201,7 +210,9 @@ export function ForecastForm({
                 type="checkbox"
                 checked={confirmedArea}
                 onChange={(event) =>
-                  setConfirmedItemKey(event.target.checked ? selectedItemKey : null)
+                  setConfirmedConfirmationIdentity(
+                    event.target.checked ? selectedConfirmationIdentity : null,
+                  )
                 }
                 disabled={!selectedItem || submitting}
               />
