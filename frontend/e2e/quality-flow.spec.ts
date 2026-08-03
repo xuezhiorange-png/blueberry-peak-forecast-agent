@@ -7,6 +7,7 @@ type ProjectScopedIdentity = {
   externalLogicalRecordId: string;
   externalRevisionId: string;
   sourceNote: string;
+  actualQuantityKg: string;
 };
 
 function safeSlug(value: string): string {
@@ -28,6 +29,7 @@ function projectScopedIdentity(testInfo: TestInfo, scenario: string): ProjectSco
     externalLogicalRecordId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-row-1`,
     externalRevisionId: `frontend-e2e-${scenarioSlug}-${executionSuffix}-rev-1`,
     sourceNote: `frontend-e2e-${scenarioSlug}-${project}`,
+    actualQuantityKg: project === "chromium-mobile" ? "6.000000" : "5.000000",
   };
 }
 
@@ -82,7 +84,7 @@ function qualityCsv(identity: ProjectScopedIdentity) {
       "farm-1",
       "sub-1",
       "var-1",
-      "5.000000",
+      identity.actualQuantityKg,
       "2026-03-08T10:00:00+00:00",
       "TRUSTED_SOURCE_TIMESTAMP",
       "farm-source",
