@@ -15,6 +15,9 @@ async function selectForecastAuthority(page: import("@playwright/test").Page) {
   await page.getByLabel("分场").selectOption(authorityValues.subfarm);
   await page.getByLabel("品种").selectOption(authorityValues.variety);
   await expect(page.getByLabel("权威种植面积（亩）")).toHaveValue("10.000000");
+  await expect(page.getByLabel("开花日期（可选）")).toBeDisabled();
+  await expect(page.getByLabel("成熟阶段（可选）")).toBeDisabled();
+  await expect(page.getByLabel("已采摘数量 kg（可选）")).toBeDisabled();
   await page.getByLabel("我确认使用服务端权威面积").check();
 }
 
@@ -102,5 +105,14 @@ test.describe("production Forecast Trial integration", () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+  });
+
+  test("hides the previous result after a failed subsequent request", async ({ page }) => {
+    await createForecast(page);
+    await page.route("**/api/v1/trial/forecasts", (route) => route.abort());
+    await page.getByRole("button", { name: "生成预测" }).click();
+    await expect(page.getByText("预测结果不可用", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("forecast-run-id")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "导出 Forecast CSV" })).toBeDisabled();
   });
 });
