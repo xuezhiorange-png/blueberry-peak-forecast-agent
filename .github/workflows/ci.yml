@@ -2139,6 +2139,7 @@ jobs:
                       task9_result_hash=task9.result_hash,
                       forecast_cutoff_at=request.forecast_cutoff_at,
                   )
+                  await session.commit()
               entries = (
                   {"source_field": "season_code", "source_code": "2026-DEMO",
                    "target_type": "SEASON", "target_business_key": "2026-DEMO"},
