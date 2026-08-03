@@ -2101,13 +2101,25 @@ async def test_distinct_quality_runs_allow_identical_child_canonical_hashes_post
             "schema_version": _PROBE_SCHEMA,
             "actor_identity": "quality-child-hash-actor-a",
             "request_idempotency_key": "quality-child-hash-key-a",
-            "canonical_request": {"scenario": "identical-child-hashes", "run": "a"},
+            "canonical_request": {
+                "forecast_run_id": "a" * 64,
+                "actual_harvest_import_id": "identical-child-hashes-import-a",
+                "forecast_cutoff_at": "2026-01-02T04:00:00+00:00",
+                "label_observation_cutoff_at": "2026-01-02T04:00:00+00:00",
+                "requested_horizons_days": [7, 14, 21],
+            },
         }
         request_b = {
             **request_a,
             "actor_identity": "quality-child-hash-actor-b",
             "request_idempotency_key": "quality-child-hash-key-b",
-            "canonical_request": {"scenario": "identical-child-hashes", "run": "b"},
+            "canonical_request": {
+                "forecast_run_id": "b" * 64,
+                "actual_harvest_import_id": "identical-child-hashes-import-b",
+                "forecast_cutoff_at": "2026-01-03T04:00:00+00:00",
+                "label_observation_cutoff_at": "2026-01-03T04:00:00+00:00",
+                "requested_horizons_days": [7, 14, 21],
+            },
         }
 
         async with sessionmaker() as session:
@@ -2853,7 +2865,7 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
                     FROM pg_constraint AS constraint_row
                     CROSS JOIN LATERAL unnest(constraint_row.conkey) WITH ORDINALITY
                         AS key(attnum, ordinality)
-                    WHERE constraint.conname IN (
+                    WHERE constraint_row.conname IN (
                         'uq_quality_metric_result_run_canonical_hash',
                         'uq_quality_breakdown_result_run_canonical_hash'
                     )
