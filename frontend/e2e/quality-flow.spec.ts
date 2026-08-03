@@ -37,6 +37,10 @@ function xlsxPathForProject(testInfo: TestInfo): string {
   return join(directory, `frontend-e2e-${safeSlug(testInfo.project.name)}.xlsx`);
 }
 
+function xlsxExternalBatchIdForProject(testInfo: TestInfo): string {
+  return `trial-harvest-xlsx-${safeSlug(testInfo.project.name)}`;
+}
+
 const csvHeaders = [
   "external_logical_record_id",
   "external_revision_id",
@@ -187,6 +191,9 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
       page.getByRole("region", { name: "实际采摘文件导入" }).getByRole("strong"),
     ).toHaveText(basename(xlsxPath));
     await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
+    const externalBatchId = xlsxExternalBatchIdForProject(testInfo);
+    await page.getByLabel("external batch id").fill(externalBatchId);
+    await expect(page.getByLabel("external batch id")).toHaveValue(externalBatchId);
     await page.getByRole("button", { name: "上传并校验" }).click();
     const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
     await expect(lifecycle).toContainText("VALIDATED", { timeout: 30_000 });
