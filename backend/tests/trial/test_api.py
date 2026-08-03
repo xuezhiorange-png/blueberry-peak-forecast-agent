@@ -734,6 +734,69 @@ async def test_actual_import_upload_uses_raw_binary_body(client: AsyncClient) ->
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("content_type", "file_name", "channel"),
+    (
+        ("text/csv", "harvest.csv", ActualHarvestImportChannel.CSV),
+        (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "harvest.xlsx",
+            ActualHarvestImportChannel.XLSX,
+        ),
+    ),
+    ids=("csv", "xlsx"),
+)
+async def test_actual_import_api_create_upload_uses_transport_channel(
+    client: AsyncClient,
+    trial_app,
+    content_type: str,
+    file_name: str,
+    channel: ActualHarvestImportChannel,
+) -> None:
+    class RecordingUploadService(SyntheticTrialService):
+        received_metadata: TrialActualHarvestUploadMetadata | None = None
+
+        async def upload_import(
+            self,
+            session: AsyncSession,
+            import_id: str,
+            content: bytes,
+            metadata: TrialActualHarvestUploadMetadata,
+            actor: ActualHarvestActorContext,
+        ) -> TrialActualHarvestUploadResponse:
+            self.received_metadata = metadata
+            return await super().upload_import(session, import_id, content, metadata, actor)
+
+    service = RecordingUploadService()
+    actor = _actor(channels=frozenset({ActualHarvestImportChannel.API, channel}))
+    trial_app.dependency_overrides[get_trial_service] = lambda: service
+    trial_app.dependency_overrides[get_actual_harvest_actor] = lambda: actor
+
+    create_response = await client.post(
+        "/api/v1/trial/actual-harvest/imports",
+        json={
+            "source_system": "synthetic-farm-system",
+            "source_dataset": "actual-harvest",
+            "source_version": "v1",
+            "external_batch_id": "route-upload-batch",
+            "expected_record_count_or_null": 1,
+            "request_idempotency_key": "route-upload-key",
+        },
+    )
+    assert create_response.status_code == 200
+    assert "import_channel" not in create_response.json()
+
+    upload_response = await client.post(
+        "/api/v1/trial/actual-harvest/imports/import-public-1/upload",
+        content=b"raw-file-bytes",
+        headers={"content-type": content_type, "x-file-name": file_name},
+    )
+    assert upload_response.status_code == 200
+    assert service.received_metadata is not None
+    assert service.received_metadata.channel is channel
+
+
+@pytest.mark.asyncio
 async def test_actual_import_upload_authorizes_before_upload_service(
     client: AsyncClient,
     synthetic_service: SyntheticTrialService,
