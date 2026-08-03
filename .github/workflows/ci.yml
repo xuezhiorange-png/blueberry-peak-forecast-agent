@@ -2124,10 +2124,15 @@ jobs:
 
           async def main() -> None:
               async with AsyncSessionMaker() as session:
-                  _, request, _ = await _prepare_default_trial_forecast(session)
-                  await session.commit()
-              async with AsyncSessionMaker() as session:
+                  forecast_service, request, forecast_actor = (
+                      await _prepare_default_trial_forecast(session)
+                  )
                   await _repair_task9_fixture_for_quality(session)
+                  forecast = await forecast_service.create_forecast(
+                      session,
+                      request,
+                      forecast_actor,
+                  )
                   task9 = await session.scalar(
                       select(HarvestStateRun).where(HarvestStateRun.id == 910001)
                   )
@@ -2137,7 +2142,7 @@ jobs:
                       session,
                       task9_run_id=910001,
                       task9_result_hash=task9.result_hash,
-                      forecast_cutoff_at=request.forecast_cutoff_at,
+                      forecast_cutoff_at=forecast.forecast_cutoff_at,
                   )
                   await session.commit()
               entries = (
