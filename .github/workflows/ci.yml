@@ -2224,6 +2224,28 @@ jobs:
           import uvicorn
 
           import backend.app.trial as trial
+          from backend.app.trial import DefaultTrialApplicationService
+
+          original_create_quality_report = (
+              DefaultTrialApplicationService.create_quality_report
+          )
+
+          async def traced_create_quality_report(self, *args, **kwargs):
+              try:
+                  return await original_create_quality_report(self, *args, **kwargs)
+              except BaseException as error:
+                  print(
+                      "QUALITY_E2E_SERVICE_FAILURE "
+                      f"type={type(error).__name__} "
+                      f"code={getattr(error, 'code', None)!s} "
+                      f"status={getattr(error, 'status_code', None)!s} "
+                      f"message={error!s}",
+                      flush=True,
+                  )
+                  traceback.print_exc()
+                  raise
+
+          DefaultTrialApplicationService.create_quality_report = traced_create_quality_report
 
           def trace_async(name, function):
               @functools.wraps(function)
