@@ -132,6 +132,7 @@ async function createQualityReport(page: Page, runId: string, testInfo: TestInfo
   await page.getByLabel("Forecast public run ID").fill(runId);
   await page.getByRole("button", { name: "读取 Forecast" }).click();
   await expect(page.getByLabel("Persisted Forecast cutoff")).not.toHaveValue("—");
+  await page.getByLabel("Label observation cutoff").fill("2030-01-01T00:00");
   await page.getByRole("button", { name: "生成质量报告" }).click();
   await expect(page.getByText("Quality report ID", { exact: true })).toBeVisible({
     timeout: 60_000,
