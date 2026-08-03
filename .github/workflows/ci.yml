@@ -2181,9 +2181,24 @@ jobs:
                       )
                   )
                   await session.flush()
+                  secondary_policy = CoreForecastMarketablePolicyModel(
+                      public_policy_hash="e" * 64,
+                      row_set_hash="f" * 64,
+                      policy_version=policy.policy_version,
+                      season_id=policy.season_id,
+                      factory_id=policy.factory_id,
+                      source_system=policy.source_system,
+                      source_record_key="frontend-e2e-secondary-policy",
+                      available_at=policy.available_at,
+                      effective_from=policy.effective_from,
+                      effective_to=policy.effective_to,
+                      status=policy.status,
+                  )
+                  session.add(secondary_policy)
+                  await session.flush()
                   session.add(
                       CoreForecastMarketablePolicyEntryModel(
-                          policy_id=policy.id,
+                          policy_id=secondary_policy.id,
                           farm_id=102,
                           subfarm_id=1201,
                           variety_id=2102,
