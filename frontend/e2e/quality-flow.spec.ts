@@ -183,7 +183,9 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     const xlsxPath = xlsxPathForProject(testInfo);
     await page.goto("/trial/quality");
     await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles(xlsxPath);
-    await expect(page.getByText(basename(xlsxPath), { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "实际采摘文件导入" }).getByRole("strong"),
+    ).toHaveText(basename(xlsxPath));
     await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "上传并校验" }).click();
     const lifecycle = page.locator('[aria-label="实际采摘导入生命周期"]');
