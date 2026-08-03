@@ -2123,20 +2123,13 @@ jobs:
               _seed_quality_task10_fixture,
           )
           from backend.tests.integration.test_core_forecast_persistence_postgres import (
-              _seed_marketable_policy,
               _prepare_default_trial_forecast,
           )
 
           async def main() -> None:
               async with AsyncSessionMaker() as session:
                   forecast_service, request, forecast_actor = (
-                      await _prepare_default_trial_forecast(session, seed_policy=False)
-                  )
-                  await _seed_marketable_policy(
-                      session,
-                      public_hash="a" * 64,
-                      sorting_retention_rate=Decimal("1.000000"),
-                      postharvest_retention_rate=Decimal("1.000000"),
+                      await _prepare_default_trial_forecast(session)
                   )
                   await _repair_task9_fixture_for_quality(session)
                   task9 = await session.scalar(
