@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import os
 from collections.abc import AsyncIterator
 from dataclasses import replace
@@ -8,6 +10,7 @@ from datetime import UTC, date, datetime
 from enum import StrEnum
 from uuid import uuid4
 
+import openpyxl
 import pytest
 import pytest_asyncio
 import sqlalchemy as sa
@@ -27,6 +30,7 @@ from backend.app.actual_harvest_import.api_errors import (
 )
 from backend.app.actual_harvest_import.api_schemas import (
     ActualHarvestApiAppendRecordsRequest,
+    ActualHarvestApiCommitRequest,
     ActualHarvestApiCreateImportRequest,
     ActualHarvestApiRecordInput,
 )
@@ -58,6 +62,7 @@ from backend.app.actual_harvest_import.models import (
     ActualHarvestImportRecordModel,
 )
 from backend.app.actual_harvest_import.schemas import ActualHarvestImportRecordInput
+from backend.app.actual_harvest_import.spreadsheet_parser import canonical_spreadsheet_headers
 from backend.app.actual_harvest_import.trial_create import (
     TRIAL_ACTUAL_HARVEST_ATTESTATION_VERSION,
     TRIAL_ACTUAL_HARVEST_SCHEMA_VERSION,
@@ -97,7 +102,11 @@ from backend.app.actual_harvest_import.validation_service import (
 from backend.app.db.session import AsyncSessionMaker, get_db_session
 from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
-from backend.app.trial import DefaultTrialApplicationService
+from backend.app.trial import (
+    DefaultTrialApplicationService,
+    TrialActualHarvestImportCreateRequest,
+    TrialActualHarvestUploadMetadata,
+)
 from backend.tests.actual_harvest_import.test_api_schemas import (
     _create_payload,
     _record_payload,
@@ -474,7 +483,12 @@ async def _cleanup_batch(external_batch_id: str) -> None:
             )
 
 
-async def _seed_i5_registry(suffix: str, *, seal: bool = True) -> str:
+async def _seed_i5_registry(
+    suffix: str,
+    *,
+    seal: bool = True,
+    source_system: str = "farm-system",
+) -> str:
     mapping_policy = f"mapping-i5-{suffix}"
     async with AsyncSessionMaker() as session:
         async with session.begin():
@@ -484,6 +498,7 @@ async def _seed_i5_registry(suffix: str, *, seal: bool = True) -> str:
                     suffix=suffix,
                     mapping_policy=mapping_policy,
                     seal=seal,
+                    source_system=source_system,
                 )
             )
     return mapping_policy
@@ -895,7 +910,12 @@ async def test_postgres_trial_default_service_create_and_replay_contract(
 
 
 def _seed_i5_registry_sync(
-    sync_session, *, suffix: str, mapping_policy: str, seal: bool = True
+    sync_session,
+    *,
+    suffix: str,
+    mapping_policy: str,
+    seal: bool = True,
+    source_system: str = "farm-system",
 ) -> None:
     farm = Farm(name=f"farm-master-{suffix}")
     sync_session.add_all(
@@ -914,7 +934,7 @@ def _seed_i5_registry_sync(
     create_mapping_registry(
         sync_session,
         registry_version=f"registry-{suffix}",
-        source_system="farm-system",
+        source_system=source_system,
         mapping_policy_version=mapping_policy,
         entries=(
             {
@@ -951,6 +971,63 @@ def _seed_i5_registry_sync(
         )
 
 
+def _trial_upload_row(
+    *, source_system: str, external_batch_id: str, suffix: str
+) -> dict[str, object]:
+    row = _record_payload()
+    row.update(
+        {
+            "source_system": source_system,
+            "external_batch_id": external_batch_id,
+            "external_logical_record_id": f"logical-{suffix}",
+            "external_revision_id": f"revision-{suffix}",
+            "source_recorded_at_authority_reference_or_null": f"source-{suffix}",
+        }
+    )
+    return row
+
+
+def _trial_upload_csv(row: dict[str, object]) -> bytes:
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        output,
+        fieldnames=canonical_spreadsheet_headers(),
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    writer.writerow(row)
+    return output.getvalue().encode("utf-8")
+
+
+def _trial_upload_xlsx(row: dict[str, object]) -> bytes:
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = "actual_harvest"
+    for column, header in enumerate(canonical_spreadsheet_headers(), start=1):
+        worksheet.cell(row=1, column=column, value=header)
+        value = row[header]
+        if header == "harvest_business_date":
+            value = date.fromisoformat(str(value))
+        worksheet.cell(row=2, column=column, value=value)
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
+
+
+def _trial_upload_metadata(channel: ActualHarvestImportChannel) -> TrialActualHarvestUploadMetadata:
+    if channel is ActualHarvestImportChannel.CSV:
+        return TrialActualHarvestUploadMetadata(
+            file_name="actual-harvest.csv",
+            mime_type="text/csv",
+            channel=channel,
+        )
+    return TrialActualHarvestUploadMetadata(
+        file_name="actual-harvest.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        channel=channel,
+    )
+
+
 async def _validate_once(import_id: str):
     async with AsyncSessionMaker() as session:
         return await validate_import(session, import_id)
@@ -961,6 +1038,239 @@ async def _validate_or_in_progress(import_id: str):
         return ("ok", await _validate_once(import_id))
     except ActualHarvestApiError as exc:
         return ("error", exc.code.value)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "upload_channel",
+    (ActualHarvestImportChannel.CSV, ActualHarvestImportChannel.XLSX),
+    ids=("csv", "xlsx"),
+)
+async def test_postgres_trial_api_created_import_accepts_file_upload_and_commit(
+    upload_channel: ActualHarvestImportChannel,
+) -> None:
+    _require_postgres()
+
+    suffix = uuid4().hex
+    source_system = f"trial-upload-{suffix}"
+    mapping_policy = await _seed_i5_registry(
+        suffix,
+        source_system=source_system,
+    )
+    actor = ActualHarvestActorContext(
+        identity=f"trial-upload-actor-{suffix}",
+        allowed_source_systems=frozenset({source_system}),
+        allowed_channels=frozenset({ActualHarvestImportChannel.API, upload_channel}),
+        may_create=True,
+        may_append=True,
+        may_preview=True,
+        may_seal=True,
+        may_validate=True,
+        may_commit=True,
+    )
+    service = DefaultTrialApplicationService()
+    external_batch_id = f"external-{suffix}"
+    request = TrialActualHarvestImportCreateRequest(
+        source_system=source_system,
+        source_dataset="actual-harvest",
+        source_version="v1",
+        external_batch_id=external_batch_id,
+        expected_record_count_or_null=1,
+        request_idempotency_key=f"request-{suffix}",
+    )
+
+    async with AsyncSessionMaker() as session:
+        created = await service.create_import(session, request, actor)
+
+    assert created.status == "UPLOADING"
+    async with AsyncSessionMaker() as session:
+        batch = await session.scalar(
+            sa.select(ActualHarvestImportBatchModel).where(
+                ActualHarvestImportBatchModel.import_id == created.import_id
+            )
+        )
+    assert batch is not None
+    assert batch.mapping_policy_version == mapping_policy
+    assert batch.import_channel == ActualHarvestImportChannel.API.value
+
+    row = _trial_upload_row(
+        source_system=source_system,
+        external_batch_id=external_batch_id,
+        suffix=suffix,
+    )
+    content = (
+        _trial_upload_csv(row)
+        if upload_channel is ActualHarvestImportChannel.CSV
+        else _trial_upload_xlsx(row)
+    )
+    metadata = _trial_upload_metadata(upload_channel)
+    async with AsyncSessionMaker() as session:
+        uploaded = await service.upload_import(
+            session,
+            created.import_id,
+            content,
+            metadata,
+            actor,
+        )
+
+    assert uploaded.server_status == "VALIDATED"
+    assert uploaded.validation_status == "VALIDATED"
+    assert uploaded.uploaded_record_count > 0
+    assert uploaded.valid_record_count > 0
+    assert uploaded.invalid_record_count == 0
+    assert uploaded.validation_run_instance_identity_hash_or_null is not None
+
+    async with AsyncSessionMaker() as session:
+        status = await service.get_import(session, created.import_id, actor)
+    assert status.status == "VALIDATED"
+    assert status.validation_status == "VALIDATED"
+    assert status.valid_record_count > 0
+    assert status.invalid_record_count == 0
+
+    commit_request = ActualHarvestApiCommitRequest(
+        validation_run_instance_identity_hash=(
+            uploaded.validation_run_instance_identity_hash_or_null
+        )
+    )
+    async with AsyncSessionMaker() as session:
+        committed = await service.commit_import(
+            session,
+            created.import_id,
+            commit_request,
+            actor,
+        )
+
+    assert committed.status == "COMMITTED"
+    assert committed.committed_record_count > 0
+    async with AsyncSessionMaker() as session:
+        batch = await session.scalar(
+            sa.select(ActualHarvestImportBatchModel).where(
+                ActualHarvestImportBatchModel.import_id == created.import_id
+            )
+        )
+        manifest_count = (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestCommitManifestModel)
+                .where(ActualHarvestCommitManifestModel.batch_id == batch.id)
+            )
+            if batch is not None
+            else None
+        )
+
+    assert batch is not None
+    assert batch.import_channel == ActualHarvestImportChannel.API.value
+    assert batch.status == ActualHarvestImportBatchStatus.COMMITTED.value
+    assert batch.committed_record_count > 0
+    assert batch.seal_manifest_hash_or_null is not None
+    assert manifest_count == 1
+
+
+@pytest.mark.asyncio
+async def test_postgres_trial_api_upload_requires_file_channel_without_writes() -> None:
+    _require_postgres()
+
+    suffix = uuid4().hex
+    source_system = f"trial-upload-negative-{suffix}"
+    await _seed_i5_registry(suffix, source_system=source_system)
+    actor = ActualHarvestActorContext(
+        identity=f"trial-upload-negative-actor-{suffix}",
+        allowed_source_systems=frozenset({source_system}),
+        allowed_channels=frozenset({ActualHarvestImportChannel.API}),
+        may_create=True,
+        may_append=True,
+        may_preview=True,
+        may_seal=True,
+        may_validate=True,
+        may_commit=True,
+    )
+    service = DefaultTrialApplicationService()
+    external_batch_id = f"external-{suffix}"
+    request = TrialActualHarvestImportCreateRequest(
+        source_system=source_system,
+        source_dataset="actual-harvest",
+        source_version="v1",
+        external_batch_id=external_batch_id,
+        expected_record_count_or_null=1,
+        request_idempotency_key=f"request-{suffix}",
+    )
+    async with AsyncSessionMaker() as session:
+        created = await service.create_import(session, request, actor)
+
+    row = _trial_upload_row(
+        source_system=source_system,
+        external_batch_id=external_batch_id,
+        suffix=suffix,
+    )
+    with pytest.raises(ActualHarvestApiError) as error:
+        async with AsyncSessionMaker() as session:
+            await service.upload_import(
+                session,
+                created.import_id,
+                _trial_upload_csv(row),
+                _trial_upload_metadata(ActualHarvestImportChannel.CSV),
+                actor,
+            )
+
+    assert error.value.code is ActualHarvestApiErrorCode.IMPORT_BATCH_NOT_FOUND
+    assert error.value.status_code == 404
+
+    async with AsyncSessionMaker() as session:
+        batch = await session.scalar(
+            sa.select(ActualHarvestImportBatchModel).where(
+                ActualHarvestImportBatchModel.import_id == created.import_id
+            )
+        )
+        record_count = (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestImportRecordModel)
+                .where(ActualHarvestImportRecordModel.batch_id == batch.id)
+            )
+            if batch is not None
+            else None
+        )
+        validation_run_count = (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestValidationRunModel)
+                .where(ActualHarvestValidationRunModel.batch_id == batch.id)
+            )
+            if batch is not None
+            else None
+        )
+        validation_result_count = (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestValidationResultModel)
+                .join(
+                    ActualHarvestValidationRunModel,
+                    ActualHarvestValidationRunModel.id
+                    == ActualHarvestValidationResultModel.validation_run_id,
+                )
+                .where(ActualHarvestValidationRunModel.batch_id == batch.id)
+            )
+            if batch is not None
+            else None
+        )
+        commit_manifest_count = (
+            await session.scalar(
+                sa.select(sa.func.count())
+                .select_from(ActualHarvestCommitManifestModel)
+                .where(ActualHarvestCommitManifestModel.batch_id == batch.id)
+            )
+            if batch is not None
+            else None
+        )
+
+    assert batch is not None
+    assert batch.import_channel == ActualHarvestImportChannel.API.value
+    assert batch.status == ActualHarvestImportBatchStatus.UPLOADING.value
+    assert batch.seal_manifest_hash_or_null is None
+    assert record_count == 0
+    assert validation_run_count == 0
+    assert validation_result_count == 0
+    assert commit_manifest_count == 0
 
 
 async def _seed_i5_batch(*, suffix: str, mapping_policy: str) -> tuple[str, str]:
