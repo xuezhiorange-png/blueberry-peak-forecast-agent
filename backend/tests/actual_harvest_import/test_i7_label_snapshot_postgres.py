@@ -1356,7 +1356,7 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
     case = await _prepare_default_quality_service_case("i7_quality_authority")
     try:
         async with case.sessionmaker() as session:
-            evidence, _persisted, _import_batch = await _load_quality_parent_forecast(
+            evidence, persisted, _import_batch = await _load_quality_parent_forecast(
                 session,
                 request=case.request,
                 actor=case.actor,
@@ -1383,6 +1383,34 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             actor_identity=case.actor.identity,
             scope=evidence,
         )
+        forecast_row = next(
+            row for row in persisted.daily_curve.rows if row.forecast_quantile == "P50"
+        )
+        async with case.sessionmaker() as session:
+            validation_run = await session.scalar(
+                select(ActualHarvestValidationRunModel).where(
+                    ActualHarvestValidationRunModel.batch_id == int(seeded["batch_id"])
+                )
+            )
+            assert validation_run is not None
+            numeric_identity = {
+                "SEASON": {"resolved_season_id": persisted.run.forecast_season_id},
+                "FARM": {"resolved_farm_id": forecast_row.farm_id},
+                "SUBFARM": {"resolved_subfarm_id": forecast_row.subfarm_id},
+                "VARIETY": {"resolved_variety_id": forecast_row.variety_id},
+            }
+            for target_type, values in numeric_identity.items():
+                result = await session.execute(
+                    sa.update(ActualHarvestValidationMappingEvidenceModel)
+                    .where(
+                        ActualHarvestValidationMappingEvidenceModel.validation_run_id
+                        == validation_run.id,
+                        ActualHarvestValidationMappingEvidenceModel.target_type == target_type,
+                    )
+                    .values(**values)
+                )
+                assert result.rowcount == 1
+            await session.commit()
         quality_actor = case.actor.model_copy(
             update={"allowed_source_systems": frozenset({"source-test-winner"})}
         )
