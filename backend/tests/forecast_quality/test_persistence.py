@@ -741,7 +741,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0027_s5_a2_forecast_evidence_persistence"
+                "0028_quality_child_hash_scope"
             )
             nullable_rows = await conn.fetch(
                 """
@@ -804,10 +804,196 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0027_s5_a2_forecast_evidence_persistence"
+                "0028_quality_child_hash_scope"
             )
         finally:
             await conn.close()
+    finally:
+        await _drop_temporary_database(db_name)
+
+
+@pytest.mark.asyncio
+@pytest.mark.migration
+async def test_quality_child_hash_scope_migration_round_trip_and_downgrade_guard() -> None:
+    """0028 round-trips cleanly and blocks downgrade after cross-run reuse."""
+
+    _live_env()
+    db_name = await _create_round_b_temporary_database("quality_child_hash_scope_migration")
+
+    async def constraint_names(conn: asyncpg.Connection) -> set[str]:
+        return {
+            row["conname"]
+            for row in await conn.fetch(
+                """
+                SELECT conname
+                FROM pg_constraint
+                WHERE conname IN (
+                    'uq_quality_metric_result_canonical_hash',
+                    'uq_quality_metric_result_run_canonical_hash',
+                    'uq_quality_breakdown_result_canonical_hash',
+                    'uq_quality_breakdown_result_run_canonical_hash'
+                )
+                """
+            )
+        }
+
+    try:
+        await _run_alembic_async("0027_s5_a2_forecast_evidence_persistence", db_name)
+        conn = await asyncpg.connect(_temporary_database_url(db_name))
+        try:
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
+                "0027_s5_a2_forecast_evidence_persistence"
+            )
+            assert await constraint_names(conn) == {
+                "uq_quality_metric_result_canonical_hash",
+                "uq_quality_breakdown_result_canonical_hash",
+            }
+        finally:
+            await conn.close()
+
+        await _run_alembic_async("0028_quality_child_hash_scope", db_name)
+        await _run_alembic_async("downgrade:0027_s5_a2_forecast_evidence_persistence", db_name)
+        await _run_alembic_async("0028_quality_child_hash_scope", db_name)
+
+        conn = await asyncpg.connect(_temporary_database_url(db_name))
+        try:
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
+                "0028_quality_child_hash_scope"
+            )
+            assert await constraint_names(conn) == {
+                "uq_quality_metric_result_run_canonical_hash",
+                "uq_quality_breakdown_result_run_canonical_hash",
+            }
+            run_a = await conn.fetchval(_RUN_INSERT_SQL, *_probe_run_args("scope-guard-a"))
+            run_b = await conn.fetchval(_RUN_INSERT_SQL, *_probe_run_args("scope-guard-b"))
+            assert run_a is not None and run_b is not None
+            shared_metric_hash = _probe_hash("scope-guard-shared-metric")
+            shared_breakdown_hash = _probe_hash("scope-guard-shared-breakdown")
+            await conn.execute(
+                _METRIC_INSERT_SQL,
+                *_probe_metric_args(
+                    run_a,
+                    "scope-guard-a",
+                    canonical_hash=shared_metric_hash,
+                ),
+            )
+            await conn.execute(
+                _METRIC_INSERT_SQL,
+                *_probe_metric_args(
+                    run_b,
+                    "scope-guard-b",
+                    canonical_hash=shared_metric_hash,
+                ),
+            )
+            await conn.execute(
+                _BREAKDOWN_INSERT_SQL,
+                *_probe_breakdown_args(
+                    run_a,
+                    "scope-guard-a",
+                    total=3,
+                    comparable=1,
+                    excluded=1,
+                    not_computable=1,
+                    coverage=Decimal("0.333333"),
+                    canonical_hash=shared_breakdown_hash,
+                ),
+            )
+            await conn.execute(
+                _BREAKDOWN_INSERT_SQL,
+                *_probe_breakdown_args(
+                    run_b,
+                    "scope-guard-b",
+                    total=3,
+                    comparable=1,
+                    excluded=1,
+                    not_computable=1,
+                    coverage=Decimal("0.333333"),
+                    canonical_hash=shared_breakdown_hash,
+                ),
+            )
+            before_counts = (
+                await conn.fetchval("SELECT count(*) FROM quality_metric_result"),
+                await conn.fetchval("SELECT count(*) FROM quality_breakdown_result"),
+            )
+            before_rows = (
+                tuple(
+                    tuple(row)
+                    for row in await conn.fetch(
+                        """
+                        SELECT id, quality_evaluation_run_id, metric_result_key_hash,
+                               canonical_hash
+                        FROM quality_metric_result
+                        ORDER BY id
+                        """
+                    )
+                ),
+                tuple(
+                    tuple(row)
+                    for row in await conn.fetch(
+                        """
+                        SELECT id, quality_evaluation_run_id, breakdown_key_hash,
+                               canonical_hash
+                        FROM quality_breakdown_result
+                        ORDER BY id
+                        """
+                    )
+                ),
+            )
+        finally:
+            await conn.close()
+
+        with pytest.raises(
+            RuntimeError,
+            match="QUALITY_CHILD_HASH_SCOPE_DOWNGRADE_BLOCKED: "
+            "cross-run canonical hash duplicates exist",
+        ):
+            await _run_alembic_async("downgrade:0027_s5_a2_forecast_evidence_persistence", db_name)
+
+        conn = await asyncpg.connect(_temporary_database_url(db_name))
+        try:
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
+                "0028_quality_child_hash_scope"
+            )
+            assert await constraint_names(conn) == {
+                "uq_quality_metric_result_run_canonical_hash",
+                "uq_quality_breakdown_result_run_canonical_hash",
+            }
+            assert (
+                await conn.fetchval("SELECT count(*) FROM quality_metric_result"),
+                await conn.fetchval("SELECT count(*) FROM quality_breakdown_result"),
+            ) == before_counts
+            after_rows = (
+                tuple(
+                    tuple(row)
+                    for row in await conn.fetch(
+                        """
+                        SELECT id, quality_evaluation_run_id, metric_result_key_hash,
+                               canonical_hash
+                        FROM quality_metric_result
+                        ORDER BY id
+                        """
+                    )
+                ),
+                tuple(
+                    tuple(row)
+                    for row in await conn.fetch(
+                        """
+                        SELECT id, quality_evaluation_run_id, breakdown_key_hash,
+                               canonical_hash
+                        FROM quality_breakdown_result
+                        ORDER BY id
+                        """
+                    )
+                ),
+            )
+            assert after_rows == before_rows
+        finally:
+            await conn.close()
+        print("UPGRADE_RESULT=PASS")
+        print("DOWNGRADE_WITHOUT_DUPLICATES=PASS")
+        print("REUPGRADE_RESULT=PASS")
+        print("DOWNGRADE_WITH_CROSS_RUN_DUPLICATES=BLOCKED_AS_EXPECTED")
+        print("DOWNGRADE_FAILURE_BEFORE_DDL=true")
     finally:
         await _drop_temporary_database(db_name)
 
@@ -1902,6 +2088,208 @@ async def test_default_trial_quality_service_postgres_create_replay_and_status_r
 
 
 @pytest.mark.asyncio
+async def test_distinct_quality_runs_allow_identical_child_canonical_hashes_postgres() -> None:
+    """Identical child content belongs independently to distinct Quality runs."""
+
+    _live_env()
+    db_name = await _create_temporary_database("identical_child_hashes")
+    engine, sessionmaker = await _build_temp_sessionmaker(db_name)
+    try:
+        await _run_alembic_async("head", db_name)
+        evaluation_input, metric_result, breakdowns, baseline = _fixture("identical-child-hashes")
+        request_a = {
+            "schema_version": _PROBE_SCHEMA,
+            "actor_identity": "quality-child-hash-actor-a",
+            "request_idempotency_key": "quality-child-hash-key-a",
+            "canonical_request": {
+                "forecast_run_id": "a" * 64,
+                "actual_harvest_import_id": "identical-child-hashes-import-a",
+                "forecast_cutoff_at": "2026-01-02T04:00:00+00:00",
+                "label_observation_cutoff_at": "2026-01-02T04:00:00+00:00",
+                "requested_horizons_days": [7, 14, 21],
+            },
+        }
+        request_b = {
+            **request_a,
+            "actor_identity": "quality-child-hash-actor-b",
+            "request_idempotency_key": "quality-child-hash-key-b",
+            "canonical_request": {
+                "forecast_run_id": "b" * 64,
+                "actual_harvest_import_id": "identical-child-hashes-import-b",
+                "forecast_cutoff_at": "2026-01-03T04:00:00+00:00",
+                "label_observation_cutoff_at": "2026-01-03T04:00:00+00:00",
+                "requested_horizons_days": [7, 14, 21],
+            },
+        }
+
+        async with sessionmaker() as session:
+            async with session.begin():
+                run_a = await _persist(
+                    session,
+                    evaluation_input=evaluation_input,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    request_identity_payload=request_a,
+                )
+        async with sessionmaker() as session:
+            async with session.begin():
+                replay_a = await _persist(
+                    session,
+                    evaluation_input=evaluation_input,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    request_identity_payload=request_a,
+                )
+        assert replay_a.run_id == run_a.run_id
+        assert replay_a.evaluation_instance_hash == run_a.evaluation_instance_hash
+        assert replay_a.new_write_count == 0
+        assert replay_a.replayed is True
+
+        async with sessionmaker() as session:
+            async with session.begin():
+                run_b = await _persist(
+                    session,
+                    evaluation_input=evaluation_input,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    request_identity_payload=request_b,
+                )
+        async with sessionmaker() as session:
+            async with session.begin():
+                replay_b = await _persist(
+                    session,
+                    evaluation_input=evaluation_input,
+                    metric_result=metric_result,
+                    breakdown_results=breakdowns,
+                    baseline_record=baseline,
+                    request_identity_payload=request_b,
+                )
+        assert run_a.run_id != run_b.run_id
+        assert run_a.evaluation_request_hash != run_b.evaluation_request_hash
+        assert run_a.evaluation_instance_hash != run_b.evaluation_instance_hash
+        assert replay_b.run_id == run_b.run_id
+        assert replay_b.evaluation_instance_hash == run_b.evaluation_instance_hash
+        assert replay_b.new_write_count == 0
+        assert replay_b.replayed is True
+
+        changed_input, changed_metric, changed_breakdowns, changed_baseline = _fixture(
+            "identical-child-hashes-conflict", forecast_value=Decimal("99.000000")
+        )
+        with pytest.raises(ForecastQualityConflictError, match="CONFLICTING_REPLAY_REJECTED"):
+            async with sessionmaker() as session:
+                async with session.begin():
+                    await _persist(
+                        session,
+                        evaluation_input=changed_input,
+                        metric_result=changed_metric,
+                        breakdown_results=changed_breakdowns,
+                        baseline_record=changed_baseline,
+                        request_identity_payload=request_a,
+                    )
+
+        async with sessionmaker() as session:
+            metrics = (
+                await session.scalars(
+                    select(QualityMetricResultModel)
+                    .where(
+                        QualityMetricResultModel.quality_evaluation_run_id.in_(
+                            (run_a.run_id, run_b.run_id)
+                        )
+                    )
+                    .order_by(QualityMetricResultModel.id)
+                )
+            ).all()
+            breakdown_rows = (
+                await session.scalars(
+                    select(QualityBreakdownResultModel)
+                    .where(
+                        QualityBreakdownResultModel.quality_evaluation_run_id.in_(
+                            (run_a.run_id, run_b.run_id)
+                        )
+                    )
+                    .order_by(QualityBreakdownResultModel.id)
+                )
+            ).all()
+            manifests = (
+                await session.scalars(
+                    select(QualityEvaluationManifestModel)
+                    .where(
+                        QualityEvaluationManifestModel.quality_evaluation_run_id.in_(
+                            (run_a.run_id, run_b.run_id)
+                        )
+                    )
+                    .order_by(QualityEvaluationManifestModel.id)
+                )
+            ).all()
+            assert len(metrics) == 14
+            assert len(breakdown_rows) == 2
+            assert len(manifests) == 2
+            assert {row.quality_evaluation_run_id for row in metrics} == {
+                run_a.run_id,
+                run_b.run_id,
+            }
+            assert {row.quality_evaluation_run_id for row in breakdown_rows} == {
+                run_a.run_id,
+                run_b.run_id,
+            }
+            metric_hashes_a = {
+                row.canonical_hash
+                for row in metrics
+                if row.quality_evaluation_run_id == run_a.run_id
+            }
+            metric_hashes_b = {
+                row.canonical_hash
+                for row in metrics
+                if row.quality_evaluation_run_id == run_b.run_id
+            }
+            breakdown_hashes_a = {
+                row.canonical_hash
+                for row in breakdown_rows
+                if row.quality_evaluation_run_id == run_a.run_id
+            }
+            breakdown_hashes_b = {
+                row.canonical_hash
+                for row in breakdown_rows
+                if row.quality_evaluation_run_id == run_b.run_id
+            }
+            assert metric_hashes_a == metric_hashes_b
+            assert breakdown_hashes_a == breakdown_hashes_b
+            for canonical_hash in metric_hashes_a:
+                assert (
+                    await session.scalar(
+                        select(func.count(QualityMetricResultModel.id)).where(
+                            QualityMetricResultModel.canonical_hash == canonical_hash
+                        )
+                    )
+                    == 2
+                )
+            for canonical_hash in breakdown_hashes_a:
+                assert (
+                    await session.scalar(
+                        select(func.count(QualityBreakdownResultModel.id)).where(
+                            QualityBreakdownResultModel.canonical_hash == canonical_hash
+                        )
+                    )
+                    == 2
+                )
+            assert all(manifest.sealed_at is not None for manifest in manifests)
+            # This probe intentionally uses the compact persistence fixture;
+            # the complete public readback loader separately requires the
+            # frozen 30-row status-evidence set.
+        print("DISTINCT_RUN_IDENTICAL_METRIC_HASH=PASS")
+        print("DISTINCT_RUN_IDENTICAL_BREAKDOWN_HASH=PASS")
+        print("RUN_A_EXACT_REPLAY_ZERO_WRITE=PASS")
+        print("RUN_B_EXACT_REPLAY_ZERO_WRITE=PASS")
+        print("CONFLICTING_REPLAY_REJECTED=PASS")
+    finally:
+        await engine.dispose()
+        await _drop_temporary_database(db_name)
+
+
+@pytest.mark.asyncio
 async def test_default_trial_quality_postgres_persistence_failure_rolls_back_everything(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2449,11 +2837,53 @@ async def test_foreign_key_and_hash_constraints_are_present() -> None:
         assert "uq_naive_baseline_run_result" in constraints
         assert "uq_naive_baseline_canonical_hash" not in constraints
         assert "ck_quality_breakdown_result_counter_closure" in constraints
+        assert "uq_quality_metric_result_canonical_hash" not in constraints
+        assert "uq_quality_breakdown_result_canonical_hash" not in constraints
+        assert "uq_quality_metric_result_run_canonical_hash" in constraints
+        assert "uq_quality_breakdown_result_run_canonical_hash" in constraints
+        ordered_unique_columns = {
+            row["conname"]: row["columns"]
+            for row in await conn.fetch(
+                """
+                SELECT constraint_record.conname,
+                       array_agg(attribute.attname ORDER BY constraint_record.ordinality)
+                           AS columns
+                FROM (
+                    SELECT constraint_row.conname, key.attnum, key.ordinality
+                    FROM pg_constraint AS constraint_row
+                    CROSS JOIN LATERAL unnest(constraint_row.conkey) WITH ORDINALITY
+                        AS key(attnum, ordinality)
+                    WHERE constraint_row.conname IN (
+                        'uq_quality_metric_result_run_canonical_hash',
+                        'uq_quality_breakdown_result_run_canonical_hash'
+                    )
+                ) AS constraint_record
+                JOIN pg_attribute AS attribute
+                  ON attribute.attrelid = (
+                      SELECT conrelid
+                      FROM pg_constraint
+                      WHERE conname = constraint_record.conname
+                  )
+                 AND attribute.attnum = constraint_record.attnum
+                GROUP BY constraint_record.conname
+                """
+            )
+        }
+        assert ordered_unique_columns == {
+            "uq_quality_metric_result_run_canonical_hash": [
+                "quality_evaluation_run_id",
+                "canonical_hash",
+            ],
+            "uq_quality_breakdown_result_run_canonical_hash": [
+                "quality_evaluation_run_id",
+                "canonical_hash",
+            ],
+        }
         for required_constraint in (
             "uq_quality_metric_result_run_key",
-            "uq_quality_metric_result_canonical_hash",
+            "uq_quality_metric_result_run_canonical_hash",
             "uq_quality_breakdown_result_run_key",
-            "uq_quality_breakdown_result_canonical_hash",
+            "uq_quality_breakdown_result_run_canonical_hash",
             "uq_model_baseline_comparison_run_key",
             "uq_model_baseline_comparison_run_canonical_hash",
             "uq_quality_manifest_run",
@@ -2800,6 +3230,7 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
             ),
         )
         unique_probe_count += 1
+        print("SAME_RUN_DUPLICATE_METRIC_HASH_REJECTED=PASS")
         await _expect_postgres_rejection(
             conn,
             _BREAKDOWN_INSERT_SQL,
@@ -2830,6 +3261,7 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
             ),
         )
         unique_probe_count += 1
+        print("SAME_RUN_DUPLICATE_BREAKDOWN_HASH_REJECTED=PASS")
         await _expect_postgres_rejection(
             conn,
             _BASELINE_INSERT_SQL,
@@ -2866,6 +3298,45 @@ async def test_postgres_database_rejection_probes_are_real_and_isolated() -> Non
             )
             == 2
         )
+        await conn.execute(
+            _METRIC_INSERT_SQL,
+            *_probe_metric_args(
+                run2,
+                "shared-cross-run",
+                key_hash=_probe_hash("metric-key:shared-cross-run"),
+                canonical_hash=metric_canonical,
+            ),
+        )
+        await conn.execute(
+            _BREAKDOWN_INSERT_SQL,
+            *_probe_breakdown_args(
+                run2,
+                "shared-cross-run",
+                total=3,
+                comparable=1,
+                excluded=1,
+                not_computable=1,
+                coverage=Decimal("0.333333"),
+                key_hash=_probe_hash("breakdown-key:shared-cross-run"),
+                canonical_hash=breakdown_canonical,
+            ),
+        )
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM quality_metric_result WHERE canonical_hash = $1",
+                metric_canonical,
+            )
+            == 2
+        )
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM quality_breakdown_result WHERE canonical_hash = $1",
+                breakdown_canonical,
+            )
+            == 2
+        )
+        print("DISTINCT_RUN_IDENTICAL_METRIC_HASH=PASS")
+        print("DISTINCT_RUN_IDENTICAL_BREAKDOWN_HASH=PASS")
 
         await _expect_postgres_rejection(
             conn,
@@ -3590,7 +4061,7 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert (
                 await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "0027_s5_a2_forecast_evidence_persistence"
+                == "0028_quality_child_hash_scope"
             )
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
@@ -3686,7 +4157,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert (
                 await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "0027_s5_a2_forecast_evidence_persistence"
+                == "0028_quality_child_hash_scope"
             )
             assert (
                 await conn.fetchval(

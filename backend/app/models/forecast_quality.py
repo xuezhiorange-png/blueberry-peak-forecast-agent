@@ -92,7 +92,11 @@ class QualityMetricResultModel(Base):
             "metric_result_key_hash",
             name="uq_quality_metric_result_run_key",
         ),
-        UniqueConstraint("canonical_hash", name="uq_quality_metric_result_canonical_hash"),
+        UniqueConstraint(
+            "quality_evaluation_run_id",
+            "canonical_hash",
+            name="uq_quality_metric_result_run_canonical_hash",
+        ),
         _sha256_check("metric_result_key_hash", "ck_quality_metric_result_key_sha256"),
         _sha256_check("canonical_hash", "ck_quality_metric_result_canonical_sha256"),
         CheckConstraint(
@@ -137,7 +141,11 @@ class QualityBreakdownResultModel(Base):
             "breakdown_key_hash",
             name="uq_quality_breakdown_result_run_key",
         ),
-        UniqueConstraint("canonical_hash", name="uq_quality_breakdown_result_canonical_hash"),
+        UniqueConstraint(
+            "quality_evaluation_run_id",
+            "canonical_hash",
+            name="uq_quality_breakdown_result_run_canonical_hash",
+        ),
         _sha256_check("breakdown_key_hash", "ck_quality_breakdown_result_key_sha256"),
         _sha256_check("canonical_hash", "ck_quality_breakdown_result_canonical_sha256"),
         CheckConstraint(
