@@ -2223,7 +2223,11 @@ jobs:
 
           import uvicorn
 
+          import backend.app.rolling_backtest.orchestration as orchestration
           import backend.app.trial as trial
+          from backend.app.actual_harvest_labels.models import (
+              ActualHarvestLabelSnapshotWinnerModel,
+          )
           from backend.app.trial import DefaultTrialApplicationService
 
           original_create_quality_report = (
@@ -2246,6 +2250,42 @@ jobs:
                   raise
 
           DefaultTrialApplicationService.create_quality_report = traced_create_quality_report
+
+          original_resolve_s2_persisted_authorities = (
+              orchestration.resolve_s2_persisted_authorities
+          )
+
+          async def traced_resolve_s2_persisted_authorities(
+              session, *, request, candidates
+          ):
+              for candidate in candidates:
+                  references = candidate.persisted_authority_references
+                  if references is None or references.label_winner_id is None:
+                      continue
+                  winner = await session.get(
+                      ActualHarvestLabelSnapshotWinnerModel,
+                      references.label_winner_id,
+                  )
+                  print(
+                      "QUALITY_E2E_S2_IDENTITY "
+                      f"request_mapping={request.mapping_policy_version} "
+                      f"request_resolved={request.resolved_identity_snapshot_hash} "
+                      f"request_resolver={request.master_identity_resolver_version} "
+                      f"winner_mapping={getattr(winner, 'mapping_policy_version', None)} "
+                      f"winner_resolved={getattr(winner, 'resolved_identity_snapshot_hash', None)} "
+                      f"winner_resolver={getattr(winner, 'season_resolver_version', None)} "
+                      f"winner_id={references.label_winner_id}",
+                      flush=True,
+                  )
+              return await original_resolve_s2_persisted_authorities(
+                  session,
+                  request=request,
+                  candidates=candidates,
+              )
+
+          orchestration.resolve_s2_persisted_authorities = (
+              traced_resolve_s2_persisted_authorities
+          )
 
           def trace_async(name, function):
               @functools.wraps(function)
