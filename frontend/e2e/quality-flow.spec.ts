@@ -196,9 +196,34 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     await page.getByRole("button", { name: "生成质量报告" }).click();
     await expect(page.locator('[aria-label="质量报告身份"] .hash-value')).toHaveText(firstReportId);
 
-    await page
-      .getByLabel("Label observation cutoff")
-      .fill(qualityObservationCutoffForProject(testInfo, 2));
+    const firstIdempotencyEntry = await page.evaluate(() => {
+      const entry = Object.entries(sessionStorage).find(([key]) =>
+        key.startsWith("trial:idempotency:quality-report|"),
+      );
+      if (!entry) throw new Error("Quality idempotency key was not persisted");
+      return entry;
+    });
+    const changedLabelCutoff = qualityObservationCutoffForProject(testInfo, 2);
+    const conflictingScopeKey = await page.evaluate(
+      ({ firstKey, nextLabelCutoff }) => {
+        const parts = firstKey.split("|");
+        if (parts.length !== 6) throw new Error("Unexpected Quality idempotency scope");
+        parts[4] = new Date(nextLabelCutoff).toISOString();
+        return parts.join("|");
+      },
+      { firstKey: firstIdempotencyEntry[0], nextLabelCutoff: changedLabelCutoff },
+    );
+    await page.getByLabel("Label observation cutoff").fill(changedLabelCutoff);
+    await page.evaluate(({ storageKey, value }) => sessionStorage.setItem(storageKey, value), {
+      storageKey: conflictingScopeKey,
+      value: firstIdempotencyEntry[1],
+    });
+    await page.getByRole("button", { name: "生成质量报告" }).click();
+    await expect(page.getByRole("alert")).toContainText("相同请求标识对应了不同内容");
+    await expect(page.locator('[aria-label="质量报告身份"] .hash-value')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "导出质量 CSV" })).toBeDisabled();
+
+    await page.evaluate((storageKey) => sessionStorage.removeItem(storageKey), conflictingScopeKey);
     await page.getByRole("button", { name: "生成质量报告" }).click();
     const secondReportId = page.locator('[aria-label="质量报告身份"] .hash-value');
     await expect(secondReportId).toHaveText(/^[0-9a-f]{64}$/);
