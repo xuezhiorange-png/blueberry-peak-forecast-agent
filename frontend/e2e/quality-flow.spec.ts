@@ -41,6 +41,12 @@ function xlsxExternalBatchIdForProject(testInfo: TestInfo): string {
   return `trial-harvest-xlsx-${safeSlug(testInfo.project.name)}`;
 }
 
+function qualityObservationCutoffForProject(testInfo: TestInfo): string {
+  return safeSlug(testInfo.project.name) === "chromium-mobile"
+    ? "2030-01-02T00:00"
+    : "2030-01-01T00:00";
+}
+
 const csvHeaders = [
   "external_logical_record_id",
   "external_revision_id",
@@ -132,7 +138,9 @@ async function createQualityReport(page: Page, runId: string, testInfo: TestInfo
   await page.getByLabel("Forecast public run ID").fill(runId);
   await page.getByRole("button", { name: "读取 Forecast" }).click();
   await expect(page.getByLabel("Persisted Forecast cutoff")).not.toHaveValue("—");
-  await page.getByLabel("Label observation cutoff").fill("2030-01-01T00:00");
+  const labelObservationCutoff = qualityObservationCutoffForProject(testInfo);
+  await page.getByLabel("Label observation cutoff").fill(labelObservationCutoff);
+  await expect(page.getByLabel("Label observation cutoff")).toHaveValue(labelObservationCutoff);
   await page.getByRole("button", { name: "生成质量报告" }).click();
   await expect(page.getByText("Quality report ID", { exact: true })).toBeVisible({
     timeout: 60_000,
