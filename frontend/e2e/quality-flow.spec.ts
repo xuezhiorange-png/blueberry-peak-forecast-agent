@@ -46,10 +46,9 @@ function xlsxExternalBatchIdForProject(testInfo: TestInfo): string {
   return `trial-harvest-xlsx-${safeSlug(testInfo.project.name)}`;
 }
 
-function qualityObservationCutoffForProject(testInfo: TestInfo): string {
-  return safeSlug(testInfo.project.name) === "chromium-mobile"
-    ? "2030-01-02T00:00"
-    : "2030-01-01T00:00";
+function qualityObservationCutoffForProject(testInfo: TestInfo, offsetDays = 0): string {
+  const day = (safeSlug(testInfo.project.name) === "chromium-mobile" ? 2 : 1) + offsetDays;
+  return `2030-01-${String(day).padStart(2, "0")}T00:00`;
 }
 
 const csvHeaders = [
@@ -103,11 +102,18 @@ function qualityCsv(identity: ProjectScopedIdentity) {
   ].join("\n");
 }
 
-async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity) {
+async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity, testInfo: TestInfo) {
+  const contents = qualityCsv(identity);
+  const project = safeSlug(testInfo.project.name);
+  expect(identity.externalBatchId).toContain(project);
+  expect(identity.sourceNote).toContain(project);
+  expect(contents).toContain(identity.externalBatchId);
+  expect(contents).toContain(identity.externalLogicalRecordId);
+  expect(contents).toContain(identity.externalRevisionId);
   await page.getByLabel("选择 CSV 或 XLSX 文件").setInputFiles({
     name: `${identity.externalBatchId}.csv`,
     mimeType: "text/csv",
-    buffer: Buffer.from(qualityCsv(identity), "utf8"),
+    buffer: Buffer.from(contents, "utf8"),
   });
   await expect(page.getByText("SHA-256 已完成", { exact: true })).toBeVisible();
   await page.getByLabel("external batch id").fill(identity.externalBatchId);
@@ -139,7 +145,7 @@ async function createForecastForQuality(page: Page): Promise<string> {
 
 async function createQualityReport(page: Page, runId: string, testInfo: TestInfo) {
   await page.goto("/trial/quality");
-  await uploadAndCommitCsv(page, projectScopedIdentity(testInfo, "quality-csv"));
+  await uploadAndCommitCsv(page, projectScopedIdentity(testInfo, "quality-csv"), testInfo);
   await page.getByLabel("Forecast public run ID").fill(runId);
   await page.getByRole("button", { name: "读取 Forecast" }).click();
   await expect(page.getByLabel("Persisted Forecast cutoff")).not.toHaveValue("—");
@@ -157,6 +163,11 @@ async function createQualityReport(page: Page, runId: string, testInfo: TestInfo
   await expect(page.getByText("P90 状态 / 原因", { exact: true })).toBeVisible();
   await expect(page.getByText("区间下界", { exact: true })).toBeVisible();
   await expect(page.getByText("Persisted baseline comparison", { exact: true })).toBeVisible();
+  for (const horizon of [7, 14, 21]) {
+    await page.getByRole("tab", { name: `${horizon} 天` }).click();
+    await expect(page.getByLabel(`质量指标 ${horizon} 天`)).toBeVisible();
+    await expect(page.getByText(`${horizon} 天`, { exact: true })).toBeVisible();
+  }
   return page.locator('[aria-label="质量报告身份"] .hash-value').innerText();
 }
 
@@ -185,14 +196,18 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     await page.getByRole("button", { name: "生成质量报告" }).click();
     await expect(page.locator('[aria-label="质量报告身份"] .hash-value')).toHaveText(firstReportId);
 
-    await page.getByLabel("Label observation cutoff").fill("2026-03-11T12:00");
+    await page
+      .getByLabel("Label observation cutoff")
+      .fill(qualityObservationCutoffForProject(testInfo, 2));
     await page.getByRole("button", { name: "生成质量报告" }).click();
-    await expect(page.getByRole("alert")).toContainText("质量链路未完成");
+    const secondReportId = page.locator('[aria-label="质量报告身份"] .hash-value');
+    await expect(secondReportId).toHaveText(/^[0-9a-f]{64}$/);
+    await expect(secondReportId).not.toHaveText(firstReportId);
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "导出质量 CSV" }).click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe(`${firstReportId}.csv`);
+    expect(download.suggestedFilename()).toBe(`${await secondReportId.innerText()}.csv`);
     expect(await download.path()).not.toBeNull();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),

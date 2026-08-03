@@ -44,7 +44,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   # ----------------------------------------------------------------
   # §3 row 1 — static (PR only, no pytest)
   # ----------------------------------------------------------------
@@ -2217,103 +2216,10 @@ jobs:
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
           DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
         run: |
-          nohup python - <<'PY' > /tmp/frontend-e2e-backend.log 2>&1 &
-          import functools
-          import traceback
-
-          import uvicorn
-
-          import backend.app.rolling_backtest.orchestration as orchestration
-          import backend.app.trial as trial
-          from backend.app.actual_harvest_labels.models import (
-              ActualHarvestLabelSnapshotWinnerModel,
-          )
-          from backend.app.trial import DefaultTrialApplicationService
-
-          original_create_quality_report = (
-              DefaultTrialApplicationService.create_quality_report
-          )
-
-          async def traced_create_quality_report(self, *args, **kwargs):
-              try:
-                  return await original_create_quality_report(self, *args, **kwargs)
-              except BaseException as error:
-                  print(
-                      "QUALITY_E2E_SERVICE_FAILURE "
-                      f"type={type(error).__name__} "
-                      f"code={getattr(error, 'code', None)!s} "
-                      f"status={getattr(error, 'status_code', None)!s} "
-                      f"message={error!s}",
-                      flush=True,
-                  )
-                  traceback.print_exc()
-                  raise
-
-          DefaultTrialApplicationService.create_quality_report = traced_create_quality_report
-
-          original_resolve_s2_persisted_authorities = (
-              orchestration.resolve_s2_persisted_authorities
-          )
-
-          async def traced_resolve_s2_persisted_authorities(
-              session, *, request, candidates
-          ):
-              for candidate in candidates:
-                  references = candidate.persisted_authority_references
-                  if references is None or references.label_winner_id is None:
-                      continue
-                  winner = await session.get(
-                      ActualHarvestLabelSnapshotWinnerModel,
-                      references.label_winner_id,
-                  )
-                  print(
-                      "QUALITY_E2E_S2_IDENTITY "
-                      f"request_mapping={request.mapping_policy_version} "
-                      f"request_resolved={request.resolved_identity_snapshot_hash} "
-                      f"request_resolver={request.master_identity_resolver_version} "
-                      f"winner_mapping={getattr(winner, 'mapping_policy_version', None)} "
-                      f"winner_resolved={getattr(winner, 'resolved_identity_snapshot_hash', None)} "
-                      f"winner_resolver={getattr(winner, 'season_resolver_version', None)} "
-                      f"winner_id={references.label_winner_id}",
-                      flush=True,
-                  )
-              return await original_resolve_s2_persisted_authorities(
-                  session,
-                  request=request,
-                  candidates=candidates,
-              )
-
-          orchestration.resolve_s2_persisted_authorities = (
-              traced_resolve_s2_persisted_authorities
-          )
-
-          def trace_async(name, function):
-              @functools.wraps(function)
-              async def traced(*args, **kwargs):
-                  try:
-                      return await function(*args, **kwargs)
-                  except BaseException as error:
-                      print(
-                          f"QUALITY_E2E_INTERNAL_FAILURE stage={name} "
-                          f"type={type(error).__name__} message={error!s}",
-                          flush=True,
-                      )
-                      traceback.print_exc()
-                      raise
-
-              return traced
-
-          for name in (
-              "_create_quality_label_snapshot",
-              "_build_quality_s2_candidates",
-              "_build_quality_calculation_inputs",
-          ):
-              setattr(trial, name, trace_async(name, getattr(trial, name)))
-
-          from backend.app.main import app
-
-          uvicorn.run(app, host="127.0.0.1", port=8000)
-          PY
+          nohup uvicorn backend.app.main:app \
+            --host 127.0.0.1 \
+            --port 8000 \
+            > /tmp/frontend-e2e-backend.log 2>&1 &
           echo $! > /tmp/frontend-e2e-backend.pid
           python - <<'PY'
           import time

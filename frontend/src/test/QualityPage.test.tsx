@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../features/actualHarvest/importApi";
-import { QualityPage } from "../pages/QualityPage";
+import { collectInvalidRows, QualityPage, qualityReportRequestScope } from "../pages/QualityPage";
+import { getOrCreateIdempotencyKey } from "../lib/idempotency";
 
 describe("QualityPage", () => {
-  it("keeps mutation controls disabled while allowing local file selection", () => {
+  it("starts idle with mutation controls disabled before file selection", () => {
     const fetchSpy = vi.spyOn(window, "fetch").mockRejectedValue(new Error("must not fetch"));
     render(<QualityPage />);
     const input = document.getElementById("actual-harvest-file") as HTMLInputElement;
@@ -68,5 +69,64 @@ describe("QualityPage", () => {
     );
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it("reuses a Quality idempotency key only for the same logical request", () => {
+    const first = qualityReportRequestScope({
+      forecastRunId: "a".repeat(64),
+      importId: "import-a",
+      forecastCutoffAt: "2026-03-01T00:00:00Z",
+      labelCutoffAt: "2026-03-10T00:00:00Z",
+      horizons: [7, 14, 21],
+    });
+    const same = qualityReportRequestScope({
+      forecastRunId: "a".repeat(64),
+      importId: "import-a",
+      forecastCutoffAt: "2026-03-01T00:00:00Z",
+      labelCutoffAt: "2026-03-10T00:00:00Z",
+      horizons: [7, 14, 21],
+    });
+    const different = qualityReportRequestScope({
+      forecastRunId: "a".repeat(64),
+      importId: "import-a",
+      forecastCutoffAt: "2026-03-01T00:00:00Z",
+      labelCutoffAt: "2026-03-11T00:00:00Z",
+      horizons: [7, 14, 21],
+    });
+    expect(first).toBe(same);
+    expect(first).not.toBe(different);
+    expect(getOrCreateIdempotencyKey(first)).toBe(getOrCreateIdempotencyKey(same));
+    expect(getOrCreateIdempotencyKey(first)).not.toBe(getOrCreateIdempotencyKey(different));
+  });
+
+  it("reads every invalid-row page and fails closed on a repeated token", async () => {
+    const page = (index: number, next_page_token: string | null) => ({
+      rows: [
+        {
+          severity: "ERROR" as const,
+          error_code: `ROW_${index}`,
+          record_index: index,
+          external_logical_record_id: `row-${index}`,
+          external_revision_id: `rev-${index}`,
+          field_path: "harvest_business_date",
+          message_template_id: "INVALID_DATE",
+          details: {},
+        },
+      ],
+      next_page_token,
+    });
+    const loadPage = vi
+      .fn()
+      .mockImplementation((token?: string) =>
+        Promise.resolve(token === "page-2" ? page(2, null) : page(1, "page-2")),
+      );
+    await expect(collectInvalidRows(loadPage)).resolves.toHaveLength(2);
+    expect(loadPage).toHaveBeenCalledTimes(2);
+
+    const repeated = vi.fn().mockResolvedValue(page(1, "same-token"));
+    await expect(collectInvalidRows(repeated)).rejects.toMatchObject({
+      code: "TRIAL_RESPONSE_CONTRACT_INVALID",
+    });
+    expect(repeated).toHaveBeenCalledTimes(2);
   });
 });
