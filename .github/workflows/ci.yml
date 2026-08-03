@@ -2120,10 +2120,10 @@ jobs:
           from backend.app.trial import TrialForecastCreateRequest
           from backend.tests.forecast_quality.test_persistence import (
               _repair_task9_fixture_for_quality,
-              _seed_marketable_policy,
               _seed_quality_task10_fixture,
           )
           from backend.tests.integration.test_core_forecast_persistence_postgres import (
+              _seed_marketable_policy,
               _prepare_default_trial_forecast,
           )
 
