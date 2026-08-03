@@ -1364,7 +1364,7 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
 
         winner_import_id = f"{case.request.actual_harvest_import_id}-winner"
         winner_record = _build_i7_record(
-            source_system="source-test",
+            source_system="source-test-winner",
             external_logical_record_id="i7-quality-winner-logical",
             external_revision_id="i7-quality-winner-revision",
             harvest_date=date(2026, 3, 7),
@@ -1374,7 +1374,7 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             case.sessionmaker,
             import_id=winner_import_id,
             records=[winner_record],
-            source_system="source-test",
+            source_system="source-test-winner",
             registry_suffix="i7-quality-winner",
         )
         await _align_i7_seed_to_forecast_scope(
@@ -1382,6 +1382,9 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             batch_id=int(seeded["batch_id"]),
             actor_identity=case.actor.identity,
             scope=evidence,
+        )
+        quality_actor = case.actor.model_copy(
+            update={"allowed_source_systems": frozenset({"source-test-winner"})}
         )
         quality_request = case.request.model_copy(
             update={
@@ -1394,7 +1397,7 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             created = await case.service.create_quality_report(
                 session,
                 quality_request,
-                case.actor,
+                quality_actor,
             )
 
         async with case.sessionmaker() as session:
@@ -1430,7 +1433,7 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             evidence, persisted, import_batch = await _load_quality_parent_forecast(
                 session,
                 request=quality_request,
-                actor=case.actor,
+                actor=quality_actor,
             )
             batch = await session.scalar(
                 select(ActualHarvestImportBatchModel).where(
@@ -1482,7 +1485,8 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
 
             batch = await session.scalar(
                 select(ActualHarvestImportBatchModel).where(
-                    ActualHarvestImportBatchModel.import_id == case.request.actual_harvest_import_id
+                    ActualHarvestImportBatchModel.import_id
+                    == quality_request.actual_harvest_import_id
                 )
             )
             assert batch is not None
@@ -1526,7 +1530,7 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             fresh_readback = await case.service.get_quality_report(
                 session,
                 created.report_id,
-                case.actor,
+                quality_actor,
             )
             assert fresh_readback.report_id == created.report_id
             assert fresh_readback.model_dump(mode="json") == created.model_dump(mode="json")
