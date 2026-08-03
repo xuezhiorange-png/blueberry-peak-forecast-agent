@@ -82,7 +82,7 @@ function Shell() {
           <span className="status-pulse" aria-hidden="true" />
           当前仅开放 Trial 合同能力
           <span className="top-status-separator">·</span>
-          预测与质量生产适配器尚未就绪
+          Forecast 与 Quality 已接入生产 API
         </div>
         <AppRoutes />
       </div>

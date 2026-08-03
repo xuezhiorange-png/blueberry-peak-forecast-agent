@@ -1,29 +1,166 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("frontend-first forecast route smoke", () => {
-  test("renders on desktop and does not call internal APIs", async ({ page }) => {
+const authorityValues = {
+  factory: "S2-FIXTURE",
+  season: "2026-DEMO",
+  farm: "s2-fixture-farm",
+  subfarm: "s2-fixture-east",
+  variety: "S2-VAR-A",
+};
+
+async function selectForecastAuthority(page: import("@playwright/test").Page) {
+  await expect(page.getByLabel("加工厂")).toHaveValue(authorityValues.factory);
+  await page.getByLabel("产季").selectOption(authorityValues.season);
+  await page.getByLabel("农场").selectOption(authorityValues.farm);
+  await page.getByLabel("分场").selectOption(authorityValues.subfarm);
+  await page.getByLabel("品种").selectOption(authorityValues.variety);
+  await expect(page.getByLabel("权威种植面积（亩）")).toHaveValue("10.000000");
+  await expect(page.getByLabel("开花日期（可选）")).toBeDisabled();
+  await expect(page.getByLabel("成熟阶段（可选）")).toBeDisabled();
+  await expect(page.getByLabel("已采摘数量 kg（可选）")).toBeDisabled();
+  await page.getByLabel("我确认使用服务端权威面积").check();
+}
+
+async function selectSecondForecastAuthority(page: import("@playwright/test").Page) {
+  await page.getByLabel("农场").selectOption("s2-fixture-farm-west");
+  await expect(page.getByLabel("分场")).toHaveValue("s2-fixture-west");
+  await expect(page.getByLabel("品种")).toHaveValue("S2-VAR-B");
+  await expect(page.getByLabel("权威种植面积（亩）")).toHaveValue("8.000000");
+}
+
+async function createForecast(page: import("@playwright/test").Page) {
+  await page.goto("/trial/forecast");
+  await selectForecastAuthority(page);
+
+  const createRequest = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" && new URL(request.url()).pathname === "/api/v1/trial/forecasts",
+  );
+  await page.getByRole("button", { name: "生成预测" }).click();
+  const request = await createRequest;
+  const body = request.postDataJSON() as Record<string, unknown>;
+  expect(body).toMatchObject({
+    farm_business_key: authorityValues.farm,
+    subfarm_business_key_or_null: authorityValues.subfarm,
+    season_business_key: authorityValues.season,
+    variety_business_key: authorityValues.variety,
+    destination_factory_business_key: authorityValues.factory,
+    planting_area_mu: "10.000000",
+    flowering_date_or_null: null,
+    maturity_stage_or_null: null,
+    already_picked_quantity_kg_or_null: null,
+  });
+  expect(body.forecast_input_authority_hash).toMatch(/^[0-9a-f]{64}$/);
+  expect(body.plan_row_hash).toMatch(/^[0-9a-f]{64}$/);
+
+  await expect(page.getByTestId("forecast-run-id")).toHaveText(/^[0-9a-f]{64}$/);
+  await expect(page.getByTestId("daily-curve")).toContainText("P50 / P80 / P90 日曲线");
+  await expect(page.getByText("单日峰值", { exact: true })).toBeVisible();
+  await expect(page.getByText("连续 7 日累计", { exact: true })).toBeVisible();
+  await expect(page.getByText("成熟库存（开 / 闭）", { exact: true })).toBeVisible();
+  await expect(page.getByText("未采 backlog", { exact: true })).toBeVisible();
+  return page.getByTestId("forecast-run-id").innerText();
+}
+
+test.describe("production Forecast Trial integration", () => {
+  test("uses authority, creates persisted readback, and downloads server CSV", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     const apiRequests: string[] = [];
     page.on("request", (request) => {
       const pathname = new URL(request.url()).pathname;
       if (pathname.startsWith("/api/")) apiRequests.push(pathname);
     });
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/trial/forecast");
-    await expect(page.getByTestId("forecast-page")).toBeVisible();
-    await expect(page.getByRole("button", { name: "生成预测" })).toBeDisabled();
+
+    const runId = await createForecast(page);
+    expect(runId).toMatch(/^[0-9a-f]{64}$/);
+    expect(apiRequests).toContain("/api/v1/trial/forecast-input-authority");
+    expect(apiRequests).toContain("/api/v1/trial/forecasts");
+    expect(apiRequests.some((path) => path === `/api/v1/trial/forecasts/${runId}`)).toBe(true);
+    expect(
+      apiRequests.some((path) => path === `/api/v1/trial/forecasts/${runId}/daily-curve`),
+    ).toBe(true);
+    expect(apiRequests.every((path) => path.startsWith("/api/v1/trial/"))).toBe(true);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "导出 Forecast CSV" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^[0-9a-f]{64}\.csv$/);
+    const downloadedPath = await download.path();
+    expect(downloadedPath).not.toBeNull();
+
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+
+    const replayRunIdPromise = page.getByTestId("forecast-run-id").innerText();
+    await page.getByRole("button", { name: "生成预测" }).click();
+    await expect(page.getByTestId("forecast-run-id")).toHaveText(runId);
+    expect(await replayRunIdPromise).toBe(runId);
+  });
+
+  test("renders a safe unavailable state when authority cannot be reached", async ({ page }) => {
+    await page.route("**/api/v1/trial/forecast-input-authority", (route) => route.abort());
+    await page.goto("/trial/forecast");
+    await expect(page.getByText("输入权威不可用", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "生成预测" })).toBeDisabled();
+    await expect(page.locator("body")).not.toContainText("Error:");
+  });
+
+  test("keeps the Forecast page usable on the mobile project", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await createForecast(page);
     expect(
-      apiRequests.every((path) => path.startsWith("/api/v1/trial/")),
-      `unexpected API paths: ${apiRequests.join(", ")}`,
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
   });
 
-  test("supports mobile navigation", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test("hides the previous result after a failed subsequent request", async ({ page }) => {
+    await createForecast(page);
+    await page.route("**/api/v1/trial/forecasts", (route) => route.abort());
+    await page.getByRole("button", { name: "生成预测" }).click();
+    await expect(page.getByText("预测结果不可用", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("forecast-run-id")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "导出 Forecast CSV" })).toBeDisabled();
+  });
+
+  test("resets area confirmation when switching to a second real authority item", async ({
+    page,
+  }) => {
     await page.goto("/trial/forecast");
-    await page.getByRole("link", { name: "质量" }).click();
-    await expect(page.getByTestId("quality-page")).toBeVisible();
+    await selectForecastAuthority(page);
+    await selectSecondForecastAuthority(page);
+    await expect(page.getByLabel("我确认使用服务端权威面积")).not.toBeChecked();
+    await expect(page.getByRole("button", { name: "生成预测" })).toBeDisabled();
+    await page.getByLabel("我确认使用服务端权威面积").check();
+    await expect(page.getByRole("button", { name: "生成预测" })).toBeEnabled();
+  });
+
+  test("rejects a planting-area mismatch through the real server", async ({ page }) => {
+    await page.goto("/trial/forecast");
+    await selectForecastAuthority(page);
+    await page.route("**/api/v1/trial/forecasts", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      await route.continue({
+        postData: JSON.stringify({ ...body, planting_area_mu: "999.000000" }),
+      });
+    });
+    await page.getByRole("button", { name: "生成预测" }).click();
+    await expect(page.getByRole("alert")).toContainText("提交内容未通过校验");
+    await expect(page.getByTestId("forecast-run-id")).toHaveCount(0);
+  });
+
+  test("keeps concealed Forecast not-found responses safe for a public ID", async ({ page }) => {
+    await page.goto("/trial/forecast");
+    const publicId = "f".repeat(64);
+    const result = await page.evaluate(async (runId) => {
+      const response = await fetch(`/api/v1/trial/forecasts/${runId}`);
+      return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+    }, publicId);
+    expect(result.status).toBe(404);
+    expect(result.body.code).toBe("RESOURCE_NOT_FOUND");
+    const encoded = JSON.stringify(result.body);
+    expect(encoded).not.toMatch(/owner|database|traceback|exception|stack/i);
+    expect(encoded).not.toContain(publicId);
   });
 });

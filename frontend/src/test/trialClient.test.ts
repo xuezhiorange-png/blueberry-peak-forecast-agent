@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { describe, expect, it, vi } from "vitest";
+import { trialErrorMessage } from "../api/errorCatalog";
 import { TrialClientError, downloadCsv, getJson, postBytes } from "../api/trialClient";
 import {
   importApi,
@@ -10,8 +11,9 @@ import {
   importUploadResponseSchema,
 } from "../features/actualHarvest/importApi";
 import { getOrCreateIdempotencyKey } from "../lib/idempotency";
+import { dateSchema, timestampSchema } from "../features/forecast/forecastSchemas";
 
-const okSchema = z.object({ ok: z.boolean() });
+const okSchema = z.object({ ok: z.boolean() }).strict();
 const uploadHash = "a".repeat(64);
 
 function response(body: unknown, status = 200, headers?: HeadersInit) {
@@ -148,6 +150,60 @@ describe("trialClient", () => {
     });
   });
 
+  it("maps a structured 422 without retrying or exposing payload details", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      response(
+        {
+          request_id: null,
+          status: "ERROR",
+          code: "TRIAL_REQUEST_INVALID",
+          message_template_id: "TRIAL_REQUEST_INVALID",
+          retryable: false,
+          details: { internal: "must not be shown" },
+        },
+        422,
+      ),
+    );
+    const error = await getJson("/api/v1/trial/forecasts/x", okSchema, fetcher).catch(
+      (value) => value,
+    );
+    expect(error).toMatchObject({ code: "TRIAL_REQUEST_INVALID", status: 422, retryable: false });
+    expect(String(error)).not.toContain("must not be shown");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects unknown success keys as a response contract error", async () => {
+    const fetcher = vi.fn().mockResolvedValue(response({ ok: true, extra: "unexpected" }));
+    await expect(getJson("/api/v1/trial/forecasts/x", okSchema, fetcher)).rejects.toMatchObject({
+      code: "TRIAL_RESPONSE_CONTRACT_INVALID",
+      status: 502,
+    });
+  });
+
+  it.each([null, "text/plain"])(
+    "rejects a successful JSON response with content type %s",
+    async (contentType) => {
+      const fetcher = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), {
+          headers: contentType ? { "content-type": contentType } : undefined,
+        }),
+      );
+      await expect(getJson("/api/v1/trial/forecasts/x", okSchema, fetcher)).rejects.toMatchObject({
+        code: "TRIAL_RESPONSE_CONTRACT_INVALID",
+        status: 502,
+      });
+    },
+  );
+
+  it("rejects an empty successful JSON body", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { headers: { "content-type": "application/json" } }));
+    await expect(getJson("/api/v1/trial/forecasts/x", okSchema, fetcher)).rejects.toMatchObject({
+      code: "TRIAL_RESPONSE_CONTRACT_INVALID",
+    });
+  });
+
   it("uses a safe HTTP fallback for invalid JSON", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response("not-json", { status: 502 }));
     const error = await getJson("/api/v1/trial/forecasts/x", okSchema, fetcher).catch(
@@ -178,7 +234,10 @@ describe("trialClient", () => {
   it("maps CSV filename from a server export and supports abort", async () => {
     const csv = vi.fn().mockResolvedValue(
       new Response("a,b\n", {
-        headers: { "content-disposition": 'attachment; filename="report.csv"' },
+        headers: {
+          "content-type": "text/csv",
+          "content-disposition": 'attachment; filename="report.csv"',
+        },
       }),
     );
     const result = await downloadCsv("/api/v1/trial/quality-reports/x/export.csv", csv);
@@ -188,6 +247,50 @@ describe("trialClient", () => {
     await expect(
       getJson("/api/v1/trial/forecasts/x", okSchema, abortFetcher, abort.signal),
     ).rejects.toBeInstanceOf(DOMException);
+  });
+
+  it.each([null, "application/json"])(
+    "rejects a CSV response with content type %s",
+    async (contentType) => {
+      const csv = vi.fn().mockResolvedValue(
+        new Response("a,b\n", {
+          headers: contentType ? { "content-type": contentType } : undefined,
+        }),
+      );
+      await expect(
+        downloadCsv("/api/v1/trial/quality-reports/x/export.csv", csv),
+      ).rejects.toMatchObject({
+        code: "TRIAL_RESPONSE_CONTRACT_INVALID",
+        status: 502,
+      });
+    },
+  );
+
+  it("uses the exact public error code catalog without alias fallback", () => {
+    const codes = [
+      "AUTHORITY_NOT_FOUND",
+      "FORECAST_BLOCKED",
+      "IMPORT_PARSE_FAILED",
+      "IMPORT_VALIDATION_FAILED",
+      "QUALITY_NOT_COMPUTABLE",
+      "PARTIAL_RESULT_REJECTED",
+      "EXACT_REPLAY",
+    ];
+    for (const code of codes) {
+      expect(trialErrorMessage(code)).not.toBe("服务暂时无法完成操作，请稍后重试。");
+    }
+    expect(trialErrorMessage("UNKNOWN_TEST_CODE", 404)).toBe("资源当前不可用。");
+  });
+
+  it("rejects semantically invalid dates and timestamps", () => {
+    for (const value of ["2026-02-29", "2026-13-01", "2026-04-31"]) {
+      expect(dateSchema.safeParse(value).success).toBe(false);
+    }
+    for (const value of ["2026-01-01T25:00:00Z", "2026-01-01T12:00:00+24:00"]) {
+      expect(timestampSchema.safeParse(value).success).toBe(false);
+    }
+    expect(dateSchema.safeParse("2026-02-28").success).toBe(true);
+    expect(timestampSchema.safeParse("2026-01-01T12:00:00+08:00").success).toBe(true);
   });
 
   it("validates all five import response shapes", async () => {
