@@ -152,6 +152,10 @@ class ActualHarvestWinnerRow(BaseModel):
     farm_business_key: str
     subfarm_business_key: str
     variety_business_key: str
+    season_id: int | None
+    farm_id: int | None
+    subfarm_id: int | None
+    variety_id: int | None
     mapping_registry_version: str
     mapping_policy_version: str
     season_resolver_version: str
