@@ -2105,6 +2105,7 @@ jobs:
         run: |
           python - <<'PY'
           import asyncio
+          from decimal import Decimal
           from datetime import UTC, datetime
           from sqlalchemy import select
           from backend.app.actual_harvest_import.validation_service import (
@@ -2113,6 +2114,9 @@ jobs:
           )
           from backend.app.db.session import AsyncSessionMaker
           from backend.app.models.harvest_state import HarvestStateRun
+          from backend.app.models.master_data import Farm, Subfarm
+          from backend.app.models.production_plan import FarmSeasonVarietyPlan
+          from backend.app.models.trial import CoreForecastMarketablePolicyEntryModel, CoreForecastMarketablePolicyModel
           from backend.tests.forecast_quality.test_persistence import (
               _repair_task9_fixture_for_quality,
               _seed_quality_task10_fixture,
@@ -2142,6 +2146,52 @@ jobs:
                       task9_run_id=910001,
                       task9_result_hash=task9.result_hash,
                       forecast_cutoff_at=forecast.forecast_cutoff_at,
+                  )
+                  policy = await session.scalar(
+                      select(CoreForecastMarketablePolicyModel).where(
+                          CoreForecastMarketablePolicyModel.public_policy_hash == "a" * 64
+                      )
+                  )
+                  if policy is None:
+                      raise SystemExit("Trial policy fixture did not provide the active policy")
+                  session.add_all(
+                      [
+                          Farm(id=102, name="s2-fixture-farm-west"),
+                          Subfarm(id=1201, farm_id=102, name="s2-fixture-west"),
+                      ]
+                  )
+                  await session.flush()
+                  session.add(
+                      FarmSeasonVarietyPlan(
+                          id=3202,
+                          farm_id=102,
+                          subfarm_id=1201,
+                          season_id=2026,
+                          variety_id=2102,
+                          planted_area_mu=Decimal("8.000000"),
+                          expected_yield_kg_per_mu=Decimal("25000.000000"),
+                          marketable_rate=Decimal("0.8000000000"),
+                          version=1,
+                          effective_from=datetime(2026, 1, 1).date(),
+                          available_at=datetime(2026, 1, 1).date(),
+                          source_type="frontend-e2e",
+                          source_name="frontend-e2e",
+                          source_version="frontend-e2e-v2",
+                          row_hash="c" * 64,
+                      )
+                  )
+                  await session.flush()
+                  session.add(
+                      CoreForecastMarketablePolicyEntryModel(
+                          policy_id=policy.id,
+                          farm_id=102,
+                          subfarm_id=1201,
+                          variety_id=2102,
+                          sorting_retention_rate=Decimal("1.000000"),
+                          postharvest_retention_rate=Decimal("1.000000"),
+                          source_version="frontend-e2e-v2",
+                          row_hash="d" * 64,
+                      )
                   )
                   await session.commit()
               entries = (
