@@ -1375,21 +1375,51 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             assert s2.rows
             assert all(row.authority_verification == "PERSISTED" for row in s2.rows)
 
+            label_snapshot_identity = quality.run_payload.get("label_snapshot_identity")
+            assert isinstance(label_snapshot_identity, str)
+            snapshot = await session.scalar(
+                select(ActualHarvestLabelSnapshotModel).where(
+                    ActualHarvestLabelSnapshotModel.snapshot_instance_identity_hash
+                    == label_snapshot_identity
+                )
+            )
+            assert snapshot is not None
+
+            evidence, persisted, import_batch = await _load_quality_parent_forecast(
+                session,
+                request=case.request,
+                actor=case.actor,
+            )
+            batch = await session.scalar(
+                select(ActualHarvestImportBatchModel).where(
+                    ActualHarvestImportBatchModel.import_id == case.request.actual_harvest_import_id
+                )
+            )
+            assert batch is not None
+            assert import_batch.id == batch.id
+            snapshot_result = await label_service._replay_existing_snapshot(
+                session,
+                existing_snapshot=snapshot,
+                request_identity_hash=snapshot.snapshot_request_identity_hash,
+            )
+            s2_request, candidates = await _build_quality_s2_candidates(
+                session,
+                request=case.request,
+                evidence=evidence,
+                persisted=persisted,
+                snapshot=snapshot_result,
+            )
             rows_with_winners = tuple(
-                row
-                for row in s2.rows
-                if row.persisted_authority_references is not None
-                and row.persisted_authority_references.label_winner_id is not None
+                candidate
+                for candidate in candidates
+                if candidate.persisted_authority_references is not None
+                and candidate.persisted_authority_references.label_winner_id is not None
             )
             assert rows_with_winners
             references = rows_with_winners[0].persisted_authority_references
             assert references is not None
             assert references.label_winner_id is not None
 
-            snapshot = await session.get(
-                ActualHarvestLabelSnapshotModel,
-                references.label_snapshot_id,
-            )
             winner = await session.get(
                 ActualHarvestLabelSnapshotWinnerModel,
                 references.label_winner_id,
@@ -1434,24 +1464,6 @@ async def test_i7_numeric_winner_identity_supports_quality_persisted_authority_p
             assert winner.subfarm_id == evidence_by_type["SUBFARM"].resolved_subfarm_id
             assert winner.variety_id == evidence_by_type["VARIETY"].resolved_variety_id
 
-            snapshot_result = await label_service._replay_existing_snapshot(
-                session,
-                existing_snapshot=snapshot,
-                request_identity_hash=snapshot.snapshot_request_identity_hash,
-            )
-            evidence, persisted, import_batch = await _load_quality_parent_forecast(
-                session,
-                request=case.request,
-                actor=case.actor,
-            )
-            assert import_batch.id == batch.id
-            s2_request, candidates = await _build_quality_s2_candidates(
-                session,
-                request=case.request,
-                evidence=evidence,
-                persisted=persisted,
-                snapshot=snapshot_result,
-            )
             resolved = await resolve_s2_persisted_authorities(
                 session,
                 request=s2_request,
