@@ -10,6 +10,7 @@ set -euo pipefail
 ledger_root="reports/warning-ledger"
 raw_root="${ledger_root}/raw"
 mkdir -p "${raw_root}"
+export WARNING_LEDGER_DIR="${raw_root}"
 
 cleanup() {
   set +e
