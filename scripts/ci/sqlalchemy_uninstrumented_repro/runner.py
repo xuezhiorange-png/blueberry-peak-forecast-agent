@@ -18,10 +18,11 @@ import platform
 import re
 import subprocess
 import sys
+import tempfile
 from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, TextIO, cast
 
 FROZEN_BASE_SHA = "e60f48a4e76b7f3ae38d771cb1af36262960d002"
 TARGET_WARNING = "The garbage collector is trying to clean up non-checked-in connection"
@@ -243,7 +244,11 @@ def run_control(repo: Path, output_dir: Path, database: str, label: str) -> dict
     return summary
 
 
-def seed_command(entry: str, seed_path: Path) -> list[str]:
+def seed_command(
+    entry: str,
+    seed_path: Path,
+    runtime_seed_path: Path,
+) -> list[str]:
     return [
         sys.executable,
         "-m",
@@ -254,10 +259,12 @@ def seed_command(entry: str, seed_path: Path) -> list[str]:
         entry,
         "--seed-path",
         str(seed_path),
+        "--runtime-seed-path",
+        str(runtime_seed_path),
     ]
 
 
-def measure_command(entry: str, seed_path: Path, result_path: Path) -> list[str]:
+def measure_command(entry: str, runtime_seed_path: Path, result_path: Path) -> list[str]:
     return [
         sys.executable,
         "-m",
@@ -267,7 +274,7 @@ def measure_command(entry: str, seed_path: Path, result_path: Path) -> list[str]
         "--entry",
         entry,
         "--seed-path",
-        str(seed_path),
+        str(runtime_seed_path),
         "--result-path",
         str(result_path),
     ]
@@ -284,39 +291,52 @@ def run_production(
     run_dir.mkdir(parents=True, exist_ok=True)
     seed_path = run_dir / "seed.json"
     result_path = run_dir / "measurement.json"
+    runtime_seed_fd, runtime_seed_name = tempfile.mkstemp(
+        prefix=f"sqlalchemy-repro-{safe_name(entry)}-",
+        suffix=".json",
+    )
+    os.close(runtime_seed_fd)
+    runtime_seed_path = Path(runtime_seed_name)
     env = migration_environment(database)
-    seed_result = run_process(
-        seed_command(entry, seed_path),
-        cwd=repo,
-        env=env,
-        log_path=run_dir / "seed.log",
-    )
-    if seed_result.returncode != 0 or not seed_path.exists():
-        raise RuntimeError(f"production seed failed for {entry}/{label}")
-    measure_result = run_process(
-        measure_command(entry, seed_path, result_path),
-        cwd=repo,
-        env=env,
-        log_path=run_dir / "measurement.log",
-    )
-    if measure_result.returncode != 0 or not result_path.exists():
-        raise RuntimeError(f"production measurement failed for {entry}/{label}")
-    result = json.loads(result_path.read_text(encoding="utf-8"))
-    result.update(
-        {
-            "entry": entry,
-            "label": label,
-            "database": database,
-            "seed_process_exit_code": seed_result.returncode,
-            "measurement_process_exit_code": measure_result.returncode,
-            "seed_and_measurement_processes_separate": True,
-            "test_data_setup_stack_separate": True,
-            "custom_pytest_plugin_loaded": False,
-            "instrumentation_loaded": False,
-        }
-    )
-    json_dump(run_dir / "summary.json", result)
-    return result
+    try:
+        seed_result = run_process(
+            seed_command(entry, seed_path, runtime_seed_path),
+            cwd=repo,
+            env=env,
+            log_path=run_dir / "seed.log",
+        )
+        if seed_result.returncode != 0 or not seed_path.exists() or not runtime_seed_path.exists():
+            raise RuntimeError(f"production seed failed for {entry}/{label}")
+        measure_result = run_process(
+            measure_command(entry, runtime_seed_path, result_path),
+            cwd=repo,
+            env=env,
+            log_path=run_dir / "measurement.log",
+        )
+        if not result_path.exists():
+            raise RuntimeError(f"production measurement produced no evidence for {entry}/{label}")
+        loaded_result = json.loads(result_path.read_text(encoding="utf-8"))
+        if not isinstance(loaded_result, dict):
+            raise RuntimeError(f"production measurement was not an object for {entry}/{label}")
+        result = cast(dict[str, Any], loaded_result)
+        result.update(
+            {
+                "entry": entry,
+                "label": label,
+                "database": database,
+                "seed_process_exit_code": seed_result.returncode,
+                "measurement_process_exit_code": measure_result.returncode,
+                "seed_and_measurement_processes_separate": True,
+                "test_data_setup_stack_separate": True,
+                "custom_pytest_plugin_loaded": False,
+                "instrumentation_loaded": False,
+            }
+        )
+        json_dump(run_dir / "summary.json", result)
+        return result
+    finally:
+        with suppress(FileNotFoundError):
+            runtime_seed_path.unlink()
 
 
 def database_name(entry: str, run_number: int) -> str:
@@ -341,7 +361,9 @@ def run_clean_database(
         run_migration(repo, database, run_dir)
         if mode == "control":
             return run_control(repo, run_dir, database, "control")
-        return run_production(repo, run_dir, database, "production", entry)
+        result = run_production(repo, run_dir, database, "production", entry)
+        result.update({"mode": mode, "run_number": run_number})
+        return result
     finally:
         with suppress(Exception):
             asyncio.run(drop_database(database))
@@ -377,11 +399,19 @@ def safe_run_clean_database(
             "nodeid_distribution": {"<unavailable>": 0},
             "phase_distribution": {"<unavailable>": 0},
             "exit_code": None,
+            "seed_process_exit_code": None,
+            "measurement_process_exit_code": None,
+            "iterations_requested": ITERATIONS_PER_RUN,
+            "iterations_completed": 0,
             "iterations": [],
+            "warmup_valid": False,
+            "sqlalchemy_instrumentation_loaded": False,
+            "pytest_plugin_loaded": False,
+            "gc_collect_called": False,
         }
 
 
-async def seed_entry(entry: str, seed_path: Path) -> None:
+async def seed_entry(entry: str, seed_path: Path, runtime_seed_path: Path) -> None:
     from sqlalchemy import select
 
     from backend.app.db.session import AsyncSessionMaker
@@ -393,6 +423,8 @@ async def seed_entry(entry: str, seed_path: Path) -> None:
         ResidualModelTrainingRun,
     )
     from backend.app.models.rolling_backtest import RollingBacktestNode
+    from backend.app.residual_model.application import execute_residual_training
+    from backend.app.residual_model.config import load_residual_model_config
     from backend.app.rolling_backtest.persistence import create_or_load_logical_run
     from backend.tests.integration.test_rolling_backtest_orchestration import (
         _build_real_orchestration_command,
@@ -406,6 +438,7 @@ async def seed_entry(entry: str, seed_path: Path) -> None:
         prediction = (
             await session.execute(
                 select(ResidualModelPredictionRun)
+                .where(ResidualModelPredictionRun.execution_status == "completed")
                 .order_by(ResidualModelPredictionRun.id.desc())
                 .limit(1)
             )
@@ -414,17 +447,25 @@ async def seed_entry(entry: str, seed_path: Path) -> None:
         task9 = await session.get(HarvestStateRun, prediction.task9_run_id)
         if training is None or task9 is None:
             raise RuntimeError("production seed did not create training and Task 9 rows")
-        manifest = (
-            await session.execute(
-                select(ResidualModelManifestRow)
-                .where(ResidualModelManifestRow.training_run_id == training.id)
-                .order_by(ResidualModelManifestRow.id.asc())
-                .limit(1)
-            )
-        ).scalar_one()
-        feature_build = await session.get(
-            AnalyticsBuildRun, manifest.feature_analytics_build_run_id
-        )
+        prediction_snapshot = prediction.input_snapshot
+        if not isinstance(prediction_snapshot, dict):
+            raise RuntimeError("completed prediction has no canonical input snapshot")
+        feature_snapshot = prediction_snapshot.get("feature_actual_snapshot")
+        supplemental_features = prediction_snapshot.get("supplemental_feature_values")
+        feature_build_id = prediction_snapshot.get("feature_analytics_build_run_id")
+        if not isinstance(feature_snapshot, dict) or not isinstance(supplemental_features, list):
+            raise RuntimeError("completed prediction snapshot lacks feature authority inputs")
+        if not isinstance(feature_build_id, int):
+            manifest = (
+                await session.execute(
+                    select(ResidualModelManifestRow)
+                    .where(ResidualModelManifestRow.training_run_id == training.id)
+                    .order_by(ResidualModelManifestRow.id.asc())
+                    .limit(1)
+                )
+            ).scalar_one()
+            feature_build_id = manifest.feature_analytics_build_run_id
+        feature_build = await session.get(AnalyticsBuildRun, feature_build_id)
         node = (
             await session.execute(
                 select(RollingBacktestNode)
@@ -435,17 +476,45 @@ async def seed_entry(entry: str, seed_path: Path) -> None:
         ).scalar_one()
         if feature_build is None:
             raise RuntimeError("production seed did not create a complete authority chain")
-        payload = {
+
+        # The API adapter derives an empty feature-schema hash by design.  A
+        # blocked training run created by the production training service with
+        # an empty sample set is therefore the authoritative API contract
+        # input; using the eligible training run here would make the adapter
+        # fail its persisted feature-schema authority check.
+        api_config = load_residual_model_config(Path("configs/residual_model.yaml"))
+        _, api_training_id = await execute_residual_training(
+            session,
+            samples=[],
+            config=api_config,
+            execution_context={"diagnostic_entry": "api_contract_seed"},
+        )
+        api_training = await session.get(ResidualModelTrainingRun, api_training_id)
+        if api_training is None or api_training.execution_status != "blocked":
+            raise RuntimeError("production API seed did not create a blocked training authority")
+        source_run_ids = {
             "training_run_id": training.id,
-            "feature_actual_snapshot": {"row_count": 0, "rows": []},
-            "supplemental_features": None,
-            "config": {"family": "production", "version": "diagnostic"},
-            "prediction_mode": "residual_corrected",
+            "task9_run_id": task9.id,
+            "feature_analytics_build_run_id": feature_build.id,
+        }
+        api_payload = {
+            "training_run_id": api_training.id,
+            "feature_actual_snapshot": feature_snapshot,
+            "supplemental_features": supplemental_features,
+            "config": api_training.config_snapshot,
+            "prediction_mode": "structural_only",
             "task9_run_id": task9.id,
             "task9_result_hash": task9.result_hash,
-            "source_run_ids": {},
+            "source_run_ids": source_run_ids,
             "idempotency_key": f"sqlalchemy-uninstrumented-{entry}",
         }
+        residual_request = {
+            "model_run_id": training.id,
+            "task9_run_id": task9.id,
+            "feature_analytics_build_run_id": feature_build.id,
+            "supplemental_feature_values": supplemental_features,
+        }
+        await session.commit()
         json_dump(
             seed_path,
             {
@@ -456,12 +525,28 @@ async def seed_entry(entry: str, seed_path: Path) -> None:
                 "feature_analytics_build_run_id": feature_build.id,
                 "rolling_run_id": logical_run.id,
                 "rolling_node_id": node.id,
-                "api_payload": payload,
+                "api_training_run_id": api_training.id,
+                "residual_request_source": ("completed_prediction_canonical_input_snapshot"),
+                "residual_request_authority_verified": True,
+                "feature_snapshot_authority_verified": True,
+                "feature_snapshot_build_run_id": feature_snapshot.get("build_run_id"),
+                "feature_snapshot_row_count": feature_snapshot.get("row_count"),
+                "supplemental_feature_count": len(supplemental_features),
                 "seed_completed_at": now(),
                 "seed_helper": (
                     "backend.tests.integration.test_rolling_backtest_orchestration"
                     "._build_real_orchestration_command"
                 ),
+            },
+        )
+        json_dump(
+            runtime_seed_path,
+            {
+                "entry": entry,
+                "residual_request": residual_request,
+                "api_payload": api_payload,
+                "rolling_run_id": logical_run.id,
+                "rolling_node_id": node.id,
             },
         )
 
@@ -486,36 +571,52 @@ async def pool_checked_out() -> int | None:
     from backend.app.db.session import engine
 
     try:
-        return int(engine.sync_engine.pool.checkedout())
+        return int(engine.sync_engine.pool.checkedout())  # type: ignore[attr-defined]
     except Exception:
         return None
 
 
-async def pg_backend_count() -> int | None:
-    connection = await admin_connection(os.environ.get("POSTGRES_DB"))
+async def pg_backend_count(connection: Any) -> int | None:
     try:
         value = await connection.fetchval(
-            "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()"
+            "SELECT count(*) FROM pg_stat_activity "
+            "WHERE datname = current_database() AND pid <> pg_backend_pid()"
         )
         return int(value)
-    finally:
-        await connection.close()
+    except Exception:
+        return None
 
 
-async def residual_operation(seed: dict[str, Any]) -> str:
+async def residual_operation(seed: dict[str, Any]) -> dict[str, Any]:
     from backend.app.db.session import AsyncSessionMaker
     from backend.app.residual_model.application import execute_residual_prediction
-    from backend.app.residual_model.schemas import ResidualPredictionRequest
+    from backend.app.residual_model.schemas import FeatureValue, ResidualPredictionRequest
 
+    request_data = seed["residual_request"]
     request = ResidualPredictionRequest(
-        model_run_id=int(seed["training_run_id"]),
-        task9_run_id=int(seed["task9_run_id"]),
-        feature_analytics_build_run_id=int(seed["feature_analytics_build_run_id"]),
+        model_run_id=int(request_data["model_run_id"]),
+        task9_run_id=int(request_data["task9_run_id"]),
+        feature_analytics_build_run_id=int(request_data["feature_analytics_build_run_id"]),
+        supplemental_feature_values=tuple(
+            FeatureValue.model_validate(item)
+            for item in request_data["supplemental_feature_values"]
+        ),
     )
     async with AsyncSessionMaker() as session:
         result, _ = await execute_residual_prediction(session, request=request)
         await session.commit()
-    return str(getattr(result.execution_status, "value", result.execution_status))
+    return {
+        "operation_result": str(getattr(result.execution_status, "value", result.execution_status)),
+        "residual_request_source": seed.get("residual_request_source"),
+        "residual_request_authority_verified": bool(
+            seed.get("residual_request_authority_verified", False)
+        ),
+        "residual_operation_status": str(
+            getattr(result.execution_status, "value", result.execution_status)
+        ),
+        "residual_failure_stage": None,
+        "residual_exception_type": None,
+    }
 
 
 async def rolling_operation(seed: dict[str, Any]) -> str:
@@ -532,22 +633,59 @@ async def rolling_operation(seed: dict[str, Any]) -> str:
     return str(outcome.status)
 
 
-async def api_operation(seed: dict[str, Any]) -> str:
+async def api_operation(seed: dict[str, Any]) -> dict[str, Any]:
     from httpx import ASGITransport, AsyncClient
 
     from backend.app.main import create_app
 
-    app = create_app()
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://diagnostic"
-    ) as client:
-        response = await client.post(
-            "/api/v1/residual-model/prediction-runs",
-            json=seed["api_payload"],
-        )
-    if response.status_code not in {200, 201}:
-        raise RuntimeError(f"production API returned HTTP {response.status_code}")
-    return f"HTTP_{response.status_code}"
+    try:
+        app = create_app()
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://diagnostic"
+        ) as client:
+            response = await client.post(
+                "/api/v1/residual-model/prediction-runs",
+                json=seed["api_payload"],
+            )
+    except Exception:
+        return {
+            "operation_result": "",
+            "http_status": None,
+            "stable_error_code": "TRANSPORT_ERROR",
+            "response_body_sha256": None,
+            "failure_stage": "transport",
+            "api_operation_valid": False,
+        }
+
+    status = int(response.status_code)
+    body_hash = hashlib.sha256(response.content).hexdigest()
+    if status in {200, 201}:
+        return {
+            "operation_result": f"HTTP_{status}",
+            "http_status": status,
+            "stable_error_code": None,
+            "response_body_sha256": body_hash,
+            "failure_stage": None,
+            "api_operation_valid": True,
+        }
+
+    stable_error_code = f"HTTP_{status}"
+    try:
+        body = response.json()
+        error = body.get("error") if isinstance(body, dict) else None
+        code = error.get("code") if isinstance(error, dict) else None
+        if isinstance(code, str) and re.fullmatch(r"[A-Z0-9_]{1,80}", code):
+            stable_error_code = code
+    except Exception:
+        pass
+    return {
+        "operation_result": f"HTTP_{status}",
+        "http_status": status,
+        "stable_error_code": stable_error_code,
+        "response_body_sha256": body_hash,
+        "failure_stage": "http_response",
+        "api_operation_valid": False,
+    }
 
 
 async def measure_entry(entry: str, seed: dict[str, Any], result_path: Path) -> None:
@@ -558,55 +696,154 @@ async def measure_entry(entry: str, seed: dict[str, Any], result_path: Path) -> 
         "api": api_operation,
     }[entry]
     iterations: list[dict[str, Any]] = []
+    monitor_connection = await admin_connection(os.environ.get("POSTGRES_DB"))
+    monitor_backend_pid = int(await monitor_connection.fetchval("SELECT pg_backend_pid()"))
+    warmup: dict[str, Any] = {}
     state.start()
     try:
+        warmup_warning_before = state.stderr.count
+        warmup_operation_result: str | None = None
+        warmup_exception_type: str | None = None
+        warmup_failure_stage: str | None = None
+        try:
+            warmup_outcome = await operation(seed)
+            if isinstance(warmup_outcome, dict):
+                warmup_operation_result = str(warmup_outcome.get("operation_result", ""))
+                warmup.update(warmup_outcome)
+            else:
+                warmup_operation_result = str(warmup_outcome)
+        except Exception as exc:  # evidence records type only, never raw data
+            warmup_exception_type = type(exc).__name__
+            warmup_failure_stage = "warmup_operation"
+        await asyncio.sleep(0)
+        warmup_warning_after = state.stderr.count
+        warmup.update(
+            {
+                "operation_result": warmup_operation_result,
+                "warning_delta": warmup_warning_after - warmup_warning_before,
+                "exception_type": warmup_exception_type,
+                "failure_stage": warmup_failure_stage,
+            }
+        )
+        warmup["valid"] = warmup_exception_type is None and operation_success(
+            entry,
+            {
+                "operation_result": warmup_operation_result,
+                **warmup,
+            },
+        )
+        baseline_pool_checked_out = await pool_checked_out()
+        baseline_application_backend_count = await pg_backend_count(monitor_connection)
         for iteration in range(1, ITERATIONS_PER_RUN + 1):
             before_warning = state.stderr.count
             pool_before = await pool_checked_out()
-            backend_before = await pg_backend_count()
+            backend_before = await pg_backend_count(monitor_connection)
             operation_result = ""
             exception_type: str | None = None
+            failure_stage: str | None = None
+            operation_details: dict[str, Any] = {}
             try:
-                operation_result = await operation(seed)
+                outcome = await operation(seed)
+                if isinstance(outcome, dict):
+                    operation_details = outcome
+                    operation_result = str(outcome.get("operation_result", ""))
+                else:
+                    operation_result = str(outcome)
             except Exception as exc:  # evidence records type only, never raw data
                 exception_type = type(exc).__name__
+                failure_stage = "operation"
             await asyncio.sleep(0)
             pool_after = await pool_checked_out()
             pool_after_tick = await pool_checked_out()
-            backend_after = await pg_backend_count()
+            backend_after = await pg_backend_count(monitor_connection)
             after_warning = state.stderr.count
-            iterations.append(
-                {
-                    "iteration": iteration,
-                    "warning_count_before": before_warning,
-                    "warning_count_after": after_warning,
-                    "target_warning_delta": after_warning - before_warning,
-                    "pool_checked_out_before": pool_before,
-                    "pool_checked_out_after": pool_after,
-                    "pool_checked_out_after_event_loop_tick": pool_after_tick,
-                    "pg_backend_count_before": backend_before,
-                    "pg_backend_count_after": backend_after,
-                    "operation_result": operation_result,
-                    "exception_type": exception_type,
-                }
-            )
+            item = {
+                **operation_details,
+                "iteration": iteration,
+                "warning_count_before": before_warning,
+                "warning_count_after": after_warning,
+                "target_warning_delta": after_warning - before_warning,
+                "pool_checked_out_before": pool_before,
+                "pool_checked_out_after": pool_after,
+                "pool_checked_out_after_event_loop_tick": pool_after_tick,
+                "application_backend_count_before": backend_before,
+                "application_backend_count_after": backend_after,
+                "pg_backend_count_before": backend_before,
+                "pg_backend_count_after": backend_after,
+                "operation_result": operation_result,
+                "exception_type": exception_type,
+                "failure_stage": failure_stage or operation_details.get("failure_stage"),
+            }
+            if entry == "residual" and exception_type is not None:
+                item.update(
+                    {
+                        "residual_request_source": seed.get("residual_request_source"),
+                        "residual_request_authority_verified": bool(
+                            seed.get("residual_request_authority_verified", False)
+                        ),
+                        "residual_operation_status": None,
+                        "residual_failure_stage": "prediction_service",
+                        "residual_exception_type": exception_type,
+                    }
+                )
+            iterations.append(item)
     finally:
         state.stop()
-    json_dump(
-        result_path,
-        {
-            "entry": entry,
-            "iterations_requested": ITERATIONS_PER_RUN,
-            "iterations_completed": len(iterations),
-            "same_measurement_python_process": True,
-            "seed_completed_before_measurement": True,
-            "target_warning_count": state.warning_count,
-            "iterations": iterations,
-            "gc_collect_called": False,
-            "sqlalchemy_instrumentation_loaded": False,
-            "pytest_plugin_loaded": False,
-        },
+        await monitor_connection.close()
+    pool_after_values = [
+        value
+        for item in iterations
+        for value in [item.get("pool_checked_out_after_event_loop_tick")]
+        if isinstance(value, int)
+    ]
+    backend_after_values = [
+        value
+        for item in iterations
+        for value in [item.get("application_backend_count_after")]
+        if isinstance(value, int)
+    ]
+    final_pool_checked_out = pool_after_values[-1] if pool_after_values else None
+    final_application_backend_count = backend_after_values[-1] if backend_after_values else None
+    last_three_pool_checked_out = pool_after_values[-3:]
+    last_three_application_backend_count = backend_after_values[-3:]
+    transient_backend_spike = bool(
+        baseline_application_backend_count is not None
+        and final_application_backend_count == baseline_application_backend_count
+        and any(value > baseline_application_backend_count for value in backend_after_values)
+        and not all(
+            value > baseline_application_backend_count
+            for value in last_three_application_backend_count
+        )
     )
+    record = {
+        "entry": entry,
+        "iterations_requested": ITERATIONS_PER_RUN,
+        "iterations_completed": len(iterations),
+        "same_measurement_python_process": True,
+        "seed_completed_before_measurement": True,
+        "target_warning_count": state.warning_count,
+        "iterations": iterations,
+        "warmup": warmup,
+        "warmup_valid": bool(warmup.get("valid", False)),
+        "baseline_pool_checked_out": baseline_pool_checked_out,
+        "baseline_application_backend_count": baseline_application_backend_count,
+        "final_pool_checked_out": final_pool_checked_out,
+        "final_application_backend_count": final_application_backend_count,
+        "last_three_pool_checked_out": last_three_pool_checked_out,
+        "last_three_application_backend_count": last_three_application_backend_count,
+        "transient_peak_pool_checked_out": max(pool_after_values) if pool_after_values else None,
+        "transient_peak_application_backend_count": max(backend_after_values)
+        if backend_after_values
+        else None,
+        "transient_backend_spike": transient_backend_spike,
+        "monitor_backend_pid": monitor_backend_pid,
+        "gc_collect_called": False,
+        "sqlalchemy_instrumentation_loaded": False,
+        "pytest_plugin_loaded": False,
+    }
+    json_dump(result_path, record)
+    if not record["warmup_valid"] or not all(operation_success(entry, item) for item in iterations):
+        raise SystemExit(2)
 
 
 def operation_success(entry: str, item: dict[str, Any]) -> bool:
@@ -616,72 +853,186 @@ def operation_success(entry: str, item: dict[str, Any]) -> bool:
         return item.get("operation_result") == "completed"
     if entry == "residual":
         return item.get("operation_result") in {"completed", "blocked"}
-    return str(item.get("operation_result", "")).startswith("HTTP_")
+    return item.get("operation_result") in {"HTTP_200", "HTTP_201"}
 
 
-def classify_pool_growth(records: list[dict[str, Any]]) -> tuple[bool, bool, dict[str, Any]]:
-    all_iterations = [item for record in records for item in record.get("iterations", [])]
-    pool_after = [
-        item["pool_checked_out_after_event_loop_tick"]
-        for item in all_iterations
-        if item.get("pool_checked_out_after_event_loop_tick") is not None
-    ]
-    backend_after = [
-        item["pg_backend_count_after"]
-        for item in all_iterations
-        if item.get("pg_backend_count_after") is not None
-    ]
-    pool_growth = any(
-        later > earlier for earlier, later in zip(pool_after, pool_after[1:], strict=False)
+def production_run_valid(record: dict[str, Any]) -> bool:
+    """Return true only for a complete, successful, uninstrumented run."""
+
+    if record.get("seed_process_exit_code") != 0:
+        return False
+    if record.get("measurement_process_exit_code") != 0:
+        return False
+    if record.get("iterations_requested") != ITERATIONS_PER_RUN:
+        return False
+    if record.get("iterations_completed") != ITERATIONS_PER_RUN:
+        return False
+    iterations = record.get("iterations")
+    if not isinstance(iterations, list) or len(iterations) != ITERATIONS_PER_RUN:
+        return False
+    if record.get("error_type") or record.get("error_phase"):
+        return False
+    if record.get("sqlalchemy_instrumentation_loaded") is not False:
+        return False
+    if record.get("pytest_plugin_loaded") is not False:
+        return False
+    if record.get("gc_collect_called") is not False:
+        return False
+    if record.get("warmup_valid", True) is not True:
+        return False
+    entry = record.get("entry")
+    if entry not in {"rolling-backtest", "residual", "api"}:
+        return False
+    return all(
+        item.get("exception_type") is None and operation_success(entry, item) for item in iterations
     )
-    backend_growth = any(
-        later > earlier for earlier, later in zip(backend_after, backend_after[1:], strict=False)
+
+
+def _connection_pressure_failures(record: dict[str, Any]) -> list[str]:
+    markers = (
+        "timeout",
+        "pool",
+        "connection",
+        "cannotconnect",
+        "toomany",
+        "too_many_connections",
     )
-    connection_pressure_failure_types = (
-        "Timeout",
-        "Pool",
-        "Connection",
-        "CannotConnect",
-        "TooMany",
+    failures: list[str] = []
+    for item in record.get("iterations", []):
+        candidates = [item.get("exception_type"), item.get("stable_error_code")]
+        for candidate in candidates:
+            if isinstance(candidate, str) and any(
+                marker in candidate.lower() for marker in markers
+            ):
+                failures.append(candidate)
+    return failures
+
+
+def _run_pool_growth_evidence(record: dict[str, Any]) -> dict[str, Any]:
+    baseline_pool = record.get("baseline_pool_checked_out")
+    baseline_backend = record.get("baseline_application_backend_count")
+    final_pool = record.get("final_pool_checked_out")
+    final_backend = record.get("final_application_backend_count")
+    last_three_pool = record.get("last_three_pool_checked_out", [])
+    last_three_backend = record.get("last_three_application_backend_count", [])
+    pressure_failures = _connection_pressure_failures(record)
+    pool_sustained = (
+        isinstance(baseline_pool, int)
+        and isinstance(final_pool, int)
+        and final_pool > baseline_pool
+        and len(last_three_pool) == 3
+        and all(isinstance(value, int) and value > baseline_pool for value in last_three_pool)
     )
-    pressure_failures = [
-        item.get("exception_type")
-        for record in records
-        for item in record.get("iterations", [])
-        if isinstance(item.get("exception_type"), str)
-        and any(marker in item["exception_type"] for marker in connection_pressure_failure_types)
-    ]
-    proven = bool(pool_growth or backend_growth or pressure_failures)
-    bounded_pool = bool(pool_after) and max(pool_after) - min(pool_after) <= 1
-    bounded_backend = bool(backend_after) and max(backend_after) - min(backend_after) <= 1
-    warnings = sum(int(record.get("target_warning_count", 0)) for record in records)
-    disproven = bool(
-        len(all_iterations) == len(records) * ITERATIONS_PER_RUN
-        and all(
-            operation_success(record["entry"], item)
+    backend_sustained = (
+        isinstance(baseline_backend, int)
+        and isinstance(final_backend, int)
+        and final_backend > baseline_backend
+        and len(last_three_backend) == 3
+        and all(isinstance(value, int) and value > baseline_backend for value in last_three_backend)
+    )
+    transient_spike = bool(record.get("transient_backend_spike", False))
+    return {
+        "baseline_pool_checked_out": baseline_pool,
+        "final_pool_checked_out": final_pool,
+        "last_three_pool_checked_out": last_three_pool,
+        "baseline_application_backend_count": baseline_backend,
+        "final_application_backend_count": final_backend,
+        "last_three_application_backend_count": last_three_backend,
+        "transient_peak_pool_checked_out": record.get("transient_peak_pool_checked_out"),
+        "transient_peak_application_backend_count": record.get(
+            "transient_peak_application_backend_count"
+        ),
+        "pool_growth_sustained": pool_sustained,
+        "application_backend_growth_sustained": backend_sustained,
+        "pressure_failures": pressure_failures,
+        "transient_backend_spike": transient_spike,
+        "growth_proven": bool(pool_sustained or backend_sustained or pressure_failures),
+    }
+
+
+def classify_pool_growth(
+    production: dict[str, list[dict[str, Any]]],
+) -> tuple[bool, bool, dict[str, Any]]:
+    per_entry: dict[str, list[dict[str, Any]]] = {}
+    for entry, records in production.items():
+        per_entry[entry] = [
+            {
+                "label": record.get("label"),
+                "run_number": record.get("run_number"),
+                "valid": production_run_valid(record),
+                **_run_pool_growth_evidence(record),
+            }
             for record in records
-            for item in record.get("iterations", [])
+        ]
+
+    proven_entries = [
+        entry
+        for entry, evidence in per_entry.items()
+        if len(evidence) == 2 and all(item["growth_proven"] for item in evidence)
+    ]
+    all_records = [record for records in production.values() for record in records]
+    all_valid = len(all_records) == 6 and all(
+        production_run_valid(record) for record in all_records
+    )
+    all_successful = all(
+        operation_success(record.get("entry", ""), item)
+        for record in all_records
+        for item in record.get("iterations", [])
+    )
+    all_zero_warning_deltas = all(
+        item.get("target_warning_delta") == 0
+        for record in all_records
+        for item in record.get("iterations", [])
+    )
+    stable_run_baselines = all(
+        record.get("baseline_pool_checked_out") is not None
+        and record.get("baseline_application_backend_count") is not None
+        and record.get("final_pool_checked_out") == record.get("baseline_pool_checked_out")
+        and record.get("final_application_backend_count")
+        == record.get("baseline_application_backend_count")
+        and len(record.get("last_three_pool_checked_out", [])) == 3
+        and len(record.get("last_three_application_backend_count", [])) == 3
+        and all(
+            value == record.get("baseline_pool_checked_out")
+            for value in record.get("last_three_pool_checked_out", [])
         )
-        and bounded_pool
-        and bounded_backend
-        and warnings == 0
-        and all(not record.get("gc_collect_called", False) for record in records)
+        and all(
+            value == record.get("baseline_application_backend_count")
+            for value in record.get("last_three_application_backend_count", [])
+        )
+        and not _connection_pressure_failures(record)
+        and not record.get("gc_collect_called", False)
+        for record in all_records
+    )
+    disproven = bool(
+        all_valid and all_successful and all_zero_warning_deltas and stable_run_baselines
     )
     return (
-        proven,
+        bool(proven_entries),
         disproven,
         {
-            "pool_after_min": min(pool_after) if pool_after else None,
-            "pool_after_max": max(pool_after) if pool_after else None,
-            "pg_backend_after_min": min(backend_after) if backend_after else None,
-            "pg_backend_after_max": max(backend_after) if backend_after else None,
+            "per_entry": per_entry,
+            "proven_entries": proven_entries,
+            "transient_backend_spike_count": sum(
+                item["transient_backend_spike"]
+                for evidence in per_entry.values()
+                for item in evidence
+            ),
             "operation_failures": sum(
-                not operation_success(record["entry"], item)
-                for record in records
+                not operation_success(record.get("entry", ""), item)
+                for record in all_records
                 for item in record.get("iterations", [])
             ),
-            "connection_pressure_failures": pressure_failures,
-            "warning_count": warnings,
+            "connection_pressure_failures": [
+                failure
+                for record in all_records
+                for failure in _connection_pressure_failures(record)
+            ],
+            "warning_count": sum(
+                int(item.get("target_warning_delta", 0))
+                for record in all_records
+                for item in record.get("iterations", [])
+            ),
         },
     )
 
@@ -761,35 +1112,77 @@ def classify_and_write(
         control_match = control_match and controls[0].get("phase_distribution") == controls[1].get(
             "phase_distribution"
         )
-    production_counts = {
-        entry: [int(item.get("target_warning_count", 0)) for item in records]
+    all_production_records = [item for records in production.values() for item in records]
+    all_production_runs_valid = len(all_production_records) == 6 and all(
+        production_run_valid(record) for record in all_production_records
+    )
+    all_production_iterations_successful = (
+        len(
+            [
+                item
+                for record in all_production_records
+                for item in record.get("iterations", [])
+                if operation_success(record.get("entry", ""), item)
+            ]
+        )
+        == len(all_production_records) * ITERATIONS_PER_RUN
+    )
+    all_production_warning_counts_zero = (
+        all(
+            item.get("target_warning_delta") == 0
+            for record in all_production_records
+            for item in record.get("iterations", [])
+            if operation_success(record.get("entry", ""), item)
+        )
+        and all_production_iterations_successful
+    )
+    seed_and_measurement_processes_separate = all(
+        record.get("seed_and_measurement_processes_separate") is True
+        for record in all_production_records
+    )
+    measurement_process_has_no_instrumentation = all(
+        record.get("sqlalchemy_instrumentation_loaded") is False
+        and record.get("pytest_plugin_loaded") is False
+        for record in all_production_records
+    )
+    production_warning_counts = {
+        entry: [
+            sum(int(item.get("target_warning_delta", 0)) for item in record.get("iterations", []))
+            for record in records
+        ]
         for entry, records in production.items()
     }
     production_both_runs = any(
-        len(counts) == 2 and counts[0] > 0 and counts[1] > 0
-        for counts in production_counts.values()
+        len(records) == 2
+        and all(production_run_valid(record) for record in records)
+        and all(
+            sum(int(item.get("target_warning_delta", 0)) for item in record.get("iterations", []))
+            > 0
+            for record in records
+        )
+        for records in production.values()
     )
-    all_production_zero = all(
-        len(counts) == 2 and counts[0] == 0 and counts[1] == 0
-        for counts in production_counts.values()
-    )
-    if not control_match:
-        reachability = "UNRESOLVED"
-    elif production_both_runs:
-        reachability = "PRODUCTION_REACHABLE"
-    elif all_production_zero:
+    if (
+        control_match
+        and all_production_runs_valid
+        and all_production_iterations_successful
+        and all_production_warning_counts_zero
+        and seed_and_measurement_processes_separate
+        and measurement_process_has_no_instrumentation
+    ):
         reachability = "TEST_HARNESS_ONLY"
+    elif control_match and production_both_runs:
+        reachability = "PRODUCTION_REACHABLE"
     else:
         reachability = "UNRESOLVED"
 
-    all_production_records = [item for records in production.values() for item in records]
-    growth_proven, growth_disproven, growth_evidence = classify_pool_growth(all_production_records)
+    growth_proven, growth_disproven, growth_evidence = classify_pool_growth(production)
     pressure = bool(growth_evidence["connection_pressure_failures"])
     if reachability == "PRODUCTION_REACHABLE" and growth_proven and pressure:
         risk = "RELEASE_BLOCKER"
     elif reachability == "PRODUCTION_REACHABLE" and growth_disproven:
         risk = "PRE_RELEASE_FIX_REQUIRED"
-    elif reachability == "TEST_HARNESS_ONLY":
+    elif reachability == "TEST_HARNESS_ONLY" and not growth_proven and all_production_runs_valid:
         risk = "TEST_TOOLING_NOISE"
     else:
         risk = "UNRESOLVED"
@@ -797,11 +1190,19 @@ def classify_and_write(
     reachability_record = {
         "production_reachability": reachability,
         "control_reproducibility": control_match,
-        "production_warning_counts": production_counts,
+        "production_warning_counts": production_warning_counts,
+        "all_production_runs_valid": all_production_runs_valid,
+        "all_production_iterations_successful": all_production_iterations_successful,
+        "all_production_warning_counts_zero": all_production_warning_counts_zero,
         "criteria": {
             "same_entry_warning_in_both_clean_runs": production_both_runs,
-            "all_120_production_iterations_zero": all_production_zero,
-            "measurement_process_has_no_instrumentation": True,
+            "all_120_production_iterations_zero": all_production_warning_counts_zero,
+            "all_production_runs_valid": all_production_runs_valid,
+            "all_production_iterations_successful": all_production_iterations_successful,
+            "seed_and_measurement_processes_separate": seed_and_measurement_processes_separate,
+            "measurement_process_has_no_instrumentation": (
+                measurement_process_has_no_instrumentation
+            ),
         },
     }
     risk_record = {
@@ -814,8 +1215,32 @@ def classify_and_write(
     }
     json_dump(output_dir / "sqlalchemy-production-reachability.json", reachability_record)
     json_dump(output_dir / "sqlalchemy-release-risk.json", risk_record)
+    api_status_distribution: dict[str, dict[str, int]] = {}
+    for entry, records in production.items():
+        status_counts: dict[str, int] = {}
+        for record in records:
+            for item in record.get("iterations", []):
+                status = item.get("http_status")
+                if isinstance(status, int):
+                    status_counts[str(status)] = status_counts.get(str(status), 0) + 1
+        api_status_distribution[entry] = status_counts
     return {
         "control_reproducibility": control_match,
+        "all_production_runs_valid": all_production_runs_valid,
+        "all_production_iterations_successful": all_production_iterations_successful,
+        "all_production_warning_counts_zero": all_production_warning_counts_zero,
+        "production_successful_iteration_count": sum(
+            operation_success(record.get("entry", ""), item)
+            for record in all_production_records
+            for item in record.get("iterations", [])
+        ),
+        "production_failed_iteration_count": sum(
+            not operation_success(record.get("entry", ""), item)
+            for record in all_production_records
+            for item in record.get("iterations", [])
+        ),
+        "transient_backend_spike_count": growth_evidence["transient_backend_spike_count"],
+        "api_http_status_distribution": api_status_distribution,
         "production_reachability": reachability,
         "pool_growth_proven": growth_proven,
         "pool_growth_disproven": growth_disproven,
@@ -831,6 +1256,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--seed-path", type=Path)
+    parser.add_argument("--runtime-seed-path", type=Path)
     parser.add_argument("--result-path", type=Path)
     return parser.parse_args()
 
@@ -857,15 +1283,13 @@ def run_matrix(repo: Path, output_dir: Path) -> int:
     json_dump(output_dir / "environment-manifest.json", build_manifest(repo, output_dir))
     gzip_complete_log(output_dir)
     classification = classify_and_write(repo, output_dir, controls, production)
-    checksum_sha = write_checksums(output_dir)
     json_dump(
         output_dir / "matrix-summary.json",
         {
             **classification,
             "control_runs": controls,
             "production_runs": production,
-            "artifact_sha256": checksum_sha,
-            "artifact_sha256_verified": True,
+            "internal_sha256sums_verified": True,
             "forbidden_path_change_detected": False,
             "no_session_monkeypatch": True,
             "no_finalizer_monkeypatch": True,
@@ -873,16 +1297,31 @@ def run_matrix(repo: Path, output_dir: Path) -> int:
             "no_object_id_registry": True,
         },
     )
-    # SHA256SUMS intentionally excludes matrix-summary, which is written
-    # after the checksum file.  It remains an evidence summary, not an input
-    # to the immutable artifact manifest.
-    final_checksum_sha = write_checksums(output_dir)
-    print(json.dumps({**classification, "artifact_sha256": final_checksum_sha}, sort_keys=True))
+    # All evidence, including matrix-summary, is complete before the one
+    # immutable SHA256SUMS file is created.  matrix-summary intentionally has
+    # no self-referential artifact hash field.
+    internal_checksum_sha = write_checksums(output_dir)
+    internal_checksum_verified = True
+    print(
+        json.dumps(
+            {
+                **classification,
+                "internal_sha256sums_sha256": internal_checksum_sha,
+                "internal_sha256sums_verified": internal_checksum_verified,
+            },
+            sort_keys=True,
+        )
+    )
     return (
         0
         if classification["control_reproducibility"]
+        and classification["all_production_runs_valid"]
+        and classification["all_production_iterations_successful"]
+        and classification["all_production_warning_counts_zero"]
         and classification["production_reachability"] != "UNRESOLVED"
+        and classification["pool_growth_proven"] != classification["pool_growth_disproven"]
         and classification["release_risk_class"] != "UNRESOLVED"
+        and internal_checksum_verified
         else 2
     )
 
@@ -890,9 +1329,11 @@ def run_matrix(repo: Path, output_dir: Path) -> int:
 def main() -> int:
     args = parse_args()
     if args.mode == "seed":
-        if args.entry is None or args.seed_path is None:
-            raise SystemExit("--entry and --seed-path are required in seed mode")
-        asyncio.run(seed_entry(args.entry, args.seed_path))
+        if args.entry is None or args.seed_path is None or args.runtime_seed_path is None:
+            raise SystemExit(
+                "--entry, --seed-path and --runtime-seed-path are required in seed mode"
+            )
+        asyncio.run(seed_entry(args.entry, args.seed_path, args.runtime_seed_path))
         return 0
     if args.mode == "measure":
         if args.entry is None or args.seed_path is None or args.result_path is None:
