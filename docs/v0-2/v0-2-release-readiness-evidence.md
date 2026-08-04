@@ -71,14 +71,17 @@ V0_2_TRIAL_DATASET_MUST_BE_DETERMINISTIC=true
 V0_2_TRIAL_DATASET_MUST_NOT_BE_PRESENTED_AS_PRODUCTION_EVIDENCE=true
 TRIAL_DATASET_PURPOSE=V0_2_ENGINEERING_TRIAL_ACCEPTANCE
 APPROVED_REAL_BUSINESS_DATASET=false
-REAL_BUSINESS_DATASET_IMMUTABLE_ID_REQUIRED=false
+V0_2_REAL_BUSINESS_DATASET_IMMUTABLE_ID_REQUIRED=false
 ```
 
 The engineering trial may use deterministic fixtures, CI seed data,
 structurally valid synthetic historical data, a manually prepared trial
 dataset, or a non-sensitive demonstration dataset. The selected trial input
 must be versioned and reproducible. No trial input is promoted to an approved
-real-business dataset or presented as production evidence.
+real-business dataset or presented as production evidence. V0.2 therefore
+does not require an immutable identity for a real-business dataset; the
+business pilot or V0.3 does require an approved immutable real-business
+dataset, recorded by `FUTURE_APPROVED_IMMUTABLE_DATASET_REQUIRED=true` below.
 
 ## 4. Deferred business source attestation
 
@@ -161,13 +164,36 @@ dataset was required or claimed.
 ```text
 ENGINEERING_TRIAL_ACCEPTANCE_COMPLETE=true
 ENGINEERING_TRIAL_DATASET_VERSIONED=true
-ENGINEERING_TRIAL_DATASET_DETERMINISTIC=true
+ENGINEERING_TRIAL_INPUT_KIND=VERSION_CONTROLLED_CI_GENERATED_TRIAL_DATA
+ENGINEERING_TRIAL_REFERENCE_RUN_ID=30827466563
+ENGINEERING_TRIAL_APPLICATION_SHA=24c3055633a3fb0d8b5f96be7ef225b588246b24
+ENGINEERING_TRIAL_WORKFLOW_PATH=.github/workflows/ci.yml
+ENGINEERING_TRIAL_WORKFLOW_BLOB_SHA=1bc2f4d36c5f64f613bbea851cdd37977d540a0f
+ENGINEERING_TRIAL_QUALITY_FLOW_PATH=frontend/e2e/quality-flow.spec.ts
+ENGINEERING_TRIAL_QUALITY_FLOW_BLOB_SHA=a1f803dedf12e049161c939ba82088941fc15390
+V0_2_TRIAL_DATASET_VERSIONING_BASIS=VERSION_CONTROLLED_GENERATORS
+V0_2_TRIAL_DATASET_VERSION_ID=ci-generated:1bc2f4d36c5f64f613bbea851cdd37977d540a0f:a1f803dedf12e049161c939ba82088941fc15390
+STATIC_TRIAL_DATASET_FILE_PRESENT=false
+STATIC_TRIAL_DATASET_SHA256=not_applicable_ci_generated
+ENGINEERING_TRIAL_INPUT_GENERATOR_VERSIONED=true
+ENGINEERING_TRIAL_INPUT_GENERATION_REPRODUCIBLE=true
+ENGINEERING_TRIAL_BUSINESS_VALUE_RULES_DETERMINISTIC=true
+ENGINEERING_TRIAL_PROJECT_SCOPED_IDENTITIES_DYNAMIC=true
+ENGINEERING_TRIAL_STATIC_DATASET_CLAIM=false
 REAL_BUSINESS_DATA_ACCEPTANCE=DEFERRED_OUT_OF_V0_2_SCOPE
 REAL_BUSINESS_DATA_ACCEPTANCE_DEFERRED=true
 REAL_BUSINESS_DATA_ACCEPTANCE_TARGET=BUSINESS_PILOT_OR_V0_3
 REAL_BUSINESS_DATA_ACCEPTANCE_RUN_ID=NOT_REQUIRED_FOR_V0_2
 GLOBAL_FORECAST_ACCURACY_CLAIM=false
 ```
+
+Forecast authority, business dates, quantities, and scenario rules are
+determined by the version-controlled generators and application contracts.
+External batch, logical-record, and revision identities may include the
+Playwright project, worker, and retry scope to isolate parallel browser
+tests. Those dynamic identities are test-isolation inputs, not evidence of a
+single byte-for-byte static dataset. The acceptance claim is repeatability
+of the product flow under the same versioned generation rules.
 
 No raw business rows, credentials, database identifiers, or private source
 references were stored in the repository.
@@ -191,7 +217,7 @@ representativeness. A trial fixture or synthetic dataset must never be
 described as global forecast accuracy or production evidence.
 
 ```text
-ENGINEERING_TRIAL_COVERAGE_PROVEN=true
+ENGINEERING_TRIAL_BROWSER_FLOW_COVERAGE_PROVEN=true
 REAL_BUSINESS_COVERAGE_PROVEN=false
 REAL_BUSINESS_REPRESENTATIVENESS_PROVEN=false
 GLOBAL_FORECAST_ACCURACY_CLAIM=false
