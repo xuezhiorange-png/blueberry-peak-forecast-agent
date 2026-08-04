@@ -2561,7 +2561,10 @@ jobs:
         if: always()
         run: |
           if [ -f reports/sqlalchemy-provenance/SHA256SUMS ]; then
-            sha256sum -c reports/sqlalchemy-provenance/SHA256SUMS
+            (
+              cd reports/sqlalchemy-provenance
+              sha256sum -c SHA256SUMS
+            )
           else
             echo "SHA256SUMS was not produced" >&2
             exit 1
