@@ -2405,7 +2405,7 @@ jobs:
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         ports:
-          - 5432:5432
+          - 55432:5432
         options: >-
           --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
           --health-interval 5s
@@ -2415,7 +2415,7 @@ jobs:
       APP_ENV: test
       ISOLATED_JOB_NAME: sqlalchemy_prov
       POSTGRES_HOST: localhost
-      POSTGRES_PORT: "5432"
+      POSTGRES_PORT: "55432"
       POSTGRES_USER: blueberry_app
       POSTGRES_PASSWORD: change-me-in-local-env
       POSTGRES_DB: blueberry_peak
@@ -2529,7 +2529,7 @@ jobs:
         env:
           APP_ENV: test
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
-          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
         run: |
           python - <<'PY'
           from backend.tests.db.profile import assert_safe_postgres_test_identity
@@ -2545,13 +2545,13 @@ jobs:
         env:
           APP_ENV: test
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
-          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
         run: alembic -c backend/alembic.ini upgrade head
 
       - name: Run SQLAlchemy provenance matrix
         env:
           POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
-          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:5432/${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
           PROVENANCE_ARTIFACT_DIR: reports/sqlalchemy-provenance
         run: |
           mkdir -p reports/sqlalchemy-provenance
