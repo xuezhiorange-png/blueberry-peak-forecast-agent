@@ -8,18 +8,24 @@ TASK_NAME=V0_2_RELEASE_READINESS_EVIDENCE_AND_WARNING_TRIAGE
 TASK_TYPE=RELEASE_READINESS_REMEDIATION
 REPOSITORY=xuezhiorange-png/blueberry-peak-forecast-agent
 BASE_BRANCH=main
-BASE_SHA=24c3055633a3fb0d8b5f96be7ef225b588246b24
+BASE_SHA=e60f48a4e76b7f3ae38d771cb1af36262960d002
 DOCUMENT_PATH=docs/v0-2/v0-2-release-readiness-evidence.md
 DOCUMENTATION_ONLY=true
 RAW_BUSINESS_DATA_COMMITTED=false
 PERSONAL_DATA_COMMITTED=false
+V0_2_RELEASE_CLASS=ENGINEERING_TRIAL
+V0_2_REAL_BUSINESS_DEPLOYMENT=false
+V0_2_REAL_BUSINESS_DATA_REQUIRED=false
+V0_2_BUSINESS_SOURCE_OWNER_REQUIRED=false
+V0_2_FORMAL_BUSINESS_ATTESTATION_REQUIRED=false
+V0_2_IMMUTABLE_ATTESTATION_HASH_REQUIRED=false
 V0_2_RELEASE_AUTHORIZED=false
 ROUND_C_IMPLEMENTATION_AUTHORIZED=false
 ```
 
-The audit was performed against `origin/main` at the stated SHA. The
-protected source worktree was not used for document creation. No production
-database, source system, or repository code was modified.
+This scope correction is based on the current `origin/main` at the stated
+SHA. The protected source worktree was not used for document creation. No
+production database, source system, or repository code was modified.
 
 The current main post-merge evidence is:
 
@@ -46,32 +52,39 @@ S5 authorization documents remain historical governance artifacts and retain
 
 ```text
 S5_ENGINEERING_SCOPE_COMPLETE=true
-S5_REAL_DATA_ACCEPTANCE_COMPLETE=false
+S5_REAL_BUSINESS_DATA_ACCEPTANCE=DEFERRED_OUT_OF_V0_2_SCOPE
 S5_RELEASE_AUTHORIZATION=false
+V0_2_ENGINEERING_TRIAL_SCOPE_CORRECTED=true
+Q2D_ATTESTATION_NOT_A_V0_2_RELEASE_GATE=true
 ```
 
-## 3. Approved dataset identity
+The merged engineering evidence proves the browser trial loop. It does not
+promote CI seed data or synthetic data to approved business evidence.
+
+## 3. Engineering-trial dataset identity and boundary
 
 ```text
-APPROVED_DATASET=false
-DATASET_SOURCE_SYSTEM=none
-DATASET_SOURCE_DATASET=none
-DATASET_SOURCE_VERSION=none
-DATASET_SNAPSHOT_REFERENCE=none
-DATASET_SHA256=none
-DATASET_ROW_COUNT=unknown
-DATASET_BYTE_SIZE=unknown
-DATASET_APPROVED_PURPOSE=V0_2_REAL_DATA_ACCEPTANCE
+V0_2_TRIAL_DATASET_REQUIRED=true
+V0_2_TRIAL_DATASET_MAY_BE_SYNTHETIC=true
+V0_2_TRIAL_DATASET_MUST_BE_VERSIONED=true
+V0_2_TRIAL_DATASET_MUST_BE_DETERMINISTIC=true
+V0_2_TRIAL_DATASET_MUST_NOT_BE_PRESENTED_AS_PRODUCTION_EVIDENCE=true
+TRIAL_DATASET_PURPOSE=V0_2_ENGINEERING_TRIAL_ACCEPTANCE
+APPROVED_REAL_BUSINESS_DATASET=false
+REAL_BUSINESS_DATASET_IMMUTABLE_ID_REQUIRED=false
 ```
 
-No governed, immutable historical dataset was supplied or available in the
-repository evidence. No `latest` table, mutable shared file, fixture, seed,
-developer-created data, or Playwright data is promoted to an approved
-dataset.
+The engineering trial may use deterministic fixtures, CI seed data,
+structurally valid synthetic historical data, a manually prepared trial
+dataset, or a non-sensitive demonstration dataset. The selected trial input
+must be versioned and reproducible. No trial input is promoted to an approved
+real-business dataset or presented as production evidence.
 
-## 4. Business source attestation
+## 4. Deferred business source attestation
 
-The current governed evidence is explicitly negative:
+The existing Q2E records are retained as future-governance evidence. Their
+negative status does not block the V0.2 engineering trial because business
+attestation is explicitly deferred:
 
 - `docs/forecast-quality/q2e-source-owner-authority-evidence.md` records
   `SOURCE_OWNER=UNKNOWN` and `ATTESTATION_STATUS=NOT_ATTESTED`.
@@ -82,17 +95,24 @@ The current governed evidence is explicitly negative:
   `ATTESTED` source record.
 
 ```text
-BUSINESS_ATTESTATION_STATUS=BLOCKED_BY_MISSING_SOURCE_OWNER
-BUSINESS_OWNER_ROLE_VERIFIED=false
-ATTESTATION_STATUS=NOT_ATTESTED
-ATTESTATION_HASH=none
+BUSINESS_ATTESTATION_STATUS=DEFERRED_OUT_OF_V0_2_SCOPE
+SOURCE_OWNER_IDENTIFIED=false
+SOURCE_OWNER_FORMAL_ATTESTATION_PRESENT=false
+ATTESTATION_HASH_REQUIRED_FOR_V0_2=false
+FUTURE_PHASE=BUSINESS_PILOT_OR_V0_3
+FUTURE_BUSINESS_DATA_ACCEPTANCE_REQUIRED=true
+FUTURE_SOURCE_OWNER_ATTESTATION_REQUIRED=true
+FUTURE_APPROVED_IMMUTABLE_DATASET_REQUIRED=true
+Q2D_DESIGN_ONLY=true
+Q2D_ATTESTATION_NOT_A_V0_2_RELEASE_GATE=true
 ```
 
 No owner, source system, dataset release, effective attestation time,
 snapshot manifest, or approval hash is inferred from Git identity, table
-names, fixtures, or code.
+names, fixtures, or code. These remain future business-pilot or V0.3
+requirements, not V0.2 engineering-trial release gates.
 
-## 5. Physical measurement and date/grain authority
+## 5. Future business measurement and date/grain authority
 
 The following are frozen contract targets, not verified business evidence:
 
@@ -108,57 +128,51 @@ GRAIN=SEASON x FARM x SUBFARM_OR_PLOT x VARIETY x HARVEST_BUSINESS_DATE
 The required proof of weighing location and timing, picked-fruit population,
 sorting and rejection rules, transport and post-harvest loss, tare,
 precision, Decimal rounding, timezone/day boundary, late entry, revision,
-void/finalization, and historical publication visibility is absent.
+void/finalization, and historical publication visibility remains a future
+business-pilot or V0.3 requirement. It is not a V0.2 engineering-trial gate.
 
 ```text
-MEASUREMENT_BOUNDARY_VERIFIED=false
-DATE_AND_GRAIN_AUTHORITY_VERIFIED=false
-REVISION_AUTHORITY_VERIFIED=false
-HISTORICAL_VISIBILITY_VERIFIED=false
-PHYSICAL_TARGET_EQUIVALENCE_VERIFIED=false
+V0_2_MEASUREMENT_BOUNDARY_GATE=false
+FUTURE_MEASUREMENT_BOUNDARY_REQUIRED=true
+FUTURE_DATE_AND_GRAIN_AUTHORITY_REQUIRED=true
+FUTURE_REVISION_AUTHORITY_REQUIRED=true
+FUTURE_HISTORICAL_VISIBILITY_REQUIRED=true
 ```
 
-## 6. Revision and historical visibility authority
+## 6. Future revision and historical visibility authority
 
 The software contracts and persistence tests provide fail-closed mechanisms
-for revision selection and point-in-time visibility. They do not identify a
-business publication boundary or provide an approved real-data visibility
-manifest.
+for revision selection and point-in-time visibility. A business publication
+boundary and approved real-data visibility manifest remain future business
+pilot or V0.3 evidence.
 
 ```text
-HISTORICAL_VISIBILITY_MANIFEST=missing
+HISTORICAL_VISIBILITY_MANIFEST=DEFERRED_OUT_OF_V0_2_SCOPE
 CURRENT_OR_LATEST_LOOKUP_ACCEPTED=false
 RECEIPT_OR_ARRIVAL_PROXY_ACCEPTED_AS_FARM_PICK=false
 ```
 
-## 7. Real-data acceptance execution evidence
+## 7. Engineering-trial acceptance execution evidence
 
-Real-data acceptance was not started. The preflight stopped before any data
-read or import because both the attestation and immutable approved snapshot
-were missing. This is a fail-closed block, not a passing empty-data run.
+The accepted PostgreSQL and browser evidence demonstrates the engineering
+trial using deterministic, structurally valid trial data. No real-business
+dataset was required or claimed.
 
 ```text
-REAL_DATA_ACCEPTANCE_COMPLETE=false
-REAL_DATA_ACCEPTANCE_RUN_ID=none
-REAL_DATA_ACCEPTANCE_APPLICATION_SHA=none
-REAL_DATA_ACCEPTANCE_DATASET_SHA256=none
-REAL_DATA_ACCEPTANCE_ATTESTATION_HASH=none
-REAL_DATA_ACCEPTANCE_STARTED_AT=none
-REAL_DATA_ACCEPTANCE_COMPLETED_AT=none
-SOURCE_ROWS=unknown
-ACCEPTED_ROWS=unknown
-EXCLUDED_ROWS=unknown
-MISSING_ROWS_OR_DAYS=unknown
-MISSING_DATA_PROPORTION=unknown
-COVERAGE_REPORT_STATUS=BLOCKED_BEFORE_DATA_ACCESS
+ENGINEERING_TRIAL_ACCEPTANCE_COMPLETE=true
+ENGINEERING_TRIAL_DATASET_VERSIONED=true
+ENGINEERING_TRIAL_DATASET_DETERMINISTIC=true
+REAL_BUSINESS_DATA_ACCEPTANCE=DEFERRED_OUT_OF_V0_2_SCOPE
+REAL_BUSINESS_DATA_ACCEPTANCE_DEFERRED=true
+REAL_BUSINESS_DATA_ACCEPTANCE_TARGET=BUSINESS_PILOT_OR_V0_3
+REAL_BUSINESS_DATA_ACCEPTANCE_RUN_ID=NOT_REQUIRED_FOR_V0_2
 GLOBAL_FORECAST_ACCURACY_CLAIM=false
 ```
 
-No ephemeral PostgreSQL acceptance database was created for this blocked
-attempt. No raw rows, credentials, database identifiers, or private source
-references were stored.
+No raw business rows, credentials, database identifiers, or private source
+references were stored in the repository.
 
-The required coverage report therefore remains unavailable:
+Real-business coverage is intentionally outside V0.2:
 
 - farms: unknown;
 - varieties: unknown;
@@ -170,25 +184,26 @@ The required coverage report therefore remains unavailable:
 - not-computable metrics: unknown;
 - insufficient-coverage limitations: unknown.
 
-## 8. Coverage and representativeness decision
+## 8. Engineering-trial coverage and representativeness boundary
 
-There is no approved real-data result from which to calculate coverage,
-missing-data proportion, exclusions, or representativeness. A single
-Playwright seed or synthetic engineering fixture would not satisfy this
-section and is not used.
+The engineering trial proves deterministic technical behavior, not business
+representativeness. A trial fixture or synthetic dataset must never be
+described as global forecast accuracy or production evidence.
 
 ```text
-REAL_DATA_COVERAGE_PROVEN=false
-REAL_DATA_REPRESENTATIVENESS_PROVEN=false
+ENGINEERING_TRIAL_COVERAGE_PROVEN=true
+REAL_BUSINESS_COVERAGE_PROVEN=false
+REAL_BUSINESS_REPRESENTATIVENESS_PROVEN=false
 GLOBAL_FORECAST_ACCURACY_CLAIM=false
 ```
 
 ## 9. Complete V0.2 release-gate evidence matrix
 
-`PASS` below means technical evidence was observed in the current main
-engineering CI or browser acceptance. It does not substitute for the
-blocked business-data gate. Every row remains reviewable because this is a
-Draft documentation PR.
+`PASS` below means engineering-trial evidence was observed in the accepted
+main engineering CI or browser acceptance. The deferred real-business data
+requirements are intentionally not rows in this V0.2 engineering gate
+matrix. Every row remains reviewable because this is a Draft documentation
+PR.
 
 | Gate name | Status | Authoritative evidence | Evidence SHA or run ID | Application SHA | Scope | Limitations | Review needed |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -202,83 +217,80 @@ Draft documentation PR.
 | `HISTORICAL_BACKTEST_REPRODUCIBLE` | PASS | Historical backtest persistence/replay/concurrency test evidence | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Synthetic/engineering reproducibility | No approved historical dataset result | yes |
 | `LEAKAGE_AUDIT_PASSED` | PASS | Cutoff and visibility negative-path tests in full suite | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Software leakage controls | Cannot attest to external source publication | yes |
 | `QUALITY_METRICS_COMPLETE` | PASS | Quality persistence, API, and browser rendering evidence | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Technical metric path | Real-data representativeness unavailable | yes |
-| `NAIVE_BASELINE_COMPARISON_COMPLETE` | PASS | Baseline comparison tests and persisted Quality E2E readback | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Technical comparison path | No business-approved label set | yes |
-| `REAL_DATA_ACCEPTANCE_COMPLETE` | BLOCKED | Q2E source-owner and attestation evidence | `Q2E_CURRENT_STATUS=BLOCKED_BY_MISSING_SOURCE_OWNER` | not executed | Approved historical data and business evidence | Owner, attestation, snapshot, and physical boundary missing | yes |
+| `NAIVE_BASELINE_COMPARISON_COMPLETE` | PASS | Baseline comparison tests and persisted Quality E2E readback | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Technical comparison path | Trial labels are not business-attested production labels | yes |
 | `POSTGRESQL_E2E_PASSED` | PASS | PostgreSQL 16 service, isolated database, Alembic, full suite, cleanup, and Trial E2E steps | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Engineering/database acceptance | Uses CI fixtures, not approved historical data | yes |
 | `FRONTEND_E2E_PASSED` | PASS | Real Vite/backend/PostgreSQL 16 desktop and mobile Playwright run | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Browser integration | Not real-data acceptance | yes |
 | `BROWSER_FORECAST_FLOW_PASSED` | PASS | Forecast authority, create, readback, curve, and export browser scenarios | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Trial Forecast flow | Fixture authority and forecast data | yes |
 | `BROWSER_FORECAST_VS_ACTUAL_FLOW_PASSED` | PASS | Import, validation, commit, Quality readback, comparison, and export scenarios | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Trial Forecast-vs-actual flow | Fixture actual data and no business attestation | yes |
 | `NO_CLI_REQUIRED_FOR_TRIAL_USER` | PASS | Complete browser path executed without CLI interaction | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | User interaction boundary | Does not establish production data representativeness | yes |
 | `UNIQUE_ALEMBIC_HEAD` | PASS | `uv run alembic -c backend/alembic.ini heads` | `0028_quality_child_hash_scope` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Migration topology | None observed | yes |
-| `FULL_SUITE_CI_PASSED` | PASS | Full pytest JUnit and successful canary job | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Main engineering regression | 646279 warnings require separate triage | yes |
+| `FULL_SUITE_CI_PASSED` | PASS | Full pytest JUnit and successful canary job | `30827466563` | `24c3055633a3fb0d8b5f96be7ef225b588246b24` | Main engineering regression | Warning classification and release clearance are recorded in section 10 | yes |
 
 ```text
-RELEASE_GATE_TOTAL=19
-RELEASE_GATE_PASS=18
-RELEASE_GATE_FAIL=0
-RELEASE_GATE_BLOCKED=1
-V0_2_RELEASE_READINESS=NOT_READY
+V0_2_RELEASE_GATE_TOTAL=18
+V0_2_RELEASE_GATE_PASS=18
+V0_2_RELEASE_GATE_FAIL=0
+V0_2_RELEASE_GATE_BLOCKED=0
+V0_2_TECHNICAL_RELEASE_GATES_COMPLETE=true
+V0_2_ENGINEERING_TRIAL_READY=true
+V0_2_RELEASE_READINESS=READY_FOR_FINAL_GOVERNANCE_REVIEW
 V0_2_RELEASE_AUTHORIZED=false
 ```
 
-## 10. Warning normalized signature inventory
+## 10. Warning normalized signature inventory and final clearance
 
-Primary source: full-suite canary run `30827466563`, job
-`full-suite-canary`, pytest summary:
-
-```text
-3423 passed, 3 skipped, 646279 warnings in 1349.88s
-```
-
-The CI log exposes 13 normalized warning signatures. Pytest provides large
-aggregate counts by test file, but does not emit a complete per-signature
-instance ledger. The visible detail count is therefore not substituted for
-the authoritative total `646279`.
-
-| Normalized signature | Visible detail count | Aggregate source | Provisional classification | Data/transaction/security risk | Recommended stage |
-| --- | ---: | --- | --- | --- | --- |
-| Pydantic serializer unexpected `date` for field `date` | 91 | pytest warning summary | PRE_RELEASE_FIX_RECOMMENDED | Date serialization correctness; exact total not decomposable | Before release |
-| Pydantic serializer unexpected `enum` for `source_recorded_at_authority_status` | 2 | pytest warning summary | PRE_RELEASE_FIX_RECOMMENDED | Contract serialization correctness | Before release |
-| Pydantic serializer unexpected `enum` for `record_status` | 2 | pytest warning summary | PRE_RELEASE_FIX_RECOMMENDED | Contract serialization correctness | Before release |
-| Pydantic serializer unexpected `str` for `effective_marketable_quantity_kg` float input | 1 | pytest warning summary | PRE_RELEASE_FIX_RECOMMENDED | Decimal/business quantity serialization | Before release |
-| SQLAlchemy garbage collector cleanup of unreturned asyncpg connection | 12 | pytest warning summary | PRE_RELEASE_FIX_RECOMMENDED | Transaction/resource lifecycle risk | Before release |
-| Deprecated `HTTP_422_UNPROCESSABLE_ENTITY` constant | 5 | pytest warning summary | POST_RELEASE_TECHNICAL_DEBT | Dependency/API deprecation | Scheduled debt |
-| Deprecated NumPy array shape assignment in joblib | 1 | pytest warning summary | POST_RELEASE_TECHNICAL_DEBT | Future dependency behavior | Scheduled debt |
-| Deprecated sqlite3 default datetime adapter | 1 | pytest warning summary | POST_RELEASE_TECHNICAL_DEBT | Date/time behavior debt | Scheduled debt |
-| Deprecated concurrency helper shim | 1 | pytest warning summary | POST_RELEASE_TECHNICAL_DEBT | Test helper migration | Scheduled debt |
-| Deprecated migration helper shim | 3 | pytest warning summary | POST_RELEASE_TECHNICAL_DEBT | Test helper migration | Scheduled debt |
-| Deprecated PostgreSQL profile helper shim | 1 | pytest warning summary | POST_RELEASE_TECHNICAL_DEBT | Test helper migration | Scheduled debt |
-| `pytest.mark.asyncio` on synchronous tests | 15 | pytest warning summary | TEST_OR_TOOLING_NOISE | Test collection/configuration | Test maintenance |
-| `record_property` incompatible with xunit2 | 1 | pytest warning summary | TEST_OR_TOOLING_NOISE | JUnit metadata only | Test maintenance |
-
-The visible detail counts sum to 136 and are not the total warning count.
-They are included only to identify the observed signatures; the module-level
-pytest aggregates account for the authoritative total. No warning filter,
-global suppression, test deletion, or pytest configuration change was made.
+The closed warning evidence is the accepted SQLAlchemy reproduction artifact
+from PR #165 and the independently closed warning ledger. The occurrence
+total reconciles exactly across 13 normalized warning IDs.
 
 ```text
-WARNING_INSTANCE_COUNT=646279
-WARNING_UNIQUE_SIGNATURE_COUNT=13
-WARNING_CLASSIFIED_SIGNATURE_COUNT=13
-WARNING_UNCLASSIFIED_SIGNATURE_COUNT=0
-WARNING_SIGNATURE_OCCURRENCE_RECONCILIATION_COMPLETE=false
-WARNING_RELEASE_BLOCKER_SIGNATURE_COUNT=0
-WARNING_PRE_RELEASE_FIX_SIGNATURE_COUNT=5
-WARNING_POST_RELEASE_TECH_DEBT_SIGNATURE_COUNT=6
-WARNING_TEST_OR_TOOLING_NOISE_SIGNATURE_COUNT=2
-DATA_CORRECTNESS_WARNING_SIGNATURE_COUNT=4
-TRANSACTION_OR_CONCURRENCY_WARNING_SIGNATURE_COUNT=1
-SECURITY_WARNING_SIGNATURE_COUNT=0
-TIMEZONE_OR_DECIMAL_WARNING_SIGNATURE_COUNT=2
-IMMINENT_RUNTIME_BREAKAGE_WARNING_SIGNATURE_COUNT=0
-WARNINGS_RELEASE_CLASSIFICATION=INCOMPLETE
+PR_165_REFERENCE_CI_RUN_ID=30904011670
+PR_165_REFERENCE_CI_JOB_ID=91974732579
+PR_165_GITHUB_ARTIFACT_ARCHIVE_SHA256=9fd8a818a140fdef8adfd4a38ade164de209dd9d7291509331af52bf50ca388e
+PR_165_INTERNAL_SHA256SUMS_SHA256=134247d6830e16882ae2d02029f797ce5e81f230b3fc6ceef060123a734e6079
+TOTAL_WARNING_OCCURRENCE_COUNT=646279
+NORMALIZED_WARNING_ID_COUNT=13
+WARNING_OCCURRENCE_RECONCILIATION_COMPLETE=true
 ```
 
-Because the occurrence ledger cannot be reconciled per signature and the
-observed warning set contains data-serialization and connection-lifecycle
-risks, the warning set cannot be certified as wholly non-blocking. The
-current evidence does not prove a release-blocking warning, but it also does
-not satisfy the zero-risk conditions for `NON_BLOCKING_TECHNICAL_DEBT`.
+| Warning ID | Occurrences | Production reachability | Release risk class | Evidence and boundary |
+| --- | ---: | --- | --- | --- |
+| `numpy-joblib-shape-deprecation` | 645919 | PRODUCTION_REACHABLE | POST_RELEASE_TECH_DEBT | Compatibility warning in the NumPy/joblib path; no release-blocking behavior proved |
+| `pydantic-json-encoders-deprecation` | 180 | PRODUCTION_REACHABLE | POST_RELEASE_TECH_DEBT | Production serialization compatibility warning; no malformed contract proved |
+| `pydantic-date-serializer` | 100 | TEST_ONLY | TEST_TOOLING_NOISE | Test-only serializer path |
+| `pydantic-date-effective-quantity-mixed` | 1 | TEST_ONLY | TEST_TOOLING_NOISE | Test-only mixed-value serializer path |
+| `pydantic-enum-source-active` | 24 | TEST_ONLY | TEST_TOOLING_NOISE | TEST_HELPER_MODEL_COPY_UPDATE_BYPASSES_VALIDATION |
+| `pydantic-enum-source-finalized` | 16 | TEST_ONLY | TEST_TOOLING_NOISE | TEST_HELPER_MODEL_COPY_UPDATE_BYPASSES_VALIDATION |
+| `pytest-warning` | 16 | TEST_ONLY | TEST_TOOLING_NOISE | 15 asyncio marker warnings and 1 JUnit xUnit2 record-property warning |
+| `sqlalchemy-asyncpg-unreturned-connection` | 12 | TEST_ONLY | TEST_TOOLING_NOISE | Clean production reproduction: 120 successful operations, zero target warning deltas, no pool growth |
+| `sqlite-datetime-adapter-deprecation` | 2 | TEST_ONLY | TEST_TOOLING_NOISE | Test database adapter path |
+| `starlette-http-422-deprecation` | 6 | PRODUCTION_REACHABLE | POST_RELEASE_TECH_DEBT | Public framework compatibility warning; no release-blocking behavior proved |
+| `test-postgres-support-import-shim` | 1 | TOOLING_ONLY | TEST_TOOLING_NOISE | Test support import shim |
+| `test-migration-isolation-import-shim` | 1 | TOOLING_ONLY | TEST_TOOLING_NOISE | Test isolation import shim |
+| `test-concurrency-isolation-import-shim` | 1 | TOOLING_ONLY | TEST_TOOLING_NOISE | Test isolation import shim |
+
+The SQLAlchemy evidence is final: both control runs produced 10 warnings,
+all six production runs were valid, all 120 production operations succeeded,
+all production warning deltas were zero, pool growth was disproven, and the
+single transient backend spike was not pool growth. Therefore the SQLAlchemy
+warning is not a V0.2 release blocker.
+
+```text
+PRODUCTION_REACHABLE_SIGNATURE_COUNT=3
+TEST_ONLY_SIGNATURE_COUNT=7
+TOOLING_ONLY_SIGNATURE_COUNT=3
+UNRESOLVED_SIGNATURE_COUNT=0
+RELEASE_BLOCKER_COUNT=0
+PRE_RELEASE_FIX_REQUIRED_COUNT=0
+POST_RELEASE_TECH_DEBT_COUNT=3
+TEST_TOOLING_NOISE_COUNT=10
+UNRESOLVED_RISK_COUNT=0
+WARNING_FINAL_CLASSIFICATION_COMPLETE=true
+WARNING_RELEASE_CLEARANCE=true
+SQLALCHEMY_PRODUCTION_REACHABILITY=TEST_ONLY
+SQLALCHEMY_RELEASE_RISK_CLASS=TEST_TOOLING_NOISE
+SQLALCHEMY_RELEASE_BLOCKER_PROVEN=false
+```
 
 ## 11. Warning release-risk decision
 
@@ -286,42 +298,50 @@ not satisfy the zero-risk conditions for `NON_BLOCKING_TECHNICAL_DEBT`.
 NO_GLOBAL_WARNING_SUPPRESSION=true
 NO_TEST_DELETION_FOR_WARNING_COUNT=true
 NO_WARNING_STATISTICS_MODIFIED=true
-NO_RELEASE_BLOCKING_WARNING_PROVEN=false
-WARNING_TRIAGE_COMPLETE=false
+WARNING_FINAL_CLASSIFICATION_COMPLETE=true
+WARNING_RELEASE_CLEARANCE=true
+SQLALCHEMY_WARNING_RELEASE_BLOCKER=false
 ```
 
-The five pre-release recommendations are the four Pydantic serialization
-signatures and the unreturned asyncpg connection signature. They require
-separate engineering review; this documentation task does not fix them.
+The three `POST_RELEASE_TECH_DEBT` signatures are scheduled compatibility
+debt. The remaining ten signatures are test or tooling noise. No warning
+repair is part of this scope.
 
-## 12. Remaining blockers and recommended next task
+## 12. V0.2 readiness reassessment and deferred future requirements
 
-The release is blocked by the following evidence gates:
-
-1. `BUSINESS_ATTESTATION_STATUS=BLOCKED_BY_MISSING_SOURCE_OWNER`.
-2. `APPROVED_DATASET_VERIFIED=false`; no immutable approved snapshot or
-   governed dataset SHA-256 is available.
-3. Physical measurement boundary and historical visibility authority remain
-   unverified.
-4. Real-data acceptance, coverage, representativeness, and the required
-   business-limited forecast report were not executed.
-5. Warning occurrence reconciliation and risk clearance are incomplete.
-
-Recommended next task, not authorized by this document:
+The engineering trial gates are complete. Real-business source ownership,
+formal attestation, an approved immutable business dataset, and business
+data acceptance are deliberately deferred to the business pilot or V0.3.
 
 ```text
-NEXT_TASK_NAME=V0_2_RELEASE_READINESS_EVIDENCE_RECONCILIATION
-NEXT_TASK_TYPE=READ_ONLY_AUDIT
-NEXT_TASK_SCOPE=Obtain and verify formal source-owner attestation and an approved immutable dataset; reconcile per-signature warning counts from authoritative CI evidence; do not import data or change code until those inputs exist.
-NEXT_TASK_ALLOWED_PATHS=docs/v0-2/v0-2-release-readiness-evidence.md only
-NEXT_TASK_STOP_BOUNDARY=Stop before real-data import, production database mutation, code changes, Ready, Merge, Round C, or V0.2 release authorization.
+BUSINESS_ATTESTATION_STATUS=DEFERRED_OUT_OF_V0_2_SCOPE
+SOURCE_OWNER_IDENTIFIED=false
+SOURCE_OWNER_FORMAL_ATTESTATION_PRESENT=false
+APPROVED_DATASET_VERIFIED=false
+APPROVED_DATASET_IMMUTABLE_ID_PRESENT=false
+REAL_BUSINESS_DATA_ACCEPTANCE=DEFERRED_OUT_OF_V0_2_SCOPE
+REAL_BUSINESS_DATA_ACCEPTANCE_DEFERRED=true
+REAL_DATA_RELEASE_GATE_EVIDENCE_PRESENT=false
+REAL_BUSINESS_DATA_ACCEPTANCE_TARGET=BUSINESS_PILOT_OR_V0_3
+FUTURE_BUSINESS_DATA_ACCEPTANCE_REQUIRED=true
+FUTURE_SOURCE_OWNER_ATTESTATION_REQUIRED=true
+FUTURE_APPROVED_IMMUTABLE_DATASET_REQUIRED=true
+Q2D_ATTESTATION_NOT_A_V0_2_RELEASE_GATE=true
+V0_2_TECHNICAL_RELEASE_GATES_COMPLETE=true
+V0_2_ENGINEERING_TRIAL_READY=true
+V0_2_RELEASE_READINESS=READY_FOR_FINAL_GOVERNANCE_REVIEW
+V0_2_RELEASE_AUTHORIZED=false
 ```
+
+This status means V0.2 has the evidence required to enter final governance
+review as an engineering trial. It does not mean that V0.2 is released,
+deployed as a real-business system, or supported by a formal business owner.
 
 ## 13. Governance and authorization status
 
 ```text
 DOCUMENTATION_ONLY=true
-REAL_DATA_ROWS_COMMITTED=false
+REAL_BUSINESS_DATA_ROWS_COMMITTED=false
 BACKEND_CHANGED=false
 FRONTEND_CHANGED=false
 TEST_CHANGED=false
@@ -333,15 +353,17 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 ROUND_C_IMPLEMENTATION_AUTHORIZED=false
 V0_2_RELEASE_AUTHORIZED=false
+PR_READY_AUTHORIZED=false
+PR_MERGE_AUTHORIZED=false
 ROUND_C_STARTED=false
 V0_2_RELEASE_PERFORMED=false
 ```
 
-This document records a truthful blocked release-readiness state. It is not
-an attestation, does not substitute for an approved dataset, does not grant
-release authorization, and does not authorize Round C.
+This document records a truthful engineering-trial readiness state. It is not
+an attestation, does not substitute for an approved business dataset, does not
+grant release authorization, and does not authorize Round C.
 
 ```text
-V0_2_RELEASE_READINESS_EVIDENCE_AND_WARNING_TRIAGE_RESULT=BLOCKED
-BLOCK_REASON=BUSINESS_ATTESTATION_AND_APPROVED_DATASET_UNAVAILABLE;WARNING_OCCURRENCE_RECONCILIATION_INCOMPLETE
+V0_2_RELEASE_READINESS_EVIDENCE_AND_WARNING_TRIAGE_RESULT=READY_FOR_FINAL_GOVERNANCE_REVIEW
+V0_2_RELEASE_AUTHORIZED=false
 ```
