@@ -544,6 +544,11 @@ async def seed_entry(entry: str, seed_path: Path, runtime_seed_path: Path) -> No
             {
                 "entry": entry,
                 "residual_request": residual_request,
+                # Keep only safe provenance metadata in the runtime seed so
+                # measurement evidence can prove the request source and
+                # authority check without copying business payload details.
+                "residual_request_source": ("completed_prediction_canonical_input_snapshot"),
+                "residual_request_authority_verified": True,
                 "api_payload": api_payload,
                 "rolling_run_id": logical_run.id,
                 "rolling_node_id": node.id,
