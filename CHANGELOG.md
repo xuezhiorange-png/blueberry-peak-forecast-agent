@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased — planned V0.2.0 Forecast Quality Trial
+## 0.2.0 — Forecast Quality Trial (2026-08-04)
 
-The next release scope is frozen in `docs/v0-2/development-plan.md`.
-
-V0.2 contains exactly five planned slices:
+V0.2 is delivered as an `ENGINEERING_TRIAL`, not a production business
+deployment. It closes the five-slice browser trial loop within the frozen
+`FORECAST_QUALITY_TRIAL` version boundary:
 
 - **S1 — Actual-harvest atomic commit**
 - **S2 — Point-in-time actual labels and historical backtest**
@@ -12,11 +12,37 @@ V0.2 contains exactly five planned slices:
 - **S4 — Frontend application API**
 - **S5 — Two-page responsive trial frontend and browser E2E**
 
-V0.2 must provide a browser-complete flow from forecast creation through actual-harvest import, forecast-versus-actual quality comparison, baseline comparison, and export.
+The engineering trial provides:
 
-Planning does not authorize implementation. S1 requires a separate implementation authorization; Issue #99, model changes, operational recommendations, and complex administration interfaces remain outside V0.2.
+- browser forecast creation;
+- daily curve and peak inspection;
+- CSV/XLSX actual-harvest trial import;
+- validation and atomic commit;
+- point-in-time label snapshots;
+- historical backtest;
+- forecast-versus-actual metrics;
+- naive baseline comparison;
+- CSV export;
+- PostgreSQL 16 E2E;
+- desktop/mobile browser E2E;
+- deterministic replay and persisted readback.
 
-An open Issue or project backlog item does not extend a frozen release scope.
+The accepted engineering evidence demonstrates a runnable product flow,
+valid data contracts, correct database behavior, deterministic calculations,
+and usable browser workflows. It does not claim validated real-production
+forecast accuracy, business representativeness, formal business-owner
+endorsement, production-system data integration, or commercial launch
+acceptance.
+
+Real business data acceptance, source-owner attestation, and business
+representativeness are deferred to the business pilot or V0.3:
+
+```text
+REAL_BUSINESS_DATA_ACCEPTANCE_DEFERRED=true
+REAL_BUSINESS_DATA_ACCEPTANCE_TARGET=BUSINESS_PILOT_OR_V0_3
+WARNING_FINAL_CLASSIFICATION_COMPLETE=true
+WARNING_RELEASE_CLEARANCE=true
+```
 
 ## 0.1.0 — Core forecast
 
