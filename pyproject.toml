@@ -1,6 +1,6 @@
 [project]
 name = "blueberry-peak-forecast-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Blueberry processing peak forecast agent backend bootstrap"
 requires-python = ">=3.12"
 dependencies = [

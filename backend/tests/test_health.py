@@ -40,7 +40,7 @@ async def test_health_live_succeeds_without_database():
     assert response.json() == {
         "status": "live",
         "service": "Blueberry Peak Forecast Agent",
-        "version": "0.1.0",
+        "version": "0.2.0",
     }
 
 
@@ -56,7 +56,7 @@ async def test_unit_health_ready_succeeds_when_database_query_succeeds():
     assert response.json() == {
         "status": "ready",
         "service": "Blueberry Peak Forecast Agent",
-        "version": "0.1.0",
+        "version": "0.2.0",
     }
 
 
@@ -76,5 +76,5 @@ def test_create_app_registers_health_routes():
     app = create_app()
 
     assert app.title == "Blueberry Peak Forecast Agent"
-    assert app.version == "0.1.0"
+    assert app.version == "0.2.0"
     assert app.state.settings.app_name == "Blueberry Peak Forecast Agent"
