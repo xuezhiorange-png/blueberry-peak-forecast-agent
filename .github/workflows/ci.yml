@@ -1894,6 +1894,73 @@ jobs:
           PY
 
   # ----------------------------------------------------------------
+  # Warning occurrence evidence (this exact branch only).
+  # The existing full-suite-canary job above is intentionally unchanged.
+  # ----------------------------------------------------------------
+  warning-ledger-evidence:
+    name: warning-ledger-evidence
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'chore/v0-2-warning-ledger-ci-evidence'
+    runs-on: ubuntu-latest
+    env:
+      ISOLATED_JOB_NAME: warning-ledger-evidence
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "55432"
+      POSTGRES_DB: blueberry_peak
+      POSTGRES_ADMIN_DB: blueberry_peak
+      POSTGRES_USER: blueberry_app
+      POSTGRES_PASSWORD: change-me-in-local-env
+      APP_ENV: test
+      RUN_POSTGRES_INTEGRATION: "1"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade --quiet pip
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      - name: Log worker / database identity
+        if: always()
+        run: |
+          python scripts/ci/log_worker_identity.py \
+            >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Run warning-ledger full suite
+        run: bash scripts/ci/warning_ledger/run_suite.sh
+
+      - name: Upload warning ledger evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: warning-ledger-evidence
+          path: reports/warning-ledger/artifacts
+          if-no-files-found: error
+
+  # ----------------------------------------------------------------
   # Round B additive frontend validation. These jobs do not alter the
   # Python/PostgreSQL shard selectors or pytest ownership above.
   # ----------------------------------------------------------------
