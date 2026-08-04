@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import gzip
 import hashlib
 import inspect
 import json
@@ -22,6 +23,7 @@ import re
 import threading
 import time
 import traceback
+import weakref
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
@@ -124,14 +126,20 @@ class Collector:
         self.sequence = 0
         self.connection_sequence = 0
         self.session_sequence = 0
+        self.checkout_generation_sequence = 0
         self.task_sequences: dict[int, str] = {}
         self.loop_sequences: dict[int, str] = {}
         self.connections: dict[str, dict[str, Any]] = {}
         self.connection_by_object_id: dict[int, str] = {}
         self.dbapi_to_connection: dict[int, str] = {}
+        self.checkout_generations: dict[str, dict[str, Any]] = {}
+        self.active_checkout_generation_by_connection: dict[str, str] = {}
+        self.checkout_generations_by_dbapi: dict[int, list[str]] = {}
         self.sessions: dict[str, dict[str, Any]] = {}
-        self.session_by_object_id: dict[int, str] = {}
-        self.sync_session_to_async: dict[int, str] = {}
+        self.session_by_object_id: dict[int, tuple[weakref.ReferenceType[Any] | None, str]] = {}
+        self.sync_session_to_async: dict[str, str] = {}
+        self.object_id_reuse_events: list[dict[str, Any]] = []
+        self.object_id_reuse_detected_count = 0
         self.pool_events: list[dict[str, Any]] = []
         self.session_events: list[dict[str, Any]] = []
         self.finalizer_events: list[dict[str, Any]] = []
@@ -288,6 +296,197 @@ class Collector:
         value["connection_record_fresh"] = _safe_attr(record, "fresh")
         value["connection_record_starttime"] = _safe_attr(record, "starttime")
 
+    def _session_ids_for_owner(self, session_id: str | None) -> tuple[str | None, str | None]:
+        """Return the linked async/sync identities without using object ids."""
+
+        if session_id is None:
+            return None, None
+        session = self.sessions.get(session_id)
+        if session is None:
+            return None, None
+        if session.get("session_kind") == "AsyncSession":
+            return session_id, session.get("sync_session_id")
+        return self.sync_session_to_async.get(session_id), session_id
+
+    def _associate_generation(self, generation: dict[str, Any], session_id: str | None) -> None:
+        if session_id is None:
+            return
+        session = self.sessions.get(session_id)
+        if session is None:
+            return
+        async_id, sync_id = self._session_ids_for_owner(session_id)
+        generation["owner_session_id"] = session_id
+        if sync_id is not None and sync_id not in generation["owner_sync_session_ids"]:
+            generation["owner_sync_session_ids"].append(sync_id)
+        if async_id is not None and async_id not in generation["owner_async_session_ids"]:
+            generation["owner_async_session_ids"].append(async_id)
+        generation["owner_async_session_id"] = async_id
+        generation["owner_sync_session_id"] = sync_id
+        generation["async_session_explicitly_absent"] = async_id is None
+        if session.get("object_id_reuse_detected"):
+            generation["object_id_reuse_detected"] = True
+        if sync_id is not None:
+            self._associate(generation["connection_record_id"], sync_id)
+
+    def _new_checkout_generation(
+        self,
+        connection_id: str,
+        dbapi: object | None,
+        driver_id: int | None,
+        record: object | None,
+        context: dict[str, str | None],
+    ) -> dict[str, Any]:
+        self.checkout_generation_sequence += 1
+        generation_id = (
+            f"{self.run_label}-checkout-generation-{self.checkout_generation_sequence:08d}"
+        )
+        dbapi_id = id(dbapi) if dbapi is not None else None
+        runtime = _runtime_identity(self)
+        now = _timestamp()
+        generation: dict[str, Any] = {
+            "run_label": self.run_label,
+            "connection_record_id": connection_id,
+            "connection_record_object_id": id(record) if record is not None else None,
+            "dbapi_connection_object_id": dbapi_id,
+            "driver_connection_object_id": driver_id,
+            "checkout_generation_id": generation_id,
+            "checkout_timestamp": now,
+            "checkout_stack": _stack(1),
+            "checkout_nodeid": context.get("pytest_nodeid"),
+            "checkout_phase": context.get("pytest_phase"),
+            "checkout_task_id": runtime.get("asyncio_task_id"),
+            "checkout_loop_id": runtime.get("event_loop_id"),
+            "owner_session_id": None,
+            "owner_async_session_id": None,
+            "owner_sync_session_id": None,
+            "owner_async_session_ids": [],
+            "owner_sync_session_ids": [],
+            "async_session_explicitly_absent": False,
+            "last_database_operation": None,
+            "database_operation_used": False,
+            "checkin_started_at": None,
+            "checkin_completed_at": None,
+            "checkin_failed_at": None,
+            "checkin_exception_type": None,
+            "checkin_timestamp": None,
+            "checkin_seen": False,
+            "checkin_started": False,
+            "checkin_completed": False,
+            "checkin_failed": False,
+            "close_started": False,
+            "close_completed": False,
+            "close_failed": False,
+            "context_exit_started": False,
+            "context_exit_completed": False,
+            "context_exit_failed": False,
+            "rollback_started": False,
+            "rollback_completed": False,
+            "rollback_failed": False,
+            "commit_started": False,
+            "commit_completed": False,
+            "commit_failed": False,
+            "close_started_at": None,
+            "close_completed_at": None,
+            "close_failed_at": None,
+            "close_exception_type": None,
+            "context_exit_started_at": None,
+            "context_exit_completed_at": None,
+            "context_exit_failed_at": None,
+            "context_exit_exception_type": None,
+            "rollback_started_at": None,
+            "rollback_completed_at": None,
+            "rollback_failed_at": None,
+            "rollback_exception_type": None,
+            "commit_started_at": None,
+            "commit_completed_at": None,
+            "commit_failed_at": None,
+            "commit_exception_type": None,
+            "finalizer_timestamp": None,
+            "object_id_reuse_detected": False,
+            "active": True,
+            "generation_key": {
+                "run_label": self.run_label,
+                "connection_record_id": connection_id,
+                "dbapi_connection_object_id": dbapi_id,
+                "driver_connection_object_id": driver_id,
+                "checkout_generation_id": generation_id,
+            },
+        }
+        self._associate_generation(generation, context.get("session_id"))
+        self.checkout_generations[generation_id] = generation
+        self.active_checkout_generation_by_connection[connection_id] = generation_id
+        if dbapi_id is not None:
+            self.checkout_generations_by_dbapi.setdefault(dbapi_id, []).append(generation_id)
+        return generation
+
+    def _active_generation(
+        self,
+        connection_id: str | None,
+        dbapi_id: int | None,
+        driver_id: int | None,
+    ) -> dict[str, Any] | None:
+        candidates: list[dict[str, Any]] = []
+        if connection_id is not None:
+            generation_id = self.active_checkout_generation_by_connection.get(connection_id)
+            if generation_id is not None and generation_id in self.checkout_generations:
+                candidates.append(self.checkout_generations[generation_id])
+        if dbapi_id is not None:
+            for generation_id in self.checkout_generations_by_dbapi.get(dbapi_id, []):
+                generation = self.checkout_generations.get(generation_id)
+                if generation is not None and generation.get("active"):
+                    candidates.append(generation)
+        unique = {item["checkout_generation_id"]: item for item in candidates}
+        filtered = [item for item in unique.values() if item.get("active")]
+        if dbapi_id is not None:
+            filtered = [
+                item for item in filtered if item.get("dbapi_connection_object_id") == dbapi_id
+            ]
+        if driver_id is not None:
+            filtered = [
+                item
+                for item in filtered
+                if item.get("driver_connection_object_id") in {None, driver_id}
+            ]
+        if len(filtered) == 1:
+            return filtered[0]
+        return None
+
+    def _generation_final_state(self, generation: dict[str, Any] | None) -> str:
+        if generation is None:
+            return "OWNER_CORRELATION_UNRESOLVED"
+        if generation.get("checkin_seen"):
+            return "CHECKIN_COMPLETED"
+        if generation.get("close_failed_at") or generation.get("context_exit_failed_at"):
+            return "CLOSE_FAILED"
+        if generation.get("close_started_at") or generation.get("context_exit_started_at"):
+            if generation.get("close_completed_at") or generation.get("context_exit_completed_at"):
+                return "CLOSE_COMPLETED_WITHOUT_CHECKIN"
+            return "CLOSE_STARTED_NOT_COMPLETED"
+        if not generation.get("owner_sync_session_ids"):
+            return "OWNER_CORRELATION_UNRESOLVED"
+        return "CLOSE_NOT_STARTED"
+
+    def generation_owner_status(self, generation: dict[str, Any] | None) -> str:
+        if generation is None:
+            return "UNRESOLVED"
+        if generation.get("object_id_reuse_detected"):
+            return "UNRESOLVED"
+        if not generation.get("dbapi_connection_object_id"):
+            return "UNRESOLVED"
+        sync_ids = list(dict.fromkeys(generation.get("owner_sync_session_ids", [])))
+        async_ids = list(dict.fromkeys(generation.get("owner_async_session_ids", [])))
+        if len(sync_ids) > 1 or len(async_ids) > 1:
+            return "AMBIGUOUS"
+        if not generation.get("database_operation_used"):
+            return "BARE_CONNECTION"
+        if generation.get("checkin_seen"):
+            return "UNRESOLVED"
+        if len(sync_ids) != 1:
+            return "BARE_CONNECTION"
+        if not async_ids and not generation.get("async_session_explicitly_absent"):
+            return "AMBIGUOUS"
+        return "UNIQUE"
+
     def _session_for_context(self) -> str | None:
         return self.context().get("session_id")
 
@@ -338,10 +537,31 @@ class Collector:
                 target["last_checkout_timestamp"] = now
                 target["checkout_stack"] = _stack(1)
                 target["checkin_seen"] = False
+                self._new_checkout_generation(
+                    connection_id,
+                    dbapi,
+                    self._driver_id(dbapi),
+                    record,
+                    context,
+                )
             elif name == "checkin":
                 target["checkin_count"] += 1
                 target["last_checkin_timestamp"] = now
                 target["checkin_seen"] = True
+                generation = self._active_generation(
+                    connection_id,
+                    id(dbapi) if dbapi is not None else None,
+                    self._driver_id(dbapi),
+                )
+                if generation is not None:
+                    generation["checkin_started_at"] = now
+                    generation["checkin_completed_at"] = now
+                    generation["checkin_timestamp"] = now
+                    generation["checkin_started"] = True
+                    generation["checkin_completed"] = True
+                    generation["checkin_seen"] = True
+                    generation["active"] = False
+                    self.active_checkout_generation_by_connection.pop(connection_id, None)
             elif name in {"close", "close_detached"}:
                 target["explicit_close_seen"] = True
         state = self.pool_state()
@@ -374,8 +594,24 @@ class Collector:
         except Exception:
             return None
 
+    def _connection_runtime_identity(
+        self, connection: object
+    ) -> tuple[str | None, int | None, int | None]:
+        try:
+            fairy = connection.connection  # type: ignore[attr-defined]
+            record = getattr(fairy, "_connection_record", None)
+            if record is None:
+                record = getattr(fairy, "connection_record", None)
+            connection_id = self._connection_id(record) if record is not None else None
+            dbapi = getattr(fairy, "dbapi_connection", None)
+            if dbapi is None:
+                dbapi = getattr(fairy, "driver_connection", None)
+            return connection_id, id(dbapi) if dbapi is not None else None, self._driver_id(dbapi)
+        except Exception:
+            return None, None, None
+
     def database_operation(self, connection: object, statement: object) -> None:
-        connection_id = self._record_from_sync_connection(connection)
+        connection_id, dbapi_id, driver_id = self._connection_runtime_identity(connection)
         if connection_id is None:
             return
         operation = _fingerprint(statement)
@@ -386,6 +622,13 @@ class Collector:
         self._associate(connection_id, session_id)
         record = self.connections[connection_id]
         record["last_database_statement_fingerprint"] = operation
+        generation = self._active_generation(connection_id, dbapi_id, driver_id)
+        if generation is not None:
+            generation["last_database_operation"] = operation
+            generation["database_operation_used"] = True
+            self._associate_generation(generation, session_id)
+            if generation.get("object_id_reuse_detected"):
+                generation["object_id_reuse_detected"] = True
         if session_id in self.sessions:
             session = self.sessions[session_id]
             session["last_database_statement_fingerprint"] = operation
@@ -395,12 +638,35 @@ class Collector:
     def register_session(self, session: object, kind: str) -> str:
         object_id = id(session)
         existing = self.session_by_object_id.get(object_id)
+        object_id_reuse = False
         if existing is not None:
-            return existing
+            stored_ref, existing_id = existing
+            if stored_ref is not None and stored_ref() is session:
+                return existing_id
+            object_id_reuse = True
+            self.object_id_reuse_detected_count += 1
+            self.object_id_reuse_events.append(
+                {
+                    "timestamp": _timestamp(),
+                    "object_id": object_id,
+                    "previous_session_id": existing_id,
+                    "previous_object_alive": stored_ref() is not None,
+                    "new_session_kind": kind,
+                    "pytest_nodeid": self.context().get("pytest_nodeid"),
+                    "pytest_phase": self.context().get("pytest_phase"),
+                }
+            )
+            self.session_by_object_id.pop(object_id, None)
         self.session_sequence += 1
         value = f"{self.run_label}-session-{self.session_sequence:06d}"
         context = self.context()
-        self.session_by_object_id[object_id] = value
+        reference: weakref.ReferenceType[Any] | None
+        try:
+            reference = weakref.ref(session, self._session_reference_gone(object_id, value))
+        except TypeError as exc:
+            self.instrumentation_errors.append(f"session_weakref:{type(exc).__name__}")
+            reference = None
+        self.session_by_object_id[object_id] = (reference, value)
         self.sessions[value] = {
             "session_id": value,
             "session_object_id": object_id,
@@ -418,14 +684,33 @@ class Collector:
             "exit_seen": False,
             "rollback_seen": False,
             "commit_seen": False,
+            "sync_session_id": None,
+            "async_session_id": None,
+            "object_id_reuse_detected": object_id_reuse,
+            "weakref_supported": reference is not None,
         }
         if kind == "AsyncSession":
             try:
                 sync_session = session.sync_session  # type: ignore[attr-defined]
-                self.sync_session_to_async[id(sync_session)] = value
+                sync_id = self.register_session(sync_session, "Session")
+                self.sync_session_to_async[sync_id] = value
+                self.sessions[value]["sync_session_id"] = sync_id
+                self.sessions[sync_id]["async_session_id"] = value
             except Exception:
                 pass
         return value
+
+    def _session_reference_gone(self, object_id: int, session_id: str) -> Callable[..., None]:
+        def callback(reference: weakref.ReferenceType[Any]) -> None:
+            with self.lock:
+                current = self.session_by_object_id.get(object_id)
+                if current is not None and current[0] is reference and current[1] == session_id:
+                    # Retain the dead weakref as a tombstone. A later object
+                    # receiving the same Python id must be recorded as reuse,
+                    # never silently treated as the old Session.
+                    return
+
+        return callback
 
     def session_event(self, session: object, name: str) -> str:
         session_id = self.register_session(
@@ -435,32 +720,101 @@ class Collector:
         now = _timestamp()
         record["last_operation"] = name
         record["last_operation_timestamp"] = now
-        if name == "close":
-            record["close_seen"] = True
-        elif name == "__aexit__":
-            record["exit_seen"] = True
-        elif name == "rollback":
-            record["rollback_seen"] = True
-        elif name == "commit":
-            record["commit_seen"] = True
+        prefix = {
+            "close": "close",
+            "__aexit__": "context_exit",
+            "rollback": "rollback",
+            "commit": "commit",
+        }.get(name, name)
+        record[f"{prefix}_started_at"] = now
+        record[f"{prefix}_completed_at"] = None
+        record[f"{prefix}_failed_at"] = None
+        record[f"{prefix}_exception_type"] = None
         for connection_id in record["connection_record_ids"]:
             connection = self.connections.get(connection_id)
             if connection is None:
                 continue
             connection["last_known_session_id"] = session_id
             connection["last_session_operation"] = name
-            if name in {"close", "__aexit__"}:
-                connection["explicit_close_seen"] = True
+        async_id, sync_id = self._session_ids_for_owner(session_id)
+        for generation in self.checkout_generations.values():
+            if not generation.get("active"):
+                continue
+            if sync_id in generation.get(
+                "owner_sync_session_ids", []
+            ) or async_id in generation.get("owner_async_session_ids", []):
+                generation[f"{prefix}_started"] = True
+                generation[f"{prefix}_started_at"] = now
         self.session_events.append(
             {
                 "sequence": self.next_sequence(),
                 "timestamp": now,
                 "event_name": name,
+                "operation_state": "started",
                 "session_id": session_id,
                 "session_object_id": id(session),
                 "pytest_nodeid": self.context().get("pytest_nodeid"),
                 "pytest_phase": self.context().get("pytest_phase"),
                 "creation_stack": record["creation_stack"],
+            }
+        )
+        return session_id
+
+    def session_event_completed(
+        self,
+        session: object,
+        name: str,
+        success: bool,
+        exception: BaseException | None = None,
+    ) -> str:
+        session_id = self.register_session(
+            session, "AsyncSession" if isinstance(session, AsyncSession) else "Session"
+        )
+        now = _timestamp()
+        record = self.sessions[session_id]
+        prefix = {
+            "close": "close",
+            "__aexit__": "context_exit",
+            "rollback": "rollback",
+            "commit": "commit",
+        }.get(name, name)
+        if success:
+            record[f"{prefix}_completed_at"] = now
+            record[f"{prefix}_seen"] = True
+            if name == "close":
+                record["close_seen"] = True
+            elif name == "__aexit__":
+                record["exit_seen"] = True
+        else:
+            record[f"{prefix}_failed_at"] = now
+            record[f"{prefix}_exception_type"] = type(exception).__name__ if exception else None
+        async_id, sync_id = self._session_ids_for_owner(session_id)
+        for generation in self.checkout_generations.values():
+            if not generation.get("active"):
+                continue
+            if sync_id in generation.get(
+                "owner_sync_session_ids", []
+            ) or async_id in generation.get("owner_async_session_ids", []):
+                if success:
+                    generation[f"{prefix}_completed"] = True
+                    generation[f"{prefix}_completed_at"] = now
+                else:
+                    generation[f"{prefix}_failed"] = True
+                    generation[f"{prefix}_failed_at"] = now
+                    generation[f"{prefix}_exception_type"] = (
+                        type(exception).__name__ if exception else None
+                    )
+        self.session_events.append(
+            {
+                "sequence": self.next_sequence(),
+                "timestamp": now,
+                "event_name": name,
+                "operation_state": "completed" if success else "failed",
+                "session_id": session_id,
+                "session_object_id": id(session),
+                "exception_type": type(exception).__name__ if exception else None,
+                "pytest_nodeid": self.context().get("pytest_nodeid"),
+                "pytest_phase": self.context().get("pytest_phase"),
             }
         )
         return session_id
@@ -518,7 +872,13 @@ class Collector:
                     session_id = active.session_event(session, __name)
                     token = active.push_session_context(session_id)
                     try:
-                        return await __original(session, *args, **kwargs)
+                        result = await __original(session, *args, **kwargs)
+                    except BaseException as exc:
+                        active.session_event_completed(session, __name, False, exc)
+                        raise
+                    else:
+                        active.session_event_completed(session, __name, True)
+                        return result
                     finally:
                         _CONTEXT.reset(token)
 
@@ -538,7 +898,13 @@ class Collector:
                     session_id = active.session_event(session, __name)
                     token = active.push_session_context(session_id)
                     try:
-                        return __original(session, *args, **kwargs)
+                        result = __original(session, *args, **kwargs)
+                    except BaseException as exc:
+                        active.session_event_completed(session, __name, False, exc)
+                        raise
+                    else:
+                        active.session_event_completed(session, __name, True)
+                        return result
                     finally:
                         _CONTEXT.reset(token)
 
@@ -575,7 +941,13 @@ class Collector:
                 session_id = active.session_event(session, __name)
                 token = active.push_session_context(session_id)
                 try:
-                    return __original(session, *args, **kwargs)
+                    result = __original(session, *args, **kwargs)
+                except BaseException as exc:
+                    active.session_event_completed(session, __name, False, exc)
+                    raise
+                else:
+                    active.session_event_completed(session, __name, True)
+                    return result
                 finally:
                     _CONTEXT.reset(token)
 
@@ -620,8 +992,16 @@ class Collector:
         if connection_id is not None:
             self._record_snapshot(record, connection_id)
         connection = self.connections.get(connection_id) if connection_id else None
+        dbapi_object_id = id(actual_dbapi) if actual_dbapi is not None else None
+        driver_object_id = self._driver_id(actual_dbapi)
+        generation = self._active_generation(connection_id, dbapi_object_id, driver_object_id)
+        finalizer_timestamp = _timestamp()
+        if generation is not None:
+            generation["finalizer_timestamp"] = finalizer_timestamp
+        owner_sync_id = generation.get("owner_sync_session_id") if generation else None
+        owner_async_id = generation.get("owner_async_session_id") if generation else None
+        session = self.sessions.get(owner_async_id or owner_sync_id) if generation else None
         last_session_id = connection.get("last_known_session_id") if connection else None
-        session = self.sessions.get(last_session_id) if last_session_id else None
         weak_target = None
         if fairy is not None:
             fairy_object_id = id(fairy)
@@ -638,7 +1018,7 @@ class Collector:
         detach = (record is None or is_gc_cleanup) if is_async else record is None
         event_record: dict[str, Any] = {
             "finalizer_sequence": self.next_sequence(),
-            "timestamp": _timestamp(),
+            "timestamp": finalizer_timestamp,
             "run_label": self.run_label,
             "pytest_nodeid": self.context().get("pytest_nodeid"),
             "pytest_phase": self.context().get("pytest_phase"),
@@ -646,8 +1026,8 @@ class Collector:
             "fairy_object_id": fairy_object_id,
             "connection_record_id": connection_id,
             "connection_record_object_id": id(record) if record is not None else None,
-            "dbapi_connection_object_id": id(actual_dbapi) if actual_dbapi is not None else None,
-            "driver_connection_object_id": self._driver_id(actual_dbapi),
+            "dbapi_connection_object_id": dbapi_object_id,
+            "driver_connection_object_id": driver_object_id,
             "connection_record_info": (
                 connection.get("connection_record_info") if connection else {}
             ),
@@ -665,27 +1045,32 @@ class Collector:
             "asyncio_safe": not is_gc_cleanup if is_async else True,
             "detach_state": "GC_CLEANUP" if is_gc_cleanup else "EXPLICIT_FINALIZE",
             "terminate_only": detach,
-            "explicit_close_seen": (
-                bool(connection.get("explicit_close_seen")) if connection else False
-            ),
-            "checkin_seen": bool(connection.get("checkin_seen")) if connection else False,
-            "checkout_stack": connection.get("checkout_stack", []) if connection else [],
+            "explicit_close_seen": bool(
+                generation.get("close_completed_at") or generation.get("context_exit_completed_at")
+            )
+            if generation
+            else False,
+            "checkin_seen": bool(generation.get("checkin_seen")) if generation else False,
+            "checkout_stack": generation.get("checkout_stack", []) if generation else [],
+            "checkout_generation_id": generation.get("checkout_generation_id")
+            if generation
+            else None,
+            "checkout_generation_key": generation.get("generation_key", {}) if generation else {},
+            "checkout_generation": generation,
+            "owner_session_id": generation.get("owner_session_id") if generation else None,
+            "owner_async_session_id": owner_async_id,
+            "owner_sync_session_id": owner_sync_id,
+            "owner_attribution_status": self.generation_owner_status(generation),
+            "lifecycle_final_state": self._generation_final_state(generation),
             "session_creation_stack": session.get("creation_stack", []) if session else [],
             "last_session_operation": (
-                session.get("last_operation")
-                if session
-                else connection.get("last_session_operation")
-                if connection
-                else None
+                generation.get("last_database_operation") if generation else None
             ),
             "last_database_statement_fingerprint": (
-                session.get("last_database_statement_fingerprint")
-                if session and session.get("last_database_statement_fingerprint") is not None
-                else connection.get("last_database_statement_fingerprint")
-                if connection
-                else None
+                generation.get("last_database_operation") if generation else None
             ),
             "last_known_session_id": last_session_id,
+            "last_known_session_id_authoritative": False,
             "finalizer_call_stack": _stack(0),
             "warning_will_be_emitted": warning,
             "warning_message": self._warning_message(actual_dbapi, pool)
@@ -817,6 +1202,9 @@ class Collector:
             return
         self.persisted = True
         self.pool_end = self.pool_state()
+        for generation in self.checkout_generations.values():
+            generation["lifecycle_final_state"] = self._generation_final_state(generation)
+            generation["owner_attribution_status"] = self.generation_owner_status(generation)
         (self.output_root / "finalizer-events.json").write_text(
             json.dumps(self.finalizer_events, indent=2, sort_keys=True), encoding="utf-8"
         )
@@ -829,6 +1217,21 @@ class Collector:
         (self.output_root / "warning-observations.json").write_text(
             json.dumps(self.warning_observations, indent=2, sort_keys=True), encoding="utf-8"
         )
+        with gzip.open(
+            self.output_root / "checkout-generations.jsonl.gz", "wt", encoding="utf-8"
+        ) as handle:
+            for generation in self.checkout_generations.values():
+                handle.write(json.dumps(generation, ensure_ascii=False, sort_keys=True) + "\n")
+        with gzip.open(
+            self.output_root / "session-generations.jsonl.gz", "wt", encoding="utf-8"
+        ) as handle:
+            for session in self.sessions.values():
+                handle.write(json.dumps(session, ensure_ascii=False, sort_keys=True) + "\n")
+        with gzip.open(
+            self.output_root / "finalizer-events.jsonl.gz", "wt", encoding="utf-8"
+        ) as handle:
+            for event_record in self.finalizer_events:
+                handle.write(json.dumps(event_record, ensure_ascii=False, sort_keys=True) + "\n")
         (self.output_root / "run-summary.json").write_text(
             json.dumps(
                 {
@@ -846,6 +1249,17 @@ class Collector:
                         }
                     ),
                     "session_record_count": len(self.sessions),
+                    "checkout_generation_count": len(self.checkout_generations),
+                    "active_checkout_generation_count": sum(
+                        1 for item in self.checkout_generations.values() if item.get("active")
+                    ),
+                    "unreturned_generation_ids": [
+                        item["checkout_generation_id"]
+                        for item in self.checkout_generations.values()
+                        if item.get("active") and not item.get("checkin_seen")
+                    ],
+                    "object_id_reuse_detected_count": self.object_id_reuse_detected_count,
+                    "object_id_reuse_events": self.object_id_reuse_events,
                     "pool_start": self.pool_start,
                     "pool_end": self.pool_end,
                     "pool_max_checked_out": self.pool_max_checked_out,
