@@ -10,23 +10,41 @@ V0_2_TOTAL_SLICES=5
 FRONTEND_IN_V0_2=true
 V0_2_BACKEND_ONLY=false
 V0_2_USER_TRIAL_RELEASE=true
+V0_2_RELEASE_CLASS=ENGINEERING_TRIAL
+V0_2_REAL_BUSINESS_DEPLOYMENT=false
+V0_2_REAL_BUSINESS_DATA_REQUIRED=false
+V0_2_BUSINESS_SOURCE_OWNER_REQUIRED=false
+V0_2_FORMAL_BUSINESS_ATTESTATION_REQUIRED=false
+V0_2_IMMUTABLE_ATTESTATION_HASH_REQUIRED=false
 ```
 
-V0.2 turns the completed V0.1 forecast engine into a small, directly usable product trial.
+V0.2 turns the completed V0.1 forecast engine into a small, directly usable
+engineering trial. It is not a production business deployment and does not
+claim real-business accuracy, representativeness, ownership, or operational
+readiness.
 
 The release must close one complete user-visible loop:
 
 ```text
 create a forecast
 → inspect the daily curve and peak metrics
-→ import approved actual-harvest data
+→ import a versioned trial dataset
 → bind point-in-time actual labels
 → compare forecast versus actual
 → inspect quality metrics and a naive baseline
 → export the result
 ```
 
-V0.2 is complete only when this flow works in a browser without requiring the trial user to operate the CLI.
+V0.2 is complete only when this flow works in a browser without requiring the
+trial user to operate the CLI. The dataset used for this engineering loop may
+be deterministic synthetic, CI-seeded, manually prepared, or otherwise
+non-sensitive trial data, provided that it is versioned and reproducible.
+
+Engineering-trial acceptance proves that the product chain, data contracts,
+database behavior, browser workflow, deterministic calculations, metrics, and
+baseline comparison operate together. It does not prove production forecast
+accuracy, business representativeness, formal data ownership, business-data
+approval, production-system integration, or commercial launch readiness.
 
 ## 2. Frozen version boundary
 
@@ -409,23 +427,35 @@ COMPLEX_FRONTEND_ADMIN=false
 
 Issue #99 remains paused for V0.2.
 
-## 10. Real-data acceptance requirement
+## 10. Engineering-trial dataset boundary and deferred business evidence
 
-V0.2 must use at least one approved historical dataset.
+V0.2 requires a deterministic trial dataset for engineering acceptance. It
+does not require an approved real-business historical dataset.
 
 ```text
-ONE_APPROVED_HISTORICAL_DATASET=true
-ONE_COMPLETE_SEASON_PREFERRED=true
+V0_2_TRIAL_DATASET_REQUIRED=true
+V0_2_TRIAL_DATASET_MAY_BE_SYNTHETIC=true
+V0_2_TRIAL_DATASET_MUST_BE_VERSIONED=true
+V0_2_TRIAL_DATASET_MUST_BE_DETERMINISTIC=true
+V0_2_TRIAL_DATASET_MUST_NOT_BE_PRESENTED_AS_PRODUCTION_EVIDENCE=true
+REAL_BUSINESS_DATA_ACCEPTANCE_DEFERRED=true
+REAL_BUSINESS_DATA_ACCEPTANCE_TARGET=BUSINESS_PILOT_OR_V0_3
+Q2D_DESIGN_ONLY=true
+Q2D_ATTESTATION_NOT_A_V0_2_RELEASE_GATE=true
 ```
 
-The final report must state:
+Trial data may be deterministic fixtures, CI seed data, structurally valid
+synthetic historical data, a manually prepared trial dataset, or a
+non-sensitive demonstration dataset. It may prove import, point-in-time
+snapshot, historical backtest, metrics, baseline comparison, PostgreSQL
+persistence, browser behavior, and deterministic replay. It must not be
+described as production evidence.
 
-- covered farms, varieties, seasons, and dates;
-- missing-data proportion;
-- excluded records and reasons;
-- which metrics are not representative because of insufficient coverage.
-
-A narrow dataset must not be presented as global forecast accuracy.
+Business source ownership, formal attestation, immutable attestation hashes,
+governed source registration, and measurement-boundary approval are deferred
+to the business pilot or V0.3. Q2D remains a design-only future governance
+contract and cannot add a V0.2 release gate without an explicit version-plan
+amendment.
 
 ## 11. Release acceptance gate
 
@@ -444,7 +474,6 @@ HISTORICAL_BACKTEST_REPRODUCIBLE=true
 LEAKAGE_AUDIT_PASSED=true
 QUALITY_METRICS_COMPLETE=true
 NAIVE_BASELINE_COMPARISON_COMPLETE=true
-REAL_DATA_ACCEPTANCE_COMPLETE=true
 POSTGRESQL_E2E_PASSED=true
 FRONTEND_E2E_PASSED=true
 BROWSER_FORECAST_FLOW_PASSED=true
