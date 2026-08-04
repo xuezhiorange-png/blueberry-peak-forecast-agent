@@ -2413,7 +2413,7 @@ jobs:
           --health-retries 10
     env:
       APP_ENV: test
-      ISOLATED_JOB_NAME: sqlalchemy-connection-provenance-evidence
+      ISOLATED_JOB_NAME: sqlalchemy_prov
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
       POSTGRES_USER: blueberry_app
