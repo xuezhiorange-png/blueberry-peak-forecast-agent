@@ -1,0 +1,476 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V0.3-S1 Acceptance Record",
+  "description": "Fail-closed S1 gate and independent-review record. The root S1 slice is required and cannot be NOT_APPLICABLE.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "package_id",
+    "slice",
+    "contract_version",
+    "status",
+    "gates",
+    "independent_review",
+    "derived_status"
+  ],
+  "properties": {
+    "package_id": { "type": "string", "minLength": 1 },
+    "slice": { "const": "V0.3-S1" },
+    "contract_version": { "type": "string", "minLength": 1 },
+    "status": { "$ref": "#/$defs/fourState" },
+    "gates": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/gate" },
+      "allOf": [
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-Q2C-TARGET" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-SOURCE-AUTHORITY" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-SOURCE-COHORT" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-PHYSICAL-MEANING" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-UNIT-AND-TIME-BASIS" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-CANONICAL-GRAIN" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-VISIBILITY" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-REVISION-WINNER" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-INCLUSION-EXCLUSION" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-MISSING-CORRECTION-CANCELLATION" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-SPLIT-POLICY" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-METRIC-CONTRACT" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-MINIMUM-COVERAGE" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-DATA-QUALITY-THRESHOLDS" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-DATA-CUSTODY" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-HOLDOUT-FEASIBILITY" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-INDEPENDENT-REVIEW" } ] },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "independent_review": { "$ref": "#/$defs/independentReview" },
+    "derived_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all_required_gates_pass", "all_conditional_gates_resolved", "s1_accepted"],
+      "properties": {
+        "all_required_gates_pass": { "type": "boolean" },
+        "all_conditional_gates_resolved": { "type": "boolean" },
+        "s1_accepted": { "type": "boolean" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "not": {
+        "properties": { "status": { "const": "NOT_APPLICABLE" } },
+        "required": ["status"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "PASS" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "independent_review": {
+            "properties": {
+              "reviewer": { "$ref": "#/$defs/realReviewer" },
+              "reviewed_at": { "$ref": "#/$defs/completedReviewDateTime" },
+              "review_result": { "const": "ACCEPTED" }
+            },
+            "required": ["reviewer", "reviewed_at", "review_result"]
+          },
+          "derived_status": {
+            "properties": {
+              "all_required_gates_pass": { "const": true },
+              "all_conditional_gates_resolved": { "const": true },
+              "s1_accepted": { "const": true }
+            },
+            "required": ["all_required_gates_pass", "all_conditional_gates_resolved", "s1_accepted"]
+          },
+          "gates": {
+            "allOf": [
+              { "$ref": "#/$defs/passGate/S1-Q2C-TARGET" },
+              { "$ref": "#/$defs/passGate/S1-SOURCE-AUTHORITY" },
+              { "$ref": "#/$defs/passGate/S1-SOURCE-COHORT" },
+              { "$ref": "#/$defs/passGate/S1-PHYSICAL-MEANING" },
+              { "$ref": "#/$defs/passGate/S1-UNIT-AND-TIME-BASIS" },
+              { "$ref": "#/$defs/passGate/S1-CANONICAL-GRAIN" },
+              { "$ref": "#/$defs/passGate/S1-VISIBILITY" },
+              { "$ref": "#/$defs/passGate/S1-REVISION-WINNER" },
+              { "$ref": "#/$defs/passGate/S1-INCLUSION-EXCLUSION" },
+              { "$ref": "#/$defs/passGate/S1-MISSING-CORRECTION-CANCELLATION" },
+              { "$ref": "#/$defs/passGate/S1-SPLIT-POLICY" },
+              { "$ref": "#/$defs/passGate/S1-METRIC-CONTRACT" },
+              { "$ref": "#/$defs/passGate/S1-MINIMUM-COVERAGE" },
+              { "$ref": "#/$defs/passGate/S1-DATA-QUALITY-THRESHOLDS" },
+              { "$ref": "#/$defs/passGate/S1-DATA-CUSTODY" },
+              { "$ref": "#/$defs/passGate/S1-HOLDOUT-FEASIBILITY" },
+              { "$ref": "#/$defs/passGate/S1-INDEPENDENT-REVIEW" }
+            ]
+          }
+        },
+        "required": ["gates", "independent_review", "derived_status"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "FAIL" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "derived_status": {
+            "properties": {
+              "all_required_gates_pass": { "const": false },
+              "s1_accepted": { "const": false }
+            },
+            "required": ["all_required_gates_pass", "s1_accepted"]
+          },
+          "gates": {
+            "contains": {
+              "properties": { "status": { "const": "FAIL" } },
+              "required": ["status"]
+            },
+            "minContains": 1
+          }
+        },
+        "required": ["gates", "derived_status"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "BLOCKED" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "derived_status": {
+            "properties": {
+              "all_required_gates_pass": { "const": false },
+              "s1_accepted": { "const": false }
+            },
+            "required": ["all_required_gates_pass", "s1_accepted"]
+          },
+          "gates": {
+            "contains": {
+              "properties": { "status": { "const": "BLOCKED" } },
+              "required": ["status"]
+            },
+            "minContains": 1
+          }
+        },
+        "required": ["gates", "derived_status"]
+      }
+    }
+  ],
+  "$defs": {
+    "fourState": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "BLOCKED", "NOT_APPLICABLE"]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "blockedArtifactStatus": {
+      "type": "string",
+      "pattern": "^BLOCKED_[A-Z0-9_]+$"
+    },
+    "artifactHashOrStatus": {
+      "anyOf": [
+        { "$ref": "#/$defs/sha256" },
+        { "$ref": "#/$defs/blockedArtifactStatus" }
+      ]
+    },
+    "realReviewer": {
+      "allOf": [
+        { "type": "string", "minLength": 1 },
+        { "not": { "const": "PENDING_INDEPENDENT_REVIEW" } }
+      ]
+    },
+    "completedReviewDateTime": {
+      "allOf": [
+        {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+        },
+        {
+          "not": {
+            "const": "PENDING_INDEPENDENT_REVIEW"
+          }
+        }
+      ]
+    },
+    "reviewerOrPending": {
+      "anyOf": [
+        { "$ref": "#/$defs/realReviewer" },
+        { "const": "PENDING_INDEPENDENT_REVIEW" }
+      ]
+    },
+    "reviewDateTimeOrPending": {
+      "oneOf": [
+        { "$ref": "#/$defs/completedReviewDateTime" },
+        { "const": "PENDING_INDEPENDENT_REVIEW" }
+      ]
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "gate_class",
+        "required_or_conditional",
+        "owner_role",
+        "authoritative_artifact",
+        "artifact_identity",
+        "artifact_hash_or_status",
+        "metric_contract_version",
+        "acceptance_threshold_source",
+        "acceptance_threshold",
+        "allowed_not_applicable_condition",
+        "status",
+        "block_reason",
+        "reviewer_role",
+        "reviewer",
+        "reviewed_at",
+        "notes"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "enum": [
+            "S1-Q2C-TARGET",
+            "S1-SOURCE-AUTHORITY",
+            "S1-SOURCE-COHORT",
+            "S1-PHYSICAL-MEANING",
+            "S1-UNIT-AND-TIME-BASIS",
+            "S1-CANONICAL-GRAIN",
+            "S1-VISIBILITY",
+            "S1-REVISION-WINNER",
+            "S1-INCLUSION-EXCLUSION",
+            "S1-MISSING-CORRECTION-CANCELLATION",
+            "S1-SPLIT-POLICY",
+            "S1-METRIC-CONTRACT",
+            "S1-MINIMUM-COVERAGE",
+            "S1-DATA-QUALITY-THRESHOLDS",
+            "S1-DATA-CUSTODY",
+            "S1-HOLDOUT-FEASIBILITY",
+            "S1-INDEPENDENT-REVIEW"
+          ]
+        },
+        "gate_class": { "type": "string", "minLength": 1 },
+        "required_or_conditional": { "type": "string", "enum": ["required", "conditional"] },
+        "owner_role": { "type": "string", "minLength": 1 },
+        "authoritative_artifact": { "type": "string", "minLength": 1 },
+        "artifact_identity": { "type": "string", "minLength": 1 },
+        "artifact_hash_or_status": { "$ref": "#/$defs/artifactHashOrStatus" },
+        "metric_contract_version": { "type": "string", "minLength": 1 },
+        "acceptance_threshold_source": { "type": "string", "minLength": 1 },
+        "acceptance_threshold": { "type": "string", "minLength": 1 },
+        "allowed_not_applicable_condition": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/fourState" },
+        "block_reason": { "type": "string", "minLength": 1 },
+        "reviewer_role": { "type": "string", "minLength": 1 },
+        "reviewer": { "$ref": "#/$defs/reviewerOrPending" },
+        "reviewed_at": { "$ref": "#/$defs/reviewDateTimeOrPending" },
+        "notes": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "PASS" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "artifact_hash_or_status": { "$ref": "#/$defs/sha256" },
+              "block_reason": { "const": "NONE" },
+              "reviewer": { "$ref": "#/$defs/realReviewer" },
+              "reviewed_at": { "$ref": "#/$defs/completedReviewDateTime" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "FAIL" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "artifact_hash_or_status": { "$ref": "#/$defs/sha256" },
+              "block_reason": { "not": { "const": "NONE" } },
+              "reviewer": { "$ref": "#/$defs/realReviewer" },
+              "reviewed_at": { "$ref": "#/$defs/completedReviewDateTime" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "BLOCKED" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "artifact_hash_or_status": { "$ref": "#/$defs/artifactHashOrStatus" },
+              "block_reason": { "not": { "const": "NONE" } }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "NOT_APPLICABLE" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "required_or_conditional": { "const": "conditional" },
+              "allowed_not_applicable_condition": { "not": { "const": "NEVER" } },
+              "artifact_hash_or_status": { "$ref": "#/$defs/sha256" },
+              "block_reason": { "const": "NOT_APPLICABLE" },
+              "reviewer": { "$ref": "#/$defs/realReviewer" },
+              "reviewed_at": { "$ref": "#/$defs/completedReviewDateTime" }
+            }
+          }
+        }
+      ]
+    },
+    "independentReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_role", "reviewer", "reviewed_at", "review_result", "review_notes"],
+      "properties": {
+        "reviewer_role": { "type": "string", "minLength": 1 },
+        "reviewer": { "$ref": "#/$defs/reviewerOrPending" },
+        "reviewed_at": { "$ref": "#/$defs/reviewDateTimeOrPending" },
+        "review_result": { "type": "string", "enum": ["NOT_STARTED", "ACCEPTED", "CHANGES_REQUIRED", "BLOCKED"] },
+        "review_notes": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "review_result": { "const": "ACCEPTED" } }, "required": ["review_result"] },
+          "then": {
+            "properties": {
+              "reviewer": { "$ref": "#/$defs/realReviewer" },
+              "reviewed_at": { "$ref": "#/$defs/completedReviewDateTime" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "review_result": { "const": "NOT_STARTED" } }, "required": ["review_result"] },
+          "then": {
+            "properties": {
+              "reviewer": { "const": "PENDING_INDEPENDENT_REVIEW" },
+              "reviewed_at": { "const": "PENDING_INDEPENDENT_REVIEW" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "review_result": { "enum": ["CHANGES_REQUIRED", "BLOCKED"] } },
+            "required": ["review_result"]
+          },
+          "then": {
+            "properties": {
+              "reviewer": { "$ref": "#/$defs/realReviewer" },
+              "reviewed_at": { "$ref": "#/$defs/completedReviewDateTime" }
+            }
+          }
+        }
+      ]
+    },
+    "gateWithId": {
+      "S1-Q2C-TARGET": { "properties": { "gate_id": { "const": "S1-Q2C-TARGET" } }, "required": ["gate_id"] },
+      "S1-SOURCE-AUTHORITY": { "properties": { "gate_id": { "const": "S1-SOURCE-AUTHORITY" } }, "required": ["gate_id"] },
+      "S1-SOURCE-COHORT": { "properties": { "gate_id": { "const": "S1-SOURCE-COHORT" } }, "required": ["gate_id"] },
+      "S1-PHYSICAL-MEANING": { "properties": { "gate_id": { "const": "S1-PHYSICAL-MEANING" } }, "required": ["gate_id"] },
+      "S1-UNIT-AND-TIME-BASIS": { "properties": { "gate_id": { "const": "S1-UNIT-AND-TIME-BASIS" } }, "required": ["gate_id"] },
+      "S1-CANONICAL-GRAIN": { "properties": { "gate_id": { "const": "S1-CANONICAL-GRAIN" } }, "required": ["gate_id"] },
+      "S1-VISIBILITY": { "properties": { "gate_id": { "const": "S1-VISIBILITY" } }, "required": ["gate_id"] },
+      "S1-REVISION-WINNER": { "properties": { "gate_id": { "const": "S1-REVISION-WINNER" } }, "required": ["gate_id"] },
+      "S1-INCLUSION-EXCLUSION": { "properties": { "gate_id": { "const": "S1-INCLUSION-EXCLUSION" } }, "required": ["gate_id"] },
+      "S1-MISSING-CORRECTION-CANCELLATION": { "properties": { "gate_id": { "const": "S1-MISSING-CORRECTION-CANCELLATION" } }, "required": ["gate_id"] },
+      "S1-SPLIT-POLICY": { "properties": { "gate_id": { "const": "S1-SPLIT-POLICY" } }, "required": ["gate_id"] },
+      "S1-METRIC-CONTRACT": { "properties": { "gate_id": { "const": "S1-METRIC-CONTRACT" } }, "required": ["gate_id"] },
+      "S1-MINIMUM-COVERAGE": { "properties": { "gate_id": { "const": "S1-MINIMUM-COVERAGE" } }, "required": ["gate_id"] },
+      "S1-DATA-QUALITY-THRESHOLDS": { "properties": { "gate_id": { "const": "S1-DATA-QUALITY-THRESHOLDS" } }, "required": ["gate_id"] },
+      "S1-DATA-CUSTODY": { "properties": { "gate_id": { "const": "S1-DATA-CUSTODY" } }, "required": ["gate_id"] },
+      "S1-HOLDOUT-FEASIBILITY": { "properties": { "gate_id": { "const": "S1-HOLDOUT-FEASIBILITY" } }, "required": ["gate_id"] },
+      "S1-INDEPENDENT-REVIEW": { "properties": { "gate_id": { "const": "S1-INDEPENDENT-REVIEW" } }, "required": ["gate_id"] }
+    },
+    "passGate": {
+      "S1-Q2C-TARGET": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-Q2C-TARGET" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-SOURCE-AUTHORITY": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-SOURCE-AUTHORITY" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-SOURCE-COHORT": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-SOURCE-COHORT" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-PHYSICAL-MEANING": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-PHYSICAL-MEANING" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-UNIT-AND-TIME-BASIS": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-UNIT-AND-TIME-BASIS" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-CANONICAL-GRAIN": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-CANONICAL-GRAIN" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-VISIBILITY": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-VISIBILITY" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-REVISION-WINNER": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-REVISION-WINNER" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-INCLUSION-EXCLUSION": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-INCLUSION-EXCLUSION" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-MISSING-CORRECTION-CANCELLATION": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-MISSING-CORRECTION-CANCELLATION" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-SPLIT-POLICY": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-SPLIT-POLICY" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-METRIC-CONTRACT": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-METRIC-CONTRACT" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-MINIMUM-COVERAGE": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-MINIMUM-COVERAGE" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-DATA-QUALITY-THRESHOLDS": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-DATA-QUALITY-THRESHOLDS" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-DATA-CUSTODY": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-DATA-CUSTODY" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-HOLDOUT-FEASIBILITY": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-HOLDOUT-FEASIBILITY" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 },
+      "S1-INDEPENDENT-REVIEW": { "contains": { "allOf": [ { "$ref": "#/$defs/gateWithId/S1-INDEPENDENT-REVIEW" }, { "properties": { "status": { "const": "PASS" }, "required_or_conditional": { "const": "required" } }, "required": ["status", "required_or_conditional"] } ] }, "minContains": 1, "maxContains": 1 }
+    }
+  }
+}
