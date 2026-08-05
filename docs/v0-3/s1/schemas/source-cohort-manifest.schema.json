@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V0.3-S1 Source Cohort Manifest",
+  "description": "Aggregate source cohort identity and custody shape. Raw rows and private locations are out of scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "cohort_id",
+    "source_system",
+    "source_dataset",
+    "source_version",
+    "source_snapshot_reference",
+    "source_owner_role",
+    "attestation_hash",
+    "schema_hash",
+    "mapping_policy_version",
+    "visibility_policy_version",
+    "inclusion_policy_version",
+    "revision_policy_version",
+    "split_policy_version",
+    "grain",
+    "plot_supported",
+    "coverage_summary",
+    "exclusion_summary",
+    "source_object_identity_hashes",
+    "custody_record_hash",
+    "manifest_hash"
+  ],
+  "properties": {
+    "manifest_version": { "type": "string", "minLength": 1 },
+    "cohort_id": { "type": "string", "minLength": 1 },
+    "source_system": { "type": "string", "minLength": 1 },
+    "source_dataset": { "type": "string", "minLength": 1 },
+    "source_version": { "type": "string", "minLength": 1 },
+    "source_snapshot_reference": { "type": "string", "minLength": 1 },
+    "source_owner_role": { "type": "string", "minLength": 1 },
+    "attestation_hash": { "$ref": "#/$defs/sha256" },
+    "schema_hash": { "$ref": "#/$defs/sha256" },
+    "mapping_policy_version": { "type": "string", "minLength": 1 },
+    "visibility_policy_version": { "type": "string", "minLength": 1 },
+    "inclusion_policy_version": { "type": "string", "minLength": 1 },
+    "revision_policy_version": { "type": "string", "minLength": 1 },
+    "split_policy_version": { "type": "string", "minLength": 1 },
+    "grain": { "const": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE" },
+    "plot_supported": { "const": false },
+    "coverage_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season_count",
+        "farm_count",
+        "subfarm_count",
+        "variety_count",
+        "first_harvest_business_date",
+        "last_harvest_business_date",
+        "source_row_count",
+        "accepted_row_count",
+        "missing_day_count",
+        "missing_data_proportion",
+        "representativeness_limit"
+      ],
+      "properties": {
+        "season_count": { "type": "integer", "minimum": 0 },
+        "farm_count": { "type": "integer", "minimum": 0 },
+        "subfarm_count": { "type": "integer", "minimum": 0 },
+        "variety_count": { "type": "integer", "minimum": 0 },
+        "first_harvest_business_date": { "type": "string", "format": "date" },
+        "last_harvest_business_date": { "type": "string", "format": "date" },
+        "source_row_count": { "type": "integer", "minimum": 0 },
+        "accepted_row_count": { "type": "integer", "minimum": 0 },
+        "missing_day_count": { "type": "integer", "minimum": 0 },
+        "missing_data_proportion": { "type": "string", "pattern": "^(0|1|0\\.[0-9]+|1\\.0+)$" },
+        "representativeness_limit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "exclusion_summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reason_code", "row_count", "description"],
+        "properties": {
+          "reason_code": { "type": "string", "minLength": 1 },
+          "row_count": { "type": "integer", "minimum": 0 },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "source_object_identity_hashes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "object_role",
+          "immutable_reference",
+          "object_sha256",
+          "schema_sha256",
+          "mapping_sha256",
+          "row_count"
+        ],
+        "properties": {
+          "object_role": {
+            "type": "string",
+            "enum": ["RAW_SOURCE", "VERSIONED_CLEANED", "MAPPING_MANIFEST", "SPLIT_MANIFEST", "SNAPSHOT_MANIFEST"]
+          },
+          "immutable_reference": { "type": "string", "minLength": 1 },
+          "object_sha256": { "$ref": "#/$defs/sha256" },
+          "schema_sha256": { "$ref": "#/$defs/sha256" },
+          "mapping_sha256": { "$ref": "#/$defs/sha256" },
+          "row_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "custody_record_hash": { "$ref": "#/$defs/sha256" },
+    "manifest_hash": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
