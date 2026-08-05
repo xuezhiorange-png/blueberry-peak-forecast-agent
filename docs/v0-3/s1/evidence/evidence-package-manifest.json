@@ -1,0 +1,55 @@
+{
+  "manifest_id": "V0_3_S1_BUSINESS_ACCEPTANCE_EVIDENCE_MANIFEST",
+  "manifest_status": "BLOCKED",
+  "baseline_main_sha": "1f704e68be2165a69350a26153dee131df1147b5",
+  "scope": "NON_ROW_LEVEL_BUSINESS_ACCEPTANCE_METADATA_ONLY",
+  "manifest_hash_status": "NOT_ISSUED",
+  "real_business_row_level_data_read": false,
+  "real_business_row_level_data_imported": false,
+  "test_access_currently_authorized": false,
+  "external_holdout_data_access": false,
+  "records": [
+    {
+      "path": "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+      "record_type": "Q2C_PHYSICAL_ALIGNMENT",
+      "status": "BLOCKED",
+      "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-authority-evidence-status.md",
+      "record_type": "SOURCE_AUTHORITY_AND_OWNER",
+      "status": "BLOCKED",
+      "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
+      "record_type": "SOURCE_COHORT_IDENTITY",
+      "status": "BLOCKED",
+      "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
+      "record_type": "DATA_CUSTODY",
+      "status": "BLOCKED",
+      "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+      "record_type": "COVERAGE_AND_DATA_QUALITY_THRESHOLDS",
+      "status": "BLOCKED",
+      "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/holdout-feasibility-evidence-status.md",
+      "record_type": "EXTERNAL_HOLDOUT_FEASIBILITY",
+      "status": "NOT_EVALUATED",
+      "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+      "record_type": "S1_ACCEPTANCE_RECORD",
+      "status": "BLOCKED",
+      "record_hash_status": "NOT_ISSUED"
+    }
+  ]
+}
