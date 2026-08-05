@@ -27,7 +27,7 @@ Every machine-readable field in this plan is interpreted in exactly one of the
 following namespaces:
 
 ```text
-MACHINE_READABLE_FIELD_SEMANTICS_VERSION=v0.3-plan-r3-v1
+MACHINE_READABLE_FIELD_SEMANTICS_VERSION=v0.3-plan-r4-v1
 CURRENT_FIELD_NAMESPACE=CURRENT_<STATE_NAME>
 FUTURE_ACCEPTANCE_REQUIREMENT_NAMESPACE=<SLICE>_ACCEPTANCE_REQUIRES_<CONDITION>
 SCHEMA_INVARIANT_NAMESPACE=<INVARIANT_NAME>
@@ -43,6 +43,18 @@ rules that must remain true and do not prove slice completion. A
 after the condition and its independent authorization are satisfied. An
 unprefixed `..._COMPLETE=true` or `..._FROZEN=true` field is never used to
 claim completion of future work.
+
+The following are schema-audit invariants, not acceptance results. Source-field
+names in this plan are invariants describing a future artifact schema; they do
+not assert that the source artifact currently exists or has passed review.
+
+```text
+CURRENT_STATE_FIELDS_NAMESPACED=true
+SOURCE_SCHEMA_FIELDS_ARE_INVARIANTS_NOT_CURRENT_ACCEPTANCE_RESULTS=true
+UNCLASSIFIED_MACHINE_READABLE_FIELD_COUNT=0
+AMBIGUOUS_FALSE_STATE_COUNT=0
+NAKED_FUTURE_COMPLETE_TRUE_COUNT=0
+```
 
 V0.3 is a business pilot and model-validation phase. It is not a claim that
 the current model has already passed real-business accuracy validation. The
@@ -96,9 +108,9 @@ V0.2 added the engineering trial loop, including:
 
 ```text
 V0_2_RELEASE_CLASS=ENGINEERING_TRIAL
-REAL_BUSINESS_ACCURACY_VALIDATED=false
-REAL_BUSINESS_REPRESENTATIVENESS_VALIDATED=false
-FORMAL_BUSINESS_ACCEPTANCE_COMPLETE=false
+CURRENT_REAL_BUSINESS_ACCURACY_VALIDATED=false
+CURRENT_REAL_BUSINESS_REPRESENTATIVENESS_VALIDATED=false
+CURRENT_FORMAL_BUSINESS_ACCEPTANCE_COMPLETE=false
 ```
 
 V0.2 proves that the engineering trial product loop can run with a versioned,
@@ -294,8 +306,8 @@ rules are independently reviewed. S1 acceptance does not authorize S2 data
 ingestion or model work.
 
 ```text
-S1_FINAL_CLEAN_ROWSET_FROZEN=false
-S1_MATERIALIZED_DATASET_HASH_AVAILABLE=false
+CURRENT_S1_FINAL_CLEAN_ROWSET_FROZEN=false
+CURRENT_S1_MATERIALIZED_DATASET_HASH_AVAILABLE=false
 ```
 
 ### 4.2 V0.3-S2 — Real historical data ingestion, governance, and materialized dataset freeze
@@ -447,6 +459,9 @@ CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 CURRENT_P50_SEMANTICS_VERIFIED=false
 CURRENT_P80_SEMANTICS_VERIFIED=false
 CURRENT_P90_SEMANTICS_VERIFIED=false
+CURRENT_P50_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P90_SEMANTICS_STATUS=NOT_VERIFIED
 CURRENT_P80_COVERAGE_COMPUTABLE=false
 CURRENT_P90_COVERAGE_COMPUTABLE=false
 CURRENT_BASELINE_P80_COMPUTABLE=false
@@ -467,6 +482,8 @@ S3_ACCEPTANCE_REQUIRES_DAILY_ROWSET_COMPLETENESS_VERIFIED=true
 S3_ACCEPTANCE_REQUIRES_P50_SEMANTICS_VERIFIED=true
 S3_ACCEPTANCE_REQUIRES_P80_SEMANTICS_VERIFIED=true
 S3_ACCEPTANCE_REQUIRES_P90_SEMANTICS_VERIFIED=true
+S3_ACCEPTANCE_REQUIRES_P80_COVERAGE_P50_P80_P90_SEMANTICS_VERIFIED=true
+S3_ACCEPTANCE_REQUIRES_P90_COVERAGE_P50_P80_P90_SEMANTICS_VERIFIED=true
 S3_ACCEPTANCE_REQUIRES_QUANTILE_SEMANTICS_VERIFICATION=true
 S3_ACCEPTANCE_REQUIRES_BASELINE_QUANTILE_BOUNDARY=true
 CURRENT_P80_COVERAGE_RELEASE_ELIGIBLE=false
@@ -482,93 +499,169 @@ No coverage pass, baseline-quantile superiority claim, or quantile-calibration
 pass may be published before the corresponding authority gates pass.
 
 The following computability mapping is bound to the named S3 sections and
-reason codes. Where the current S3 contract does not yet name a separate
-reason code for a spread field, the plan records that unresolved contract
-boundary instead of inventing one.
+formal reason codes. Coverage is not computable unless all three quantile
+semantics, the Q2C physical alignment decision, exact actual/forecast pairing,
+and a complete daily row set are accepted. The mapping distinguishes an upper
+quantile spread from a prediction-interval width: `P80-P50` and `P90-P50` are
+upper spreads, so no lower-bound reason is valid for either field.
 
 ```text
 metric_id=P80_COVERAGE
-computability_prerequisite=P80_SEMANTICS_VERIFIED_AND_EXACT_ACTUAL_PAIRED
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=P50_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P80_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P90_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;Q2C_PHYSICAL_ALIGNMENT_ACCEPTED=true;ACTUAL_FORECAST_PAIRING_ACCEPTED=true;COMPLETE_DAILY_ROW_SET_AVAILABLE=true
 unverified_status=NOT_VERIFIED
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=QUANTILE_SEMANTICS_NOT_VERIFIED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§10_and_§11.3
+release_eligible=false
 
 metric_id=P90_COVERAGE
-computability_prerequisite=P90_SEMANTICS_VERIFIED_AND_EXACT_ACTUAL_PAIRED
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=P50_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P80_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P90_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;Q2C_PHYSICAL_ALIGNMENT_ACCEPTED=true;ACTUAL_FORECAST_PAIRING_ACCEPTED=true;COMPLETE_DAILY_ROW_SET_AVAILABLE=true
 unverified_status=NOT_VERIFIED
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=QUANTILE_SEMANTICS_NOT_VERIFIED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§10_and_§11.3
+release_eligible=false
 
 metric_id=P80_UPPER_QUANTILE_SPREAD
-computability_prerequisite=P80_SEMANTICS_VERIFIED_AND_P50_SEMANTICS_VERIFIED
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=P50_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P80_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE
 unverified_status=NOT_VERIFIED
-not_computable_status=NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE
+not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=QUANTILE_SEMANTICS_NOT_VERIFIED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§10
-REASON_CODE_STATUS=UNRESOLVED_PENDING_S1_OR_S3_CONTRACT_AMENDMENT
+release_eligible=false
 
 metric_id=P90_UPPER_QUANTILE_SPREAD
-computability_prerequisite=P90_SEMANTICS_VERIFIED_AND_P50_SEMANTICS_VERIFIED
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=P50_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P90_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE
 unverified_status=NOT_VERIFIED
-not_computable_status=NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE
+not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=QUANTILE_SEMANTICS_NOT_VERIFIED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§10
-REASON_CODE_STATUS=UNRESOLVED_PENDING_S1_OR_S3_CONTRACT_AMENDMENT
+release_eligible=false
 
 metric_id=BASELINE_P80
-computability_prerequisite=BASELINE_QUANTILE_DISTRIBUTION_DEFINED
-unverified_status=NOT_VERIFIED
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_COMPUTABLE
+computability_prerequisites=BASELINE_QUANTILE_DISTRIBUTION_DEFINED
+unverified_status=NOT_COMPUTABLE
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§15_and_§16.4
+release_eligible=false
 
 metric_id=BASELINE_P90
-computability_prerequisite=BASELINE_QUANTILE_DISTRIBUTION_DEFINED
-unverified_status=NOT_VERIFIED
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_COMPUTABLE
+computability_prerequisites=BASELINE_QUANTILE_DISTRIBUTION_DEFINED
+unverified_status=NOT_COMPUTABLE
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§15_and_§16.4
+release_eligible=false
 
 metric_id=QUANTILE_CALIBRATION
-computability_prerequisite=P50_P80_P90_SEMANTICS_VERIFIED_AND_COVERAGE_DENOMINATORS_VALID
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=P50_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P80_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;P90_SEMANTICS_STATUS=VERIFIED_TRUE_UPPER_QUANTILE;VALID_COVERAGE_DENOMINATORS=true
 unverified_status=NOT_VERIFIED
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=QUANTILE_SEMANTICS_NOT_VERIFIED
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§10_and_§10.1
+release_eligible=false
 
 metric_id=SINGLE_DAY_PEAK
-computability_prerequisite=COMPLETE_DAILY_ROW_SET_AVAILABLE
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=COMPLETE_DAILY_ROW_SET_AVAILABLE=true
 unverified_status=NOT_VERIFIED
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§2_and_§9.1
+release_eligible=false
 
 metric_id=SUSTAINED_7DAY_PEAK
-computability_prerequisite=COMPLETE_DAILY_ROW_SET_AND_COMPLETE_7DAY_WINDOW
-unverified_status=NOT_VERIFIED
-not_computable_status=NOT_COMPUTABLE
-authoritative_reason_code=NO_COMPLETE_7DAY_WINDOW
-authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
-authority_section=§2_and_§9.2
-
-metric_id=ROLLING_COMPARISON
-computability_prerequisite=COMPLETE_DAILY_ROW_SET_AND_COMPARISON_GROUP_READINESS
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=COMPLETE_DAILY_ROW_SET_AVAILABLE=true;COMPLETE_7DAY_WINDOW_AVAILABLE=true
 unverified_status=NOT_VERIFIED
 not_computable_status=NOT_COMPUTABLE
 authoritative_reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
+authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
+authority_section=§2_and_§9.2
+release_eligible=false
+
+metric_id=ROLLING_COMPARISON
+current_computability=NOT_COMPUTABLE
+current_semantics_status=NOT_VERIFIED
+computability_prerequisites=COMPLETE_DAILY_ROW_SET_AVAILABLE=true;COMPARISON_GROUP_READINESS=true
+unverified_status=NOT_VERIFIED
+not_computable_status=NOT_COMPUTABLE
+authoritative_reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+reason_code_status=VERIFIED_FORMAL_S3_CONTRACT
 authority_path=docs/forecast-quality/s3-quality-metrics-contract.md
 authority_section=§2_and_§16.5
+release_eligible=false
 ```
+
+The upper-spread definitions are explicit and do not request a lower quantile:
+
+```text
+P80_UPPER_QUANTILE_SPREAD=P80-P50
+P90_UPPER_QUANTILE_SPREAD=P90-P50
+P80_UPPER_QUANTILE_SPREAD_IS_PREDICTION_INTERVAL_WIDTH=false
+P90_UPPER_QUANTILE_SPREAD_IS_PREDICTION_INTERVAL_WIDTH=false
+P80_UPPER_QUANTILE_SPREAD_REASON_CODE_STATUS=VERIFIED_FORMAL_S3_CONTRACT
+P90_UPPER_QUANTILE_SPREAD_REASON_CODE_STATUS=VERIFIED_FORMAL_S3_CONTRACT
+LOWER_QUANTILE_BOUND_REQUIRED=false
+AUTHORITY_REASON_CODES_VERIFIED=true
+UNRESOLVED_REASON_CODE_COUNT=0
+```
+
+The S3 contract uses `NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE` only for a
+prediction-interval-width result. It is not a valid status or reason for either
+upper spread. The formal upper-spread fail-closed reason before quantile
+semantics verification is `QUANTILE_SEMANTICS_NOT_VERIFIED`.
+
+The sustained-seven-day metric has two ordered, mutually exclusive blockers:
+
+```text
+SUSTAINED_7DAY_STAGE_ORDER=ROWSET_AVAILABILITY_THEN_WINDOW_AVAILABILITY
+SUSTAINED_7DAY_STAGE_2_ALLOWED_ONLY_AFTER_STAGE_1_PASS=true
+SUSTAINED_7DAY_STAGE_REASONS_MUTUALLY_EXCLUSIVE=true
+WHEN_COMPLETE_DAILY_ROW_SET_UNAVAILABLE:
+SUSTAINED_7DAY_PEAK_STATUS=NOT_COMPUTABLE
+SUSTAINED_7DAY_PEAK_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+WHEN_COMPLETE_DAILY_ROW_SET_AVAILABLE_BUT_NO_COMPLETE_7DAY_WINDOW:
+SUSTAINED_7DAY_PEAK_STATUS=NOT_COMPUTABLE
+SUSTAINED_7DAY_PEAK_REASON_CODE=NO_COMPLETE_7DAY_WINDOW
+```
+
+The second condition is evaluated only after the first condition has passed; a
+missing row set is never relabeled as a missing seven-day window.
 
 #### Backtest rules
 
@@ -1142,7 +1235,6 @@ MAX_RUNS_PER_CANDIDATE=4
 actual_run_count <= planned_run_count
 actual_run_count <= MAX_RUNS_PER_CANDIDATE
 actual_validation_evaluation_count <= MAX_VALIDATION_EVALUATIONS
-CURRENT_VALIDATION_BUDGET_STATUS=BLOCKED
 ```
 
 The reconciliation artifact must contain:
@@ -1194,7 +1286,7 @@ retain the incumbent:
 ```text
 WHEN_VALIDATION_BUDGET_EXHAUSTED_WITHOUT_ELIGIBLE_CANDIDATE:
 VALIDATION_SELECTION_STATUS=NO_ACCEPTABLE_CANDIDATE
-CURRENT_TEST_ACCESS_AUTHORIZED=false
+TEST_ACCESS_MAY_BE_AUTHORIZED=false
 INCUMBENT_MODEL_RETAINED=true
 ```
 
@@ -1227,7 +1319,9 @@ In the current planning document no TEST authorization has been issued:
 
 ```text
 CURRENT_TEST_ACCESS_PREREQUISITES_FROZEN=false
+CURRENT_TEST_ACCESS_AUTHORIZED=false
 TEST_ACCESS_CURRENTLY_AUTHORIZED=false
+TEST_ACCESS_CURRENTLY_AUTHORIZED_IS_DERIVED_ALIAS=true
 S4_D_ACCEPTANCE_MAY_REQUEST_SEPARATE_TEST_AUTHORIZATION=true
 PLANNING_DOCUMENT_DOES_NOT_AUTHORIZE_TEST_ACCESS=true
 TEST_ACCESS_AUTHORIZATION_ID=NOT_ISSUED
@@ -1250,9 +1344,18 @@ CURRENT_EXPERIMENT_PLAN_FROZEN=false
 CURRENT_CANDIDATE_REGISTRY_FROZEN=false
 CURRENT_MODEL_ACCEPTANCE_THRESHOLD_FREEZE_COMPLETE=false
 CURRENT_ALL_VALIDATION_TRIALS_RECORDED=false
-CURRENT_EXPERIMENT_BUDGET_NOT_EXCEEDED=false
-CURRENT_VALIDATION_BUDGET_STATUS=BLOCKED
+CURRENT_EXPERIMENT_BUDGET_EVALUATION_STATUS=NOT_EVALUATED
+EXPERIMENT_BUDGET_EVALUATION_STATUS_ENUM=NOT_EVALUATED|PASS|FAIL|BLOCKED
+S4_D_ACCEPTANCE_REQUIRES_EXPERIMENT_BUDGET_EVALUATION_STATUS_PASS=true
 ```
+
+`CURRENT_EXPERIMENT_BUDGET_EVALUATION_STATUS` is the single current state for
+the budget evaluation. `NOT_EVALUATED` means that no accepted reconciliation
+artifact exists yet; `PASS` means the mechanically counted ledger is within the
+frozen limits; `FAIL` means a limit was exceeded; and `BLOCKED` means the
+reconciliation cannot yet establish a valid result. None of these states grants
+TEST access. The Completion Gate Registry row
+`MODEL_VALIDATION_BUDGET_COMPLIANT` must remain consistent with this field.
 
 S3 uses TRAIN and VALIDATION for diagnosis and candidate direction. S4 may
 request separate TEST authorization only after the candidate and thresholds
@@ -1287,7 +1390,7 @@ Only a reviewed S1 feasibility artifact may set the conditional gate to
 ALLOWED_NOT_APPLICABLE_GATE=MODEL_EXTERNAL_HOLDOUT_FEASIBILITY
 S1_HOLDOUT_FEASIBILITY_DECISION=NOT_FEASIBLE
 S1_HOLDOUT_FEASIBILITY_ARTIFACT_HASH=PENDING_EXECUTION
-S1_HOLDOUT_DECISION_REVIEWED=false
+CURRENT_S1_HOLDOUT_DECISION_REVIEWED=false
 ```
 
 #### Candidate artifact requirements
@@ -1593,12 +1696,23 @@ Rows use `NOT_YET_EXECUTED` unless the conditional external-holdout row uses
 `FEASIBILITY_NOT_YET_ACCEPTED`. No future hash, run ID, reviewer name, or review
 timestamp is invented here.
 
+The registry audit classifies each row by whether its acceptance threshold is
+structural or quantitative. Structural gates have executable conditions now;
+only quantitative gates wait for a separately frozen numeric threshold before
+TEST authorization.
+
+```text
+STRUCTURAL_GATE_COUNT=38
+STRUCTURAL_GATE_PENDING_NUMERIC_THRESHOLD_COUNT=0
+QUANTITATIVE_GATE_PENDING_PRE_TEST_THRESHOLD_COUNT=4
+```
+
 | gate_id | gate_class | required_or_conditional | owner_role | authoritative_artifact | artifact_identity_source | artifact_hash_or_run_id | metric_contract_version | acceptance_threshold_source | acceptance_threshold | allowed_not_applicable_condition | status | block_reason | reviewer_role | reviewer | reviewed_at | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `SLICE_S1_COMPLETE` | technical | required | `v0_3_plan_owner` | S1 acceptance package | governed manifest | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | S1 acceptance criteria | `SLICE_ACCEPTANCE_CRITERIA_SATISFIED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `SLICE_S2_COMPLETE` | technical | required | `data_governance_owner` | S2 acceptance package | materialized dataset manifest | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | S2 acceptance criteria | `SLICE_ACCEPTANCE_CRITERIA_SATISFIED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `SLICE_S3_COMPLETE` | model | required | `model_validation_owner` | S3 backtest package | backtest manifest | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | S3 acceptance criteria | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `SLICE_S4_COMPLETE` | model | required | `model_selection_owner` | S4 selection package | experiment manifest | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | S4 acceptance criteria | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `SLICE_S3_COMPLETE` | model | required | `model_validation_owner` | S3 backtest package | backtest manifest | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | S3 acceptance criteria | `ALL_S3_REQUIRED_GATES_PASS` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `SLICE_S4_COMPLETE` | model | required | `model_selection_owner` | S4 selection package | experiment manifest | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | S4 acceptance criteria | `ALL_S4_REQUIRED_GATES_PASS` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `SLICE_S5_COMPLETE` | technical | required | `pilot_operations_owner` | S5 operations package | pilot operations manifest | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | S5 acceptance criteria | `SLICE_ACCEPTANCE_CRITERIA_SATISFIED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `SLICE_S6_COMPLETE` | business | required | `business_pilot_owner` | S6 pilot acceptance package | pilot acceptance manifest | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | S6 acceptance criteria | `SLICE_ACCEPTANCE_CRITERIA_SATISFIED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `TECH_UNIQUE_ALEMBIC_HEAD` | technical | required | `engineering_release_owner` | migration head output | exact revision and run ID | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | one expected head | `UNIQUE_HEAD_COUNT_EQUALS_1` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
@@ -1608,27 +1722,27 @@ timestamp is invented here.
 | `TECH_DETERMINISTIC_REPLAY` | technical | required | `engineering_test_owner` | replay evidence package | replay manifest hash | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | same input produces same identity | `SAME_INPUT_PRODUCES_SAME_CANONICAL_IDENTITY` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `TECH_LINEAGE_INTEGRITY` | technical | required | `data_governance_owner` | lineage and correction ledger | lineage manifest hash | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | every accepted row has lineage | `EVERY_ACCEPTED_ROW_HAS_LINEAGE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `TECH_RELEASE_MANIFEST_INTEGRITY` | technical | required | `engineering_release_owner` | pilot release manifest | manifest hash | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | code, data, model, and parameter identities bind | `ALL_REQUIRED_IDENTITIES_HASH_VERIFIED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_Q2C_PHYSICAL_ALIGNMENT` | model | required | `data_governance_owner` | Q2C decision package | attestation and decision hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | one closed Q2C outcome | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_MATERIALIZED_DATASET_ACCEPTED` | model | required | `data_governance_owner` | S2 materialized dataset package | dataset manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | final rowset and lineage accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_MATERIALIZED_DATASET_FREEZE_COMPLETE` | model | required | `data_governance_owner` | S2 freeze record | materialized dataset hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | freeze and immutability accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_FINAL_SPLIT_MANIFEST_ACCEPTED` | model | required | `model_validation_owner` | final split manifest | split manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | TRAIN/VALIDATION/TEST accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_FINAL_DATASET_HASHES_ACCEPTED` | model | required | `data_governance_owner` | final dataset hash package | dataset hash set | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | all materialized hashes accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_Q2C_PHYSICAL_ALIGNMENT` | model | required | `data_governance_owner` | Q2C decision package | attestation and decision hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | one closed Q2C outcome | `EXACTLY_ONE_Q2C_TARGET_PATH_ACCEPTED_AND_FORECAST_LABEL_PHYSICAL_BOUNDARIES_MATCH` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_MATERIALIZED_DATASET_ACCEPTED` | model | required | `data_governance_owner` | S2 materialized dataset package | dataset manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | final rowset and lineage accepted | `FINAL_ROWSET_MANIFEST_LINEAGE_EXCLUSION_CORRECTION_AND_CONTENT_HASH_ALL_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_MATERIALIZED_DATASET_FREEZE_COMPLETE` | model | required | `data_governance_owner` | S2 freeze record | materialized dataset hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | freeze and immutability accepted | `FINAL_MATERIALIZED_DATASET_IDENTITY_AND_CONTENT_HASH_FROZEN` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_FINAL_SPLIT_MANIFEST_ACCEPTED` | model | required | `model_validation_owner` | final split manifest | split manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | TRAIN/VALIDATION/TEST accepted | `TRAIN_VALIDATION_TEST_IDENTITIES_HASHES_AND_NON_OVERLAP_RULES_ALL_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_FINAL_DATASET_HASHES_ACCEPTED` | model | required | `data_governance_owner` | final dataset hash package | dataset hash set | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | all materialized hashes accepted | `ALL_TRAIN_VALIDATION_TEST_AND_HOLDOUT_HASH_IDENTITIES_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `MODEL_DATA_QUALITY_GATE` | model | required | `data_quality_owner` | quality and exclusion report | quality report hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | quality thresholds and exclusions accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_POINT_IN_TIME_REPLAY` | model | required | `model_validation_owner` | historical replay package | replay manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | input and label cutoffs bind | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_FUTURE_LEAKAGE_AUDIT` | model | required | `model_validation_owner` | leakage audit package | audit run ID and hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | no future input or label leakage | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_CURRENT_BASELINE_COMPLETE` | model | required | `model_validation_owner` | current-model baseline package | baseline manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | all required horizons and groups reported | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_ERROR_DIAGNOSIS_COMPLETE` | model | required | `model_validation_owner` | attribution matrix package | attribution manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | methods and evidence are complete | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_EXPERIMENT_PLAN_FROZEN` | model | required | `model_selection_owner` | experiment plan and candidate registry | plan hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | finite budget and candidates frozen | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_VALIDATION_BUDGET_COMPLIANT` | model | required | `model_selection_owner` | validation ledger | ledger hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | budget not exceeded and all trials recorded | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_CANDIDATE_REGISTRY_FROZEN` | model | required | `model_selection_owner` | candidate registry | registry hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | complete finite registry accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_TEST_ACCESS_SEPARATELY_AUTHORIZED` | model | required | `model_selection_owner` | independent TEST authorization record | authorization ID and dataset hashes | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | authorized head, split, candidate, and metric version match | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_LOCKED_TEST_COMPLETE` | model | required | `model_validation_owner` | locked TEST result | test run ID and result hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | only locked candidate and incumbent evaluated | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_POINT_IN_TIME_REPLAY` | model | required | `model_validation_owner` | historical replay package | replay manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | input and label cutoffs bind | `INPUT_AND_LABEL_CUTOFF_WINNER_LINEAGE_AND_REVISION_RULES_REPLAY_DETERMINISTICALLY` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_FUTURE_LEAKAGE_AUDIT` | model | required | `model_validation_owner` | leakage audit package | audit run ID and hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | no future input or label leakage | `NO_FUTURE_INPUT_OR_LABEL_LEAKAGE_IN_AUDIT` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_CURRENT_BASELINE_COMPLETE` | model | required | `model_validation_owner` | current-model baseline package | baseline manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | all required horizons and groups reported | `ALL_REQUIRED_HORIZONS_GROUPS_AND_METRICS_REPORTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_ERROR_DIAGNOSIS_COMPLETE` | model | required | `model_validation_owner` | attribution matrix package | attribution manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | methods and evidence are complete | `ALL_REQUIRED_ATTRIBUTION_METHODS_AND_EVIDENCE_RECORDED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_EXPERIMENT_PLAN_FROZEN` | model | required | `model_selection_owner` | experiment plan and candidate registry | plan hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | finite budget and candidates frozen | `FINITE_CANDIDATE_LIST_AND_BUDGET_FROZEN` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_VALIDATION_BUDGET_COMPLIANT` | model | required | `model_selection_owner` | validation ledger | ledger hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | budget not exceeded and all trials recorded | `ALL_STARTED_EVALUATIONS_RECORDED_LEDGER_RECONCILIATION_PASS_AND_NO_LIMIT_EXCEEDED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_CANDIDATE_REGISTRY_FROZEN` | model | required | `model_selection_owner` | candidate registry | registry hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | complete finite registry accepted | `FINITE_CANDIDATE_REGISTRY_AND_IDENTITIES_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_TEST_ACCESS_SEPARATELY_AUTHORIZED` | model | required | `model_selection_owner` | independent TEST authorization record | authorization ID and dataset hashes | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | authorized head, split, candidate, and metric version match | `AUTHORIZATION_ID_PR_HEAD_DATASET_SPLIT_CANDIDATE_INCUMBENT_METRIC_AND_THRESHOLD_ALL_MATCH` | none | `BLOCKED` | `NOT_YET_AUTHORIZED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_LOCKED_TEST_COMPLETE` | model | required | `model_validation_owner` | locked TEST result | test run ID and result hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | only locked candidate and incumbent evaluated | `LOCKED_CANDIDATE_AND_INCUMBENT_EVALUATED_ON_AUTHORIZED_TEST` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `MODEL_PRIMARY_METRIC_ACCEPTED` | model | required | `model_validation_owner` | metric result package | metric manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | primary metric and status pass | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `MODEL_REGRESSION_GUARDRAILS_ACCEPTED` | model | required | `model_validation_owner` | regression guardrail package | guardrail manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | every guardrail passes or is explicitly not computable | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `MODEL_QUANTILE_CALIBRATION_ACCEPTED` | model | required | `model_validation_owner` | quantile calibration package | calibration manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | P80/P90 semantics and coverage accepted | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_PILOT_ARTIFACT_MANIFEST_COMPLETE` | model | required | `model_selection_owner` | pilot model release manifest | model manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | code, data, parameter, artifact, and rollback identities bind | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_APPROVED_FOR_PILOT` | model | required | `model_selection_owner` | pilot approval record | approval record ID and manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | locked TEST and rollback evidence pass | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
-| `MODEL_EXTERNAL_HOLDOUT_FEASIBILITY` | model | conditional | `model_validation_owner` | S1 holdout feasibility decision | feasibility artifact hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | feasibility decision reviewed | `PENDING_PRE_TEST_THRESHOLD_FREEZE` | only after reviewed `NOT_FEASIBLE` decision | `BLOCKED` | `FEASIBILITY_NOT_YET_ACCEPTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_PILOT_ARTIFACT_MANIFEST_COMPLETE` | model | required | `model_selection_owner` | pilot model release manifest | model manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | code, data, parameter, artifact, and rollback identities bind | `CODE_DATA_FEATURE_PARAMETER_MODEL_AND_ROLLBACK_IDENTITIES_PRESENT_AND_HASH_VERIFIED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_APPROVED_FOR_PILOT` | model | required | `model_selection_owner` | pilot approval record | approval record ID and manifest hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | locked TEST and rollback evidence pass | `ALL_REQUIRED_PRECEDING_MODEL_GATES_PASS_AND_PILOT_APPROVAL_RECORD_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
+| `MODEL_EXTERNAL_HOLDOUT_FEASIBILITY` | model | conditional | `model_validation_owner` | S1 holdout feasibility decision | feasibility artifact hash | `PENDING_EXECUTION` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | feasibility decision reviewed | `FEASIBILITY_DECISION_REVIEWED` | only after reviewed `NOT_FEASIBLE` decision | `BLOCKED` | `FEASIBILITY_NOT_YET_ACCEPTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `BUSINESS_DATA_OWNER_ACCEPTANCE` | business | required | `business_data_owner_role` | governed source acceptance | attestation hash | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | formal source-owner acceptance | `FORMAL_SOURCE_OWNER_ACCEPTANCE_PRESENT` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `BUSINESS_TARGET_CONTRACT_ACCEPTANCE` | business | required | `business_owner_role` | target semantic acceptance | Q2C decision hash | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | physical target boundary accepted | `PHYSICAL_TARGET_BOUNDARY_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
 | `BUSINESS_PILOT_SCOPE_ACCEPTANCE` | business | required | `business_pilot_owner` | pilot scope record | scope manifest hash | `PENDING_EXECUTION` | `NOT_APPLICABLE_FOR_THIS_GATE` | farms, varieties, cadence, and purpose accepted | `PILOT_SCOPE_FIELDS_AND_PURPOSE_ACCEPTED` | none | `BLOCKED` | `NOT_YET_EXECUTED` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | `PENDING_EXECUTION` |
@@ -1646,6 +1760,8 @@ status table: every row already contains its current `status`, `block_reason`,
 COMPLETION_GATE_REGISTRY_IS_AUTHORITATIVE=true
 LEGACY_COMPLETION_BOOLEANS_ARE_DERIVED_ONLY=true
 LEGACY_COMPLETION_BOOLEANS_MAY_OVERRIDE_GATE_STATUS=false
+COMPLETION_GATE_CURRENT_STATUS_MUST_MATCH_CURRENT_STATE_FIELDS=true
+UNEXECUTED_REQUIRED_GATES_MUST_REMAIN_BLOCKED=true
 ```
 
 `NOT_APPLICABLE` is permitted only for
@@ -1999,6 +2115,10 @@ R2-ATTRIBUTION-001=ADDRESSED
 R2-GATE-001=ADDRESSED
 R2-STATE-001=ADDRESSED
 R2-MINOR-001=ADDRESSED
+
+R3-METRIC-001=ADDRESSED
+R3-GATE-001=ADDRESSED
+R3-STATE-001=ADDRESSED
 ```
 
 ## 12. Current authorization status
@@ -2030,7 +2150,6 @@ PRODUCTION_CODE_CHANGE_AUTHORIZED=false
 MIGRATION_AUTHORIZED=false
 FRONTEND_CHANGE_AUTHORIZED=false
 MULTI_FACTORY_ROUTING_AUTHORIZED=false
-TEST_ACCESS_CURRENTLY_AUTHORIZED=false
 PLANNING_DOCUMENT_DOES_NOT_AUTHORIZE_TEST_ACCESS=true
 ```
 
