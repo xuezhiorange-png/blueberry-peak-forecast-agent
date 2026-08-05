@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "V0.3-S1 Source Cohort Manifest",
-  "description": "Aggregate source cohort identity and custody shape. Raw rows and private locations are out of scope.",
+  "description": "Aggregate source-cohort identity and custody shape. Raw rows and downstream materialized rowsets are out of scope.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,10 +10,19 @@
     "source_system",
     "source_dataset",
     "source_version",
+    "schema_version",
+    "schema_hash",
     "source_snapshot_reference",
     "source_owner_role",
+    "attestation_version",
+    "attestation_effective_at",
+    "effective_time",
+    "attestation_status",
     "attestation_hash",
-    "schema_hash",
+    "coverage_scope",
+    "revision_policy",
+    "withdrawal_and_void_policy",
+    "known_exclusions",
     "mapping_policy_version",
     "visibility_policy_version",
     "inclusion_policy_version",
@@ -21,11 +30,17 @@
     "split_policy_version",
     "grain",
     "plot_supported",
-    "coverage_summary",
-    "exclusion_summary",
     "source_object_identity_hashes",
-    "custody_record_hash",
-    "manifest_hash"
+    "declared_source_row_count",
+    "declared_source_byte_count",
+    "custody_record",
+    "manifest_hash",
+    "S1_FREEZES_SOURCE_COHORT_IDENTITY",
+    "S1_FREEZES_FINAL_CLEAN_ROWSET",
+    "S2_OWNS_FINAL_MATERIALIZED_ROWSET",
+    "SOURCE_ROW_COUNT_IS_DECLARED_SOURCE_METADATA",
+    "SOURCE_ROW_COUNT_IS_NOT_S2_ACCEPTED_ROW_COUNT",
+    "SOURCE_ROW_COUNT_DOES_NOT_FREEZE_FINAL_ROWSET"
   ],
   "properties": {
     "manifest_version": { "type": "string", "minLength": 1 },
@@ -33,10 +48,76 @@
     "source_system": { "type": "string", "minLength": 1 },
     "source_dataset": { "type": "string", "minLength": 1 },
     "source_version": { "type": "string", "minLength": 1 },
-    "source_snapshot_reference": { "type": "string", "minLength": 1 },
-    "source_owner_role": { "type": "string", "minLength": 1 },
-    "attestation_hash": { "$ref": "#/$defs/sha256" },
+    "schema_version": { "type": "string", "minLength": 1 },
     "schema_hash": { "$ref": "#/$defs/sha256" },
+    "source_snapshot_reference": { "$ref": "#/$defs/opaqueReference" },
+    "source_owner_role": { "type": "string", "minLength": 1 },
+    "attestation_version": { "type": "string", "minLength": 1 },
+    "attestation_effective_at": { "type": "string", "format": "date-time" },
+    "effective_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effective_from", "effective_to_or_open_ended", "authority_timezone"],
+      "properties": {
+        "effective_from": { "type": "string", "format": "date-time" },
+        "effective_to_or_open_ended": { "type": "string", "minLength": 1 },
+        "authority_timezone": { "type": "string", "minLength": 1 }
+      }
+    },
+    "attestation_status": {
+      "type": "string",
+      "enum": ["ATTESTED", "DRAFT", "SUPERSEDED", "REVOKED", "UNSIGNED", "INFERRED"]
+    },
+    "attestation_hash": { "$ref": "#/$defs/sha256" },
+    "coverage_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seasons",
+        "farms",
+        "subfarms",
+        "varieties",
+        "business_date_start",
+        "business_date_end",
+        "known_scope_boundaries"
+      ],
+      "properties": {
+        "seasons": { "$ref": "#/$defs/stringArray" },
+        "farms": { "$ref": "#/$defs/stringArray" },
+        "subfarms": { "$ref": "#/$defs/stringArray" },
+        "varieties": { "$ref": "#/$defs/stringArray" },
+        "business_date_start": { "type": "string", "format": "date" },
+        "business_date_end": { "type": "string", "format": "date" },
+        "known_scope_boundaries": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "revision_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision_policy_version", "revision_policy_identity", "winner_and_lineage_rule"],
+      "properties": {
+        "revision_policy_version": { "type": "string", "minLength": 1 },
+        "revision_policy_identity": { "$ref": "#/$defs/opaqueReference" },
+        "winner_and_lineage_rule": { "type": "string", "minLength": 1 }
+      }
+    },
+    "withdrawal_and_void_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "withdrawal_policy_version",
+        "void_propagation_policy_version",
+        "withdrawal_status_rule",
+        "void_status_rule"
+      ],
+      "properties": {
+        "withdrawal_policy_version": { "type": "string", "minLength": 1 },
+        "void_propagation_policy_version": { "type": "string", "minLength": 1 },
+        "withdrawal_status_rule": { "type": "string", "minLength": 1 },
+        "void_status_rule": { "type": "string", "minLength": 1 }
+      }
+    },
+    "known_exclusions": { "$ref": "#/$defs/stringArray" },
     "mapping_policy_version": { "type": "string", "minLength": 1 },
     "visibility_policy_version": { "type": "string", "minLength": 1 },
     "inclusion_policy_version": { "type": "string", "minLength": 1 },
@@ -44,83 +125,102 @@
     "split_policy_version": { "type": "string", "minLength": 1 },
     "grain": { "const": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE" },
     "plot_supported": { "const": false },
-    "coverage_summary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "season_count",
-        "farm_count",
-        "subfarm_count",
-        "variety_count",
-        "first_harvest_business_date",
-        "last_harvest_business_date",
-        "source_row_count",
-        "accepted_row_count",
-        "missing_day_count",
-        "missing_data_proportion",
-        "representativeness_limit"
-      ],
-      "properties": {
-        "season_count": { "type": "integer", "minimum": 0 },
-        "farm_count": { "type": "integer", "minimum": 0 },
-        "subfarm_count": { "type": "integer", "minimum": 0 },
-        "variety_count": { "type": "integer", "minimum": 0 },
-        "first_harvest_business_date": { "type": "string", "format": "date" },
-        "last_harvest_business_date": { "type": "string", "format": "date" },
-        "source_row_count": { "type": "integer", "minimum": 0 },
-        "accepted_row_count": { "type": "integer", "minimum": 0 },
-        "missing_day_count": { "type": "integer", "minimum": 0 },
-        "missing_data_proportion": { "type": "string", "pattern": "^(0|1|0\\.[0-9]+|1\\.0+)$" },
-        "representativeness_limit": { "type": "string", "minLength": 1 }
-      }
-    },
-    "exclusion_summary": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["reason_code", "row_count", "description"],
-        "properties": {
-          "reason_code": { "type": "string", "minLength": 1 },
-          "row_count": { "type": "integer", "minimum": 0 },
-          "description": { "type": "string", "minLength": 1 }
-        }
-      }
-    },
     "source_object_identity_hashes": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "object_role",
-          "immutable_reference",
-          "object_sha256",
-          "schema_sha256",
-          "mapping_sha256",
-          "row_count"
-        ],
+        "required": ["object_role", "immutable_reference", "object_sha256", "storage_locator_hash"],
         "properties": {
           "object_role": {
             "type": "string",
-            "enum": ["RAW_SOURCE", "VERSIONED_CLEANED", "MAPPING_MANIFEST", "SPLIT_MANIFEST", "SNAPSHOT_MANIFEST"]
+            "enum": [
+              "RAW_SOURCE_AUTHORITY_REFERENCE",
+              "SOURCE_OBJECT_REFERENCE",
+              "SOURCE_SCHEMA_REFERENCE",
+              "SOURCE_MAPPING_REFERENCE"
+            ]
           },
-          "immutable_reference": { "type": "string", "minLength": 1 },
+          "immutable_reference": { "$ref": "#/$defs/opaqueReference" },
           "object_sha256": { "$ref": "#/$defs/sha256" },
-          "schema_sha256": { "$ref": "#/$defs/sha256" },
-          "mapping_sha256": { "$ref": "#/$defs/sha256" },
-          "row_count": { "type": "integer", "minimum": 0 }
+          "storage_locator_hash": { "$ref": "#/$defs/sha256OrNotApplicable" }
         }
       }
     },
-    "custody_record_hash": { "$ref": "#/$defs/sha256" },
-    "manifest_hash": { "$ref": "#/$defs/sha256" }
+    "declared_source_row_count": { "$ref": "#/$defs/declaredCount" },
+    "declared_source_byte_count": { "$ref": "#/$defs/declaredCount" },
+    "custody_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "custody_policy_version",
+        "storage_type",
+        "access_owner_role",
+        "source_owner_role",
+        "approved_usage_purpose",
+        "least_privilege_scope",
+        "authorized_role_set",
+        "credential_reference_policy",
+        "retention_policy_version",
+        "retention_period_or_rule",
+        "withdrawal_policy_version",
+        "void_propagation_policy_version",
+        "downstream_propagation_targets",
+        "external_object_binding_hash",
+        "custody_record_hash"
+      ],
+      "properties": {
+        "custody_policy_version": { "type": "string", "minLength": 1 },
+        "storage_type": { "type": "string", "minLength": 1 },
+        "access_owner_role": { "type": "string", "minLength": 1 },
+        "source_owner_role": { "type": "string", "minLength": 1 },
+        "approved_usage_purpose": { "type": "string", "minLength": 1 },
+        "least_privilege_scope": { "type": "string", "minLength": 1 },
+        "authorized_role_set": { "$ref": "#/$defs/stringArray" },
+        "credential_reference_policy": { "type": "string", "minLength": 1 },
+        "retention_policy_version": { "type": "string", "minLength": 1 },
+        "retention_period_or_rule": { "type": "string", "minLength": 1 },
+        "withdrawal_policy_version": { "type": "string", "minLength": 1 },
+        "void_propagation_policy_version": { "type": "string", "minLength": 1 },
+        "downstream_propagation_targets": { "$ref": "#/$defs/stringArray" },
+        "external_object_binding_hash": { "$ref": "#/$defs/sha256OrNotApplicable" },
+        "custody_record_hash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "manifest_hash": { "$ref": "#/$defs/sha256" },
+    "S1_FREEZES_SOURCE_COHORT_IDENTITY": { "const": true },
+    "S1_FREEZES_FINAL_CLEAN_ROWSET": { "const": false },
+    "S2_OWNS_FINAL_MATERIALIZED_ROWSET": { "const": true },
+    "SOURCE_ROW_COUNT_IS_DECLARED_SOURCE_METADATA": { "const": true },
+    "SOURCE_ROW_COUNT_IS_NOT_S2_ACCEPTED_ROW_COUNT": { "const": true },
+    "SOURCE_ROW_COUNT_DOES_NOT_FREEZE_FINAL_ROWSET": { "const": true }
   },
   "$defs": {
     "sha256": {
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
+    },
+    "sha256OrNotApplicable": {
+      "anyOf": [
+        { "$ref": "#/$defs/sha256" },
+        { "const": "NOT_APPLICABLE" }
+      ]
+    },
+    "opaqueReference": {
+      "type": "string",
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://)[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+    },
+    "stringArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "declaredCount": {
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "const": "NOT_PROVIDED" }
+      ]
     }
   }
 }
