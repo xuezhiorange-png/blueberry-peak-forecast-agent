@@ -10,7 +10,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from backend.app.actual_harvest_import.batch_a_contracts import (
     BatchASourceIdentity,
+    SchemaCompatibilityStatus,
     validate_batch_a_identifier,
+    validate_policy_identity,
 )
 from backend.app.actual_harvest_import.enums import (
     ActualHarvestBatchSealStatus,
@@ -98,6 +100,27 @@ def _reject_datetime_for_date(value: object) -> object:
     if isinstance(value, datetime):
         raise ValueError("a datetime is not a harvest business date")
     return value
+
+
+def _validate_optional_schema_compatibility_shape(
+    *,
+    source_schema_sha256_or_null: str | None,
+    schema_compatibility_policy_id_or_null: str | None,
+    schema_compatibility_status_or_null: SchemaCompatibilityStatus | None,
+) -> None:
+    values = (
+        source_schema_sha256_or_null,
+        schema_compatibility_policy_id_or_null,
+        schema_compatibility_status_or_null,
+    )
+    if all(value is None for value in values):
+        return
+    if any(value is None for value in values):
+        raise ValueError(
+            "schema compatibility metadata must be either fully absent or fully populated"
+        )
+    if schema_compatibility_status_or_null != SchemaCompatibilityStatus.SUPPORTED:
+        raise ValueError("batch activation requires SUPPORTED schema compatibility status")
 
 
 class ActualHarvestSourceSemanticsAttestation(_BaseContractModel):
@@ -255,6 +278,9 @@ class ActualHarvestImportBatchInput(_BaseContractModel):
     source_file_hash_or_null: SHA256Hex | None = None
     raw_payload_hash: SHA256Hex
     schema_version: NonEmptyString
+    source_schema_sha256_or_null: SHA256Hex | None = None
+    schema_compatibility_policy_id_or_null: NonEmptyString | None = None
+    schema_compatibility_status_or_null: SchemaCompatibilityStatus | None = None
     mapping_policy_version: NonEmptyString
     validation_policy_version: NonEmptyString
     source_semantics_attestation: ActualHarvestSourceSemanticsAttestation
@@ -272,6 +298,19 @@ class ActualHarvestImportBatchInput(_BaseContractModel):
         field_name = getattr(info, "field_name", "source_identity")
         return validate_batch_a_identifier(value, field_name=field_name)
 
+    @field_validator("schema_compatibility_policy_id_or_null", mode="before")
+    @classmethod
+    def _validate_schema_compatibility_policy_id(
+        cls,
+        value: object,
+    ) -> str | None:
+        if value is None:
+            return None
+        return validate_policy_identity(
+            value,
+            field_name="schema_compatibility_policy_id_or_null",
+        )
+
     @field_validator("submitted_at")
     @classmethod
     def _validate_submitted_at(cls, value: datetime) -> datetime:
@@ -284,6 +323,13 @@ class ActualHarvestImportBatchInput(_BaseContractModel):
             source_dataset=self.source_dataset,
             source_version=self.source_version,
             schema_version=self.schema_version,
+        )
+        _validate_optional_schema_compatibility_shape(
+            source_schema_sha256_or_null=self.source_schema_sha256_or_null,
+            schema_compatibility_policy_id_or_null=(
+                self.schema_compatibility_policy_id_or_null
+            ),
+            schema_compatibility_status_or_null=self.schema_compatibility_status_or_null,
         )
         return self
 
@@ -313,6 +359,9 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
     source_file_hash_or_null: SHA256Hex | None
     raw_payload_hash: SHA256Hex
     schema_version: NonEmptyString
+    source_schema_sha256_or_null: SHA256Hex | None = None
+    schema_compatibility_policy_id_or_null: NonEmptyString | None = None
+    schema_compatibility_status_or_null: SchemaCompatibilityStatus | None = None
     mapping_policy_version: NonEmptyString
     validation_policy_version: NonEmptyString
     source_semantics_attestation: ActualHarvestSourceSemanticsAttestation
@@ -338,6 +387,19 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
         field_name = getattr(info, "field_name", "source_identity")
         return validate_batch_a_identifier(value, field_name=field_name)
 
+    @field_validator("schema_compatibility_policy_id_or_null", mode="before")
+    @classmethod
+    def _validate_schema_compatibility_policy_id(
+        cls,
+        value: object,
+    ) -> str | None:
+        if value is None:
+            return None
+        return validate_policy_identity(
+            value,
+            field_name="schema_compatibility_policy_id_or_null",
+        )
+
     @field_validator(
         "submitted_at",
         "import_received_at",
@@ -360,6 +422,13 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
             source_dataset=self.source_dataset,
             source_version=self.source_version,
             schema_version=self.schema_version,
+        )
+        _validate_optional_schema_compatibility_shape(
+            source_schema_sha256_or_null=self.source_schema_sha256_or_null,
+            schema_compatibility_policy_id_or_null=(
+                self.schema_compatibility_policy_id_or_null
+            ),
+            schema_compatibility_status_or_null=self.schema_compatibility_status_or_null,
         )
         return self
 
