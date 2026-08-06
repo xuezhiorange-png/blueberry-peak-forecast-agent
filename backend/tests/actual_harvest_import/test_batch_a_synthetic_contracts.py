@@ -178,9 +178,7 @@ def test_export_identity_modes_are_deterministic_and_idempotent() -> None:
     assert ledger.register(source_identity) == ExportRegistrationResult.FIRST_SEEN
     assert ledger.register(source_identity) == ExportRegistrationResult.EXACT_REPLAY
 
-    conflicting = source_claim.model_copy(
-        update={"delivery_fingerprint": "synthetic-delivery-2"}
-    )
+    conflicting = source_claim.model_copy(update={"delivery_fingerprint": "synthetic-delivery-2"})
     with pytest.raises(ConflictingExportIdentityError):
         ledger.register(resolve_export_identity(conflicting))
 
