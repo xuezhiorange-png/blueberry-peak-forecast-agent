@@ -33,7 +33,8 @@ PHYSICAL_EVENT=田间采收点首次有效扫码称重
 TARGET_QUANTITY=商品果净重
 QUANTITY_UNIT=kg
 TARE_ALREADY_DEDUCTED=true
-QUANTITY_BASIS=已扣除筐重的商品果净重
+QUANTITY_BASIS=商品果净重
+TARE_DEDUCTION_RESULT=筐重已扣除
 TARE_DEDUCTION_METHOD=NOT_PROVIDED
 ```
 
@@ -46,6 +47,8 @@ per-basket deduction value, or other field procedure is inferred.
 
 ```text
 SCALE_PRECISION=0.01 kg
+SCALE_PRECISION_BUSINESS_RULE_STATUS=CONFIRMED
+SCALE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
 DECIMAL_PLACES=2
 INTEGER_ROUNDING=false
 ROUNDING_RULE=保留两位小数，不取整
@@ -66,22 +69,30 @@ not mean that formal source evidence is complete.
 
 ```text
 BUSINESS_REPORTED_LATE_ENTRY_SCENARIO=NOT_APPLICABLE
-MISSING_DAY_RULE=当日无记录表示当日无采摘
+BUSINESS_REPORTED_NO_RECORD_INTERPRETATION=当日无记录表示当日无采摘
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+NO_RECORD_TO_ZERO_MAPPING_STATUS=BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+FORMAL_MISSING_DAY_RULE_STATUS=PENDING
 FINAL_CONFIRMATION_EVENT=扫码称重完成
 FINAL_CONFIRMATION_TIMING=IMMEDIATE
 
-POST_CONFIRMATION_MODIFICATION_ALLOWED=false
-POST_CONFIRMATION_DELETION_ALLOWED=false
-CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
-VOID_AFTER_CONFIRMATION_SUPPORTED=false
+BUSINESS_RULE_POST_CONFIRMATION_MODIFICATION_ALLOWED=false
+BUSINESS_RULE_POST_CONFIRMATION_DELETION_ALLOWED=false
+BUSINESS_RULE_CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
+BUSINESS_RULE_VOID_AFTER_CONFIRMATION_SUPPORTED=false
 ```
 
 “补录不存在” is recorded only as the current business confirmation that the
 scenario is not applicable. It is not a claim that the software technically
 cannot write a late record, that a database has no write path, that an
 administrator has no correction authority, or that a historical anomaly can
-never occur. Formal technical evidence for correction, void, revision, and
-visibility remains pending.
+never occur. Formal technical evidence for correction, void, revision,
+missing-day, and visibility remains pending. The `BUSINESS_RULE_` fields are
+business statements only, not database permissions, interface capabilities,
+administrator authority, or formal correction, void, or revision policy.
+`MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO` prevents a no-record business
+interpretation from becoming an automatic numeric zero.
 
 ## Source-snapshot metadata boundary
 
@@ -105,6 +116,9 @@ ATTESTATION_VERSION=NOT_PROVIDED
 ATTESTATION_EFFECTIVE_AT=NOT_PROVIDED
 ATTESTATION_HASH=NOT_ISSUED
 Q2C_DECISION_HASH=NOT_ISSUED
+FORMAL_CORRECTION_POLICY=NOT_PROVIDED
+FORMAL_VOID_POLICY=NOT_PROVIDED
+FORMAL_REVISION_POLICY=NOT_PROVIDED
 
 REAL_BUSINESS_ROW_LEVEL_DATA_READ=false
 REAL_BUSINESS_ROW_LEVEL_DATA_IMPORTED=false

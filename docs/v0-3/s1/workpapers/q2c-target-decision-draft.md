@@ -13,12 +13,16 @@ SOURCE_SNAPSHOT_METADATA_STATUS=PENDING
 SOURCE_SNAPSHOT_METADATA_ENTRY_MODE=MACHINE_GENERATED
 MANUAL_BUSINESS_USER_ENTRY_REQUIRED=false
 CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
+CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=BLOCKED
+CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
 CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
 CURRENT_V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
 BUSINESS_SOURCE_ATTESTATION_JSON_CREATED=false
 Q2C_DECISION_STATUS=NOT_ISSUED
 Q2C_DECISION_HASH=NOT_ISSUED
+V0_3_S2_AUTHORIZED=false
+V0_3_S2_STARTED=false
 ```
 
 This workpaper records only the business information confirmed in the current
@@ -52,12 +56,13 @@ remain subject to formal source authority and Q2C evidence.
 ```text
 PHYSICAL_EVENT=田间采收点首次有效扫码称重
 TARGET_QUANTITY=商品果净重
-QUANTITY_UNIT=kg
 TARE_ALREADY_DEDUCTED=true
-QUANTITY_BASIS=已扣除筐重的商品果净重
+TARE_DEDUCTION_RESULT=筐重已扣除
 TARE_DEDUCTION_METHOD=NOT_PROVIDED
 
 SCALE_PRECISION=0.01 kg
+SCALE_PRECISION_BUSINESS_RULE_STATUS=CONFIRMED
+SCALE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
 DECIMAL_PLACES=2
 INTEGER_ROUNDING=false
 ROUNDING_RULE=保留两位小数，不取整
@@ -67,20 +72,26 @@ SCALE_CALIBRATION_AUTHORITY=NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE
 CALIBRATION_CERTIFICATE_CUSTODY_ROLE=OUT_OF_SCOPE
 
 BUSINESS_REPORTED_LATE_ENTRY_SCENARIO=NOT_APPLICABLE
-MISSING_DAY_RULE=当日无记录表示当日无采摘
+BUSINESS_REPORTED_NO_RECORD_INTERPRETATION=当日无记录表示当日无采摘
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+NO_RECORD_TO_ZERO_MAPPING_STATUS=BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+FORMAL_MISSING_DAY_RULE_STATUS=PENDING
 FINAL_CONFIRMATION_EVENT=扫码称重完成
 FINAL_CONFIRMATION_TIMING=IMMEDIATE
-POST_CONFIRMATION_MODIFICATION_ALLOWED=false
-POST_CONFIRMATION_DELETION_ALLOWED=false
-CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
-VOID_AFTER_CONFIRMATION_SUPPORTED=false
+BUSINESS_RULE_POST_CONFIRMATION_MODIFICATION_ALLOWED=false
+BUSINESS_RULE_POST_CONFIRMATION_DELETION_ALLOWED=false
+BUSINESS_RULE_CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
+BUSINESS_RULE_VOID_AFTER_CONFIRMATION_SUPPORTED=false
 ```
 
 These inputs are confirmed business statements for this draft only. They do
 not issue a formal source attestation, scale certificate, tare method, or
 technical proof that the system can never receive a late entry or historical
-exception. Formal correction, void, revision, and source-visibility evidence
-remains pending.
+exception. Formal correction, void, revision, missing-day, and source-
+visibility evidence remains pending. The prefixed `BUSINESS_RULE_` fields are
+business statements, not database permissions, interface capabilities,
+administrator authority, or formal correction, void, or revision policy.
 
 ## Canonical evaluation grain
 
@@ -122,17 +133,21 @@ The following remain unresolved and prevent a formal Q2C decision:
 - formal source authority and attestation;
 - formal calibration certificate custody and tare-method evidence where needed;
 - formal correction, void, technical late-entry, and source-visibility rules;
+- formal missing-day and no-record completeness evidence;
 - source snapshot, schema, attestation, and decision identities or hashes;
 - aggregate coverage and data-quality evidence.
 
+These unresolved items keep the current Q2C status `BLOCKED` and the decision
+status `NOT_ISSUED`.
+
+The business post-confirmation flags are not database or interface capability
+claims. Formal policy identities remain unresolved:
+
 ```text
-CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
-Q2C_DECISION_STATUS=NOT_ISSUED
-Q2C_DECISION_HASH=NOT_ISSUED
-SOURCE_SNAPSHOT_METADATA_STATUS=PENDING
-SOURCE_SNAPSHOT_METADATA_ENTRY_MODE=MACHINE_GENERATED
-MANUAL_BUSINESS_USER_ENTRY_REQUIRED=false
-V0_3_S1_ACCEPTED=false
-V0_3_S2_AUTHORIZED=false
-V0_3_S2_STARTED=false
+FORMAL_CORRECTION_POLICY=NOT_PROVIDED
+FORMAL_VOID_POLICY=NOT_PROVIDED
+FORMAL_REVISION_POLICY=NOT_PROVIDED
+SOURCE_SNAPSHOT_REFERENCE=NOT_ISSUED
+SCHEMA_HASH=NOT_ISSUED
+ATTESTATION_HASH=NOT_ISSUED
 ```
