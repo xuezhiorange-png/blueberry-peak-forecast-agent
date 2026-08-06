@@ -1,7 +1,7 @@
 """Synthetic-only V0.3-S1 Batch A contract foundations.
 
 This module defines the shapes and fail-closed boundaries needed before a real
-source export is activated.  It deliberately does not read files, calculate a
+source export is activated. It deliberately does not read files, calculate a
 source hash, create a secret, or calculate an HMAC digest.
 """
 
@@ -26,8 +26,16 @@ class BatchAContractError(ValueError):
     """Base error for deterministic Batch A contract rejection."""
 
 
+class SchemaCompatibilityError(BatchAContractError):
+    """Raised when a schema version/hash pair is not explicitly supported."""
+
+
 class UnknownDimensionMappingError(BatchAContractError):
     """Raised when a source dimension value has no registered mapping."""
+
+
+class DimensionMappingHistoryConflictError(BatchAContractError):
+    """Raised when a newer registry changes or drops a historical mapping."""
 
 
 class UnknownChainValueError(BatchAContractError):
@@ -46,6 +54,10 @@ class DuplicateKeyIdentityError(BatchAContractError):
     """Raised when a key ID would overwrite a historical key identity."""
 
 
+class DuplicateHmacBindingIdentityError(BatchAContractError):
+    """Raised when a binding ID would overwrite historical binding metadata."""
+
+
 class HmacKeyUnavailableError(BatchAContractError):
     """Raised when a real binding would use a revoked or compromised key."""
 
@@ -54,7 +66,7 @@ def validate_batch_a_identifier(value: object, *, field_name: str) -> str:
     """Validate a non-sensitive, opaque lower-case identifier.
 
     The rule intentionally permits synthetic values and existing repository
-    values such as ``farm-system`` and ``2026-07``.  It rejects whitespace,
+    values such as ``farm-system`` and ``2026-07``. It rejects whitespace,
     URI-like values, paths, and unresolved status sentinels.
     """
 
@@ -90,7 +102,7 @@ def validate_policy_identity(value: object, *, field_name: str) -> str:
 def normalize_business_text(value: object, *, field_name: str = "business_text") -> str:
     """Apply the approved deterministic text normalization policy.
 
-    NFC and surrounding-whitespace removal are the only transformations.  The
+    NFC and surrounding-whitespace removal are the only transformations. The
     caller retains the original text separately; internal whitespace and case
     are deliberately not changed and locale inference is never attempted.
     """
@@ -118,6 +130,88 @@ class BatchASourceIdentity(BaseModel):
     def _validate_identifiers(cls, value: object, info: object) -> str:
         field_name = getattr(info, "field_name", "source_identity")
         return validate_batch_a_identifier(value, field_name=field_name)
+
+
+class SchemaCompatibilityStatus(StrEnum):
+    SUPPORTED = "SUPPORTED"
+    REJECTED = "REJECTED"
+
+
+class SchemaVersionHashBinding(BaseModel):
+    """One immutable schema-version to schema-hash binding."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=False)
+
+    schema_version: str = Field(strict=True, min_length=1, max_length=128)
+    schema_sha256: str = Field(strict=True)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: object) -> str:
+        return validate_batch_a_identifier(value, field_name="schema_version")
+
+    @field_validator("schema_sha256")
+    @classmethod
+    def _validate_schema_hash(cls, value: object) -> str:
+        return validate_sha256(value, field_name="schema_sha256")
+
+
+class SourceSchemaCompatibilityRegistry(BaseModel):
+    """Versioned closed registry for deterministic schema compatibility checks."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=False)
+
+    compatibility_policy_id: str = Field(strict=True, min_length=1, max_length=128)
+    bindings: tuple[SchemaVersionHashBinding, ...] = Field(min_length=1)
+
+    @field_validator("compatibility_policy_id")
+    @classmethod
+    def _validate_policy_id(cls, value: object) -> str:
+        return validate_policy_identity(value, field_name="compatibility_policy_id")
+
+    @model_validator(mode="after")
+    def _reject_duplicate_bindings(self) -> SourceSchemaCompatibilityRegistry:
+        seen_versions: set[str] = set()
+        for binding in self.bindings:
+            if binding.schema_version in seen_versions:
+                raise ValueError("schema compatibility registry contains duplicate schema versions")
+            seen_versions.add(binding.schema_version)
+        return self
+
+    def evaluate(
+        self,
+        *,
+        schema_version: str,
+        schema_sha256: str,
+    ) -> SchemaCompatibilityStatus:
+        validated_version = validate_batch_a_identifier(
+            schema_version,
+            field_name="schema_version",
+        )
+        validated_hash = validate_sha256(schema_sha256, field_name="schema_sha256")
+        for binding in self.bindings:
+            if binding.schema_version == validated_version:
+                if binding.schema_sha256 == validated_hash:
+                    return SchemaCompatibilityStatus.SUPPORTED
+                return SchemaCompatibilityStatus.REJECTED
+        return SchemaCompatibilityStatus.REJECTED
+
+    def assert_compatible(
+        self,
+        *,
+        schema_version: str,
+        schema_sha256: str,
+    ) -> None:
+        if (
+            self.evaluate(
+                schema_version=schema_version,
+                schema_sha256=schema_sha256,
+            )
+            != SchemaCompatibilityStatus.SUPPORTED
+        ):
+            raise SchemaCompatibilityError(
+                "schema version/hash pair is not supported by the compatibility registry"
+            )
 
 
 DimensionName = Literal["farm", "subfarm", "variety"]
@@ -159,7 +253,7 @@ class ResolvedDimensionMapping(BaseModel):
 
 
 class DimensionMappingRegistry(BaseModel):
-    """Versioned registry with explicit rejection for unknown mappings."""
+    """Versioned registry with unknown-value and history fail-closed behavior."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=False)
 
@@ -167,11 +261,15 @@ class DimensionMappingRegistry(BaseModel):
     policy_version: str = Field(strict=True, min_length=1, max_length=128)
     entries: tuple[DimensionMappingEntry, ...] = Field(min_length=1)
 
-    @field_validator("registry_id", "policy_version")
+    @field_validator("registry_id")
     @classmethod
-    def _validate_registry_identity(cls, value: object, info: object) -> str:
-        field_name = getattr(info, "field_name", "registry_identity")
-        return validate_batch_a_identifier(value, field_name=field_name)
+    def _validate_registry_id(cls, value: object) -> str:
+        return validate_batch_a_identifier(value, field_name="registry_id")
+
+    @field_validator("policy_version")
+    @classmethod
+    def _validate_policy_version(cls, value: object) -> str:
+        return validate_policy_identity(value, field_name="policy_version")
 
     @model_validator(mode="after")
     def _reject_duplicate_source_values(self) -> DimensionMappingRegistry:
@@ -196,6 +294,29 @@ class DimensionMappingRegistry(BaseModel):
         raise UnknownDimensionMappingError(
             f"no mapping registered for dimension={dimension!r}, source_text={source_text!r}"
         )
+
+    def assert_historical_compatibility(
+        self,
+        previous: DimensionMappingRegistry,
+    ) -> None:
+        current_by_source = {
+            (entry.dimension, entry.normalized_source_text): entry.canonical_id
+            for entry in self.entries
+        }
+        for previous_entry in previous.entries:
+            key = (
+                previous_entry.dimension,
+                previous_entry.normalized_source_text,
+            )
+            current_canonical_id = current_by_source.get(key)
+            if current_canonical_id is None:
+                raise DimensionMappingHistoryConflictError(
+                    "new registry dropped a historical dimension mapping"
+                )
+            if current_canonical_id != previous_entry.canonical_id:
+                raise DimensionMappingHistoryConflictError(
+                    "new registry changed a historical canonical dimension ID"
+                )
 
     def ordered_entries(self) -> tuple[DimensionMappingEntry, ...]:
         return tuple(
@@ -229,7 +350,7 @@ class ChainValueResolution(BaseModel):
 
 
 class ChainAllowedValuesRegistry(BaseModel):
-    """Explicit chain enum and explicit null policy."""
+    """Explicit versioned chain enum and explicit null policy."""
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=False)
 
@@ -240,7 +361,7 @@ class ChainAllowedValuesRegistry(BaseModel):
     @field_validator("policy_version")
     @classmethod
     def _validate_policy_version(cls, value: object) -> str:
-        return validate_batch_a_identifier(value, field_name="policy_version")
+        return validate_policy_identity(value, field_name="policy_version")
 
     @field_validator("allowed_values", mode="before")
     @classmethod
@@ -323,25 +444,20 @@ class ResolvedExportIdentity:
 
 def resolve_export_identity(claim: ExportIdentityClaim) -> ResolvedExportIdentity:
     identity = claim.source_identity
+    common_key = (
+        claim.mode.value,
+        identity.source_system,
+        identity.source_dataset,
+        identity.source_version,
+        identity.schema_version,
+    )
     key: tuple[str, ...]
     if claim.mode == ExportIdentityMode.SOURCE_PROVIDED:
         assert claim.source_export_id is not None
-        key = (
-            claim.mode.value,
-            identity.source_system,
-            identity.source_dataset,
-            claim.source_export_id,
-        )
+        key = (*common_key, claim.source_export_id)
     else:
         assert claim.raw_file_sha256 is not None
-        key = (
-            claim.mode.value,
-            identity.source_system,
-            identity.source_dataset,
-            identity.source_version,
-            identity.schema_version,
-            claim.raw_file_sha256,
-        )
+        key = (*common_key, claim.raw_file_sha256)
     return ResolvedExportIdentity(
         mode=claim.mode,
         identity_key=key,
@@ -390,17 +506,62 @@ class HmacBindingVerificationStatus(StrEnum):
     REJECTED = "REJECTED"
 
 
+class HmacCustodyRole(StrEnum):
+    CUSTODY_OWNER = "CUSTODY_OWNER"
+    KEY_OPERATOR = "KEY_OPERATOR"
+    BINDING_VERIFIER = "BINDING_VERIFIER"
+    APPROVER = "APPROVER"
+
+
+class HmacCustodyRoleAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=False)
+
+    role: HmacCustodyRole
+    role_identity: str = Field(strict=True, min_length=1, max_length=128)
+
+    @field_validator("role_identity")
+    @classmethod
+    def _validate_role_identity(cls, value: object) -> str:
+        return validate_batch_a_identifier(value, field_name="role_identity")
+
+
 class HmacPolicyIdentity(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     custody_policy_id: str = Field(strict=True, min_length=1, max_length=128)
     rotation_policy_id: str = Field(strict=True, min_length=1, max_length=128)
+    role_assignments: tuple[HmacCustodyRoleAssignment, ...] = Field(
+        min_length=4,
+        max_length=4,
+    )
 
     @field_validator("custody_policy_id", "rotation_policy_id")
     @classmethod
     def _validate_policy_ids(cls, value: object, info: object) -> str:
         field_name = getattr(info, "field_name", "hmac_policy_identity")
         return validate_policy_identity(value, field_name=field_name)
+
+    @model_validator(mode="after")
+    def _validate_role_assignments(self) -> HmacPolicyIdentity:
+        by_role: dict[HmacCustodyRole, str] = {}
+        for assignment in self.role_assignments:
+            if assignment.role in by_role:
+                raise ValueError("HMAC custody policy contains a duplicate role assignment")
+            by_role[assignment.role] = assignment.role_identity
+        if set(by_role) != set(HmacCustodyRole):
+            raise ValueError("HMAC custody policy must assign every required role exactly once")
+        if (
+            by_role[HmacCustodyRole.KEY_OPERATOR]
+            == by_role[HmacCustodyRole.BINDING_VERIFIER]
+        ):
+            raise ValueError("HMAC key operator and binding verifier must be separate roles")
+        return self
+
+    def role_identity(self, role: HmacCustodyRole) -> str:
+        for assignment in self.role_assignments:
+            if assignment.role == role:
+                return assignment.role_identity
+        raise ValueError(f"unknown HMAC custody role: {role!r}")
 
 
 class SyntheticHmacKeyRecord(BaseModel):
@@ -431,7 +592,7 @@ class SyntheticHmacKeyRecord(BaseModel):
 
 
 class SyntheticHmacBindingRecord(BaseModel):
-    """Historical binding metadata; the digest remains NOT_ISSUED in Batch A."""
+    """Historical binding metadata; no HMAC operation is performed here."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -501,7 +662,9 @@ class SyntheticHmacLifecycleLedger:
 
     def register_historical_binding(self, binding: SyntheticHmacBindingRecord) -> None:
         if binding.binding_id in self._bindings:
-            raise DuplicateExportIdentityError(f"binding ID already exists: {binding.binding_id}")
+            raise DuplicateHmacBindingIdentityError(
+                f"binding ID already exists: {binding.binding_id}"
+            )
         key = self._keys.get(binding.key_id)
         if key is None:
             raise HmacKeyUnavailableError(f"unknown key ID: {binding.key_id}")
@@ -547,19 +710,27 @@ __all__ = [
     "ChainValueResolution",
     "ConflictingExportIdentityError",
     "DimensionMappingEntry",
+    "DimensionMappingHistoryConflictError",
     "DimensionMappingRegistry",
     "DuplicateExportIdentityError",
+    "DuplicateHmacBindingIdentityError",
     "DuplicateKeyIdentityError",
     "ExportIdentityClaim",
     "ExportIdentityLedger",
     "ExportIdentityMode",
     "ExportRegistrationResult",
     "HmacBindingVerificationStatus",
+    "HmacCustodyRole",
+    "HmacCustodyRoleAssignment",
     "HmacKeyState",
     "HmacKeyUnavailableError",
     "HmacPolicyIdentity",
     "ResolvedDimensionMapping",
     "ResolvedExportIdentity",
+    "SchemaCompatibilityError",
+    "SchemaCompatibilityStatus",
+    "SchemaVersionHashBinding",
+    "SourceSchemaCompatibilityRegistry",
     "SyntheticHmacBindingRecord",
     "SyntheticHmacKeyRecord",
     "SyntheticHmacLifecycleLedger",
