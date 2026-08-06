@@ -8,6 +8,10 @@ from typing import Annotated, NoReturn
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.app.actual_harvest_import.batch_a_contracts import (
+    BatchASourceIdentity,
+    validate_batch_a_identifier,
+)
 from backend.app.actual_harvest_import.enums import (
     ActualHarvestBatchSealStatus,
     ActualHarvestImportBatchStatus,
@@ -200,6 +204,11 @@ class ActualHarvestImportRecordInput(_BaseContractModel):
             return None
         return validate_timezone_aware_datetime(value, field_name="datetime")
 
+    @field_validator("source_system", mode="before")
+    @classmethod
+    def _validate_batch_a_source_system(cls, value: object) -> str:
+        return validate_batch_a_identifier(value, field_name="source_system")
+
     @field_validator("farm_timezone")
     @classmethod
     def _validate_farm_timezone(cls, value: str | None) -> str | None:
@@ -251,10 +260,32 @@ class ActualHarvestImportBatchInput(_BaseContractModel):
     source_semantics_attestation: ActualHarvestSourceSemanticsAttestation
     source_semantics_attestation_hash: SHA256Hex
 
+    @field_validator(
+        "source_system",
+        "source_dataset",
+        "source_version",
+        "schema_version",
+        mode="before",
+    )
+    @classmethod
+    def _validate_batch_a_source_identity_fields(cls, value: object, info: object) -> str:
+        field_name = getattr(info, "field_name", "source_identity")
+        return validate_batch_a_identifier(value, field_name=field_name)
+
     @field_validator("submitted_at")
     @classmethod
     def _validate_submitted_at(cls, value: datetime) -> datetime:
         return validate_timezone_aware_datetime(value, field_name="submitted_at")
+
+    @model_validator(mode="after")
+    def _validate_batch_a_source_identity(self) -> ActualHarvestImportBatchInput:
+        BatchASourceIdentity(
+            source_system=self.source_system,
+            source_dataset=self.source_dataset,
+            source_version=self.source_version,
+            schema_version=self.schema_version,
+        )
+        return self
 
 
 class CanonicalActualHarvestImportBatch(_BaseContractModel):
@@ -296,6 +327,18 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
     committed_at_or_null: datetime | None
 
     @field_validator(
+        "source_system",
+        "source_dataset",
+        "source_version",
+        "schema_version",
+        mode="before",
+    )
+    @classmethod
+    def _validate_batch_a_source_identity_fields(cls, value: object, info: object) -> str:
+        field_name = getattr(info, "field_name", "source_identity")
+        return validate_batch_a_identifier(value, field_name=field_name)
+
+    @field_validator(
         "submitted_at",
         "import_received_at",
         "ingested_at",
@@ -309,6 +352,16 @@ class CanonicalActualHarvestImportBatch(_BaseContractModel):
         if value is None:
             return None
         return validate_timezone_aware_datetime(value, field_name="batch timestamp")
+
+    @model_validator(mode="after")
+    def _validate_batch_a_source_identity(self) -> CanonicalActualHarvestImportBatch:
+        BatchASourceIdentity(
+            source_system=self.source_system,
+            source_dataset=self.source_dataset,
+            source_version=self.source_version,
+            schema_version=self.schema_version,
+        )
+        return self
 
     @model_validator(mode="after")
     def _validate_seal_shape(self) -> CanonicalActualHarvestImportBatch:
