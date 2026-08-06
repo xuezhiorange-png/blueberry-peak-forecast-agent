@@ -82,8 +82,7 @@ def validate_sha256(value: object, *, field_name: str) -> str:
 def validate_policy_identity(value: object, *, field_name: str) -> str:
     if not isinstance(value, str) or re.fullmatch(POLICY_ID_PATTERN, value) is None:
         raise ValueError(
-            f"{field_name} must match the versioned policy identity pattern "
-            f"{POLICY_ID_PATTERN}"
+            f"{field_name} must match the versioned policy identity pattern {POLICY_ID_PATTERN}"
         )
     return value
 
