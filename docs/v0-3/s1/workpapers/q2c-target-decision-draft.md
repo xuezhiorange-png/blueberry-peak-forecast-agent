@@ -4,12 +4,25 @@
 
 ```text
 WORKPAPER_ID=V0_3_S1_Q2C_TARGET_DECISION_DRAFT
-BASE_MAIN_SHA=0d4aa3f6dc90f9014bbcf43aa73e2bb2248d16aa
+BASE_MAIN_SHA=91fff1fb976cfdbbdc59807537e40dde37364b75
 WORKPAPER_STATUS=DRAFT_ONLY
+SOURCE_MEASUREMENT_BUSINESS_RULES_STATUS=CONFIRMED
+SOURCE_FINALIZATION_BUSINESS_RULES_STATUS=CONFIRMED
+SEASON_CALENDAR_BUSINESS_RULE_STATUS=CONFIRMED
+SOURCE_SNAPSHOT_METADATA_STATUS=PENDING
+SOURCE_SNAPSHOT_METADATA_ENTRY_MODE=MACHINE_GENERATED
+MANUAL_BUSINESS_USER_ENTRY_REQUIRED=false
 CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
+CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=BLOCKED
+CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
 CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
+CURRENT_V0_3_S1_COMPLETE=false
+V0_3_S1_ACCEPTED=false
+BUSINESS_SOURCE_ATTESTATION_JSON_CREATED=false
 Q2C_DECISION_STATUS=NOT_ISSUED
 Q2C_DECISION_HASH=NOT_ISSUED
+V0_3_S2_AUTHORIZED=false
+V0_3_S2_STARTED=false
 ```
 
 This workpaper records only the business information confirmed in the current
@@ -38,6 +51,48 @@ The draft does not assert that the source system has already proven the event,
 weighing point, marketability boundary, or post-harvest treatment. Those facts
 remain subject to formal source authority and Q2C evidence.
 
+## Confirmed measurement and finalization inputs
+
+```text
+PHYSICAL_EVENT=田间采收点首次有效扫码称重
+TARGET_QUANTITY=商品果净重
+TARE_ALREADY_DEDUCTED=true
+TARE_DEDUCTION_RESULT=筐重已扣除
+TARE_DEDUCTION_METHOD=NOT_PROVIDED
+
+SCALE_PRECISION=0.01 kg
+SCALE_PRECISION_BUSINESS_RULE_STATUS=CONFIRMED
+SCALE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
+DECIMAL_PLACES=2
+INTEGER_ROUNDING=false
+ROUNDING_RULE=保留两位小数，不取整
+SCALE_VERIFICATION_STATUS=BUSINESS_CONFIRMED
+SCALE_VERIFICATION_STATEMENT=称重设备均已检定
+SCALE_CALIBRATION_AUTHORITY=NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE
+CALIBRATION_CERTIFICATE_CUSTODY_ROLE=OUT_OF_SCOPE
+
+BUSINESS_REPORTED_LATE_ENTRY_SCENARIO=NOT_APPLICABLE
+BUSINESS_REPORTED_NO_RECORD_INTERPRETATION=当日无记录表示当日无采摘
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+NO_RECORD_TO_ZERO_MAPPING_STATUS=BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+FORMAL_MISSING_DAY_RULE_STATUS=PENDING
+FINAL_CONFIRMATION_EVENT=扫码称重完成
+FINAL_CONFIRMATION_TIMING=IMMEDIATE
+BUSINESS_RULE_POST_CONFIRMATION_MODIFICATION_ALLOWED=false
+BUSINESS_RULE_POST_CONFIRMATION_DELETION_ALLOWED=false
+BUSINESS_RULE_CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
+BUSINESS_RULE_VOID_AFTER_CONFIRMATION_SUPPORTED=false
+```
+
+These inputs are confirmed business statements for this draft only. They do
+not issue a formal source attestation, scale certificate, tare method, or
+technical proof that the system can never receive a late entry or historical
+exception. Formal correction, void, revision, missing-day, and source-
+visibility evidence remains pending. The prefixed `BUSINESS_RULE_` fields are
+business statements, not database permissions, interface capabilities,
+administrator authority, or formal correction, void, or revision policy.
+
 ## Canonical evaluation grain
 
 ```text
@@ -55,30 +110,44 @@ before the canonical target quantity is formed.
 
 ```text
 SOURCE_EFFECTIVE_SEASON=2024~2025产季起
-2024~2025产季约为2024年8月至2025年6月
-后续产季按类似跨年度月份范围维护
-SEASON_EXACT_DATE_BOUNDARIES=NOT_PROVIDED
+SEASON_START_MONTH_DAY=08-01
+SEASON_END_MONTH_DAY=06-30
+BOUNDARY_INCLUSIVITY=起止日期均包含
+SEASON_START_YEAR=产季名称中的前一年
+SEASON_END_YEAR=产季名称中的后一年
+2024~2025产季=2024-08-01至2025-06-30
+2025~2026产季=2025-08-01至2026-06-30
+JULY_AUTOMATIC_SEASON_ASSIGNMENT=false
+UNMAPPED_DATE_POLICY=PENDING
 ```
 
-The season statement is intentionally approximate. This workpaper does not
-invent a start day, end day, month-end rule, or any other exact date boundary.
+The calendar rule is a confirmed draft business rule: the start and end dates
+are inclusive and later seasons use the same cross-year pattern. July is not
+automatically assigned. This workpaper does not decide July ownership,
+automatic exclusion, overlap priority, or exception-date correction.
 
 ## Q2C closure boundary
 
 The following remain unresolved and prevent a formal Q2C decision:
 
 - formal source authority and attestation;
-- exact season date boundaries;
-- scale, tare, precision, calibration, decimal, and rounding evidence;
-- formal correction, void, late-entry, missing-day, and final-confirmation
-  rules;
+- formal calibration certificate custody and tare-method evidence where needed;
+- formal correction, void, technical late-entry, and source-visibility rules;
+- formal missing-day and no-record completeness evidence;
 - source snapshot, schema, attestation, and decision identities or hashes;
 - aggregate coverage and data-quality evidence.
 
+These unresolved items keep the current Q2C status `BLOCKED` and the decision
+status `NOT_ISSUED`.
+
+The business post-confirmation flags are not database or interface capability
+claims. Formal policy identities remain unresolved:
+
 ```text
-CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
-Q2C_DECISION_STATUS=NOT_ISSUED
-Q2C_DECISION_HASH=NOT_ISSUED
-V0_3_S1_ACCEPTED=false
-V0_3_S2_AUTHORIZED=false
+FORMAL_CORRECTION_POLICY=NOT_PROVIDED
+FORMAL_VOID_POLICY=NOT_PROVIDED
+FORMAL_REVISION_POLICY=NOT_PROVIDED
+SOURCE_SNAPSHOT_REFERENCE=NOT_ISSUED
+SCHEMA_HASH=NOT_ISSUED
+ATTESTATION_HASH=NOT_ISSUED
 ```
