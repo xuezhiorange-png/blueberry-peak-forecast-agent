@@ -43,15 +43,19 @@ field harvest point. The quantity is marketable fruit net weight after the
 business-reported tare deduction. No fixed basket weight, tare algorithm,
 per-basket deduction value, or other field procedure is inferred.
 
-## Precision and weighing-device statement
+## Source quantity representation and weighing-device evidence
 
 ```text
-SCALE_PRECISION=0.001 kg
-SCALE_PRECISION_BUSINESS_RULE_STATUS=CONFIRMED
-SCALE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
-DECIMAL_PLACES=3
-INTEGER_ROUNDING=false
-ROUNDING_RULE=保留三位小数，不取整
+SOURCE_QUANTITY_PRECISION=0.001 kg
+SOURCE_QUANTITY_PRECISION_STATUS=BUSINESS_CONFIRMED_AND_SOURCE_002_OBSERVED
+SOURCE_QUANTITY_PRECISION_GAP=false
+SOURCE_QUANTITY_DECIMAL_PLACES=3
+SOURCE_QUANTITY_INTEGER_ROUNDING=false
+SOURCE_QUANTITY_ROUNDING_RULE=保留三位小数，不取整
+
+SCALE_DEVICE_PRECISION=NOT_PROVIDED
+SCALE_DEVICE_PRECISION_BUSINESS_RULE_STATUS=NOT_CONFIRMED
+SCALE_DEVICE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
 
 SCALE_VERIFICATION_STATUS=BUSINESS_CONFIRMED
 SCALE_VERIFICATION_STATEMENT=称重设备均已检定
@@ -59,11 +63,15 @@ SCALE_CALIBRATION_AUTHORITY=NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE
 CALIBRATION_CERTIFICATE_CUSTODY_ROLE=OUT_OF_SCOPE
 ```
 
-The verification statement is a confirmed business statement, not a
-certificate or formal source-attestation record. This workpaper does not invent
-an inspection institution, certificate number, inspection date, validity
-period, custodian, or storage location. The out-of-scope calibration fields do
-not mean that formal source evidence is complete.
+The source quantity fields describe the exported `入库公斤数` representation;
+they do not describe scale resolution, minimum division, calibration precision,
+or weighing-device precision. The verification statement is a confirmed
+business statement, not a certificate or formal source-attestation record. This
+workpaper does not invent an inspection institution, certificate number,
+inspection date, validity period, custodian, or storage location. The absence
+of a device precision value does not weaken the observed three-decimal source
+quantity evidence, and the pending device evidence does not mean that the
+business verification statement is revoked.
 
 ## Confirmation, missing-day, and post-confirmation rules
 
