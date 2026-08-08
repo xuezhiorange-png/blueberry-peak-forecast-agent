@@ -151,18 +151,28 @@ retained as governed non-sensitive identifiers.
 ```text
 QUANTITY_UNIT=kg
 BUSINESS_CONFIRMED_SOURCE_QUANTITY_PRECISION=0.001 kg
-DECIMAL_PLACES=3
-INTEGER_ROUNDING=false
-ROUNDING_RULE=保留三位小数，不取整
+SOURCE_QUANTITY_PRECISION=0.001 kg
+SOURCE_QUANTITY_PRECISION_STATUS=BUSINESS_CONFIRMED_AND_SOURCE_002_OBSERVED
+SOURCE_QUANTITY_PRECISION_GAP=false
+SOURCE_QUANTITY_DECIMAL_PLACES=3
+SOURCE_QUANTITY_INTEGER_ROUNDING=false
+SOURCE_QUANTITY_ROUNDING_RULE=保留三位小数，不取整
 WEIGHT_MAX_OBSERVED_DECIMAL_PLACES=3
 WEIGHT_MORE_THAN_3_DECIMAL_ROW_COUNT=0
 WEIGHT_PRECISION_CONTRACT_GAP=false
-SCALE_PRECISION_FORMAL_EVIDENCE=PENDING
+SCALE_DEVICE_PRECISION=NOT_PROVIDED
+SCALE_DEVICE_PRECISION_BUSINESS_RULE_STATUS=NOT_CONFIRMED
+SCALE_DEVICE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
+SCALE_VERIFICATION_STATUS=BUSINESS_CONFIRMED
+SCALE_VERIFICATION_STATEMENT=称重设备均已检定
 ```
 
-The `0.001 kg` value is the accepted Source 002 business/source result. It
-does not by itself issue a calibration certificate or formal measurement
-authority record.
+The `0.001 kg` value is the accepted Source 002 business/source quantity
+representation result. It records the exported quantity's three-decimal
+representation and does not by itself establish scale resolution, minimum
+division, device precision, calibration precision, a calibration certificate,
+or a formal measurement authority record. The separate device-precision
+evidence remains pending.
 
 ## Authority, custody, and Git boundary
 
@@ -210,3 +220,23 @@ V0_3_S2_STARTED=false
 This preparation evidence may support the next formalization review; it does
 not close source authority, cohort freeze, Q2C, visibility, revision, custody,
 quality, holdout, or independent-review gates.
+
+## Next package boundary
+
+The next package is scoped only to the actual-harvest label lifecycle produced
+by the scan-and-weigh source. It does not claim that the full S1 visibility
+gate is closed; that gate also covers the other contract-defined source
+classes.
+
+```text
+ACTUAL_LABEL_LIFECYCLE_NEXT_PACKAGE_SCOPE_DEFINED=true
+NEXT_PACKAGE=V0_3_S1_ACTUAL_HARVEST_LABEL_RECORD_LIFECYCLE_AND_POINT_IN_TIME_AUTHORITY_FREEZE
+ACTUAL_LABEL_VISIBILITY_CLOSED=false
+S1_VISIBILITY_GATE_CLOSED=false
+S1_VISIBILITY_FULL_CLOSURE_NOT_CLAIMED=true
+```
+
+The actual-label package may advance source record identity, recorded and
+available time, revision/lineage, finalization, cancellation, late-entry, and
+winner compatibility evidence. It does not authorize lifecycle implementation
+or any new source read.
