@@ -100,6 +100,24 @@ def test_api_create_rejects_spreadsheet_file_metadata() -> None:
         ActualHarvestApiCreateImportRequest.model_validate(payload)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("source_schema_sha256_or_null", "a" * 64),
+        ("schema_compatibility_policy_id_or_null", "synthetic-schema-policy-v1"),
+        ("schema_compatibility_status_or_null", "SUPPORTED"),
+    ],
+)
+def test_api_create_rejects_inactive_batch_a_schema_metadata(
+    field: str,
+    value: object,
+) -> None:
+    payload = _create_payload()
+    payload[field] = value
+    with pytest.raises(ValidationError):
+        ActualHarvestApiCreateImportRequest.model_validate(payload)
+
+
 def test_append_page_is_bounded() -> None:
     with pytest.raises(ValidationError):
         ActualHarvestApiAppendRecordsRequest(records=tuple(_record_payload() for _ in range(501)))
