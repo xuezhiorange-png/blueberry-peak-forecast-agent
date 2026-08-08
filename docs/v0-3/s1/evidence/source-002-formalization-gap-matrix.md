@@ -9,6 +9,9 @@ BASELINE_MAIN_SHA=431a88fb4b542264fcf60d95a840202cc578f394
 SOURCE_VERSION=scan-weight-export:v0_3_s1:002
 SOURCE_SNAPSHOT_REFERENCE=snapshot:v0_3_s1:002
 FORMALIZATION_GAP_COUNT=21
+FROZEN_MATRIX_GAP_COUNT=21
+EFFECTIVE_REMAINING_S1_GAP_COUNT=26
+CANONICAL_S1_GATE_COUNT=17
 ```
 
 `RESOLVED` below means resolved for Source 002 preparation only. It never
@@ -46,7 +49,7 @@ gate cannot be issued in the current state.
 | `FINAL_CONFIRMATION_FORMAL_EVIDENCE` | PENDING | Immediate scan completion is business-confirmed but not formally evidenced. | Source-owner confirmation bound to the attestation and source-system event semantics. |
 | `UNMAPPED_DATE_POLICY` | PENDING | July 2025 contains 2 rows on 1 date and is deliberately not auto-assigned. | Business/governance decision for July ownership, exclusion, or exception handling. |
 | `TARE_DEDUCTION_METHOD` | PENDING | Tare is business-confirmed as already deducted, but the method is not specified. | Formal tare method and measurement evidence. |
-| `SCALE_PRECISION_FORMAL_EVIDENCE` | PENDING | Source 002 supports the 0.001 kg observed precision; no formal calibration/measurement authority record is bound. | Formal scale precision and calibration evidence for the governed source. |
+| `SCALE_PRECISION_FORMAL_EVIDENCE` | PENDING | Source 002 supports the exported quantity representation at 0.001 kg and three decimal places; this does not establish weighing-device precision or scale resolution. | Formal device precision/calibration evidence for the governed source. |
 | `MAPPING_POLICY_IDENTITY` | PENDING | Dimension support is observed, but no source-specific versioned farm/subfarm/variety mapping identity is frozen. | Versioned mapping policy/registry identity and review evidence. |
 | `COVERAGE_SCOPE_ENTITY_ID_LISTS` | BLOCKED | The schema requires concrete season/farm/subfarm/variety arrays; this package retains counts and no row-derived identity lists. | Separately authorized, governed mapping evidence or a reviewed non-sensitive identity list. |
 | `CUSTODY_RECORD` | BLOCKED | Current custody evidence remains `NOT_ISSUED`; no storage or credential locator is recorded. | Versioned custody record covering access, retention, withdrawal, void propagation, and external binding hash. |
@@ -71,6 +74,32 @@ V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
 ```
 
+## Source quantity and device precision boundary
+
+The Source 002 quantity result and the weighing-device precision are separate
+contracts. The first is already available for preparation; the second remains
+unprovided and formally pending.
+
+```text
+SOURCE_QUANTITY_PRECISION=0.001 kg
+SOURCE_QUANTITY_PRECISION_STATUS=BUSINESS_CONFIRMED_AND_SOURCE_002_OBSERVED
+SOURCE_QUANTITY_DECIMAL_PLACES=3
+SOURCE_QUANTITY_INTEGER_ROUNDING=false
+SOURCE_QUANTITY_ROUNDING_RULE=保留三位小数，不取整
+SOURCE_QUANTITY_PRECISION_GAP=false
+
+SCALE_DEVICE_PRECISION=NOT_PROVIDED
+SCALE_DEVICE_PRECISION_BUSINESS_RULE_STATUS=NOT_CONFIRMED
+SCALE_DEVICE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
+SCALE_VERIFICATION_STATUS=BUSINESS_CONFIRMED
+SCALE_VERIFICATION_STATEMENT=称重设备均已检定
+```
+
+The verification statement does not prove the device minimum division,
+resolution, calibration precision, certificate identity, or certificate
+validity. Source 002's three-decimal representation must not be used to infer
+any of those properties.
+
 Source 002 evidence does not create a second authority contract. The existing
 source-authority, business-attestation, and source-cohort schemas remain the
 canonical contracts. No formal JSON artifact is generated because the
@@ -85,3 +114,26 @@ It partially informs physical/Q2C and inclusion discussions. It does not close
 source authority, cohort freeze, point-in-time visibility, revision winner,
 correction/void, custody, split, metric, minimum-coverage, quality-threshold,
 holdout, or independent-review gates.
+
+## Next package scope: actual-harvest label lifecycle
+
+The next package is deliberately narrower than the full S1 visibility gate. It
+covers only the actual-harvest label produced by the scan-and-weigh source:
+source record identity, recorded/available time, revision capability or an
+approved policy-null rule, finalization capability, cancellation capability or
+policy-null rule, lineage, late-entry technical semantics, and winner
+compatibility.
+
+```text
+ACTUAL_LABEL_LIFECYCLE_NEXT_PACKAGE_SCOPE_DEFINED=true
+NEXT_PACKAGE=V0_3_S1_ACTUAL_HARVEST_LABEL_RECORD_LIFECYCLE_AND_POINT_IN_TIME_AUTHORITY_FREEZE
+ACTUAL_LABEL_VISIBILITY_CLOSED=false
+S1_VISIBILITY_GATE_CLOSED=false
+S1_VISIBILITY_FULL_CLOSURE_NOT_CLAIMED=true
+```
+
+The full `S1-VISIBILITY` gate also covers other contract-defined source
+classes, including `AREA`, `YIELD_PLAN`, `PHENOLOGY`, `WEATHER_OBSERVATION`,
+`HISTORICAL_WEATHER_FORECAST`, `PICKER_COUNT`, `HARVEST_EFFICIENCY`, and
+`MARKETABLE_RATE`. Closing actual-label lifecycle evidence alone cannot close
+the full S1 visibility gate.
