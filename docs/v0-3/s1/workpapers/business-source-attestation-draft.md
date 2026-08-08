@@ -6,6 +6,7 @@
 WORKPAPER_ID=V0_3_S1_BUSINESS_SOURCE_ATTESTATION_DRAFT
 BASE_MAIN_SHA=91fff1fb976cfdbbdc59807537e40dde37364b75
 DRAFT_STATUS=INCOMPLETE_NOT_SCHEMA_VALID
+BUSINESS_SOURCE_ATTESTATION_SCHEMA_ALIGNMENT_STATUS=ALIGNED_AFTER_TARGETED_CORRECTION_PENDING_INDEPENDENT_REVIEW
 BUSINESS_SOURCE_ATTESTATION_JSON=NOT_CREATED
 SOURCE_AUTHORITY_STATUS=NOT_ISSUED
 SOURCE_ATTESTATION_STATUS=NOT_ISSUED
@@ -28,6 +29,16 @@ V0_3_S2_STARTED=false
 This is a Markdown preparation workpaper only. It is not the governed
 `business-source-attestation.json`, is intentionally incomplete, and must not
 be treated as a schema-valid attestation or an accepted source identity.
+
+The formal source-authority identity uses `source_owner_role` as its canonical
+owner field. The aligned Schema also requires the source schema identity,
+opaque snapshot reference, applicability effective time, coverage scope,
+revision policy, and withdrawal/void policy. This alignment does not create an
+attestation, issue any source value or hash, or change the blocked evidence
+status. The targeted correction also makes the attestation and cohort opaque
+reference primitives reject URL, drive-letter, relative, absolute, and other
+slash-delimited storage locators while retaining non-sensitive governed
+identities. The correction remains pending independent review.
 
 ## Confirmed source identity statements
 
