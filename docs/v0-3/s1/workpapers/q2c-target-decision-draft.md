@@ -60,12 +60,16 @@ TARE_ALREADY_DEDUCTED=true
 TARE_DEDUCTION_RESULT=筐重已扣除
 TARE_DEDUCTION_METHOD=NOT_PROVIDED
 
-SCALE_PRECISION=0.001 kg
-SCALE_PRECISION_BUSINESS_RULE_STATUS=CONFIRMED
-SCALE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
-DECIMAL_PLACES=3
-INTEGER_ROUNDING=false
-ROUNDING_RULE=保留三位小数，不取整
+SOURCE_QUANTITY_PRECISION=0.001 kg
+SOURCE_QUANTITY_PRECISION_STATUS=BUSINESS_CONFIRMED_AND_SOURCE_002_OBSERVED
+SOURCE_QUANTITY_PRECISION_GAP=false
+SOURCE_QUANTITY_DECIMAL_PLACES=3
+SOURCE_QUANTITY_INTEGER_ROUNDING=false
+SOURCE_QUANTITY_ROUNDING_RULE=保留三位小数，不取整
+
+SCALE_DEVICE_PRECISION=NOT_PROVIDED
+SCALE_DEVICE_PRECISION_BUSINESS_RULE_STATUS=NOT_CONFIRMED
+SCALE_DEVICE_PRECISION_FORMAL_EVIDENCE_STATUS=PENDING
 SCALE_VERIFICATION_STATUS=BUSINESS_CONFIRMED
 SCALE_VERIFICATION_STATEMENT=称重设备均已检定
 SCALE_CALIBRATION_AUTHORITY=NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE
@@ -85,13 +89,15 @@ BUSINESS_RULE_CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
 BUSINESS_RULE_VOID_AFTER_CONFIRMATION_SUPPORTED=false
 ```
 
-These inputs are confirmed business statements for this draft only. They do
-not issue a formal source attestation, scale certificate, tare method, or
-technical proof that the system can never receive a late entry or historical
-exception. Formal correction, void, revision, missing-day, and source-
-visibility evidence remains pending. The prefixed `BUSINESS_RULE_` fields are
-business statements, not database permissions, interface capabilities,
-administrator authority, or formal correction, void, or revision policy.
+These inputs are confirmed business statements for this draft only. The source
+quantity precision describes the exported quantity representation and must not
+be read as weighing-device precision or scale resolution. They do not issue a
+formal source attestation, scale certificate, tare method, or technical proof
+that the system can never receive a late entry or historical exception. Formal
+correction, void, revision, missing-day, and source-visibility evidence
+remains pending. The prefixed `BUSINESS_RULE_` fields are business statements,
+not database permissions, interface capabilities, administrator authority, or
+formal correction, void, or revision policy.
 
 ## Canonical evaluation grain
 
