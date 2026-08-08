@@ -192,7 +192,7 @@
     },
     "opaqueReference": {
       "type": "string",
-      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://)[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+      "pattern": "^(?![A-Za-z]:)(?![A-Za-z][A-Za-z0-9+.-]*://)[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"
     },
     "stringArray": {
       "type": "array",
