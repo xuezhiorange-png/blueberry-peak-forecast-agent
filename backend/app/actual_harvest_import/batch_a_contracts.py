@@ -550,10 +550,7 @@ class HmacPolicyIdentity(BaseModel):
             by_role[assignment.role] = assignment.role_identity
         if set(by_role) != set(HmacCustodyRole):
             raise ValueError("HMAC custody policy must assign every required role exactly once")
-        if (
-            by_role[HmacCustodyRole.KEY_OPERATOR]
-            == by_role[HmacCustodyRole.BINDING_VERIFIER]
-        ):
+        if by_role[HmacCustodyRole.KEY_OPERATOR] == by_role[HmacCustodyRole.BINDING_VERIFIER]:
             raise ValueError("HMAC key operator and binding verifier must be separate roles")
         return self
 

@@ -22,6 +22,7 @@ from backend.app.actual_harvest_import.batch_a_contracts import (
     HmacCustodyRole,
     HmacCustodyRoleAssignment,
     HmacKeyState,
+    HmacKeyUnavailableError,
     HmacPolicyIdentity,
     SchemaCompatibilityError,
     SchemaCompatibilityStatus,
@@ -97,11 +98,6 @@ def _batch_payload() -> dict[str, object]:
         "submitted_at": "2026-08-06T00:00:00Z",
         "submitted_by_identity": "synthetic-operator",
         "raw_payload_hash": "c" * 64,
-        "source_schema_sha256_or_null": "a" * 64,
-        "schema_compatibility_policy_id_or_null": (
-            "synthetic-schema-compatibility-v1"
-        ),
-        "schema_compatibility_status_or_null": "SUPPORTED",
         "mapping_policy_version": "synthetic-mapping-v1",
         "validation_policy_version": "synthetic-validation-v1",
         "source_semantics_attestation": {
@@ -139,6 +135,21 @@ def test_source_identity_is_strict_and_fail_closed() -> None:
                 "schema_version": " synthetic-schema-v1",
             }
         )
+    for invalid_identifier in (
+        "Farm-System",
+        "NOT_ISSUED",
+        "PENDING",
+        "foo/bar",
+        "https://example.com",
+        "x" * 129,
+    ):
+        with pytest.raises(ValidationError):
+            BatchASourceIdentity.model_validate(
+                {
+                    **identity.model_dump(),
+                    "source_system": invalid_identifier,
+                }
+            )
 
 
 def test_schema_registry_binds_version_to_hash_and_fails_closed() -> None:
@@ -190,9 +201,13 @@ def test_existing_batch_input_reuses_source_and_schema_contracts() -> None:
     payload = _batch_payload()
     batch = ActualHarvestImportBatchInput.model_validate(payload)
     assert batch.source_version == "synthetic-source-v1"
-    assert (
-        batch.schema_compatibility_status_or_null
-        == SchemaCompatibilityStatus.SUPPORTED
+    assert all(
+        field not in batch.model_dump(mode="python")
+        for field in (
+            "source_schema_sha256_or_null",
+            "schema_compatibility_policy_id_or_null",
+            "schema_compatibility_status_or_null",
+        )
     )
 
     invalid_identity_payload = dict(payload)
@@ -208,15 +223,14 @@ def test_existing_batch_input_reuses_source_and_schema_contracts() -> None:
         with pytest.raises(ValidationError):
             ActualHarvestImportBatchInput.model_validate(spaced_payload)
 
-    partial_schema_payload = dict(payload)
-    partial_schema_payload["schema_compatibility_status_or_null"] = None
-    with pytest.raises(ValidationError):
-        ActualHarvestImportBatchInput.model_validate(partial_schema_payload)
-
-    rejected_schema_payload = dict(payload)
-    rejected_schema_payload["schema_compatibility_status_or_null"] = "REJECTED"
-    with pytest.raises(ValidationError):
-        ActualHarvestImportBatchInput.model_validate(rejected_schema_payload)
+    for inactive_field, value in (
+        ("source_schema_sha256_or_null", "a" * 64),
+        ("schema_compatibility_policy_id_or_null", "synthetic-schema-policy-v1"),
+        ("schema_compatibility_status_or_null", "SUPPORTED"),
+    ):
+        inactive_payload = {**payload, inactive_field: value}
+        with pytest.raises(ValidationError):
+            ActualHarvestImportBatchInput.model_validate(inactive_payload)
 
 
 def test_mapping_registry_preserves_raw_text_and_rejects_unknown_values() -> None:
@@ -320,6 +334,91 @@ def test_mapping_registry_policy_is_versioned_and_history_is_stable() -> None:
     with pytest.raises(DimensionMappingHistoryConflictError):
         conflicting_next_season.assert_historical_compatibility(prior)
 
+    dropped_mapping = DimensionMappingRegistry(
+        registry_id="synthetic-dimension-registry-v4",
+        policy_version="synthetic-dimension-mapping-v4",
+        entries=(
+            DimensionMappingEntry(
+                dimension="variety",
+                source_text="Variety New",
+                canonical_id="synthetic-variety-new",
+            ),
+        ),
+    )
+    with pytest.raises(DimensionMappingHistoryConflictError):
+        dropped_mapping.assert_historical_compatibility(prior)
+
+    unrelated_mapping = DimensionMappingRegistry(
+        registry_id="synthetic-dimension-registry-v5",
+        policy_version="synthetic-dimension-mapping-v5",
+        entries=(
+            DimensionMappingEntry(
+                dimension="farm",
+                source_text="Farm Alpha",
+                canonical_id="synthetic-farm-alpha",
+            ),
+            DimensionMappingEntry(
+                dimension="variety",
+                source_text="Variety New",
+                canonical_id="synthetic-variety-new",
+            ),
+            DimensionMappingEntry(
+                dimension="subfarm",
+                source_text="Subfarm A",
+                canonical_id="synthetic-subfarm-a",
+            ),
+        ),
+    )
+    unrelated_mapping.assert_historical_compatibility(prior)
+
+
+def test_mapping_registry_nfc_collision_and_ordered_output_are_deterministic() -> None:
+    composed = "Café"
+    decomposed = "Cafe\u0301"
+    assert normalize_business_text(composed) == normalize_business_text(decomposed)
+    with pytest.raises(ValidationError):
+        DimensionMappingRegistry(
+            registry_id="synthetic-dimension-registry-v6",
+            policy_version="synthetic-dimension-mapping-v6",
+            entries=(
+                DimensionMappingEntry(
+                    dimension="farm",
+                    source_text=composed,
+                    canonical_id="synthetic-farm-cafe",
+                ),
+                DimensionMappingEntry(
+                    dimension="farm",
+                    source_text=decomposed,
+                    canonical_id="synthetic-farm-cafe-duplicate",
+                ),
+            ),
+        )
+
+    entries = (
+        DimensionMappingEntry(
+            dimension="variety",
+            source_text="Variety B",
+            canonical_id="synthetic-variety-b",
+        ),
+        DimensionMappingEntry(
+            dimension="farm",
+            source_text="Farm B",
+            canonical_id="synthetic-farm-b",
+        ),
+        DimensionMappingEntry(
+            dimension="farm",
+            source_text="Farm A",
+            canonical_id="synthetic-farm-a",
+        ),
+    )
+    first = DimensionMappingRegistry(
+        registry_id="synthetic-dimension-registry-v7",
+        policy_version="synthetic-dimension-mapping-v7",
+        entries=entries,
+    )
+    second = first.model_copy(update={"entries": tuple(reversed(entries))})
+    assert first.ordered_entries() == second.ordered_entries()
+
 
 def test_chain_registry_has_versioned_allowed_and_null_behaviors() -> None:
     registry = ChainAllowedValuesRegistry(
@@ -342,6 +441,12 @@ def test_chain_registry_has_versioned_allowed_and_null_behaviors() -> None:
             allowed_values=("synthetic-chain-a",),
             null_policy=ChainNullPolicy.REJECT,
         )
+    with pytest.raises(ValidationError):
+        ChainAllowedValuesRegistry(
+            policy_version="synthetic-chain-policy-v2",
+            allowed_values=(" synthetic-chain-a ", "synthetic-chain-a"),
+            null_policy=ChainNullPolicy.REJECT,
+        )
 
 
 def test_export_identity_modes_are_deterministic_and_version_bound() -> None:
@@ -357,33 +462,25 @@ def test_export_identity_modes_are_deterministic_and_version_bound() -> None:
     assert ledger.register(source_identity) == ExportRegistrationResult.FIRST_SEEN
     assert ledger.register(source_identity) == ExportRegistrationResult.EXACT_REPLAY
 
-    conflicting = source_claim.model_copy(
-        update={"delivery_fingerprint": "synthetic-delivery-2"}
-    )
+    conflicting = source_claim.model_copy(update={"delivery_fingerprint": "synthetic-delivery-2"})
     with pytest.raises(ConflictingExportIdentityError):
         ledger.register(resolve_export_identity(conflicting))
 
     changed_source_version = source_claim.model_copy(
         update={
-            "source_identity": source.model_copy(
-                update={"source_version": "synthetic-source-v2"}
-            )
+            "source_identity": source.model_copy(update={"source_version": "synthetic-source-v2"})
         }
     )
     changed_schema_version = source_claim.model_copy(
         update={
-            "source_identity": source.model_copy(
-                update={"schema_version": "synthetic-schema-v2"}
-            )
+            "source_identity": source.model_copy(update={"schema_version": "synthetic-schema-v2"})
         }
     )
     assert (
-        resolve_export_identity(changed_source_version).identity_key
-        != source_identity.identity_key
+        resolve_export_identity(changed_source_version).identity_key != source_identity.identity_key
     )
     assert (
-        resolve_export_identity(changed_schema_version).identity_key
-        != source_identity.identity_key
+        resolve_export_identity(changed_schema_version).identity_key != source_identity.identity_key
     )
 
     derived_claim = ExportIdentityClaim(
@@ -406,10 +503,7 @@ def test_export_identity_modes_are_deterministic_and_version_bound() -> None:
 
 def test_hmac_custody_roles_are_closed_and_separated() -> None:
     policy = _hmac_policy()
-    assert (
-        policy.role_identity(HmacCustodyRole.KEY_OPERATOR)
-        == "synthetic-key-operator"
-    )
+    assert policy.role_identity(HmacCustodyRole.KEY_OPERATOR) == "synthetic-key-operator"
 
     invalid_role_payload = {
         "custody_policy_id": "synthetic-hmac-custody-v1",
@@ -435,6 +529,17 @@ def test_hmac_custody_roles_are_closed_and_separated() -> None:
             custody_policy_id="synthetic-hmac-custody-v1",
             rotation_policy_id="synthetic-hmac-rotation-v1",
             role_assignments=tuple(same_operator_and_verifier),
+        )
+    duplicate_role_assignments = list(_hmac_role_assignments())
+    duplicate_role_assignments[3] = HmacCustodyRoleAssignment(
+        role=HmacCustodyRole.CUSTODY_OWNER,
+        role_identity="synthetic-security-approver",
+    )
+    with pytest.raises(ValidationError):
+        HmacPolicyIdentity(
+            custody_policy_id="synthetic-hmac-custody-v1",
+            rotation_policy_id="synthetic-hmac-rotation-v1",
+            role_assignments=tuple(duplicate_role_assignments),
         )
 
 
@@ -493,4 +598,75 @@ def test_synthetic_hmac_lifecycle_retains_history_without_real_operations() -> N
             previous_key_id="synthetic-key-2",
             new_key_id="synthetic-key-3",
             policy_identity=policy,
+        )
+
+    revoked_ledger = SyntheticHmacLifecycleLedger()
+    revoked_ledger.register_synthetic_key(
+        SyntheticHmacKeyRecord(key_id="synthetic-revoked-key", policy_identity=policy)
+    )
+    revoked_ledger.set_terminal_status("synthetic-revoked-key", HmacKeyState.REVOKED)
+    with pytest.raises(HmacKeyUnavailableError):
+        revoked_ledger.register_historical_binding(
+            SyntheticHmacBindingRecord(
+                binding_id="synthetic-revoked-binding",
+                key_id="synthetic-revoked-key",
+            )
+        )
+    with pytest.raises(HmacKeyUnavailableError):
+        ledger.register_historical_binding(
+            SyntheticHmacBindingRecord(
+                binding_id="synthetic-compromised-binding",
+                key_id="synthetic-key-2",
+            )
+        )
+
+
+def test_batch_a_contracts_reject_extra_fields_bad_hashes_and_mutation() -> None:
+    identity = _source_identity()
+    with pytest.raises(ValidationError):
+        BatchASourceIdentity.model_validate({**identity.model_dump(), "unexpected": "synthetic"})
+
+    for malformed_hash in ("a" * 63, "a" * 65, "A" * 64, "g" * 64):
+        with pytest.raises(ValidationError):
+            SchemaVersionHashBinding(
+                schema_version="synthetic-schema-v1",
+                schema_sha256=malformed_hash,
+            )
+    with pytest.raises(ValidationError):
+        SchemaVersionHashBinding(
+            schema_version="synthetic-schema-v1",
+            schema_sha256="a" * 64,
+            unexpected="synthetic",
+        )
+    with pytest.raises(ValidationError):
+        SourceSchemaCompatibilityRegistry(
+            compatibility_policy_id="synthetic-policy",
+            bindings=(
+                SchemaVersionHashBinding(
+                    schema_version="synthetic-schema-v1",
+                    schema_sha256="a" * 64,
+                ),
+            ),
+        )
+
+    with pytest.raises(ValidationError):
+        identity.source_system = "synthetic-other"  # type: ignore[misc]
+    registry = DimensionMappingRegistry(
+        registry_id="synthetic-dimension-registry-v8",
+        policy_version="synthetic-dimension-mapping-v8",
+        entries=(
+            DimensionMappingEntry(
+                dimension="farm",
+                source_text="Farm A",
+                canonical_id="synthetic-farm-a",
+            ),
+        ),
+    )
+    with pytest.raises((ValidationError, TypeError)):
+        registry.entries += (  # type: ignore[misc]
+            DimensionMappingEntry(
+                dimension="farm",
+                source_text="Farm B",
+                canonical_id="synthetic-farm-b",
+            ),
         )

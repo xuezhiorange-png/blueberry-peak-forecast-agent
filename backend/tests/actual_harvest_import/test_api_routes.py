@@ -70,6 +70,45 @@ async def test_api_routes_are_registered_and_unimplemented_routes_are_not_faked(
     assert commit_response.json()["errors"][0]["code"] == ("IMPORT_BATCH_NOT_VALIDATED")
 
 
+async def test_api_create_round_trip_and_idempotent_replay_without_batch_a_activation(
+    api_client: AsyncClient,
+    authorized_actor,
+) -> None:
+    app = api_client._transport.app  # type: ignore[attr-defined]
+    app.dependency_overrides[get_actual_harvest_actor] = lambda: authorized_actor
+    payload = _create_payload()
+
+    first = await api_client.post(
+        "/api/v1/actual-harvest/imports",
+        json=payload,
+        headers={"content-type": "application/json"},
+    )
+    assert first.status_code == 201
+    first_batch = first.json()["data_or_null"]["batch"]
+
+    replay = await api_client.post(
+        "/api/v1/actual-harvest/imports",
+        json=payload,
+        headers={"content-type": "application/json"},
+    )
+    assert replay.status_code == 200
+    replay_data = replay.json()["data_or_null"]
+    assert replay_data["reused_existing_import"] is True
+    assert replay_data["batch"]["import_id"] == first_batch["import_id"]
+
+    fetched = await api_client.get(f"/api/v1/actual-harvest/imports/{first_batch['import_id']}")
+    assert fetched.status_code == 200
+    fetched_batch = fetched.json()["data_or_null"]["batch"]
+    assert all(
+        field not in fetched_batch
+        for field in (
+            "source_schema_sha256_or_null",
+            "schema_compatibility_policy_id_or_null",
+            "schema_compatibility_status_or_null",
+        )
+    )
+
+
 async def test_api_hides_batches_outside_actor_source_scope(
     api_client: AsyncClient,
     authorized_actor,
