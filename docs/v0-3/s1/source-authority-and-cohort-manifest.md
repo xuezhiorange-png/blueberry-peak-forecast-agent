@@ -22,6 +22,22 @@ CURRENT_SOURCE_COHORT_ID=NOT_ISSUED
 The values above are explicit absence states. They are not placeholders for
 approval and cannot be used as acceptance evidence.
 
+The source-authority contract is source-class and label-mode aware. The
+accepted IDFL_V1 mode changes only the actual-label representation rules; it
+does not relax forecast-input visibility or accept the current source:
+
+```text
+IDFL_V1_MODE_CONTRACT_ACCEPTED=true
+IMMUTABLE_DAILY_FINAL_LABEL_ACCEPTED=true
+IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true
+DESIGN_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
+SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+```
+
 ## Source authority identity
 
 An accepted source authority must bind all of the following fields in one
@@ -194,12 +210,40 @@ variety, season, and business date. A live master-data remap after freeze is
 not evidence. Mapping evidence is a versioned object with a schema/policy hash
 and deterministic identity.
 
-Revision identity must preserve source record identity, revision number,
-superseded parent, status, source-recorded time, source availability time,
-source revision time, finalized time where required, cancellation time where
-required, and source-system scope. The winner is computed by the Q2A/I7 lineage
-rules; it is never selected by largest quantity, latest import, database order,
-or lexical hash.
+For AS_OF_EVALUATION and FINAL_ADJUDICATED, revision identity must preserve
+source record identity, revision number, superseded parent, status,
+source-recorded time, source availability time, source revision time,
+finalized time where required, cancellation time where required, and
+source-system scope. The winner is computed by the Q2A/I7 lineage rules; it is
+never selected by largest quantity, latest import, database order, or lexical
+hash.
+
+IDFL_V1 is a deliberate source-object-bound exception for the actual-label
+side only. It does not invent a source-system record identity or revision
+history:
+
+```text
+SOURCE_ROW_LINEAGE_REQUIRED=true
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_IS_SOURCE_SYSTEM_IDENTITY=false
+```
+
+The minimum derivation lineage for each canonical IDFL label row is:
+
+```text
+immutable source object identity
++ deterministic source-row locator or source-row evidence identity
++ mapping evidence identity
++ aggregation policy version
++ canonical label identity
+```
+
+A row locator or row-evidence hash identifies evidence inside an immutable
+source object for audit purposes. It must not be called an
+`external_logical_record_id`, `external_revision_id`, source-system record
+identity, or revision lineage. Database row order is never an authority.
 
 ## Hash and custody rules
 
@@ -211,9 +255,134 @@ CLEANED_DATA_VERSIONED=true
 MANUAL_CORRECTION_AUDITED=true
 SILENT_VALUE_REPLACEMENT=false
 SOURCE_ROW_LINEAGE_REQUIRED=true
-POINT_IN_TIME_VISIBILITY_REQUIRED=true
 REAL_DATA_ALLOWED_IN_GIT=false
 ```
+
+Visibility is an explicit source-class and label-mode policy. The IDFL
+exception applies only to `ACTUAL_HARVEST_LABEL +
+IMMUTABLE_DAILY_FINAL_LABEL` and never propagates to forecast inputs or the two
+replay modes:
+
+```text
+SOURCE_AUTHORITY_REQUIREMENT_IS_SOURCE_CLASS_AND_LABEL_MODE_AWARE=true
+FORECAST_INPUT_POINT_IN_TIME_VISIBILITY_REQUIRED=true
+ACTUAL_LABEL_VISIBILITY_REQUIREMENT=LABEL_MODE_DEPENDENT
+REPLAY_LABEL_POINT_IN_TIME_VISIBILITY_REQUIRED=true
+AS_OF_LABEL_POINT_IN_TIME_REPLAY_REQUIRED=true
+FINAL_ADJUDICATED_FINALIZATION_AUTHORITY_REQUIRED=true
+IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+FORECAST_SIDE_POINT_IN_TIME_AUTHORITY_REQUIRED=true
+LABEL_FINAL_STATIC_MODE != FORECAST_INPUT_FUTURE_LEAKAGE_ALLOWED
+```
+
+IDFL_V1 source-object completeness is a required authority, not a current
+source acceptance:
+
+```text
+SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true
+SOURCE_COMPLETENESS_POLICY_VERSION_REQUIRED=true
+SOURCE_COMPLETENESS_EVIDENCE_HASH_REQUIRED=true
+SOURCE_COMPLETENESS_WATERMARK_AS_SOURCE_RECORDED_AT=false
+SOURCE_COMPLETENESS_WATERMARK_AS_LABEL_VISIBILITY_TIME=false
+EXPORT_TIME_AS_SOURCE_RECORDED_AT=false
+LATE_ENTRY_NOT_APPLICABLE_IS_COMPLETENESS_PROOF=false
+```
+
+For each included IDFL label date, the source-object completeness watermark
+must satisfy `HARVEST_BUSINESS_DATE <= SOURCE_COMPLETE_THROUGH_BUSINESS_DATE`
+and be bound to the immutable source object or snapshot authority. Without
+source-specific completeness evidence, the current IDFL source eligibility is
+blocked.
+
+IDFL_V1 governed label snapshots must bind, at minimum:
+
+```text
+IDFL_V1_REQUIRED_LABEL_SNAPSHOT_BINDINGS=
+source_system,
+source_dataset,
+source_version,
+schema_version,
+schema_hash,
+source_snapshot_reference,
+source_object_identity_hashes,
+source_complete_through_business_date,
+source_completeness_policy_version,
+source_completeness_evidence_hash,
+source_row_lineage_manifest_hash,
+source_owner_role,
+attestation_version,
+attestation_hash,
+coverage_scope,
+mapping_policy_version,
+visibility_policy_version,
+inclusion_policy_version,
+split_policy_version,
+custody_record_hash,
+label_mode_version,
+aggregate_policy_version,
+source_object_set_hash,
+canonical_label_row_set_hash,
+coverage_manifest_hash,
+exclusion_manifest_hash,
+label_snapshot_hash
+```
+
+All identities remain non-sensitive and opaque. `HASH_ALGORITHM=SHA-256`,
+`CANONICALIZATION=VERSIONED_CANONICAL_JSON_WITH_DECIMAL_STRINGS`, and
+`REAL_DATA_ALLOWED_IN_GIT=false` continue to apply. Database IDs, storage
+paths, and private URLs are not canonical identities.
+
+The IDFL aggregation order is:
+
+```text
+governed immutable source object set
+-> accepted source scope and inclusion policy
+-> accepted season/date mapping
+-> canonical identity mapping
+-> source-dimension aggregation
+-> canonical daily label grouping
+-> exact Decimal SUM
+-> deterministic coverage and exclusion manifest
+-> immutable final-observed label snapshot
+```
+
+```text
+REVISION_WINNER_ALGORITHM=NOT_APPLICABLE
+LATEST_ROW_FALLBACK_ALLOWED=false
+LARGEST_REVISION_FALLBACK_ALLOWED=false
+DATABASE_ROW_ORDER_AUTHORITY=false
+IDFL_DOES_NOT_SELECT_Q2C_TARGET=true
+TARGET_DECISION_REMAINS_SEPARATE=true
+LABEL_TARGET_AUTHORITY=Q2C_ACCEPTED_TARGET
+IDFL_TARGET_BINDING_STATUS=BLOCKED_PENDING_Q2C_ACCEPTANCE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+NO_RECORD_TO_ZERO_MAPPING_STATUS=
+BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+JULY_AUTOMATIC_SEASON_ASSIGNMENT=false
+UNMAPPED_DATE_POLICY=PENDING
+UNMAPPED_DATE_AUTO_ASSIGNMENT_ALLOWED=false
+```
+
+An unexplained duplicate or conflict fails closed; no implicit winner may be
+selected.
+
+Forecast-side temporal authority remains mandatory for IDFL:
+
+```text
+FORECAST_TEMPORAL_ELIGIBILITY_AUTHORITY=
+ACCEPTED_FORECAST_TARGET_INTERVAL_CONTRACT
+SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT
+FORECAST_CUTOFF_AT < FORECAST_TARGET_DATE_OR_WINDOW_END
+HARVEST_BUSINESS_DATE_TO_FORECAST_TARGET_INTERVAL_MAPPING_REQUIRED=true
+FARM_TIMEZONE=Asia/Shanghai
+LABEL_FINAL_STATIC_MODE != FORECAST_INPUT_FUTURE_LEAKAGE_ALLOWED
+```
+
+IDFL does not redefine the forecast horizon and does not authorize a raw
+timestamp-to-business-date comparison. A stricter interval-start predicate,
+if required, comes from the accepted forecast-target contract.
 
 The source object, schema, mapping, visibility, inclusion, split, attestation,
 and final manifest each have a distinct identity. A ZIP digest, a checksum
@@ -273,5 +442,33 @@ S1_ACCEPTANCE_REQUIRES_LINEAGE_AND_MAPPING_EVIDENCE=true
 S1_ACCEPTANCE_REQUIRES_CUSTODY_RECORD=true
 ```
 
-No source value, owner identity, cohort identity, manifest hash, or acceptance
-result is issued by this document.
+This document does not issue a source-specific or cohort-specific acceptance
+result. It may carry `IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true`
+because that is mode-contract semantic acceptance, not source or cohort
+acceptance.
+
+The atomic IDFL contract acceptance state is distinct from source/cohort
+acceptance:
+
+```text
+NO_SOURCE_SPECIFIC_ACCEPTANCE_RESULT_ISSUED_BY_THIS_DOCUMENT=true
+NO_COHORT_SPECIFIC_ACCEPTANCE_RESULT_ISSUED_BY_THIS_DOCUMENT=true
+IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE=true
+IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true
+IDFL_SOURCE_COMPLETENESS_AUTHORITY_REQUIREMENT_ACCEPTED=true
+IDFL_SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIREMENT_ACCEPTED=true
+IDFL_FORECAST_TARGET_INTERVAL_BINDING_ACCEPTED=true
+IDFL_Q2C_INDEPENDENCE_PRESERVED=true
+IDFL_MISSINGNESS_FAIL_CLOSED_PRESERVED=true
+IDFL_FORECAST_SIDE_PIT_PRESERVED=true
+AS_OF_SEMANTICS_PRESERVED=true
+FINAL_ADJUDICATED_SEMANTICS_PRESERVED=true
+DESIGN_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
+S1_VISIBILITY_GATE_CLOSED=false
+PHYSICALLY_ALIGNED_BACKTEST_ALLOWED=false
+MODEL_QUALITY_CLAIM_ALLOWED=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+```

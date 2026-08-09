@@ -56,16 +56,41 @@ A committed source record is evidence. It is not by itself an evaluation label.
 
 ## 3. I7 boundary
 
-I7 includes exactly:
+I7 has common requirements and explicit label-mode scopes:
 
 ```text
-COMMITTED_SOURCE_SELECTION=true
-CUTOFF_VISIBILITY=true
-REVISION_WINNER_SELECTION=true
-REVISION_FIRST_AGGREGATION=true
-IMMUTABLE_LABEL_SNAPSHOT=true
-COVERAGE_AND_EXCLUSION_REPORT=true
+REPLAY_LABEL_MODES=
+AS_OF_EVALUATION,
+FINAL_ADJUDICATED
+STATIC_FINAL_LABEL_MODES=
+IMMUTABLE_DAILY_FINAL_LABEL
+
+COMMON_I7_CANONICAL_LABEL_GRAIN_REQUIRED=true
+COMMON_I7_SINGLE_SOURCE_FAMILY_AUTHORITY_REQUIRED=true
+COMMON_I7_IMMUTABLE_LABEL_SNAPSHOT_REQUIRED=true
+COMMON_I7_COVERAGE_AND_EXCLUSION_EVIDENCE_REQUIRED=true
+COMMON_I7_EXACT_DECIMAL_ARITHMETIC_REQUIRED=true
+COMMON_I7_DETERMINISTIC_IDENTITY_REQUIRED=true
+COMMON_I7_FAIL_CLOSED_CONFLICT_HANDLING_REQUIRED=true
+
+REPLAY_MODE_SOURCE_SELECTION=COMMITTED_REVISIONED_SOURCE_UNIVERSE
+REPLAY_MODE_CUTOFF_VISIBILITY_REQUIRED=true
+REPLAY_MODE_REVISION_WINNER_SELECTION_REQUIRED=true
+REPLAY_MODE_REVISION_FIRST_AGGREGATION_REQUIRED=true
+REPLAY_MODE_EXTERNAL_LOGICAL_RECORD_ID_REQUIRED=true
+REPLAY_MODE_REVISION_GRAPH_REQUIRED=true
+
+IDFL_MODE_SOURCE_SELECTION=GOVERNED_IMMUTABLE_SOURCE_OBJECT_SET
+IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+IDFL_REVISION_WINNER_REQUIRED=false
+IDFL_SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+IDFL_SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+IDFL_SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
 ```
+
+`I7` does not have an unqualified winner-selection or revision-first
+requirement. Replay modes retain those requirements; IDFL uses immutable
+source-object completeness and object-bound derivation lineage instead.
 
 I7 excludes:
 
@@ -81,6 +106,27 @@ MODEL_CHANGE=false
 ```
 
 V0.2-S2 is broader than I7. The S2 backtest portion requires separate authorization.
+
+The accepted actual-label mode set is mode-aware and contains the two
+existing replay modes plus the separately accepted IDFL mode:
+
+```text
+SUPPORTED_ACTUAL_LABEL_MODES=
+AS_OF_EVALUATION,
+FINAL_ADJUDICATED,
+IMMUTABLE_DAILY_FINAL_LABEL
+IDFL_V1_MODE_CONTRACT_ACCEPTED=true
+IDFL_V1_MODE_VERSION=IDFL_V1
+IDFL_V1_I7_MODE_ACCEPTED=true
+EXISTING_AS_OF_EVALUATION_SEMANTICS_CHANGED=false
+EXISTING_FINAL_ADJUDICATED_SEMANTICS_CHANGED=false
+DESIGN_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
+```
+
+Acceptance of IDFL_V1 changes neither the AS_OF_EVALUATION contract nor the
+FINAL_ADJUDICATED contract. It is an atomic third-mode extension across the
+Q2A/I7, visibility, and source-authority contracts; it does not authorize
+implementation, source acceptance, cohort acceptance, or evaluation.
 
 ## 4. Canonical label grain
 
@@ -117,9 +163,9 @@ SOURCE_PRIORITY=false
 
 No source-priority order is authorized. Cross-source conflicts fail closed.
 
-## 6. Four-time model
+## 6. Mode-scoped time model
 
-The inherited ordering remains:
+For replay label modes, the inherited ordering remains:
 
 ```text
 forecast_cutoff_at
@@ -128,7 +174,10 @@ forecast_cutoff_at
 <= replay_executed_at
 ```
 
-I7 owns `label_observation_cutoff_at` as part of the canonical snapshot request and immutable snapshot header.
+For replay modes, I7 owns `label_observation_cutoff_at` as part of the
+canonical snapshot request and immutable snapshot header. IDFL_V1 does not
+claim a label-side observation cutoff; its label-side temporal authority is
+source-object completeness.
 
 `forecast_cutoff_at` remains prediction-side evidence and must not be replaced by label timestamps.
 
@@ -174,22 +223,167 @@ finalized_at<=snapshot_executed_at
 
 Final adjudication is not a substitute for historical point-in-time replay.
 
-## 8. Lineage authority and winner eligibility
+### 7.3 IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
 
-The lineage graph and record status have separate responsibilities:
+`IMMUTABLE_DAILY_FINAL_LABEL` is an accepted third actual-label mode for an
+immutable daily business aggregate. It is not an alias for either existing
+mode:
 
 ```text
-LINEAGE_GRAPH_ROLE_IS_TERMINAL_AUTHORITY=true
-RECORD_STATUS_IS_WINNER_ELIGIBILITY_FILTER=true
-I5_WINNER_SELECTION_IMPLEMENTED=false
-I7_WINNER_SELECTION_REQUIRED=true
+LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL
+LABEL_MODE_VERSION=IDFL_V1
+LABEL_VALUE_AUTHORITY=FINAL_OBSERVED_DAILY_BUSINESS_QUANTITY
+LABEL_VISIBILITY_AUTHORITY=NOT_POINT_IN_TIME_REPLAYABLE
+LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+LABEL_OBSERVATION_CUTOFF_REQUIRED=false
+REVISION_WINNER_REQUIRED=false
+FINALIZED_AT_REQUIRED=false
+SOURCE_RECORDED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+FORECAST_SIDE_POINT_IN_TIME_AUTHORITY_REQUIRED=true
 ```
 
-The graph determines whether a node is terminal. Status determines whether that terminal can become a winner.
+IDFL_V1 must never be described as `AS_OF_EVALUATION`,
+`FINAL_ADJUDICATED`, `POINT_IN_TIME_LABEL_REPLAY`, or
+`REVISION_WINNER_REPLAY`. `FINAL_OBSERVED_LABEL != HISTORICAL_LABEL_REPLAY`.
+The existing AS_OF and FINAL rules above remain authoritative for those modes.
 
-No winner may be selected by latest timestamp, largest revision, database ID, import order, batch order, or arbitrary priority.
+IDFL_V1 requires source-object completeness authority, but this contract
+acceptance does not assert that the current Source 002 object has it:
 
-## 9. Status rules
+```text
+SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true
+SOURCE_COMPLETENESS_POLICY_VERSION_REQUIRED=true
+SOURCE_COMPLETENESS_EVIDENCE_HASH_REQUIRED=true
+HARVEST_BUSINESS_DATE <= SOURCE_COMPLETE_THROUGH_BUSINESS_DATE
+SOURCE_COMPLETENESS_WATERMARK_AS_SOURCE_RECORDED_AT=false
+SOURCE_COMPLETENESS_WATERMARK_AS_LABEL_VISIBILITY_TIME=false
+EXPORT_TIME_AS_SOURCE_RECORDED_AT=false
+LATE_ENTRY_NOT_APPLICABLE_IS_COMPLETENESS_PROOF=false
+IDFL_LABEL_ELIGIBILITY_IF_COMPLETENESS_EVIDENCE_ABSENT=
+BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+```
+
+The completeness watermark is bound to the immutable source object or source
+snapshot authority. It proves completeness through a business date only; it
+does not prove `source_recorded_at`, `source_available_at`, `finalized_at`, or
+historical label visibility.
+
+IDFL_V1 preserves audit lineage without inventing source-system identity:
+
+```text
+SOURCE_ROW_LINEAGE_REQUIRED=true
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_IS_SOURCE_SYSTEM_IDENTITY=false
+```
+
+Each canonical IDFL label row must be derivable from the immutable source
+object identity, a deterministic source-row locator or row-evidence identity,
+mapping evidence identity, aggregation policy version, and canonical label
+identity. A locator or row-evidence hash identifies evidence inside an
+immutable object only; it is not an external logical record ID, revision ID,
+source-system identity, or revision lineage. Database row order is never an
+authority.
+
+The accepted forecast-side temporal authority is:
+
+```text
+FORECAST_TEMPORAL_ELIGIBILITY_AUTHORITY=
+ACCEPTED_FORECAST_TARGET_INTERVAL_CONTRACT
+SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT
+FORECAST_CUTOFF_AT < FORECAST_TARGET_DATE_OR_WINDOW_END
+HARVEST_BUSINESS_DATE_TO_FORECAST_TARGET_INTERVAL_MAPPING_REQUIRED=true
+FARM_TIMEZONE=Asia/Shanghai
+LABEL_FINAL_STATIC_MODE != FORECAST_INPUT_FUTURE_LEAKAGE_ALLOWED
+```
+
+IDFL does not redefine the forecast horizon and does not use an unqualified
+comparison between a timestamp and `HARVEST_BUSINESS_DATE`. A stricter
+interval-start predicate, if required, must come from the accepted
+forecast-target contract.
+
+IDFL does not choose the physical target or transform it:
+
+```text
+IDFL_DOES_NOT_SELECT_Q2C_TARGET=true
+TARGET_DECISION_REMAINS_SEPARATE=true
+LABEL_TARGET_AUTHORITY=Q2C_ACCEPTED_TARGET
+IDFL_TARGET_BINDING_STATUS=BLOCKED_PENDING_Q2C_ACCEPTANCE
+Q2C_ACCEPTED=false
+```
+
+Missingness remains fail-closed and separate from completeness:
+
+```text
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+NO_RECORD_TO_ZERO_MAPPING_STATUS=
+BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+JULY_AUTOMATIC_SEASON_ASSIGNMENT=false
+UNMAPPED_DATE_POLICY=PENDING
+UNMAPPED_DATE_AUTO_ASSIGNMENT_ALLOWED=false
+```
+
+The IDFL construction order is governed as follows:
+
+```text
+governed immutable source object set
+-> accepted source scope and inclusion policy
+-> accepted season/date mapping
+-> canonical identity mapping
+-> source-dimension aggregation
+-> canonical daily label grouping
+-> exact Decimal SUM
+-> deterministic coverage and exclusion manifest
+-> immutable final-observed label snapshot
+```
+
+```text
+REVISION_WINNER_ALGORITHM=NOT_APPLICABLE
+LATEST_ROW_FALLBACK_ALLOWED=false
+LARGEST_REVISION_FALLBACK_ALLOWED=false
+DATABASE_ROW_ORDER_AUTHORITY=false
+```
+
+An unexplained duplicate or conflict fails closed; IDFL must not silently
+choose a winner.
+
+## 8. Lineage authority and winner eligibility
+
+The following lineage and winner rules are replay-mode requirements only. They
+remain unchanged for `AS_OF_EVALUATION` and `FINAL_ADJUDICATED`:
+
+```text
+REPLAY_MODE_LINEAGE_GRAPH_ROLE_IS_TERMINAL_AUTHORITY=true
+REPLAY_MODE_RECORD_STATUS_IS_WINNER_ELIGIBILITY_FILTER=true
+REPLAY_MODE_I5_WINNER_SELECTION_IMPLEMENTED=false
+REPLAY_MODE_I7_WINNER_SELECTION_REQUIRED=true
+REPLAY_MODE_EXTERNAL_LOGICAL_RECORD_ID_STABILITY_REQUIRED=true
+REPLAY_MODE_REVISION_CONTINUITY_REQUIRED=true
+```
+
+The replay graph determines whether a node is terminal. Replay status
+determines whether that terminal can become a winner. No replay winner may be
+selected by latest timestamp, largest revision, database ID, import order,
+batch order, or arbitrary priority.
+
+IDFL_V1 has no revision graph or winner authority:
+
+```text
+IDFL_REVISION_GRAPH_REQUIRED=false
+IDFL_REVISION_WINNER_REQUIRED=false
+IDFL_EXTERNAL_LOGICAL_RECORD_ID_REQUIRED=false
+IDFL_WINNER_POLICY_VERSION_REQUIRED=false
+IDFL_WINNER_MANIFEST_HASH_REQUIRED=false
+```
+
+## 9. Replay-mode status rules
+
+The status rules in this section apply only to replay modes. They are not
+implicit IDFL requirements.
 
 ### 9.1 ACTIVE
 
@@ -224,7 +418,7 @@ FINALIZED_HAS_SUCCESSOR=STRUCTURAL_FAILURE
 FINALIZED_REQUIRES_FINALIZED_AT=true
 ```
 
-For AS_OF evaluation:
+For AS_OF evaluation in replay mode:
 
 ```text
 record_status=FINALIZED
@@ -232,7 +426,7 @@ AND finalized_at<=label_observation_cutoff_at
 => FINALIZED winner eligible
 ```
 
-For:
+For replay mode:
 
 ```text
 record_status=FINALIZED
@@ -260,13 +454,13 @@ A terminal `VOID` produces a deterministic coverage exclusion.
 
 ## 10. Visible-chain invariants
 
-For each:
+For `AS_OF_EVALUATION` and `FINAL_ADJUDICATED` replay modes, for each:
 
 ```text
 (source_system, external_logical_record_id)
 ```
 
-I7 constructs the visible graph and requires:
+Replay-mode I7 constructs the visible graph and requires:
 
 - one explicit predecessor chain;
 - every visible non-root node has its visible predecessor;
@@ -278,13 +472,17 @@ I7 constructs the visible graph and requires:
 - `CORRECTED` has exactly one successor;
 - `FINALIZED` and `VOID` have no successor.
 
-Lineage corruption halts the complete snapshot. It is not downgraded to a coverage exclusion.
+Replay lineage corruption halts the complete replay snapshot. It is not
+downgraded to a coverage exclusion. IDFL does not construct this visible
+revision chain; its corresponding audit authority is the immutable source
+object identity plus deterministic object-bound row derivation lineage.
 
 ## 11. Frozen mapping authority
 
-I7 must use mapping evidence bound to the winner's committed validation run.
+Replay modes must use mapping evidence bound to the winner's committed
+validation run.
 
-Required mappings per winner:
+Required mappings per replay winner:
 
 ```text
 SEASON
@@ -312,12 +510,21 @@ FROZEN_VALIDATION_MAPPING_EVIDENCE_REQUIRED=true
 
 Database IDs may be retained as foreign keys. They are not canonical identity authority and do not enter canonical hashes.
 
-## 12. Revision-first aggregation
-
-The processing order is fixed:
+IDFL_V1 binds mapping evidence to the immutable source object and canonical
+label derivation instead of a replay winner:
 
 ```text
-committed source universe
+IDFL_MAPPING_POLICY_VERSION_REQUIRED=true
+IDFL_MAPPING_EVIDENCE_IDENTITY_REQUIRED=true
+IDFL_WINNER_BOUND_MAPPING_REQUIRED=false
+```
+
+## 12. Mode-scoped aggregation
+
+For replay modes, the processing order is fixed:
+
+```text
+committed revisioned source universe
 -> cutoff-visible graph
 -> unique eligible terminal per logical record
 -> frozen mapping identities
@@ -325,7 +532,12 @@ committed source universe
 -> exact Decimal SUM
 ```
 
-Rules:
+```text
+REPLAY_MODE_REVISION_FIRST_AGGREGATION_REQUIRED=true
+REPLAY_MODE_WINNER_MANIFEST_REQUIRED=true
+```
+
+Replay rules:
 
 - multiple logical records may share one canonical grain;
 - same grain is not a duplicate;
@@ -335,28 +547,75 @@ Rules:
 - contributing winners use stable deterministic ordering;
 - API, CSV, and XLSX records with identical canonical content aggregate identically.
 
-Contributing-winner evidence is represented by normalized winner rows and an ordered winner-hash set. Unbounded opaque JSON is not canonical authority.
+For replay modes, contributing-winner evidence is represented by normalized
+winner rows and an ordered winner-hash set. Unbounded opaque JSON is not
+canonical authority.
+
+For IDFL_V1, the processing order is:
+
+```text
+governed immutable source object set
+-> accepted source scope and inclusion policy
+-> accepted season/date mapping
+-> canonical identity mapping
+-> source-dimension aggregation
+-> canonical daily label grouping
+-> exact Decimal SUM
+-> deterministic coverage and exclusion manifest
+-> immutable final-observed label snapshot
+```
+
+```text
+IDFL_REVISION_FIRST_AGGREGATION_REQUIRED=false
+IDFL_WINNER_MANIFEST_REQUIRED=false
+IDFL_AGGREGATION_USES_SOURCE_OBJECT_BOUND_LINEAGE=true
+```
 
 ## 13. Snapshot request and idempotency
 
 The snapshot idempotency namespace is independent from import-batch idempotency.
 
-Required request fields include:
+Common request fields include:
 
 ```text
 snapshot_idempotency_key
 source_system
-visibility_mode
-label_observation_cutoff_at_or_null
+visibility_mode_or_label_mode
+label_mode_version
 harvest_date_start
 harvest_date_end
 season_business_keys
 farm_business_keys_or_empty_for_all
 variety_business_keys_or_empty_for_all
 snapshot_policy_version
-winner_policy_version
 aggregation_policy_version
 ```
+
+Replay-only request fields are:
+
+```text
+REPLAY_LABEL_REQUEST_FIELDS=
+label_observation_cutoff_at_or_null,
+winner_policy_version,
+committed_revisioned_source_universe
+```
+
+IDFL-specific request and authority bindings are:
+
+```text
+IDFL_LABEL_REQUEST_FIELDS=
+label_mode=IMMUTABLE_DAILY_FINAL_LABEL,
+label_mode_version=IDFL_V1,
+source_snapshot_reference,
+source_object_set_hash,
+source_object_identity_hashes,
+source_complete_through_business_date,
+source_completeness_policy_version,
+source_completeness_evidence_hash,
+source_object_bound_row_lineage_policy
+```
+
+`winner_policy_version` is not required for IDFL.
 
 Canonical lists are sorted and unique.
 
@@ -377,19 +636,53 @@ same key + different request identity hash
 => deterministic idempotency conflict
 ```
 
-A new idempotency key may create a refreshed snapshot against a newly observed source universe.
+A new idempotency key may create a refreshed replay snapshot against a newly
+observed source universe or a new IDFL snapshot against a newly governed
+immutable source-object set.
 
 ## 14. Snapshot identity and hashes
 
-Required identity fields:
+Common identity fields:
 
 ```text
 snapshot_idempotency_key
 label_snapshot_request_identity_hash
 label_snapshot_instance_identity_hash
+label_row_set_hash
+exclusion_manifest_hash
+label_snapshot_hash
+```
+
+Replay-mode identity requirements:
+
+```text
+REPLAY_LABEL_SNAPSHOT_IDENTITY_REQUIRES_WINNER_MANIFEST=true
+REPLAY_LABEL_SNAPSHOT_IDENTITY_REQUIRES_SOURCE_COMMIT_MANIFEST_SET_HASH=true
+REPLAY_LABEL_SNAPSHOT_IDENTITY_REQUIRES_WINNER_POLICY_VERSION=true
 source_commit_manifest_set_hash
 winner_manifest_hash
-label_row_set_hash
+```
+
+IDFL identity requirements:
+
+```text
+IDFL_LABEL_SNAPSHOT_IDENTITY_REQUIRES_WINNER_MANIFEST=false
+IDFL_LABEL_SNAPSHOT_IDENTITY_REQUIRES_SOURCE_OBJECT_SET_HASH=true
+IDFL_LABEL_SNAPSHOT_IDENTITY_REQUIRES_SOURCE_ROW_LINEAGE_MANIFEST_HASH=true
+IDFL_LABEL_SNAPSHOT_IDENTITY_REQUIRES_REVISION_GRAPH=false
+IDFL_LABEL_SNAPSHOT_IDENTITY_REQUIRES_LABEL_OBSERVATION_CUTOFF=false
+source_snapshot_reference
+source_object_set_hash
+source_row_lineage_manifest_hash
+source_complete_through_business_date
+source_completeness_policy_version
+source_completeness_evidence_hash
+mapping_policy_version
+visibility_policy_version
+inclusion_policy_version
+aggregation_policy_version
+canonical_label_row_set_hash
+coverage_manifest_hash
 exclusion_manifest_hash
 label_snapshot_hash
 ```
@@ -400,17 +693,21 @@ label_snapshot_hash
 
 ### 14.2 Source universe
 
-The source universe is the canonically ordered list of observed committed manifests.
+For replay modes, the source universe is the canonically ordered list of
+observed committed manifests.
 
 ```text
 SNAPSHOT_SOURCE_MANIFEST_SET_IS_CANONICALLY_ORDERED=true
 ```
 
-The list contains stable source identity and `commit_manifest_hash`; it does not use database row order.
+The replay list contains stable source identity and
+`commit_manifest_hash`; it does not use database row order. IDFL instead binds
+the immutable source-object set, its object identity hashes, and its
+source-object-bound row-lineage manifest.
 
 ### 14.3 Instance identity
 
-`label_snapshot_instance_identity_hash` binds:
+For replay modes, `label_snapshot_instance_identity_hash` binds:
 
 - request identity (`label_snapshot_request_identity_hash`);
 - canonically ordered source manifest set;
@@ -432,9 +729,19 @@ INSTANCE_HASH_BINDS_SNAPSHOT_EXECUTED_AT=false
 SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES=true
 ```
 
+For IDFL, the instance identity instead binds the immutable source-object set
+and source-object-bound lineage:
+
+```text
+IDFL_INSTANCE_HASH_BINDS_SOURCE_OBJECT_SET_HASH=true
+IDFL_INSTANCE_HASH_BINDS_SOURCE_ROW_LINEAGE_MANIFEST_HASH=true
+IDFL_INSTANCE_HASH_BINDS_SOURCE_COMPLETENESS_EVIDENCE_HASH=true
+IDFL_INSTANCE_HASH_BINDS_WINNER_MANIFEST=false
+```
+
 ### 14.4 Final snapshot hash
 
-`label_snapshot_hash` binds:
+For replay modes, `label_snapshot_hash` binds:
 
 - instance identity;
 - ordered winner rows;
@@ -445,9 +752,14 @@ SAME_REQUEST_AND_SAME_SOURCE_UNIVERSE_REPRODUCES_SAME_HASHES=true
 
 Canonical hashes exclude database-generated IDs, runtime hosts, processes, query order, temporary paths, and nondeterministic iteration.
 
-## 15. Structural failures
+For IDFL, the final snapshot hash binds the immutable source-object set,
+source-object-bound row-lineage manifest, completeness evidence, canonical
+label rows, coverage manifest, exclusion manifest, and accepted policy
+versions. It does not manufacture a winner manifest or revision graph.
 
-The complete snapshot fails on:
+## 15. Mode-scoped structural failures
+
+Replay-mode snapshots fail on the following structural conditions:
 
 ```text
 SOURCE_EVIDENCE_DRIFT
@@ -470,9 +782,26 @@ UNSUPPORTED_LABEL_GRAIN
 
 `CORRECTED_WITHOUT_SUCCESSOR` is the accepted I7 contract name. Existing I5 implementations may map the condition to the legacy `INVALID_RECORD_STATUS` code until implementation hardening is separately authorized.
 
+IDFL snapshots fail closed on common identity, mapping, completeness, scope,
+unsupported-grain, duplicate, or conflict conditions. Replay-only lineage and
+winner errors are not IDFL requirements:
+
+```text
+IDFL_MODE_STRUCTURAL_FAILURES=
+SOURCE_EVIDENCE_DRIFT,
+MAPPING_EVIDENCE_MISSING,
+MAPPING_EVIDENCE_DRIFT,
+SOURCE_COMPLETENESS_EVIDENCE_MISSING,
+SOURCE_COMPLETENESS_EVIDENCE_DRIFT,
+SOURCE_OBJECT_SET_CONFLICT,
+IDEMPOTENCY_CONFLICT,
+UNSUPPORTED_LABEL_GRAIN,
+DUPLICATE_OR_CONFLICT_NOT_EXPLAINED_BY_ACCEPTED_POLICY
+```
+
 ## 16. Coverage exclusions
 
-A snapshot may succeed while reporting:
+A replay-mode snapshot may succeed while reporting:
 
 ```text
 SOURCE_TIME_UNTRUSTED
@@ -513,15 +842,42 @@ Every exclusion has one deterministic row hash. The ordered row hashes form `exc
 
 `TERMINAL_CORRECTED` is not a coverage exclusion. It is a structural lineage error.
 
-## 17. Persistence boundary
+IDFL uses only source-object and scope-aware exclusions; it does not convert
+missing historical visibility into an IDFL rejection solely because replay is
+unsupported:
 
-I7 persistence contains exactly four logical tables:
+```text
+IDFL_MODE_COVERAGE_EXCLUSIONS=
+OUTSIDE_REQUEST_SCOPE,
+SOURCE_COMPLETENESS_NOT_ESTABLISHED,
+UNMAPPED_BUSINESS_DATE,
+MISSING_CANONICAL_MAPPING,
+DUPLICATE_OR_CONFLICT_NOT_EXPLAINED_BY_ACCEPTED_POLICY
+```
+
+## 17. Mode-scoped persistence boundary
+
+Replay-mode persistence contains exactly four logical tables:
 
 ```text
 actual_harvest_label_snapshot
 actual_harvest_label_snapshot_winner
 actual_harvest_label_snapshot_label
 actual_harvest_label_snapshot_exclusion
+```
+
+IDFL_V1 persistence does not require a replay winner table or revision-graph
+artifact. Its logical persistence set is limited to the immutable snapshot,
+canonical label, and exclusion records, with source-object-bound lineage and
+completeness bindings carried by the snapshot identity/manifests:
+
+```text
+IDFL_LOGICAL_PERSISTENCE_TABLES=
+actual_harvest_label_snapshot,
+actual_harvest_label_snapshot_label,
+actual_harvest_label_snapshot_exclusion
+IDFL_WINNER_TABLE_REQUIRED=false
+IDFL_REVISION_GRAPH_TABLE_REQUIRED=false
 ```
 
 The future migration is based on:
@@ -555,15 +911,20 @@ Header and all child rows are committed or rolled back together.
 
 ## 18. Reproducibility and concurrency
 
-A snapshot records the exact ordered source-manifest set observed inside its database transaction.
+A replay-mode snapshot records the exact ordered source-manifest set observed
+inside its database transaction. An IDFL snapshot records the immutable
+source-object set and its source-object-bound row-lineage evidence observed by
+the same atomic snapshot operation.
 
 A source commit concurrent with that transaction is either inside or outside the observed database snapshot; it must never produce a partially observed source universe.
 
-Same request and same source universe reproduce the same canonical winner rows, label rows, exclusions, and hashes.
+The same request and source authority reproduce the same canonical label rows,
+exclusions, and hashes. Replay modes additionally reproduce winner rows; IDFL
+does not create winner rows.
 
 ## 19. Acceptance-test contract
 
-Future implementation acceptance must cover:
+Future replay-mode implementation acceptance must cover:
 
 - parent visible before successor cutoff;
 - successor visible after cutoff;
@@ -590,6 +951,21 @@ Future implementation acceptance must cover:
 
 SQLite results do not substitute for PostgreSQL acceptance evidence.
 
+Future IDFL implementation acceptance must separately cover:
+
+- source-object completeness watermark and policy-version binding;
+- source-object set and object-identity hash binding;
+- deterministic source-object-bound row-lineage manifest;
+- canonical label aggregation and exact Decimal sum;
+- explicit missingness, unmapped-date, and exclusion fail-closed handling;
+- target-interval mapping and forecast-side point-in-time authority;
+- IDFL snapshot idempotency and conflict handling without a winner manifest;
+- immutable snapshot persistence and rollback behavior without revision-winner
+  selection.
+
+IDFL implementation acceptance does not require historical label replay,
+revision-graph validation, or winner-manifest validation.
+
 ## 20. Cross-document synchronized status
 
 The accepted current status is:
@@ -607,6 +983,19 @@ I5_LINEAGE_CONTRACT_HARDENING_ACCEPTED=true
 I7_DESIGN_CONTRACT_FREEZE_ACCEPTED=true
 Q2A_I7_CONTRACT_STATUS=ACCEPTED
 Q2A_I7_IMPLEMENTATION_READY=CONTRACT_READY_NOT_AUTHORIZED
+IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE=true
+IMMUTABLE_DAILY_FINAL_LABEL_ACCEPTED=true
+IDFL_V1_CONTRACT_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
+SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+S1_VISIBILITY_GATE_CLOSED=false
+PHYSICALLY_ALIGNED_BACKTEST_ALLOWED=false
+MODEL_QUALITY_CLAIM_ALLOWED=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
 ```
 
 Prediction-label alignment remains blocked by the missing immutable label snapshot and forecast-binding implementation, not by the absence of a committed actual-harvest source.
