@@ -149,7 +149,7 @@ weight at plant removal before the scan-weigh record.
 
 ## Candidate target paths
 
-### Candidate A: observed target (not selected by this correction)
+### Candidate A: observed recorded-label target (not selected by this correction)
 
 This path remains a conditional target path and is not selected by this
 boundary correction. Its exact target binding requires a separately reviewed
@@ -159,7 +159,7 @@ It would bind `actual_harvest_quantity_kg` directly only after that decision.
 
 ```text
 WHEN_Q2C_PROVEN_EXACT:
-  TARGET_BINDING=OBSERVED_FARM_PICK_QUANTITY
+  TARGET_BINDING=actual_harvest_quantity_kg
   TARGET_TRANSFORMATION=NONE
 ```
 
