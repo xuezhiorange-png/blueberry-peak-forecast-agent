@@ -15,6 +15,9 @@ CORRECTION_R1_APPLIED=true
 CORRECTION_R1_REVIEWED_PREVIOUS_HEAD=60d3d902799aea647bd88e81ac8f60ed7ba80270
 CORRECTION_R1_P1_COUNT=2
 CORRECTION_R1_P2_COUNT=1
+RECORDED_HARVEST_LABEL_BOUNDARY_CORRECTION_APPLIED=true
+BUSINESS_DECISION_ID=V0_3_RECORDED_HARVEST_LABEL_BOUNDARY
+FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 ```
 
 This workpaper reconciles only the eight Package A gates:
@@ -138,8 +141,11 @@ The `NOT_FORMALIZED`, `NO_FORMAL_RULE`, and `NO_EXPLICIT_ROLE_RESTRICTION`
 answers are retained as current reality. This reconciliation does not create
 retention, role, completeness, withdrawal, mapping, exclusion, or missing-day
 policies. `TARE_DEDUCTION_METHOD`, `SCALE_DEVICE_PRECISION`, and
-`SCALE_CALIBRATION_AUTHORITY` are not in this category because their factual
-values are not currently supplied or confirmed.
+`SCALE_CALIBRATION_AUTHORITY`, together with
+`TRANSPORT_BEFORE_WEIGHING`, `STORAGE_BEFORE_WEIGHING`, and
+`POSTHARVEST_LOSS_RULE`, are not in this governance-gap or D-class hard-blocker category after
+the recorded-label correction: they remain optional evidence fields with no
+invented values.
 
 ## 6. Formal artifacts still missing
 
@@ -160,19 +166,23 @@ facts as missing. Canonical acceptance remains separate.
 
 ## 7. Attestation required-field audit
 
-The active business-source-attestation schema has 42 required fields. The
-following audit distinguishes an available business fact (`A`), a supplied
-fact whose governance or technical rule is not formalized (`B`), a missing
-formal artifact value (`C`), and a factual value not present in current
-repository evidence (`D`). A schema-required field is not automatically an
-immediate user question.
+The corrected business-source-attestation schema has 36 required fields. Six
+process-provenance/metrology properties remain available but are optional for
+the V0.3 recorded-business-label profile. The following audit distinguishes an
+available business fact (`A`), a supplied fact whose governance or technical
+rule is not formalized (`B`), a missing formal artifact value (`C`), and a
+factual value not present in current repository evidence (`D`). A
+schema-required field is not automatically an immediate user question.
 
 ```text
-ATTESTATION_SCHEMA_REQUIRED_FIELD_COUNT=42
+ATTESTATION_SCHEMA_REQUIRED_FIELD_COUNT=36
 ATTESTATION_SCHEMA_FIELD_CLASS_A_COUNT=21
 ATTESTATION_SCHEMA_FIELD_CLASS_B_COUNT=7
 ATTESTATION_SCHEMA_FIELD_CLASS_C_COUNT=5
-ATTESTATION_SCHEMA_FIELD_CLASS_D_COUNT=9
+ATTESTATION_SCHEMA_FIELD_CLASS_D_COUNT=3
+OPTIONAL_RECORDED_LABEL_EVIDENCE_FIELD_COUNT=6
+OPTIONAL_RECORDED_LABEL_EVIDENCE_FIELDS=transport_before_weighing,storage_before_weighing,postharvest_loss_rule,tare_policy,scale_precision,scale_calibration_authority
+OPTIONAL_RECORDED_LABEL_EVIDENCE_HARD_BLOCKER=false
 ```
 
 | FIELD | CURRENT_EVIDENCE_VALUE | CLASSIFICATION | SOURCE_ARTIFACT | RATIONALE |
@@ -201,13 +211,7 @@ ATTESTATION_SCHEMA_FIELD_CLASS_D_COUNT=9
 | field_sorting_rule | 田间剔除的非商品果不计入 | A | q2c-target-decision-draft.md | Field sorting fact is recorded. |
 | packhouse_sorting_rule | 加工厂后续分选不追溯调整 | A | q2c-target-decision-draft.md | Packhouse boundary fact is recorded. |
 | rejected_fruit_rule | 加工厂拒收或退货不追溯调整 | A | q2c-target-decision-draft.md | Rejection boundary fact is recorded. |
-| transport_before_weighing | NOT_PROVIDED | D | q2c-physical-target-equivalence-contract.md | No current fact establishes transport before weighing. |
-| storage_before_weighing | NOT_PROVIDED | D | q2c-physical-target-equivalence-contract.md | No current fact establishes storage before weighing. |
-| postharvest_loss_rule | NOT_PROVIDED | D | source-measurement-and-finalization-rules-draft.md | No complete post-harvest loss rule is supplied. |
-| tare_policy | TARE_ALREADY_DEDUCTED=true; method NOT_PROVIDED | D | source-measurement-and-finalization-rules-draft.md | Deduction result exists, but required tare method/policy value does not. |
 | measurement_method | 田间采收点首次有效扫码称重 | A | source-schema-field-map-and-gap-register.md | Business-level method description exists; formal method code remains artifact work. |
-| scale_precision | NOT_PROVIDED | D | source-measurement-and-finalization-rules-draft.md | Export decimals are not device precision. |
-| scale_calibration_authority | NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE | D | source-measurement-and-finalization-rules-draft.md | No authority value was collected. |
 | farm_timezone | Asia/Shanghai | A | q2c-target-decision-draft.md | Farm-local timezone fact is recorded. |
 | local_day_boundary | NOT_PROVIDED | D | source-measurement-and-finalization-rules-draft.md | Timezone alone does not supply an explicit day-boundary field. |
 | late_entry_rule | NOT_APPLICABLE scenario; technical rule not formalized | B | source-schema-field-map-and-gap-register.md | Current business scenario exists; formal/technical rule does not. |
@@ -221,25 +225,38 @@ ATTESTATION_SCHEMA_FIELD_CLASS_D_COUNT=9
 | coverage_summary | aggregate counts and date bounds; preparation only | A | source-002-governed-snapshot-evidence.md | Aggregate summary exists, not a cohort acceptance. |
 ```
 
-The three fields explicitly required for Correction R1 are therefore:
+The following six fields remain available as optional process-provenance or
+metrology evidence. Their absence is no longer a D-class hard blocker for the
+V0.3 recorded-label profile, and no value is invented:
 
 ```text
-TARE_DEDUCTION_METHOD_CLASSIFICATION=D
-SCALE_DEVICE_PRECISION_CLASSIFICATION=D
-SCALE_CALIBRATION_AUTHORITY_CLASSIFICATION=D
+transport_before_weighing=NOT_PROVIDED; OPTIONAL_NONBLOCKING_EVIDENCE
+storage_before_weighing=NOT_PROVIDED; OPTIONAL_NONBLOCKING_EVIDENCE
+postharvest_loss_rule=NOT_PROVIDED; OPTIONAL_NONBLOCKING_EVIDENCE
+tare_policy=TARE_ALREADY_DEDUCTED=true; method NOT_PROVIDED; OPTIONAL_NONBLOCKING_EVIDENCE
+scale_precision=NOT_PROVIDED; OPTIONAL_NONBLOCKING_EVIDENCE
+scale_calibration_authority=NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE; OPTIONAL_NONBLOCKING_EVIDENCE
+```
+
+The three remaining D-class fields are therefore:
+
+```text
+LOCAL_DAY_BOUNDARY_CLASSIFICATION=D
+KNOWN_EXCLUSIONS_CLASSIFICATION=D
+COVERAGE_SCOPE_ENTITY_IDENTITIES_CLASSIFICATION=D
 MEASUREMENT_METHOD_EVIDENCE_STATUS=FACT_AVAILABLE_BUSINESS_LEVEL_NOT_FORMALIZED
 ```
 
-The companion evidence state
-`SCALE_DEVICE_PRECISION_BUSINESS_RULE_STATUS=NOT_CONFIRMED` is the supporting
-status for the D-class `scale_precision` field; it is not a separately
-counted schema-required field.
+The existing source measurement facts remain unchanged. In particular,
+`SOURCE_QUANTITY_PRECISION=0.001 kg` describes exported quantity
+representation, not device precision. The six optional fields are not
+counted as missing hard-blocker inputs after this contract correction.
 
 ## 8. Truly missing external business inputs
 
 ```text
-TRULY_MISSING_BUSINESS_INPUT_COUNT=9
-TRULY_MISSING_BUSINESS_INPUT_IDS=TARE_DEDUCTION_METHOD,SCALE_DEVICE_PRECISION,SCALE_CALIBRATION_AUTHORITY,TRANSPORT_BEFORE_WEIGHING,STORAGE_BEFORE_WEIGHING,POSTHARVEST_LOSS_RULE,LOCAL_DAY_BOUNDARY,KNOWN_EXCLUSIONS,COVERAGE_SCOPE_ENTITY_IDENTITIES
+TRULY_MISSING_BUSINESS_INPUT_COUNT=3
+TRULY_MISSING_BUSINESS_INPUT_IDS=LOCAL_DAY_BOUNDARY,KNOWN_EXCLUSIONS,COVERAGE_SCOPE_ENTITY_IDENTITIES
 IMMEDIATE_USER_QUESTION_REQUIRED_COUNT=0
 IMMEDIATE_USER_QUESTION_IDS=NONE
 NO_FURTHER_BUSINESS_QUESTION_REQUIRED_FOR_PHASE_1=true
@@ -248,12 +265,14 @@ NO_FURTHER_BUSINESS_QUESTION_REQUIRED_FOR_PHASE_1=true
 Q1=`NOT_CONFIRMED`, Q3=`NOT_FORMALIZED`, Q4=`NO_FORMAL_RULE`, and
 C5/C6=`NOT_FORMALIZED` are already supplied current-state answers. They remain
 blockers for the relevant formal artifacts, but this phase must not ask the
-same questions again. The nine D-class inputs are genuine absences in the
-current repository evidence, but none is an immediate user question in this
-correction: they can be triaged in the separately authorized governance or
-formal-artifact review, and some scope values require a separately authorized
-source-derived preparation step. July handling, mapping policy, role
-formalization and policy issuance remain separate governance decisions.
+same questions again. The three remaining D-class inputs are genuine absences
+in the current repository evidence, but none is an immediate user question in
+this correction: they can be triaged in the separately authorized governance
+or formal-artifact review, and scope values require a separately authorized
+source-derived preparation step. The six optional process-provenance and
+metrology fields are not counted as D-class hard blockers for the V0.3
+recorded-label profile. July handling, mapping policy, role formalization and
+policy issuance remain separate governance decisions.
 
 `NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=true` in a gate block means that the
 listed factual value must be supplied before that gate can be prepared for
@@ -265,12 +284,6 @@ separate.
 
 | INPUT_ID | CURRENT_VALUE | GATES_AFFECTED | SOURCE_ARTIFACT | WHY_CLASSIFIED_TRULY_MISSING | IMMEDIATE_USER_QUESTION_REQUIRED |
 | --- | --- | --- | --- | --- | --- |
-| TARE_DEDUCTION_METHOD | NOT_PROVIDED | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-PHYSICAL-MEANING; S1-UNIT-AND-TIME-BASIS | q2c-target-decision-draft.md; source-measurement-and-finalization-rules-draft.md | Only the deduction result is recorded; the method itself is absent. | false |
-| SCALE_DEVICE_PRECISION | NOT_PROVIDED | S1-SOURCE-AUTHORITY; S1-PHYSICAL-MEANING; S1-UNIT-AND-TIME-BASIS | source-measurement-and-finalization-rules-draft.md | Export decimal representation does not establish device precision. | false |
-| SCALE_CALIBRATION_AUTHORITY | NOT_COLLECTED_OUTSIDE_CURRENT_PREDICTION_SCOPE | S1-SOURCE-AUTHORITY; S1-PHYSICAL-MEANING; S1-UNIT-AND-TIME-BASIS | source-measurement-and-finalization-rules-draft.md | No calibration authority value is present in current evidence. | false |
-| TRANSPORT_BEFORE_WEIGHING | NOT_PROVIDED | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-PHYSICAL-MEANING | q2c-physical-target-equivalence-contract.md | Current evidence does not establish whether transport precedes weighing. | false |
-| STORAGE_BEFORE_WEIGHING | NOT_PROVIDED | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-PHYSICAL-MEANING | q2c-physical-target-equivalence-contract.md | Current evidence does not establish storage before weighing. | false |
-| POSTHARVEST_LOSS_RULE | NOT_PROVIDED | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-PHYSICAL-MEANING | source-measurement-and-finalization-rules-draft.md | No complete post-harvest loss rule is supplied. | false |
 | LOCAL_DAY_BOUNDARY | NOT_PROVIDED | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-UNIT-AND-TIME-BASIS | source-measurement-and-finalization-rules-draft.md | Asia/Shanghai is known, but the explicit local-day boundary is absent. | false |
 | KNOWN_EXCLUSIONS | NOT_PROVIDED | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-SOURCE-COHORT; S1-INCLUSION-EXCLUSION | source-authority-evidence-status.md | No bounded exclusion list is available in current evidence. | false |
 | COVERAGE_SCOPE_ENTITY_IDENTITIES | PREPARATION_ONLY_PARTIAL | S1-Q2C-TARGET; S1-SOURCE-AUTHORITY; S1-SOURCE-COHORT; S1-CANONICAL-GRAIN; S1-INCLUSION-EXCLUSION | source-002-governed-snapshot-evidence.md | Aggregate counts exist, but required scope entity identities are absent. | false |
@@ -289,7 +302,7 @@ FORMAL_ARTIFACT_PRESENT_COUNT=0
 FACTS_ALREADY_AVAILABLE=physical event; quantity basis; kg; weighing point; marketability and sorting boundaries; farm timezone; tare result
 FACTS_PRESENT_BUT_NOT_FORMALIZED=physical attestation; target decision; transformation authority; formal policy bindings
 FORMAL_ARTIFACTS_MISSING=Q2C decision; attestation; decision hash
-TRULY_MISSING_BUSINESS_INPUTS=TARE_DEDUCTION_METHOD;TRANSPORT_BEFORE_WEIGHING;STORAGE_BEFORE_WEIGHING;POSTHARVEST_LOSS_RULE;LOCAL_DAY_BOUNDARY;KNOWN_EXCLUSIONS;COVERAGE_SCOPE_ENTITY_IDENTITIES
+TRULY_MISSING_BUSINESS_INPUTS=LOCAL_DAY_BOUNDARY;KNOWN_EXCLUSIONS;COVERAGE_SCOPE_ENTITY_IDENTITIES
 CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
 REQUIRES_NEW_EXTERNAL_INPUT=true
 NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=true
@@ -299,12 +312,12 @@ CURRENT_SUPPORTING_ARTIFACTS=target-decision-and-quantity-contract.md; q2c-targe
 EVIDENCE_ALREADY_AVAILABLE=business physical event, quantity basis, unit, weighing point, marketability boundary, and local time facts
 EVIDENCE_STILL_MISSING=formal Q2C decision, attestation, target binding, transformation authority, and decision hash
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=required D-class factual inputs remain unresolved; their collection or authorized source-derived preparation must be triaged before formal Q2C artifact preparation
+EXTERNAL_INPUT_DESCRIPTION=remaining date, exclusion and governed scope facts must be resolved or authorized before formal Q2C artifact preparation; pre-weigh reconstruction fields are no longer hard label blockers
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=TRIAGE_AND_RESOLVE_Q2C_D_CLASS_INPUTS_BEFORE_FORMAL_ARTIFACT_PREPARATION
+RECOMMENDED_NEXT_ACTION=TRIAGE_AND_RESOLVE_REMAINING_Q2C_D_CLASS_INPUTS_BEFORE_FORMAL_ARTIFACT_PREPARATION
 ```
 
 ### S1-SOURCE-AUTHORITY
@@ -319,7 +332,7 @@ FORMAL_ARTIFACT_PRESENT_COUNT=0
 FACTS_ALREADY_AVAILABLE=source system; dataset; source owner role; version; snapshot reference; source/schema hashes; object metadata
 FACTS_PRESENT_BUT_NOT_FORMALIZED=revision policy; withdrawal/void policy; source authority binding
 FORMAL_ARTIFACTS_MISSING=business source attestation; attestation hash; source registry binding
-TRULY_MISSING_BUSINESS_INPUTS=TARE_DEDUCTION_METHOD;SCALE_DEVICE_PRECISION;SCALE_CALIBRATION_AUTHORITY;TRANSPORT_BEFORE_WEIGHING;STORAGE_BEFORE_WEIGHING;POSTHARVEST_LOSS_RULE;LOCAL_DAY_BOUNDARY;KNOWN_EXCLUSIONS;COVERAGE_SCOPE_ENTITY_IDENTITIES
+TRULY_MISSING_BUSINESS_INPUTS=LOCAL_DAY_BOUNDARY;KNOWN_EXCLUSIONS;COVERAGE_SCOPE_ENTITY_IDENTITIES
 CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
 REQUIRES_NEW_EXTERNAL_INPUT=true
 NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=true
@@ -329,12 +342,12 @@ CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002
 EVIDENCE_ALREADY_AVAILABLE=source system, dataset, owner role, version, snapshot reference, source hash, schema identity, byte count, and row count
 EVIDENCE_STILL_MISSING=formal source attestation, effective time, coverage scope, policy identities, authority binding, attestation hash, and independent review
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=required D-class attestation inputs remain unresolved; their collection or authorized source-derived preparation must be triaged before formal source attestation preparation
+EXTERNAL_INPUT_DESCRIPTION=source attestation still lacks required date, exclusion and governed scope facts; optional pre-weigh/metrology properties do not block the V0.3 recorded-label profile
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=TRIAGE_AND_RESOLVE_SOURCE_ATTESTATION_D_CLASS_INPUTS_BEFORE_FORMAL_ATTESTATION_PREPARATION
+RECOMMENDED_NEXT_ACTION=TRIAGE_REMAINING_SOURCE_ATTESTATION_D_CLASS_INPUTS_BEFORE_FORMAL_ATTESTATION_PREPARATION
 ```
 
 ### S1-SOURCE-COHORT
@@ -372,29 +385,29 @@ RECOMMENDED_NEXT_ACTION=TRIAGE_KNOWN_EXCLUSIONS_AND_AUTHORIZE_SCOPE_IDENTITY_PRE
 ```text
 GATE_ID=S1-PHYSICAL-MEANING
 CANONICAL_CURRENT_STATUS=BLOCKED
-RECONCILED_CLASSIFICATION=BLOCKED_EXTERNAL_BUSINESS_OR_GOVERNANCE_INPUT
+RECONCILED_CLASSIFICATION=PARTIAL_EVIDENCE
 KNOWN_BUSINESS_FACT_COUNT=11
 FORMALIZED_GOVERNANCE_FACT_COUNT=0
 FORMAL_ARTIFACT_PRESENT_COUNT=0
 FACTS_ALREADY_AVAILABLE=field-side first valid scan/weigh; marketable fruit; field sorting; packhouse/rejection non-retroactivity
 FACTS_PRESENT_BUT_NOT_FORMALIZED=physical measurement attestation; measurement authority; formal boundary policy
 FORMAL_ARTIFACTS_MISSING=physical measurement section of source attestation; Q2C decision hash
-TRULY_MISSING_BUSINESS_INPUTS=TARE_DEDUCTION_METHOD;TRANSPORT_BEFORE_WEIGHING;STORAGE_BEFORE_WEIGHING;POSTHARVEST_LOSS_RULE;SCALE_DEVICE_PRECISION;SCALE_CALIBRATION_AUTHORITY
-CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
-REQUIRES_NEW_EXTERNAL_INPUT=true
-NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=true
-DECISION_CANDIDATE_STATUS=BLOCKED_BY_TRULY_MISSING_BUSINESS_INPUT
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=YES_FOR_FACT_LAYER
+REQUIRES_NEW_EXTERNAL_INPUT=false
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_FORMAL_ARTIFACT_PREPARATION
 AUTHORITATIVE_REQUIREMENT=accepted physical event, marketability and post-harvest boundary semantics
 CURRENT_SUPPORTING_ARTIFACTS=target-decision-and-quantity-contract.md; q2c-target-decision-draft.md; source-measurement-and-finalization-rules-draft.md; q2c-physical-alignment-evidence-status.md
 EVIDENCE_ALREADY_AVAILABLE=first valid field scan/weigh event, marketable-fruit boundary, field sorting rule, and non-retroactive packhouse/rejection rules
 EVIDENCE_STILL_MISSING=formal physical-measurement attestation, measurement authority, and Q2C decision hash
-EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=required physical-meaning D-class inputs remain unresolved; resolve or authorize their preparation before formal physical attestation
+EXTERNAL_INPUT_REQUIRED=false
+EXTERNAL_INPUT_DESCRIPTION=recorded label business facts are available at the required boundary; formal physical attestation and independent review remain missing
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=RESOLVE_PHYSICAL_MEANING_D_CLASS_INPUTS_BEFORE_FORMAL_ATTESTATION_PREPARATION
+RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_RECORDED_LABEL_PHYSICAL_ATTESTATION_FOR_INDEPENDENT_REVIEW
 ```
 
 ### S1-UNIT-AND-TIME-BASIS
@@ -409,7 +422,7 @@ FORMAL_ARTIFACT_PRESENT_COUNT=0
 FACTS_ALREADY_AVAILABLE=kg; 0.001 kg exported precision; three decimals; no integer rounding; Asia/Shanghai calendar
 FACTS_PRESENT_BUT_NOT_FORMALIZED=formal farm-local time attestation; source precision/rounding binding
 FORMAL_ARTIFACTS_MISSING=unit/time attestation and measurement binding
-TRULY_MISSING_BUSINESS_INPUTS=TARE_DEDUCTION_METHOD;SCALE_DEVICE_PRECISION;SCALE_CALIBRATION_AUTHORITY;LOCAL_DAY_BOUNDARY
+TRULY_MISSING_BUSINESS_INPUTS=LOCAL_DAY_BOUNDARY
 CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
 REQUIRES_NEW_EXTERNAL_INPUT=true
 NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=true
@@ -417,14 +430,14 @@ DECISION_CANDIDATE_STATUS=BLOCKED_BY_TRULY_MISSING_BUSINESS_INPUT
 AUTHORITATIVE_REQUIREMENT=accepted quantity unit, precision, tare and farm-local time basis
 CURRENT_SUPPORTING_ARTIFACTS=source-measurement-and-finalization-rules-draft.md; q2c-target-decision-draft.md; q2c-physical-alignment-evidence-status.md
 EVIDENCE_ALREADY_AVAILABLE=kg, exported 0.001 kg precision, three decimal representation, no integer rounding, and Asia/Shanghai calendar
-EVIDENCE_STILL_MISSING=tare/measurement authority binding, device precision evidence, and formal unit/time attestation
+EVIDENCE_STILL_MISSING=explicit local-day boundary and formal unit/time attestation
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=required unit/time D-class inputs remain unresolved; resolve or authorize their preparation before formal unit/time artifact preparation
+EXTERNAL_INPUT_DESCRIPTION=explicit local-day boundary remains absent; recorded quantity unit and exported decimal representation are already available
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=RESOLVE_UNIT_TIME_D_CLASS_INPUTS_BEFORE_FORMAL_ARTIFACT_PREPARATION
+RECOMMENDED_NEXT_ACTION=RESOLVE_LOCAL_DAY_BOUNDARY_BEFORE_FORMAL_UNIT_TIME_ARTIFACT_PREPARATION
 ```
 
 ### S1-CANONICAL-GRAIN
@@ -521,18 +534,20 @@ RECOMMENDED_NEXT_ACTION=REVIEW_CURRENT_CUSTODY_REALITY_AND_GOVERNANCE_GAPS_BEFOR
 
 ```text
 RECONCILED_CLASSIFICATION_PASS_CANDIDATE_READY_COUNT=0
-RECONCILED_CLASSIFICATION_PARTIAL_EVIDENCE_COUNT=1
-RECONCILED_CLASSIFICATION_BLOCKED_EXTERNAL_BUSINESS_OR_GOVERNANCE_INPUT_COUNT=7
+RECONCILED_CLASSIFICATION_PARTIAL_EVIDENCE_COUNT=2
+RECONCILED_CLASSIFICATION_BLOCKED_EXTERNAL_BUSINESS_OR_GOVERNANCE_INPUT_COUNT=6
 RECONCILED_CLASSIFICATION_NOT_YET_WORKED_COUNT=0
-DECISION_CANDIDATE_READY_COUNT=0
-DECISION_CANDIDATE_BLOCKED_BY_TRULY_MISSING_BUSINESS_INPUT_COUNT=7
+DECISION_CANDIDATE_READY_COUNT=1
+DECISION_CANDIDATE_BLOCKED_BY_TRULY_MISSING_BUSINESS_INPUT_COUNT=6
 DECISION_CANDIDATE_BLOCKED_BY_NOT_FORMALIZED_GOVERNANCE_COUNT=1
 ```
 
-The seven D-blocked candidates require factual values that current
+The six D-blocked candidates require factual values that current
 repository evidence does not supply; the custody candidate has its factual
-answers but remains blocked by unformalized governance. These decision
-candidate classifications are not canonical gate statuses.
+answers but remains blocked by unformalized governance. The physical-meaning
+candidate has its recorded-label facts and lacks only the formal artifact and
+independent review. These decision-candidate classifications are not
+canonical gate statuses.
 
 ## 11. Status-artifact drift reconciliation
 
