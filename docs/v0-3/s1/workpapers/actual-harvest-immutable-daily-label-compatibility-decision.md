@@ -46,8 +46,10 @@ SOURCE_CLASS=ACTUAL_HARVEST_LABEL
 SOURCE_SYSTEM=扫码称重系统
 SOURCE_DATASET=田间商品果每日采摘净重汇总
 SOURCE_RECORD_IDENTITY=CONFIRMED_ABSENT
-SOURCE_RECORDED_AT=CONFIRMED_ABSENT
 SOURCE_TIME_BASIS=DAILY_STATISTICS_ONLY
+SOURCE_RECORDED_AT_IN_CURRENT_GOVERNED_SOURCE_REPRESENTATION=NOT_PRESENT
+CURRENT_GOVERNED_SOURCE_REPRESENTATION_EXPOSES_SOURCE_RECORDED_AT=false
+EXTERNAL_SCAN_WEIGH_SYSTEM_SOURCE_RECORDED_AT_CAPABILITY_STATUS=UNKNOWN_NOT_ESTABLISHED
 SOURCE_AVAILABLE_AT=CONFIRMED_ABSENT
 POST_CONFIRMATION_MODIFICATION_RULE=NO_MODIFICATION
 CORRECTION_SCENARIO=NOT_APPLICABLE
@@ -64,10 +66,22 @@ NO_SYNTHETIC_LIFECYCLE_AUTHORITY=true
 ```
 
 These facts describe the source representation. They do not create any
-missing lifecycle field. In particular, no canonical-grain combination,
-row hash, business date, export time, import time, database order, or
-repository-generated value is treated as a source-system record identity or
-source-recorded timestamp.
+missing lifecycle field. `SOURCE_TIME_BASIS=DAILY_STATISTICS_ONLY` describes
+the business statistics grain; it does not establish that the external
+source system has no source-recorded timestamp. The current governed label
+representation does not expose a trusted `source_recorded_at`, while the
+external system capability remains unknown and unestablished. In particular,
+no canonical-grain combination, row hash, business date, export time, import
+time, database order, or repository-generated value is treated as a
+source-system record identity or source-recorded timestamp.
+
+The following distinctions are binding for this preparation:
+
+```text
+DAILY_STATISTICS_ONLY != SOURCE_SYSTEM_HAS_NO_SOURCE_RECORDED_AT
+SOURCE_002_FIELD_ABSENCE != SOURCE_SYSTEM_CAPABILITY_ABSENCE
+CURRENT_EXPORT_DOES_NOT_EXPOSE_SOURCE_RECORDED_AT != SOURCE_SYSTEM_DOES_NOT_STORE_SOURCE_RECORDED_AT
+```
 
 ## 2. Current compatibility with accepted I7 modes
 
@@ -81,20 +95,23 @@ source_recorded_at IS NOT NULL
 source_recorded_at <= label_observation_cutoff_at
 ```
 
-The current source representation has neither a stable source record identity
-nor a trusted source-recorded time. The following values remain forbidden
-substitutes: `HARVEST_BUSINESS_DATE`, export time, import time,
+The current governed source representation has no stable source record
+identity and does not expose trusted source-recorded-time evidence. This is
+not a determination that the external source system cannot store such a
+timestamp. The following values remain forbidden substitutes:
+`HARVEST_BUSINESS_DATE`, export time, import time,
 `database_committed_at`, database row order, latest row, or any lexical/row
 hash ordering.
 
 ```text
 CURRENT_I7_AS_OF_COMPATIBILITY=false
-ACTUAL_LABEL_AS_OF_EVALUATION_SOURCE_CAPABILITY_STATUS=UNSUPPORTED_BY_CURRENT_SOURCE_REPRESENTATION
+ACTUAL_LABEL_AS_OF_EVALUATION_SOURCE_CAPABILITY_STATUS=UNSUPPORTED_BY_CURRENT_GOVERNED_SOURCE_REPRESENTATION
 ACTUAL_LABEL_AS_OF_EVALUATION_ELIGIBILITY=BLOCKED
 ```
 
-This is a source-representation compatibility result. It is not a claim that
-the business quantity is invalid or that a future, separately governed label
+This is a current-governed-representation compatibility result. It is not a
+claim that the external source system has no timestamp capability, that the
+business quantity is invalid, or that a future, separately governed label
 mode cannot be designed.
 
 ### 2.2 FINAL_ADJUDICATED
@@ -135,7 +152,8 @@ VOID_WORKFLOW_NOT_APPLICABLE=true
 LATE_ENTRY_NOT_APPLICABLE=true
 REVISION_LINEAGE_NOT_PRESENT=true
 INDEPENDENT_FINALIZATION_NOT_PRESENT=true
-SOURCE_RECORDED_TIMESTAMP_NOT_PRESENT=true
+SOURCE_RECORDED_TIMESTAMP_NOT_PRESENT_IN_GOVERNED_LABEL_REPRESENTATION=true
+EXTERNAL_SOURCE_SYSTEM_SOURCE_RECORDED_TIMESTAMP_CAPABILITY=UNKNOWN_NOT_ESTABLISHED
 STABLE_SOURCE_RECORD_ID_NOT_PRESENT=true
 ```
 
@@ -159,7 +177,9 @@ The candidate is intended for a source that:
 1. represents the label as a final observed business-day quantity;
 2. is immutable after business confirmation;
 3. has no correction, revision-lineage, void/cancel, or late-entry workflow;
-4. has no source-recorded timestamp and no historical version replay;
+4. the governed label representation does not expose the trusted
+   `source_recorded_at` required for historical replay, and no historical
+   version replay is available;
 5. is evaluated as a final observed daily label rather than as a simulated
    historical label view.
 
@@ -220,7 +240,7 @@ mode. “Candidate” describes a design property, not a current acceptance.
 | dimension | `AS_OF_EVALUATION` | `FINAL_ADJUDICATED` | `IMMUTABLE_DAILY_FINAL_LABEL` candidate |
 | --- | --- | --- | --- |
 | stable source identity | Required for eligible source evidence; absent here | Required for eligible source evidence; absent here | Source-object/snapshot identity required; stable row identity is not fabricated |
-| `source_recorded_at` | Required, trusted, non-null, and cutoff-bound | Required by the selected source/visibility contract; absent here | Not a label-side requirement in the candidate; absence remains explicit |
+| `source_recorded_at` | Required, trusted, non-null, and cutoff-bound; not exposed by the current governed representation | Required by the selected source/visibility contract; not exposed by the current governed representation | Not a label-side requirement in the candidate; the governed representation does not expose it and external system capability remains unknown |
 | `source_available_at` | Source/lifecycle policy must support the visibility chain | Source/lifecycle policy must support the selected committed universe | Not used to make the final label historically visible; remains required for forecast inputs |
 | revision identity | Required where revisions exist | Required for lineage winner selection | Not present and not reconstructed |
 | lineage | One valid cutoff-visible terminal is required | One eligible finalized terminal is required | No lineage graph; no winner graph claim |
@@ -349,6 +369,9 @@ Q2C decision, S1 acceptance, or S2 authorization.
 ```text
 SOURCE_FACT_ABSENCE_PRESERVED=true
 NO_SYNTHETIC_LIFECYCLE_AUTHORITY=true
+SOURCE_RECORDED_AT_IN_CURRENT_GOVERNED_SOURCE_REPRESENTATION=NOT_PRESENT
+CURRENT_GOVERNED_SOURCE_REPRESENTATION_EXPOSES_SOURCE_RECORDED_AT=false
+EXTERNAL_SCAN_WEIGH_SYSTEM_SOURCE_RECORDED_AT_CAPABILITY_STATUS=UNKNOWN_NOT_ESTABLISHED
 CURRENT_I7_AS_OF_COMPATIBILITY=false
 FINAL_ADJUDICATED_FINALIZED_AT_POLICY_NULL_ALLOWED=false
 ACTUAL_LABEL_FINAL_ADJUDICATED_SUPPORTED_BY_SOURCE_CLASS=false
