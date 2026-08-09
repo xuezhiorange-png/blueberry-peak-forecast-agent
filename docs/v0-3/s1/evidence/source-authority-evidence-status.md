@@ -25,6 +25,9 @@
     REVISION_POLICY=NOT_PROVIDED
     WITHDRAWAL_AND_VOID_POLICY=NOT_PROVIDED
     KNOWN_EXCLUSIONS=NOT_PROVIDED
+    V0_3_RECORDED_LABEL_PROFILE=RECORDED_BUSINESS_LABEL
+    V0_3_RECORDED_LABEL_OPTIONAL_PROVENANCE_FIELDS=transport_before_weighing,storage_before_weighing,postharvest_loss_rule,tare_policy,scale_precision,scale_calibration_authority
+    V0_3_RECORDED_LABEL_OPTIONAL_PROVENANCE_HARD_BLOCKER=false
     INDEPENDENT_REVIEW_STATUS=NOT_STARTED
 
 Source 002 governed evidence supplies source identity, schema identity,
@@ -40,6 +43,11 @@ SOURCE_AUTHORITY_ACCEPTED=false
 STATUS_RECONCILIATION_APPLIED=true
 FACT_LAYER_RECONCILED_FROM=docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md;docs/v0-3/s1/evidence/source-002-completeness-and-custody-business-evidence.md
 ```
+
+The V0.3 recorded-label profile treats the six pre-weigh process and
+weighing-device fields as optional provenance/metrology evidence rather than
+hard label-eligibility prerequisites. This does not issue the source
+attestation or change the blocked source-authority status.
 
 ## Required evidence still missing
 
