@@ -82,6 +82,26 @@ MODEL_CHANGE=false
 
 V0.2-S2 is broader than I7. The S2 backtest portion requires separate authorization.
 
+The accepted actual-label mode set is mode-aware and contains the two
+existing replay modes plus the separately accepted IDFL mode:
+
+```text
+SUPPORTED_ACTUAL_LABEL_MODES=
+AS_OF_EVALUATION,
+FINAL_ADJUDICATED,
+IMMUTABLE_DAILY_FINAL_LABEL
+IDFL_V1_MODE_CONTRACT_ACCEPTED=true
+IDFL_V1_MODE_VERSION=IDFL_V1
+EXISTING_AS_OF_EVALUATION_SEMANTICS_CHANGED=false
+EXISTING_FINAL_ADJUDICATED_SEMANTICS_CHANGED=false
+DESIGN_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
+```
+
+Acceptance of IDFL_V1 changes neither the AS_OF_EVALUATION contract nor the
+FINAL_ADJUDICATED contract. It is an atomic third-mode extension across the
+Q2A/I7, visibility, and source-authority contracts; it does not authorize
+implementation, source acceptance, cohort acceptance, or evaluation.
+
 ## 4. Canonical label grain
 
 The v1 label grain is:
@@ -173,6 +193,134 @@ finalized_at<=snapshot_executed_at
 ```
 
 Final adjudication is not a substitute for historical point-in-time replay.
+
+### 7.3 IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
+
+`IMMUTABLE_DAILY_FINAL_LABEL` is an accepted third actual-label mode for an
+immutable daily business aggregate. It is not an alias for either existing
+mode:
+
+```text
+LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL
+LABEL_MODE_VERSION=IDFL_V1
+LABEL_VALUE_AUTHORITY=FINAL_OBSERVED_DAILY_BUSINESS_QUANTITY
+LABEL_VISIBILITY_AUTHORITY=NOT_POINT_IN_TIME_REPLAYABLE
+LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+LABEL_OBSERVATION_CUTOFF_REQUIRED=false
+REVISION_WINNER_REQUIRED=false
+FINALIZED_AT_REQUIRED=false
+SOURCE_RECORDED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+FORECAST_SIDE_POINT_IN_TIME_AUTHORITY_REQUIRED=true
+```
+
+IDFL_V1 must never be described as `AS_OF_EVALUATION`,
+`FINAL_ADJUDICATED`, `POINT_IN_TIME_LABEL_REPLAY`, or
+`REVISION_WINNER_REPLAY`. `FINAL_OBSERVED_LABEL != HISTORICAL_LABEL_REPLAY`.
+The existing AS_OF and FINAL rules above remain authoritative for those modes.
+
+IDFL_V1 requires source-object completeness authority, but this contract
+acceptance does not assert that the current Source 002 object has it:
+
+```text
+SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true
+SOURCE_COMPLETENESS_POLICY_VERSION_REQUIRED=true
+SOURCE_COMPLETENESS_EVIDENCE_HASH_REQUIRED=true
+HARVEST_BUSINESS_DATE <= SOURCE_COMPLETE_THROUGH_BUSINESS_DATE
+SOURCE_COMPLETENESS_WATERMARK_AS_SOURCE_RECORDED_AT=false
+SOURCE_COMPLETENESS_WATERMARK_AS_LABEL_VISIBILITY_TIME=false
+EXPORT_TIME_AS_SOURCE_RECORDED_AT=false
+LATE_ENTRY_NOT_APPLICABLE_IS_COMPLETENESS_PROOF=false
+IDFL_LABEL_ELIGIBILITY_IF_COMPLETENESS_EVIDENCE_ABSENT=
+BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+```
+
+The completeness watermark is bound to the immutable source object or source
+snapshot authority. It proves completeness through a business date only; it
+does not prove `source_recorded_at`, `source_available_at`, `finalized_at`, or
+historical label visibility.
+
+IDFL_V1 preserves audit lineage without inventing source-system identity:
+
+```text
+SOURCE_ROW_LINEAGE_REQUIRED=true
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_IS_SOURCE_SYSTEM_IDENTITY=false
+```
+
+Each canonical IDFL label row must be derivable from the immutable source
+object identity, a deterministic source-row locator or row-evidence identity,
+mapping evidence identity, aggregation policy version, and canonical label
+identity. A locator or row-evidence hash identifies evidence inside an
+immutable object only; it is not an external logical record ID, revision ID,
+source-system identity, or revision lineage. Database row order is never an
+authority.
+
+The accepted forecast-side temporal authority is:
+
+```text
+FORECAST_TEMPORAL_ELIGIBILITY_AUTHORITY=
+ACCEPTED_FORECAST_TARGET_INTERVAL_CONTRACT
+SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT
+FORECAST_CUTOFF_AT < FORECAST_TARGET_DATE_OR_WINDOW_END
+HARVEST_BUSINESS_DATE_TO_FORECAST_TARGET_INTERVAL_MAPPING_REQUIRED=true
+FARM_TIMEZONE=Asia/Shanghai
+LABEL_FINAL_STATIC_MODE != FORECAST_INPUT_FUTURE_LEAKAGE_ALLOWED
+```
+
+IDFL does not redefine the forecast horizon and does not use an unqualified
+comparison between a timestamp and `HARVEST_BUSINESS_DATE`. A stricter
+interval-start predicate, if required, must come from the accepted
+forecast-target contract.
+
+IDFL does not choose the physical target or transform it:
+
+```text
+IDFL_DOES_NOT_SELECT_Q2C_TARGET=true
+TARGET_DECISION_REMAINS_SEPARATE=true
+LABEL_TARGET_AUTHORITY=Q2C_ACCEPTED_TARGET
+IDFL_TARGET_BINDING_STATUS=BLOCKED_PENDING_Q2C_ACCEPTANCE
+Q2C_ACCEPTED=false
+```
+
+Missingness remains fail-closed and separate from completeness:
+
+```text
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+NO_RECORD_TO_ZERO_MAPPING_STATUS=
+BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
+JULY_AUTOMATIC_SEASON_ASSIGNMENT=false
+UNMAPPED_DATE_POLICY=PENDING
+UNMAPPED_DATE_AUTO_ASSIGNMENT_ALLOWED=false
+```
+
+The IDFL construction order is governed as follows:
+
+```text
+governed immutable source object set
+-> accepted source scope and inclusion policy
+-> accepted season/date mapping
+-> canonical identity mapping
+-> source-dimension aggregation
+-> canonical daily label grouping
+-> exact Decimal SUM
+-> deterministic coverage and exclusion manifest
+-> immutable final-observed label snapshot
+```
+
+```text
+REVISION_WINNER_ALGORITHM=NOT_APPLICABLE
+LATEST_ROW_FALLBACK_ALLOWED=false
+LARGEST_REVISION_FALLBACK_ALLOWED=false
+DATABASE_ROW_ORDER_AUTHORITY=false
+```
+
+An unexplained duplicate or conflict fails closed; IDFL must not silently
+choose a winner.
 
 ## 8. Lineage authority and winner eligibility
 
@@ -607,6 +755,19 @@ I5_LINEAGE_CONTRACT_HARDENING_ACCEPTED=true
 I7_DESIGN_CONTRACT_FREEZE_ACCEPTED=true
 Q2A_I7_CONTRACT_STATUS=ACCEPTED
 Q2A_I7_IMPLEMENTATION_READY=CONTRACT_READY_NOT_AUTHORIZED
+IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE=true
+IMMUTABLE_DAILY_FINAL_LABEL_ACCEPTED=true
+IDFL_V1_CONTRACT_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
+SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+S1_VISIBILITY_GATE_CLOSED=false
+PHYSICALLY_ALIGNED_BACKTEST_ALLOWED=false
+MODEL_QUALITY_CLAIM_ALLOWED=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
 ```
 
 Prediction-label alignment remains blocked by the missing immutable label snapshot and forecast-binding implementation, not by the absence of a committed actual-harvest source.
