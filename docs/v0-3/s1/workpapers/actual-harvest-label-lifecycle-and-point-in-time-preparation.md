@@ -186,19 +186,57 @@ POLICY_NULL_ONLY_ALLOWED_WHERE_GOVERNING_CONTRACT_EXPLICITLY_PERMITS=true
 FINAL_ADJUDICATED_SOURCE_FINALIZED_AT_POLICY_NULL_ALLOWED=false
 ```
 
-Therefore, absence of an independent finalization event or a trusted
-`finalized_at` does not produce a policy-null pass. It means that this source
-class cannot support `FINAL_ADJUDICATED`:
+No independent external scan-weigh source-system evidence is available in
+this preparation. Therefore, the current epistemic state is unknown rather
+than a confirmed capability absence:
 
 ```text
+ACTUAL_LABEL_FINAL_ADJUDICATED_SOURCE_CAPABILITY_STATUS=UNKNOWN_PENDING_EXTERNAL_SOURCE_SYSTEM_EVIDENCE
+ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
+NO_FINALIZATION_EVENT_CURRENTLY_CONFIRMED=false
+FINAL_MODE_BLOCK_REASON=INDEPENDENT_FINALIZATION_EVENT_NOT_EVIDENCED;TRUSTED_FINALIZED_AT_NOT_EVIDENCED;EXTERNAL_SOURCE_SYSTEM_TECHNICAL_EVIDENCE_MISSING
+```
+
+If the external source owner later confirms that no independent finalization
+event exists, only then does the conditional outcome become:
+
+```text
+CONDITIONAL_BRANCH_IF_EXTERNAL_SOURCE_OWNER_CONFIRMS_NO_INDEPENDENT_FINALIZATION_EVENT=true
+SOURCE_CLASS_HAS_INDEPENDENT_FINALIZATION_EVENT=false
 ACTUAL_LABEL_FINAL_ADJUDICATED_SUPPORTED_BY_SOURCE_CLASS=false
+ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
+FINAL_MODE_BLOCK_REASON=SOURCE_CLASS_LACKS_REQUIRED_FINALIZATION_EVENT
+```
+
+Conversely, if the external owner confirms an independent finalization event
+and evidence proves a `FINALIZED` status, a trusted non-null `finalized_at`,
+its formal time semantics, the snapshot-execution comparison, and the
+no-successor terminal rule, the only possible intermediate state is:
+
+```text
+CONDITIONAL_BRANCH_IF_EXTERNAL_SOURCE_OWNER_CONFIRMS_INDEPENDENT_FINALIZATION_EVENT=true
+ACTUAL_LABEL_FINAL_ADJUDICATED_SOURCE_CAPABILITY_STATUS=CANDIDATE_SUPPORTED_PENDING_FORMAL_BINDING_AND_REVIEW
 ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
 ```
 
-This is independent from `AS_OF_EVALUATION`. `AS_OF_EVALUATION` remains
-blocked here for its own missing source identity, trusted
+Neither branch is currently confirmed. This is independent from
+`AS_OF_EVALUATION`. `AS_OF_EVALUATION` remains blocked here for its own
+missing source identity, trusted
 `source_recorded_at`, lineage/status, and applicable availability/lifecycle
 evidence; `finalized_at` is not added as an AS_OF prerequisite.
+
+Source 002's observed seven-field export does not contain `finalized_at` or
+an independent finalization field, but that export-field absence is not
+evidence that the external source system lacks the capability:
+
+```text
+SOURCE_002_FINALIZED_AT_FIELD_OBSERVED=false
+SOURCE_002_FINALIZATION_FIELDS_STATUS=NOT_EVIDENCED_FROM_SOURCE_002
+SOURCE_002_EXPORT_FIELD_ABSENCE_NOT_USED_AS_SOURCE_CAPABILITY_ABSENCE=true
+SOURCE_SYSTEM_EVIDENCE_REQUEST_ITEM_7_CONDITIONAL=true
+SOURCE_SYSTEM_EVIDENCE_REQUEST_ITEM_7_PREANSWERED=false
+EXTERNAL_SOURCE_SYSTEM_EVIDENCE_REQUEST_SENT=false
+```
 
 `WITHDRAWAL_POLICY_VERSION`, `VOID_PROPAGATION_POLICY_VERSION`, and the
 source-object withdrawal rule remain custody-level concerns. They must not be
@@ -231,7 +269,7 @@ closed by a record-level correction or void statement.
 ```text
 ACTUAL_LABEL_AS_OF_EVALUATION_ELIGIBILITY=BLOCKED
 ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
-ACTUAL_LABEL_FINAL_ADJUDICATED_SUPPORTED_BY_SOURCE_CLASS=false
+ACTUAL_LABEL_FINAL_ADJUDICATED_SOURCE_CAPABILITY_STATUS=UNKNOWN_PENDING_EXTERNAL_SOURCE_SYSTEM_EVIDENCE
 ACTUAL_LABEL_REVISION_WINNER_COMPATIBILITY=ADVANCED_REPOSITORY_ONLY_BLOCKED_EXTERNAL_EVIDENCE
 
 RECORD_LEVEL_CORRECTION_POLICY_STATUS=ADVANCED_CANDIDATE_PENDING_EXTERNAL_EVIDENCE
