@@ -299,12 +299,12 @@ CURRENT_SUPPORTING_ARTIFACTS=target-decision-and-quantity-contract.md; q2c-targe
 EVIDENCE_ALREADY_AVAILABLE=business physical event, quantity basis, unit, weighing point, marketability boundary, and local time facts
 EVIDENCE_STILL_MISSING=formal Q2C decision, attestation, target binding, transformation authority, and decision hash
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=Q2C/governance authority must issue and review the formal target decision; no new factual answer is currently missing
+EXTERNAL_INPUT_DESCRIPTION=required D-class factual inputs remain unresolved; their collection or authorized source-derived preparation must be triaged before formal Q2C artifact preparation
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_Q2C_ARTIFACT_FOR_INDEPENDENT_REVIEW
+RECOMMENDED_NEXT_ACTION=TRIAGE_AND_RESOLVE_Q2C_D_CLASS_INPUTS_BEFORE_FORMAL_ARTIFACT_PREPARATION
 ```
 
 ### S1-SOURCE-AUTHORITY
@@ -329,12 +329,12 @@ CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002
 EVIDENCE_ALREADY_AVAILABLE=source system, dataset, owner role, version, snapshot reference, source hash, schema identity, byte count, and row count
 EVIDENCE_STILL_MISSING=formal source attestation, effective time, coverage scope, policy identities, authority binding, attestation hash, and independent review
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=source/governance authority must issue the formal attestation and scope/policy bindings; repository can reuse the factual identity evidence
+EXTERNAL_INPUT_DESCRIPTION=required D-class attestation inputs remain unresolved; their collection or authorized source-derived preparation must be triaged before formal source attestation preparation
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_SOURCE_ATTESTATION_FOR_INDEPENDENT_REVIEW
+RECOMMENDED_NEXT_ACTION=TRIAGE_AND_RESOLVE_SOURCE_ATTESTATION_D_CLASS_INPUTS_BEFORE_FORMAL_ATTESTATION_PREPARATION
 ```
 
 ### S1-SOURCE-COHORT
@@ -359,12 +359,12 @@ CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002
 EVIDENCE_ALREADY_AVAILABLE=source-object identity, canonical grain support, mapped season, aggregate counts, date bounds, and unresolved July boundary
 EVIDENCE_STILL_MISSING=approved mapping policy, scope identity lists, inclusion/exclusion binding, cohort manifest/version/hash, and independent review
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=governance owner must decide mapping/scope/inclusion policy and bind the resulting cohort artifact; no new raw-data read is authorized
+EXTERNAL_INPUT_DESCRIPTION=KNOWN_EXCLUSIONS remains factually absent and COVERAGE_SCOPE_ENTITY_IDENTITIES requires separately authorized governed scope-identity preparation; triage both before cohort manifest preparation
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=RESOLVE_MAPPING_SCOPE_AND_INCLUSION_GOVERNANCE_BEFORE_COHORT_MANIFEST_PREPARATION
+RECOMMENDED_NEXT_ACTION=TRIAGE_KNOWN_EXCLUSIONS_AND_AUTHORIZE_SCOPE_IDENTITY_PREPARATION_BEFORE_COHORT_MANIFEST
 ```
 
 ### S1-PHYSICAL-MEANING
@@ -389,12 +389,12 @@ CURRENT_SUPPORTING_ARTIFACTS=target-decision-and-quantity-contract.md; q2c-targe
 EVIDENCE_ALREADY_AVAILABLE=first valid field scan/weigh event, marketable-fruit boundary, field sorting rule, and non-retroactive packhouse/rejection rules
 EVIDENCE_STILL_MISSING=formal physical-measurement attestation, measurement authority, and Q2C decision hash
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=business/governance authority must formalize and independently review the physical meaning; the current facts are already supplied
+EXTERNAL_INPUT_DESCRIPTION=required physical-meaning D-class inputs remain unresolved; resolve or authorize their preparation before formal physical attestation
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=INCORPORATE_RECONCILED_PHYSICAL_FACTS_IN_FORMAL_Q2C_ATTESTATION
+RECOMMENDED_NEXT_ACTION=RESOLVE_PHYSICAL_MEANING_D_CLASS_INPUTS_BEFORE_FORMAL_ATTESTATION_PREPARATION
 ```
 
 ### S1-UNIT-AND-TIME-BASIS
@@ -419,12 +419,12 @@ CURRENT_SUPPORTING_ARTIFACTS=source-measurement-and-finalization-rules-draft.md;
 EVIDENCE_ALREADY_AVAILABLE=kg, exported 0.001 kg precision, three decimal representation, no integer rounding, and Asia/Shanghai calendar
 EVIDENCE_STILL_MISSING=tare/measurement authority binding, device precision evidence, and formal unit/time attestation
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=measurement/governance authority must formalize the unit and time basis; repository cannot invent device precision or policy ownership
+EXTERNAL_INPUT_DESCRIPTION=required unit/time D-class inputs remain unresolved; resolve or authorize their preparation before formal unit/time artifact preparation
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_UNIT_AND_TIME_BASIS_ARTIFACT_FOR_REVIEW
+RECOMMENDED_NEXT_ACTION=RESOLVE_UNIT_TIME_D_CLASS_INPUTS_BEFORE_FORMAL_ARTIFACT_PREPARATION
 ```
 
 ### S1-CANONICAL-GRAIN
@@ -449,12 +449,12 @@ CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002
 EVIDENCE_ALREADY_AVAILABLE=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE and PLOT_SUPPORTED=false
 EVIDENCE_STILL_MISSING=approved mapping policy, canonical identity registry, scope binding, and manifest hash
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=governance decision is required for mapping/scope identity; no missing factual answer or row-level read is required for this phase
+EXTERNAL_INPUT_DESCRIPTION=COVERAGE_SCOPE_ENTITY_IDENTITIES are absent from repository evidence; resolution requires a separately authorized governed scope-identity preparation step rather than an immediate user question
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=REVIEW_AND_FORMALIZE_CANONICAL_MAPPING_SCOPE_DECISION
+RECOMMENDED_NEXT_ACTION=AUTHORIZE_GOVERNED_SCOPE_IDENTITY_PREPARATION_BEFORE_MAPPING_SCOPE_FORMALIZATION
 ```
 
 ### S1-INCLUSION-EXCLUSION
@@ -479,12 +479,12 @@ CURRENT_SUPPORTING_ARTIFACTS=source-002-governed-snapshot-evidence.md; source-00
 EVIDENCE_ALREADY_AVAILABLE=July automatic assignment false, unmapped date pending, and UNKNOWN_NOT_ZERO missingness boundary
 EVIDENCE_STILL_MISSING=approved source scope, known exclusions, July exception policy, inclusion/exclusion manifest, and formal no-record rule
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=governance owner must decide unresolved inclusion/exclusion and date-boundary policy; existing facts must not be re-asked
+EXTERNAL_INPUT_DESCRIPTION=KNOWN_EXCLUSIONS and COVERAGE_SCOPE_ENTITY_IDENTITIES remain factually absent; resolve or authorize their preparation before the inclusion/exclusion manifest, while not re-asking already answered Q1-Q4/C1-C6
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=CONDUCT_INCLUSION_EXCLUSION_AND_UNMAPPED_DATE_GOVERNANCE_REVIEW
+RECOMMENDED_NEXT_ACTION=RESOLVE_SCOPE_AND_EXCLUSION_INPUTS_BEFORE_INCLUSION_MANIFEST_PREPARATION
 ```
 
 ### S1-DATA-CUSTODY
@@ -509,12 +509,12 @@ CURRENT_SUPPORTING_ARTIFACTS=split-holdout-and-custody-contract.md; source-002-c
 EVIDENCE_ALREADY_AVAILABLE=enterprise server, IT department control fact, no explicit role restriction, intended use, and C5/C6 not-formalized answers
 EVIDENCE_STILL_MISSING=access-owner job role, authorized role set, retention policy, withdrawal/replacement policy, binding hash, custody record, and independent review
 EXTERNAL_INPUT_REQUIRED=true
-EXTERNAL_INPUT_DESCRIPTION=governance owner must formalize custody roles and policies; department-level fact must not be promoted to a job role
+EXTERNAL_INPUT_DESCRIPTION=governance owner must review and formalize the current custody reality, roles, and policies; no D-class factual input is assigned to this gate
 SOURCE_002_SPECIFIC_ONLY=true
 FULL_S1_SCOPE_COVERED=false
 FORMAL_ACCEPTANCE_EXISTS=false
 INDEPENDENT_REVIEW_EXISTS=false
-RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_CUSTODY_RECORD_WITH_GOVERNANCE_OWNER_REVIEW
+RECOMMENDED_NEXT_ACTION=REVIEW_CURRENT_CUSTODY_REALITY_AND_GOVERNANCE_GAPS_BEFORE_FORMAL_CUSTODY_RECORD_PREPARATION
 ```
 
 ## 10. Current eight-gate classification summary
