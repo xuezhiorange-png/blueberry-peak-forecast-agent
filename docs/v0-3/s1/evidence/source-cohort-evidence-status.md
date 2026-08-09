@@ -9,14 +9,27 @@
     SOURCE_COHORT_ID=NOT_ISSUED
     MANIFEST_VERSION=NOT_PROVIDED
     MANIFEST_HASH=NOT_ISSUED
-    SOURCE_OBJECT_IDENTITY_HASHES=NOT_ISSUED
-    DECLARED_SOURCE_ROW_COUNT=NOT_PROVIDED
-    DECLARED_SOURCE_BYTE_COUNT=NOT_PROVIDED
+    SOURCE_OBJECT_IDENTITY_HASHES=SOURCE_002_SHA256_FC83859871C544B584B3999B6796DDD518CDC8BB8DD9754F5B5C9D6AE62DB81A
+    SOURCE_OBJECT_IDENTITY_HASHES_STATUS=AVAILABLE_PREPARATION_ONLY
+    DECLARED_SOURCE_ROW_COUNT=233171
+    DECLARED_SOURCE_BYTE_COUNT=28668416
+    MAPPED_SEASON_IDENTITIES=[2025~2026]
+    MAPPED_CANONICAL_GROUP_COUNT=529
+    UNMAPPED_ROW_COUNT=2
+    UNMAPPED_DISTINCT_DATE_COUNT=1
     INDEPENDENT_REVIEW_STATUS=NOT_STARTED
 
-No source authority identity is available from which to issue a cohort
-manifest. No source, cleaned, materialized, split, snapshot, or label rowset
-is included or referenced by this record.
+Source 002 governed evidence now supplies source-object identity and aggregate
+coverage metadata for preparation. It still does not issue a cohort identity,
+manifest version, manifest hash, scope arrays, or a final rowset.
+
+```text
+SOURCE_COHORT_FACTS_RECONCILED=true
+FORMAL_SOURCE_COHORT_MANIFEST_CREATED=false
+SOURCE_COHORT_ACCEPTED=false
+STATUS_RECONCILIATION_APPLIED=true
+FACT_LAYER_RECONCILED_FROM=docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md
+```
 
 ## S1/S2 boundary
 
@@ -27,9 +40,9 @@ is included or referenced by this record.
     SOURCE_ROW_COUNT_IS_NOT_S2_ACCEPTED_ROW_COUNT=true
     SOURCE_ROW_COUNT_DOES_NOT_FREEZE_FINAL_ROWSET=true
 
-The missing declared counts are represented as NOT_PROVIDED, never as zero.
-This status record does not issue source object hashes or a final rowset
-identity. S2 remains unauthorized.
+The reconciled counts are preparation metadata, never an accepted S2 row
+count. This status record does not issue a final rowset identity or a cohort
+manifest. S2 remains unauthorized.
 
 ## Required cohort metadata still missing
 
@@ -37,7 +50,8 @@ identity. S2 remains unauthorized.
 - Applicable seasons, farms, subfarms, varieties, and business-date range.
 - Versioned mapping, visibility, inclusion, revision, and split policy
   identities.
-- Immutable source-object identity hashes and a versioned manifest hash.
+- A versioned cohort manifest hash bound to the available source-object
+  identity and aggregate scope evidence.
 - Independent review of the resulting aggregate-only manifest.
 
 ## Authority

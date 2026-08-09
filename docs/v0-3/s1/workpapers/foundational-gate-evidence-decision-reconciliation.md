@@ -1,0 +1,461 @@
+# V0.3-S1 Package A Foundational Gate Evidence Decision Reconciliation
+
+## 1. Scope and authority
+
+```text
+WORKPAPER_ID=V0_3_S1_PKG_A_FOUNDATIONAL_EVIDENCE_DECISION_RECONCILIATION
+PACKAGE_ID=S1-PKG-A
+PHASE=1
+WORKPAPER_STATUS=PREPARED_FOR_GOVERNANCE_DECISION_REVIEW
+BASE_SHA=4101e161e9b92f415e0e5274388b703e69ff8d80
+RECONCILED_GATE_COUNT=8
+CANONICAL_GATE_STATUS_CHANGED=false
+GATE_PASS_COUNT=0
+```
+
+This workpaper reconciles only the eight Package A gates:
+
+```text
+S1-Q2C-TARGET
+S1-SOURCE-AUTHORITY
+S1-SOURCE-COHORT
+S1-PHYSICAL-MEANING
+S1-UNIT-AND-TIME-BASIS
+S1-CANONICAL-GRAIN
+S1-INCLUSION-EXCLUSION
+S1-DATA-CUSTODY
+```
+
+The authority chain is the current main branch: the V0.3 development plan,
+the S1 acceptance package and acceptance schema, the Q2C, source authority,
+visibility, split/custody and metric contracts, and the current
+`s1-acceptance-record.json`. The canonical acceptance record remains
+authoritative for gate status. All seventeen canonical rows remain
+`BLOCKED`; this document cannot issue a gate acceptance.
+
+## 2. Four-layer interpretation
+
+```text
+L1_BUSINESS_FACT=reported or reused factual meaning
+L2_GOVERNANCE_FORMALIZATION=role, policy, scope or decision formalization
+L3_FORMAL_ARTIFACT=attestation, manifest, custody record or decision hash
+L4_GATE_ACCEPTANCE=canonical S1 acceptance status and independent review
+```
+
+An L1 fact is not an L2 policy, an L3 artifact, or an L4 gate acceptance.
+`NOT_FORMALIZED`, `NO_FORMAL_RULE`, and `NO_EXPLICIT_ROLE_RESTRICTION` are
+received current-state facts with governance gaps; they are not missing
+answers.
+
+## 3. Existing evidence consumed
+
+```text
+CONTRACTS_CONSUMED=
+docs/v0-3/development-plan.md,
+docs/v0-3/s1/index.md,
+docs/v0-3/s1/s1-acceptance-package.md,
+docs/v0-3/s1/target-decision-and-quantity-contract.md,
+docs/v0-3/s1/source-authority-and-cohort-manifest.md,
+docs/v0-3/s1/visibility-inclusion-revision-contract.md,
+docs/v0-3/s1/split-holdout-and-custody-contract.md,
+docs/v0-3/s1/metric-coverage-and-quality-contract.md
+
+WORKPAPERS_CONSUMED=
+docs/v0-3/s1/workpapers/q2c-target-decision-draft.md,
+docs/v0-3/s1/workpapers/business-source-attestation-draft.md,
+docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md,
+docs/v0-3/s1/workpapers/season-calendar-rule-draft.md,
+docs/v0-3/s1/workpapers/source-schema-field-map-and-gap-register.md,
+docs/v0-3/s1/workpapers/source-002-idfl-v1-source-specific-eligibility-package.md,
+docs/v0-3/s1/workpapers/source-002-completeness-authority-and-custody-preparation.md
+
+EVIDENCE_CONSUMED=
+docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md,
+docs/v0-3/s1/evidence/source-002-formalization-gap-matrix.md,
+docs/v0-3/s1/evidence/source-002-completeness-and-custody-business-evidence.md,
+docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md,
+docs/v0-3/s1/evidence/source-authority-evidence-status.md,
+docs/v0-3/s1/evidence/source-cohort-evidence-status.md,
+docs/v0-3/s1/evidence/data-custody-evidence-status.md,
+docs/v0-3/s1/evidence/business-acceptance-evidence-package.md,
+docs/v0-3/s1/evidence/evidence-package-manifest.json
+```
+
+No Source 002 export, row, record ID, timestamp, storage locator or external
+system was read in this task. Existing governed source-object metadata is
+reused only as repository evidence.
+
+## 4. Known business facts already available
+
+The following factual groups are present in current evidence. The count is a
+deduplicated semantic-field count, not a line count or an acceptance count.
+
+```text
+SOURCE_IDENTITY_AND_OBJECT_FACTS=10
+Q2C_PHYSICAL_FACTS=11
+SOURCE_COVERAGE_AND_GRAIN_FACTS=20
+MEASUREMENT_AND_TIME_FACTS=5
+COMPLETENESS_ANSWER_FACTS=4
+CUSTODY_ANSWER_FACTS=6
+MISSINGNESS_AND_CALENDAR_FACTS=3
+BUSINESS_FACTS_RECOVERED_FROM_EXISTING_EVIDENCE_COUNT=59
+```
+
+Known facts include the Source 002 system/dataset/owner/version/snapshot/hash,
+the field-side marketable-fruit weighing meaning, kg and farm-local calendar,
+canonical grain support, aggregate coverage metadata, Q1–Q4, and C1–C6.
+
+## 5. Facts present but not formalized
+
+```text
+FACTS_PRESENT_BUT_NOT_FORMALIZED_COUNT=18
+FACTS_PRESENT_BUT_NOT_FORMALIZED=
+Q2_FORMAL_POLICY_STATUS,
+COMPLETENESS_DECLARATION_OWNER_ROLE,
+COMPLETENESS_EXCEPTION_HANDLING_POLICY,
+C2_ROLE_FORMALIZATION_STATUS,
+ACCESS_OWNER_ROLE,
+AUTHORIZED_ROLE_SET,
+RETENTION_POLICY,
+WITHDRAWAL_REPLACEMENT_POLICY,
+TARE_DEDUCTION_METHOD,
+SCALE_DEVICE_PRECISION_FORMAL_EVIDENCE,
+SOURCE_AUTHORITY_EFFECTIVE_TIME,
+SOURCE_AUTHORITY_COVERAGE_SCOPE,
+SOURCE_AUTHORITY_REVISION_POLICY,
+SOURCE_AUTHORITY_WITHDRAWAL_VOID_POLICY,
+MAPPING_POLICY_IDENTITY,
+INCLUSION_POLICY_AND_KNOWN_EXCLUSIONS,
+UNMAPPED_DATE_POLICY,
+FORMAL_MISSING_DAY_RULE
+```
+
+The `NOT_FORMALIZED`, `NO_FORMAL_RULE`, and `NO_EXPLICIT_ROLE_RESTRICTION`
+answers are retained as current reality. This reconciliation does not create
+retention, role, completeness, withdrawal, mapping, exclusion, or missing-day
+policies.
+
+## 6. Formal artifacts still missing
+
+```text
+FORMAL_ARTIFACTS_MISSING_COUNT=7
+FORMAL_ARTIFACTS_MISSING=
+Q2C_DECISION_RECORD_AND_HASH,
+BUSINESS_SOURCE_ATTESTATION_AND_HASH,
+SOURCE_COHORT_MANIFEST_AND_HASH,
+MAPPING_AND_SCOPE_IDENTITY_MANIFEST,
+INCLUSION_EXCLUSION_MANIFEST,
+VERSIONED_CUSTODY_RECORD_AND_HASH,
+SOURCE_COMPLETENESS_AUTHORITY_RECORD_AND_HASH
+```
+
+These are artifact gaps, not grounds to relabel already supplied business
+facts as missing. Canonical acceptance remains separate.
+
+## 7. Truly missing external business inputs
+
+```text
+TRULY_MISSING_BUSINESS_INPUT_COUNT=0
+TRULY_MISSING_BUSINESS_INPUT_IDS=NONE
+NO_FURTHER_BUSINESS_QUESTION_REQUIRED_FOR_PHASE_1=true
+```
+
+Q1=`NOT_CONFIRMED`, Q3=`NOT_FORMALIZED`, Q4=`NO_FORMAL_RULE`, and
+C5/C6=`NOT_FORMALIZED` are already supplied current-state answers. They remain
+blockers for the relevant formal artifacts, but this phase must not ask the
+same questions again. July handling, mapping scope, role formalization and
+policy issuance are governance decisions/artifact work, not missing factual
+answers in this reconciliation.
+
+## 8. Eight-gate field-level reconciliation
+
+### S1-Q2C-TARGET
+
+```text
+GATE_ID=S1-Q2C-TARGET
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=11
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=physical event; quantity basis; kg; weighing point; marketability and sorting boundaries; farm timezone; tare result
+FACTS_PRESENT_BUT_NOT_FORMALIZED=physical attestation; target decision; transformation authority
+FORMAL_ARTIFACTS_MISSING=Q2C decision; attestation; decision hash
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_FORMAL_ARTIFACT_PREPARATION
+AUTHORITATIVE_REQUIREMENT=accepted Q2C target and quantity contract with source/physical meaning binding
+CURRENT_SUPPORTING_ARTIFACTS=target-decision-and-quantity-contract.md; q2c-target-decision-draft.md; q2c-physical-alignment-evidence-status.md
+EVIDENCE_ALREADY_AVAILABLE=business physical event, quantity basis, unit, weighing point, marketability boundary, and local time facts
+EVIDENCE_STILL_MISSING=formal Q2C decision, attestation, target binding, transformation authority, and decision hash
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=Q2C/governance authority must issue and review the formal target decision; no new factual answer is currently missing
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_Q2C_ARTIFACT_FOR_INDEPENDENT_REVIEW
+```
+
+### S1-SOURCE-AUTHORITY
+
+```text
+GATE_ID=S1-SOURCE-AUTHORITY
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=10
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=source system; dataset; source owner role; version; snapshot reference; source/schema hashes; object metadata
+FACTS_PRESENT_BUT_NOT_FORMALIZED=authority effective time; coverage scope; revision policy; withdrawal/void policy
+FORMAL_ARTIFACTS_MISSING=business source attestation; attestation hash; source registry binding
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_FORMAL_ARTIFACT_PREPARATION
+AUTHORITATIVE_REQUIREMENT=governed source identity, applicability, authority, custody and withdrawal binding
+CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002-governed-snapshot-evidence.md; source-authority-evidence-status.md; business-source-attestation-draft.md
+EVIDENCE_ALREADY_AVAILABLE=source system, dataset, owner role, version, snapshot reference, source hash, schema identity, byte count, and row count
+EVIDENCE_STILL_MISSING=formal source attestation, effective time, coverage scope, policy identities, authority binding, attestation hash, and independent review
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=source/governance authority must issue the formal attestation and scope/policy bindings; repository can reuse the factual identity evidence
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_SOURCE_ATTESTATION_FOR_INDEPENDENT_REVIEW
+```
+
+### S1-SOURCE-COHORT
+
+```text
+GATE_ID=S1-SOURCE-COHORT
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=20
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=canonical grain support; mapped season; aggregate counts; date bounds; July unresolved boundary; source-object identity
+FACTS_PRESENT_BUT_NOT_FORMALIZED=mapping policy; scope identity arrays; inclusion/exclusion binding; cohort custody binding
+FORMAL_ARTIFACTS_MISSING=source cohort manifest; manifest hash; mapping/scope manifest
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=BLOCKED_BY_NOT_FORMALIZED_GOVERNANCE
+AUTHORITATIVE_REQUIREMENT=versioned source cohort identity, scope, mapping, inclusion and manifest authority
+CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002-governed-snapshot-evidence.md; source-cohort-evidence-status.md; source-schema-field-map-and-gap-register.md
+EVIDENCE_ALREADY_AVAILABLE=source-object identity, canonical grain support, mapped season, aggregate counts, date bounds, and unresolved July boundary
+EVIDENCE_STILL_MISSING=approved mapping policy, scope identity lists, inclusion/exclusion binding, cohort manifest/version/hash, and independent review
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=governance owner must decide mapping/scope/inclusion policy and bind the resulting cohort artifact; no new raw-data read is authorized
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=RESOLVE_MAPPING_SCOPE_AND_INCLUSION_GOVERNANCE_BEFORE_COHORT_MANIFEST_PREPARATION
+```
+
+### S1-PHYSICAL-MEANING
+
+```text
+GATE_ID=S1-PHYSICAL-MEANING
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=11
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=field-side first valid scan/weigh; marketable fruit; field sorting; packhouse/rejection non-retroactivity
+FACTS_PRESENT_BUT_NOT_FORMALIZED=physical measurement attestation; tare method; measurement authority
+FORMAL_ARTIFACTS_MISSING=physical measurement section of source attestation; Q2C decision hash
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_FORMAL_ARTIFACT_PREPARATION
+AUTHORITATIVE_REQUIREMENT=accepted physical event, marketability and post-harvest boundary semantics
+CURRENT_SUPPORTING_ARTIFACTS=target-decision-and-quantity-contract.md; q2c-target-decision-draft.md; source-measurement-and-finalization-rules-draft.md; q2c-physical-alignment-evidence-status.md
+EVIDENCE_ALREADY_AVAILABLE=first valid field scan/weigh event, marketable-fruit boundary, field sorting rule, and non-retroactive packhouse/rejection rules
+EVIDENCE_STILL_MISSING=formal physical-measurement attestation, measurement authority, and Q2C decision hash
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=business/governance authority must formalize and independently review the physical meaning; the current facts are already supplied
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=INCORPORATE_RECONCILED_PHYSICAL_FACTS_IN_FORMAL_Q2C_ATTESTATION
+```
+
+### S1-UNIT-AND-TIME-BASIS
+
+```text
+GATE_ID=S1-UNIT-AND-TIME-BASIS
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=5
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=kg; 0.001 kg exported precision; three decimals; no integer rounding; Asia/Shanghai calendar
+FACTS_PRESENT_BUT_NOT_FORMALIZED=tare method; device precision authority; formal farm-local time attestation
+FORMAL_ARTIFACTS_MISSING=unit/time attestation and measurement binding
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_FORMAL_ARTIFACT_PREPARATION
+AUTHORITATIVE_REQUIREMENT=accepted quantity unit, precision, tare and farm-local time basis
+CURRENT_SUPPORTING_ARTIFACTS=source-measurement-and-finalization-rules-draft.md; q2c-target-decision-draft.md; q2c-physical-alignment-evidence-status.md
+EVIDENCE_ALREADY_AVAILABLE=kg, exported 0.001 kg precision, three decimal representation, no integer rounding, and Asia/Shanghai calendar
+EVIDENCE_STILL_MISSING=tare/measurement authority binding, device precision evidence, and formal unit/time attestation
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=measurement/governance authority must formalize the unit and time basis; repository cannot invent device precision or policy ownership
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_UNIT_AND_TIME_BASIS_ARTIFACT_FOR_REVIEW
+```
+
+### S1-CANONICAL-GRAIN
+
+```text
+GATE_ID=S1-CANONICAL-GRAIN
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=2
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE; PLOT_SUPPORTED=false
+FACTS_PRESENT_BUT_NOT_FORMALIZED=mapping policy; canonical identity registry; source scope binding
+FORMAL_ARTIFACTS_MISSING=mapping/scope manifest and cohort binding
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_GOVERNANCE_DECISION
+AUTHORITATIVE_REQUIREMENT=canonical label grain and deterministic identity/mapping scope
+CURRENT_SUPPORTING_ARTIFACTS=source-authority-and-cohort-manifest.md; source-002-governed-snapshot-evidence.md; source-schema-field-map-and-gap-register.md; q2c-physical-alignment-evidence-status.md
+EVIDENCE_ALREADY_AVAILABLE=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE and PLOT_SUPPORTED=false
+EVIDENCE_STILL_MISSING=approved mapping policy, canonical identity registry, scope binding, and manifest hash
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=governance decision is required for mapping/scope identity; no missing factual answer or row-level read is required for this phase
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=REVIEW_AND_FORMALIZE_CANONICAL_MAPPING_SCOPE_DECISION
+```
+
+### S1-INCLUSION-EXCLUSION
+
+```text
+GATE_ID=S1-INCLUSION-EXCLUSION
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=3
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=July automatic assignment false; unmapped date pending; missing-day remains UNKNOWN_NOT_ZERO
+FACTS_PRESENT_BUT_NOT_FORMALIZED=approved source scope; known exclusions; July exception policy; no-record mapping rule
+FORMAL_ARTIFACTS_MISSING=inclusion/exclusion manifest; coverage-scope binding
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=READY_FOR_GOVERNANCE_DECISION
+AUTHORITATIVE_REQUIREMENT=approved inclusion, exclusion, unmapped-date and missingness semantics
+CURRENT_SUPPORTING_ARTIFACTS=source-002-governed-snapshot-evidence.md; source-002-formalization-gap-matrix.md; season-calendar-rule-draft.md; source-002-idfl-v1-source-specific-eligibility-package.md
+EVIDENCE_ALREADY_AVAILABLE=July automatic assignment false, unmapped date pending, and UNKNOWN_NOT_ZERO missingness boundary
+EVIDENCE_STILL_MISSING=approved source scope, known exclusions, July exception policy, inclusion/exclusion manifest, and formal no-record rule
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=governance owner must decide unresolved inclusion/exclusion and date-boundary policy; existing facts must not be re-asked
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=CONDUCT_INCLUSION_EXCLUSION_AND_UNMAPPED_DATE_GOVERNANCE_REVIEW
+```
+
+### S1-DATA-CUSTODY
+
+```text
+GATE_ID=S1-DATA-CUSTODY
+CANONICAL_CURRENT_STATUS=BLOCKED
+KNOWN_BUSINESS_FACT_COUNT=6
+FORMALIZED_GOVERNANCE_FACT_COUNT=0
+FORMAL_ARTIFACT_PRESENT_COUNT=0
+FACTS_ALREADY_AVAILABLE=C1 enterprise server; C2 IT department; C3 no explicit role restriction; C4 approved intended purpose; C5/C6 not formalized
+FACTS_PRESENT_BUT_NOT_FORMALIZED=access owner job role; authorized role set; retention; withdrawal/replacement; downstream invalidation
+FORMAL_ARTIFACTS_MISSING=versioned custody record; external object binding; custody hash
+TRULY_MISSING_BUSINESS_INPUTS=NONE
+CAN_BE_DERIVED_FROM_EXISTING_REPOSITORY_EVIDENCE=PARTIAL
+REQUIRES_NEW_EXTERNAL_INPUT=true
+NEW_FACTUAL_BUSINESS_ANSWER_REQUIRED=false
+DECISION_CANDIDATE_STATUS=BLOCKED_BY_NOT_FORMALIZED_GOVERNANCE
+AUTHORITATIVE_REQUIREMENT=versioned custody, access, retention, withdrawal and external-object binding
+CURRENT_SUPPORTING_ARTIFACTS=split-holdout-and-custody-contract.md; source-002-completeness-and-custody-business-evidence.md; data-custody-evidence-status.md
+EVIDENCE_ALREADY_AVAILABLE=enterprise server, IT department control fact, no explicit role restriction, intended use, and C5/C6 not-formalized answers
+EVIDENCE_STILL_MISSING=access-owner job role, authorized role set, retention policy, withdrawal/replacement policy, binding hash, custody record, and independent review
+EXTERNAL_INPUT_REQUIRED=true
+EXTERNAL_INPUT_DESCRIPTION=governance owner must formalize custody roles and policies; department-level fact must not be promoted to a job role
+SOURCE_002_SPECIFIC_ONLY=true
+FULL_S1_SCOPE_COVERED=false
+FORMAL_ACCEPTANCE_EXISTS=false
+INDEPENDENT_REVIEW_EXISTS=false
+RECOMMENDED_NEXT_ACTION=PREPARE_FORMAL_CUSTODY_RECORD_WITH_GOVERNANCE_OWNER_REVIEW
+```
+
+## 9. Status-artifact drift reconciliation
+
+```text
+STATUS_RECONCILIATION_DRIFT_FOUND=true
+STATUS_RECONCILIATION_DRIFT_FIXED=true
+STATUS_RECONCILIATION_ONLY=true
+CANONICAL_GATE_STATUS_CHANGED=false
+```
+
+The following artifacts were updated only in their factual and explanatory
+layers:
+
+- custody status now records `ENTERPRISE_SERVER`, `IT部门`, the intended
+  purpose, and the still-unformalized role/policy fields;
+- source-authority status now records Source 002 identity/schema/hash facts;
+- source-cohort status now records object and aggregate coverage facts;
+- Q2C status now records business-provided physical facts;
+- business-acceptance package and manifest now point to later evidence while
+  preserving blocked formal status.
+
+`s1-acceptance-record.json` was not changed. Its seventeen rows remain
+`BLOCKED`, so later evidence cannot be mistaken for gate acceptance.
+
+## 10. Explicit non-acceptance boundary
+
+```text
+SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+SOURCE_002_COMPLETENESS_AUTHORITY_ACCEPTED=false
+SOURCE_002_CUSTODY_ACCEPTED=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+REAL_SOURCE_EXPORT_READ_THIS_TASK=false
+REAL_BUSINESS_ROW_LEVEL_DATA_READ_THIS_TASK=false
+EXTERNAL_SOURCE_SYSTEM_ACCESSED_THIS_TASK=false
+DATABASE_WRITE=false
+PRODUCTION_CODE_CHANGED=false
+TEST_CHANGED=false
+MIGRATION_CREATED=false
+```
+
+Facts such as `C1=ENTERPRISE_SERVER` and
+`SOURCE_SYSTEM=扫码称重系统` remain L1 evidence only. No new retention,
+authorized-role, completeness, withdrawal, mapping, exclusion or target
+policy is created.
+
+## 11. Recommended Phase 2
+
+```text
+NEXT_PHASE_CANDIDATE=GOVERNANCE_DECISION_REVIEW
+NEXT_PHASE_STATUS=CANDIDATE_ONLY
+NEXT_PHASE_SCOPE=review whether the reconciled facts and explicit governance gaps can support preparation of the seven Package A formal artifacts
+NEXT_PHASE_REQUIRES_SEPARATE_USER_AUTHORIZATION=true
+```
+
+Phase 2 must not issue a gate acceptance, alter the canonical acceptance
+record, start Package B, authorize S2, read Source 002, or run a backtest.

@@ -23,10 +23,10 @@ data, credentials, private locators, or fabricated business facts.
 
 | Record | Current status | Meaning |
 | --- | --- | --- |
-| Q2C physical alignment decision | BLOCKED | Required business attestation and physical measurement evidence are absent. |
-| Source owner and authority status | BLOCKED | No governed source owner, attestation, source version, or hash was supplied. |
-| Source cohort status | BLOCKED | No non-sensitive cohort identity or manifest can be issued without the missing authority. |
-| Data custody status | BLOCKED | No source-specific custody record or binding hash was supplied. |
+| Q2C physical alignment decision | BLOCKED | Business physical facts are recorded in later drafts; formal attestation and Q2C decision remain absent. |
+| Source owner and authority status | BLOCKED | Source 002 identity, schema, snapshot and hashes are recorded; formal attestation and authority remain absent. |
+| Source cohort status | BLOCKED | Source 002 object and aggregate coverage facts are recorded; formal cohort identity and manifest remain absent. |
+| Data custody status | BLOCKED | C1-C6 business/governance answers are recorded; formal custody roles, policies and binding hash remain absent. |
 | Coverage and quality thresholds | BLOCKED | No approved S1 threshold decision was supplied; no percentage is invented. |
 | Holdout feasibility | NOT_EVALUATED | No evidence permits a feasible, not-feasible, or not-applicable conclusion. |
 | S1 acceptance record | BLOCKED | All seventeen required gates remain blocked and independent review is not started. |
@@ -34,6 +34,19 @@ data, credentials, private locators, or fabricated business facts.
 Each record is a status record rather than a substitute for missing external
 proof. A value marked NOT_PROVIDED, NOT_ISSUED, or NOT_EVALUATED must remain
 unresolved until separately supplied and independently reviewed.
+
+## Later-evidence reconciliation
+
+```text
+STATUS_RECONCILIATION_ONLY=true
+STATUS_RECONCILIATION_APPLIED=true
+LATER_EVIDENCE_CONSUMED=true
+CANONICAL_GATE_STATUS_CHANGED=false
+FORMAL_ACCEPTANCE_ISSUED=false
+```
+
+The later Source 002 and Q2C workpapers update the factual evidence layer;
+they do not override this package's blocked acceptance states.
 
 ## Current authorization state
 
