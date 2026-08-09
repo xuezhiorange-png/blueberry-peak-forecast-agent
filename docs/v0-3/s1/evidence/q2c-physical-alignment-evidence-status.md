@@ -10,22 +10,32 @@
     Q2C_DECISION_HASH=NOT_ISSUED
     INDEPENDENT_REVIEW_STATUS=NOT_STARTED
 
-No source owner, attestation, source version, measurement record, or source
-cohort was supplied. The following fields therefore remain absent rather than
-being inferred:
+Business-provided physical facts are now reconciled from the Q2C and
+measurement workpapers. They remain draft/business facts rather than a formal
+Q2C attestation or decision:
 
-    PHYSICAL_EVENT=NOT_PROVIDED
-    QUANTITY_BASIS=NOT_PROVIDED
-    QUANTITY_UNIT=NOT_PROVIDED
-    WEIGHING_POINT=NOT_PROVIDED
-    MARKETABILITY_BOUNDARY=NOT_PROVIDED
-    FIELD_SORTING_RULE=NOT_PROVIDED
-    PACKHOUSE_SORTING_RULE=NOT_PROVIDED
-    REJECTED_FRUIT_RULE=NOT_PROVIDED
-    POST_HARVEST_BOUNDARY=NOT_PROVIDED
-    FARM_LOCAL_TIME_POLICY=NOT_PROVIDED
-    CANONICAL_GRAIN=NOT_PROVIDED
-    TRANSFORMATION_AUTHORITY=NOT_PROVIDED
+```text
+BUSINESS_PHYSICAL_FACT_PRESENT=true
+FORMAL_Q2C_ATTESTATION_MISSING=true
+Q2C_DECISION_NOT_ISSUED=true
+STATUS_RECONCILIATION_APPLIED=true
+FACT_LAYER_RECONCILED_FROM=docs/v0-3/s1/workpapers/q2c-target-decision-draft.md;docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md
+```
+
+The following fields are now populated at the business-fact layer; the formal Q2C artifact remains absent:
+
+    PHYSICAL_EVENT=田间采收点首次有效扫码称重
+    QUANTITY_BASIS=商品果净重
+    QUANTITY_UNIT=kg
+    WEIGHING_POINT=田间采摘点
+    MARKETABILITY_BOUNDARY=仅统计商品果
+    FIELD_SORTING_RULE=田间剔除的非商品果不计入
+    PACKHOUSE_SORTING_RULE=加工厂后续分选不追溯调整
+    REJECTED_FRUIT_RULE=加工厂拒收或退货不追溯调整
+    POST_HARVEST_BOUNDARY=加工厂后续分选、拒收或退货不追溯调整
+    FARM_LOCAL_TIME_POLICY=Asia/Shanghai
+    CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+    TRANSFORMATION_AUTHORITY=NOT_FORMALIZED
     TRANSFORMATION_HASH=NOT_ISSUED
 
 ## Fail-closed interpretation
