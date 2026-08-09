@@ -2,9 +2,14 @@
 
 ## Authority and current state
 
-Historical labels must be reconstructed at the requested observation cutoff,
-not from the current database state. This document binds to the accepted Q2A/I7
-visibility and winner contract and does not implement it.
+Actual-label visibility is label-mode dependent. `AS_OF_EVALUATION` reconstructs
+historical state at the requested label observation cutoff;
+`FINAL_ADJUDICATED` uses its existing finalization authority; and
+`IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1` does not claim historical point-in-time
+reconstruction, using accepted immutable-source-object completeness and
+derivation lineage instead. No mode may use current database state as a
+substitute for its accepted authority. This document binds to the accepted
+Q2A/I7 visibility and winner contract and does not implement it.
 
 ```text
 VISIBILITY_AUTHORITY=docs/forecast-quality/q2a-i7-label-snapshot-and-revision-winner-contract.md
@@ -41,7 +46,7 @@ ACTUAL_LABEL_AS_OF_PREDICATE=
 SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT
 
 ACTUAL_LABEL_FINAL_ADJUDICATED_PREDICATE=
-RECORD_STATUS=FINALIZED
+SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT
 AND SOURCE_FINALIZED_AT <= SNAPSHOT_EXECUTED_AT
 
 ACTUAL_LABEL_VISIBILITY_REQUIREMENT=LABEL_MODE_DEPENDENT
@@ -62,7 +67,8 @@ cannot occur for that class; null is not an implicit pass.
 
 | source class | visibility domain | SOURCE_RECORDED_AT | SOURCE_AVAILABLE_AT | SOURCE_REVISED_AT | SOURCE_FINALIZED_AT | SOURCE_CANCELLED_AT | FORECAST_CUTOFF_AT | LABEL_OBSERVATION_CUTOFF_AT | availability predicate | revision rule | finalization rule | cancellation or void rule | point-in-time eligibility rule |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ACTUAL_HARVEST_LABEL` | `ACTUAL_LABEL` | mode-dependent: required for AS_OF; not required for IDFL | required by source policy for replay modes; IDFL uses source-object completeness | required or policy-null by mode | required or policy-null by mode | required or policy-null by mode | not applicable to label domain | required for AS_OF only | AS_OF uses `SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT`; FINAL uses finalized terminal; IDFL uses completeness authority | Q2A/I7 lineage winner for replay modes; not applicable for IDFL | `FINALIZED_AT_REQUIRED` for FINAL only | void is never a winner; IDFL has no void winner rule | mode-specific source/object lineage and completeness evidence complete |
+| `ACTUAL_HARVEST_LABEL` | `ACTUAL_LABEL / REPLAY_LABEL_MODES` | required | required by source policy | required or policy-null | required or policy-null | required or policy-null | not applicable to label domain | required | `SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT`; FINAL additionally requires `SOURCE_FINALIZED_AT <= SNAPSHOT_EXECUTED_AT` | Q2A/I7 lineage winner | `FINALIZED_AT_REQUIRED` for FINAL mode | void is never a winner | source and lineage evidence complete |
+| `ACTUAL_HARVEST_LABEL` | `ACTUAL_LABEL / IMMUTABLE_DAILY_FINAL_LABEL` | not required for label mode | source-object completeness authority | policy-defined by source class | not required for IDFL label mode | not required for IDFL label mode | not applicable to label domain | not required for IDFL label mode | `HARVEST_BUSINESS_DATE <= SOURCE_COMPLETE_THROUGH_BUSINESS_DATE` | not applicable; no revision winner | not required for IDFL label mode | not applicable; no void winner | immutable source-object, completeness, derivation-lineage, and target-binding evidence complete |
 | `AREA` | `FORECAST_INPUT` | required | required | required or policy-null | policy-defined | policy-defined | required | not applicable to input domain | `SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT` | cutoff-visible version only | finalized version only when policy requires | cancelled version excluded | historical source version reconstructable |
 | `YIELD_PLAN` | `FORECAST_INPUT` | required | required | required or policy-null | policy-defined | policy-defined | required | not applicable to input domain | `SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT` | cutoff-visible version only | finalized version only when policy requires | cancelled version excluded | no post-cutoff plan is eligible |
 | `PHENOLOGY` | `FORECAST_INPUT` | required | required | required or policy-null | policy-defined | policy-defined | required | not applicable to input domain | `SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT` | cutoff-visible version only | finalized version only when policy requires | cancelled version excluded | late observations are not backdated |
@@ -85,11 +91,18 @@ For forecast inputs, the source must be available by the forecast cutoff:
 SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT
 ```
 
-For `AS_OF_EVALUATION` actual labels, the source-recorded time must be visible
-by the label cutoff:
+For replay-mode actual labels, the source-recorded time must be visible by the
+label cutoff:
 
 ```text
 SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT
+```
+
+The pre-existing `FINAL_ADJUDICATED` replay predicate remains:
+
+```text
+SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT
+AND SOURCE_FINALIZED_AT <= SNAPSHOT_EXECUTED_AT
 ```
 
 The replay order is:
@@ -131,6 +144,7 @@ AS_OF_EVALUATION:
   one valid lineage terminal is required
 
 FINAL_ADJUDICATED:
+  SOURCE_RECORDED_AT <= LABEL_OBSERVATION_CUTOFF_AT
   SOURCE_FINALIZED_AT <= SNAPSHOT_EXECUTED_AT
   finalized winner under the same lineage and scope rules is required
 
@@ -192,12 +206,16 @@ UNSUPPORTED_LABEL_GRAIN
   parent lineage.
 - Cancellation and void events cannot be hidden by falling back to the latest
   row.
-- A source whose historical visibility cannot be reconstructed must remain
-  ineligible:
+- A source class and label mode that require historical point-in-time
+  reconstruction must remain ineligible when that visibility cannot be
+  reconstructed:
 
 ```text
-SOURCE_POINT_IN_TIME_ELIGIBLE=false
+REPLAY_MODE_SOURCE_POINT_IN_TIME_ELIGIBLE=false
 ```
+
+This replay-only rule does not make IDFL automatically ineligible solely
+because `HISTORICAL_LABEL_VISIBILITY_RECONSTRUCTION_SUPPORTED=false`.
 
 ## Inclusion, missing days, and replay identity
 
@@ -231,7 +249,8 @@ UNMAPPED_DATE_POLICY=PENDING
 UNMAPPED_DATE_AUTO_ASSIGNMENT_ALLOWED=false
 ```
 
-An immutable label snapshot must persist, at minimum:
+Snapshot requirements are label-mode dependent. Common snapshot identity is
+deterministic and immutable. Replay modes must persist, at minimum:
 
 ```text
 snapshot_request_identity
@@ -241,6 +260,30 @@ winner_manifest
 label_row_set_identity
 exclusion_manifest
 snapshot_hash
+```
+
+IDFL_V1 instead must persist immutable-source-object bindings and must not
+require replay-only winner or revision artifacts:
+
+```text
+IDFL_LABEL_SNAPSHOT_REQUIREMENTS=
+source_snapshot_reference,
+source_object_set_hash,
+source_object_identity_hashes,
+source_complete_through_business_date,
+source_completeness_policy_version,
+source_completeness_evidence_hash,
+source_row_lineage_manifest_hash,
+mapping_policy_version,
+visibility_policy_version,
+inclusion_policy_version,
+aggregation_policy_version,
+label_row_set_identity,
+exclusion_manifest,
+snapshot_hash
+IDFL_WINNER_MANIFEST_REQUIRED=false
+IDFL_REVISION_GRAPH_REQUIRED=false
+IDFL_LABEL_OBSERVATION_CUTOFF_REQUIRED=false
 ```
 
 The same request and source universe must produce the same identities and
@@ -253,14 +296,21 @@ a partial snapshot is invalid.
 ```text
 S1_ACCEPTANCE_REQUIRES_SOURCE_CLASS_VISIBILITY_MATRIX=true
 S1_ACCEPTANCE_REQUIRES_FORECAST_INPUT_CUTOFF_RULE=true
-S1_ACCEPTANCE_REQUIRES_LABEL_OBSERVATION_CUTOFF_RULE=true
 S1_ACCEPTANCE_REQUIRES_FROZEN_MAPPING_EVIDENCE=true
-S1_ACCEPTANCE_REQUIRES_REVISION_GRAPH_VALIDATION=true
 S1_ACCEPTANCE_REQUIRES_EXPLICIT_EXCLUSION_MANIFEST=true
 S1_ACCEPTANCE_REQUIRES_IMMUTABLE_SNAPSHOT_HASH=true
-S1_ACCEPTANCE_REQUIRES_IDEMPOTENT_REPLAY=true
+S1_ACCEPTANCE_REQUIRES_DETERMINISTIC_IDEMPOTENT_SNAPSHOT=true
 S1_ACCEPTANCE_REQUIRES_NO_CURRENT_STATE_FALLBACK=true
 S1_ACCEPTANCE_REQUIRES_LABEL_MODE_DEPENDENT_VISIBILITY_CONTRACT=true
+AS_OF_ACCEPTANCE_REQUIRES_LABEL_OBSERVATION_CUTOFF_RULE=true
+REPLAY_MODE_ACCEPTANCE_REQUIRES_REVISION_GRAPH_VALIDATION=true
+REPLAY_MODE_ACCEPTANCE_REQUIRES_REVISION_WINNER_AUTHORITY=true
+REPLAY_MODE_ACCEPTANCE_REQUIRES_IDEMPOTENT_REPLAY=true
+IDFL_ACCEPTANCE_REQUIRES_SOURCE_OBJECT_COMPLETENESS_AUTHORITY=true
+IDFL_ACCEPTANCE_REQUIRES_SOURCE_OBJECT_BOUND_ROW_LINEAGE=true
+IDFL_ACCEPTANCE_REQUIRES_NO_REVISION_WINNER=true
+IDFL_ACCEPTANCE_REQUIRES_IDEMPOTENT_SNAPSHOT=true
+IDFL_ACCEPTANCE_REQUIRES_LABEL_OBSERVATION_CUTOFF=false
 IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE=true
 IDFL_V1_VISIBILITY_MODE_SEMANTICS_ACCEPTED=true
 IDFL_FORECAST_TARGET_INTERVAL_BINDING_ACCEPTED=true
