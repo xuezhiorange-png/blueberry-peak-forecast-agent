@@ -178,9 +178,56 @@ No-record-to-zero conversion remains forbidden unless a separate formal source-c
 NO_RECORD_TO_ZERO_MAPPING_STATUS=BLOCKED_PENDING_SOURCE_COMPLETENESS_EVIDENCE
 ```
 
-## 7. Required source-object and aggregate audit authority
+## 7. Q2C target independence
 
-Because the mode does not use stable row-level source identity or revision winners, it must bind immutable source-package authority at the object/snapshot and aggregate levels.
+IDFL defines a label-mode shape; it does not choose the physical target or
+override the accepted Q2C decision. The target authority remains external to
+this candidate:
+
+```text
+IDFL_DOES_NOT_SELECT_Q2C_TARGET=true
+TARGET_DECISION_REMAINS_SEPARATE=true
+LABEL_TARGET_AUTHORITY=Q2C_ACCEPTED_TARGET
+IDFL_TARGET_BINDING_STATUS=BLOCKED_PENDING_Q2C_ACCEPTANCE
+```
+
+This candidate must not set `TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY` or
+`TARGET_DECISION=VERSIONED_Q2C_TRANSFORMATION`. The existing
+`LABEL_VALUE_AUTHORITY=FINAL_OBSERVED_DAILY_BUSINESS_QUANTITY` describes the
+candidate label-mode shape only; it is not the formal Q2C physical-target
+decision.
+
+## 8. Required source-object, row-lineage, and aggregate audit authority
+
+Because the mode does not use stable row-level source identity or revision
+winners, it must bind immutable source-package authority, source-row derivation
+lineage, and aggregate authority. The existing source-authority requirement is
+preserved rather than deleted:
+
+```text
+SOURCE_ROW_LINEAGE_REQUIRED=true
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_IS_SOURCE_SYSTEM_IDENTITY=false
+```
+
+For every canonical label row, the minimum derivation lineage is:
+
+```text
+immutable source object identity
++ deterministic source-row locator or source-row evidence identity
++ mapping evidence identity
++ aggregation policy version
++ canonical label identity
+```
+
+A deterministic row locator or row-evidence hash may identify evidence inside
+an immutable source object for audit and reconstruction. It must not be
+described as an external logical record ID, external revision ID, source-system
+record identity, or revision lineage. The candidate must support
+reconstructing which immutable source rows contributed to each canonical
+aggregate label; database row order is never authority.
 
 A future accepted `IDFL_V1` label snapshot must bind at least:
 
@@ -192,6 +239,10 @@ schema_version
 schema_hash
 source_snapshot_reference
 source_object_identity_hashes
+source_complete_through_business_date
+source_completeness_policy_version
+source_completeness_evidence_hash
+source_row_lineage_manifest_hash
 source_owner_role
 attestation_version
 attestation_hash
@@ -224,7 +275,7 @@ PRIVATE_URL_AS_CANONICAL_IDENTITY=false
 
 A source-object identity hash proves which immutable source package was evaluated. It does not become a source record ID and does not create revision lineage.
 
-## 8. Aggregate construction order
+## 9. Aggregate construction order
 
 The candidate processing order is distinct from I7 revision-first aggregation:
 
@@ -251,7 +302,7 @@ DATABASE_ROW_ORDER_AUTHORITY=false
 
 If the source representation contains duplicate or conflicting records that cannot be deterministically explained by the accepted source policy, snapshot creation must fail closed. The candidate must not silently select a winner.
 
-## 9. Business-date and coverage requirements
+## 10. Business-date and coverage requirements
 
 The label snapshot request must bind an explicit business-date scope and accepted season resolver.
 
@@ -274,7 +325,53 @@ UNMAPPED_DATE_AUTO_ASSIGNMENT_ALLOWED=false
 
 An accepted mode may exclude unresolved dates only through an explicit, versioned exclusion policy and manifest. Silent deletion or assignment is forbidden.
 
-## 10. Forecast-side point-in-time boundary
+### 10.1 Source-object final completeness authority
+
+`IMMUTABLE_DAILY_FINAL_LABEL` cannot treat a daily aggregate as complete merely
+because its business rule says that late entry is not applicable. The
+candidate therefore requires an explicit completeness authority bound to the
+same immutable source object and source snapshot that supply the label rows.
+
+```text
+SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true
+SOURCE_COMPLETENESS_POLICY_VERSION_REQUIRED=true
+SOURCE_COMPLETENESS_EVIDENCE_HASH_REQUIRED=true
+```
+
+For every included label business date, the governed completeness evidence
+must establish:
+
+```text
+HARVEST_BUSINESS_DATE <= SOURCE_COMPLETE_THROUGH_BUSINESS_DATE
+```
+
+The completeness watermark must be bound to the immutable source-object
+identity and opaque source-snapshot authority. It proves only that the
+governed source object is complete through the included business date. It does
+not prove or replace lifecycle or visibility timestamps:
+
+```text
+SOURCE_COMPLETENESS_WATERMARK_AS_SOURCE_RECORDED_AT=false
+SOURCE_COMPLETENESS_WATERMARK_AS_LABEL_VISIBILITY_TIME=false
+EXPORT_TIME_AS_SOURCE_RECORDED_AT=false
+```
+
+The completeness binding must include, at minimum, the source completeness
+policy version, the `SOURCE_COMPLETE_THROUGH_BUSINESS_DATE`, and a
+non-sensitive evidence hash bound to the immutable source object. If that
+evidence is absent or cannot cover every included label business date:
+
+```text
+IDFL_LABEL_ELIGIBILITY=BLOCKED
+```
+
+`LATE_ENTRY_NOT_APPLICABLE=true` is not sufficient proof that a source object
+captured before business-day closure already contains the complete daily
+quantity. No-record-to-zero remains blocked until this completeness authority
+and the separate missingness policy are accepted.
+
+## 11. Forecast-side point-in-time boundary
 
 The candidate changes label-side replay requirements only. It does not weaken forecast-input point-in-time authority.
 
@@ -289,17 +386,32 @@ Every forecast-input source class must continue to satisfy its accepted visibili
 SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT
 ```
 
-The evaluation ordering for this candidate is:
+IDFL does not redefine the forecast horizon or introduce a new date/timestamp
+comparison. Its authoritative temporal eligibility must be bound to the
+accepted forecast-target interval contract:
 
 ```text
-FORECAST_CUTOFF_AT < HARVEST_BUSINESS_DATE
+FORECAST_TEMPORAL_ELIGIBILITY_AUTHORITY=ACCEPTED_FORECAST_TARGET_INTERVAL_CONTRACT
+FORECAST_CUTOFF_AT < FORECAST_TARGET_DATE_OR_WINDOW_END
+HARVEST_BUSINESS_DATE_TO_FORECAST_TARGET_INTERVAL_MAPPING_REQUIRED=true
+FARM_TIMEZONE=Asia/Shanghai
 ```
 
-and all forecast features used by the evaluated forecast must be proven available at or before `FORECAST_CUTOFF_AT` under their own source-class contracts.
+The target date/window and its end are defined by the separately accepted
+forecast-target contract. If that contract later requires the stricter
+`FORECAST_CUTOFF_AT < FORECAST_TARGET_INTERVAL_START_AT` predicate, IDFL must
+use that accepted rule rather than inventing a competing horizon. The mapping
+from `HARVEST_BUSINESS_DATE` to the forecast target interval is required and
+must not compare a timestamp directly with a business date without an explicit
+timezone-aware mapping.
+
+All forecast features used by the evaluated forecast must still be proven
+available at or before `FORECAST_CUTOFF_AT` under their own source-class
+contracts.
 
 A final observed label cannot retroactively make a forecast input historically eligible.
 
-## 11. Permitted and forbidden evaluation claims
+## 12. Permitted and forbidden evaluation claims
 
 Acceptance of the label mode alone must not authorize a backtest or a model-quality claim.
 
@@ -344,7 +456,7 @@ PHYSICALLY_ALIGNED_BACKTEST_ALLOWED=false
 MODEL_QUALITY_CLAIM_ALLOWED=false
 ```
 
-## 12. Required downstream gates before any model evaluation
+## 13. Required downstream gates before any model evaluation
 
 Even after a future acceptance of `IDFL_V1`, model evaluation remains blocked until all applicable gates are separately accepted, including at least:
 
@@ -367,7 +479,7 @@ INDEPENDENT_REVIEW_ACCEPTED=true
 
 This candidate closes none of those gates by itself.
 
-## 13. Proposed I7 contract delta
+## 14. Proposed I7 contract delta
 
 A future acceptance package would add a third label mode without changing the existing predicates for `AS_OF_EVALUATION` or `FINAL_ADJUDICATED`.
 
@@ -397,7 +509,7 @@ coverage_and_exclusion_manifest=REQUIRED
 
 The mode must use its own request identity and policy-version namespace so it cannot collide with an AS-OF or FINAL snapshot identity.
 
-## 14. Proposed S1 visibility contract delta
+## 15. Proposed S1 visibility contract delta
 
 The current visibility contract treats all actual labels as point-in-time label sources. A future acceptance package must change that from one universal label predicate to a mode-specific label authority matrix.
 
@@ -411,7 +523,7 @@ Proposed structure:
 
 This exception is label-mode-specific. It must not relax the point-in-time requirements of `AREA`, `YIELD_PLAN`, `PHENOLOGY`, `WEATHER_OBSERVATION`, `HISTORICAL_WEATHER_FORECAST`, `PICKER_COUNT`, `HARVEST_EFFICIENCY`, `MARKETABLE_RATE`, or any future forecast-input source class.
 
-## 15. Proposed source-authority/cohort contract delta
+## 16. Proposed source-authority/cohort contract delta
 
 The current source-authority contract assumes row-level revision identity and global point-in-time visibility. A future acceptance package must make those requirements source-model and label-mode aware without weakening source authority, custody, hashing, or coverage requirements.
 
@@ -420,9 +532,14 @@ For `IDFL_V1`, the accepted source authority would bind a no-revision aggregate 
 ```text
 REVISION_POLICY_IDENTITY=IMMUTABLE_DAILY_AGGREGATE_NO_REVISION_V1
 REVISION_POLICY_VERSION=IDFL_NO_REVISION_V1
+SOURCE_ROW_LINEAGE_REQUIRED=true
 ROW_LEVEL_REVISION_IDENTITY_REQUIRED=false
 ROW_LEVEL_SUPERSEDED_PARENT_REQUIRED=false
 ROW_LEVEL_SOURCE_RECORDED_AT_REQUIRED_FOR_LABEL_MODE=false
+SOURCE_SYSTEM_STABLE_RECORD_ID_REQUIRED=false
+SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_IS_SOURCE_SYSTEM_IDENTITY=false
 SOURCE_OBJECT_IMMUTABILITY_REQUIRED=true
 SOURCE_OBJECT_IDENTITY_HASHES_REQUIRED=true
 WITHDRAWAL_AND_VOID_POLICY_AT_SOURCE_OBJECT_LEVEL_REQUIRED=true
@@ -443,9 +560,38 @@ AS_OF_LABEL_POINT_IN_TIME_VISIBILITY_REQUIRED=true
 IMMUTABLE_DAILY_FINAL_LABEL_POINT_IN_TIME_REPLAY_REQUIRED=false
 ```
 
+The proposed delta changes the lineage type for this source model from
+source-system revision lineage to immutable-source-object-bound derivation
+lineage. It does not eliminate audit lineage:
+
+```text
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_IS_SOURCE_SYSTEM_IDENTITY=false
+SOURCE_SYSTEM_REVISION_LINEAGE_REQUIRED=false
+```
+
+Each canonical aggregate must retain the source-object identity, deterministic
+source-row locator or evidence identity, mapping evidence identity,
+aggregation-policy version, and canonical label identity needed to reconstruct
+the contributing immutable source rows. None of these values may be used as a
+source-system record ID or revision winner.
+
+The same proposed source-authority delta must also accept the completeness
+watermark as a separate source-object authority, never as lifecycle or label
+visibility time:
+
+```text
+SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true
+SOURCE_COMPLETENESS_POLICY_VERSION_REQUIRED=true
+SOURCE_COMPLETENESS_EVIDENCE_HASH_REQUIRED=true
+SOURCE_COMPLETENESS_WATERMARK_AS_SOURCE_RECORDED_AT=false
+SOURCE_COMPLETENESS_WATERMARK_AS_LABEL_VISIBILITY_TIME=false
+```
+
 This change must not permit a source object to be silently replaced, mutated, withdrawn, or reinterpreted in place.
 
-## 16. Withdrawal and replacement behavior
+## 17. Withdrawal and replacement behavior
 
 `IDFL_V1` has no row-level void winner semantics, but source-package withdrawal remains governed.
 
@@ -460,7 +606,7 @@ DOWNSTREAM_INVALIDATION_REQUIRED=true
 
 A withdrawal or replacement must propagate to the cohort identity, any materialized S2 dataset, split manifest, label snapshot, evaluation run, and acceptance evidence according to versioned policy.
 
-## 17. Determinism and snapshot identity candidate
+## 18. Determinism and snapshot identity candidate
 
 A future accepted snapshot must be reproducible for the same canonical request and immutable source-object universe.
 
@@ -484,7 +630,7 @@ SNAPSHOT_EXECUTED_AT_IS_LABEL_VISIBILITY_AUTHORITY=false
 SAME_REQUEST_AND_SAME_SOURCE_OBJECT_UNIVERSE_REPRODUCES_SAME_HASHES=true
 ```
 
-## 18. Acceptance-test candidate
+## 19. Acceptance-test candidate
 
 A future implementation/acceptance package for this mode must test at least:
 
@@ -511,7 +657,7 @@ A future implementation/acceptance package for this mode must test at least:
 
 SQLite-only evidence must not substitute for PostgreSQL evidence where persistence behavior is part of acceptance.
 
-## 19. Cross-contract atomic acceptance requirement
+## 20. Cross-contract atomic acceptance requirement
 
 The candidate cannot be accepted by editing only one governing document.
 
@@ -525,6 +671,9 @@ A future acceptance package must synchronize at least:
 Q2A_I7_LABEL_CONTRACT_DELTA_ACCEPTED
 S1_VISIBILITY_CONTRACT_DELTA_ACCEPTED
 S1_SOURCE_AUTHORITY_CONTRACT_DELTA_ACCEPTED
+IDFL_SOURCE_COMPLETENESS_AUTHORITY_ACCEPTED
+IDFL_SOURCE_OBJECT_BOUND_ROW_LINEAGE_ACCEPTED
+IDFL_FORECAST_TARGET_INTERVAL_BINDING_ACCEPTED
 IDFL_V1_ACCEPTANCE_RECORD_CREATED
 ```
 
@@ -538,7 +687,7 @@ SOURCE_AUTHORITY_ONLY_ACCEPTANCE_ALLOWED=false
 
 If any required delta fails independent review, the effective state remains the current fail-closed state.
 
-## 20. Acceptance decision candidate
+## 21. Acceptance decision candidate
 
 Recommended future decision:
 
@@ -562,7 +711,7 @@ IMMUTABLE_DAILY_FINAL_LABEL_ACCEPTED=false
 IDFL_V1_ACCEPTANCE_STATUS=PENDING_INDEPENDENT_REVIEW
 ```
 
-## 21. Current governance state
+## 22. Current governance state
 
 This candidate does not close any current S1 gate.
 
@@ -583,7 +732,7 @@ V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
 ```
 
-## 22. Required next step
+## 23. Required next step
 
 The next step after this candidate is independent review of the complete cross-contract semantics, not acceptance and not implementation.
 
