@@ -169,8 +169,36 @@ The candidates preserve the existing authority:
    `FINALIZED` and `VOID` cannot have successors; `VOID` is never a winner.
 5. Revision numbers, predecessor links, source-system scope, and lineage
    terminal uniqueness are structural evidence, not sorting heuristics.
-6. A source-system policy-null value is not an automatic pass for an absent
-   time or status field. The policy must explicitly authorize the null case.
+6. A policy-null is considered only where the governing contract explicitly
+   permits a required-or-policy-null field. It is not a generic fallback for
+   an absent time or status field, and each field must be checked against its
+   own canonical contract.
+
+The Q2A/I7 contract is stricter for `FINAL_ADJUDICATED` than for a generic
+source field:
+
+```text
+FINAL_ADJUDICATED_REQUIRES_FINALIZED_TERMINAL=true
+FINAL_ADJUDICATED_REQUIRES_FINALIZED_AT_NON_NULL=true
+FINAL_ADJUDICATED_REQUIRES_FINALIZED_AT_BEFORE_OR_AT_SNAPSHOT_EXECUTION=true
+FINAL_ADJUDICATED_FINALIZED_AT_POLICY_NULL_ALLOWED=false
+POLICY_NULL_ONLY_ALLOWED_WHERE_GOVERNING_CONTRACT_EXPLICITLY_PERMITS=true
+FINAL_ADJUDICATED_SOURCE_FINALIZED_AT_POLICY_NULL_ALLOWED=false
+```
+
+Therefore, absence of an independent finalization event or a trusted
+`finalized_at` does not produce a policy-null pass. It means that this source
+class cannot support `FINAL_ADJUDICATED`:
+
+```text
+ACTUAL_LABEL_FINAL_ADJUDICATED_SUPPORTED_BY_SOURCE_CLASS=false
+ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
+```
+
+This is independent from `AS_OF_EVALUATION`. `AS_OF_EVALUATION` remains
+blocked here for its own missing source identity, trusted
+`source_recorded_at`, lineage/status, and applicable availability/lifecycle
+evidence; `finalized_at` is not added as an AS_OF prerequisite.
 
 `WITHDRAWAL_POLICY_VERSION`, `VOID_PROPAGATION_POLICY_VERSION`, and the
 source-object withdrawal rule remain custody-level concerns. They must not be
@@ -184,8 +212,8 @@ closed by a record-level correction or void statement.
 | `SOURCE_RECORDED_AT` | Trusted, non-null source-recorded time for AS_OF | Not supplied | Implemented as optional field plus authority-status validation | Missing | Not present | Blocked | No source-system timestamp evidence |
 | `SOURCE_AVAILABLE_AT` | Required by source policy or explicitly policy-null | Not supplied | Not implemented in actual-harvest import/label models | Missing | Not present | Blocked | No availability-time field or approved policy-null rule |
 | `SOURCE_REVISED_AT` | Revision visibility must be reconstructable | Business correction is disallowed after confirmation | Optional `revised_at` field exists | Missing | Not present | Advanced candidate | External revision event semantics are unknown |
-| `SOURCE_FINALIZED_AT` | Required for FINAL_ADJUDICATED | Confirmation is immediate, but no formal finalization evidence | `finalized_at` is persisted and used by I7 final mode | Missing | Not present | Blocked | Repository shape cannot prove source-system finalization |
-| `SOURCE_CANCELLED_AT` | Cancellation/void event must be reconstructable | Business void is disallowed after confirmation | No cancellation timestamp; `VOID` status exists | Missing | Not present | Blocked | No event-time field or policy-null authority |
+| `SOURCE_FINALIZED_AT` | Required and non-null for FINAL_ADJUDICATED, with `finalized_at <= snapshot_executed_at` | Confirmation is immediate, but no formal finalization evidence | `finalized_at` is persisted and used by I7 final mode | Missing | Not present | Blocked | Q2A/I7 does not permit policy-null here; source-system finalization remains unproven |
+| `SOURCE_CANCELLED_AT` | Cancellation/void event must be reconstructable, or a field-specific policy-null must be explicitly authorized where the canonical contract permits it | Business void is disallowed after confirmation | No cancellation timestamp; `VOID` status exists | Missing | Not present | Blocked | No event-time field or field-specific policy authority |
 | `RECORD_STATUS` | Status filters winner eligibility | Business post-confirmation rules are confirmed | `ACTIVE/CORRECTED/VOID/FINALIZED` enum and lineage validation exist | Missing | Not present | Advanced candidate | External status production and history are unproven |
 | `REVISION_NUMBER` | Continuous revision identity in each logical chain | Not supplied | Positive, unique, and lineage-validated | Missing | Not present | Advanced candidate | Source system has not evidenced numbering |
 | `SUPERSEDED_PARENT` | Explicit predecessor link for each successor | Not supplied | `supersedes_external_revision_id` and lineage edges exist | Missing | Not present | Advanced candidate | Source system has not evidenced parent links |
@@ -193,7 +221,7 @@ closed by a record-level correction or void statement.
 | `CORRECTION_RULE` | Correction is a lineage event, never silent replacement | Business correction unsupported after confirmation | `CORRECTED` structural rules exist | Missing | Not present | Advanced candidate | Technical correction capability and event lineage unknown |
 | `VOID_RULE` | Terminal void is excluded and never a winner | Business void unsupported after confirmation | `VOID` terminal and successor rejection exist | Missing | Not present | Advanced candidate | Source-system void semantics and timing unknown |
 | `LATE_ENTRY_RULE` | Late records use source-recorded visibility, not business date | Business scenario marked `NOT_APPLICABLE` | Source-time validation exists; no source capability proof | Missing | Only business date is present | Blocked | Technical late-entry behavior is not evidenced |
-| `FINALIZATION_RULE` | Final mode requires a finalized terminal and finalized time | Confirmation event/timing is business-confirmed | I7 final eligibility uses `finalized_at` | Missing | Not present | Blocked | Immediate confirmation is not finalized-time evidence |
+| `FINALIZATION_RULE` | Final mode requires a finalized terminal and non-null finalized time before or at snapshot execution | Confirmation event/timing is business-confirmed | I7 final eligibility uses `finalized_at` | Missing | Not present | Blocked | Immediate confirmation is not finalized-time evidence; policy-null cannot satisfy FINAL_ADJUDICATED |
 | `AS_OF_VISIBILITY` | Source-recorded time must be visible at label cutoff | Not supplied | Cutoff predicate and exclusions are implemented/tested | Missing | Not present | Blocked | No trusted Source 002 recorded-time field |
 | `FINAL_ADJUDICATED_VISIBILITY` | Source-recorded and finalized times bound to snapshot execution | Not supplied | Finalized-time predicate is implemented/tested | Missing | Not present | Blocked | No Source 002 finalized-time evidence |
 | `REVISION_WINNER_COMPATIBILITY` | Q2A/I7 explicit unique terminal winner | Business rules do not select winners | Repository winner path is compatible for committed records | Missing | Not present | Advanced, not closed | External source identity/time/lineage remains missing |
@@ -203,6 +231,7 @@ closed by a record-level correction or void statement.
 ```text
 ACTUAL_LABEL_AS_OF_EVALUATION_ELIGIBILITY=BLOCKED
 ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
+ACTUAL_LABEL_FINAL_ADJUDICATED_SUPPORTED_BY_SOURCE_CLASS=false
 ACTUAL_LABEL_REVISION_WINNER_COMPATIBILITY=ADVANCED_REPOSITORY_ONLY_BLOCKED_EXTERNAL_EVIDENCE
 
 RECORD_LEVEL_CORRECTION_POLICY_STATUS=ADVANCED_CANDIDATE_PENDING_EXTERNAL_EVIDENCE

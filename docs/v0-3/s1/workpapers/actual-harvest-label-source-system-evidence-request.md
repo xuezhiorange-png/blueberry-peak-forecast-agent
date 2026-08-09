@@ -84,9 +84,9 @@ ACCEPTABLE_EVIDENCE=状态字典、事件模型或明确 policy-null decision，
 
 ```text
 REQUEST_ITEM=FINALIZATION
-QUESTION=系统是否存在独立于“扫码称重完成”的最终确认/冻结事件？如果存在，正式字段名、发生时间和不可再产生 successor 的规则是什么；如果不存在，是否批准该 source class 不提供 finalized_at 的 policy-null 规则？
-WHY_REQUIRED=FINAL_ADJUDICATED 需要 finalized_at <= snapshot_executed_at；业务上的 immediate confirmation 不能自动替代技术 finalization evidence。
-ACCEPTABLE_EVIDENCE=状态机或字段字典及 policy decision，不需要真实时间值。
+QUESTION=扫码称重系统是否存在独立于“扫码称重完成”的最终确认、冻结、结算、封账或其他不可再产生 successor 的 finalization event？如果存在，请说明正式状态/字段名称、finalized time 字段名称、事件发生条件、时间语义，以及该事件后是否不可再产生 successor；不需要提供任何真实时间值。如果不存在，请 source owner 或 technical custodian 明确确认 SOURCE_CLASS_HAS_INDEPENDENT_FINALIZATION_EVENT=false，并据此记录 ACTUAL_LABEL_FINAL_ADJUDICATED_SUPPORTED_BY_SOURCE_CLASS=false 和 ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED。
+WHY_REQUIRED=Q2A/I7 对 FINAL_ADJUDICATED 明确要求 record_status=FINALIZED、finalized_at IS NOT NULL 且 finalized_at <= snapshot_executed_at；业务上的 immediate confirmation 不能自动替代技术 finalization evidence，缺少 finalization event 或可信 finalized_at 不能通过 policy-null 满足 FINAL_ADJUDICATED。
+ACCEPTABLE_EVIDENCE=状态机、字段字典或 source-class capability statement；如果不存在独立 finalization event，应提供明确的 false capability confirmation，不得声明 finalized_at 的 policy-null 已被 FINAL_ADJUDICATED 接受。
 ```
 
 ### 8. Late-entry semantics
