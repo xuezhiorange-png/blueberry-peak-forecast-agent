@@ -596,7 +596,16 @@ SOURCE_002_SOURCE_COHORT_ACCEPTED=false
 Q2C_ACCEPTED=false
 ```
 
-The next action is to collect the six minimum completeness/custody business
-and governance answers through an explicitly authorized channel, without
-requesting source rows, real record IDs, real timestamps, storage paths, or
-credentials.
+```text
+COMPLETENESS_EVIDENCE_ANSWER_COUNT=4
+CUSTODY_EVIDENCE_ANSWER_COUNT=6
+TOTAL_REQUIRED_BUSINESS_GOVERNANCE_ANSWER_COUNT=10
+Q1_COUNT=4
+CUSTODY_QUESTION_COUNT=6
+TOTAL_REQUIRED_ANSWER_COUNT=10
+```
+
+The next action is to collect the ten minimum completeness/custody business
+and governance answers — four completeness answers (Q1–Q4) and six custody
+answers (C1–C6) — through an explicitly authorized channel, without requesting
+source rows, real record IDs, real timestamps, storage paths, or credentials.
