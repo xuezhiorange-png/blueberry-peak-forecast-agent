@@ -67,14 +67,15 @@ IDFL_V1 must not be called `AS_OF_EVALUATION`, `FINAL_ADJUDICATED`,
 
 ## Atomic acceptance predicate
 
-```text
-IDFL_V1_ATOMIC_ACCEPTANCE_VALID=true
-```
-
-The predicate is true only because every required component is accepted in the
-same contract set:
+`IDFL_V1_ATOMIC_ACCEPTANCE_VALID` is true only when every predicate below is
+true in the same three-contract set. The three primary mode-acceptance
+booleans are part of the predicate, not merely declarations elsewhere:
 
 ```text
+IDFL_V1_ATOMIC_ACCEPTANCE_REQUIRED_PREDICATES=
+IDFL_V1_I7_MODE_ACCEPTED,
+IDFL_V1_VISIBILITY_MODE_SEMANTICS_ACCEPTED,
+IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED,
 IDFL_SOURCE_COMPLETENESS_AUTHORITY_REQUIREMENT_ACCEPTED=true
 IDFL_SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIREMENT_ACCEPTED=true
 IDFL_FORECAST_TARGET_INTERVAL_BINDING_ACCEPTED=true
@@ -83,11 +84,39 @@ IDFL_MISSINGNESS_FAIL_CLOSED_PRESERVED=true
 IDFL_FORECAST_SIDE_PIT_PRESERVED=true
 AS_OF_SEMANTICS_PRESERVED=true
 FINAL_ADJUDICATED_SEMANTICS_PRESERVED=true
+
+IDFL_V1_ATOMIC_ACCEPTANCE_VALID=true
+```
+
+The formal predicate is:
+
+```text
+IDFL_V1_ATOMIC_ACCEPTANCE_VALID=
+IDFL_V1_I7_MODE_ACCEPTED
+AND IDFL_V1_VISIBILITY_MODE_SEMANTICS_ACCEPTED
+AND IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED
+AND IDFL_SOURCE_COMPLETENESS_AUTHORITY_REQUIREMENT_ACCEPTED
+AND IDFL_SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIREMENT_ACCEPTED
+AND IDFL_FORECAST_TARGET_INTERVAL_BINDING_ACCEPTED
+AND IDFL_Q2C_INDEPENDENCE_PRESERVED
+AND IDFL_MISSINGNESS_FAIL_CLOSED_PRESERVED
+AND IDFL_FORECAST_SIDE_PIT_PRESERVED
+AND AS_OF_SEMANTICS_PRESERVED
+AND FINAL_ADJUDICATED_SEMANTICS_PRESERVED
 ```
 
 If any predicate above becomes false, the mode acceptance is invalid and
 `IMMUTABLE_DAILY_FINAL_LABEL_ACCEPTED` must be set to `false` in a new
 reviewed decision.
+
+The IDFL acceptance does not reconcile any pre-existing discrepancy between
+the Q2A/I7 and visibility-contract definitions of `FINAL_ADJUDICATED`:
+
+```text
+FINAL_ADJUDICATED_PRE_EXISTING_CROSS_CONTRACT_DRIFT_RESOLVED_THIS_TASK=false
+IDFL_ACCEPTANCE_DOES_NOT_AUTHORIZE_FINAL_SEMANTIC_RECONCILIATION=true
+EXISTING_FINAL_ADJUDICATED_SEMANTICS_CHANGED=false
+```
 
 ## Completeness and lineage requirements
 
@@ -198,6 +227,18 @@ V0_3_S2_STARTED=false
 No source-specific attestation, cohort manifest, Q2C decision, completeness
 evidence, label rowset, ingestion, backtest, or model-quality claim is created
 by this record.
+
+Mode-contract semantic acceptance is not source-specific or cohort-specific
+acceptance:
+
+```text
+NO_SOURCE_SPECIFIC_ACCEPTANCE_RESULT_ISSUED_BY_THIS_DOCUMENT=true
+NO_COHORT_SPECIFIC_ACCEPTANCE_RESULT_ISSUED_BY_THIS_DOCUMENT=true
+IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true
+SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=false
+CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
+```
 
 ## Operational boundary
 

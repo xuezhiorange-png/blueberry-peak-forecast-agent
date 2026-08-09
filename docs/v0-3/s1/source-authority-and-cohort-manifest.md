@@ -255,20 +255,19 @@ CLEANED_DATA_VERSIONED=true
 MANUAL_CORRECTION_AUDITED=true
 SILENT_VALUE_REPLACEMENT=false
 SOURCE_ROW_LINEAGE_REQUIRED=true
-POINT_IN_TIME_VISIBILITY_REQUIRED=true
 REAL_DATA_ALLOWED_IN_GIT=false
 ```
 
-`POINT_IN_TIME_VISIBILITY_REQUIRED=true` remains an overarching fail-closed
-governance requirement, but its required fields and predicates are scoped by
-source class and actual-label mode. The IDFL exemption applies only to
-`ACTUAL_HARVEST_LABEL + IMMUTABLE_DAILY_FINAL_LABEL` and never propagates to
-forecast inputs or the two replay modes:
+Visibility is an explicit source-class and label-mode policy. The IDFL
+exception applies only to `ACTUAL_HARVEST_LABEL +
+IMMUTABLE_DAILY_FINAL_LABEL` and never propagates to forecast inputs or the two
+replay modes:
 
 ```text
 SOURCE_AUTHORITY_REQUIREMENT_IS_SOURCE_CLASS_AND_LABEL_MODE_AWARE=true
 FORECAST_INPUT_POINT_IN_TIME_VISIBILITY_REQUIRED=true
 ACTUAL_LABEL_VISIBILITY_REQUIREMENT=LABEL_MODE_DEPENDENT
+REPLAY_LABEL_POINT_IN_TIME_VISIBILITY_REQUIRED=true
 AS_OF_LABEL_POINT_IN_TIME_REPLAY_REQUIRED=true
 FINAL_ADJUDICATED_FINALIZATION_AUTHORITY_REQUIRED=true
 IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
@@ -443,13 +442,17 @@ S1_ACCEPTANCE_REQUIRES_LINEAGE_AND_MAPPING_EVIDENCE=true
 S1_ACCEPTANCE_REQUIRES_CUSTODY_RECORD=true
 ```
 
-No source value, owner identity, cohort identity, manifest hash, or acceptance
-result is issued by this document.
+This document does not issue a source-specific or cohort-specific acceptance
+result. It may carry `IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true`
+because that is mode-contract semantic acceptance, not source or cohort
+acceptance.
 
 The atomic IDFL contract acceptance state is distinct from source/cohort
 acceptance:
 
 ```text
+NO_SOURCE_SPECIFIC_ACCEPTANCE_RESULT_ISSUED_BY_THIS_DOCUMENT=true
+NO_COHORT_SPECIFIC_ACCEPTANCE_RESULT_ISSUED_BY_THIS_DOCUMENT=true
 IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE=true
 IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true
 IDFL_SOURCE_COMPLETENESS_AUTHORITY_REQUIREMENT_ACCEPTED=true
