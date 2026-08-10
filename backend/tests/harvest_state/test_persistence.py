@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import cast
 
@@ -424,16 +425,25 @@ async def test_jsonb_verification_snapshot_is_preserved(sqlite_session: AsyncSes
     assert first_input["verification_snapshot_hash"] == original_input["verification_snapshot_hash"]
 
 
-def test_task8_datetime_availability_round_trip_hash_is_stable() -> None:
+@pytest.mark.asyncio
+async def test_task8_datetime_availability_round_trip_hash_is_stable(
+    sqlite_session: AsyncSession,
+) -> None:
     payload = make_request()
     available_at = datetime(2026, 2, 28, 3, 35, tzinfo=UTC)
     for item in payload["task8_daily_predictions"]:
         item["source_ref"]["maturity_daily_prediction_available_at"] = available_at
         item["verification_snapshot"]["maturity_daily_prediction_available_at"] = available_at
+        item["verification_snapshot"]["p50_kg"] = Decimal("20.000000")
+        item["verification_snapshot"]["p80_kg"] = Decimal("24.000000")
+        item["verification_snapshot"]["p90_kg"] = Decimal("28.000000")
 
     output = run_harvest_state_model(payload)
     assert isinstance(output, Task9ACompletedOutput)
-    reloaded = Task9ACompletedOutput.model_validate(output.model_dump(mode="json"))
+    run = await save_harvest_state_output(sqlite_session, output=output)
+    loaded = await load_harvest_state_output_by_id(sqlite_session, run_id=run.id)
+    assert loaded is not None
+    reloaded = cast(Task9ACompletedOutput, loaded)
 
     assert reloaded.result_hash == output.result_hash
     assert (
