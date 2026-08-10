@@ -43,8 +43,8 @@ gate cannot be issued in the current state.
 | `FORMAL_VOID_POLICY` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Current business statements do not define formal void semantics; this is not a current Source 002 IDFL label-side blocker. | Versioned void policy and propagation evidence if a replay mode or used forecast-input class requires it. |
 | `FORMAL_REVISION_POLICY` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Q2A/I7 winner semantics remain authoritative for replay modes; source-specific revision evidence is not a current IDFL label-side prerequisite. | Source-specific revision policy identity and lineage evidence if a replay mode or used forecast-input class requires it. |
 | `REVISION_POLICY_VERSION` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | No source-specific version is issued; the absence does not block the current immutable IDFL label side. | Governance owner issues a stable revision-policy identity when the applicable mode or input class needs it. |
-| `WITHDRAWAL_POLICY_VERSION` | PENDING | No source-specific withdrawal policy version is issued. | Custody/governance owner issues retention and withdrawal policy identity. |
-| `VOID_PROPAGATION_POLICY_VERSION` | PENDING | No source-specific void propagation identity is issued. | Governance owner binds downstream propagation targets and policy version. |
+| `WITHDRAWAL_POLICY_VERSION` | FORMALIZED_UNACCEPTED | Package A custody record issues `source-002-withdrawal-policy-v1`; issuance is not custody acceptance. | Separate custody/source-authority acceptance decision. |
+| `VOID_PROPAGATION_POLICY_VERSION` | FORMALIZED_UNACCEPTED | Package A custody record issues `source-002-void-propagation-policy-v1`; this is object-level propagation governance, not source-system record-void capability. | Separate custody/source-authority acceptance decision. |
 | `FORMAL_MISSING_DAY_RULE` | PENDING | `UNKNOWN_NOT_ZERO` is the fail-closed semantic; source completeness and July handling remain unresolved. | Formal missing-day/completeness rule and reviewed evidence. |
 | `POINT_IN_TIME_VISIBILITY_RULE` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | The repository contract requires source availability/recorded/revised/finalized visibility evidence for replay modes and applicable forecast inputs; Source 002 IDFL does not use record-level label replay. | Source-system visibility fields or an approved policy-null rule, with cutoff reconstruction evidence, when the applicable mode or input class requires it. |
 | `LATE_ENTRY_RULE` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Business context says the reported late-entry scenario is not applicable; this is not formal technical evidence, but it is not a current IDFL label-side blocker. | Formal late-entry policy or source-system evidence when replay or a used forecast-input class requires the applicable rule. |
@@ -52,11 +52,11 @@ gate cannot be issued in the current state.
 | `UNMAPPED_DATE_POLICY` | PENDING | July 2025 contains 2 rows on 1 date and is deliberately not auto-assigned. | Business/governance decision for July ownership, exclusion, or exception handling. |
 | `TARE_DEDUCTION_METHOD` | PENDING | Tare is business-confirmed as already deducted, but the method is not specified. | Formal tare method and measurement evidence. |
 | `SCALE_PRECISION_FORMAL_EVIDENCE` | PENDING | Source 002 supports the exported quantity representation at 0.001 kg and three decimal places; this does not establish weighing-device precision or scale resolution. | Formal device precision/calibration evidence for the governed source. |
-| `MAPPING_POLICY_IDENTITY` | PENDING | Dimension support is observed, but no source-specific versioned farm/subfarm/variety mapping identity is frozen. | Versioned mapping policy/registry identity and review evidence. |
-| `COVERAGE_SCOPE_ENTITY_ID_LISTS` | FORMALIZED_REFERENCE_ONLY | The reviewed package binds counts and array hashes without storing row-derived identity arrays in Git; `FORMAL_MAPPING_ACCEPTED=false` and the schema-valid source-cohort manifest remains unissued. | Separate source-cohort manifest preparation and independent review. |
-| `CUSTODY_RECORD` | FORMALIZED_FOR_REVIEW | The versioned custody record binds the non-sensitive source identity hash, access roles, retention, withdrawal, replacement, and downstream propagation policy; custody acceptance remains blocked. | Independent review and custody gate decision. |
-| `INCLUSION_POLICY_AND_KNOWN_EXCLUSIONS` | FORMALIZED_BOUNDARY_ONLY | The inclusion/exclusion boundary is issued; no-known-exclusions is not an all-rows-valid claim, and future S2 technical/data-quality exclusions remain allowed. | Independent review, source completeness, July policy, and source-cohort binding. |
-| `Q2C_DECISION` | BLOCKED | Q2C draft facts are not formally accepted and the authority/visibility/policy gaps remain open. | Independent Q2C decision record after required physical and source evidence closes. |
+| `MAPPING_POLICY_IDENTITY` | PENDING | Dimension support is observed and Package A binds reviewed source-derived identity hashes, but `FORMAL_MAPPING_ACCEPTED=false`; no accepted source-specific semantic mapping identity is frozen. | Versioned mapping policy/registry identity and review/acceptance evidence. |
+| `COVERAGE_SCOPE_ENTITY_ID_LISTS` | FORMALIZED_REFERENCE_ONLY | The reviewed package binds counts and array hashes without storing row-derived identity arrays in Git; `FORMAL_MAPPING_ACCEPTED=false` and the schema-valid source-cohort manifest remains unissued. | Separate source-cohort manifest preparation and independent acceptance. |
+| `CUSTODY_RECORD` | FORMALIZED_UNACCEPTED | The versioned custody record binds the non-sensitive source identity hash, access roles, retention, withdrawal, replacement, and downstream propagation policy; `custody_record_accepted=false`. | Separate custody/source-authority acceptance decision. |
+| `INCLUSION_POLICY_AND_KNOWN_EXCLUSIONS` | FORMALIZED_BOUNDARY_UNACCEPTED | The inclusion/exclusion boundary is issued; no-known-exclusions is not an all-rows-valid claim, and future S2 technical/data-quality exclusions remain allowed. | Separate source/cohort acceptance plus source completeness and July policy. |
+| `Q2C_DECISION` | BLOCKED | Q2C draft facts are not formally accepted; IDFL lifecycle replay fields are not the blocker, but target binding remains unissued. | Independent Q2C decision record after the remaining target/source evidence required by the current contract closes. |
 | `S1_INDEPENDENT_REVIEW` | BLOCKED | This package has not been independently reviewed as a complete S1 acceptance package. | Independent review of the complete S1 evidence package. |
 
 ## Package A formalization reconciliation
@@ -71,6 +71,8 @@ FORMAL_ARTIFACTS_MISSING_AFTER_PACKAGE_A=4
 FORMAL_MAPPING_ACCEPTED=false
 FORMAL_SOURCE_COHORT_MANIFEST_CREATED=false
 SOURCE_002_COMPLETENESS_AUTHORITY_ACCEPTED=false
+CUSTODY_RECORD_ACCEPTED=false
+INCLUSION_EXCLUSION_ACCEPTED=false
 ```
 
 The three Package A artifacts formalize scoped evidence and policy boundaries
@@ -122,17 +124,17 @@ any of those properties.
 
 Source 002 evidence does not create a second authority contract. The existing
 source-authority, business-attestation, and source-cohort schemas remain the
-canonical contracts. No formal JSON artifact is generated because the
-required authority, policy, coverage-scope identity, and custody fields are
-not all evidenced.
+canonical contracts. No formal source attestation or cohort JSON artifact is
+generated because their required authority and acceptance conditions are not
+all satisfied.
 
 ## Next gate impact
 
 The package directly supports preparation for source identity, observed schema
-identity, aggregate coverage, canonical-grain support, and quantity precision.
-It partially informs physical/Q2C and inclusion discussions. It does not close
-source authority, cohort freeze, point-in-time visibility, revision winner,
-correction/void, custody, split, metric, minimum-coverage, quality-threshold,
+identity, aggregate coverage, canonical-grain support, quantity precision,
+and Package A governance references. It does not close source authority,
+cohort freeze, custody acceptance, source-object-bound row lineage, mapping or
+inclusion acceptance, split, metric, minimum-coverage, quality-threshold,
 holdout, or independent-review gates.
 
 ## Optional audit/replay evidence scope
@@ -156,11 +158,9 @@ S1_VISIBILITY_GATE_CLOSED=false
 S1_VISIBILITY_FULL_CLOSURE_NOT_CLAIMED=true
 ```
 
-The full `S1-VISIBILITY` gate also covers other contract-defined source
-classes, including `AREA`, `YIELD_PLAN`, `PHENOLOGY`, `WEATHER_OBSERVATION`,
-`HISTORICAL_WEATHER_FORECAST`, `PICKER_COUNT`, `HARVEST_EFFICIENCY`, and
-`MARKETABLE_RATE`. Closing actual-label lifecycle evidence alone cannot close
-the full S1 visibility gate.
+The full `S1-VISIBILITY` gate covers forecast-input source classes actually
+used by the evaluated forecast. Closing or reclassifying actual-label
+lifecycle evidence alone cannot close the full S1 visibility gate.
 
 ## Forecast relevance and current IDFL blocker reconciliation
 
@@ -184,13 +184,26 @@ FORECAST_INPUT_POINT_IN_TIME_CONTROL_REQUIRED=true
 FUTURE_INPUT_LEAKAGE_ALLOWED=false
 FORECAST_INPUT_REQUIREMENT_SCOPE=USED_SOURCE_CLASSES_ONLY
 
-V0_3_S1_FORECAST_RELEVANT_BLOCKERS=
+DIRECT_FORECAST_READINESS_BLOCKERS=
 SOURCE_COMPLETENESS,
 MISSING_DAY_RULE,
 JULY_UNMAPPED_DATE_POLICY,
 FORMAL_ACTUAL_LABEL_DATASET_FREEZE,
 TRAIN_VALIDATION_TEST_SPLIT_POLICY,
 FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_CONTROL,
+Q2C_TARGET_BINDING
+
+CURRENT_SOURCE_002_IDFL_ELIGIBILITY_BLOCKERS=
+SOURCE_AUTHORITY_ACCEPTANCE,
+SOURCE_COHORT_ACCEPTANCE,
+SOURCE_CUSTODY_ACCEPTANCE,
+SOURCE_COMPLETENESS,
+SOURCE_OBJECT_BOUND_ROW_LINEAGE,
+MAPPING_POLICY_IDENTITY,
+COVERAGE_SCOPE_ENTITY_IDENTITIES,
+INCLUSION_EXCLUSION_ACCEPTANCE,
+MISSING_DAY_RULE,
+JULY_UNMAPPED_DATE_POLICY,
 Q2C_TARGET_BINDING
 
 V0_3_S1_NON_BLOCKING_AUDIT_ITEMS=
@@ -219,8 +232,10 @@ CURRENT_SOURCE_002_IDFL_V1_ELIGIBILITY=false
 CURRENT_SOURCE_002_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
 ```
 
-The observed maximum harvest date is not a completeness watermark. The
-historical lifecycle workpaper and source-system request remain available as
-optional audit/replay evidence and are required when a replay mode or a used
+The seven direct forecast-readiness items are a prioritization list, not a
+replacement for the complete source-specific IDFL eligibility gates. The
+observed maximum harvest date is not a completeness watermark. The historical
+lifecycle workpaper and source-system request remain available as optional
+audit/replay evidence and are required when a replay mode or a used
 forecast-input source class needs those semantics; they are not current Source
 002 IDFL label-side acceptance prerequisites.
