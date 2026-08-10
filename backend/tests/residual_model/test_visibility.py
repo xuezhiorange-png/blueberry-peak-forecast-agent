@@ -29,7 +29,13 @@ def test_allowlisted_features_pass_visibility_audit() -> None:
 
     audit = audit_feature_visibility(
         features=[
-            FeatureValue.model_validate(_feature(feature_name="structural_arrival_p50_kg")),
+            FeatureValue.model_validate(
+                _feature(
+                    feature_name="structural_arrival_p50_kg",
+                    known_at=datetime(2026, 3, 1, 11, 0, tzinfo=UTC),
+                    source_available_at=datetime(2026, 3, 1, 11, 0, tzinfo=UTC),
+                )
+            ),
             FeatureValue.model_validate(
                 _feature(
                     feature_name="actual_receipt_lag_1d_kg",
@@ -38,6 +44,7 @@ def test_allowlisted_features_pass_visibility_audit() -> None:
             ),
         ],
         as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
         for_training=True,
     )
 
@@ -52,6 +59,7 @@ def test_unknown_feature_is_blocked() -> None:
     audit = audit_feature_visibility(
         features=[FeatureValue.model_validate(_feature(feature_name="mystery_feature"))],
         as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
         for_training=True,
     )
 
@@ -68,6 +76,7 @@ def test_blocklisted_feature_is_blocked() -> None:
             FeatureValue.model_validate(_feature(feature_name="target_date_actual_receipt_kg"))
         ],
         as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
         for_training=True,
     )
 
@@ -89,6 +98,7 @@ def test_future_available_at_is_blocked() -> None:
             )
         ],
         as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
         for_training=True,
     )
 
@@ -118,6 +128,7 @@ def test_mixed_naive_and_aware_datetimes_are_normalized_for_visibility() -> None
             ),
         ],
         as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
         for_training=True,
     )
 
@@ -139,8 +150,108 @@ def test_target_date_actual_is_blocked_for_historical_lag_feature() -> None:
             )
         ],
         as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
         for_training=True,
     )
 
     assert audit.status == "blocked"
     assert audit.blockers[0].code == "TARGET_DATE_ACTUAL_FEATURE"
+
+
+def test_same_day_post_cutoff_known_at_is_blocked() -> None:
+    from backend.app.residual_model.schemas import FeatureValue
+    from backend.app.residual_model.visibility import audit_feature_visibility
+
+    audit = audit_feature_visibility(
+        features=[
+            FeatureValue.model_validate(
+                _feature(
+                    feature_name="weather_7d_rainfall",
+                    known_at=datetime(2026, 3, 1, 5, 0, tzinfo=UTC),
+                    source_available_at=datetime(2026, 3, 1, 3, 0, tzinfo=UTC),
+                )
+            )
+        ],
+        as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 4, 0, tzinfo=UTC),
+        for_training=True,
+    )
+
+    assert audit.status == "blocked"
+    assert audit.blockers[0].code == "FUTURE_KNOWN_AT"
+
+
+def test_same_day_post_cutoff_available_at_is_blocked() -> None:
+    from backend.app.residual_model.schemas import FeatureValue
+    from backend.app.residual_model.visibility import audit_feature_visibility
+
+    audit = audit_feature_visibility(
+        features=[
+            FeatureValue.model_validate(
+                _feature(
+                    feature_name="weather_7d_rainfall",
+                    known_at=datetime(2026, 3, 1, 3, 0, tzinfo=UTC),
+                    source_available_at=datetime(2026, 3, 1, 5, 0, tzinfo=UTC),
+                )
+            )
+        ],
+        as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 4, 0, tzinfo=UTC),
+        for_training=True,
+    )
+
+    assert audit.status == "blocked"
+    assert audit.blockers[0].code == "FUTURE_AVAILABLE_AT"
+
+
+def test_cutoff_equality_is_inclusive_for_known_and_available_at() -> None:
+    from backend.app.residual_model.schemas import FeatureValue
+    from backend.app.residual_model.visibility import audit_feature_visibility
+
+    exact_cutoff = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    audit = audit_feature_visibility(
+        features=[
+            FeatureValue.model_validate(
+                _feature(
+                    feature_name="weather_7d_rainfall",
+                    known_at=exact_cutoff,
+                    source_available_at=exact_cutoff,
+                )
+            )
+        ],
+        as_of_date=date(2026, 3, 15),
+        forecast_cutoff_at=exact_cutoff,
+        for_training=True,
+    )
+
+    assert audit.status == "completed"
+    assert not audit.blockers
+
+
+def test_audit_hash_binds_exact_forecast_cutoff() -> None:
+    from backend.app.residual_model.schemas import FeatureValue
+    from backend.app.residual_model.visibility import audit_feature_visibility
+
+    feature = FeatureValue.model_validate(
+        _feature(
+            feature_name="weather_7d_rainfall",
+            known_at=datetime(2026, 3, 1, 3, 0, tzinfo=UTC),
+            source_available_at=datetime(2026, 3, 1, 3, 0, tzinfo=UTC),
+        )
+    )
+    first = audit_feature_visibility(
+        features=[feature],
+        as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 4, 0, tzinfo=UTC),
+        for_training=True,
+    )
+    second = audit_feature_visibility(
+        features=[feature],
+        as_of_date=date(2026, 3, 1),
+        forecast_cutoff_at=datetime(2026, 3, 1, 5, 0, tzinfo=UTC),
+        for_training=True,
+    )
+
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert first.audit_hash != second.audit_hash

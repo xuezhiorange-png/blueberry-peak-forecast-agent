@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import cast
 
@@ -20,6 +20,7 @@ from backend.app.models.analytics import (
 from backend.app.models.master_data import Season
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.feature_registry import build_feature_registry
+from backend.app.residual_model.forecast_cutoff import resolve_forecast_cutoff_at
 from backend.app.residual_model.projection import calculate_residual_label
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
@@ -47,10 +48,6 @@ class Task3FactoryCoverage:
     build_available_at: datetime
     coverage_version: str
     coverage_hash: str
-
-
-def _as_of_cutoff(as_of_date: date) -> datetime:
-    return datetime.combine(as_of_date, time.max, tzinfo=UTC)
 
 
 def _as_of_date_from_task9_output(output: Task9ACompletedOutput) -> date:
@@ -382,16 +379,15 @@ def _task9_holiday_snapshot(
 def _missing_feature_value(
     *,
     feature_name: str,
-    as_of_date: date,
+    forecast_cutoff_at: datetime,
 ) -> FeatureValue:
-    cutoff = _as_of_cutoff(as_of_date)
     return FeatureValue(
         feature_name=feature_name,
         value=None,
-        known_at=cutoff,
+        known_at=forecast_cutoff_at,
         source_ref={"missing_feature": feature_name},
         source_version="task10-missing-v1",
-        source_available_at=cutoff,
+        source_available_at=forecast_cutoff_at,
     )
 
 
@@ -445,6 +441,11 @@ async def build_residual_training_manifest(
 
         structural_rows = aggregate_structural_arrivals(output)
         as_of_date = _as_of_date_from_task9_output(output)
+        cutoff = await resolve_forecast_cutoff_at(
+            session,
+            task9_run_id=sample.task9_run_id,
+            as_of_date=as_of_date,
+        )
         label_build_run = await _load_completed_build_run(
             session,
             build_run_id=sample.label_analytics_build_run_id,
@@ -612,7 +613,6 @@ async def build_residual_training_manifest(
                 as_of_date=as_of_date,
             )
 
-            cutoff = _as_of_cutoff(as_of_date)
             resolved_features: list[FeatureValue] = []
             for definition in registry:
                 if definition.feature_name == "structural_arrival_p50_kg":
@@ -807,7 +807,7 @@ async def build_residual_training_manifest(
                             definition.feature_name,
                             _missing_feature_value(
                                 feature_name=definition.feature_name,
-                                as_of_date=as_of_date,
+                                forecast_cutoff_at=cutoff,
                             ),
                         )
                     )
@@ -817,7 +817,7 @@ async def build_residual_training_manifest(
                             definition.feature_name,
                             _missing_feature_value(
                                 feature_name=definition.feature_name,
-                                as_of_date=as_of_date,
+                                forecast_cutoff_at=cutoff,
                             ),
                         )
                     )
@@ -825,6 +825,7 @@ async def build_residual_training_manifest(
             visibility_audit = audit_feature_visibility(
                 features=resolved_features,
                 as_of_date=as_of_date,
+                forecast_cutoff_at=cutoff,
                 for_training=True,
             )
             feature_hash = _feature_vector_hash(resolved_features)
