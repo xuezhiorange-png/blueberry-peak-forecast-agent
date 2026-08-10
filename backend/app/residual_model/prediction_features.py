@@ -12,6 +12,7 @@ from backend.app.harvest_state.persistence import load_harvest_state_output_by_i
 from backend.app.harvest_state.schemas import Task9ACompletedOutput
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.residual_model.feature_registry import build_feature_registry
+from backend.app.residual_model.forecast_cutoff import resolve_forecast_cutoff_at
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
     FeatureValue,
@@ -20,7 +21,6 @@ from backend.app.residual_model.schemas import (
 from backend.app.residual_model.structural import aggregate_structural_arrivals
 from backend.app.residual_model.training_manifest import (
     _analysis_months,
-    _as_of_cutoff,
     _as_of_date_from_task9_output,
     _load_completed_build_run,
     _load_fact_map,
@@ -74,7 +74,11 @@ async def build_prediction_feature_rows(
 
     structural_rows = aggregate_structural_arrivals(output)
     as_of_date = _as_of_date_from_task9_output(output)
-    cutoff = _as_of_cutoff(as_of_date)
+    cutoff = await resolve_forecast_cutoff_at(
+        session,
+        task9_run_id=task9_run_id,
+        as_of_date=as_of_date,
+    )
     registry = build_feature_registry()
     supplemental_features = _supplemental_map(supplemental_feature_values)
 
@@ -460,7 +464,7 @@ async def build_prediction_feature_rows(
                         definition.feature_name,
                         _missing_feature_value(
                             feature_name=definition.feature_name,
-                            as_of_date=as_of_date,
+                            forecast_cutoff_at=cutoff,
                         ),
                     )
                 )
@@ -470,7 +474,7 @@ async def build_prediction_feature_rows(
                         definition.feature_name,
                         _missing_feature_value(
                             feature_name=definition.feature_name,
-                            as_of_date=as_of_date,
+                            forecast_cutoff_at=cutoff,
                         ),
                     )
                 )
@@ -478,6 +482,7 @@ async def build_prediction_feature_rows(
         audit = audit_feature_visibility(
             features=resolved_features,
             as_of_date=as_of_date,
+            forecast_cutoff_at=cutoff,
             for_training=False,
         )
         if audit.status == "blocked":

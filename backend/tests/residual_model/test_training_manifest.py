@@ -391,11 +391,12 @@ async def _insert_raw_rows(
 def _supplemental_features(
     *,
     as_of_date: date,
+    cutoff_at: datetime | None = None,
     destination_factory_category: str | None = None,
     weather_7d_rainfall: Decimal = Decimal("12.5"),
     weather_7d_gdd: Decimal = Decimal("33.0"),
 ) -> tuple[FeatureValue, ...]:
-    cutoff = datetime.combine(as_of_date, datetime.max.time(), tzinfo=UTC)
+    cutoff = cutoff_at or datetime.combine(as_of_date, datetime.max.time(), tzinfo=UTC)
     values = [
         FeatureValue.model_validate(
             {
@@ -445,6 +446,7 @@ def _diverse_training_samples(
     label_build_run_id: int,
     feature_build_run_id: int,
     as_of_date: date,
+    cutoff_at: datetime | None = None,
     validation_task9_run_id: int | None = None,
     validation_label_build_run_id: int | None = None,
     validation_feature_build_run_id: int | None = None,
@@ -469,6 +471,7 @@ def _diverse_training_samples(
                 split="train",
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=as_of_date,
+                    cutoff_at=cutoff_at,
                     destination_factory_category=f"{train_category_prefix}-{index % 3}",
                     weather_7d_rainfall=Decimal("12.5") + Decimal(index % 5),
                     weather_7d_gdd=Decimal("33.0") + Decimal(index % 7),
@@ -485,6 +488,7 @@ def _diverse_training_samples(
                 split="validation",
                 supplemental_feature_values=_supplemental_features(
                     as_of_date=as_of_date,
+                    cutoff_at=cutoff_at,
                     destination_factory_category=(
                         f"{resolved_validation_category_prefix}-{index % 2}"
                     ),
@@ -511,6 +515,14 @@ async def test_build_training_manifest_uses_explicit_label_and_feature_build_run
 ) -> None:
     season_id, factory_id, variety_id = await _seed_master_data(sqlite_session)
     task9_run_id, output = await _persist_task9_run(sqlite_session)
+    exact_cutoff = datetime(2026, 3, 1, 4, 0, tzinfo=UTC)
+    task9_run = await sqlite_session.get(HarvestStateRun, task9_run_id)
+    assert task9_run is not None
+    task9_run.is_replay = True
+    task9_run.forecast_effective_cutoff_at = exact_cutoff
+    task9_run.replay_executed_at = datetime(2026, 3, 1, 5, 0, tzinfo=UTC)
+    task9_run.replay_code_version = "test-replay-v1"
+    task9_run.replay_run_correlation_id = "training-manifest-test"
     structural_rows = aggregate_structural_arrivals(output)
     as_of_date = _snapshot_as_of_date(output)
     label_build = await _seed_build_run(
@@ -580,7 +592,10 @@ async def test_build_training_manifest_uses_explicit_label_and_feature_build_run
                 label_analytics_build_run_id=label_build.id,
                 feature_analytics_build_run_id=feature_build.id,
                 split="train",
-                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=as_of_date,
+                    cutoff_at=exact_cutoff,
+                ),
             )
         ],
     )
@@ -595,8 +610,52 @@ async def test_build_training_manifest_uses_explicit_label_and_feature_build_run
     assert features["actual_receipt_lag_3d_kg"] == Decimal("13")
     assert features["actual_receipt_lag_7d_kg"] == Decimal("17")
     assert features["weather_7d_rainfall"] == Decimal("12.5")
+    assert all(item.known_at == exact_cutoff for item in first.feature_values)
     assert first.feature_visibility_audit is not None
     assert first.feature_visibility_audit.status == "completed"
+
+    late_feature_build = await _seed_build_run(
+        sqlite_session,
+        build_run_id=3,
+        season_id=season_id,
+        source_max_raw_id=60,
+        config_hash="c" * 64,
+        finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+    )
+    for fact_id, offset in ((5, 1), (6, 3), (7, 7)):
+        await _seed_daily_fact(
+            sqlite_session,
+            fact_id=fact_id,
+            build_run_id=late_feature_build.id,
+            season_id=season_id,
+            factory_id=factory_id,
+            variety_id=variety_id,
+            receipt_date=as_of_date - timedelta(days=offset),
+            weight_kg=Decimal("9"),
+        )
+    late_rows = await build_residual_training_manifest(
+        sqlite_session,
+        samples=[
+            ResidualTrainingSampleSpec(
+                task9_run_id=task9_run_id,
+                label_analytics_build_run_id=label_build.id,
+                feature_analytics_build_run_id=late_feature_build.id,
+                split="train",
+                supplemental_feature_values=_supplemental_features(
+                    as_of_date=as_of_date,
+                    cutoff_at=exact_cutoff,
+                ),
+            )
+        ],
+    )
+
+    assert late_rows
+    assert any(
+        issue.code == "FUTURE_AVAILABLE_AT"
+        for row in late_rows
+        if row.feature_visibility_audit is not None
+        for issue in row.feature_visibility_audit.blockers
+    )
 
 
 @pytest.mark.asyncio
