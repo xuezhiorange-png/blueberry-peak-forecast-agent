@@ -67,6 +67,7 @@ _SEMANTIC_TASK8_SOURCE_REF_KEYS: tuple[str, ...] = (
     "maturity_model_artifact_hash",
     "maturity_forecast_source_signature",
     "maturity_forecast_as_of_date",
+    "maturity_daily_prediction_available_at",
     "prediction_date",
     "forecast_quantile",
     "source_quantity_kg",
@@ -82,6 +83,7 @@ _SEMANTIC_TASK8_VERIFICATION_KEYS: tuple[str, ...] = (
     "maturity_forecast_run_status",
     "maturity_forecast_source_signature",
     "maturity_forecast_as_of_date",
+    "maturity_daily_prediction_available_at",
     "maturity_forecast_prediction_start_date",
     "maturity_forecast_prediction_end_date",
     "prediction_date",
@@ -1314,7 +1316,12 @@ def _semantic_task8_source_ref_hash(source_ref: object) -> str:
     """Hash only semantic fields of a Task8PredictionSourceRef, excluding DB IDs."""
     semantic_payload: dict[str, object] = {}
     for field_name in _SEMANTIC_TASK8_SOURCE_REF_KEYS:
-        semantic_payload[field_name] = getattr(source_ref, field_name)
+        value = getattr(source_ref, field_name)
+        # Preserve legacy source-ref hashes when the optional availability
+        # evidence is absent; populated replay evidence is always hashed.
+        if field_name == "maturity_daily_prediction_available_at" and value is None:
+            continue
+        semantic_payload[field_name] = value
     return sha256_hex(semantic_payload)
 
 
@@ -1322,7 +1329,13 @@ def _semantic_verification_snapshot_dict(
     snapshot: Task8PredictionVerificationSnapshot,
 ) -> dict[str, object]:
     """Extract only semantic fields from a verification snapshot."""
-    return {field: getattr(snapshot, field) for field in _SEMANTIC_TASK8_VERIFICATION_KEYS}
+    return {
+        field: getattr(snapshot, field)
+        for field in _SEMANTIC_TASK8_VERIFICATION_KEYS
+        if not (
+            field == "maturity_daily_prediction_available_at" and getattr(snapshot, field) is None
+        )
+    }
 
 
 def _semantic_request_snapshot(request: Task9ARequest) -> dict[str, object]:
