@@ -11,7 +11,17 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def source_ref_payload(source_ref: SourceRef) -> dict[str, Any]:
-    return source_ref.model_dump(mode="python")
+    payload = source_ref.model_dump(mode="python")
+    # Legacy/non-replay Task 9 requests may not carry the newly introduced
+    # exact Task 8 availability evidence.  Do not change their historical
+    # source-ref hashes; when populated, the persisted timestamp remains in
+    # the canonical payload and therefore in the hash.
+    if (
+        payload.get("source_ref_type") == "TASK8_DAILY_PREDICTION"
+        and payload.get("maturity_daily_prediction_available_at") is None
+    ):
+        payload.pop("maturity_daily_prediction_available_at", None)
+    return payload
 
 
 def source_ref_hash(source_ref: SourceRef) -> str:
