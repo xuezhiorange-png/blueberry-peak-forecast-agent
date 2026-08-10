@@ -634,7 +634,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     id=season_id,
                     code=f"season-{season_id}",
                     start_date=date(season_id, 1, 1),
-                    end_date=date(season_id, 12, 31),
+                    end_date=date(season_id, 4, 30),
                 )
             )
         else:
