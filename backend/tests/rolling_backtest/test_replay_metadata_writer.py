@@ -93,6 +93,9 @@ class _CapturingSession:
     async def execute(self, *_args: Any, **_kwargs: Any) -> _FakeResult:
         return _FakeResult(self._row)
 
+    async def scalar(self, *_args: Any, **_kwargs: Any) -> Any:
+        return self._row
+
 
 class _FakeResult:
     """ScalarResult double — only ``scalar_one_or_none`` is used by the writer."""
@@ -433,6 +436,62 @@ def test_writer_stamps_five_metadata_columns_and_emits_one_audit_row() -> None:
 
     # ── single flush (§4.1 "follow-up transaction … no savepoints") ────
     assert session.flush_calls == 1
+
+
+def test_replay_writer_cutoff_reaches_residual_visibility_audit() -> None:
+    """The rolling-node cutoff reaches residual visibility through persistence."""
+    from backend.app.residual_model.forecast_cutoff import resolve_forecast_cutoff_at
+    from backend.app.residual_model.schemas import FeatureValue
+    from backend.app.residual_model.visibility import audit_feature_visibility
+
+    row = _existing_row(is_replay=False)
+    session = _CapturingSession(row=row)
+    node = _node()
+    exact_cutoff = node.forecast_cutoff_at
+
+    asyncio.run(
+        write_replay_metadata(
+            session=session,  # type: ignore[arg-type]
+            config=_config(),
+            rolling_node=node,
+            run_id=4242,
+            replay_executed_at=_replay_executed_at(),
+            replay_identity=_identity(),
+        )
+    )
+
+    assert row.is_replay is True
+    assert row.forecast_effective_cutoff_at == exact_cutoff
+
+    resolved_cutoff = asyncio.run(
+        resolve_forecast_cutoff_at(
+            session,  # type: ignore[arg-type]
+            task9_run_id=4242,
+            as_of_date=node.as_of_local_date,
+        )
+    )
+    assert resolved_cutoff == exact_cutoff
+
+    feature = FeatureValue.model_validate(
+        {
+            "feature_name": "weather_7d_rainfall",
+            "value": 1,
+            "known_at": exact_cutoff,
+            "source_ref": {"source": "rolling-replay-test"},
+            "source_version": "v1",
+            "source_available_at": datetime(2026, 3, 15, 10, 0, tzinfo=UTC),
+            "observation_date": None,
+        }
+    )
+    audit = audit_feature_visibility(
+        features=[feature],
+        as_of_date=node.as_of_local_date,
+        forecast_cutoff_at=resolved_cutoff,
+        for_training=True,
+    )
+
+    assert audit.status == "blocked"
+    assert [blocker.code for blocker in audit.blockers] == ["FUTURE_AVAILABLE_AT"]
 
 
 def test_writer_emits_audit_row_with_section_four_five_literal_source_role() -> None:

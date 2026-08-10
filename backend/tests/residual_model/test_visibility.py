@@ -204,6 +204,30 @@ def test_same_day_post_cutoff_available_at_is_blocked() -> None:
     assert audit.blockers[0].code == "FUTURE_AVAILABLE_AT"
 
 
+def test_cutoff_equality_is_inclusive_for_known_and_available_at() -> None:
+    from backend.app.residual_model.schemas import FeatureValue
+    from backend.app.residual_model.visibility import audit_feature_visibility
+
+    exact_cutoff = datetime(2026, 3, 15, 4, 0, tzinfo=UTC)
+    audit = audit_feature_visibility(
+        features=[
+            FeatureValue.model_validate(
+                _feature(
+                    feature_name="weather_7d_rainfall",
+                    known_at=exact_cutoff,
+                    source_available_at=exact_cutoff,
+                )
+            )
+        ],
+        as_of_date=date(2026, 3, 15),
+        forecast_cutoff_at=exact_cutoff,
+        for_training=True,
+    )
+
+    assert audit.status == "completed"
+    assert not audit.blockers
+
+
 def test_audit_hash_binds_exact_forecast_cutoff() -> None:
     from backend.app.residual_model.schemas import FeatureValue
     from backend.app.residual_model.visibility import audit_feature_visibility
