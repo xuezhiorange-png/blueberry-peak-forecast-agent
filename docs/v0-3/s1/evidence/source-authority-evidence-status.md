@@ -16,28 +16,36 @@
     SOURCE_SHA256=fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a
     SOURCE_BYTE_COUNT=28668416
     SOURCE_ROW_COUNT=233171
+    LOCAL_DAY_BOUNDARY=LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI
+    HARVEST_BUSINESS_DATE_RULE=扫码称重记录时间转换为 Asia/Shanghai 后直接取自然日日期
     ATTESTATION_VERSION=NOT_PROVIDED
     ATTESTATION_EFFECTIVE_AT=NOT_PROVIDED
     EFFECTIVE_TIME=NOT_PROVIDED
     ATTESTATION_STATUS=NOT_ISSUED
     ATTESTATION_HASH=NOT_ISSUED
-    COVERAGE_SCOPE=NOT_PROVIDED
+    COVERAGE_SCOPE=GOVERNED_PACKAGE_REFERENCE_ONLY
     REVISION_POLICY=NOT_PROVIDED
-    WITHDRAWAL_AND_VOID_POLICY=NOT_PROVIDED
-    KNOWN_EXCLUSIONS=NOT_PROVIDED
+    WITHDRAWAL_AND_VOID_POLICY=PACKAGE_A_CUSTODY_POLICY_REFERENCE
+    KNOWN_EXCLUSIONS=NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE
+    MAPPING_SCOPE_MANIFEST_REFERENCE=source-002-mapping-and-scope-identity-v1
+    MAPPING_SCOPE_PACKAGE_SHA256=6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10
+    INCLUSION_EXCLUSION_MANIFEST_REFERENCE=source-002-inclusion-exclusion-boundary-v1
+    CUSTODY_RECORD_REFERENCE=source-002-custody-record-v1
     V0_3_RECORDED_LABEL_PROFILE=RECORDED_BUSINESS_LABEL
     V0_3_RECORDED_LABEL_OPTIONAL_PROVENANCE_FIELDS=transport_before_weighing,storage_before_weighing,postharvest_loss_rule,tare_policy,scale_precision,scale_calibration_authority
     V0_3_RECORDED_LABEL_OPTIONAL_PROVENANCE_HARD_BLOCKER=false
-    INDEPENDENT_REVIEW_STATUS=NOT_STARTED
+    INDEPENDENT_REVIEW_STATUS=PENDING
 
-Source 002 governed evidence supplies source identity, schema identity,
-snapshot reference, source hash, and owner-role facts. Those values are now
-reconciled into the fact layer. The formal attestation, effective scope,
-policy identities, and attestation hash remain unissued; this record does not
-create an attestation object.
+Source 002 governed evidence and the Package A artifacts now bind source
+identity, schema identity, snapshot reference, source hash, local-day boundary,
+known-exclusion boundary, reviewed scope-package hashes, and custody-record
+reference. The formal attestation, effective applicability object, completeness
+authority, and attestation hash remain unissued; this record does not create an
+attestation object.
 
 ```text
 SOURCE_IDENTITY_EVIDENCED=true
+PACKAGE_A_FORMALIZATION_APPLIED=true
 FORMAL_SOURCE_ATTESTATION_ISSUED=false
 SOURCE_AUTHORITY_ACCEPTED=false
 STATUS_RECONCILIATION_APPLIED=true
@@ -47,7 +55,9 @@ FACT_LAYER_RECONCILED_FROM=docs/v0-3/s1/evidence/source-002-governed-snapshot-ev
 The V0.3 recorded-label profile treats the six pre-weigh process and
 weighing-device fields as optional provenance/metrology evidence rather than
 hard label-eligibility prerequisites. This does not issue the source
-attestation or change the blocked source-authority status.
+attestation or change the blocked source-authority status. The reviewed scope
+identity and custody artifacts are supporting evidence only; they do not issue
+source authority acceptance.
 
 ## Required evidence still missing
 

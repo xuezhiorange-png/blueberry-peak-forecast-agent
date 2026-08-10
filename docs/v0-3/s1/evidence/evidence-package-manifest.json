@@ -1,13 +1,30 @@
 {
   "manifest_id": "V0_3_S1_BUSINESS_ACCEPTANCE_EVIDENCE_MANIFEST",
   "manifest_status": "BLOCKED",
-  "baseline_main_sha": "1f704e68be2165a69350a26153dee131df1147b5",
+  "baseline_main_sha": "939108c1da3854219481715caa3ded322005b349",
   "scope": "NON_ROW_LEVEL_BUSINESS_ACCEPTANCE_METADATA_ONLY",
   "manifest_hash_status": "NOT_ISSUED",
-  "reconciliation_status": "STATUS_RECONCILIATION_ONLY",
-  "reconciled_on_main_sha": "4101e161e9b92f415e0e5274388b703e69ff8d80",
+  "reconciliation_status": "PACKAGE_A_FORMALIZATION",
+  "reconciled_on_main_sha": "939108c1da3854219481715caa3ded322005b349",
   "canonical_gate_status_changed": false,
   "formal_acceptance_issued": false,
+  "package_a_formalization": {
+    "status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+    "local_day_boundary_formalized": true,
+    "known_exclusions_formalized": true,
+    "coverage_scope_identity_package_bound": true,
+    "versioned_custody_record_issued": true,
+    "full_entity_arrays_committed_to_git": false,
+    "formal_mapping_accepted": false,
+    "formal_source_cohort_manifest_created": false,
+    "source_002_completeness_authority_accepted": false,
+    "remaining_formal_artifacts": [
+      "Q2C_DECISION_RECORD_AND_HASH",
+      "BUSINESS_SOURCE_ATTESTATION_AND_HASH",
+      "SOURCE_COHORT_MANIFEST_AND_HASH",
+      "SOURCE_COMPLETENESS_AUTHORITY_RECORD_AND_HASH"
+    ]
+  },
   "later_evidence_reconciled": [
     {
       "path": "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
@@ -27,6 +44,21 @@
     {
       "path": "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
       "facts_reconciled": ["storage_type", "access_control_owner_department", "approved_usage_purpose", "source_owner_role"],
+      "formal_status_preserved": "BLOCKED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+      "facts_reconciled": ["local_day_boundary", "known_exclusions", "scope_identity_counts", "scope_identity_array_hashes", "source_schema_linkage"],
+      "formal_status_preserved": "FORMALIZED_FOR_REVIEW"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+      "facts_reconciled": ["local_day_boundary", "known_exclusions", "july_unmapped_boundary", "s2_exclusion_boundary"],
+      "formal_status_preserved": "FORMALIZED_FOR_REVIEW"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+      "facts_reconciled": ["custody_policy", "access_role", "authorized_role_set", "retention", "withdrawal_replacement", "downstream_propagation", "external_object_binding"],
       "formal_status_preserved": "BLOCKED"
     }
   ],
@@ -58,6 +90,27 @@
       "record_type": "DATA_CUSTODY",
       "status": "BLOCKED",
       "record_hash_status": "NOT_ISSUED"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+      "record_type": "SOURCE_002_MAPPING_AND_SCOPE_IDENTITY",
+      "status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "record_hash_status": "ISSUED",
+      "record_hash": "83cc38a186555a0c50bebb0c2a4e9f2fa79f202381b77fba2fab23e66a21da11"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+      "record_type": "SOURCE_002_INCLUSION_EXCLUSION",
+      "status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "record_hash_status": "ISSUED",
+      "record_hash": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+      "record_type": "SOURCE_002_CUSTODY_RECORD",
+      "status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "record_hash_status": "ISSUED",
+      "record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6"
     },
     {
       "path": "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
