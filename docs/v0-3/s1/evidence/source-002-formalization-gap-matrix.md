@@ -4,7 +4,7 @@
 
 ```text
 MATRIX_ID=V0_3_S1_SOURCE_002_FORMALIZATION_GAP_MATRIX
-MATRIX_STATUS=FROZEN_FOR_PREPARATION_REVIEW
+MATRIX_STATUS=PACKAGE_A_FORMALIZATION_RECONCILED_FOR_REVIEW
 BASELINE_MAIN_SHA=431a88fb4b542264fcf60d95a840202cc578f394
 SOURCE_VERSION=scan-weight-export:v0_3_s1:002
 SOURCE_SNAPSHOT_REFERENCE=snapshot:v0_3_s1:002
@@ -12,6 +12,8 @@ FORMALIZATION_GAP_COUNT=21
 FROZEN_MATRIX_GAP_COUNT=21
 EFFECTIVE_REMAINING_S1_GAP_COUNT=26
 CANONICAL_S1_GATE_COUNT=17
+PACKAGE_A_FORMALIZATION_APPLIED=true
+FORMAL_ARTIFACTS_MISSING_AFTER_PACKAGE_A=4
 ```
 
 `RESOLVED` below means resolved for Source 002 preparation only. It never
@@ -51,11 +53,29 @@ gate cannot be issued in the current state.
 | `TARE_DEDUCTION_METHOD` | PENDING | Tare is business-confirmed as already deducted, but the method is not specified. | Formal tare method and measurement evidence. |
 | `SCALE_PRECISION_FORMAL_EVIDENCE` | PENDING | Source 002 supports the exported quantity representation at 0.001 kg and three decimal places; this does not establish weighing-device precision or scale resolution. | Formal device precision/calibration evidence for the governed source. |
 | `MAPPING_POLICY_IDENTITY` | PENDING | Dimension support is observed, but no source-specific versioned farm/subfarm/variety mapping identity is frozen. | Versioned mapping policy/registry identity and review evidence. |
-| `COVERAGE_SCOPE_ENTITY_ID_LISTS` | BLOCKED | The schema requires concrete season/farm/subfarm/variety arrays; this package retains counts and no row-derived identity lists. | Separately authorized, governed mapping evidence or a reviewed non-sensitive identity list. |
-| `CUSTODY_RECORD` | BLOCKED | Current custody evidence remains `NOT_ISSUED`; no storage or credential locator is recorded. | Versioned custody record covering access, retention, withdrawal, void propagation, and external binding hash. |
-| `INCLUSION_POLICY_AND_KNOWN_EXCLUSIONS` | PENDING | Aggregate coverage does not establish formal inclusion/exclusion policy or representativeness limits. | Versioned inclusion policy, known exclusions, and reconciled aggregate evidence. |
+| `COVERAGE_SCOPE_ENTITY_ID_LISTS` | FORMALIZED_REFERENCE_ONLY | The reviewed package binds counts and array hashes without storing row-derived identity arrays in Git; `FORMAL_MAPPING_ACCEPTED=false` and the schema-valid source-cohort manifest remains unissued. | Separate source-cohort manifest preparation and independent review. |
+| `CUSTODY_RECORD` | FORMALIZED_FOR_REVIEW | The versioned custody record binds the non-sensitive source identity hash, access roles, retention, withdrawal, replacement, and downstream propagation policy; custody acceptance remains blocked. | Independent review and custody gate decision. |
+| `INCLUSION_POLICY_AND_KNOWN_EXCLUSIONS` | FORMALIZED_BOUNDARY_ONLY | The inclusion/exclusion boundary is issued; no-known-exclusions is not an all-rows-valid claim, and future S2 technical/data-quality exclusions remain allowed. | Independent review, source completeness, July policy, and source-cohort binding. |
 | `Q2C_DECISION` | BLOCKED | Q2C draft facts are not formally accepted and the authority/visibility/policy gaps remain open. | Independent Q2C decision record after required physical and source evidence closes. |
 | `S1_INDEPENDENT_REVIEW` | BLOCKED | This package has not been independently reviewed as a complete S1 acceptance package. | Independent review of the complete S1 evidence package. |
+
+## Package A formalization reconciliation
+
+```text
+PACKAGE_A_FORMALIZATION_APPLIED=true
+LOCAL_DAY_BOUNDARY_FORMALIZED=true
+KNOWN_EXCLUSIONS_FORMALIZED=true
+COVERAGE_SCOPE_IDENTITY_PACKAGE_BOUND=true
+VERSIONED_CUSTODY_RECORD_ISSUED=true
+FORMAL_ARTIFACTS_MISSING_AFTER_PACKAGE_A=4
+FORMAL_MAPPING_ACCEPTED=false
+FORMAL_SOURCE_COHORT_MANIFEST_CREATED=false
+SOURCE_002_COMPLETENESS_AUTHORITY_ACCEPTED=false
+```
+
+The three Package A artifacts formalize scoped evidence and policy boundaries
+without issuing source authority, source cohort, completeness authority, Q2C,
+or any canonical S1 gate.
 
 ## Explicit non-closure statements
 
