@@ -99,9 +99,10 @@ FUTURE_INPUT_LEAKAGE_ALLOWED=false
 FORECAST_INPUT_REQUIREMENT_SCOPE=USED_SOURCE_CLASSES_ONLY
 FORECAST_INPUT_SOURCE_CLASS_USAGE_MUST_BE_ESTABLISHED_FROM_MODEL_OR_CONTRACT=true
 CURRENT_MODEL_IMPLEMENTATION_FEATURE_SOURCE_DOMAINS=TASK9,ANALYTICS,WEATHER,PLANNING,CALENDAR
-FORECAST_INPUT_SOURCE_CLASS_USED_BY_CURRENT_MODEL=AREA,YIELD_PLAN,PHENOLOGY,WEATHER_OBSERVATION,PICKER_COUNT,HARVEST_EFFICIENCY,MARKETABLE_RATE,RECENT_ACTUAL_HARVEST_IF_USED_AS_FEATURE
-FORECAST_INPUT_SOURCE_CLASS_NOT_USED_BY_CURRENT_MODEL=HISTORICAL_WEATHER_FORECAST
-RECENT_ACTUAL_HARVEST_FEATURE_USAGE_CONDITIONAL=true
+FORECAST_INPUT_SOURCE_CLASS_USED_BY_CURRENT_MODEL=AREA,YIELD_PLAN,PHENOLOGY,WEATHER_OBSERVATION,PICKER_COUNT,HARVEST_EFFICIENCY,MARKETABLE_RATE
+CURRENT_MODEL_ANALYTICS_FEATURE_PATH=FACTORY_RECEIPT_LAG_ROLLING_AND_CUMULATIVE
+FORECAST_INPUT_SOURCE_CLASS_TAXONOMY_GAP=ANALYTICS_FACTORY_RECEIPT
+SOURCE_002_RECENT_ACTUAL_HARVEST_USED_AS_FEATURE=false
 CURRENT_MODEL_HISTORICAL_WEATHER_FORECAST_FEATURE_PATH_FOUND=false
 ```
 
@@ -109,8 +110,11 @@ The relevant implementation paths are:
 
 - `backend/app/residual_model/feature_registry.py` for source domains,
   availability classes, and feature provenance;
-- `backend/app/residual_model/prediction_features.py` for conditional recent
-  actual-harvest feature construction and weather/planning inputs;
+- `backend/app/residual_model/prediction_features.py` for factory-receipt lag,
+  rolling, and cumulative analytics feature construction plus weather/planning
+  inputs;
+- `backend/app/residual_model/training_manifest.py` for the `FactReceiptDaily`
+  factory-receipt fact path and its source-cutoff visibility checks;
 - `backend/app/maturity/service.py` for area, expected-yield, marketable-rate,
   and phenology inputs;
 - `backend/app/harvest_state/service.py` for picker-count and harvest
@@ -118,23 +122,43 @@ The relevant implementation paths are:
 - `backend/app/core_forecast/cli.py` for the forecast input schema and fixture
   path.
 
-The forecast-input point-in-time control remains mandatory for source classes
-actually used by a forecast. The IDFL exemption is limited to the actual-label
-side and cannot authorize future input leakage.
+The analytics path above is factory-receipt data, not Source 002 field
+scan-and-weigh actual-harvest data. Because the current S1 source-class
+vocabulary does not expose a confirmed canonical class name for that analytics
+receipt path, this correction records a taxonomy gap rather than inventing a
+new accepted source class. The forecast-input point-in-time control remains
+mandatory for every source class actually used by a forecast. The IDFL
+exemption is limited to the actual-label side and cannot authorize future
+input leakage.
 
 ## Retained blockers and non-blocking boundaries
 
-The correction removes the incorrect record-level lifecycle hard blocker, but
-the following current Source 002 and S1 blockers remain unchanged:
+The seven items below are the direct forecast-readiness workstream: they are
+what must be resolved to move from the governed label boundary toward a fair
+historical evaluation. They are not a complete replacement for Source 002's
+source-specific IDFL eligibility gates.
 
 ```text
-SOURCE_002_FORECAST_RELEVANT_BLOCKERS=
+DIRECT_FORECAST_READINESS_BLOCKERS=
 SOURCE_COMPLETENESS,
-MISSING_DAY_SEMANTICS,
-JULY_2025_07_22_POLICY,
+MISSING_DAY_RULE,
+JULY_UNMAPPED_DATE_POLICY,
 FORMAL_ACTUAL_LABEL_DATASET_FREEZE,
-TRAIN_VALIDATION_TEST_SPLIT,
-FORECAST_INPUT_FUTURE_LEAKAGE_CHECK,
+TRAIN_VALIDATION_TEST_SPLIT_POLICY,
+FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_CONTROL,
+Q2C_TARGET_BINDING
+
+CURRENT_SOURCE_002_IDFL_ELIGIBILITY_BLOCKERS=
+SOURCE_AUTHORITY_ACCEPTANCE,
+SOURCE_COHORT_ACCEPTANCE,
+SOURCE_CUSTODY_ACCEPTANCE,
+SOURCE_COMPLETENESS,
+SOURCE_OBJECT_BOUND_ROW_LINEAGE,
+MAPPING_POLICY_IDENTITY,
+COVERAGE_SCOPE_ENTITY_IDENTITIES,
+INCLUSION_EXCLUSION_ACCEPTANCE,
+MISSING_DAY_RULE,
+JULY_UNMAPPED_DATE_POLICY,
 Q2C_TARGET_BINDING
 
 SOURCE_COMPLETE_THROUGH_BUSINESS_DATE=NOT_ISSUED
@@ -157,7 +181,11 @@ SOURCE_002_IDFL_V1_ELIGIBILITY=false
 SOURCE_002_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
 ```
 
-The observed maximum harvest business date is not a completeness watermark:
+Package A has issued governed mapping/scope, inclusion/exclusion, and custody
+artifacts, but issuance is not acceptance. The full eligibility list therefore
+keeps the corresponding acceptance/binding gates until they are separately
+closed. The observed maximum harvest business date is not a completeness
+watermark:
 
 ```text
 OBSERVED_MAX_HARVEST_BUSINESS_DATE_IS_COMPLETENESS_WATERMARK=false
@@ -192,10 +220,11 @@ PHYSICALLY_ALIGNED_BACKTEST_ALLOWED=false
 MODEL_QUALITY_CLAIM_ALLOWED=false
 ```
 
-The current Source 002 IDFL mode remains blocked by source-specific
-completeness, target binding, mapping/inclusion, dataset-freeze, and related
-S1 gates. Removing an inapplicable replay blocker is not acceptance of any of
-those gates.
+The current Source 002 IDFL mode remains blocked by source-specific authority,
+cohort, custody acceptance, completeness, source-object-bound row lineage,
+mapping/scope, inclusion/exclusion acceptance, missing-day and July policy,
+target binding, and related S1 gates. Removing an inapplicable replay blocker
+is not acceptance of any of those gates.
 
 ## Correction conclusion
 
