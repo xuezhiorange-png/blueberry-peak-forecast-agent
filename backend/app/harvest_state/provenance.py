@@ -16,11 +16,16 @@ def source_ref_payload(source_ref: SourceRef) -> dict[str, Any]:
     # exact Task 8 availability evidence.  Do not change their historical
     # source-ref hashes; when populated, the persisted timestamp remains in
     # the canonical payload and therefore in the hash.
-    if (
-        payload.get("source_ref_type") == "TASK8_DAILY_PREDICTION"
-        and payload.get("maturity_daily_prediction_available_at") is None
-    ):
-        payload.pop("maturity_daily_prediction_available_at", None)
+    if payload.get("source_ref_type") == "TASK8_DAILY_PREDICTION":
+        availability = payload.get("maturity_daily_prediction_available_at")
+        if availability is None:
+            payload.pop("maturity_daily_prediction_available_at", None)
+        else:
+            # Keep the nested catalog payload in the same canonical JSON form
+            # used by persistence.  Otherwise mode="json" stores this
+            # datetime as a ``Z`` string while the in-memory result hash sees
+            # ``+00:00``, making a persisted Task 9 run fail on reload.
+            payload["maturity_daily_prediction_available_at"] = canonical_json_value(availability)
     return payload
 
 
