@@ -9,12 +9,14 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.residual_model import ResidualModelPredictionRun
 from backend.app.residual_model.application import (
     ResidualPredictionApplicationIntegrityError,
     execute_residual_prediction,
     execute_residual_training,
 )
+from backend.app.residual_model.prediction_features import build_prediction_feature_rows
 from backend.app.residual_model.schemas import (
     ResidualPredictionRequest,
     ResidualTrainingSampleSpec,
@@ -176,6 +178,74 @@ async def test_execute_residual_prediction_persists_and_reloads(
     assert prediction_result.task9_run_id == task9_run_id
     assert prediction_result.rows
     assert any(row.corrected_raw_p50_kg != row.structural_p50_kg for row in prediction_result.rows)
+
+
+async def test_prediction_feature_build_uses_persisted_exact_forecast_cutoff(
+    sqlite_session: AsyncSession,
+) -> None:
+    await _seed_master_data(sqlite_session)
+    task9_run_id, output = await _persist_task9_run(sqlite_session)
+    as_of_date = _snapshot_as_of_date(output)
+    exact_cutoff = datetime(2026, 3, 1, 4, 0, tzinfo=UTC)
+    task9_run = await sqlite_session.get(HarvestStateRun, task9_run_id)
+    assert task9_run is not None
+    task9_run.is_replay = True
+    task9_run.forecast_effective_cutoff_at = exact_cutoff
+    task9_run.replay_executed_at = datetime(2026, 3, 1, 5, 0, tzinfo=UTC)
+    task9_run.replay_code_version = "test-replay-v1"
+    task9_run.replay_run_correlation_id = "prediction-feature-test"
+    await sqlite_session.commit()
+
+    (
+        _output,
+        _structural_rows,
+        feature_rows,
+        audits,
+        _warnings,
+        blockers,
+        _feature_snapshot,
+    ) = await build_prediction_feature_rows(
+        sqlite_session,
+        task9_run_id=task9_run_id,
+        feature_analytics_build_run_id=None,
+        supplemental_feature_values=_supplemental_features(
+            as_of_date=as_of_date,
+            cutoff_at=exact_cutoff,
+        ),
+    )
+
+    assert feature_rows
+    assert audits
+    assert blockers == ["MISSING_REQUIRED_FEATURE"]
+    assert all(item.known_at == exact_cutoff for item in feature_rows[0])
+    assert all(audit.status == "blocked" for audit in audits)
+    assert all(
+        all(issue.code == "MISSING_REQUIRED_FEATURE" for issue in audit.blockers)
+        for audit in audits
+    )
+
+    (
+        _output,
+        _structural_rows,
+        _post_cutoff_feature_rows,
+        post_cutoff_audits,
+        _warnings,
+        post_cutoff_blockers,
+        _feature_snapshot,
+    ) = await build_prediction_feature_rows(
+        sqlite_session,
+        task9_run_id=task9_run_id,
+        feature_analytics_build_run_id=None,
+        supplemental_feature_values=_supplemental_features(
+            as_of_date=as_of_date,
+            cutoff_at=datetime(2026, 3, 1, 10, 0, tzinfo=UTC),
+        ),
+    )
+
+    assert "FUTURE_KNOWN_AT" in post_cutoff_blockers
+    assert any(
+        issue.code == "FUTURE_KNOWN_AT" for audit in post_cutoff_audits for issue in audit.blockers
+    )
 
 
 async def test_execute_residual_prediction_falls_back_for_ineligible_model(
