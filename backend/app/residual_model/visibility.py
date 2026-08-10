@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import UTC, date, datetime, time
+from datetime import date, datetime
 
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.enums import (
@@ -13,6 +13,7 @@ from backend.app.residual_model.feature_registry import (
     blocklisted_features,
     feature_definition_map,
 )
+from backend.app.residual_model.forecast_cutoff import normalize_forecast_cutoff_at
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
@@ -20,20 +21,11 @@ from backend.app.residual_model.schemas import (
 )
 
 
-def _cutoff_end_of_day(as_of_date: date) -> datetime:
-    return datetime.combine(as_of_date, time.max, tzinfo=UTC)
-
-
-def _normalize_visibility_datetime(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
-
-
 def audit_feature_visibility(
     *,
     features: Sequence[FeatureValue],
     as_of_date: date,
+    forecast_cutoff_at: datetime,
     for_training: bool,
 ) -> FeatureVisibilityAudit:
     definitions = feature_definition_map()
@@ -43,7 +35,7 @@ def audit_feature_visibility(
     unknown_feature_count = 0
     missing_feature_count = 0
     blocked_feature_count = 0
-    cutoff = _cutoff_end_of_day(as_of_date)
+    cutoff = normalize_forecast_cutoff_at(forecast_cutoff_at)
 
     for feature in features:
         definition = definitions.get(feature.feature_name)
@@ -99,14 +91,14 @@ def audit_feature_visibility(
             missing_feature_count += 1
             blocked_feature_count += 1
             continue
-        known_at = _normalize_visibility_datetime(feature.known_at)
-        source_available_at = _normalize_visibility_datetime(feature.source_available_at)
+        known_at = normalize_forecast_cutoff_at(feature.known_at)
+        source_available_at = normalize_forecast_cutoff_at(feature.source_available_at)
         if known_at > cutoff:
             blockers.append(
                 FeatureVisibilityIssue(
                     code=LeakageBlockerCode.FUTURE_KNOWN_AT,
                     feature_name=feature.feature_name,
-                    detail="Feature known_at is later than the as_of cutoff.",
+                    detail="Feature known_at is later than the forecast cutoff.",
                 )
             )
             blocked_feature_count += 1
@@ -116,7 +108,7 @@ def audit_feature_visibility(
                 FeatureVisibilityIssue(
                     code=LeakageBlockerCode.FUTURE_AVAILABLE_AT,
                     feature_name=feature.feature_name,
-                    detail="Feature source_available_at is later than the as_of cutoff.",
+                    detail="Feature source_available_at is later than the forecast cutoff.",
                 )
             )
             blocked_feature_count += 1
@@ -153,6 +145,7 @@ def audit_feature_visibility(
 
     payload = {
         "as_of_date": as_of_date.isoformat(),
+        "forecast_cutoff_at": cutoff.isoformat(),
         "for_training": for_training,
         "features": [feature.model_dump(mode="json") for feature in features],
         "blockers": [item.model_dump(mode="json") for item in blockers],
