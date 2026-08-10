@@ -8,6 +8,11 @@ SOURCE_CLASS=ACTUAL_HARVEST_LABEL
 SOURCE_SYSTEM=扫码称重系统
 SOURCE_DATASET=田间商品果每日采摘净重汇总
 REQUEST_STATUS=MINIMUM_EXTERNAL_TECHNICAL_EVIDENCE_REQUIRED
+REQUEST_SCOPE=OPTIONAL_AUDIT_AND_REPLAY_MODE_EVIDENCE
+REQUIRED_IF_LABEL_MODE=AS_OF_EVALUATION_OR_FINAL_ADJUDICATED
+REQUIRED_FOR_CURRENT_SOURCE_002_IDFL_MODE=false
+REQUEST_ITEMS_ARE_NOT_CURRENT_IDFL_LABEL_BLOCKERS=true
+FORECAST_INPUT_REQUIREMENTS_APPLY_ONLY_IF_SOURCE_CLASS_IS_USED_AS_FORECAST_INPUT=true
 REAL_SOURCE_EXPORT_REQUESTED=false
 REAL_BUSINESS_ROWS_REQUESTED=false
 REAL_RECORD_IDS_REQUESTED=false
@@ -17,7 +22,9 @@ REAL_TIMESTAMPS_REQUESTED=false
 This request does not repeat the already confirmed business facts about the
 physical event, quantity, immediate confirmation, or post-confirmation
 business prohibitions. It asks only for source-system capability and field
-semantics needed to bind the existing Q2A/I7 contract.
+semantics needed to bind the existing Q2A/I7 contract when a replay mode or a
+corresponding forecast-input source class uses those fields. It is not a
+current Source 002 IDFL label-side eligibility request.
 
 The acceptable response is a field dictionary, system capability statement,
 redacted interface/export specification, or equivalent owner-approved
@@ -108,6 +115,10 @@ ACCEPTABLE_EVIDENCE=导出字段字典、schema version policy 和 mapping speci
 ```
 
 ## Evidence acceptance boundary
+
+```text
+SOURCE_002_IDFL_RECORD_LEVEL_LIFECYCLE_AUDIT_BLOCKER=false
+```
 
 回答这些问题不会自动产生正式 attestation 或 cohort manifest。后续仍
 需要：

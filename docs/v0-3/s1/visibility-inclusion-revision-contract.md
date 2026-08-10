@@ -59,6 +59,33 @@ IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
 `final_current_value_time`, `harvest_business_date`, and `latest_row_time`
 cannot replace the source-system visibility fields.
 
+## Forecast relevance and current IDFL applicability
+
+The forecast-input point-in-time rule applies to source classes that are
+actually used as forecast inputs. It must not be widened into a requirement
+that the actual-label source expose record-level replay fields when the
+selected actual-label mode is IDFL.
+
+```text
+SOURCE_002_ACTUAL_LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
+ACTUAL_LABEL_PURPOSE=HISTORICAL_FINAL_ACTUAL_FOR_FORECAST_EVALUATION
+IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+IDFL_RECORD_LEVEL_LIFECYCLE_FIELDS_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+IDFL_SOURCE_AVAILABLE_AT_REQUIRED_FOR_LABEL_SIDE=false
+FORECAST_INPUT_POINT_IN_TIME_CONTROL_REQUIRED=true
+FUTURE_INPUT_LEAKAGE_ALLOWED=false
+FORECAST_INPUT_REQUIREMENT_SCOPE=USED_SOURCE_CLASSES_ONLY
+FORECAST_INPUT_SOURCE_CLASS_USAGE_MUST_BE_ESTABLISHED_FROM_MODEL_OR_CONTRACT=true
+CURRENT_MODEL_IMPLEMENTATION_FEATURE_SOURCE_DOMAINS=TASK9,ANALYTICS,WEATHER,PLANNING,CALENDAR
+CURRENT_MODEL_HISTORICAL_WEATHER_FORECAST_FEATURE_PATH_FOUND=false
+```
+
+Record-level lifecycle fields remain required for `AS_OF_EVALUATION` and
+`FINAL_ADJUDICATED`, and for a forecast-input class if its accepted contract
+actually uses those fields. Their absence from the current Source 002 IDFL
+label-side representation is not, by itself, a forecast future-leakage
+finding.
+
 ## Source-class visibility matrix
 
 Every source class must carry or explicitly policy-bind each time field. A

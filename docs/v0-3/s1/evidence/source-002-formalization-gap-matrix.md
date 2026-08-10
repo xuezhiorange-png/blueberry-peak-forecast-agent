@@ -39,16 +39,16 @@ gate cannot be issued in the current state.
 | --- | --- | --- | --- |
 | `FORMAL_SOURCE_ATTESTATION` | BLOCKED | The authority evidence record remains `NOT_ISSUED`; this preparation file is not an attestation. | Source-owner attestation with all 16 authority identity fields, `ATTESTED` status, and an attestation hash. |
 | `FORMAL_SOURCE_COHORT_MANIFEST` | BLOCKED | No cohort identity or manifest hash is issued. | A separately reviewed aggregate cohort manifest with scope, policy identities, object identities, and custody record. |
-| `FORMAL_CORRECTION_POLICY` | PENDING | Current business statements do not define formal correction semantics. | Versioned correction policy and source-system evidence for correction visibility and lineage. |
-| `FORMAL_VOID_POLICY` | PENDING | Current business statements do not define formal void semantics. | Versioned void policy and propagation evidence. |
-| `FORMAL_REVISION_POLICY` | PENDING | Q2A/I7 winner semantics are authoritative context, but source-specific revision evidence is not bound. | Source-specific revision policy identity and lineage evidence. |
-| `REVISION_POLICY_VERSION` | PENDING | No source-specific version is issued. | Governance owner issues a stable revision-policy identity. |
+| `FORMAL_CORRECTION_POLICY` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Current business statements do not define formal correction semantics; this is not a current Source 002 IDFL label-side blocker. | Versioned correction policy and source-system evidence if `AS_OF_EVALUATION`, `FINAL_ADJUDICATED`, or a used forecast-input class requires replayable correction visibility. |
+| `FORMAL_VOID_POLICY` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Current business statements do not define formal void semantics; this is not a current Source 002 IDFL label-side blocker. | Versioned void policy and propagation evidence if a replay mode or used forecast-input class requires it. |
+| `FORMAL_REVISION_POLICY` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Q2A/I7 winner semantics remain authoritative for replay modes; source-specific revision evidence is not a current IDFL label-side prerequisite. | Source-specific revision policy identity and lineage evidence if a replay mode or used forecast-input class requires it. |
+| `REVISION_POLICY_VERSION` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | No source-specific version is issued; the absence does not block the current immutable IDFL label side. | Governance owner issues a stable revision-policy identity when the applicable mode or input class needs it. |
 | `WITHDRAWAL_POLICY_VERSION` | PENDING | No source-specific withdrawal policy version is issued. | Custody/governance owner issues retention and withdrawal policy identity. |
 | `VOID_PROPAGATION_POLICY_VERSION` | PENDING | No source-specific void propagation identity is issued. | Governance owner binds downstream propagation targets and policy version. |
 | `FORMAL_MISSING_DAY_RULE` | PENDING | `UNKNOWN_NOT_ZERO` is the fail-closed semantic; source completeness and July handling remain unresolved. | Formal missing-day/completeness rule and reviewed evidence. |
-| `POINT_IN_TIME_VISIBILITY_RULE` | PENDING | The repository contract requires source availability/recorded/revised/finalized visibility evidence; Source 002 aggregate coverage does not provide it. | Source-system visibility fields or an approved policy-null rule, with cutoff reconstruction evidence. |
-| `LATE_ENTRY_RULE` | PENDING_FORMALIZATION | Business context says the reported late-entry scenario is not applicable; this is not formal technical evidence. | Formal late-entry policy or source-system evidence establishing the applicable rule. |
-| `FINAL_CONFIRMATION_FORMAL_EVIDENCE` | PENDING | Immediate scan completion is business-confirmed but not formally evidenced. | Source-owner confirmation bound to the attestation and source-system event semantics. |
+| `POINT_IN_TIME_VISIBILITY_RULE` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | The repository contract requires source availability/recorded/revised/finalized visibility evidence for replay modes and applicable forecast inputs; Source 002 IDFL does not use record-level label replay. | Source-system visibility fields or an approved policy-null rule, with cutoff reconstruction evidence, when the applicable mode or input class requires it. |
+| `LATE_ENTRY_RULE` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Business context says the reported late-entry scenario is not applicable; this is not formal technical evidence, but it is not a current IDFL label-side blocker. | Formal late-entry policy or source-system evidence when replay or a used forecast-input class requires the applicable rule. |
+| `FINAL_CONFIRMATION_FORMAL_EVIDENCE` | OPTIONAL_AUDIT_REPLAY_EVIDENCE_FOR_IDFL | Immediate scan completion is business-confirmed but not formally evidenced; independent finalization remains required for `FINAL_ADJUDICATED`, not current IDFL. | Source-owner confirmation bound to the attestation and source-system event semantics when that mode or input class requires it. |
 | `UNMAPPED_DATE_POLICY` | PENDING | July 2025 contains 2 rows on 1 date and is deliberately not auto-assigned. | Business/governance decision for July ownership, exclusion, or exception handling. |
 | `TARE_DEDUCTION_METHOD` | PENDING | Tare is business-confirmed as already deducted, but the method is not specified. | Formal tare method and measurement evidence. |
 | `SCALE_PRECISION_FORMAL_EVIDENCE` | PENDING | Source 002 supports the exported quantity representation at 0.001 kg and three decimal places; this does not establish weighing-device precision or scale resolution. | Formal device precision/calibration evidence for the governed source. |
@@ -135,18 +135,22 @@ source authority, cohort freeze, point-in-time visibility, revision winner,
 correction/void, custody, split, metric, minimum-coverage, quality-threshold,
 holdout, or independent-review gates.
 
-## Next package scope: actual-harvest label lifecycle
+## Optional audit/replay evidence scope
 
-The next package is deliberately narrower than the full S1 visibility gate. It
-covers only the actual-harvest label produced by the scan-and-weigh source:
-source record identity, recorded/available time, revision capability or an
-approved policy-null rule, finalization capability, cancellation capability or
-policy-null rule, lineage, late-entry technical semantics, and winner
-compatibility.
+The lifecycle package is deliberately narrower than the full S1 visibility
+gate and is applicable only when a replay mode or a forecast-input source class
+actually uses these fields. It covers the actual-harvest label produced by the
+scan-and-weigh source: source record identity, recorded/available time,
+revision capability or an approved policy-null rule, finalization capability,
+cancellation capability or policy-null rule, lineage, late-entry technical
+semantics, and winner compatibility. It is not a current Source 002 IDFL
+label-side hard blocker.
 
 ```text
 ACTUAL_LABEL_LIFECYCLE_NEXT_PACKAGE_SCOPE_DEFINED=true
 NEXT_PACKAGE=V0_3_S1_ACTUAL_HARVEST_LABEL_RECORD_LIFECYCLE_AND_POINT_IN_TIME_AUTHORITY_FREEZE
+NEXT_PACKAGE_APPLICABILITY=AS_OF_EVALUATION_OR_FINAL_ADJUDICATED_OR_USED_FORECAST_INPUT_SOURCE_CLASS
+CURRENT_SOURCE_002_IDFL_LIFECYCLE_AUDIT_BLOCKER=false
 ACTUAL_LABEL_VISIBILITY_CLOSED=false
 S1_VISIBILITY_GATE_CLOSED=false
 S1_VISIBILITY_FULL_CLOSURE_NOT_CLAIMED=true
@@ -157,3 +161,66 @@ classes, including `AREA`, `YIELD_PLAN`, `PHENOLOGY`, `WEATHER_OBSERVATION`,
 `HISTORICAL_WEATHER_FORECAST`, `PICKER_COUNT`, `HARVEST_EFFICIENCY`, and
 `MARKETABLE_RATE`. Closing actual-label lifecycle evidence alone cannot close
 the full S1 visibility gate.
+
+## Forecast relevance and current IDFL blocker reconciliation
+
+The current Source 002 actual label is `IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1`
+and is used as a historical final actual for forecast evaluation. Its
+record-level lifecycle fields are therefore not current IDFL label-side hard
+blockers. The forecast-input point-in-time rule remains mandatory for source
+classes actually used as forecast inputs and is not relaxed by the IDFL label
+mode.
+
+```text
+SOURCE_002_ACTUAL_LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
+ACTUAL_LABEL_PURPOSE=HISTORICAL_FINAL_ACTUAL_FOR_FORECAST_EVALUATION
+LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+SOURCE_RECORD_ID_REQUIRED_FOR_CURRENT_IDFL_LABEL=false
+SOURCE_RECORDED_AT_REQUIRED_FOR_CURRENT_IDFL_LABEL=false
+SOURCE_FINALIZED_AT_REQUIRED_FOR_CURRENT_IDFL_LABEL=false
+REVISION_WINNER_REQUIRED_FOR_CURRENT_IDFL_LABEL=false
+SOURCE_002_RECORD_LEVEL_LIFECYCLE_AUDIT_BLOCKER=false
+FORECAST_INPUT_POINT_IN_TIME_CONTROL_REQUIRED=true
+FUTURE_INPUT_LEAKAGE_ALLOWED=false
+FORECAST_INPUT_REQUIREMENT_SCOPE=USED_SOURCE_CLASSES_ONLY
+
+V0_3_S1_FORECAST_RELEVANT_BLOCKERS=
+SOURCE_COMPLETENESS,
+MISSING_DAY_RULE,
+JULY_UNMAPPED_DATE_POLICY,
+FORMAL_ACTUAL_LABEL_DATASET_FREEZE,
+TRAIN_VALIDATION_TEST_SPLIT_POLICY,
+FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_CONTROL,
+Q2C_TARGET_BINDING
+
+V0_3_S1_NON_BLOCKING_AUDIT_ITEMS=
+SOURCE_RECORD_ID,
+SOURCE_RECORDED_AT_FOR_LABEL_SIDE,
+SOURCE_AVAILABLE_AT_FOR_LABEL_SIDE,
+SOURCE_REVISED_AT,
+SOURCE_FINALIZED_AT,
+SOURCE_CANCELLED_AT,
+REVISION_NUMBER,
+SUPERSEDED_PARENT,
+FULL_RECORD_REVISION_LINEAGE
+
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE=NOT_ISSUED
+SOURCE_COMPLETENESS_POLICY_VERSION=NOT_ISSUED
+SOURCE_COMPLETENESS_EVIDENCE_HASH=NOT_ISSUED
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+DESCRIPTIVE_CALENDAR_GAP_COUNT=31455
+DESCRIPTIVE_CALENDAR_GAP_COUNT_IS_FORMAL_MISSING_DAY_COUNT=false
+UNMAPPED_DATE=2025-07-22
+UNMAPPED_ROW_COUNT=2
+JULY_AUTOMATIC_SEASON_ASSIGNMENT=false
+UNMAPPED_DATE_POLICY=PENDING
+CURRENT_SOURCE_002_IDFL_V1_ELIGIBILITY=false
+CURRENT_SOURCE_002_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
+```
+
+The observed maximum harvest date is not a completeness watermark. The
+historical lifecycle workpaper and source-system request remain available as
+optional audit/replay evidence and are required when a replay mode or a used
+forecast-input source class needs those semantics; they are not current Source
+002 IDFL label-side acceptance prerequisites.
