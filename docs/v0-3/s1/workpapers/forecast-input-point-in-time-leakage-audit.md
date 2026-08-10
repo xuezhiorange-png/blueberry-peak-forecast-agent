@@ -21,6 +21,10 @@ RESIDUAL_MODEL_EXPLICIT_ID_REQUIRED=true
 RESIDUAL_MODEL_LATEST_LOOKUP_FOUND=false
 RESIDUAL_MODEL_HISTORICAL_AVAILABILITY_PROVEN=false
 RESIDUAL_MODEL_AUTHORITY_AUDIT_STATUS=PARTIAL
+POST_CUTOFF_INPUT_REJECTED_SCOPE=EXACT_AUTHORITATIVE_FORECAST_CUTOFF
+RESIDUAL_LOCAL_EOD_POST_CUTOFF_REJECTED=true
+EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED=false
+CORRECTION_R2_APPLIED=true
 ```
 
 ## 1. Scope and boundary
@@ -57,9 +61,20 @@ and derives an end-of-day UTC cutoff. Therefore a same-day feature with
 residual end-of-day comparison unless a separate upstream authority rejects
 it. This is an open control gap, not an observed real-data leakage event.
 
+For machine-readable consistency, `POST_CUTOFF_INPUT_REJECTED` is reserved for
+rejection after the authoritative exact `FORECAST_CUTOFF_AT`. Because that
+exact cutoff is not propagated, it is `false` for every used audit row. The
+implementation still rejects values after the residual local `as_of_date`
+end-of-day cutoff where its visibility checks apply; that local behavior is
+recorded separately as `RESIDUAL_LOCAL_EOD_POST_CUTOFF_REJECTED=true` and must
+not be interpreted as exact historical cutoff enforcement.
+
 The residual visibility layer continues to fail closed for unknown,
 blocklisted, disallowed, missing-required, future-known, future-available,
-target-date actual, and future-observation inputs. Existing tests cover the
+target-date actual, and future-observation inputs relative to its local
+as-of-date end-of-day cutoff. Those local checks do not establish exact
+historical cutoff rejection, so the machine-readable exact flag remains
+`POST_CUTOFF_INPUT_REJECTED=false` for used rows. Existing tests cover the
 representative valid and blocked cases; this audit does not weaken those
 tests.
 
@@ -245,6 +260,10 @@ FORECAST_INPUT_PIT_LEAKAGE_AUDIT_RESULT=BLOCKED
 FORECAST_INPUT_FUTURE_LEAKAGE_DETECTED=false
 FORECAST_INPUT_FUTURE_LEAKAGE_DETECTED_SCOPE=NO_REAL_BUSINESS_ROW_LEVEL_INPUTS_WERE_READ_OR_EXECUTED_IN_THIS_AUDIT; NO_OBSERVED_LEAKAGE_EVENT_WAS_ESTABLISHED
 POTENTIAL_LEAKAGE_CONTROL_GAP_FOUND=true
+POST_CUTOFF_INPUT_REJECTED_SCOPE=EXACT_AUTHORITATIVE_FORECAST_CUTOFF
+POST_CUTOFF_INPUT_REJECTED_USED_ROWS=false
+RESIDUAL_LOCAL_EOD_POST_CUTOFF_REJECTED=true
+EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED=false
 FORECAST_INPUT_PIT_EVIDENCE_READY_FOR_INDEPENDENT_REVIEW=true
 DIRECT_FORECAST_READINESS_BLOCKER_EVIDENCED=true
 ```
@@ -302,6 +321,9 @@ JSON_PARSE_VALID=true
 GIT_DIFF_CHECK=PASS
 EXACT_CUTOFF_REAUDIT_STATUS=PASS
 AUDIT_ROW_STATUS_SUM=22
+POST_CUTOFF_SEMANTICS_RECONCILED=PASS
+USED_ROW_EXACT_POST_CUTOFF_REJECTED_FALSE=21
+NOT_USED_ROW_SEMANTICS_PRESERVED=true
 TARGETED_TEST_STATUS=PASS
 RESIDUAL_VISIBILITY_PREDICTION_TRAINING_AND_CORE_FORECAST=90 passed
 REGISTRY_MANIFEST_REPLAY_CONTRACT_STATUS_AND_TASK9_AUTHORITY=127 passed
