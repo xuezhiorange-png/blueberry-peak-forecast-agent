@@ -11,7 +11,7 @@
   "later_evidence_reconciled": [
     {
       "path": "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
-      "facts_reconciled": ["physical_event", "quantity_basis", "quantity_unit", "weighing_point", "marketability_boundary", "canonical_grain"],
+      "facts_reconciled": ["physical_event", "quantity_basis", "quantity_unit", "weighing_point", "marketability_boundary", "recorded_label_boundary", "canonical_grain"],
       "formal_status_preserved": "BLOCKED"
     },
     {
