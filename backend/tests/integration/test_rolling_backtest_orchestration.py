@@ -959,39 +959,66 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             )
             await session.flush()
         await session.commit()
+
+        # Re-load every authority-bearing row after commit.  The returned
+        # contract must reflect persisted database values, not the constants
+        # used to seed the fixture, so the production assembly test exercises
+        # the same identity/value boundary as a real caller.
+        persisted_plan = await session.get(FarmSeasonVarietyPlan, 501)
+        persisted_model_run = await session.get(MaturityModelRun, 101)
+        persisted_model_artifact = await session.get(MaturityModelArtifact, 201)
+        persisted_forecast_run = await session.get(MaturityForecastRun, 401)
+        assert persisted_plan is not None
+        assert persisted_model_run is not None
+        assert persisted_model_artifact is not None
+        assert persisted_forecast_run is not None
+        assert persisted_model_artifact.run_id == persisted_model_run.id
+        assert persisted_forecast_run.model_run_id == persisted_model_run.id
+        assert persisted_forecast_run.artifact_id == persisted_model_artifact.id
+
+        persisted_daily_predictions: dict[date, dict[str, Any]] = {}
+        for prediction_date, daily_id in sorted(daily_ids_by_date.items()):
+            persisted_daily = await session.get(MaturityDailyPredictionModel, daily_id)
+            assert persisted_daily is not None
+            assert persisted_daily.forecast_run_id == persisted_forecast_run.id
+            assert persisted_daily.prediction_date == prediction_date
+            persisted_daily_predictions[prediction_date] = {
+                "id": persisted_daily.id,
+                "p50_kg": persisted_daily.p50_kg,
+                "p80_kg": persisted_daily.p80_kg,
+                "p90_kg": persisted_daily.p90_kg,
+                "created_at": persisted_daily.created_at,
+            }
+
+        authority = {
+            "season_id": persisted_plan.season_id,
+            "farm_id": persisted_plan.farm_id,
+            "subfarm_id": persisted_plan.subfarm_id,
+            "variety_id": persisted_plan.variety_id,
+            "plan_id": persisted_plan.id,
+            "location_reference_id": persisted_forecast_run.location_reference_id,
+            "weather_mapping_id": persisted_forecast_run.weather_mapping_id,
+            "base_temperature_search_run_id": persisted_forecast_run.base_temperature_search_run_id,
+            "model_run_id": persisted_model_run.id,
+            "model_version": persisted_model_run.model_version,
+            "model_config_hash": persisted_model_run.config_hash,
+            "model_source_signature": persisted_model_run.source_signature,
+            "artifact_id": persisted_model_artifact.id,
+            "artifact_run_id": persisted_model_artifact.run_id,
+            "artifact_hash": persisted_model_artifact.artifact_hash,
+            "forecast_run_id": persisted_forecast_run.id,
+            "forecast_run_status": persisted_forecast_run.status,
+            "forecast_source_signature": persisted_forecast_run.source_signature,
+            "forecast_as_of_date": persisted_forecast_run.as_of_date,
+            "prediction_start_date": persisted_forecast_run.prediction_start_date,
+            "prediction_end_date": persisted_forecast_run.prediction_end_date,
+            "daily_predictions_by_date": persisted_daily_predictions,
+        }
         # Explicit close so the connection returns to the pool fully
         # reset. See the comment in _seed_real_task10_authorities.
         await session.close()
 
-    return {
-        "season_id": season_id,
-        "farm_id": 1,
-        "subfarm_id": 11,
-        "variety_id": 101,
-        "plan_id": 501,
-        "location_reference_id": 601,
-        "weather_mapping_id": 801,
-        "base_temperature_search_run_id": 901,
-        "model_run_id": 101,
-        "model_version": "task8-v1",
-        "artifact_id": 201,
-        "artifact_run_id": 101,
-        "forecast_run_id": 401,
-        "forecast_run_status": "completed",
-        "forecast_as_of_date": date(season_id, 2, 28),
-        "prediction_start_date": date(season_id, 3, 1),
-        "prediction_end_date": date(season_id, 3, 3),
-        "daily_predictions_by_date": {
-            prediction_date: {
-                "id": daily_id,
-                "p50_kg": Decimal("20"),
-                "p80_kg": Decimal("24"),
-                "p90_kg": Decimal("28"),
-                "created_at": datetime(season_id, 2, 28, 3, 35, tzinfo=UTC),
-            }
-            for prediction_date, daily_id in sorted(daily_ids_by_date.items())
-        },
-    }
+    return authority
 
 
 @pytest.mark.integration
