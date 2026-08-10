@@ -184,24 +184,83 @@ global accuracy claim.
 
 ## Required physical semantics
 
-The attestation and source cohort must bind the Q2C dimensions:
+The historical Q2C vocabulary remains part of the compatibility history. It is
+not the sole hard requirement for the current V0.3 recorded-label profile and
+the historical Q2C contract is not rewritten here:
 
 ```text
-REQUIRED_PHYSICAL_EVENT=FARM_PICK
-REQUIRED_QUANTITY_BASIS=OBSERVED_WEIGHT
-REQUIRED_QUANTITY_UNIT=KG
-REQUIRED_TIME_BASIS=FARM_LOCAL_HARVEST_BUSINESS_DATE
-REQUIRED_MISSING_SEMANTICS=UNKNOWN_NOT_ZERO
-REQUIRED_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
-PLOT_SUPPORTED=false
+HISTORICAL_Q2C_PHYSICAL_EVENT=FARM_PICK
+HISTORICAL_Q2C_QUANTITY_BASIS=OBSERVED_WEIGHT
+HISTORICAL_Q2C_QUANTITY_UNIT=KG
+HISTORICAL_Q2C_TIME_BASIS=FARM_LOCAL_HARVEST_BUSINESS_DATE
+HISTORICAL_Q2C_MISSING_SEMANTICS=UNKNOWN_NOT_ZERO
+HISTORICAL_Q2C_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+HISTORICAL_Q2C_PLOT_SUPPORTED=false
+HISTORICAL_Q2C_PHYSICAL_SEMANTICS_SCOPE=HISTORICAL_Q2C_COMPATIBILITY_ONLY
 ```
 
-The physical measurement record must state the weighing point and its relation
-to picking, whether all picked fruit or marketable fruit is weighed, field and
-packhouse sorting/rejection rules, transport/storage/post-harvest loss, tare,
-scale precision/calibration authority, Decimal precision/rounding, farm
-timezone, local day boundary, delayed entry, correction, void, finalization,
-and historical visibility.
+The current V0.3 actual-label authority uses the recorded business label
+profile. Its business event remains harvest, while its measurement boundary
+is the governed scan-and-weigh record rather than a reconstructed theoretical
+weight at the instant fruit was removed from the plant:
+
+```text
+V0_3_RECORDED_LABEL_PROFILE=RECORDED_BUSINESS_LABEL
+V0_3_ACTUAL_LABEL_BUSINESS_EVENT=HARVEST
+V0_3_ACTUAL_LABEL_MEASUREMENT_EVENT=VALID_FIELD_SCAN_WEIGH_RECORD
+V0_3_ACTUAL_LABEL_MEASUREMENT_BOUNDARY=RECORDED_VALID_FIELD_SCAN_WEIGH
+V0_3_ACTUAL_LABEL_QUANTITY_BASIS=RECORDED_MARKETABLE_NET_WEIGHT
+V0_3_ACTUAL_LABEL_UNIT=KG
+V0_3_ACTUAL_LABEL_SOURCE_OF_TRUTH=GOVERNED_SCAN_WEIGHT_RECORD
+RECORDED_NET_WEIGHT_IS_BUSINESS_TRUTH=true
+PRE_MEASUREMENT_WEIGHT_RECONSTRUCTION_REQUIRED=false
+V0_3_RECORDED_LABEL_REQUIRED_TIME_BASIS=FARM_LOCAL_HARVEST_BUSINESS_DATE
+V0_3_RECORDED_LABEL_REQUIRED_MISSING_SEMANTICS=UNKNOWN_NOT_ZERO
+V0_3_RECORDED_LABEL_REQUIRED_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+V0_3_RECORDED_LABEL_PLOT_SUPPORTED=false
+```
+
+For the V0.3 recorded-label profile, source authority must bind the governed
+scan-weight record identity, recorded marketable net weight in KG, the valid
+field scan-and-weigh boundary, marketability and sorting/rejection rules,
+farm timezone and local-day boundary, canonical grain, applicable
+finalization/missing/correction/visibility authority, source identity,
+coverage, mapping, and governance. These are the current label-eligibility
+semantics; they do not select a forecast-side target or issue source-specific
+acceptance.
+
+The following fields are optional process provenance or metrology evidence for
+this profile. They may be recorded when available, but their absence does not
+block V0.3 recorded-label eligibility and they are not mandatory
+label-eligibility fields:
+
+```text
+V0_3_RECORDED_LABEL_OPTIONAL_EVIDENCE_FIELDS=
+transport_before_weighing,
+storage_before_weighing,
+postharvest_loss_rule,
+tare_policy,
+scale_precision,
+scale_calibration_authority
+TRANSPORT_BEFORE_WEIGHING_EVIDENCE_CLASS=OPTIONAL_PROCESS_PROVENANCE
+STORAGE_BEFORE_WEIGHING_EVIDENCE_CLASS=OPTIONAL_PROCESS_PROVENANCE
+POSTHARVEST_LOSS_RULE_EVIDENCE_CLASS=OPTIONAL_PROCESS_PROVENANCE
+TARE_POLICY_EVIDENCE_CLASS=OPTIONAL_PROCESS_PROVENANCE
+SCALE_PRECISION_EVIDENCE_CLASS=OPTIONAL_METROLOGY_EVIDENCE
+SCALE_CALIBRATION_AUTHORITY_EVIDENCE_CLASS=OPTIONAL_METROLOGY_EVIDENCE
+PRE_WEIGH_TRANSPORT_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+PRE_WEIGH_STORAGE_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+PRE_WEIGH_POSTHARVEST_LOSS_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+TARE_METHOD_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+SCALE_DEVICE_PRECISION_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+SCALE_CALIBRATION_AUTHORITY_REQUIRED_FOR_LABEL_ELIGIBILITY=false
+ABSENCE_DOES_NOT_BLOCK_V0_3_RECORDED_LABEL_ELIGIBILITY=true
+```
+
+These requirement flags describe label-eligibility policy, not facts about
+whether a transport, storage, post-harvest, tare, precision, or calibration
+condition exists. No unknown process, tare method, device precision, or
+calibration authority is inferred by this contract.
 
 ## Mapping and revision identity
 

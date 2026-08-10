@@ -18,6 +18,10 @@ data, credentials, private locators, or fabricated business facts.
     EXTERNAL_HOLDOUT_DATA_ACCESSED=false
     PRODUCTION_DATABASE_ACCESSED=false
     LOCAL_BUSINESS_DATABASE_ACCESSED=false
+    V0_3_RECORDED_LABEL_PROFILE=RECORDED_BUSINESS_LABEL
+    RECORDED_NET_WEIGHT_IS_BUSINESS_TRUTH=true
+    PRE_MEASUREMENT_WEIGHT_RECONSTRUCTION_REQUIRED=false
+    FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 
 ## Evidence records
 
@@ -45,8 +49,10 @@ CANONICAL_GATE_STATUS_CHANGED=false
 FORMAL_ACCEPTANCE_ISSUED=false
 ```
 
-The later Source 002 and Q2C workpapers update the factual evidence layer;
-they do not override this package's blocked acceptance states.
+The later Source 002 and Q2C workpapers update the factual evidence layer,
+including the V0.3 recorded-business-label boundary; the optional pre-weigh
+process/metrology fields are not hard label-eligibility blockers. They do not
+override this package's blocked formal acceptance states.
 
 ## Current authorization state
 

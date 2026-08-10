@@ -29,13 +29,7 @@
     "field_sorting_rule",
     "packhouse_sorting_rule",
     "rejected_fruit_rule",
-    "transport_before_weighing",
-    "storage_before_weighing",
-    "postharvest_loss_rule",
-    "tare_policy",
     "measurement_method",
-    "scale_precision",
-    "scale_calibration_authority",
     "farm_timezone",
     "local_day_boundary",
     "late_entry_rule",
@@ -130,21 +124,59 @@
       }
     },
     "known_exclusions": { "$ref": "#/$defs/stringArray" },
-    "physical_event": { "const": "FARM_PICK" },
-    "weighing_point_and_relation_to_pick": { "type": "string", "minLength": 1 },
-    "quantity_basis": { "const": "OBSERVED_WEIGHT" },
+    "physical_event": {
+      "const": "HARVEST",
+      "description": "V0.3 recorded-label business event. The measurement boundary is the first valid governed field scan-and-weigh record, represented by weighing_point_and_relation_to_pick and measurement_method."
+    },
+    "weighing_point_and_relation_to_pick": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Must identify the V0.3 measurement boundary VALID_FIELD_SCAN_WEIGH_RECORD (the first valid governed field scan-and-weigh record) and its relation to the harvest business event."
+    },
+    "quantity_basis": {
+      "const": "RECORDED_MARKETABLE_NET_WEIGHT",
+      "description": "V0.3 recorded-label quantity basis: the formally recorded marketable fruit net weight; no pre-measurement theoretical-weight reconstruction is required."
+    },
     "quantity_unit": { "const": "KG" },
     "all_picked_or_marketable": { "type": "string", "minLength": 1 },
     "field_sorting_rule": { "type": "string", "minLength": 1 },
     "packhouse_sorting_rule": { "type": "string", "minLength": 1 },
     "rejected_fruit_rule": { "type": "string", "minLength": 1 },
-    "transport_before_weighing": { "type": "string", "minLength": 1 },
-    "storage_before_weighing": { "type": "string", "minLength": 1 },
-    "postharvest_loss_rule": { "type": "string", "minLength": 1 },
-    "tare_policy": { "type": "string", "minLength": 1 },
-    "measurement_method": { "type": "string", "minLength": 1 },
-    "scale_precision": { "type": "string", "minLength": 1 },
-    "scale_calibration_authority": { "type": "string", "minLength": 1 },
+    "transport_before_weighing": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional upstream process provenance; absence does not block V0.3 recorded-business-label eligibility."
+    },
+    "storage_before_weighing": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional upstream process provenance; absence does not block V0.3 recorded-business-label eligibility."
+    },
+    "postharvest_loss_rule": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional upstream process provenance; absence does not block V0.3 recorded-business-label eligibility."
+    },
+    "tare_policy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional tare provenance; recorded net weight is the V0.3 label truth and no tare reconstruction is required for label eligibility."
+    },
+    "measurement_method": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Must describe the V0.3 measurement event VALID_FIELD_SCAN_WEIGH_RECORD and its governed field scan-and-weigh procedure."
+    },
+    "scale_precision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional weighing-device metrology evidence; absence does not block V0.3 recorded-business-label eligibility."
+    },
+    "scale_calibration_authority": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional weighing-device metrology evidence; absence does not block V0.3 recorded-business-label eligibility."
+    },
     "farm_timezone": { "type": "string", "minLength": 1 },
     "local_day_boundary": { "type": "string", "minLength": 1 },
     "late_entry_rule": { "type": "string", "minLength": 1 },
