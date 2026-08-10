@@ -242,6 +242,14 @@ def _task8_verification_snapshot_payload(
     payload = snapshot.model_dump(mode="python")
     if payload.get("maturity_daily_prediction_available_at") is None:
         payload.pop("maturity_daily_prediction_available_at", None)
+    else:
+        # ``input_snapshot`` is persisted through ``model_dump(mode="json")``.
+        # Normalize the newly introduced datetime here so the in-memory result
+        # hash and the reloaded JSON payload use the same ``+00:00`` spelling
+        # instead of comparing it with Pydantic's UTC ``Z`` spelling.
+        payload["maturity_daily_prediction_available_at"] = canonical_json_value(
+            payload["maturity_daily_prediction_available_at"]
+        )
     return payload
 
 

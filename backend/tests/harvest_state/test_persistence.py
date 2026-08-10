@@ -424,6 +424,26 @@ async def test_jsonb_verification_snapshot_is_preserved(sqlite_session: AsyncSes
     assert first_input["verification_snapshot_hash"] == original_input["verification_snapshot_hash"]
 
 
+def test_task8_datetime_availability_round_trip_hash_is_stable() -> None:
+    payload = make_request()
+    available_at = datetime(2026, 2, 28, 3, 35, tzinfo=UTC)
+    for item in payload["task8_daily_predictions"]:
+        item["source_ref"]["maturity_daily_prediction_available_at"] = available_at
+        item["verification_snapshot"]["maturity_daily_prediction_available_at"] = available_at
+
+    output = run_harvest_state_model(payload)
+    assert isinstance(output, Task9ACompletedOutput)
+    reloaded = Task9ACompletedOutput.model_validate(output.model_dump(mode="json"))
+
+    assert reloaded.result_hash == output.result_hash
+    assert (
+        reloaded.input_snapshot["task8_daily_predictions"][0]["verification_snapshot"][
+            "maturity_daily_prediction_available_at"
+        ]
+        == available_at.isoformat()
+    )
+
+
 @pytest.mark.asyncio
 async def test_timezone_aware_arrival_round_trip(sqlite_session: AsyncSession) -> None:
     output = _completed_output()
