@@ -143,6 +143,7 @@ def _apply_task8_authority_to_payload(
         src["maturity_forecast_run_id"] = authority["forecast_run_id"]
         src["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
         src["maturity_forecast_as_of_date"] = authority["forecast_as_of_date"]
+        src["maturity_daily_prediction_available_at"] = daily_row["created_at"]
         src["maturity_daily_prediction_id"] = daily_row["id"]
         src["prediction_date"] = prediction_date
         src["source_quantity_kg"] = source_quantity_kg
@@ -164,6 +165,7 @@ def _apply_task8_authority_to_payload(
         vs["maturity_forecast_artifact_id"] = authority["artifact_id"]
         vs["maturity_forecast_source_signature"] = authority["forecast_source_signature"]
         vs["maturity_forecast_as_of_date"] = authority["forecast_as_of_date"]
+        vs["maturity_daily_prediction_available_at"] = daily_row["created_at"]
         vs["maturity_forecast_prediction_start_date"] = authority["prediction_start_date"]
         vs["maturity_forecast_prediction_end_date"] = authority["prediction_end_date"]
         vs["maturity_daily_prediction_id"] = daily_row["id"]
