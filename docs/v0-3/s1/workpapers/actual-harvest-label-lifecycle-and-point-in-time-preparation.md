@@ -18,17 +18,35 @@ S2_STARTED=false
 BACKTEST_STARTED=false
 ```
 
-This workpaper prepares the actual-harvest-label lifecycle authority only. It
-does not implement a new lifecycle, issue an attestation, freeze a cohort, or
-close the complete S1 visibility gate. `AREA`, `YIELD_PLAN`, `PHENOLOGY`,
-`WEATHER_OBSERVATION`, `HISTORICAL_WEATHER_FORECAST`, `PICKER_COUNT`,
-`HARVEST_EFFICIENCY`, and `MARKETABLE_RATE` remain outside this package.
+This workpaper preserves the historical record-level lifecycle and replay
+analysis, but its applicability is mode-scoped. For the current Source 002
+actual-label mode, the lifecycle request is optional audit/replay evidence;
+it is not a hard blocker for an `IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1`
+recorded actual label. It does not implement a new lifecycle, issue an
+attestation, freeze a cohort, or close the complete S1 visibility gate.
+Forecast-input visibility remains governed separately for the source classes
+actually used by the model.
+
+```text
+SOURCE_002_ACTUAL_LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
+ACTUAL_LABEL_PURPOSE=HISTORICAL_FINAL_ACTUAL_FOR_FORECAST_EVALUATION
+SOURCE_002_RECORD_LEVEL_LIFECYCLE_AUDIT_SCOPE=OPTIONAL_AUDIT_AND_REPLAY_MODE_EVIDENCE
+REQUIRED_IF_LABEL_MODE=AS_OF_EVALUATION_OR_FINAL_ADJUDICATED
+REQUIRED_FOR_CURRENT_SOURCE_002_IDFL_MODE=false
+SOURCE_002_RECORD_LEVEL_LIFECYCLE_FIELDS_BLOCK_CURRENT_IDFL_ELIGIBILITY=false
+FORECAST_INPUT_POINT_IN_TIME_CONTROL_REQUIRED=true
+FUTURE_INPUT_LEAKAGE_ALLOWED=false
+```
 
 The governing contracts are:
 
 - `docs/forecast-quality/q2a-i7-label-snapshot-and-revision-winner-contract.md`;
 - `docs/v0-3/s1/visibility-inclusion-revision-contract.md`;
 - `docs/v0-3/s1/source-authority-and-cohort-manifest.md`.
+
+The record-level fields below remain governed requirements when a replay mode
+or a corresponding forecast-input source class actually uses them. They are
+not silently propagated into the current Source 002 IDFL label-side gate.
 
 Q2A/I7 is authority for source-recorded-time visibility, lineage terminal
 selection, status eligibility, and revision-first aggregation. This document
@@ -59,8 +77,8 @@ record-level rule:
 
 ```text
 ACTUAL_HARVEST_BUSINESS_POST_CONFIRMATION_IMMUTABILITY_RULE=ADVANCED_CANDIDATE
-FORMAL_CORRECTION_POLICY=ADVANCED_CANDIDATE_PENDING_SOURCE_SYSTEM_EVIDENCE
-FORMAL_VOID_POLICY=ADVANCED_CANDIDATE_PENDING_SOURCE_SYSTEM_EVIDENCE
+FORMAL_CORRECTION_POLICY=OPTIONAL_AUDIT_REPLAY_EVIDENCE_PENDING_SOURCE_SYSTEM_EVIDENCE
+FORMAL_VOID_POLICY=OPTIONAL_AUDIT_REPLAY_EVIDENCE_PENDING_SOURCE_SYSTEM_EVIDENCE
 ```
 
 ## Three-layer evidence separation
@@ -104,6 +122,25 @@ All of the lifecycle fields above remain:
 SOURCE_002_LIFECYCLE_FIELDS_STATUS=NOT_EVIDENCED_FROM_SOURCE_002
 ```
 
+That absence is not converted into a current IDFL label-side blocker. The
+same fields remain relevant to `AS_OF_EVALUATION` and
+`FINAL_ADJUDICATED`, and remain relevant to a forecast-input source class if
+that class is actually used as a forecast input.
+
+```text
+SOURCE_002_IDFL_SOURCE_RECORD_ID_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_SOURCE_RECORDED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_SOURCE_AVAILABLE_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_SOURCE_REVISED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_SOURCE_FINALIZED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_SOURCE_CANCELLED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_REVISION_NUMBER_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_SUPERSEDED_PARENT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_RECORD_STATUS_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_FULL_RECORD_REVISION_LINEAGE_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_LIFECYCLE_AUDIT_BLOCKER=false
+```
+
 No source file, row, record ID, farm name, timestamp, or external system was
 read in this preparation task.
 
@@ -141,16 +178,18 @@ individual source record was voided. A `VOID` record status and lineage rule
 exist, but external source-system production of that status and its event time
 are not evidenced here.
 
-## Actual-label lifecycle policy candidates
+## Actual-label lifecycle policy candidates for replay modes
 
 These identities are candidates for a future versioned policy package. They
-are not accepted policy identities in this preparation:
+are not accepted policy identities in this preparation and are not applied as
+current Source 002 IDFL label-side prerequisites:
 
 ```text
 ACTUAL_HARVEST_LIFECYCLE_POLICY_VERSION=v0.3-s1-actual-harvest-lifecycle-v1
 ACTUAL_HARVEST_REVISION_POLICY_VERSION=v0.3-s1-actual-harvest-revision-v1
 ACTUAL_HARVEST_VISIBILITY_POLICY_VERSION=v0.3-s1-actual-harvest-visibility-v1
 CANDIDATE_POLICY_VERSION_STATUS=PENDING_EXTERNAL_EVIDENCE_AND_INDEPENDENT_REVIEW
+CANDIDATE_POLICY_APPLICABILITY=AS_OF_EVALUATION_OR_FINAL_ADJUDICATED_OR_USED_FORECAST_INPUT_SOURCE_CLASS
 FORMAL_REVISION_POLICY_ACCEPTED=false
 VISIBILITY_POLICY_ACCEPTED=false
 ```
@@ -184,6 +223,27 @@ FINAL_ADJUDICATED_REQUIRES_FINALIZED_AT_BEFORE_OR_AT_SNAPSHOT_EXECUTION=true
 FINAL_ADJUDICATED_FINALIZED_AT_POLICY_NULL_ALLOWED=false
 POLICY_NULL_ONLY_ALLOWED_WHERE_GOVERNING_CONTRACT_EXPLICITLY_PERMITS=true
 FINAL_ADJUDICATED_SOURCE_FINALIZED_AT_POLICY_NULL_ALLOWED=false
+```
+
+## Current Source 002 IDFL applicability
+
+The technical crosswalk below preserves the replay-mode contract. Its
+record-level lifecycle rows must not be read as current Source 002 IDFL label
+eligibility blockers. The current IDFL label is a governed immutable daily
+business aggregate for historical forecast evaluation; it is not an
+`AS_OF_EVALUATION` replay or a `FINAL_ADJUDICATED` revision-winner replay.
+
+| requirement group | replay modes or used forecast-input class | current Source 002 IDFL label side |
+| --- | --- | --- |
+| source record identity and revision graph | required when the selected mode or input class needs replayable versions | not required for current IDFL label eligibility |
+| source recorded/available/revised/finalized/cancelled times | required according to the selected replay or forecast-input contract | not required for current IDFL label eligibility |
+| correction, void, late-entry, and finalization evidence | required for replay modes or a forecast-input source class that uses those events | optional audit/replay evidence for current IDFL |
+| revision winner and full record-level lineage | required for replay modes | not required; IDFL binds immutable source-object derivation lineage |
+
+```text
+IDFL_V1_RECORD_LEVEL_LIFECYCLE_REQUIREMENT=NON_BLOCKING_OPTIONAL_AUDIT_REPLAY_EVIDENCE
+IDFL_V1_RECORD_LEVEL_LIFECYCLE_REQUIRED_IF=AS_OF_EVALUATION_OR_FINAL_ADJUDICATED_OR_USED_FORECAST_INPUT_SOURCE_CLASS
+IDFL_V1_RECORD_LEVEL_LIFECYCLE_REQUIRED_FOR_CURRENT_SOURCE_002=false
 ```
 
 No independent external scan-weigh source-system evidence is available in
@@ -267,23 +327,37 @@ closed by a record-level correction or void statement.
 ## Eligibility and lifecycle status
 
 ```text
+SOURCE_002_ACTUAL_LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
+ACTUAL_LABEL_PURPOSE=HISTORICAL_FINAL_ACTUAL_FOR_FORECAST_EVALUATION
+LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+LABEL_REVISION_WINNER_REQUIRED=false
+SOURCE_RECORDED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_FINALIZED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_CANCELLED_AT_REQUIRED_FOR_LABEL_SIDE=false
+SOURCE_002_IDFL_LIFECYCLE_AUDIT_BLOCKER=false
+
+DIRECT_FORECAST_READINESS_BLOCKERS=SOURCE_COMPLETENESS;MISSING_DAY_RULE;JULY_UNMAPPED_DATE_POLICY;FORMAL_ACTUAL_LABEL_DATASET_FREEZE;TRAIN_VALIDATION_TEST_SPLIT_POLICY;FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_CONTROL;Q2C_TARGET_BINDING
+CURRENT_SOURCE_002_IDFL_ELIGIBILITY_BLOCKERS=SOURCE_AUTHORITY_ACCEPTANCE;SOURCE_COHORT_ACCEPTANCE;SOURCE_CUSTODY_ACCEPTANCE;SOURCE_COMPLETENESS;SOURCE_OBJECT_BOUND_ROW_LINEAGE;MAPPING_POLICY_IDENTITY;COVERAGE_SCOPE_ENTITY_IDENTITIES;INCLUSION_EXCLUSION_ACCEPTANCE;MISSING_DAY_RULE;JULY_UNMAPPED_DATE_POLICY;Q2C_TARGET_BINDING
+
 ACTUAL_LABEL_AS_OF_EVALUATION_ELIGIBILITY=BLOCKED
 ACTUAL_LABEL_FINAL_ADJUDICATED_ELIGIBILITY=BLOCKED
 ACTUAL_LABEL_FINAL_ADJUDICATED_SOURCE_CAPABILITY_STATUS=UNKNOWN_PENDING_EXTERNAL_SOURCE_SYSTEM_EVIDENCE
-ACTUAL_LABEL_REVISION_WINNER_COMPATIBILITY=ADVANCED_REPOSITORY_ONLY_BLOCKED_EXTERNAL_EVIDENCE
+ACTUAL_LABEL_REVISION_WINNER_COMPATIBILITY=OPTIONAL_AUDIT_REPLAY_EVIDENCE_PENDING_EXTERNAL_EVIDENCE
 
-RECORD_LEVEL_CORRECTION_POLICY_STATUS=ADVANCED_CANDIDATE_PENDING_EXTERNAL_EVIDENCE
-RECORD_LEVEL_VOID_POLICY_STATUS=ADVANCED_CANDIDATE_PENDING_EXTERNAL_EVIDENCE
-SOURCE_OBJECT_WITHDRAWAL_POLICY_STATUS=BLOCKED_PENDING_CUSTODY_POLICY
+RECORD_LEVEL_CORRECTION_POLICY_STATUS=OPTIONAL_AUDIT_REPLAY_EVIDENCE_PENDING_EXTERNAL_EVIDENCE
+RECORD_LEVEL_VOID_POLICY_STATUS=OPTIONAL_AUDIT_REPLAY_EVIDENCE_PENDING_EXTERNAL_EVIDENCE
+SOURCE_OBJECT_WITHDRAWAL_POLICY_STATUS=FORMALIZED_PENDING_CUSTODY_ACCEPTANCE
 
 ACTUAL_LABEL_VISIBILITY_CLOSED=false
 S1_VISIBILITY_GATE_CLOSED=false
 S1_VISIBILITY_FULL_CLOSURE_NOT_CLAIMED=true
 ```
 
-`FINAL_CONFIRMATION_TIMING=IMMEDIATE` must not be used as
-`SOURCE_FINALIZED_AT`, and `HARVEST_BUSINESS_DATE` must not be used as
-`SOURCE_RECORDED_AT` or `SOURCE_AVAILABLE_AT`.
+The seven direct forecast-readiness items prioritize the path toward a fair
+historical evaluation; they do not replace the complete Source 002 IDFL
+source-specific eligibility gates. `FINAL_CONFIRMATION_TIMING=IMMEDIATE` must
+not be used as `SOURCE_FINALIZED_AT`, and `HARVEST_BUSINESS_DATE` must not be
+used as `SOURCE_RECORDED_AT` or `SOURCE_AVAILABLE_AT`.
 
 ## Formalization progress without false closure
 
@@ -301,6 +375,8 @@ FINAL_CONFIRMATION_FORMAL_EVIDENCE,
 REVISION_WINNER_COMPATIBILITY
 
 FORMALIZATION_GAPS_CLOSED=NONE
+FORMALIZATION_GAPS_CURRENT_IDFL_HARD_BLOCKERS=NONE_FOR_RECORD_LEVEL_LIFECYCLE_FIELDS
+FORMALIZATION_GAPS_CURRENT_IDFL_OPTIONAL_AUDIT_REPLAY_FIELDS=FORMAL_CORRECTION_POLICY;FORMAL_VOID_POLICY;FORMAL_REVISION_POLICY;REVISION_POLICY_VERSION;POINT_IN_TIME_VISIBILITY_RULE;LATE_ENTRY_RULE;FINAL_CONFIRMATION_FORMAL_EVIDENCE
 FROZEN_MATRIX_GAP_COUNT=21
 EFFECTIVE_REMAINING_S1_GAP_COUNT=26
 CANONICAL_S1_GATE_COUNT=17
