@@ -6,6 +6,7 @@ Requires PostgreSQL with RUN_POSTGRES_INTEGRATION=1 and APP_ENV=test.
 from __future__ import annotations
 
 import asyncio
+import copy
 import os
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -19,6 +20,10 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.application import (
+    HarvestStateDeliveryInputError,
+    execute_harvest_state_run,
+)
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
@@ -104,7 +109,10 @@ from backend.app.rolling_backtest.schemas import (
     UpstreamSemanticIdentityPayload,
 )
 from backend.tests.harvest_state.conftest import make_request
-from backend.tests.integration.test_residual_model_persistence import _seed_prediction_fixture
+from backend.tests.integration.test_residual_model_persistence import (
+    _apply_task8_authority_to_payload,
+    _seed_prediction_fixture,
+)
 from backend.tests.residual_model.test_training_manifest import (
     _config as _residual_config,
 )
@@ -984,6 +992,53 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             for prediction_date, daily_id in sorted(daily_ids_by_date.items())
         },
     }
+
+
+@pytest.mark.integration
+async def test_task8_task9_application_binds_persisted_daily_created_at() -> None:
+    """The production Task 9 entry point must bind Task 8 availability to DB authority."""
+    _require_postgres()
+    season_id = 2098
+    task8_authority = await _seed_real_task8_authorities(season_id=season_id)
+    payload = make_request(season_id=season_id)
+    _apply_task8_authority_to_payload(payload, task8_authority)
+
+    async with AsyncSessionMaker() as session:
+        envelope = await execute_harvest_state_run(session, request=payload)
+        persisted_by_id = {
+            row_id: await session.get(MaturityDailyPredictionModel, row_id)
+            for row_id in {
+                item["source_ref"]["maturity_daily_prediction_id"]
+                for item in payload["task8_daily_predictions"]
+            }
+        }
+        assert all(row is not None for row in persisted_by_id.values())
+        for item in envelope.output.input_snapshot["task8_daily_predictions"]:
+            row = persisted_by_id[item["source_ref"]["maturity_daily_prediction_id"]]
+            assert row is not None
+            source_available_at = item["source_ref"]["maturity_daily_prediction_available_at"]
+            verification_available_at = item["verification_snapshot"][
+                "maturity_daily_prediction_available_at"
+            ]
+            if isinstance(source_available_at, str):
+                source_available_at = datetime.fromisoformat(source_available_at)
+            if isinstance(verification_available_at, str):
+                verification_available_at = datetime.fromisoformat(verification_available_at)
+            assert source_available_at == row.created_at
+            assert verification_available_at == row.created_at
+
+        tampered_payload = copy.deepcopy(payload)
+        tampered_prediction = tampered_payload["task8_daily_predictions"][0]
+        tampered_at = tampered_prediction["source_ref"][
+            "maturity_daily_prediction_available_at"
+        ] - timedelta(minutes=1)
+        tampered_prediction["source_ref"]["maturity_daily_prediction_available_at"] = tampered_at
+        tampered_prediction["verification_snapshot"]["maturity_daily_prediction_available_at"] = (
+            tampered_at
+        )
+
+        with pytest.raises(HarvestStateDeliveryInputError):
+            await execute_harvest_state_run(session, request=tampered_payload)
 
 
 async def _seed_real_task10_authorities(
