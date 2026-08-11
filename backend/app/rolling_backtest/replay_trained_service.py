@@ -2185,6 +2185,7 @@ async def execute_replay_trained_prediction(
                     ].feature_analytics_build_run_id,
                     supplemental_feature_values=request.supplemental_feature_values,
                 ),
+                model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
                 execution_context={"task12_replay": task12_context},
                 typed_attempt={"task12_replay": task12_context},
             )
