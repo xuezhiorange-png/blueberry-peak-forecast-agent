@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from types import MappingProxyType
 from typing import NoReturn, Protocol, cast
@@ -1335,19 +1335,33 @@ def _semantic_task8_source_ref_hash(source_ref: object) -> str:
 async def bind_task8_daily_prediction_availability_from_persisted_rows(
     session: AsyncSession,
     request: Task9ARequest,
+    *,
+    require_persisted_task8_availability: bool = False,
+    forecast_cutoff_at: datetime | None = None,
 ) -> Task9ARequest:
-    """Bind populated Task 8 availability evidence to persisted database rows.
+    """Bind Task 8 availability evidence to persisted database rows.
 
     The public Task 9 request contract carries Task 8 evidence, but the
     availability timestamp is authoritative only when it is read from the
-    referenced ``MaturityDailyPredictionModel`` row.  Legacy requests that
-    predate the timestamp evidence remain compatible when every Task 8 item
-    omits it; once a request supplies the evidence, the complete Task 8 set is
-    treated as the persisted-row-bound path and is fail-closed on any missing
-    row, identity mismatch, or caller timestamp mismatch.
+    referenced ``MaturityDailyPredictionModel`` row.  Legacy non-replay
+    requests that predate the timestamp evidence remain compatible when every
+    Task 8 item omits it.  Exact replay callers explicitly require the
+    persisted-row-bound path, so omission of caller evidence cannot bypass the
+    database authority; the persisted timestamp must also be at or before the
+    supplied exact forecast cutoff.
     """
     task8_predictions = tuple(request.task8_daily_predictions)
+    if require_persisted_task8_availability and forecast_cutoff_at is None:
+        _raise(
+            "task8_daily_prediction_forecast_cutoff_required",
+            details={"reason": "persisted availability is required for exact replay"},
+        )
     if not task8_predictions:
+        if require_persisted_task8_availability:
+            _raise(
+                "task8_daily_prediction_persisted_authority_required",
+                details={"reason": "exact replay contains no Task 8 daily predictions"},
+            )
         return request
 
     availability_supplied = any(
@@ -1355,7 +1369,7 @@ async def bind_task8_daily_prediction_availability_from_persisted_rows(
         or prediction.verification_snapshot.maturity_daily_prediction_available_at is not None
         for prediction in task8_predictions
     )
-    if not availability_supplied:
+    if not require_persisted_task8_availability and not availability_supplied:
         return request
 
     bound_predictions: list[Task8DailyPredictionInput] = []
@@ -1374,7 +1388,9 @@ async def bind_task8_daily_prediction_availability_from_persisted_rows(
         verification = prediction.verification_snapshot
         source_available_at = source_ref.maturity_daily_prediction_available_at
         verification_available_at = verification.maturity_daily_prediction_available_at
-        if source_available_at is None or verification_available_at is None:
+        if not require_persisted_task8_availability and (
+            source_available_at is None or verification_available_at is None
+        ):
             _raise(
                 "task8_daily_prediction_availability_evidence_incomplete",
                 details={
@@ -1434,6 +1450,15 @@ async def bind_task8_daily_prediction_availability_from_persisted_rows(
             row_cache[daily_prediction_id] = cached
 
         daily_prediction, forecast_run, artifact, model_run = cached
+        if forecast_cutoff_at is not None and daily_prediction.created_at > forecast_cutoff_at:
+            _raise(
+                "task8_daily_prediction_available_after_forecast_cutoff",
+                details={
+                    "maturity_daily_prediction_id": daily_prediction.id,
+                    "created_at": daily_prediction.created_at,
+                    "forecast_cutoff_at": forecast_cutoff_at,
+                },
+            )
         identity_checks = (
             (
                 "prediction.prediction_date",
@@ -1631,9 +1656,14 @@ async def bind_task8_daily_prediction_availability_from_persisted_rows(
                     },
                 )
 
+        if source_available_at is not None and source_available_at != daily_prediction.created_at:
+            _raise(
+                "task8_daily_prediction_availability_mismatch",
+                details={"maturity_daily_prediction_id": daily_prediction.id},
+            )
         if (
-            source_available_at != daily_prediction.created_at
-            or verification_available_at != daily_prediction.created_at
+            verification_available_at is not None
+            and verification_available_at != daily_prediction.created_at
         ):
             _raise(
                 "task8_daily_prediction_availability_mismatch",

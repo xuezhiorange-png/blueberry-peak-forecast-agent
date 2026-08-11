@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 from pydantic import ValidationError
@@ -113,12 +114,16 @@ async def execute_harvest_state_run(
     session: AsyncSession,
     *,
     request: Task9ARequest | Mapping[str, object],
+    require_persisted_task8_availability: bool = False,
+    forecast_cutoff_at: datetime | None = None,
 ) -> HarvestStateRunEnvelope:
     normalized_request = _normalize_request(request)
     try:
         normalized_request = await bind_task8_daily_prediction_availability_from_persisted_rows(
             session,
             normalized_request,
+            require_persisted_task8_availability=require_persisted_task8_availability,
+            forecast_cutoff_at=forecast_cutoff_at,
         )
     except Task9AuthorityRequestAssemblyError as exc:
         raise HarvestStateDeliveryInputError(

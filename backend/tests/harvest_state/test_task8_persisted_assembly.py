@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -45,6 +45,26 @@ def _request_with_task8_availability(*, available_at: datetime) -> Task9ARequest
         }
     )
     return request.model_copy(update={"task8_daily_predictions": [bound_prediction]})
+
+
+def _request_without_task8_availability(request: Task9ARequest) -> Task9ARequest:
+    prediction = request.task8_daily_predictions[0]
+    return request.model_copy(
+        update={
+            "task8_daily_predictions": [
+                prediction.model_copy(
+                    update={
+                        "source_ref": prediction.source_ref.model_copy(
+                            update={"maturity_daily_prediction_available_at": None}
+                        ),
+                        "verification_snapshot": prediction.verification_snapshot.model_copy(
+                            update={"maturity_daily_prediction_available_at": None}
+                        ),
+                    }
+                )
+            ]
+        }
+    )
 
 
 def _persisted_rows_for_request(
@@ -120,3 +140,50 @@ async def test_task8_availability_is_injected_from_persisted_row_and_tamper_reje
     with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
         await bind_task8_daily_prediction_availability_from_persisted_rows(session, tampered)
     assert exc_info.value.details["reason"] == "task8_daily_prediction_availability_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_task8_exact_replay_injects_missing_availability_and_enforces_cutoff() -> None:
+    persisted_at = datetime(2026, 3, 1, 4, 0, tzinfo=UTC)
+    request_with_authority = _request_with_task8_availability(available_at=persisted_at)
+    daily = _persisted_rows_for_request(request_with_authority)
+    omitted = _request_without_task8_availability(request_with_authority)
+    session = _PersistedTask8Session(daily=daily)
+
+    assembled = await bind_task8_daily_prediction_availability_from_persisted_rows(
+        session,
+        omitted,
+        require_persisted_task8_availability=True,
+        forecast_cutoff_at=persisted_at,
+    )
+    assembled_prediction = assembled.task8_daily_predictions[0]
+    assert assembled_prediction.source_ref.maturity_daily_prediction_available_at == persisted_at
+    assert assembled_prediction.verification_snapshot.maturity_daily_prediction_available_at == (
+        persisted_at
+    )
+
+    with pytest.raises(Task9AuthorityRequestAssemblyError) as exc_info:
+        await bind_task8_daily_prediction_availability_from_persisted_rows(
+            session,
+            omitted,
+            require_persisted_task8_availability=True,
+            forecast_cutoff_at=persisted_at - timedelta(seconds=1),
+        )
+    assert exc_info.value.details["reason"] == (
+        "task8_daily_prediction_available_after_forecast_cutoff"
+    )
+
+
+@pytest.mark.asyncio
+async def test_task8_legacy_request_without_availability_remains_unchanged() -> None:
+    request = Task9ARequest.model_validate(make_request())
+    authority_request = _request_with_task8_availability(
+        available_at=datetime(2026, 3, 1, 4, 0, tzinfo=UTC)
+    )
+    session = _PersistedTask8Session(daily=_persisted_rows_for_request(authority_request))
+
+    assembled = await bind_task8_daily_prediction_availability_from_persisted_rows(
+        session,
+        request,
+    )
+    assert assembled == request

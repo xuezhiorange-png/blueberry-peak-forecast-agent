@@ -1074,6 +1074,59 @@ async def test_task8_task9_application_binds_persisted_daily_created_at() -> Non
             await execute_harvest_state_run(session, request=tampered_payload)
 
 
+@pytest.mark.integration
+async def test_task8_task9_exact_replay_injects_omitted_persisted_daily_created_at() -> None:
+    """Exact replay cannot bypass Task 8 DB availability by omitting caller fields."""
+    _require_postgres()
+    season_id = 2099
+    task8_authority = await _seed_real_task8_authorities(season_id=season_id)
+    payload = make_request(season_id=season_id)
+    _apply_task8_authority_to_payload(
+        payload,
+        task8_authority,
+        include_availability=False,
+    )
+    assert all(
+        item["source_ref"].get("maturity_daily_prediction_available_at") is None
+        and item["verification_snapshot"].get("maturity_daily_prediction_available_at") is None
+        for item in payload["task8_daily_predictions"]
+    )
+
+    expected_created_at = next(iter(task8_authority["daily_predictions_by_date"].values()))[
+        "created_at"
+    ]
+    async with AsyncSessionMaker() as session:
+        envelope = await execute_harvest_state_run(
+            session,
+            request=payload,
+            require_persisted_task8_availability=True,
+            forecast_cutoff_at=expected_created_at,
+        )
+        source_ref_by_hash = {
+            entry.source_ref_hash: entry.source_ref_payload
+            for entry in envelope.output.source_ref_catalog
+        }
+        for item in envelope.output.input_snapshot["task8_daily_predictions"]:
+            source_ref = source_ref_by_hash[item["source_ref_hash"]]
+            verification = item["verification_snapshot"]
+            source_available_at = source_ref["maturity_daily_prediction_available_at"]
+            verification_available_at = verification["maturity_daily_prediction_available_at"]
+            if isinstance(source_available_at, str):
+                source_available_at = datetime.fromisoformat(source_available_at)
+            if isinstance(verification_available_at, str):
+                verification_available_at = datetime.fromisoformat(verification_available_at)
+            assert source_available_at == expected_created_at
+            assert verification_available_at == expected_created_at
+
+        with pytest.raises(HarvestStateDeliveryInputError):
+            await execute_harvest_state_run(
+                session,
+                request=payload,
+                require_persisted_task8_availability=True,
+                forecast_cutoff_at=expected_created_at - timedelta(seconds=1),
+            )
+
+
 async def _seed_real_task10_authorities(
     *,
     task8_authority: dict[str, Any] | None = None,
