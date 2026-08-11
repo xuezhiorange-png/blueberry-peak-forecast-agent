@@ -31,6 +31,11 @@ from backend.app.residual_model.persistence import (
     load_residual_prediction_run_by_id,
 )
 from backend.app.residual_model.prediction_features import build_prediction_feature_rows
+from backend.app.residual_model.replay_training_authority import (
+    actual_input_rows,
+    actual_manifest_payload,
+    dataset_identity,
+)
 from backend.app.residual_model.schemas import (
     ResidualPredictionExecutionResult,
     ResidualPredictionRequest,
@@ -97,11 +102,20 @@ async def _full_task12_replay_context(
     cutoff: datetime,
     task9_run_id: int,
     task9_result_hash: str,
+    training_cutoff_at: datetime | None = None,
 ) -> dict[str, object]:
     """Build the same execution-pass field shape as production ``_task12_context``."""
 
     manifest_rows = await build_residual_training_manifest(session, samples=samples)
     training_manifest_hash = manifest_hash(manifest_rows)
+    training_rows, label_rows = actual_input_rows(manifest_rows)
+    manifest_payload = actual_manifest_payload(manifest_rows)
+    training_dataset_hash = dataset_identity(
+        training_rows=training_rows,
+        label_rows=label_rows,
+        manifest_rows=manifest_payload,
+    )
+    effective_training_cutoff = training_cutoff_at or (cutoff - timedelta(days=1))
     model_code_version = "test-residual-model-v1"
     return {
         "task12_replay": {
@@ -111,9 +125,9 @@ async def _full_task12_replay_context(
             "replay_node_id": "node-1",
             "scenario_id": "scenario-1",
             "forecast_cutoff_at": cutoff.isoformat(),
-            "training_cutoff_at": (cutoff - timedelta(days=1)).isoformat(),
+            "training_cutoff_at": effective_training_cutoff.isoformat(),
             "training_manifest_hash": training_manifest_hash,
-            "training_dataset_hash": canonical_payload_hash({"fixture": "task12-training-dataset"}),
+            "training_dataset_hash": training_dataset_hash,
             "model_config_hash": config_hash,
             "model_artifact_hash": canonical_payload_hash(
                 {
@@ -138,7 +152,7 @@ async def _full_task12_replay_context(
                 {
                     "task9_run_id": task9_run_id,
                     "task9_result_hash": task9_result_hash,
-                    "training_cutoff_at": (cutoff - timedelta(days=1)).isoformat(),
+                    "training_cutoff_at": effective_training_cutoff.isoformat(),
                 }
             ),
         }
@@ -176,6 +190,8 @@ async def _seed_eligible_prediction_fixture(
     *,
     authority_at: datetime | None = None,
     replay_training_provenance: bool = False,
+    training_cutoff_at: datetime | None = None,
+    label_finished_at: datetime | None = None,
 ) -> tuple[int, int, int, date, datetime]:
     season_id, factory_id, variety_id = await _seed_master_data(session)
     validation_season_id = await _seed_season(
@@ -187,7 +203,11 @@ async def _seed_eligible_prediction_fixture(
     )
     task9_run_id, output = await _persist_task9_run(session)
     as_of_date = _snapshot_as_of_date(output)
-    cutoff = datetime(2026, 2, 28, 23, 59, 59, 999999, tzinfo=UTC)
+    cutoff = (
+        datetime(2026, 3, 5, 23, 59, 59, 999999, tzinfo=UTC)
+        if replay_training_provenance
+        else datetime(2026, 2, 28, 23, 59, 59, 999999, tzinfo=UTC)
+    )
     task9_run = await session.get(HarvestStateRun, task9_run_id)
     assert task9_run is not None
     if replay_training_provenance:
@@ -196,13 +216,19 @@ async def _seed_eligible_prediction_fixture(
         task9_run.replay_executed_at = cutoff + timedelta(seconds=1)
         task9_run.replay_code_version = "test-replay-v1"
         task9_run.replay_run_correlation_id = "residual-replay-test"
+    effective_training_cutoff = training_cutoff_at or (cutoff - timedelta(days=1))
+    effective_label_finished_at = label_finished_at or (
+        effective_training_cutoff - timedelta(hours=1)
+        if replay_training_provenance
+        else datetime(2026, 3, 20, tzinfo=UTC)
+    )
     label_build = await _seed_build_run(
         session,
         build_run_id=1,
         season_id=season_id,
         source_max_raw_id=100,
         config_hash="a" * 64,
-        finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        finished_at=effective_label_finished_at,
         covered_factory_ids=(factory_id,),
     )
     feature_build = await _seed_build_run(
@@ -220,7 +246,11 @@ async def _seed_eligible_prediction_fixture(
         season_id=validation_season_id,
         source_max_raw_id=200,
         config_hash="c" * 64,
-        finished_at=datetime(2026, 3, 20, tzinfo=UTC),
+        finished_at=(
+            effective_label_finished_at
+            if replay_training_provenance
+            else datetime(2026, 3, 20, tzinfo=UTC)
+        ),
         covered_factory_ids=(factory_id,),
     )
     validation_feature_build = await _seed_build_run(
@@ -295,6 +325,7 @@ async def _seed_eligible_prediction_fixture(
             cutoff=cutoff,
             task9_run_id=task9_run_id,
             task9_result_hash=output.result_hash,
+            training_cutoff_at=effective_training_cutoff,
         )
 
     training_result, training_run_id = await execute_residual_training(
@@ -1377,7 +1408,10 @@ async def test_residual_prediction_allows_valid_persisted_replay_trained_authori
     ("mutation",),
     (
         ("future_training_cutoff",),
+        ("dataset_mismatch",),
+        ("training_manifest_mismatch",),
         ("manifest_mismatch",),
+        ("model_config_mismatch",),
         ("config_mismatch",),
         ("typed_attempt_missing",),
         ("typed_attempt_mismatch",),
@@ -1408,12 +1442,33 @@ async def test_replay_prediction_requires_persisted_task12_authority_bindings(
                 "training_cutoff_at": (cutoff + timedelta(seconds=1)).isoformat(),
             },
         )
+    elif mutation == "dataset_mismatch":
+        await _mutate_replay_authority_context(
+            sqlite_session,
+            training_run_id=training_run_id,
+            input_snapshot_updates={"training_dataset_hash": "f" * 64},
+            typed_attempt_updates={"training_dataset_hash": "f" * 64},
+        )
+    elif mutation == "training_manifest_mismatch":
+        await _mutate_replay_authority_context(
+            sqlite_session,
+            training_run_id=training_run_id,
+            input_snapshot_updates={"training_manifest_hash": "f" * 64},
+            typed_attempt_updates={"training_manifest_hash": "f" * 64},
+        )
     elif mutation == "manifest_mismatch":
         await _mutate_replay_authority_context(
             sqlite_session,
             training_run_id=training_run_id,
             input_snapshot_updates={"task10_manifest_hash": "f" * 64},
             typed_attempt_updates={"task10_manifest_hash": "f" * 64},
+        )
+    elif mutation == "model_config_mismatch":
+        await _mutate_replay_authority_context(
+            sqlite_session,
+            training_run_id=training_run_id,
+            input_snapshot_updates={"model_config_hash": "e" * 64},
+            typed_attempt_updates={"model_config_hash": "e" * 64},
         )
     elif mutation == "config_mismatch":
         await _mutate_replay_authority_context(
@@ -1436,6 +1491,70 @@ async def test_replay_prediction_requires_persisted_task12_authority_bindings(
         )
 
     with pytest.raises(ResidualReplayTrainedAuthorityError):
+        await execute_residual_prediction(
+            sqlite_session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_id,
+                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+            ),
+            model_policy="replay_trained_model",
+        )
+
+
+async def test_replay_prediction_rejects_persisted_future_training_row(
+    sqlite_session: AsyncSession,
+) -> None:
+    (
+        task9_run_id,
+        feature_build_id,
+        training_run_id,
+        as_of_date,
+        _cutoff,
+    ) = await _seed_eligible_prediction_fixture(
+        sqlite_session,
+        replay_training_provenance=True,
+        training_cutoff_at=datetime(2026, 2, 26, 23, 59, 59, tzinfo=UTC),
+        label_finished_at=datetime(2026, 3, 4, 12, 0, tzinfo=UTC),
+    )
+    with pytest.raises(ResidualReplayTrainedAuthorityError, match="training observation"):
+        await execute_residual_prediction(
+            sqlite_session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_id,
+                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+            ),
+            model_policy="replay_trained_model",
+        )
+    assert (
+        await sqlite_session.scalar(
+            select(ResidualModelPredictionRun).where(
+                ResidualModelPredictionRun.training_run_id == training_run_id
+            )
+        )
+        is None
+    )
+
+
+async def test_replay_prediction_rejects_persisted_future_label_availability(
+    sqlite_session: AsyncSession,
+) -> None:
+    (
+        task9_run_id,
+        feature_build_id,
+        training_run_id,
+        as_of_date,
+        _cutoff,
+    ) = await _seed_eligible_prediction_fixture(
+        sqlite_session,
+        replay_training_provenance=True,
+        label_finished_at=datetime(2026, 3, 6, 12, 0, tzinfo=UTC),
+    )
+
+    with pytest.raises(ResidualReplayTrainedAuthorityError, match="label availability"):
         await execute_residual_prediction(
             sqlite_session,
             request=ResidualPredictionRequest(

@@ -42,10 +42,15 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
 )
 from backend.app.residual_model.config import load_residual_model_config_from_snapshot
-from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
+from backend.app.residual_model.manifest import manifest_hash
 from backend.app.residual_model.persistence import (
     ResidualModelPersistenceIntegrityError,
     load_residual_prediction_run_by_id,
+)
+from backend.app.residual_model.replay_training_authority import (
+    actual_input_rows,
+    actual_manifest_payload,
+    dataset_identity,
 )
 from backend.app.residual_model.schemas import (
     FeatureValue,
@@ -1481,28 +1486,17 @@ def _request_label_rows(rows: Sequence[FilteredLabelRow]) -> list[dict[str, str]
 def _actual_input_rows(
     rows: Sequence[ResidualTrainingManifestRow],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    training_rows = [
-        {
-            "observation_date": row.as_of_date.isoformat(),
-            "value": _normalized_numeric(row.observed_effective_receipt_kg),
-        }
-        for row in rows
-    ]
-    label_rows = [
-        {
-            "observation_date": row.target_arrival_local_date.isoformat(),
-            "label_availability_date": row.label_actual_snapshot.source_cutoff.date().isoformat(),
-            "value": _normalized_numeric(row.observed_effective_receipt_kg),
-        }
-        for row in rows
-    ]
-    return training_rows, label_rows
+    """Compatibility wrapper for the shared persisted-authority algorithm."""
+
+    return actual_input_rows(rows)
 
 
 def _actual_manifest_payload(
     rows: Sequence[ResidualTrainingManifestRow],
 ) -> list[dict[str, object]]:
-    return [cast(dict[str, object], _json_safe(manifest_row_payload(row))) for row in rows]
+    """Compatibility wrapper for the shared persisted-authority algorithm."""
+
+    return actual_manifest_payload(rows)
 
 
 def _dataset_identity(
@@ -1511,12 +1505,12 @@ def _dataset_identity(
     label_rows: Sequence[Mapping[str, object]],
     manifest_rows: Sequence[Mapping[str, object]],
 ) -> str:
-    return canonical_payload_hash(
-        {
-            "training_rows": list(training_rows),
-            "label_rows": list(label_rows),
-            "manifest_rows": list(manifest_rows),
-        }
+    """Compatibility wrapper for the shared persisted-authority algorithm."""
+
+    return dataset_identity(
+        training_rows=training_rows,
+        label_rows=label_rows,
+        manifest_rows=manifest_rows,
     )
 
 
@@ -2033,9 +2027,9 @@ async def execute_replay_trained_prediction(
                 blocker_code=_TASK12_DATASET_MISMATCH,
                 details={"exception_type": type(exc).__name__},
             ) from exc
-        rebuilt_manifest_payload = _actual_manifest_payload(rebuilt_manifest_rows)
-        actual_training_rows, actual_label_rows = _actual_input_rows(rebuilt_manifest_rows)
-        actual_dataset_hash = _dataset_identity(
+        rebuilt_manifest_payload = actual_manifest_payload(rebuilt_manifest_rows)
+        actual_training_rows, actual_label_rows = actual_input_rows(rebuilt_manifest_rows)
+        actual_dataset_hash = dataset_identity(
             training_rows=actual_training_rows,
             label_rows=actual_label_rows,
             manifest_rows=rebuilt_manifest_payload,

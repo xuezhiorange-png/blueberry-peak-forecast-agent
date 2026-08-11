@@ -17,6 +17,7 @@ from backend.app.repositories.residual_model import (
     fail_residual_execution_attempt,
     get_residual_training_run,
     list_residual_artifacts,
+    list_residual_manifest_rows,
     update_residual_execution_attempt_stage,
 )
 from backend.app.residual_model.artifact import (
@@ -31,6 +32,7 @@ from backend.app.residual_model.forecast_cutoff import (
     ForecastCutoffResolutionError,
     resolve_forecast_cutoff_at,
 )
+from backend.app.residual_model.manifest import manifest_hash
 from backend.app.residual_model.model import TrainedResidualEstimators
 from backend.app.residual_model.persistence import (
     ResidualArtifactIntegrityError,
@@ -43,6 +45,12 @@ from backend.app.residual_model.persistence import (
     save_residual_training_run,
 )
 from backend.app.residual_model.prediction_features import build_prediction_feature_rows
+from backend.app.residual_model.replay_training_authority import (
+    actual_input_rows,
+    actual_manifest_payload,
+    dataset_identity,
+    manifest_row_from_model,
+)
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
@@ -299,13 +307,28 @@ def _require_persisted_replay_context_parity(
         )
 
 
-def _require_persisted_replay_authority(
+async def _require_persisted_replay_authority(
     *,
+    session: AsyncSession,
     training_run: Any,
     task9_run: Any,
     task9_run_id: int,
     forecast_cutoff_at: datetime,
 ) -> None:
+    try:
+        persisted_training_run = await get_residual_training_run(
+            session,
+            run_id=training_run.id,
+        )
+    except SQLAlchemyError as exc:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run could not be reloaded"
+        ) from exc
+    if persisted_training_run is None:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run could not be reloaded"
+        )
+    training_run = persisted_training_run
     if task9_run.is_replay is not True:
         raise ResidualReplayTrainedAuthorityError(
             "replay-trained exemption requires a persisted replay Task 9 run"
@@ -349,13 +372,62 @@ def _require_persisted_replay_authority(
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 training cutoff is after the forecast cutoff"
         )
+    if context.get("training_manifest_hash") != training_run.manifest_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 training manifest hash does not match the training run"
+        )
     if context.get("task10_manifest_hash") != training_run.manifest_hash:
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 manifest hash does not match the training run"
         )
+    if context.get("model_config_hash") != training_run.config_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 model config hash does not match the training run"
+        )
     if context.get("task10_config_hash") != training_run.config_hash:
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 config hash does not match the training run"
+        )
+
+    try:
+        persisted_manifest_rows = await list_residual_manifest_rows(
+            session,
+            training_run_id=training_run.id,
+        )
+        if len(persisted_manifest_rows) != training_run.manifest_row_count:
+            raise ValueError("persisted manifest row count does not match the training run")
+        manifest_rows = [manifest_row_from_model(row) for row in persisted_manifest_rows]
+    except Exception as exc:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 manifest rows could not be reconstructed"
+        ) from exc
+
+    training_cutoff_date = training_cutoff_at.date()
+    for row in manifest_rows:
+        if row.as_of_date > training_cutoff_date:
+            raise ResidualReplayTrainedAuthorityError(
+                "persisted Task 12 training observation is after the training cutoff"
+            )
+        if row.label_actual_snapshot.source_cutoff.date() > training_cutoff_date:
+            raise ResidualReplayTrainedAuthorityError(
+                "persisted Task 12 label availability is after the training cutoff"
+            )
+
+    recomputed_manifest_hash = manifest_hash(manifest_rows)
+    if recomputed_manifest_hash != training_run.manifest_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 manifest rows do not match the training manifest hash"
+        )
+    persisted_manifest_payload = actual_manifest_payload(manifest_rows)
+    persisted_training_rows, persisted_label_rows = actual_input_rows(manifest_rows)
+    recomputed_dataset_hash = dataset_identity(
+        training_rows=persisted_training_rows,
+        label_rows=persisted_label_rows,
+        manifest_rows=persisted_manifest_payload,
+    )
+    if context.get("training_dataset_hash") != recomputed_dataset_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 dataset hash does not match the persisted manifest rows"
         )
     for field in ("task12_policy_version", "replay_attempt_id", "replay_node_id", "scenario_id"):
         value = context.get(field)
@@ -389,7 +461,8 @@ async def _resolve_residual_model_visibility(
         raise ResidualPredictionApplicationIntegrityError(str(exc)) from exc
 
     if model_policy is ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL:
-        _require_persisted_replay_authority(
+        await _require_persisted_replay_authority(
+            session=session,
             training_run=training_run,
             task9_run=task9_run,
             task9_run_id=task9_run_id,
