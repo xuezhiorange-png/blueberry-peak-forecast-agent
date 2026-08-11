@@ -9,6 +9,7 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.harvest_state.canonical import canonical_json_value
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
@@ -18,11 +19,15 @@ from backend.app.models.residual_model import (
 from backend.app.residual_model.application import (
     ResidualModelVersionNotVisibleError,
     ResidualPredictionApplicationIntegrityError,
+    ResidualReplayTrainedAuthorityError,
     execute_residual_prediction,
     execute_residual_training,
 )
+from backend.app.residual_model.canonical import canonical_payload_hash
+from backend.app.residual_model.persistence import _prediction_hash_from_result
 from backend.app.residual_model.prediction_features import build_prediction_feature_rows
 from backend.app.residual_model.schemas import (
+    ResidualPredictionExecutionResult,
     ResidualPredictionRequest,
     ResidualTrainingSampleSpec,
 )
@@ -82,6 +87,7 @@ async def _seed_eligible_prediction_fixture(
     session: AsyncSession,
     *,
     authority_at: datetime | None = None,
+    replay_training_provenance: bool = False,
 ) -> tuple[int, int, int, date, datetime]:
     season_id, factory_id, variety_id = await _seed_master_data(session)
     validation_season_id = await _seed_season(
@@ -93,6 +99,29 @@ async def _seed_eligible_prediction_fixture(
     )
     task9_run_id, output = await _persist_task9_run(session)
     as_of_date = _snapshot_as_of_date(output)
+    cutoff = datetime(2026, 2, 28, 23, 59, 59, 999999, tzinfo=UTC)
+    training_execution_context: dict[str, object] | None = None
+    if replay_training_provenance:
+        task9_run = await session.get(HarvestStateRun, task9_run_id)
+        assert task9_run is not None
+        task9_run.is_replay = True
+        task9_run.forecast_effective_cutoff_at = cutoff
+        task9_run.replay_executed_at = cutoff + timedelta(seconds=1)
+        task9_run.replay_code_version = "test-replay-v1"
+        task9_run.replay_run_correlation_id = "residual-replay-test"
+        training_execution_context = {
+            "task12_replay": {
+                "model_policy": "replay_trained_model",
+                "task12_policy_version": "test-task12-v1",
+                "replay_attempt_id": "attempt-1",
+                "replay_node_id": "node-1",
+                "scenario_id": "scenario-1",
+                "forecast_cutoff_at": cutoff.isoformat(),
+                "task9_run_id": task9_run_id,
+                "task9_result_hash": output.result_hash,
+                "is_replay": True,
+            }
+        }
     label_build = await _seed_build_run(
         session,
         build_run_id=1,
@@ -185,9 +214,10 @@ async def _seed_eligible_prediction_fixture(
             as_of_date=as_of_date,
         ),
         config=_relaxed_config(),
+        execution_context=training_execution_context,
+        typed_attempt=training_execution_context,
     )
     assert training_result.eligibility_status == "eligible"
-    cutoff = datetime(2026, 2, 28, 23, 59, 59, 999999, tzinfo=UTC)
     resolved_authority_at = authority_at or datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
     await _set_model_authority_times(
         session,
@@ -320,6 +350,10 @@ async def test_execute_residual_prediction_persists_and_reloads(
             feature_analytics_build_run_id=feature_build.id,
             supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
         ),
+        typed_attempt={
+            "existing_attempt": "preserved",
+            "model_artifact_visibility": {"mode": "caller-fake"},
+        },
     )
 
     assert prediction_run_id > 0
@@ -328,7 +362,11 @@ async def test_execute_residual_prediction_persists_and_reloads(
     assert prediction_result.task9_run_id == task9_run_id
     assert prediction_result.rows
     assert any(row.corrected_raw_p50_kg != row.structural_p50_kg for row in prediction_result.rows)
-    visibility = prediction_result.input_snapshot["model_artifact_visibility"]
+    persisted_prediction = await sqlite_session.get(ResidualModelPredictionRun, prediction_run_id)
+    assert persisted_prediction is not None
+    assert "model_artifact_visibility" not in prediction_result.input_snapshot
+    assert (persisted_prediction.typed_attempt or {})["existing_attempt"] == "preserved"
+    visibility = (persisted_prediction.typed_attempt or {})["model_artifact_visibility"]
     assert visibility["mode"] == "historically_available_model"
     assert visibility["forecast_cutoff_at"] == "2026-02-28T23:59:59.999999+00:00"
     assert visibility["training_run_finished_at"] == visibility["forecast_cutoff_at"]
@@ -337,6 +375,41 @@ async def test_execute_residual_prediction_persists_and_reloads(
         item["created_at"] == visibility["forecast_cutoff_at"]
         for item in visibility["artifact_authorities"]
     )
+
+    # Simulate a pre-correction persisted row: the audit lived in the
+    # canonical input snapshot and its historical output/payload hashes
+    # included that field.  The post-correction request must reuse it by
+    # business identity instead of raising a hash conflict.
+    legacy_input_snapshot = dict(persisted_prediction.input_snapshot)
+    legacy_input_snapshot["model_artifact_visibility"] = visibility
+    legacy_canonical_output = dict(persisted_prediction.canonical_output)
+    legacy_canonical_output["input_snapshot"] = legacy_input_snapshot
+    legacy_canonical_output["prediction_hash"] = "0" * 64
+    legacy_result = ResidualPredictionExecutionResult.model_validate(legacy_canonical_output)
+    legacy_prediction_hash = _prediction_hash_from_result(legacy_result)
+    legacy_canonical_output["prediction_hash"] = legacy_prediction_hash
+    legacy_result = ResidualPredictionExecutionResult.model_validate(legacy_canonical_output)
+    persisted_prediction.input_snapshot = canonical_json_value(legacy_input_snapshot)
+    persisted_prediction.canonical_output = canonical_json_value(legacy_canonical_output)
+    persisted_prediction.prediction_hash = legacy_prediction_hash
+    persisted_prediction.canonical_payload_hash = canonical_payload_hash(
+        canonical_json_value(legacy_result.model_dump(mode="python"))
+    )
+    await sqlite_session.commit()
+
+    same_result, same_prediction_run_id = await execute_residual_prediction(
+        sqlite_session,
+        request=ResidualPredictionRequest(
+            model_run_id=training_run_id,
+            task9_run_id=task9_run_id,
+            feature_analytics_build_run_id=feature_build.id,
+            supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+        ),
+    )
+    assert same_prediction_run_id == prediction_run_id
+    assert same_result.prediction_input_signature == prediction_result.prediction_input_signature
+    assert same_result.rows == prediction_result.rows
+    assert same_result.input_snapshot["model_artifact_visibility"] == visibility
 
 
 async def test_prediction_feature_build_uses_persisted_exact_forecast_cutoff(
@@ -992,7 +1065,10 @@ async def test_residual_prediction_allows_historically_visible_model_before_cuto
         ),
     )
 
-    visibility = prediction_result.input_snapshot["model_artifact_visibility"]
+    persisted_prediction = await sqlite_session.get(ResidualModelPredictionRun, _prediction_run_id)
+    assert persisted_prediction is not None
+    assert "model_artifact_visibility" not in prediction_result.input_snapshot
+    visibility = (persisted_prediction.typed_attempt or {})["model_artifact_visibility"]
     assert prediction_result.mode == "residual_corrected"
     assert visibility["training_run_finished_at"] < cutoff.isoformat()
     assert all(
@@ -1049,7 +1125,7 @@ async def test_residual_prediction_checks_every_artifact_for_cutoff_visibility(
     )
 
 
-async def test_residual_prediction_allows_replay_trained_artifact_after_historical_cutoff(
+async def test_residual_prediction_rejects_naked_replay_trained_bypass(
     sqlite_session: AsyncSession,
 ) -> None:
     (
@@ -1072,7 +1148,127 @@ async def test_residual_prediction_allows_replay_trained_artifact_after_historic
     )
     await sqlite_session.commit()
 
-    prediction_result, _prediction_run_id = await execute_residual_prediction(
+    with pytest.raises(ResidualReplayTrainedAuthorityError):
+        await execute_residual_prediction(
+            sqlite_session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_id,
+                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+            ),
+            model_policy="replay_trained_model",
+        )
+
+    assert (
+        await sqlite_session.scalar(
+            select(func.count())
+            .select_from(ResidualModelPredictionRun)
+            .where(ResidualModelPredictionRun.training_run_id == training_run_id)
+        )
+        == 0
+    )
+
+
+async def test_residual_prediction_rejects_fake_replay_context_for_non_replay_task9(
+    sqlite_session: AsyncSession,
+) -> None:
+    (
+        task9_run_id,
+        feature_build_id,
+        training_run_id,
+        as_of_date,
+        cutoff,
+    ) = await _seed_eligible_prediction_fixture(sqlite_session)
+    await sqlite_session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=cutoff + timedelta(seconds=1))
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualReplayTrainedAuthorityError):
+        await execute_residual_prediction(
+            sqlite_session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_id,
+                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+            ),
+            model_policy="replay_trained_model",
+            execution_context={
+                "task12_replay": {
+                    "model_policy": "replay_trained_model",
+                    "is_replay": True,
+                    "task9_run_id": task9_run_id,
+                    "task9_result_hash": "fake",
+                }
+            },
+        )
+
+
+async def test_residual_prediction_rejects_replay_without_persisted_task12_authority(
+    sqlite_session: AsyncSession,
+) -> None:
+    (
+        task9_run_id,
+        feature_build_id,
+        training_run_id,
+        as_of_date,
+        cutoff,
+    ) = await _seed_eligible_prediction_fixture(sqlite_session)
+    task9_run = await sqlite_session.get(HarvestStateRun, task9_run_id)
+    assert task9_run is not None
+    task9_run.is_replay = True
+    task9_run.forecast_effective_cutoff_at = cutoff
+    await sqlite_session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=cutoff + timedelta(seconds=1))
+    )
+    await sqlite_session.commit()
+
+    with pytest.raises(ResidualReplayTrainedAuthorityError):
+        await execute_residual_prediction(
+            sqlite_session,
+            request=ResidualPredictionRequest(
+                model_run_id=training_run_id,
+                task9_run_id=task9_run_id,
+                feature_analytics_build_run_id=feature_build_id,
+                supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
+            ),
+            model_policy="replay_trained_model",
+        )
+
+
+async def test_residual_prediction_allows_valid_persisted_replay_trained_authority(
+    sqlite_session: AsyncSession,
+) -> None:
+    (
+        task9_run_id,
+        feature_build_id,
+        training_run_id,
+        as_of_date,
+        cutoff,
+    ) = await _seed_eligible_prediction_fixture(
+        sqlite_session,
+        replay_training_provenance=True,
+    )
+    replay_created_at = cutoff + timedelta(days=1)
+    await sqlite_session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=replay_created_at)
+    )
+    await sqlite_session.execute(
+        update(ResidualModelArtifact)
+        .where(ResidualModelArtifact.training_run_id == training_run_id)
+        .values(created_at=replay_created_at)
+    )
+    await sqlite_session.commit()
+
+    prediction_result, prediction_run_id = await execute_residual_prediction(
         sqlite_session,
         request=ResidualPredictionRequest(
             model_run_id=training_run_id,
@@ -1081,14 +1277,15 @@ async def test_residual_prediction_allows_replay_trained_artifact_after_historic
             supplemental_feature_values=_supplemental_features(as_of_date=as_of_date),
         ),
         model_policy="replay_trained_model",
-        execution_context={"task12_replay": {"model_policy": "replay_trained_model"}},
     )
 
-    assert prediction_result.execution_status == "completed"
+    persisted_prediction = await sqlite_session.get(ResidualModelPredictionRun, prediction_run_id)
+    assert persisted_prediction is not None
     assert prediction_result.mode == "residual_corrected"
-    assert prediction_result.input_snapshot["model_artifact_visibility"]["mode"] == (
-        "replay_trained_model"
-    )
+    assert "model_artifact_visibility" not in prediction_result.input_snapshot
+    assert (persisted_prediction.typed_attempt or {})["model_artifact_visibility"][
+        "mode"
+    ] == "replay_trained_model"
 
 
 async def test_replay_prediction_requires_persisted_exact_forecast_cutoff(
