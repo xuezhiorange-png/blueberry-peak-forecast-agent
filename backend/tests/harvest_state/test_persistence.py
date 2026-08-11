@@ -431,7 +431,15 @@ async def test_task8_datetime_availability_round_trip_hash_is_stable(
 ) -> None:
     payload = make_request()
     available_at = datetime(2026, 2, 28, 3, 35, tzinfo=UTC)
+    quantity_by_quantile = {
+        "P50": Decimal("20.000000"),
+        "P80": Decimal("24.000000"),
+        "P90": Decimal("28.000000"),
+    }
     for item in payload["task8_daily_predictions"]:
+        item["source_ref"]["source_quantity_kg"] = quantity_by_quantile[
+            item["source_ref"]["forecast_quantile"]
+        ]
         item["source_ref"]["maturity_daily_prediction_available_at"] = available_at
         item["verification_snapshot"]["maturity_daily_prediction_available_at"] = available_at
         item["verification_snapshot"]["p50_kg"] = Decimal("20.000000")
