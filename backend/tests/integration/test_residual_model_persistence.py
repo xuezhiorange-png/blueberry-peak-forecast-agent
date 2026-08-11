@@ -8,7 +8,8 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.canonical import make_stable_cohort_key
@@ -453,6 +454,27 @@ async def _seed_prediction_fixture(
         }
 
 
+async def _set_model_authority_visible(
+    session: AsyncSession,
+    *,
+    training_run_id: int,
+) -> None:
+    """Make a synthetic trained model historically visible for prediction tests."""
+
+    authority_at = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+    await session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=authority_at)
+    )
+    await session.execute(
+        update(ResidualModelArtifact)
+        .where(ResidualModelArtifact.training_run_id == training_run_id)
+        .values(created_at=authority_at)
+    )
+    await session.commit()
+
+
 @pytest.mark.integration
 async def test_residual_model_tables_exist_after_migration_upgrade() -> None:
     _require_postgres()
@@ -574,6 +596,7 @@ async def test_postgres_execute_residual_prediction_round_trip() -> None:
             config=_relaxed_config(),
         )
         assert training_result.eligibility_status == "eligible"
+        await _set_model_authority_visible(session, training_run_id=training_run_id)
 
         prediction_result, prediction_run_id = await execute_residual_prediction(
             session,
@@ -620,6 +643,7 @@ async def test_postgres_execute_residual_prediction_structural_only_for_ineligib
             config=_config(),
         )
         assert training_result.eligibility_status == "ineligible"
+        await _set_model_authority_visible(session, training_run_id=training_run_id)
 
         prediction_result, _prediction_run_id = await execute_residual_prediction(
             session,
@@ -656,6 +680,7 @@ async def test_postgres_artifact_hash_corruption_forces_structural_only_fallback
             samples=samples,
             config=_relaxed_config(),
         )
+        await _set_model_authority_visible(session, training_run_id=training_run_id)
         await session.execute(
             text(
                 """
