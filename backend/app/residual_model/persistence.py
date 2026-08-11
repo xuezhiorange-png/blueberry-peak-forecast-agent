@@ -112,23 +112,6 @@ def _training_payload_hash(result: ResidualTrainingExecutionResult) -> str:
 
 
 def _prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
-    payload = _canonical_dump(result)
-    input_snapshot = payload.get("input_snapshot")
-    if isinstance(input_snapshot, dict):
-        # ``model_artifact_visibility`` is an audit record, not part of the
-        # frozen business prediction identity.  Keep accepting pre-correction
-        # rows that still carry it in input_snapshot while making all new
-        # canonical payload hashes independent of that metadata.
-        input_snapshot.pop("model_artifact_visibility", None)
-    # prediction_hash is derived from the prediction payload and must not
-    # recursively change the canonical payload identity.
-    payload["prediction_hash"] = None
-    return canonical_payload_hash(payload)
-
-
-def _legacy_prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
-    """Hash form used by rows written before the audit moved to typed_attempt."""
-
     return canonical_payload_hash(_canonical_dump(result))
 
 
@@ -136,14 +119,10 @@ def _prediction_payload_hash_matches_stored(
     result: ResidualPredictionExecutionResult,
     stored_hash: str,
 ) -> bool:
-    if _prediction_payload_hash(result) == stored_hash:
-        return True
-    # A legacy row is accepted only when its original, metadata-inclusive
-    # payload still verifies.  This preserves integrity while allowing the
-    # audit-only field to leave the business canonical payload.
-    if "model_artifact_visibility" not in result.input_snapshot:
-        return False
-    return _legacy_prediction_payload_hash(result) == stored_hash
+    # Every row is checked against the full payload it actually persisted.
+    # Same-signature reuse is handled separately by
+    # ``prediction_results_business_compatible`` after this integrity check.
+    return _prediction_payload_hash(result) == stored_hash
 
 
 def prediction_results_business_compatible(
@@ -1212,7 +1191,7 @@ async def save_residual_prediction_run(
             raise ResidualModelPersistenceIntegrityError(
                 "existing prediction run could not be loaded"
             )
-        if _prediction_payload_hash(loaded_existing) != payload_hash:
+        if not prediction_results_business_compatible(loaded_existing, result):
             raise ResidualModelHashConflictError(
                 "prediction signature already exists with a different canonical payload"
             )
@@ -1302,7 +1281,7 @@ async def save_residual_prediction_run(
                 raise ResidualModelPersistenceIntegrityError(
                     "existing prediction run could not be loaded after conflict"
                 ) from exc
-            if _prediction_payload_hash(loaded_existing) == payload_hash:
+            if prediction_results_business_compatible(loaded_existing, result):
                 verified = await get_residual_prediction_run(session, run_id=existing.id)
                 if verified is None:
                     raise ResidualModelPersistenceIntegrityError(
