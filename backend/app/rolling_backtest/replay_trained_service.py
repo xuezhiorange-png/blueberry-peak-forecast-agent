@@ -1540,6 +1540,12 @@ def _task12_context(
     read time rebuilds the EXACT same 31-field payload that wrote
     it.
     """
+    persisted_training_manifest_hash = training_manifest_hash or task10_manifest_hash
+    persisted_model_artifact_hash = compute_model_artifact_hash(
+        training_manifest_hash=persisted_training_manifest_hash,
+        model_config_hash=task10_config_hash,
+        model_code_version=projection.model_code_version,
+    )
     return {
         "model_policy": Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
         "task12_policy_version": projection.task12_policy_version,
@@ -1548,10 +1554,10 @@ def _task12_context(
         "scenario_id": request.scenario_id,
         "forecast_cutoff_at": _datetime_string(request.forecast_cutoff_at),
         "training_cutoff_at": _datetime_string(request.training_cutoff_at),
-        "training_manifest_hash": training_manifest_hash or projection.training_manifest_hash,
+        "training_manifest_hash": persisted_training_manifest_hash,
         "training_dataset_hash": projection.manifest.training_dataset_hash,
-        "model_config_hash": projection.model_config_hash,
-        "model_artifact_hash": projection.model_artifact_hash,
+        "model_config_hash": task10_config_hash,
+        "model_artifact_hash": persisted_model_artifact_hash,
         "model_code_version": projection.model_code_version,
         "replay_code_version": request.replay_code_version,
         "task9_run_id": request.task9_run_id,
@@ -1691,6 +1697,13 @@ def _result_payload(
     filtered_label_row_count: int,
     created: bool,
 ) -> ReplayTrainedExecutionResult:
+    persisted_training_manifest_hash = training_result.manifest_hash
+    persisted_model_config_hash = training_result.config_hash
+    persisted_model_artifact_hash = compute_model_artifact_hash(
+        training_manifest_hash=persisted_training_manifest_hash,
+        model_config_hash=persisted_model_config_hash,
+        model_code_version=projection.model_code_version,
+    )
     payload: dict[str, object] = _task12_audit_payload(
         service_version=_SERVICE_VERSION,
         model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
@@ -1698,10 +1711,10 @@ def _result_payload(
         replay_attempt_id=request.replay_attempt_id,
         replay_node_id=request.replay_node_id,
         scenario_id=request.scenario_id,
-        training_manifest_hash=projection.training_manifest_hash,
+        training_manifest_hash=persisted_training_manifest_hash,
         training_dataset_hash=projection.manifest.training_dataset_hash,
-        model_config_hash=projection.model_config_hash,
-        model_artifact_hash=projection.model_artifact_hash,
+        model_config_hash=persisted_model_config_hash,
+        model_artifact_hash=persisted_model_artifact_hash,
         model_code_version=projection.model_code_version,
         forecast_cutoff_at=_datetime_string(request.forecast_cutoff_at),
         training_cutoff_at=_datetime_string(request.training_cutoff_at),
@@ -1732,9 +1745,9 @@ def _result_payload(
         prediction_run_id=prediction_run_id,
         prediction_hash=prediction_result.prediction_hash,
         request_payload_hash=request_payload_hash,
-        training_manifest_hash=projection.training_manifest_hash,
-        model_config_hash=projection.model_config_hash,
-        model_artifact_hash=projection.model_artifact_hash,
+        training_manifest_hash=persisted_training_manifest_hash,
+        model_config_hash=persisted_model_config_hash,
+        model_artifact_hash=persisted_model_artifact_hash,
         task9_run_id=request.task9_run_id,
         task9_result_hash=request.task9_result_hash,
         filtered_training_row_count=filtered_training_row_count,
@@ -2175,6 +2188,7 @@ async def execute_replay_trained_prediction(
         persisted_projection = replace(
             projection,
             training_manifest_hash=training_result.manifest_hash,
+            model_config_hash=training_result.config_hash,
             model_artifact_hash=compute_model_artifact_hash(
                 training_manifest_hash=training_result.manifest_hash,
                 model_config_hash=training_result.config_hash,
