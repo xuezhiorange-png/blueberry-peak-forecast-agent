@@ -1,7 +1,7 @@
 {
   "artifact_id": "V0_3_S1_FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_AUDIT",
   "artifact_version": "forecast-input-pit-leakage-audit-v1",
-  "audited_repository_sha": "7b6d4e89ed528d0e9153fcfb209da16110a68e32",
+  "audited_repository_sha": "768d4f8391504eb907277611fdf99589518c0edf",
   "forecast_cutoff_rule": "SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT",
   "authoritative_historical_forecast_cutoff": "HarvestStateRun.forecast_effective_cutoff_at / exact forecast_cutoff_at",
   "current_residual_visibility_input": "persisted exact forecast cutoff for replay; legacy non-replay EOD compatibility only when persisted cutoff is absent",
@@ -11,9 +11,9 @@
   "potential_leakage_control_gap_found": true,
   "residual_model_explicit_id_required": true,
   "residual_model_latest_lookup_found": false,
-  "residual_model_historical_availability_proven": false,
-  "residual_model_authority_audit_status": "PARTIAL",
-  "post_cutoff_input_rejected_semantics": "SCOPED residual FeatureValue known_at/source_available_at checks; nested Task9 source refs use source-class local-date or exact-timestamp policies, and the composite Analytics source_cutoff is not independently enforced",
+  "residual_model_historical_availability_proven": true,
+  "residual_model_authority_audit_status": "PASS",
+  "post_cutoff_input_rejected_semantics": "SCOPED residual FeatureValue known_at/source_available_at checks plus persisted replay-trained residual authority checks; nested Task9 source refs use source-class local-date or exact-timestamp policies, and the composite Analytics source_cutoff is not independently enforced",
   "residual_local_eod_post_cutoff_rejected": true,
   "exact_forecast_cutoff_post_cutoff_rejected": false,
   "correction_r2_applied": true,
@@ -24,8 +24,8 @@
   "source_002_recent_actual_harvest_used_as_feature": false,
   "label_side_point_in_time_replay_required": false,
   "audited_input_count": 22,
-  "pass_count": 0,
-  "partial_count": 21,
+  "pass_count": 1,
+  "partial_count": 20,
   "blocked_count": 0,
   "not_used_count": 1,
   "used_source_domains": [
@@ -650,31 +650,33 @@
       "FEATURE_OR_AUTHORITY": "Residual model request, training run, and persisted artifact identity",
       "SOURCE_DOMAIN": "MODEL_AUTHORITY",
       "SOURCE_CLASS_IF_CANONICALLY_BOUND": "RESIDUAL_MODEL_ARTIFACT",
-      "CODE_PATH": "backend/app/residual_model/schemas.py:134-139; backend/app/residual_model/application.py:340-399, 401-470",
+      "CODE_PATH": "backend/app/residual_model/schemas.py:134-139; backend/app/residual_model/application.py:340-430; backend/app/residual_model/replay_training_authority.py; backend/app/rolling_backtest/replay_trained_service.py:1518-1760, 2118-2210",
       "USED_FOR_PREDICTION": true,
       "USED_FOR_TRAINING": false,
-      "FORECAST_CUTOFF_AUTHORITY": "explicit model_run_id and task9_run_id; exact forecast_cutoff_at is available but model artifact availability is not enforced",
-      "KNOWN_AT_FIELD_OR_RULE": "explicit model/training run and upstream IDs are persisted; no artifact availability timestamp",
-      "SOURCE_AVAILABLE_AT_FIELD_OR_RULE": "artifact and run identities load by explicit ID; MODEL_ARTIFACT_AVAILABLE_AT <= exact forecast_cutoff_at is not enforced",
+      "FORECAST_CUTOFF_AUTHORITY": "HarvestStateRun.forecast_effective_cutoff_at resolved as exact forecast_cutoff_at; replay Task12 context cutoff must equal the persisted Task9 authority",
+      "KNOWN_AT_FIELD_OR_RULE": "persisted replay Task12 training_cutoff_at is timezone-aware and <= exact forecast_cutoff_at; all reloaded persisted training rows and label-availability dates are bounded by that training cutoff; non-replay training/artifact timestamps are checked directly",
+      "SOURCE_AVAILABLE_AT_FIELD_OR_RULE": "persisted training-run manifest/config hashes, reloaded manifest rows, recomputed manifest hash, and recomputed Task12 dataset hash are checked; a post-cutoff replay artifact is allowed only through this persisted replay-trained authority path, not generic future artifact substitution",
       "OBSERVATION_DATE_FIELD_OR_RULE": "not applicable to model artifact identity",
-      "PIT_VISIBILITY_PREDICATE": "explicit model_run_id/task9_run_id/build_run_id must resolve; model artifact historical availability at or before exact forecast_cutoff_at remains unproven",
-      "POST_CUTOFF_INPUT_REJECTED": false,
-      "RESIDUAL_LOCAL_EOD_POST_CUTOFF_REJECTED": false,
+      "PIT_VISIBILITY_PREDICATE": "explicit model_run_id/task9_run_id/build_run_id must resolve; non-replay training/artifacts must be visible at the exact cutoff, while replay-trained execution requires persisted Task12 training/label authority at or before a training cutoff <= exact forecast_cutoff_at",
+      "POST_CUTOFF_INPUT_REJECTED": true,
+      "RESIDUAL_LOCAL_EOD_POST_CUTOFF_REJECTED": true,
       "RESIDUAL_LOCAL_EOD_POST_CUTOFF_REJECTED_APPLICABLE": false,
-      "EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED": false,
+      "EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED": true,
       "TARGET_DATE_ACTUAL_REJECTED": false,
       "TARGET_DATE_ACTUAL_REJECTED_APPLICABLE": false,
       "LATEST_OR_CURRENT_FALLBACK_ALLOWED": false,
-      "SOURCE_VERSION_OR_HASH_BINDING": "persisted model artifact hashes, training manifest hashes, explicit run IDs",
-      "PROVENANCE_BINDING": "prediction request snapshot and persisted artifact identity",
+      "SOURCE_VERSION_OR_HASH_BINDING": "persisted training-run manifest_hash/config_hash, Task12 training_dataset_hash, model_artifact_hash and artifact metadata, plus explicit model/task9 run IDs",
+      "PROVENANCE_BINDING": "typed Task12 replay context parity, persisted training-run reload, persisted manifest-row reconstruction, training/label cutoff checks, and prediction request snapshot",
       "TEST_EVIDENCE": [
         "backend/tests/residual_model/test_prediction_authority.py",
         "backend/tests/residual_model/test_prediction_application.py",
         "backend/tests/residual_model/test_forecast_cutoff.py",
-        "backend/tests/residual_model/test_visibility.py"
+        "backend/tests/residual_model/test_visibility.py",
+        "backend/tests/rolling_backtest/test_replay_trained_model_slice_e1.py",
+        "backend/tests/rolling_backtest/test_replay_trained_model_slice_e3.py"
       ],
-      "AUDIT_STATUS": "PARTIAL",
-      "BLOCK_REASON": "Model artifact historical availability at or before exact forecast_cutoff_at remains unproven."
+      "AUDIT_STATUS": "PASS",
+      "BLOCK_REASON": null
     },
     {
       "INPUT_ID": "NOT_USED.HISTORICAL_WEATHER_FORECAST",
@@ -739,14 +741,16 @@
     },
     {
       "FINDING_ID": "F-004",
-      "STATUS": "OPEN",
-      "FILE": "backend/app/residual_model/schemas.py:134-139; backend/app/residual_model/application.py:360-399",
+      "STATUS": "CLOSED",
+      "FILE": "backend/app/residual_model/schemas.py:134-139; backend/app/residual_model/application.py:340-430; backend/app/residual_model/replay_training_authority.py; backend/app/rolling_backtest/replay_trained_service.py:1518-1760, 2118-2210",
       "FUNCTION_OR_PATH": "Residual prediction request and model artifact loading",
-      "CURRENT_BEHAVIOR": "Loads explicit model_run_id, task9_run_id, and optional feature_analytics_build_run_id; no latest model lookup is used by the entrypoint.",
-      "LEAKAGE_VECTOR": "No current/latest substitution was found, but an explicitly selected model_run_id can refer to an artifact created after the historical forecast cutoff unless a separate availability authority rejects it.",
-      "REQUIRED_MINIMUM_FIX": "Keep explicit-ID loading and enforce model artifact available_at <= exact forecast_cutoff_at; ensure any future fallback remains fail-closed and provenance-visible.",
-      "TEST_REQUIRED": "Existing prediction-authority tests must continue to reject missing or mismatched explicit artifact identities; a future model_run_id must be blocked when its artifact availability is after the exact forecast cutoff.",
-      "CLOSED": false
+      "CURRENT_BEHAVIOR": "Loads explicit model_run_id and task9_run_id; non-replay training/artifact timestamps are checked against the exact cutoff, while replay-trained requests use persisted Task12 training/label authority and canonical manifest/dataset revalidation.",
+      "LEAKAGE_VECTOR": "Closed: no latest/current substitution is used; replay-trained artifacts are accepted after the forecast cutoff only through persisted replay authority whose training cutoff, persisted rows, labels, hashes, and Task9 identity are checked.",
+      "REQUIRED_MINIMUM_FIX": "Closed by merged PR #192; retain explicit-ID loading, persisted replay provenance, exact cutoff binding, and fail-closed hash/row/label checks.",
+      "TEST_REQUIRED": "Current-main replay-trained and prediction-authority regressions cover persisted manifest/config/dataset mismatch, future training rows, future label availability, and valid replay preservation.",
+      "CLOSED": true,
+      "CLOSED_BY_PR": 192,
+      "CLOSED_BY_MERGE_COMMIT": "768d4f8391504eb907277611fdf99589518c0edf"
     },
     {
       "FINDING_ID": "EXACT_FORECAST_CUTOFF_NOT_PROPAGATED_TO_RESIDUAL_VISIBILITY",
@@ -763,13 +767,16 @@
     },
     {
       "FINDING_ID": "RESIDUAL_MODEL_ARTIFACT_HISTORICAL_AVAILABILITY_NOT_ENFORCED",
-      "STATUS": "OPEN",
-      "FILE": "backend/app/residual_model/schemas.py:134-139; backend/app/residual_model/application.py:360-470",
+      "STATUS": "CLOSED",
+      "FILE": "backend/app/residual_model/schemas.py:134-139; backend/app/residual_model/application.py:340-430; backend/app/residual_model/replay_training_authority.py; backend/app/rolling_backtest/replay_trained_service.py:1518-1760, 2118-2210",
       "FUNCTION_OR_PATH": "Residual model artifact historical availability authority",
-      "CURRENT_BEHAVIOR": "The prediction path requires an explicit model_run_id and does not perform a latest-model lookup.",
-      "LEAKAGE_VECTOR": "A model artifact created after the historical forecast cutoff can be explicitly selected by model_run_id unless another upstream authority rejects it.",
-      "REQUIRED_MINIMUM_FIX": "Enforce MODEL_ARTIFACT_AVAILABLE_AT <= FORECAST_CUTOFF_AT or an equivalent historical model authority contract.",
-      "TEST_REQUIRED": "An explicit future model_run_id must be blocked."
+      "CURRENT_BEHAVIOR": "The prediction path requires an explicit model_run_id and exact Task9 cutoff; non-replay artifacts are timestamp-gated, and replay-trained execution is gated by persisted Task12 training/label authority.",
+      "LEAKAGE_VECTOR": "Closed: persisted replay manifest rows and labels are bounded by a training cutoff no later than the exact forecast cutoff, with persisted manifest/config/dataset hashes revalidated; no generic future artifact fallback is allowed.",
+      "REQUIRED_MINIMUM_FIX": "Closed by merged PR #192 through persisted replay-trained authority revalidation and retained non-replay artifact timestamp checks.",
+      "TEST_REQUIRED": "Current-main regression coverage rejects future training rows and future label availability, detects persisted manifest/config/dataset mismatch, and preserves the valid replay path.",
+      "CLOSED": true,
+      "CLOSED_BY_PR": 192,
+      "CLOSED_BY_MERGE_COMMIT": "768d4f8391504eb907277611fdf99589518c0edf"
     },
     {
       "FINDING_ID": "ANALYTICS_FACTORY_RECEIPT_TAXONOMY",
@@ -809,18 +816,18 @@
   "direct_forecast_readiness_blocker_evidenced": true,
   "implementation_gap_found": true,
   "minimum_implementation_gaps": [
-    "Enforce historical residual model artifact availability at or before the exact forecast_cutoff_at.",
     "Require weather-specific observation date and stable source/version/hash provenance.",
     "Require planning-specific as-of effective plan identity/version/hash provenance.",
     "Retain ANALYTICS_FACTORY_RECEIPT as an explicit evidence taxonomy gap until S1 source-class governance accepts it.",
     "Carry the authoritative AnalyticsBuildRun.source_cutoff into realized_cumulative_residual_to_as_of_kg or enforce an equivalent explicit Analytics-build availability predicate at or before exact forecast_cutoff_at.",
     "Reconcile Task9 upstream source-class visibility evidence across exact-timestamp Task8 and local-date ParameterSourceRef/availability-registry policies before promoting Task9-derived rows."
   ],
+  "minimum_implementation_gap_count": 5,
   "latest_or_current_fallback_findings": [
     "No explicit latest/current model fallback was found in the residual prediction entrypoint; requests load explicit model_run_id and task9_run_id.",
     "No latest/current fallback was found in the AnalyticsBuildRun feature path; absent or blocked features cause a visibility failure rather than selecting a current build.",
-    "Explicit model_run_id selection is not equivalent to historical model availability at the exact forecast cutoff; no future artifact substitution was observed, but the availability control is not enforced.",
-    "The remaining blockers are exact cutoff propagation and source-class-specific availability/provenance evidence, not an observed latest/current substitution."
+    "Explicit model_run_id selection is paired with persisted replay-trained authority revalidation; no future artifact substitution was observed, and replay training rows/labels are cutoff-bound.",
+    "The remaining blockers are source-class-specific availability/provenance evidence and mixed-policy reconciliation, not an observed latest/current substitution."
   ],
   "canonical_gate_status_changed": false,
   "gate_pass_count": 0,
@@ -843,7 +850,6 @@
     "The realized cumulative Analytics composite stamps FeatureValue.source_available_at to the forecast cutoff without enforcing AnalyticsBuildRun.source_cutoff <= that cutoff.",
     "Current residual weather supplemental inputs lack enforced weather-specific observation-date and stable source/hash binding.",
     "Current residual planning supplemental input lacks enforced as-of plan version/hash binding.",
-    "An explicitly selected residual model artifact can still be after the historical forecast cutoff unless a separate authority rejects it.",
     "ANALYTICS_FACTORY_RECEIPT source-class taxonomy remains unaccepted."
   ],
   "validation": {
@@ -851,16 +857,16 @@
     "exact_cutoff_reaudit_status": "PASS",
     "audit_row_status_sum": 22,
     "row_status_counts": {
-      "PASS": 0,
-      "PARTIAL": 21,
+      "PASS": 1,
+      "PARTIAL": 20,
       "BLOCKED": 0,
       "NOT_USED": 1
     },
     "post_cutoff_semantics_reconciled": "PASS_SCOPED",
     "targeted_test_status": "PASS",
     "targeted_test_summary": {
-      "current_main_revalidation": "80 passed",
-      "coverage": "forecast cutoff resolution, residual visibility, prediction/training feature paths, Task8 persisted availability, rolling replay Task8 authority, replay dispatch"
+      "current_main_revalidation": "91 passed",
+      "coverage": "forecast cutoff resolution, residual visibility, prediction/training feature paths, Task8 persisted availability, replay-trained persisted manifest/config/dataset authority, rolling replay Task8 authority, replay dispatch"
     },
     "production_code_changed": false,
     "test_code_changed": false,
@@ -883,8 +889,10 @@
   "residual_feature_visibility_exact_cutoff_post_cutoff_rejected": true,
   "revalidated_pr_189": true,
   "revalidated_pr_190": true,
+  "revalidated_pr_192": true,
   "pr_189_merge_commit_sha": "3cd720249ddd8e20fab65558c3ee83e57303516e",
   "pr_190_merge_commit_sha": "7b6d4e89ed528d0e9153fcfb209da16110a68e32",
+  "pr_192_merge_commit_sha": "768d4f8391504eb907277611fdf99589518c0edf",
   "task8_daily_persisted_availability_authority_proven": true,
   "task8_caller_omission_bypass_closed": true,
   "task8_post_cutoff_db_row_rejected": true,
