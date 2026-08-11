@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, cast
 
 from backend.app.harvest_state.canonical import canonical_json_value, make_source_ref_hash
 from backend.app.harvest_state.enums import BlockerCode
@@ -26,7 +26,10 @@ def source_ref_payload(source_ref: SourceRef) -> dict[str, Any]:
             # datetime as a ``Z`` string while the in-memory result hash sees
             # ``+00:00``, making a persisted Task 9 run fail on reload.
             payload["maturity_daily_prediction_available_at"] = canonical_json_value(availability)
-    return payload
+    # Persisted source-ref catalog payloads are JSON documents.  Normalize the
+    # complete payload before hashing and storing it so Decimal scale and enum
+    # representation cannot diverge between in-memory output and JSON reload.
+    return cast(dict[str, Any], canonical_json_value(payload))
 
 
 def source_ref_hash(source_ref: SourceRef) -> str:
