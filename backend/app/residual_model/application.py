@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.canonical import canonical_json_value
 from backend.app.repositories.harvest_state import get_harvest_state_run
 from backend.app.repositories.residual_model import (
     complete_residual_execution_attempt,
@@ -255,15 +256,47 @@ def _persisted_replay_context(training_run: Any) -> Mapping[str, Any]:
     return context
 
 
-def _parse_persisted_authority_timestamp(value: object) -> datetime | None:
+def _parse_persisted_authority_timestamp(
+    value: object,
+    *,
+    require_timezone_aware: bool = False,
+) -> datetime | None:
     if isinstance(value, datetime):
+        if require_timezone_aware and (value.tzinfo is None or value.utcoffset() is None):
+            return None
         return _normalize_authority_timestamp(value)
     if not isinstance(value, str) or not value:
         return None
     try:
-        return _normalize_authority_timestamp(datetime.fromisoformat(value))
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
+    if require_timezone_aware and (parsed.tzinfo is None or parsed.utcoffset() is None):
+        return None
+    return _normalize_authority_timestamp(parsed)
+
+
+def _require_persisted_replay_context_parity(
+    *,
+    training_run: Any,
+    input_snapshot_context: Mapping[str, Any],
+) -> None:
+    typed_attempt = training_run.typed_attempt
+    if not isinstance(typed_attempt, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run has no typed Task 12 provenance"
+        )
+    typed_context = typed_attempt.get("task12_replay")
+    if not isinstance(typed_context, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run typed attempt has no task12_replay provenance"
+        )
+    if canonical_json_value(dict(input_snapshot_context)) != canonical_json_value(
+        dict(typed_context)
+    ):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 input_snapshot and typed_attempt provenance differ"
+        )
 
 
 def _require_persisted_replay_authority(
@@ -279,6 +312,10 @@ def _require_persisted_replay_authority(
         )
 
     context = _persisted_replay_context(training_run)
+    _require_persisted_replay_context_parity(
+        training_run=training_run,
+        input_snapshot_context=context,
+    )
     if context.get("model_policy") != ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL.value:
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 provenance does not identify replay_trained_model"
@@ -299,6 +336,26 @@ def _require_persisted_replay_authority(
     if persisted_cutoff_at != forecast_cutoff_at:
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 forecast cutoff does not match Task 9 authority"
+        )
+    training_cutoff_at = _parse_persisted_authority_timestamp(
+        context.get("training_cutoff_at"),
+        require_timezone_aware=True,
+    )
+    if training_cutoff_at is None:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 training cutoff is missing or not timezone-aware"
+        )
+    if training_cutoff_at > forecast_cutoff_at:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 training cutoff is after the forecast cutoff"
+        )
+    if context.get("task10_manifest_hash") != training_run.manifest_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 manifest hash does not match the training run"
+        )
+    if context.get("task10_config_hash") != training_run.config_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 config hash does not match the training run"
         )
     for field in ("task12_policy_version", "replay_attempt_id", "replay_node_id", "scenario_id"):
         value = context.get(field)

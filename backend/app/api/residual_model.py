@@ -72,6 +72,7 @@ from backend.app.residual_model.persistence import (
     ResidualModelPersistenceIntegrityError,
     load_residual_prediction_run_by_id,
     load_residual_training_run_by_id,
+    prediction_results_business_compatible,
     save_residual_prediction_run,
     save_residual_training_run,
 )
@@ -1047,9 +1048,6 @@ async def post_prediction_run(
         # The persistence layer also handles this, but pre-checking here
         # gives cleaner status code mapping (200 for replay vs 409 for
         # conflict) and avoids round-tripping through persistence.
-        from backend.app.residual_model.persistence import _prediction_payload_hash
-
-        expected_payload_hash = _prediction_payload_hash(result)
         prior_run = await get_residual_prediction_run_by_input_signature(
             session,
             prediction_input_signature=result.prediction_input_signature,
@@ -1057,8 +1055,7 @@ async def post_prediction_run(
         if prior_run is not None:
             loaded_prior = await load_residual_prediction_run_by_id(session, run_id=prior_run.id)
             if loaded_prior is not None:
-                prior_payload_hash = _prediction_payload_hash(loaded_prior)
-                if prior_payload_hash == expected_payload_hash:
+                if prediction_results_business_compatible(loaded_prior, result):
                     # True replay → return 200 with existing envelope
                     envelope = _prediction_envelope_from_orm(prior_run)
                     return Response(
