@@ -112,7 +112,60 @@ def _training_payload_hash(result: ResidualTrainingExecutionResult) -> str:
 
 
 def _prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
+    payload = _canonical_dump(result)
+    input_snapshot = payload.get("input_snapshot")
+    if isinstance(input_snapshot, dict):
+        # ``model_artifact_visibility`` is an audit record, not part of the
+        # frozen business prediction identity.  Keep accepting pre-correction
+        # rows that still carry it in input_snapshot while making all new
+        # canonical payload hashes independent of that metadata.
+        input_snapshot.pop("model_artifact_visibility", None)
+    # prediction_hash is derived from the prediction payload and must not
+    # recursively change the canonical payload identity.
+    payload["prediction_hash"] = None
+    return canonical_payload_hash(payload)
+
+
+def _legacy_prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
+    """Hash form used by rows written before the audit moved to typed_attempt."""
+
     return canonical_payload_hash(_canonical_dump(result))
+
+
+def _prediction_payload_hash_matches_stored(
+    result: ResidualPredictionExecutionResult,
+    stored_hash: str,
+) -> bool:
+    if _prediction_payload_hash(result) == stored_hash:
+        return True
+    # A legacy row is accepted only when its original, metadata-inclusive
+    # payload still verifies.  This preserves integrity while allowing the
+    # audit-only field to leave the business canonical payload.
+    if "model_artifact_visibility" not in result.input_snapshot:
+        return False
+    return _legacy_prediction_payload_hash(result) == stored_hash
+
+
+def prediction_results_business_compatible(
+    left: ResidualPredictionExecutionResult,
+    right: ResidualPredictionExecutionResult,
+) -> bool:
+    """Compare prediction results without non-canonical audit metadata.
+
+    Legacy rows retain their historical output hash, which was derived while
+    the audit lived in input_snapshot.  The hash itself is therefore omitted
+    from this compatibility comparison; load-time integrity checks validate
+    each stored hash independently.
+    """
+
+    left_payload = _canonical_dump(left)
+    right_payload = _canonical_dump(right)
+    for payload in (left_payload, right_payload):
+        input_snapshot = payload.get("input_snapshot")
+        if isinstance(input_snapshot, dict):
+            input_snapshot.pop("model_artifact_visibility", None)
+        payload["prediction_hash"] = None
+    return left_payload == right_payload
 
 
 def _prediction_input_signature(result: ResidualPredictionExecutionResult) -> str:
@@ -1478,7 +1531,7 @@ async def load_residual_prediction_run_by_id(
     )
     if prediction_parent_payload_from_columns(run) != loaded_parent_payload:
         raise ResidualModelPersistenceIntegrityError("prediction parent payload mismatch")
-    if _prediction_payload_hash(loaded) != run.canonical_payload_hash:
+    if not _prediction_payload_hash_matches_stored(loaded, run.canonical_payload_hash):
         raise ResidualModelPersistenceIntegrityError("prediction canonical payload hash mismatch")
     if _prediction_input_signature(loaded) != run.prediction_input_signature:
         raise ResidualModelPersistenceIntegrityError("prediction input signature mismatch")

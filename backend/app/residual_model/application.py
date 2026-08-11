@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
@@ -36,6 +37,7 @@ from backend.app.residual_model.persistence import (
     load_residual_prediction_run_by_id,
     load_residual_training_artifacts,
     load_residual_training_run_by_id,
+    prediction_results_business_compatible,
     save_residual_prediction_run,
     save_residual_training_run,
 )
@@ -73,6 +75,15 @@ class ResidualModelVersionNotVisibleError(ResidualPredictionApplicationIntegrity
     """Raised when a persisted residual model is not visible at the forecast cutoff."""
 
     code = "MODEL_VERSION_NOT_VISIBLE"
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(f"{self.code}: {detail}")
+
+
+class ResidualReplayTrainedAuthorityError(ResidualPredictionApplicationIntegrityError):
+    """Raised when replay-trained exemption lacks persisted Task 12 authority."""
+
+    code = "REPLAY_TRAINED_AUTHORITY_NOT_PERSISTED"
 
     def __init__(self, detail: str) -> None:
         super().__init__(f"{self.code}: {detail}")
@@ -230,6 +241,73 @@ def _resolve_model_authority_mode(
         ) from exc
 
 
+def _persisted_replay_context(training_run: Any) -> Mapping[str, Any]:
+    snapshot = training_run.input_snapshot
+    if not isinstance(snapshot, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training input_snapshot is not an object"
+        )
+    context = snapshot.get("task12_replay")
+    if not isinstance(context, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run has no task12_replay provenance"
+        )
+    return context
+
+
+def _parse_persisted_authority_timestamp(value: object) -> datetime | None:
+    if isinstance(value, datetime):
+        return _normalize_authority_timestamp(value)
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return _normalize_authority_timestamp(datetime.fromisoformat(value))
+    except ValueError:
+        return None
+
+
+def _require_persisted_replay_authority(
+    *,
+    training_run: Any,
+    task9_run: Any,
+    task9_run_id: int,
+    forecast_cutoff_at: datetime,
+) -> None:
+    if task9_run.is_replay is not True:
+        raise ResidualReplayTrainedAuthorityError(
+            "replay-trained exemption requires a persisted replay Task 9 run"
+        )
+
+    context = _persisted_replay_context(training_run)
+    if context.get("model_policy") != ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL.value:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance does not identify replay_trained_model"
+        )
+    if context.get("is_replay") is not True:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance is not marked as replay"
+        )
+    if context.get("task9_run_id") != task9_run_id:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance is bound to a different Task 9 run"
+        )
+    if context.get("task9_result_hash") != task9_run.result_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance is bound to a different Task 9 result"
+        )
+    persisted_cutoff_at = _parse_persisted_authority_timestamp(context.get("forecast_cutoff_at"))
+    if persisted_cutoff_at != forecast_cutoff_at:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 forecast cutoff does not match Task 9 authority"
+        )
+    for field in ("task12_policy_version", "replay_attempt_id", "replay_node_id", "scenario_id"):
+        value = context.get(field)
+        if not isinstance(value, str) or not value:
+            raise ResidualReplayTrainedAuthorityError(
+                f"persisted Task 12 provenance is missing {field}"
+            )
+
+
 async def _resolve_residual_model_visibility(
     session: AsyncSession,
     *,
@@ -252,6 +330,14 @@ async def _resolve_residual_model_visibility(
         )
     except ForecastCutoffResolutionError as exc:
         raise ResidualPredictionApplicationIntegrityError(str(exc)) from exc
+
+    if model_policy is ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL:
+        _require_persisted_replay_authority(
+            training_run=training_run,
+            task9_run=task9_run,
+            task9_run_id=task9_run_id,
+            forecast_cutoff_at=forecast_cutoff_at,
+        )
 
     try:
         artifact_rows = (
@@ -298,7 +384,6 @@ def _prediction_input_snapshot(
     feature_audits: list[FeatureVisibilityAudit],
     artifact_hashes: list[str],
     feature_rows: list[tuple[FeatureValue, ...]],
-    model_artifact_visibility: dict[str, Any],
     execution_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     snapshot = {
@@ -317,15 +402,17 @@ def _prediction_input_snapshot(
         "feature_schema_hash": feature_schema_hash,
         "config_hash": config_hash,
         "artifact_hashes": artifact_hashes,
-        "model_artifact_visibility": model_artifact_visibility,
         "projection_version": config_snapshot["projection"]["version"],
         "fallback_policy": config_snapshot["categorical_encoding"]["unknown_policy"],
     }
     if execution_context:
-        snapshot.update(execution_context)
-    # This is DB-derived authority evidence. A caller-owned execution context
-    # must not be able to overwrite it with a claimed availability timestamp.
-    snapshot["model_artifact_visibility"] = model_artifact_visibility
+        snapshot.update(
+            {
+                key: value
+                for key, value in execution_context.items()
+                if key != "model_artifact_visibility"
+            }
+        )
     return snapshot
 
 
@@ -639,6 +726,11 @@ async def execute_residual_prediction(
                 for artifact in artifact_rows
             ],
         }
+        prediction_typed_attempt = dict(typed_attempt or {})
+        # This audit evidence is DB-derived and intentionally lives outside
+        # the canonical prediction input identity.  Caller-supplied metadata
+        # cannot override the authority snapshot.
+        prediction_typed_attempt["model_artifact_visibility"] = model_artifact_visibility
         input_snapshot = _prediction_input_snapshot(
             request=request,
             training_signature=training_run_row.training_signature,
@@ -652,7 +744,6 @@ async def execute_residual_prediction(
             feature_audits=feature_audits,
             artifact_hashes=artifact_hashes,
             feature_rows=feature_rows,
-            model_artifact_visibility=model_artifact_visibility,
             execution_context=execution_context,
         ) | {
             "task9_result_hash": task9_output.result_hash,
@@ -711,7 +802,7 @@ async def execute_residual_prediction(
             feature_schema_version=training_run_row.feature_schema_version,
             feature_schema_hash=training_run_row.feature_schema_hash,
             artifact_hashes=artifact_hashes,
-            typed_attempt=typed_attempt,
+            typed_attempt=prediction_typed_attempt,
         )
         current_stage = "reload_integrity"
         await _update_attempt_stage(
@@ -724,7 +815,7 @@ async def execute_residual_prediction(
             raise ResidualPredictionApplicationIntegrityError(
                 "Residual prediction run was saved but could not be reloaded"
             )
-        if loaded.model_dump(mode="json") != result.model_dump(mode="json"):
+        if not prediction_results_business_compatible(loaded, result):
             raise ResidualPredictionApplicationIntegrityError(
                 "Reloaded residual prediction run failed parity checks"
             )
