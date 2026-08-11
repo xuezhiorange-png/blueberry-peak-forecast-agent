@@ -492,6 +492,7 @@ def test_orchestrate_replay_node_invokes_audit_then_task9_then_metadata() -> Non
     forbidden (§3 rule #1).
     """
     call_order: list[str] = []
+    task9_kwargs: dict[str, Any] = {}
 
     async def _audit(**_kwargs: Any) -> list[Any]:
         call_order.append("audit")
@@ -500,14 +501,16 @@ def test_orchestrate_replay_node_invokes_audit_then_task9_then_metadata() -> Non
     class _Envelope:
         run_id = 4242
 
-    async def _task9(**_kwargs: Any) -> _Envelope:
+    async def _task9(**kwargs: Any) -> _Envelope:
         call_order.append("task9")
+        task9_kwargs.update(kwargs)
         return _Envelope()
 
     async def _metadata(**_kwargs: Any) -> Any:
         call_order.append("metadata")
         return MagicMock()
 
+    node = _node()
     with (
         patch(
             "backend.app.rolling_backtest.replay_pipeline.write_replay_source_visibility_audit",
@@ -526,7 +529,7 @@ def test_orchestrate_replay_node_invokes_audit_then_task9_then_metadata() -> Non
             orchestrate_replay_node(
                 session=cast(AsyncSession, _FakeSession()),
                 config=_config(),
-                node=_node(),
+                node=node,
                 task9a_request={"_marker": True},
                 code_version="task-11-phase3-amendment@abcdef0",
                 replay_correlation_id="d" * 32,
@@ -539,6 +542,8 @@ def test_orchestrate_replay_node_invokes_audit_then_task9_then_metadata() -> Non
     assert outcome.audit_row_count == 1, "audit_row_count mirrors identities"
     assert outcome.replay_correlation_id == "d" * 32
     assert outcome.code_version == "task-11-phase3-amendment@abcdef0"
+    assert task9_kwargs["require_persisted_task8_availability"] is True
+    assert task9_kwargs["forecast_cutoff_at"] == node.forecast_cutoff_at
 
 
 def test_orchestrate_replay_node_does_not_call_run_harvest_state_model() -> None:
