@@ -1040,10 +1040,16 @@ async def test_task8_task9_application_binds_persisted_daily_created_at() -> Non
             }
         }
         assert all(row is not None for row in persisted_by_id.values())
+        source_ref_by_hash = {
+            entry.source_ref_hash: entry.source_ref_payload
+            for entry in envelope.output.source_ref_catalog
+        }
         for item in envelope.output.input_snapshot["task8_daily_predictions"]:
-            row = persisted_by_id[item["source_ref"]["maturity_daily_prediction_id"]]
+            source_ref = source_ref_by_hash[item["source_ref_hash"]]
+            daily_prediction_id = item["verification_snapshot"]["maturity_daily_prediction_id"]
+            row = persisted_by_id[daily_prediction_id]
             assert row is not None
-            source_available_at = item["source_ref"]["maturity_daily_prediction_available_at"]
+            source_available_at = source_ref["maturity_daily_prediction_available_at"]
             verification_available_at = item["verification_snapshot"][
                 "maturity_daily_prediction_available_at"
             ]
