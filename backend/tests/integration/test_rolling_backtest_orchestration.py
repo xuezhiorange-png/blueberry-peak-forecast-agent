@@ -6,6 +6,7 @@ Requires PostgreSQL with RUN_POSTGRES_INTEGRATION=1 and APP_ENV=test.
 from __future__ import annotations
 
 import asyncio
+import copy
 import os
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -19,6 +20,10 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError as SAIntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.application import (
+    HarvestStateDeliveryInputError,
+    execute_harvest_state_run,
+)
 from backend.app.models.analytics import AnalyticsBuildRun
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
@@ -104,7 +109,10 @@ from backend.app.rolling_backtest.schemas import (
     UpstreamSemanticIdentityPayload,
 )
 from backend.tests.harvest_state.conftest import make_request
-from backend.tests.integration.test_residual_model_persistence import _seed_prediction_fixture
+from backend.tests.integration.test_residual_model_persistence import (
+    _apply_task8_authority_to_payload,
+    _seed_prediction_fixture,
+)
 from backend.tests.residual_model.test_training_manifest import (
     _config as _residual_config,
 )
@@ -624,9 +632,9 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             root_rows.append(
                 Season(
                     id=season_id,
-                    code=f"season-{season_id}",
+                    code=str(season_id),
                     start_date=date(season_id, 1, 1),
-                    end_date=date(season_id, 12, 31),
+                    end_date=date(season_id, 4, 30),
                 )
             )
         else:
@@ -951,39 +959,172 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             )
             await session.flush()
         await session.commit()
+
+        # Re-load every authority-bearing row after commit.  The returned
+        # contract must reflect persisted database values, not the constants
+        # used to seed the fixture, so the production assembly test exercises
+        # the same identity/value boundary as a real caller.
+        persisted_plan = await session.get(FarmSeasonVarietyPlan, 501)
+        persisted_model_run = await session.get(MaturityModelRun, 101)
+        persisted_model_artifact = await session.get(MaturityModelArtifact, 201)
+        persisted_forecast_run = await session.get(MaturityForecastRun, 401)
+        assert persisted_plan is not None
+        assert persisted_model_run is not None
+        assert persisted_model_artifact is not None
+        assert persisted_forecast_run is not None
+        assert persisted_model_artifact.run_id == persisted_model_run.id
+        assert persisted_forecast_run.model_run_id == persisted_model_run.id
+        assert persisted_forecast_run.artifact_id == persisted_model_artifact.id
+
+        persisted_daily_predictions: dict[date, dict[str, Any]] = {}
+        for prediction_date, daily_id in sorted(daily_ids_by_date.items()):
+            persisted_daily = await session.get(MaturityDailyPredictionModel, daily_id)
+            assert persisted_daily is not None
+            assert persisted_daily.forecast_run_id == persisted_forecast_run.id
+            assert persisted_daily.prediction_date == prediction_date
+            persisted_daily_predictions[prediction_date] = {
+                "id": persisted_daily.id,
+                "p50_kg": persisted_daily.p50_kg,
+                "p80_kg": persisted_daily.p80_kg,
+                "p90_kg": persisted_daily.p90_kg,
+                "created_at": persisted_daily.created_at,
+            }
+
+        authority = {
+            "season_id": persisted_plan.season_id,
+            "farm_id": persisted_plan.farm_id,
+            "subfarm_id": persisted_plan.subfarm_id,
+            "variety_id": persisted_plan.variety_id,
+            "plan_id": persisted_plan.id,
+            "location_reference_id": persisted_forecast_run.location_reference_id,
+            "weather_mapping_id": persisted_forecast_run.weather_mapping_id,
+            "base_temperature_search_run_id": persisted_forecast_run.base_temperature_search_run_id,
+            "model_run_id": persisted_model_run.id,
+            "model_version": persisted_model_run.model_version,
+            "model_config_hash": persisted_model_run.config_hash,
+            "model_source_signature": persisted_model_run.source_signature,
+            "artifact_id": persisted_model_artifact.id,
+            "artifact_run_id": persisted_model_artifact.run_id,
+            "artifact_hash": persisted_model_artifact.artifact_hash,
+            "forecast_run_id": persisted_forecast_run.id,
+            "forecast_run_status": persisted_forecast_run.status,
+            "forecast_source_signature": persisted_forecast_run.source_signature,
+            "forecast_as_of_date": persisted_forecast_run.as_of_date,
+            "prediction_start_date": persisted_forecast_run.prediction_start_date,
+            "prediction_end_date": persisted_forecast_run.prediction_end_date,
+            "daily_predictions_by_date": persisted_daily_predictions,
+        }
         # Explicit close so the connection returns to the pool fully
         # reset. See the comment in _seed_real_task10_authorities.
         await session.close()
 
-    return {
-        "season_id": season_id,
-        "farm_id": 1,
-        "subfarm_id": 11,
-        "variety_id": 101,
-        "plan_id": 501,
-        "location_reference_id": 601,
-        "weather_mapping_id": 801,
-        "base_temperature_search_run_id": 901,
-        "model_run_id": 101,
-        "model_version": "task8-v1",
-        "artifact_id": 201,
-        "artifact_run_id": 101,
-        "forecast_run_id": 401,
-        "forecast_run_status": "completed",
-        "forecast_as_of_date": date(season_id, 2, 28),
-        "prediction_start_date": date(season_id, 3, 1),
-        "prediction_end_date": date(season_id, 3, 3),
-        "daily_predictions_by_date": {
-            prediction_date: {
-                "id": daily_id,
-                "p50_kg": Decimal("20"),
-                "p80_kg": Decimal("24"),
-                "p90_kg": Decimal("28"),
-                "created_at": datetime(season_id, 2, 28, 3, 35, tzinfo=UTC),
+    return authority
+
+
+@pytest.mark.integration
+async def test_task8_task9_application_binds_persisted_daily_created_at() -> None:
+    """The production Task 9 entry point must bind Task 8 availability to DB authority."""
+    _require_postgres()
+    season_id = 2098
+    task8_authority = await _seed_real_task8_authorities(season_id=season_id)
+    payload = make_request(season_id=season_id)
+    _apply_task8_authority_to_payload(payload, task8_authority)
+
+    async with AsyncSessionMaker() as session:
+        envelope = await execute_harvest_state_run(session, request=payload)
+        persisted_by_id = {
+            row_id: await session.get(MaturityDailyPredictionModel, row_id)
+            for row_id in {
+                item["source_ref"]["maturity_daily_prediction_id"]
+                for item in payload["task8_daily_predictions"]
             }
-            for prediction_date, daily_id in sorted(daily_ids_by_date.items())
-        },
-    }
+        }
+        assert all(row is not None for row in persisted_by_id.values())
+        source_ref_by_hash = {
+            entry.source_ref_hash: entry.source_ref_payload
+            for entry in envelope.output.source_ref_catalog
+        }
+        for item in envelope.output.input_snapshot["task8_daily_predictions"]:
+            source_ref = source_ref_by_hash[item["source_ref_hash"]]
+            daily_prediction_id = item["verification_snapshot"]["maturity_daily_prediction_id"]
+            row = persisted_by_id[daily_prediction_id]
+            assert row is not None
+            source_available_at = source_ref["maturity_daily_prediction_available_at"]
+            verification_available_at = item["verification_snapshot"][
+                "maturity_daily_prediction_available_at"
+            ]
+            if isinstance(source_available_at, str):
+                source_available_at = datetime.fromisoformat(source_available_at)
+            if isinstance(verification_available_at, str):
+                verification_available_at = datetime.fromisoformat(verification_available_at)
+            assert source_available_at == row.created_at
+            assert verification_available_at == row.created_at
+
+        tampered_payload = copy.deepcopy(payload)
+        tampered_prediction = tampered_payload["task8_daily_predictions"][0]
+        tampered_at = tampered_prediction["source_ref"][
+            "maturity_daily_prediction_available_at"
+        ] - timedelta(minutes=1)
+        tampered_prediction["source_ref"]["maturity_daily_prediction_available_at"] = tampered_at
+        tampered_prediction["verification_snapshot"]["maturity_daily_prediction_available_at"] = (
+            tampered_at
+        )
+
+        with pytest.raises(HarvestStateDeliveryInputError):
+            await execute_harvest_state_run(session, request=tampered_payload)
+
+
+@pytest.mark.integration
+async def test_task8_task9_exact_replay_injects_omitted_persisted_daily_created_at() -> None:
+    """Exact replay cannot bypass Task 8 DB availability by omitting caller fields."""
+    _require_postgres()
+    season_id = 2099
+    task8_authority = await _seed_real_task8_authorities(season_id=season_id)
+    payload = make_request(season_id=season_id)
+    _apply_task8_authority_to_payload(
+        payload,
+        task8_authority,
+        include_availability=False,
+    )
+    assert all(
+        item["source_ref"].get("maturity_daily_prediction_available_at") is None
+        and item["verification_snapshot"].get("maturity_daily_prediction_available_at") is None
+        for item in payload["task8_daily_predictions"]
+    )
+
+    expected_created_at = next(iter(task8_authority["daily_predictions_by_date"].values()))[
+        "created_at"
+    ]
+    async with AsyncSessionMaker() as session:
+        envelope = await execute_harvest_state_run(
+            session,
+            request=payload,
+            require_persisted_task8_availability=True,
+            forecast_cutoff_at=expected_created_at,
+        )
+        source_ref_by_hash = {
+            entry.source_ref_hash: entry.source_ref_payload
+            for entry in envelope.output.source_ref_catalog
+        }
+        for item in envelope.output.input_snapshot["task8_daily_predictions"]:
+            source_ref = source_ref_by_hash[item["source_ref_hash"]]
+            verification = item["verification_snapshot"]
+            source_available_at = source_ref["maturity_daily_prediction_available_at"]
+            verification_available_at = verification["maturity_daily_prediction_available_at"]
+            if isinstance(source_available_at, str):
+                source_available_at = datetime.fromisoformat(source_available_at)
+            if isinstance(verification_available_at, str):
+                verification_available_at = datetime.fromisoformat(verification_available_at)
+            assert source_available_at == expected_created_at
+            assert verification_available_at == expected_created_at
+
+        with pytest.raises(HarvestStateDeliveryInputError):
+            await execute_harvest_state_run(
+                session,
+                request=payload,
+                require_persisted_task8_availability=True,
+                forecast_cutoff_at=expected_created_at - timedelta(seconds=1),
+            )
 
 
 async def _seed_real_task10_authorities(

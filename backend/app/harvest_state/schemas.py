@@ -123,6 +123,11 @@ class Task8PredictionSourceRef(_BaseModel):
     maturity_forecast_run_id: int
     maturity_forecast_source_signature: str = Field(min_length=1)
     maturity_forecast_as_of_date: date
+    # The persisted MaturityDailyPredictionModel.created_at timestamp is the
+    # authoritative availability boundary for exact-cutoff replay.  It is
+    # optional only for legacy/non-replay requests that predate this evidence;
+    # replay loaders fail closed when it is absent.
+    maturity_daily_prediction_available_at: datetime | None = None
     maturity_daily_prediction_id: int
     prediction_date: date
     forecast_quantile: ForecastQuantile
@@ -148,6 +153,8 @@ class Task8PredictionVerificationSnapshot(_BaseModel):
     maturity_forecast_artifact_id: int
     maturity_forecast_source_signature: str = Field(min_length=1)
     maturity_forecast_as_of_date: date
+    # Exact persisted availability of the referenced daily prediction row.
+    maturity_daily_prediction_available_at: datetime | None = None
     maturity_forecast_prediction_start_date: date
     maturity_forecast_prediction_end_date: date
     maturity_daily_prediction_id: int

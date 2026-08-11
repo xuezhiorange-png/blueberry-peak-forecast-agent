@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, cast
 
 from backend.app.harvest_state.canonical import canonical_json_value, make_source_ref_hash
 from backend.app.harvest_state.enums import BlockerCode
@@ -11,7 +11,25 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def source_ref_payload(source_ref: SourceRef) -> dict[str, Any]:
-    return source_ref.model_dump(mode="python")
+    payload = source_ref.model_dump(mode="python")
+    # Legacy/non-replay Task 9 requests may not carry the newly introduced
+    # exact Task 8 availability evidence.  Do not change their historical
+    # source-ref hashes; when populated, the persisted timestamp remains in
+    # the canonical payload and therefore in the hash.
+    if payload.get("source_ref_type") == "TASK8_DAILY_PREDICTION":
+        availability = payload.get("maturity_daily_prediction_available_at")
+        if availability is None:
+            payload.pop("maturity_daily_prediction_available_at", None)
+        else:
+            # Keep the nested catalog payload in the same canonical JSON form
+            # used by persistence.  Otherwise mode="json" stores this
+            # datetime as a ``Z`` string while the in-memory result hash sees
+            # ``+00:00``, making a persisted Task 9 run fail on reload.
+            payload["maturity_daily_prediction_available_at"] = canonical_json_value(availability)
+    # Persisted source-ref catalog payloads are JSON documents.  Normalize the
+    # complete payload before hashing and storing it so Decimal scale and enum
+    # representation cannot diverge between in-memory output and JSON reload.
+    return cast(dict[str, Any], canonical_json_value(payload))
 
 
 def source_ref_hash(source_ref: SourceRef) -> str:

@@ -423,6 +423,29 @@ def _coerce_persisted_date(value: Any, *, field_name: str) -> date:
     )
 
 
+def _coerce_persisted_datetime(value: Any, *, field_name: str) -> datetime:
+    """Parse an exact persisted authority timestamp without a fallback."""
+
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise Task9Task8AuthorityMismatchError(
+                f"Task 9 verification snapshot {field_name} is not a valid ISO datetime"
+            ) from exc
+    else:
+        raise Task9Task8AuthorityMismatchError(
+            f"Task 9 verification snapshot {field_name} is not a persisted datetime"
+        )
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise Task9Task8AuthorityMismatchError(
+            f"Task 9 verification snapshot {field_name} must be timezone-aware"
+        )
+    return parsed
+
+
 def _local_midnight(value: Any, timezone_name: str) -> datetime:
     if not hasattr(value, "year") or not hasattr(value, "month") or not hasattr(value, "day"):
         raise PinnedSourceIdentityMismatchError(
@@ -527,6 +550,7 @@ async def _verify_task8_daily_exact_set(
     pinned_daily_inputs: tuple[ResolvedInputOutcome, ...],
     task9_snapshot_rows: list[dict[str, Any]],
     source_ref_payload_by_hash: dict[str, dict[str, Any]],
+    forecast_cutoff_at: datetime | None = None,
 ) -> _Task8DailyExactSet:
     task9_rows_by_date: dict[date, list[dict[str, Any]]] = {}
     task9_date_to_id: dict[date, int] = {}
@@ -546,6 +570,20 @@ async def _verify_task8_daily_exact_set(
             verification.get("prediction_date"),
             field_name="prediction_date",
         )
+        available_at_raw = verification.get("maturity_daily_prediction_available_at")
+        available_at = (
+            None
+            if available_at_raw is None
+            else _coerce_persisted_datetime(
+                available_at_raw,
+                field_name="maturity_daily_prediction_available_at",
+            )
+        )
+        if forecast_cutoff_at is not None and available_at is None:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 9 verification snapshot is missing the persisted Task 8 daily "
+                "prediction availability timestamp"
+            )
         daily_id = verification.get("maturity_daily_prediction_id")
         if not isinstance(daily_id, int):
             raise Task9Task8AuthorityMismatchError(
@@ -582,6 +620,7 @@ async def _verify_task8_daily_exact_set(
                 "verification_snapshot": verification,
                 "forecast_quantile": forecast_quantile,
                 "daily_id": daily_id,
+                "available_at": available_at,
             }
         )
         task9_daily_ids.add(daily_id)
@@ -659,6 +698,36 @@ async def _verify_task8_daily_exact_set(
         raise Task9Task8AuthorityMismatchError(
             "Pinned Task 8 daily prediction date-to-daily mapping does not match database rows"
         )
+
+    # In exact replay, the timestamp in Task 9's persisted verification
+    # evidence must be the actual MaturityDailyPredictionModel.created_at,
+    # and the persisted row itself must be visible at the exact cutoff.  The
+    # parent forecast-run timestamp is intentionally not used for this check.
+    for prediction_date, rows in task9_rows_by_date.items():
+        recorded_available_at_values = [cast(datetime | None, row["available_at"]) for row in rows]
+        if forecast_cutoff_at is None and all(
+            value is None for value in recorded_available_at_values
+        ):
+            # Legacy/non-replay envelopes predate the exact timestamp field.
+            # They retain their existing compatibility path; exact replay
+            # always passes a cutoff and therefore cannot take this branch.
+            continue
+        persisted_available_at = _coerce_persisted_datetime(
+            db_rows_by_date[prediction_date].created_at,
+            field_name="maturity_daily_prediction.created_at",
+        )
+        if forecast_cutoff_at is not None and persisted_available_at > forecast_cutoff_at:
+            raise Task9Task8AuthorityMismatchError(
+                "Task 8 daily prediction is not visible at the exact forecast cutoff"
+            )
+        for recorded_available_at in recorded_available_at_values:
+            if recorded_available_at is None:
+                continue
+            if recorded_available_at != persisted_available_at:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 verification snapshot Task 8 availability timestamp "
+                    "does not match persisted MaturityDailyPredictionModel.created_at"
+                )
 
     return _Task8DailyExactSet(
         target_dates=target_dates,
@@ -1657,6 +1726,7 @@ async def _resolve_task9_reuse(
             pinned_daily_inputs=pinned_daily_inputs,
             task9_snapshot_rows=task8_snapshot_rows,
             source_ref_payload_by_hash=source_ref_payload_by_hash,
+            forecast_cutoff_at=node.forecast_cutoff_at,
         )
         if not (
             exact_daily_set.db_daily_ids
@@ -1682,6 +1752,19 @@ async def _resolve_task9_reuse(
             if not isinstance(source_ref_payload, dict):
                 raise Task9Task8AuthorityMismatchError(
                     "Task 9 source_ref_hash is missing from source_ref_catalog"
+                )
+            verification_available_at = _coerce_persisted_datetime(
+                verification.get("maturity_daily_prediction_available_at"),
+                field_name="maturity_daily_prediction_available_at",
+            )
+            source_ref_available_at = _coerce_persisted_datetime(
+                source_ref_payload.get("maturity_daily_prediction_available_at"),
+                field_name="maturity_daily_prediction_available_at",
+            )
+            if source_ref_available_at != verification_available_at:
+                raise Task9Task8AuthorityMismatchError(
+                    "Task 9 source_ref and verification snapshot Task 8 availability "
+                    "timestamps do not match"
                 )
             prediction_date = _coerce_persisted_date(
                 verification.get("prediction_date"),

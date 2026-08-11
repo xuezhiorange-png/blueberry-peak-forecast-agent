@@ -790,6 +790,7 @@ async def _query_task8_daily_prediction_candidates(
         )
         .where(MaturityForecastRun.status.in_(["completed", "unavailable"]))
         .where(MaturityForecastRun.finished_at <= node.forecast_cutoff_at)
+        .where(MaturityDailyPredictionModel.created_at <= node.forecast_cutoff_at)
         .where(MaturityDailyPredictionModel.prediction_date >= node.forecast_start_local_date)
         .where(MaturityDailyPredictionModel.prediction_date <= node.forecast_end_local_date)
         .order_by(MaturityDailyPredictionModel.created_at.desc().nullslast())

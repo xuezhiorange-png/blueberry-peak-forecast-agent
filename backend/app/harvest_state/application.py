@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.harvest_state.authority_request_errors import Task9AuthorityRequestAssemblyError
+from backend.app.harvest_state.authority_request_loader import (
+    bind_task8_daily_prediction_availability_from_persisted_rows,
+)
 from backend.app.harvest_state.canonical import canonical_json_dumps, is_sha256_hex
 from backend.app.harvest_state.persistence import (
     HarvestStateHashConflictError,
@@ -109,8 +114,21 @@ async def execute_harvest_state_run(
     session: AsyncSession,
     *,
     request: Task9ARequest | Mapping[str, object],
+    require_persisted_task8_availability: bool = False,
+    forecast_cutoff_at: datetime | None = None,
 ) -> HarvestStateRunEnvelope:
     normalized_request = _normalize_request(request)
+    try:
+        normalized_request = await bind_task8_daily_prediction_availability_from_persisted_rows(
+            session,
+            normalized_request,
+            require_persisted_task8_availability=require_persisted_task8_availability,
+            forecast_cutoff_at=forecast_cutoff_at,
+        )
+    except Task9AuthorityRequestAssemblyError as exc:
+        raise HarvestStateDeliveryInputError(
+            "Task 8 daily prediction authority is not bound to persisted database evidence."
+        ) from exc
     output = run_harvest_state_model(normalized_request)
 
     try:
