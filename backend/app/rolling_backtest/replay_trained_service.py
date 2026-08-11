@@ -80,6 +80,7 @@ from .replay_trained_identity import (
     ModelConfigPayload,
     ReplayTrainedIdentityProjection,
     TrainingManifestPayload,
+    compute_model_artifact_hash,
     project_replay_trained_identity,
 )
 from .replay_trained_prediction import (
@@ -1524,6 +1525,7 @@ def _task12_context(
     task10_training_run_id: int | None = None,
     task10_training_signature: str | None = None,
     task10_artifact_hashes: Sequence[str] = (),
+    training_manifest_hash: str | None = None,
 ) -> dict[str, object]:
     """Lightweight TASK-012 replay context for Task 10 execution passes.
 
@@ -1546,7 +1548,7 @@ def _task12_context(
         "scenario_id": request.scenario_id,
         "forecast_cutoff_at": _datetime_string(request.forecast_cutoff_at),
         "training_cutoff_at": _datetime_string(request.training_cutoff_at),
-        "training_manifest_hash": projection.training_manifest_hash,
+        "training_manifest_hash": training_manifest_hash or projection.training_manifest_hash,
         "training_dataset_hash": projection.manifest.training_dataset_hash,
         "model_config_hash": projection.model_config_hash,
         "model_artifact_hash": projection.model_artifact_hash,
@@ -2100,6 +2102,7 @@ async def execute_replay_trained_prediction(
             request=request,
             projection=projection,
             request_payload_hash=request_payload_hash,
+            training_manifest_hash=manifest_hash(rebuilt_manifest_rows),
             task10_manifest_hash=manifest_hash(rebuilt_manifest_rows),
             task10_config_hash=config.config_hash,
         )
@@ -2157,6 +2160,7 @@ async def execute_replay_trained_prediction(
             request=request,
             projection=projection,
             request_payload_hash=request_payload_hash,
+            training_manifest_hash=training_result.manifest_hash,
             task10_manifest_hash=training_result.manifest_hash,
             task10_config_hash=training_result.config_hash,
             task10_training_run_id=training_run_id,
@@ -2168,6 +2172,15 @@ async def execute_replay_trained_prediction(
             "filtered_training_row_count": len(filtered_training),
             "filtered_label_row_count": len(filtered_labels),
         }
+        persisted_projection = replace(
+            projection,
+            training_manifest_hash=training_result.manifest_hash,
+            model_artifact_hash=compute_model_artifact_hash(
+                training_manifest_hash=training_result.manifest_hash,
+                model_config_hash=training_result.config_hash,
+                model_code_version=projection.model_code_version,
+            ),
+        )
         try:
             prediction_result, prediction_run_id = await execute_residual_prediction(
                 session,
@@ -2211,7 +2224,7 @@ async def execute_replay_trained_prediction(
             )
         result = _result_payload(
             request=request,
-            projection=projection,
+            projection=persisted_projection,
             request_payload_hash=request_payload_hash,
             training_result=training_result,
             prediction_result=fresh_prediction,
