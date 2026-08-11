@@ -1,0 +1,859 @@
+{
+  "artifact_id": "V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION",
+  "artifact_version": "canonical-s1-gate-reconciliation-v1",
+  "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION",
+  "audited_repository_sha": "5b3f4ee1ac7e25698b4ef54ab9a2915323e5317d",
+  "canonical_gate_count": 17,
+  "canonical_completion_rule": "ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS",
+  "canonical_acceptance_status": "BLOCKED",
+  "current_canonical_gate_pass_count": 0,
+  "current_canonical_gate_blocked_count": 17,
+  "canonical_acceptance_status_mutation_allowed": false,
+  "s1_acceptance_issuance_allowed": false,
+  "reconciled_gate_count": 17,
+  "unique_gate_id_count": 17,
+  "missing_gate_count": 0,
+  "duplicate_gate_count": 0,
+  "all_canonical_runtime_status_blocked": true,
+  "pit_minimum_implementation_gap_count": 4,
+  "pit_gaps_treated_as_s1_total_remaining_tasks": false,
+  "authoritative_acceptance_record_changed": false,
+  "canonical_gate_status_changed": false,
+  "source_002_read": false,
+  "real_business_data_read": false,
+  "test_data_accessed": false,
+  "external_holdout_data_accessed": false,
+  "production_code_changed": false,
+  "test_code_changed": false,
+  "database_schema_changed": false,
+  "migration_created": false,
+  "model_changed": false,
+  "backtest_executed": false,
+  "model_training_executed": false,
+  "v0_3_s1_complete": false,
+  "v0_3_s1_accepted": false,
+  "v0_3_s2_authorized": false,
+  "v0_3_s2_started": false,
+  "v0_3_s3_started": false,
+  "v0_3_s4_started": false,
+  "v0_3_s5_started": false,
+  "v0_3_s6_started": false,
+  "current_main_artifact_wins": true,
+  "historical_pr_history_is_provenance_only": true,
+  "gate_class_counts": {
+    "FORMALIZATION_OR_REVIEW_READY": 3,
+    "NARROW_CORRECTION_REQUIRED": 1,
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 7,
+    "UPSTREAM_DEPENDENCY_BLOCKED": 6
+  },
+  "gates": [
+    {
+      "gate_id": "S1-Q2C-TARGET",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "MISSING_BUSINESS_ATTESTATION",
+      "gate_class": "business",
+      "owner_role": "business_data_owner_role",
+      "authoritative_artifact": "business source attestation and Q2C decision record",
+      "acceptance_threshold_source": "Q2C contract",
+      "acceptance_threshold": "Q2C_OUTCOME_CLOSED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+        "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
+        "docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md",
+        "docs/v0-3/s1/target-decision-and-quantity-contract.md",
+        "docs/forecast-quality/q2c-physical-target-equivalence-contract.md"
+      ],
+      "supporting_evidence_facts": [
+        "Business physical facts are present: valid field scan-weigh harvest event, recorded marketable net weight, KG, Asia/Shanghai, and canonical grain.",
+        "The recorded-label correction does not select a forecast-side target and does not issue Q2C acceptance.",
+        "Q2C decision status remains NOT_ISSUED and formal attestation is missing."
+      ],
+      "missing_authoritative_artifacts": [
+        "Versioned business-source attestation bound to the source object",
+        "Q2C decision record and decision hash"
+      ],
+      "missing_decisions_or_authorities": [
+        "Business owner confirmation of the closed physical target equivalence outcome"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "The factual layer is populated, but the formal source attestation and the closed Q2C outcome are owner decisions that current repository evidence cannot issue.",
+      "requires_new_business_input": true,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": false,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-PHYSICAL-MEANING", "S1-UNIT-AND-TIME-BASIS"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "OBTAIN_AND_FORMALIZE_Q2C_BUSINESS_SOURCE_ATTESTATION_AND_TARGET_DECISION",
+      "recommended_action_class": "BUSINESS_DECISION"
+    },
+    {
+      "gate_id": "S1-SOURCE-AUTHORITY",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "MISSING_SOURCE_OWNER_AUTHORITY",
+      "gate_class": "source",
+      "owner_role": "source_governance_owner_role",
+      "authoritative_artifact": "business source attestation and source registry record",
+      "acceptance_threshold_source": "source authority contract",
+      "acceptance_threshold": "OWNER_ROLE_AND_ATTESTED_VERSION_PRESENT",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-authority-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md",
+        "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "docs/v0-3/s1/workpapers/business-source-attestation-draft.md",
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md"
+      ],
+      "supporting_evidence_facts": [
+        "Source system, dataset, owner role, source version, schema identity, snapshot reference, source hash, row count, and byte count are evidenced.",
+        "Package A scope and custody artifacts are issued for independent review only.",
+        "Formal attestation status, applicability/effective time, attestation hash, and source-specific acceptance remain absent."
+      ],
+      "missing_authoritative_artifacts": [
+        "Schema-valid business-source attestation",
+        "Attestation effective-time/version/hash binding",
+        "Source-specific independent review record"
+      ],
+      "missing_decisions_or_authorities": [
+        "Source-owner authority over applicability, coverage, revision/completeness, and withdrawal/void policy identities"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "Current main has substantial source identity evidence but no issued source-owner attestation or accepted source applicability authority.",
+      "requires_new_business_input": true,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": false,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": [],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "FORMALIZE_AND_OBTAIN_SOURCE_OWNER_ATTESTATION_WITH_APPLICABILITY_AND_COMPLETENESS_AUTHORITY",
+      "recommended_action_class": "SOURCE_AUTHORITY_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-SOURCE-COHORT",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "SOURCE_COHORT_NOT_FROZEN",
+      "gate_class": "source",
+      "owner_role": "data_governance_owner_role",
+      "authoritative_artifact": "source cohort manifest",
+      "acceptance_threshold_source": "source cohort contract",
+      "acceptance_threshold": "MANIFEST_HASH_AND_SCOPE_PRESENT",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "docs/v0-3/s1/schemas/source-cohort-manifest.schema.json"
+      ],
+      "supporting_evidence_facts": [
+        "Aggregate source identity and coverage metadata are available, including 84 farms, 192 subfarms, 20 varieties, 233171 rows, and source-object hashes.",
+        "The deterministic scope-identity preparation package and inclusion/exclusion manifest were reviewed as preparation evidence.",
+        "Formal cohort manifest, cohort identity, concrete schema-bound scope, and accepted mapping are not issued."
+      ],
+      "missing_authoritative_artifacts": [
+        "Schema-valid versioned source-cohort manifest",
+        "Cohort manifest hash bound to accepted source authority and scope",
+        "Independent review of the aggregate cohort artifact"
+      ],
+      "missing_decisions_or_authorities": [
+        "Governed source cohort freeze and mapping/scope applicability decision"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "Preparation metadata is present, but the source owner and governance owner have not issued an accepted cohort identity and manifest.",
+      "requires_new_business_input": true,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-INCLUSION-EXCLUSION"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "CREATE_AND_ACCEPT_VERSIONED_SOURCE_COHORT_MANIFEST_AFTER_SOURCE_AUTHORITY_AND_SCOPE_DECISION",
+      "recommended_action_class": "SOURCE_AUTHORITY_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-PHYSICAL-MEANING",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "MISSING_MEASUREMENT_BOUNDARY",
+      "gate_class": "business",
+      "owner_role": "business_data_owner_role",
+      "authoritative_artifact": "physical measurement attestation",
+      "acceptance_threshold_source": "Q2C physical dimensions",
+      "acceptance_threshold": "EVENT_AND_MARKETABILITY_BOUNDARY_EVIDENCED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+        "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
+        "docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md",
+        "docs/v0-3/s1/workpapers/recorded-harvest-label-boundary-correction.md"
+      ],
+      "supporting_evidence_facts": [
+        "The current recorded-business-label profile explicitly binds the valid field scan-weigh event and recorded marketable net weight in KG.",
+        "Field sorting, packhouse sorting, rejection, and pre-weigh reconstruction semantics are recorded at the business-fact layer.",
+        "The formal physical attestation and Q2C decision remain unissued; the old blocker wording is stale as a factual description but still valid as runtime blocked state."
+      ],
+      "missing_authoritative_artifacts": [
+        "Formal physical measurement attestation",
+        "Attestation/Q2C decision hash and independent review"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "Current main has the required physical fact layer and recorded-label boundary; the remaining work is to issue the formal artifact and obtain independent review without inventing a new physical fact.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": false,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-Q2C-TARGET"],
+      "can_be_formalized_without_new_business_fact": true,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "PREPARE_FORMAL_PHYSICAL_MEANING_ATTESTATION_FROM_RECONCILED_FACT_LAYER",
+      "recommended_action_class": "EVIDENCE_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-UNIT-AND-TIME-BASIS",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "UNIT_OR_TIME_AUTHORITY_MISSING",
+      "gate_class": "business",
+      "owner_role": "business_data_owner_role",
+      "authoritative_artifact": "physical and time attestation",
+      "acceptance_threshold_source": "Q2C physical and time dimensions",
+      "acceptance_threshold": "KG_AND_FARM_LOCAL_DATE_BOUND",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-authority-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/workpapers/season-calendar-rule-draft.md",
+        "docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md"
+      ],
+      "supporting_evidence_facts": [
+        "KG, Asia/Shanghai, local-calendar-day boundary, harvest business-date conversion, and canonical grain are explicitly recorded.",
+        "The source quantity representation is recorded as 0.001 kg with three decimal places; this is not being promoted to device metrology.",
+        "Formal source/time attestation and independent review are not issued; July/unmapped-date policy remains a separate inclusion/exclusion blocker."
+      ],
+      "missing_authoritative_artifacts": [
+        "Formal unit/time attestation bound to the source authority",
+        "Attestation and time-policy hash"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "The unit and farm-local time facts are present in current main; only formal binding and review remain for this gate, while unmapped-date treatment is tracked under inclusion/exclusion.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": false,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-INCLUSION-EXCLUSION"],
+      "can_be_formalized_without_new_business_fact": true,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "FORMALIZE_UNIT_AND_FARM_LOCAL_TIME_ATTESTATION_AFTER_SOURCE_AUTHORITY_BINDING",
+      "recommended_action_class": "EVIDENCE_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-CANONICAL-GRAIN",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "GRAIN_OR_DATE_AUTHORITY_MISSING",
+      "gate_class": "source",
+      "owner_role": "source_governance_owner_role",
+      "authoritative_artifact": "source and mapping manifest",
+      "acceptance_threshold_source": "Q2A/I7 and Q2C",
+      "acceptance_threshold": "CANONICAL_GRAIN_AND_MAPPING_BOUND",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
+        "docs/v0-3/s1/workpapers/source-schema-field-map-and-gap-register.md",
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md"
+      ],
+      "supporting_evidence_facts": [
+        "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE is the recorded current grain and source fields support farm, subfarm, variety, and business date.",
+        "Scope preparation hashes and aggregate counts exist, but formal mapping acceptance is false and the schema-valid cohort manifest is absent.",
+        "July unmapped rows and the pending unmapped-date policy prevent silent date/grain closure."
+      ],
+      "missing_authoritative_artifacts": [
+        "Accepted mapping policy identity",
+        "Schema-valid cohort manifest with bound scope and grain hash"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+      "reconciliation_reason": "The grain rule is explicit, but closure depends on accepted source authority, cohort scope/mapping, and inclusion/exclusion artifacts rather than a new grain formula.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "FORMALIZE_CANONICAL_GRAIN_AFTER_SOURCE_AUTHORITY_AND_COHORT_MAPPING_FREEZE",
+      "recommended_action_class": "EVIDENCE_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-VISIBILITY",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+      "gate_class": "data",
+      "owner_role": "data_governance_owner_role",
+      "authoritative_artifact": "visibility and snapshot manifest",
+      "acceptance_threshold_source": "Q2A/I7 contract",
+      "acceptance_threshold": "SOURCE_CLASS_CUTOFF_RULES_EVIDENCED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/forecast-input-point-in-time-leakage-audit.json",
+        "docs/v0-3/s1/workpapers/forecast-input-point-in-time-leakage-audit.md",
+        "docs/v0-3/s1/visibility-inclusion-revision-contract.md",
+        "docs/v0-3/s1/evidence/source-authority-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
+      ],
+      "supporting_evidence_facts": [
+        "Current PIT evidence is 4 PASS, 17 PARTIAL, 0 BLOCKED, 1 NOT_USED across 22 audited inputs.",
+        "PR #189 Task8/exact-cutoff, PR #190 Task8 persisted availability, PR #192 residual artifact authority, and PR #194 Weather authority are revalidated in current evidence.",
+        "Four implementation gaps remain: Planning as-of provenance, Analytics factory-receipt taxonomy, Analytics composite source-cutoff binding, and Task9 mixed-authority reconciliation."
+      ],
+      "missing_authoritative_artifacts": [
+        "Corrected production/evidence paths for the four remaining PIT gaps",
+        "Complete source-class visibility/snapshot manifest"
+      ],
+      "missing_decisions_or_authorities": [
+        "Acceptance of the ANALYTICS_FACTORY_RECEIPT source class and its visibility identity"
+      ],
+      "remaining_repository_corrections": [
+        "Bind planning supplemental identity/version/hash at as-of",
+        "Bind AnalyticsBuildRun.source_cutoff for the realized cumulative composite",
+        "Reconcile Task9 exact-timestamp and local-date upstream policies"
+      ],
+      "reconciliation_class": "NARROW_CORRECTION_REQUIRED",
+      "reconciliation_reason": "Current main has meaningful PIT controls, but the remaining visibility gap is a bounded source-class implementation/reconciliation queue; the four PIT gaps are not four total S1 tasks and do not change canonical runtime status.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": true,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-Q2C-TARGET"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "CLOSE_THE_FOUR_REMAINING_PIT_SOURCE_CLASS_AND_MIXED_AUTHORITY_GAPS_BEFORE_VISIBILITY_FORMALIZATION",
+      "recommended_action_class": "NARROW_IMPLEMENTATION_CORRECTION"
+    },
+    {
+      "gate_id": "S1-REVISION-WINNER",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "REVISION_WINNER_NOT_VERIFIED",
+      "gate_class": "data",
+      "owner_role": "data_governance_owner_role",
+      "authoritative_artifact": "revision lineage and winner manifest",
+      "acceptance_threshold_source": "Q2A/I7 contract",
+      "acceptance_threshold": "ONE_VALID_WINNER_PER_KEY",
+      "supporting_evidence_paths": [
+        "docs/forecast-quality/q2a-i7-label-snapshot-and-revision-winner-contract.md",
+        "docs/v0-3/s1/visibility-inclusion-revision-contract.md",
+        "docs/v0-3/s1/workpapers/actual-harvest-immutable-daily-label-compatibility-decision.md",
+        "docs/v0-3/s1/workpapers/immutable-daily-final-label-contract-acceptance-decision.md",
+        "docs/v0-3/s1/workpapers/actual-harvest-label-lifecycle-and-point-in-time-preparation.md"
+      ],
+      "supporting_evidence_facts": [
+        "Q2A/I7 winner rules and the IDFL_V1 mode semantics are defined and the IDFL design semantics say record-level revision winner is not required for that label mode.",
+        "The current Source 002 governed representation does not expose source-recorded time or revision lineage, and source-specific eligibility remains blocked.",
+        "The IDFL design decision is not source/cohort acceptance and does not independently close the canonical revision gate."
+      ],
+      "missing_authoritative_artifacts": [
+        "Source-specific revision/winner disposition bound to the accepted label mode",
+        "Independent review of the source-class applicability and winner disposition"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+      "reconciliation_reason": "The rule and the IDFL exception semantics are known, but a source-specific disposition cannot be accepted until source authority/cohort and label-mode applicability artifacts are frozen.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION", "S1-VISIBILITY"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "RECONCILE_SOURCE_SPECIFIC_REVISION_WINNER_DISPOSITION_AFTER_SOURCE_AUTHORITY_AND_COHORT_FREEZE",
+      "recommended_action_class": "GOVERNANCE_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-INCLUSION-EXCLUSION",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "INCLUSION_POLICY_NOT_FROZEN",
+      "gate_class": "data",
+      "owner_role": "data_quality_owner_role",
+      "authoritative_artifact": "inclusion and exclusion manifest",
+      "acceptance_threshold_source": "Q2A/I7 and Q2C",
+      "acceptance_threshold": "REASONS_AND_COUNTS_RECONCILED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md",
+        "docs/v0-3/s1/visibility-inclusion-revision-contract.md",
+        "docs/v0-3/s1/workpapers/source-002-idfl-v1-source-specific-eligibility-package.md"
+      ],
+      "supporting_evidence_facts": [
+        "The preparation manifest records retained July unmapped rows, no automatic July assignment, unknown-not-zero missingness, and an explicit source-scope exclusion statement.",
+        "Aggregate mapping/scope and inclusion artifacts are issued for independent review, but formal mapping acceptance and cohort acceptance remain false.",
+        "UNMAPPED_DATE_POLICY remains PENDING; this is not equivalent to an empty exclusions list or a resolved policy."
+      ],
+      "missing_authoritative_artifacts": [
+        "Accepted inclusion/exclusion policy manifest bound to the source cohort",
+        "Accepted unmapped-date disposition and policy identity"
+      ],
+      "missing_decisions_or_authorities": [
+        "Governance decision for July/unmapped dates and source-scope applicability"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "The observed boundaries are recorded, but the pending unmapped-date and scope applicability decisions cannot be inferred from counts or from the repository.",
+      "requires_new_business_input": true,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "RESOLVE_UNMAPPED_DATE_AND_SOURCE_SCOPE_INCLUSION_EXCLUSION_AUTHORITY",
+      "recommended_action_class": "BUSINESS_DECISION"
+    },
+    {
+      "gate_id": "S1-MISSING-CORRECTION-CANCELLATION",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "REVISION_POLICY_NOT_FROZEN",
+      "gate_class": "data",
+      "owner_role": "data_quality_owner_role",
+      "authoritative_artifact": "correction, missing-day, and cancellation policy",
+      "acceptance_threshold_source": "Q2A/I7 contract",
+      "acceptance_threshold": "LATE_ENTRY_REVISION_VOID_RULES_PRESENT",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/visibility-inclusion-revision-contract.md",
+        "docs/forecast-quality/q2a-i7-label-snapshot-and-revision-winner-contract.md",
+        "docs/v0-3/s1/workpapers/actual-harvest-label-lifecycle-and-point-in-time-preparation.md",
+        "docs/v0-3/s1/workpapers/source-schema-field-map-and-gap-register.md",
+        "docs/v0-3/s1/evidence/source-002-custody-record.json"
+      ],
+      "supporting_evidence_facts": [
+        "Unknown-not-zero missingness and the IDFL immutable-label mode are defined; IDFL label-side revision winner and record-level lifecycle replay are not required by that mode semantics.",
+        "Formal missing-day/completeness, correction, void, and source revision policies remain pending or not provided for source-specific eligibility.",
+        "Custody withdrawal/void propagation is a separate artifact and does not substitute for source-label lifecycle authority."
+      ],
+      "missing_authoritative_artifacts": [
+        "Source completeness/missing-day policy identity and evidence hash",
+        "Source-specific correction, void, and final-confirmation disposition"
+      ],
+      "missing_decisions_or_authorities": [
+        "Source owner/data-quality authority for late-entry, missing, correction, and cancellation semantics"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "The current mode narrows which record-level lifecycle fields are required, but it does not create the source completeness and missing/correction/void authority required by S1.",
+      "requires_new_business_input": true,
+      "requires_source_owner_authority": true,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-REVISION-WINNER"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "ISSUE_SOURCE_COMPLETENESS_AND_MISSING_CORRECTION_VOID_POLICY",
+      "recommended_action_class": "GOVERNANCE_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-SPLIT-POLICY",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "SPLIT_POLICY_NOT_FROZEN",
+      "gate_class": "evaluation",
+      "owner_role": "model_validation_owner_role",
+      "authoritative_artifact": "split policy and custody record",
+      "acceptance_threshold_source": "split contract",
+      "acceptance_threshold": "TIME_ORDERED_SPLITS_AND_NO_LEAKAGE",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/split-holdout-and-custody-contract.md",
+        "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
+        "docs/v0-3/s1/evidence/forecast-input-point-in-time-leakage-audit.json"
+      ],
+      "supporting_evidence_facts": [
+        "The contract defines time-ordered TRAIN/VALIDATION/TEST, no adjacent random split, immutable split hashes, and TEST custody boundaries.",
+        "No TEST or external holdout data was accessed; no accepted source cohort or final rowset exists from which a split manifest can be issued.",
+        "The custody record is issued for review but not accepted, and visibility/threshold dependencies remain open."
+      ],
+      "missing_authoritative_artifacts": [
+        "Versioned split manifest bound to an accepted cohort",
+        "Accepted TEST custody and split hash record"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+      "reconciliation_reason": "The split rules are defined, but a legal split cannot be formed until source cohort, inclusion/visibility, metric, and custody artifacts are accepted.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION", "S1-VISIBILITY", "S1-METRIC-CONTRACT", "S1-DATA-CUSTODY"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "PREPARE_TIME_ORDERED_SPLIT_AND_CUSTODY_ARTIFACT_AFTER_UPSTREAM_ACCEPTANCE",
+      "recommended_action_class": "EVIDENCE_FORMALIZATION"
+    },
+    {
+      "gate_id": "S1-METRIC-CONTRACT",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "METRIC_CONTRACT_NOT_ACCEPTED",
+      "gate_class": "metrics",
+      "owner_role": "model_validation_owner_role",
+      "authoritative_artifact": "S1 metric contract and S3 binding",
+      "acceptance_threshold_source": "S3 contract",
+      "acceptance_threshold": "ALL_CANONICAL_METRIC_IDS_AND_STATES_BOUND",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+        "docs/forecast-quality/s3-quality-metrics-contract.md",
+        "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
+      ],
+      "supporting_evidence_facts": [
+        "Metric identities, status semantics, Decimal rules, and the S2 daily-rowset dependency are defined in current contracts.",
+        "The S1 metric contract explicitly remains blocked by missing source authority and required rowset/threshold prerequisites.",
+        "No accepted source, Q2C target, visibility package, or S1 threshold decision is available for a closed metric contract."
+      ],
+      "missing_authoritative_artifacts": [
+        "Accepted S1 metric binding record/version",
+        "Source/target/visibility prerequisites and threshold references"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+      "reconciliation_reason": "The metric definitions are present, but acceptance cannot occur before source, target, visibility, and threshold authorities are resolved.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-Q2C-TARGET", "S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-VISIBILITY", "S1-MINIMUM-COVERAGE", "S1-DATA-QUALITY-THRESHOLDS"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "FREEZE_S1_METRIC_CONTRACT_AFTER_SOURCE_TARGET_VISIBILITY_AND_THRESHOLD_AUTHORITY",
+      "recommended_action_class": "VALIDATION_POLICY_DECISION"
+    },
+    {
+      "gate_id": "S1-MINIMUM-COVERAGE",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "MINIMUM_COVERAGE_NOT_FROZEN",
+      "gate_class": "metrics",
+      "owner_role": "model_validation_owner_role",
+      "authoritative_artifact": "coverage threshold decision record",
+      "acceptance_threshold_source": "S3 contract and approved threshold record",
+      "acceptance_threshold": "THRESHOLD_VERSION_AND_PROVENANCE_PRESENT",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+        "docs/forecast-quality/s3-quality-metrics-contract.md",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
+      ],
+      "supporting_evidence_facts": [
+        "No approved S1 minimum-coverage threshold, value, policy version, or artifact hash is present.",
+        "MIN_COMPARABLE_ROWS_FOR_REPORTING=10 is explicitly an S3 reporting floor, not an S1 threshold.",
+        "Source counts and scope counts are descriptive evidence and cannot be used to infer a coverage threshold."
+      ],
+      "missing_authoritative_artifacts": [
+        "Approved, versioned S1 minimum-coverage threshold decision",
+        "Threshold provenance and hash"
+      ],
+      "missing_decisions_or_authorities": [
+        "Model-validation/data-governance decision on the S1 coverage threshold"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "The threshold value is genuinely absent; it cannot be inferred from Source 002 row counts or the S3 reporting floor.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-COHORT", "S1-METRIC-CONTRACT"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "OBTAIN_AND_ACCEPT_VERSIONED_S1_MINIMUM_COVERAGE_THRESHOLD_DECISION",
+      "recommended_action_class": "VALIDATION_POLICY_DECISION"
+    },
+    {
+      "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "DATA_QUALITY_THRESHOLD_NOT_FROZEN",
+      "gate_class": "data",
+      "owner_role": "data_quality_owner_role",
+      "authoritative_artifact": "data-quality threshold record",
+      "acceptance_threshold_source": "approved quality policy",
+      "acceptance_threshold": "QUALITY_THRESHOLDS_VERSIONED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+        "docs/forecast-quality/s3-quality-metrics-contract.md",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
+      ],
+      "supporting_evidence_facts": [
+        "No approved data-quality threshold policy, value, version, or hash is present.",
+        "The contract explicitly prohibits inferring thresholds from fixtures, observed Source 002 counts, or S3 behavior.",
+        "Quality evidence and final rowset materialization remain downstream of source/cohort authority."
+      ],
+      "missing_authoritative_artifacts": [
+        "Versioned data-quality threshold policy/record",
+        "Quality threshold provenance and hash"
+      ],
+      "missing_decisions_or_authorities": [
+        "Data-quality owner and validation-policy approval of S1 thresholds"
+      ],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "The quality threshold policy is absent by design and requires an explicit validation-policy decision; repository statistics are not a substitute.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION", "S1-METRIC-CONTRACT"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "OBTAIN_AND_ACCEPT_VERSIONED_S1_DATA_QUALITY_THRESHOLD_POLICY",
+      "recommended_action_class": "VALIDATION_POLICY_DECISION"
+    },
+    {
+      "gate_id": "S1-DATA-CUSTODY",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "SOURCE_CUSTODY_NOT_VERIFIED",
+      "gate_class": "governance",
+      "owner_role": "data_governance_owner_role",
+      "authoritative_artifact": "versioned custody record",
+      "acceptance_threshold_source": "source custody contract",
+      "acceptance_threshold": "ACCESS_RETENTION_WITHDRAWAL_VOID_EVIDENCED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
+        "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "docs/v0-3/s1/evidence/source-002-completeness-and-custody-business-evidence.md",
+        "docs/v0-3/s1/split-holdout-and-custody-contract.md"
+      ],
+      "supporting_evidence_facts": [
+        "A versioned custody record is issued for independent review with storage, access role, purpose, retention, withdrawal, replacement, void propagation, and binding hashes.",
+        "The record contains only abstract/non-sensitive governance identities and does not authorize new data access.",
+        "Custody acceptance remains false and independent review has not started."
+      ],
+      "missing_authoritative_artifacts": [
+        "Independently reviewed custody acceptance record and downstream propagation confirmation"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "The current custody artifact contains the required non-sensitive policy evidence and hashes; the remaining blocker is formal independent review/acceptance, not an unprovided custody fact.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": false,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": false,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT"],
+      "can_be_formalized_without_new_business_fact": true,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "SUBMIT_ISSUED_CUSTODY_RECORD_FOR_INDEPENDENT_REVIEW",
+      "recommended_action_class": "INDEPENDENT_REVIEW"
+    },
+    {
+      "gate_id": "S1-HOLDOUT-FEASIBILITY",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "FEASIBILITY_NOT_YET_ACCEPTED",
+      "gate_class": "evaluation",
+      "owner_role": "model_validation_owner_role",
+      "authoritative_artifact": "external holdout feasibility record",
+      "acceptance_threshold_source": "split contract",
+      "acceptance_threshold": "REVIEWED_FEASIBLE_OR_REVIEWED_NOT_FEASIBLE",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/holdout-feasibility-evidence-status.md",
+        "docs/v0-3/s1/split-holdout-and-custody-contract.md",
+        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
+        "docs/v0-3/s1/evidence/data-custody-evidence-status.md"
+      ],
+      "supporting_evidence_facts": [
+        "The feasibility gate is required and may close with a reviewed FEASIBLE or reviewed NOT_FEASIBLE decision.",
+        "No accepted source cohort, distinct-cohort coverage summary, or accepted custody record is available for the feasibility decision.",
+        "TEST and external holdout access remain unauthorized and were not performed."
+      ],
+      "missing_authoritative_artifacts": [
+        "Reviewed aggregate holdout-feasibility decision and artifact hash"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+      "reconciliation_reason": "The decision rule is explicit, but feasibility cannot be legally decided before cohort, coverage, custody, and split prerequisites are accepted.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": true,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": ["S1-SOURCE-COHORT", "S1-DATA-CUSTODY", "S1-SPLIT-POLICY", "S1-MINIMUM-COVERAGE"],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "PREPARE_AND_REVIEW_HOLDOUT_FEASIBILITY_AFTER_COHORT_COVERAGE_CUSTODY_AND_SPLIT_PREREQUISITES",
+      "recommended_action_class": "FEASIBILITY_DECISION"
+    },
+    {
+      "gate_id": "S1-INDEPENDENT-REVIEW",
+      "canonical_runtime_status": "BLOCKED",
+      "canonical_block_reason": "NOT_YET_INDEPENDENTLY_REVIEWED",
+      "gate_class": "governance",
+      "owner_role": "independent_reviewer_role",
+      "authoritative_artifact": "complete S1 acceptance record",
+      "acceptance_threshold_source": "S1 package",
+      "acceptance_threshold": "ALL_REQUIRED_GATES_CLOSED",
+      "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+        "docs/v0-3/s1/s1-acceptance-package.md",
+        "docs/v0-3/s1/index.md",
+        "docs/v0-3/development-plan.md"
+      ],
+      "supporting_evidence_facts": [
+        "The canonical record contains exactly 17 required gates and all runtime rows are BLOCKED.",
+        "Independent review status is NOT_STARTED and the completion rule requires every required row to be PASS.",
+        "This reconciliation package is evidence preparation only and cannot self-attest the final S1 result."
+      ],
+      "missing_authoritative_artifacts": [
+        "Complete accepted S1 gate record with reviewer identity/time and evidence hashes"
+      ],
+      "missing_decisions_or_authorities": [],
+      "remaining_repository_corrections": [],
+      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+      "reconciliation_reason": "Independent review is necessarily downstream of all other required gate artifacts and cannot be performed by this reconciliation task.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": false,
+      "requires_production_code_change": false,
+      "requires_docs_formalization": true,
+      "requires_independent_review": true,
+      "dependency_gate_ids": [
+        "S1-Q2C-TARGET",
+        "S1-SOURCE-AUTHORITY",
+        "S1-SOURCE-COHORT",
+        "S1-PHYSICAL-MEANING",
+        "S1-UNIT-AND-TIME-BASIS",
+        "S1-CANONICAL-GRAIN",
+        "S1-VISIBILITY",
+        "S1-REVISION-WINNER",
+        "S1-INCLUSION-EXCLUSION",
+        "S1-MISSING-CORRECTION-CANCELLATION",
+        "S1-SPLIT-POLICY",
+        "S1-METRIC-CONTRACT",
+        "S1-MINIMUM-COVERAGE",
+        "S1-DATA-QUALITY-THRESHOLDS",
+        "S1-DATA-CUSTODY",
+        "S1-HOLDOUT-FEASIBILITY"
+      ],
+      "can_be_formalized_without_new_business_fact": false,
+      "can_be_closed_by_current_task": false,
+      "recommended_next_action": "RUN_FINAL_INDEPENDENT_S1_ACCEPTANCE_REVIEW_AFTER_ALL_REQUIRED_GATE_ARTIFACTS_CLOSE",
+      "recommended_action_class": "INDEPENDENT_REVIEW"
+    }
+  ],
+  "dependency_ordered_remaining_tasks": [
+    {
+      "order": 1,
+      "task_id": "S1-REMAINING-01",
+      "task": "SOURCE_AUTHORITY_AND_SCOPE_DECISION_PACKAGE",
+      "objective": "Obtain the source-owner attestation and resolve applicability, completeness, local-date, unmapped-date, coverage-scope, and inclusion/exclusion authority without reading new raw rows in this task.",
+      "advances_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION", "S1-CANONICAL-GRAIN", "S1-MISSING-CORRECTION-CANCELLATION"],
+      "dependencies": [],
+      "action_class": "BUSINESS_DECISION",
+      "why_ordered_here": "This is the highest-leverage upstream authority package and removes the largest shared blocker for source, scope, grain, date, lifecycle, Q2C, visibility, split, and holdout work.",
+      "no_raw_source_read_in_this_reconciliation": true
+    },
+    {
+      "order": 2,
+      "task_id": "S1-REMAINING-02",
+      "task": "Q2C_PHYSICAL_UNIT_TIME_FORMALIZATION",
+      "objective": "Turn the already reconciled physical, recorded-label, unit, time, and grain facts into the formal source attestation/Q2C decision package after source authority is available.",
+      "advances_gate_ids": ["S1-Q2C-TARGET", "S1-PHYSICAL-MEANING", "S1-UNIT-AND-TIME-BASIS"],
+      "dependencies": ["S1-REMAINING-01"],
+      "action_class": "BUSINESS_DECISION",
+      "why_ordered_here": "Q2C and physical/time authority must be closed before downstream target, split, metric, and holdout artifacts can bind to a stable label.",
+      "no_forecast_side_target_substitution": true
+    },
+    {
+      "order": 3,
+      "task_id": "S1-REMAINING-03",
+      "task": "FORMALIZE_SOURCE_COHORT_GRAIN_INCLUSION_AND_REVISION_ARTIFACTS",
+      "objective": "Issue the accepted cohort, mapping, inclusion/exclusion, canonical-grain, and source-specific revision/winner dispositions from the approved authority package.",
+      "advances_gate_ids": ["S1-SOURCE-COHORT", "S1-CANONICAL-GRAIN", "S1-INCLUSION-EXCLUSION", "S1-REVISION-WINNER"],
+      "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02"],
+      "action_class": "EVIDENCE_FORMALIZATION",
+      "why_ordered_here": "These artifacts freeze the source universe and winner/inclusion semantics needed by visibility, split, quality, and holdout decisions.",
+      "no_final_rowset_materialization": true
+    },
+    {
+      "order": 4,
+      "task_id": "S1-REMAINING-04",
+      "task": "NARROW_PIT_VISIBILITY_AND_MIXED_AUTHORITY_CORRECTION",
+      "objective": "Close the four current PIT implementation/authority gaps: planning as-of provenance, Analytics factory-receipt taxonomy, Analytics composite source-cutoff binding, and Task9 mixed-authority reconciliation.",
+      "advances_gate_ids": ["S1-VISIBILITY"],
+      "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02", "S1-REMAINING-03"],
+      "action_class": "NARROW_IMPLEMENTATION_CORRECTION",
+      "why_ordered_here": "The current PIT audit is meaningful but not end-to-end complete; correction belongs after source-class and target authorities are stable and before visibility formalization.",
+      "pit_gap_count": 4,
+      "does_not_equal_four_total_s1_tasks": true
+    },
+    {
+      "order": 5,
+      "task_id": "S1-REMAINING-05",
+      "task": "THRESHOLD_METRIC_SPLIT_AND_HOLDOUT_DECISION_PACKAGE",
+      "objective": "Obtain and review minimum-coverage and data-quality policies, freeze the metric contract, then prepare the time-ordered split and holdout-feasibility artifacts.",
+      "advances_gate_ids": ["S1-MINIMUM-COVERAGE", "S1-DATA-QUALITY-THRESHOLDS", "S1-METRIC-CONTRACT", "S1-SPLIT-POLICY", "S1-HOLDOUT-FEASIBILITY"],
+      "dependencies": ["S1-REMAINING-03", "S1-REMAINING-04", "S1-DATA-CUSTODY"],
+      "action_class": "VALIDATION_POLICY_DECISION",
+      "why_ordered_here": "Thresholds and source/visibility authority are prerequisites to a defensible metric, split, and feasibility decision; no threshold may be inferred from observed counts.",
+      "test_or_external_holdout_access": "NOT_AUTHORIZED_BY_THIS_TASK"
+    },
+    {
+      "order": 6,
+      "task_id": "S1-REMAINING-06",
+      "task": "FINAL_S1_INDEPENDENT_ACCEPTANCE_REVIEW",
+      "objective": "Review all 17 required canonical artifacts, record accepted gate rows, and independently calculate S1 acceptance.",
+      "advances_gate_ids": ["S1-INDEPENDENT-REVIEW"],
+      "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02", "S1-REMAINING-03", "S1-REMAINING-04", "S1-REMAINING-05"],
+      "action_class": "INDEPENDENT_REVIEW",
+      "why_ordered_here": "The canonical completion rule requires all 17 required rows to be PASS; this reconciliation cannot issue that result.",
+      "s1_acceptance_issued_by_this_task": false
+    }
+  ],
+  "s1_acceptance_boundary": {
+    "canonical_runtime_status_remains_blocked": true,
+    "all_17_required_gate_rows_must_be_pass": true,
+    "reconciliation_class_is_not_gate_status": true,
+    "formal_acceptance_record_mutated": false,
+    "s1_acceptance_issued": false
+  },
+  "s2_authorization_boundary": {
+    "dependency": "S1_ACCEPTED -> S2_MAY_BE_AUTHORIZED",
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false,
+    "s2_task_created_by_this_artifact": false,
+    "no_step_implies_the_next": true
+  }
+}
