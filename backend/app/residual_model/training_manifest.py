@@ -30,6 +30,7 @@ from backend.app.residual_model.schemas import (
 )
 from backend.app.residual_model.structural import aggregate_structural_arrivals
 from backend.app.residual_model.visibility import audit_feature_visibility
+from backend.app.residual_model.weather_authority import bind_weather_feature_authority
 
 
 class ResidualManifestBuildError(RuntimeError):
@@ -498,7 +499,12 @@ async def build_residual_training_manifest(
             holiday_calendar_hash,
             spring_festival_dates,
         ) = _task9_holiday_snapshot(output)
-        supplemental_features = _supplemental_map(sample.supplemental_feature_values)
+        bound_supplemental_values = await bind_weather_feature_authority(
+            session,
+            feature_values=sample.supplemental_feature_values,
+            as_of_date=as_of_date,
+        )
+        supplemental_features = _supplemental_map(bound_supplemental_values)
 
         grouped_structural: dict[tuple[int, date], dict[str, object]] = {}
         for row in structural_rows:

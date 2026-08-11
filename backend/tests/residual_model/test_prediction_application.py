@@ -566,6 +566,11 @@ async def test_prediction_feature_build_uses_persisted_exact_forecast_cutoff(
     assert audits
     assert blockers == ["MISSING_REQUIRED_FEATURE"]
     assert all(item.known_at == exact_cutoff for item in feature_rows[0])
+    weather_feature = next(
+        item for item in feature_rows[0] if item.feature_name == "weather_7d_rainfall"
+    )
+    assert weather_feature.source_ref["weather_feature_run_id"] == 1
+    assert weather_feature.source_ref["weather_source_signature"] == "a" * 64
     assert all(audit.status == "blocked" for audit in audits)
     assert all(
         all(issue.code == "MISSING_REQUIRED_FEATURE" for issue in audit.blockers)
