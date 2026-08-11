@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from types import MappingProxyType
 from typing import NoReturn, Protocol, cast
 
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.harvest_state.authority_request_errors import (
     Task9AuthorityAssemblyCanonicalParityError,
@@ -55,6 +56,12 @@ from backend.app.harvest_state.schemas import (
 from backend.app.harvest_state.service import (
     _validated_request as _service_validated_request,
 )
+from backend.app.models.maturity import (
+    MaturityDailyPredictionModel,
+    MaturityForecastRun,
+    MaturityModelArtifact,
+    MaturityModelRun,
+)
 
 TASK9_HISTORICAL_SOURCE_SYSTEM = "task9_historical_authority"
 
@@ -67,6 +74,7 @@ _SEMANTIC_TASK8_SOURCE_REF_KEYS: tuple[str, ...] = (
     "maturity_model_artifact_hash",
     "maturity_forecast_source_signature",
     "maturity_forecast_as_of_date",
+    "maturity_daily_prediction_available_at",
     "prediction_date",
     "forecast_quantile",
     "source_quantity_kg",
@@ -82,6 +90,7 @@ _SEMANTIC_TASK8_VERIFICATION_KEYS: tuple[str, ...] = (
     "maturity_forecast_run_status",
     "maturity_forecast_source_signature",
     "maturity_forecast_as_of_date",
+    "maturity_daily_prediction_available_at",
     "maturity_forecast_prediction_start_date",
     "maturity_forecast_prediction_end_date",
     "prediction_date",
@@ -1314,15 +1323,384 @@ def _semantic_task8_source_ref_hash(source_ref: object) -> str:
     """Hash only semantic fields of a Task8PredictionSourceRef, excluding DB IDs."""
     semantic_payload: dict[str, object] = {}
     for field_name in _SEMANTIC_TASK8_SOURCE_REF_KEYS:
-        semantic_payload[field_name] = getattr(source_ref, field_name)
+        value = getattr(source_ref, field_name)
+        # Preserve legacy source-ref hashes when the optional availability
+        # evidence is absent; populated replay evidence is always hashed.
+        if field_name == "maturity_daily_prediction_available_at" and value is None:
+            continue
+        semantic_payload[field_name] = value
     return sha256_hex(semantic_payload)
+
+
+async def bind_task8_daily_prediction_availability_from_persisted_rows(
+    session: AsyncSession,
+    request: Task9ARequest,
+    *,
+    require_persisted_task8_availability: bool = False,
+    forecast_cutoff_at: datetime | None = None,
+) -> Task9ARequest:
+    """Bind Task 8 availability evidence to persisted database rows.
+
+    The public Task 9 request contract carries Task 8 evidence, but the
+    availability timestamp is authoritative only when it is read from the
+    referenced ``MaturityDailyPredictionModel`` row.  Legacy non-replay
+    requests that predate the timestamp evidence remain compatible when every
+    Task 8 item omits it.  Exact replay callers explicitly require the
+    persisted-row-bound path, so omission of caller evidence cannot bypass the
+    database authority; the persisted timestamp must also be at or before the
+    supplied exact forecast cutoff.
+    """
+    task8_predictions = tuple(request.task8_daily_predictions)
+    if require_persisted_task8_availability and forecast_cutoff_at is None:
+        _raise(
+            "task8_daily_prediction_forecast_cutoff_required",
+            details={"reason": "persisted availability is required for exact replay"},
+        )
+    if not task8_predictions:
+        if require_persisted_task8_availability:
+            _raise(
+                "task8_daily_prediction_persisted_authority_required",
+                details={"reason": "exact replay contains no Task 8 daily predictions"},
+            )
+        return request
+
+    availability_supplied = any(
+        prediction.source_ref.maturity_daily_prediction_available_at is not None
+        or prediction.verification_snapshot.maturity_daily_prediction_available_at is not None
+        for prediction in task8_predictions
+    )
+    if not require_persisted_task8_availability and not availability_supplied:
+        return request
+
+    bound_predictions: list[Task8DailyPredictionInput] = []
+    row_cache: dict[
+        int,
+        tuple[
+            MaturityDailyPredictionModel,
+            MaturityForecastRun,
+            MaturityModelArtifact,
+            MaturityModelRun,
+        ],
+    ] = {}
+
+    for prediction in task8_predictions:
+        source_ref = prediction.source_ref
+        verification = prediction.verification_snapshot
+        source_available_at = source_ref.maturity_daily_prediction_available_at
+        verification_available_at = verification.maturity_daily_prediction_available_at
+        if not require_persisted_task8_availability and (
+            source_available_at is None or verification_available_at is None
+        ):
+            _raise(
+                "task8_daily_prediction_availability_evidence_incomplete",
+                details={
+                    "maturity_daily_prediction_id": source_ref.maturity_daily_prediction_id,
+                },
+            )
+
+        daily_prediction_id = source_ref.maturity_daily_prediction_id
+        cached = row_cache.get(daily_prediction_id)
+        if cached is None:
+            daily_prediction = cast(
+                MaturityDailyPredictionModel | None,
+                await session.get(MaturityDailyPredictionModel, daily_prediction_id),
+            )
+            if daily_prediction is None:
+                _raise(
+                    "task8_daily_prediction_persisted_row_not_found",
+                    details={"maturity_daily_prediction_id": daily_prediction_id},
+                )
+            forecast_run = cast(
+                MaturityForecastRun | None,
+                await session.get(MaturityForecastRun, daily_prediction.forecast_run_id),
+            )
+            if forecast_run is None:
+                _raise(
+                    "task8_daily_prediction_parent_forecast_run_not_found",
+                    details={
+                        "maturity_daily_prediction_id": daily_prediction_id,
+                        "maturity_forecast_run_id": daily_prediction.forecast_run_id,
+                    },
+                )
+            artifact = cast(
+                MaturityModelArtifact | None,
+                await session.get(MaturityModelArtifact, forecast_run.artifact_id),
+            )
+            if artifact is None:
+                _raise(
+                    "task8_daily_prediction_parent_artifact_not_found",
+                    details={
+                        "maturity_daily_prediction_id": daily_prediction_id,
+                        "maturity_model_artifact_id": forecast_run.artifact_id,
+                    },
+                )
+            model_run = cast(
+                MaturityModelRun | None,
+                await session.get(MaturityModelRun, forecast_run.model_run_id),
+            )
+            if model_run is None:
+                _raise(
+                    "task8_daily_prediction_parent_model_run_not_found",
+                    details={
+                        "maturity_daily_prediction_id": daily_prediction_id,
+                        "maturity_model_run_id": forecast_run.model_run_id,
+                    },
+                )
+            cached = (daily_prediction, forecast_run, artifact, model_run)
+            row_cache[daily_prediction_id] = cached
+
+        daily_prediction, forecast_run, artifact, model_run = cached
+        if forecast_cutoff_at is not None and daily_prediction.created_at > forecast_cutoff_at:
+            _raise(
+                "task8_daily_prediction_available_after_forecast_cutoff",
+                details={
+                    "maturity_daily_prediction_id": daily_prediction.id,
+                    "created_at": daily_prediction.created_at,
+                    "forecast_cutoff_at": forecast_cutoff_at,
+                },
+            )
+        identity_checks = (
+            (
+                "prediction.prediction_date",
+                prediction.prediction_date,
+                daily_prediction.prediction_date,
+            ),
+            (
+                "source_ref.maturity_daily_prediction_id",
+                source_ref.maturity_daily_prediction_id,
+                daily_prediction.id,
+            ),
+            (
+                "verification_snapshot.maturity_daily_prediction_id",
+                verification.maturity_daily_prediction_id,
+                daily_prediction.id,
+            ),
+            (
+                "source_ref.maturity_forecast_run_id",
+                source_ref.maturity_forecast_run_id,
+                daily_prediction.forecast_run_id,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_run_id",
+                verification.maturity_forecast_run_id,
+                daily_prediction.forecast_run_id,
+            ),
+            (
+                "verification_snapshot.maturity_daily_prediction_forecast_run_id",
+                verification.maturity_daily_prediction_forecast_run_id,
+                daily_prediction.forecast_run_id,
+            ),
+            (
+                "source_ref.prediction_date",
+                source_ref.prediction_date,
+                daily_prediction.prediction_date,
+            ),
+            (
+                "verification_snapshot.prediction_date",
+                verification.prediction_date,
+                daily_prediction.prediction_date,
+            ),
+            (
+                "source_ref.maturity_model_run_id",
+                source_ref.maturity_model_run_id,
+                model_run.id,
+            ),
+            (
+                "verification_snapshot.maturity_model_run_id",
+                verification.maturity_model_run_id,
+                model_run.id,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_model_run_id",
+                verification.maturity_forecast_model_run_id,
+                model_run.id,
+            ),
+            (
+                "source_ref.maturity_model_version",
+                source_ref.maturity_model_version,
+                model_run.model_version,
+            ),
+            (
+                "verification_snapshot.maturity_model_version",
+                verification.maturity_model_version,
+                model_run.model_version,
+            ),
+            (
+                "source_ref.maturity_model_config_hash",
+                source_ref.maturity_model_config_hash,
+                model_run.config_hash,
+            ),
+            (
+                "verification_snapshot.maturity_model_config_hash",
+                verification.maturity_model_config_hash,
+                model_run.config_hash,
+            ),
+            (
+                "source_ref.maturity_model_source_signature",
+                source_ref.maturity_model_source_signature,
+                model_run.source_signature,
+            ),
+            (
+                "verification_snapshot.maturity_model_source_signature",
+                verification.maturity_model_source_signature,
+                model_run.source_signature,
+            ),
+            (
+                "source_ref.maturity_model_artifact_id",
+                source_ref.maturity_model_artifact_id,
+                artifact.id,
+            ),
+            (
+                "verification_snapshot.maturity_model_artifact_id",
+                verification.maturity_model_artifact_id,
+                artifact.id,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_artifact_id",
+                verification.maturity_forecast_artifact_id,
+                artifact.id,
+            ),
+            (
+                "verification_snapshot.maturity_model_artifact_run_id",
+                verification.maturity_model_artifact_run_id,
+                artifact.run_id,
+            ),
+            (
+                "source_ref.maturity_model_artifact_hash",
+                source_ref.maturity_model_artifact_hash,
+                artifact.artifact_hash,
+            ),
+            (
+                "verification_snapshot.maturity_model_artifact_hash",
+                verification.maturity_model_artifact_hash,
+                artifact.artifact_hash,
+            ),
+            (
+                "source_ref.maturity_forecast_run_id",
+                source_ref.maturity_forecast_run_id,
+                forecast_run.id,
+            ),
+            (
+                "source_ref.maturity_forecast_source_signature",
+                source_ref.maturity_forecast_source_signature,
+                forecast_run.source_signature,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_source_signature",
+                verification.maturity_forecast_source_signature,
+                forecast_run.source_signature,
+            ),
+            (
+                "source_ref.maturity_forecast_as_of_date",
+                source_ref.maturity_forecast_as_of_date,
+                forecast_run.as_of_date,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_as_of_date",
+                verification.maturity_forecast_as_of_date,
+                forecast_run.as_of_date,
+            ),
+            (
+                "source_ref.plan_id",
+                source_ref.plan_id,
+                forecast_run.plan_id,
+            ),
+            (
+                "verification_snapshot.plan_id",
+                verification.plan_id,
+                forecast_run.plan_id,
+            ),
+            (
+                "source_ref.location_reference_id",
+                source_ref.location_reference_id,
+                forecast_run.location_reference_id,
+            ),
+            (
+                "verification_snapshot.location_reference_id",
+                verification.location_reference_id,
+                forecast_run.location_reference_id,
+            ),
+            (
+                "source_ref.weather_mapping_id",
+                source_ref.weather_mapping_id,
+                forecast_run.weather_mapping_id,
+            ),
+            (
+                "source_ref.base_temperature_search_run_id",
+                source_ref.base_temperature_search_run_id,
+                forecast_run.base_temperature_search_run_id,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_prediction_start_date",
+                verification.maturity_forecast_prediction_start_date,
+                forecast_run.prediction_start_date,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_prediction_end_date",
+                verification.maturity_forecast_prediction_end_date,
+                forecast_run.prediction_end_date,
+            ),
+            (
+                "verification_snapshot.maturity_forecast_run_status",
+                verification.maturity_forecast_run_status,
+                forecast_run.status,
+            ),
+        )
+        for field_name, actual, expected in identity_checks:
+            if actual != expected:
+                _raise(
+                    "task8_daily_prediction_persisted_identity_mismatch",
+                    details={
+                        "field": field_name,
+                        "maturity_daily_prediction_id": daily_prediction.id,
+                    },
+                )
+
+        if source_available_at is not None and source_available_at != daily_prediction.created_at:
+            _raise(
+                "task8_daily_prediction_availability_mismatch",
+                details={"maturity_daily_prediction_id": daily_prediction.id},
+            )
+        if (
+            verification_available_at is not None
+            and verification_available_at != daily_prediction.created_at
+        ):
+            _raise(
+                "task8_daily_prediction_availability_mismatch",
+                details={"maturity_daily_prediction_id": daily_prediction.id},
+            )
+
+        bound_predictions.append(
+            prediction.model_copy(
+                update={
+                    "source_ref": source_ref.model_copy(
+                        update={
+                            "maturity_daily_prediction_available_at": daily_prediction.created_at
+                        }
+                    ),
+                    "verification_snapshot": verification.model_copy(
+                        update={
+                            "maturity_daily_prediction_available_at": daily_prediction.created_at
+                        }
+                    ),
+                }
+            )
+        )
+
+    return request.model_copy(update={"task8_daily_predictions": bound_predictions})
 
 
 def _semantic_verification_snapshot_dict(
     snapshot: Task8PredictionVerificationSnapshot,
 ) -> dict[str, object]:
     """Extract only semantic fields from a verification snapshot."""
-    return {field: getattr(snapshot, field) for field in _SEMANTIC_TASK8_VERIFICATION_KEYS}
+    return {
+        field: getattr(snapshot, field)
+        for field in _SEMANTIC_TASK8_VERIFICATION_KEYS
+        if not (
+            field == "maturity_daily_prediction_available_at" and getattr(snapshot, field) is None
+        )
+    }
 
 
 def _semantic_request_snapshot(request: Task9ARequest) -> dict[str, object]:

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import ValidationError
@@ -58,6 +58,7 @@ from backend.app.harvest_state.schemas import (
     RunResolvedParameters,
     SourceRef,
     Task8DailyPredictionInput,
+    Task8PredictionVerificationSnapshot,
     Task9ABlockedOutput,
     Task9ACompletedOutput,
     Task9ARequest,
@@ -226,6 +227,27 @@ def _compute_task8_cohort_key(
     return make_stable_cohort_key(payload)
 
 
+def _task8_verification_snapshot_payload(
+    snapshot: Task8PredictionVerificationSnapshot,
+) -> dict[str, Any]:
+    """Return canonical Task 8 verification evidence.
+
+    The exact persisted availability timestamp is included whenever the
+    caller supplies it. Omitting only this newly introduced optional field
+    for legacy requests preserves their existing canonical payloads; exact
+    replay validation requires the field and compares it with the database
+    row timestamp before accepting the request.
+    """
+
+    payload = snapshot.model_dump(mode="python")
+    if payload.get("maturity_daily_prediction_available_at") is None:
+        payload.pop("maturity_daily_prediction_available_at", None)
+    # ``input_snapshot`` is persisted through ``model_dump(mode="json")``.
+    # Canonicalize the nested evidence before hashing so DB-scale Decimals and
+    # UTC datetimes have the same representation before and after JSON reload.
+    return cast(dict[str, Any], canonical_json_value(payload))
+
+
 def _sorted_request_snapshot(
     request: Task9ARequest,
     validated: ValidatedRequest | None = None,
@@ -335,9 +357,11 @@ def _sorted_request_snapshot(
                 "subfarm_id": item.subfarm_id,
                 "variety_id": item.variety_id,
                 "source_ref_hash": source_ref_hash(item.source_ref),
-                "verification_snapshot": item.verification_snapshot.model_dump(mode="python"),
+                "verification_snapshot": _task8_verification_snapshot_payload(
+                    item.verification_snapshot
+                ),
                 "verification_snapshot_hash": sha256_hex(
-                    item.verification_snapshot.model_dump(mode="python")
+                    _task8_verification_snapshot_payload(item.verification_snapshot)
                 ),
             }
             for item in task8_inputs
@@ -971,6 +995,11 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         if (
             prediction.source_ref.maturity_forecast_as_of_date
             != verification.maturity_forecast_as_of_date
+        ):
+            blockers.append(f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{task8_row_key}")
+        if (
+            prediction.source_ref.maturity_daily_prediction_available_at
+            != verification.maturity_daily_prediction_available_at
         ):
             blockers.append(f"{BlockerCode.TASK8_SOURCE_RELATION_MISMATCH}:{task8_row_key}")
         if (

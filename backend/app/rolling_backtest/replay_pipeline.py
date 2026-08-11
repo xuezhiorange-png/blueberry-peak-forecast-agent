@@ -210,9 +210,11 @@ async def orchestrate_replay_node(
        bucket-#4 metadata writer stamps onto the run row (§4.4).
     4. **§3 Task 9 canonical entry point** — call **only**
        :func:`harvest_state.application.execute_harvest_state_run`
-       with the dispatch-caller-supplied ``task9a_request``. No
-       direct ``run_harvest_state_model`` invocation, no lower-level
-       Task 9 internals.
+       with the dispatch-caller-supplied ``task9a_request`` and the node's
+       exact ``forecast_cutoff_at``. The application entry point is told
+       explicitly that persisted Task 8 availability is mandatory for this
+       replay; no caller-field presence heuristic is used. No direct
+       ``run_harvest_state_model`` invocation, no lower-level Task 9 internals.
     5. **§4 metadata write** — call the bucket-#4 metadata writer
        :func:`replay_metadata.write_replay_metadata` with the
        just-produced ``run_id``, the **explicit caller-supplied**
@@ -288,6 +290,8 @@ async def orchestrate_replay_node(
     envelope = await execute_harvest_state_run(
         session=session,
         request=task9a_request,
+        require_persisted_task8_availability=True,
+        forecast_cutoff_at=node.forecast_cutoff_at,
     )
     task9_run_id: int = envelope.run_id
 
