@@ -10,10 +10,12 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.cli import run_cli
 from backend.app.harvest_state.canonical import canonical_json_dumps
+from backend.app.models.residual_model import ResidualModelArtifact, ResidualModelTrainingRun
 from backend.tests.residual_model.test_training_manifest import (
     _config,
     _persist_task9_run,
@@ -41,6 +43,27 @@ def _sample_payload(seeded: dict[str, object]) -> dict[str, object]:
 def _session_factory(sqlite_session: AsyncSession) -> async_sessionmaker[AsyncSession]:
     assert sqlite_session.bind is not None
     return async_sessionmaker(sqlite_session.bind, expire_on_commit=False, class_=AsyncSession)
+
+
+async def _set_model_authority_visible(
+    session: AsyncSession,
+    *,
+    training_run_id: int,
+) -> None:
+    """Make a synthetic trained model historically visible for prediction tests."""
+
+    authority_at = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+    await session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=authority_at)
+    )
+    await session.execute(
+        update(ResidualModelArtifact)
+        .where(ResidualModelArtifact.training_run_id == training_run_id)
+        .values(created_at=authority_at)
+    )
+    await session.commit()
 
 
 def _relaxed_config_path(tmp_path: Path) -> Path:
@@ -302,6 +325,10 @@ async def test_residual_cli_predict_and_report(
     )
     assert train_code == 0
     training_envelope = json.loads(train_stdout.getvalue())
+    await _set_model_authority_visible(
+        sqlite_session,
+        training_run_id=training_envelope["run_id"],
+    )
 
     predict_request_path = tmp_path / "predict_request.json"
     predict_request_path.write_text(

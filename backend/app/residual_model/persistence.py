@@ -115,6 +115,38 @@ def _prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
     return canonical_payload_hash(_canonical_dump(result))
 
 
+def _prediction_payload_hash_matches_stored(
+    result: ResidualPredictionExecutionResult,
+    stored_hash: str,
+) -> bool:
+    # Every row is checked against the full payload it actually persisted.
+    # Same-signature reuse is handled separately by
+    # ``prediction_results_business_compatible`` after this integrity check.
+    return _prediction_payload_hash(result) == stored_hash
+
+
+def prediction_results_business_compatible(
+    left: ResidualPredictionExecutionResult,
+    right: ResidualPredictionExecutionResult,
+) -> bool:
+    """Compare prediction results without non-canonical audit metadata.
+
+    Legacy rows retain their historical output hash, which was derived while
+    the audit lived in input_snapshot.  The hash itself is therefore omitted
+    from this compatibility comparison; load-time integrity checks validate
+    each stored hash independently.
+    """
+
+    left_payload = _canonical_dump(left)
+    right_payload = _canonical_dump(right)
+    for payload in (left_payload, right_payload):
+        input_snapshot = payload.get("input_snapshot")
+        if isinstance(input_snapshot, dict):
+            input_snapshot.pop("model_artifact_visibility", None)
+        payload["prediction_hash"] = None
+    return left_payload == right_payload
+
+
 def _prediction_input_signature(result: ResidualPredictionExecutionResult) -> str:
     snapshot = result.input_snapshot
     return prediction_input_signature_hash(
@@ -1159,7 +1191,7 @@ async def save_residual_prediction_run(
             raise ResidualModelPersistenceIntegrityError(
                 "existing prediction run could not be loaded"
             )
-        if _prediction_payload_hash(loaded_existing) != payload_hash:
+        if not prediction_results_business_compatible(loaded_existing, result):
             raise ResidualModelHashConflictError(
                 "prediction signature already exists with a different canonical payload"
             )
@@ -1249,7 +1281,7 @@ async def save_residual_prediction_run(
                 raise ResidualModelPersistenceIntegrityError(
                     "existing prediction run could not be loaded after conflict"
                 ) from exc
-            if _prediction_payload_hash(loaded_existing) == payload_hash:
+            if prediction_results_business_compatible(loaded_existing, result):
                 verified = await get_residual_prediction_run(session, run_id=existing.id)
                 if verified is None:
                     raise ResidualModelPersistenceIntegrityError(
@@ -1478,7 +1510,7 @@ async def load_residual_prediction_run_by_id(
     )
     if prediction_parent_payload_from_columns(run) != loaded_parent_payload:
         raise ResidualModelPersistenceIntegrityError("prediction parent payload mismatch")
-    if _prediction_payload_hash(loaded) != run.canonical_payload_hash:
+    if not _prediction_payload_hash_matches_stored(loaded, run.canonical_payload_hash):
         raise ResidualModelPersistenceIntegrityError("prediction canonical payload hash mismatch")
     if _prediction_input_signature(loaded) != run.prediction_input_signature:
         raise ResidualModelPersistenceIntegrityError("prediction input signature mismatch")

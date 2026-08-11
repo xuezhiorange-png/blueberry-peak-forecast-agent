@@ -42,10 +42,15 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
 )
 from backend.app.residual_model.config import load_residual_model_config_from_snapshot
-from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
+from backend.app.residual_model.manifest import manifest_hash
 from backend.app.residual_model.persistence import (
     ResidualModelPersistenceIntegrityError,
     load_residual_prediction_run_by_id,
+)
+from backend.app.residual_model.replay_training_authority import (
+    actual_input_rows,
+    actual_manifest_payload,
+    dataset_identity,
 )
 from backend.app.residual_model.schemas import (
     FeatureValue,
@@ -75,6 +80,7 @@ from .replay_trained_identity import (
     ModelConfigPayload,
     ReplayTrainedIdentityProjection,
     TrainingManifestPayload,
+    compute_model_artifact_hash,
     project_replay_trained_identity,
 )
 from .replay_trained_prediction import (
@@ -1481,28 +1487,17 @@ def _request_label_rows(rows: Sequence[FilteredLabelRow]) -> list[dict[str, str]
 def _actual_input_rows(
     rows: Sequence[ResidualTrainingManifestRow],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    training_rows = [
-        {
-            "observation_date": row.as_of_date.isoformat(),
-            "value": _normalized_numeric(row.observed_effective_receipt_kg),
-        }
-        for row in rows
-    ]
-    label_rows = [
-        {
-            "observation_date": row.target_arrival_local_date.isoformat(),
-            "label_availability_date": row.label_actual_snapshot.source_cutoff.date().isoformat(),
-            "value": _normalized_numeric(row.observed_effective_receipt_kg),
-        }
-        for row in rows
-    ]
-    return training_rows, label_rows
+    """Compatibility wrapper for the shared persisted-authority algorithm."""
+
+    return actual_input_rows(rows)
 
 
 def _actual_manifest_payload(
     rows: Sequence[ResidualTrainingManifestRow],
 ) -> list[dict[str, object]]:
-    return [cast(dict[str, object], _json_safe(manifest_row_payload(row))) for row in rows]
+    """Compatibility wrapper for the shared persisted-authority algorithm."""
+
+    return actual_manifest_payload(rows)
 
 
 def _dataset_identity(
@@ -1511,12 +1506,12 @@ def _dataset_identity(
     label_rows: Sequence[Mapping[str, object]],
     manifest_rows: Sequence[Mapping[str, object]],
 ) -> str:
-    return canonical_payload_hash(
-        {
-            "training_rows": list(training_rows),
-            "label_rows": list(label_rows),
-            "manifest_rows": list(manifest_rows),
-        }
+    """Compatibility wrapper for the shared persisted-authority algorithm."""
+
+    return dataset_identity(
+        training_rows=training_rows,
+        label_rows=label_rows,
+        manifest_rows=manifest_rows,
     )
 
 
@@ -1530,6 +1525,7 @@ def _task12_context(
     task10_training_run_id: int | None = None,
     task10_training_signature: str | None = None,
     task10_artifact_hashes: Sequence[str] = (),
+    training_manifest_hash: str | None = None,
 ) -> dict[str, object]:
     """Lightweight TASK-012 replay context for Task 10 execution passes.
 
@@ -1544,6 +1540,12 @@ def _task12_context(
     read time rebuilds the EXACT same 31-field payload that wrote
     it.
     """
+    persisted_training_manifest_hash = training_manifest_hash or task10_manifest_hash
+    persisted_model_artifact_hash = compute_model_artifact_hash(
+        training_manifest_hash=persisted_training_manifest_hash,
+        model_config_hash=task10_config_hash,
+        model_code_version=projection.model_code_version,
+    )
     return {
         "model_policy": Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
         "task12_policy_version": projection.task12_policy_version,
@@ -1552,10 +1554,10 @@ def _task12_context(
         "scenario_id": request.scenario_id,
         "forecast_cutoff_at": _datetime_string(request.forecast_cutoff_at),
         "training_cutoff_at": _datetime_string(request.training_cutoff_at),
-        "training_manifest_hash": projection.training_manifest_hash,
+        "training_manifest_hash": persisted_training_manifest_hash,
         "training_dataset_hash": projection.manifest.training_dataset_hash,
-        "model_config_hash": projection.model_config_hash,
-        "model_artifact_hash": projection.model_artifact_hash,
+        "model_config_hash": task10_config_hash,
+        "model_artifact_hash": persisted_model_artifact_hash,
         "model_code_version": projection.model_code_version,
         "replay_code_version": request.replay_code_version,
         "task9_run_id": request.task9_run_id,
@@ -1695,6 +1697,13 @@ def _result_payload(
     filtered_label_row_count: int,
     created: bool,
 ) -> ReplayTrainedExecutionResult:
+    persisted_training_manifest_hash = training_result.manifest_hash
+    persisted_model_config_hash = training_result.config_hash
+    persisted_model_artifact_hash = compute_model_artifact_hash(
+        training_manifest_hash=persisted_training_manifest_hash,
+        model_config_hash=persisted_model_config_hash,
+        model_code_version=projection.model_code_version,
+    )
     payload: dict[str, object] = _task12_audit_payload(
         service_version=_SERVICE_VERSION,
         model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL.value,
@@ -1702,10 +1711,10 @@ def _result_payload(
         replay_attempt_id=request.replay_attempt_id,
         replay_node_id=request.replay_node_id,
         scenario_id=request.scenario_id,
-        training_manifest_hash=projection.training_manifest_hash,
+        training_manifest_hash=persisted_training_manifest_hash,
         training_dataset_hash=projection.manifest.training_dataset_hash,
-        model_config_hash=projection.model_config_hash,
-        model_artifact_hash=projection.model_artifact_hash,
+        model_config_hash=persisted_model_config_hash,
+        model_artifact_hash=persisted_model_artifact_hash,
         model_code_version=projection.model_code_version,
         forecast_cutoff_at=_datetime_string(request.forecast_cutoff_at),
         training_cutoff_at=_datetime_string(request.training_cutoff_at),
@@ -1736,9 +1745,9 @@ def _result_payload(
         prediction_run_id=prediction_run_id,
         prediction_hash=prediction_result.prediction_hash,
         request_payload_hash=request_payload_hash,
-        training_manifest_hash=projection.training_manifest_hash,
-        model_config_hash=projection.model_config_hash,
-        model_artifact_hash=projection.model_artifact_hash,
+        training_manifest_hash=persisted_training_manifest_hash,
+        model_config_hash=persisted_model_config_hash,
+        model_artifact_hash=persisted_model_artifact_hash,
         task9_run_id=request.task9_run_id,
         task9_result_hash=request.task9_result_hash,
         filtered_training_row_count=filtered_training_row_count,
@@ -2033,9 +2042,9 @@ async def execute_replay_trained_prediction(
                 blocker_code=_TASK12_DATASET_MISMATCH,
                 details={"exception_type": type(exc).__name__},
             ) from exc
-        rebuilt_manifest_payload = _actual_manifest_payload(rebuilt_manifest_rows)
-        actual_training_rows, actual_label_rows = _actual_input_rows(rebuilt_manifest_rows)
-        actual_dataset_hash = _dataset_identity(
+        rebuilt_manifest_payload = actual_manifest_payload(rebuilt_manifest_rows)
+        actual_training_rows, actual_label_rows = actual_input_rows(rebuilt_manifest_rows)
+        actual_dataset_hash = dataset_identity(
             training_rows=actual_training_rows,
             label_rows=actual_label_rows,
             manifest_rows=rebuilt_manifest_payload,
@@ -2106,6 +2115,7 @@ async def execute_replay_trained_prediction(
             request=request,
             projection=projection,
             request_payload_hash=request_payload_hash,
+            training_manifest_hash=manifest_hash(rebuilt_manifest_rows),
             task10_manifest_hash=manifest_hash(rebuilt_manifest_rows),
             task10_config_hash=config.config_hash,
         )
@@ -2163,6 +2173,7 @@ async def execute_replay_trained_prediction(
             request=request,
             projection=projection,
             request_payload_hash=request_payload_hash,
+            training_manifest_hash=training_result.manifest_hash,
             task10_manifest_hash=training_result.manifest_hash,
             task10_config_hash=training_result.config_hash,
             task10_training_run_id=training_run_id,
@@ -2174,6 +2185,16 @@ async def execute_replay_trained_prediction(
             "filtered_training_row_count": len(filtered_training),
             "filtered_label_row_count": len(filtered_labels),
         }
+        persisted_projection = replace(
+            projection,
+            training_manifest_hash=training_result.manifest_hash,
+            model_config_hash=training_result.config_hash,
+            model_artifact_hash=compute_model_artifact_hash(
+                training_manifest_hash=training_result.manifest_hash,
+                model_config_hash=training_result.config_hash,
+                model_code_version=projection.model_code_version,
+            ),
+        )
         try:
             prediction_result, prediction_run_id = await execute_residual_prediction(
                 session,
@@ -2185,6 +2206,7 @@ async def execute_replay_trained_prediction(
                     ].feature_analytics_build_run_id,
                     supplemental_feature_values=request.supplemental_feature_values,
                 ),
+                model_policy=Task10ModelPolicy.REPLAY_TRAINED_MODEL,
                 execution_context={"task12_replay": task12_context},
                 typed_attempt={"task12_replay": task12_context},
             )
@@ -2216,7 +2238,7 @@ async def execute_replay_trained_prediction(
             )
         result = _result_payload(
             request=request,
-            projection=projection,
+            projection=persisted_projection,
             request_payload_hash=request_payload_hash,
             training_result=training_result,
             prediction_result=fresh_prediction,

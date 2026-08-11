@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.harvest_state.canonical import canonical_json_value
+from backend.app.repositories.harvest_state import get_harvest_state_run
 from backend.app.repositories.residual_model import (
     complete_residual_execution_attempt,
     create_residual_execution_attempt,
     fail_residual_execution_attempt,
     get_residual_training_run,
     list_residual_artifacts,
+    list_residual_manifest_rows,
     update_residual_execution_attempt_stage,
 )
 from backend.app.residual_model.artifact import (
@@ -22,6 +28,11 @@ from backend.app.residual_model.config import (
     ResidualModelConfig,
     load_residual_model_config_from_snapshot,
 )
+from backend.app.residual_model.forecast_cutoff import (
+    ForecastCutoffResolutionError,
+    resolve_forecast_cutoff_at,
+)
+from backend.app.residual_model.manifest import manifest_hash
 from backend.app.residual_model.model import TrainedResidualEstimators
 from backend.app.residual_model.persistence import (
     ResidualArtifactIntegrityError,
@@ -29,10 +40,17 @@ from backend.app.residual_model.persistence import (
     load_residual_prediction_run_by_id,
     load_residual_training_artifacts,
     load_residual_training_run_by_id,
+    prediction_results_business_compatible,
     save_residual_prediction_run,
     save_residual_training_run,
 )
 from backend.app.residual_model.prediction_features import build_prediction_feature_rows
+from backend.app.residual_model.replay_training_authority import (
+    actual_input_rows,
+    actual_manifest_payload,
+    dataset_identity,
+    manifest_row_from_model,
+)
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
@@ -55,6 +73,29 @@ class ResidualTrainingApplicationIntegrityError(RuntimeError):
 
 class ResidualPredictionApplicationIntegrityError(RuntimeError):
     pass
+
+
+class ResidualModelAuthorityMode(StrEnum):
+    HISTORICALLY_AVAILABLE_MODEL = "historically_available_model"
+    REPLAY_TRAINED_MODEL = "replay_trained_model"
+
+
+class ResidualModelVersionNotVisibleError(ResidualPredictionApplicationIntegrityError):
+    """Raised when a persisted residual model is not visible at the forecast cutoff."""
+
+    code = "MODEL_VERSION_NOT_VISIBLE"
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(f"{self.code}: {detail}")
+
+
+class ResidualReplayTrainedAuthorityError(ResidualPredictionApplicationIntegrityError):
+    """Raised when replay-trained exemption lacks persisted Task 12 authority."""
+
+    code = "REPLAY_TRAINED_AUTHORITY_NOT_PERSISTED"
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(f"{self.code}: {detail}")
 
 
 def _sanitize_error_message(exc: Exception) -> str:
@@ -185,6 +226,282 @@ def _training_run_fallback_reason(
     return None
 
 
+def _normalize_authority_timestamp(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _authority_timestamp_iso(value: datetime | None) -> str | None:
+    normalized = _normalize_authority_timestamp(value)
+    return normalized.isoformat() if normalized is not None else None
+
+
+def _resolve_model_authority_mode(
+    model_policy: ResidualModelAuthorityMode | str,
+) -> ResidualModelAuthorityMode:
+    try:
+        return ResidualModelAuthorityMode(model_policy)
+    except (TypeError, ValueError) as exc:
+        raise ResidualPredictionApplicationIntegrityError(
+            "model_policy must be historically_available_model or replay_trained_model"
+        ) from exc
+
+
+def _persisted_replay_context(training_run: Any) -> Mapping[str, Any]:
+    snapshot = training_run.input_snapshot
+    if not isinstance(snapshot, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training input_snapshot is not an object"
+        )
+    context = snapshot.get("task12_replay")
+    if not isinstance(context, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run has no task12_replay provenance"
+        )
+    return context
+
+
+def _parse_persisted_authority_timestamp(
+    value: object,
+    *,
+    require_timezone_aware: bool = False,
+) -> datetime | None:
+    if isinstance(value, datetime):
+        if require_timezone_aware and (value.tzinfo is None or value.utcoffset() is None):
+            return None
+        return _normalize_authority_timestamp(value)
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if require_timezone_aware and (parsed.tzinfo is None or parsed.utcoffset() is None):
+        return None
+    return _normalize_authority_timestamp(parsed)
+
+
+def _require_persisted_replay_context_parity(
+    *,
+    training_run: Any,
+    input_snapshot_context: Mapping[str, Any],
+) -> None:
+    typed_attempt = training_run.typed_attempt
+    if not isinstance(typed_attempt, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run has no typed Task 12 provenance"
+        )
+    typed_context = typed_attempt.get("task12_replay")
+    if not isinstance(typed_context, Mapping):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run typed attempt has no task12_replay provenance"
+        )
+    if canonical_json_value(dict(input_snapshot_context)) != canonical_json_value(
+        dict(typed_context)
+    ):
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 input_snapshot and typed_attempt provenance differ"
+        )
+
+
+async def _require_persisted_replay_authority(
+    *,
+    session: AsyncSession,
+    training_run: Any,
+    task9_run: Any,
+    task9_run_id: int,
+    forecast_cutoff_at: datetime,
+) -> None:
+    try:
+        persisted_training_run = await get_residual_training_run(
+            session,
+            run_id=training_run.id,
+        )
+    except SQLAlchemyError as exc:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run could not be reloaded"
+        ) from exc
+    if persisted_training_run is None:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted residual training run could not be reloaded"
+        )
+    training_run = persisted_training_run
+    if task9_run.is_replay is not True:
+        raise ResidualReplayTrainedAuthorityError(
+            "replay-trained exemption requires a persisted replay Task 9 run"
+        )
+
+    context = _persisted_replay_context(training_run)
+    _require_persisted_replay_context_parity(
+        training_run=training_run,
+        input_snapshot_context=context,
+    )
+    if context.get("model_policy") != ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL.value:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance does not identify replay_trained_model"
+        )
+    if context.get("is_replay") is not True:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance is not marked as replay"
+        )
+    if context.get("task9_run_id") != task9_run_id:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance is bound to a different Task 9 run"
+        )
+    if context.get("task9_result_hash") != task9_run.result_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 provenance is bound to a different Task 9 result"
+        )
+    persisted_cutoff_at = _parse_persisted_authority_timestamp(context.get("forecast_cutoff_at"))
+    if persisted_cutoff_at != forecast_cutoff_at:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 forecast cutoff does not match Task 9 authority"
+        )
+    training_cutoff_at = _parse_persisted_authority_timestamp(
+        context.get("training_cutoff_at"),
+        require_timezone_aware=True,
+    )
+    if training_cutoff_at is None:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 training cutoff is missing or not timezone-aware"
+        )
+    if training_cutoff_at > forecast_cutoff_at:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 training cutoff is after the forecast cutoff"
+        )
+    if context.get("training_manifest_hash") != training_run.manifest_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 training manifest hash does not match the training run"
+        )
+    if context.get("task10_manifest_hash") != training_run.manifest_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 manifest hash does not match the training run"
+        )
+    if context.get("model_config_hash") != training_run.config_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 model config hash does not match the training run"
+        )
+    if context.get("task10_config_hash") != training_run.config_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 config hash does not match the training run"
+        )
+
+    try:
+        persisted_manifest_rows = await list_residual_manifest_rows(
+            session,
+            training_run_id=training_run.id,
+        )
+        if len(persisted_manifest_rows) != training_run.manifest_row_count:
+            raise ValueError("persisted manifest row count does not match the training run")
+        manifest_rows = [manifest_row_from_model(row) for row in persisted_manifest_rows]
+    except Exception as exc:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 manifest rows could not be reconstructed"
+        ) from exc
+
+    training_cutoff_date = training_cutoff_at.date()
+    for row in manifest_rows:
+        if row.as_of_date > training_cutoff_date:
+            raise ResidualReplayTrainedAuthorityError(
+                "persisted Task 12 training observation is after the training cutoff"
+            )
+        if row.label_actual_snapshot.source_cutoff.date() > training_cutoff_date:
+            raise ResidualReplayTrainedAuthorityError(
+                "persisted Task 12 label availability is after the training cutoff"
+            )
+
+    recomputed_manifest_hash = manifest_hash(manifest_rows)
+    if recomputed_manifest_hash != training_run.manifest_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 manifest rows do not match the training manifest hash"
+        )
+    persisted_manifest_payload = actual_manifest_payload(manifest_rows)
+    persisted_training_rows, persisted_label_rows = actual_input_rows(manifest_rows)
+    recomputed_dataset_hash = dataset_identity(
+        training_rows=persisted_training_rows,
+        label_rows=persisted_label_rows,
+        manifest_rows=persisted_manifest_payload,
+    )
+    if context.get("training_dataset_hash") != recomputed_dataset_hash:
+        raise ResidualReplayTrainedAuthorityError(
+            "persisted Task 12 dataset hash does not match the persisted manifest rows"
+        )
+    for field in ("task12_policy_version", "replay_attempt_id", "replay_node_id", "scenario_id"):
+        value = context.get(field)
+        if not isinstance(value, str) or not value:
+            raise ResidualReplayTrainedAuthorityError(
+                f"persisted Task 12 provenance is missing {field}"
+            )
+
+
+async def _resolve_residual_model_visibility(
+    session: AsyncSession,
+    *,
+    training_run: Any,
+    task9_run_id: int,
+    model_policy: ResidualModelAuthorityMode,
+) -> tuple[datetime, list[Any]]:
+    """Resolve the shared forecast cutoff and gate persisted model visibility."""
+
+    task9_run = await get_harvest_state_run(session, run_id=task9_run_id)
+    if task9_run is None:
+        raise ResidualPredictionApplicationIntegrityError(
+            f"HarvestStateRun {task9_run_id} was not found while resolving forecast cutoff"
+        )
+    try:
+        forecast_cutoff_at = await resolve_forecast_cutoff_at(
+            session,
+            task9_run_id=task9_run_id,
+            as_of_date=task9_run.as_of_date,
+        )
+    except ForecastCutoffResolutionError as exc:
+        raise ResidualPredictionApplicationIntegrityError(str(exc)) from exc
+
+    if model_policy is ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL:
+        await _require_persisted_replay_authority(
+            session=session,
+            training_run=training_run,
+            task9_run=task9_run,
+            task9_run_id=task9_run_id,
+            forecast_cutoff_at=forecast_cutoff_at,
+        )
+
+    try:
+        artifact_rows = (
+            await list_residual_artifacts(session, training_run_id=training_run.id)
+            if training_run.eligibility_status == "eligible"
+            else []
+        )
+    except SQLAlchemyError as exc:
+        raise ResidualPredictionApplicationIntegrityError(
+            "Authoritative residual artifact identities could not be loaded"
+        ) from exc
+
+    if model_policy is ResidualModelAuthorityMode.REPLAY_TRAINED_MODEL:
+        # Replay-trained artifacts are created by the replay execution after
+        # the historical cutoff. Replay service validation owns their
+        # training-cutoff, manifest, and identity authority instead.
+        return forecast_cutoff_at, artifact_rows
+
+    training_finished_at = _normalize_authority_timestamp(training_run.finished_at)
+    if training_finished_at is None or training_finished_at > forecast_cutoff_at:
+        raise ResidualModelVersionNotVisibleError(
+            "persisted residual training run is not visible at the forecast cutoff"
+        )
+
+    for artifact in artifact_rows:
+        artifact_created_at = _normalize_authority_timestamp(artifact.created_at)
+        if artifact_created_at is None or artifact_created_at > forecast_cutoff_at:
+            raise ResidualModelVersionNotVisibleError(
+                "persisted residual model artifact is not visible at the forecast cutoff"
+            )
+
+    return forecast_cutoff_at, artifact_rows
+
+
 def _prediction_input_snapshot(
     *,
     request: ResidualPredictionRequest,
@@ -219,7 +536,13 @@ def _prediction_input_snapshot(
         "fallback_policy": config_snapshot["categorical_encoding"]["unknown_policy"],
     }
     if execution_context:
-        snapshot.update(execution_context)
+        snapshot.update(
+            {
+                key: value
+                for key, value in execution_context.items()
+                if key != "model_artifact_visibility"
+            }
+        )
     return snapshot
 
 
@@ -334,20 +657,26 @@ async def execute_residual_prediction(
     session: AsyncSession,
     *,
     request: ResidualPredictionRequest,
+    model_policy: ResidualModelAuthorityMode | str = (
+        ResidualModelAuthorityMode.HISTORICALLY_AVAILABLE_MODEL
+    ),
     execution_context: dict[str, Any] | None = None,
     typed_attempt: dict[str, Any] | None = None,
 ) -> tuple[ResidualPredictionExecutionResult, int]:
+    resolved_model_policy = _resolve_model_authority_mode(model_policy)
     attempt_id: int | None = await _create_attempt(
         session=session,
         attempt_type="prediction",
         current_stage="training_load",
         requested_inputs={
             **request.model_dump(mode="json"),
+            "model_policy": resolved_model_policy.value,
             "execution_context": execution_context or {},
         },
         config_identity={
             "model_run_id": request.model_run_id,
             "feature_analytics_build_run_id": request.feature_analytics_build_run_id,
+            "model_policy": resolved_model_policy.value,
         },
         upstream_requested_ids={
             "model_run_id": request.model_run_id,
@@ -364,6 +693,18 @@ async def execute_residual_prediction(
             raise ResidualTrainingApplicationIntegrityError("Residual training run is running")
         if training_run_row.execution_status == "failed":
             raise ResidualTrainingApplicationIntegrityError("Residual training run is failed")
+        current_stage = "model_visibility"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        forecast_cutoff_at, artifact_rows = await _resolve_residual_model_visibility(
+            session,
+            training_run=training_run_row,
+            task9_run_id=request.task9_run_id,
+            model_policy=resolved_model_policy,
+        )
         model_run: ResidualTrainingExecutionResult | None
         preload_artifact_error: Exception | None = None
         try:
@@ -398,7 +739,7 @@ async def execute_residual_prediction(
             supplemental_feature_values=request.supplemental_feature_values,
         )
 
-        artifact_hashes: list[str] = []
+        artifact_hashes = [item.artifact_sha256 for item in artifact_rows]
         if preload_artifact_error is not None and training_run_row.eligibility_status == "eligible":
             current_stage = "artifact_identity_load"
             await _update_attempt_stage(
@@ -406,16 +747,6 @@ async def execute_residual_prediction(
                 attempt_id=attempt_id,
                 current_stage=current_stage,
             )
-            try:
-                training_artifact_rows = await list_residual_artifacts(
-                    session,
-                    training_run_id=training_run_row.id,
-                )
-            except SQLAlchemyError as exc:
-                raise ResidualPredictionApplicationIntegrityError(
-                    "Authoritative residual artifact identities could not be loaded"
-                ) from exc
-            artifact_hashes = [item.artifact_sha256 for item in training_artifact_rows]
 
         model_run_snapshot = (
             model_run.input_snapshot if model_run is not None else training_run_row.input_snapshot
@@ -441,16 +772,6 @@ async def execute_residual_prediction(
                 attempt_id=attempt_id,
                 current_stage=current_stage,
             )
-            try:
-                artifact_rows = await list_residual_artifacts(
-                    session,
-                    training_run_id=training_run_row.id,
-                )
-            except SQLAlchemyError as exc:
-                raise ResidualPredictionApplicationIntegrityError(
-                    "Authoritative residual artifact identities could not be loaded"
-                ) from exc
-            artifact_hashes = [item.artifact_sha256 for item in artifact_rows]
             current_stage = "artifact_validation"
             await _update_attempt_stage(
                 session=session,
@@ -520,6 +841,26 @@ async def execute_residual_prediction(
             ):
                 fallback_reason = "artifact_validation_failed"
 
+        model_artifact_visibility = {
+            "policy_version": "residual-model-artifact-availability-v1",
+            "mode": resolved_model_policy.value,
+            "forecast_cutoff_at": forecast_cutoff_at.isoformat(),
+            "training_run_id": training_run_row.id,
+            "training_run_finished_at": _authority_timestamp_iso(training_run_row.finished_at),
+            "artifact_authorities": [
+                {
+                    "quantile_label": artifact.quantile_label,
+                    "artifact_sha256": artifact.artifact_sha256,
+                    "created_at": _authority_timestamp_iso(artifact.created_at),
+                }
+                for artifact in artifact_rows
+            ],
+        }
+        prediction_typed_attempt = dict(typed_attempt or {})
+        # This audit evidence is DB-derived and intentionally lives outside
+        # the canonical prediction input identity.  Caller-supplied metadata
+        # cannot override the authority snapshot.
+        prediction_typed_attempt["model_artifact_visibility"] = model_artifact_visibility
         input_snapshot = _prediction_input_snapshot(
             request=request,
             training_signature=training_run_row.training_signature,
@@ -591,7 +932,7 @@ async def execute_residual_prediction(
             feature_schema_version=training_run_row.feature_schema_version,
             feature_schema_hash=training_run_row.feature_schema_hash,
             artifact_hashes=artifact_hashes,
-            typed_attempt=typed_attempt,
+            typed_attempt=prediction_typed_attempt,
         )
         current_stage = "reload_integrity"
         await _update_attempt_stage(
@@ -604,7 +945,7 @@ async def execute_residual_prediction(
             raise ResidualPredictionApplicationIntegrityError(
                 "Residual prediction run was saved but could not be reloaded"
             )
-        if loaded.model_dump(mode="json") != result.model_dump(mode="json"):
+        if not prediction_results_business_compatible(loaded, result):
             raise ResidualPredictionApplicationIntegrityError(
                 "Reloaded residual prediction run failed parity checks"
             )

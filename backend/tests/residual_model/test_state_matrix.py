@@ -18,10 +18,11 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import CheckConstraint, select, text
+from sqlalchemy import CheckConstraint, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.models.residual_model import (
+    ResidualModelArtifact,
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
@@ -72,6 +73,25 @@ def _relaxed_config():
     )
     rules = replace(config.rules, eligibility=eligibility)
     return replace(config, rules=rules)
+
+
+async def _set_model_authority_visible(
+    session: AsyncSession,
+    *,
+    training_run_id: int,
+) -> None:
+    authority_at = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+    await session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=authority_at)
+    )
+    await session.execute(
+        update(ResidualModelArtifact)
+        .where(ResidualModelArtifact.training_run_id == training_run_id)
+        .values(created_at=authority_at)
+    )
+    await session.commit()
 
 
 # =========================================================================
@@ -383,6 +403,10 @@ class TestApplicationStateTransitions:
             samples=[],
             config=_relaxed_config(),
         )
+        await _set_model_authority_visible(
+            sqlite_session,
+            training_run_id=training_run_id,
+        )
 
         tr = (
             await sqlite_session.execute(
@@ -470,6 +494,10 @@ class TestApplicationStateTransitions:
                 )
             ],
             config=_config(),
+        )
+        await _set_model_authority_visible(
+            sqlite_session,
+            training_run_id=training_run_id,
         )
 
         tr = (
@@ -584,6 +612,10 @@ class TestApplicationStateTransitions:
                 as_of_date=as_of_date,
             ),
             config=_relaxed_config(),
+        )
+        await _set_model_authority_visible(
+            sqlite_session,
+            training_run_id=training_run_id,
         )
 
         tr = (

@@ -14,11 +14,14 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.models.residual_model import (
+    ResidualModelArtifact,
     ResidualModelExecutionAttempt,
+    ResidualModelTrainingRun,
 )
 from backend.app.residual_model.application import (
     ResidualPredictionApplicationIntegrityError,
@@ -61,6 +64,27 @@ def _relaxed_config():
     )
     rules = replace(config.rules, eligibility=eligibility)
     return replace(config, rules=rules)
+
+
+async def _set_model_authority_visible(
+    session: AsyncSession,
+    *,
+    training_run_id: int,
+) -> None:
+    """Make a synthetic trained model historically visible for prediction tests."""
+
+    authority_at = datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
+    await session.execute(
+        update(ResidualModelTrainingRun)
+        .where(ResidualModelTrainingRun.id == training_run_id)
+        .values(finished_at=authority_at)
+    )
+    await session.execute(
+        update(ResidualModelArtifact)
+        .where(ResidualModelArtifact.training_run_id == training_run_id)
+        .values(created_at=authority_at)
+    )
+    await session.commit()
 
 
 # ── 1. Training manifest failure persists failed attempt ─────────────────
@@ -266,6 +290,7 @@ async def test_prediction_feature_failure_persists_failed_attempt() -> None:
             config=_config(),
         )
         assert training_result.eligibility_status == "ineligible"
+        await _set_model_authority_visible(session, training_run_id=training_run_id)
 
         with pytest.raises(ResidualPredictionApplicationIntegrityError):
             await execute_residual_prediction(
