@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any, cast
 
 import pytest
-from sqlalchemy import JSON, Integer
+from sqlalchemy import JSON, Integer, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app.analytics.config import load_analytics_config
@@ -27,7 +27,9 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
-from backend.app.models.master_data import Factory, Grade, Holiday, Season, Variety
+from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Variety
+from backend.app.models.planning import LocationReference
+from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelExecutionAttempt,
@@ -35,6 +37,11 @@ from backend.app.models.residual_model import (
     ResidualModelPredictionRow,
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
+)
+from backend.app.models.weather import (
+    LocationWeatherMapping,
+    WeatherFeatureRun,
+    WeatherSourceLocation,
 )
 from backend.app.residual_model.application import execute_residual_training
 from backend.app.residual_model.config import load_residual_model_config
@@ -69,6 +76,7 @@ TABLES = [
     ResidualModelPredictionRun.__table__,
     ResidualModelPredictionRow.__table__,
     ResidualModelExecutionAttempt.__table__,
+    WeatherFeatureRun.__table__,
 ]
 
 
@@ -88,6 +96,15 @@ async def sqlite_session() -> AsyncSession:
     FactReceiptRaw.__table__.c.raw_payload.type = JSON()
     FactReceiptRaw.__table__.c.exclusion_reasons.type = JSON()
     FactReceiptRaw.__table__.c.parse_errors.type = JSON()
+    for column_name in (
+        "input_snapshot",
+        "window_features",
+        "timeline_payload",
+        "weather_observation_ids",
+        "warnings",
+        "blockers",
+    ):
+        WeatherFeatureRun.__table__.c[column_name].type = JSON()
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync_conn: Season.metadata.create_all(sync_conn, tables=TABLES))
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
@@ -175,8 +192,155 @@ async def _persist_task9_run(
     output = run_harvest_state_model(payload)
     assert output.status == "completed"
     run = await save_harvest_state_output(session, output=output)
+    as_of_date = _snapshot_as_of_date(output)
+    (
+        weather_plan_id,
+        weather_location_reference_id,
+        weather_mapping_id,
+        weather_source_location_id,
+    ) = await _ensure_weather_authority_parents(session)
+    weather_run = await session.get(WeatherFeatureRun, 1)
+    if weather_run is None:
+        weather_run = WeatherFeatureRun(id=1)
+        session.add(weather_run)
+    weather_run.feature_version = "task7-v1"
+    weather_run.config_hash = "b" * 64
+    weather_run.mapping_version = "weather-map-v1"
+    weather_run.weather_source_version = "weather-source-v1"
+    weather_run.plan_id = weather_plan_id
+    weather_run.location_reference_id = weather_location_reference_id
+    weather_run.location_weather_mapping_id = weather_mapping_id
+    weather_run.weather_source_location_id = weather_source_location_id
+    weather_run.as_of_date = as_of_date
+    weather_run.feature_date = as_of_date
+    weather_run.source_signature = "a" * 64
+    weather_run.status = "completed"
+    weather_run.input_snapshot = {}
+    weather_run.window_features = {}
+    weather_run.timeline_payload = {}
+    weather_run.weather_observation_ids = []
+    weather_run.warnings = []
+    weather_run.blockers = []
     await session.commit()
     return run.id, output
+
+
+async def _ensure_weather_authority_parents(
+    session: AsyncSession,
+) -> tuple[int, int, int, int]:
+    """Provide FK parents for the shared WeatherFeatureRun test authority."""
+
+    bind = session.bind
+    if bind is None or bind.dialect.name == "sqlite":
+        return 1, 1, 1, 1
+
+    farm = await session.scalar(select(Farm).order_by(Farm.id.asc()))
+    if farm is None:
+        farm = Farm(name="weather-authority-test-farm")
+        session.add(farm)
+        await session.flush()
+
+    season = await session.get(Season, 1)
+    variety = await session.get(Variety, 101)
+    assert season is not None
+    assert variety is not None
+
+    plan = await session.scalar(
+        select(FarmSeasonVarietyPlan).order_by(FarmSeasonVarietyPlan.id.asc())
+    )
+    if plan is None:
+        plan = FarmSeasonVarietyPlan(
+            farm_id=farm.id,
+            subfarm_id=None,
+            season_id=season.id,
+            variety_id=variety.id,
+            planted_area_mu=Decimal("100"),
+            expected_yield_kg_per_mu=Decimal("1200"),
+            marketable_rate=Decimal("0.8"),
+            version=1,
+            effective_from=season.start_date,
+            available_at=season.start_date,
+            source_type="manual",
+            source_name="weather-authority-test",
+            source_version="v1",
+            row_hash="weather-authority-test-plan",
+        )
+        session.add(plan)
+        await session.flush()
+
+    location = await session.scalar(select(LocationReference).order_by(LocationReference.id.asc()))
+    if location is None:
+        location = LocationReference(
+            farm_id=farm.id,
+            subfarm_id=None,
+            farm_code="weather-authority-farm",
+            farm_name=farm.name,
+            subfarm_name=None,
+            address_raw="Weather authority test address",
+            address_normalized="weather authority test address",
+            province="Yunnan",
+            prefecture="Honghe",
+            county="Mile",
+            township=None,
+            village=None,
+            latitude=Decimal("24.100000"),
+            longitude=Decimal("102.100000"),
+            altitude_m=Decimal("1800.00"),
+            climate_zone_id=None,
+            location_source="synthetic",
+            source_version="weather-authority-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            source_row_hash="weather-authority-test-location",
+        )
+        session.add(location)
+        await session.flush()
+
+    source_location = await session.scalar(
+        select(WeatherSourceLocation).order_by(WeatherSourceLocation.id.asc())
+    )
+    if source_location is None:
+        source_location = WeatherSourceLocation(
+            provider_code="synthetic-weather-authority",
+            external_location_id="weather-authority-test-station",
+            location_type="station",
+            name="Weather authority test station",
+            latitude=Decimal("24.110000"),
+            longitude=Decimal("102.110000"),
+            altitude_m=Decimal("1810.00"),
+            timezone_name="Asia/Shanghai",
+            grid_resolution=None,
+            source_version="weather-source-v1",
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            row_hash="weather-authority-test-source-location",
+        )
+        session.add(source_location)
+        await session.flush()
+
+    mapping = await session.scalar(
+        select(LocationWeatherMapping).order_by(LocationWeatherMapping.id.asc())
+    )
+    if mapping is None:
+        mapping = LocationWeatherMapping(
+            location_reference_id=location.id,
+            weather_source_location_id=source_location.id,
+            mapping_method="nearest_station",
+            distance_km=Decimal("1.500000"),
+            altitude_difference_m=Decimal("10.000000"),
+            mapping_score=Decimal("0.950000"),
+            confidence_level="high",
+            mapping_version="weather-map-v1",
+            config_hash="mapping-parent-cfg",
+            available_at=date(2024, 1, 1),
+            valid_from=date(2024, 1, 1),
+            valid_to=None,
+            row_hash="weather-authority-test-mapping",
+        )
+        session.add(mapping)
+        await session.flush()
+
+    return plan.id, location.id, mapping.id, source_location.id
 
 
 async def _persist_blocked_task9_run(session: AsyncSession) -> int:
@@ -403,7 +567,13 @@ def _supplemental_features(
                 "feature_name": "weather_7d_rainfall",
                 "value": weather_7d_rainfall,
                 "known_at": cutoff,
-                "source_ref": {"weather_run": 1},
+                "source_ref": {
+                    "weather_feature_run_id": 1,
+                    "weather_source_signature": "a" * 64,
+                    "weather_config_hash": "b" * 64,
+                    "weather_mapping_version": "weather-map-v1",
+                    "weather_source_version": "weather-source-v1",
+                },
                 "source_version": "task7-v1",
                 "source_available_at": cutoff,
                 "observation_date": as_of_date,
@@ -414,7 +584,13 @@ def _supplemental_features(
                 "feature_name": "weather_7d_gdd",
                 "value": weather_7d_gdd,
                 "known_at": cutoff,
-                "source_ref": {"weather_run": 1},
+                "source_ref": {
+                    "weather_feature_run_id": 1,
+                    "weather_source_signature": "a" * 64,
+                    "weather_config_hash": "b" * 64,
+                    "weather_mapping_version": "weather-map-v1",
+                    "weather_source_version": "weather-source-v1",
+                },
                 "source_version": "task7-v1",
                 "source_available_at": cutoff,
                 "observation_date": as_of_date,
@@ -610,6 +786,11 @@ async def test_build_training_manifest_uses_explicit_label_and_feature_build_run
     assert features["actual_receipt_lag_3d_kg"] == Decimal("13")
     assert features["actual_receipt_lag_7d_kg"] == Decimal("17")
     assert features["weather_7d_rainfall"] == Decimal("12.5")
+    weather_feature = next(
+        item for item in first.feature_values if item.feature_name == "weather_7d_rainfall"
+    )
+    assert weather_feature.source_ref["weather_feature_run_id"] == 1
+    assert weather_feature.source_ref["weather_source_signature"] == "a" * 64
     assert all(item.known_at == exact_cutoff for item in first.feature_values)
     assert first.feature_visibility_audit is not None
     assert first.feature_visibility_audit.status == "completed"

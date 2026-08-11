@@ -37,6 +37,7 @@ from backend.app.residual_model.training_manifest import (
     _task9_holiday_snapshot,
 )
 from backend.app.residual_model.visibility import audit_feature_visibility
+from backend.app.residual_model.weather_authority import bind_weather_feature_authority
 
 
 class ResidualPredictionFeatureBuildError(RuntimeError):
@@ -80,7 +81,12 @@ async def build_prediction_feature_rows(
         as_of_date=as_of_date,
     )
     registry = build_feature_registry()
-    supplemental_features = _supplemental_map(supplemental_feature_values)
+    bound_supplemental_values = await bind_weather_feature_authority(
+        session,
+        feature_values=supplemental_feature_values,
+        as_of_date=as_of_date,
+    )
+    supplemental_features = _supplemental_map(bound_supplemental_values)
 
     feature_build_run: AnalyticsBuildRun | None = None
     feature_season = None
