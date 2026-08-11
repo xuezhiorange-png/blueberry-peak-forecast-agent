@@ -46,6 +46,36 @@ The four reconciliation classes are independent of runtime status:
 None of these classes means `PASS` or `ACCEPTED`. All rows in the machine-
 readable companion artifact have `can_be_closed_by_current_task=false`.
 
+### Dependency semantics
+
+The reconciliation separates three graphs that were previously conflated:
+
+1. **Gate hard-prerequisite graph** — `hard_prerequisite_gate_ids` are
+   directional strict prerequisites: the referenced gate or accepted artifact
+   must close before the current gate can close. This graph must be acyclic.
+2. **Gate co-resolution graph** — `co_resolution_gate_ids` identify gates that
+   may be formalized in the same decision package. They are not prerequisites;
+   mutual relationships are therefore allowed and do not create a hard-cycle.
+3. **Packaged execution-task graph** — each package's `dependencies` points
+   only to earlier `S1-REMAINING-*` task packages. It describes execution
+   order, not gate closure semantics.
+
+Accordingly:
+
+```text
+GATE_HARD_PREREQUISITE_GRAPH != CO_RESOLUTION_GRAPH
+GATE_HARD_PREREQUISITE_GRAPH != PACKAGED_EXECUTION_TASK_GRAPH
+CO_RESOLUTION_GRAPH != PACKAGED_EXECUTION_TASK_GRAPH
+HARD_PREREQUISITE_IS_DIRECTIONAL=true
+HARD_PREREQUISITE_GRAPH_MUST_BE_ACYCLIC=true
+CO_RESOLUTION_IS_NOT_PREREQUISITE=true
+CO_RESOLUTION_RELATIONSHIP_MAY_BE_MUTUAL=true
+```
+
+The machine-readable validation records zero hard-prerequisite cycles,
+self-dependencies, or unknown gate references. The six packaged task
+dependencies are validated separately as a directional acyclic task graph.
+
 ## 2. Current canonical runtime state
 
 The current acceptance record at
@@ -115,25 +145,25 @@ actual-label lifecycle, custody, and PIT workpapers under
 
 ## 4. 17-gate reconciliation matrix
 
-| Gate | Runtime | Reconciliation class | Existing evidence | True remaining blocker | Dependency | Recommended next action |
-| --- | --- | --- | --- | --- | --- | --- |
-| `S1-Q2C-TARGET` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Physical facts and recorded-label boundary are present; Q2C status is `NOT_ISSUED`. | Business-source attestation and closed Q2C outcome are absent. | Source authority, cohort, physical meaning, unit/time | Obtain and formalize the Q2C business-source attestation and target decision. |
-| `S1-SOURCE-AUTHORITY` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Source identity, schema, snapshot, hashes, owner role, and Package A references are present. | Issued owner attestation, effective applicability, completeness, and attestation hash are absent. | None | Formalize and obtain source-owner authority. |
-| `S1-SOURCE-COHORT` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Aggregate counts, object identity, scope hashes, and inclusion preparation exist. | Accepted schema-valid cohort manifest and cohort freeze are absent. | Source authority, inclusion/exclusion | Create and accept the versioned cohort manifest. |
-| `S1-PHYSICAL-MEANING` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics are reconciled. | Formal physical attestation and review/hash are absent. | Source authority, Q2C | Prepare the formal physical-meaning attestation. |
-| `S1-UNIT-AND-TIME-BASIS` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | KG, Asia/Shanghai, local-day rule, business-date rule, and canonical grain are recorded. | Formal unit/time authority binding and review are absent. | Source authority, inclusion/exclusion | Formalize the unit and farm-local time attestation. |
-| `S1-CANONICAL-GRAIN` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Canonical grain and aggregate scope support are present; mapping acceptance is false. | Accepted mapping/cohort scope is required before grain can be frozen. | Source authority, cohort, inclusion/exclusion | Formalize grain after source authority and mapping freeze. |
-| `S1-VISIBILITY` | `BLOCKED` | `NARROW_CORRECTION_REQUIRED` | Current PIT evidence is 4/17/0/1; PR #189/#190/#192/#194 controls are represented. | Four current gaps remain: planning provenance, Analytics taxonomy, Analytics source cutoff, and Task9 mixed authority. | Source/cohort/Q2C authority | Close the four PIT source-class and mixed-authority gaps. |
-| `S1-REVISION-WINNER` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Q2A/I7 rules and IDFL mode semantics are defined; IDFL label-side winner is not required. | Source-specific disposition and applicability are not frozen or independently reviewed. | Source authority, cohort, inclusion, visibility | Reconcile the source-specific winner disposition after source/cohort freeze. |
-| `S1-INCLUSION-EXCLUSION` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Inclusion manifest records retained unmapped rows, no auto-July assignment, and unknown-not-zero. | Unmapped-date and scope applicability decisions remain pending. | Source authority, cohort | Resolve unmapped-date and source-scope inclusion/exclusion authority. |
-| `S1-MISSING-CORRECTION-CANCELLATION` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Missingness and IDFL mode semantics are defined; custody propagation is separate. | Source completeness, missing-day, correction, void, and final-confirmation authority remain incomplete. | Source authority, cohort, revision | Issue source completeness and lifecycle policy authority. |
-| `S1-SPLIT-POLICY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Time-ordering, no leakage, TEST seal, and custody rules are defined. | No accepted cohort/rowset and no final split artifact exist. | Cohort, inclusion, visibility, metric, custody | Prepare split/custody artifact after upstream acceptance. |
-| `S1-METRIC-CONTRACT` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Metric identities and S3 binding rules are defined. | Source/target/visibility/threshold prerequisites prevent metric acceptance. | Q2C, source, visibility, coverage, quality | Freeze metric contract after upstream authority decisions. |
-| `S1-MINIMUM-COVERAGE` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Status record explicitly says no approved S1 threshold; S3 floor 10 is not an S1 threshold. | Versioned coverage threshold decision is absent. | Cohort, metric | Obtain and accept an S1 coverage threshold decision. |
-| `S1-DATA-QUALITY-THRESHOLDS` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | No threshold is inferred; contract and status are fail-closed. | Versioned quality policy and threshold decision are absent. | Cohort, inclusion, metric | Obtain and accept the S1 quality-threshold policy. |
-| `S1-DATA-CUSTODY` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Versioned custody record, policy identities, hashes, access, retention, withdrawal, and void propagation are issued for review. | Independent custody review/acceptance is absent. | Source authority, cohort | Submit the issued custody record for independent review. |
-| `S1-HOLDOUT-FEASIBILITY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Feasibility rule and no-data boundary are clear; no TEST/holdout was accessed. | Accepted cohort, coverage, custody, split, and reviewed feasibility decision are absent. | Cohort, custody, split, coverage | Prepare and review feasibility after prerequisites close. |
-| `S1-INDEPENDENT-REVIEW` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Registry has 17 required rows; review status is not started. | All required gate artifacts must close before independent S1 review. | All other 16 gates | Run final independent S1 acceptance review. |
+| Gate | Runtime | Reconciliation class | Existing evidence | True remaining blocker | Hard prerequisite | Co-resolution | Recommended next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `S1-Q2C-TARGET` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Physical facts and recorded-label boundary are present; Q2C status is `NOT_ISSUED`. | Business-source attestation and closed Q2C outcome are absent. | `S1-SOURCE-AUTHORITY` | `S1-PHYSICAL-MEANING`; `S1-UNIT-AND-TIME-BASIS` | Obtain and formalize the Q2C business-source attestation and target decision. |
+| `S1-SOURCE-AUTHORITY` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Source identity, schema, snapshot, hashes, owner role, and Package A references are present. | Issued owner attestation, effective applicability, completeness, and attestation hash are absent. | None | None | Formalize and obtain source-owner authority. |
+| `S1-SOURCE-COHORT` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Aggregate counts, object identity, scope hashes, and inclusion preparation exist. | Accepted schema-valid cohort manifest and cohort freeze are absent. | `S1-SOURCE-AUTHORITY` | `S1-INCLUSION-EXCLUSION`; `S1-CANONICAL-GRAIN` | Create and accept the versioned cohort manifest. |
+| `S1-PHYSICAL-MEANING` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics are reconciled. | Formal physical attestation and review/hash are absent. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Prepare the formal physical-meaning attestation. |
+| `S1-UNIT-AND-TIME-BASIS` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | KG, Asia/Shanghai, local-day rule, business-date rule, and canonical grain are recorded. | Formal unit/time authority binding and review are absent. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Formalize the unit and farm-local time attestation. |
+| `S1-CANONICAL-GRAIN` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Canonical grain and aggregate scope support are present; mapping acceptance is false. | Accepted mapping/cohort scope is required before grain can be frozen. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Formalize grain after source authority and mapping freeze. |
+| `S1-VISIBILITY` | `BLOCKED` | `NARROW_CORRECTION_REQUIRED` | Current PIT evidence is 4/17/0/1; PR #189/#190/#192/#194 controls are represented. | Four current gaps remain: planning provenance, Analytics taxonomy, Analytics source cutoff, and Task9 mixed authority. | `S1-SOURCE-AUTHORITY`; `S1-Q2C-TARGET`; `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION` | None | Close the four PIT source-class and mixed-authority gaps. |
+| `S1-REVISION-WINNER` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Q2A/I7 rules and IDFL mode semantics are defined; IDFL label-side winner is not required. | Source-specific disposition and applicability are not frozen or independently reviewed. | `S1-SOURCE-AUTHORITY`; `S1-MISSING-CORRECTION-CANCELLATION` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Reconcile the source-specific winner disposition after source/cohort freeze. |
+| `S1-INCLUSION-EXCLUSION` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Inclusion manifest records retained unmapped rows, no auto-July assignment, and unknown-not-zero. | Unmapped-date and scope applicability decisions remain pending. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN` | Resolve unmapped-date and source-scope inclusion/exclusion authority. |
+| `S1-MISSING-CORRECTION-CANCELLATION` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Missingness and IDFL mode semantics are defined; custody propagation is separate. | Source completeness, missing-day, correction, void, and final-confirmation authority remain incomplete. | `S1-SOURCE-AUTHORITY` | None | Issue source completeness and lifecycle policy authority. |
+| `S1-SPLIT-POLICY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Time-ordering, no leakage, TEST seal, and custody rules are defined. | No accepted cohort/rowset and no final split artifact exist. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-METRIC-CONTRACT`; `S1-DATA-CUSTODY` | None | Prepare split/custody artifact after upstream acceptance. |
+| `S1-METRIC-CONTRACT` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Metric identities and S3 binding rules are defined. | Source/target/visibility/threshold prerequisites prevent metric acceptance. | `S1-Q2C-TARGET`; `S1-SOURCE-AUTHORITY`; `S1-SOURCE-COHORT`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-QUALITY-THRESHOLDS` | None | Freeze metric contract after upstream authority decisions. |
+| `S1-MINIMUM-COVERAGE` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Status record explicitly says no approved S1 threshold; S3 floor 10 is not an S1 threshold. | Versioned coverage threshold decision is absent. | `S1-SOURCE-COHORT` | None | Obtain and accept an S1 coverage threshold decision. |
+| `S1-DATA-QUALITY-THRESHOLDS` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | No threshold is inferred; contract and status are fail-closed. | Versioned quality policy and threshold decision are absent. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | None | Obtain and accept the S1 quality-threshold policy. |
+| `S1-DATA-CUSTODY` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Versioned custody record, policy identities, hashes, access, retention, withdrawal, and void propagation are issued for review. | Independent custody review/acceptance is absent. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT` | Submit the issued custody record for independent review. |
+| `S1-HOLDOUT-FEASIBILITY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Feasibility rule and no-data boundary are clear; no TEST/holdout was accessed. | Accepted cohort, coverage, custody, split, and reviewed feasibility decision are absent. | `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-CUSTODY`; `S1-SPLIT-POLICY` | None | Prepare and review feasibility after prerequisites close. |
+| `S1-INDEPENDENT-REVIEW` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Registry has 17 required rows; review status is not started. | All required gate artifacts must close before independent S1 review. | All other 16 gates | None | Run final independent S1 acceptance review. |
 
 ## 5. Gate-by-gate findings
 
@@ -161,34 +191,75 @@ following cross-cutting findings explain the important status corrections:
 
 ## 6. Cross-gate dependency graph
 
+The following graph contains only strict `hard_prerequisite_gate_ids`; no
+co-resolution edge is drawn as a prerequisite arrow:
+
 ```text
 SOURCE-AUTHORITY
-  ├── SOURCE-COHORT
-  │     ├── CANONICAL-GRAIN
-  │     ├── INCLUSION-EXCLUSION
-  │     ├── REVISION-WINNER
-  │     ├── SPLIT-POLICY
-  │     └── HOLDOUT-FEASIBILITY
   ├── Q2C-TARGET
-  │     ├── PHYSICAL-MEANING
-  │     ├── UNIT-AND-TIME-BASIS
-  │     └── METRIC-CONTRACT
-  └── MISSING-CORRECTION-CANCELLATION
+  ├── PHYSICAL-MEANING
+  ├── UNIT-AND-TIME-BASIS
+  ├── SOURCE-COHORT
+  ├── INCLUSION-EXCLUSION
+  ├── CANONICAL-GRAIN
+  ├── MISSING-CORRECTION-CANCELLATION
+  └── DATA-CUSTODY
 
-VISIBILITY
-  ├── SPLIT-POLICY
-  ├── METRIC-CONTRACT
-  └── HOLDOUT-FEASIBILITY
+MISSING-CORRECTION-CANCELLATION
+  └── REVISION-WINNER
 
-MINIMUM-COVERAGE + DATA-QUALITY-THRESHOLDS
+Q2C-TARGET + SOURCE-COHORT + CANONICAL-GRAIN + INCLUSION-EXCLUSION
+  └── VISIBILITY
+
+SOURCE-COHORT
+  └── MINIMUM-COVERAGE
+
+SOURCE-COHORT + INCLUSION-EXCLUSION
+  └── DATA-QUALITY-THRESHOLDS
+
+Q2C-TARGET + SOURCE-AUTHORITY + SOURCE-COHORT + VISIBILITY
+  + MINIMUM-COVERAGE + DATA-QUALITY-THRESHOLDS
   └── METRIC-CONTRACT
-        └── SPLIT-POLICY / HOLDOUT-FEASIBILITY
+
+SOURCE-COHORT + INCLUSION-EXCLUSION + VISIBILITY + METRIC-CONTRACT
+  + DATA-CUSTODY
+  └── SPLIT-POLICY
+
+SOURCE-COHORT + CANONICAL-GRAIN + INCLUSION-EXCLUSION + VISIBILITY
+  + MINIMUM-COVERAGE + DATA-CUSTODY + SPLIT-POLICY
+  └── HOLDOUT-FEASIBILITY
 
 ALL_REQUIRED_GATES
   └── INDEPENDENT-REVIEW
         └── S1_ACCEPTED (separate decision)
               └── S2_MAY_BE_AUTHORIZED (not automatic)
 ```
+
+The hard-prerequisite validation is:
+
+```text
+HARD_PREREQUISITE_NODE_COUNT=17
+HARD_PREREQUISITE_CYCLE_FOUND=false
+HARD_PREREQUISITE_CYCLE_COUNT=0
+SELF_DEPENDENCY_COUNT=0
+UNKNOWN_GATE_REFERENCE_COUNT=0
+TOPOLOGICAL_ORDER_VALID=true
+TOPOLOGICAL_ORDER_GATE_COUNT=17
+```
+
+### Co-resolution groups
+
+These relationships are package-level collaboration, not strict dependency
+arrows:
+
+- `S1-Q2C-TARGET` + `S1-PHYSICAL-MEANING` + `S1-UNIT-AND-TIME-BASIS`
+- `S1-SOURCE-COHORT` + `S1-CANONICAL-GRAIN` +
+  `S1-INCLUSION-EXCLUSION`
+- `S1-REVISION-WINNER` + `S1-SOURCE-COHORT` +
+  `S1-INCLUSION-EXCLUSION`
+- `S1-DATA-CUSTODY` + `S1-SOURCE-COHORT`
+
+Mutual membership in these groups does not create a hard-prerequisite cycle.
 
 ## 7. Evidence-ready formalization queue
 
@@ -250,24 +321,34 @@ cannot be used to self-attest this workpaper.
 
 ## 11. Recommended execution order
 
-1. **Source authority and scope decision package** — obtain the owner
+1. **Source authority and scope decision package** (`S1-REMAINING-01`,
+   dependencies: none) — obtain the owner
    attestation and resolve applicability, completeness, scope, date, and
    inclusion authority.
-2. **Q2C physical/unit/time formalization** — issue the formal target and
+2. **Q2C physical/unit/time formalization** (`S1-REMAINING-02`, dependency:
+   `S1-REMAINING-01`) — issue the formal target and
    measurement/time artifacts from the already reconciled facts.
-3. **Source cohort, canonical grain, inclusion, and revision artifacts** —
-   freeze the accepted source universe and source-specific lifecycle
+3. **Source cohort, canonical grain, inclusion, and revision artifacts**
+   (`S1-REMAINING-03`, dependencies: `S1-REMAINING-01`,
+   `S1-REMAINING-02`) — freeze the accepted source universe and source-specific lifecycle
    disposition.
-4. **Narrow PIT visibility correction** — close the four current source-class
+4. **Narrow PIT visibility correction** (`S1-REMAINING-04`, dependencies:
+   `S1-REMAINING-01`, `S1-REMAINING-02`, `S1-REMAINING-03`) — close the four current source-class
    and mixed-authority gaps, then revalidate visibility evidence.
-5. **Threshold, metric, split, and holdout package** — decide thresholds,
+5. **Threshold, metric, split, and holdout package** (`S1-REMAINING-05`,
+   dependencies: `S1-REMAINING-03`, `S1-REMAINING-04`; required gate artifact:
+   `S1-DATA-CUSTODY`) — decide thresholds,
    freeze metrics, prepare the time-ordered split, and review holdout
    feasibility without accessing TEST or external holdout in this task.
-6. **Final independent S1 acceptance review** — only after all required rows
+6. **Final independent S1 acceptance review** (`S1-REMAINING-06`, dependencies:
+   `S1-REMAINING-01` through `S1-REMAINING-05`) — only after all required rows
    have complete artifacts.
 
-This order is dependency-based. It does not authorize the first item or imply
-the next item automatically.
+The six packaged task graph has six nodes, zero cycles, and a valid
+topological order matching the list above. The `S1-DATA-CUSTODY` reference in
+package 5 is a required gate artifact, not a package-task dependency; it is
+not mixed into the task graph. This order is dependency-based. It does not
+authorize the first item or imply the next item automatically.
 
 ## 12. S1 acceptance boundary
 
@@ -307,6 +388,15 @@ NARROW_CORRECTION_REQUIRED_COUNT=1
 EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=7
 UPSTREAM_DEPENDENCY_BLOCKED_COUNT=6
 CLASSIFICATION_COUNT_SUM=17
+HARD_PREREQUISITE_CYCLE_FOUND=false
+HARD_PREREQUISITE_CYCLE_COUNT=0
+SELF_DEPENDENCY_COUNT=0
+UNKNOWN_GATE_REFERENCE_COUNT=0
+TOPOLOGICAL_ORDER_VALID=true
+TOPOLOGICAL_ORDER_GATE_COUNT=17
+TASK_PACKAGE_COUNT=6
+TASK_PACKAGE_DEPENDENCY_CYCLE_FOUND=false
+TASK_PACKAGE_TOPOLOGICAL_ORDER_VALID=true
 PIT_MINIMUM_IMPLEMENTATION_GAP_COUNT=4
 PIT_GAPS_TREATED_AS_S1_TOTAL_REMAINING_TASKS=false
 AUTHORITATIVE_ACCEPTANCE_RECORD_CHANGED=false
