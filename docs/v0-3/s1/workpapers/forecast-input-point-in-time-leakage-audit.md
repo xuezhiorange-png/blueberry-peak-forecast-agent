@@ -33,6 +33,12 @@ The source-class-aware visibility contract is:
   `source_cutoff`, which is then checked against the exact forecast cutoff;
 - no universal timestamp is claimed for every upstream source.
 
+EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED=true
+This is a source-class-aware result: exact-timestamp authorities use
+<= exact forecast_cutoff_at, while Task9 local-date authorities use
+available_at <= as_of_date; it is not a universal timestamp policy for
+every source.
+
 `SOURCE_002_RAW_READ=false`, `SOURCE_002_ROW_LEVEL_READ=false`,
 `REAL_BUSINESS_DATA_READ=false`, `PRODUCTION_DATABASE_REAL_DATA_READ=false`,
 `EXTERNAL_HOLDOUT_ACCESS=false`, `MODEL_TRAINING_EXECUTED=false`, and

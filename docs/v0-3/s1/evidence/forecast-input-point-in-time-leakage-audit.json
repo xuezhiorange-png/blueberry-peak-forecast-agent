@@ -16,7 +16,7 @@
   "residual_model_authority_audit_status": "PASS",
   "post_cutoff_input_rejected_semantics": "SOURCE_CLASS_SPECIFIC: residual FeatureValue and Task8 exact timestamps use <= exact forecast_cutoff_at; Task9 local-date authorities use <= as_of_date; persisted AnalyticsBuildRun source_cutoff is bound and checked against exact forecast_cutoff_at",
   "residual_local_eod_post_cutoff_rejected": true,
-  "exact_forecast_cutoff_post_cutoff_rejected": false,
+  "exact_forecast_cutoff_post_cutoff_rejected": true,
   "correction_r2_applied": true,
   "forecast_input_point_in_time_control_required": true,
   "future_input_leakage_allowed": false,
