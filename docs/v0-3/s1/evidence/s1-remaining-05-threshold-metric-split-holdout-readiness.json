@@ -1,0 +1,643 @@
+{
+  "artifact_id": "V0_3_S1_REMAINING_05_DECISION_READINESS_PACKAGE",
+  "artifact_version": "s1-remaining-05-threshold-metric-split-holdout-readiness-v1",
+  "task_id": "S1-REMAINING-05",
+  "task_class": "DOCS_ONLY_DECISION_AND_POLICY_READINESS",
+  "base_main_sha": "0ed98ee8fa51601f939315a6cfc08e2b690e1bc1",
+  "status": "READINESS_PACKAGE_ONLY",
+  "authorized": true,
+  "no_step_implies_the_next": true,
+  "scope": [
+    "THRESHOLD",
+    "METRIC",
+    "SPLIT",
+    "HOLDOUT"
+  ],
+  "authoritative_inputs": [
+    "docs/v0-3/s1/s1-acceptance-package.md",
+    "docs/v0-3/s1/split-holdout-and-custody-contract.md",
+    "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+    "docs/v0-3/s1/workpapers/canonical-acceptance-gate-current-main-reconciliation.md",
+    "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+    "docs/v0-3/s1/evidence/source-cohort-manifest-candidate.json",
+    "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
+    "docs/v0-3/s1/evidence/source-002-custody-record.json",
+    "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+    "docs/v0-3/s1/evidence/holdout-feasibility-evidence-status.md",
+    "docs/forecast-quality/s3-quality-metrics-contract.md"
+  ],
+  "current_canonical_runtime_state": {
+    "canonical_gate_count": 17,
+    "canonical_gate_pass_count": 0,
+    "canonical_gate_blocked_count": 17,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "gate_statuses": {
+      "S1-Q2C-TARGET": "BLOCKED",
+      "S1-SOURCE-AUTHORITY": "BLOCKED",
+      "S1-SOURCE-COHORT": "BLOCKED",
+      "S1-PHYSICAL-MEANING": "BLOCKED",
+      "S1-UNIT-AND-TIME-BASIS": "BLOCKED",
+      "S1-CANONICAL-GRAIN": "BLOCKED",
+      "S1-VISIBILITY": "BLOCKED",
+      "S1-REVISION-WINNER": "BLOCKED",
+      "S1-INCLUSION-EXCLUSION": "BLOCKED",
+      "S1-MISSING-CORRECTION-CANCELLATION": "BLOCKED",
+      "S1-SPLIT-POLICY": "BLOCKED",
+      "S1-METRIC-CONTRACT": "BLOCKED",
+      "S1-MINIMUM-COVERAGE": "BLOCKED",
+      "S1-DATA-QUALITY-THRESHOLDS": "BLOCKED",
+      "S1-DATA-CUSTODY": "BLOCKED",
+      "S1-HOLDOUT-FEASIBILITY": "BLOCKED",
+      "S1-INDEPENDENT-REVIEW": "BLOCKED"
+    },
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "decision_readiness_summary": {
+    "minimum_coverage_decision_status": "DECISION_REQUIRED",
+    "s1_minimum_coverage_status": "BLOCKED",
+    "data_quality_threshold_decision_status": "DECISION_REQUIRED",
+    "s1_data_quality_threshold_status": "BLOCKED",
+    "metric_contract_readiness_status": "PREPARED_NOT_ACCEPTED",
+    "s1_metric_contract_status": "BLOCKED",
+    "split_policy_status": "CANDIDATE_NOT_ACCEPTED",
+    "s1_split_policy_status": "BLOCKED",
+    "current_s1_holdout_feasibility_decision": "NOT_EVALUATED",
+    "current_s1_holdout_feasibility_reviewed": false,
+    "s1_holdout_feasibility_status": "BLOCKED",
+    "custody_record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+    "s1_data_custody_accepted": false,
+    "v0_3_metric_contract_version": "v0.3-metric-contract-v1",
+    "current_metric_execution_status": "NOT_EXECUTED",
+    "min_comparable_rows_for_reporting": 10,
+    "min_comparable_rows_is_s3_reporting_floor": true,
+    "min_comparable_rows_is_s1_minimum_coverage_threshold": false,
+    "unauthorized_threshold_value_count": 0
+  },
+  "source_cohort_candidate_reference": {
+    "path": "docs/v0-3/s1/evidence/source-cohort-manifest-candidate.json",
+    "artifact_id": "V0_3_S1_SOURCE_COHORT_MANIFEST_CANDIDATE",
+    "artifact_version": "source-002-cohort-manifest-candidate-v1",
+    "candidate_cohort_id": "source-002-s1-cohort-v1",
+    "source_cohort_accepted": false,
+    "final_manifest_created": false,
+    "historical_task03_candidate_mutated": false,
+    "historical_split_policy_version": null,
+    "split_policy_version_candidate": "v0-3-s1-time-ordered-split-policy-v1",
+    "binding_note": "Task05 references the historical candidate and proposes a split-policy identity; it does not mutate the Task03 candidate."
+  },
+  "custody_binding": {
+    "path": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+    "artifact_id": "V0_3_S1_SOURCE_002_CUSTODY_RECORD",
+    "artifact_version": "source-002-custody-record-v1",
+    "record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+    "custody_record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+    "external_object_binding_hash": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece",
+    "source_cohort_accepted": false,
+    "s1_data_custody_accepted": false,
+    "task05_use": "Bind this existing identity and hash into a future split or holdout artifact after independent custody review; do not issue custody acceptance here."
+  },
+  "minimum_coverage": {
+    "gate_id": "S1-MINIMUM-COVERAGE",
+    "s1_gate_status": "BLOCKED",
+    "decision_status": "DECISION_REQUIRED",
+    "owner_role": "model_validation_owner_role",
+    "authority_source": [
+      "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+      "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+      "docs/forecast-quality/s3-quality-metrics-contract.md",
+      "docs/v0-3/s1/s1-acceptance-package.md"
+    ],
+    "repository_proven": [
+      "No approved S1 minimum-coverage threshold is present.",
+      "MIN_COMPARABLE_ROWS_FOR_REPORTING=10 is an S3 reporting floor only.",
+      "The S3 reporting floor is explicitly not the S1 minimum-coverage threshold."
+    ],
+    "s3_reporting_floor": {
+      "identity": "MIN_COMPARABLE_ROWS_FOR_REPORTING",
+      "value": 10,
+      "status": "S3_REPORTING_FLOOR",
+      "is_s1_threshold": false,
+      "is_candidate_s1_value": false
+    },
+    "decision_requests": [
+      {
+        "decision_id": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY",
+        "gate_id": "S1-MINIMUM-COVERAGE",
+        "owner_role": "model_validation_owner_role",
+        "current_status": "DECISION_REQUIRED",
+        "current_value": null,
+        "authority_source": "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "repository_proven": true,
+        "external_decision_required": true,
+        "can_be_inferred": false,
+        "can_be_decided_in_current_task": false,
+        "candidate_value": null,
+        "accepted_value": null,
+        "block_reason": "NO_APPROVED_S1_MINIMUM_COVERAGE_THRESHOLD",
+        "downstream_dependencies": [
+          "S1-SOURCE-COHORT",
+          "S1-METRIC-CONTRACT",
+          "S1-HOLDOUT-FEASIBILITY"
+        ],
+        "decision_dimensions": [
+          "threshold_identity_and_version",
+          "threshold_unit",
+          "application_grain",
+          "application_scope",
+          "denominator_definition",
+          "failure_semantics",
+          "BELOW_MINIMUM_semantics",
+          "horizon_specific_variation",
+          "evaluation_partition_specific_variation",
+          "provenance_and_independent_review"
+        ],
+        "prohibited_inference_sources": [
+          "MIN_COMPARABLE_ROWS_FOR_REPORTING=10",
+          "Source 002 row count",
+          "farm/subfarm/variety counts",
+          "observed fixture distributions"
+        ]
+      }
+    ],
+    "recommended_next_action": "OBTAIN_AND_REVIEW_VERSIONED_S1_MINIMUM_COVERAGE_THRESHOLD_DECISION"
+  },
+  "data_quality_thresholds": {
+    "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
+    "s1_gate_status": "BLOCKED",
+    "decision_status": "DECISION_REQUIRED",
+    "owner_role": "data_quality_owner_role",
+    "authority_source": [
+      "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+      "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+      "docs/v0-3/s1/s1-acceptance-package.md"
+    ],
+    "repository_proven": [
+      "No approved versioned data-quality threshold policy is present.",
+      "The current contract is fail-closed and does not infer thresholds from fixtures.",
+      "Quality policy decisions remain distinct from metric execution."
+    ],
+    "decision_requests": [
+      {
+        "decision_id": "S1_DATA_QUALITY_THRESHOLD_POLICY",
+        "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
+        "owner_role": "data_quality_owner_role",
+        "current_status": "DECISION_REQUIRED",
+        "current_value": null,
+        "authority_source": "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "repository_proven": true,
+        "external_decision_required": true,
+        "can_be_inferred": false,
+        "can_be_decided_in_current_task": false,
+        "candidate_value": null,
+        "accepted_value": null,
+        "block_reason": "NO_APPROVED_VERSIONED_DATA_QUALITY_THRESHOLD_POLICY",
+        "downstream_dependencies": [
+          "S1-SOURCE-COHORT",
+          "S1-INCLUSION-EXCLUSION",
+          "S1-METRIC-CONTRACT",
+          "S1-SPLIT-POLICY",
+          "S1-HOLDOUT-FEASIBILITY"
+        ],
+        "decision_dimensions": [
+          "missing_day_policy",
+          "missing_data_proportion_threshold",
+          "duplicate_or_conflicting_record_policy",
+          "invalid_grain_identity_policy",
+          "unmapped_identity_or_date_handling",
+          "revision_and_void_consistency_requirement",
+          "completeness_requirement",
+          "source_row_lineage_requirement",
+          "canonical_group_coverage_requirement"
+        ],
+        "prohibited_inference_sources": [
+          "Source 002 row count",
+          "farm/subfarm/variety counts",
+          "observed missing-day counts",
+          "observed fixture distributions"
+        ]
+      }
+    ],
+    "recommended_next_action": "OBTAIN_AND_REVIEW_VERSIONED_S1_DATA_QUALITY_THRESHOLD_POLICY"
+  },
+  "metric_contract": {
+    "gate_id": "S1-METRIC-CONTRACT",
+    "s1_gate_status": "BLOCKED",
+    "readiness_status": "PREPARED_NOT_ACCEPTED",
+    "contract_version": "v0.3-metric-contract-v1",
+    "authority_path": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "current_metric_execution_status": "NOT_EXECUTED",
+    "current_metric_result_status": "NOT_ISSUED",
+    "metric_execution_performed": false,
+    "identity_mapping_bound": true,
+    "accepted_metric_contract": false,
+    "decision_requests": [
+      {
+        "decision_id": "S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE",
+        "gate_id": "S1-METRIC-CONTRACT",
+        "owner_role": "model_validation_owner_role",
+        "current_status": "PREPARED_NOT_ACCEPTED",
+        "current_value": {
+          "contract_version": "v0.3-metric-contract-v1",
+          "registry_identity_count": 22,
+          "planning_alias_crosswalk_bound": true,
+          "execution_status": "NOT_EXECUTED"
+        },
+        "authority_source": [
+          "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+          "docs/forecast-quality/s3-quality-metrics-contract.md",
+          "docs/v0-3/s1/s1-acceptance-package.md"
+        ],
+        "repository_proven": true,
+        "external_decision_required": true,
+        "can_be_inferred": false,
+        "can_be_decided_in_current_task": false,
+        "candidate_value": {
+          "contract_version": "v0.3-metric-contract-v1",
+          "registry_identity_count": 22,
+          "planning_alias_crosswalk_bound": true
+        },
+        "accepted_value": null,
+        "block_reason": "UPSTREAM_SOURCE_TARGET_ROWSET_THRESHOLD_AND_DATA_QUALITY_PREREQUISITES_NOT_ACCEPTED",
+        "downstream_dependencies": [
+          "S1-Q2C-TARGET",
+          "S1-SOURCE-AUTHORITY",
+          "S1-SOURCE-COHORT",
+          "S1-VISIBILITY",
+          "S1-MINIMUM-COVERAGE",
+          "S1-DATA-QUALITY-THRESHOLDS"
+        ]
+      }
+    ],
+    "canonical_metric_registry": [
+      {
+        "metric_id": "daily_mae",
+        "authority_section": "§6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "daily_wape",
+        "authority_section": "§6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "daily_smape",
+        "authority_section": "§6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "daily_mape",
+        "authority_section": "§3.1; §6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "daily_bias_kg",
+        "authority_section": "§6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "daily_relative_bias",
+        "authority_section": "§6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "daily_absolute_error_sum_kg",
+        "authority_section": "§6",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "cumulative_signed_error_kg",
+        "authority_section": "§7",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "cumulative_absolute_error_kg",
+        "authority_section": "§7",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "cumulative_signed_relative_error",
+        "authority_section": "§7-§8",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "cumulative_absolute_relative_error",
+        "authority_section": "§7-§8",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "single_day_peak_date_signed_error_days_q",
+        "authority_section": "§9.1",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "single_day_peak_date_absolute_error_days_q",
+        "authority_section": "§9.1",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "single_day_peak_quantity_signed_error_kg_q",
+        "authority_section": "§9.1",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "single_day_peak_quantity_absolute_error_kg_q",
+        "authority_section": "§9.1",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "sustained_7day_start_date_signed_error_days_q",
+        "authority_section": "§9.2",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "sustained_7day_start_date_absolute_error_days_q",
+        "authority_section": "§9.2",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "sustained_7day_quantity_signed_error_kg_q",
+        "authority_section": "§9.2",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "sustained_7day_quantity_absolute_error_kg_q",
+        "authority_section": "§9.2",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "P50_UPPER_COVERAGE",
+        "authority_section": "§10",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "P80_UPPER_COVERAGE",
+        "authority_section": "§10",
+        "current_metric_status": "NOT_ISSUED"
+      },
+      {
+        "metric_id": "P90_UPPER_COVERAGE",
+        "authority_section": "§10",
+        "current_metric_status": "NOT_ISSUED"
+      }
+    ],
+    "planning_alias_crosswalk": [
+      {
+        "planning_metric_id": "P80_COVERAGE",
+        "canonical_s3_metric_id": "P80_UPPER_COVERAGE"
+      },
+      {
+        "planning_metric_id": "P90_COVERAGE",
+        "canonical_s3_metric_id": "P90_UPPER_COVERAGE"
+      },
+      {
+        "planning_metric_id": "P80_UPPER_QUANTILE_SPREAD",
+        "canonical_s3_metric_id": null,
+        "formula": "P80-P50",
+        "is_prediction_interval_width": false
+      },
+      {
+        "planning_metric_id": "P90_UPPER_QUANTILE_SPREAD",
+        "canonical_s3_metric_id": null,
+        "formula": "P90-P50",
+        "is_prediction_interval_width": false
+      },
+      {
+        "planning_metric_id": "BASELINE_P80",
+        "canonical_s3_metric_id": null,
+        "authority_status_field": "NAIVE_BASELINE_P80_STATUS"
+      },
+      {
+        "planning_metric_id": "BASELINE_P90",
+        "canonical_s3_metric_id": null,
+        "authority_status_field": "NAIVE_BASELINE_P90_STATUS"
+      },
+      {
+        "planning_metric_id": "QUANTILE_CALIBRATION",
+        "canonical_s3_metric_id": null,
+        "authority_status_field": "CURRENT_QUANTILE_CALIBRATION_STATUS"
+      },
+      {
+        "planning_metric_id": "SINGLE_DAY_PEAK",
+        "canonical_s3_metric_id": null,
+        "authority_field_set": "§9.1 peak metric fields"
+      },
+      {
+        "planning_metric_id": "SUSTAINED_7DAY_PEAK",
+        "canonical_s3_metric_id": null,
+        "authority_field_set": "§9.2 sustained seven-day peak fields"
+      },
+      {
+        "planning_metric_id": "ROLLING_COMPARISON",
+        "canonical_s3_metric_id": null,
+        "authority_field_set": "§16.5 comparison-group fields"
+      }
+    ],
+    "metric_semantic_invariants": [
+      "Planning aliases remain distinct from canonical S3 metric IDs.",
+      "P80_UPPER_QUANTILE_SPREAD and P90_UPPER_QUANTILE_SPREAD are P80-P50 and P90-P50, not prediction-interval widths.",
+      "P50_UPPER_COVERAGE, P80_UPPER_COVERAGE, and P90_UPPER_COVERAGE are canonical S3 metric identities.",
+      "No metric is executed or issued by this readiness package."
+    ]
+  },
+  "split_and_holdout": {
+    "split_policy_gate_id": "S1-SPLIT-POLICY",
+    "holdout_gate_id": "S1-HOLDOUT-FEASIBILITY",
+    "custody_gate_id": "S1-DATA-CUSTODY",
+    "split_policy_status": "CANDIDATE_NOT_ACCEPTED",
+    "holdout_feasibility_status": "NOT_EVALUATED",
+    "s1_split_policy_status": "BLOCKED",
+    "current_s1_holdout_feasibility_decision": "NOT_EVALUATED",
+    "current_s1_holdout_feasibility_reviewed": false,
+    "split_policy_candidate": {
+      "version": "v0-3-s1-time-ordered-split-policy-v1",
+      "status": "CANDIDATE_NOT_ACCEPTED",
+      "train_policy_defined": true,
+      "validation_policy_defined": true,
+      "test_policy_defined": true,
+      "required_dataset_splits": [
+        "TRAIN",
+        "VALIDATION",
+        "TEST"
+      ],
+      "external_holdout_policy": "CONDITIONAL_ON_S1_FEASIBILITY_GATE",
+      "manifest_issued": false,
+      "rowset_materialized": false,
+      "row_level_data_accessed": false,
+      "partition_definitions": [
+        {
+          "partition": "TRAIN",
+          "purpose": "candidate fitting only",
+          "future_evaluation_use": false,
+          "access_authorized": false
+        },
+        {
+          "partition": "VALIDATION",
+          "purpose": "candidate selection and validation only",
+          "future_evaluation_use": false,
+          "access_authorized": false
+        },
+        {
+          "partition": "TEST",
+          "purpose": "sealed final evaluation only",
+          "future_evaluation_use": true,
+          "access_authorized": false
+        }
+      ],
+      "rules": [
+        "Use complete time intervals or complete seasons.",
+        "Do not use adjacent-date random split as the primary evaluation method.",
+        "Do not expose future labels or future source revisions to an earlier historical cutoff.",
+        "Bind source lineage, mapping identity, visibility-policy identity, inclusion/exclusion-policy identity, revision/winner disposition, custody identity, and requested forecast horizons.",
+        "Freeze split identity and hash; any source, mapping, revision, or custody drift blocks the split.",
+        "TEST seal is not TEST access authorization.",
+        "Do not materialize TRAIN, VALIDATION, TEST, or external holdout rowsets in this task."
+      ]
+    },
+    "external_holdout_criteria": {
+      "decision": "NOT_EVALUATED",
+      "criteria_prepared": true,
+      "feasible_requires": [
+        "independent source cohort, farm, or season boundary",
+        "cohort not used for candidate tuning",
+        "canonical-grain coverage meeting an approved threshold",
+        "independent custody record",
+        "frozen split identity",
+        "satisfied leakage boundary"
+      ],
+      "if_feasible": {
+        "external_holdout_required": true,
+        "usage": "FINAL_GENERALIZATION_ONLY",
+        "tuning_allowed": false,
+        "feature_selection_allowed": false,
+        "threshold_selection_allowed": false
+      },
+      "if_reviewed_not_feasible": {
+        "external_holdout_required": false,
+        "external_holdout_not_applicable": true,
+        "rejection_reason_required": true
+      },
+      "external_holdout_data_access": false
+    },
+    "test_access_currently_authorized": false,
+    "external_holdout_data_access": false,
+    "decision_requests": [
+      {
+        "decision_id": "S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE",
+        "gate_id": "S1-SPLIT-POLICY",
+        "owner_role": "model_validation_owner_role",
+        "current_status": "CANDIDATE_NOT_ACCEPTED",
+        "current_value": null,
+        "authority_source": "docs/v0-3/s1/split-holdout-and-custody-contract.md",
+        "repository_proven": true,
+        "external_decision_required": true,
+        "can_be_inferred": false,
+        "can_be_decided_in_current_task": false,
+        "candidate_value": "v0-3-s1-time-ordered-split-policy-v1",
+        "accepted_value": null,
+        "block_reason": "SOURCE_COHORT_VISIBILITY_METRIC_CUSTODY_AND_THRESHOLD_PREREQUISITES_NOT_ACCEPTED",
+        "downstream_dependencies": [
+          "S1-SOURCE-COHORT",
+          "S1-INCLUSION-EXCLUSION",
+          "S1-VISIBILITY",
+          "S1-METRIC-CONTRACT",
+          "S1-DATA-CUSTODY"
+        ]
+      },
+      {
+        "decision_id": "S1_HOLDOUT_FEASIBILITY_DECISION",
+        "gate_id": "S1-HOLDOUT-FEASIBILITY",
+        "owner_role": "model_validation_owner_role",
+        "current_status": "NOT_EVALUATED",
+        "current_value": "NOT_EVALUATED",
+        "authority_source": "docs/v0-3/s1/split-holdout-and-custody-contract.md",
+        "repository_proven": true,
+        "external_decision_required": true,
+        "can_be_inferred": false,
+        "can_be_decided_in_current_task": false,
+        "candidate_value": "CRITERIA_PREPARED_NO_OUTCOME_SELECTED",
+        "accepted_value": null,
+        "block_reason": "SOURCE_COHORT_COVERAGE_CUSTODY_SPLIT_AND_INDEPENDENT_REVIEW_PREREQUISITES_NOT_ACCEPTED",
+        "downstream_dependencies": [
+          "S1-SOURCE-COHORT",
+          "S1-CANONICAL-GRAIN",
+          "S1-INCLUSION-EXCLUSION",
+          "S1-VISIBILITY",
+          "S1-MINIMUM-COVERAGE",
+          "S1-DATA-CUSTODY",
+          "S1-SPLIT-POLICY"
+        ]
+      },
+      {
+        "decision_id": "S1_TASK05_CUSTODY_ARTIFACT_BINDING_REVIEW",
+        "gate_id": "S1-DATA-CUSTODY",
+        "owner_role": "data_governance_owner_role",
+        "current_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+        "current_value": {
+          "record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+          "custody_record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6"
+        },
+        "authority_source": [
+          "docs/v0-3/s1/evidence/source-002-custody-record.json",
+          "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
+          "docs/v0-3/s1/split-holdout-and-custody-contract.md"
+        ],
+        "repository_proven": true,
+        "external_decision_required": true,
+        "can_be_inferred": false,
+        "can_be_decided_in_current_task": false,
+        "candidate_value": "BIND_EXISTING_CUSTODY_RECORD_IDENTITY_AND_HASH",
+        "accepted_value": null,
+        "block_reason": "CUSTODY_RECORD_ACCEPTANCE_REVIEW_NOT_COMPLETED",
+        "downstream_dependencies": [
+          "S1-SOURCE-AUTHORITY",
+          "S1-SOURCE-COHORT",
+          "S1-SPLIT-POLICY",
+          "S1-HOLDOUT-FEASIBILITY"
+        ]
+      }
+    ]
+  },
+  "validation_contract": {
+    "json_syntax_required": true,
+    "decision_id_unique_required": true,
+    "required_domain_names": [
+      "minimum_coverage",
+      "data_quality_thresholds",
+      "metric_contract",
+      "split_and_holdout"
+    ],
+    "minimum_coverage_candidate_value_must_be_null": true,
+    "data_quality_candidate_value_must_be_null": true,
+    "unauthorized_threshold_value_count": 0,
+    "s3_reporting_floor_misused_as_s1_threshold": false,
+    "metric_execution_performed": false,
+    "random_adjacent_date_split_allowed": false,
+    "test_seal_is_not_test_access_authorization": true,
+    "test_access_currently_authorized": false,
+    "external_holdout_data_access": false,
+    "json_markdown_consistency_required": true,
+    "canonical_acceptance_record_changed": false
+  },
+  "data_safety_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_data_access": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "metric_execution_performed": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false
+  },
+  "next_recommended_action": "RUN_S1_REMAINING_05_DECISION_READINESS_EXACT_HEAD_INDEPENDENT_REVIEW"
+}
