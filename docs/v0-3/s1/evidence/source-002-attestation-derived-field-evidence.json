@@ -1,0 +1,213 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_ATTESTATION_DERIVED_FIELD_EVIDENCE",
+  "task": "V0_3_S1_SOURCE_002_ATTESTATION_READ_ONLY_DERIVATION",
+  "task_class": "AUTHORIZED_FIXED_SOURCE_READ_ONLY_GOVERNANCE_DERIVATION",
+  "base_sha": "87db0e5fc85ddae0db4e008f053ae7c0ee20240e",
+  "artifact_status": "PARTIAL_DERIVATION_COMPLETED",
+  "source_access": {
+    "source_002_read_authorized": true,
+    "source_002_raw_read": true,
+    "source_002_row_level_read": true,
+    "source_002_mutation": false,
+    "source_002_write": false,
+    "production_database_read": false,
+    "production_database_write": false,
+    "other_real_business_data_read": false,
+    "test_data_access": false,
+    "external_holdout_data_access": false
+  },
+  "source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_byte_count": 28668416,
+    "source_row_count": 233171,
+    "source_schema_version": "observed-source-schema-v1",
+    "source_schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "source_sheet_count": 4
+  },
+  "source_identity_verification": {
+    "source_object_sha256_match": true,
+    "source_byte_count_match": true,
+    "source_row_count_match": true,
+    "source_schema_identity_match": true,
+    "source_schema_header_count": 7,
+    "source_sheet_count_match": true,
+    "observed_schema_headers_match": true,
+    "source_object_locator_committed": false,
+    "source_object_copied_to_repository": false
+  },
+  "governed_scope_boundary": {
+    "mapped_season": "2025~2026",
+    "unmapped_date": "2025-07-22",
+    "unmapped_row_count": 2,
+    "unmapped_rows_raw_retained": true,
+    "unmapped_rows_canonical_s1_included": false,
+    "july_auto_assignment": false,
+    "silent_reassignment": false,
+    "known_business_exclusions_at_s1_source_scope": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+    "s2_technical_cleaning_exclusions_separate": true,
+    "s2_data_quality_exclusions_separate": true,
+    "raw_source_observed_first_date": "2025-07-22",
+    "raw_source_observed_last_date": "2026-04-16",
+    "canonical_s1_scope_first_date": "2025-08-05",
+    "canonical_s1_scope_last_date": "2026-04-16",
+    "canonical_scope_row_count": 233169,
+    "source_completeness_watermark_inferred": false
+  },
+  "array_derivation": {
+    "canonicalization_rule": "approved raw identity columns, mapped 2025~2026 canonical S1 rows only, exact identity values, deterministic Unicode lexical sort",
+    "array_hash_rule": "SHA-256 of UTF-8 compact canonical JSON array with ensure_ascii=false",
+    "full_identity_arrays_committed_to_git": false,
+    "farms": {
+      "count": 84,
+      "sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+      "hash_match": true,
+      "full_value_in_git": false
+    },
+    "subfarms": {
+      "count": 192,
+      "sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+      "hash_match": true,
+      "full_value_in_git": false
+    },
+    "varieties": {
+      "count": 20,
+      "sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+      "hash_match": true,
+      "full_value_in_git": false
+    }
+  },
+  "derived_fields": {
+    "coverage_scope.farms": {
+      "status": "RESOLVED",
+      "value_in_git": "COUNT_AND_SHA256_ONLY",
+      "count": 84,
+      "sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381"
+    },
+    "coverage_scope.subfarms": {
+      "status": "RESOLVED",
+      "value_in_git": "COUNT_AND_SHA256_ONLY",
+      "count": 192,
+      "sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13"
+    },
+    "coverage_scope.varieties": {
+      "status": "RESOLVED",
+      "value_in_git": "COUNT_AND_SHA256_ONLY",
+      "count": 20,
+      "sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209"
+    },
+    "coverage_scope.business_date_start": {
+      "status": "RESOLVED",
+      "value": "2025-08-05",
+      "authority": "governed canonical S1 in-scope rows under D-003/D-008 and the approved local-date mapping rule"
+    },
+    "coverage_scope.business_date_end": {
+      "status": "RESOLVED",
+      "value": "2026-04-16",
+      "authority": "governed canonical S1 in-scope rows under D-003/D-008 and the approved local-date mapping rule"
+    },
+    "coverage_summary.first_harvest_business_date": {
+      "status": "RESOLVED",
+      "value": "2025-08-05",
+      "authority": "first date observed in governed canonical S1 in-scope rows"
+    },
+    "coverage_summary.last_harvest_business_date": {
+      "status": "RESOLVED",
+      "value": "2026-04-16",
+      "authority": "last date observed in governed canonical S1 in-scope rows; not a completeness watermark"
+    },
+    "coverage_summary.missing_day_count": {
+      "status": "UNRESOLVED",
+      "value": null,
+      "authority_status": "MISSING_FORMAL_DENOMINATOR_AND_DATE_UNIVERSE_AUTHORITY",
+      "reason": "Current-main contracts freeze UNKNOWN_NOT_ZERO but do not uniquely define the expected date universe, canonical group universe, denominator, or formal missing-day calculation."
+    },
+    "coverage_summary.missing_data_proportion": {
+      "status": "UNRESOLVED",
+      "value": null,
+      "authority_status": "MISSING_FORMAL_FORMULA_DENOMINATOR_AND_PRECISION_AUTHORITY",
+      "reason": "Current-main contracts do not uniquely define the missing-data proportion formula, denominator, eligibility universe, or precision."
+    }
+  },
+  "missing_day_formula_authority": {
+    "missing_day_count_formula_authority_resolved": false,
+    "missing_data_proportion_formula_authority_resolved": false,
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "missing_day_numeric_imputation_allowed": false,
+    "descriptive_calendar_gap_count": 31455,
+    "descriptive_calendar_gap_count_is_formal_missing_day_count": false,
+    "expected_date_universe_definition": "NOT_UNIQUELY_AUTHORIZED",
+    "expected_canonical_group_universe_definition": "NOT_UNIQUELY_AUTHORIZED",
+    "missing_day_count_denominator_authority": "NOT_ISSUED",
+    "missing_data_proportion_formula_authority": "NOT_ISSUED",
+    "source_completeness_watermark": "NOT_ISSUED"
+  },
+  "derived_field_summary": {
+    "resolved_field_count": 7,
+    "unresolved_field_count": 2,
+    "all_9_source_derived_fields_resolved": false,
+    "partial_derivation_completed": true,
+    "business_date_scope_authority_resolved": true
+  },
+  "external_derived_value_package": {
+    "package_id": "source-002-attestation-derived-values-v1",
+    "package_status": "PARTIAL_DERIVATION_MISSING_DAY_FORMULA_AUTHORITY",
+    "package_sha256": "5b362513ae4ffb9279ba978c64c566f75bc2cda12d10fb0f4bab1a5c445f3fe9",
+    "package_committed_to_git": false,
+    "full_arrays_in_package_only": true,
+    "raw_rows_in_package": false,
+    "package_hash_rule": "SHA-256 of UTF-8 recursive sort-key compact canonical JSON, excluding the package_sha256 self-field"
+  },
+  "governance_state": {
+    "source_owner_confirmation_complete": false,
+    "source_owner_new_values_complete": false,
+    "later_authority_values_complete": false,
+    "issuance_process_fields_generated": false,
+    "final_attestation_issuance_ready": false,
+    "source_owner_attestation_issued": false,
+    "source_authority_accepted": false,
+    "source_authority_canonical_gate_pass": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "source_cohort_accepted": false,
+    "split_policy_accepted": false,
+    "holdout_feasibility_decision": "NOT_EVALUATED",
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "safety_and_mutation": {
+    "raw_rows_committed_to_git": false,
+    "full_farm_array_committed_to_git": false,
+    "full_subfarm_array_committed_to_git": false,
+    "full_variety_array_committed_to_git": false,
+    "production_database_read": false,
+    "source_002_mutation": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "metric_execution_performed": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false
+  },
+  "validation": {
+    "source_identity_validation": "PASS",
+    "array_identity_validation": "PASS",
+    "business_date_scope_validation": "PASS",
+    "missing_day_formula_validation": "BLOCKED_BY_MISSING_AUTHORITY",
+    "full_arrays_printed_to_git_or_summary": false,
+    "raw_rows_printed_to_git_or_summary": false,
+    "source_completeness_watermark_inferred": false
+  },
+  "next_recommended_action": "RUN_SOURCE_002_ATTESTATION_DERIVATION_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "no_step_implies_the_next": true
+}
