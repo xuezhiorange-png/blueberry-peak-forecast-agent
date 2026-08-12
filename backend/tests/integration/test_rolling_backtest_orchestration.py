@@ -135,6 +135,7 @@ TASK8_MODEL_CONFIG_HASH = sha256_payload({"fixture": "task8-model-config", "vers
 TASK8_MODEL_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-model-run", "version": 1})
 TASK8_ARTIFACT_HASH = sha256_payload({"fixture": "task8-model-artifact", "version": 1})
 TASK8_FORECAST_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-forecast-run", "version": 1})
+TASK11_PLAN_ROW_HASH = sha256_payload({"fixture": "task11-production-plan", "version": 1})
 TASK11_FEBRUARY_END_CUTOFF_HOUR_UTC = 4
 
 
@@ -744,7 +745,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     source_name="planner",
                     source_version="v1",
                     notes="synthetic",
-                    row_hash="plan-501",
+                    row_hash=TASK11_PLAN_ROW_HASH,
                 )
             )
             await session.flush()
@@ -754,7 +755,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             assert existing_plan.subfarm_id == 11
             assert existing_plan.season_id == season_id
             assert existing_plan.variety_id == 101
-            assert existing_plan.row_hash == "plan-501"
+            assert existing_plan.row_hash == TASK11_PLAN_ROW_HASH
 
         existing_base_temp = await session.get(BaseTemperatureSearchRun, 901)
         if existing_base_temp is None:
@@ -996,6 +997,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             "subfarm_id": persisted_plan.subfarm_id,
             "variety_id": persisted_plan.variety_id,
             "plan_id": persisted_plan.id,
+            "plan_version": persisted_plan.version,
+            "plan_row_hash": persisted_plan.row_hash,
             "location_reference_id": persisted_forecast_run.location_reference_id,
             "weather_mapping_id": persisted_forecast_run.weather_mapping_id,
             "base_temperature_search_run_id": persisted_forecast_run.base_temperature_search_run_id,
@@ -1139,6 +1142,12 @@ async def _seed_real_task10_authorities(
     # structural row. When `analytics_season_id` is None the legacy
     # 2026 fixture is used.
     fixture_season_id_for_samples = analytics_season_id if analytics_season_id is not None else 2026
+    planning_plan_season_id = (
+        int(task8_authority["season_id"]) if task8_authority is not None else 1
+    )
+    planning_plan_row_hash = (
+        str(task8_authority["plan_row_hash"]) if task8_authority is not None else "f" * 64
+    )
 
     # Idempotency guard: a single test can call this helper more than
     # once when it composes `_build_real_orchestration_command` with
@@ -1253,6 +1262,8 @@ async def _seed_real_task10_authorities(
         validation_label_build_run_id=fixture["validation_label_build_run_id"],
         validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
         as_of_date=date(fixture_season_id_for_samples, 2, 28),
+        plan_season_id=planning_plan_season_id,
+        plan_row_hash=planning_plan_row_hash,
     )
 
     async with AsyncSessionMaker() as session:
@@ -1269,7 +1280,9 @@ async def _seed_real_task10_authorities(
                 task9_run_id=fixture["train_task9_run_id"],
                 feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
                 supplemental_feature_values=_supplemental_features(
-                    as_of_date=date(fixture_season_id_for_samples, 2, 28)
+                    as_of_date=date(fixture_season_id_for_samples, 2, 28),
+                    plan_season_id=planning_plan_season_id,
+                    plan_row_hash=planning_plan_row_hash,
                 ),
             ),
         )
@@ -1397,6 +1410,8 @@ async def _build_real_orchestration_command(
         "subfarm_id": task8["subfarm_id"],
         "variety_id": task8["variety_id"],
         "plan_id": task8["plan_id"],
+        "plan_version": task8["plan_version"],
+        "plan_row_hash": task8["plan_row_hash"],
         "location_reference_id": task8["location_reference_id"],
         "weather_mapping_id": task8["weather_mapping_id"],
         "base_temperature_search_run_id": task8["base_temperature_search_run_id"],

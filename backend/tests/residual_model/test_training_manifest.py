@@ -599,6 +599,8 @@ def _supplemental_features(
     destination_factory_category: str | None = None,
     weather_7d_rainfall: Decimal = Decimal("12.5"),
     weather_7d_gdd: Decimal = Decimal("33.0"),
+    plan_season_id: int = 1,
+    plan_row_hash: str = "f" * 64,
 ) -> tuple[FeatureValue, ...]:
     cutoff = cutoff_at or datetime.combine(as_of_date, datetime.max.time(), tzinfo=UTC)
     values = [
@@ -647,10 +649,10 @@ def _supplemental_features(
                     "source_ref": {
                         "plan_id": 501,
                         "plan_version": 1,
-                        "plan_row_hash": "f" * 64,
+                        "plan_row_hash": plan_row_hash,
                         "farm_id": 1,
                         "subfarm_id": 11,
-                        "season_id": 1,
+                        "season_id": plan_season_id,
                         "variety_id": 101,
                     },
                     "source_version": "test-plan-v1",
@@ -674,6 +676,8 @@ def _diverse_training_samples(
     count: int = 30,
     train_category_prefix: str = "snapshot",
     validation_category_prefix: str | None = None,
+    plan_season_id: int = 1,
+    plan_row_hash: str = "f" * 64,
 ) -> list[ResidualTrainingSampleSpec]:
     resolved_validation_category_prefix = (
         validation_category_prefix
@@ -696,6 +700,8 @@ def _diverse_training_samples(
                     destination_factory_category=f"{train_category_prefix}-{index % 3}",
                     weather_7d_rainfall=Decimal("12.5") + Decimal(index % 5),
                     weather_7d_gdd=Decimal("33.0") + Decimal(index % 7),
+                    plan_season_id=plan_season_id,
+                    plan_row_hash=plan_row_hash,
                 ),
             )
         )
@@ -715,6 +721,8 @@ def _diverse_training_samples(
                     ),
                     weather_7d_rainfall=Decimal("22.5") + Decimal(index % 3),
                     weather_7d_gdd=Decimal("43.0") + Decimal(index % 5),
+                    plan_season_id=plan_season_id,
+                    plan_row_hash=plan_row_hash,
                 ),
             )
         )
