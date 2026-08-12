@@ -36,6 +36,13 @@ class FeatureSourceDomain(StrEnum):
     CALENDAR = "calendar"
 
 
+class ForecastInputSourceClass(StrEnum):
+    """Versioned source-class vocabulary for PIT forecast-input evidence."""
+
+    ANALYTICS_FACTORY_RECEIPT = "ANALYTICS_FACTORY_RECEIPT"
+    PRODUCTION_PLAN_EFFECTIVE_VERSION = "PRODUCTION_PLAN_EFFECTIVE_VERSION"
+
+
 class FeatureDType(StrEnum):
     DECIMAL = "decimal"
     INTEGER = "integer"
