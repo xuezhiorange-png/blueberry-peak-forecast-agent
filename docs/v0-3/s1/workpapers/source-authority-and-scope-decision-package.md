@@ -8,8 +8,11 @@ TASK=V0_3_S1_SOURCE_AUTHORITY_AND_SCOPE_DECISION_PACKAGE
 TASK_ID=S1-REMAINING-01
 TASK_CLASS=DOCS_ONLY_BUSINESS_GOVERNANCE_DECISION_PREPARATION
 BASE_MAIN_SHA=e2611e6625c00803c36d95c19303ebb9bf999db4
-WORKPAPER_STATUS=PREPARED_FOR_BUSINESS_OWNER_DECISION
+WORKPAPER_STATUS=BUSINESS_OWNER_DECISIONS_FORMALIZED_PENDING_INDEPENDENT_REVIEW
 RECOMMENDED_DOES_NOT_EQUAL_APPROVED=true
+BUSINESS_OWNER_DECISION_FORMALIZED=true
+DECISION_RECORD_REFERENCE=source-authority-and-scope-business-owner-decision-v1
+DECISION_RECORD_SHA256=d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69
 ```
 
 This package prepares the source-authority and Source 002 scope decisions that
@@ -25,6 +28,13 @@ schema requires both source-identity fields and physical/Q2C fields. Therefore
 this package cannot issue a final schema-valid attestation; the physical,
 unit, and time formalization dependency is reserved for
 `S1-REMAINING-02`.
+
+The business-owner decisions supplied in the governance session are now
+formalized in the separately reviewable decision record
+`source-authority-and-scope-business-owner-decision-v1`. This records approved
+business/source decisions as authority inputs; it does not issue the final
+source attestation, create the accepted source-cohort manifest, or change any
+canonical gate status.
 
 ## 2. Current canonical runtime state
 
@@ -237,23 +247,43 @@ technical or data-quality exclusions are impossible. It means those later
 exclusions must remain a separate, versioned layer and must not mutate the
 immutable raw source object.
 
-## 7. Decision readiness and unresolved owner inputs
+## 7. Business-owner decision formalization
 
 ```text
 DECISION_COUNT=9
 UNIQUE_DECISION_ID_COUNT=9
-DECISIONS_ALREADY_FIXED_BY_EXISTING_AUTHORITY=1
-DECISIONS_REQUIRING_BUSINESS_OWNER_APPROVAL=8
-UNRESOLVED_DECISION_IDS=D-001,D-002,D-003,D-004,D-005,D-007,D-008,D-009
-BUSINESS_OWNER_DECISION_REQUIRED=true
+APPROVED_BUSINESS_OWNER_DECISION_COUNT=8
+ALREADY_FIXED_BY_EXISTING_AUTHORITY_COUNT=1
+PENDING_BUSINESS_OWNER_DECISION_COUNT=0
+UNRESOLVED_DECISION_IDS=[]
+BUSINESS_OWNER_DECISION_REQUIRED=false
+BUSINESS_OWNER_DECISION_FORMALIZED=true
+DECISION_RECORD_REFERENCE=source-authority-and-scope-business-owner-decision-v1
+DECISION_RECORD_SHA256=d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69
 ```
 
-The eight unresolved decisions are not missing facts that this repository can
-derive safely. They are explicit business/source/governance choices. In
-particular, the package does not turn silence about exclusions into an empty
-approved list, does not turn an observed maximum date into a watermark, and
-does not equate a source-owner role with completeness authority without
-confirmation.
+The following matrix is the current formalized decision state. The previous
+candidate status is retained to show the transition from recommendation to
+explicit authority; the approved values come from the business-owner decision
+event rather than repository inference.
+
+| ID | Previous status | Approved/fixed value | Current decision status | Formal record |
+|---|---|---|---|---|
+| D-001 | `PENDING_BUSINESS_OWNER_DECISION` | `ACTUAL_HARVEST_LABEL`, effective `2024-08-01T00:00:00+08:00`, open-ended, Asia/Shanghai | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-002 | `PENDING_BUSINESS_OWNER_DECISION` | Fixed Source 002 identity with existing source/schema hashes, row count, byte count and snapshot reference | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-003 | `PENDING_BUSINESS_OWNER_DECISION` | Option A: retain `2025-07-22` raw rows, exclude from canonical S1 cohort, no silent reassignment | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-004 | `PENDING_BUSINESS_OWNER_DECISION` | Fixed snapshot without an issued complete-through watermark; observed maximum date is not a watermark | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-005 | `PENDING_BUSINESS_OWNER_DECISION` | `农场数据负责人` is the completeness declaration owner role; no declaration or acceptance is issued | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-006 | `ALREADY_FIXED_BY_EXISTING_AUTHORITY` | `UNKNOWN_NOT_ZERO`; numeric missing-day imputation remains false | `ALREADY_FIXED_BY_EXISTING_AUTHORITY` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-007 | `PENDING_BUSINESS_OWNER_DECISION` | Post-confirmation row revision/void disabled; replacement requires new identity/hash and downstream propagation | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-008 | `PENDING_BUSINESS_OWNER_DECISION` | Freeze Source 002 cohort identity only; keep final clean rowset for S2; mapped scope remains `2025~2026`, 84/192/20, 529 groups | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+| D-009 | `PENDING_BUSINESS_OWNER_DECISION` | No known S1 source-scope business exclusions; keep S2 technical/data-quality exclusions separate | `APPROVED_BY_BUSINESS_OWNER` | `source-authority-and-scope-business-owner-decision-v1` |
+
+`recommended value` no longer means `pending` for these nine rows: the
+approved status is supported by the external business-owner authorization
+provenance recorded in the formal decision record. This remains distinct from
+source authority acceptance, source cohort acceptance, Q2C acceptance, and
+canonical S1 acceptance.
 
 ## 8. Formal artifact and acceptance boundary
 
@@ -267,6 +297,9 @@ does not create `business-source-attestation.json` or any equivalent
 FINAL_BUSINESS_SOURCE_ATTESTATION_CREATED=false
 FINAL_BUSINESS_SOURCE_ATTESTATION_ISSUANCE_ALLOWED=false
 FORMAL_SOURCE_COHORT_MANIFEST_CREATED=false
+BUSINESS_OWNER_DECISION_RECORD_CREATED=true
+DECISION_RECORD_REFERENCE=source-authority-and-scope-business-owner-decision-v1
+DECISION_RECORD_SHA256=d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69
 SOURCE_AUTHORITY_ACCEPTED=false
 SOURCE_COHORT_ACCEPTED=false
 Q2C_ACCEPTED=false
@@ -303,11 +336,12 @@ locator, credential, token, personal name, or row-level artifact was created.
 The next action is not independent S1 acceptance and not Task 2 execution:
 
 ```text
-NEXT_RECOMMENDED_ACTION=OBTAIN_BUSINESS_OWNER_DECISIONS_FOR_SOURCE_AUTHORITY_AND_SCOPE_PACKAGE
+NEXT_RECOMMENDED_ACTION=RUN_PR197_EXACT_HEAD_INDEPENDENT_REVIEW_AFTER_BUSINESS_OWNER_DECISION_FORMALIZATION
 NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
-After the owner decisions are supplied, a separately authorized formalization
-task may prepare the source attestation/cohort artifacts. The Q2C physical,
-unit, and time formalization remains a distinct dependency, and S2 remains
-unauthorized until the complete S1 acceptance process closes.
+The next review must verify the decision-record hash, approved-value parity,
+and the acceptance boundary. A separately authorized task may later prepare
+the source attestation/cohort artifacts. The Q2C physical, unit, and time
+formalization remains a distinct dependency, and S2 remains unauthorized
+until the complete S1 acceptance process closes.
