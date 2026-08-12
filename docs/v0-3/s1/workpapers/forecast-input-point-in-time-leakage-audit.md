@@ -1,456 +1,262 @@
 # V0.3-S1 Forecast Input Point-in-Time Leakage Audit
 
 ARTIFACT_ID=V0_3_S1_FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_AUDIT
-ARTIFACT_VERSION=forecast-input-pit-leakage-audit-v1
-TASK_CLASS=DOCS_ONLY_POST_PR194_WEATHER_REVALIDATION
-AUDITED_REPOSITORY_SHA=9dc4992e76453ce5bc6c03b65d8aab72ccd169ef
-PREVIOUS_REVIEWED_HEAD_SHA=aa56f85f256eccdb162398c00353d4d2f61e1535
-REVALIDATED_PR_189=true
-REVALIDATED_PR_190=true
-PR_189_MERGE_COMMIT_SHA=3cd720249ddd8e20fab65558c3ee83e57303516e
-PR_190_MERGE_COMMIT_SHA=7b6d4e89ed528d0e9153fcfb209da16110a68e32
-PR_192_MERGE_COMMIT_SHA=768d4f8391504eb907277611fdf99589518c0edf
-REVALIDATED_PR_192=true
-REVALIDATED_PR_194=true
-PR_194_MERGE_COMMIT_SHA=9dc4992e76453ce5bc6c03b65d8aab72ccd169ef
+ARTIFACT_VERSION=forecast-input-pit-leakage-audit-v2
+TASK_CLASS=DOCS_ONLY_POST_TASK4_PIT_EXACT_MAIN_REVALIDATION
+AUDITED_REPOSITORY_SHA=ed35995886c4494fc87b4a46687169d88b794851
 
-FORECAST_INPUT_POINT_IN_TIME_CONTROL_REQUIRED=true
-FUTURE_INPUT_LEAKAGE_ALLOWED=false
-FORECAST_INPUT_REQUIREMENT_SCOPE=USED_SOURCE_CLASSES_ONLY
-SOURCE_002_USED_AS_FORECAST_INPUT=false
-SOURCE_002_REREAD=false
-LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+TASK4_IMPLEMENTATION_PR=200
+TASK4_REVIEWED_HEAD_SHA=0fc56fd225bc02d7fefec9b982057cdbe2dbce4b
+TASK4_MERGE_SHA=ed35995886c4494fc87b4a46687169d88b794851
+TASK4_EXACT_HEAD_CI_RUN_ID=31570670068
+TASK4_EXACT_HEAD_REVIEW_ID=4913808367
 
-AUTHORITATIVE_HISTORICAL_FORECAST_CUTOFF=HarvestStateRun.forecast_effective_cutoff_at / exact forecast_cutoff_at
-CURRENT_RESIDUAL_VISIBILITY_INPUT=persisted exact forecast cutoff for replay; legacy non-replay EOD compatibility only when persisted cutoff is absent
-CURRENT_RESIDUAL_VISIBILITY_DERIVED_CUTOFF=normalized forecast_effective_cutoff_at for replay; legacy UTC EOD only for non-replay runs without persisted cutoff
-EXACT_FORECAST_CUTOFF_PROPAGATED_TO_RESIDUAL_VISIBILITY=true
-RESIDUAL_VISIBILITY_USES_AS_OF_DATE_END_OF_DAY=false
-REPLAY_EOD_FALLBACK_ALLOWED=false
-LEGACY_NON_REPLAY_EOD_COMPATIBILITY=true
-RESIDUAL_FEATURE_VISIBILITY_EXACT_CUTOFF_POST_CUTOFF_REJECTED=true
-EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED_AUDIT_WIDE=false
-
-TASK8_DAILY_PERSISTED_AVAILABILITY_AUTHORITY_PROVEN=true
-TASK8_CALLER_OMISSION_BYPASS_CLOSED=true
-TASK8_POST_CUTOFF_DB_ROW_REJECTED=true
-TASK8_AVAILABILITY_FINDING_CLOSED=true
-EXACT_CUTOFF_FINDING_CLOSED=true
-
-WEATHER_EXPLICIT_RUN_ID_REQUIRED=true
-WEATHER_LATEST_OR_CURRENT_RUN_FALLBACK_ALLOWED=false
-WEATHER_PERSISTED_RUN_RELOADED=true
-WEATHER_RUN_STATUS_COMPLETED_REQUIRED=true
-WEATHER_OBSERVATION_DATE_REQUIRED=true
-WEATHER_OBSERVATION_DATE_BOUND_TO_PERSISTED_RUN=true
-WEATHER_SOURCE_SIGNATURE_BOUND=true
-WEATHER_FEATURE_VERSION_BOUND=true
-WEATHER_CONFIG_HASH_BOUND=true
-WEATHER_MAPPING_VERSION_BOUND=true
-WEATHER_SOURCE_VERSION_BOUND=true
-CROSS_RUN_WEATHER_PROVENANCE_TAMPER_BLOCKED=true
-WEATHER_AUTHORITY_TRAINING_ENFORCED=true
-WEATHER_AUTHORITY_PREDICTION_ENFORCED=true
-SHARED_WEATHER_AUTHORITY_VALIDATOR=true
-WEATHER_KNOWN_AT_EXACT_CUTOFF_CHECK_PRESERVED=true
-WEATHER_SOURCE_AVAILABLE_AT_EXACT_CUTOFF_CHECK_PRESERVED=true
-WEATHER_CUTOFF_EQUALITY_ALLOWED=true
-
-AUDITED_INPUT_COUNT=22
-PASS_COUNT=4
-PARTIAL_COUNT=17
-BLOCKED_COUNT=0
-NOT_USED_COUNT=1
-PR190_DIRECT_IMPACT_ROW_COUNT=6
-PR190_DIRECT_IMPACT_ROWS_PASS=0
-TASK9_DERIVED_PASS_COUNT=0
-TASK9_UPSTREAM_AUTHORITY_STATUS=PARTIAL
-RESIDUAL_MODEL_AUTHORITY_ROW_PROMOTED_TO_PASS=true
-RESIDUAL_MODEL_AUTHORITY_AUDIT_STATUS=PASS
-RESIDUAL_MODEL_HISTORICAL_AVAILABILITY_PROVEN=true
-CALENDAR_ROW_PROMOTED_TO_PASS=false
-CALENDAR_STATUS=PARTIAL
-
-FORECAST_INPUT_PIT_LEAKAGE_AUDIT_RESULT=BLOCKED
-FORECAST_INPUT_FUTURE_LEAKAGE_DETECTED=false
-POTENTIAL_LEAKAGE_CONTROL_GAP_FOUND=true
-IMPLEMENTATION_GAP_FOUND=true
-DIRECT_FORECAST_READINESS_BLOCKER_EVIDENCED=true
+This is an independent, docs-only revalidation of the merged PR #200
+implementation. The PR exact-head CI validates the implementation head; this
+workpaper audits the merged `main` commit shown above.
 
 ## 1. Scope and authority
 
-This is a documentation-only current-main revalidation correction. It absorbs
-the merged PR #189 exact-cutoff fix and PR #190 Task8 persisted-availability
-fix. It changes neither production code nor tests, schemas, databases, models,
-nor canonical S1 acceptance state. It does not read Source 002 or run a real
-business backtest.
+The audit covers the same 22 registered forecast-input rows as the prior PIT
+artifact. It rechecks current-main production code and tests after PR #200 and
+does not change production code, tests, schema, databases, model artifacts, or
+canonical S1 acceptance state.
 
-The residual FeatureValue-level replay predicate remains:
+The source-class-aware visibility contract is:
 
-    KNOWN_AT <= FORECAST_CUTOFF_AT
-    SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT
+- exact-timestamp sources, including Task8 daily prediction, use
+  `known_at <= exact forecast_cutoff_at` and
+  `source_available_at <= exact forecast_cutoff_at`;
+- Task9 `PARAMETER_SOURCE` and `INITIAL_INVENTORY_SNAPSHOT` use their explicit
+  local available-date authority `available_at <= as_of_date`;
+- Analytics features use the persisted `AnalyticsBuildRun`-derived
+  `source_cutoff`, which is then checked against the exact forecast cutoff;
+- no universal timestamp is claimed for every upstream source.
 
-For replay, FORECAST_CUTOFF_AT is the normalized persisted
-HarvestStateRun.forecast_effective_cutoff_at. A legacy UTC end-of-day
-compatibility cutoff is available only for non-replay runs without persisted
-cutoff metadata. It is not a replay fallback.
+EXACT_FORECAST_CUTOFF_POST_CUTOFF_REJECTED=true
+This is a source-class-aware result: exact-timestamp authorities use
+<= exact forecast_cutoff_at, while Task9 local-date authorities use
+available_at <= as_of_date; it is not a universal timestamp policy for
+every source.
 
-The predicate above is scoped to the residual FeatureValue and Task8 controls;
-it is not an assertion that every nested Task9 source authority uses an exact
-timestamp. The row-level audit therefore records mixed authority semantics and
-does not promote an end-to-end Task9 chain without complete proof.
+`SOURCE_002_RAW_READ=false`, `SOURCE_002_ROW_LEVEL_READ=false`,
+`REAL_BUSINESS_DATA_READ=false`, `PRODUCTION_DATABASE_REAL_DATA_READ=false`,
+`EXTERNAL_HOLDOUT_ACCESS=false`, `MODEL_TRAINING_EXECUTED=false`, and
+`BACKTEST_EXECUTED=false`.
+
+The current canonical S1 runtime remains unchanged:
+
+    S1_VISIBILITY_CANONICAL_GATE_PASS=false
+    CURRENT_CANONICAL_GATE_PASS_COUNT=0
+    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=17
+    CANONICAL_GATE_STATUS_CHANGED=false
+    AUTHORITATIVE_ACCEPTANCE_RECORD_CHANGED=false
+    V0_3_S1_COMPLETE=false
+    V0_3_S1_ACCEPTED=false
+    V0_3_S2_AUTHORIZED=false
+
+PIT evidence support is not canonical S1 gate acceptance, and this workpaper
+does not authorize S1-REMAINING-05, S1-REMAINING-06, or S2.
 
 ## 2. Current-main implementation evidence
 
-### PR #189 — exact residual feature cutoff
+### Planning supplemental authority
 
-Current main contains:
+`backend/app/residual_model/planning_authority.py` is used by both
+`training_manifest.py` and `prediction_features.py`. It reloads the explicit
+`FarmSeasonVarietyPlan`, checks persisted `plan_id`, `plan_version`,
+`plan_row_hash`, farm/subfarm/season/variety scope, and selects exactly one
+row whose `available_at` and effective interval contain the Task9 as-of date.
+Missing, unknown, mismatched, later, or multiply-effective plans fail closed.
 
-- `backend/app/residual_model/forecast_cutoff.py`, which resolves the
-  persisted exact replay cutoff and fails closed when a replay cutoff is
-  missing;
-- `backend/app/residual_model/visibility.py`, which normalizes the exact
-  cutoff and rejects `known_at` or `source_available_at` after it;
-- `backend/app/residual_model/prediction_features.py` and
-  `backend/app/residual_model/training_manifest.py`, which pass the resolved
-  cutoff into prediction and training visibility audits.
+The persisted plan does not contain `destination_factory_category`. The
+caller-provided category remains the business value; only the persisted plan
+identity and as-of provenance are authoritative. The closed PIT finding is
+the identity/version/hash provenance contract, not a claim that the plan row
+itself supplies the category.
 
-The former exact-cutoff propagation finding remains closed by PR #189. This
-proves the scoped residual FeatureValue control, not every upstream source
-authority used to construct a Task9 result.
+### Analytics source-class and composite authority
 
-### PR #190 — Task8 persisted availability
+`ANALYTICS_FACTORY_RECEIPT` is an explicit enum and feature source class, and
+`forecast-input-pit-visibility-policy-v1` defines its persisted authority and
+disallows latest/current fallback. `analytics_authority.py` is called from
+both training and prediction. It reloads the explicit `AnalyticsBuildRun` and
+binds `analytics_build_run_id`, `aggregation_version`, `config_hash`,
+`source_max_raw_id`, and the persisted build-derived `source_cutoff`.
 
-Current main contains:
+The binder applies to `realized_cumulative_residual_to_as_of_kg` as well as
+the ordinary Analytics receipt features. A source cutoff before or equal to
+the exact forecast cutoff is allowed; a later source cutoff is rejected by
+the existing residual visibility predicate. The composite no longer inherits
+the forecast cutoff as a substitute for its Analytics build availability.
 
-- `backend/app/harvest_state/application.py`, which sends the exact replay
-  requirement and cutoff into the Task8 binder;
-- `backend/app/harvest_state/authority_request_loader.py`, which loads the
-  persisted `MaturityDailyPredictionModel`, uses its `created_at` as the
-  authoritative Task8 daily availability timestamp, rejects caller omission
-  in exact replay, rejects caller timestamp mismatches, and rejects a
-  persisted daily row after the exact cutoff;
-- `backend/app/rolling_backtest/replay_pipeline.py`, which explicitly passes
-  `require_persisted_task8_availability=true` and the node cutoff.
+This source-class binding is complete for this PIT evidence domain. It does
+not set `SOURCE_AUTHORITY_ACCEPTED=true` and does not mutate the canonical S1
+acceptance record.
 
-The former Task8 availability finding remains closed by PR #190. It does not
-by itself prove all nested Task9 parameter, weather, capacity, or calendar
-source authorities.
+### Task9 mixed authority and deterministic evidence
 
-### PR #192 — residual model replay-trained persisted authority
+`task9_mixed_authority.py` preserves the legitimate split:
 
-Current main contains the merged PR #192 replay-trained authority chain. The
-prediction-time gate in `backend/app/residual_model/application.py` reloads the
-persisted `ResidualModelTrainingRun`, requires a persisted replay Task9 run, and
-checks that the persisted Task12 context matches the persisted typed attempt,
-Task9 identity/result, and exact `forecast_cutoff_at`. It then requires:
+    TASK8_DAILY_PREDICTION=EXACT_TIMESTAMP_AUTHORITY
+    PARAMETER_SOURCE=LOCAL_AVAILABLE_DATE_AUTHORITY
+    INITIAL_INVENTORY_SNAPSHOT=LOCAL_AVAILABLE_DATE_AUTHORITY
 
-- `training_cutoff_at <= forecast_cutoff_at` with timezone-aware timestamps;
-- `training_manifest_hash` and `task10_manifest_hash` equal the persisted
-  training run manifest hash;
-- `model_config_hash` and `task10_config_hash` equal the persisted training run
-  config hash;
-- the persisted manifest row count to match the training run;
-- every persisted training observation and label availability date to be at or
-  before the persisted training cutoff;
-- a recomputed manifest hash and recomputed Task12 training dataset hash to
-  match persisted authority.
+Replay Task8 availability is required and is checked against the exact
+forecast cutoff; equality is allowed. Local-date references must match the
+Task9 as-of date and cannot be later than it. Unclassified source-reference
+types fail closed. The validator produces
+`v0-3-s1-task9-mixed-visibility-v1` evidence containing the Task9 run ID,
+result hash, exact cutoff, as-of date, classified references, and a
+repository canonical evidence hash. That evidence fragment is bound to all
+five Task9-derived residual features and the Task9-derived calendar feature
+in both training and prediction.
 
-The shared `replay_training_authority.py` helpers reconstruct manifest rows and
-the canonical dataset identity from persisted state. The replay producer in
-`replay_trained_service.py` binds the Task12 context and result identity to the
-persisted Task10 training manifest/config and artifact metadata rather than
-caller-only projection values. This is a valid replay-trained authority path:
-the replay artifact may be created after the forecast cutoff only when the
-persisted training and label authority is historical and the exact cutoff
-checks pass; it is not a generic future-artifact exemption.
+No local-date source is converted to a fabricated midnight timestamp.
 
-The current-main regression set passed 91 tests across prediction application,
-replay-trained slice E1/E3, and forecast-cutoff/visibility paths. This closes
-the residual model authority row without promoting any Task9-derived row.
+### Previously closed authorities
 
-### PR #194 — Weather supplemental persisted authority
+The merged PR #190 Task8 persisted `MaturityDailyPredictionModel.created_at`
+authority and the merged PR #192 residual model replay-trained authority
+remain intact. The merged PR #194 Weather persisted `WeatherFeatureRun`
+authority remains intact. No latest/current fallback was reintroduced.
 
-Current main contains the merged PR #194 Weather correction at
-`9dc4992e76453ce5bc6c03b65d8aab72ccd169ef`. The shared
-`backend/app/residual_model/weather_authority.py` binder is invoked by both
-`training_manifest.py` and `prediction_features.py`; the training and
-prediction paths therefore use one persisted Weather authority validator.
+## 3. Row-level revalidation result
 
-For `weather_7d_rainfall` and `weather_7d_gdd`, the binder requires an explicit
-`weather_feature_run_id` and reloads that exact persisted `WeatherFeatureRun`.
-There is no latest/current/implicit run fallback, and the persisted run must be
-`completed`. It requires `FeatureValue.observation_date`, requires it to equal
-the persisted `feature_date`, and requires both persisted `as_of_date` and
-`feature_date` to be no later than the Task9 `as_of_date`.
+The population remains exactly 22 rows. Every used row is independently
+supported by current-main code and the targeted tests below; the historical
+weather forecast row remains `NOT_USED`.
 
-The binder enforces parity for the persisted SHA-256 `source_signature`,
-`feature_version`, `config_hash`, `mapping_version`, and
-`weather_source_version`. It rejects missing/unknown/non-completed run IDs,
-observation-date omission or mismatch, metadata mismatch, and cross-run
-provenance mixing. The exact caller `known_at` and `source_available_at`
-cutoff checks remain in residual visibility, including the inclusive equality
-boundary. `WeatherFeatureRun.finished_at` is not treated as the historical
-business availability timestamp for replay; the replay evidence is the
-persisted run identity/provenance plus historical feature/as-of dates and the
-existing caller visibility timestamps.
+| Input ID | Status | Current-main authority evidence | Remaining blocker |
+| --- | --- | --- | --- |
+| `TASK9.structural_arrival_p50_kg` | PASS | Task9 mixed evidence; Task8 exact timestamp; residual cutoff | None |
+| `TASK9.structural_arrival_p80_kg` | PASS | Task9 mixed evidence; Task8 exact timestamp; residual cutoff | None |
+| `TASK9.structural_arrival_p90_kg` | PASS | Task9 mixed evidence; Task8 exact timestamp; residual cutoff | None |
+| `TASK9.forecast_horizon_days` | PASS | Task9 mixed evidence; Task8 exact timestamp; residual cutoff | None |
+| `TASK9.structural_cumulative_to_as_of_kg` | PASS | Task9 mixed evidence; Task8 exact timestamp; residual cutoff | None |
+| `ANALYTICS.actual_receipt_lag_1d_kg` | PASS | Persisted AnalyticsBuildRun source class and source cutoff | None |
+| `ANALYTICS.actual_receipt_lag_3d_kg` | PASS | Persisted AnalyticsBuildRun source class and source cutoff | None |
+| `ANALYTICS.actual_receipt_lag_7d_kg` | PASS | Persisted AnalyticsBuildRun source class and source cutoff | None |
+| `ANALYTICS.actual_receipt_rolling_3d_mean_kg` | PASS | Persisted AnalyticsBuildRun source class and source cutoff | None |
+| `ANALYTICS.actual_receipt_rolling_7d_mean_kg` | PASS | Persisted AnalyticsBuildRun source class and source cutoff | None |
+| `ANALYTICS.actual_receipt_cumulative_to_as_of_kg` | PASS | Persisted AnalyticsBuildRun source class and source cutoff | None |
+| `ANALYTICS.realized_cumulative_residual_to_as_of_kg` | PASS | Shared Analytics binder carries persisted source cutoff in training and prediction | None |
+| `WEATHER.weather_7d_rainfall` | PASS | PR #194 persisted WeatherFeatureRun authority retained | None |
+| `WEATHER.weather_7d_gdd` | PASS | PR #194 persisted WeatherFeatureRun authority retained | None |
+| `PLANNING.destination_factory_category` | PASS | Explicit effective persisted plan identity/version/hash/scope binding | None |
+| `CALENDAR.spring_festival_window_flag` | PASS | Versioned Task9 holiday snapshot plus classified local-date authority | None |
+| `AUTHORITY.TASK9_UPSTREAM_CHAIN` | PASS | Exact Task8 and local-date Task9 policies are explicitly classified and hashed | None |
+| `AUTHORITY.ANALYTICS_BUILD_RUN_SNAPSHOT` | PASS | Explicit `ANALYTICS_FACTORY_RECEIPT` class and persisted build identity | None |
+| `AUTHORITY.WEATHER_SUPPLEMENTAL_BINDING` | PASS | Shared persisted Weather binder in training and prediction | None |
+| `AUTHORITY.PLANNING_SUPPLEMENTAL_BINDING` | PASS | Shared persisted Planning binder in training and prediction | None |
+| `AUTHORITY.RESIDUAL_MODEL_REQUEST_AND_ARTIFACT` | PASS | PR #192 persisted model/replay-trained authority retained | None |
+| `NOT_USED.HISTORICAL_WEATHER_FORECAST` | NOT_USED | No current registered feature path | Not applicable |
 
-The current-main targeted revalidation passed 60 tests across the Weather
-authority binder, training and prediction paths, exact-cutoff visibility, and
-related residual authority regressions. These facts support promotion of the
-two Weather feature rows and the Weather authority row only; they do not
-promote Planning, Analytics, Calendar, or Task9-derived rows.
+Summary:
 
-## 3. Authority semantics reconciled against current main
+    AUDITED_INPUT_COUNT=22
+    PASS_COUNT=21
+    PARTIAL_COUNT=0
+    BLOCKED_COUNT=0
+    NOT_USED_COUNT=1
+    PASS_COUNT + PARTIAL_COUNT + BLOCKED_COUNT + NOT_USED_COUNT = 22
 
-### Task8 daily prediction
+    GAP01_PLANNING_REVALIDATION=PASS
+    GAP02_ANALYTICS_TAXONOMY_REVALIDATION=PASS
+    GAP03_ANALYTICS_COMPOSITE_REVALIDATION=PASS
+    GAP04_TASK9_MIXED_AUTHORITY_REVALIDATION=PASS
+    MINIMUM_IMPLEMENTATION_GAP_COUNT=0
 
-`MaturityDailyPredictionModel.created_at <= exact forecast_cutoff_at` is the
-authoritative Task8 daily rule. The persisted row identity, caller parity,
-replay cutoff, and equality boundary are covered by the merged PR #190 path.
+`PR190_DIRECT_IMPACT_ROW_COUNT=6` and
+`PR190_DIRECT_IMPACT_ROWS_PASS=6`. `TASK9_DERIVED_PASS_COUNT=6` covers the
+five Task9 structural rows and the Task9-derived calendar row;
+`AUTHORITY.TASK9_UPSTREAM_CHAIN` is independently PASS.
 
-### Rolling availability registry
+## 4. Closed finding registry
 
-`backend/app/rolling_backtest/availability.py` defines source-specific rules.
-The registry includes exact timestamp rules, exact timestamp plus observation
-date rules, and explicit `LOCAL_AVAILABLE_DATE` / local-date-with-observation
-rules. These policies must not be flattened into one universal timestamp
-predicate.
+The current-main finding registry now records these closed findings:
 
-### Task9 nested source references
+- F-001 Task8 persisted availability — closed by PR #190.
+- F-002 Weather supplemental persisted authority — closed by PR #194.
+- F-003 Planning supplemental identity/version/hash provenance — closed by
+  PR #200.
+- F-004 Residual model artifact historical availability — closed by PR #192.
+- EXACT_FORECAST_CUTOFF_NOT_PROPAGATED_TO_RESIDUAL_VISIBILITY — closed by
+  PR #189.
+- RESIDUAL_MODEL_ARTIFACT_HISTORICAL_AVAILABILITY_NOT_ENFORCED — closed by
+  PR #192.
+- ANALYTICS_FACTORY_RECEIPT_TAXONOMY — closed for this PIT evidence domain by
+  PR #200; this is not canonical S1 source-authority acceptance.
+- ANALYTICS_REALIZED_CUMULATIVE_COMPOSITE_AVAILABILITY — closed by PR #200.
+- TASK9_UPSTREAM_MIXED_AUTHORITY_RECONCILIATION — closed by PR #200.
 
-`backend/app/harvest_state/schemas.py` defines `ParameterSourceRef.available_at`
-and `as_of_date` as dates. `backend/app/harvest_state/service.py` validates
-these references with date-level predicates such as
-`available_at <= as_of_date`. The Task9 request therefore contains a mixed
-authority chain: Task8 has an exact persisted timestamp, while nested
-parameter, weather, capacity, and holiday references retain their own
-date-level source policy. The current audit does not establish a complete
-end-to-end reconciliation of those policies, so Task9-derived rows remain
-PARTIAL.
+    OPEN_FINDINGS=NONE
+    CLOSED_FINDING_COUNT=9
+    MINIMUM_IMPLEMENTATION_GAP_COUNT=0
 
-### Supplemental Weather and Planning FeatureValue inputs
+## 5. Overall PIT result and acceptance boundary
 
-For Weather, the residual builder accepts the feature value and then binds it
-through the shared persisted Weather authority validator. It does not use
-`WeatherFeatureRun.finished_at` as historical business availability. The
-supplied `known_at` and `source_available_at` are still normalized and
-compared against the exact cutoff by residual visibility, while the persisted
-run identity/provenance and observation-date parity are independently required.
-
-Planning remains caller-supplied at this point: its as-of plan
-identity/version/hash provenance is still incomplete and remains a separate
-open gap.
-
-### Residual model request and artifact
-
-The residual model authority row is now PASS for the current merged
-implementation. Non-replay prediction keeps the direct persisted timestamp
-checks: `ResidualModelTrainingRun.finished_at` and each persisted artifact's
-`created_at` must be at or before the exact forecast cutoff. Replay-trained
-prediction uses the explicit persisted replay authority path instead of
-silently applying a post-cutoff artifact as a generic fallback.
-
-That replay path reloads the persisted Task12 training run and its manifest
-rows, validates Task12 input-snapshot/typed-attempt parity, binds both Task12
-and Task10 manifest/config identities to the persisted training run, verifies
-training and label availability against a training cutoff no later than the
-exact forecast cutoff, and recomputes both manifest and training-dataset
-hashes. The producer and prediction-time validator use the same canonical
-manifest/dataset identity helpers. Therefore the authority is persisted and
-reproducible rather than caller-provided, while valid replay execution remains
-available.
-
-### Analytics realized cumulative composite
-
-`realized_cumulative_residual_to_as_of_kg` consumes AnalyticsBuildRun-derived
-actual cumulative data and Task9 structural cumulative data. In current main,
-the composite `FeatureValue.source_available_at` is stamped to the forecast
-cutoff, while the authoritative `AnalyticsBuildRun.source_cutoff` is not
-carried into the composite or independently checked against the cutoff.
-Generic residual visibility therefore cannot prove historical Analytics-build
-availability for this feature.
-
-## 4. Row-level revalidation result
-
-The machine-readable artifact contains exactly 22 rows:
-
-| Input group | Rows | Status | Remaining reason |
-| --- | ---: | --- | --- |
-| TASK9 structural outputs | 5 | PARTIAL | Task8 exact availability and residual exact cutoff are present, but nested Task9 source refs retain date-level policies and the complete mixed upstream chain is not reconciled. |
-| AUTHORITY.TASK9_UPSTREAM_CHAIN | 1 | PARTIAL | Task8 uses exact `created_at`, while Task9 parameter/weather/capacity refs use `available_at <= as_of_date`; one universal exact-timestamp predicate is not proven. |
-| Calendar | 1 | PARTIAL | Version/hash binding exists, but the upstream holiday authority remains a date-level Task9 source reference whose mixed-policy integration is not fully proven. |
-| Analytics features | 7 | PARTIAL | Generic source-cutoff checks exist for ordinary Analytics features; the source-class taxonomy remains unaccepted and the realized cumulative composite has a separate source-cutoff binding gap. |
-| AUTHORITY.ANALYTICS_BUILD_RUN_SNAPSHOT | 1 | PARTIAL | Analytics source cutoff is available for the ordinary snapshot path, but source-class taxonomy remains unaccepted. |
-| Weather features | 2 | PASS | Explicit completed persisted WeatherFeatureRun identity, observation-date parity, source/version/hash provenance, cross-run protection, and exact caller timestamp visibility are all covered by merged PR #194 and current-main tests. |
-| AUTHORITY.WEATHER_SUPPLEMENTAL_BINDING | 1 | PASS | Shared persisted Weather authority binding is enforced in training and prediction; omission, mismatch, non-completed, unknown, and cross-run cases fail closed. |
-| Planning feature | 1 | PARTIAL | Caller timestamps are checked against the exact cutoff; as-of selected plan identity/version/hash remains unbound. |
-| AUTHORITY.PLANNING_SUPPLEMENTAL_BINDING | 1 | PARTIAL | Caller timestamps are checked against the exact cutoff; as-of selected plan provenance remains unbound. |
-| AUTHORITY.RESIDUAL_MODEL_REQUEST_AND_ARTIFACT | 1 | PASS | Persisted non-replay training/artifact timestamps and replay-trained Task12 training/label authority are checked against the exact forecast cutoff. |
-| Historical weather forecast | 1 | NOT_USED | No current registered feature path. |
-
-AUDITED_INPUT_COUNT=22
-PASS_COUNT=4
-PARTIAL_COUNT=17
-BLOCKED_COUNT=0
-NOT_USED_COUNT=1
-PR190_DIRECT_IMPACT_ROW_COUNT=6
-PR190_DIRECT_IMPACT_ROWS_PASS=0
-TASK9_DERIVED_PASS_COUNT=0
-CALENDAR_ROW_PROMOTED_TO_PASS=false
-
-The six PR #190 direct-impact rows remain explicitly identified, but none is
-promoted to PASS because the broader Task9 upstream authority chain is not
-fully proven in this audit:
-
-    TASK9.structural_arrival_p50_kg
-    TASK9.structural_arrival_p80_kg
-    TASK9.structural_arrival_p90_kg
-    TASK9.forecast_horizon_days
-    TASK9.structural_cumulative_to_as_of_kg
-    AUTHORITY.TASK9_UPSTREAM_CHAIN
-
-The residual model authority row is independent of that mixed Task9-derived
-chain and is promoted to PASS based on the merged PR #192 persisted replay
-authority evidence above.
-
-The two Weather feature rows and `AUTHORITY.WEATHER_SUPPLEMENTAL_BINDING` are
-independent of the mixed Task9-derived chain and are promoted to PASS based on
-the merged PR #194 persisted Weather authority evidence above.
-
-## 5. Correction findings
-
-### P1-1 — Supplemental timestamps
-
-For Weather and Planning, the evidence now records:
-
-    KNOWN_AT_FIELD_OR_RULE=
-    caller-supplied FeatureValue.known_at; normalized and compared against
-    exact forecast_cutoff_at by residual visibility
-
-    SOURCE_AVAILABLE_AT_FIELD_OR_RULE=
-    caller-supplied FeatureValue.source_available_at; normalized and compared
-    against exact forecast_cutoff_at; source-class-specific provenance remains
-    incomplete
-
-`POST_CUTOFF_INPUT_REJECTED=true` remains a scoped statement that a supplied
-timestamp after the exact cutoff is rejected. It is not a claim that the
-source-class provenance is complete.
-
-### P1-2 — Analytics composite availability
-
-The realized cumulative composite remains PARTIAL. Its current
-`FeatureValue.source_available_at=forecast_cutoff_at` does not prove:
-
-    AnalyticsBuildRun.source_cutoff <= exact forecast_cutoff_at
-
-Accordingly its row-level post-cutoff fields are false, and the gap is kept
-separate from the `ANALYTICS_FACTORY_RECEIPT` taxonomy gap.
-
-### P1-3 — Task9 upstream chain and Calendar
-
-The evidence no longer describes all Task9 upstream sources with a single
-`known_at <= exact cutoff AND source_available_at <= exact cutoff` predicate.
-It explicitly records:
-
-- exact `MaturityDailyPredictionModel.created_at` authority for Task8;
-- exact timestamp rules and local-date rules from the rolling availability
-  registry; and
-- date-level `ParameterSourceRef.available_at <= as_of_date` validation inside
-  Task9.
-
-Because the complete mixed-policy chain is not proven as one end-to-end
-authority, `AUTHORITY.TASK9_UPSTREAM_CHAIN`, the five Task9-derived rows, and
-the Calendar row remain PARTIAL.
-
-## 6. Findings remaining open
-
-- F-003 Planning supplemental binding: require as-of plan identity/version/hash
-  provenance.
-- ANALYTICS_FACTORY_RECEIPT taxonomy: formally classify and accept the source
-  class with its identity and visibility contract.
-- ANALYTICS_REALIZED_CUMULATIVE_COMPOSITE_AVAILABILITY: carry
-  `AnalyticsBuildRun.source_cutoff` into the composite or enforce an equivalent
-  explicit Analytics-build availability predicate at or before the exact
-  cutoff.
-- TASK9_UPSTREAM_MIXED_AUTHORITY_RECONCILIATION: reconcile the exact-timestamp
-  Task8 authority with Task9 local-date and source-class policies before
-  promoting Task9-derived rows.
-
-F-002 Weather supplemental binding is closed by merged PR #194. The Task8
-availability and exact residual cutoff findings remain closed by PR #190 and
-PR #189 respectively.
-
-## 7. Minimum implementation gaps remaining
-
-MINIMUM_IMPLEMENTATION_GAP_COUNT=4
-
-    1. Require planning-specific as-of effective plan identity/version/hash provenance.
-    2. Retain ANALYTICS_FACTORY_RECEIPT as an explicit evidence taxonomy gap until S1 source-class governance accepts it.
-    3. Carry the authoritative AnalyticsBuildRun.source_cutoff into realized_cumulative_residual_to_as_of_kg or enforce an equivalent explicit Analytics-build availability predicate at or before exact forecast_cutoff_at.
-    4. Reconcile Task9 upstream source-class visibility evidence across exact-timestamp Task8 and local-date ParameterSourceRef/availability-registry policies before promoting Task9-derived rows.
-
-## 8. Overall result and acceptance boundary
-
-    FORECAST_INPUT_PIT_LEAKAGE_AUDIT_RESULT=BLOCKED
+    FORECAST_INPUT_PIT_LEAKAGE_AUDIT_RESULT=PASS
+    PIT_REVALIDATION_RESULT=PASS
+    PIT_REVALIDATION_SUPPORTS_S1_VISIBILITY=true
     FORECAST_INPUT_FUTURE_LEAKAGE_DETECTED=false
-    POTENTIAL_LEAKAGE_CONTROL_GAP_FOUND=true
-    IMPLEMENTATION_GAP_FOUND=true
-    DIRECT_FORECAST_READINESS_BLOCKER_EVIDENCED=true
+    POTENTIAL_LEAKAGE_CONTROL_GAP_FOUND=false
+    IMPLEMENTATION_GAP_FOUND=false
+    DIRECT_FORECAST_READINESS_BLOCKER_EVIDENCED=false
 
-`FORECAST_INPUT_FUTURE_LEAKAGE_DETECTED=false` means this repository-only
-revalidation did not observe a concrete future-valued business feature. It does
-not mean all forecast-input authority is complete. The open source,
-provenance, mixed-policy, Analytics taxonomy, and Analytics composite gaps
-keep the audit blocked.
+The PASS result means all 21 used registered inputs have a current-main
+source-class-aware visibility and provenance control. It does not mean every
+source has an exact timestamp, and it does not issue any business or
+canonical S1 acceptance.
 
-    SOURCE_002_USED_AS_FORECAST_INPUT=false
-    SOURCE_002_REREAD=false
-    REAL_SOURCE_EXPORT_READ_THIS_TASK=false
-    REAL_BUSINESS_ROW_LEVEL_DATA_READ_THIS_TASK=false
-    DATABASE_WRITE=false
-    BACKTEST_EXECUTED=false
-    MODEL_CHANGED=false
-    MODEL_TRAINING_EXECUTED=false
-
-    CANONICAL_GATE_STATUS_CHANGED=false
-    GATE_PASS_COUNT=0
     SOURCE_AUTHORITY_ACCEPTED=false
     SOURCE_COHORT_ACCEPTED=false
     Q2C_ACCEPTED=false
+    S1_VISIBILITY_CANONICAL_GATE_PASS=false
+    CURRENT_CANONICAL_GATE_PASS_COUNT=0
+    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=17
+    CANONICAL_GATE_STATUS_CHANGED=false
+    AUTHORITATIVE_ACCEPTANCE_RECORD_CHANGED=false
     V0_3_S1_COMPLETE=false
     V0_3_S1_ACCEPTED=false
     V0_3_S2_AUTHORIZED=false
     V0_3_S2_STARTED=false
 
-This artifact is prepared for independent review only. It is not forecast
-readiness approval, S1 acceptance, or S2 authorization.
+## 6. Validation
 
-## 9. Validation
-
-    JSON_PARSE_VALID=true
+    JSON_SYNTAX=PASS
+    JSON_WORKPAPER_CONSISTENCY=PASS
     JSON_ROW_COUNT=22
     JSON_ROW_STATUS_COUNTS_MATCH=true
-    JSON_WORKPAPER_SUMMARY_MATCH=true
-    MINIMUM_GAPS_MATCH=true
-    TASK8_CLOSED_STATUS_MATCH=true
-    EXACT_CUTOFF_CLOSED_STATUS_MATCH=true
-    SUPPLEMENTAL_TIMESTAMP_SEMANTICS_MATCH_CODE=true
-    REALIZED_CUMULATIVE_ANALYTICS_AVAILABILITY_MATCH_CODE=true
-    TASK9_UPSTREAM_POLICY_SEMANTICS_MATCH_CODE=true
     CURRENT_MAIN_CODE_REAUDIT=PASS
-    TARGETED_TEST_STATUS=PASS
-    TARGETED_TEST_RESULT=60 passed
-    PR192_REVALIDATION=PASS
-    PR194_REVALIDATION=PASS
+    TARGETED_PIT_TESTS=PASS (15 passed)
+    PLANNING_AUTHORITY_TESTS=PASS
+    TASK9_TASK8_AUTHORITY_TESTS=PASS
+    WEATHER_AUTHORITY_TESTS=PASS
+    TARGETED_TEST_RESULT=78 passed
+    POSTGRES_TARGETED_TESTS=SKIPPED_ENVIRONMENT (pg_isready unavailable locally)
     PRODUCTION_CODE_CHANGED=false
     TEST_CODE_CHANGED=false
+    DATABASE_SCHEMA_CHANGED=false
     DATABASE_WRITE=false
     BACKTEST_STARTED=false
+    MODEL_TRAINING_EXECUTED=false
+    SOURCE_002_REREAD=false
+    REAL_SOURCE_EXPORT_READ_THIS_TASK=false
+    REAL_BUSINESS_ROW_LEVEL_DATA_READ_THIS_TASK=false
 
-No current-main code or tests were modified by this correction. No real
-historical business backtest was executed.
+No files outside the two authorized evidence/workpaper files are changed by
+this task. PostgreSQL targeted tests were not reported as passing because the
+local environment has no available `pg_isready` command/PostgreSQL service;
+the merged implementation is revalidated from current-main code and the
+available targeted tests only.
 
-## 10. Next action
+## 7. Next action
 
-    NEXT_RECOMMENDED_ACTION=RUN_POST_PR194_WEATHER_PIT_REVALIDATION_INDEPENDENT_REVIEW
+    NEXT_RECOMMENDED_ACTION=RUN_EXACT_HEAD_INDEPENDENT_REVIEW_OF_POST_TASK4_PIT_REVALIDATION_PR
+    S1_REMAINING_04_COMPLETE=false
+    S1_REMAINING_05_AUTHORIZED=false
+    S1_REMAINING_06_AUTHORIZED=false
+    READY_PERFORMED=false
+    MERGE_PERFORMED=false
+    NO_STEP_IMPLIES_THE_NEXT=true
