@@ -124,18 +124,18 @@
       "required_or_conditional": "required",
       "owner_role": "data_governance_owner_role",
       "authoritative_artifact": "visibility and snapshot manifest",
-      "artifact_identity": "VISIBILITY_MANIFEST_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_VISIBILITY_EVIDENCE",
+      "artifact_identity": "V0_3_S1_FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_AUDIT@forecast-input-pit-leakage-audit-v2",
+      "artifact_hash_or_status": "eeaa91cd1121664d87e129dd4099d976e34d35da66df35299449d311055fb050",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2A/I7 contract",
       "acceptance_threshold": "SOURCE_CLASS_CUTOFF_RULES_EVIDENCED",
       "allowed_not_applicable_condition": "NEVER",
       "status": "BLOCKED",
-      "block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+      "block_reason": "UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED",
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "No current-state fallback is allowed."
+      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-SOURCE-AUTHORITY, S1-Q2C-TARGET, S1-SOURCE-COHORT, S1-CANONICAL-GRAIN, and S1-INCLUSION-EXCLUSION have not been accepted."
     },
     {
       "gate_id": "S1-REVISION-WINNER",
