@@ -11,14 +11,20 @@ from backend.app.analytics.peak_metrics import build_analysis_calendar
 from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
 from backend.app.harvest_state.schemas import Task9ACompletedOutput
 from backend.app.models.analytics import AnalyticsBuildRun
+from backend.app.residual_model.analytics_authority import bind_analytics_feature_authority
 from backend.app.residual_model.feature_registry import build_feature_registry
 from backend.app.residual_model.forecast_cutoff import resolve_forecast_cutoff_at
+from backend.app.residual_model.planning_authority import bind_planning_feature_authority
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
     FeatureValue,
     FeatureVisibilityAudit,
 )
 from backend.app.residual_model.structural import aggregate_structural_arrivals
+from backend.app.residual_model.task9_mixed_authority import (
+    bind_task9_feature_provenance,
+    validate_task9_mixed_authority,
+)
 from backend.app.residual_model.training_manifest import (
     _analysis_months,
     _as_of_date_from_task9_output,
@@ -86,7 +92,18 @@ async def build_prediction_feature_rows(
         feature_values=supplemental_feature_values,
         as_of_date=as_of_date,
     )
+    bound_supplemental_values = await bind_planning_feature_authority(
+        session,
+        feature_values=bound_supplemental_values,
+        as_of_date=as_of_date,
+    )
     supplemental_features = _supplemental_map(bound_supplemental_values)
+    mixed_authority = await validate_task9_mixed_authority(
+        session,
+        task9_run_id=task9_run_id,
+        output=output,
+        forecast_cutoff_at=cutoff,
+    )
 
     feature_build_run: AnalyticsBuildRun | None = None
     feature_season = None
@@ -485,6 +502,19 @@ async def build_prediction_feature_rows(
                     )
                 )
 
+        resolved_features = list(
+            bind_analytics_feature_authority(
+                feature_values=resolved_features,
+                build_run=feature_build_run,
+                forecast_cutoff_at=cutoff,
+            )
+        )
+        resolved_features = list(
+            bind_task9_feature_provenance(
+                resolved_features,
+                evidence=mixed_authority,
+            )
+        )
         audit = audit_feature_visibility(
             features=resolved_features,
             as_of_date=as_of_date,
