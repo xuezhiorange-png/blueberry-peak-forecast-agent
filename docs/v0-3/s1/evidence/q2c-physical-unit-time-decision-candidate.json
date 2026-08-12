@@ -1,7 +1,7 @@
 {
   "artifact_id": "V0_3_S1_Q2C_PHYSICAL_UNIT_TIME_DECISION_CANDIDATE",
   "artifact_version": "q2c-physical-unit-time-decision-candidate-v1",
-  "artifact_status": "PENDING_BUSINESS_OWNER_Q2C_DECISION",
+  "artifact_status": "BUSINESS_OWNER_Q2C_DECISIONS_FORMALIZED_PENDING_INDEPENDENT_REVIEW",
   "task_id": "S1-REMAINING-02",
   "task": "Q2C_PHYSICAL_UNIT_TIME_FORMALIZATION",
   "task_class": "DOCS_ONLY_BUSINESS_DECISION_AND_EVIDENCE_FORMALIZATION_PREPARATION",
@@ -83,20 +83,25 @@
       },
       "forecast_side_evidence": {
         "candidate": "model_harvested_marketable_quantity_kg",
-        "current_status": "CANDIDATE_REQUIRES_BUSINESS_ATTESTATION",
-        "evidence": "Current Q2C contract identifies the model output as a candidate only."
+        "current_status": "BUSINESS_SEMANTIC_EQUIVALENCE_AUTHORIZED_PENDING_ATTESTATION",
+        "evidence": "Business-owner D001 authorizes the same harvest event and governed scan-weigh boundary; final attestation remains pending."
       },
-      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
-      "dimension_result": "UNKNOWN_REQUIRES_OWNER_DECISION",
+      "status": "APPROVED_BY_BUSINESS_OWNER",
+      "dimension_result": "PROVEN_EXACT",
       "question": "Does model_harvested_marketable_quantity_kg represent the HARVEST business event at the same governed VALID_FIELD_SCAN_WEIGH_RECORD boundary?",
       "options": [
         "A=YES_SAME_HARVEST_MEASUREMENT_BOUNDARY",
         "B=NO_DIFFERENT_PHYSICAL_BOUNDARY",
         "C=UNKNOWN_NOT_YET_AUTHORIZED"
       ],
-      "owner_decision_required": true,
-      "unresolved": true,
-      "effect_on_q2c": "No exact physical-event equivalence can be issued."
+      "owner_decision_required": false,
+      "unresolved": false,
+      "approval_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "YES_SAME_HARVEST_MEASUREMENT_BOUNDARY",
+      "approval_provenance": "EXPLICIT_BUSINESS_OWNER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+      "formal_decision_record_reference": "q2c-business-owner-decision-v1",
+      "effect_on_q2c": "Exact physical-event equivalence is authorized at the recorded valid field scan-weigh boundary."
     },
     {
       "decision_id": "Q2C-D002",
@@ -111,7 +116,7 @@
       },
       "forecast_side_evidence": {
         "candidate": "model_harvested_marketable_quantity_kg",
-        "current_status": "MARKETABLE_CANDIDATE_NOT_PROVEN_SAME_BOUNDARY",
+        "current_status": "BUSINESS_SEMANTIC_EQUIVALENCE_AUTHORIZED_PENDING_ATTESTATION",
         "forbidden_substitutions": [
           "effective_marketable_quantity_kg",
           "natural_maturity_supply_kg",
@@ -121,17 +126,22 @@
           "FactReceiptDaily.weight_kg"
         ]
       },
-      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
-      "dimension_result": "UNKNOWN",
+      "status": "APPROVED_BY_BUSINESS_OWNER",
+      "dimension_result": "PROVEN_EXACT",
       "question": "Does the forecast candidate mean the same marketable-fruit, non-marketable-excluded, recorded net-weight boundary as Source 002 actual label?",
       "options": [
         "A=EXACT_SAME_QUANTITY_BOUNDARY",
         "B=DIFFERENT_QUANTITY_BOUNDARY",
         "C=UNKNOWN"
       ],
-      "owner_decision_required": true,
-      "unresolved": true,
-      "effect_on_q2c": "Quantity and marketability equivalence remains unclosed."
+      "owner_decision_required": false,
+      "unresolved": false,
+      "approval_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "EXACT_SAME_QUANTITY_BOUNDARY",
+      "approval_provenance": "EXPLICIT_BUSINESS_OWNER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+      "formal_decision_record_reference": "q2c-business-owner-decision-v1",
+      "effect_on_q2c": "Exact recorded marketable net-weight and field marketability equivalence is authorized."
     },
     {
       "decision_id": "Q2C-D003",
@@ -146,20 +156,25 @@
       },
       "forecast_side_evidence": {
         "candidate": "model_harvested_marketable_quantity_kg",
-        "current_status": "SORTING_BOUNDARY_NOT_PROVEN",
+        "current_status": "SORTING_BOUNDARY_AUTHORIZED_PENDING_ATTESTATION",
         "note": "sorting_retention_rate is not an authorized equivalence transformation."
       },
-      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
-      "dimension_result": "UNKNOWN",
+      "status": "APPROVED_BY_BUSINESS_OWNER",
+      "dimension_result": "PROVEN_EXACT",
       "question": "Does model_harvested_marketable_quantity_kg correspond to the same pre-later-packhouse/factory sorting-retention boundary?",
       "options": [
         "A=EXACT_SAME_SORTING_BOUNDARY",
         "B=DIFFERENT_SORTING_BOUNDARY",
         "C=UNKNOWN"
       ],
-      "owner_decision_required": true,
-      "unresolved": true,
-      "effect_on_q2c": "No sorting equivalence or transformation authority is available."
+      "owner_decision_required": false,
+      "unresolved": false,
+      "approval_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "EXACT_SAME_SORTING_BOUNDARY",
+      "approval_provenance": "EXPLICIT_BUSINESS_OWNER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+      "formal_decision_record_reference": "q2c-business-owner-decision-v1",
+      "effect_on_q2c": "Exact field sorting boundary is authorized; later sorting is not a Q2C transformation."
     },
     {
       "decision_id": "Q2C-D004",
@@ -174,20 +189,25 @@
       },
       "forecast_side_evidence": {
         "candidate": "model_harvested_marketable_quantity_kg",
-        "current_status": "POST_HARVEST_BOUNDARY_NOT_PROVEN",
+        "current_status": "POST_HARVEST_BOUNDARY_AUTHORIZED_PENDING_ATTESTATION",
         "note": "postharvest_retention_rate is not an authorized equivalence transformation."
       },
-      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
-      "dimension_result": "UNKNOWN",
+      "status": "APPROVED_BY_BUSINESS_OWNER",
+      "dimension_result": "PROVEN_EXACT",
       "question": "Does the forecast candidate correspond to the recorded field scan-weigh boundary before later post-harvest, receipt, rejection, or return adjustments?",
       "options": [
         "A=EXACT_SAME_POSTHARVEST_BOUNDARY",
         "B=DIFFERENT_POSTHARVEST_BOUNDARY",
         "C=UNKNOWN"
       ],
-      "owner_decision_required": true,
-      "unresolved": true,
-      "effect_on_q2c": "No post-harvest equivalence or transformation authority is available."
+      "owner_decision_required": false,
+      "unresolved": false,
+      "approval_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "EXACT_SAME_POSTHARVEST_BOUNDARY",
+      "approval_provenance": "EXPLICIT_BUSINESS_OWNER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+      "formal_decision_record_reference": "q2c-business-owner-decision-v1",
+      "effect_on_q2c": "Recorded field scan-weigh is the authorized post-harvest boundary; later adjustments are not a Q2C transformation."
     },
     {
       "decision_id": "Q2C-D005",
@@ -240,14 +260,10 @@
   ],
   "already_fixed_dimension_count": 0,
   "contract_proven_dimension_count": 2,
-  "business_owner_decision_required_count": 4,
-  "unresolved_decision_ids": [
-    "Q2C-D001",
-    "Q2C-D002",
-    "Q2C-D003",
-    "Q2C-D004"
-  ],
-  "candidate_outcome": "NOT_YET_DERIVABLE",
+  "business_owner_decision_required_count": 0,
+  "unresolved_decision_ids": [],
+  "candidate_outcome": "PROVEN_EXACT",
+  "business_semantic_equivalence_closed": true,
   "current_q2c_outcome": "BLOCKED_BY_MISSING_BUSINESS_ATTESTATION",
   "q2c_decision_status": "NOT_ISSUED",
   "positive_q2c_outcome_issued": false,
@@ -256,6 +272,13 @@
   "source_cohort_accepted": false,
   "final_business_source_attestation_created": false,
   "final_q2c_decision_record_created": false,
+  "business_owner_decision_record_reference": "q2c-business-owner-decision-v1",
+  "business_owner_decision_record_sha256": "85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f",
+  "business_owner_decision_event": "EXPLICIT_Q2C_BUSINESS_SEMANTIC_AUTHORIZATION",
+  "business_owner_decision_at": "2026-08-12T10:11:00+08:00",
+  "business_owner_decision_timezone": "Asia/Singapore",
+  "business_owner_decision_role": "BUSINESS_OWNER",
+  "personal_identity_recorded": false,
   "transformation_authority_issued": false,
   "canonical_gate_status_changed": false,
   "authoritative_acceptance_record_changed": false,
@@ -280,6 +303,7 @@
     "actual_time_basis_parity": "PASS",
     "actual_grain_parity": "PASS",
     "forecast_candidate_parity": "PASS",
+    "business_semantic_outcome_derivation": "PASS",
     "silent_target_substitution_found": false,
     "undocumented_transformation_found": false,
     "positive_q2c_outcome_issued": false
@@ -293,6 +317,6 @@
     "external_holdout_access": false,
     "source_identity_reused_without_recomputation": true
   },
-  "next_recommended_action": "OBTAIN_BUSINESS_OWNER_Q2C_PHYSICAL_TARGET_DECISIONS",
+  "next_recommended_action": "RUN_PR198_EXACT_HEAD_INDEPENDENT_REVIEW_AFTER_Q2C_OWNER_DECISION_FORMALIZATION",
   "no_step_implies_the_next": true
 }
