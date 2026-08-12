@@ -27,7 +27,7 @@ from backend.app.models.harvest_state import (
     HarvestStateRun,
 )
 from backend.app.models.historical_import import FactReceiptRaw, IngestFile
-from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Variety
+from backend.app.models.master_data import Factory, Farm, Grade, Holiday, Season, Subfarm, Variety
 from backend.app.models.planning import LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.residual_model import (
@@ -56,6 +56,8 @@ from backend.tests.residual_model.support import repo_root, residual_model_confi
 
 TABLES = [
     Season.__table__,
+    Farm.__table__,
+    Subfarm.__table__,
     Holiday.__table__,
     Factory.__table__,
     Variety.__table__,
@@ -77,6 +79,7 @@ TABLES = [
     ResidualModelPredictionRow.__table__,
     ResidualModelExecutionAttempt.__table__,
     WeatherFeatureRun.__table__,
+    FarmSeasonVarietyPlan.__table__,
 ]
 
 
@@ -133,6 +136,12 @@ async def _seed_master_data(session: AsyncSession) -> tuple[int, int, int]:
             active=True,
         )
         session.add(factory)
+    existing_farm = await session.get(Farm, 1)
+    if existing_farm is None:
+        session.add(Farm(id=1, name="Farm A"))
+    existing_subfarm = await session.get(Subfarm, 11)
+    if existing_subfarm is None:
+        session.add(Subfarm(id=11, farm_id=1, name="Subfarm A"))
     existing_variety = await session.get(Variety, 101)
     if existing_variety is None:
         variety = Variety(id=101, code="DX", name="Dx")
@@ -141,6 +150,30 @@ async def _seed_master_data(session: AsyncSession) -> tuple[int, int, int]:
     if existing_grade is None:
         grade = Grade(id=301, code="优果", is_analysis_eligible_default=True)
         session.add(grade)
+    await session.flush()
+    existing_plan = await session.get(FarmSeasonVarietyPlan, 501)
+    if existing_plan is None:
+        session.add(
+            FarmSeasonVarietyPlan(
+                id=501,
+                farm_id=1,
+                subfarm_id=11,
+                season_id=1,
+                variety_id=101,
+                planted_area_mu=Decimal("100"),
+                expected_yield_kg_per_mu=Decimal("1200"),
+                marketable_rate=Decimal("0.8"),
+                version=1,
+                effective_from=date(2026, 1, 1),
+                effective_to=None,
+                available_at=date(2026, 1, 1),
+                source_type="test-plan",
+                source_name="test",
+                source_version="test-plan-v1",
+                notes=None,
+                row_hash="f" * 64,
+            )
+        )
     await session.flush()
     return 1, 701, 101
 
@@ -185,8 +218,32 @@ async def _persist_task9_run(
             end_date=season.end_date,
         ),
     }
+    default_task8_available_at = datetime(2026, 2, 28, 12, tzinfo=UTC)
     for prediction in payload["task8_daily_predictions"]:
         prediction["verification_snapshot"]["season_id"] = season.id
+        source_ref_available_at = prediction["source_ref"].get(
+            "maturity_daily_prediction_available_at"
+        )
+        verification_available_at = prediction["verification_snapshot"].get(
+            "maturity_daily_prediction_available_at"
+        )
+        if source_ref_available_at is None and verification_available_at is None:
+            persisted_task8_available_at = default_task8_available_at
+        else:
+            assert source_ref_available_at is not None
+            assert verification_available_at == source_ref_available_at, (
+                "Task9 fixture Task8 availability evidence must be equal before "
+                "persistence: "
+                f"source_ref={source_ref_available_at!r}, "
+                f"verification={verification_available_at!r}"
+            )
+            persisted_task8_available_at = source_ref_available_at
+        prediction["source_ref"]["maturity_daily_prediction_available_at"] = (
+            persisted_task8_available_at
+        )
+        prediction["verification_snapshot"]["maturity_daily_prediction_available_at"] = (
+            persisted_task8_available_at
+        )
     if payload_overrides:
         payload.update(payload_overrides)
     output = run_harvest_state_model(payload)
@@ -559,6 +616,8 @@ def _supplemental_features(
     destination_factory_category: str | None = None,
     weather_7d_rainfall: Decimal = Decimal("12.5"),
     weather_7d_gdd: Decimal = Decimal("33.0"),
+    plan_season_id: int = 1,
+    plan_row_hash: str = "f" * 64,
 ) -> tuple[FeatureValue, ...]:
     cutoff = cutoff_at or datetime.combine(as_of_date, datetime.max.time(), tzinfo=UTC)
     values = [
@@ -605,10 +664,15 @@ def _supplemental_features(
                     "value": destination_factory_category,
                     "known_at": cutoff,
                     "source_ref": {
-                        "master_data_snapshot_version": "task10-master-data-v1",
-                        "category_hash": "f" * 64,
+                        "plan_id": 501,
+                        "plan_version": 1,
+                        "plan_row_hash": plan_row_hash,
+                        "farm_id": 1,
+                        "subfarm_id": 11,
+                        "season_id": plan_season_id,
+                        "variety_id": 101,
                     },
-                    "source_version": "task10-master-data-v1",
+                    "source_version": "test-plan-v1",
                     "source_available_at": cutoff,
                 }
             )
@@ -629,6 +693,8 @@ def _diverse_training_samples(
     count: int = 30,
     train_category_prefix: str = "snapshot",
     validation_category_prefix: str | None = None,
+    plan_season_id: int = 1,
+    plan_row_hash: str = "f" * 64,
 ) -> list[ResidualTrainingSampleSpec]:
     resolved_validation_category_prefix = (
         validation_category_prefix
@@ -651,6 +717,8 @@ def _diverse_training_samples(
                     destination_factory_category=f"{train_category_prefix}-{index % 3}",
                     weather_7d_rainfall=Decimal("12.5") + Decimal(index % 5),
                     weather_7d_gdd=Decimal("33.0") + Decimal(index % 7),
+                    plan_season_id=plan_season_id,
+                    plan_row_hash=plan_row_hash,
                 ),
             )
         )
@@ -670,6 +738,8 @@ def _diverse_training_samples(
                     ),
                     weather_7d_rainfall=Decimal("22.5") + Decimal(index % 3),
                     weather_7d_gdd=Decimal("43.0") + Decimal(index % 5),
+                    plan_season_id=plan_season_id,
+                    plan_row_hash=plan_row_hash,
                 ),
             )
         )

@@ -135,6 +135,7 @@ TASK8_MODEL_CONFIG_HASH = sha256_payload({"fixture": "task8-model-config", "vers
 TASK8_MODEL_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-model-run", "version": 1})
 TASK8_ARTIFACT_HASH = sha256_payload({"fixture": "task8-model-artifact", "version": 1})
 TASK8_FORECAST_SOURCE_SIGNATURE = sha256_payload({"fixture": "task8-forecast-run", "version": 1})
+TASK11_PLAN_ROW_HASH = sha256_payload({"fixture": "task11-production-plan", "version": 1})
 TASK11_FEBRUARY_END_CUTOFF_HOUR_UTC = 4
 
 
@@ -744,7 +745,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
                     source_name="planner",
                     source_version="v1",
                     notes="synthetic",
-                    row_hash="plan-501",
+                    row_hash=TASK11_PLAN_ROW_HASH,
                 )
             )
             await session.flush()
@@ -754,7 +755,7 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             assert existing_plan.subfarm_id == 11
             assert existing_plan.season_id == season_id
             assert existing_plan.variety_id == 101
-            assert existing_plan.row_hash == "plan-501"
+            assert existing_plan.row_hash == TASK11_PLAN_ROW_HASH
 
         existing_base_temp = await session.get(BaseTemperatureSearchRun, 901)
         if existing_base_temp is None:
@@ -996,6 +997,8 @@ async def _seed_real_task8_authorities(*, season_id: int) -> dict[str, Any]:
             "subfarm_id": persisted_plan.subfarm_id,
             "variety_id": persisted_plan.variety_id,
             "plan_id": persisted_plan.id,
+            "plan_version": persisted_plan.version,
+            "plan_row_hash": persisted_plan.row_hash,
             "location_reference_id": persisted_forecast_run.location_reference_id,
             "weather_mapping_id": persisted_forecast_run.weather_mapping_id,
             "base_temperature_search_run_id": persisted_forecast_run.base_temperature_search_run_id,
@@ -1139,6 +1142,12 @@ async def _seed_real_task10_authorities(
     # structural row. When `analytics_season_id` is None the legacy
     # 2026 fixture is used.
     fixture_season_id_for_samples = analytics_season_id if analytics_season_id is not None else 2026
+    planning_plan_season_id = (
+        int(task8_authority["season_id"]) if task8_authority is not None else 1
+    )
+    planning_plan_row_hash = (
+        str(task8_authority["plan_row_hash"]) if task8_authority is not None else "f" * 64
+    )
 
     # Idempotency guard: a single test can call this helper more than
     # once when it composes `_build_real_orchestration_command` with
@@ -1253,6 +1262,8 @@ async def _seed_real_task10_authorities(
         validation_label_build_run_id=fixture["validation_label_build_run_id"],
         validation_feature_build_run_id=fixture["validation_feature_build_run_id"],
         as_of_date=date(fixture_season_id_for_samples, 2, 28),
+        plan_season_id=planning_plan_season_id,
+        plan_row_hash=planning_plan_row_hash,
     )
 
     async with AsyncSessionMaker() as session:
@@ -1269,7 +1280,9 @@ async def _seed_real_task10_authorities(
                 task9_run_id=fixture["train_task9_run_id"],
                 feature_analytics_build_run_id=fixture["train_feature_build_run_id"],
                 supplemental_feature_values=_supplemental_features(
-                    as_of_date=date(fixture_season_id_for_samples, 2, 28)
+                    as_of_date=date(fixture_season_id_for_samples, 2, 28),
+                    plan_season_id=planning_plan_season_id,
+                    plan_row_hash=planning_plan_row_hash,
                 ),
             ),
         )
@@ -1397,6 +1410,8 @@ async def _build_real_orchestration_command(
         "subfarm_id": task8["subfarm_id"],
         "variety_id": task8["variety_id"],
         "plan_id": task8["plan_id"],
+        "plan_version": task8["plan_version"],
+        "plan_row_hash": task8["plan_row_hash"],
         "location_reference_id": task8["location_reference_id"],
         "weather_mapping_id": task8["weather_mapping_id"],
         "base_temperature_search_run_id": task8["base_temperature_search_run_id"],
@@ -1489,6 +1504,10 @@ async def _build_real_orchestration_command(
         task9_daily_ids_by_date: dict[date, set[int]] = {}
         varieties_in_task9 = {item.get("variety_id") for item in t8_preds}
         assert varieties_in_task9 == {101}, f"expected only variety 101, got {varieties_in_task9}"
+        source_ref_by_hash = {
+            entry["source_ref_hash"]: entry["source_ref_payload"]
+            for entry in task9_row.source_ref_catalog
+        }
         for item in t8_preds:
             prediction_date = item["prediction_date"]
             if isinstance(prediction_date, str):
@@ -1496,6 +1515,58 @@ async def _build_real_orchestration_command(
             source_ref_hash = item["source_ref_hash"]
             verification = item["verification_snapshot"]
             expected_daily = task8["daily_predictions_by_date"][prediction_date]
+            persisted_daily_rows = (
+                (
+                    await session.execute(
+                        select(MaturityDailyPredictionModel).where(
+                            MaturityDailyPredictionModel.forecast_run_id == task8_forecast_row.id,
+                            MaturityDailyPredictionModel.prediction_date == prediction_date,
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            assert len(persisted_daily_rows) == 1, (
+                "Task9 Task8 exact timestamp preflight requires exactly one persisted "
+                f"daily row: prediction_date={prediction_date!r}, "
+                f"daily_id={verification.get('maturity_daily_prediction_id')!r}, "
+                f"rows={len(persisted_daily_rows)}"
+            )
+            persisted_daily = persisted_daily_rows[0]
+            daily_id = verification["maturity_daily_prediction_id"]
+            source_ref_payload = source_ref_by_hash.get(source_ref_hash)
+            assert source_ref_payload is not None, (
+                "Task9 Task8 exact timestamp preflight is missing source_ref payload: "
+                f"prediction_date={prediction_date!r}, daily_id={daily_id!r}, "
+                f"source_ref_hash={source_ref_hash!r}"
+            )
+            task9_source_ref_available_at = source_ref_payload.get(
+                "maturity_daily_prediction_available_at"
+            )
+            task9_verification_available_at = verification.get(
+                "maturity_daily_prediction_available_at"
+            )
+            if isinstance(task9_source_ref_available_at, str):
+                task9_source_ref_available_at = datetime.fromisoformat(
+                    task9_source_ref_available_at
+                )
+            if isinstance(task9_verification_available_at, str):
+                task9_verification_available_at = datetime.fromisoformat(
+                    task9_verification_available_at
+                )
+            assert (
+                persisted_daily.id == daily_id
+                and task9_source_ref_available_at == persisted_daily.created_at
+                and task9_verification_available_at == persisted_daily.created_at
+                and task9_source_ref_available_at == task9_verification_available_at
+            ), (
+                "Task9 Task8 exact timestamp preflight failed: "
+                f"prediction_date={prediction_date!r}, daily_id={daily_id!r}, "
+                f"db_created_at={persisted_daily.created_at!r}, "
+                f"task9_source_ref_available_at={task9_source_ref_available_at!r}, "
+                f"task9_verification_available_at={task9_verification_available_at!r}"
+            )
             assert len(source_ref_hash) == 64
             entry_count_by_date[prediction_date] = entry_count_by_date.get(prediction_date, 0) + 1
             task9_daily_ids_by_date.setdefault(prediction_date, set()).add(

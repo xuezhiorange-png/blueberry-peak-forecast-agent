@@ -1,0 +1,33 @@
+{
+  "policy_id": "V0_3_S1_FORECAST_INPUT_PIT_VISIBILITY",
+  "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+  "status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "scope": "V0.3-S1 residual forecast-input point-in-time visibility",
+  "exact_forecast_cutoff": {
+    "known_at": "must_be_less_than_or_equal_to_exact_forecast_cutoff_at",
+    "source_available_at": "must_be_less_than_or_equal_to_exact_forecast_cutoff_at"
+  },
+  "source_classes": {
+    "ANALYTICS_FACTORY_RECEIPT": {
+      "authority": "persisted AnalyticsBuildRun and derived AnalyticsActualSnapshot.source_cutoff",
+      "fallback_allowed": false
+    },
+    "PRODUCTION_PLAN_EFFECTIVE_VERSION": {
+      "authority": "persisted FarmSeasonVarietyPlan selected by as_of effective-plan rule",
+      "fallback_allowed": false
+    }
+  },
+  "task9_mixed_authority": {
+    "policy_version": "v0-3-s1-task9-mixed-visibility-v1",
+    "exact_timestamp_authority": ["TASK8_DAILY_PREDICTION"],
+    "local_available_date_authority": [
+      "PARAMETER_SOURCE",
+      "INITIAL_INVENTORY_SNAPSHOT"
+    ],
+    "unclassified_source_ref_allowed": false
+  },
+  "weather_persisted_authority_preserved": true,
+  "canonical_gate_status_changed": false,
+  "s1_accepted": false,
+  "s2_authorized": false
+}
