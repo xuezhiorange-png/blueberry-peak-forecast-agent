@@ -218,9 +218,26 @@ async def _persist_task9_run(
             end_date=season.end_date,
         ),
     }
-    persisted_task8_available_at = datetime(2026, 2, 28, 12, tzinfo=UTC)
+    default_task8_available_at = datetime(2026, 2, 28, 12, tzinfo=UTC)
     for prediction in payload["task8_daily_predictions"]:
         prediction["verification_snapshot"]["season_id"] = season.id
+        source_ref_available_at = prediction["source_ref"].get(
+            "maturity_daily_prediction_available_at"
+        )
+        verification_available_at = prediction["verification_snapshot"].get(
+            "maturity_daily_prediction_available_at"
+        )
+        if source_ref_available_at is None and verification_available_at is None:
+            persisted_task8_available_at = default_task8_available_at
+        else:
+            assert source_ref_available_at is not None
+            assert verification_available_at == source_ref_available_at, (
+                "Task9 fixture Task8 availability evidence must be equal before "
+                "persistence: "
+                f"source_ref={source_ref_available_at!r}, "
+                f"verification={verification_available_at!r}"
+            )
+            persisted_task8_available_at = source_ref_available_at
         prediction["source_ref"]["maturity_daily_prediction_available_at"] = (
             persisted_task8_available_at
         )

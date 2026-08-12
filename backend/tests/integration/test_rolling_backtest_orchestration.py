@@ -1504,6 +1504,10 @@ async def _build_real_orchestration_command(
         task9_daily_ids_by_date: dict[date, set[int]] = {}
         varieties_in_task9 = {item.get("variety_id") for item in t8_preds}
         assert varieties_in_task9 == {101}, f"expected only variety 101, got {varieties_in_task9}"
+        source_ref_by_hash = {
+            entry["source_ref_hash"]: entry["source_ref_payload"]
+            for entry in task9_row.source_ref_catalog
+        }
         for item in t8_preds:
             prediction_date = item["prediction_date"]
             if isinstance(prediction_date, str):
@@ -1511,6 +1515,58 @@ async def _build_real_orchestration_command(
             source_ref_hash = item["source_ref_hash"]
             verification = item["verification_snapshot"]
             expected_daily = task8["daily_predictions_by_date"][prediction_date]
+            persisted_daily_rows = (
+                (
+                    await session.execute(
+                        select(MaturityDailyPredictionModel).where(
+                            MaturityDailyPredictionModel.forecast_run_id == task8_forecast_row.id,
+                            MaturityDailyPredictionModel.prediction_date == prediction_date,
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            assert len(persisted_daily_rows) == 1, (
+                "Task9 Task8 exact timestamp preflight requires exactly one persisted "
+                f"daily row: prediction_date={prediction_date!r}, "
+                f"daily_id={verification.get('maturity_daily_prediction_id')!r}, "
+                f"rows={len(persisted_daily_rows)}"
+            )
+            persisted_daily = persisted_daily_rows[0]
+            daily_id = verification["maturity_daily_prediction_id"]
+            source_ref_payload = source_ref_by_hash.get(source_ref_hash)
+            assert source_ref_payload is not None, (
+                "Task9 Task8 exact timestamp preflight is missing source_ref payload: "
+                f"prediction_date={prediction_date!r}, daily_id={daily_id!r}, "
+                f"source_ref_hash={source_ref_hash!r}"
+            )
+            task9_source_ref_available_at = source_ref_payload.get(
+                "maturity_daily_prediction_available_at"
+            )
+            task9_verification_available_at = verification.get(
+                "maturity_daily_prediction_available_at"
+            )
+            if isinstance(task9_source_ref_available_at, str):
+                task9_source_ref_available_at = datetime.fromisoformat(
+                    task9_source_ref_available_at
+                )
+            if isinstance(task9_verification_available_at, str):
+                task9_verification_available_at = datetime.fromisoformat(
+                    task9_verification_available_at
+                )
+            assert (
+                persisted_daily.id == daily_id
+                and task9_source_ref_available_at == persisted_daily.created_at
+                and task9_verification_available_at == persisted_daily.created_at
+                and task9_source_ref_available_at == task9_verification_available_at
+            ), (
+                "Task9 Task8 exact timestamp preflight failed: "
+                f"prediction_date={prediction_date!r}, daily_id={daily_id!r}, "
+                f"db_created_at={persisted_daily.created_at!r}, "
+                f"task9_source_ref_available_at={task9_source_ref_available_at!r}, "
+                f"task9_verification_available_at={task9_verification_available_at!r}"
+            )
             assert len(source_ref_hash) == 64
             entry_count_by_date[prediction_date] = entry_count_by_date.get(prediction_date, 0) + 1
             task9_daily_ids_by_date.setdefault(prediction_date, set()).add(
