@@ -9,6 +9,10 @@
   "source_authority_record_reference": "source-authority-and-scope-business-owner-decision-v1",
   "source_authority_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
   "source_authority_record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "q2c_business_owner_decision_record_reference": "q2c-business-owner-decision-v1",
+  "q2c_business_owner_decision_record_sha256": "85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f",
+  "q2c_business_semantic_equivalence": "PROVEN_EXACT",
+  "q2c_business_semantic_equivalence_closed": true,
   "candidate_attestation_payload": {
     "attestation_version": null,
     "source_system": "扫码称重系统",
@@ -91,12 +95,21 @@
     "schema_required_field_count": 36,
     "schema_required_field_status_counts": {
       "MISSING_GOVERNED_VALUE": 2,
-      "KNOWN_AND_AUTHORIZED": 14,
+      "KNOWN_AND_AUTHORIZED": 22,
       "MISSING_AUTHORITY": 3,
-      "KNOWN_NOT_YET_FINALIZED": 17
+      "KNOWN_NOT_YET_FINALIZED": 9
     },
     "nested_required_field_status_count": 26,
-    "reason": "Current main provides substantial fact and source-identity inputs but not every truthful, finalized, governed field required for an ATTESTED artifact."
+    "nested_required_field_status_counts": {
+      "MISSING_GOVERNED_VALUE": 6,
+      "KNOWN_AND_AUTHORIZED": 4,
+      "KNOWN_NOT_YET_FINALIZED": 13,
+      "OWNED_BY_LATER_TASK": 3
+    },
+    "required_leaf_requirement_count": 57,
+    "unresolved_top_level_field_count": 14,
+    "unresolved_leaf_requirement_count": 31,
+    "reason": "Q2C business semantic equivalence is authorized, but final attestation issuance still lacks truthful governed scope, lifecycle, visibility, effective-time, and coverage-summary bindings."
   },
   "schema_required_field_status": [
     {
@@ -197,21 +210,21 @@
     },
     {
       "field": "physical_event",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "HARVEST / 田间采收点首次有效扫码称重",
-      "rationale": "Actual-side fact is present; forecast-side D-001 equivalence and final attestation are unresolved."
+      "rationale": "Actual-side fact and forecast-side same-boundary meaning are authorized by Q2C-D001 in q2c-business-owner-decision-v1; final attestation issuance remains separate."
     },
     {
       "field": "weighing_point_and_relation_to_pick",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "VALID_FIELD_SCAN_WEIGH_RECORD at field harvest point",
-      "rationale": "Actual-side fact is present; final source attestation is not issued."
+      "rationale": "Measurement boundary is authorized by Q2C-D001; final source attestation is not issued."
     },
     {
       "field": "quantity_basis",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "RECORDED_MARKETABLE_NET_WEIGHT",
-      "rationale": "Actual-side fact is present; forecast-side D-002 equivalence is unresolved."
+      "rationale": "Recorded marketable net-weight and KG meaning are authorized by Q2C-D002; final attestation issuance remains separate."
     },
     {
       "field": "quantity_unit",
@@ -221,33 +234,33 @@
     },
     {
       "field": "all_picked_or_marketable",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "MARKETABLE_ONLY",
-      "rationale": "Actual-side business fact is recorded; formal attestation binding is absent."
+      "rationale": "Field marketability boundary is authorized by Q2C-D002; formal attestation binding is absent."
     },
     {
       "field": "field_sorting_rule",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "田间剔除的非商品果不计入",
-      "rationale": "Actual-side business fact is recorded; final attestation is absent."
+      "rationale": "Field non-marketable exclusion is authorized by Q2C-D003; final attestation is absent."
     },
     {
       "field": "packhouse_sorting_rule",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "加工厂后续分选不追溯调整",
-      "rationale": "Actual-side business fact is recorded; D-003 sorting equivalence remains unresolved."
+      "rationale": "Later packhouse sorting is explicitly non-retroactive under Q2C-D003; final attestation is absent."
     },
     {
       "field": "rejected_fruit_rule",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "加工厂拒收或退货不追溯调整",
-      "rationale": "Actual-side business fact is recorded; D-004 post-harvest equivalence remains unresolved."
+      "rationale": "Later factory rejection/return is explicitly non-retroactive under Q2C-D004; final attestation is absent."
     },
     {
       "field": "measurement_method",
-      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "classification": "KNOWN_AND_AUTHORIZED",
       "current_value": "VALID_FIELD_SCAN_WEIGH_RECORD",
-      "rationale": "Contract requires this measurement boundary; final governed method text is not issued."
+      "rationale": "The governed measurement boundary is authorized by Q2C-D001; final governed method text is not issued."
     },
     {
       "field": "farm_timezone",
@@ -497,13 +510,12 @@
       "Q2C-D005",
       "Q2C-D006"
     ],
-    "q2c_owner_decision_required": true,
-    "unresolved_q2c_decision_ids": [
-      "Q2C-D001",
-      "Q2C-D002",
-      "Q2C-D003",
-      "Q2C-D004"
-    ],
+    "q2c_business_owner_decision_record_reference": "q2c-business-owner-decision-v1",
+    "q2c_business_owner_decision_record_sha256": "85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f",
+    "q2c_owner_decision_required": false,
+    "unresolved_q2c_decision_ids": [],
+    "q2c_business_semantic_equivalence": "PROVEN_EXACT",
+    "q2c_business_semantic_equivalence_closed": true,
     "approved_source_scope_decisions_reused": [
       "D-001",
       "D-002",
@@ -517,17 +529,14 @@
     ]
   },
   "physical_meaning_binding": {
-    "actual_side_status": "KNOWN_NOT_YET_FINALIZED",
+    "actual_side_status": "KNOWN_AND_AUTHORIZED",
     "actual_label_boundary": "RECORDED_VALID_FIELD_SCAN_WEIGH",
     "quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
     "forecast_side_target_candidate": "model_harvested_marketable_quantity_kg",
-    "forecast_side_equivalence": "UNRESOLVED",
-    "q2c_decision_dependency": [
-      "Q2C-D001",
-      "Q2C-D002",
-      "Q2C-D003",
-      "Q2C-D004"
-    ]
+    "forecast_side_equivalence": "PROVEN_EXACT",
+    "q2c_decision_dependency": [],
+    "q2c_business_owner_decision_record_reference": "q2c-business-owner-decision-v1",
+    "q2c_business_owner_decision_record_sha256": "85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f"
   },
   "unit_and_time_binding": {
     "unit_status": "KNOWN_AND_AUTHORIZED",
@@ -577,14 +586,6 @@
     "coverage_scope",
     "revision_policy",
     "withdrawal_and_void_policy",
-    "physical_event",
-    "weighing_point_and_relation_to_pick",
-    "quantity_basis",
-    "all_picked_or_marketable",
-    "field_sorting_rule",
-    "packhouse_sorting_rule",
-    "rejected_fruit_rule",
-    "measurement_method",
     "late_entry_rule",
     "correction_rule",
     "void_rule",
@@ -614,7 +615,12 @@
     "coverage_summary.missing_day_count",
     "coverage_summary.missing_data_proportion"
   ],
-  "unresolved_required_field_count": 44,
+  "unresolved_required_field_count": 36,
+  "unresolved_required_field_count_semantics": "TOP_LEVEL_REQUIRED_FIELDS_AND_UNRESOLVED_NESTED_REQUIREMENTS_COMBINED",
+  "attestation_top_level_required_field_count": 36,
+  "attestation_required_leaf_requirement_count": 57,
+  "attestation_unresolved_top_level_field_count": 14,
+  "attestation_unresolved_leaf_requirement_count": 31,
   "final_attestation_creation_allowed": false,
   "final_business_source_attestation_created": false,
   "attestation_status_not_attested": true,
@@ -642,6 +648,6 @@
     "external_holdout_access": false,
     "source_identity_reused_without_recomputation": true
   },
-  "next_recommended_action": "OBTAIN_BUSINESS_OWNER_Q2C_PHYSICAL_TARGET_DECISIONS",
+  "next_recommended_action": "RESOLVE_REMAINING_ATTESTATION_SCOPE_LIFECYCLE_VISIBILITY_AND_COVERAGE_FIELDS",
   "no_step_implies_the_next": true
 }

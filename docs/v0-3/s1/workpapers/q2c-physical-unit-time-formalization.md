@@ -10,12 +10,13 @@ TASK_CLASS=DOCS_ONLY_BUSINESS_DECISION_AND_EVIDENCE_FORMALIZATION_PREPARATION
 BASE_MAIN_SHA=0746e99a359f54e5916da482a750b723eca600f3
 DEPENDENCIES=S1-REMAINING-01
 ADVANCES_GATE_IDS=S1-Q2C-TARGET,S1-PHYSICAL-MEANING,S1-UNIT-AND-TIME-BASIS
-WORKPAPER_STATUS=CANDIDATE_ONLY_PENDING_BUSINESS_OWNER_Q2C_DECISION
+WORKPAPER_STATUS=BUSINESS_OWNER_Q2C_DECISIONS_FORMALIZED_PENDING_INDEPENDENT_REVIEW
 ```
 
-This workpaper prepares a Q2C decision candidate and a business-source-attestation
-candidate. It does not issue a positive Q2C outcome, create a final attestation,
-change a canonical gate row, accept Source 002, or authorize S1/S2.
+This workpaper records the four explicitly authorized business-owner Q2C
+decisions and preserves the two repository-contract conclusions. It does not
+issue a final governed Q2C outcome, create a final attestation, change a
+canonical gate row, accept Source 002, or authorize S1/S2.
 
 Current-main contracts and evidence take precedence over historical PR prose.
 The Source 002 identity and the nine approved source-authority/scope decisions
@@ -34,6 +35,9 @@ CURRENT_V0_3_S2_STARTED=false
 CANONICAL_GATE_STATUS_CHANGED=false
 AUTHORITATIVE_ACCEPTANCE_RECORD_CHANGED=false
 Q2C_DECISION_STATUS=NOT_ISSUED
+BUSINESS_SEMANTIC_Q2C_CANDIDATE_OUTCOME=PROVEN_EXACT
+BUSINESS_SEMANTIC_EQUIVALENCE_CLOSED=true
+FORMAL_Q2C_DECISION_STATUS=NOT_ISSUED
 CURRENT_Q2C_OUTCOME=BLOCKED_BY_MISSING_BUSINESS_ATTESTATION
 POSITIVE_OUTCOME_ALLOWED=false
 POSITIVE_Q2C_OUTCOME_ISSUED=false
@@ -41,9 +45,11 @@ FINAL_BUSINESS_SOURCE_ATTESTATION_CREATED=false
 FINAL_Q2C_DECISION_RECORD_CREATED=false
 ```
 
-The actual-label facts are substantially present, but forecast-side equivalence
-is not established. A candidate field name or compatible unit is not proof that
-`model_harvested_marketable_quantity_kg` measures the same physical boundary.
+The actual-label facts and the six-dimensional business semantic comparison are
+now recorded. The business-owner record authorizes exact equivalence for
+Q2C-D001 through Q2C-D004; D005 and D006 remain repository-contract conclusions.
+This semantic candidate outcome is not a final governed Q2C acceptance because
+the schema-valid business-source attestation has not been issued.
 
 ## 3. Existing authority consumed
 
@@ -87,8 +93,9 @@ forecast-side transformation.
 ```text
 TASK9_HARVESTED_BASIS=MARKETABLE
 FORECAST_TARGET_CANDIDATE=model_harvested_marketable_quantity_kg
-Q2C_V1_FORECAST_TARGET=UNRESOLVED
+Q2C_V1_FORECAST_TARGET=PROVEN_EXACT_BUSINESS_SEMANTIC_CANDIDATE
 PHYSICAL_EQUIVALENCE_ASSUMED=false
+BUSINESS_SEMANTIC_EQUIVALENCE_CLOSED=true
 FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 SILENT_TARGET_SUBSTITUTION_ALLOWED=false
 EFFECTIVE_MARKETABLE_TARGET_NOT_SELECTED=true
@@ -104,31 +111,35 @@ targets.
 
 | ID | Dimension | Actual-side authority | Forecast-side evidence | Current status | Owner decision required | Options | Effect on Q2C |
 |---|---|---|---|---|---|---|---|
-| Q2C-D001 | Physical event | HARVEST at valid field scan-weigh boundary | Candidate only; no physical equivalence proof | BUSINESS_OWNER_DECISION_REQUIRED | true | A same boundary; B different; C unknown | Blocks exact event equivalence |
-| Q2C-D002 | Quantity / marketability | Recorded marketable net weight, KG, non-marketable fruit excluded | Candidate named; same marketability/net basis not proved | BUSINESS_OWNER_DECISION_REQUIRED | true | A exact; B different; C unknown | Blocks quantity equivalence |
-| Q2C-D003 | Sorting boundary | Field sorting before recorded label; later sorting not retroactive | No proof candidate is at same sorting boundary | BUSINESS_OWNER_DECISION_REQUIRED | true | A exact; B different; C unknown | Blocks sorting equivalence |
-| Q2C-D004 | Post-harvest boundary | Recorded field scan-weigh; no later retention/receipt/rejection/return adjustment | No proof candidate is at same post-harvest boundary | BUSINESS_OWNER_DECISION_REQUIRED | true | A exact; B different; C unknown | Blocks post-harvest equivalence |
+| Q2C-D001 | Physical event | HARVEST at valid field scan-weigh boundary | `YES_SAME_HARVEST_MEASUREMENT_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | false | A same boundary | Exact event equivalence authorized; final attestation remains pending |
+| Q2C-D002 | Quantity / marketability | Recorded marketable net weight, KG, non-marketable fruit excluded | `EXACT_SAME_QUANTITY_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | false | A exact | Exact quantity/marketability equivalence authorized; no substitute target |
+| Q2C-D003 | Sorting boundary | Field sorting before recorded label; later sorting not retroactive | `EXACT_SAME_SORTING_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | false | A exact | Exact field sorting boundary authorized; no retention transformation |
+| Q2C-D004 | Post-harvest boundary | Recorded field scan-weigh; no later retention/receipt/rejection/return adjustment | `EXACT_SAME_POSTHARVEST_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | false | A exact | Exact recorded field boundary authorized; no later adjustment |
 | Q2C-D005 | Time basis | Asia/Shanghai farm-local harvest business date and local calendar day | Contract requires same business date, not receipt/UTC/ingestion/latest | REPOSITORY_CONTRACT_PROVEN | false | PROVEN_COMPATIBLE_BY_CONTRACT; mismatch; unknown | Structurally compatible; final source/Q2C artifact still pending |
 | Q2C-D006 | Canonical grain | Season × farm × subfarm × variety × harvest business date; plot false | Contract/audit structurally includes season/farm/subfarm/variety/date | REPOSITORY_CONTRACT_PROVEN | false | PROVEN_STRUCTURALLY_COMPATIBLE; mismatch; unknown | Structural compatibility only; cohort membership remains separate |
 
-D005 and D006 are contract-level conclusions, not a positive Q2C result. They do
-not accept the Source 002 cohort, prove source-row membership, or eliminate the
-four unresolved physical-boundary decisions.
+D005 and D006 are contract-level conclusions, not a positive governed Q2C
+acceptance. They do not accept the Source 002 cohort or prove source-row
+membership.
 
 ## 7. Q2C outcome derivation
 
 ```text
 ALREADY_FIXED_DIMENSION_COUNT=0
 CONTRACT_PROVEN_DIMENSION_COUNT=2
-BUSINESS_OWNER_DECISION_REQUIRED_COUNT=4
-UNRESOLVED_Q2C_DECISION_IDS=Q2C-D001,Q2C-D002,Q2C-D003,Q2C-D004
-CANDIDATE_Q2C_OUTCOME=NOT_YET_DERIVABLE
+BUSINESS_OWNER_APPROVED_DIMENSION_COUNT=4
+BUSINESS_OWNER_DECISION_REQUIRED_COUNT=0
+UNRESOLVED_Q2C_DECISION_IDS=[]
+CANDIDATE_Q2C_OUTCOME=PROVEN_EXACT
+BUSINESS_SEMANTIC_EQUIVALENCE_CLOSED=true
 CURRENT_Q2C_OUTCOME=BLOCKED_BY_MISSING_BUSINESS_ATTESTATION
 ```
 
-The four unresolved owner decisions prevent any positive outcome. There is no
-authorized transformation, so neither `PROVEN_AFTER_VERSIONED_TRANSFORMATION`
-nor a silent target substitution is available.
+The four owner-approved exact dimensions plus the two contract-proven
+dimensions close the business semantic candidate outcome. No transformation is
+required or authorized, and no silent target substitution is available. The
+formal governed Q2C decision remains unissued until the remaining attestation
+requirements and independent review are complete.
 
 ## 8. Business-source-attestation candidate
 
@@ -142,7 +153,12 @@ known/authorized, known-but-not-finalized, missing authority, missing governed
 value, or owned by the later cohort task.
 
 ```text
-ATTESTATION_SCHEMA_REQUIRED_FIELD_COUNT=36
+ATTESTATION_TOP_LEVEL_REQUIRED_FIELD_COUNT=36
+ATTESTATION_REQUIRED_LEAF_REQUIREMENT_COUNT=57
+ATTESTATION_UNRESOLVED_TOP_LEVEL_FIELD_COUNT=14
+ATTESTATION_UNRESOLVED_LEAF_REQUIREMENT_COUNT=31
+Q2C_BUSINESS_OWNER_DECISION_RECORD_REFERENCE=q2c-business-owner-decision-v1
+Q2C_BUSINESS_OWNER_DECISION_RECORD_SHA256=85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f
 FINAL_ATTESTATION_SCHEMA_READY=false
 FINAL_ATTESTATION_CREATION_ALLOWED=false
 FINAL_BUSINESS_SOURCE_ATTESTATION_CREATED=false
@@ -153,19 +169,40 @@ The candidate deliberately is not schema-valid: nulls mark unresolved values and
 are not dummy strings. The final artifact may only be created after all required
 values are truthful, governed, versioned and reviewed.
 
-## 9. Required business-owner decision queue
+## 9. Business-owner Q2C decision formalization
 
-| Order | Decision set | Required action |
-|---|---|---|
-| 1 | Q2C-D001 | Confirm same physical event and measurement boundary |
-| 2 | Q2C-D002 | Confirm quantity/marketability boundary and net-weight semantics |
-| 3 | Q2C-D003 | Confirm sorting boundary relative to the recorded label |
-| 4 | Q2C-D004 | Confirm post-harvest/receipt/rejection/return boundary |
-| 5 | After D001-D004 | Prepare final Q2C decision and schema-valid attestation candidate for independent review; do not issue acceptance in this task |
+The formal decision record is
+`docs/v0-3/s1/evidence/q2c-business-owner-decision-record.json` with
+`decision_record_sha256=85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f`.
+It records the governance-session authorization without recording personal
+identity. The matrix below distinguishes owner-approved semantic decisions from
+repository-contract conclusions.
 
-Q2C-D005/D006 remain supported by the current repository contract at the
-structural level; the later cohort task still owns mapping and cohort
-formalization.
+| ID | Previous status | Formal authority | Approved/proven value | Current status | Record |
+|---|---|---|---|---|---|
+| Q2C-D001 | BUSINESS_OWNER_DECISION_REQUIRED | BUSINESS_OWNER | `YES_SAME_HARVEST_MEASUREMENT_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | q2c-business-owner-decision-v1 |
+| Q2C-D002 | BUSINESS_OWNER_DECISION_REQUIRED | BUSINESS_OWNER | `EXACT_SAME_QUANTITY_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | q2c-business-owner-decision-v1 |
+| Q2C-D003 | BUSINESS_OWNER_DECISION_REQUIRED | BUSINESS_OWNER | `EXACT_SAME_SORTING_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | q2c-business-owner-decision-v1 |
+| Q2C-D004 | BUSINESS_OWNER_DECISION_REQUIRED | BUSINESS_OWNER | `EXACT_SAME_POSTHARVEST_BOUNDARY` | APPROVED_BY_BUSINESS_OWNER | q2c-business-owner-decision-v1 |
+| Q2C-D005 | REPOSITORY_CONTRACT_PROVEN | REPOSITORY_CONTRACT | `PROVEN_COMPATIBLE_BY_CONTRACT` | REPOSITORY_CONTRACT_PROVEN | q2c-business-owner-decision-v1 |
+| Q2C-D006 | REPOSITORY_CONTRACT_PROVEN | REPOSITORY_CONTRACT | `PROVEN_STRUCTURALLY_COMPATIBLE` | REPOSITORY_CONTRACT_PROVEN | q2c-business-owner-decision-v1 |
+
+```text
+Q2C_DECISION_DIMENSION_COUNT=6
+UNIQUE_Q2C_DECISION_ID_COUNT=6
+BUSINESS_OWNER_APPROVED_DIMENSION_COUNT=4
+REPOSITORY_CONTRACT_PROVEN_DIMENSION_COUNT=2
+PENDING_BUSINESS_OWNER_DECISION_COUNT=0
+UNRESOLVED_Q2C_DECISION_IDS=[]
+BUSINESS_SEMANTIC_Q2C_CANDIDATE_OUTCOME=PROVEN_EXACT
+BUSINESS_SEMANTIC_EQUIVALENCE_CLOSED=true
+FORMAL_Q2C_DECISION_STATUS=NOT_ISSUED
+Q2C_ACCEPTED=false
+```
+
+The semantic candidate is exact, but formal Q2C acceptance remains blocked by
+the missing schema-valid business-source attestation and independent review.
+The later cohort task still owns mapping and cohort formalization.
 
 ## 10. Explicit non-acceptance and data-safety boundary
 
@@ -195,6 +232,22 @@ The existing aggregate evidence was reused only as recorded.
 JSON_SYNTAX=PASS
 Q2C_DECISION_DIMENSION_COUNT=6
 UNIQUE_Q2C_DECISION_ID_COUNT=6
+BUSINESS_OWNER_APPROVED_DIMENSION_COUNT=4
+REPOSITORY_CONTRACT_PROVEN_DIMENSION_COUNT=2
+PENDING_BUSINESS_OWNER_DECISION_COUNT=0
+Q2C_D001_APPROVED_VALUE_PARITY=PASS
+Q2C_D002_APPROVED_VALUE_PARITY=PASS
+Q2C_D003_APPROVED_VALUE_PARITY=PASS
+Q2C_D004_APPROVED_VALUE_PARITY=PASS
+Q2C_D005_CONTRACT_PARITY=PASS
+Q2C_D006_CONTRACT_PARITY=PASS
+BUSINESS_SEMANTIC_OUTCOME_DERIVATION=PASS
+BUSINESS_SEMANTIC_Q2C_CANDIDATE_OUTCOME=PROVEN_EXACT
+SILENT_TARGET_SUBSTITUTION_FOUND=false
+UNDOCUMENTED_TRANSFORMATION_FOUND=false
+Q2C_DECISION_RECORD_HASH_RECOMPUTE=PASS
+Q2C_DECISION_RECORD_HASH_IS_LOWERCASE_SHA256=true
+ATTESTATION_READINESS_RECOMPUTED=true
 SOURCE_AUTHORITY_RECORD_FOUND=true
 SOURCE_IDENTITY_PARITY=PASS
 ACTUAL_LABEL_PARITY=PASS
@@ -206,12 +259,14 @@ GIT_DIFF_CHECK=PASS
 ## 12. Next action and stop condition
 
 ```text
-Q2C_BUSINESS_OWNER_DECISION_REQUIRED=true
-NEXT_RECOMMENDED_ACTION=OBTAIN_BUSINESS_OWNER_Q2C_PHYSICAL_TARGET_DECISIONS
+Q2C_BUSINESS_OWNER_DECISION_REQUIRED=false
+FINAL_Q2C_DECISION_RECORD_CREATED=false
+FINAL_BUSINESS_SOURCE_ATTESTATION_CREATED=false
+NEXT_RECOMMENDED_ACTION=RUN_PR198_EXACT_HEAD_INDEPENDENT_REVIEW_AFTER_Q2C_OWNER_DECISION_FORMALIZATION
 NO_STEP_IMPLIES_THE_NEXT=true
 STOPPED_AFTER_S1_REMAINING_02_DRAFT_PR=true
 ```
 
-This package stops at decision-candidate preparation. It does not start
-S1-REMAINING-03, issue an attestation, issue a Q2C decision, change a
+This package stops after owner-decision formalization. It does not start
+S1-REMAINING-03, issue an attestation, issue a formal Q2C decision, change a
 canonical gate, or authorize S2.
