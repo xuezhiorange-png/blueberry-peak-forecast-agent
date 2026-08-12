@@ -68,7 +68,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="actual_receipt_lag_3d_kg",
@@ -80,7 +80,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="actual_receipt_lag_7d_kg",
@@ -92,7 +92,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="actual_receipt_rolling_3d_mean_kg",
@@ -104,7 +104,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="actual_receipt_rolling_7d_mean_kg",
@@ -116,7 +116,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="actual_receipt_cumulative_to_as_of_kg",
@@ -128,7 +128,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="structural_cumulative_to_as_of_kg",
@@ -152,7 +152,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.PASSTHROUGH,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="analytics_build_run_visibility",
+        provenance_requirement="analytics_factory_receipt_source_cutoff",
     ),
     FeatureDefinition(
         feature_name="weather_7d_rainfall",
@@ -188,7 +188,7 @@ _ALLOWLIST: tuple[FeatureDefinition, ...] = (
         encoding_policy=EncodingPolicy.DETERMINISTIC_ORDINAL,
         allow_for_training=True,
         allow_for_prediction=True,
-        provenance_requirement="plan_available_at",
+        provenance_requirement="effective_plan_identity",
     ),
     FeatureDefinition(
         feature_name="spring_festival_window_flag",

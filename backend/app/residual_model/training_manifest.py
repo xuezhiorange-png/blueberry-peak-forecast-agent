@@ -18,9 +18,11 @@ from backend.app.models.analytics import (
     FactReceiptDaily,
 )
 from backend.app.models.master_data import Season
+from backend.app.residual_model.analytics_authority import bind_analytics_feature_authority
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.feature_registry import build_feature_registry
 from backend.app.residual_model.forecast_cutoff import resolve_forecast_cutoff_at
+from backend.app.residual_model.planning_authority import bind_planning_feature_authority
 from backend.app.residual_model.projection import calculate_residual_label
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
@@ -29,6 +31,10 @@ from backend.app.residual_model.schemas import (
     ResidualTrainingSampleSpec,
 )
 from backend.app.residual_model.structural import aggregate_structural_arrivals
+from backend.app.residual_model.task9_mixed_authority import (
+    bind_task9_feature_provenance,
+    validate_task9_mixed_authority,
+)
 from backend.app.residual_model.visibility import audit_feature_visibility
 from backend.app.residual_model.weather_authority import bind_weather_feature_authority
 
@@ -504,7 +510,18 @@ async def build_residual_training_manifest(
             feature_values=sample.supplemental_feature_values,
             as_of_date=as_of_date,
         )
+        bound_supplemental_values = await bind_planning_feature_authority(
+            session,
+            feature_values=bound_supplemental_values,
+            as_of_date=as_of_date,
+        )
         supplemental_features = _supplemental_map(bound_supplemental_values)
+        mixed_authority = await validate_task9_mixed_authority(
+            session,
+            task9_run_id=sample.task9_run_id,
+            output=output,
+            forecast_cutoff_at=cutoff,
+        )
 
         grouped_structural: dict[tuple[int, date], dict[str, object]] = {}
         for row in structural_rows:
@@ -828,6 +845,19 @@ async def build_residual_training_manifest(
                         )
                     )
 
+            resolved_features = list(
+                bind_analytics_feature_authority(
+                    feature_values=resolved_features,
+                    build_run=feature_build_run,
+                    forecast_cutoff_at=cutoff,
+                )
+            )
+            resolved_features = list(
+                bind_task9_feature_provenance(
+                    resolved_features,
+                    evidence=mixed_authority,
+                )
+            )
             visibility_audit = audit_feature_visibility(
                 features=resolved_features,
                 as_of_date=as_of_date,
