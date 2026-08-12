@@ -1,0 +1,320 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_MISSING_COVERAGE_SUMMARY_FORMULA_DECISION_READINESS",
+  "artifact_version": "source-002-missing-coverage-summary-formula-decision-readiness-v1",
+  "artifact_status": "DECISION_READINESS_ONLY",
+  "task_class": "DOCS_ONLY_GOVERNANCE_DECISION_READINESS",
+  "base_sha": "13971067cc0c741d7b4daece26f28635737db499",
+  "source_read_boundary": {
+    "source_002_read": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "source_002_read_authorized": false,
+    "formula_decision_authorized": false,
+    "formula_acceptance_authorized": false,
+    "missing_day_calculation_authorized": false
+  },
+  "current_frozen_facts": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_row_count": 233171,
+    "mapped_season": "2025~2026",
+    "july_unmapped_date": "2025-07-22",
+    "july_unmapped_row_count": 2,
+    "july_unmapped_rows_raw_retained": true,
+    "july_unmapped_rows_canonical_included": false,
+    "july_auto_assignment": false,
+    "canonical_s1_scope_start": "2025-08-05",
+    "canonical_s1_scope_end": "2026-04-16",
+    "farm_count": 84,
+    "subfarm_count": 192,
+    "variety_count": 20,
+    "mapped_canonical_group_count": 529,
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "missing_day_numeric_imputation_allowed": false,
+    "descriptive_calendar_gap_count": 31455,
+    "descriptive_calendar_gap_count_is_formal_missing_day_count": false,
+    "source_complete_through_business_date": "NOT_ISSUED",
+    "observed_max_date_is_completeness_watermark": false,
+    "authority_sources": [
+      "docs/v0-3/s1/evidence/source-002-attestation-derived-field-evidence.json",
+      "docs/v0-3/s1/evidence/source-authority-and-scope-business-owner-decision-record.json",
+      "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md",
+      "docs/v0-3/s1/evidence/source-002-formalization-gap-matrix.md",
+      "docs/v0-3/s1/evidence/source-cohort-manifest-candidate.json",
+      "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json"
+    ]
+  },
+  "unresolved_fields": [
+    {
+      "schema_path": "coverage_summary.missing_day_count",
+      "current_value": "UNRESOLVED",
+      "formula_authority_resolved": false,
+      "blocking_reasons": [
+        "EXPECTED_DATE_UNIVERSE_NOT_AUTHORIZED",
+        "EXPECTED_CANONICAL_GROUP_UNIVERSE_NOT_AUTHORIZED",
+        "MISSING_DAY_COUNT_SEMANTICS_NOT_AUTHORIZED"
+      ]
+    },
+    {
+      "schema_path": "coverage_summary.missing_data_proportion",
+      "current_value": "UNRESOLVED",
+      "formula_authority_resolved": false,
+      "blocking_reasons": [
+        "EXPECTED_DATE_UNIVERSE_NOT_AUTHORIZED",
+        "EXPECTED_CANONICAL_GROUP_UNIVERSE_NOT_AUTHORIZED",
+        "MISSING_DATA_PROPORTION_NUMERATOR_NOT_AUTHORIZED",
+        "MISSING_DATA_PROPORTION_DENOMINATOR_NOT_AUTHORIZED",
+        "MISSING_DATA_PROPORTION_PRECISION_NOT_AUTHORIZED"
+      ]
+    }
+  ],
+  "semantic_boundary": {
+    "observed_row_absence_is_proven_missing_data": false,
+    "observed_row_absence_is_zero_harvest": false,
+    "observed_row_absence_is_proven_no_harvest": false,
+    "observed_row_absence_is_source_completeness_failure": false,
+    "unknown_not_zero_interpretation": "Absence must not be numerically imputed as 0 kg; it does not independently identify a missing business day.",
+    "source_completeness_watermark_inferred": false,
+    "coverage_end_is_completeness_watermark": false
+  },
+  "decision_record_template": {
+    "decision_status": "DECISION_REQUIRED",
+    "decision_authority_role": "UNRESOLVED",
+    "decision_authority_resolution_required": true,
+    "decision_authority_provenance": {
+      "source_owner_role_present_in_current_main": "农场数据负责人",
+      "source_owner_role_provenance": "D-005/source completeness declaration boundary",
+      "business_owner_role_present_in_current_main": "BUSINESS_OWNER",
+      "limitation": "Current-main evidence names these roles for source/completeness governance but does not uniquely prove which role may accept the missingness denominator and formula for final attestation."
+    },
+    "recommendation_is_not_acceptance": true,
+    "selected_option": null,
+    "accepted_value": null,
+    "decision_event": null,
+    "decision_at": null,
+    "decision_record_hash": null
+  },
+  "candidate_options": [
+    {
+      "option_id": "GLOBAL_CALENDAR_DAY",
+      "definition": "Count canonical S1 calendar dates in the coverage interval on which the entire governed source scope has zero canonical S1 rows.",
+      "expected_date_universe": "All local calendar dates from 2025-08-05 through 2026-04-16 inclusive.",
+      "expected_group_universe": "Not used; source-wide day scope.",
+      "missing_day_count_formula": "count(expected calendar dates with zero governed canonical S1 rows across the entire source scope)",
+      "missing_data_proportion_formula": "missing_global_calendar_days / total_expected_calendar_days",
+      "semantic_unit": "SOURCE_WIDE_CALENDAR_DAY",
+      "semantic_limit": "This measures a source-wide complete-day gap and not canonical-grain completeness for individual groups.",
+      "july_denominator_treatment": "2025-07-22 is excluded from the canonical S1 denominator because it is raw-retained and canonical-excluded; this treatment remains a decision input, not an accepted formula.",
+      "strengths": ["Simple calendar-day interpretation.", "Does not count pre-harvest or post-harvest group lifecycle days as missing."],
+      "risks": ["A day with one source row hides possible absence for other groups.", "Cannot distinguish no harvest from missing source data without independent authority."],
+      "acceptance_status": "NOT_ACCEPTED"
+    },
+    {
+      "option_id": "FULL_CANONICAL_GROUP_DAY",
+      "definition": "Expand every canonical SEASON × FARM × SUBFARM × VARIETY group across the full canonical S1 date interval and count group-days without a governed row.",
+      "expected_date_universe": "All local calendar dates from 2025-08-05 through 2026-04-16 inclusive.",
+      "expected_group_universe": "All 529 mapped canonical groups × the canonical S1 calendar interval.",
+      "missing_day_count_formula": "count(expected group-days with no governed in-scope Source 002 row)",
+      "missing_data_proportion_formula": "missing_group_days / all_expected_group_days",
+      "semantic_unit": "GROUP_DAY",
+      "semantic_limit": "The schema field name missing_day_count would carry GROUP_DAY units under this option and requires explicit authority approval for that reinterpretation.",
+      "july_denominator_treatment": "2025-07-22 is excluded from the canonical S1 denominator by the current scope boundary; this remains a decision input.",
+      "strengths": ["Exposes canonical-grain row absence."],
+      "risks": ["Pre-activity and post-activity lifecycle days can be systematically overcounted as missing.", "Row absence still does not prove a source-data failure."],
+      "acceptance_status": "NOT_ACCEPTED"
+    },
+    {
+      "option_id": "ACTIVE_GROUP_SPAN_DAY",
+      "definition": "For each canonical group, expand dates from its first observed governed harvest date through its last observed governed harvest date and count dates without that group's governed row.",
+      "expected_date_universe": "Each canonical group's observed first-to-last governed date span.",
+      "expected_group_universe": "Canonical groups with an observed governed span; lifecycle spans are group-specific.",
+      "missing_day_count_formula": "sum(active-group dates with no governed row for that group)",
+      "missing_data_proportion_formula": "sum(active-group missing group-days) / sum(active-group expected span days)",
+      "semantic_unit": "ACTIVE_GROUP_DAY",
+      "semantic_limit": "An empty date inside an observed span may still be a normal no-harvest day and cannot alone prove source missingness.",
+      "july_denominator_treatment": "2025-07-22 is excluded from canonical S1 group spans because its rows are canonical-excluded; this remains a decision input.",
+      "strengths": ["Avoids counting all pre-start and post-end lifecycle dates.", "More structurally targeted than the full Cartesian expansion."],
+      "risks": ["Still cannot distinguish no-harvest from missing data without expected-recording authority.", "The resulting metric is a heuristic unless its semantics are explicitly accepted."],
+      "acceptance_status": "NOT_ACCEPTED"
+    },
+    {
+      "option_id": "AUTHORITY_DECLARED_EXPECTED_HARVEST_DAY",
+      "definition": "Include only canonical group-days independently declared by an authority as expected harvest or expected recording days; count declared days with no governed Source 002 row.",
+      "expected_date_universe": "Authority-declared expected recording days for canonical groups.",
+      "expected_group_universe": "Canonical group-days included by the independent expected-harvest/expected-recording authority.",
+      "missing_day_count_formula": "count(authority-declared expected group-days with no governed Source 002 row)",
+      "missing_data_proportion_formula": "missing expected group-days / all authority-declared expected group-days",
+      "semantic_unit": "AUTHORITY_DECLARED_GROUP_DAY",
+      "semantic_limit": "Requires an independent expected-harvest or expected-recording authority; Source 002 row presence cannot create this denominator by itself.",
+      "july_denominator_treatment": "Authority must explicitly decide whether any 2025-07-22 expected days exist; current canonical scope recommends exclusion but does not accept it as a new formula decision.",
+      "strengths": ["Best distinguishes no harvest from expected-but-unrecorded data.", "Provides an explicit denominator authority."],
+      "risks": ["Requires a new independently governed authority and evidence artifact."],
+      "acceptance_status": "NOT_ACCEPTED"
+    },
+    {
+      "option_id": "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE",
+      "definition": "Keep both fields unresolved until an independent completeness or expected-recording authority defines the expected universe and formula.",
+      "expected_date_universe": "Not computable from Source 002 and current governance alone.",
+      "expected_group_universe": "Not computable from Source 002 and current governance alone.",
+      "missing_day_count_formula": null,
+      "missing_data_proportion_formula": null,
+      "semantic_unit": "UNRESOLVED",
+      "semantic_limit": "This is the fail-closed state, not a final attestation value.",
+      "july_denominator_treatment": "Requires explicit authority before any denominator is formed.",
+      "strengths": ["Does not equate row absence with true missingness.", "Avoids inventing denominator, formula, precision, or completeness claims."],
+      "risks": ["Leaves the two schema-required fields unresolved and blocks final attestation issuance."],
+      "acceptance_status": "NOT_ACCEPTED"
+    }
+  ],
+  "decision_records": [
+    {
+      "decision_id": "SOURCE_002_MISSING_DAY_COUNT_SEMANTICS",
+      "gate_id": "S1-SOURCE-AUTHORITY",
+      "decision_status": "DECISION_REQUIRED",
+      "decision_authority_role": "UNRESOLVED",
+      "decision_authority_basis": "Current-main D-005/source-governance evidence identifies the source owner role for completeness declaration but does not uniquely authorize a missing-day denominator or semantic unit.",
+      "current_missing_day_semantics": "UNKNOWN_NOT_ZERO",
+      "candidate_options": ["GLOBAL_CALENDAR_DAY", "FULL_CANONICAL_GROUP_DAY", "ACTIVE_GROUP_SPAN_DAY", "AUTHORITY_DECLARED_EXPECTED_HARVEST_DAY", "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE"],
+      "recommended_option": "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE",
+      "recommendation_is_not_acceptance": true,
+      "selected_option": null,
+      "accepted_value": null,
+      "decision_event": null,
+      "decision_at": null,
+      "decision_record_hash": null,
+      "decision_inputs_required": [
+        "expected date universe",
+        "expected canonical group universe",
+        "missing_day_count semantic unit",
+        "July denominator treatment",
+        "zero-denominator behavior if the expected universe is empty"
+      ],
+      "downstream_dependencies": ["coverage_summary.missing_data_proportion", "final source attestation issuance", "S1-SOURCE-AUTHORITY"]
+    },
+    {
+      "decision_id": "SOURCE_002_MISSING_DATA_PROPORTION_FORMULA",
+      "gate_id": "S1-SOURCE-AUTHORITY",
+      "decision_status": "DECISION_REQUIRED",
+      "decision_authority_role": "UNRESOLVED",
+      "decision_authority_basis": "Current-main evidence does not issue a numerator, denominator, zero-denominator policy, precision, or rounding authority for this schema field.",
+      "current_missing_day_semantics": "UNKNOWN_NOT_ZERO",
+      "candidate_options": ["GLOBAL_CALENDAR_DAY", "FULL_CANONICAL_GROUP_DAY", "ACTIVE_GROUP_SPAN_DAY", "AUTHORITY_DECLARED_EXPECTED_HARVEST_DAY", "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE"],
+      "recommended_option": "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE",
+      "recommendation_is_not_acceptance": true,
+      "selected_option": null,
+      "accepted_value": null,
+      "decision_event": null,
+      "decision_at": null,
+      "decision_record_hash": null,
+      "decision_inputs_required": [
+        "missing_data_proportion numerator",
+        "missing_data_proportion denominator",
+        "zero-denominator policy",
+        "decimal precision",
+        "rounding mode",
+        "JULY denominator treatment"
+      ],
+      "downstream_dependencies": ["coverage_summary.missing_day_count", "final source attestation issuance", "S1-SOURCE-AUTHORITY"]
+    }
+  ],
+  "july_boundary": {
+    "july_denominator_treatment_decision_required": true,
+    "current_canonical_scope_interpretation": "2025-07-22 does not enter the canonical S1 missingness denominator because its two raw rows are retained but canonical-excluded.",
+    "recommendation_is_not_acceptance": true,
+    "automatic_season_assignment": false,
+    "silent_reassignment": false
+  },
+  "coverage_interval": {
+    "candidate_coverage_start": "2025-08-05",
+    "candidate_coverage_end": "2026-04-16",
+    "coverage_end_is_not_completeness_watermark": true,
+    "observed_max_date_is_completeness_watermark": false
+  },
+  "proportion_contract": {
+    "missing_data_proportion_numerator_decision_required": true,
+    "missing_data_proportion_denominator_decision_required": true,
+    "missing_data_proportion_zero_denominator_policy_decision_required": true,
+    "missing_data_proportion_precision_decision_required": true,
+    "missing_data_proportion_rounding_decision_required": true,
+    "precision_candidates": [
+      "EXACT_DECIMAL_RATIO_STRING",
+      "FIXED_6_DECIMAL_HALF_EVEN",
+      "FIXED_8_DECIMAL_HALF_EVEN"
+    ],
+    "binary_floating_point_governance_identity_allowed": false,
+    "schema_range_requirement": "0 <= missing_data_proportion <= 1",
+    "schema_representation_requirement": "decimal string"
+  },
+  "zero_denominator_policy": {
+    "decision_required": true,
+    "if_expected_universe_count_is_zero": true,
+    "candidate_policies": [
+      "BLOCK_AND_UNRESOLVED",
+      "ZERO",
+      "NOT_APPLICABLE"
+    ],
+    "recommended_policy": "BLOCK_AND_UNRESOLVED",
+    "recommendation_is_not_acceptance": true,
+    "accepted_policy": null
+  },
+  "final_attestation_boundary": {
+    "formula_decision_issued": false,
+    "formula_accepted": false,
+    "missing_day_count": "UNRESOLVED",
+    "missing_data_proportion": "UNRESOLVED",
+    "source_owner_confirmation_pending_fields": true,
+    "withdrawal_status_rule_pending": true,
+    "void_status_rule_pending": true,
+    "revision_winner_and_lineage_rule_pending": true,
+    "late_entry_rule_pending": true,
+    "visibility_boundary_pending": true,
+    "issuance_process_derived_metadata_pending": true,
+    "source_owner_attestation_issued": false,
+    "final_attestation_schema_ready": false,
+    "final_attestation_issuance_ready": false,
+    "source_authority_accepted": false
+  },
+  "governance_state": {
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "s1_source_authority_status": "BLOCKED",
+    "s1_source_authority_canonical_gate_pass": false,
+    "s1_source_cohort_accepted": false,
+    "s1_split_policy_accepted": false,
+    "s1_metric_contract_accepted": false,
+    "s1_holdout_feasibility_decision": "NOT_EVALUATED",
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "validation_contract": {
+    "candidate_option_count": 5,
+    "global_calendar_day_defined": true,
+    "full_canonical_group_day_defined": true,
+    "active_group_span_day_defined": true,
+    "authority_declared_expected_harvest_day_defined": true,
+    "not_computable_from_source_002_alone_option_defined": true,
+    "row_absence_not_equated_to_true_missingness": true,
+    "july_denominator_treatment_explicit": true,
+    "coverage_end_not_completeness_watermark": true,
+    "descriptive_31455_not_promoted": true,
+    "zero_denominator_policy_decision_required": true,
+    "precision_policy_decision_required": true,
+    "selected_option": null,
+    "formula_accepted": false,
+    "missing_day_count_remains_unresolved": true,
+    "missing_data_proportion_remains_unresolved": true,
+    "source_authority_accepted": false,
+    "canonical_gate_status_changed": false
+  },
+  "next_recommended_action": "RUN_MISSING_COVERAGE_FORMULA_DECISION_READINESS_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "no_step_implies_the_next": true
+}
