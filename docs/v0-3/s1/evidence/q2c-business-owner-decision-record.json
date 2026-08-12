@@ -1,0 +1,152 @@
+{
+  "artifact_id": "V0_3_S1_Q2C_BUSINESS_OWNER_DECISION_RECORD",
+  "artifact_version": "q2c-business-owner-decision-v1",
+  "artifact_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "task_id": "S1-REMAINING-02-FORMALIZATION",
+  "base_main_sha": "0746e99a359f54e5916da482a750b723eca600f3",
+  "decision_authority_role": "BUSINESS_OWNER",
+  "decision_event": "EXPLICIT_Q2C_BUSINESS_SEMANTIC_AUTHORIZATION",
+  "decision_at": "2026-08-12T10:11:00+08:00",
+  "decision_timezone": "Asia/Singapore",
+  "decision_provenance": "EXPLICIT_BUSINESS_OWNER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+  "personal_identity_recorded": false,
+  "source_authority_record_reference": "source-authority-and-scope-business-owner-decision-v1",
+  "source_authority_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+  "actual_label_boundary": {
+    "profile": "RECORDED_BUSINESS_LABEL",
+    "business_event": "HARVEST",
+    "measurement_event": "VALID_FIELD_SCAN_WEIGH_RECORD",
+    "measurement_boundary": "RECORDED_VALID_FIELD_SCAN_WEIGH",
+    "quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+    "quantity_unit": "KG",
+    "source_of_truth": "GOVERNED_SCAN_WEIGHT_RECORD"
+  },
+  "forecast_target_candidate": {
+    "field": "model_harvested_marketable_quantity_kg",
+    "task9_harvested_basis": "MARKETABLE",
+    "target_binding_changed": false
+  },
+  "approved_business_owner_decisions": [
+    {
+      "decision_id": "Q2C-D001",
+      "dimension": "PHYSICAL_EVENT",
+      "decision_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "YES_SAME_HARVEST_MEASUREMENT_BOUNDARY",
+      "approved_semantics": {
+        "forecast_target_candidate_represents": "HARVEST",
+        "forecast_target_measurement_boundary": "VALID_FIELD_SCAN_WEIGH_RECORD",
+        "actual_label_measurement_boundary": "RECORDED_VALID_FIELD_SCAN_WEIGH"
+      },
+      "transformation_required": false,
+      "undocumented_transformation_used": false
+    },
+    {
+      "decision_id": "Q2C-D002",
+      "dimension": "QUANTITY_AND_MARKETABILITY_BOUNDARY",
+      "decision_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "EXACT_SAME_QUANTITY_BOUNDARY",
+      "approved_semantics": {
+        "forecast_target_quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+        "unit": "KG",
+        "marketability_boundary": "FIELD_MARKETABLE_FRUIT_AFTER_NON_MARKETABLE_FRUIT_EXCLUSION",
+        "excluded_alternatives": [
+          "ALL_PICKED_GROSS_WEIGHT",
+          "THEORETICAL_PRE_WEIGH_WEIGHT",
+          "FACTORY_RECEIPT_WEIGHT",
+          "PACKHOUSE_FINAL_WEIGHT"
+        ]
+      },
+      "transformation_required": false,
+      "undocumented_transformation_used": false
+    },
+    {
+      "decision_id": "Q2C-D003",
+      "dimension": "SORTING_BOUNDARY",
+      "decision_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "EXACT_SAME_SORTING_BOUNDARY",
+      "approved_semantics": {
+        "field_non_marketable_exclusion_applies": true,
+        "later_packhouse_sorting_retroactive_adjustment": false,
+        "later_factory_sorting_retroactive_adjustment": false,
+        "sorting_retention_rate_as_q2c_transformation": false
+      },
+      "transformation_required": false,
+      "undocumented_transformation_used": false
+    },
+    {
+      "decision_id": "Q2C-D004",
+      "dimension": "POST_HARVEST_BOUNDARY",
+      "decision_status": "APPROVED_BY_BUSINESS_OWNER",
+      "approved_option": "A",
+      "approved_value": "EXACT_SAME_POSTHARVEST_BOUNDARY",
+      "approved_semantics": {
+        "target_boundary": "RECORDED_FIELD_SCAN_WEIGH",
+        "later_transport_loss_adjustment": false,
+        "factory_receipt_adjustment": false,
+        "factory_rejection_adjustment": false,
+        "factory_return_adjustment": false,
+        "later_postharvest_retention_adjustment": false,
+        "postharvest_retention_rate_as_q2c_transformation": false
+      },
+      "transformation_required": false,
+      "undocumented_transformation_used": false
+    }
+  ],
+  "repository_contract_proven_dimensions": [
+    {
+      "decision_id": "Q2C-D005",
+      "dimension": "TIME_BASIS",
+      "status": "REPOSITORY_CONTRACT_PROVEN",
+      "result": "PROVEN_COMPATIBLE_BY_CONTRACT",
+      "time_basis": "HARVEST_BUSINESS_DATE",
+      "timezone": "Asia/Shanghai",
+      "contract_time_compatibility_is_not_final_source_membership_acceptance": true
+    },
+    {
+      "decision_id": "Q2C-D006",
+      "dimension": "CANONICAL_GRAIN",
+      "status": "REPOSITORY_CONTRACT_PROVEN",
+      "result": "PROVEN_STRUCTURALLY_COMPATIBLE",
+      "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+      "plot_supported": false,
+      "structural_grain_compatibility_is_not_source_cohort_acceptance": true
+    }
+  ],
+  "dimension_count": 6,
+  "business_owner_approved_dimension_count": 4,
+  "repository_contract_proven_dimension_count": 2,
+  "pending_business_owner_decision_count": 0,
+  "unresolved_decision_ids": [],
+  "business_semantic_q2c_candidate_outcome": "PROVEN_EXACT",
+  "business_semantic_equivalence_closed": true,
+  "formal_q2c_decision_status": "NOT_ISSUED",
+  "formal_q2c_outcome": "BLOCKED_BY_MISSING_BUSINESS_ATTESTATION",
+  "q2c_accepted": false,
+  "positive_q2c_outcome_issued": false,
+  "transformation_required": false,
+  "transformation_authority_used": false,
+  "decision_hash_algorithm": "SHA256",
+  "decision_hash_canonicalization": "UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE",
+  "decision_hash_scope": "FULL_DECISION_RECORD_EXCLUDING_FIELD_decision_record_sha256",
+  "decision_record_sha256": "85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f",
+  "independent_review_status": "PENDING",
+  "canonical_gate_status_changed": false,
+  "authoritative_acceptance_record_changed": false,
+  "source_authority_accepted": false,
+  "source_cohort_accepted": false,
+  "v0_3_s1_complete": false,
+  "v0_3_s1_accepted": false,
+  "v0_3_s2_authorized": false,
+  "data_safety_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false
+  },
+  "no_step_implies_the_next": true
+}
