@@ -1,0 +1,275 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_MISSING_COVERAGE_FORMULA_AUTHORITY_MODEL",
+  "artifact_version": "source-002-missing-coverage-formula-authority-model-v1",
+  "artifact_status": "AUTHORITY_MODEL_FROZEN_PENDING_FORMULA_AND_SOURCE_EVIDENCE_DECISIONS",
+  "task": "V0_3_S1_SOURCE_002_MISSING_COVERAGE_FORMULA_AUTHORITY_MODEL_FREEZE",
+  "task_class": "DOCS_ONLY_GOVERNANCE_AUTHORITY_MODEL_FREEZE",
+  "base_sha": "110b2e8c5a5a452a2b85ae1740a31e65ccfffed3",
+  "authorization_boundary": {
+    "authority_model_freeze_authorized": true,
+    "formula_selection_authorized": false,
+    "formula_acceptance_authorized": false,
+    "missing_day_calculation_authorized": false,
+    "source_002_read_authorized": false,
+    "source_002_raw_read_authorized": false,
+    "source_002_row_level_read_authorized": false,
+    "production_database_read_authorized": false,
+    "source_completeness_declaration_authorized": false,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "prior_readiness_reference": {
+    "artifact_path": "docs/v0-3/s1/evidence/source-002-missing-coverage-summary-formula-decision-readiness.json",
+    "artifact_base_sha": "13971067cc0c741d7b4daece26f28635737db499",
+    "prior_status": "DECISION_READINESS_ONLY",
+    "prior_current_fail_closed_option": "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE",
+    "prior_recommendation_is_not_acceptance": true,
+    "prior_selected_option": null,
+    "prior_missing_day_count": "UNRESOLVED",
+    "prior_missing_data_proportion": "UNRESOLVED"
+  },
+  "authority_model": {
+    "policy_authority_role": "BUSINESS_OWNER",
+    "source_evidence_authority_role": "农场数据负责人",
+    "formula_policy_and_source_evidence_are_separate": true,
+    "computability_requires_joint_concurrence": true,
+    "authority_boundary_status": "FROZEN_MODEL_ONLY"
+  },
+  "business_owner_authority": {
+    "role": "BUSINESS_OWNER",
+    "authority_basis": "EXPLICIT_BUSINESS_OWNER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+    "controls": [
+      "expected_date_universe_policy",
+      "expected_canonical_group_universe_policy",
+      "missing_day_semantic_unit",
+      "missing_day_formula_policy",
+      "missing_data_proportion_formula_policy",
+      "july_denominator_treatment",
+      "zero_denominator_policy",
+      "decimal_precision_policy",
+      "rounding_policy"
+    ],
+    "may_define_business_formula_policy": true,
+    "may_invent_source_completeness": false,
+    "may_assert_undocumented_source_completeness": false,
+    "does_not_replace_source_owner_evidence": true
+  },
+  "source_owner_authority": {
+    "role": "农场数据负责人",
+    "authority_basis": "CURRENT_MAIN_D_005_SOURCE_COMPLETENESS_BOUNDARY_AND_SOURCE_IDENTITY_BINDING",
+    "controls": [
+      "expected_recording_universe_evidence",
+      "source_completeness_declaration",
+      "source_fact_confirmation",
+      "final_source_attestation_binding"
+    ],
+    "expected_recording_universe_evidence_authority_role": "农场数据负责人",
+    "source_completeness_declaration_authority_role": "农场数据负责人",
+    "source_fact_confirmation_authority_role": "农场数据负责人",
+    "final_source_attestation_binding_role": "农场数据负责人",
+    "may_confirm_source_facts": true,
+    "may_issue_source_completeness_declaration": true,
+    "may_unilaterally_change_business_semantics": false,
+    "evidence_issued": false,
+    "source_completeness_declaration_issued": false
+  },
+  "joint_concurrence_contract": {
+    "joint_concurrence_required_for_computable_formula": true,
+    "computable_formula_requires": [
+      "ACCEPTED_BUSINESS_FORMULA_POLICY",
+      "SUFFICIENT_SOURCE_OWNER_EXPECTED_RECORDING_OR_COMPLETENESS_EVIDENCE"
+    ],
+    "business_policy_alone_is_sufficient": false,
+    "source_evidence_alone_is_sufficient": false,
+    "current_status": "NOT_COMPUTABLE",
+    "not_computable_means": "CURRENT_GOVERNANCE_PREREQUISITES_ARE_INCOMPLETE_NOT_AN_ACCEPTED_FORMULA_VALUE"
+  },
+  "current_formula_state": {
+    "coverage_summary.missing_day_count": "UNRESOLVED",
+    "coverage_summary.missing_data_proportion": "UNRESOLVED",
+    "missing_day_formula_authority_resolved": false,
+    "missing_data_proportion_formula_authority_resolved": false,
+    "current_fail_closed_option": "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE",
+    "current_fail_closed_option_is_final_decision": false,
+    "formula_decision_issued": false,
+    "formula_accepted": false,
+    "selected_option": null,
+    "source_completeness_declaration_issued": false,
+    "source_complete_through_business_date": "NOT_ISSUED"
+  },
+  "candidate_option_state": {
+    "candidate_option_count": 5,
+    "all_candidate_options_accepted": false,
+    "selected_option": null,
+    "options": [
+      {
+        "option_id": "GLOBAL_CALENDAR_DAY",
+        "status": "CANDIDATE_NOT_ACCEPTED",
+        "semantic_unit": "GLOBAL_CALENDAR_DAY"
+      },
+      {
+        "option_id": "FULL_CANONICAL_GROUP_DAY",
+        "status": "CANDIDATE_NOT_ACCEPTED",
+        "semantic_unit": "GROUP_DAY"
+      },
+      {
+        "option_id": "ACTIVE_GROUP_SPAN_DAY",
+        "status": "CANDIDATE_NOT_ACCEPTED",
+        "semantic_unit": "ACTIVE_GROUP_DAY"
+      },
+      {
+        "option_id": "AUTHORITY_DECLARED_EXPECTED_HARVEST_DAY",
+        "status": "CANDIDATE_NOT_ACCEPTED",
+        "semantic_unit": "AUTHORITY_DECLARED_GROUP_DAY"
+      },
+      {
+        "option_id": "NOT_COMPUTABLE_FROM_SOURCE_002_ALONE",
+        "status": "FAIL_CLOSED_CANDIDATE_NOT_ACCEPTED",
+        "semantic_unit": "UNRESOLVED"
+      }
+    ]
+  },
+  "july_boundary": {
+    "unmapped_date": "2025-07-22",
+    "unmapped_row_count": 2,
+    "raw_rows_retained": true,
+    "canonical_s1_cohort_included": false,
+    "automatic_season_assignment": false,
+    "july_denominator_treatment_decision_required": true,
+    "july_denominator_treatment_accepted": false,
+    "recommended_treatment_is_not_acceptance": true
+  },
+  "coverage_and_completeness_boundary": {
+    "coverage_scope_start": "2025-08-05",
+    "coverage_scope_end": "2026-04-16",
+    "coverage_end_is_completeness_watermark": false,
+    "source_complete_through_business_date": "NOT_ISSUED",
+    "source_completeness_declaration_issued": false,
+    "observed_max_date_is_completeness_watermark": false,
+    "descriptive_calendar_gap_count": 31455,
+    "descriptive_calendar_gap_count_is_formal_missing_day_count": false
+  },
+  "missing_day_semantic_boundary": {
+    "current_missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "missing_day_numeric_imputation_allowed": false,
+    "no_row_on_date_is_proven_missing_data": false,
+    "no_row_on_date_is_zero_harvest": false,
+    "no_row_on_date_is_proven_no_harvest": false,
+    "no_row_on_date_is_source_completeness_failure": false,
+    "observed_row_absence_distinct": true,
+    "business_no_harvest_day_distinct": true,
+    "source_data_missing_day_distinct": true,
+    "source_completeness_failure_distinct": true
+  },
+  "proportion_policy_state": {
+    "numerator_decision_required": true,
+    "denominator_decision_required": true,
+    "precision_decision_required": true,
+    "rounding_decision_required": true,
+    "zero_denominator_policy_decision_required": true,
+    "precision_candidates": [
+      "EXACT_DECIMAL_RATIO_STRING",
+      "FIXED_6_DECIMAL_HALF_EVEN",
+      "FIXED_8_DECIMAL_HALF_EVEN"
+    ],
+    "zero_denominator_policy_candidates": [
+      "BLOCK_AND_UNRESOLVED",
+      "ZERO",
+      "NOT_APPLICABLE"
+    ],
+    "recommended_zero_denominator_policy": "BLOCK_AND_UNRESOLVED",
+    "recommended_zero_denominator_policy_is_accepted": false,
+    "binary_floating_point_is_governance_identity": false,
+    "schema_representation": "DECIMAL_STRING_INCLUSIVE_RANGE_0_TO_1"
+  },
+  "decision_architecture": {
+    "formula_policy_decision": {
+      "decision_id": "SOURCE_002_MISSING_COVERAGE_FORMULA_POLICY",
+      "decision_authority_role": "BUSINESS_OWNER",
+      "decision_status": "AUTHORIZED_AUTHORITY_MODEL_ONLY",
+      "policy_value_selected": false,
+      "accepted": false,
+      "decision_event": null,
+      "decision_at": null,
+      "decision_record_hash": null
+    },
+    "expected_recording_and_completeness_evidence": {
+      "decision_id": "SOURCE_002_EXPECTED_RECORDING_AND_COMPLETENESS_EVIDENCE",
+      "evidence_authority_role": "农场数据负责人",
+      "decision_status": "EVIDENCE_REQUIRED",
+      "evidence_issued": false,
+      "source_completeness_declaration_issued": false,
+      "decision_event": null,
+      "decision_at": null,
+      "decision_record_hash": null
+    },
+    "joint_computability_determination": {
+      "decision_id": "SOURCE_002_MISSING_COVERAGE_COMPUTABILITY",
+      "requires_business_policy_acceptance": true,
+      "requires_source_owner_evidence": true,
+      "joint_concurrence_required": true,
+      "current_status": "NOT_COMPUTABLE",
+      "not_computable_is_accepted_final_formula": false,
+      "decision_event": null,
+      "decision_at": null,
+      "decision_record_hash": null
+    }
+  },
+  "governance_state": {
+    "source_owner_attestation_issued": false,
+    "final_attestation_issuance_ready": false,
+    "source_authority_accepted": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "safety_and_non_authorizations": {
+    "source_002_read": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "production_database_write": false,
+    "source_002_mutation": false,
+    "test_data_access": false,
+    "external_holdout_data_access": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "metric_execution_performed": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false
+  },
+  "validation_contract": {
+    "base_sha_match": true,
+    "business_owner_policy_authority_defined": true,
+    "source_owner_evidence_authority_defined": true,
+    "source_owner_completeness_authority_defined": true,
+    "final_attestation_binding_role_defined": true,
+    "joint_concurrence_required": true,
+    "business_owner_cannot_invent_source_completeness": true,
+    "source_owner_cannot_unilaterally_change_business_semantics": true,
+    "formula_selected": false,
+    "formula_accepted": false,
+    "missing_day_count_unresolved": true,
+    "missing_data_proportion_unresolved": true,
+    "descriptive_31455_not_promoted": true,
+    "coverage_end_not_completeness_watermark": true,
+    "source_completeness_declaration_not_issued": true,
+    "canonical_gate_status_changed": false,
+    "changed_file_count": 2
+  },
+  "next_recommended_action": "RUN_MISSING_COVERAGE_FORMULA_AUTHORITY_MODEL_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "no_step_implies_the_next": true
+}
