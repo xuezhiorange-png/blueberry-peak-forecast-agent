@@ -1,0 +1,221 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_COHORT_GRAIN_INCLUSION_REVISION_DECISION_RECORD",
+  "artifact_version": "source-002-cohort-grain-inclusion-revision-decision-v1",
+  "artifact_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "task_id": "S1-REMAINING-03",
+  "task": "FORMALIZE_SOURCE_COHORT_GRAIN_INCLUSION_AND_REVISION_ARTIFACTS",
+  "task_class": "DOCS_ONLY_SOURCE_COHORT_GOVERNANCE_FORMALIZATION",
+  "base_main_sha": "b618e962b45844b037232befa9c0e066551996e9",
+  "task_authorized_at": "2026-08-12T10:46:00+08:00",
+  "task_authorization_timezone": "Asia/Singapore",
+  "authority_inputs": {
+    "source_authority_decision_record_reference": "source-authority-and-scope-business-owner-decision-v1",
+    "source_authority_decision_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+    "q2c_business_owner_decision_record_reference": "q2c-business-owner-decision-v1",
+    "q2c_business_owner_decision_record_sha256": "85d2718caa32ed4207a4afa7f68680a5c7e71132b7c59620b2eb94916c2ac66f",
+    "mapping_evidence_reference": "source-002-mapping-and-scope-identity-v1",
+    "mapping_evidence_manifest_hash": "83cc38a186555a0c50bebb0c2a4e9f2fa79f202381b77fba2fab23e66a21da11",
+    "inclusion_evidence_reference": "source-002-inclusion-exclusion-boundary-v1",
+    "inclusion_evidence_manifest_hash": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8",
+    "custody_record_reference": "source-002-custody-record-v1",
+    "custody_record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6"
+  },
+  "source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_byte_count": 28668416,
+    "source_row_count": 233171,
+    "schema_version": "observed-source-schema-v1",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "source_identity_provenance": "REUSED_FROM_GIT_TRACKED_GOVERNED_EVIDENCE_NO_RAW_RECOMPUTATION"
+  },
+  "governed_scope_evidence": {
+    "mapped_season_identities": ["2025~2026"],
+    "farm_count": 84,
+    "subfarm_count": 192,
+    "variety_count": 20,
+    "mapped_canonical_group_count": 529,
+    "unmapped_date": "2025-07-22",
+    "unmapped_row_count": 2,
+    "unmapped_distinct_date_count": 1,
+    "farms_array_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+    "subfarms_array_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+    "varieties_array_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+    "coverage_scope_identity_package_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+    "full_identity_arrays_committed_to_git": false
+  },
+  "dispositions": [
+    {
+      "disposition_id": "CGR-001",
+      "subject": "SOURCE_COHORT_IDENTITY_SCOPE",
+      "authority_class": "BUSINESS_OWNER_APPROVED",
+      "authority_basis": "D-008 SOURCE_002_COVERAGE_SCOPE",
+      "decision_status": "FORMALIZATION_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+      "decision": {
+        "s1_freezes_source_cohort_identity": true,
+        "s1_freezes_final_clean_rowset": false,
+        "s2_owns_final_materialized_rowset": true,
+        "mapped_season_identities": ["2025~2026"],
+        "farm_count": 84,
+        "subfarm_count": 192,
+        "variety_count": 20,
+        "mapped_canonical_group_count": 529,
+        "source_row_count_is_declared_source_metadata": true,
+        "source_row_count_is_not_s2_accepted_row_count": true,
+        "source_row_count_does_not_freeze_final_rowset": true
+      }
+    },
+    {
+      "disposition_id": "CGR-002",
+      "subject": "UNMAPPED_JULY_DATE",
+      "authority_class": "BUSINESS_OWNER_APPROVED",
+      "authority_basis": "D-003 SOURCE_UNMAPPED_JULY_DATE_POLICY",
+      "decision_status": "FORMALIZED_PENDING_INDEPENDENT_REVIEW",
+      "decision": {
+        "unmapped_date": "2025-07-22",
+        "unmapped_row_count": 2,
+        "raw_rows_retained": true,
+        "canonical_s1_cohort_included": false,
+        "silent_season_assignment": false,
+        "july_automatic_season_assignment": false,
+        "unmapped_date_policy": "RETAIN_RAW_EXCLUDE_CANONICAL_COHORT_NO_SILENT_ASSIGNMENT"
+      }
+    },
+    {
+      "disposition_id": "CGR-003",
+      "subject": "CANONICAL_GRAIN",
+      "authority_class": "REPOSITORY_CONTRACT_PROVEN",
+      "authority_basis": "Q2C-D006 AND Q2A/I7 CANONICAL LABEL GRAIN CONTRACT",
+      "decision_status": "FORMALIZED_PENDING_INDEPENDENT_REVIEW",
+      "decision": {
+        "grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+        "plot_supported": false,
+        "grain_compatibility_result": "PROVEN_STRUCTURALLY_COMPATIBLE",
+        "source_cohort_acceptance": false
+      }
+    },
+    {
+      "disposition_id": "CGR-004",
+      "subject": "INCLUSION_EXCLUSION",
+      "authority_class": "BUSINESS_OWNER_APPROVED",
+      "authority_basis": "D-009 INCLUSION_EXCLUSION_BOUNDARY",
+      "decision_status": "FORMALIZED_PENDING_INDEPENDENT_REVIEW",
+      "decision": {
+        "inclusion_policy_version": "source-002-inclusion-exclusion-boundary-v1",
+        "known_business_exclusions_at_s1_source_scope": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+        "s2_technical_cleaning_exclusions_allowed": true,
+        "s2_data_quality_exclusions_allowed": true,
+        "s1_business_exclusion_scope_is_separate_from_s2_exclusion_scope": true,
+        "immutable_raw_source_mutation_allowed": false
+      }
+    },
+    {
+      "disposition_id": "CGR-005",
+      "subject": "MAPPING_POLICY",
+      "authority_class": "FORMALIZED_FROM_GOVERNED_EVIDENCE_PENDING_REVIEW",
+      "authority_basis": "D-008 SCOPE EVIDENCE PLUS SOURCE-002 MAPPING PREPARATION ARTIFACT",
+      "decision_status": "CANDIDATE_ISSUED_PENDING_INDEPENDENT_REVIEW",
+      "decision": {
+        "mapping_policy_version": "source-002-mapping-policy-v1",
+        "source_identity_bound": true,
+        "schema_identity_bound": true,
+        "coverage_scope_identity_package_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+        "farms_array_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+        "subfarms_array_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+        "varieties_array_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+        "mapped_season_identities": ["2025~2026"],
+        "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+        "business_date_rule": "扫码称重记录时间转换为 Asia/Shanghai 后直接取自然日日期",
+        "timezone": "Asia/Shanghai",
+        "july_unmapped_policy": "RETAIN_RAW_EXCLUDE_CANONICAL_COHORT_NO_SILENT_ASSIGNMENT",
+        "formal_mapping_accepted": false
+      }
+    },
+    {
+      "disposition_id": "CGR-006",
+      "subject": "IDFL_REVISION_WINNER",
+      "authority_class": "FORMALIZED_FROM_GOVERNED_EVIDENCE_PENDING_REVIEW",
+      "authority_basis": "D-007 REVISION_CORRECTION_VOID_AUTHORITY PLUS Q2A/I7 IDFL_V1 CONTRACT",
+      "decision_status": "FORMALIZED_PENDING_INDEPENDENT_REVIEW",
+      "decision": {
+        "source_label_mode": "IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1",
+        "label_side_point_in_time_replay_required": false,
+        "revision_winner_required": false,
+        "idfl_winner_manifest_required": false,
+        "idfl_revision_graph_required": false,
+        "revision_policy_version": "source-002-idfl-revision-policy-v1",
+        "revision_winner_algorithm": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE",
+        "latest_row_fallback_allowed": false,
+        "largest_revision_fallback_allowed": false,
+        "database_row_order_authority": false,
+        "post_confirmation_row_level_revision_allowed": false,
+        "post_confirmation_row_level_void_allowed": false,
+        "source_replacement_requires_new_identity": true,
+        "source_replacement_requires_new_sha256": true,
+        "downstream_invalidation_propagation_required": true,
+        "source_object_bound_row_lineage_required": true,
+        "source_object_bound_row_lineage_is_source_system_identity": false,
+        "forecast_input_replay_revision_requirements_preserved": true
+      }
+    }
+  ],
+  "formalization_boundary": {
+    "mapping_policy_candidate_issued": true,
+    "inclusion_policy_formalized": true,
+    "canonical_grain_formalized": true,
+    "idfl_revision_winner_disposition_formalized": true,
+    "source_cohort_manifest_candidate_created": true,
+    "final_business_source_attestation_created": false,
+    "final_source_cohort_manifest_created": false,
+    "final_source_cohort_manifest_schema_ready": false,
+    "final_source_cohort_manifest_creation_allowed": false,
+    "source_authority_accepted": false,
+    "source_cohort_accepted": false,
+    "q2c_accepted": false,
+    "canonical_gate_status_changed": false,
+    "authoritative_acceptance_record_changed": false
+  },
+  "current_canonical_runtime_state": {
+    "canonical_gate_count": 17,
+    "canonical_gate_pass_count": 0,
+    "canonical_gate_blocked_count": 17,
+    "s1_source_cohort": "BLOCKED",
+    "s1_canonical_grain": "BLOCKED",
+    "s1_inclusion_exclusion": "BLOCKED",
+    "s1_revision_winner": "BLOCKED",
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false,
+    "v0_3_s3_started": false,
+    "v0_3_s4_started": false,
+    "v0_3_s5_started": false,
+    "v0_3_s6_started": false
+  },
+  "data_safety_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "source_hash_recomputed_in_this_task": false,
+    "source_counts_recomputed_in_this_task": false,
+    "source_date_distribution_recomputed_in_this_task": false,
+    "identity_arrays_recomputed_in_this_task": false,
+    "personal_identity_recorded": false
+  },
+  "validation_contract": {
+    "task3_disposition_count": 6,
+    "unique_task3_disposition_id_count": 6,
+    "decision_hash_algorithm": "SHA256",
+    "decision_hash_canonicalization": "UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE",
+    "decision_hash_scope": "FULL_RECORD_EXCLUDING_FIELD_decision_record_sha256"
+  },
+  "no_step_implies_the_next": true,
+  "decision_record_sha256": "1d737e1a6e2ce3cfaebf1d3449af86a51572d58333cdc1cdfe397a570084f955"
+}
