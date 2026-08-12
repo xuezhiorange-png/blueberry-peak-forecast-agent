@@ -1,0 +1,406 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_AUTHORITY_AND_SCOPE_DECISION_CANDIDATE",
+  "artifact_version": "source-authority-and-scope-decision-candidate-v1",
+  "task": "V0_3_S1_SOURCE_AUTHORITY_AND_SCOPE_DECISION_PACKAGE",
+  "task_id": "S1-REMAINING-01",
+  "task_class": "DOCS_ONLY_BUSINESS_GOVERNANCE_DECISION_PREPARATION",
+  "base_main_sha": "e2611e6625c00803c36d95c19303ebb9bf999db4",
+  "package_status": "PREPARED_FOR_BUSINESS_OWNER_DECISION",
+  "recommended_does_not_equal_approved": true,
+  "scope": {
+    "source_authority_decision_package_prepared": true,
+    "source_scope_decision_package_prepared": true,
+    "source_002_existing_governed_evidence_reconciled": true,
+    "q2c_physical_unit_time_formalization_in_scope": false,
+    "final_business_source_attestation_issuance_allowed": false,
+    "canonical_gate_status_mutation_allowed": false,
+    "s1_acceptance_issuance_allowed": false,
+    "s2_authorization_allowed": false
+  },
+  "current_canonical_runtime_state": {
+    "canonical_gate_count": 17,
+    "canonical_gate_pass_count": 0,
+    "canonical_gate_blocked_count": 17,
+    "source_authority_runtime_status": "BLOCKED",
+    "source_cohort_runtime_status": "BLOCKED",
+    "inclusion_exclusion_runtime_status": "BLOCKED",
+    "missing_correction_cancellation_runtime_status": "BLOCKED",
+    "canonical_gate_status_changed": false,
+    "authoritative_acceptance_record_changed": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false,
+    "v0_3_s3_started": false,
+    "v0_3_s4_started": false,
+    "v0_3_s5_started": false,
+    "v0_3_s6_started": false
+  },
+  "source_002_identity_evidence": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_effective_season_recorded": "2024~2025产季起",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_byte_count": 28668416,
+    "source_row_count": 233171,
+    "schema_version": "observed-source-schema-v1",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "source_class": "ACTUAL_HARVEST_LABEL",
+    "label_mode": "IMMUTABLE_DAILY_FINAL_LABEL",
+    "label_mode_version": "IDFL_V1",
+    "identity_provenance": "DERIVED_FROM_EXISTING_GIT_TRACKED_GOVERNED_EVIDENCE",
+    "source_authority_accepted": false,
+    "source_cohort_accepted": false
+  },
+  "recorded_label_and_time_evidence": {
+    "v0_3_recorded_label_profile": "RECORDED_BUSINESS_LABEL",
+    "actual_label_measurement_event": "VALID_FIELD_SCAN_WEIGH_RECORD",
+    "actual_label_quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+    "actual_label_unit": "KG",
+    "recorded_net_weight_is_business_truth": true,
+    "pre_measurement_weight_reconstruction_required": false,
+    "farm_timezone": "Asia/Shanghai",
+    "local_day_boundary": "LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI",
+    "harvest_business_date_rule": "扫码称重记录时间转换为 Asia/Shanghai 后直接取自然日日期",
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "plot_supported": false,
+    "season_start_month_day": "08-01",
+    "season_end_month_day": "06-30",
+    "season_boundary_inclusivity": "INCLUSIVE",
+    "mapped_season_identities": [
+      "2025~2026"
+    ],
+    "july_automatic_season_assignment": false,
+    "unmapped_date_policy": "PENDING",
+    "unmapped_date": "2025-07-22",
+    "unmapped_row_count": 2,
+    "unmapped_distinct_date_count": 1,
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "missing_day_numeric_imputation_allowed": false,
+    "final_confirmation_event": "扫码称重完成",
+    "final_confirmation_timing": "IMMEDIATE"
+  },
+  "scope_preparation_evidence": {
+    "mapping_scope_manifest_reference": "source-002-mapping-and-scope-identity-v1",
+    "mapping_scope_package_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+    "mapping_authority_status": "NO_APPROVED_MAPPING_FOUND",
+    "formal_mapping_accepted": false,
+    "farm_count": 84,
+    "subfarm_count": 192,
+    "variety_count": 20,
+    "farms_array_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+    "subfarms_array_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+    "varieties_array_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+    "identity_mode": "PREPARATION_ONLY_SOURCE_DERIVED",
+    "identity_arrays_stored_in_git": false,
+    "mapped_canonical_group_count": 529,
+    "july_rows_retained_in_source_object": true,
+    "july_rows_assigned_to_season": false,
+    "inclusion_exclusion_manifest_reference": "source-002-inclusion-exclusion-boundary-v1",
+    "inclusion_exclusion_manifest_hash": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8",
+    "known_exclusions": [
+      "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"
+    ],
+    "s2_technical_cleaning_exclusions_allowed": true,
+    "s2_data_quality_exclusions_allowed": true
+  },
+  "custody_policy_evidence": {
+    "custody_record_reference": "source-002-custody-record-v1",
+    "custody_record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+    "custody_record_accepted": false,
+    "custody_policy_version": "source-002-custody-policy-v1",
+    "retention_policy_version": "source-002-retention-policy-v1",
+    "withdrawal_policy_version": "source-002-withdrawal-policy-v1",
+    "void_propagation_policy_version": "source-002-void-propagation-policy-v1",
+    "replacement_source_requires_new_hash": true,
+    "replacement_source_requires_new_identity": true,
+    "raw_source_mutation_allowed": false,
+    "withdrawal_propagates_to_source_cohort_future_splits_future_snapshots_and_acceptance": true,
+    "custody_record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+    "external_object_binding_hash": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece"
+  },
+  "existing_evidence_consumed": [
+    "docs/v0-3/s1/source-authority-and-cohort-manifest.md",
+    "docs/v0-3/s1/schemas/business-source-attestation.schema.json",
+    "docs/v0-3/s1/schemas/source-cohort-manifest.schema.json",
+    "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+    "docs/v0-3/s1/evidence/evidence-package-manifest.json",
+    "docs/v0-3/s1/evidence/source-authority-evidence-status.md",
+    "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
+    "docs/v0-3/s1/evidence/data-custody-evidence-status.md",
+    "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+    "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+    "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+    "docs/v0-3/s1/evidence/source-002-custody-record.json",
+    "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md",
+    "docs/v0-3/s1/evidence/source-002-completeness-and-custody-business-evidence.md",
+    "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
+    "docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md",
+    "docs/v0-3/s1/workpapers/season-calendar-rule-draft.md",
+    "docs/v0-3/s1/workpapers/actual-harvest-immutable-daily-label-compatibility-decision.md",
+    "docs/v0-3/s1/workpapers/immutable-daily-final-label-contract-acceptance-decision.md",
+    "docs/v0-3/s1/evidence/canonical-acceptance-gate-current-main-reconciliation.json"
+  ],
+  "decisions": [
+    {
+      "decision_id": "D-001",
+      "decision": "SOURCE_CLASS_APPLICABILITY",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "The recorded source evidence states SOURCE_EFFECTIVE_SEASON=2024~2025产季起 and the confirmed season calendar is August 1 through June 30, inclusive, in Asia/Shanghai.",
+      "candidate_decision": {
+        "source_class": "ACTUAL_HARVEST_LABEL",
+        "effective_from": "2024-08-01T00:00:00+08:00",
+        "effective_to": "OPEN_ENDED",
+        "authority_timezone": "Asia/Shanghai"
+      },
+      "recommended_option": "SOURCE_CLASS_APPLICABLE_FROM_2024_08_01_ASIA_SHANGHAI_OPEN_ENDED",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Binds the applicability period for the actual-harvest source class; it does not accept the Source 002 object or issue an attestation.",
+      "still_blocked_if_not_approved": "Source authority and any cohort scope relying on the applicability period remain blocked.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
+        "docs/v0-3/s1/workpapers/season-calendar-rule-draft.md",
+        "docs/v0-3/s1/evidence/source-authority-evidence-status.md"
+      ]
+    },
+    {
+      "decision_id": "D-002",
+      "decision": "FIXED_SOURCE_OBJECT_IDENTITY",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "Existing aggregate evidence binds Source 002 version, opaque snapshot reference, source SHA-256, schema version/hash, row count, byte count, and reviewed scope/inclusion/custody artifact references.",
+      "candidate_decision": {
+        "candidate_decision": "ACCEPT_FIXED_SOURCE_002_IDENTITY_FOR_S1_GOVERNANCE",
+        "source_version": "scan-weight-export:v0_3_s1:002",
+        "source_snapshot_reference": "snapshot:v0_3_s1:002",
+        "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+        "schema_version": "observed-source-schema-v1",
+        "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+        "source_row_count": 233171,
+        "source_byte_count": 28668416
+      },
+      "recommended_option": "ACCEPT_FIXED_SOURCE_002_IDENTITY_FOR_S1_GOVERNANCE",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Allows future source authority and cohort artifacts to reference one immutable Source 002 object without rereading or changing its identity.",
+      "still_blocked_if_not_approved": "Source authority and source cohort identity cannot be frozen.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-custody-record.json"
+      ]
+    },
+    {
+      "decision_id": "D-003",
+      "decision": "SOURCE_UNMAPPED_JULY_DATE_POLICY",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "The confirmed calendar does not automatically assign July. Existing evidence records 2 retained Source 002 rows on 2025-07-22, one distinct unmapped date, and UNMAPPED_DATE_POLICY=PENDING.",
+      "candidate_decision": {
+        "recommended_option": "A",
+        "option_a": "RETAIN_IN_IMMUTABLE_RAW_SOURCE_OBJECT_BUT_EXCLUDE_FROM_CANONICAL_S1_SEASON_COHORT_UNTIL_A_SEPARATELY_APPROVED_EXCEPTION_POLICY_EXISTS",
+        "raw_source_retention": true,
+        "canonical_season_assignment": false,
+        "s1_canonical_cohort_inclusion": false,
+        "silent_reassignment": false
+      },
+      "recommended_option": "A_RETAIN_RAW_EXCLUDE_CANONICAL_COHORT_NO_SILENT_ASSIGNMENT",
+      "alternative_options": [
+        "B_AUTHORIZE_AN_EXPLICIT_EXCEPTION_SEASON_ASSIGNMENT_POLICY",
+        "C_BLOCK_SOURCE_COHORT_UNTIL_A_SEPARATE_DATE_EXCEPTION_DECISION"
+      ],
+      "requires_owner_approval": true,
+      "effect_if_approved": "Makes the July disposition explicit while preserving the immutable source object and preventing silent season reassignment.",
+      "still_blocked_if_not_approved": "Source cohort and inclusion/exclusion policy remain blocked; July rows must remain unmapped.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/workpapers/season-calendar-rule-draft.md",
+        "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md"
+      ]
+    },
+    {
+      "decision_id": "D-004",
+      "decision": "SOURCE_COMPLETENESS_AUTHORITY_MODEL",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "Q1 is NOT_CONFIRMED, Q2 is 产季结束核对, the completeness declaration role and exception rule are not formalized, SOURCE_COMPLETE_THROUGH_BUSINESS_DATE is NOT_ISSUED, and observed maximum date 2026-04-16 is not a watermark.",
+      "candidate_decision": {
+        "source_002_completeness_mode": "PARTIAL_OR_FIXED_SNAPSHOT_WITHOUT_ISSUED_COMPLETE_THROUGH_WATERMARK",
+        "source_complete_through_business_date": "NOT_ISSUED",
+        "observed_max_date_is_completeness_watermark": false,
+        "completeness_authority_remains_unissued": true
+      },
+      "recommended_option": "TREAT_SOURCE_002_AS_FIXED_SNAPSHOT_WITHOUT_COMPLETENESS_WATERMARK_UNTIL_OWNER_DECLARES_AN_EXACT_COMPLETE_THROUGH_DATE",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Preserves the fixed object identity while preventing a full-season completeness claim until an exact owner-issued complete-through date exists.",
+      "still_blocked_if_not_approved": "Source completeness, IDFL source eligibility, and downstream source authority remain blocked.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-completeness-and-custody-business-evidence.md",
+        "docs/v0-3/s1/evidence/source-authority-evidence-status.md",
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md"
+      ]
+    },
+    {
+      "decision_id": "D-005",
+      "decision": "COMPLETENESS_DECLARATION_OWNER_ROLE",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "SOURCE_OWNER_ROLE is recorded as 农场数据负责人, while COMPLETENESS_DECLARATION_OWNER_ROLE is explicitly NOT_FORMALIZED.",
+      "candidate_decision": {
+        "source_owner_role": "农场数据负责人",
+        "candidate_completeness_declaration_owner_role": "农场数据负责人",
+        "automatic_role_equivalence": false
+      },
+      "recommended_option": "FORMALLY_CONFIRM_WHETHER_农场数据负责人_MAY_DECLARE_SOURCE_COMPLETENESS",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Names the role authorized to issue a complete-through authority; it does not itself issue a date, policy, or attestation.",
+      "still_blocked_if_not_approved": "Completeness authority cannot be issued or accepted.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-completeness-and-custody-business-evidence.md",
+        "docs/v0-3/s1/evidence/source-authority-evidence-status.md"
+      ]
+    },
+    {
+      "decision_id": "D-006",
+      "decision": "SOURCE_MISSING_DAY_SEMANTICS",
+      "decision_status": "ALREADY_FIXED_BY_EXISTING_AUTHORITY",
+      "known_fact": "The source authority contract and current workpapers explicitly freeze MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO and MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false.",
+      "candidate_decision": {
+        "current_rule": "UNKNOWN_NOT_ZERO",
+        "requires_new_decision": false
+      },
+      "recommended_option": "RETAIN_UNKNOWN_NOT_ZERO_AND_NO_NUMERIC_IMPUTATION",
+      "requires_owner_approval": false,
+      "effect_if_approved": "No new approval is requested; the existing fail-closed rule remains in force.",
+      "still_blocked_if_not_approved": "Formal completeness evidence and the missing/correction/cancellation gate remain blocked; a missing record still cannot be converted to zero.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md",
+        "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
+        "docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md"
+      ]
+    },
+    {
+      "decision_id": "D-007",
+      "decision": "REVISION_CORRECTION_VOID_AUTHORITY",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "Business statements record immediate scan-weigh confirmation and no post-confirmation modification, deletion, correction, or void support; formal source revision policy remains unissued. Existing custody policy identities require new source identity/hash and downstream propagation for replacement/withdrawal.",
+      "candidate_decision": {
+        "row_level_post_confirmation_revision_allowed": false,
+        "row_level_post_confirmation_void_allowed": false,
+        "source_object_replacement_requires_new_version": true,
+        "source_object_replacement_requires_new_sha256": true,
+        "old_accepted_evidence_is_not_silently_overwritten": true,
+        "withdrawn_or_replaced_source_propagates_block_or_invalidation_to_downstream_unfinished_gates": true,
+        "candidate_revision_policy_version": "source-002-idfl-revision-policy-v1"
+      },
+      "recommended_option": "IDFL_ROW_LEVEL_POST_CONFIRMATION_REVISION_VOID_DISABLED_AND_SOURCE_REPLACEMENT_CREATES_NEW_IDENTITY_HASH_WITH_PROPAGATION",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Provides a source-specific lifecycle disposition while reusing the existing source-002 withdrawal and void-propagation policy identities.",
+      "still_blocked_if_not_approved": "Revision winner and missing/correction/cancellation gates remain blocked; no implicit winner may be selected.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
+        "docs/v0-3/s1/workpapers/actual-harvest-immutable-daily-label-compatibility-decision.md",
+        "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md"
+      ]
+    },
+    {
+      "decision_id": "D-008",
+      "decision": "SOURCE_002_COVERAGE_SCOPE",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "Existing aggregate preparation binds mapped season [2025~2026], 84 farms, 192 subfarms, 20 varieties, 529 mapped canonical groups, source-object hashes, and a scope package hash; formal mapping is not accepted and identity arrays are not stored in Git.",
+      "candidate_decision": {
+        "s1_freezes_source_cohort_identity": true,
+        "s1_freezes_final_clean_rowset": false,
+        "s2_owns_final_materialized_rowset": true,
+        "candidate_mapped_season_scope": [
+          "2025~2026"
+        ],
+        "candidate_july_rows_in_raw_object": true,
+        "candidate_july_rows_in_canonical_s1_cohort": false,
+        "scope_identity_package_reference": "source-002-coverage-scope-entity-identities-preparation"
+      },
+      "recommended_option": "FREEZE_ONLY_SOURCE_002_GOVERNED_COHORT_IDENTITY_AND_KEEP_S2_FINAL_CLEAN_ROWSET_UNFROZEN",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Defines the S1 source universe and scope boundary without treating preparation counts/hashes as a final clean rowset or granting S2 authority.",
+      "still_blocked_if_not_approved": "Source cohort, canonical grain, and inclusion/exclusion formalization remain blocked.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md"
+      ]
+    },
+    {
+      "decision_id": "D-009",
+      "decision": "INCLUSION_EXCLUSION_BOUNDARY",
+      "decision_status": "PENDING_BUSINESS_OWNER_DECISION",
+      "known_fact": "The current source-scope statement is NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE; existing evidence separately allows future S2 technical-cleaning and data-quality exclusions without mutating the immutable raw object.",
+      "candidate_decision": {
+        "known_business_exclusions_at_s1_source_scope": [],
+        "business_exclusion_statement": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+        "s2_technical_cleaning_exclusions_remain_separate": true,
+        "s2_data_quality_exclusions_remain_separate": true,
+        "immutable_raw_source_mutation_allowed": false
+      },
+      "recommended_option": "ACCEPT_NO_KNOWN_BUSINESS_EXCLUSIONS_AT_SOURCE_SCOPE_AND_KEEP_S2_TECHNICAL_DATA_QUALITY_EXCLUSIONS_SEPARATE",
+      "requires_owner_approval": true,
+      "effect_if_approved": "Freezes the business inclusion boundary while preserving a separate S2 technical/data-quality exclusion layer.",
+      "still_blocked_if_not_approved": "Inclusion/exclusion and source cohort formalization remain blocked; no empty exclusion list may be inferred from silence.",
+      "authoritative_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md"
+      ]
+    }
+  ],
+  "decision_readiness": {
+    "decision_count": 9,
+    "unique_decision_id_count": 9,
+    "decisions_already_fixed_by_existing_authority": 1,
+    "decisions_requiring_business_owner_approval": 8,
+    "unresolved_decision_ids": [
+      "D-001",
+      "D-002",
+      "D-003",
+      "D-004",
+      "D-005",
+      "D-007",
+      "D-008",
+      "D-009"
+    ],
+    "business_owner_decision_required": true
+  },
+  "formalization_boundary": {
+    "final_business_source_attestation_created": false,
+    "final_business_source_attestation_issuance_allowed": false,
+    "formal_source_cohort_manifest_created": false,
+    "source_authority_accepted": false,
+    "source_cohort_accepted": false,
+    "q2c_accepted": false,
+    "task_2_q2c_physical_unit_time_formalization_dependency": true,
+    "attestation_schema_requires_physical_and_q2c_fields": true,
+    "recommended_values_are_not_attested": true
+  },
+  "data_safety_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "source_hash_recomputed_in_this_task": false,
+    "source_counts_recomputed_in_this_task": false,
+    "source_date_distribution_recomputed_in_this_task": false,
+    "private_url_or_storage_locator_recorded": false,
+    "credential_recorded": false,
+    "personal_identity_recorded": false
+  },
+  "validation": {
+    "json_syntax": "PASS",
+    "decision_count_validation": "PASS",
+    "source_identity_parity": "PASS",
+    "recommended_values_distinguished_from_approved_values": "PASS",
+    "markdown_json_consistency": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "next_recommended_action": "OBTAIN_BUSINESS_OWNER_DECISIONS_FOR_SOURCE_AUTHORITY_AND_SCOPE_PACKAGE",
+  "no_step_implies_the_next": true
+}
