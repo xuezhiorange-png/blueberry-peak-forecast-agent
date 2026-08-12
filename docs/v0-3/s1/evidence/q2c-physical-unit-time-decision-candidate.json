@@ -1,0 +1,298 @@
+{
+  "artifact_id": "V0_3_S1_Q2C_PHYSICAL_UNIT_TIME_DECISION_CANDIDATE",
+  "artifact_version": "q2c-physical-unit-time-decision-candidate-v1",
+  "artifact_status": "PENDING_BUSINESS_OWNER_Q2C_DECISION",
+  "task_id": "S1-REMAINING-02",
+  "task": "Q2C_PHYSICAL_UNIT_TIME_FORMALIZATION",
+  "task_class": "DOCS_ONLY_BUSINESS_DECISION_AND_EVIDENCE_FORMALIZATION_PREPARATION",
+  "base_main_sha": "0746e99a359f54e5916da482a750b723eca600f3",
+  "dependencies": [
+    "S1-REMAINING-01"
+  ],
+  "advances_gate_ids": [
+    "S1-Q2C-TARGET",
+    "S1-PHYSICAL-MEANING",
+    "S1-UNIT-AND-TIME-BASIS"
+  ],
+  "source_authority_record_reference": "source-authority-and-scope-business-owner-decision-v1",
+  "source_authority_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+  "source_authority_record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "source_identity_binding": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_row_count": 233171,
+    "source_byte_count": 28668416,
+    "schema_version": "observed-source-schema-v1",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "identity_reused_without_raw_read": true
+  },
+  "actual_label_boundary": {
+    "profile": "RECORDED_BUSINESS_LABEL",
+    "business_event": "HARVEST",
+    "measurement_event": "VALID_FIELD_SCAN_WEIGH_RECORD",
+    "measurement_boundary": "RECORDED_VALID_FIELD_SCAN_WEIGH",
+    "quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+    "quantity_unit": "KG",
+    "source_of_truth": "GOVERNED_SCAN_WEIGHT_RECORD",
+    "recorded_net_weight_is_business_truth": true,
+    "pre_measurement_weight_reconstruction_required": false,
+    "field_sorting_rule": "田间剔除的非商品果不计入",
+    "packhouse_sorting_retroactive_adjustment": false,
+    "factory_rejection_retroactive_adjustment": false,
+    "factory_return_retroactive_adjustment": false,
+    "farm_timezone": "Asia/Shanghai",
+    "local_day_boundary": "LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI",
+    "harvest_business_date_rule": "扫码称重记录时间转换为 Asia/Shanghai 后直接取自然日日期",
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "plot_supported": false
+  },
+  "forecast_candidate": {
+    "candidate_field": "model_harvested_marketable_quantity_kg",
+    "task9_harvested_basis": "MARKETABLE",
+    "current_contract_status": "UNRESOLVED",
+    "physical_equivalence_assumed": false,
+    "forecast_side_target_binding_changed": false,
+    "silent_target_substitution_allowed": false,
+    "forbidden_implicit_substitutions": [
+      "effective_marketable_quantity_kg",
+      "natural_maturity_supply_kg",
+      "harvestable_mature_quantity_kg",
+      "arrival_quantity_kg",
+      "final_corrected_arrival_quantity_kg",
+      "FactReceiptDaily.weight_kg"
+    ],
+    "transformation_authority": "NOT_ISSUED",
+    "forecast_candidate_parity": "PASS",
+    "parity_scope": "Candidate name and current contract binding only; not physical equivalence."
+  },
+  "six_dimension_decisions": [
+    {
+      "decision_id": "Q2C-D001",
+      "dimension": "PHYSICAL_EVENT",
+      "actual_side_authority": {
+        "value": "HARVEST at VALID_FIELD_SCAN_WEIGH_RECORD",
+        "evidence": "V0.3 recorded-label boundary and reconciled physical facts",
+        "source_paths": [
+          "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+          "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md"
+        ]
+      },
+      "forecast_side_evidence": {
+        "candidate": "model_harvested_marketable_quantity_kg",
+        "current_status": "CANDIDATE_REQUIRES_BUSINESS_ATTESTATION",
+        "evidence": "Current Q2C contract identifies the model output as a candidate only."
+      },
+      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
+      "dimension_result": "UNKNOWN_REQUIRES_OWNER_DECISION",
+      "question": "Does model_harvested_marketable_quantity_kg represent the HARVEST business event at the same governed VALID_FIELD_SCAN_WEIGH_RECORD boundary?",
+      "options": [
+        "A=YES_SAME_HARVEST_MEASUREMENT_BOUNDARY",
+        "B=NO_DIFFERENT_PHYSICAL_BOUNDARY",
+        "C=UNKNOWN_NOT_YET_AUTHORIZED"
+      ],
+      "owner_decision_required": true,
+      "unresolved": true,
+      "effect_on_q2c": "No exact physical-event equivalence can be issued."
+    },
+    {
+      "decision_id": "Q2C-D002",
+      "dimension": "QUANTITY_AND_MARKETABILITY_BOUNDARY",
+      "actual_side_authority": {
+        "value": "RECORDED_MARKETABLE_NET_WEIGHT in KG",
+        "evidence": "Recorded business label facts and V0.3 target contract",
+        "source_paths": [
+          "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+          "docs/v0-3/s1/target-decision-and-quantity-contract.md"
+        ]
+      },
+      "forecast_side_evidence": {
+        "candidate": "model_harvested_marketable_quantity_kg",
+        "current_status": "MARKETABLE_CANDIDATE_NOT_PROVEN_SAME_BOUNDARY",
+        "forbidden_substitutions": [
+          "effective_marketable_quantity_kg",
+          "natural_maturity_supply_kg",
+          "harvestable_mature_quantity_kg",
+          "arrival_quantity_kg",
+          "final_corrected_arrival_quantity_kg",
+          "FactReceiptDaily.weight_kg"
+        ]
+      },
+      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
+      "dimension_result": "UNKNOWN",
+      "question": "Does the forecast candidate mean the same marketable-fruit, non-marketable-excluded, recorded net-weight boundary as Source 002 actual label?",
+      "options": [
+        "A=EXACT_SAME_QUANTITY_BOUNDARY",
+        "B=DIFFERENT_QUANTITY_BOUNDARY",
+        "C=UNKNOWN"
+      ],
+      "owner_decision_required": true,
+      "unresolved": true,
+      "effect_on_q2c": "Quantity and marketability equivalence remains unclosed."
+    },
+    {
+      "decision_id": "Q2C-D003",
+      "dimension": "SORTING_BOUNDARY",
+      "actual_side_authority": {
+        "value": "Field sorting excludes non-marketable fruit; later packhouse/factory sorting does not retroactively adjust the recorded label.",
+        "evidence": "V0.3 recorded-label business facts",
+        "source_paths": [
+          "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+          "docs/v0-3/s1/workpapers/recorded-harvest-label-boundary-correction.md"
+        ]
+      },
+      "forecast_side_evidence": {
+        "candidate": "model_harvested_marketable_quantity_kg",
+        "current_status": "SORTING_BOUNDARY_NOT_PROVEN",
+        "note": "sorting_retention_rate is not an authorized equivalence transformation."
+      },
+      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
+      "dimension_result": "UNKNOWN",
+      "question": "Does model_harvested_marketable_quantity_kg correspond to the same pre-later-packhouse/factory sorting-retention boundary?",
+      "options": [
+        "A=EXACT_SAME_SORTING_BOUNDARY",
+        "B=DIFFERENT_SORTING_BOUNDARY",
+        "C=UNKNOWN"
+      ],
+      "owner_decision_required": true,
+      "unresolved": true,
+      "effect_on_q2c": "No sorting equivalence or transformation authority is available."
+    },
+    {
+      "decision_id": "Q2C-D004",
+      "dimension": "POST_HARVEST_BOUNDARY",
+      "actual_side_authority": {
+        "value": "Recorded field scan-weigh boundary; later post-harvest retention, factory receipt, rejection, or return does not retroactively change the label.",
+        "evidence": "V0.3 recorded-label boundary correction and Q2C facts",
+        "source_paths": [
+          "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
+          "docs/v0-3/s1/target-decision-and-quantity-contract.md"
+        ]
+      },
+      "forecast_side_evidence": {
+        "candidate": "model_harvested_marketable_quantity_kg",
+        "current_status": "POST_HARVEST_BOUNDARY_NOT_PROVEN",
+        "note": "postharvest_retention_rate is not an authorized equivalence transformation."
+      },
+      "status": "BUSINESS_OWNER_DECISION_REQUIRED",
+      "dimension_result": "UNKNOWN",
+      "question": "Does the forecast candidate correspond to the recorded field scan-weigh boundary before later post-harvest, receipt, rejection, or return adjustments?",
+      "options": [
+        "A=EXACT_SAME_POSTHARVEST_BOUNDARY",
+        "B=DIFFERENT_POSTHARVEST_BOUNDARY",
+        "C=UNKNOWN"
+      ],
+      "owner_decision_required": true,
+      "unresolved": true,
+      "effect_on_q2c": "No post-harvest equivalence or transformation authority is available."
+    },
+    {
+      "decision_id": "Q2C-D005",
+      "dimension": "TIME_BASIS",
+      "actual_side_authority": {
+        "value": "HARVEST_BUSINESS_DATE in Asia/Shanghai with LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI",
+        "evidence": "Source authority contract, source status, and recorded-label facts"
+      },
+      "forecast_side_evidence": {
+        "candidate": "model_harvested_marketable_quantity_kg",
+        "current_status": "PROVEN_COMPATIBLE_BY_CONTRACT",
+        "evidence": "Q2C contract requires the forecast candidate to join to the same farm-local harvest business date and rejects receipt/UTC/ingestion/latest substitution."
+      },
+      "status": "REPOSITORY_CONTRACT_PROVEN",
+      "dimension_result": "PROVEN_COMPATIBLE_BY_CONTRACT",
+      "question": "Is the candidate contractually defined on the same farm-local harvest business date rather than receipt date, UTC date, ingestion timestamp, or latest lookup?",
+      "options": [
+        "PROVEN_COMPATIBLE_BY_CONTRACT",
+        "MISMATCH",
+        "UNKNOWN_REQUIRES_OWNER_DECISION"
+      ],
+      "owner_decision_required": false,
+      "unresolved": false,
+      "evidence_limit": "Contract compatibility does not prove source-row membership or final Q2C equivalence."
+    },
+    {
+      "decision_id": "Q2C-D006",
+      "dimension": "CANONICAL_GRAIN",
+      "actual_side_authority": {
+        "value": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE; PLOT_SUPPORTED=false",
+        "evidence": "Accepted Q2C/I7 grain contract and V0.3 recorded-label facts"
+      },
+      "forecast_side_evidence": {
+        "candidate": "model_harvested_marketable_quantity_kg",
+        "current_status": "PROVEN_STRUCTURALLY_COMPATIBLE",
+        "evidence": "Current Q2C audit records the core forecast row as season/farm/subfarm/variety/date compatible with the canonical grain."
+      },
+      "status": "REPOSITORY_CONTRACT_PROVEN",
+      "dimension_result": "PROVEN_STRUCTURALLY_COMPATIBLE",
+      "question": "Does the current forecast contract structurally bind the candidate to the exact canonical grain?",
+      "options": [
+        "PROVEN_STRUCTURALLY_COMPATIBLE",
+        "MISMATCH",
+        "UNKNOWN"
+      ],
+      "owner_decision_required": false,
+      "unresolved": false,
+      "evidence_limit": "Structural compatibility does not accept Source 002 cohort membership, mapping, or final rowset."
+    }
+  ],
+  "already_fixed_dimension_count": 0,
+  "contract_proven_dimension_count": 2,
+  "business_owner_decision_required_count": 4,
+  "unresolved_decision_ids": [
+    "Q2C-D001",
+    "Q2C-D002",
+    "Q2C-D003",
+    "Q2C-D004"
+  ],
+  "candidate_outcome": "NOT_YET_DERIVABLE",
+  "current_q2c_outcome": "BLOCKED_BY_MISSING_BUSINESS_ATTESTATION",
+  "q2c_decision_status": "NOT_ISSUED",
+  "positive_q2c_outcome_issued": false,
+  "q2c_accepted": false,
+  "source_authority_accepted": false,
+  "source_cohort_accepted": false,
+  "final_business_source_attestation_created": false,
+  "final_q2c_decision_record_created": false,
+  "transformation_authority_issued": false,
+  "canonical_gate_status_changed": false,
+  "authoritative_acceptance_record_changed": false,
+  "current_canonical_runtime_state": {
+    "canonical_gate_count": 17,
+    "canonical_gate_pass_count": 0,
+    "canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "validation": {
+    "json_syntax": "PASS",
+    "q2c_decision_dimension_count": 6,
+    "unique_q2c_decision_id_count": 6,
+    "source_authority_record_found": true,
+    "source_identity_parity": "PASS",
+    "actual_physical_event_parity": "PASS",
+    "actual_quantity_basis_parity": "PASS",
+    "actual_unit_parity": "PASS",
+    "actual_time_basis_parity": "PASS",
+    "actual_grain_parity": "PASS",
+    "forecast_candidate_parity": "PASS",
+    "silent_target_substitution_found": false,
+    "undocumented_transformation_found": false,
+    "positive_q2c_outcome_issued": false
+  },
+  "data_safety_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "source_identity_reused_without_recomputation": true
+  },
+  "next_recommended_action": "OBTAIN_BUSINESS_OWNER_Q2C_PHYSICAL_TARGET_DECISIONS",
+  "no_step_implies_the_next": true
+}

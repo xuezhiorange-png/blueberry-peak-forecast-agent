@@ -1,0 +1,647 @@
+{
+  "artifact_id": "V0_3_S1_BUSINESS_SOURCE_ATTESTATION_CANDIDATE",
+  "artifact_version": "business-source-attestation-candidate-v1",
+  "artifact_status": "CANDIDATE_ONLY_NOT_ATTESTED",
+  "task_id": "S1-REMAINING-02",
+  "task": "Q2C_PHYSICAL_UNIT_TIME_FORMALIZATION",
+  "task_class": "DOCS_ONLY_BUSINESS_DECISION_AND_EVIDENCE_FORMALIZATION_PREPARATION",
+  "base_main_sha": "0746e99a359f54e5916da482a750b723eca600f3",
+  "source_authority_record_reference": "source-authority-and-scope-business-owner-decision-v1",
+  "source_authority_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+  "source_authority_record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "candidate_attestation_payload": {
+    "attestation_version": null,
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "schema_version": "observed-source-schema-v1",
+    "schema_hash": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_owner_role": "农场数据负责人",
+    "attestation_effective_at": null,
+    "effective_time": {
+      "effective_from": "2024-08-01T00:00:00+08:00",
+      "effective_to_or_open_ended": "OPEN_ENDED",
+      "authority_timezone": "Asia/Shanghai"
+    },
+    "attestation_status": "UNSIGNED",
+    "attestation_hash": null,
+    "coverage_scope": {
+      "seasons": [
+        "2025~2026"
+      ],
+      "farms": null,
+      "subfarms": null,
+      "varieties": null,
+      "business_date_start": null,
+      "business_date_end": null,
+      "known_scope_boundaries": [
+        "JULY_RETAINED_RAW_EXCLUDED_FROM_CANONICAL_S1_COHORT",
+        "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+        "S2_TECHNICAL_AND_DATA_QUALITY_EXCLUSIONS_SEPARATE"
+      ]
+    },
+    "revision_policy": {
+      "revision_policy_version": "source-002-idfl-revision-policy-v1",
+      "revision_policy_identity": "source-002-idfl-revision-policy-v1",
+      "winner_and_lineage_rule": null
+    },
+    "withdrawal_and_void_policy": {
+      "withdrawal_policy_version": "source-002-withdrawal-policy-v1",
+      "void_propagation_policy_version": "source-002-void-propagation-policy-v1",
+      "withdrawal_status_rule": null,
+      "void_status_rule": null
+    },
+    "known_exclusions": [
+      "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"
+    ],
+    "physical_event": "HARVEST",
+    "weighing_point_and_relation_to_pick": "VALID_FIELD_SCAN_WEIGH_RECORD at 田间采收点; first valid governed scan-and-weigh record for the harvest business event",
+    "quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+    "quantity_unit": "KG",
+    "all_picked_or_marketable": "MARKETABLE_ONLY",
+    "field_sorting_rule": "田间剔除的非商品果不计入",
+    "packhouse_sorting_rule": "加工厂后续分选不追溯调整",
+    "rejected_fruit_rule": "加工厂拒收或退货不追溯调整",
+    "measurement_method": "VALID_FIELD_SCAN_WEIGH_RECORD",
+    "farm_timezone": "Asia/Shanghai",
+    "local_day_boundary": "LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI",
+    "late_entry_rule": null,
+    "missing_day_rule": "UNKNOWN_NOT_ZERO",
+    "correction_rule": "Post-confirmation correction/row replacement follows D-007 direction; final policy identity not issued",
+    "void_rule": "Post-confirmation row void disabled; governed withdrawal/propagation direction follows D-007; final rule not issued",
+    "final_confirmation_rule": "扫码称重完成 / immediate business confirmation; formal rule not issued",
+    "visibility_boundary": null,
+    "grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "plot_supported": false,
+    "coverage_summary": {
+      "season_count": 1,
+      "farm_count": 84,
+      "subfarm_count": 192,
+      "variety_count": 20,
+      "first_harvest_business_date": null,
+      "last_harvest_business_date": null,
+      "source_row_count": 233171,
+      "missing_day_count": null,
+      "missing_data_proportion": null
+    }
+  },
+  "schema_readiness": {
+    "final_attestation_schema_ready": false,
+    "schema_required_field_count": 36,
+    "schema_required_field_status_counts": {
+      "MISSING_GOVERNED_VALUE": 2,
+      "KNOWN_AND_AUTHORIZED": 14,
+      "MISSING_AUTHORITY": 3,
+      "KNOWN_NOT_YET_FINALIZED": 17
+    },
+    "nested_required_field_status_count": 26,
+    "reason": "Current main provides substantial fact and source-identity inputs but not every truthful, finalized, governed field required for an ATTESTED artifact."
+  },
+  "schema_required_field_status": [
+    {
+      "field": "attestation_version",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "No final attestation version has been issued."
+    },
+    {
+      "field": "source_system",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "扫码称重系统",
+      "rationale": "Bound by Source 002 owner decision D-002."
+    },
+    {
+      "field": "source_dataset",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "田间商品果每日采摘净重汇总",
+      "rationale": "Bound by Source 002 owner decision D-002."
+    },
+    {
+      "field": "source_version",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "scan-weight-export:v0_3_s1:002",
+      "rationale": "Bound by Source 002 owner decision D-002."
+    },
+    {
+      "field": "schema_version",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "observed-source-schema-v1",
+      "rationale": "Bound by existing aggregate source identity evidence."
+    },
+    {
+      "field": "schema_hash",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+      "rationale": "Reused from fixed Source 002 identity."
+    },
+    {
+      "field": "source_snapshot_reference",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "snapshot:v0_3_s1:002",
+      "rationale": "Bound by Source 002 owner decision D-002."
+    },
+    {
+      "field": "source_owner_role",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "农场数据负责人",
+      "rationale": "Bound by Source 002 owner decision D-002/D-005; not a final attestation by itself."
+    },
+    {
+      "field": "attestation_effective_at",
+      "classification": "MISSING_AUTHORITY",
+      "current_value": "NOT_ISSUED",
+      "rationale": "Source applicability effective_from is not the issued attestation timestamp."
+    },
+    {
+      "field": "effective_time",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "2024-08-01T00:00:00+08:00 / OPEN_ENDED / Asia/Shanghai",
+      "rationale": "D-001 supplies approved applicability inputs; final attestation object is absent."
+    },
+    {
+      "field": "attestation_status",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "UNSIGNED",
+      "rationale": "Candidate is explicitly not ATTESTED."
+    },
+    {
+      "field": "attestation_hash",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "No final attestation payload/hash has been issued."
+    },
+    {
+      "field": "coverage_scope",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "D-008 aggregate scope preparation",
+      "rationale": "Scope identity is approved as a decision input, not a final schema-valid scope object."
+    },
+    {
+      "field": "revision_policy",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "source-002-idfl-revision-policy-v1",
+      "rationale": "D-007 supplies approved lifecycle direction; final attestation binding is absent."
+    },
+    {
+      "field": "withdrawal_and_void_policy",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "source-002-withdrawal-policy-v1 / source-002-void-propagation-policy-v1",
+      "rationale": "Policy references exist, but final attestation object is absent."
+    },
+    {
+      "field": "known_exclusions",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+      "rationale": "D-009 explicitly fixes the S1 business boundary; S2 technical exclusions remain separate."
+    },
+    {
+      "field": "physical_event",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "HARVEST / 田间采收点首次有效扫码称重",
+      "rationale": "Actual-side fact is present; forecast-side D-001 equivalence and final attestation are unresolved."
+    },
+    {
+      "field": "weighing_point_and_relation_to_pick",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "VALID_FIELD_SCAN_WEIGH_RECORD at field harvest point",
+      "rationale": "Actual-side fact is present; final source attestation is not issued."
+    },
+    {
+      "field": "quantity_basis",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "RECORDED_MARKETABLE_NET_WEIGHT",
+      "rationale": "Actual-side fact is present; forecast-side D-002 equivalence is unresolved."
+    },
+    {
+      "field": "quantity_unit",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "KG",
+      "rationale": "Fixed by current V0.3/Q2C contract and actual-label authority."
+    },
+    {
+      "field": "all_picked_or_marketable",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "MARKETABLE_ONLY",
+      "rationale": "Actual-side business fact is recorded; formal attestation binding is absent."
+    },
+    {
+      "field": "field_sorting_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "田间剔除的非商品果不计入",
+      "rationale": "Actual-side business fact is recorded; final attestation is absent."
+    },
+    {
+      "field": "packhouse_sorting_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "加工厂后续分选不追溯调整",
+      "rationale": "Actual-side business fact is recorded; D-003 sorting equivalence remains unresolved."
+    },
+    {
+      "field": "rejected_fruit_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "加工厂拒收或退货不追溯调整",
+      "rationale": "Actual-side business fact is recorded; D-004 post-harvest equivalence remains unresolved."
+    },
+    {
+      "field": "measurement_method",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "VALID_FIELD_SCAN_WEIGH_RECORD",
+      "rationale": "Contract requires this measurement boundary; final governed method text is not issued."
+    },
+    {
+      "field": "farm_timezone",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "Asia/Shanghai",
+      "rationale": "Bound by current source authority/time contract."
+    },
+    {
+      "field": "local_day_boundary",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI",
+      "rationale": "Recorded in current authority artifacts; exact forecast binding is contract-proven only."
+    },
+    {
+      "field": "late_entry_rule",
+      "classification": "MISSING_AUTHORITY",
+      "current_value": "NOT_ISSUED",
+      "rationale": "Business-reported scenario is not a formal late-entry policy."
+    },
+    {
+      "field": "missing_day_rule",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "UNKNOWN_NOT_ZERO",
+      "rationale": "D-006 fixes the fail-closed missing-day semantics."
+    },
+    {
+      "field": "correction_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Post-confirmation correction/row replacement is governed by D-007 direction",
+      "rationale": "Final policy identity and attestation binding are absent."
+    },
+    {
+      "field": "void_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Post-confirmation row void disabled; replacement/withdrawal propagates",
+      "rationale": "Final policy identity and attestation binding are absent."
+    },
+    {
+      "field": "final_confirmation_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "扫码称重完成 / immediate",
+      "rationale": "Business fact is recorded; formal finalization authority is not issued."
+    },
+    {
+      "field": "visibility_boundary",
+      "classification": "MISSING_AUTHORITY",
+      "current_value": "NOT_ISSUED",
+      "rationale": "Historical source visibility/replay authority remains outside this candidate."
+    },
+    {
+      "field": "grain",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+      "rationale": "Fixed by current Q2C/I7 contract; final source mapping/cohort membership remains separate."
+    },
+    {
+      "field": "plot_supported",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "false",
+      "rationale": "Fixed by current canonical grain contract."
+    },
+    {
+      "field": "coverage_summary",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Aggregate counts exist; date/missingness summary is not issued",
+      "rationale": "Final source coverage summary is not available without the governed artifact."
+    }
+  ],
+  "schema_nested_required_field_status": [
+    {
+      "field": "effective_time.effective_from",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "2024-08-01T00:00:00+08:00",
+      "rationale": "D-001 approved source applicability start."
+    },
+    {
+      "field": "effective_time.effective_to_or_open_ended",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "OPEN_ENDED",
+      "rationale": "D-001 approved open-ended applicability."
+    },
+    {
+      "field": "effective_time.authority_timezone",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": "Asia/Shanghai",
+      "rationale": "D-001 approved authority timezone."
+    },
+    {
+      "field": "coverage_scope.seasons",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "2025~2026",
+      "rationale": "D-008 aggregate mapped season identity exists; final attestation scope is not issued."
+    },
+    {
+      "field": "coverage_scope.farms",
+      "classification": "OWNED_BY_LATER_TASK",
+      "current_value": "IDENTITY_ARRAY_NOT_STORED_IN_GIT",
+      "rationale": "Final source cohort/mapping artifact is owned by S1-REMAINING-03; no raw read in this task."
+    },
+    {
+      "field": "coverage_scope.subfarms",
+      "classification": "OWNED_BY_LATER_TASK",
+      "current_value": "IDENTITY_ARRAY_NOT_STORED_IN_GIT",
+      "rationale": "Final source cohort/mapping artifact is owned by S1-REMAINING-03; no raw read in this task."
+    },
+    {
+      "field": "coverage_scope.varieties",
+      "classification": "OWNED_BY_LATER_TASK",
+      "current_value": "IDENTITY_ARRAY_NOT_STORED_IN_GIT",
+      "rationale": "Final source cohort/mapping artifact is owned by S1-REMAINING-03; no raw read in this task."
+    },
+    {
+      "field": "coverage_scope.business_date_start",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "No truthful source coverage start date is issued by current evidence."
+    },
+    {
+      "field": "coverage_scope.business_date_end",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "Observed maximum date is explicitly not a completeness watermark."
+    },
+    {
+      "field": "coverage_scope.known_scope_boundaries",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "July retained/unmapped; S1 business exclusions separate from S2",
+      "rationale": "D-003/D-009 are approved boundaries, but final scope artifact is absent."
+    },
+    {
+      "field": "revision_policy.revision_policy_version",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "source-002-idfl-revision-policy-v1",
+      "rationale": "D-007 approved lifecycle direction; final artifact binding absent."
+    },
+    {
+      "field": "revision_policy.revision_policy_identity",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "source-002-idfl-revision-policy-v1",
+      "rationale": "Policy identity is named but final attestation is not issued."
+    },
+    {
+      "field": "revision_policy.winner_and_lineage_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Immutable final-label/winner semantics",
+      "rationale": "Existing contract/workpapers define direction; final source-specific attestation is absent."
+    },
+    {
+      "field": "withdrawal_and_void_policy.withdrawal_policy_version",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "source-002-withdrawal-policy-v1",
+      "rationale": "Existing custody record and D-007 provide the reference; final attestation absent."
+    },
+    {
+      "field": "withdrawal_and_void_policy.void_propagation_policy_version",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "source-002-void-propagation-policy-v1",
+      "rationale": "Existing custody record and D-007 provide the reference; final attestation absent."
+    },
+    {
+      "field": "withdrawal_and_void_policy.withdrawal_status_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Replacement/withdrawal requires new identity/hash and downstream propagation",
+      "rationale": "Final attestation binding absent."
+    },
+    {
+      "field": "withdrawal_and_void_policy.void_status_rule",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Post-confirmation row void disabled; governed propagation applies",
+      "rationale": "Final attestation binding absent."
+    },
+    {
+      "field": "coverage_summary.season_count",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": "Aggregate mapped season identity exists",
+      "rationale": "Final attestation coverage summary is not issued."
+    },
+    {
+      "field": "coverage_summary.farm_count",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": 84,
+      "rationale": "Aggregate D-008 scope count; final attestation summary is not issued."
+    },
+    {
+      "field": "coverage_summary.subfarm_count",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": 192,
+      "rationale": "Aggregate D-008 scope count; final attestation summary is not issued."
+    },
+    {
+      "field": "coverage_summary.variety_count",
+      "classification": "KNOWN_NOT_YET_FINALIZED",
+      "current_value": 20,
+      "rationale": "Aggregate D-008 scope count; final attestation summary is not issued."
+    },
+    {
+      "field": "coverage_summary.first_harvest_business_date",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "No exact coverage boundary is available without reading/deriving the source rowset."
+    },
+    {
+      "field": "coverage_summary.last_harvest_business_date",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "Observed maximum date is not an issued completeness watermark."
+    },
+    {
+      "field": "coverage_summary.source_row_count",
+      "classification": "KNOWN_AND_AUTHORIZED",
+      "current_value": 233171,
+      "rationale": "Fixed Source 002 identity metadata."
+    },
+    {
+      "field": "coverage_summary.missing_day_count",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "No governed missing-day calculation is available; UNKNOWN_NOT_ZERO remains."
+    },
+    {
+      "field": "coverage_summary.missing_data_proportion",
+      "classification": "MISSING_GOVERNED_VALUE",
+      "current_value": "NOT_ISSUED",
+      "rationale": "No governed missing-data proportion is available."
+    }
+  ],
+  "source_identity_binding": {
+    "identity_status": "KNOWN_AND_AUTHORIZED",
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "schema_version": "observed-source-schema-v1",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "owner_role": "农场数据负责人",
+    "source_authority_accepted": false
+  },
+  "owner_decision_binding": {
+    "source_authority_decision_record": "source-authority-and-scope-business-owner-decision-v1",
+    "source_authority_decision_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+    "q2c_decision_ids": [
+      "Q2C-D001",
+      "Q2C-D002",
+      "Q2C-D003",
+      "Q2C-D004",
+      "Q2C-D005",
+      "Q2C-D006"
+    ],
+    "q2c_owner_decision_required": true,
+    "unresolved_q2c_decision_ids": [
+      "Q2C-D001",
+      "Q2C-D002",
+      "Q2C-D003",
+      "Q2C-D004"
+    ],
+    "approved_source_scope_decisions_reused": [
+      "D-001",
+      "D-002",
+      "D-003",
+      "D-004",
+      "D-005",
+      "D-006",
+      "D-007",
+      "D-008",
+      "D-009"
+    ]
+  },
+  "physical_meaning_binding": {
+    "actual_side_status": "KNOWN_NOT_YET_FINALIZED",
+    "actual_label_boundary": "RECORDED_VALID_FIELD_SCAN_WEIGH",
+    "quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+    "forecast_side_target_candidate": "model_harvested_marketable_quantity_kg",
+    "forecast_side_equivalence": "UNRESOLVED",
+    "q2c_decision_dependency": [
+      "Q2C-D001",
+      "Q2C-D002",
+      "Q2C-D003",
+      "Q2C-D004"
+    ]
+  },
+  "unit_and_time_binding": {
+    "unit_status": "KNOWN_AND_AUTHORIZED",
+    "unit": "KG",
+    "timezone_status": "KNOWN_AND_AUTHORIZED",
+    "timezone": "Asia/Shanghai",
+    "local_day_boundary_status": "KNOWN_AND_AUTHORIZED",
+    "local_day_boundary": "LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI",
+    "forecast_time_status": "PROVEN_COMPATIBLE_BY_CONTRACT",
+    "grain_status": "PROVEN_STRUCTURALLY_COMPATIBLE",
+    "formal_source_attestation_pending": true
+  },
+  "coverage_binding": {
+    "status": "KNOWN_NOT_YET_FINALIZED",
+    "aggregate_scope_reused": {
+      "mapped_season_identities": [
+        "2025~2026"
+      ],
+      "farm_count": 84,
+      "subfarm_count": 192,
+      "variety_count": 20,
+      "mapped_canonical_group_count": 529,
+      "coverage_scope_identity_package_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10"
+    },
+    "identity_arrays_in_git": false,
+    "final_source_cohort_manifest_created": false,
+    "owned_by_later_task": "S1-REMAINING-03",
+    "business_date_range_issued": false,
+    "missing_day_summary_issued": false
+  },
+  "lifecycle_binding": {
+    "status": "KNOWN_NOT_YET_FINALIZED",
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "post_confirmation_row_revision_allowed": false,
+    "post_confirmation_row_void_allowed": false,
+    "replacement_requires_new_identity_and_sha256": true,
+    "withdrawal_policy_version": "source-002-withdrawal-policy-v1",
+    "void_propagation_policy_version": "source-002-void-propagation-policy-v1",
+    "formal_policy_attestation_issued": false
+  },
+  "unresolved_required_fields": [
+    "attestation_version",
+    "attestation_effective_at",
+    "effective_time",
+    "attestation_status",
+    "attestation_hash",
+    "coverage_scope",
+    "revision_policy",
+    "withdrawal_and_void_policy",
+    "physical_event",
+    "weighing_point_and_relation_to_pick",
+    "quantity_basis",
+    "all_picked_or_marketable",
+    "field_sorting_rule",
+    "packhouse_sorting_rule",
+    "rejected_fruit_rule",
+    "measurement_method",
+    "late_entry_rule",
+    "correction_rule",
+    "void_rule",
+    "final_confirmation_rule",
+    "visibility_boundary",
+    "coverage_summary",
+    "coverage_scope.seasons",
+    "coverage_scope.farms",
+    "coverage_scope.subfarms",
+    "coverage_scope.varieties",
+    "coverage_scope.business_date_start",
+    "coverage_scope.business_date_end",
+    "coverage_scope.known_scope_boundaries",
+    "revision_policy.revision_policy_version",
+    "revision_policy.revision_policy_identity",
+    "revision_policy.winner_and_lineage_rule",
+    "withdrawal_and_void_policy.withdrawal_policy_version",
+    "withdrawal_and_void_policy.void_propagation_policy_version",
+    "withdrawal_and_void_policy.withdrawal_status_rule",
+    "withdrawal_and_void_policy.void_status_rule",
+    "coverage_summary.season_count",
+    "coverage_summary.farm_count",
+    "coverage_summary.subfarm_count",
+    "coverage_summary.variety_count",
+    "coverage_summary.first_harvest_business_date",
+    "coverage_summary.last_harvest_business_date",
+    "coverage_summary.missing_day_count",
+    "coverage_summary.missing_data_proportion"
+  ],
+  "unresolved_required_field_count": 44,
+  "final_attestation_creation_allowed": false,
+  "final_business_source_attestation_created": false,
+  "attestation_status_not_attested": true,
+  "q2c_outcome": "BLOCKED_BY_MISSING_BUSINESS_ATTESTATION",
+  "q2c_accepted": false,
+  "source_authority_accepted": false,
+  "source_cohort_accepted": false,
+  "canonical_gate_status_changed": false,
+  "authoritative_acceptance_record_changed": false,
+  "current_canonical_runtime_state": {
+    "canonical_gate_count": 17,
+    "canonical_gate_pass_count": 0,
+    "canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "data_safety_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "source_identity_reused_without_recomputation": true
+  },
+  "next_recommended_action": "OBTAIN_BUSINESS_OWNER_Q2C_PHYSICAL_TARGET_DECISIONS",
+  "no_step_implies_the_next": true
+}
