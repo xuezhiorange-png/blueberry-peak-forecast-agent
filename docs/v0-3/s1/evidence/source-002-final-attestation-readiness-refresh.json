@@ -1,0 +1,148 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_FINAL_ATTESTATION_READINESS_REFRESH",
+  "artifact_version": "source-002-final-attestation-readiness-refresh-v3",
+  "artifact_status": "POST_PR210_READINESS_REFRESH_SCHEMA_CONFLICT_CORRECTED_PENDING_EXACT_HEAD_REVIEW",
+  "task": "V0_3_S1_SOURCE_002_FINAL_SOURCE_OWNER_ATTESTATION_READINESS_REFRESH",
+  "task_class": "DOCS_ONLY_SOURCE_AUTHORITY_READINESS_RECONCILIATION_AND_SCHEMA_ALIGNMENT_CORRECTION",
+  "base_main_sha": "c2e5c704165feb034edbcd245450a0184f22c978",
+  "target_gate_id": "S1-SOURCE-AUTHORITY",
+  "refresh_at": "2026-08-13T21:21:00+08:00",
+  "source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "post_pr210_resolved_evidence": {
+    "source_owner_role_claimed_explicitly_by_user": true,
+    "source_loss_status_evidence_issued": true,
+    "source_data_loss_status": "NO_KNOWN_SOURCE_DATA_LOSS_FOR_GOVERNED_SCOPE",
+    "missing_day_policy": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+    "no_source_row_semantics": "NO_HARVEST",
+    "missing_day_count": 0,
+    "missing_data_proportion": "0.00000000",
+    "missingness_result_issued": true,
+    "source_data_reread_performed_for_pr210": false
+  },
+  "source_owner_accuracy_and_lifecycle_confirmation": {
+    "role": "农场数据负责人",
+    "confirmation_text": "数据是准确的，没有撤回和作废",
+    "recorded_data_accuracy": "CONFIRMED_BY_SOURCE_OWNER",
+    "withdrawal_exists": false,
+    "void_exists": false,
+    "withdrawal_status_rule": "NO_WITHDRAWAL",
+    "void_status_rule": "NO_VOID",
+    "withdrawal_status_rule_issued": true,
+    "void_status_rule_issued": true,
+    "confirmation_scope": "SOURCE002_RECORDED_DATA_ACCURACY_AND_WITHDRAWAL_VOID_BUSINESS_STATE_ONLY",
+    "does_not_issue_broader_completeness_watermark": true,
+    "does_not_confirm_every_final_attestation_field": true
+  },
+  "independent_review_correction": {
+    "failed_review_id": 4927503797,
+    "failed_review_head_sha": "de86e920439e859cbdd480a3f2da9852d6ee747b",
+    "failed_review_result": "FAIL",
+    "new_p1_blockers": 1,
+    "finding": "CURRENT_ATTESTATION_SCHEMA_STILL_REQUIRED_UNKNOWN_NOT_ZERO_WHILE_MERGED_POLICY_IS_EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+    "correction_authorized": true,
+    "authoritative_policy_source": "docs/v0-3/s1/evidence/source-002-missing-coverage-formula-policy-decision.json",
+    "authoritative_policy_id": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+    "schema_path": "docs/v0-3/s1/schemas/business-source-attestation.schema.json",
+    "old_schema_missing_day_rule_const": "UNKNOWN_NOT_ZERO",
+    "new_schema_missing_day_rule_const": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+    "schema_alignment_corrected_in_branch": true,
+    "correction_scope_expanded_beyond_review_finding": false,
+    "new_exact_head_ci_required": true,
+    "new_exact_head_independent_review_required": true,
+    "failed_review_is_not_valid_for_new_head": true
+  },
+  "resolved_in_current_pr": {
+    "missingness_policy_schema_conflict_resolved_in_branch": true,
+    "source_owner_new_rule_value_count_resolved": 2,
+    "withdrawal_status_rule": "NO_WITHDRAWAL",
+    "void_status_rule": "NO_VOID"
+  },
+  "remaining_hard_blockers": {
+    "scope_and_date_final_field_bindings": {
+      "count": 7,
+      "fields": [
+        "coverage_scope.farms",
+        "coverage_scope.subfarms",
+        "coverage_scope.varieties",
+        "coverage_scope.business_date_start",
+        "coverage_scope.business_date_end",
+        "coverage_summary.first_harvest_business_date",
+        "coverage_summary.last_harvest_business_date"
+      ],
+      "status": "NOT_FINAL_ATTESTATION_BOUND",
+      "notes": "Existing counts, hashes, and canonical date evidence do not by themselves issue the concrete final-attestation bindings. No Source002 reread is authorized by this correction."
+    },
+    "schema_required_lifecycle_and_visibility_values": {
+      "count": 3,
+      "fields": [
+        "revision_policy.winner_and_lineage_rule",
+        "late_entry_rule",
+        "visibility_boundary"
+      ],
+      "status": "NOT_FINAL_ATTESTATION_BOUND"
+    },
+    "comprehensive_owner_confirmation": {
+      "status": "NOT_ISSUED",
+      "notes": "No-loss, recorded-data accuracy, and no-withdrawal/no-void confirmations are not expanded into a signature over every final-attestation field."
+    },
+    "broader_source_completeness_declaration": {
+      "status": "NOT_ISSUED",
+      "source_complete_through_business_date": "NOT_ISSUED"
+    },
+    "issuance_process_metadata": {
+      "count": 4,
+      "fields": [
+        "attestation_version",
+        "attestation_effective_at",
+        "attestation_status",
+        "attestation_hash"
+      ],
+      "status": "CREATED_ONLY_DURING_FINAL_ISSUANCE_EVENT"
+    }
+  },
+  "readiness_result": {
+    "withdrawal_void_rule_blocker_resolved": true,
+    "missing_day_schema_alignment_blocker_resolved_in_branch": true,
+    "final_attestation_schema_ready": false,
+    "final_attestation_issuance_ready": false,
+    "source_owner_attestation_issued": false,
+    "source_authority_accepted": false,
+    "canonical_gate_status_changed": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "authorization_boundary": {
+    "missing_day_schema_alignment_correction_authorized": true,
+    "source_002_read_authorized": false,
+    "source_002_raw_read_authorized": false,
+    "source_002_row_level_read_authorized": false,
+    "real_business_data_read_authorized": false,
+    "production_database_read_authorized": false,
+    "scope_identity_array_derivation_authorized": false,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_gate": {
+    "gate": "RERUN_PR211_EXACT_HEAD_CI_THEN_INDEPENDENT_REVIEW",
+    "authorized_ci_by_branch_mutation": true,
+    "independent_review_requires_separate_authorization": true,
+    "scope_and_date_binding_not_yet_authorized": true
+  },
+  "no_step_implies_the_next": true
+}

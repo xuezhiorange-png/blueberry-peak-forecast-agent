@@ -180,7 +180,10 @@
     "farm_timezone": { "type": "string", "minLength": 1 },
     "local_day_boundary": { "type": "string", "minLength": 1 },
     "late_entry_rule": { "type": "string", "minLength": 1 },
-    "missing_day_rule": { "const": "UNKNOWN_NOT_ZERO" },
+    "missing_day_rule": {
+      "const": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+      "description": "Governed Source002 missing-day policy: a canonical day is missing only when governed evidence explicitly proves source-data loss; source-row absence means no harvest, not missing data."
+    },
     "correction_rule": { "type": "string", "minLength": 1 },
     "void_rule": { "type": "string", "minLength": 1 },
     "final_confirmation_rule": { "type": "string", "minLength": 1 },
