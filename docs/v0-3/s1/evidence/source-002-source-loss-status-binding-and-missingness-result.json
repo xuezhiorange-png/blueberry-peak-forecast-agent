@@ -1,0 +1,112 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_SOURCE_LOSS_STATUS_BINDING_AND_MISSINGNESS_RESULT",
+  "artifact_version": "source-002-source-loss-status-binding-and-missingness-result-v1",
+  "artifact_status": "SOURCE_OWNER_NO_KNOWN_SOURCE_DATA_LOSS_BOUND_AND_MISSINGNESS_RESULT_ISSUED",
+  "task": "V0_3_S1_SOURCE_002_SOURCE_LOSS_STATUS_BINDING_AND_NUMERIC_ISSUANCE",
+  "task_class": "DOCS_ONLY_SOURCE_OWNER_EVIDENCE_BINDING_AND_GOVERNED_FORMULA_EVALUATION",
+  "base_sha": "8215a64632493ca8a0b4bb1e906d42433b44e3f4",
+  "governed_source_identity": {
+    "source_system": "扫码称重系统",
+    "dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "snapshot_reference": "snapshot:v0_3_s1:002",
+    "expected_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "source_owner_confirmation": {
+    "role": "农场数据负责人",
+    "role_claimed_explicitly_by_user": true,
+    "role_inferred": false,
+    "confirmation_text": "我以农场数据负责人身份确认没有漏数",
+    "normalized_confirmation": "NO_KNOWN_SOURCE_DATA_LOSS_FOR_GOVERNED_SCOPE",
+    "confirmation_issued": true,
+    "confirmation_at": "2026-08-13T19:53:00+08:00",
+    "confirmation_timezone_offset": "+08:00",
+    "confirmation_provenance": "USER_EXPLICITLY_SELF_IDENTIFIED_AS_SOURCE_OWNER_AND_CONFIRMED_NO_DATA_LOSS_IN_GOVERNANCE_SESSION",
+    "personal_identity_name_recorded": false
+  },
+  "accepted_business_semantics_reference": {
+    "policy": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+    "row_absence_semantics": "NO_HARVEST",
+    "row_absence_is_missing_data": false,
+    "expected_recording_universe_required": false,
+    "expected_harvest_day_list_required": false,
+    "zero_kg_imputation_allowed": false
+  },
+  "governed_scope": {
+    "canonical_first_date": "2025-08-05",
+    "canonical_last_date": "2026-04-16",
+    "calendar_day_basis": "INCLUSIVE",
+    "total_governed_canonical_s1_calendar_days": 255,
+    "july_2025_07_22_denominator_treatment": "EXCLUDED_FROM_CANONICAL_S1_DENOMINATOR",
+    "scope_basis": "PREVIOUSLY_GOVERNED_SOURCE002_CANONICAL_COVERAGE_EVIDENCE",
+    "source_data_reread_required": false
+  },
+  "source_loss_status": {
+    "status": "NO_KNOWN_SOURCE_DATA_LOSS_FOR_GOVERNED_SCOPE",
+    "source_loss_status_evidence_issued": true,
+    "explicitly_proven_source_loss_days": 0,
+    "explicit_source_loss_days": []
+  },
+  "missingness_result": {
+    "missing_day_semantic_unit": "SOURCE_WIDE_CANONICAL_CALENDAR_DAY",
+    "missing_day_count": 0,
+    "missing_day_count_issued": true,
+    "missing_data_proportion_numerator": 0,
+    "missing_data_proportion_denominator": 255,
+    "missing_data_proportion_formula": "0 / 255",
+    "missing_data_proportion": "0.00000000",
+    "missing_data_proportion_issued": true,
+    "decimal_scale": 8,
+    "rounding_mode": "ROUND_HALF_EVEN",
+    "output_representation": "DECIMAL_STRING",
+    "binary_floating_point_governance_identity_allowed": false,
+    "governed_formula_evaluation_performed": true,
+    "source_data_scan_performed": false
+  },
+  "authorization_boundary": {
+    "source_owner_role_binding_authorized_by_explicit_role_claim": true,
+    "source_loss_status_evidence_issuance_authorized": true,
+    "missing_day_numeric_issuance_authorized": true,
+    "missing_data_proportion_numeric_issuance_authorized": true,
+    "source_completeness_declaration_authorized": false,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "safety_and_non_actions": {
+    "source_002_read": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "production_database_write": false,
+    "source_002_mutation": false,
+    "model_training_performed": false,
+    "backtest_performed": false
+  },
+  "governance_state_after_this_task": {
+    "source_loss_status_evidence_issued": true,
+    "missing_day_count": 0,
+    "missing_data_proportion": "0.00000000",
+    "source_completeness_declaration_issued": false,
+    "final_source_attestation_issued": false,
+    "source_authority_accepted": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_gate": {
+    "gate": "SOURCE_002_FINAL_SOURCE_OWNER_ATTESTATION_READINESS_OR_REMAINING_SOURCE_AUTHORITY_EVIDENCE",
+    "authorized": false
+  },
+  "independent_review_required": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "no_step_implies_the_next": true
+}
