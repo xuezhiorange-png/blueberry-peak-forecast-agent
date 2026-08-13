@@ -1,0 +1,172 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_IDENTITY_ARRAY_CONTROLLED_INTAKE_READINESS",
+  "artifact_version": "source-002-identity-array-controlled-intake-readiness-v2",
+  "artifact_status": "BLOCKED_EXTERNAL_DERIVED_VALUE_PACKAGE_LOCATOR_UNAVAILABLE_PROVENANCE_CORRECTED_PENDING_NEW_EXACT_HEAD_REVIEW",
+  "task": "SOURCE_002_SCOPE_IDENTITY_ARRAY_CONTROLLED_VALUE_INTAKE_AND_FINAL_BINDING_READINESS",
+  "task_class": "DOCS_ONLY_CONTROLLED_EXTERNAL_DERIVED_VALUE_PACKAGE_INTAKE_ATTEMPT",
+  "base_main_sha": "ab0a9c19fb648cd2c318fc75f08c59291a8200ea",
+  "target_gate_id": "S1-SOURCE-AUTHORITY",
+  "evaluated_at": "2026-08-13T22:53:00+08:00",
+  "provenance_correction_at": "2026-08-13T23:31:00+08:00",
+  "authorization_scope": {
+    "controlled_identity_array_value_intake_authorized": true,
+    "existing_external_derived_value_package_access_authorized": true,
+    "package_identity_verification_authorized": true,
+    "identity_array_count_and_hash_verification_authorized": true,
+    "p2_provenance_chronology_correction_authorized": true,
+    "actual_final_attestation_field_binding_authorized": false,
+    "source_002_read_authorized": false,
+    "source_002_raw_read_authorized": false,
+    "source_002_row_level_read_authorized": false,
+    "source_002_reconstruction_authorized": false,
+    "real_business_data_read_authorized": false,
+    "production_database_read_authorized": false,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "expected_external_derived_value_package": {
+    "package_id": "source-002-attestation-derived-values-v1",
+    "expected_package_sha256": "5b362513ae4ffb9279ba978c64c566f75bc2cda12d10fb0f4bab1a5c445f3fe9",
+    "package_committed_to_git": false,
+    "full_identity_arrays_expected_in_package_only": true,
+    "raw_rows_expected_in_package": false
+  },
+  "expected_identity_array_contract": {
+    "farms": {
+      "expected_count": 84,
+      "expected_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381"
+    },
+    "subfarms": {
+      "expected_count": 192,
+      "expected_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13"
+    },
+    "varieties": {
+      "expected_count": 20,
+      "expected_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209"
+    },
+    "canonicalization_rule": "approved raw identity columns, mapped 2025~2026 canonical S1 rows only, exact identity values, deterministic Unicode lexical sort",
+    "array_hash_rule": "SHA-256 of UTF-8 compact canonical JSON array with ensure_ascii=false"
+  },
+  "controlled_locator_attempt_before_original_head": {
+    "repository_code_search_by_package_id_performed": true,
+    "repository_code_search_by_package_sha256_performed": true,
+    "repository_pr_issue_search_by_package_id_performed": true,
+    "repository_pr_issue_search_by_package_sha256_performed": true,
+    "user_file_library_search_by_package_id_sha_and_identity_terms_performed": false,
+    "prior_governance_context_locator_recovery_attempted": false,
+    "accessible_package_locator_found_in_completed_pre_head_checks": false,
+    "package_bytes_accessed": false,
+    "package_sha256_recomputed": false,
+    "package_identity_verified": false,
+    "identity_array_values_accessed": false,
+    "identity_array_values_assumed_without_access": false,
+    "source_002_reread_performed": false,
+    "source_002_reconstruction_performed": false,
+    "blocker": "EXTERNAL_DERIVED_VALUE_PACKAGE_LOCATOR_UNAVAILABLE_IN_COMPLETED_PRE_HEAD_CONNECTED_SOURCE_CHECKS"
+  },
+  "independent_review_post_head_locator_verification": {
+    "review_id": 4928749915,
+    "review_node_id": "PRR_kwDOS_gTTs8AAAABJcbBWw",
+    "reviewed_head_sha": "012ba371dc0ec9a55c931d586aabbff31d4399a6",
+    "review_result": "FAIL_P2_PROVENANCE_CHRONOLOGY_ONLY",
+    "user_file_library_search_performed_during_review": true,
+    "prior_governance_context_locator_recovery_performed_during_review": true,
+    "accessible_package_locator_found_during_review": false,
+    "package_bytes_accessed_during_review": false,
+    "identity_array_values_accessed_during_review": false,
+    "source_002_reread_performed_during_review": false,
+    "source_002_reconstruction_performed_during_review": false,
+    "substantive_package_locator_blocker_changed_by_review": false,
+    "p2_finding": "ORIGINAL_ARTIFACT_OVERSTATED_PRE_HEAD_FILE_LIBRARY_AND_PRIOR_GOVERNANCE_CONTEXT_SEARCH_CHRONOLOGY",
+    "p2_correction_applied": true,
+    "prior_review_invalid_for_new_head": true
+  },
+  "field_readiness_after_controlled_intake_attempt": {
+    "coverage_scope.farms": {
+      "status": "BLOCKED",
+      "reason": "CONCRETE_ARRAY_NOT_ACCESSED_BECAUSE_EXPECTED_PACKAGE_LOCATOR_IS_UNAVAILABLE",
+      "expected_count": 84,
+      "expected_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381"
+    },
+    "coverage_scope.subfarms": {
+      "status": "BLOCKED",
+      "reason": "CONCRETE_ARRAY_NOT_ACCESSED_BECAUSE_EXPECTED_PACKAGE_LOCATOR_IS_UNAVAILABLE",
+      "expected_count": 192,
+      "expected_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13"
+    },
+    "coverage_scope.varieties": {
+      "status": "BLOCKED",
+      "reason": "CONCRETE_ARRAY_NOT_ACCESSED_BECAUSE_EXPECTED_PACKAGE_LOCATOR_IS_UNAVAILABLE",
+      "expected_count": 20,
+      "expected_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209"
+    },
+    "coverage_scope.business_date_start": {
+      "status": "READY_FOR_FINAL_FIELD_BINDING",
+      "value": "2025-08-05"
+    },
+    "coverage_scope.business_date_end": {
+      "status": "READY_FOR_FINAL_FIELD_BINDING",
+      "value": "2026-04-16"
+    },
+    "coverage_summary.first_harvest_business_date": {
+      "status": "READY_FOR_FINAL_FIELD_BINDING",
+      "value": "2025-08-05"
+    },
+    "coverage_summary.last_harvest_business_date": {
+      "status": "READY_FOR_FINAL_FIELD_BINDING",
+      "value": "2026-04-16",
+      "not_a_completeness_watermark": true
+    }
+  },
+  "readiness_summary": {
+    "scope_date_required_field_count": 7,
+    "ready_for_final_field_binding_count": 4,
+    "blocked_final_field_binding_count": 3,
+    "all_7_fields_ready": false,
+    "controlled_value_intake_authorized": true,
+    "controlled_value_intake_completed": false,
+    "controlled_value_intake_blocked": true,
+    "blocking_reason": "EXTERNAL_DERIVED_VALUE_PACKAGE_LOCATOR_UNAVAILABLE",
+    "p2_provenance_chronology_corrected": true,
+    "final_attestation_schema_ready": false,
+    "final_attestation_issuance_ready": false,
+    "source_owner_attestation_issued": false,
+    "source_authority_accepted": false
+  },
+  "canonical_and_downstream_state": {
+    "canonical_gate_status_changed": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_business_gate_after_this_readiness_pr_merges": {
+    "gate": "SOURCE_002_EXTERNAL_DERIVED_VALUE_PACKAGE_LOCATOR_RECOVERY",
+    "purpose": "RECOVER_AN_ACCESSIBLE_LOCATOR_FOR_THE_ALREADY_DERIVED_PACKAGE_WITHOUT_REREADING_SOURCE002",
+    "expected_package_id": "source-002-attestation-derived-values-v1",
+    "expected_package_sha256": "5b362513ae4ffb9279ba978c64c566f75bc2cda12d10fb0f4bab1a5c445f3fe9",
+    "source_002_reread_not_authorized": true,
+    "controlled_source_reconstruction_not_authorized": true,
+    "authorized": false
+  },
+  "review_and_merge_boundary": {
+    "new_exact_head_ci_required_after_correction": true,
+    "new_exact_head_independent_review_required_after_correction": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "no_step_implies_the_next": true
+}
