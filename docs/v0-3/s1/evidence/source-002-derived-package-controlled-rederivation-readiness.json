@@ -1,0 +1,161 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_DERIVED_PACKAGE_CONTROLLED_REDERIVATION_READINESS",
+  "artifact_version": "source-002-derived-package-controlled-rederivation-readiness-v1",
+  "artifact_status": "READY_WITH_EXECUTION_PRECONDITIONS",
+  "task": "SOURCE_002_DERIVED_VALUE_PACKAGE_CONTROLLED_REDERIVATION_READINESS",
+  "task_class": "DOCS_ONLY_CONTROLLED_REDERIVATION_READINESS",
+  "base_main_sha": "db5d096ce94c4106bb3486cad740730820ddcf48",
+  "target_gate_id": "S1-SOURCE-AUTHORITY",
+  "evaluated_at": "2026-08-14T01:06:00+08:00",
+  "authorization_scope": {
+    "readiness_assessment_authorized": true,
+    "source_002_read_authorized": false,
+    "source_002_raw_read_authorized": false,
+    "source_002_row_level_read_authorized": false,
+    "source_002_reconstruction_authorized": false,
+    "derived_package_rederivation_authorized": false,
+    "identity_array_values_access_authorized": false,
+    "final_field_binding_authorized": false,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "frozen_source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_byte_count": 28668416,
+    "source_row_count": 233171,
+    "schema_version": "observed-source-schema-v1",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "sheet_count": 4,
+    "raw_source_immutable": true
+  },
+  "custody_and_access_preconditions": {
+    "storage_type": "ENTERPRISE_SERVER",
+    "access_owner_role": "IT_DEPARTMENT_AUTHORIZED_DATA_ACCESS_ADMINISTRATOR",
+    "least_privilege_scope": "READ_ONLY_ACCESS_TO_SOURCE_002_FOR_APPROVED_BLUEBERRY_FORECAST_PURPOSES",
+    "private_locator_committed_to_git": false,
+    "private_locator_resolution_required_at_execution": true,
+    "private_locator_must_be_resolved_out_of_band_by_access_owner": true,
+    "source_object_must_be_opened_read_only": true,
+    "source_identity_must_be_verified_before_row_level_derivation": true,
+    "production_database_read_allowed": false,
+    "alternate_source_substitution_allowed": false,
+    "source_reconstruction_from_repository_evidence_allowed": false
+  },
+  "historical_package_reference": {
+    "package_id": "source-002-attestation-derived-values-v1",
+    "package_sha256": "5b362513ae4ffb9279ba978c64c566f75bc2cda12d10fb0f4bab1a5c445f3fe9",
+    "package_locator_recovered": false,
+    "package_bytes_recovered": false,
+    "package_committed_to_git": false,
+    "full_identity_arrays_in_package_only": true,
+    "raw_rows_in_package": false,
+    "reference_only_not_claimed_recovered": true
+  },
+  "controlled_rederivation_contract": {
+    "canonical_scope_season": "2025~2026",
+    "canonical_scope_row_count": 233169,
+    "unmapped_july_date": "2025-07-22",
+    "unmapped_july_row_count": 2,
+    "unmapped_july_rows_canonical_included": false,
+    "identity_canonicalization_rule": "approved raw identity columns, mapped 2025~2026 canonical S1 rows only, exact identity values, deterministic Unicode lexical sort",
+    "identity_array_hash_rule": "SHA-256 of UTF-8 compact canonical JSON array with ensure_ascii=false",
+    "aliasing_allowed": false,
+    "spelling_correction_allowed": false,
+    "identity_merging_allowed": false,
+    "null_replacement_allowed": false,
+    "silent_reassignment_allowed": false,
+    "missing_day_numeric_derivation_allowed": false,
+    "source_completeness_watermark_inference_allowed": false
+  },
+  "expected_content_parity": {
+    "farms": {
+      "count": 84,
+      "sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381"
+    },
+    "subfarms": {
+      "count": 192,
+      "sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13"
+    },
+    "varieties": {
+      "count": 20,
+      "sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209"
+    },
+    "coverage_scope.business_date_start": "2025-08-05",
+    "coverage_scope.business_date_end": "2026-04-16",
+    "coverage_summary.first_harvest_business_date": "2025-08-05",
+    "coverage_summary.last_harvest_business_date": "2026-04-16",
+    "coverage_summary.missing_day_count": "UNRESOLVED",
+    "coverage_summary.missing_data_proportion": "UNRESOLVED"
+  },
+  "replacement_package_plan": {
+    "historical_v1_bytes_recreation_claim_allowed": false,
+    "historical_v1_sha256_reuse_without_byte_identity_allowed": false,
+    "candidate_package_id": "source-002-attestation-derived-values-v2-rederived",
+    "candidate_package_id_status": "PROPOSED_FOR_SEPARATELY_AUTHORIZED_EXECUTION",
+    "package_sha256": "TO_BE_COMPUTED_AT_EXECUTION",
+    "package_hash_rule": "SHA-256 of UTF-8 recursively sorted compact canonical JSON excluding the package_sha256 self-field",
+    "raw_rows_in_package": false,
+    "full_identity_arrays_in_git": false,
+    "full_identity_arrays_may_exist_only_in_controlled_external_package": true,
+    "external_custody_handoff_required": true,
+    "durable_external_locator_required": true,
+    "plaintext_private_locator_in_git_allowed": false,
+    "opaque_non_sensitive_custody_reference_in_git_required": true
+  },
+  "execution_stop_conditions": [
+    "PRIVATE_SOURCE_LOCATOR_UNAVAILABLE",
+    "SOURCE_SHA256_MISMATCH",
+    "SOURCE_BYTE_COUNT_MISMATCH",
+    "SOURCE_ROW_COUNT_MISMATCH",
+    "SCHEMA_SHA256_MISMATCH",
+    "SHEET_COUNT_MISMATCH",
+    "EXPECTED_CANONICAL_SCOPE_PARITY_MISMATCH",
+    "FARM_COUNT_OR_ARRAY_SHA256_MISMATCH",
+    "SUBFARM_COUNT_OR_ARRAY_SHA256_MISMATCH",
+    "VARIETY_COUNT_OR_ARRAY_SHA256_MISMATCH",
+    "DATE_FIELD_PARITY_MISMATCH",
+    "UNAUTHORIZED_IDENTITY_NORMALIZATION_REQUIRED",
+    "DURABLE_EXTERNAL_CUSTODY_HANDOFF_UNAVAILABLE"
+  ],
+  "readiness_result": {
+    "controlled_rederivation_readiness": "READY_WITH_EXECUTION_PRECONDITIONS",
+    "governance_contract_complete_enough_for_separate_execution_authorization": true,
+    "source_access_available_proven_now": false,
+    "source_access_must_be_resolved_at_execution": true,
+    "actual_rederivation_performed": false,
+    "package_bytes_created": false,
+    "identity_array_values_accessed": false,
+    "field_state_changed": false
+  },
+  "canonical_and_downstream_state": {
+    "source_authority_accepted": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_business_gate_after_this_readiness_pr_merges": {
+    "gate": "SOURCE_002_DERIVED_VALUE_PACKAGE_CONTROLLED_REDERIVATION",
+    "purpose": "READ_THE_EXACT_FROZEN_SOURCE_002_OBJECT_READ_ONLY_AND_CREATE_A_NEW_CONTROLLED_REDERIVED_PACKAGE_ONLY_IF_ALL_IDENTITY_AND_CONTENT_PARITY_CHECKS_PASS",
+    "authorized": false,
+    "source_002_read_authorized": false,
+    "derived_package_rederivation_authorized": false,
+    "final_field_binding_authorized": false
+  },
+  "review_and_merge_boundary": {
+    "exact_head_ci_required": true,
+    "exact_head_independent_review_required": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "no_step_implies_the_next": true
+}
