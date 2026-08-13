@@ -1,12 +1,12 @@
 {
   "artifact_id": "V0_3_S1_SOURCE_002_FINAL_ATTESTATION_READINESS_REFRESH",
-  "artifact_version": "source-002-final-attestation-readiness-refresh-v1",
-  "artifact_status": "POST_PR210_READINESS_REFRESH_BLOCKED_NOT_ATTESTATION",
+  "artifact_version": "source-002-final-attestation-readiness-refresh-v2",
+  "artifact_status": "POST_PR210_READINESS_REFRESH_WITH_WITHDRAWAL_VOID_RULES_RESOLVED_BLOCKED_NOT_ATTESTATION",
   "task": "V0_3_S1_SOURCE_002_FINAL_SOURCE_OWNER_ATTESTATION_READINESS_REFRESH",
   "task_class": "DOCS_ONLY_SOURCE_AUTHORITY_READINESS_RECONCILIATION",
   "base_main_sha": "c2e5c704165feb034edbcd245450a0184f22c978",
   "target_gate_id": "S1-SOURCE-AUTHORITY",
-  "refresh_at": "2026-08-13T20:51:00+08:00",
+  "refresh_at": "2026-08-13T21:00:00+08:00",
   "source_identity": {
     "source_system": "扫码称重系统",
     "source_dataset": "田间商品果每日采摘净重汇总",
@@ -26,22 +26,46 @@
     "missingness_result_issued": true,
     "source_data_reread_performed_for_pr210": false
   },
+  "source_owner_accuracy_and_lifecycle_confirmation": {
+    "role": "农场数据负责人",
+    "role_binding_basis": "PRIOR_EXPLICIT_SOURCE_OWNER_ROLE_CLAIM_IN_SAME_GOVERNANCE_SESSION",
+    "confirmation_text": "数据是准确的，没有撤回和作废",
+    "recorded_data_accuracy": "CONFIRMED_BY_SOURCE_OWNER",
+    "withdrawal_exists": false,
+    "void_exists": false,
+    "withdrawal_status_rule": "NO_WITHDRAWAL",
+    "void_status_rule": "NO_VOID",
+    "withdrawal_status_rule_issued": true,
+    "void_status_rule_issued": true,
+    "confirmation_at": "2026-08-13T21:00:00+08:00",
+    "confirmation_scope": "SOURCE002_RECORDED_DATA_ACCURACY_AND_WITHDRAWAL_VOID_BUSINESS_STATE_ONLY",
+    "does_not_issue_broader_completeness_watermark": true,
+    "does_not_confirm_every_final_attestation_field": true
+  },
   "stale_readiness_reconciliation": {
     "prior_readiness_missing_day_rule_unknown_not_zero_is_stale": true,
     "prior_readiness_missing_day_count_not_issued_is_stale": true,
     "prior_readiness_missing_data_proportion_not_issued_is_stale": true,
     "prior_source_owner_role_unbound_state_is_stale_for_no_loss_confirmation": true,
+    "prior_withdrawal_status_rule_not_issued_is_stale": true,
+    "prior_void_status_rule_not_issued_is_stale": true,
     "comprehensive_final_attestation_owner_confirmation_issued": false
+  },
+  "resolved_in_this_revision": {
+    "source_owner_new_rule_value_count_resolved": 2,
+    "fields": [
+      "withdrawal_and_void_policy.withdrawal_status_rule",
+      "withdrawal_and_void_policy.void_status_rule"
+    ],
+    "values": {
+      "withdrawal_and_void_policy.withdrawal_status_rule": "NO_WITHDRAWAL",
+      "withdrawal_and_void_policy.void_status_rule": "NO_VOID"
+    }
   },
   "remaining_hard_blockers": {
     "source_owner_new_rule_values": {
-      "count": 2,
-      "fields": [
-        "withdrawal_and_void_policy.withdrawal_status_rule",
-        "withdrawal_and_void_policy.void_status_rule"
-      ],
-      "status": "NOT_ISSUED",
-      "required_role": "农场数据负责人"
+      "count": 0,
+      "status": "RESOLVED_NO_WITHDRAWAL_NO_VOID"
     },
     "scope_and_date_final_field_bindings": {
       "count": 7,
@@ -55,7 +79,7 @@
         "coverage_summary.last_harvest_business_date"
       ],
       "status": "NOT_FINAL_ATTESTATION_BOUND",
-      "notes": "Farm/subfarm/variety counts and hashes exist, and canonical date-boundary evidence exists, but the schema-required final payload bindings are not issued. Full entity arrays are not committed to Git. No source reread is authorized by this refresh."
+      "notes": "Farm/subfarm/variety counts and hashes exist, and canonical date-boundary evidence exists, but the schema-required final payload bindings are not issued. Full entity arrays are not committed to Git. No source reread is authorized by this revision."
     },
     "schema_required_lifecycle_and_visibility_values": {
       "count": 3,
@@ -69,12 +93,12 @@
     },
     "comprehensive_owner_confirmation": {
       "status": "NOT_ISSUED",
-      "notes": "The user's explicit Source Owner statement confirmed only no known Source002 data loss. It is not silently expanded into confirmation of every other governed attestation value."
+      "notes": "The Source Owner has confirmed no known data loss, recorded data accuracy, and no withdrawal/void business states. These statements are not silently expanded into confirmation of every other governed attestation value."
     },
     "broader_source_completeness_declaration": {
       "status": "NOT_ISSUED",
       "source_complete_through_business_date": "NOT_ISSUED",
-      "notes": "PR210 intentionally did not issue a broader completeness declaration or promote an observed maximum date to a completeness watermark."
+      "notes": "No-loss and data-accuracy confirmations do not automatically create a complete-through watermark."
     },
     "issuance_process_metadata": {
       "count": 4,
@@ -88,6 +112,7 @@
     }
   },
   "readiness_result": {
+    "withdrawal_void_rule_blocker_resolved": true,
     "final_attestation_schema_ready": false,
     "final_attestation_issuance_ready": false,
     "source_owner_attestation_issued": false,
@@ -102,12 +127,12 @@
   },
   "authorization_boundary": {
     "readiness_reconciliation_authorized": true,
+    "source_owner_withdrawal_void_rule_binding_authorized": true,
     "source_002_read_authorized": false,
     "source_002_raw_read_authorized": false,
     "source_002_row_level_read_authorized": false,
     "real_business_data_read_authorized": false,
     "production_database_read_authorized": false,
-    "source_owner_new_rule_decision_authorized": false,
     "scope_identity_array_derivation_authorized": false,
     "final_source_attestation_authorized": false,
     "source_authority_acceptance_authorized": false,
@@ -116,8 +141,7 @@
     "v0_3_s2_authorized": false
   },
   "next_gate": {
-    "gate": "SOURCE_OWNER_WITHDRAWAL_VOID_STATUS_RULE_DECISION",
-    "required_role": "农场数据负责人",
+    "gate": "SOURCE_002_SCOPE_AND_DATE_FINAL_FIELD_BINDING_READINESS",
     "authorized": false,
     "after_that_requires_separate_authorization": true
   },
