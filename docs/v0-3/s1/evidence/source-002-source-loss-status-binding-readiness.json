@@ -1,0 +1,90 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_SOURCE_LOSS_STATUS_BINDING_READINESS",
+  "artifact_version": "source-002-source-loss-status-binding-readiness-v1",
+  "artifact_status": "BUSINESS_STATEMENT_RECORDED_PENDING_SOURCE_OWNER_BINDING",
+  "task": "V0_3_S1_SOURCE_002_SOURCE_LOSS_STATUS_BINDING_READINESS",
+  "task_class": "DOCS_ONLY_SOURCE_OWNER_BINDING_READINESS",
+  "base_sha": "73463ed2fa69cd6b9b1cffc059eee4f2c48fefdd",
+  "governed_source_identity": {
+    "source_system": "扫码称重系统",
+    "dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "snapshot_reference": "snapshot:v0_3_s1:002",
+    "expected_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "business_statement": {
+    "statement_text": "没有漏数",
+    "normalized_meaning": "NO_KNOWN_SOURCE_DATA_LOSS_FOR_GOVERNED_SCOPE",
+    "statement_received_in_governance_session": true,
+    "statement_authority_binding": "UNBOUND_TO_SOURCE_OWNER_ROLE",
+    "source_owner_role_claimed_by_user": false,
+    "source_owner_role_inferred": false
+  },
+  "accepted_business_semantics_reference": {
+    "policy": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+    "row_absence_semantics": "NO_HARVEST",
+    "row_absence_is_missing_data": false,
+    "expected_harvest_day_list_required": false
+  },
+  "source_owner_binding": {
+    "required_role": "农场数据负责人",
+    "required_confirmation": "NO_KNOWN_SOURCE_DATA_LOSS_FOR_GOVERNED_SCOPE_OR_EXPLICIT_SOURCE_DATA_LOSS_DAYS_IDENTIFIED",
+    "binding_status": "PENDING_SOURCE_OWNER_CONFIRMATION",
+    "source_owner_confirmation_issued": false,
+    "source_owner_identity_recorded": false,
+    "source_completeness_declaration_issued": false,
+    "final_source_attestation_issued": false
+  },
+  "candidate_numeric_consequence_if_source_owner_confirms_no_loss": {
+    "candidate_missing_day_count": 0,
+    "candidate_missing_data_proportion": "0.00000000",
+    "candidate_values_issued": false,
+    "candidate_values_accepted": false,
+    "calculation_performed": false,
+    "condition": "Only applicable after the required source-owner role binds the no-known-source-data-loss statement to the governed Source002 scope."
+  },
+  "authorization_boundary": {
+    "record_business_statement_authorized": true,
+    "source_owner_binding_authorized": false,
+    "source_owner_attestation_authorized": false,
+    "source_completeness_declaration_authorized": false,
+    "missing_day_numeric_issuance_authorized": false,
+    "missing_data_proportion_numeric_issuance_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "safety_and_non_actions": {
+    "source_002_read": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "production_database_write": false,
+    "source_002_mutation": false,
+    "missing_day_calculation_performed": false,
+    "missing_data_proportion_calculation_performed": false
+  },
+  "governance_state": {
+    "source_loss_status_evidence_issued": false,
+    "missing_day_count": "UNRESOLVED",
+    "missing_data_proportion": "UNRESOLVED",
+    "source_authority_accepted": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_gate": {
+    "gate": "SOURCE_OWNER_BIND_NO_KNOWN_SOURCE_DATA_LOSS_STATEMENT",
+    "required_role": "农场数据负责人",
+    "authorized": false
+  },
+  "independent_review_required": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "no_step_implies_the_next": true
+}
