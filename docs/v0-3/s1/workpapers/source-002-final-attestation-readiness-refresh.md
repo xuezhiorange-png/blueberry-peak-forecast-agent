@@ -9,11 +9,11 @@ BASE_MAIN_SHA=c2e5c704165feb034edbcd245450a0184f22c978
 TARGET_GATE_ID=S1-SOURCE-AUTHORITY
 ```
 
-This refresh reconciles the older Source002 attestation-readiness package with the evidence merged through PR #210. It is not a final Source Owner Attestation and does not mutate any canonical S1 gate.
+This refresh reconciles the older Source002 attestation-readiness package with the evidence merged through PR #210 and the latest explicit Source Owner business-rule confirmation. It is not a final Source Owner Attestation and does not mutate any canonical S1 gate.
 
 ## 2. What PR #210 closed
 
-The Source Owner explicitly self-identified as `农场数据负责人` and confirmed that the governed Source002 scope has no known source-data loss. Under the already merged missingness policy, current governed evidence now includes:
+The Source Owner explicitly self-identified as `农场数据负责人` and confirmed that the governed Source002 scope has no known source-data loss. Under the already merged missingness policy, current governed evidence includes:
 
 ```text
 SOURCE_OWNER_NO_LOSS_CONFIRMATION_ISSUED=true
@@ -26,18 +26,35 @@ MISSING_DATA_PROPORTION=0.00000000
 
 Therefore the older readiness values `missing_day_rule=UNKNOWN_NOT_ZERO`, `coverage_summary.missing_day_count=NOT_ISSUED`, and `coverage_summary.missing_data_proportion=NOT_ISSUED` are stale as a description of current main.
 
-The Source Owner role is now explicitly established for the no-loss confirmation. That role claim is not silently expanded into a comprehensive confirmation of every other final-attestation value.
+## 3. Source Owner accuracy / withdrawal / void confirmation
 
-## 3. Remaining source-owner values
-
-Two schema-required values still require an explicit Source Owner rule decision:
+The same Source Owner then explicitly clarified the Source002 business rule:
 
 ```text
-withdrawal_and_void_policy.withdrawal_status_rule
-withdrawal_and_void_policy.void_status_rule
+数据是准确的，没有撤回和作废
 ```
 
-No rule vocabulary is invented in this refresh. The next smallest human-authority gate is to state the truthful Source002 rule for withdrawal and void status handling.
+This is bound narrowly and literally as:
+
+```text
+RECORDED_DATA_ACCURACY=CONFIRMED_BY_SOURCE_OWNER
+WITHDRAWAL_EXISTS=false
+VOID_EXISTS=false
+withdrawal_and_void_policy.withdrawal_status_rule=NO_WITHDRAWAL
+withdrawal_and_void_policy.void_status_rule=NO_VOID
+```
+
+There is no post-confirmation withdrawal state and no post-confirmation void state for the governed Source002 recorded data. No alternative status vocabulary is invented.
+
+Accordingly, the prior two `SOURCE_OWNER_VALUE_REQUIRED` blockers are resolved:
+
+```text
+SOURCE_OWNER_NEW_RULE_VALUE_BLOCKER_COUNT=0
+WITHDRAWAL_STATUS_RULE_ISSUED=true
+VOID_STATUS_RULE_ISSUED=true
+```
+
+The accuracy statement is not expanded into a claim that every unrelated attestation field has been confirmed, and it does not create a source-complete-through watermark.
 
 ## 4. Remaining scope/date final bindings
 
@@ -53,9 +70,9 @@ coverage_summary.first_harvest_business_date
 coverage_summary.last_harvest_business_date
 ```
 
-Existing governed evidence contains farm/subfarm/variety counts and array hashes, and PR #210 reuses canonical date-boundary evidence. However, the final attestation schema requires concrete field bindings. The full farm/subfarm/variety identity arrays are not committed to Git, and this refresh is not authorized to reread Source002 or reconstruct them.
+Existing governed evidence contains farm/subfarm/variety counts and array hashes, and PR #210 reuses canonical date-boundary evidence. However, the final attestation schema requires concrete field bindings. The full farm/subfarm/variety identity arrays are not committed to Git, and this revision is not authorized to reread Source002 or reconstruct them.
 
-For the four date leaves, existing canonical boundaries are evidence inputs, but this refresh does not silently assert that each schema field has been formally issued or that every date-field semantic is interchangeable without a dedicated binding step.
+For the four date leaves, existing canonical boundaries are evidence inputs, but this revision does not silently assert that each schema field has been formally issued or that every date-field semantic is interchangeable without a dedicated binding step.
 
 ## 5. Lifecycle and visibility schema leaves
 
@@ -73,17 +90,19 @@ Existing evidence is relevant but insufficient for final-field issuance in this 
 - The formalization gap matrix describes late-entry lifecycle evidence as non-blocking for current IDFL label operation, but the attestation schema still requires the leaf.
 - Task4 closed the forecast-input point-in-time implementation/evidence gap, but that is not the same event as binding a Source002 `visibility_boundary` leaf into the final source attestation.
 
-Operational non-applicability does not permit omitting a schema-required field. A later binding may use a truthful policy-null / not-applicable rule if supported by the governing contract, but this refresh does not invent that final value.
+Operational non-applicability does not permit omitting a schema-required field. A later binding may use a truthful policy-null / not-applicable rule if supported by the governing contract, but this revision does not invent that final value.
 
-## 6. Comprehensive owner confirmation remains absent
+## 6. Comprehensive owner confirmation remains separate
 
-The previous readiness package identified many governed values that already exist in repository evidence but still require Source Owner binding in the final attestation event. The user's latest Source Owner statement was specifically:
+The Source Owner has now explicitly confirmed three narrow facts about Source002:
 
 ```text
-我以农场数据负责人身份确认没有漏数
+NO_KNOWN_SOURCE_DATA_LOSS_FOR_GOVERNED_SCOPE
+RECORDED_DATA_ACCURACY=CONFIRMED_BY_SOURCE_OWNER
+NO_WITHDRAWAL_AND_NO_VOID
 ```
 
-It is evidence for the Source002 no-loss status only. It is not treated as confirmation of source identity, schema identity, effective-time applicability, scope boundaries, physical/Q2C semantics, policy references, coverage counts, or every other required final-attestation field.
+These facts are not silently expanded into confirmation of source identity, schema identity, effective-time applicability, all scope fields, every physical/Q2C semantic, every policy reference, every coverage field, or the final attestation payload as a whole.
 
 ```text
 COMPREHENSIVE_FINAL_ATTESTATION_OWNER_CONFIRMATION_ISSUED=false
@@ -98,7 +117,7 @@ SOURCE_COMPLETENESS_DECLARATION_ISSUED=false
 SOURCE_COMPLETE_THROUGH_BUSINESS_DATE=NOT_ISSUED
 ```
 
-The no-known-source-loss statement supports the governed missingness result; it does not automatically create a broader complete-through watermark or a general source-completeness declaration.
+The no-loss and data-accuracy confirmations do not automatically create a complete-through watermark or a broader source-completeness declaration.
 
 ## 8. Final issuance metadata
 
@@ -116,6 +135,7 @@ They are not manually invented during readiness preparation.
 ## 9. Current readiness result
 
 ```text
+WITHDRAWAL_VOID_RULE_BLOCKER_RESOLVED=true
 FINAL_ATTESTATION_SCHEMA_READY=false
 FINAL_ATTESTATION_ISSUANCE_READY=false
 SOURCE_OWNER_ATTESTATION_ISSUED=false
@@ -129,19 +149,18 @@ S1_REMAINING_06_AUTHORIZED=false
 V0_3_S2_AUTHORIZED=false
 ```
 
-No Source002 raw data, row-level business data, production database, model training, or backtest is accessed by this refresh.
+No Source002 raw data, row-level business data, production database, model training, or backtest is accessed by this revision.
 
 ## 10. Stop boundary
 
-The next smallest unresolved authority decision is:
+The withdrawal/void decision is no longer a blocker. The next unresolved readiness area is:
 
 ```text
-NEXT_GATE=SOURCE_OWNER_WITHDRAWAL_VOID_STATUS_RULE_DECISION
-REQUIRED_ROLE=农场数据负责人
+NEXT_GATE=SOURCE_002_SCOPE_AND_DATE_FINAL_FIELD_BINDING_READINESS
 NEXT_GATE_AUTHORIZED=false
 ```
 
-After that, scope identity/date final binding and lifecycle/visibility final-field binding remain separate steps. None is authorized by this readiness refresh.
+After that, lifecycle/visibility final-field binding and any actual final attestation issuance remain separate steps. None is authorized by this revision.
 
 ```text
 INDEPENDENT_REVIEW_REQUIRED=true
