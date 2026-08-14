@@ -4,6 +4,7 @@
   "task_id": "S1-REMAINING-05",
   "task_class": "DOCS_ONLY_DECISION_AND_POLICY_READINESS",
   "base_main_sha": "0ed98ee8fa51601f939315a6cfc08e2b690e1bc1",
+  "current_main_revalidated_sha": "e77aff78f74740dde0d9b0e612e661afb0e6e0db",
   "status": "READINESS_PACKAGE_ONLY",
   "authorized": true,
   "no_step_implies_the_next": true,
@@ -28,10 +29,10 @@
   ],
   "current_canonical_runtime_state": {
     "canonical_gate_count": 17,
-    "canonical_gate_pass_count": 0,
-    "canonical_gate_blocked_count": 17,
-    "canonical_gate_status_changed": false,
-    "canonical_acceptance_record_changed": false,
+    "canonical_gate_pass_count": 1,
+    "canonical_gate_blocked_count": 16,
+    "canonical_gate_status_changed": true,
+    "canonical_acceptance_record_changed": true,
     "gate_statuses": {
       "S1-Q2C-TARGET": "BLOCKED",
       "S1-SOURCE-AUTHORITY": "BLOCKED",
@@ -45,7 +46,7 @@
       "S1-MISSING-CORRECTION-CANCELLATION": "BLOCKED",
       "S1-SPLIT-POLICY": "BLOCKED",
       "S1-METRIC-CONTRACT": "BLOCKED",
-      "S1-MINIMUM-COVERAGE": "BLOCKED",
+      "S1-MINIMUM-COVERAGE": "PASS",
       "S1-DATA-QUALITY-THRESHOLDS": "BLOCKED",
       "S1-DATA-CUSTODY": "BLOCKED",
       "S1-HOLDOUT-FEASIBILITY": "BLOCKED",
@@ -58,8 +59,8 @@
     "v0_3_s2_started": false
   },
   "decision_readiness_summary": {
-    "minimum_coverage_decision_status": "DECISION_REQUIRED",
-    "s1_minimum_coverage_status": "BLOCKED",
+    "minimum_coverage_decision_status": "ISSUED_AND_INDEPENDENTLY_REVIEWED",
+    "s1_minimum_coverage_status": "PASS",
     "data_quality_threshold_decision_status": "DECISION_REQUIRED",
     "s1_data_quality_threshold_status": "BLOCKED",
     "metric_contract_readiness_status": "PREPARED_NOT_ACCEPTED",
@@ -76,7 +77,12 @@
     "min_comparable_rows_for_reporting": 10,
     "min_comparable_rows_is_s3_reporting_floor": true,
     "min_comparable_rows_is_s1_minimum_coverage_threshold": false,
-    "unauthorized_threshold_value_count": 0
+    "unauthorized_threshold_value_count": 0,
+    "minimum_coverage_owner_decision_sha256": "a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692",
+    "minimum_coverage_independent_review_id": 4937929668,
+    "minimum_coverage_independent_reviewed_head": "5775e908cfe072fa962c99e822901b7157128418",
+    "minimum_coverage_exact_head_ci_run_id": 31806575112,
+    "minimum_coverage_exact_head_ci_conclusion": "success"
   },
   "source_cohort_candidate_reference": {
     "path": "docs/v0-3/s1/evidence/source-cohort-manifest-candidate.json",
@@ -103,8 +109,8 @@
   },
   "minimum_coverage": {
     "gate_id": "S1-MINIMUM-COVERAGE",
-    "s1_gate_status": "BLOCKED",
-    "decision_status": "DECISION_REQUIRED",
+    "s1_gate_status": "PASS",
+    "decision_status": "ISSUED_AND_INDEPENDENTLY_REVIEWED",
     "owner_role": "model_validation_owner_role",
     "authority_source": [
       "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
@@ -113,7 +119,8 @@
       "docs/v0-3/s1/s1-acceptance-package.md"
     ],
     "repository_proven": [
-      "No approved S1 minimum-coverage threshold is present.",
+      "The versioned S1 minimum-coverage threshold is present and independently reviewed.",
+      "The owner decision payload and SHA-256 identity are bound to review 4937929668 and exact-head CI run 31806575112.",
       "MIN_COMPARABLE_ROWS_FOR_REPORTING=10 is an S3 reporting floor only.",
       "The S3 reporting floor is explicitly not the S1 minimum-coverage threshold."
     ],
@@ -124,21 +131,33 @@
       "is_s1_threshold": false,
       "is_candidate_s1_value": false
     },
+    "policy_decision_reference": {
+      "path": "docs/v0-3/s1/evidence/s1-minimum-coverage-threshold-policy-decision.json",
+      "policy_version": "v0-3-s1-minimum-coverage-threshold-v1",
+      "threshold_value": "0.900000",
+      "threshold_operator": "GREATER_THAN_OR_EQUAL",
+      "threshold_unit": "RATIO_0_TO_1",
+      "owner_decision_sha256": "a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692",
+      "independent_review_id": 4937929668,
+      "reviewed_head_sha": "5775e908cfe072fa962c99e822901b7157128418",
+      "exact_head_ci_run_id": 31806575112,
+      "exact_head_ci_conclusion": "success"
+    },
     "decision_requests": [
       {
         "decision_id": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY",
         "gate_id": "S1-MINIMUM-COVERAGE",
         "owner_role": "model_validation_owner_role",
-        "current_status": "DECISION_REQUIRED",
-        "current_value": null,
-        "authority_source": "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "current_status": "CLOSED_BY_INDEPENDENT_REVIEW",
+        "current_value": "0.900000",
+        "authority_source": "docs/v0-3/s1/evidence/s1-minimum-coverage-threshold-policy-decision.json",
         "repository_proven": true,
-        "external_decision_required": true,
+        "external_decision_required": false,
         "can_be_inferred": false,
         "can_be_decided_in_current_task": false,
-        "candidate_value": null,
-        "accepted_value": null,
-        "block_reason": "NO_APPROVED_S1_MINIMUM_COVERAGE_THRESHOLD",
+        "candidate_value": "0.900000",
+        "accepted_value": "0.900000",
+        "block_reason": "NONE",
         "downstream_dependencies": [
           "S1-SOURCE-COHORT",
           "S1-METRIC-CONTRACT",
@@ -164,7 +183,7 @@
         ]
       }
     ],
-    "recommended_next_action": "OBTAIN_AND_REVIEW_VERSIONED_S1_MINIMUM_COVERAGE_THRESHOLD_DECISION"
+    "recommended_next_action": "CONTINUE_REMAINING_05_WITH_DATA_QUALITY_AND_DOWNSTREAM_PREREQUISITES"
   },
   "data_quality_thresholds": {
     "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
@@ -611,7 +630,8 @@
       "metric_contract",
       "split_and_holdout"
     ],
-    "minimum_coverage_candidate_value_must_be_null": true,
+    "minimum_coverage_candidate_value_must_be_null": false,
+    "minimum_coverage_accepted_value_bound": true,
     "data_quality_candidate_value_must_be_null": true,
     "unauthorized_threshold_value_count": 0,
     "s3_reporting_floor_misused_as_s1_threshold": false,
@@ -621,7 +641,7 @@
     "test_access_currently_authorized": false,
     "external_holdout_data_access": false,
     "json_markdown_consistency_required": true,
-    "canonical_acceptance_record_changed": false
+    "canonical_acceptance_record_changed": true
   },
   "data_safety_boundary": {
     "source_002_raw_read": false,
@@ -639,5 +659,5 @@
     "migration_created": false,
     "model_changed": false
   },
-  "next_recommended_action": "RUN_S1_REMAINING_05_DECISION_READINESS_EXACT_HEAD_INDEPENDENT_REVIEW"
+  "next_recommended_action": "REVALIDATE_REMAINING_05_AFTER_MINIMUM_COVERAGE_GATE_CLOSEOUT"
 }
