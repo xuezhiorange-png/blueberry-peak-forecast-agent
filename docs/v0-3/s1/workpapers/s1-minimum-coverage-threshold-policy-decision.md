@@ -4,7 +4,7 @@
 
 ```text
 TASK=V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION_OWNER_BINDING_R1
-RESULT=POLICY_DECISION_ISSUED_REVIEW_REQUIRED
+RESULT=POLICY_DECISION_ISSUED_AND_INDEPENDENTLY_REVIEWED
 BASE_MAIN_SHA=b96fc39fcee50c2447e7bcc90580745b090d8646
 GATE_ID=S1-MINIMUM-COVERAGE
 DECISION_ID=S1_MINIMUM_COVERAGE_THRESHOLD_POLICY
@@ -13,7 +13,11 @@ OWNER_IDENTITY=xuezhiorange-png
 OWNER_DECISION_SOURCE=github-issue-220-comment-5294054162
 ```
 
-This revision binds the explicit owner decision recorded in Issue #220. The policy is now issued, but it is not yet independently reviewed and therefore does not pass the canonical S1 minimum-coverage gate.
+This revision binds the explicit owner decision recorded in Issue #220. The
+policy is issued and the exact-head independent review recorded on PR #219
+passed. The policy therefore satisfies the evidence and review requirements
+for the standalone S1 minimum-coverage gate. The canonical S1 acceptance
+package remains blocked because the other required gates remain unresolved.
 
 ## Governing authority
 
@@ -91,6 +95,26 @@ OWNER_DECISION_SHA256=a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa
 
 This identity binds the owner, provenance, timestamp, policy version, threshold measure and value, application semantics, denominator/failure behavior, horizon/partition policies, and the explicit distinction between the S3 reporting floor and the S1 threshold.
 
+## Independent review and exact-head CI
+
+```text
+INDEPENDENT_REVIEW_ID=4937929668
+INDEPENDENT_REVIEWED_HEAD=5775e908cfe072fa962c99e822901b7157128418
+INDEPENDENT_REVIEW_RESULT=PASS
+OWNER_DECISION_PAYLOAD_BINDING=PASS
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_SHA256=a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692
+EXACT_HEAD_CI_RUN_ID=31806575112
+EXACT_HEAD_CI_HEAD_SHA=5775e908cfe072fa962c99e822901b7157128418
+EXACT_HEAD_CI_STATUS=completed
+EXACT_HEAD_CI_CONCLUSION=success
+```
+
+The review is bound to the merged PR #219 head and independently replayed the
+owner decision payload/hash. It closes only `S1-MINIMUM-COVERAGE`; it does not
+accept the metric contract, source cohort, data quality policy, split policy,
+holdout feasibility, or the overall S1 package.
+
 ## Independent rules that remain unchanged
 
 Nothing in this decision weakens existing S2/S3 rules. In particular:
@@ -108,9 +132,9 @@ Nothing in this decision weakens existing S2/S3 rules. In particular:
 
 ```text
 POLICY_DECISION_ISSUED=true
-POLICY_INDEPENDENTLY_REVIEWED=false
-S1_MINIMUM_COVERAGE_GATE_PASS=false
-CANONICAL_ACCEPTANCE_RECORD_CHANGED=false
+POLICY_INDEPENDENTLY_REVIEWED=true
+S1_MINIMUM_COVERAGE_GATE_PASS=true
+CANONICAL_ACCEPTANCE_RECORD_CHANGED=true
 SOURCE_002_RAW_READ=false
 SOURCE_002_ROW_LEVEL_READ=false
 BACKTEST_EXECUTED=false
@@ -120,10 +144,13 @@ S1_REMAINING_06_AUTHORIZED=false
 V0_3_S2_AUTHORIZED=false
 ```
 
-The owner-decision gap is now closed. The remaining requirement for this policy is exact-head independent review; the canonical gate must stay blocked until that review passes.
+The owner-decision and independent-review requirements are closed for this
+policy. The canonical acceptance record separately records the standalone gate
+as `PASS`; the overall S1 package remains `BLOCKED` until all other required
+gates and the final independent S1 review are complete.
 
 ```text
-NEXT_GATE=S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_INDEPENDENT_REVIEW
+NEXT_GATE=S1_REMAINING_05_DOWNSTREAM_RECONCILIATION
 NEXT_GATE_AUTHORIZED=false
 READY_AUTHORIZED=true
 MERGE_AUTHORIZED=false
