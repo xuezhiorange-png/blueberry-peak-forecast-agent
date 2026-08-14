@@ -1,0 +1,94 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_DERIVED_PACKAGE_CONTROLLED_REDERIVATION_EXECUTION",
+  "artifact_version": "source-002-derived-package-controlled-rederivation-execution-v4",
+  "artifact_status": "REDERIVATION_PASS_CANDIDATE_PACKAGE_CREATED_CUSTODY_HANDOFF_PENDING",
+  "task": "SOURCE_002_DERIVED_VALUE_PACKAGE_CONTROLLED_REDERIVATION",
+  "base_main_sha": "86bb514b23ab21e4930d01057ce1d516a9faa616",
+  "source_rebind": {
+    "exact_source002_bytes_rebound": true,
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_sha256_parity": "PASS",
+    "source_byte_count": 28668416,
+    "source_byte_count_parity": "PASS",
+    "source_row_count": 233171,
+    "source_row_count_parity": "PASS",
+    "sheet_count": 4,
+    "sheet_count_parity": "PASS",
+    "sheet_data_row_counts": [65535, 65535, 65535, 36566],
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "schema_parity": "PASS",
+    "actual_header_schema": ["时间", "链路", "农场", "分场", "品种", "果径", "入库公斤数"],
+    "similar_workbook_substitution_used": false
+  },
+  "canonical_scope_parity": {
+    "raw_business_date_start": "2025-07-22",
+    "raw_business_date_end": "2026-04-16",
+    "unmapped_date": "2025-07-22",
+    "unmapped_row_count": 2,
+    "canonical_scope_row_count": 233169,
+    "canonical_business_date_start": "2025-08-05",
+    "canonical_business_date_end": "2026-04-16",
+    "parity": "PASS"
+  },
+  "identity_array_parity": {
+    "farms": {
+      "count": 84,
+      "sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+      "parity": "PASS"
+    },
+    "subfarms": {
+      "count": 192,
+      "sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+      "parity": "PASS"
+    },
+    "varieties": {
+      "count": 20,
+      "sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+      "parity": "PASS"
+    },
+    "full_identity_arrays_in_git": false,
+    "normalization_applied": false,
+    "aliasing_applied": false,
+    "silent_reassignment_applied": false
+  },
+  "candidate_package": {
+    "package_id": "source-002-attestation-derived-values-v2-rederived",
+    "package_status": "PARTIAL_DERIVATION_MISSING_DAY_FORMULA_AUTHORITY",
+    "package_sha256": "9220ec20bd9d2fb3e466ad8936382327e045a4ba09df99a0f06d42b0aa5da19f",
+    "package_byte_count": 9944,
+    "candidate_package_created": true,
+    "raw_rows_in_package": false,
+    "full_identity_arrays_in_git": false,
+    "durable_external_custody_handoff_complete": false,
+    "durable_external_locator_recorded": false,
+    "usable_for_final_field_binding": false
+  },
+  "execution": {
+    "row_level_read_performed": true,
+    "canonical_scope_rederived": true,
+    "identity_arrays_rederived": true,
+    "date_fields_rederived": true,
+    "missing_day_count_resolved": false,
+    "missing_data_proportion_resolved": false,
+    "stop_condition": "DURABLE_EXTERNAL_CUSTODY_HANDOFF_PENDING"
+  },
+  "business_state": {
+    "ready_for_final_field_binding_count": 4,
+    "blocked_final_field_binding_count": 3,
+    "all_7_fields_ready": false,
+    "source_authority_accepted": false,
+    "current_canonical_gate_pass_count": 0,
+    "current_canonical_gate_blocked_count": 17,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "review_boundary": {
+    "independent_review_required": true,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "final_binding_authorized": false,
+    "no_step_implies_the_next": true
+  }
+}
