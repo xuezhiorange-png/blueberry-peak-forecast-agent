@@ -1,0 +1,40 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_V2_PACKAGE_CUSTODY_HANDOFF",
+  "artifact_version": "source-002-v2-package-custody-handoff-v1",
+  "artifact_status": "HANDOFF_RECORD_PREPARED_EXTERNAL_STORAGE_PENDING",
+  "task": "SOURCE_002_V2_PACKAGE_DURABLE_EXTERNAL_CUSTODY_HANDOFF",
+  "base_main_sha": "b59a4835cfb67721f4e9106a96a03a8c8155f92f",
+  "package_identity": {
+    "package_id": "source-002-attestation-derived-values-v2-rederived",
+    "package_status": "PARTIAL_DERIVATION_MISSING_DAY_FORMULA_AUTHORITY",
+    "package_canonical_sha256": "9220ec20bd9d2fb3e466ad8936382327e045a4ba09df99a0f06d42b0aa5da19f",
+    "file_bytes_sha256": "0ce08cf071816e80d6144337200d8fa1f1be0c7a76f025b78b79cf01829fcf59",
+    "file_byte_count": 9944,
+    "raw_rows_in_package": false,
+    "full_identity_arrays_in_git": false
+  },
+  "custody_reference": {
+    "opaque_reference_id": "source-002-v2-package-custody-binding-v1",
+    "reference_status": "UNBOUND_PENDING_EXTERNAL_STORAGE",
+    "plaintext_private_locator_in_git": false,
+    "credential_or_token_in_git": false
+  },
+  "required_external_custody": {
+    "required_storage_type": "ENTERPRISE_SERVER_OR_OTHER_SEPARATELY_APPROVED_NON_GIT_DURABLE_STORAGE",
+    "durable_external_copy_created": false,
+    "durable_external_locator_resolved": false,
+    "opaque_reference_bound_to_external_locator": false,
+    "handoff_complete": false
+  },
+  "execution_boundary": {
+    "package_bytes_rederived": true,
+    "package_identity_locked": true,
+    "external_storage_write_capability_available_in_current_execution": false,
+    "similarity_selected_storage_or_alternate_package_used": false,
+    "final_field_binding_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_condition": "A durable external copy of the exact 9944-byte package must be created and the opaque reference source-002-v2-package-custody-binding-v1 must be bound out of band to that external locator before custody handoff can be marked complete."
+}
