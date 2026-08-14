@@ -10,6 +10,12 @@ RESULT=REDERIVATION_PASS_CANDIDATE_PACKAGE_CREATED_CUSTODY_HANDOFF_PENDING
 
 The exact frozen Source002 object was rebound and read directly. No similarity-selected workbook or alternate source was used.
 
+```text
+EXACT_SOURCE_OBJECT_REQUIRED=true
+SIMILARITY_SELECTED_SOURCE_FORBIDDEN=true
+ALTERNATE_SOURCE_SUBSTITUTION=false
+```
+
 ## Exact source identity parity
 
 ```text
