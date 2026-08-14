@@ -1,0 +1,71 @@
+{
+  "artifact_id": "V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION_OWNER_BINDING_R1",
+  "artifact_version": "v0-3-s1-minimum-coverage-threshold-v1",
+  "artifact_status": "POLICY_DECISION_ISSUED_REVIEW_REQUIRED",
+  "task": "V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION_OWNER_BINDING_R1",
+  "base_main_sha": "b96fc39fcee50c2447e7bcc90580745b090d8646",
+  "gate_id": "S1-MINIMUM-COVERAGE",
+  "owner_decision_source": "github-issue-220-comment-5294054162",
+  "owner_decision_payload": {
+    "decision_id": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY",
+    "owner_identity": "xuezhiorange-png",
+    "owner_role_attestation": "I_AM_ACTING_AS_MODEL_VALIDATION_OWNER_ROLE",
+    "owner_provenance": "AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-14",
+    "decided_at": "2026-08-14T21:46:00+08:00",
+    "policy_version": "v0-3-s1-minimum-coverage-threshold-v1",
+    "threshold_measure": "S3_COVERAGE_RATIO",
+    "threshold_measure_formula": "s2_comparable_binding_row_count / s2_total_binding_row_count",
+    "threshold_value": "0.900000",
+    "threshold_operator": "GREATER_THAN_OR_EQUAL",
+    "threshold_unit": "RATIO_0_TO_1",
+    "application_grain": "EVALUATION_PARTITION_X_FORECAST_HORIZON_X_SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_MODEL_IDENTITY",
+    "application_scope": "ALL_GOVERNED_S1_EVALUATION_PARTITIONS_AND_REQUIRED_S3_BREAKDOWN_CELLS",
+    "denominator_definition": "COUNT_ALL_S2_BINDING_ROWS_IN_EXACT_APPLICATION_CELL",
+    "zero_denominator_semantics": "FAIL_CLOSED_NO_PERCENTAGE_S1_MINIMUM_COVERAGE_GATE_NOT_PASS",
+    "below_threshold_semantics": "FAIL_S1_MINIMUM_COVERAGE_GATE_WITH_BELOW_MINIMUM",
+    "threshold_varies_by_horizon": false,
+    "horizon_policy": "SAME_0.900000_THRESHOLD_FOR_7_14_21",
+    "threshold_varies_by_partition": false,
+    "partition_policy": "SAME_0.900000_THRESHOLD_FOR_TRAIN_VALIDATION_TEST_EVALUATED_INDEPENDENTLY",
+    "s3_reporting_floor": 10,
+    "s3_reporting_floor_is_s1_threshold": false,
+    "source_002_statistics_used_to_infer_threshold": false,
+    "owner_decision_final": true,
+    "owner_decision_supersedes_withdrawn_pr219_value": true,
+    "owner_decision_ready_for_independent_review": true
+  },
+  "owner_decision_sha256": "a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692",
+  "canonicalization": {
+    "encoding": "UTF-8",
+    "json_keys": "SORTED",
+    "json_separators": ",:",
+    "hash_algorithm": "SHA-256"
+  },
+  "historical_correction": {
+    "previous_unauthorized_value": "0.900000",
+    "previous_value_has_authority": false,
+    "previous_value_must_not_be_reused_as_precedent": true,
+    "current_same_numeric_value_is_new_owner_decision": true,
+    "current_value_authority_source": "github-issue-220-comment-5294054162"
+  },
+  "current_gate_effect": {
+    "policy_decision_issued": true,
+    "policy_independently_reviewed": false,
+    "s1_minimum_coverage_gate_pass": false,
+    "canonical_acceptance_record_changed": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "execution_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "test_data_access": false
+  },
+  "next_gate": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_INDEPENDENT_REVIEW",
+  "next_gate_authorized": false,
+  "ready_authorized": true,
+  "merge_authorized": false,
+  "no_step_implies_the_next": true
+}
