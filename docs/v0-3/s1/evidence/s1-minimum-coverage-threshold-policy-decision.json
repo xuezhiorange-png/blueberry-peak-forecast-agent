@@ -76,7 +76,8 @@
   },
   "next_gate": "S1_REMAINING_05_DOWNSTREAM_RECONCILIATION",
   "next_gate_authorized": false,
-  "ready_authorized": true,
+  "historical_pr219_ready_authorized": true,
+  "ready_authorized": false,
   "merge_authorized": false,
   "no_step_implies_the_next": true
 }
