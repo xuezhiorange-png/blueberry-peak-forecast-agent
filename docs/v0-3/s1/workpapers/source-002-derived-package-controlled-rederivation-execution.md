@@ -1,64 +1,77 @@
-# Source 002 controlled rederivation execution
+# Source 002 controlled reconstruction verification
 
 ## Result
 
 ```text
-TASK=SOURCE_002_DERIVED_VALUE_PACKAGE_CONTROLLED_REDERIVATION
+TASK=SOURCE_002_RECOVERED_UPSTREAM_TO_FROZEN_CONTROLLED_RECONSTRUCTION_AND_BINDING
 BASE_MAIN_SHA=86bb514b23ab21e4930d01057ce1d516a9faa616
-RESULT=BLOCKED_EXACT_FROZEN_SOURCE_BINDING_UNRESOLVED
+RESULT=PARTIAL_RECONSTRUCTION_VERIFICATION_BLOCKED_FULL_ROWSET_ACCESS
 ```
 
-The controlled rederivation is authorized, but it has not been executed because the exact frozen seven-column Source002 object has not been rebound to accessible bytes.
+This gate was separately authorized after the upstream workbook was recovered from the user's prior uploads.
 
-## What was recovered
-
-The user's File Library does contain the previously uploaded historical workbook:
+## Recovered upstream
 
 ```text
-HISTORICAL_UPSTREAM_WORKBOOK_FOUND=true
-HISTORICAL_UPSTREAM_WORKBOOK_TITLE=原果入库汇总表到加工厂_1.xls
-HISTORICAL_UPSTREAM_WORKBOOK_FORMAT=.xls
-HISTORICAL_UPSTREAM_WORKBOOK_SHEET_COUNT=4
-HISTORICAL_UPSTREAM_HEADER=时间,链路,农场,分场,品种,果径,入库公斤数,加工厂
+WORKBOOK_FOUND=true
+WORKBOOK_TITLE=原果入库汇总表到加工厂_1.xls
+OBSERVED_SHEET_COUNT=4
+OBSERVED_FIELDS=时间,链路,农场,分场,品种,果径,入库公斤数,加工厂
+LAST_BUSINESS_DATE_2026_04_16_OBSERVED=true
 ```
 
-This workbook is clearly from the same scan/weigh data family, but it contains an additional `加工厂` field. It is therefore not silently substituted for the frozen Source002 object.
+The recovered workbook is the historical scan/weigh data family used by the project. Its business schema contains the seven frozen Source002 fields plus `加工厂`.
 
-## Frozen Source002 identity
+## Authorized deterministic projection
 
 ```text
-SOURCE_VERSION=scan-weight-export:v0_3_s1:002
-SOURCE_SHA256=fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a
-SOURCE_BYTE_COUNT=28668416
-SOURCE_ROW_COUNT=233171
-SOURCE_FORMAT=CDFV2 Microsoft Excel (.xls)
-SOURCE_SHEET_COUNT=4
-SOURCE_HEADER=时间,链路,农场,分场,品种,果径,入库公斤数
-SCHEMA_SHA256=919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867
+PROJECTION=DROP_FACTORY_COLUMN_ONLY
+DROP_FIELD=加工厂
+RETAIN_FIELDS_IN_ORDER=时间,链路,农场,分场,品种,果径,入库公斤数
+VALUE_NORMALIZATION_ALLOWED=false
+ROW_REORDERING_ALLOWED=false
+SHEET_REORDERING_ALLOWED=false
 ```
 
-The earliest Git evidence records that these identities were machine-generated during a separately authorized read before PR #175, but that prior runtime did not persist the input file name or an accessible byte binding in Git.
+The projected field schema exactly matches the frozen Source002 field schema.
 
-## Fail-closed boundary
+## Verified parity
 
 ```text
-UPSTREAM_WORKBOOK_USED_AS_EXACT_SOURCE002=false
-EXTRA_FACTORY_COLUMN_DROPPED_TO_RECONSTRUCT_SOURCE002=false
-EXACT_SOURCE002_BYTES_REBOUND=false
-SOURCE002_SHA256_RECOMPUTED=false
-ROW_LEVEL_REDERIVATION_PERFORMED=false
-IDENTITY_ARRAY_VALUES_REDERIVED=false
+SHEET_COUNT_PARITY=PASS
+PROJECTED_SCHEMA_PARITY=PASS
+LAST_BUSINESS_DATE_PARITY=PASS
+```
+
+## Parity not yet computable from the available File Library execution surface
+
+The File Library exposes searchable/parsed workbook content, but it does not expose the complete rowset or original workbook bytes to the deterministic execution runtime used in this task. Therefore the following values are not reported as passing:
+
+```text
+SOURCE_ROW_COUNT_PARITY=NOT_VERIFIED
+CANONICAL_SCOPE_ROW_COUNT_PARITY=NOT_VERIFIED
+UNMAPPED_2025_07_22_TWO_ROW_PARITY=NOT_VERIFIED
+FARM_84_AND_ARRAY_HASH_PARITY=NOT_VERIFIED
+SUBFARM_192_AND_ARRAY_HASH_PARITY=NOT_VERIFIED
+VARIETY_20_AND_ARRAY_HASH_PARITY=NOT_VERIFIED
+FIRST_RAW_DATE_2025_07_22_PARITY=NOT_VERIFIED
+CANONICAL_START_DATE_2025_08_05_PARITY=NOT_VERIFIED
+FULL_SEMANTIC_RECONSTRUCTION_PARITY=BLOCKED
+```
+
+No failed parity is inferred from an unverified item.
+
+## Historical binary identity boundary
+
+The historical seven-column Source002 object remains identified by its governed SHA-256 and byte count. A newly serialized reconstruction is not expected to recreate those historical workbook bytes, so historical binary SHA equality is not used as proof that a newly serialized workbook is the original object. This task seeks semantic reconstruction parity against the previously governed row count, dates, canonical scope, and identity-array hashes.
+
+## Package and downstream state
+
+```text
+FULL_PROJECTED_DATASET_MATERIALIZED=false
 V2_PACKAGE_CREATED=false
-```
-
-Dropping `加工厂` from the historical workbook would be a reconstruction unless a governed upstream-to-frozen transformation binding is proven. The merged PR #215 contract does not allow that substitution or reconstruction.
-
-## State remains unchanged
-
-```text
 READY_FOR_FINAL_FIELD_BINDING_COUNT=4
 BLOCKED_FINAL_FIELD_BINDING_COUNT=3
-ALL_7_FIELDS_READY=false
 SOURCE_AUTHORITY_ACCEPTED=false
 CURRENT_CANONICAL_GATE_PASS_COUNT=0
 CURRENT_CANONICAL_GATE_BLOCKED_COUNT=17
@@ -68,4 +81,4 @@ S1_REMAINING_06_AUTHORIZED=false
 V0_3_S2_AUTHORIZED=false
 ```
 
-This PR remains Draft. Independent review, Ready, Merge, final binding, Source Authority acceptance, Remaining06, and V0.3 S2 are not performed by this correction.
+The PR remains Draft. Independent review, Ready, Merge, final binding, Source Authority acceptance, Remaining06, and V0.3 S2 remain separate actions.
