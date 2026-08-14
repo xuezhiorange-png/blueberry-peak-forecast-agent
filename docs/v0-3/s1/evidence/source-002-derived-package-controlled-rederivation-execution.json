@@ -1,84 +1,60 @@
 {
   "artifact_id": "V0_3_S1_SOURCE_002_DERIVED_PACKAGE_CONTROLLED_REDERIVATION_EXECUTION",
-  "artifact_version": "source-002-derived-package-controlled-rederivation-execution-v1",
-  "artifact_status": "BLOCKED_EXACT_FROZEN_SOURCE_BINDING_UNRESOLVED",
-  "task": "SOURCE_002_DERIVED_VALUE_PACKAGE_CONTROLLED_REDERIVATION",
+  "artifact_version": "source-002-derived-package-controlled-rederivation-execution-v2",
+  "artifact_status": "PARTIAL_RECONSTRUCTION_VERIFICATION_BLOCKED_FULL_ROWSET_ACCESS",
+  "task": "SOURCE_002_RECOVERED_UPSTREAM_TO_FROZEN_CONTROLLED_RECONSTRUCTION_AND_BINDING",
   "base_main_sha": "86bb514b23ab21e4930d01057ce1d516a9faa616",
   "authorization": {
-    "controlled_rederivation_authorized": true,
-    "source_read_authorized": true,
-    "row_level_derivation_authorized": true,
-    "derived_package_rederivation_authorized": true,
-    "source_mutation_authorized": false,
-    "source_reconstruction_authorized": false,
-    "alternate_source_substitution_authorized": false,
+    "controlled_reconstruction_authorized": true,
+    "seven_field_projection_authorized": true,
+    "semantic_parity_verification_authorized": true,
     "final_field_binding_authorized": false,
     "source_authority_acceptance_authorized": false,
     "canonical_gate_mutation_authorized": false,
     "s1_remaining_06_authorized": false,
     "v0_3_s2_authorized": false
   },
-  "frozen_source_identity": {
-    "source_version": "scan-weight-export:v0_3_s1:002",
-    "source_snapshot_reference": "snapshot:v0_3_s1:002",
-    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
-    "source_byte_count": 28668416,
-    "source_row_count": 233171,
-    "file_format": "CDFV2 Microsoft Excel (.xls)",
-    "sheet_count": 4,
-    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
-    "actual_header_schema": [
-      "时间",
-      "链路",
-      "农场",
-      "分场",
-      "品种",
-      "果径",
-      "入库公斤数"
-    ]
+  "recovered_upstream": {
+    "workbook_found": true,
+    "workbook_title": "原果入库汇总表到加工厂_1.xls",
+    "sheet_count_observed": 4,
+    "observed_business_fields": ["时间", "链路", "农场", "分场", "品种", "果径", "入库公斤数", "加工厂"],
+    "last_business_date_2026_04_16_observed": true,
+    "full_rowset_available_to_deterministic_runtime": false
   },
-  "historical_upload_recovery": {
-    "user_previously_uploaded_relevant_workbook": true,
-    "upstream_workbook_found": true,
-    "upstream_workbook_title": "原果入库汇总表到加工厂_1.xls",
-    "upstream_workbook_sheet_count": 4,
-    "upstream_header_schema": [
-      "时间",
-      "链路",
-      "农场",
-      "分场",
-      "品种",
-      "果径",
-      "入库公斤数",
-      "加工厂"
-    ],
-    "same_source_family": true,
-    "extra_factory_column_present": true,
-    "exact_frozen_source_byte_identity_verified": false,
-    "governed_upstream_to_frozen_projection_binding_found": false,
-    "upstream_workbook_substituted_as_source002": false
+  "projection_contract": {
+    "operation": "DROP_FACTORY_COLUMN_ONLY",
+    "drop_field": "加工厂",
+    "retained_fields": ["时间", "链路", "农场", "分场", "品种", "果径", "入库公斤数"],
+    "normalization_allowed": false,
+    "row_reordering_allowed": false,
+    "sheet_reordering_allowed": false,
+    "projected_schema_matches_frozen_source002": true
   },
-  "historical_execution_trace": {
-    "earliest_git_evidence_commit": "bc4e09bd19418d89aff39a791f30ce026d70a8c6",
-    "earliest_git_evidence_records_prior_machine_generated_source_identity": true,
-    "prior_runtime_input_filename_persisted_in_git": false,
-    "prior_runtime_accessible_byte_binding_recovered": false
+  "parity": {
+    "sheet_count": "PASS",
+    "projected_schema": "PASS",
+    "last_business_date": "PASS",
+    "source_row_count": "NOT_VERIFIED",
+    "canonical_scope_row_count": "NOT_VERIFIED",
+    "unmapped_july_two_rows": "NOT_VERIFIED",
+    "farm_count_and_hash": "NOT_VERIFIED",
+    "subfarm_count_and_hash": "NOT_VERIFIED",
+    "variety_count_and_hash": "NOT_VERIFIED",
+    "first_raw_date": "NOT_VERIFIED",
+    "canonical_start_date": "NOT_VERIFIED",
+    "full_semantic_reconstruction": "BLOCKED"
   },
   "execution": {
-    "stop_condition": "EXACT_FROZEN_SOURCE_BINDING_UNRESOLVED",
-    "exact_source002_bytes_rebound": false,
-    "source_object_opened": false,
-    "source_sha256_recomputed": false,
-    "row_level_read_performed": false,
-    "canonical_scope_rederived": false,
-    "farm_array_rederived": false,
-    "subfarm_array_rederived": false,
-    "variety_array_rederived": false,
+    "partial_parsed_row_evidence_accessed": true,
+    "full_rowset_extraction_performed": false,
+    "full_projected_dataset_materialized": false,
     "candidate_package_id": "source-002-attestation-derived-values-v2-rederived",
     "candidate_package_created": false,
-    "candidate_package_sha256": null
+    "stop_condition": "FULL_ROWSET_NOT_AVAILABLE_TO_DETERMINISTIC_EXECUTION_RUNTIME"
   },
-  "expected_parity": {
+  "expected_full_parity": {
+    "source_row_count": 233171,
     "canonical_scope_row_count": 233169,
     "unmapped_july_date": "2025-07-22",
     "unmapped_july_row_count": 2,
@@ -94,7 +70,6 @@
   "business_state": {
     "ready_for_final_field_binding_count": 4,
     "blocked_final_field_binding_count": 3,
-    "all_7_fields_ready": false,
     "source_authority_accepted": false,
     "current_canonical_gate_pass_count": 0,
     "current_canonical_gate_blocked_count": 17,
