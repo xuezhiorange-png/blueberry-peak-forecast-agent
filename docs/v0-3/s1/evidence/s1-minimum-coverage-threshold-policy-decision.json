@@ -1,0 +1,55 @@
+{
+  "artifact_id": "V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION",
+  "artifact_version": "s1-minimum-coverage-threshold-policy-decision-v1",
+  "artifact_status": "POLICY_DECISION_ISSUED_PENDING_INDEPENDENT_REVIEW",
+  "task": "V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION",
+  "base_main_sha": "b96fc39fcee50c2447e7bcc90580745b090d8646",
+  "gate_id": "S1-MINIMUM-COVERAGE",
+  "decision_payload": {
+    "decision_id": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY",
+    "policy_version": "v0-3-s1-minimum-coverage-threshold-v1",
+    "threshold_type": "COMPARABLE_BINDING_ROW_COVERAGE_RATIO",
+    "threshold_operator": "GREATER_THAN_OR_EQUAL",
+    "threshold_value": "0.900000",
+    "numerator": "s2_comparable_binding_row_count",
+    "denominator": "s2_total_binding_row_count",
+    "zero_denominator_policy": "FAIL_CLOSED_NOT_ELIGIBLE",
+    "application_scope": "EVERY_S1_EVALUATION_BREAKDOWN_CELL",
+    "required_horizons_days": [7, 14, 21],
+    "evaluation_partitions": ["TRAIN", "VALIDATION", "TEST"],
+    "threshold_varies_by_horizon": false,
+    "threshold_varies_by_partition": false,
+    "below_threshold_status": "BELOW_MINIMUM",
+    "below_threshold_effect": "S1_ACCEPTANCE_AND_RELEASE_INELIGIBLE_FOR_CELL",
+    "metric_value_mutation": false,
+    "s3_reporting_floor_reused_as_threshold": false,
+    "complete_daily_rowset_requirement_overridden": false
+  },
+  "decision_payload_sha256": "1ae1cb2c13f2e9552eeccb1f47330e1ac3a7764b3099ecce7391d9e8335ff94e",
+  "authority_alignment": {
+    "coverage_formula_authority": "docs/forecast-quality/s3-quality-metrics-contract.md#4-comparable-status-semantics",
+    "breakdown_authority": "docs/forecast-quality/s3-quality-metrics-contract.md#12-breakdown-contract",
+    "s1_gate_authority": "docs/v0-3/s1/s1-acceptance-package.md",
+    "s3_min_comparable_rows_for_reporting": 10,
+    "s3_reporting_floor_is_s1_threshold": false
+  },
+  "fail_closed_rules": {
+    "zero_total_binding_rows_pass": false,
+    "below_threshold_pass": false,
+    "below_threshold_drops_metric_cell": false,
+    "below_threshold_rewrites_metric_value": false,
+    "complete_daily_rowset_rules_remain_independent": true,
+    "structural_duplicate_rules_remain_independent": true
+  },
+  "current_gate_effect": {
+    "policy_decision_issued": true,
+    "policy_independently_reviewed": false,
+    "s1_minimum_coverage_gate_pass": false,
+    "canonical_acceptance_record_changed": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "next_gate": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "next_gate_authorized": false,
+  "no_step_implies_the_next": true
+}
