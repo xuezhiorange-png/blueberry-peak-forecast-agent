@@ -1,0 +1,408 @@
+{
+  "artifact_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_DECISION_REQUEST",
+  "artifact_version": "v0-3-s1-data-quality-threshold-policy-decision-request-v1",
+  "artifact_status": "OWNER_DECISION_ISSUED_REVIEW_REQUIRED",
+  "task_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_OWNER_BINDING_R1",
+  "task_class": "DOCS_ONLY_OWNER_DECISION_BINDING",
+  "original_request_task_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_DECISION_READINESS",
+  "original_request_task_class": "DOCS_ONLY_EXTERNAL_OWNER_DECISION_READINESS",
+  "base_main_sha": "7fd2c15f91f6dfad94178595845df389017d02b3",
+  "authorized_scope": "Bind the authenticated owner decision without accepting the canonical data-quality gate.",
+  "no_step_implies_the_next": true,
+  "authoritative_inputs": [
+    "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+    "docs/v0-3/s1/s1-acceptance-package.md",
+    "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+    "docs/v0-3/s1/evidence/canonical-acceptance-gate-current-main-reconciliation.json",
+    "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+    "docs/v0-3/s1/workpapers/s1-remaining-05-threshold-metric-split-holdout-readiness.md"
+  ],
+  "decision_request": {
+    "decision_id": "S1_DATA_QUALITY_THRESHOLD_POLICY",
+    "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
+    "current_status": "OWNER_DECISION_ISSUED",
+    "canonical_gate_status": "BLOCKED",
+    "owner_role": "data_quality_owner_role",
+    "external_decision_required": false,
+    "can_be_inferred": false,
+    "can_be_decided_in_current_task": false,
+    "candidate_value": null,
+    "accepted_value": null,
+    "block_reason": "OWNER_DECISION_BOUND_PENDING_EXACT_HEAD_INDEPENDENT_REVIEW",
+    "owner_decision_request_prepared": true,
+    "owner_decision_issued": true,
+    "policy_independently_reviewed": false,
+    "independent_review_required": true
+  },
+  "owner_decision_source": "PR_222_COMMENT_5301040523",
+  "owner_decision_comment_id": 5301040523,
+  "owner_identity": "xuezhiorange-png",
+  "owner_role_attestation": "I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE",
+  "owner_provenance": "AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-15",
+  "decided_at": "2026-08-15T14:54:00+08:00",
+  "policy_version": "v0-3-s1-data-quality-threshold-policy-v1",
+  "owner_decision_sha256": "11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969",
+  "owner_decision_hash_replay": "PASS",
+  "owner_decision_binding": "PASS",
+  "owner_decision_payload": {
+    "DECISION_ID": "S1_DATA_QUALITY_THRESHOLD_POLICY",
+    "OWNER_IDENTITY": "xuezhiorange-png",
+    "OWNER_ROLE_ATTESTATION": "I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE",
+    "OWNER_PROVENANCE": "AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-15",
+    "DECIDED_AT": "2026-08-15T14:54:00+08:00",
+    "POLICY_VERSION": "v0-3-s1-data-quality-threshold-policy-v1",
+    "DATA_QUALITY_MEASURE": "VALID_INCLUDED_CANONICAL_GROUP_COVERAGE",
+    "THRESHOLD_VALUE": "1.000000",
+    "THRESHOLD_OPERATOR": "GREATER_THAN_OR_EQUAL",
+    "THRESHOLD_UNIT": "RATIO_0_TO_1",
+    "APPLICATION_GRAIN": "SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_HARVEST_BUSINESS_DATE",
+    "APPLICATION_SCOPE": "ALL_GOVERNED_S1_ACTUAL_HARVEST_LABEL_ROWS_AND_INCLUDED_CANONICAL_DAILY_GROUPS_AFTER_VERSIONED_EXCLUSIONS",
+    "MISSING_DAY_POLICY": "BLOCK_UNLESS_EXPLICIT_VERSIONED_EXCLUSION_OR_ACCEPTED_SOURCE_POLICY_PROVES_DAY_NOT_EXPECTED",
+    "MISSING_DATA_PROPORTION_THRESHOLD": "0.000000",
+    "MISSING_DATA_PROPORTION_OPERATOR": "LESS_THAN_OR_EQUAL",
+    "MISSING_DATA_PROPORTION_UNIT": "RATIO_0_TO_1",
+    "MISSING_DATA_DENOMINATOR": "COUNT_ALL_REQUIRED_EXPECTED_DATA_QUALITY_ELEMENTS_WITHIN_EXACT_APPLICATION_CELL_AFTER_VERSIONED_EXCLUSIONS",
+    "DUPLICATE_RECORD_POLICY": "DEDUPLICATE_ONLY_WHEN_SAME_SOURCE_ROW_EVIDENCE_IDENTITY_AND_IDENTICAL_PAYLOAD_PROVE_TECHNICAL_DUPLICATION_OTHERWISE_BLOCK",
+    "CONFLICTING_RECORD_POLICY": "BLOCK_NO_IMPLICIT_WINNER",
+    "INVALID_CANONICAL_GRAIN_POLICY": "BLOCK",
+    "UNMAPPED_IDENTITY_POLICY": "EXCLUDE_ONLY_BY_VERSIONED_REASON_CODED_EXCLUSION_MANIFEST_OTHERWISE_BLOCK",
+    "UNMAPPED_DATE_POLICY": "EXCLUDE_ONLY_BY_VERSIONED_REASON_CODED_EXCLUSION_MANIFEST_OTHERWISE_BLOCK_NO_AUTO_ASSIGNMENT",
+    "REVISION_CONSISTENCY_POLICY": "REQUIRE_ACCEPTED_SOURCE_POLICY_AND_DETERMINISTIC_LINEAGE_WHERE_REVISION_MODEL_APPLIES_IDFL_MAY_USE_SOURCE_OBJECT_BOUND_LINEAGE_ONLY_WHEN_FORMALLY_ACCEPTED",
+    "VOID_CANCELLATION_POLICY": "FOLLOW_ACCEPTED_VERSIONED_SOURCE_POLICY_UNRESOLVED_APPLICABLE_VOID_OR_CANCELLATION_BLOCKS_FORMALLY_NOT_APPLICABLE_REQUIRES_PROVENANCE",
+    "WINNER_SELECTION_REQUIREMENT": "EXACTLY_ONE_GOVERNED_WINNER_WHERE_REVISION_MODEL_APPLIES_IDFL_HAS_NO_WINNER_ALGORITHM_AND_UNEXPLAINED_CONFLICTS_BLOCK",
+    "COMPLETENESS_POLICY": "EVERY_INCLUDED_BUSINESS_DATE_MUST_BE_COVERED_BY_SOURCE_OBJECT_COMPLETENESS_AUTHORITY_AND_REQUIRED_FIELDS_LINEAGE_AND_QUANTITY_EVIDENCE_MUST_BE_COMPLETE",
+    "SOURCE_ROW_LINEAGE_REQUIRED": true,
+    "SOURCE_ROW_LINEAGE_FAILURE_SEMANTICS": "BLOCK",
+    "CANONICAL_GROUP_COVERAGE_POLICY": "VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_MUST_EQUAL_1_000000_AFTER_ONLY_VERSIONED_REASON_CODED_EXCLUSIONS",
+    "FAILURE_SEMANTICS": "FAIL_CLOSED_BLOCK_AFFECTED_ROW_OR_GROUP_AND_BLOCK_DATA_QUALITY_GATE_WHILE_ANY_INCLUDED_REQUIRED_ROW_OR_GROUP_REMAINS_INVALID_MISSING_OR_UNEXPLAINED",
+    "EXCLUSION_SEMANTICS": "ONLY_VERSIONED_REASON_CODED_EXCLUSIONS_WITH_MANIFEST_COUNTS_PROVENANCE_AND_RECONCILIATION_EXCLUSIONS_NEVER_COUNT_AS_PASS",
+    "THRESHOLD_VARIES_BY_HORIZON": false,
+    "HORIZON_POLICY": "SAME_DATA_QUALITY_POLICY_FOR_ALL_HORIZONS_SOURCE_DATA_QUALITY_IS_HORIZON_INVARIANT",
+    "THRESHOLD_VARIES_BY_PARTITION": false,
+    "PARTITION_POLICY": "SAME_DATA_QUALITY_POLICY_FOR_TRAIN_VALIDATION_TEST_WITH_EACH_PARTITION_EVALUATED_INDEPENDENTLY_AFTER_SPLIT_MATERIALIZATION",
+    "MINIMUM_COVERAGE_POLICY_IS_DATA_QUALITY_POLICY": false,
+    "S3_REPORTING_FLOOR_IS_DATA_QUALITY_THRESHOLD": false,
+    "SOURCE_002_STATISTICS_USED_TO_INFER_DATA_QUALITY_POLICY": false,
+    "OWNER_DECISION_FINAL": true,
+    "OWNER_DECISION_READY_FOR_INDEPENDENT_REVIEW": true
+  },
+  "owner_decision_canonicalization": {
+    "encoding": "UTF-8",
+    "json_keys": "SORTED",
+    "json_separators": ",:",
+    "hash_algorithm": "SHA-256",
+    "payload_key_case": "UPPERCASE_AS_ISSUED",
+    "hash_scope": "OWNER_DECISION_PAYLOAD_EXCLUDING_OWNER_DECISION_SHA256"
+  },
+  "required_decision_dimensions": [
+    {
+      "dimension_id": "MISSING_DAY_POLICY",
+      "decision_required": true,
+      "owner_input": "<required: BLOCK, EXCLUDE, OTHER, or NOT_APPLICABLE_WITH_REASON>",
+      "required_questions": [
+        "Define how an expected but absent governed day is classified.",
+        "Define whether the outcome blocks, excludes, or follows another explicitly named disposition."
+      ],
+      "rationale": "UNKNOWN_NOT_ZERO is a value semantic and is not an accepted data-quality outcome policy."
+    },
+    {
+      "dimension_id": "MISSING_DATA_PROPORTION_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_subfields": [
+        "threshold_value",
+        "threshold_operator",
+        "threshold_unit",
+        "denominator_definition",
+        "application_grain",
+        "application_scope",
+        "failure_semantics",
+        "exclusion_semantics"
+      ],
+      "rationale": "No denominator, threshold, unit, grain, scope, or failure outcome is authorized by current evidence."
+    },
+    {
+      "dimension_id": "DUPLICATE_CONFLICT_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_cases": [
+        "exact duplicate",
+        "same canonical key with different payload",
+        "conflicting revision",
+        "fail, resolve, or exclude semantics"
+      ],
+      "rationale": "The original request required the owner to define the disposition of duplicate and conflicting governed records."
+    },
+    {
+      "dimension_id": "INVALID_CANONICAL_GRAIN_IDENTITY_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_identity_scope": [
+        "farm",
+        "subfarm",
+        "variety",
+        "business date",
+        "other canonical-grain identity"
+      ],
+      "rationale": "Invalid identity must have an explicit fail, resolve, or exclude disposition at the governed application grain."
+    },
+    {
+      "dimension_id": "UNMAPPED_IDENTITY_OR_DATE_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_cases": [
+        "identity cannot be mapped",
+        "local date or date basis cannot be established"
+      ],
+      "rationale": "Mapping and date-basis failures cannot be silently assigned or treated as valid coverage."
+    },
+    {
+      "dimension_id": "REVISION_VOID_CONSISTENCY_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_cases": [
+        "revision lineage",
+        "winner selection",
+        "void or cancellation",
+        "corrected record",
+        "one-valid-winner requirement"
+      ],
+      "rationale": "The policy must define how revision and void states become one governed outcome or a fail-closed exclusion."
+    },
+    {
+      "dimension_id": "COMPLETENESS_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_questions": [
+        "Define complete at the applicable grain and date universe.",
+        "Define daily completeness and incomplete-rowset semantics.",
+        "Define whether completeness is a blocking, exclusion, or other outcome."
+      ],
+      "rationale": "The repository has no approved versioned completeness policy for this gate."
+    },
+    {
+      "dimension_id": "SOURCE_ROW_LINEAGE_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_subfields": [
+        "source_row_lineage_required",
+        "source_row_lineage_failure_semantics",
+        "lineage_identity_requirements"
+      ],
+      "rationale": "The original request required the owner to decide whether every governed row must trace to a source row and what happens when it cannot."
+    },
+    {
+      "dimension_id": "CANONICAL_GROUP_COVERAGE_POLICY",
+      "decision_required": true,
+      "owner_input": "<required policy or NOT_APPLICABLE_WITH_REASON>",
+      "required_subfields": [
+        "coverage_definition",
+        "denominator_definition",
+        "required_coverage",
+        "application_grain",
+        "application_scope",
+        "relationship_to_s1_minimum_coverage"
+      ],
+      "rationale": "Canonical-group quality coverage is distinct from the already accepted S1 minimum-coverage policy and requires its own authority."
+    }
+  ],
+  "historical_request_template_only": true,
+  "not_current_owner_decision_state": true,
+  "historical_request_required_fields": [
+    {
+      "field": "DECISION_ID",
+      "request_template_value": "S1_DATA_QUALITY_THRESHOLD_POLICY",
+      "owner_entry": "S1_DATA_QUALITY_THRESHOLD_POLICY"
+    },
+    {
+      "field": "POLICY_VERSION",
+      "request_template_value": null,
+      "owner_entry": "<required versioned policy identity>"
+    },
+    {
+      "field": "OWNER_IDENTITY",
+      "request_template_value": null,
+      "owner_entry": "<required>"
+    },
+    {
+      "field": "OWNER_ROLE_ATTESTATION",
+      "request_template_value": null,
+      "owner_entry": "I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE"
+    },
+    {
+      "field": "OWNER_PROVENANCE",
+      "request_template_value": null,
+      "owner_entry": "<required>"
+    },
+    {
+      "field": "DECIDED_AT",
+      "request_template_value": null,
+      "owner_entry": "<required ISO-8601>"
+    },
+    {
+      "field": "APPLICATION_GRAIN",
+      "request_template_value": null,
+      "owner_entry": "<required>"
+    },
+    {
+      "field": "APPLICATION_SCOPE",
+      "request_template_value": null,
+      "owner_entry": "<required>"
+    },
+    {
+      "field": "FAILURE_SEMANTICS",
+      "request_template_value": null,
+      "owner_entry": "<required>"
+    },
+    {
+      "field": "EXCLUSION_SEMANTICS",
+      "request_template_value": null,
+      "owner_entry": "<required>"
+    },
+    {
+      "field": "THRESHOLD_VALUE",
+      "request_template_value": null,
+      "owner_entry": "<required or explicit NONE>"
+    },
+    {
+      "field": "THRESHOLD_OPERATOR",
+      "request_template_value": null,
+      "owner_entry": "<required if threshold exists; otherwise NOT_APPLICABLE_WITH_REASON>"
+    },
+    {
+      "field": "THRESHOLD_UNIT",
+      "request_template_value": null,
+      "owner_entry": "<required if threshold exists; otherwise NOT_APPLICABLE_WITH_REASON>"
+    },
+    {
+      "field": "THRESHOLD_VARIES_BY_HORIZON",
+      "request_template_value": null,
+      "owner_entry": "<required true or false>"
+    },
+    {
+      "field": "HORIZON_POLICY",
+      "request_template_value": null,
+      "owner_entry": "<required or NOT_APPLICABLE_WITH_REASON>"
+    },
+    {
+      "field": "THRESHOLD_VARIES_BY_PARTITION",
+      "request_template_value": null,
+      "owner_entry": "<required true or false>"
+    },
+    {
+      "field": "PARTITION_POLICY",
+      "request_template_value": null,
+      "owner_entry": "<required or NOT_APPLICABLE_WITH_REASON>"
+    },
+    {
+      "field": "INDEPENDENT_REVIEW_REQUIRED",
+      "request_template_value": true,
+      "owner_entry": true
+    }
+  ],
+  "owner_signature_template": {
+    "DECISION_ID": "S1_DATA_QUALITY_THRESHOLD_POLICY",
+    "OWNER_IDENTITY": "<required>",
+    "OWNER_ROLE_ATTESTATION": "I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE",
+    "OWNER_PROVENANCE": "<required>",
+    "DECIDED_AT": "<required ISO-8601>",
+    "POLICY_VERSION": "<required>",
+    "MISSING_DAY_POLICY": "<required>",
+    "MISSING_DATA_PROPORTION_THRESHOLD": "<required or explicit NONE>",
+    "MISSING_DATA_PROPORTION_OPERATOR": "<required if threshold exists>",
+    "MISSING_DATA_PROPORTION_UNIT": "<required if threshold exists>",
+    "MISSING_DATA_DENOMINATOR": "<required>",
+    "DUPLICATE_RECORD_POLICY": "<required>",
+    "CONFLICTING_RECORD_POLICY": "<required>",
+    "INVALID_CANONICAL_GRAIN_POLICY": "<required>",
+    "UNMAPPED_IDENTITY_POLICY": "<required>",
+    "UNMAPPED_DATE_POLICY": "<required>",
+    "REVISION_CONSISTENCY_POLICY": "<required>",
+    "VOID_CANCELLATION_POLICY": "<required>",
+    "WINNER_SELECTION_REQUIREMENT": "<required>",
+    "COMPLETENESS_POLICY": "<required>",
+    "SOURCE_ROW_LINEAGE_REQUIRED": "<required true or false>",
+    "SOURCE_ROW_LINEAGE_FAILURE_SEMANTICS": "<required>",
+    "CANONICAL_GROUP_COVERAGE_POLICY": "<required>",
+    "APPLICATION_GRAIN": "<required>",
+    "APPLICATION_SCOPE": "<required>",
+    "FAILURE_SEMANTICS": "<required>",
+    "EXCLUSION_SEMANTICS": "<required>",
+    "THRESHOLD_VARIES_BY_HORIZON": "<required true or false>",
+    "HORIZON_POLICY": "<required>",
+    "THRESHOLD_VARIES_BY_PARTITION": "<required true or false>",
+    "PARTITION_POLICY": "<required>",
+    "OWNER_DECISION_FINAL": "<required: true only after owner decision>",
+    "OWNER_DECISION_READY_FOR_INDEPENDENT_REVIEW": "<required: true only after owner decision>"
+  },
+  "minimum_coverage_boundary": {
+    "s1_minimum_coverage_gate_pass": true,
+    "s1_minimum_coverage_value": "0.900000",
+    "minimum_coverage_policy_is_data_quality_policy": false,
+    "s3_reporting_floor_identity": "MIN_COMPARABLE_ROWS_FOR_REPORTING",
+    "s3_reporting_floor_value": 10,
+    "s3_reporting_floor_is_data_quality_threshold": false,
+    "source_002_statistics_used_to_infer_data_quality_policy": false,
+    "boundary_note": "The accepted minimum-coverage policy and S3 reporting floor are not data-quality policy values."
+  },
+  "current_governance_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 1,
+    "current_canonical_gate_blocked_count": 16,
+    "s1_data_quality_thresholds_gate_pass": false,
+    "s1_remaining_05_complete": false,
+    "s1_overall_acceptance": false,
+    "remaining_blockers": [
+      "DATA_QUALITY_THRESHOLD",
+      "SOURCE_COHORT",
+      "SOURCE_INCLUSION",
+      "SOURCE_VISIBILITY",
+      "SOURCE_CUSTODY",
+      "METRIC_CONTRACT_FREEZE",
+      "TIME_ORDERED_SPLIT_FREEZE",
+      "HOLDOUT_FEASIBILITY",
+      "FINAL_INDEPENDENT_S1_ACCEPTANCE"
+    ],
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "v0_3_s2_started": false
+  },
+  "safety_and_non_authorizations": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "test_data_access": false,
+    "metric_execution": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false,
+    "source_authority_accepted": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "validation_contract": {
+    "required_decision_dimensions_count": 9,
+    "all_required_common_fields_present": true,
+    "owner_placeholders_preserved": true,
+    "candidate_value_is_null": true,
+    "accepted_value_is_null": true,
+    "unauthorized_policy_value_count": 0,
+    "minimum_coverage_boundary_separate": true,
+    "remaining_blocker_retained": true,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "owner_decision_request_prepared": true,
+    "owner_decision_issued": true,
+    "policy_independently_reviewed": false,
+    "owner_decision_comment_fetched": true,
+    "owner_decision_hash_replay": "PASS",
+    "owner_decision_payload_binding": "PASS",
+    "owner_decision_sha256_matches": true
+  },
+  "next_recommended_action": "RUN_PR222_DATA_QUALITY_OWNER_BINDING_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "next_gate": "S1_DATA_QUALITY_THRESHOLD_POLICY_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "next_gate_authorized": false
+}

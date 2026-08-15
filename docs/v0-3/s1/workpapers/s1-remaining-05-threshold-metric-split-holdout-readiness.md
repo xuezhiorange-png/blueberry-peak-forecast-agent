@@ -5,19 +5,19 @@
 TASK_ID=S1-REMAINING-05
 TASK_CLASS=DOCS_ONLY_DECISION_AND_POLICY_READINESS
 BASE_MAIN_SHA=0ed98ee8fa51601f939315a6cfc08e2b690e1bc1
-CURRENT_MAIN_REVALIDATED_SHA=e77aff78f74740dde0d9b0e612e661afb0e6e0db
+CURRENT_MAIN_REVALIDATED_SHA=7fd2c15f91f6dfad94178595845df389017d02b3
 READINESS_PACKAGE_ONLY=true
 NO_STEP_IMPLIES_THE_NEXT=true
 
 This package prepares decision and policy readiness for threshold, metric,
-split, and holdout work. The minimum-coverage policy is now issued and
-independently reviewed, and its standalone canonical gate is closed by the
-post-PR #219 closeout. This package still does not accept a metric contract,
+split, and holdout work. PR #219 issued and independently reviewed the
+minimum-coverage policy; PR #221 closed the standalone canonical
+S1-MINIMUM-COVERAGE gate. This package still does not accept a metric contract,
 accept a split, decide holdout feasibility, accept custody, complete
 Remaining-05, or authorize any later S1/S2 task.
 
-The authoritative runtime registry remains canonical; this closeout changes
-only the standalone minimum-coverage row:
+The authoritative runtime registry remains canonical; the PR #221 canonical
+closeout changed only the standalone minimum-coverage row:
 
 | State | Value |
 | --- | --- |
@@ -54,7 +54,7 @@ Authoritative inputs reviewed:
 | Domain | Current state | What this package does | What it does not do |
 | --- | --- | --- | --- |
 | Minimum coverage | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the owner policy, SHA, independent review, and exact-head CI | Does not execute coverage or close any downstream gate |
-| Data quality thresholds | DECISION_REQUIRED / gate BLOCKED | Enumerates the required policy dimensions | Does not derive policy from Source 002 statistics |
+| Data quality thresholds | OWNER_DECISION_ISSUED_REVIEW_REQUIRED / gate BLOCKED | Binds the authenticated owner policy and SHA | Does not independently review or accept the canonical gate |
 | Metric contract | PREPARED_NOT_ACCEPTED / gate BLOCKED | Binds the current version and canonical metric registry | Does not execute metrics or issue results |
 | Split policy | CANDIDATE_NOT_ACCEPTED / gate BLOCKED | Provides a versioned time-ordered candidate and partition purposes | Does not materialize any rowset or authorize TEST access |
 | Holdout feasibility | NOT_EVALUATED / gate BLOCKED | Provides feasibility criteria and conditional usage rules | Does not access or materialize external holdout data |
@@ -99,12 +99,14 @@ decision is bound by:
 
 No row count, farm count, subfarm count, variety count, or observed fixture
 distribution was treated as threshold authority. The minimum-coverage gate
-is the only Task05 domain closed by this closeout.
+is the only Task05 domain closed by the PR #221 canonical closeout.
 
-## 4. Data-quality threshold decision request
+## 4. Data-quality threshold owner decision binding
 
-No approved, versioned S1 data-quality policy is present. The decision owner
-is data_quality_owner_role. The decision must cover:
+The authenticated repository owner has issued a versioned S1 data-quality
+policy. The decision owner is `data_quality_owner_role`; the policy remains
+pending exact-head independent review and does not close the canonical gate.
+The bound decision covers:
 
 - missing-day policy;
 - missing-data proportion threshold;
@@ -119,16 +121,36 @@ is data_quality_owner_role. The decision must cover:
 | Field | Value |
 | --- | --- |
 | DECISION_ID | S1_DATA_QUALITY_THRESHOLD_POLICY |
-| CURRENT_STATUS | DECISION_REQUIRED |
+| CURRENT_STATUS | OWNER_DECISION_ISSUED |
 | CANDIDATE_VALUE | null |
 | ACCEPTED_VALUE | null |
-| EXTERNAL_DECISION_REQUIRED | true |
+| EXTERNAL_DECISION_REQUIRED | false |
 | CAN_BE_INFERRED | false |
 | CAN_BE_DECIDED_IN_CURRENT_TASK | false |
-| BLOCK_REASON | NO_APPROVED_VERSIONED_DATA_QUALITY_THRESHOLD_POLICY |
+| BLOCK_REASON | OWNER_DECISION_BOUND_PENDING_EXACT_HEAD_INDEPENDENT_REVIEW |
 
-The package deliberately contains no proposed numeric quality threshold and
-does not infer policy from Source 002 aggregate statistics.
+```text
+DATA_QUALITY_OWNER_DECISION_REQUEST_PREPARED=true
+OWNER_DECISION_ISSUED=true
+OWNER_DECISION_SOURCE=PR_222_COMMENT_5301040523
+OWNER_DECISION_COMMENT_ID=5301040523
+OWNER_IDENTITY=xuezhiorange-png
+OWNER_ROLE_ATTESTATION=I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE
+OWNER_PROVENANCE=AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-15
+DECIDED_AT=2026-08-15T14:54:00+08:00
+POLICY_VERSION=v0-3-s1-data-quality-threshold-policy-v1
+OWNER_DECISION_SHA256=11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_BINDING=PASS
+S1_DATA_QUALITY_THRESHOLDS_GATE_PASS=false
+OWNER_DECISION_REQUEST_ARTIFACT=docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json
+OWNER_DECISION_REQUEST_WORKPAPER=docs/v0-3/s1/workpapers/s1-data-quality-threshold-policy-decision-request.md
+```
+
+The machine-readable request artifact contains the exact issued owner payload
+and its canonical SHA-256 binding. The data-quality gate remains blocked until
+the exact-head independent review is completed. The policy is not inferred
+from Source 002 aggregate statistics.
 
 ## Remaining-05 completion boundary
 
@@ -149,8 +171,8 @@ REMAINING_BLOCKERS=(
 
 The minimum-coverage row is not included in this remaining-blocker list
 because its standalone gate is closed. The listed items were re-read after
-the PR #219 merge and remain unresolved; no downstream gate is promoted by
-this closeout.
+the PR #221 canonical closeout, following the PR #219 policy merge, and
+remain unresolved; no downstream gate is promoted by this package.
 
 ## 5. Metric contract freeze readiness
 
@@ -318,7 +340,7 @@ storage locator, credential, source row, or custody decision is created.
 | Decision ID | Gate | Current status | Owner | External decision | Candidate / accepted value | Remaining blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | S1_MINIMUM_COVERAGE_THRESHOLD_POLICY | S1-MINIMUM-COVERAGE | CLOSED_BY_INDEPENDENT_REVIEW | model_validation_owner_role | no | 0.900000 / 0.900000 | closed by owner decision, review `4937929668`, and exact-head CI `31806575112` |
-| S1_DATA_QUALITY_THRESHOLD_POLICY | S1-DATA-QUALITY-THRESHOLDS | DECISION_REQUIRED | data_quality_owner_role | yes | null / null | no approved quality policy |
+| S1_DATA_QUALITY_THRESHOLD_POLICY | S1-DATA-QUALITY-THRESHOLDS | OWNER_DECISION_ISSUED_REVIEW_REQUIRED | data_quality_owner_role | no | null / null | owner decision bound; exact-head independent review pending |
 | S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE | S1-METRIC-CONTRACT | PREPARED_NOT_ACCEPTED | model_validation_owner_role | yes | registry candidate / null | upstream prerequisites |
 | S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE | S1-SPLIT-POLICY | CANDIDATE_NOT_ACCEPTED | model_validation_owner_role | yes | v1 candidate / null | cohort, visibility, metric, custody |
 | S1_HOLDOUT_FEASIBILITY_DECISION | S1-HOLDOUT-FEASIBILITY | NOT_EVALUATED | model_validation_owner_role | yes | criteria only / null | upstream evidence and review |
@@ -333,7 +355,7 @@ S3 reporting floor 10 remains excluded from S1 threshold semantics.
 Task05 does not authorize execution of the following queue. It records the
 dependency order for later separately authorized work:
 
-1. resolve and independently review the S1 data-quality threshold policy;
+1. independently review the bound S1 data-quality threshold policy;
 2. complete source cohort, inclusion, visibility prerequisites, and custody
    review;
 3. freeze and independently review the metric contract;
