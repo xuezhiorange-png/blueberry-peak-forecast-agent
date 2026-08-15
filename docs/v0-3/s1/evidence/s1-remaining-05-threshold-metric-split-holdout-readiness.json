@@ -4,7 +4,7 @@
   "task_id": "S1-REMAINING-05",
   "task_class": "DOCS_ONLY_DECISION_AND_POLICY_READINESS",
   "base_main_sha": "0ed98ee8fa51601f939315a6cfc08e2b690e1bc1",
-  "current_main_revalidated_sha": "e77aff78f74740dde0d9b0e612e661afb0e6e0db",
+  "current_main_revalidated_sha": "7fd2c15f91f6dfad94178595845df389017d02b3",
   "status": "READINESS_PACKAGE_ONLY",
   "authorized": true,
   "no_step_implies_the_next": true,

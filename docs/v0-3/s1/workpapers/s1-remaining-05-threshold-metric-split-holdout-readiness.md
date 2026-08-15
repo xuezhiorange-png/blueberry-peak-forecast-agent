@@ -5,19 +5,19 @@
 TASK_ID=S1-REMAINING-05
 TASK_CLASS=DOCS_ONLY_DECISION_AND_POLICY_READINESS
 BASE_MAIN_SHA=0ed98ee8fa51601f939315a6cfc08e2b690e1bc1
-CURRENT_MAIN_REVALIDATED_SHA=e77aff78f74740dde0d9b0e612e661afb0e6e0db
+CURRENT_MAIN_REVALIDATED_SHA=7fd2c15f91f6dfad94178595845df389017d02b3
 READINESS_PACKAGE_ONLY=true
 NO_STEP_IMPLIES_THE_NEXT=true
 
 This package prepares decision and policy readiness for threshold, metric,
-split, and holdout work. The minimum-coverage policy is now issued and
-independently reviewed, and its standalone canonical gate is closed by the
-post-PR #219 closeout. This package still does not accept a metric contract,
+split, and holdout work. PR #219 issued and independently reviewed the
+minimum-coverage policy; PR #221 closed the standalone canonical
+S1-MINIMUM-COVERAGE gate. This package still does not accept a metric contract,
 accept a split, decide holdout feasibility, accept custody, complete
 Remaining-05, or authorize any later S1/S2 task.
 
-The authoritative runtime registry remains canonical; this closeout changes
-only the standalone minimum-coverage row:
+The authoritative runtime registry remains canonical; the PR #221 canonical
+closeout changed only the standalone minimum-coverage row:
 
 | State | Value |
 | --- | --- |
@@ -99,7 +99,7 @@ decision is bound by:
 
 No row count, farm count, subfarm count, variety count, or observed fixture
 distribution was treated as threshold authority. The minimum-coverage gate
-is the only Task05 domain closed by this closeout.
+is the only Task05 domain closed by the PR #221 canonical closeout.
 
 ## 4. Data-quality threshold decision request
 
@@ -155,8 +155,8 @@ REMAINING_BLOCKERS=(
 
 The minimum-coverage row is not included in this remaining-blocker list
 because its standalone gate is closed. The listed items were re-read after
-the PR #219 merge and remain unresolved; no downstream gate is promoted by
-this closeout.
+the PR #221 canonical closeout, following the PR #219 policy merge, and
+remain unresolved; no downstream gate is promoted by this package.
 
 ## 5. Metric contract freeze readiness
 
