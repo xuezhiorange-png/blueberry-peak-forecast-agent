@@ -5,7 +5,7 @@
 ```text
 WORKPAPER_ID=V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION
 TASK_CLASS=DOCS_ONLY_GOVERNANCE_RECONCILIATION
-AUDITED_REPOSITORY_SHA=e77aff78f74740dde0d9b0e612e661afb0e6e0db
+AUDITED_REPOSITORY_SHA=74a42136b29d6c43780f92c84e59fd6f8ac26558
 CANONICAL_GATE_COUNT=17
 CANONICAL_ACCEPTANCE_STATUS=BLOCKED
 CANONICAL_ACCEPTANCE_STATUS_MUTATION_ALLOWED=true
@@ -17,18 +17,19 @@ EXTERNAL_HOLDOUT_DATA_ACCESSED=false
 ```
 
 This workpaper reconciles current-main evidence against the existing
-authoritative S1 gate registry. The post-PR #219 closeout records the
-independently reviewed minimum-coverage policy as the sole currently passing
-gate. It does not accept S1, authorize S2, or read Source 002 raw rows. The current
-main artifact wins over historical PR descriptions when they differ; PR
-history is used only as provenance for already merged implementation work.
+authoritative S1 gate registry. The post-PR #221 and data-quality closeouts
+record the independently reviewed minimum-coverage and data-quality policies as
+the two currently passing gates. It does not accept S1, authorize S2, or read
+Source 002 raw rows. The current main artifact wins over historical PR
+descriptions when they differ; PR history is used only as provenance for
+already merged implementation work.
 
 The authoritative completion rule remains:
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_CANONICAL_GATE_PASS_COUNT=1
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=16
+CURRENT_CANONICAL_GATE_PASS_COUNT=2
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=15
 ALL_CANONICAL_RUNTIME_STATUS_BLOCKED=false
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
@@ -163,7 +164,7 @@ actual-label lifecycle, custody, and PIT workpapers under
 | `S1-SPLIT-POLICY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Time-ordering, no leakage, TEST seal, and custody rules are defined. | No accepted cohort/rowset and no final split artifact exist. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-METRIC-CONTRACT`; `S1-DATA-CUSTODY` | None | Prepare split/custody artifact after upstream acceptance. |
 | `S1-METRIC-CONTRACT` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Metric identities, S3 binding rules, and the independently reviewed minimum-coverage policy are defined. | Source/target/visibility/data-quality prerequisites and an accepted metric binding still prevent metric acceptance. | `S1-Q2C-TARGET`; `S1-SOURCE-AUTHORITY`; `S1-SOURCE-COHORT`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-QUALITY-THRESHOLDS` | None | Freeze metric contract after the remaining upstream authority decisions. |
 | `S1-MINIMUM-COVERAGE` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Versioned owner policy, SHA-256 binding, independent review `4937929668`, and exact-head CI `31806575112` are present. | None for this standalone gate; downstream metric/cohort prerequisites remain separate. | None | None | Revalidate Remaining-05 after the minimum-coverage gate closeout. |
-| `S1-DATA-QUALITY-THRESHOLDS` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | No threshold is inferred; contract and status are fail-closed. | Versioned quality policy and threshold decision are absent. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | None | Obtain and accept the S1 quality-threshold policy. |
+| `S1-DATA-QUALITY-THRESHOLDS` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Owner comment `5301040523`, versioned policy, payload hash, independent review `4943325699`, PR #222 head, CI `31872490353`, and merge `74a42136` are present. | None for this standalone gate; downstream metric/cohort prerequisites remain separate. | None | None | Revalidate Remaining-05 after the data-quality gate closeout. |
 | `S1-DATA-CUSTODY` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Versioned custody record, policy identities, hashes, access, retention, withdrawal, and void propagation are issued for review. | Independent custody review/acceptance is absent. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT` | Submit the issued custody record for independent review. |
 | `S1-HOLDOUT-FEASIBILITY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Feasibility rule and no-data boundary are clear; no TEST/holdout was accessed. | Accepted cohort, coverage, custody, split, and reviewed feasibility decision are absent. | `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-CUSTODY`; `S1-SPLIT-POLICY` | None | Prepare and review feasibility after prerequisites close. |
 | `S1-INDEPENDENT-REVIEW` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Registry has 17 required rows; review status is not started. | All required gate artifacts must close before independent S1 review. | All other 16 gates | None | Run final independent S1 acceptance review. |
