@@ -1,0 +1,87 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_V2_PACKAGE_CUSTODY_BINDING",
+  "artifact_version": "source-002-v2-package-custody-binding-v1",
+  "artifact_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "task": "SOURCE_002_V2_PACKAGE_APPROVED_DURABLE_STORAGE_BINDING",
+  "base_main_sha": "dcb1456489e753b6a03f58941bd635b97d61de58",
+  "binding_completed_at": "2026-08-15T22:01:00+08:00",
+  "storage_approval": {
+    "storage_class": "SEPARATELY_APPROVED_NON_GIT_DURABLE_STORAGE",
+    "storage_provider": "GOOGLE_DRIVE",
+    "approval_event": "EXPLICIT_USER_AUTHORIZATION_IN_GOVERNANCE_SESSION",
+    "approval_at": "2026-08-15T22:01:00+08:00",
+    "personal_identity_recorded": false
+  },
+  "package_identity": {
+    "package_id": "source-002-attestation-derived-values-v2-rederived",
+    "package_status": "PARTIAL_DERIVATION_MISSING_DAY_FORMULA_AUTHORITY",
+    "package_canonical_sha256": "9220ec20bd9d2fb3e466ad8936382327e045a4ba09df99a0f06d42b0aa5da19f",
+    "file_byte_count": 9944,
+    "file_bytes_sha256": "0ce08cf071816e80d6144337200d8fa1f1be0c7a76f025b78b79cf01829fcf59",
+    "raw_rows_in_package": false,
+    "full_identity_arrays_committed_to_git": false
+  },
+  "durable_storage_verification": {
+    "durable_external_copy_created": true,
+    "stored_mime_type": "application/json",
+    "provider_reported_file_size_bytes": 9944,
+    "provider_reported_shared": false,
+    "provider_reported_visibility": "not_shared",
+    "provider_created_at": "2026-08-15T14:00:55.009Z",
+    "provider_modified_at": "2026-08-15T14:00:55.009Z",
+    "raw_file_readback_performed": true,
+    "readback_file_size_bytes": 9944,
+    "readback_sha256": "0ce08cf071816e80d6144337200d8fa1f1be0c7a76f025b78b79cf01829fcf59",
+    "readback_exact_bytes_match": true
+  },
+  "custody_reference": {
+    "opaque_reference_id": "source-002-v2-package-custody-binding-v1",
+    "reference_status": "BOUND_TO_APPROVED_EXTERNAL_STORAGE",
+    "storage_locator_hash": "b8808e32eec032060894b9839dae7969bccad50ba4bf0c399fe19c5b16958eb9",
+    "storage_locator_hash_algorithm": "SHA256",
+    "storage_locator_hash_canonicalization": "UTF8(\"GOOGLE_DRIVE_FILE_ID:\" + PRIVATE_PROVIDER_FILE_ID)",
+    "plaintext_private_locator_in_git": false,
+    "provider_file_id_in_git": false,
+    "provider_url_in_git": false,
+    "credential_or_token_in_git": false
+  },
+  "binding_attestation": {
+    "binding_hash": "d11d2cae5e0e47e7b32c4dd9c625cfa5f00961e4c613ff7a08a9681a4407a6d2",
+    "binding_hash_algorithm": "SHA256",
+    "binding_hash_canonicalization": "UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE",
+    "binding_hash_scope": [
+      "binding_reference",
+      "storage_provider",
+      "storage_locator_hash",
+      "file_byte_count",
+      "file_bytes_sha256",
+      "package_canonical_sha256"
+    ],
+    "binding_hash_replay_from_recorded_non_sensitive_fields": "PASS_EXCEPT_PRIVATE_LOCATOR_HASH_PREIMAGE",
+    "private_locator_preimage_required_for_full_locator_replay": true
+  },
+  "custody_state": {
+    "approved_durable_storage_selected": true,
+    "durable_external_copy_created": true,
+    "durable_external_locator_resolved_out_of_band": true,
+    "opaque_reference_bound": true,
+    "handoff_complete": true,
+    "custody_binding_complete": true,
+    "independent_review_required": true,
+    "custody_binding_accepted": false
+  },
+  "governance_boundary": {
+    "historical_pr217_pr218_records_mutated": false,
+    "final_field_binding_authorized": false,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "source_authority_accepted": false,
+    "source_cohort_accepted": false,
+    "canonical_gate_status_changed": false,
+    "s1_remaining_05_complete": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "next_recommended_action": "RUN_EXACT_HEAD_INDEPENDENT_REVIEW_OF_SOURCE_002_V2_CUSTODY_BINDING"
+}
