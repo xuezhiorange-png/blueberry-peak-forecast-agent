@@ -1,0 +1,793 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_COHORT_FREEZE_READINESS",
+  "artifact_version": "source-cohort-freeze-readiness-v1",
+  "artifact_status": "BLOCKED_BY_UPSTREAM_SOURCE_AUTHORITY_AND_FINAL_MANIFEST_PREREQUISITES",
+  "task_id": "V0_3_S1_SOURCE_COHORT_FREEZE_READINESS_R1",
+  "task_class": "DOCS_ONLY_SOURCE_COHORT_FREEZE_READINESS_RECONCILIATION",
+  "base_main_sha": "0319e5d0efd6a781fb2fe8decd6909234f0ddd0f",
+  "source_cohort_gate_id": "S1-SOURCE-COHORT",
+  "owner_role": "data_governance_owner_role",
+  "authority_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "source_authority_acceptance_authorized": false,
+    "source_cohort_acceptance_authorized": false,
+    "final_manifest_creation_authorized": false,
+    "source_inclusion_closeout_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false
+  },
+  "current_canonical_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 2,
+    "current_canonical_gate_blocked_count": 15,
+    "pass_gate_ids": [
+      "S1-MINIMUM-COVERAGE",
+      "S1-DATA-QUALITY-THRESHOLDS"
+    ],
+    "source_authority_gate_status": "BLOCKED",
+    "source_cohort_gate_status": "BLOCKED",
+    "source_authority_accepted": false,
+    "source_cohort_accepted": false,
+    "source_cohort_canonical_gate_pass": false,
+    "s1_remaining_05_complete": false,
+    "s1_overall_acceptance": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false
+  },
+  "reviewed_authority_bindings": {
+    "pr_197": {
+      "decision_record": "source-authority-and-scope-business-owner-decision-v1",
+      "decision_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+      "independent_review_id": "4912212874",
+      "reviewed_head": "14593f7371a6b78ca3bb44719fef59ec05b7f876",
+      "review_result": "PASS",
+      "exact_head_ci_run": "31552851017",
+      "review_scope": [
+        "D-001..D-009 decision formalization",
+        "pending business-owner decisions=0",
+        "decision-record hash replay PASS"
+      ],
+      "does_not_prove": "SOURCE_AUTHORITY_ACCEPTED=true",
+      "source_authority_accepted": false
+    },
+    "pr_199": {
+      "decision_record": "source-002-cohort-grain-inclusion-revision-decision-v1",
+      "decision_record_sha256": "1d737e1a6e2ce3cfaebf1d3449af86a51572d58333cdc1cdfe397a570084f955",
+      "independent_review_id": "4912786743",
+      "reviewed_head": "32fe6ce50cdd090df8eaeb0d92008e5748f168c5",
+      "review_result": "PASS",
+      "exact_head_ci_run": "31559326898",
+      "review_scope": [
+        "CGR-001..006 PASS_AS_FORMALIZATION",
+        "canonical grain",
+        "July unmapped disposition",
+        "mapping/inclusion/revision formalization"
+      ],
+      "does_not_prove": "SOURCE_COHORT_ACCEPTED=true or FINAL_SOURCE_COHORT_MANIFEST_CREATED=true",
+      "source_cohort_accepted": false
+    },
+    "binding_validation": {
+      "pr197_review_binding": "PASS",
+      "pr199_review_binding": "PASS",
+      "source_authority_decision_sha_unchanged": true,
+      "task3_decision_sha_unchanged": true,
+      "historical_reviewed_artifact_hashes_mutated": false
+    }
+  },
+  "historical_state_reconciliation": {
+    "historical_state_superseded_by_reviewed_decision": true,
+    "preserve_historical_reviewed_artifacts": true,
+    "preserved_paths": [
+      "docs/v0-3/s1/evidence/source-authority-and-scope-business-owner-decision-record.json",
+      "docs/v0-3/s1/evidence/source-002-cohort-grain-inclusion-revision-decision-record.json",
+      "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+      "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+      "docs/v0-3/s1/evidence/source-002-custody-record.json",
+      "docs/v0-3/s1/evidence/source-cohort-manifest-candidate.json"
+    ],
+    "notes": [
+      "Historical PENDING/NO_APPROVED_MAPPING_FOUND fields are retained as provenance and are not treated as current authority.",
+      "PR #197 and PR #199 review evidence is bound here without mutating their hashed decision records.",
+      "The current-main readiness assessment is prospective and does not issue a final source-cohort manifest."
+    ]
+  },
+  "source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_owner_role": "农场数据负责人",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_byte_count": 28668416,
+    "source_row_count": 233171,
+    "schema_version": "observed-source-schema-v1",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "sheet_count": 4,
+    "candidate_cohort_id": "source-002-s1-cohort-v1",
+    "mapped_seasons": [
+      "2025~2026"
+    ],
+    "farm_count": 84,
+    "subfarm_count": 192,
+    "variety_count": 20,
+    "mapped_canonical_group_count": 529,
+    "farms_array_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+    "subfarms_array_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+    "varieties_array_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+    "coverage_scope_identity_package_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10"
+  },
+  "reviewed_dispositions": {
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "plot_supported": false,
+    "mapping_policy_version": "source-002-mapping-policy-v1",
+    "inclusion_policy_version": "source-002-inclusion-exclusion-boundary-v1",
+    "revision_policy_version": "source-002-idfl-revision-policy-v1",
+    "source_label_mode": "IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1",
+    "revision_winner_algorithm": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE",
+    "july_unmapped_date": "2025-07-22",
+    "july_unmapped_row_count": 2,
+    "july_unmapped_policy": "RETAIN_RAW_EXCLUDE_CANONICAL_COHORT_NO_SILENT_ASSIGNMENT",
+    "july_raw_rows_retained": true,
+    "july_canonical_s1_cohort_included": false,
+    "july_silent_season_assignment": false,
+    "known_business_exclusions": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"
+  },
+  "source_authority_prerequisite": {
+    "source_authority_accepted": false,
+    "formal_source_attestation_issued": false,
+    "attestation_status": "NOT_ISSUED",
+    "source_authority_prerequisite_required": true,
+    "source_authority_prerequisite_satisfied": false,
+    "source_cohort_hard_prerequisite_s1_source_authority_required": true,
+    "source_cohort_hard_prerequisite_s1_source_authority_satisfied": false,
+    "source_cohort_canonical_acceptance_allowed": false,
+    "missing_authorities": [
+      "final source-owner attestation",
+      "attestation version",
+      "attestation effective time",
+      "canonical attestation hash",
+      "source completeness authority/evidence",
+      "complete package acceptance"
+    ]
+  },
+  "policy_bindings": {
+    "visibility": {
+      "forecast_input_visibility_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+      "forecast_input_visibility_policy_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "forecast_input_visibility_policy_separated": true,
+      "actual_label_idfl_visibility_binding_proven": false,
+      "cohort_visibility_policy_binding_status": "NOT_YET_BOUND",
+      "source_002_actual_label_mode": "IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1",
+      "idfl_label_side_point_in_time_replay_required": false,
+      "source_object_completeness_authority_required": true,
+      "source_complete_through_business_date_required": true,
+      "source_object_bound_row_lineage_required": true,
+      "forecast_side_point_in_time_authority_required": true,
+      "evidence_path": "docs/v0-3/s1/evidence/forecast-input-pit-visibility-policy-v1.json",
+      "evidence_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "accepted": false,
+      "binding_status": "NOT_YET_BOUND",
+      "reason": "FORECAST_INPUT_POLICY_EXISTS_BUT_ACTUAL_LABEL_IDFL_COHORT_MANIFEST_DOMAIN_BINDING_IS_NOT_ESTABLISHED"
+    },
+    "split": {
+      "policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+      "evidence_path": "docs/v0-3/s1/evidence/s1-remaining-05-threshold-metric-split-holdout-readiness.json",
+      "evidence_status": "CANDIDATE_NOT_ACCEPTED",
+      "accepted": false,
+      "binding_status": "AVAILABLE_CANDIDATE"
+    },
+    "business_dates": {
+      "evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-derived-package-controlled-rederivation-execution.json",
+        "docs/v0-3/s1/evidence/source-002-scope-and-date-final-field-binding-readiness.json"
+      ],
+      "status": "READY_NOT_ACCEPTED",
+      "canonical_s1_scope_start": "2025-08-05",
+      "canonical_s1_scope_end": "2026-04-16",
+      "first_harvest_business_date": "2025-08-05",
+      "last_harvest_business_date": "2026-04-16",
+      "coverage_end_is_completeness_watermark": false,
+      "source_complete_through_business_date": "NOT_ISSUED"
+    },
+    "custody": {
+      "evidence_path": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+      "record_reference": "source-002-custody-record-v1",
+      "record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "custody_record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+      "accepted": false,
+      "binding_status": "NOT_YET_BOUND"
+    }
+  },
+  "schema_contract": {
+    "schema_path": "docs/v0-3/s1/schemas/source-cohort-manifest.schema.json",
+    "top_level_required_field_count": 36,
+    "nested_required_field_count": 29,
+    "required_field_matrix": [
+      {
+        "path": "manifest_version",
+        "status": "AVAILABLE_CANDIDATE",
+        "current_value": "source-002-cohort-manifest-candidate-v1",
+        "accepted": false,
+        "reason": "Candidate version only; final manifest version is not issued."
+      },
+      {
+        "path": "cohort_id",
+        "status": "AVAILABLE_CANDIDATE",
+        "current_value": "source-002-s1-cohort-v1",
+        "accepted": false,
+        "reason": "Candidate cohort identity only; accepted cohort identity is not issued."
+      },
+      {
+        "path": "source_system",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "扫码称重系统",
+        "accepted": false,
+        "reason": "Bound in PR #199 formalization; source authority remains unaccepted."
+      },
+      {
+        "path": "source_dataset",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "田间商品果每日采摘净重汇总",
+        "accepted": false,
+        "reason": "Bound in PR #199 formalization; source authority remains unaccepted."
+      },
+      {
+        "path": "source_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "scan-weight-export:v0_3_s1:002",
+        "accepted": false,
+        "reason": "Reviewed source identity; not an accepted attestation."
+      },
+      {
+        "path": "schema_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "observed-source-schema-v1",
+        "accepted": false,
+        "reason": "Reviewed source identity; not an accepted attestation."
+      },
+      {
+        "path": "schema_hash",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+        "accepted": false,
+        "reason": "Reviewed source schema identity; not an accepted attestation."
+      },
+      {
+        "path": "source_snapshot_reference",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "snapshot:v0_3_s1:002",
+        "accepted": false,
+        "reason": "Reviewed opaque snapshot identity; not an accepted attestation."
+      },
+      {
+        "path": "source_owner_role",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "农场数据负责人",
+        "accepted": false,
+        "reason": "Role is identified; owner attestation is not issued."
+      },
+      {
+        "path": "attestation_version",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": null,
+        "accepted": false,
+        "reason": "Final source-owner attestation version is not issued."
+      },
+      {
+        "path": "attestation_effective_at",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": null,
+        "accepted": false,
+        "reason": "Final source-owner attestation event time is not issued."
+      },
+      {
+        "path": "effective_time",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": {
+          "effective_from": "2024-08-01T00:00:00+08:00",
+          "effective_to_or_open_ended": "OPEN_ENDED",
+          "authority_timezone": "Asia/Shanghai"
+        },
+        "accepted": false,
+        "reason": "Candidate authority applicability is not accepted without final attestation."
+      },
+      {
+        "path": "attestation_status",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": "NOT_ISSUED",
+        "accepted": false,
+        "reason": "Contract requires ATTESTED before source authority acceptance."
+      },
+      {
+        "path": "attestation_hash",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": null,
+        "accepted": false,
+        "reason": "Canonical final attestation hash is not issued."
+      },
+      {
+        "path": "coverage_scope",
+        "status": "MISSING_GOVERNED_VALUE",
+        "current_value": "aggregate counts/hashes plus reviewed date bounds; concrete arrays are not in Git",
+        "accepted": false,
+        "reason": "Schema requires concrete arrays and final scope binding."
+      },
+      {
+        "path": "revision_policy",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
+        "accepted": false,
+        "nested_readiness": [
+          "revision_policy.revision_policy_version",
+          "revision_policy.revision_policy_identity",
+          "revision_policy.winner_and_lineage_rule"
+        ],
+        "reason": "NO_GOVERNED_SCHEMA_VALID_OPAQUE_REVISION_POLICY_IDENTITY_HAS_BEEN_ISSUED"
+      },
+      {
+        "path": "withdrawal_and_void_policy",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
+        "accepted": false,
+        "nested_readiness": [
+          "withdrawal_and_void_policy.withdrawal_policy_version",
+          "withdrawal_and_void_policy.void_propagation_policy_version",
+          "withdrawal_and_void_policy.withdrawal_status_rule",
+          "withdrawal_and_void_policy.void_status_rule"
+        ],
+        "reason": "Policy version identities exist, but withdrawal_status_rule and void_status_rule are not final-bound; the schema-required parent object cannot be represented as a complete current value."
+      },
+      {
+        "path": "known_exclusions",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": [
+          "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"
+        ],
+        "accepted": false,
+        "reason": "Reviewed disposition; not a source-cohort acceptance."
+      },
+      {
+        "path": "mapping_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-mapping-policy-v1",
+        "accepted": false,
+        "reason": "PR #199 formalization candidate; formal accepted mapping is not issued."
+      },
+      {
+        "path": "visibility_policy_version",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
+        "accepted": false,
+        "supporting_forecast_input_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+        "reason": "FORECAST_INPUT_POLICY_EXISTS_BUT_ACTUAL_LABEL_IDFL_COHORT_MANIFEST_DOMAIN_BINDING_IS_NOT_ESTABLISHED"
+      },
+      {
+        "path": "inclusion_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-inclusion-exclusion-boundary-v1",
+        "accepted": false,
+        "reason": "PR #199 formalization candidate; final cohort binding is not issued."
+      },
+      {
+        "path": "revision_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-idfl-revision-policy-v1",
+        "accepted": false,
+        "reason": "PR #199 formalization candidate; final cohort binding is not issued."
+      },
+      {
+        "path": "split_policy_version",
+        "status": "AVAILABLE_CANDIDATE",
+        "current_value": "v0-3-s1-time-ordered-split-policy-v1",
+        "accepted": false,
+        "reason": "Task-05 candidate only; split policy is not frozen/accepted."
+      },
+      {
+        "path": "grain",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+        "accepted": false,
+        "reason": "PR #199 formalized CGR-003; final cohort acceptance remains blocked."
+      },
+      {
+        "path": "plot_supported",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": false,
+        "accepted": false,
+        "reason": "PR #199 formalized false; final cohort acceptance remains blocked."
+      },
+      {
+        "path": "source_object_identity_hashes",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": [
+          {
+            "object_role": "RAW_SOURCE_AUTHORITY_REFERENCE",
+            "immutable_reference": "snapshot:v0_3_s1:002",
+            "object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+            "storage_locator_hash": "NOT_APPLICABLE"
+          },
+          {
+            "object_role": "SOURCE_SCHEMA_REFERENCE",
+            "immutable_reference": "observed-source-schema-v1",
+            "object_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+            "storage_locator_hash": "NOT_APPLICABLE"
+          },
+          {
+            "object_role": "SOURCE_MAPPING_REFERENCE",
+            "immutable_reference": "source-002-coverage-scope-entity-identities-preparation",
+            "object_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+            "storage_locator_hash": "NOT_APPLICABLE"
+          }
+        ],
+        "accepted": false,
+        "reason": "Identity evidence is reviewed; source authority/custody acceptance is pending."
+      },
+      {
+        "path": "declared_source_row_count",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": 233171,
+        "accepted": false,
+        "reason": "Declared source metadata only; it does not freeze a final rowset."
+      },
+      {
+        "path": "declared_source_byte_count",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": 28668416,
+        "accepted": false,
+        "reason": "Declared source metadata only; it does not freeze a final rowset."
+      },
+      {
+        "path": "custody_record",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
+        "accepted": false,
+        "evidence_reference": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "reason": "Exact nested custody values are available in the governed record, but the complete custody object is not yet bound to an accepted final cohort manifest."
+      },
+      {
+        "path": "manifest_hash",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": null,
+        "accepted": false,
+        "reason": "Final cohort manifest has not been issued, so no manifest hash exists."
+      },
+      {
+        "path": "S1_FREEZES_SOURCE_COHORT_IDENTITY",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": true,
+        "accepted": false,
+        "reason": "Schema boundary is reviewed; this artifact does not mutate runtime gate state."
+      },
+      {
+        "path": "S1_FREEZES_FINAL_CLEAN_ROWSET",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": false,
+        "accepted": false,
+        "reason": "S1/S2 ownership boundary is reviewed; final clean rowset is not frozen here."
+      },
+      {
+        "path": "S2_OWNS_FINAL_MATERIALIZED_ROWSET",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": true,
+        "accepted": false,
+        "reason": "S1/S2 ownership boundary is reviewed; S2 remains unauthorized."
+      },
+      {
+        "path": "SOURCE_ROW_COUNT_IS_DECLARED_SOURCE_METADATA",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": true,
+        "accepted": false,
+        "reason": "Contract boundary is reviewed."
+      },
+      {
+        "path": "SOURCE_ROW_COUNT_IS_NOT_S2_ACCEPTED_ROW_COUNT",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": true,
+        "accepted": false,
+        "reason": "Contract boundary is reviewed."
+      },
+      {
+        "path": "SOURCE_ROW_COUNT_DOES_NOT_FREEZE_FINAL_ROWSET",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": true,
+        "accepted": false,
+        "reason": "Contract boundary is reviewed."
+      }
+    ],
+    "nested_required_field_matrix": [
+      {
+        "path": "coverage_scope.seasons",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": [
+          "2025~2026"
+        ],
+        "accepted": false,
+        "reason": "PR #199 reviewed mapped season identity; not accepted."
+      },
+      {
+        "path": "coverage_scope.farms",
+        "status": "MISSING_GOVERNED_VALUE",
+        "current_value": "count=84; sha256=2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381; concrete_array_in_git=false",
+        "accepted": false,
+        "reason": "Schema requires a concrete string array; counts/hash cannot substitute."
+      },
+      {
+        "path": "coverage_scope.subfarms",
+        "status": "MISSING_GOVERNED_VALUE",
+        "current_value": "count=192; sha256=921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13; concrete_array_in_git=false",
+        "accepted": false,
+        "reason": "Schema requires a concrete string array; counts/hash cannot substitute."
+      },
+      {
+        "path": "coverage_scope.varieties",
+        "status": "MISSING_GOVERNED_VALUE",
+        "current_value": "count=20; sha256=fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209; concrete_array_in_git=false",
+        "accepted": false,
+        "reason": "Schema requires a concrete string array; counts/hash cannot substitute."
+      },
+      {
+        "path": "coverage_scope.business_date_start",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "2025-08-05",
+        "accepted": false,
+        "reason": "Current-main rederivation evidence; not a completeness watermark or final attestation."
+      },
+      {
+        "path": "coverage_scope.business_date_end",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "2026-04-16",
+        "accepted": false,
+        "reason": "Current-main rederivation evidence; not SOURCE_COMPLETE_THROUGH date."
+      },
+      {
+        "path": "coverage_scope.known_scope_boundaries",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
+        "accepted": false,
+        "supporting_evidence": [
+          "2025-07-22 raw retained and excluded from the canonical cohort",
+          "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+          "coverage end is not a completeness watermark"
+        ],
+        "reason": "The governing boundary facts exist, but no schema-ready exact string array is bound for coverage_scope.known_scope_boundaries."
+      },
+      {
+        "path": "revision_policy.revision_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-idfl-revision-policy-v1",
+        "accepted": false,
+        "reason": "Formalized in PR #199; not accepted into a final manifest."
+      },
+      {
+        "path": "revision_policy.revision_policy_identity",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
+        "accepted": false,
+        "supporting_evidence": [
+          "IDFL_V1 source-object-bound label-side disposition"
+        ],
+        "reason": "NO_GOVERNED_SCHEMA_VALID_OPAQUE_REVISION_POLICY_IDENTITY_HAS_BEEN_ISSUED"
+      },
+      {
+        "path": "revision_policy.winner_and_lineage_rule",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE",
+        "accepted": false,
+        "reason": "Formalized disposition; source authority/completeness remains blocked."
+      },
+      {
+        "path": "withdrawal_and_void_policy.withdrawal_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-withdrawal-policy-v1",
+        "accepted": false,
+        "reason": "Candidate policy identity; final binding pending."
+      },
+      {
+        "path": "withdrawal_and_void_policy.void_propagation_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-void-propagation-policy-v1",
+        "accepted": false,
+        "reason": "Candidate policy identity; final binding pending."
+      },
+      {
+        "path": "withdrawal_and_void_policy.withdrawal_status_rule",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": "not final-bound",
+        "accepted": false,
+        "reason": "Final source authority/attestation is not issued."
+      },
+      {
+        "path": "withdrawal_and_void_policy.void_status_rule",
+        "status": "BLOCKED_UPSTREAM_AUTHORITY",
+        "current_value": "not final-bound",
+        "accepted": false,
+        "reason": "Final source authority/attestation is not issued."
+      },
+      {
+        "path": "custody_record.custody_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-custody-policy-v1",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.storage_type",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "ENTERPRISE_SERVER",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.access_owner_role",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "IT_DEPARTMENT_AUTHORIZED_DATA_ACCESS_ADMINISTRATOR",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.source_owner_role",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "农场数据负责人",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.approved_usage_purpose",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "ACTUAL_HARVEST_LABEL_GOVERNANCE_AND_BLUEBERRY_FORECAST_MODEL_EVALUATION",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.least_privilege_scope",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "READ_ONLY_ACCESS_TO_SOURCE_002_FOR_APPROVED_BLUEBERRY_FORECAST_PURPOSES",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.authorized_role_set",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": [
+          "IT_DATA_ACCESS_ADMINISTRATOR",
+          "BLUEBERRY_FORECAST_PROJECT_AUTHORIZED_OPERATOR",
+          "INDEPENDENT_REVIEWER_WHEN_ACCESS_IS_EXPLICITLY_REQUIRED"
+        ],
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.credential_reference_policy",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "NO_CREDENTIAL_TOKEN_PRIVATE_URL_OR_PLAINTEXT_STORAGE_LOCATOR_IN_GIT",
+        "accepted": false,
+        "reason": "No locator or credential is committed."
+      },
+      {
+        "path": "custody_record.retention_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-retention-policy-v1",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.retention_period_or_rule",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "RETAIN_WHILE_SOURCE_OBJECT_SUPPORTS_AN_ACTIVE_OR_REPRODUCIBLE_FORECAST_EVIDENCE_LINEAGE",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.withdrawal_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-withdrawal-policy-v1",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.void_propagation_policy_version",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "source-002-void-propagation-policy-v1",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.downstream_propagation_targets",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": [
+          "SOURCE_AUTHORITY_ATTESTATION",
+          "SOURCE_COHORT_MANIFEST",
+          "FUTURE_SPLIT_ARTIFACTS",
+          "FUTURE_SNAPSHOT_MANIFESTS",
+          "S1_ACCEPTANCE_RECORD"
+        ],
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.external_object_binding_hash",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      },
+      {
+        "path": "custody_record.custody_record_hash",
+        "status": "READY_NOT_ACCEPTED",
+        "current_value": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+        "accepted": false,
+        "reason": "Custody record issued for independent review only."
+      }
+    ],
+    "top_level_status_counts": {
+      "AVAILABLE_CANDIDATE": 3,
+      "READY_NOT_ACCEPTED": 23,
+      "BLOCKED_UPSTREAM_AUTHORITY": 5,
+      "MISSING_GOVERNED_VALUE": 1,
+      "NOT_YET_BOUND": 4
+    },
+    "concrete_array_requirement": {
+      "farms": true,
+      "subfarms": true,
+      "varieties": true,
+      "counts_and_sha256_cannot_substitute": true,
+      "concrete_array_available_in_git": false,
+      "coverage_scope_concrete_array_requirement_blocked": true
+    }
+  },
+  "readiness_summary": {
+    "final_manifest_schema_ready": false,
+    "final_manifest_issuance_ready": false,
+    "source_cohort_final_manifest_created": false,
+    "source_cohort_accepted": false,
+    "source_cohort_gate_pass": false,
+    "coverage_scope_concrete_array_requirement_blocked": true,
+    "business_date_bounds_status": "READY_NOT_ACCEPTED",
+    "visibility_policy_binding_status": "NOT_YET_BOUND",
+    "split_policy_binding_status": "AVAILABLE_CANDIDATE",
+    "custody_binding_status": "NOT_YET_BOUND",
+    "data_governance_owner_acceptance_required": true,
+    "source_completeness_declaration_issued": false,
+    "source_complete_through_business_date": "NOT_ISSUED"
+  },
+  "blockers": {
+    "primary": "SOURCE_AUTHORITY_NOT_ACCEPTED",
+    "secondary": [
+      "FINAL_SOURCE_ATTESTATION_NOT_ISSUED",
+      "SOURCE_COMPLETENESS_AUTHORITY_AND_EVIDENCE_NOT_ISSUED",
+      "COVERAGE_SCOPE_CONCRETE_ARRAYS_NOT_BOUND_TO_SCHEMA_VALID_MANIFEST",
+      "ACTUAL_LABEL_IDFL_VISIBILITY_POLICY_NOT_BOUND_TO_COHORT_MANIFEST",
+      "SPLIT_POLICY_CANDIDATE_NOT_ACCEPTED_OR_BOUND_TO_COHORT_MANIFEST",
+      "SOURCE_CUSTODY_RECORD_NOT_ACCEPTED",
+      "FINAL_COHORT_MANIFEST_VERSION_AND_HASH_NOT_ISSUED"
+    ],
+    "data_governance_owner_acceptance_required": true
+  },
+  "validation_contract": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "metric_execution": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "historical_reviewed_artifact_hashes_mutated": false,
+    "revision_policy_identity_governed_opaque_reference_found": false
+  },
+  "next_recommended_action": "RUN_SOURCE_COHORT_FREEZE_READINESS_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "no_step_implies_the_next": true
+}
