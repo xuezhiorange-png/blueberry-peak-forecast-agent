@@ -114,7 +114,7 @@ Still missing are the final source-owner attestation version, attestation effect
 | `attestation_status` | `BLOCKED_UPSTREAM_AUTHORITY` | NOT_ISSUED | Contract requires ATTESTED before source authority acceptance. |
 | `attestation_hash` | `BLOCKED_UPSTREAM_AUTHORITY` | `null` | Canonical final attestation hash is not issued. |
 | `coverage_scope` | `MISSING_GOVERNED_VALUE` | aggregate counts/hashes plus reviewed date bounds; concrete arrays are not in Git | Schema requires concrete arrays and final scope binding. |
-| `revision_policy` | `READY_NOT_ACCEPTED` | `{"revision_policy_version":"source-002-idfl-revision-policy-v1","revision_policy_identity":"IDFL_V1 source-object-bound label-side disposition","winner_and_lineage_rule":"NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"}` | Formalized/reviewed, but not bound into an accepted final manifest. |
+| `revision_policy` | `NOT_YET_BOUND` | `null` | `NO_GOVERNED_SCHEMA_VALID_OPAQUE_REVISION_POLICY_IDENTITY_HAS_BEEN_ISSUED`; version and winner/lineage evidence remain in nested readiness. |
 | `withdrawal_and_void_policy` | `NOT_YET_BOUND` | `null` | Policy version identities exist, but `withdrawal_status_rule` and `void_status_rule` are not final-bound; the schema-required parent object cannot be represented as a complete current value. |
 | `known_exclusions` | `READY_NOT_ACCEPTED` | `["NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"]` | Reviewed disposition; not a source-cohort acceptance. |
 | `mapping_policy_version` | `READY_NOT_ACCEPTED` | source-002-mapping-policy-v1 | PR #199 formalization candidate; formal accepted mapping is not issued. |
@@ -148,7 +148,7 @@ Still missing are the final source-owner attestation version, attestation effect
 | `coverage_scope.business_date_end` | `READY_NOT_ACCEPTED` | 2026-04-16 | Current-main rederivation evidence; not SOURCE_COMPLETE_THROUGH date. |
 | `coverage_scope.known_scope_boundaries` | `NOT_YET_BOUND` | `null` | Supporting evidence: 2025-07-22 raw retained/excluded; no known business exclusions; end is not a watermark. No schema-ready exact string array is bound. |
 | `revision_policy.revision_policy_version` | `READY_NOT_ACCEPTED` | source-002-idfl-revision-policy-v1 | Formalized in PR #199; not accepted into a final manifest. |
-| `revision_policy.revision_policy_identity` | `READY_NOT_ACCEPTED` | IDFL_V1 source-object-bound label-side disposition | Formalized in PR #199; not accepted into a final manifest. |
+| `revision_policy.revision_policy_identity` | `NOT_YET_BOUND` | `null` | Supporting evidence: IDFL_V1 source-object-bound label-side disposition. `NO_GOVERNED_SCHEMA_VALID_OPAQUE_REVISION_POLICY_IDENTITY_HAS_BEEN_ISSUED`. |
 | `revision_policy.winner_and_lineage_rule` | `READY_NOT_ACCEPTED` | NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE | Formalized disposition; source authority/completeness remains blocked. |
 | `withdrawal_and_void_policy.withdrawal_policy_version` | `READY_NOT_ACCEPTED` | source-002-withdrawal-policy-v1 | Candidate policy identity; final binding pending. |
 | `withdrawal_and_void_policy.void_propagation_policy_version` | `READY_NOT_ACCEPTED` | source-002-void-propagation-policy-v1 | Candidate policy identity; final binding pending. |
@@ -172,12 +172,12 @@ Still missing are the final source-owner attestation version, attestation effect
 
 Top-level status counts are:
 - `AVAILABLE_CANDIDATE`: 3
-- `READY_NOT_ACCEPTED`: 24
+- `READY_NOT_ACCEPTED`: 23
 - `BLOCKED_UPSTREAM_AUTHORITY`: 5
 - `MISSING_GOVERNED_VALUE`: 1
-- `NOT_YET_BOUND`: 3
+- `NOT_YET_BOUND`: 4
 
-The 36 top-level rows reconcile exactly: `3 + 24 + 5 + 1 + 3 = 36`. The nested required-field matrix contains 29 rows. Every `READY_NOT_ACCEPTED` row carries an exact schema-valid governed value and JSON type; incomplete schema-required parent objects are `NOT_YET_BOUND` with `current_value=null` and nested evidence retained separately.
+The 36 top-level rows reconcile exactly: `3 + 23 + 5 + 1 + 4 = 36`. The nested required-field matrix contains 29 rows. Every `READY_NOT_ACCEPTED` row carries an exact schema-valid governed value, JSON type, and schema constraint parity; incomplete schema-required parent objects are `NOT_YET_BOUND` with `current_value=null` and nested evidence retained separately.
 
 ## 7. Policy bindings and date scope
 
@@ -194,10 +194,15 @@ The 36 top-level rows reconcile exactly: `3 + 24 + 5 + 1 + 3 = 36`. The nested r
 
 ```text
 GLOBAL_READY_FIELD_SCHEMA_TYPE_PARITY=PASS
+GLOBAL_READY_FIELD_SCHEMA_VALIDATION=PASS
+GLOBAL_READY_FIELD_SCHEMA_CONSTRAINT_PARITY=PASS
 GLOBAL_READY_FIELD_EXACT_VALUE_PARITY=PASS
 READY_FIELD_PROSE_PLACEHOLDER_COUNT=0
+READY_FIELD_SCHEMA_PATTERN_VIOLATION_COUNT=0
 TOP_LEVEL_STATUS_COUNT_SUM=36
 NESTED_REQUIRED_FIELD_COUNT=29
+REVISION_POLICY_IDENTITY_GOVERNED_OPAQUE_REFERENCE_FOUND=false
+REVISION_POLICY_BINDING_STATUS=NOT_YET_BOUND
 FORECAST_INPUT_VISIBILITY_POLICY_VERSION=v0-3-s1-forecast-input-pit-visibility-v1
 FORECAST_INPUT_VISIBILITY_POLICY_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
 FORECAST_INPUT_VISIBILITY_POLICY_SEPARATED=true
