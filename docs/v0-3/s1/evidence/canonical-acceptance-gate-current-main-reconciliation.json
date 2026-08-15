@@ -2,23 +2,23 @@
   "artifact_id": "V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION",
   "artifact_version": "canonical-s1-gate-reconciliation-v2",
   "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION",
-  "audited_repository_sha": "5b3f4ee1ac7e25698b4ef54ab9a2915323e5317d",
+  "audited_repository_sha": "e77aff78f74740dde0d9b0e612e661afb0e6e0db",
   "canonical_gate_count": 17,
   "canonical_completion_rule": "ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS",
   "canonical_acceptance_status": "BLOCKED",
-  "current_canonical_gate_pass_count": 0,
-  "current_canonical_gate_blocked_count": 17,
-  "canonical_acceptance_status_mutation_allowed": false,
+  "current_canonical_gate_pass_count": 1,
+  "current_canonical_gate_blocked_count": 16,
+  "canonical_acceptance_status_mutation_allowed": true,
   "s1_acceptance_issuance_allowed": false,
   "reconciled_gate_count": 17,
   "unique_gate_id_count": 17,
   "missing_gate_count": 0,
   "duplicate_gate_count": 0,
-  "all_canonical_runtime_status_blocked": true,
+  "all_canonical_runtime_status_blocked": false,
   "pit_minimum_implementation_gap_count": 4,
   "pit_gaps_treated_as_s1_total_remaining_tasks": false,
-  "authoritative_acceptance_record_changed": false,
-  "canonical_gate_status_changed": false,
+  "authoritative_acceptance_record_changed": true,
+  "canonical_gate_status_changed": true,
   "source_002_read": false,
   "real_business_data_read": false,
   "test_data_accessed": false,
@@ -41,9 +41,9 @@
   "current_main_artifact_wins": true,
   "historical_pr_history_is_provenance_only": true,
   "gate_class_counts": {
-    "FORMALIZATION_OR_REVIEW_READY": 3,
+    "FORMALIZATION_OR_REVIEW_READY": 4,
     "NARROW_CORRECTION_REQUIRED": 1,
-    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 7,
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 6,
     "UPSTREAM_DEPENDENCY_BLOCKED": 6
   },
   "dependency_semantics": {
@@ -603,12 +603,12 @@
       ],
       "supporting_evidence_facts": [
         "Metric identities, status semantics, Decimal rules, and the S2 daily-rowset dependency are defined in current contracts.",
-        "The S1 metric contract explicitly remains blocked by missing source authority and required rowset/threshold prerequisites.",
-        "No accepted source, Q2C target, visibility package, or S1 threshold decision is available for a closed metric contract."
+        "The S1 minimum-coverage policy is now independently reviewed and accepted as its standalone gate; the metric contract remains blocked by the other source, target, visibility, rowset, and data-quality prerequisites.",
+        "No accepted source, Q2C target, visibility package, or S1 metric binding record is available for a closed metric contract."
       ],
       "missing_authoritative_artifacts": [
         "Accepted S1 metric binding record/version",
-        "Source/target/visibility prerequisites and threshold references"
+        "Source/target/visibility prerequisites and data-quality policy"
       ],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
@@ -629,46 +629,44 @@
     },
     {
       "gate_id": "S1-MINIMUM-COVERAGE",
-      "canonical_runtime_status": "BLOCKED",
-      "canonical_block_reason": "MINIMUM_COVERAGE_NOT_FROZEN",
+      "canonical_runtime_status": "PASS",
+      "canonical_block_reason": "NONE",
       "gate_class": "metrics",
       "owner_role": "model_validation_owner_role",
       "authoritative_artifact": "coverage threshold decision record",
       "acceptance_threshold_source": "S3 contract and approved threshold record",
-      "acceptance_threshold": "THRESHOLD_VERSION_AND_PROVENANCE_PRESENT",
+      "acceptance_threshold": "S3_COVERAGE_RATIO_GREATER_THAN_OR_EQUAL_0.900000_PER_APPLICATION_CELL",
       "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/s1-minimum-coverage-threshold-policy-decision.json",
         "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
         "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
         "docs/forecast-quality/s3-quality-metrics-contract.md",
-        "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
+        "docs/v0-3/s1/evidence/s1-acceptance-record.json"
       ],
       "supporting_evidence_facts": [
-        "No approved S1 minimum-coverage threshold, value, policy version, or artifact hash is present.",
+        "The owner decision fixes policy version v0-3-s1-minimum-coverage-threshold-v1, S3_COVERAGE_RATIO, GREATER_THAN_OR_EQUAL, 0.900000, and RATIO_0_TO_1.",
+        "The decision fixes the application grain/scope, exact-cell denominator, zero-denominator fail-closed semantics, horizon policy, and partition policy.",
+        "Owner decision SHA a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692 was payload-replayed and independently reviewed under review 4937929668 on head 5775e908cfe072fa962c99e822901b7157128418; exact-head CI run 31806575112 succeeded.",
         "MIN_COMPARABLE_ROWS_FOR_REPORTING=10 is explicitly an S3 reporting floor, not an S1 threshold.",
         "Source counts and scope counts are descriptive evidence and cannot be used to infer a coverage threshold."
       ],
-      "missing_authoritative_artifacts": [
-        "Approved, versioned S1 minimum-coverage threshold decision",
-        "Threshold provenance and hash"
-      ],
-      "missing_decisions_or_authorities": [
-        "Model-validation/data-governance decision on the S1 coverage threshold"
-      ],
+      "missing_authoritative_artifacts": [],
+      "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
-      "reconciliation_reason": "The threshold value is genuinely absent; it cannot be inferred from Source 002 row counts or the S3 reporting floor.",
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "The versioned owner policy, payload hash, exact-head CI, and independent review are complete; this closeout records the standalone canonical gate as PASS without changing any downstream gate.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
-      "requires_validation_policy_decision": true,
+      "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
       "requires_docs_formalization": true,
-      "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-COHORT"],
+      "requires_independent_review": false,
+      "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
-      "can_be_formalized_without_new_business_fact": false,
-      "can_be_closed_by_current_task": false,
-      "recommended_next_action": "OBTAIN_AND_ACCEPT_VERSIONED_S1_MINIMUM_COVERAGE_THRESHOLD_DECISION",
-      "recommended_action_class": "VALIDATION_POLICY_DECISION"
+      "can_be_formalized_without_new_business_fact": true,
+      "can_be_closed_by_current_task": true,
+      "recommended_next_action": "REVALIDATE_REMAINING_05_AFTER_MINIMUM_COVERAGE_GATE_CLOSEOUT",
+      "recommended_action_class": "GOVERNANCE_FORMALIZATION"
     },
     {
       "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
