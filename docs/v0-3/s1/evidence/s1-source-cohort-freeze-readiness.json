@@ -200,7 +200,7 @@
       "record_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
       "custody_record_hash": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
       "accepted": false,
-      "binding_status": "READY_NOT_ACCEPTED"
+      "binding_status": "NOT_YET_BOUND"
     }
   },
   "schema_contract": {
@@ -288,7 +288,11 @@
       {
         "path": "effective_time",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "2024-08-01T00:00:00+08:00 / OPEN_ENDED / Asia/Shanghai",
+        "current_value": {
+          "effective_from": "2024-08-01T00:00:00+08:00",
+          "effective_to_or_open_ended": "OPEN_ENDED",
+          "authority_timezone": "Asia/Shanghai"
+        },
         "accepted": false,
         "reason": "Candidate authority applicability is not accepted without final attestation."
       },
@@ -316,21 +320,33 @@
       {
         "path": "revision_policy",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "source-002-idfl-revision-policy-v1; IDFL label-side winner disposition",
+        "current_value": {
+          "revision_policy_version": "source-002-idfl-revision-policy-v1",
+          "revision_policy_identity": "IDFL_V1 source-object-bound label-side disposition",
+          "winner_and_lineage_rule": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"
+        },
         "accepted": false,
         "reason": "Formalized/reviewed, but not bound into an accepted final manifest."
       },
       {
         "path": "withdrawal_and_void_policy",
-        "status": "READY_NOT_ACCEPTED",
-        "current_value": "source-002-withdrawal-policy-v1 / source-002-void-propagation-policy-v1",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
         "accepted": false,
-        "reason": "Policy identities exist in candidate evidence; final authority remains unaccepted."
+        "nested_readiness": [
+          "withdrawal_and_void_policy.withdrawal_policy_version",
+          "withdrawal_and_void_policy.void_propagation_policy_version",
+          "withdrawal_and_void_policy.withdrawal_status_rule",
+          "withdrawal_and_void_policy.void_status_rule"
+        ],
+        "reason": "Policy version identities exist, but withdrawal_status_rule and void_status_rule are not final-bound; the schema-required parent object cannot be represented as a complete current value."
       },
       {
         "path": "known_exclusions",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+        "current_value": [
+          "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"
+        ],
         "accepted": false,
         "reason": "Reviewed disposition; not a source-cohort acceptance."
       },
@@ -387,7 +403,26 @@
       {
         "path": "source_object_identity_hashes",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "source/object/schema/mapping identities and SHA-256 references",
+        "current_value": [
+          {
+            "object_role": "RAW_SOURCE_AUTHORITY_REFERENCE",
+            "immutable_reference": "snapshot:v0_3_s1:002",
+            "object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+            "storage_locator_hash": "NOT_APPLICABLE"
+          },
+          {
+            "object_role": "SOURCE_SCHEMA_REFERENCE",
+            "immutable_reference": "observed-source-schema-v1",
+            "object_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+            "storage_locator_hash": "NOT_APPLICABLE"
+          },
+          {
+            "object_role": "SOURCE_MAPPING_REFERENCE",
+            "immutable_reference": "source-002-coverage-scope-entity-identities-preparation",
+            "object_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+            "storage_locator_hash": "NOT_APPLICABLE"
+          }
+        ],
         "accepted": false,
         "reason": "Identity evidence is reviewed; source authority/custody acceptance is pending."
       },
@@ -467,7 +502,9 @@
       {
         "path": "coverage_scope.seasons",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "[2025~2026]",
+        "current_value": [
+          "2025~2026"
+        ],
         "accepted": false,
         "reason": "PR #199 reviewed mapped season identity; not accepted."
       },
@@ -508,10 +545,15 @@
       },
       {
         "path": "coverage_scope.known_scope_boundaries",
-        "status": "READY_NOT_ACCEPTED",
-        "current_value": "2025-07-22 raw retained/excluded; no known business exclusions; end is not watermark",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
         "accepted": false,
-        "reason": "Reviewed boundary facts; final scope binding is pending."
+        "supporting_evidence": [
+          "2025-07-22 raw retained and excluded from the canonical cohort",
+          "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+          "coverage end is not a completeness watermark"
+        ],
+        "reason": "The governing boundary facts exist, but no schema-ready exact string array is bound for coverage_scope.known_scope_boundaries."
       },
       {
         "path": "revision_policy.revision_policy_version",
@@ -680,10 +722,10 @@
     ],
     "top_level_status_counts": {
       "AVAILABLE_CANDIDATE": 3,
-      "READY_NOT_ACCEPTED": 25,
+      "READY_NOT_ACCEPTED": 24,
       "BLOCKED_UPSTREAM_AUTHORITY": 5,
       "MISSING_GOVERNED_VALUE": 1,
-      "NOT_YET_BOUND": 2
+      "NOT_YET_BOUND": 3
     },
     "concrete_array_requirement": {
       "farms": true,
@@ -704,7 +746,7 @@
     "business_date_bounds_status": "READY_NOT_ACCEPTED",
     "visibility_policy_binding_status": "NOT_YET_BOUND",
     "split_policy_binding_status": "AVAILABLE_CANDIDATE",
-    "custody_binding_status": "READY_NOT_ACCEPTED",
+    "custody_binding_status": "NOT_YET_BOUND",
     "data_governance_owner_acceptance_required": true,
     "source_completeness_declaration_issued": false,
     "source_complete_through_business_date": "NOT_ISSUED"

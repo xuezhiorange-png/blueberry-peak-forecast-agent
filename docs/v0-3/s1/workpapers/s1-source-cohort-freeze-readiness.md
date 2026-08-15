@@ -110,13 +110,13 @@ Still missing are the final source-owner attestation version, attestation effect
 | `source_owner_role` | `READY_NOT_ACCEPTED` | 农场数据负责人 | Role is identified; owner attestation is not issued. |
 | `attestation_version` | `BLOCKED_UPSTREAM_AUTHORITY` | `null` | Final source-owner attestation version is not issued. |
 | `attestation_effective_at` | `BLOCKED_UPSTREAM_AUTHORITY` | `null` | Final source-owner attestation event time is not issued. |
-| `effective_time` | `READY_NOT_ACCEPTED` | 2024-08-01T00:00:00+08:00 / OPEN_ENDED / Asia/Shanghai | Candidate authority applicability is not accepted without final attestation. |
+| `effective_time` | `READY_NOT_ACCEPTED` | `{"effective_from":"2024-08-01T00:00:00+08:00","effective_to_or_open_ended":"OPEN_ENDED","authority_timezone":"Asia/Shanghai"}` | Candidate authority applicability is not accepted without final attestation. |
 | `attestation_status` | `BLOCKED_UPSTREAM_AUTHORITY` | NOT_ISSUED | Contract requires ATTESTED before source authority acceptance. |
 | `attestation_hash` | `BLOCKED_UPSTREAM_AUTHORITY` | `null` | Canonical final attestation hash is not issued. |
 | `coverage_scope` | `MISSING_GOVERNED_VALUE` | aggregate counts/hashes plus reviewed date bounds; concrete arrays are not in Git | Schema requires concrete arrays and final scope binding. |
-| `revision_policy` | `READY_NOT_ACCEPTED` | source-002-idfl-revision-policy-v1; IDFL label-side winner disposition | Formalized/reviewed, but not bound into an accepted final manifest. |
-| `withdrawal_and_void_policy` | `READY_NOT_ACCEPTED` | source-002-withdrawal-policy-v1 / source-002-void-propagation-policy-v1 | Policy identities exist in candidate evidence; final authority remains unaccepted. |
-| `known_exclusions` | `READY_NOT_ACCEPTED` | NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE | Reviewed disposition; not a source-cohort acceptance. |
+| `revision_policy` | `READY_NOT_ACCEPTED` | `{"revision_policy_version":"source-002-idfl-revision-policy-v1","revision_policy_identity":"IDFL_V1 source-object-bound label-side disposition","winner_and_lineage_rule":"NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"}` | Formalized/reviewed, but not bound into an accepted final manifest. |
+| `withdrawal_and_void_policy` | `NOT_YET_BOUND` | `null` | Policy version identities exist, but `withdrawal_status_rule` and `void_status_rule` are not final-bound; the schema-required parent object cannot be represented as a complete current value. |
+| `known_exclusions` | `READY_NOT_ACCEPTED` | `["NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE"]` | Reviewed disposition; not a source-cohort acceptance. |
 | `mapping_policy_version` | `READY_NOT_ACCEPTED` | source-002-mapping-policy-v1 | PR #199 formalization candidate; formal accepted mapping is not issued. |
 | `visibility_policy_version` | `NOT_YET_BOUND` | `null`; supporting forecast-input policy `v0-3-s1-forecast-input-pit-visibility-v1` | Forecast-input policy exists, but actual-label/IDFL cohort-manifest domain binding is not established. |
 | `inclusion_policy_version` | `READY_NOT_ACCEPTED` | source-002-inclusion-exclusion-boundary-v1 | PR #199 formalization candidate; final cohort binding is not issued. |
@@ -124,7 +124,7 @@ Still missing are the final source-owner attestation version, attestation effect
 | `split_policy_version` | `AVAILABLE_CANDIDATE` | v0-3-s1-time-ordered-split-policy-v1 | Task-05 candidate only; split policy is not frozen/accepted. |
 | `grain` | `READY_NOT_ACCEPTED` | SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE | PR #199 formalized CGR-003; final cohort acceptance remains blocked. |
 | `plot_supported` | `READY_NOT_ACCEPTED` | `false` | PR #199 formalized false; final cohort acceptance remains blocked. |
-| `source_object_identity_hashes` | `READY_NOT_ACCEPTED` | source/object/schema/mapping identities and SHA-256 references | Identity evidence is reviewed; source authority/custody acceptance is pending. |
+| `source_object_identity_hashes` | `READY_NOT_ACCEPTED` | `[{"object_role":"RAW_SOURCE_AUTHORITY_REFERENCE","immutable_reference":"snapshot:v0_3_s1:002","object_sha256":"fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a","storage_locator_hash":"NOT_APPLICABLE"},{"object_role":"SOURCE_SCHEMA_REFERENCE","immutable_reference":"observed-source-schema-v1","object_sha256":"919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867","storage_locator_hash":"NOT_APPLICABLE"},{"object_role":"SOURCE_MAPPING_REFERENCE","immutable_reference":"source-002-coverage-scope-entity-identities-preparation","object_sha256":"6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10","storage_locator_hash":"NOT_APPLICABLE"}]` | Identity evidence is reviewed; source authority/custody acceptance is pending. |
 | `declared_source_row_count` | `READY_NOT_ACCEPTED` | 233171 | Declared source metadata only; it does not freeze a final rowset. |
 | `declared_source_byte_count` | `READY_NOT_ACCEPTED` | 28668416 | Declared source metadata only; it does not freeze a final rowset. |
 | `custody_record` | `NOT_YET_BOUND` | `null`; evidence `docs/v0-3/s1/evidence/source-002-custody-record.json` | Exact nested custody values are available, but the complete custody object is not yet bound to an accepted final cohort manifest. |
@@ -140,13 +140,13 @@ Still missing are the final source-owner attestation version, attestation effect
 
 | Field | Status | Current evidence/value | Remaining issue |
 |---|---|---|---|
-| `coverage_scope.seasons` | `READY_NOT_ACCEPTED` | [2025~2026] | PR #199 reviewed mapped season identity; not accepted. |
+| `coverage_scope.seasons` | `READY_NOT_ACCEPTED` | `["2025~2026"]` | PR #199 reviewed mapped season identity; not accepted. |
 | `coverage_scope.farms` | `MISSING_GOVERNED_VALUE` | count=84; sha256=2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381; concrete_array_in_git=false | Schema requires a concrete string array; counts/hash cannot substitute. |
 | `coverage_scope.subfarms` | `MISSING_GOVERNED_VALUE` | count=192; sha256=921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13; concrete_array_in_git=false | Schema requires a concrete string array; counts/hash cannot substitute. |
 | `coverage_scope.varieties` | `MISSING_GOVERNED_VALUE` | count=20; sha256=fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209; concrete_array_in_git=false | Schema requires a concrete string array; counts/hash cannot substitute. |
 | `coverage_scope.business_date_start` | `READY_NOT_ACCEPTED` | 2025-08-05 | Current-main rederivation evidence; not a completeness watermark or final attestation. |
 | `coverage_scope.business_date_end` | `READY_NOT_ACCEPTED` | 2026-04-16 | Current-main rederivation evidence; not SOURCE_COMPLETE_THROUGH date. |
-| `coverage_scope.known_scope_boundaries` | `READY_NOT_ACCEPTED` | 2025-07-22 raw retained/excluded; no known business exclusions; end is not watermark | Reviewed boundary facts; final scope binding is pending. |
+| `coverage_scope.known_scope_boundaries` | `NOT_YET_BOUND` | `null` | Supporting evidence: 2025-07-22 raw retained/excluded; no known business exclusions; end is not a watermark. No schema-ready exact string array is bound. |
 | `revision_policy.revision_policy_version` | `READY_NOT_ACCEPTED` | source-002-idfl-revision-policy-v1 | Formalized in PR #199; not accepted into a final manifest. |
 | `revision_policy.revision_policy_identity` | `READY_NOT_ACCEPTED` | IDFL_V1 source-object-bound label-side disposition | Formalized in PR #199; not accepted into a final manifest. |
 | `revision_policy.winner_and_lineage_rule` | `READY_NOT_ACCEPTED` | NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE | Formalized disposition; source authority/completeness remains blocked. |
@@ -172,10 +172,12 @@ Still missing are the final source-owner attestation version, attestation effect
 
 Top-level status counts are:
 - `AVAILABLE_CANDIDATE`: 3
-- `READY_NOT_ACCEPTED`: 25
+- `READY_NOT_ACCEPTED`: 24
 - `BLOCKED_UPSTREAM_AUTHORITY`: 5
 - `MISSING_GOVERNED_VALUE`: 1
-- `NOT_YET_BOUND`: 2
+- `NOT_YET_BOUND`: 3
+
+The 36 top-level rows reconcile exactly: `3 + 24 + 5 + 1 + 3 = 36`. The nested required-field matrix contains 29 rows. Every `READY_NOT_ACCEPTED` row carries an exact schema-valid governed value and JSON type; incomplete schema-required parent objects are `NOT_YET_BOUND` with `current_value=null` and nested evidence retained separately.
 
 ## 7. Policy bindings and date scope
 
@@ -188,9 +190,14 @@ Top-level status counts are:
 | Split policy | candidate `v0-3-s1-time-ordered-split-policy-v1`, not accepted/frozen |
 | Business date bounds | reviewed aggregate/rederivation evidence: `2025-08-05` through `2026-04-16`, not accepted into final manifest |
 | Completeness watermark | `SOURCE_COMPLETE_THROUGH_BUSINESS_DATE=NOT_ISSUED`; end date is not a watermark |
-| Custody | `source-002-custody-record-v1`, hash `99edff...8dde6`, `ISSUED_FOR_INDEPENDENT_REVIEW`, not accepted |
+| Custody | `source-002-custody-record-v1`, hash `99edff...8dde6`, `ISSUED_FOR_INDEPENDENT_REVIEW`, `NOT_YET_BOUND`, not accepted |
 
 ```text
+GLOBAL_READY_FIELD_SCHEMA_TYPE_PARITY=PASS
+GLOBAL_READY_FIELD_EXACT_VALUE_PARITY=PASS
+READY_FIELD_PROSE_PLACEHOLDER_COUNT=0
+TOP_LEVEL_STATUS_COUNT_SUM=36
+NESTED_REQUIRED_FIELD_COUNT=29
 FORECAST_INPUT_VISIBILITY_POLICY_VERSION=v0-3-s1-forecast-input-pit-visibility-v1
 FORECAST_INPUT_VISIBILITY_POLICY_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
 FORECAST_INPUT_VISIBILITY_POLICY_SEPARATED=true
