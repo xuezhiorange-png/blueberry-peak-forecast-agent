@@ -189,6 +189,9 @@
     "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
     "s1_gate_status": "BLOCKED",
     "decision_status": "DECISION_REQUIRED",
+    "owner_decision_request_prepared": true,
+    "owner_decision_request_artifact": "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json",
+    "owner_decision_request_workpaper": "docs/v0-3/s1/workpapers/s1-data-quality-threshold-policy-decision-request.md",
     "owner_role": "data_quality_owner_role",
     "authority_source": [
       "docs/v0-3/s1/metric-coverage-and-quality-contract.md",

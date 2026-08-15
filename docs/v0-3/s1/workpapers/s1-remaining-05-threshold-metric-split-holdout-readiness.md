@@ -127,6 +127,12 @@ is data_quality_owner_role. The decision must cover:
 | CAN_BE_DECIDED_IN_CURRENT_TASK | false |
 | BLOCK_REASON | NO_APPROVED_VERSIONED_DATA_QUALITY_THRESHOLD_POLICY |
 
+```text
+DATA_QUALITY_OWNER_DECISION_REQUEST_PREPARED=true
+OWNER_DECISION_REQUEST_ARTIFACT=docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json
+OWNER_DECISION_REQUEST_WORKPAPER=docs/v0-3/s1/workpapers/s1-data-quality-threshold-policy-decision-request.md
+```
+
 The package deliberately contains no proposed numeric quality threshold and
 does not infer policy from Source 002 aggregate statistics.
 
