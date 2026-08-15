@@ -1,29 +1,39 @@
 # V0.3-S1 Data-Quality Threshold Policy Decision Request
 
 ```text
-TASK_ID=V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_DECISION_READINESS
-TASK_CLASS=DOCS_ONLY_EXTERNAL_OWNER_DECISION_READINESS
+TASK_ID=V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_OWNER_BINDING_R1
+TASK_CLASS=DOCS_ONLY_OWNER_DECISION_BINDING
 CURRENT_MAIN_SHA=7fd2c15f91f6dfad94178595845df389017d02b3
 DECISION_ID=S1_DATA_QUALITY_THRESHOLD_POLICY
 OWNER_ROLE=data_quality_owner_role
-CURRENT_STATUS=OWNER_DECISION_REQUIRED
+CURRENT_STATUS=OWNER_DECISION_ISSUED
 OWNER_DECISION_REQUEST_PREPARED=true
-OWNER_DECISION_ISSUED=false
+OWNER_DECISION_ISSUED=true
+OWNER_DECISION_SOURCE=PR_222_COMMENT_5301040523
+OWNER_DECISION_COMMENT_ID=5301040523
+OWNER_IDENTITY=xuezhiorange-png
+OWNER_ROLE_ATTESTATION=I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE
+OWNER_PROVENANCE=AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-15
+DECIDED_AT=2026-08-15T14:54:00+08:00
+POLICY_VERSION=v0-3-s1-data-quality-threshold-policy-v1
+OWNER_DECISION_SHA256=11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_BINDING=PASS
 POLICY_INDEPENDENTLY_REVIEWED=false
-EXTERNAL_DECISION_REQUIRED=true
+EXTERNAL_DECISION_REQUIRED=false
 CAN_BE_INFERRED=false
 CANDIDATE_VALUE=null
 ACCEPTED_VALUE=null
-BLOCK_REASON=NO_APPROVED_VERSIONED_DATA_QUALITY_THRESHOLD_POLICY
+BLOCK_REASON=OWNER_DECISION_BOUND_PENDING_EXACT_HEAD_INDEPENDENT_REVIEW
 ```
 
 ## 1. Scope and authority boundary
 
-This workpaper prepares a decision request for the S1 data-quality threshold
-gate. It does not select a policy value, issue an owner decision, or change a
-canonical gate status. The required decision authority is
-`data_quality_owner_role`; the request must be completed by that authority and
-then independently reviewed.
+This workpaper binds the authenticated repository-owner decision recorded in
+PR #222 comment `5301040523` to the existing data-quality policy request. It
+does not independently review the policy, accept the canonical gate, or change
+any canonical runtime status. The owner decision remains attributable to
+`xuezhiorange-png` acting as `data_quality_owner_role`.
 
 The request is deliberately fail-closed:
 
@@ -33,11 +43,73 @@ S1_REMAINING_05_COMPLETE=false
 S1_OVERALL_ACCEPTANCE=false
 ```
 
-No value is inferred from Source 002 statistics, fixtures, test data, code
-behavior, or historical performance. Source 002 raw and row-level data are
-outside this task.
+No policy value is inferred from Source 002 statistics, fixtures, test data,
+code behavior, or historical performance. Source 002 raw and row-level data
+are outside this task.
 
-## 2. Required owner decision dimensions
+## 2. Issued owner decision binding
+
+The owner decision was fetched from the PR issue comment and replayed using
+the repository decision-payload hashing rule. The payload below is the exact
+uppercase-key payload used for the SHA-256 replay; the self-referential hash is
+stored outside the payload.
+
+```text
+OWNER_DECISION_COMMENT_FETCH=PASS
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_BINDING=PASS
+OWNER_DECISION_SOURCE=PR_222_COMMENT_5301040523
+OWNER_DECISION_COMMENT_ID=5301040523
+
+DECISION_ID=S1_DATA_QUALITY_THRESHOLD_POLICY
+OWNER_IDENTITY=xuezhiorange-png
+OWNER_ROLE_ATTESTATION=I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE
+OWNER_PROVENANCE=AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-15
+DECIDED_AT=2026-08-15T14:54:00+08:00
+POLICY_VERSION=v0-3-s1-data-quality-threshold-policy-v1
+DATA_QUALITY_MEASURE=VALID_INCLUDED_CANONICAL_GROUP_COVERAGE
+THRESHOLD_VALUE=1.000000
+THRESHOLD_OPERATOR=GREATER_THAN_OR_EQUAL
+THRESHOLD_UNIT=RATIO_0_TO_1
+APPLICATION_GRAIN=SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_HARVEST_BUSINESS_DATE
+APPLICATION_SCOPE=ALL_GOVERNED_S1_ACTUAL_HARVEST_LABEL_ROWS_AND_INCLUDED_CANONICAL_DAILY_GROUPS_AFTER_VERSIONED_EXCLUSIONS
+MISSING_DAY_POLICY=BLOCK_UNLESS_EXPLICIT_VERSIONED_EXCLUSION_OR_ACCEPTED_SOURCE_POLICY_PROVES_DAY_NOT_EXPECTED
+MISSING_DATA_PROPORTION_THRESHOLD=0.000000
+MISSING_DATA_PROPORTION_OPERATOR=LESS_THAN_OR_EQUAL
+MISSING_DATA_PROPORTION_UNIT=RATIO_0_TO_1
+MISSING_DATA_DENOMINATOR=COUNT_ALL_REQUIRED_EXPECTED_DATA_QUALITY_ELEMENTS_WITHIN_EXACT_APPLICATION_CELL_AFTER_VERSIONED_EXCLUSIONS
+DUPLICATE_RECORD_POLICY=DEDUPLICATE_ONLY_WHEN_SAME_SOURCE_ROW_EVIDENCE_IDENTITY_AND_IDENTICAL_PAYLOAD_PROVE_TECHNICAL_DUPLICATION_OTHERWISE_BLOCK
+CONFLICTING_RECORD_POLICY=BLOCK_NO_IMPLICIT_WINNER
+INVALID_CANONICAL_GRAIN_POLICY=BLOCK
+UNMAPPED_IDENTITY_POLICY=EXCLUDE_ONLY_BY_VERSIONED_REASON_CODED_EXCLUSION_MANIFEST_OTHERWISE_BLOCK
+UNMAPPED_DATE_POLICY=EXCLUDE_ONLY_BY_VERSIONED_REASON_CODED_EXCLUSION_MANIFEST_OTHERWISE_BLOCK_NO_AUTO_ASSIGNMENT
+REVISION_CONSISTENCY_POLICY=REQUIRE_ACCEPTED_SOURCE_POLICY_AND_DETERMINISTIC_LINEAGE_WHERE_REVISION_MODEL_APPLIES_IDFL_MAY_USE_SOURCE_OBJECT_BOUND_LINEAGE_ONLY_WHEN_FORMALLY_ACCEPTED
+VOID_CANCELLATION_POLICY=FOLLOW_ACCEPTED_VERSIONED_SOURCE_POLICY_UNRESOLVED_APPLICABLE_VOID_OR_CANCELLATION_BLOCKS_FORMALLY_NOT_APPLICABLE_REQUIRES_PROVENANCE
+WINNER_SELECTION_REQUIREMENT=EXACTLY_ONE_GOVERNED_WINNER_WHERE_REVISION_MODEL_APPLIES_IDFL_HAS_NO_WINNER_ALGORITHM_AND_UNEXPLAINED_CONFLICTS_BLOCK
+COMPLETENESS_POLICY=EVERY_INCLUDED_BUSINESS_DATE_MUST_BE_COVERED_BY_SOURCE_OBJECT_COMPLETENESS_AUTHORITY_AND_REQUIRED_FIELDS_LINEAGE_AND_QUANTITY_EVIDENCE_MUST_BE_COMPLETE
+SOURCE_ROW_LINEAGE_REQUIRED=true
+SOURCE_ROW_LINEAGE_FAILURE_SEMANTICS=BLOCK
+CANONICAL_GROUP_COVERAGE_POLICY=VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_MUST_EQUAL_1_000000_AFTER_ONLY_VERSIONED_REASON_CODED_EXCLUSIONS
+FAILURE_SEMANTICS=FAIL_CLOSED_BLOCK_AFFECTED_ROW_OR_GROUP_AND_BLOCK_DATA_QUALITY_GATE_WHILE_ANY_INCLUDED_REQUIRED_ROW_OR_GROUP_REMAINS_INVALID_MISSING_OR_UNEXPLAINED
+EXCLUSION_SEMANTICS=ONLY_VERSIONED_REASON_CODED_EXCLUSIONS_WITH_MANIFEST_COUNTS_PROVENANCE_AND_RECONCILIATION_EXCLUSIONS_NEVER_COUNT_AS_PASS
+THRESHOLD_VARIES_BY_HORIZON=false
+HORIZON_POLICY=SAME_DATA_QUALITY_POLICY_FOR_ALL_HORIZONS_SOURCE_DATA_QUALITY_IS_HORIZON_INVARIANT
+THRESHOLD_VARIES_BY_PARTITION=false
+PARTITION_POLICY=SAME_DATA_QUALITY_POLICY_FOR_TRAIN_VALIDATION_TEST_WITH_EACH_PARTITION_EVALUATED_INDEPENDENTLY_AFTER_SPLIT_MATERIALIZATION
+MINIMUM_COVERAGE_POLICY_IS_DATA_QUALITY_POLICY=false
+S3_REPORTING_FLOOR_IS_DATA_QUALITY_THRESHOLD=false
+SOURCE_002_STATISTICS_USED_TO_INFER_DATA_QUALITY_POLICY=false
+OWNER_DECISION_FINAL=true
+OWNER_DECISION_READY_FOR_INDEPENDENT_REVIEW=true
+OWNER_DECISION_SHA256=11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969
+```
+
+The code block above is a human-readable binding summary. The machine-readable
+artifact contains the exact payload and the authoritative SHA-256. The data-
+quality gate remains blocked pending exact-head independent review; the issued
+policy is not yet a canonical acceptance.
+
+## 3. Required owner decision dimensions
 
 The owner must explicitly decide every dimension below. If a dimension does
 not apply, the owner must write `NOT_APPLICABLE_WITH_REASON`; it may not be
@@ -55,7 +127,7 @@ silently omitted.
 | `SOURCE_ROW_LINEAGE_POLICY` | Whether every governed row must trace to source-row identity | Owner must set lineage requiredness and lineage-failure semantics |
 | `CANONICAL_GROUP_COVERAGE_POLICY` | Required coverage of canonical application groups/cells | Owner must define numerator, denominator, grain, scope, and relation to minimum coverage |
 
-## 3. Common fields that must be frozen in the owner payload
+## 4. Common fields that must be frozen in the owner payload
 
 The versioned policy record must contain the following fields. The values are
 not supplied by this workpaper:
@@ -81,7 +153,7 @@ not supplied by this workpaper:
 | `PARTITION_POLICY` | `<required or NOT_APPLICABLE_WITH_REASON>` |
 | `INDEPENDENT_REVIEW_REQUIRED` | `true` |
 
-## 4. Minimum-coverage boundary
+## 5. Minimum-coverage boundary
 
 The separately accepted S1 minimum-coverage policy is
 `coverage_ratio >= 0.900000`. It is not a data-quality policy and must not be
@@ -98,10 +170,11 @@ SOURCE_002_STATISTICS_USED_TO_INFER_DATA_QUALITY_POLICY=false
 The data-quality policy requires its own version, owner provenance,
 application scope, threshold semantics, and independent review.
 
-## 5. Owner signature template
+## 6. Owner signature template
 
-The following is a template only. Placeholder values remain unresolved until
-the data-quality owner supplies and signs the policy.
+The following is the original request template retained for provenance. The
+issued owner payload is bound in Section 2; these placeholders are not used as
+the issued authority.
 
 ```text
 DECISION_ID=S1_DATA_QUALITY_THRESHOLD_POLICY
@@ -143,7 +216,7 @@ OWNER_DECISION_FINAL=<required: true only after owner decision>
 OWNER_DECISION_READY_FOR_INDEPENDENT_REVIEW=<required: true only after owner decision>
 ```
 
-## 6. Current governance state and remaining blockers
+## 7. Current governance state and remaining blockers
 
 ```text
 CANONICAL_GATE_COUNT=17
@@ -174,14 +247,14 @@ MERGE_AUTHORIZED=false
 Preparing this request does not delete `DATA_QUALITY_THRESHOLD` from the
 remaining-blocker list and does not promote any downstream gate.
 
-## 7. Validation and next action
+## 8. Validation and next action
 
 The companion JSON is the machine-readable source for this request. The
 readiness invariants are:
 
 ```text
 OWNER_DECISION_REQUEST_PREPARED=true
-OWNER_DECISION_ISSUED=false
+OWNER_DECISION_ISSUED=true
 POLICY_INDEPENDENTLY_REVIEWED=false
 CANDIDATE_VALUE=null
 ACCEPTED_VALUE=null
@@ -197,12 +270,12 @@ CANONICAL_ACCEPTANCE_RECORD_CHANGED=false
 ```
 
 ```text
-NEXT_GATE=S1_DATA_QUALITY_THRESHOLD_OWNER_DECISION
+NEXT_GATE=S1_DATA_QUALITY_THRESHOLD_POLICY_EXACT_HEAD_INDEPENDENT_REVIEW
 NEXT_GATE_AUTHORIZED=false
-NEXT_RECOMMENDED_ACTION=OBTAIN_DATA_QUALITY_OWNER_DECISION
+NEXT_RECOMMENDED_ACTION=RUN_PR222_DATA_QUALITY_OWNER_BINDING_EXACT_HEAD_INDEPENDENT_REVIEW
 NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
-The next action requires a separate owner decision. This package does not
-issue that decision, perform independent review, or authorize Remaining-06 or
-V0.3-S2.
+The owner decision is issued and bound, but it still requires exact-head
+independent review. This package does not accept the canonical gate, authorize
+Remaining-06, or authorize V0.3-S2.
