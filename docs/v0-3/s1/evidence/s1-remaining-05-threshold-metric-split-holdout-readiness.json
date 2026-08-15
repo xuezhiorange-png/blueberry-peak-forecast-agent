@@ -47,7 +47,7 @@
       "S1-SPLIT-POLICY": "BLOCKED",
       "S1-METRIC-CONTRACT": "BLOCKED",
       "S1-MINIMUM-COVERAGE": "PASS",
-      "S1-DATA-QUALITY-THRESHOLDS": "PASS",
+    "S1-DATA-QUALITY-THRESHOLDS": "PASS",
       "S1-DATA-CUSTODY": "BLOCKED",
       "S1-HOLDOUT-FEASIBILITY": "BLOCKED",
       "S1-INDEPENDENT-REVIEW": "BLOCKED"
@@ -82,12 +82,7 @@
     "minimum_coverage_independent_review_id": 4937929668,
     "minimum_coverage_independent_reviewed_head": "5775e908cfe072fa962c99e822901b7157128418",
     "minimum_coverage_exact_head_ci_run_id": 31806575112,
-    "minimum_coverage_exact_head_ci_conclusion": "success",
-    "data_quality_owner_decision_sha256": "11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969",
-    "data_quality_independent_review_id": 4943325699,
-    "data_quality_independent_reviewed_head": "a7bdff6101d724d3413b0fa3d097c240b236326f",
-    "data_quality_exact_head_ci_run_id": 31872490353,
-    "data_quality_exact_head_ci_conclusion": "success"
+    "minimum_coverage_exact_head_ci_conclusion": "success"
   },
   "source_cohort_candidate_reference": {
     "path": "docs/v0-3/s1/evidence/source-cohort-manifest-candidate.json",
@@ -188,12 +183,12 @@
         ]
       }
     ],
-    "recommended_next_action": "CONTINUE_REMAINING_05_WITH_DATA_QUALITY_AND_DOWNSTREAM_PREREQUISITES"
+    "recommended_next_action": "CONTINUE_REMAINING_05_WITH_SOURCE_COHORT_AND_DOWNSTREAM_PREREQUISITES"
   },
-  "data_quality_thresholds": {
+    "data_quality_thresholds": {
     "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
-    "s1_gate_status": "PASS",
-    "decision_status": "ISSUED_AND_INDEPENDENTLY_REVIEWED",
+      "s1_gate_status": "PASS",
+      "decision_status": "ISSUED_AND_INDEPENDENTLY_REVIEWED",
     "owner_decision_request_prepared": true,
     "owner_decision_request_artifact": "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json",
     "owner_decision_request_workpaper": "docs/v0-3/s1/workpapers/s1-data-quality-threshold-policy-decision-request.md",
@@ -208,7 +203,7 @@
     "owner_decision_sha256": "11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969",
     "owner_decision_hash_replay": "PASS",
     "owner_decision_binding": "PASS",
-    "policy_independently_reviewed": true,
+      "policy_independently_reviewed": true,
     "owner_role": "data_quality_owner_role",
     "authority_source": [
       "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
@@ -216,37 +211,25 @@
       "docs/v0-3/s1/s1-acceptance-package.md"
     ],
     "repository_proven": [
-      "The versioned S1 data-quality threshold is present and independently reviewed.",
-      "The owner decision payload and SHA-256 identity are bound to PR #222 comment 5301040523, review 4943325699, and exact-head CI run 31872490353.",
+      "The authenticated owner decision is bound to PR #222 comment 5301040523 and its canonical SHA-256 identity.",
+      "The policy is independently reviewed on its exact reviewed head and the standalone canonical gate is PASS.",
       "The current contract is fail-closed and does not infer thresholds from fixtures.",
-      "Quality policy decisions remain distinct from minimum-coverage policy and metric execution."
+      "Quality policy acceptance remains distinct from metric or Source 002 execution."
     ],
-    "policy_decision_reference": {
-      "path": "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json",
-      "policy_version": "v0-3-s1-data-quality-threshold-policy-v1",
-      "threshold_value": "1.000000",
-      "threshold_operator": "GREATER_THAN_OR_EQUAL",
-      "threshold_unit": "RATIO_0_TO_1",
-      "owner_decision_sha256": "11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969",
-      "independent_review_id": 4943325699,
-      "reviewed_head_sha": "a7bdff6101d724d3413b0fa3d097c240b236326f",
-      "exact_head_ci_run_id": 31872490353,
-      "exact_head_ci_conclusion": "success"
-    },
     "decision_requests": [
       {
         "decision_id": "S1_DATA_QUALITY_THRESHOLD_POLICY",
         "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
         "owner_role": "data_quality_owner_role",
-        "current_status": "CLOSED_BY_INDEPENDENT_REVIEW",
-        "current_value": "1.000000",
-        "authority_source": "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json",
+        "current_status": "ISSUED_AND_INDEPENDENTLY_REVIEWED",
+        "current_value": null,
+        "authority_source": "PR_222_COMMENT_5301040523",
         "repository_proven": true,
         "external_decision_required": false,
         "can_be_inferred": false,
         "can_be_decided_in_current_task": false,
         "candidate_value": null,
-        "accepted_value": "1.000000",
+        "accepted_value": null,
         "block_reason": "NONE",
         "owner_decision_source": "PR_222_COMMENT_5301040523",
         "owner_decision_comment_id": 5301040523,
@@ -280,7 +263,15 @@
         ]
       }
     ],
-    "recommended_next_action": "CONTINUE_REMAINING_05_WITH_METRIC_SPLIT_HOLDOUT_AND_CUSTODY_PREREQUISITES"
+      "independent_review_id": 4943327077,
+      "independent_reviewed_head": "a7bdff6101d724d3413b0fa3d097c240b236326f",
+      "independent_review_result": "PASS",
+      "exact_head_ci_run_id": 31872490353,
+      "exact_head_ci_head_sha": "a7bdff6101d724d3413b0fa3d097c240b236326f",
+      "exact_head_ci_status": "completed",
+      "exact_head_ci_conclusion": "success",
+      "canonical_decision_artifact": "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision.json",
+      "recommended_next_action": "REVALIDATE_REMAINING_05_AFTER_DATA_QUALITY_GATE_CLOSEOUT"
   },
   "metric_contract": {
     "gate_id": "S1-METRIC-CONTRACT",

@@ -1,12 +1,12 @@
 # V0.3-S1 Data-Quality Threshold Policy Decision Request
 
 ```text
-TASK_ID=V0_3_S1_DATA_QUALITY_THRESHOLD_CANONICAL_ACCEPTANCE_CLOSEOUT
-TASK_CLASS=DOCS_ONLY_CANONICAL_ACCEPTANCE_CLOSEOUT
+TASK_ID=V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_OWNER_BINDING_R1
+TASK_CLASS=DOCS_ONLY_OWNER_DECISION_BINDING
 CURRENT_MAIN_SHA=74a42136b29d6c43780f92c84e59fd6f8ac26558
 DECISION_ID=S1_DATA_QUALITY_THRESHOLD_POLICY
 OWNER_ROLE=data_quality_owner_role
-CURRENT_STATUS=CLOSED_BY_INDEPENDENT_REVIEW
+CURRENT_STATUS=ISSUED_AND_INDEPENDENTLY_REVIEWED
 OWNER_DECISION_REQUEST_PREPARED=true
 OWNER_DECISION_ISSUED=true
 OWNER_DECISION_SOURCE=PR_222_COMMENT_5301040523
@@ -19,30 +19,31 @@ POLICY_VERSION=v0-3-s1-data-quality-threshold-policy-v1
 OWNER_DECISION_SHA256=11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969
 OWNER_DECISION_HASH_REPLAY=PASS
 OWNER_DECISION_BINDING=PASS
+INDEPENDENT_REVIEW_ID=4943327077
+INDEPENDENT_REVIEWED_HEAD=a7bdff6101d724d3413b0fa3d097c240b236326f
+INDEPENDENT_REVIEW_RESULT=PASS
+EXACT_HEAD_CI_RUN_ID=31872490353
+EXACT_HEAD_CI_HEAD_SHA=a7bdff6101d724d3413b0fa3d097c240b236326f
+EXACT_HEAD_CI_STATUS=completed
+EXACT_HEAD_CI_CONCLUSION=success
 POLICY_INDEPENDENTLY_REVIEWED=true
 EXTERNAL_DECISION_REQUIRED=false
 CAN_BE_INFERRED=false
 CANDIDATE_VALUE=null
-ACCEPTED_VALUE=1.000000
+ACCEPTED_VALUE=null
 BLOCK_REASON=NONE
-INDEPENDENT_REVIEW_ID=4943325699
-INDEPENDENT_REVIEWED_HEAD=a7bdff6101d724d3413b0fa3d097c240b236326f
-EXACT_HEAD_CI_RUN_ID=31872490353
-EXACT_HEAD_CI_CONCLUSION=success
-MERGE_COMMIT_SHA=74a42136b29d6c43780f92c84e59fd6f8ac26558
 ```
 
 ## 1. Scope and authority boundary
 
-This workpaper closes the canonical `S1-DATA-QUALITY-THRESHOLDS` gate after
-independent review of the authenticated repository-owner decision recorded in
-PR #222 comment `5301040523`. It preserves the owner decision payload byte-for-
-byte and the historical PR #222 owner-binding provenance. It does not accept S1
-overall, authorize Remaining-06, or change any downstream gate. The owner
-decision remains attributable to `xuezhiorange-png` acting as
-`data_quality_owner_role`.
+This workpaper binds the authenticated repository-owner decision recorded in
+PR #222 comment `5301040523` to the existing data-quality policy request and
+records its exact-head independent review provenance. The standalone
+canonical gate closeout is recorded in the separate canonical acceptance and
+policy-decision artifacts. The owner decision remains attributable to
+`xuezhiorange-png` acting as `data_quality_owner_role`.
 
-The closeout is deliberately narrow:
+The request remains deliberately explicit about the execution boundary:
 
 ```text
 S1_DATA_QUALITY_THRESHOLDS_GATE_PASS=true
@@ -67,6 +68,7 @@ OWNER_DECISION_HASH_REPLAY=PASS
 OWNER_DECISION_BINDING=PASS
 OWNER_DECISION_SOURCE=PR_222_COMMENT_5301040523
 OWNER_DECISION_COMMENT_ID=5301040523
+CANONICAL_DECISION_ARTIFACT=docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision.json
 
 DECISION_ID=S1_DATA_QUALITY_THRESHOLD_POLICY
 OWNER_IDENTITY=xuezhiorange-png
@@ -112,10 +114,10 @@ OWNER_DECISION_SHA256=11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2
 ```
 
 The code block above is a human-readable binding summary. The machine-readable
-artifact contains the exact payload and the authoritative SHA-256. The data-
-quality gate is now PASS after exact-head independent review on PR #222 head
-`a7bdff6101d724d3413b0fa3d097c240b236326f`; this closeout records only the
-standalone canonical gate and does not promote any downstream gate.
+artifact contains the exact payload and the authoritative SHA-256. The
+independent review and exact-head CI are bound in the canonical decision
+artifact; the policy gate is accepted, but no data-quality execution result is
+claimed.
 
 ## 3. Historical original-request decision dimensions
 
@@ -260,12 +262,13 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 ```
 
-Preparing this closeout removes `DATA_QUALITY_THRESHOLD` from the remaining-
-blocker list and does not promote any downstream gate.
+The data-quality policy is no longer in the Remaining-05 blocker list. The
+remaining list is unchanged for all other gates and no downstream gate is
+promoted by this closeout.
 
 ## 8. Validation and next action
 
-The companion JSON is the machine-readable source for this closeout. The
+The companion JSON is the machine-readable source for this request. The
 readiness invariants are:
 
 ```text
@@ -273,7 +276,7 @@ OWNER_DECISION_REQUEST_PREPARED=true
 OWNER_DECISION_ISSUED=true
 POLICY_INDEPENDENTLY_REVIEWED=true
 CANDIDATE_VALUE=null
-ACCEPTED_VALUE=1.000000
+ACCEPTED_VALUE=null
 UNAUTHORIZED_POLICY_VALUE_COUNT=0
 SOURCE_002_RAW_READ=false
 SOURCE_002_ROW_LEVEL_READ=false
@@ -283,16 +286,16 @@ TEST_DATA_ACCESS=false
 METRIC_EXECUTION=false
 CANONICAL_GATE_STATUS_CHANGED=true
 CANONICAL_ACCEPTANCE_RECORD_CHANGED=true
-OWNER_DECISION_SHA256=11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969
 ```
 
 ```text
-NEXT_GATE=S1_REMAINING_05_DOWNSTREAM_RECONCILIATION
+NEXT_GATE=SOURCE_COHORT
 NEXT_GATE_AUTHORIZED=false
 NEXT_RECOMMENDED_ACTION=REVALIDATE_REMAINING_05_AFTER_DATA_QUALITY_GATE_CLOSEOUT
 NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
-The owner decision payload and SHA-256 remain unchanged. This package closes
-only the standalone data-quality gate. It does not accept S1 overall, authorize
+The owner decision is issued, bound, and independently reviewed. The
+standalone data-quality policy gate is closed by the canonical acceptance
+closeout, but this package does not execute Source 002, authorize
 Remaining-06, or authorize V0.3-S2.

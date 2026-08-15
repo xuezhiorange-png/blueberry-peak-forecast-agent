@@ -12,14 +12,13 @@ NO_STEP_IMPLIES_THE_NEXT=true
 This package prepares decision and policy readiness for threshold, metric,
 split, and holdout work. PR #219 issued and independently reviewed the
 minimum-coverage policy; PR #221 closed the standalone canonical
-S1-MINIMUM-COVERAGE gate; PR #222 issued and independently reviewed the
-data-quality policy; this closeout records the standalone canonical
-S1-DATA-QUALITY-THRESHOLDS gate as PASS. This package still does not accept a
-metric contract, accept a split, decide holdout feasibility, accept custody,
-complete Remaining-05, or authorize any later S1/S2 task.
+S1-MINIMUM-COVERAGE gate; this current-main closeout records the separately
+reviewed data-quality policy gate. This package still does not accept a metric
+contract, accept a split, decide holdout feasibility, accept custody, complete
+Remaining-05, or authorize any later S1/S2 task.
 
-The authoritative runtime registry remains canonical; the PR #221 and data-
-quality canonical closeouts changed only the standalone threshold rows:
+The authoritative runtime registry remains canonical; the PR #221 canonical
+closeout changed only the standalone minimum-coverage row:
 
 | State | Value |
 | --- | --- |
@@ -56,7 +55,7 @@ Authoritative inputs reviewed:
 | Domain | Current state | What this package does | What it does not do |
 | --- | --- | --- | --- |
 | Minimum coverage | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the owner policy, SHA, independent review, and exact-head CI | Does not execute coverage or close any downstream gate |
-| Data quality thresholds | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the owner policy, SHA, independent review, and exact-head CI | Does not execute quality checks or close any downstream gate |
+| Data quality thresholds | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the authenticated owner policy, SHA, review, and exact-head CI | Does not execute Source 002 or claim a data-quality measurement result |
 | Metric contract | PREPARED_NOT_ACCEPTED / gate BLOCKED | Binds the current version and canonical metric registry | Does not execute metrics or issue results |
 | Split policy | CANDIDATE_NOT_ACCEPTED / gate BLOCKED | Provides a versioned time-ordered candidate and partition purposes | Does not materialize any rowset or authorize TEST access |
 | Holdout feasibility | NOT_EVALUATED / gate BLOCKED | Provides feasibility criteria and conditional usage rules | Does not access or materialize external holdout data |
@@ -103,37 +102,35 @@ No row count, farm count, subfarm count, variety count, or observed fixture
 distribution was treated as threshold authority. The minimum-coverage gate
 is the only Task05 domain closed by the PR #221 canonical closeout.
 
-## 4. Data-quality threshold decision closeout
+## 4. Data-quality threshold owner decision closeout
 
-The S1 data-quality threshold is now issued and independently reviewed. The
-data-quality policy is distinct from the minimum-coverage policy and from the
-S3 reporting floor. The data-quality owner decision is bound by:
+The authenticated repository owner issued a versioned S1 data-quality policy.
+The decision owner is `data_quality_owner_role`; the owner payload was
+replayed and independently reviewed on its exact reviewed head. The policy
+closes only the standalone data-quality canonical gate; it does not execute
+Source 002 or close downstream gates.
+The bound decision covers:
 
-1. `POLICY_VERSION=v0-3-s1-data-quality-threshold-policy-v1`;
-2. `THRESHOLD_VALUE=1.000000`, operator `GREATER_THAN_OR_EQUAL`, unit
-   `RATIO_0_TO_1` on `VALID_INCLUDED_CANONICAL_GROUP_COVERAGE`;
-3. the governed application grain and scope;
-4. the missing-day, duplicate/conflict, invalid-grain, unmapped identity/date,
-   revision/void, completeness, and lineage policies; and
-5. owner comment `5301040523`, owner decision SHA, independent review
-   `4943325699`, PR #222 head `a7bdff6101d724d3413b0fa3d097c240b236326f`,
-   exact-head CI `31872490353`, and merge commit `74a42136b29d6c43780f92c84e59fd6f8ac26558`.
+- missing-day policy;
+- missing-data proportion threshold;
+- duplicate/conflicting-record policy;
+- invalid canonical-grain identity policy;
+- unmapped identity/date handling;
+- revision/void consistency requirement;
+- completeness requirement;
+- source-row lineage requirement; and
+- canonical-group coverage requirement.
 
 | Field | Value |
 | --- | --- |
 | DECISION_ID | S1_DATA_QUALITY_THRESHOLD_POLICY |
-| CURRENT_STATUS | CLOSED_BY_INDEPENDENT_REVIEW |
+| CURRENT_STATUS | ISSUED_AND_INDEPENDENTLY_REVIEWED |
 | CANDIDATE_VALUE | null |
-| ACCEPTED_VALUE | 1.000000 |
+| ACCEPTED_VALUE | null |
 | EXTERNAL_DECISION_REQUIRED | false |
 | CAN_BE_INFERRED | false |
 | CAN_BE_DECIDED_IN_CURRENT_TASK | false |
 | BLOCK_REASON | NONE |
-| OWNER_DECISION_SHA256 | `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969` |
-| INDEPENDENT_REVIEW_ID | `4943325699` |
-| INDEPENDENT_REVIEWED_HEAD | `a7bdff6101d724d3413b0fa3d097c240b236326f` |
-| EXACT_HEAD_CI_RUN_ID | `31872490353` |
-| EXACT_HEAD_CI_CONCLUSION | `success` |
 
 ```text
 DATA_QUALITY_OWNER_DECISION_REQUEST_PREPARED=true
@@ -151,12 +148,19 @@ OWNER_DECISION_BINDING=PASS
 S1_DATA_QUALITY_THRESHOLDS_GATE_PASS=true
 OWNER_DECISION_REQUEST_ARTIFACT=docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json
 OWNER_DECISION_REQUEST_WORKPAPER=docs/v0-3/s1/workpapers/s1-data-quality-threshold-policy-decision-request.md
+OWNER_DECISION_CANONICAL_ARTIFACT=docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision.json
+POLICY_INDEPENDENTLY_REVIEWED=true
+INDEPENDENT_REVIEW_ID=4943327077
+INDEPENDENT_REVIEWED_HEAD=a7bdff6101d724d3413b0fa3d097c240b236326f
+INDEPENDENT_REVIEW_RESULT=PASS
+EXACT_HEAD_CI_RUN_ID=31872490353
+EXACT_HEAD_CI_CONCLUSION=success
 ```
 
 The machine-readable request artifact contains the exact issued owner payload
-and its canonical SHA-256 binding. The data-quality gate is closed only by
-its own owner policy, payload hash, independent review, and exact-head CI
-evidence. The policy is not inferred from Source 002 aggregate statistics.
+and its canonical SHA-256 binding. The data-quality policy is independently
+reviewed and its standalone gate is PASS. The policy is not inferred from
+Source 002 aggregate statistics, and no Source 002 execution is implied.
 
 ## Remaining-05 completion boundary
 
@@ -174,10 +178,10 @@ REMAINING_BLOCKERS=(
 )
 ```
 
-The minimum-coverage and data-quality threshold rows are not included in this
-remaining-blocker list because their standalone gates are closed. The listed
-items were re-read after the data-quality canonical closeout and remain
-unresolved; no downstream gate is promoted by this package.
+The minimum-coverage row is not included in this remaining-blocker list
+because its standalone gate is closed. The listed items were re-read after
+the PR #221 canonical closeout, following the PR #219 policy merge, and
+remain unresolved; no downstream gate is promoted by this package.
 
 ## 5. Metric contract freeze readiness
 
@@ -345,7 +349,7 @@ storage locator, credential, source row, or custody decision is created.
 | Decision ID | Gate | Current status | Owner | External decision | Candidate / accepted value | Remaining blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | S1_MINIMUM_COVERAGE_THRESHOLD_POLICY | S1-MINIMUM-COVERAGE | CLOSED_BY_INDEPENDENT_REVIEW | model_validation_owner_role | no | 0.900000 / 0.900000 | closed by owner decision, review `4937929668`, and exact-head CI `31806575112` |
-| S1_DATA_QUALITY_THRESHOLD_POLICY | S1-DATA-QUALITY-THRESHOLDS | CLOSED_BY_INDEPENDENT_REVIEW | data_quality_owner_role | no | null / 1.000000 | closed by owner comment `5301040523`, review `4943325699`, and exact-head CI `31872490353` |
+| S1_DATA_QUALITY_THRESHOLD_POLICY | S1-DATA-QUALITY-THRESHOLDS | ISSUED_AND_INDEPENDENTLY_REVIEWED | data_quality_owner_role | no | policy version / accepted policy | closed by owner decision SHA `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969`, review `4943327077`, and exact-head CI `31872490353` |
 | S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE | S1-METRIC-CONTRACT | PREPARED_NOT_ACCEPTED | model_validation_owner_role | yes | registry candidate / null | upstream prerequisites |
 | S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE | S1-SPLIT-POLICY | CANDIDATE_NOT_ACCEPTED | model_validation_owner_role | yes | v1 candidate / null | cohort, visibility, metric, custody |
 | S1_HOLDOUT_FEASIBILITY_DECISION | S1-HOLDOUT-FEASIBILITY | NOT_EVALUATED | model_validation_owner_role | yes | criteria only / null | upstream evidence and review |
@@ -389,9 +393,10 @@ S1_REMAINING_06_AUTHORIZED=false
 V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
 
-This package does not issue any threshold, metric result, split manifest,
-holdout outcome, custody acceptance, canonical gate PASS, S1 acceptance, or S2
-authorization.
+This package does not execute the accepted threshold against data or issue any
+metric result, split manifest, holdout outcome, custody acceptance, S1
+acceptance, or S2 authorization. The standalone data-quality policy gate is
+already recorded as PASS in the canonical acceptance record.
 
 ## 12. Validation targets
 
@@ -411,5 +416,5 @@ JSON_MARKDOWN_CONSISTENCY=PASS
 
 ## 13. Next action
 
-NEXT_RECOMMENDED_ACTION=REVALIDATE_REMAINING_05_AFTER_MINIMUM_COVERAGE_GATE_CLOSEOUT
+NEXT_RECOMMENDED_ACTION=REVALIDATE_REMAINING_05_AFTER_DATA_QUALITY_GATE_CLOSEOUT
 STOPPED_AFTER_S1_REMAINING_05_DECISION_READINESS_DRAFT_PR=true

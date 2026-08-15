@@ -603,12 +603,12 @@
       ],
       "supporting_evidence_facts": [
         "Metric identities, status semantics, Decimal rules, and the S2 daily-rowset dependency are defined in current contracts.",
-        "The S1 minimum-coverage and data-quality policies are now independently reviewed and accepted as standalone gates; the metric contract remains blocked by the other source, target, visibility, rowset, and downstream prerequisites.",
+        "The S1 minimum-coverage and data-quality policies are independently reviewed and accepted as standalone gates; the metric contract remains blocked by the other source, target, visibility, rowset, and metric-binding prerequisites.",
         "No accepted source, Q2C target, visibility package, or S1 metric binding record is available for a closed metric contract."
       ],
       "missing_authoritative_artifacts": [
         "Accepted S1 metric binding record/version",
-        "Source/target/visibility prerequisites and data-quality policy"
+        "Source/target/visibility prerequisites and accepted metric binding"
       ],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
@@ -665,7 +665,7 @@
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": true,
-      "recommended_next_action": "REVALIDATE_REMAINING_05_AFTER_MINIMUM_COVERAGE_GATE_CLOSEOUT",
+      "recommended_next_action": "REVALIDATE_REMAINING_05_AFTER_DATA_QUALITY_GATE_CLOSEOUT",
       "recommended_action_class": "GOVERNANCE_FORMALIZATION"
     },
     {
@@ -674,28 +674,28 @@
       "canonical_block_reason": "NONE",
       "gate_class": "data",
       "owner_role": "data_quality_owner_role",
-      "authoritative_artifact": "data-quality threshold record",
-      "acceptance_threshold_source": "approved quality policy and independently reviewed owner decision",
-      "acceptance_threshold": "VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_GREATER_THAN_OR_EQUAL_1_000000",
+      "authoritative_artifact": "v0-3-s1-data-quality-threshold-policy-v1",
+      "acceptance_threshold_source": "reviewed versioned data-quality owner policy",
+      "acceptance_threshold": "VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_GREATER_THAN_OR_EQUAL_1.000000_PER_APPLICATION_CELL",
       "supporting_evidence_paths": [
-        "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json",
+        "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision.json",
         "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
         "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
-        "docs/forecast-quality/s3-quality-metrics-contract.md",
+        "docs/v0-3/s1/s1-acceptance-package.md",
         "docs/v0-3/s1/evidence/s1-acceptance-record.json"
       ],
       "supporting_evidence_facts": [
         "The owner decision fixes policy version v0-3-s1-data-quality-threshold-policy-v1, VALID_INCLUDED_CANONICAL_GROUP_COVERAGE, GREATER_THAN_OR_EQUAL, 1.000000, and RATIO_0_TO_1.",
-        "The decision fixes missing-day, duplicate/conflict, invalid-grain, unmapped identity/date, revision/void, completeness, lineage, and canonical-group coverage semantics.",
-        "Owner comment 5301040523 and owner decision SHA 11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969 were payload-replayed and independently reviewed under review 4943325699 on PR #222 head a7bdff6101d724d3413b0fa3d097c240b236326f; exact-head CI run 31872490353 succeeded; merge commit 74a42136b29d6c43780f92c84e59fd6f8ac26558.",
-        "The minimum-coverage policy and S3 reporting floor are explicitly not data-quality policy values.",
-        "Source counts and scope counts are descriptive evidence and cannot be used to infer a data-quality threshold."
+        "The owner payload fixes missing-day, missing-proportion, duplicate/conflict, canonical-grain, unmapped identity/date, revision/void, completeness, lineage, exclusion, horizon, and partition semantics.",
+        "Owner decision SHA 11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969 was replayed and independently reviewed under review 4943327077 on head a7bdff6101d724d3413b0fa3d097c240b236326f; exact-head CI run 31872490353 succeeded.",
+        "The accepted policy is distinct from the S1 minimum-coverage policy of 0.900000 and the S3 reporting floor of 10.",
+        "Policy acceptance does not execute Source 002 or establish a data-quality measurement result."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
       "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
-      "reconciliation_reason": "The versioned owner policy, payload hash, PR #222 owner comment, exact-head CI, and independent review are complete; this closeout records the standalone canonical gate as PASS without changing any downstream gate.",
+      "reconciliation_reason": "The versioned owner policy, payload hash, exact-head CI, and independent review are complete; this closeout records the standalone data-quality policy gate as PASS without changing any downstream gate or claiming data execution.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
@@ -805,7 +805,7 @@
         "docs/v0-3/development-plan.md"
       ],
       "supporting_evidence_facts": [
-        "The canonical record contains exactly 17 required gates; two runtime rows are PASS and fifteen remain BLOCKED.",
+        "The canonical record contains exactly 17 required gates; the overall acceptance remains BLOCKED while two required gate rows are PASS and fifteen remain BLOCKED.",
         "Independent review status is NOT_STARTED and the completion rule requires every required row to be PASS.",
         "This reconciliation package is evidence preparation only and cannot self-attest the final S1 result."
       ],
@@ -897,8 +897,8 @@
       "order": 5,
       "task_id": "S1-REMAINING-05",
       "task": "THRESHOLD_METRIC_SPLIT_AND_HOLDOUT_DECISION_PACKAGE",
-      "objective": "Obtain and review minimum-coverage and data-quality policies, freeze the metric contract, then prepare the time-ordered split and holdout-feasibility artifacts.",
-      "advances_gate_ids": ["S1-MINIMUM-COVERAGE", "S1-DATA-QUALITY-THRESHOLDS", "S1-METRIC-CONTRACT", "S1-SPLIT-POLICY", "S1-HOLDOUT-FEASIBILITY"],
+      "objective": "Reconcile the accepted minimum-coverage and data-quality policies, freeze the metric contract, then prepare the time-ordered split and holdout-feasibility artifacts.",
+      "advances_gate_ids": ["S1-METRIC-CONTRACT", "S1-SPLIT-POLICY", "S1-HOLDOUT-FEASIBILITY"],
       "dependencies": ["S1-REMAINING-03", "S1-REMAINING-04"],
       "required_gate_artifact_ids": ["S1-DATA-CUSTODY"],
       "action_class": "VALIDATION_POLICY_DECISION",
@@ -921,7 +921,7 @@
     "canonical_runtime_status_remains_blocked": true,
     "all_17_required_gate_rows_must_be_pass": true,
     "reconciliation_class_is_not_gate_status": true,
-    "formal_acceptance_record_mutated": false,
+    "formal_acceptance_record_mutated": true,
     "s1_acceptance_issued": false
   },
   "s2_authorization_boundary": {
