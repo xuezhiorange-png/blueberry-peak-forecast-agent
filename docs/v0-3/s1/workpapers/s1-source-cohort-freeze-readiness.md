@@ -89,7 +89,7 @@ Full identity arrays are not in Git. Their reviewed count/hash parity is retaine
 
 ## 5. Source-authority hard prerequisite
 
-Current source-authority evidence remains unissued: `SOURCE_AUTHORITY_ACCEPTED=false`, `FORMAL_SOURCE_ATTESTATION_ISSUED=false`, `ATTESTATION_STATUS=NOT_ISSUED`, `SOURCE_COHORT_HARD_PREREQUISITE_S1_SOURCE_AUTHORITY=false`, and `SOURCE_COHORT_CANONICAL_ACCEPTANCE_ALLOWED=false`.
+Current source-authority evidence remains unissued: `SOURCE_AUTHORITY_ACCEPTED=false`, `FORMAL_SOURCE_ATTESTATION_ISSUED=false`, and `ATTESTATION_STATUS=NOT_ISSUED`. The dependency is explicit: `SOURCE_AUTHORITY_PREREQUISITE_REQUIRED=true`, `SOURCE_AUTHORITY_PREREQUISITE_SATISFIED=false`, `SOURCE_COHORT_HARD_PREREQUISITE_S1_SOURCE_AUTHORITY_REQUIRED=true`, `SOURCE_COHORT_HARD_PREREQUISITE_S1_SOURCE_AUTHORITY_SATISFIED=false`, and `SOURCE_COHORT_CANONICAL_ACCEPTANCE_ALLOWED=false`.
 
 Still missing are the final source-owner attestation version, attestation effective time, canonical attestation hash, source completeness authority/evidence, and complete package acceptance. PR #197 PASS cannot be promoted to source-authority acceptance.
 
@@ -118,7 +118,7 @@ Still missing are the final source-owner attestation version, attestation effect
 | `withdrawal_and_void_policy` | `READY_NOT_ACCEPTED` | source-002-withdrawal-policy-v1 / source-002-void-propagation-policy-v1 | Policy identities exist in candidate evidence; final authority remains unaccepted. |
 | `known_exclusions` | `READY_NOT_ACCEPTED` | NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE | Reviewed disposition; not a source-cohort acceptance. |
 | `mapping_policy_version` | `READY_NOT_ACCEPTED` | source-002-mapping-policy-v1 | PR #199 formalization candidate; formal accepted mapping is not issued. |
-| `visibility_policy_version` | `READY_NOT_ACCEPTED` | v0-3-s1-forecast-input-pit-visibility-v1 | Versioned policy exists with ISSUED_FOR_INDEPENDENT_REVIEW status; not accepted/bound to cohort. |
+| `visibility_policy_version` | `NOT_YET_BOUND` | `null`; supporting forecast-input policy `v0-3-s1-forecast-input-pit-visibility-v1` | Forecast-input policy exists, but actual-label/IDFL cohort-manifest domain binding is not established. |
 | `inclusion_policy_version` | `READY_NOT_ACCEPTED` | source-002-inclusion-exclusion-boundary-v1 | PR #199 formalization candidate; final cohort binding is not issued. |
 | `revision_policy_version` | `READY_NOT_ACCEPTED` | source-002-idfl-revision-policy-v1 | PR #199 formalization candidate; final cohort binding is not issued. |
 | `split_policy_version` | `AVAILABLE_CANDIDATE` | v0-3-s1-time-ordered-split-policy-v1 | Task-05 candidate only; split policy is not frozen/accepted. |
@@ -127,7 +127,7 @@ Still missing are the final source-owner attestation version, attestation effect
 | `source_object_identity_hashes` | `READY_NOT_ACCEPTED` | source/object/schema/mapping identities and SHA-256 references | Identity evidence is reviewed; source authority/custody acceptance is pending. |
 | `declared_source_row_count` | `READY_NOT_ACCEPTED` | 233171 | Declared source metadata only; it does not freeze a final rowset. |
 | `declared_source_byte_count` | `READY_NOT_ACCEPTED` | 28668416 | Declared source metadata only; it does not freeze a final rowset. |
-| `custody_record` | `READY_NOT_ACCEPTED` | source-002-custody-record-v1 / 99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6 | Record is ISSUED_FOR_INDEPENDENT_REVIEW; custody is not accepted. |
+| `custody_record` | `NOT_YET_BOUND` | `null`; evidence `docs/v0-3/s1/evidence/source-002-custody-record.json` | Exact nested custody values are available, but the complete custody object is not yet bound to an accepted final cohort manifest. |
 | `manifest_hash` | `BLOCKED_UPSTREAM_AUTHORITY` | `null` | Final cohort manifest has not been issued, so no manifest hash exists. |
 | `S1_FREEZES_SOURCE_COHORT_IDENTITY` | `READY_NOT_ACCEPTED` | `true` | Schema boundary is reviewed; this artifact does not mutate runtime gate state. |
 | `S1_FREEZES_FINAL_CLEAN_ROWSET` | `READY_NOT_ACCEPTED` | `false` | S1/S2 ownership boundary is reviewed; final clean rowset is not frozen here. |
@@ -158,33 +158,51 @@ Still missing are the final source-owner attestation version, attestation effect
 | `custody_record.storage_type` | `READY_NOT_ACCEPTED` | ENTERPRISE_SERVER | Custody record issued for independent review only. |
 | `custody_record.access_owner_role` | `READY_NOT_ACCEPTED` | IT_DEPARTMENT_AUTHORIZED_DATA_ACCESS_ADMINISTRATOR | Custody record issued for independent review only. |
 | `custody_record.source_owner_role` | `READY_NOT_ACCEPTED` | 农场数据负责人 | Custody record issued for independent review only. |
-| `custody_record.approved_usage_purpose` | `READY_NOT_ACCEPTED` | read-only approved blueberry forecast purpose | Custody record issued for independent review only. |
+| `custody_record.approved_usage_purpose` | `READY_NOT_ACCEPTED` | ACTUAL_HARVEST_LABEL_GOVERNANCE_AND_BLUEBERRY_FORECAST_MODEL_EVALUATION | Exact governed custody value; custody record is issued for independent review only. |
 | `custody_record.least_privilege_scope` | `READY_NOT_ACCEPTED` | READ_ONLY_ACCESS_TO_SOURCE_002_FOR_APPROVED_BLUEBERRY_FORECAST_PURPOSES | Custody record issued for independent review only. |
-| `custody_record.authorized_role_set` | `READY_NOT_ACCEPTED` | bound by source-002-custody-record-v1 | Custody record issued for independent review only. |
-| `custody_record.credential_reference_policy` | `READY_NOT_ACCEPTED` | opaque/out-of-band reference policy | No locator or credential is committed. |
+| `custody_record.authorized_role_set` | `READY_NOT_ACCEPTED` | `["IT_DATA_ACCESS_ADMINISTRATOR", "BLUEBERRY_FORECAST_PROJECT_AUTHORIZED_OPERATOR", "INDEPENDENT_REVIEWER_WHEN_ACCESS_IS_EXPLICITLY_REQUIRED"]` | Exact governed array value; custody record is issued for independent review only. |
+| `custody_record.credential_reference_policy` | `READY_NOT_ACCEPTED` | NO_CREDENTIAL_TOKEN_PRIVATE_URL_OR_PLAINTEXT_STORAGE_LOCATOR_IN_GIT | Exact governed custody value; no locator or credential is committed. |
 | `custody_record.retention_policy_version` | `READY_NOT_ACCEPTED` | source-002-retention-policy-v1 | Custody record issued for independent review only. |
-| `custody_record.retention_period_or_rule` | `READY_NOT_ACCEPTED` | bound by custody record | Custody record issued for independent review only. |
+| `custody_record.retention_period_or_rule` | `READY_NOT_ACCEPTED` | RETAIN_WHILE_SOURCE_OBJECT_SUPPORTS_AN_ACTIVE_OR_REPRODUCIBLE_FORECAST_EVIDENCE_LINEAGE | Exact governed custody value; custody record is issued for independent review only. |
 | `custody_record.withdrawal_policy_version` | `READY_NOT_ACCEPTED` | source-002-withdrawal-policy-v1 | Custody record issued for independent review only. |
 | `custody_record.void_propagation_policy_version` | `READY_NOT_ACCEPTED` | source-002-void-propagation-policy-v1 | Custody record issued for independent review only. |
-| `custody_record.downstream_propagation_targets` | `READY_NOT_ACCEPTED` | bound by custody record | Custody record issued for independent review only. |
+| `custody_record.downstream_propagation_targets` | `READY_NOT_ACCEPTED` | `["SOURCE_AUTHORITY_ATTESTATION", "SOURCE_COHORT_MANIFEST", "FUTURE_SPLIT_ARTIFACTS", "FUTURE_SNAPSHOT_MANIFESTS", "S1_ACCEPTANCE_RECORD"]` | Exact governed array value; custody record is issued for independent review only. |
 | `custody_record.external_object_binding_hash` | `READY_NOT_ACCEPTED` | 1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece | Custody record issued for independent review only. |
 | `custody_record.custody_record_hash` | `READY_NOT_ACCEPTED` | 99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6 | Custody record issued for independent review only. |
 
 Top-level status counts are:
 - `AVAILABLE_CANDIDATE`: 3
-- `READY_NOT_ACCEPTED`: 27
+- `READY_NOT_ACCEPTED`: 25
 - `BLOCKED_UPSTREAM_AUTHORITY`: 5
 - `MISSING_GOVERNED_VALUE`: 1
+- `NOT_YET_BOUND`: 2
 
 ## 7. Policy bindings and date scope
 
 | Binding | Current state |
 |---|---|
-| Visibility policy | `v0-3-s1-forecast-input-pit-visibility-v1`, `ISSUED_FOR_INDEPENDENT_REVIEW`, not accepted/bound to final cohort |
+| Forecast-input visibility policy | `v0-3-s1-forecast-input-pit-visibility-v1`, `ISSUED_FOR_INDEPENDENT_REVIEW`; retained as separate forecast-input evidence |
+| Actual-label / IDFL cohort visibility binding | `NOT_YET_BOUND`; `ACTUAL_LABEL_IDFL_VISIBILITY_BINDING_PROVEN=false` |
+| Source 002 label mode | `IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1`; `IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false` |
+| Completeness and lineage prerequisites | `SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true`; `SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true`; `SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true`; `FORECAST_SIDE_POINT_IN_TIME_AUTHORITY_REQUIRED=true` |
 | Split policy | candidate `v0-3-s1-time-ordered-split-policy-v1`, not accepted/frozen |
 | Business date bounds | reviewed aggregate/rederivation evidence: `2025-08-05` through `2026-04-16`, not accepted into final manifest |
 | Completeness watermark | `SOURCE_COMPLETE_THROUGH_BUSINESS_DATE=NOT_ISSUED`; end date is not a watermark |
 | Custody | `source-002-custody-record-v1`, hash `99edff...8dde6`, `ISSUED_FOR_INDEPENDENT_REVIEW`, not accepted |
+
+```text
+FORECAST_INPUT_VISIBILITY_POLICY_VERSION=v0-3-s1-forecast-input-pit-visibility-v1
+FORECAST_INPUT_VISIBILITY_POLICY_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
+FORECAST_INPUT_VISIBILITY_POLICY_SEPARATED=true
+ACTUAL_LABEL_IDFL_VISIBILITY_BINDING_PROVEN=false
+COHORT_VISIBILITY_POLICY_BINDING_STATUS=NOT_YET_BOUND
+SOURCE_002_ACTUAL_LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1
+IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false
+SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED=true
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE_REQUIRED=true
+SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED=true
+FORECAST_SIDE_POINT_IN_TIME_AUTHORITY_REQUIRED=true
+```
 
 ## 8. Historical stale-field handling
 
@@ -201,7 +219,7 @@ Secondary blockers:
 - `FINAL_SOURCE_ATTESTATION_NOT_ISSUED`.
 - `SOURCE_COMPLETENESS_AUTHORITY_AND_EVIDENCE_NOT_ISSUED`.
 - `COVERAGE_SCOPE_CONCRETE_ARRAYS_NOT_BOUND_TO_SCHEMA_VALID_MANIFEST`.
-- `VISIBILITY_POLICY_NOT_ACCEPTED_OR_BOUND_TO_COHORT_MANIFEST`.
+- `ACTUAL_LABEL_IDFL_VISIBILITY_POLICY_NOT_BOUND_TO_COHORT_MANIFEST`.
 - `SPLIT_POLICY_CANDIDATE_NOT_ACCEPTED_OR_BOUND_TO_COHORT_MANIFEST`.
 - `SOURCE_CUSTODY_RECORD_NOT_ACCEPTED`.
 - `FINAL_COHORT_MANIFEST_VERSION_AND_HASH_NOT_ISSUED`.
@@ -214,6 +232,8 @@ Secondary blockers:
 SOURCE_COHORT_FINAL_MANIFEST_CREATED=false
 SOURCE_COHORT_ACCEPTED=false
 SOURCE_COHORT_GATE_PASS=false
+SOURCE_AUTHORITY_PREREQUISITE_REQUIRED=true
+SOURCE_AUTHORITY_PREREQUISITE_SATISFIED=false
 CANONICAL_GATE_STATUS_CHANGED=false
 CANONICAL_ACCEPTANCE_RECORD_CHANGED=false
 S1_REMAINING_05_COMPLETE=false

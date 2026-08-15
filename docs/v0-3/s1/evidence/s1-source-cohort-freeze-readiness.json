@@ -141,7 +141,10 @@
     "source_authority_accepted": false,
     "formal_source_attestation_issued": false,
     "attestation_status": "NOT_ISSUED",
-    "source_cohort_hard_prerequisite_s1_source_authority": false,
+    "source_authority_prerequisite_required": true,
+    "source_authority_prerequisite_satisfied": false,
+    "source_cohort_hard_prerequisite_s1_source_authority_required": true,
+    "source_cohort_hard_prerequisite_s1_source_authority_satisfied": false,
     "source_cohort_canonical_acceptance_allowed": false,
     "missing_authorities": [
       "final source-owner attestation",
@@ -154,11 +157,22 @@
   },
   "policy_bindings": {
     "visibility": {
-      "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+      "forecast_input_visibility_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+      "forecast_input_visibility_policy_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+      "forecast_input_visibility_policy_separated": true,
+      "actual_label_idfl_visibility_binding_proven": false,
+      "cohort_visibility_policy_binding_status": "NOT_YET_BOUND",
+      "source_002_actual_label_mode": "IMMUTABLE_DAILY_FINAL_LABEL / IDFL_V1",
+      "idfl_label_side_point_in_time_replay_required": false,
+      "source_object_completeness_authority_required": true,
+      "source_complete_through_business_date_required": true,
+      "source_object_bound_row_lineage_required": true,
+      "forecast_side_point_in_time_authority_required": true,
       "evidence_path": "docs/v0-3/s1/evidence/forecast-input-pit-visibility-policy-v1.json",
       "evidence_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
       "accepted": false,
-      "binding_status": "READY_NOT_ACCEPTED"
+      "binding_status": "NOT_YET_BOUND",
+      "reason": "FORECAST_INPUT_POLICY_EXISTS_BUT_ACTUAL_LABEL_IDFL_COHORT_MANIFEST_DOMAIN_BINDING_IS_NOT_ESTABLISHED"
     },
     "split": {
       "policy_version": "v0-3-s1-time-ordered-split-policy-v1",
@@ -329,10 +343,11 @@
       },
       {
         "path": "visibility_policy_version",
-        "status": "READY_NOT_ACCEPTED",
-        "current_value": "v0-3-s1-forecast-input-pit-visibility-v1",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
         "accepted": false,
-        "reason": "Versioned policy exists with ISSUED_FOR_INDEPENDENT_REVIEW status; not accepted/bound to cohort."
+        "supporting_forecast_input_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+        "reason": "FORECAST_INPUT_POLICY_EXISTS_BUT_ACTUAL_LABEL_IDFL_COHORT_MANIFEST_DOMAIN_BINDING_IS_NOT_ESTABLISHED"
       },
       {
         "path": "inclusion_policy_version",
@@ -392,10 +407,11 @@
       },
       {
         "path": "custody_record",
-        "status": "READY_NOT_ACCEPTED",
-        "current_value": "source-002-custody-record-v1 / 99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
         "accepted": false,
-        "reason": "Record is ISSUED_FOR_INDEPENDENT_REVIEW; custody is not accepted."
+        "evidence_reference": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "reason": "Exact nested custody values are available in the governed record, but the complete custody object is not yet bound to an accepted final cohort manifest."
       },
       {
         "path": "manifest_hash",
@@ -577,7 +593,7 @@
       {
         "path": "custody_record.approved_usage_purpose",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "read-only approved blueberry forecast purpose",
+        "current_value": "ACTUAL_HARVEST_LABEL_GOVERNANCE_AND_BLUEBERRY_FORECAST_MODEL_EVALUATION",
         "accepted": false,
         "reason": "Custody record issued for independent review only."
       },
@@ -591,14 +607,18 @@
       {
         "path": "custody_record.authorized_role_set",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "bound by source-002-custody-record-v1",
+        "current_value": [
+          "IT_DATA_ACCESS_ADMINISTRATOR",
+          "BLUEBERRY_FORECAST_PROJECT_AUTHORIZED_OPERATOR",
+          "INDEPENDENT_REVIEWER_WHEN_ACCESS_IS_EXPLICITLY_REQUIRED"
+        ],
         "accepted": false,
         "reason": "Custody record issued for independent review only."
       },
       {
         "path": "custody_record.credential_reference_policy",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "opaque/out-of-band reference policy",
+        "current_value": "NO_CREDENTIAL_TOKEN_PRIVATE_URL_OR_PLAINTEXT_STORAGE_LOCATOR_IN_GIT",
         "accepted": false,
         "reason": "No locator or credential is committed."
       },
@@ -612,7 +632,7 @@
       {
         "path": "custody_record.retention_period_or_rule",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "bound by custody record",
+        "current_value": "RETAIN_WHILE_SOURCE_OBJECT_SUPPORTS_AN_ACTIVE_OR_REPRODUCIBLE_FORECAST_EVIDENCE_LINEAGE",
         "accepted": false,
         "reason": "Custody record issued for independent review only."
       },
@@ -633,7 +653,13 @@
       {
         "path": "custody_record.downstream_propagation_targets",
         "status": "READY_NOT_ACCEPTED",
-        "current_value": "bound by custody record",
+        "current_value": [
+          "SOURCE_AUTHORITY_ATTESTATION",
+          "SOURCE_COHORT_MANIFEST",
+          "FUTURE_SPLIT_ARTIFACTS",
+          "FUTURE_SNAPSHOT_MANIFESTS",
+          "S1_ACCEPTANCE_RECORD"
+        ],
         "accepted": false,
         "reason": "Custody record issued for independent review only."
       },
@@ -654,9 +680,10 @@
     ],
     "top_level_status_counts": {
       "AVAILABLE_CANDIDATE": 3,
-      "READY_NOT_ACCEPTED": 27,
+      "READY_NOT_ACCEPTED": 25,
       "BLOCKED_UPSTREAM_AUTHORITY": 5,
-      "MISSING_GOVERNED_VALUE": 1
+      "MISSING_GOVERNED_VALUE": 1,
+      "NOT_YET_BOUND": 2
     },
     "concrete_array_requirement": {
       "farms": true,
@@ -675,7 +702,7 @@
     "source_cohort_gate_pass": false,
     "coverage_scope_concrete_array_requirement_blocked": true,
     "business_date_bounds_status": "READY_NOT_ACCEPTED",
-    "visibility_policy_binding_status": "READY_NOT_ACCEPTED",
+    "visibility_policy_binding_status": "NOT_YET_BOUND",
     "split_policy_binding_status": "AVAILABLE_CANDIDATE",
     "custody_binding_status": "READY_NOT_ACCEPTED",
     "data_governance_owner_acceptance_required": true,
@@ -688,7 +715,7 @@
       "FINAL_SOURCE_ATTESTATION_NOT_ISSUED",
       "SOURCE_COMPLETENESS_AUTHORITY_AND_EVIDENCE_NOT_ISSUED",
       "COVERAGE_SCOPE_CONCRETE_ARRAYS_NOT_BOUND_TO_SCHEMA_VALID_MANIFEST",
-      "VISIBILITY_POLICY_NOT_ACCEPTED_OR_BOUND_TO_COHORT_MANIFEST",
+      "ACTUAL_LABEL_IDFL_VISIBILITY_POLICY_NOT_BOUND_TO_COHORT_MANIFEST",
       "SPLIT_POLICY_CANDIDATE_NOT_ACCEPTED_OR_BOUND_TO_COHORT_MANIFEST",
       "SOURCE_CUSTODY_RECORD_NOT_ACCEPTED",
       "FINAL_COHORT_MANIFEST_VERSION_AND_HASH_NOT_ISSUED"
