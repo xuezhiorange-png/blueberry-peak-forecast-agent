@@ -4,7 +4,7 @@
   "task_id": "S1-REMAINING-05",
   "task_class": "DOCS_ONLY_DECISION_AND_POLICY_READINESS",
   "base_main_sha": "0ed98ee8fa51601f939315a6cfc08e2b690e1bc1",
-  "current_main_revalidated_sha": "e77aff78f74740dde0d9b0e612e661afb0e6e0db",
+  "current_main_revalidated_sha": "7fd2c15f91f6dfad94178595845df389017d02b3",
   "status": "READINESS_PACKAGE_ONLY",
   "authorized": true,
   "no_step_implies_the_next": true,
@@ -61,7 +61,7 @@
   "decision_readiness_summary": {
     "minimum_coverage_decision_status": "ISSUED_AND_INDEPENDENTLY_REVIEWED",
     "s1_minimum_coverage_status": "PASS",
-    "data_quality_threshold_decision_status": "DECISION_REQUIRED",
+    "data_quality_threshold_decision_status": "OWNER_DECISION_ISSUED_REVIEW_REQUIRED",
     "s1_data_quality_threshold_status": "BLOCKED",
     "metric_contract_readiness_status": "PREPARED_NOT_ACCEPTED",
     "s1_metric_contract_status": "BLOCKED",
@@ -188,7 +188,22 @@
   "data_quality_thresholds": {
     "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
     "s1_gate_status": "BLOCKED",
-    "decision_status": "DECISION_REQUIRED",
+    "decision_status": "OWNER_DECISION_ISSUED_REVIEW_REQUIRED",
+    "owner_decision_request_prepared": true,
+    "owner_decision_request_artifact": "docs/v0-3/s1/evidence/s1-data-quality-threshold-policy-decision-request.json",
+    "owner_decision_request_workpaper": "docs/v0-3/s1/workpapers/s1-data-quality-threshold-policy-decision-request.md",
+    "owner_decision_issued": true,
+    "owner_decision_source": "PR_222_COMMENT_5301040523",
+    "owner_decision_comment_id": 5301040523,
+    "owner_identity": "xuezhiorange-png",
+    "owner_role_attestation": "I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE",
+    "owner_provenance": "AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-15",
+    "decided_at": "2026-08-15T14:54:00+08:00",
+    "policy_version": "v0-3-s1-data-quality-threshold-policy-v1",
+    "owner_decision_sha256": "11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969",
+    "owner_decision_hash_replay": "PASS",
+    "owner_decision_binding": "PASS",
+    "policy_independently_reviewed": false,
     "owner_role": "data_quality_owner_role",
     "authority_source": [
       "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
@@ -196,7 +211,8 @@
       "docs/v0-3/s1/s1-acceptance-package.md"
     ],
     "repository_proven": [
-      "No approved versioned data-quality threshold policy is present.",
+      "The authenticated owner decision is bound to PR #222 comment 5301040523 and its canonical SHA-256 identity.",
+      "The policy remains pending exact-head independent review; the canonical gate is still blocked.",
       "The current contract is fail-closed and does not infer thresholds from fixtures.",
       "Quality policy decisions remain distinct from metric execution."
     ],
@@ -205,16 +221,22 @@
         "decision_id": "S1_DATA_QUALITY_THRESHOLD_POLICY",
         "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
         "owner_role": "data_quality_owner_role",
-        "current_status": "DECISION_REQUIRED",
+        "current_status": "OWNER_DECISION_ISSUED_REVIEW_REQUIRED",
         "current_value": null,
-        "authority_source": "docs/v0-3/s1/evidence/threshold-decision-evidence-status.md",
+        "authority_source": "PR_222_COMMENT_5301040523",
         "repository_proven": true,
-        "external_decision_required": true,
+        "external_decision_required": false,
         "can_be_inferred": false,
         "can_be_decided_in_current_task": false,
         "candidate_value": null,
         "accepted_value": null,
-        "block_reason": "NO_APPROVED_VERSIONED_DATA_QUALITY_THRESHOLD_POLICY",
+        "block_reason": "OWNER_DECISION_BOUND_PENDING_EXACT_HEAD_INDEPENDENT_REVIEW",
+        "owner_decision_source": "PR_222_COMMENT_5301040523",
+        "owner_decision_comment_id": 5301040523,
+        "owner_decision_sha256": "11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969",
+        "owner_decision_hash_replay": "PASS",
+        "owner_decision_binding": "PASS",
+        "policy_independently_reviewed": false,
         "downstream_dependencies": [
           "S1-SOURCE-COHORT",
           "S1-INCLUSION-EXCLUSION",
@@ -241,7 +263,7 @@
         ]
       }
     ],
-    "recommended_next_action": "OBTAIN_AND_REVIEW_VERSIONED_S1_DATA_QUALITY_THRESHOLD_POLICY"
+    "recommended_next_action": "RUN_PR222_DATA_QUALITY_OWNER_BINDING_EXACT_HEAD_INDEPENDENT_REVIEW"
   },
   "metric_contract": {
     "gate_id": "S1-METRIC-CONTRACT",
