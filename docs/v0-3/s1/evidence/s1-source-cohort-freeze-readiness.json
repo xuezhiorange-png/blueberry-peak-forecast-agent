@@ -319,14 +319,15 @@
       },
       {
         "path": "revision_policy",
-        "status": "READY_NOT_ACCEPTED",
-        "current_value": {
-          "revision_policy_version": "source-002-idfl-revision-policy-v1",
-          "revision_policy_identity": "IDFL_V1 source-object-bound label-side disposition",
-          "winner_and_lineage_rule": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"
-        },
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
         "accepted": false,
-        "reason": "Formalized/reviewed, but not bound into an accepted final manifest."
+        "nested_readiness": [
+          "revision_policy.revision_policy_version",
+          "revision_policy.revision_policy_identity",
+          "revision_policy.winner_and_lineage_rule"
+        ],
+        "reason": "NO_GOVERNED_SCHEMA_VALID_OPAQUE_REVISION_POLICY_IDENTITY_HAS_BEEN_ISSUED"
       },
       {
         "path": "withdrawal_and_void_policy",
@@ -564,10 +565,13 @@
       },
       {
         "path": "revision_policy.revision_policy_identity",
-        "status": "READY_NOT_ACCEPTED",
-        "current_value": "IDFL_V1 source-object-bound label-side disposition",
+        "status": "NOT_YET_BOUND",
+        "current_value": null,
         "accepted": false,
-        "reason": "Formalized in PR #199; not accepted into a final manifest."
+        "supporting_evidence": [
+          "IDFL_V1 source-object-bound label-side disposition"
+        ],
+        "reason": "NO_GOVERNED_SCHEMA_VALID_OPAQUE_REVISION_POLICY_IDENTITY_HAS_BEEN_ISSUED"
       },
       {
         "path": "revision_policy.winner_and_lineage_rule",
@@ -722,10 +726,10 @@
     ],
     "top_level_status_counts": {
       "AVAILABLE_CANDIDATE": 3,
-      "READY_NOT_ACCEPTED": 24,
+      "READY_NOT_ACCEPTED": 23,
       "BLOCKED_UPSTREAM_AUTHORITY": 5,
       "MISSING_GOVERNED_VALUE": 1,
-      "NOT_YET_BOUND": 3
+      "NOT_YET_BOUND": 4
     },
     "concrete_array_requirement": {
       "farms": true,
@@ -781,7 +785,8 @@
     "model_changed": false,
     "canonical_gate_status_changed": false,
     "canonical_acceptance_record_changed": false,
-    "historical_reviewed_artifact_hashes_mutated": false
+    "historical_reviewed_artifact_hashes_mutated": false,
+    "revision_policy_identity_governed_opaque_reference_found": false
   },
   "next_recommended_action": "RUN_SOURCE_COHORT_FREEZE_READINESS_EXACT_HEAD_INDEPENDENT_REVIEW",
   "no_step_implies_the_next": true
