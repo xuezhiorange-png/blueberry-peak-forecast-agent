@@ -19,9 +19,8 @@ This is the single runtime gate registry for S1. Every row uses the same
 runtime field set; there is no separate initial-status authority. Fifteen
 required rows remain blocked because source authority, cohort evidence, policy,
 and final independent review are not present. The standalone
-`S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` rows are now `PASS` and
-bind the independently reviewed owner decision hashes; no row-level data is
-issued by this package.
+`S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` rows are now `PASS` and bind the independently reviewed
+owner decision hash; no row-level data is issued by this package.
 
 ```text
 COMPLETION_GATE_REGISTRY_IS_AUTHORITATIVE=true
@@ -80,7 +79,7 @@ package; it is not permitted to turn this required feasibility gate into
 | `S1-SPLIT-POLICY` | evaluation | required | model_validation_owner_role | split policy and custody record | `SPLIT_POLICY_REQUIRED` | `BLOCKED_NO_SOURCE_COHORT` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | split contract | `TIME_ORDERED_SPLITS_AND_NO_LEAKAGE` | `NEVER` | `BLOCKED` | `SPLIT_POLICY_NOT_FROZEN` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | No TEST or holdout is accessed. |
 | `S1-METRIC-CONTRACT` | metrics | required | model_validation_owner_role | S1 metric contract and S3 binding | `METRIC_CONTRACT_REQUIRED` | `BLOCKED_NO_ACCEPTED_SOURCE` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | S3 contract | `ALL_CANONICAL_METRIC_IDS_AND_STATES_BOUND` | `NEVER` | `BLOCKED` | `METRIC_CONTRACT_NOT_ACCEPTED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Quantile and baseline gates remain fail-closed. |
 | `S1-MINIMUM-COVERAGE` | metrics | required | model_validation_owner_role | coverage threshold decision record | `v0-3-s1-minimum-coverage-threshold-v1` | `a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692` | `v0.3-metric-contract-v1` | S3 contract and independently reviewed owner decision `4937929668` | `S3_COVERAGE_RATIO_GREATER_THAN_OR_EQUAL_0.900000_PER_APPLICATION_CELL` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4937929668` | `2026-08-14T14:04:08Z` | Owner decision payload/hash and exact-head CI were independently reviewed on PR #219 head `5775e908cfe072fa962c99e822901b7157128418`; S3 reporting floor 10 is not the S1 threshold. |
-| `S1-DATA-QUALITY-THRESHOLDS` | data | required | data_quality_owner_role | data-quality threshold record | `v0-3-s1-data-quality-threshold-policy-v1` | `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969` | `v0.3-metric-contract-v1` | approved quality policy and independently reviewed owner decision `4943325699` | `VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_GREATER_THAN_OR_EQUAL_1_000000` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4943325699` | `2026-08-15T08:08:51Z` | Owner decision payload/hash and exact-head CI were independently reviewed on PR #222 head `a7bdff6101d724d3413b0fa3d097c240b236326f`; this closes only the data-quality gate. Owner decision SHA bound. |
+| `S1-DATA-QUALITY-THRESHOLDS` | data | required | data_quality_owner_role | `v0-3-s1-data-quality-threshold-policy-v1` | `v0-3-s1-data-quality-threshold-policy-v1` | `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969` | `v0.3-metric-contract-v1` | reviewed versioned data-quality owner policy | `VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_GREATER_THAN_OR_EQUAL_1.000000_PER_APPLICATION_CELL` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4943327077` | `2026-08-15T08:09:57Z` | Owner decision comment `5301040523` and exact-head CI `31872490353` are bound; this accepts the policy only, not data execution or any other gate. |
 | `S1-DATA-CUSTODY` | governance | required | data_governance_owner_role | versioned custody record | `CUSTODY_RECORD_REQUIRED` | `BLOCKED_NO_GOVERNED_CUSTODY_RECORD` | `NOT_APPLICABLE_FOR_THIS_GATE` | source custody contract | `ACCESS_RETENTION_WITHDRAWAL_VOID_EVIDENCED` | `NEVER` | `BLOCKED` | `SOURCE_CUSTODY_NOT_VERIFIED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Policy identities and hashes only. |
 | `S1-HOLDOUT-FEASIBILITY` | evaluation | required | model_validation_owner_role | external holdout feasibility record | `HOLDOUT_FEASIBILITY_REQUIRED` | `BLOCKED_NO_COHORT_FEASIBILITY_EVIDENCE` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | split contract | `REVIEWED_FEASIBLE_OR_REVIEWED_NOT_FEASIBLE` | `NEVER` | `BLOCKED` | `FEASIBILITY_NOT_YET_ACCEPTED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | This gate is required; it is not materialization. |
 | `S1-INDEPENDENT-REVIEW` | governance | required | independent_reviewer_role | complete S1 acceptance record | `ACCEPTANCE_RECORD_REQUIRED` | `BLOCKED_NO_INDEPENDENT_REVIEW` | `NOT_APPLICABLE_FOR_THIS_GATE` | S1 package | `ALL_REQUIRED_GATES_CLOSED` | `NEVER` | `BLOCKED` | `NOT_YET_INDEPENDENTLY_REVIEWED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Review cannot be self-attested. |
@@ -95,8 +94,6 @@ CURRENT_REQUIRED_GATE_BLOCKED=true
 CURRENT_ACCEPTANCE_RESULT=BLOCKED
 CURRENT_S1_ACCEPTED=false
 CURRENT_S2_AUTHORIZATION=false
-S1_DATA_QUALITY_THRESHOLDS_GATE_PASS=true
-S1_REMAINING_05_COMPLETE=false
 ```
 
 The current package records the minimum-coverage and data-quality policy gates
