@@ -109,28 +109,32 @@ artifact contains the exact payload and the authoritative SHA-256. The data-
 quality gate remains blocked pending exact-head independent review; the issued
 policy is not yet a canonical acceptance.
 
-## 3. Required owner decision dimensions
+## 3. Historical original-request decision dimensions
 
-The owner must explicitly decide every dimension below. If a dimension does
-not apply, the owner must write `NOT_APPLICABLE_WITH_REASON`; it may not be
-silently omitted.
+Before issuance, the owner was required to explicitly decide every dimension
+below. If a dimension did not apply, the owner was required to write
+`NOT_APPLICABLE_WITH_REASON`; it could not be silently omitted. The issued
+values are bound in Section 2; this section records the original request
+requirements and is not the current owner-decision state.
 
 | Dimension | Required owner decision | Required boundary |
 | --- | --- | --- |
-| `MISSING_DAY_POLICY` | How an expected but absent governed day is classified | Owner must select `BLOCK`, `EXCLUDE`, `OTHER`, or an explicit `NOT_APPLICABLE_WITH_REASON` |
-| `MISSING_DATA_PROPORTION_POLICY` | Whether partial missingness is allowed and how it is measured | Owner must provide numerator/denominator, threshold, operator, unit, grain, scope, and failure semantics |
-| `DUPLICATE_CONFLICT_POLICY` | Disposition of exact duplicates, same-key different payloads, and conflicting revisions | Owner must define fail/resolve/exclude semantics for each case |
-| `INVALID_CANONICAL_GRAIN_IDENTITY_POLICY` | Disposition of invalid farm/subfarm/variety/date or other grain identity | Owner must define the identity validation and failure outcome |
-| `UNMAPPED_IDENTITY_OR_DATE_POLICY` | Disposition of unmapped identity or indeterminate local date/date basis | Owner must define mapping, fail-closed, and exclusion behavior |
-| `REVISION_VOID_CONSISTENCY_POLICY` | Revision lineage, winner, void/cancel, and corrected-record consistency | Owner must define the valid-winner requirement and failure outcome |
-| `COMPLETENESS_POLICY` | What complete means at the approved date universe and application grain | Owner must define daily/rowset completeness and incomplete-rowset semantics |
-| `SOURCE_ROW_LINEAGE_POLICY` | Whether every governed row must trace to source-row identity | Owner must set lineage requiredness and lineage-failure semantics |
-| `CANONICAL_GROUP_COVERAGE_POLICY` | Required coverage of canonical application groups/cells | Owner must define numerator, denominator, grain, scope, and relation to minimum coverage |
+| `MISSING_DAY_POLICY` | How an expected but absent governed day was to be classified | Before issuance, the owner was required to select `BLOCK`, `EXCLUDE`, `OTHER`, or an explicit `NOT_APPLICABLE_WITH_REASON` |
+| `MISSING_DATA_PROPORTION_POLICY` | Whether partial missingness was to be allowed and how it was to be measured | Before issuance, the owner was required to provide numerator/denominator, threshold, operator, unit, grain, scope, and failure semantics |
+| `DUPLICATE_CONFLICT_POLICY` | Disposition of exact duplicates, same-key different payloads, and conflicting revisions | Before issuance, the owner was required to define fail/resolve/exclude semantics for each case |
+| `INVALID_CANONICAL_GRAIN_IDENTITY_POLICY` | Disposition of invalid farm/subfarm/variety/date or other grain identity | Before issuance, the owner was required to define the identity validation and failure outcome |
+| `UNMAPPED_IDENTITY_OR_DATE_POLICY` | Disposition of unmapped identity or indeterminate local date/date basis | Before issuance, the owner was required to define mapping, fail-closed, and exclusion behavior |
+| `REVISION_VOID_CONSISTENCY_POLICY` | Revision lineage, winner, void/cancel, and corrected-record consistency | Before issuance, the owner was required to define the valid-winner requirement and failure outcome |
+| `COMPLETENESS_POLICY` | What complete means at the approved date universe and application grain | Before issuance, the owner was required to define daily/rowset completeness and incomplete-rowset semantics |
+| `SOURCE_ROW_LINEAGE_POLICY` | Whether every governed row must trace to source-row identity | Before issuance, the owner was required to set lineage requiredness and lineage-failure semantics |
+| `CANONICAL_GROUP_COVERAGE_POLICY` | Required coverage of canonical application groups/cells | Before issuance, the owner was required to define numerator, denominator, grain, scope, and relation to minimum coverage |
 
-## 4. Common fields that must be frozen in the owner payload
+## 4. Historical original-request common fields
 
-The versioned policy record must contain the following fields. The values are
-not supplied by this workpaper:
+Before issuance, the versioned policy record was required to contain the
+following fields. The issued values are bound in Section 2; this table records
+the historical request requirements and is not the current owner-decision
+state:
 
 | Field | Owner entry |
 | --- | --- |
@@ -173,8 +177,13 @@ application scope, threshold semantics, and independent review.
 ## 6. Owner signature template
 
 The following is the original request template retained for provenance. The
-issued owner payload is bound in Section 2; these placeholders are not used as
-the issued authority.
+issued owner payload is bound in Section 2. This is a historical template only
+and is not the current owner-decision state.
+
+```text
+HISTORICAL_REQUEST_TEMPLATE_ONLY=true
+NOT_CURRENT_OWNER_DECISION_STATE=true
+```
 
 ```text
 DECISION_ID=S1_DATA_QUALITY_THRESHOLD_POLICY

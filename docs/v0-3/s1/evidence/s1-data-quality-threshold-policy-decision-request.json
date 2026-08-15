@@ -2,8 +2,10 @@
   "artifact_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_DECISION_REQUEST",
   "artifact_version": "v0-3-s1-data-quality-threshold-policy-decision-request-v1",
   "artifact_status": "OWNER_DECISION_ISSUED_REVIEW_REQUIRED",
-  "task_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_DECISION_READINESS",
-  "task_class": "DOCS_ONLY_EXTERNAL_OWNER_DECISION_READINESS",
+  "task_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_OWNER_BINDING_R1",
+  "task_class": "DOCS_ONLY_OWNER_DECISION_BINDING",
+  "original_request_task_id": "V0_3_S1_DATA_QUALITY_THRESHOLD_POLICY_DECISION_READINESS",
+  "original_request_task_class": "DOCS_ONLY_EXTERNAL_OWNER_DECISION_READINESS",
   "base_main_sha": "7fd2c15f91f6dfad94178595845df389017d02b3",
   "authorized_scope": "Bind the authenticated owner decision without accepting the canonical data-quality gate.",
   "no_step_implies_the_next": true,
@@ -129,7 +131,7 @@
         "conflicting revision",
         "fail, resolve, or exclude semantics"
       ],
-      "rationale": "The owner must define the disposition of duplicate and conflicting governed records."
+      "rationale": "The original request required the owner to define the disposition of duplicate and conflicting governed records."
     },
     {
       "dimension_id": "INVALID_CANONICAL_GRAIN_IDENTITY_POLICY",
@@ -187,7 +189,7 @@
         "source_row_lineage_failure_semantics",
         "lineage_identity_requirements"
       ],
-      "rationale": "The owner must decide whether every governed row must trace to a source row and what happens when it cannot."
+      "rationale": "The original request required the owner to decide whether every governed row must trace to a source row and what happens when it cannot."
     },
     {
       "dimension_id": "CANONICAL_GROUP_COVERAGE_POLICY",
@@ -204,95 +206,97 @@
       "rationale": "Canonical-group quality coverage is distinct from the already accepted S1 minimum-coverage policy and requires its own authority."
     }
   ],
-  "common_required_decision_fields": [
+  "historical_request_template_only": true,
+  "not_current_owner_decision_state": true,
+  "historical_request_required_fields": [
     {
       "field": "DECISION_ID",
-      "current_value": "S1_DATA_QUALITY_THRESHOLD_POLICY",
+      "request_template_value": "S1_DATA_QUALITY_THRESHOLD_POLICY",
       "owner_entry": "S1_DATA_QUALITY_THRESHOLD_POLICY"
     },
     {
       "field": "POLICY_VERSION",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required versioned policy identity>"
     },
     {
       "field": "OWNER_IDENTITY",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required>"
     },
     {
       "field": "OWNER_ROLE_ATTESTATION",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "I_AM_ACTING_AS_DATA_QUALITY_OWNER_ROLE"
     },
     {
       "field": "OWNER_PROVENANCE",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required>"
     },
     {
       "field": "DECIDED_AT",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required ISO-8601>"
     },
     {
       "field": "APPLICATION_GRAIN",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required>"
     },
     {
       "field": "APPLICATION_SCOPE",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required>"
     },
     {
       "field": "FAILURE_SEMANTICS",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required>"
     },
     {
       "field": "EXCLUSION_SEMANTICS",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required>"
     },
     {
       "field": "THRESHOLD_VALUE",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required or explicit NONE>"
     },
     {
       "field": "THRESHOLD_OPERATOR",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required if threshold exists; otherwise NOT_APPLICABLE_WITH_REASON>"
     },
     {
       "field": "THRESHOLD_UNIT",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required if threshold exists; otherwise NOT_APPLICABLE_WITH_REASON>"
     },
     {
       "field": "THRESHOLD_VARIES_BY_HORIZON",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required true or false>"
     },
     {
       "field": "HORIZON_POLICY",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required or NOT_APPLICABLE_WITH_REASON>"
     },
     {
       "field": "THRESHOLD_VARIES_BY_PARTITION",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required true or false>"
     },
     {
       "field": "PARTITION_POLICY",
-      "current_value": null,
+      "request_template_value": null,
       "owner_entry": "<required or NOT_APPLICABLE_WITH_REASON>"
     },
     {
       "field": "INDEPENDENT_REVIEW_REQUIRED",
-      "current_value": true,
+      "request_template_value": true,
       "owner_entry": true
     }
   ],
