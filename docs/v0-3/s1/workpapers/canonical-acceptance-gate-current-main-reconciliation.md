@@ -5,10 +5,10 @@
 ```text
 WORKPAPER_ID=V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION
 TASK_CLASS=DOCS_ONLY_GOVERNANCE_RECONCILIATION
-AUDITED_REPOSITORY_SHA=5b3f4ee1ac7e25698b4ef54ab9a2915323e5317d
+AUDITED_REPOSITORY_SHA=e77aff78f74740dde0d9b0e612e661afb0e6e0db
 CANONICAL_GATE_COUNT=17
 CANONICAL_ACCEPTANCE_STATUS=BLOCKED
-CANONICAL_ACCEPTANCE_STATUS_MUTATION_ALLOWED=false
+CANONICAL_ACCEPTANCE_STATUS_MUTATION_ALLOWED=true
 S1_ACCEPTANCE_ISSUANCE_ALLOWED=false
 SOURCE_002_READ=false
 REAL_BUSINESS_DATA_READ=false
@@ -17,8 +17,9 @@ EXTERNAL_HOLDOUT_DATA_ACCESSED=false
 ```
 
 This workpaper reconciles current-main evidence against the existing
-authoritative S1 gate registry. It does not change the registry, issue a gate
-decision, accept S1, authorize S2, or read Source 002 raw rows. The current
+authoritative S1 gate registry. The post-PR #219 closeout records the
+independently reviewed minimum-coverage policy as the sole currently passing
+gate. It does not accept S1, authorize S2, or read Source 002 raw rows. The current
 main artifact wins over historical PR descriptions when they differ; PR
 history is used only as provenance for already merged implementation work.
 
@@ -26,8 +27,9 @@ The authoritative completion rule remains:
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_CANONICAL_GATE_PASS_COUNT=0
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=1
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=16
+ALL_CANONICAL_RUNTIME_STATUS_BLOCKED=false
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
 V0_3_S2_AUTHORIZED=false
@@ -80,9 +82,10 @@ dependencies are validated separately as a directional acyclic task graph.
 
 The current acceptance record at
 `docs/v0-3/s1/evidence/s1-acceptance-record.json` contains exactly the 17
-required gate IDs, each once, with `status=BLOCKED`. Its historical block
-reasons are preserved in the reconciliation artifact, but are not copied as if
-they were a current factual audit without checking later evidence.
+required gate IDs, each once. `S1-MINIMUM-COVERAGE` is `PASS` and the other
+sixteen rows remain `BLOCKED`. Historical block reasons are preserved in the
+reconciliation artifact, but are not copied as if they were a current factual
+audit without checking later evidence.
 
 The current main contains meaningful evidence beyond the initial registry:
 
@@ -158,8 +161,8 @@ actual-label lifecycle, custody, and PIT workpapers under
 | `S1-INCLUSION-EXCLUSION` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Inclusion manifest records retained unmapped rows, no auto-July assignment, and unknown-not-zero. | Unmapped-date and scope applicability decisions remain pending. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN` | Resolve unmapped-date and source-scope inclusion/exclusion authority. |
 | `S1-MISSING-CORRECTION-CANCELLATION` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Missingness and IDFL mode semantics are defined; custody propagation is separate. | Source completeness, missing-day, correction, void, and final-confirmation authority remain incomplete. | `S1-SOURCE-AUTHORITY` | None | Issue source completeness and lifecycle policy authority. |
 | `S1-SPLIT-POLICY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Time-ordering, no leakage, TEST seal, and custody rules are defined. | No accepted cohort/rowset and no final split artifact exist. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-METRIC-CONTRACT`; `S1-DATA-CUSTODY` | None | Prepare split/custody artifact after upstream acceptance. |
-| `S1-METRIC-CONTRACT` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Metric identities and S3 binding rules are defined. | Source/target/visibility/threshold prerequisites prevent metric acceptance. | `S1-Q2C-TARGET`; `S1-SOURCE-AUTHORITY`; `S1-SOURCE-COHORT`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-QUALITY-THRESHOLDS` | None | Freeze metric contract after upstream authority decisions. |
-| `S1-MINIMUM-COVERAGE` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Status record explicitly says no approved S1 threshold; S3 floor 10 is not an S1 threshold. | Versioned coverage threshold decision is absent. | `S1-SOURCE-COHORT` | None | Obtain and accept an S1 coverage threshold decision. |
+| `S1-METRIC-CONTRACT` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Metric identities, S3 binding rules, and the independently reviewed minimum-coverage policy are defined. | Source/target/visibility/data-quality prerequisites and an accepted metric binding still prevent metric acceptance. | `S1-Q2C-TARGET`; `S1-SOURCE-AUTHORITY`; `S1-SOURCE-COHORT`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-QUALITY-THRESHOLDS` | None | Freeze metric contract after the remaining upstream authority decisions. |
+| `S1-MINIMUM-COVERAGE` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Versioned owner policy, SHA-256 binding, independent review `4937929668`, and exact-head CI `31806575112` are present. | None for this standalone gate; downstream metric/cohort prerequisites remain separate. | None | None | Revalidate Remaining-05 after the minimum-coverage gate closeout. |
 | `S1-DATA-QUALITY-THRESHOLDS` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | No threshold is inferred; contract and status are fail-closed. | Versioned quality policy and threshold decision are absent. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | None | Obtain and accept the S1 quality-threshold policy. |
 | `S1-DATA-CUSTODY` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Versioned custody record, policy identities, hashes, access, retention, withdrawal, and void propagation are issued for review. | Independent custody review/acceptance is absent. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT` | Submit the issued custody record for independent review. |
 | `S1-HOLDOUT-FEASIBILITY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Feasibility rule and no-data boundary are clear; no TEST/holdout was accessed. | Accepted cohort, coverage, custody, split, and reviewed feasibility decision are absent. | `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-CUSTODY`; `S1-SPLIT-POLICY` | None | Prepare and review feasibility after prerequisites close. |
@@ -297,7 +300,6 @@ The current main cannot derive or invent:
 - Q2C target equivalence outcome;
 - unmapped-date and source-scope inclusion/exclusion authority;
 - source completeness, missing-day, correction, void, and lifecycle authority;
-- S1 minimum-coverage threshold; or
 - S1 data-quality threshold policy.
 
 The requested next decision package should ask only for these bounded
@@ -352,14 +354,15 @@ authorize the first item or imply the next item automatically.
 
 ## 12. S1 acceptance boundary
 
-This workpaper does not modify
-`docs/v0-3/s1/evidence/s1-acceptance-record.json`. It does not set any runtime
-gate to `PASS`, does not issue Q2C/source/cohort/custody acceptance, and does
-not claim S1 completion. The authoritative record remains:
+This workpaper modifies
+`docs/v0-3/s1/evidence/s1-acceptance-record.json` only to record the
+independently reviewed `S1-MINIMUM-COVERAGE` row as `PASS`. It does not issue
+Q2C/source/cohort/custody acceptance and does not claim S1 completion. The
+authoritative record remains:
 
 ```text
-CURRENT_CANONICAL_GATE_PASS_COUNT=0
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=1
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=16
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
 ```
@@ -383,9 +386,9 @@ RECONCILED_GATE_COUNT=17
 UNIQUE_GATE_ID_COUNT=17
 MISSING_GATE_COUNT=0
 DUPLICATE_GATE_COUNT=0
-FORMALIZATION_OR_REVIEW_READY_COUNT=3
+FORMALIZATION_OR_REVIEW_READY_COUNT=4
 NARROW_CORRECTION_REQUIRED_COUNT=1
-EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=7
+EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=6
 UPSTREAM_DEPENDENCY_BLOCKED_COUNT=6
 CLASSIFICATION_COUNT_SUM=17
 HARD_PREREQUISITE_CYCLE_FOUND=false
@@ -399,6 +402,6 @@ TASK_PACKAGE_DEPENDENCY_CYCLE_FOUND=false
 TASK_PACKAGE_TOPOLOGICAL_ORDER_VALID=true
 PIT_MINIMUM_IMPLEMENTATION_GAP_COUNT=4
 PIT_GAPS_TREATED_AS_S1_TOTAL_REMAINING_TASKS=false
-AUTHORITATIVE_ACCEPTANCE_RECORD_CHANGED=false
-CANONICAL_GATE_STATUS_CHANGED=false
+AUTHORITATIVE_ACCEPTANCE_RECORD_CHANGED=true
+CANONICAL_GATE_STATUS_CHANGED=true
 ```

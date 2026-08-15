@@ -5,31 +5,35 @@
 TASK_ID=S1-REMAINING-05
 TASK_CLASS=DOCS_ONLY_DECISION_AND_POLICY_READINESS
 BASE_MAIN_SHA=0ed98ee8fa51601f939315a6cfc08e2b690e1bc1
+CURRENT_MAIN_REVALIDATED_SHA=e77aff78f74740dde0d9b0e612e661afb0e6e0db
 READINESS_PACKAGE_ONLY=true
 NO_STEP_IMPLIES_THE_NEXT=true
 
 This package prepares decision and policy readiness for threshold, metric,
-split, and holdout work. It does not issue a threshold, accept a metric
-contract, accept a split, decide holdout feasibility, accept custody, change
-the canonical acceptance record, or authorize any later S1/S2 task.
+split, and holdout work. The minimum-coverage policy is now issued and
+independently reviewed, and its standalone canonical gate is closed by the
+post-PR #219 closeout. This package still does not accept a metric contract,
+accept a split, decide holdout feasibility, accept custody, complete
+Remaining-05, or authorize any later S1/S2 task.
 
-The authoritative runtime registry remains unchanged:
+The authoritative runtime registry remains canonical; this closeout changes
+only the standalone minimum-coverage row:
 
 | State | Value |
 | --- | --- |
 | CANONICAL_GATE_COUNT | 17 |
-| CURRENT_CANONICAL_GATE_PASS_COUNT | 0 |
-| CURRENT_CANONICAL_GATE_BLOCKED_COUNT | 17 |
-| CANONICAL_GATE_STATUS_CHANGED | false |
-| CANONICAL_ACCEPTANCE_RECORD_CHANGED | false |
+| CURRENT_CANONICAL_GATE_PASS_COUNT | 1 |
+| CURRENT_CANONICAL_GATE_BLOCKED_COUNT | 16 |
+| CANONICAL_GATE_STATUS_CHANGED | true |
+| CANONICAL_ACCEPTANCE_RECORD_CHANGED | true |
 | V0_3_S1_COMPLETE | false |
 | V0_3_S1_ACCEPTED | false |
 | S1_REMAINING_06_AUTHORIZED | false |
 | V0_3_S2_AUTHORIZED | false |
 | V0_3_S2_STARTED | false |
 
-CURRENT_CANONICAL_GATE_PASS_COUNT=0
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=1
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=16
 
 Authoritative inputs reviewed:
 
@@ -49,48 +53,53 @@ Authoritative inputs reviewed:
 
 | Domain | Current state | What this package does | What it does not do |
 | --- | --- | --- | --- |
-| Minimum coverage | DECISION_REQUIRED / gate BLOCKED | Enumerates owner, dimensions, provenance, and fail-closed semantics | Does not choose a percentage, count, or denominator |
+| Minimum coverage | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the owner policy, SHA, independent review, and exact-head CI | Does not execute coverage or close any downstream gate |
 | Data quality thresholds | DECISION_REQUIRED / gate BLOCKED | Enumerates the required policy dimensions | Does not derive policy from Source 002 statistics |
 | Metric contract | PREPARED_NOT_ACCEPTED / gate BLOCKED | Binds the current version and canonical metric registry | Does not execute metrics or issue results |
 | Split policy | CANDIDATE_NOT_ACCEPTED / gate BLOCKED | Provides a versioned time-ordered candidate and partition purposes | Does not materialize any rowset or authorize TEST access |
 | Holdout feasibility | NOT_EVALUATED / gate BLOCKED | Provides feasibility criteria and conditional usage rules | Does not access or materialize external holdout data |
 | Data custody | ISSUED_FOR_INDEPENDENT_REVIEW / gate BLOCKED | Reuses the existing custody identity and hash | Does not accept custody |
 
-## 3. Minimum coverage decision request
+## 3. Minimum coverage decision closeout
 
-The current S1 minimum-coverage threshold is not issued. The only numeric
-value available in the current contract is:
+The S1 minimum-coverage threshold is now issued and independently reviewed.
+The only numeric value that remains a reporting-floor fact is:
 
 MIN_COMPARABLE_ROWS_FOR_REPORTING=10
 MIN_COMPARABLE_ROWS_IS_S3_REPORTING_FLOOR=true
 MIN_COMPARABLE_ROWS_IS_S1_MINIMUM_COVERAGE_THRESHOLD=false
 
-The value 10 is not copied into a candidate S1 threshold. The decision owner
-is model_validation_owner_role. The requested versioned decision must specify:
+The value 10 is not copied into the S1 threshold. The model-validation owner
+decision is bound by:
 
-1. threshold identity and version;
-2. unit;
-3. application grain;
-4. application scope;
-5. denominator definition;
-6. failure semantics and the BELOW_MINIMUM semantics;
-7. whether the threshold varies by forecast horizon;
-8. whether it varies by evaluation partition; and
-9. provenance and independent-review identity.
+1. `POLICY_VERSION=v0-3-s1-minimum-coverage-threshold-v1`;
+2. `THRESHOLD_VALUE=0.900000`, operator `GREATER_THAN_OR_EQUAL`, unit
+   `RATIO_0_TO_1`;
+3. the governed application grain and scope;
+4. the exact-cell denominator and fail-closed zero-denominator semantics;
+5. the common 7/14/21-day horizon policy and independent TRAIN/VALIDATION/TEST
+   partition policy; and
+6. owner decision SHA, independent review, and exact-head CI provenance.
 
 | Field | Value |
 | --- | --- |
 | DECISION_ID | S1_MINIMUM_COVERAGE_THRESHOLD_POLICY |
-| CURRENT_STATUS | DECISION_REQUIRED |
-| CANDIDATE_VALUE | null |
-| ACCEPTED_VALUE | null |
-| EXTERNAL_DECISION_REQUIRED | true |
+| CURRENT_STATUS | CLOSED_BY_INDEPENDENT_REVIEW |
+| CANDIDATE_VALUE | 0.900000 |
+| ACCEPTED_VALUE | 0.900000 |
+| EXTERNAL_DECISION_REQUIRED | false |
 | CAN_BE_INFERRED | false |
 | CAN_BE_DECIDED_IN_CURRENT_TASK | false |
-| BLOCK_REASON | NO_APPROVED_S1_MINIMUM_COVERAGE_THRESHOLD |
+| BLOCK_REASON | NONE |
+| OWNER_DECISION_SHA256 | `a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692` |
+| INDEPENDENT_REVIEW_ID | `4937929668` |
+| INDEPENDENT_REVIEWED_HEAD | `5775e908cfe072fa962c99e822901b7157128418` |
+| EXACT_HEAD_CI_RUN_ID | `31806575112` |
+| EXACT_HEAD_CI_CONCLUSION | `success` |
 
 No row count, farm count, subfarm count, variety count, or observed fixture
-distribution is treated as threshold authority.
+distribution was treated as threshold authority. The minimum-coverage gate
+is the only Task05 domain closed by this closeout.
 
 ## 4. Data-quality threshold decision request
 
@@ -120,6 +129,28 @@ is data_quality_owner_role. The decision must cover:
 
 The package deliberately contains no proposed numeric quality threshold and
 does not infer policy from Source 002 aggregate statistics.
+
+## Remaining-05 completion boundary
+
+```text
+S1_REMAINING_05_COMPLETE=false
+REMAINING_BLOCKERS=(
+  DATA_QUALITY_THRESHOLD,
+  SOURCE_COHORT,
+  SOURCE_INCLUSION,
+  SOURCE_VISIBILITY,
+  SOURCE_CUSTODY,
+  METRIC_CONTRACT_FREEZE,
+  TIME_ORDERED_SPLIT_FREEZE,
+  HOLDOUT_FEASIBILITY,
+  FINAL_INDEPENDENT_S1_ACCEPTANCE
+)
+```
+
+The minimum-coverage row is not included in this remaining-blocker list
+because its standalone gate is closed. The listed items were re-read after
+the PR #219 merge and remain unresolved; no downstream gate is promoted by
+this closeout.
 
 ## 5. Metric contract freeze readiness
 
@@ -286,31 +317,30 @@ storage locator, credential, source row, or custody decision is created.
 
 | Decision ID | Gate | Current status | Owner | External decision | Candidate / accepted value | Remaining blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| S1_MINIMUM_COVERAGE_THRESHOLD_POLICY | S1-MINIMUM-COVERAGE | DECISION_REQUIRED | model_validation_owner_role | yes | null / null | no approved S1 threshold |
+| S1_MINIMUM_COVERAGE_THRESHOLD_POLICY | S1-MINIMUM-COVERAGE | CLOSED_BY_INDEPENDENT_REVIEW | model_validation_owner_role | no | 0.900000 / 0.900000 | closed by owner decision, review `4937929668`, and exact-head CI `31806575112` |
 | S1_DATA_QUALITY_THRESHOLD_POLICY | S1-DATA-QUALITY-THRESHOLDS | DECISION_REQUIRED | data_quality_owner_role | yes | null / null | no approved quality policy |
 | S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE | S1-METRIC-CONTRACT | PREPARED_NOT_ACCEPTED | model_validation_owner_role | yes | registry candidate / null | upstream prerequisites |
 | S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE | S1-SPLIT-POLICY | CANDIDATE_NOT_ACCEPTED | model_validation_owner_role | yes | v1 candidate / null | cohort, visibility, metric, custody |
 | S1_HOLDOUT_FEASIBILITY_DECISION | S1-HOLDOUT-FEASIBILITY | NOT_EVALUATED | model_validation_owner_role | yes | criteria only / null | upstream evidence and review |
 | S1_TASK05_CUSTODY_ARTIFACT_BINDING_REVIEW | S1-DATA-CUSTODY | ISSUED_FOR_INDEPENDENT_REVIEW | data_governance_owner_role | yes | existing identity / null | custody review not complete |
 
-UNAUTHORIZED_THRESHOLD_VALUE_COUNT=0. The only numeric threshold-like value
-mentioned is the S3 reporting floor 10, explicitly excluded from S1 threshold
-semantics.
+UNAUTHORIZED_THRESHOLD_VALUE_COUNT=0. The S1 value `0.900000` is authorized
+only by the versioned owner decision and its independent review. The separate
+S3 reporting floor 10 remains excluded from S1 threshold semantics.
 
 ## 10. Dependency order
 
 Task05 does not authorize execution of the following queue. It records the
 dependency order for later separately authorized work:
 
-1. resolve and independently review the S1 minimum-coverage threshold;
-2. resolve and independently review the S1 data-quality threshold policy;
-3. complete source cohort, inclusion, visibility prerequisites, and custody
+1. resolve and independently review the S1 data-quality threshold policy;
+2. complete source cohort, inclusion, visibility prerequisites, and custody
    review;
-4. freeze and independently review the metric contract;
-5. freeze and independently review the time-ordered split policy;
-6. evaluate holdout feasibility after cohort, threshold, split, and custody
+3. freeze and independently review the metric contract;
+4. freeze and independently review the time-ordered split policy;
+5. evaluate holdout feasibility after cohort, threshold, split, and custody
    prerequisites are accepted; and
-7. only after all canonical gates are otherwise closed, run final independent
+6. only after all canonical gates are otherwise closed, run final independent
    S1 acceptance review.
 
 ## 11. Safety and non-acceptance boundary
@@ -350,10 +380,10 @@ TEST_ACCESS_CURRENTLY_AUTHORIZED=false
 EXTERNAL_HOLDOUT_DATA_ACCESS=false
 METRIC_EXECUTION_PERFORMED=false
 SOURCE_002_RAW_READ=false
-CANONICAL_ACCEPTANCE_RECORD_CHANGED=false
+CANONICAL_ACCEPTANCE_RECORD_CHANGED=true
 JSON_MARKDOWN_CONSISTENCY=PASS
 
 ## 13. Next action
 
-NEXT_RECOMMENDED_ACTION=RUN_S1_REMAINING_05_DECISION_READINESS_EXACT_HEAD_INDEPENDENT_REVIEW
+NEXT_RECOMMENDED_ACTION=REVALIDATE_REMAINING_05_AFTER_MINIMUM_COVERAGE_GATE_CLOSEOUT
 STOPPED_AFTER_S1_REMAINING_05_DECISION_READINESS_DRAFT_PR=true

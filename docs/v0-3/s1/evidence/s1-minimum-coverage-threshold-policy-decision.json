@@ -1,7 +1,7 @@
 {
   "artifact_id": "V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION_OWNER_BINDING_R1",
   "artifact_version": "v0-3-s1-minimum-coverage-threshold-v1",
-  "artifact_status": "POLICY_DECISION_ISSUED_REVIEW_REQUIRED",
+  "artifact_status": "POLICY_DECISION_ISSUED_AND_INDEPENDENTLY_REVIEWED",
   "task": "V0_3_S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_DECISION_OWNER_BINDING_R1",
   "base_main_sha": "b96fc39fcee50c2447e7bcc90580745b090d8646",
   "gate_id": "S1-MINIMUM-COVERAGE",
@@ -50,11 +50,22 @@
   },
   "current_gate_effect": {
     "policy_decision_issued": true,
-    "policy_independently_reviewed": false,
-    "s1_minimum_coverage_gate_pass": false,
-    "canonical_acceptance_record_changed": false,
+    "policy_independently_reviewed": true,
+    "s1_minimum_coverage_gate_pass": true,
+    "canonical_acceptance_record_changed": true,
     "s1_remaining_06_authorized": false,
     "v0_3_s2_authorized": false
+  },
+  "independent_review": {
+    "review_id": 4937929668,
+    "reviewed_head_sha": "5775e908cfe072fa962c99e822901b7157128418",
+    "review_result": "PASS",
+    "owner_decision_payload_binding": "PASS",
+    "owner_decision_hash_replay": "PASS",
+    "exact_head_ci_run_id": 31806575112,
+    "exact_head_ci_head_sha": "5775e908cfe072fa962c99e822901b7157128418",
+    "exact_head_ci_status": "completed",
+    "exact_head_ci_conclusion": "success"
   },
   "execution_boundary": {
     "source_002_raw_read": false,
@@ -63,9 +74,10 @@
     "model_training_executed": false,
     "test_data_access": false
   },
-  "next_gate": "S1_MINIMUM_COVERAGE_THRESHOLD_POLICY_INDEPENDENT_REVIEW",
+  "next_gate": "S1_REMAINING_05_DOWNSTREAM_RECONCILIATION",
   "next_gate_authorized": false,
-  "ready_authorized": true,
+  "historical_pr219_ready_authorized": true,
+  "ready_authorized": false,
   "merge_authorized": false,
   "no_step_implies_the_next": true
 }
