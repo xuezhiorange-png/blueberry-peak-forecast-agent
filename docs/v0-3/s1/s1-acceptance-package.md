@@ -6,6 +6,11 @@
 ACCEPTANCE_PACKAGE_ID=V0_3_S1_ACCEPTANCE_PACKAGE
 SLICE=V0.3-S1
 CANONICAL_GATE_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
 CURRENT_V0_3_S1_COMPLETE=false
 CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
 V0_3_S1_ACCEPTED=false
@@ -16,9 +21,10 @@ S1_INDEPENDENT_REVIEW=BLOCKED
 ```
 
 This is the single runtime gate registry for S1. Every row uses the same
-runtime field set; there is no separate initial-status authority. Fifteen
-required rows remain blocked because source authority, cohort evidence, policy,
-and final independent review are not present. The standalone
+runtime field set; there is no separate initial-status authority. Fourteen
+required rows remain blocked because source cohort evidence, policy, and final
+independent review are not present; Source Authority is accepted by the PR #238
+exact-head reviewed attestation closeout. The standalone
 `S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` rows are now `PASS` and bind the independently reviewed
 owner decision hash; no row-level data is issued by this package.
 
@@ -67,7 +73,7 @@ package; it is not permitted to turn this required feasibility gate into
 | gate_id | gate_class | required_or_conditional | owner_role | authoritative_artifact | artifact_identity | artifact_hash_or_status | metric_contract_version | acceptance_threshold_source | acceptance_threshold | allowed_not_applicable_condition | status | block_reason | reviewer_role | reviewer | reviewed_at | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `S1-Q2C-TARGET` | business | required | business_data_owner_role | business source attestation | `BUSINESS_ATTESTATION_REQUIRED` | `BLOCKED_NO_EXTERNAL_ATTESTATION` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2C contract | `Q2C_OUTCOME_CLOSED` | `NEVER` | `BLOCKED` | `MISSING_BUSINESS_ATTESTATION` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Six Q2C dimensions remain unclosed. |
-| `S1-SOURCE-AUTHORITY` | source | required | source_governance_owner_role | attestation and source registry record | `SOURCE_AUTHORITY_REQUIRED` | `BLOCKED_NO_SOURCE_AUTHORITY` | `NOT_APPLICABLE_FOR_THIS_GATE` | source authority contract | `OWNER_ROLE_AND_ATTESTED_VERSION_PRESENT` | `NEVER` | `BLOCKED` | `MISSING_SOURCE_OWNER_AUTHORITY` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | No source value is invented. |
+| `S1-SOURCE-AUTHORITY` | source | required | source_governance_owner_role | Source002 final Source Owner Attestation | `source-002-final-source-owner-attestation-v1` | `2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1` | `NOT_APPLICABLE_FOR_THIS_GATE` | source authority contract | `OWNER_ROLE_AND_ATTESTED_VERSION_PRESENT` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4946622009` | `2026-08-16T16:17:55Z` | PR #238 exact-head independent acceptance and CI 31955752008 verified the final Source Owner Attestation; this closes Source Authority only. |
 | `S1-SOURCE-COHORT` | source | required | data_governance_owner_role | source cohort manifest | `COHORT_MANIFEST_REQUIRED` | `BLOCKED_NO_SOURCE_COHORT` | `NOT_APPLICABLE_FOR_THIS_GATE` | source cohort contract | `MANIFEST_HASH_AND_SCOPE_PRESENT` | `NEVER` | `BLOCKED` | `SOURCE_COHORT_NOT_FROZEN` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | S1 identity is separate from S2 rowsets. |
 | `S1-PHYSICAL-MEANING` | business | required | business_data_owner_role | physical measurement attestation | `PHYSICAL_MEANING_REQUIRED` | `BLOCKED_NO_MEASUREMENT_EVIDENCE` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2C physical dimensions | `EVENT_AND_MARKETABILITY_BOUNDARY_EVIDENCED` | `NEVER` | `BLOCKED` | `MISSING_MEASUREMENT_BOUNDARY` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Farm-pick versus marketability remains unresolved. |
 | `S1-UNIT-AND-TIME-BASIS` | business | required | business_data_owner_role | physical and time attestation | `UNIT_TIME_BASIS_REQUIRED` | `BLOCKED_NO_UNIT_TIME_EVIDENCE` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2C physical and time dimensions | `KG_AND_FARM_LOCAL_DATE_BOUND` | `NEVER` | `BLOCKED` | `UNIT_OR_TIME_AUTHORITY_MISSING` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | No unit or timezone is inferred. |
@@ -88,8 +94,11 @@ package; it is not permitted to turn this required feasibility gate into
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_REQUIRED_GATE_PASS_COUNT=2
-CURRENT_REQUIRED_GATE_BLOCKED_COUNT=15
+CURRENT_REQUIRED_GATE_PASS_COUNT=3
+CURRENT_REQUIRED_GATE_BLOCKED_COUNT=14
+CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
+CURRENT_SOURCE_COHORT_ACCEPTED=false
+CURRENT_Q2C_ACCEPTED=false
 CURRENT_REQUIRED_GATE_BLOCKED=true
 CURRENT_ACCEPTANCE_RESULT=BLOCKED
 CURRENT_S1_ACCEPTED=false
@@ -98,7 +107,8 @@ CURRENT_S2_AUTHORIZATION=false
 
 The current package records the minimum-coverage and data-quality policy gates
 as closed, but it cannot issue a target, source cohort, split, holdout
-feasibility decision, metric-contract acceptance, or custody acceptance. A
+feasibility decision, metric-contract acceptance, or custody acceptance. Source
+Authority is already accepted; all downstream and unrelated gates remain fail-closed. A
 future accepted record must preserve prior evidence identities and record the
 final independent S1 reviewer and review time.
 
