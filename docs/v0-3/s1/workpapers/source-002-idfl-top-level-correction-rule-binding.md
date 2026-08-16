@@ -9,7 +9,7 @@ issued for independent review and resolves only
 
 ```text
 ARTIFACT_ID=V0_3_S1_SOURCE_002_IDFL_TOP_LEVEL_CORRECTION_RULE_BINDING
-ARTIFACT_VERSION=source-002-idfl-correction-rule-binding-v1
+ARTIFACT_VERSION=source-002-idfl-top-level-correction-rule-binding-v1
 ARTIFACT_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
 TASK=SOURCE_002_IDFL_TOP_LEVEL_CORRECTION_RULE_BINDING
 TASK_CLASS=DOCS_ONLY_GOVERNED_TOP_LEVEL_CORRECTION_RULE_BINDING
@@ -59,6 +59,18 @@ post-confirmation row-level revision or void, new source identity/SHA-256 for
 replacement, and downstream invalidation propagation. It is supporting
 Source002 policy authority, not Source Authority or Source Cohort acceptance.
 
+The accepted IDFL mode authority is also explicitly bound:
+
+```text
+IDFL_MODE_AUTHORITY_DECISION_ID=V0_3_S1_IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE
+IDFL_MODE_AUTHORITY_DECISION=ACCEPT
+IDFL_MODE_AUTHORITY_PATH=docs/v0-3/s1/workpapers/immutable-daily-final-label-contract-acceptance-decision.md
+IDFL_MODE_AUTHORITY_GIT_BLOB_SHA=fe2b09fe9ecf1e0737c34040687097aefd90ffc5
+IDFL_MODE_AUTHORITY_PR_NUMBER=180
+IDFL_MODE_AUTHORITY_PR_HEAD_SHA=5added25cbc9be4d35a4517ebff8c34c2144e1a3
+IDFL_MODE_AUTHORITY_PR_MERGE_SHA=6fc689f57fc7f5da7a0c5726472245fd66bc2c9c
+```
+
 ## 3. Formal correction rule and schema validation
 
 The exact literal bound by this artifact is:
@@ -89,16 +101,20 @@ completeness declaration.
 ## 4. Deterministic binding hash
 
 The JSON artifact contains a stable `binding_payload` with source identity,
-IDFL mode, the exact correction literal, D-007/CGR-006 stable authority
-identities and hashes, and the governed replacement/propagation semantics. It
-excludes timestamp, branch name, PR state, local filesystem path, credentials,
-private locator, personal identity, current CI state, and mutable completeness
-state.
+IDFL mode authority, the exact correction literal, D-007/CGR-006 stable
+authority identities and hashes, and the governed replacement/propagation and
+external-capability boundary. It excludes timestamp, branch name, PR state,
+local filesystem path, credentials, private locator, personal identity, current
+CI state, and mutable completeness state.
 
 ```text
 BINDING_CANONICALIZATION=UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE
-CORRECTION_RULE_BINDING_SHA256=b2308929eaa9592c2ad306378f8fa05abf8e361aab496d6a0e8d54df5b98f63e
+OLD_CORRECTION_RULE_BINDING_SHA256=b2308929eaa9592c2ad306378f8fa05abf8e361aab496d6a0e8d54df5b98f63e
+CORRECTION_RULE_BINDING_SHA256=b890f77cc79543a0a8464f858f3f0cce9f4edbfb35d1552630238540b49fb472
 CORRECTION_RULE_BINDING_HASH_REPLAY=PASS
+AUTHORIZED_PAYLOAD_REQUIRED_FIELDS_PRESENT=true
+EXTERNAL_SOURCE_SYSTEM_CORRECTION_CAPABILITY_CLAIMED=false
+DOWNSTREAM_INVALIDATION_PROPAGATION_REQUIRED=true
 ```
 
 ## 5. Hard-blocker reconciliation
