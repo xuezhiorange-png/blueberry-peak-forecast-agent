@@ -135,7 +135,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-SOURCE-AUTHORITY, S1-Q2C-TARGET, S1-SOURCE-COHORT, S1-CANONICAL-GRAIN, and S1-INCLUSION-EXCLUSION have not been accepted."
+      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-Q2C-TARGET, S1-SOURCE-COHORT, S1-CANONICAL-GRAIN, and S1-INCLUSION-EXCLUSION have not been accepted."
     },
     {
       "gate_id": "S1-REVISION-WINNER",
@@ -333,7 +333,7 @@
     "reviewer": "PENDING_INDEPENDENT_REVIEW",
     "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
     "review_result": "NOT_STARTED",
-    "review_notes": "Independent review has not started. All current gates remain blocked."
+    "review_notes": "Independent review has not started. Three canonical gates are PASS and fourteen remain BLOCKED; overall S1 independent review has not started."
   },
   "derived_status": {
     "all_required_gates_pass": false,
