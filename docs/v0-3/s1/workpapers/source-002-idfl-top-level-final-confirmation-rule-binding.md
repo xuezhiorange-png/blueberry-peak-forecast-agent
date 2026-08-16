@@ -1,0 +1,251 @@
+# Source002 IDFL top-level final confirmation rule binding
+
+## Artifact identity
+
+```text
+ARTIFACT_ID=V0_3_S1_SOURCE_002_IDFL_TOP_LEVEL_FINAL_CONFIRMATION_RULE_BINDING
+ARTIFACT_VERSION=source-002-idfl-top-level-final-confirmation-rule-binding-v1
+ARTIFACT_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
+TASK=SOURCE_002_IDFL_TOP_LEVEL_FINAL_CONFIRMATION_RULE_BINDING
+TASK_CLASS=DOCS_ONLY_GOVERNED_TOP_LEVEL_FINAL_CONFIRMATION_RULE_BINDING
+BASE_MAIN_SHA=f87bd3bc7f1f95121965b2c31f8f3109f6818f0e
+```
+
+This package binds only the schema-required `final_confirmation_rule` for the
+governed Source002 IDFL_V1 actual-label representation. It does not issue a
+final Source Owner Attestation, a completeness watermark, or a canonical gate
+acceptance.
+
+## Source and authority identity
+
+```text
+SOURCE_SYSTEM=扫码称重系统
+SOURCE_DATASET=田间商品果每日采摘净重汇总
+SOURCE_VERSION=scan-weight-export:v0_3_s1:002
+SOURCE_SNAPSHOT_REFERENCE=snapshot:v0_3_s1:002
+LABEL_MODE=IMMUTABLE_DAILY_FINAL_LABEL
+LABEL_MODE_VERSION=IDFL_V1
+```
+
+The confirmed business-rule authority is
+`docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md`
+with Git blob `f9bb8d372a178db1b524ceb2c997878687c037de`. Its status is
+`SOURCE_FINALIZATION_BUSINESS_RULES_STATUS=CONFIRMED` and it records:
+
+```text
+FINAL_CONFIRMATION_EVENT=扫码称重完成
+FINAL_CONFIRMATION_TIMING=IMMEDIATE
+BUSINESS_RULE_POST_CONFIRMATION_MODIFICATION_ALLOWED=false
+BUSINESS_RULE_POST_CONFIRMATION_DELETION_ALLOWED=false
+BUSINESS_RULE_CORRECTION_AFTER_CONFIRMATION_SUPPORTED=false
+BUSINESS_RULE_VOID_AFTER_CONFIRMATION_SUPPORTED=false
+```
+
+These are confirmed business-rule facts only. They are not claims about
+database permissions, interface capabilities, administrator authority, or
+the technical impossibility of external-system changes.
+
+The source-class authority is
+`docs/v0-3/s1/workpapers/actual-harvest-immutable-daily-label-compatibility-decision.md`
+with Git blob `48aa581cd37d116bd4405018242a9d6e94e22f36`:
+
+```text
+SOURCE_MODEL=IMMUTABLE_DAILY_BUSINESS_AGGREGATE
+POST_CONFIRMATION_MODIFICATION_RULE=NO_MODIFICATION
+SOURCE_CLASS_HAS_INDEPENDENT_FINALIZATION_EVENT=false
+FINALIZED_AT=NOT_PRESENT
+INDEPENDENT_FINALIZATION_NOT_PRESENT=true
+SOURCE_FACT_ABSENCE_PRESERVED=true
+NO_SYNTHETIC_LIFECYCLE_AUTHORITY=true
+```
+
+The accepted IDFL authority is
+`V0_3_S1_IDFL_V1_ATOMIC_CROSS_CONTRACT_ACCEPTANCE`, decision `ACCEPT`, from
+`docs/v0-3/s1/workpapers/immutable-daily-final-label-contract-acceptance-decision.md`
+with blob `fe2b09fe9ecf1e0737c34040687097aefd90ffc5`. It preserves
+`FINALIZED_AT_REQUIRED=false`, `REVISION_WINNER_REQUIRED=false`,
+`LABEL_OBSERVATION_CUTOFF_REQUIRED=false`,
+`LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED=false`, and requires source-object
+completeness authority.
+
+## Bound rule
+
+```text
+FINAL_CONFIRMATION_POLICY_VERSION=source-002-idfl-final-confirmation-rule-v1
+FINAL_CONFIRMATION_RULE_SCOPE=SOURCE_002_ACTUAL_LABEL_IDFL_V1_ONLY
+FINAL_CONFIRMATION_RULE=FINAL_CONFIRMATION_EVENT=扫码称重完成; FINAL_CONFIRMATION_TIMING=IMMEDIATE; FINAL_CONFIRMATION_IS_GOVERNED_BUSINESS_CONFIRMATION_NOT_FINAL_ADJUDICATED; INDEPENDENT_FINALIZATION_EVENT_NOT_PRESENT; FINALIZED_AT_NOT_REQUIRED_OR_CREATED
+FINAL_CONFIRMATION_EVENT=扫码称重完成
+FINAL_CONFIRMATION_TIMING=IMMEDIATE
+FINAL_CONFIRMATION_IS_GOVERNED_BUSINESS_CONFIRMATION=true
+FINAL_CONFIRMATION_IS_FINAL_ADJUDICATED=false
+INDEPENDENT_FINALIZATION_EVENT_PRESENT=false
+FINALIZED_AT_REQUIRED=false
+FINALIZED_AT_CREATED=false
+POST_CONFIRMATION_MODIFICATION_RULE=NO_MODIFICATION
+FINAL_CONFIRMATION_RULE_STATUS=BOUND_FOR_INDEPENDENT_REVIEW
+FINAL_CONFIRMATION_RULE_SCHEMA_VALID=true
+```
+
+The exact `FINAL_CONFIRMATION_RULE` literal above is byte-identical to the
+JSON artifact. The schema authority is
+`docs/v0-3/s1/schemas/business-source-attestation.schema.json`, blob
+`a8e53f6f8c571d481bba54585de175d2060dd93c`, where
+`#/properties/final_confirmation_rule` is a non-empty string.
+
+## Semantic boundary
+
+```text
+BUSINESS_FINAL_CONFIRMATION != FINAL_ADJUDICATED_FINALIZATION
+BUSINESS_FINAL_CONFIRMATION != FINAL_SOURCE_OWNER_ATTESTATION_EVENT
+BUSINESS_FINAL_CONFIRMATION != SOURCE_COMPLETENESS_DECLARATION
+```
+
+“扫码称重完成后立即业务确认” defines the confirmation point of the
+governed Source002 business representation. It does not create
+`finalized_at`, an independent finalization event, `source_recorded_at`,
+`source_available_at`, a revision lifecycle event, or a source-system record
+identity. It does not prove completeness, issue a Source Owner Attestation,
+or accept Source Authority or Source Cohort.
+
+```text
+BUSINESS_SEMANTICS_CHANGED=false
+SOURCE_CLASS_FACTS_CHANGED=false
+IDFL_MODE_SEMANTICS_CHANGED=false
+CORRECTION_RULE_SEMANTICS_CHANGED=false
+VOID_RULE_SEMANTICS_CHANGED=false
+FINAL_CONFIRMATION_RULE_SYNTHESIZED_BEYOND_CONFIRMED_BUSINESS_RULE=false
+FINAL_ADJUDICATED_SEMANTICS_CREATED=false
+FINALIZED_AT_CREATED=false
+INDEPENDENT_FINALIZATION_EVENT_CREATED=false
+SOURCE_RECORDED_AT_CREATED=false
+SOURCE_AVAILABLE_AT_CREATED=false
+REVISION_WINNER_IMPLEMENTED=false
+REVISION_GRAPH_CREATED=false
+SOURCE_SYSTEM_RECORD_ID_CREATED=false
+SOURCE_COMPLETENESS_AUTHORITY_CHANGED=false
+SOURCE_COMPLETENESS_ISSUED=false
+SOURCE_COMPLETE_THROUGH_BUSINESS_DATE=NOT_ISSUED
+FINAL_SOURCE_OWNER_ATTESTATION_ISSUED=false
+NO_SYNTHETIC_LIFECYCLE_AUTHORITY=true
+```
+
+## Existing correction and void authority
+
+The existing correction binding remains unchanged:
+
+```text
+CORRECTION_ARTIFACT_VERSION=source-002-idfl-top-level-correction-rule-binding-v1
+CORRECTION_ARTIFACT_GIT_BLOB_SHA=59b8cd45ea2050eaf4aee22c57092076e85c07b7
+CORRECTION_POLICY_VERSION=source-002-idfl-correction-rule-v1
+CORRECTION_RULE_BINDING_SHA256=b890f77cc79543a0a8464f858f3f0cce9f4edbfb35d1552630238540b49fb472
+POST_CONFIRMATION_ROW_LEVEL_REVISION_ALLOWED=false
+```
+
+The existing void binding remains unchanged:
+
+```text
+VOID_ARTIFACT_VERSION=source-002-idfl-top-level-void-rule-binding-v1
+VOID_ARTIFACT_GIT_BLOB_SHA=9edc4158e4636568527ba39a0f1670e9d57bc7ab
+VOID_POLICY_VERSION=source-002-idfl-void-rule-v1
+VOID_RULE_BINDING_SHA256=f6ee0538e3a8ac906687cb428266a180a61e54cc6f33a338849a5f27a01286f2
+POST_CONFIRMATION_ROW_LEVEL_VOID_ALLOWED=false
+CURRENT_GOVERNED_SOURCE_OBJECT_VOID_STATUS=NO_VOID
+```
+
+## Final-owner boundary and blocker reconciliation
+
+The current closure-readiness evidence retains the following boundary:
+
+```text
+FINAL_OWNER_CONFIRMATION_REQUIRED_FIELD_COUNT=37
+FINAL_OWNER_NEW_VALUE_REQUIRED_FIELD_COUNT=0
+FINAL_COMPREHENSIVE_CONFIRMATION_STATUS=NOT_ISSUED
+FINAL_ATTESTATION_ISSUED=false
+```
+
+Binding this schema leaf is not the comprehensive 37-field Source Owner
+confirmation. Before this binding enters main, the current main blocker count
+is three. The prospective outcome after this binding enters main is two:
+
+```text
+PREVIOUS_HARD_BLOCKER_COUNT=3
+RESOLVED_BLOCKER=TOP_LEVEL_FINAL_CONFIRMATION_RULE_NOT_BOUND
+REMAINING_HARD_BLOCKER_COUNT_AFTER_THIS_BINDING=2
+REMAINING_HARD_BLOCKERS=(
+SOURCE_COMPLETENESS_DECLARATION_AND_WATERMARK_NOT_ISSUED,
+FINAL_SOURCE_OWNER_ATTESTATION_EVENT_AND_INDEPENDENT_ACCEPTANCE_NOT_ISSUED
+)
+OTHER_BLOCKERS_PARTIALLY_RESOLVED=false
+CURRENT_MAIN_PRE_MERGE_HARD_BLOCKER_COUNT=3
+```
+
+## Deterministic binding payload
+
+`binding_payload` in the JSON artifact cryptographically binds the source
+identity, IDFL mode authority, confirmed business final-confirmation facts,
+source-class lifecycle boundary, and the existing correction and void
+bindings. Its canonicalization is:
+
+```text
+UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE
+```
+
+The payload excludes timestamp, branch name, PR state, CI/review state, local
+path, credentials, private locators, personal identity, completeness
+watermark/status, and comprehensive owner-confirmation status.
+
+```text
+AUTHORIZED_PAYLOAD_REQUIRED_FIELDS_PRESENT=true
+FINAL_CONFIRMATION_RULE_BINDING_SHA256=f15b623720d04e6b9b491ad438157911fc58b65ebb76e32351654f033d508365
+FINAL_CONFIRMATION_RULE_BINDING_HASH_REPLAY=PASS
+```
+
+## Governance and runtime boundary
+
+```text
+CURRENT_CANONICAL_GATE_PASS_COUNT=2
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=15
+CANONICAL_GATE_STATUS_CHANGED=false
+CANONICAL_ACCEPTANCE_RECORD_CHANGED=false
+SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=false
+FINAL_ATTESTATION_SCHEMA_READY=false
+FINAL_ATTESTATION_ISSUANCE_READY=false
+FINAL_ATTESTATION_ISSUED=false
+
+FINAL_CONFIRMATION_RULE_BINDING_AUTHORIZED=true
+SOURCE_COMPLETENESS_ISSUANCE_AUTHORIZED=false
+FINAL_SOURCE_OWNER_ATTESTATION_AUTHORIZED=false
+SOURCE_AUTHORITY_ACCEPTANCE_AUTHORIZED=false
+SOURCE_COHORT_ACCEPTANCE_AUTHORIZED=false
+CANONICAL_GATE_MUTATION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+S1_REMAINING_06_AUTHORIZED=false
+V0_3_S2_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+
+SOURCE_002_RAW_READ=false
+SOURCE_002_ROW_LEVEL_READ=false
+REAL_BUSINESS_DATA_READ=false
+EXTERNAL_SOURCE_SYSTEM_ACCESSED=false
+PRODUCTION_DATABASE_READ=false
+PRODUCTION_DATABASE_WRITE=false
+TEST_DATA_ACCESS=false
+EXTERNAL_HOLDOUT_ACCESS=false
+BACKTEST_EXECUTED=false
+MODEL_TRAINING_EXECUTED=false
+METRIC_EXECUTION_PERFORMED=false
+PRODUCTION_CODE_CHANGED=false
+TEST_CODE_CHANGED=false
+DATABASE_SCHEMA_CHANGED=false
+MIGRATION_CREATED=false
+MODEL_CHANGED=false
+```
+
+The next permitted action is:
+
+```text
+NEXT_RECOMMENDED_ACTION=RUN_SOURCE_002_IDFL_TOP_LEVEL_FINAL_CONFIRMATION_RULE_EXACT_HEAD_INDEPENDENT_REVIEW
+INDEPENDENT_REVIEW_REQUIRED=true
+```
