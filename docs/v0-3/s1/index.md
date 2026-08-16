@@ -60,8 +60,16 @@ V0_3_S1_ACCEPTED=false
 CURRENT_S1_TARGET_DECISION=UNRESOLVED_PENDING_INDEPENDENT_REVIEW
 CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
 PROPOSED_TARGET_DECISION=NOT_PROPOSED
-CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=BLOCKED
+CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
 CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
+CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
+CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
+CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
 CURRENT_S1_HOLDOUT_FEASIBILITY_DECISION=NOT_EVALUATED
 PROPOSED_S1_HOLDOUT_FEASIBILITY_DECISION=BLOCKED
 CURRENT_EXTERNAL_HOLDOUT_GATE_STATUS=BLOCKED
@@ -97,12 +105,12 @@ No requirement above authorizes its own implementation. The execution order is
 
 ## Missing external inputs
 
-S1 remains blocked until a governed source owner or equivalent authoritative
-system supplies all of the following. This list is a contract of required
-evidence, not a claim that any value exists.
+Source Authority is accepted on current main from the merged final Source Owner
+Attestation and exact-head independent acceptance. S1 remains blocked because
+downstream gates still require the evidence listed below. This list is a contract
+of remaining evidence, not a claim that any value exists.
 
 - source system, dataset, and immutable source version;
-- business owner role and formal attestation status/hash;
 - physical event, weighing point, measurement method, unit, and calibration
   authority;
 - marketability, field sorting, packhouse sorting, rejection, and post-harvest
@@ -142,3 +150,22 @@ V0_3_IMPLEMENTATION_AUTHORIZED=false
 The final S1 decision must be recorded in the acceptance schema with a
 separate independent reviewer. Until then, `CURRENT_V0_3_S1_ACCEPTANCE_STATUS`
 remains `BLOCKED`.
+
+## Current Source Authority closeout mirror
+
+```text
+POST_PR238_CURRENT_MAIN_REVALIDATION=PASS
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+SOURCE_AUTHORITY_INDEPENDENT_REVIEW_ID=4946622009
+SOURCE_AUTHORITY_EXACT_HEAD_CI_RUN_ID=31955752008
+S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The Source Authority gate closeout is not Source Cohort acceptance and does not
+authorize data access, Remaining-06, or V0.3-S2.

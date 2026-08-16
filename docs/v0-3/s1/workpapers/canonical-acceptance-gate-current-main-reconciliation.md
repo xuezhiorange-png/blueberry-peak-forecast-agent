@@ -5,7 +5,7 @@
 ```text
 WORKPAPER_ID=V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION
 TASK_CLASS=DOCS_ONLY_GOVERNANCE_RECONCILIATION
-AUDITED_REPOSITORY_SHA=74a42136b29d6c43780f92c84e59fd6f8ac26558
+AUDITED_REPOSITORY_SHA=d3828041f15d9bba0b201429250a2041bcf63c2f
 CANONICAL_GATE_COUNT=17
 CANONICAL_ACCEPTANCE_STATUS=BLOCKED
 CANONICAL_ACCEPTANCE_STATUS_MUTATION_ALLOWED=true
@@ -19,8 +19,9 @@ EXTERNAL_HOLDOUT_DATA_ACCESSED=false
 This workpaper reconciles current-main evidence against the existing
 authoritative S1 gate registry. PR #219 issued and independently reviewed the
 minimum-coverage policy; PR #221 closed the standalone minimum-coverage gate;
-PR #222 issued and independently reviewed the separate data-quality policy,
-which this closeout records as the second passing gate. It does not accept S1,
+PR #222 issued and independently reviewed the separate data-quality policy, and
+PR #238 issued and independently accepted the final Source Owner Attestation,
+which this closeout records as the third passing gate. It does not accept S1,
 authorize S2, or read Source 002 raw rows. The current
 main artifact wins over historical PR descriptions when they differ; PR
 history is used only as provenance for already merged implementation work.
@@ -29,8 +30,8 @@ The authoritative completion rule remains:
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_CANONICAL_GATE_PASS_COUNT=2
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=15
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
 ALL_CANONICAL_RUNTIME_STATUS_BLOCKED=false
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
@@ -48,7 +49,7 @@ The four reconciliation classes are independent of runtime status:
 | `UPSTREAM_DEPENDENCY_BLOCKED` | The rule is known, but a prerequisite gate/artifact must close first. |
 
 None of these classes alone means `PASS` or `ACCEPTED`. The companion artifact
-records the two separately closed policy rows explicitly; all remaining
+records the three separately closed rows explicitly; all remaining
 blocked rows retain `can_be_closed_by_current_task=false`.
 
 ### Dependency semantics
@@ -85,9 +86,9 @@ dependencies are validated separately as a directional acyclic task graph.
 
 The current acceptance record at
 `docs/v0-3/s1/evidence/s1-acceptance-record.json` contains exactly the 17
-required gate IDs, each once. `S1-MINIMUM-COVERAGE` and
-`S1-DATA-QUALITY-THRESHOLDS` are `PASS` and the other fifteen rows remain
-`BLOCKED`. Historical block reasons are preserved in the
+required gate IDs, each once. `S1-MINIMUM-COVERAGE`,
+`S1-DATA-QUALITY-THRESHOLDS`, and `S1-SOURCE-AUTHORITY` are `PASS`; the other
+fourteen rows remain `BLOCKED`. Historical block reasons are preserved in the
 reconciliation artifact, but are not copied as if they were a current factual
 audit without checking later evidence.
 
@@ -156,7 +157,7 @@ actual-label lifecycle, custody, and PIT workpapers under
 | Gate | Runtime | Reconciliation class | Existing evidence | True remaining blocker | Hard prerequisite | Co-resolution | Recommended next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `S1-Q2C-TARGET` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Physical facts and recorded-label boundary are present; Q2C status is `NOT_ISSUED`. | Business-source attestation and closed Q2C outcome are absent. | `S1-SOURCE-AUTHORITY` | `S1-PHYSICAL-MEANING`; `S1-UNIT-AND-TIME-BASIS` | Obtain and formalize the Q2C business-source attestation and target decision. |
-| `S1-SOURCE-AUTHORITY` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Source identity, schema, snapshot, hashes, owner role, and Package A references are present. | Issued owner attestation, effective applicability, completeness, and attestation hash are absent. | None | None | Formalize and obtain source-owner authority. |
+| `S1-SOURCE-AUTHORITY` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final Source Owner Attestation, owner role, effective time, completeness binding, and attestation hash are present; PR #238 exact-head review `4946622009` and CI `31955752008` passed before merge `d3828041f15d9bba0b201429250a2041bcf63c2f`. | None for Source Authority; Source Cohort, Q2C, and other gates remain separate. | None | None | Preserve Source Cohort and downstream gate blockers. |
 | `S1-SOURCE-COHORT` | `BLOCKED` | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | Aggregate counts, object identity, scope hashes, and inclusion preparation exist. | Accepted schema-valid cohort manifest and cohort freeze are absent. | `S1-SOURCE-AUTHORITY` | `S1-INCLUSION-EXCLUSION`; `S1-CANONICAL-GRAIN` | Create and accept the versioned cohort manifest. |
 | `S1-PHYSICAL-MEANING` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics are reconciled. | Formal physical attestation and review/hash are absent. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Prepare the formal physical-meaning attestation. |
 | `S1-UNIT-AND-TIME-BASIS` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | KG, Asia/Shanghai, local-day rule, business-date rule, and canonical grain are recorded. | Formal unit/time authority binding and review are absent. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Formalize the unit and farm-local time attestation. |
@@ -188,9 +189,10 @@ following cross-cutting findings explain the important status corrections:
    has a versioned custody record issued for review. It is
    not accepted, but the current remaining problem is review/acceptance rather
    than a missing storage, role, retention, withdrawal, or void fact.
-3. Source identity and Source 002 scope hashes are evidence, not source
-   authority or cohort acceptance. `SOURCE_AUTHORITY_ACCEPTED`,
-   `SOURCE_COHORT_ACCEPTED`, and `Q2C_ACCEPTED` remain false.
+3. Source identity and Source 002 scope hashes are evidence, not cohort or Q2C
+   acceptance. The merged final Source Owner Attestation and exact-head review
+   now make `SOURCE_AUTHORITY_ACCEPTED=true`; `SOURCE_COHORT_ACCEPTED` and
+   `Q2C_ACCEPTED` remain false.
 4. The IDFL_V1 design acceptance is a cross-contract mode-semantic decision;
    it does not accept Source 002, remove source completeness requirements, or
    close the canonical revision/visibility gates.
@@ -362,19 +364,42 @@ authorize the first item or imply the next item automatically.
 
 This workpaper modifies
 `docs/v0-3/s1/evidence/s1-acceptance-record.json` only to record the
-independently reviewed `S1-DATA-QUALITY-THRESHOLDS` row as `PASS` alongside the
-already closed `S1-MINIMUM-COVERAGE` row. It does not issue
-Q2C/source/cohort/custody acceptance and does not claim S1 completion. The
-authoritative record remains:
+independently accepted `S1-SOURCE-AUTHORITY` row as `PASS` alongside the
+already closed `S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` rows. It
+does not issue Q2C, Source Cohort, custody, or final S1 acceptance and does not
+claim S1 completion. The authoritative record remains:
 
 ```text
-CURRENT_CANONICAL_GATE_PASS_COUNT=2
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=15
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
 ```
 
-## 13. S2 authorization boundary
+## 13. Source Authority closeout
+
+```text
+POST_PR238_CURRENT_MAIN_REVALIDATION=PASS
+PR238_MERGED=true
+PR238_HEAD_SHA=9b181f4e160981dca7a28fa584855e70a9555f34
+PR238_MERGE_COMMIT_SHA=d3828041f15d9bba0b201429250a2041bcf63c2f
+SOURCE_AUTHORITY_INDEPENDENT_REVIEW_ID=4946622009
+SOURCE_AUTHORITY_INDEPENDENT_REVIEW_RESULT=PASS
+SOURCE_AUTHORITY_EXACT_HEAD_CI_RUN_ID=31955752008
+SOURCE_AUTHORITY_EXACT_HEAD_CI_CONCLUSION=success
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+SOURCE_AUTHORITY_CLOSEOUT_SCOPE_ONLY=true
+NO_DOWNSTREAM_GATE_ACCEPTANCE_PERFORMED=true
+```
+
+This closeout changes only `S1-SOURCE-AUTHORITY`. It does not accept Source
+Cohort, Q2C, visibility, custody, metric, split, holdout, or final S1 review.
+
+## 14. S2 authorization boundary
 
 The development plan states `S1_ACCEPTED -> S2_MAY_BE_AUTHORIZED`. This is a
 prerequisite relation, not automatic authorization. This workpaper creates no
@@ -386,16 +411,16 @@ V0_3_S2_STARTED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
-## Reconciliation summary
+## 15. Reconciliation summary
 
 ```text
 RECONCILED_GATE_COUNT=17
 UNIQUE_GATE_ID_COUNT=17
 MISSING_GATE_COUNT=0
 DUPLICATE_GATE_COUNT=0
-FORMALIZATION_OR_REVIEW_READY_COUNT=5
+FORMALIZATION_OR_REVIEW_READY_COUNT=6
 NARROW_CORRECTION_REQUIRED_COUNT=1
-EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=5
+EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=4
 UPSTREAM_DEPENDENCY_BLOCKED_COUNT=6
 CLASSIFICATION_COUNT_SUM=17
 HARD_PREREQUISITE_CYCLE_FOUND=false

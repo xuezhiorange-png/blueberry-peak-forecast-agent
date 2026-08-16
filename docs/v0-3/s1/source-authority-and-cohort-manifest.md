@@ -8,19 +8,30 @@ source-system attestation or equivalent authority; a developer-selected table,
 fixture, or file name is not sufficient.
 
 ```text
-CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=BLOCKED
+CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
 CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
 CURRENT_SOURCE_MANIFEST_STATUS=BLOCKED
-CURRENT_SOURCE_OWNER_ROLE=NOT_PROVIDED
-CURRENT_SOURCE_SYSTEM=NOT_PROVIDED
-CURRENT_SOURCE_DATASET=NOT_PROVIDED
-CURRENT_SOURCE_VERSION=NOT_PROVIDED
-CURRENT_SOURCE_SNAPSHOT_REFERENCE=NOT_PROVIDED
+CURRENT_SOURCE_OWNER_ROLE=农场数据负责人
+CURRENT_SOURCE_SYSTEM=扫码称重系统
+CURRENT_SOURCE_DATASET=田间商品果每日采摘净重汇总
+CURRENT_SOURCE_VERSION=scan-weight-export:v0_3_s1:002
+CURRENT_SOURCE_SNAPSHOT_REFERENCE=snapshot:v0_3_s1:002
 CURRENT_SOURCE_COHORT_ID=NOT_ISSUED
+CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
+CURRENT_SOURCE_ATTESTATION_EFFECTIVE_AT=2026-08-16T21:42:00+08:00
+CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
+CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
+CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
 ```
 
-The values above are explicit absence states. They are not placeholders for
-approval and cannot be used as acceptance evidence.
+The current source-authority fields above are bound to the merged final Source
+Owner Attestation. The cohort and manifest fields remain explicit absence states:
+they are not placeholders for approval and cannot be used as cohort acceptance
+evidence.
 
 The source-authority contract is source-class and label-mode aware. The
 accepted IDFL_V1 mode changes only the actual-label representation rules; it
@@ -33,7 +44,7 @@ IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true
 DESIGN_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
 CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
 CURRENT_SOURCE_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
-SOURCE_AUTHORITY_ACCEPTED=false
+SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=false
 Q2C_ACCEPTED=false
 ```
@@ -486,9 +497,17 @@ hashes and policy identities may be retained in Git.
 ## Current blockers and acceptance requirements
 
 ```text
-CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=BLOCKED
+CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
 CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
-CURRENT_SOURCE_ATTESTATION_STATUS=BLOCKED_BY_MISSING_BUSINESS_ATTESTATION
+CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
+CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
+CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
+CURRENT_SOURCE_ATTESTATION_EFFECTIVE_AT=2026-08-16T21:42:00+08:00
+CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=3
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
 S1_ACCEPTANCE_REQUIRES_ATTESTATION_STATUS_ATTESTED=true
 S1_ACCEPTANCE_REQUIRES_IMMUTABLE_SOURCE_VERSION=true
 S1_ACCEPTANCE_REQUIRES_SCHEMA_VERSION=true
@@ -501,10 +520,12 @@ S1_ACCEPTANCE_REQUIRES_LINEAGE_AND_MAPPING_EVIDENCE=true
 S1_ACCEPTANCE_REQUIRES_CUSTODY_RECORD=true
 ```
 
-This document does not issue a source-specific or cohort-specific acceptance
-result. It may carry `IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true`
-because that is mode-contract semantic acceptance, not source or cohort
-acceptance.
+This document does not itself issue a source-specific or cohort-specific
+acceptance result. The current canonical acceptance record now records Source
+Authority acceptance from the merged PR #238 final-attestation closeout; this
+contract still does not accept Source Cohort or Q2C. It may carry
+`IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true` because that is
+mode-contract semantic acceptance, not source or cohort acceptance.
 
 The atomic IDFL contract acceptance state is distinct from source/cohort
 acceptance:
@@ -531,3 +552,22 @@ MODEL_QUALITY_CLAIM_ALLOWED=false
 V0_3_S1_ACCEPTED=false
 V0_3_S2_AUTHORIZED=false
 ```
+
+## Post-PR238 Source Authority current-main mirror
+
+```text
+POST_PR238_CURRENT_MAIN_REVALIDATION=PASS
+SOURCE_AUTHORITY_ACCEPTANCE_RECORD_PATH=docs/v0-3/s1/evidence/s1-acceptance-record.json
+SOURCE_AUTHORITY_INDEPENDENT_REVIEW_ID=4946622009
+SOURCE_AUTHORITY_INDEPENDENT_REVIEW_RESULT=PASS
+SOURCE_AUTHORITY_REVIEWED_HEAD_SHA=9b181f4e160981dca7a28fa584855e70a9555f34
+SOURCE_AUTHORITY_EXACT_HEAD_CI_RUN_ID=31955752008
+SOURCE_AUTHORITY_EXACT_HEAD_CI_CONCLUSION=success
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=false
+Q2C_ACCEPTED=false
+S1_ACCEPTED=false
+```
+
+The closeout is gate-local and preserves the separate cohort-manifest, Q2C, and
+remaining S1 acceptance boundaries.
