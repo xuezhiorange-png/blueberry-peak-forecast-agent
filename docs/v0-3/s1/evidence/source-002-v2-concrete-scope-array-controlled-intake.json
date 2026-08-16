@@ -1,0 +1,186 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_V2_CONCRETE_SCOPE_ARRAY_CONTROLLED_INTAKE",
+  "artifact_version": "source-002-v2-concrete-scope-array-controlled-intake-v1",
+  "artifact_status": "CONTROLLED_INTAKE_COMPLETE_REVIEW_REQUIRED",
+  "task": "SOURCE_002_V2_CONCRETE_SCOPE_ARRAY_CONTROLLED_INTAKE",
+  "task_class": "DOCS_ONLY_CONTROLLED_EXTERNAL_PACKAGE_INTAKE",
+  "base_main_sha": "898cf8fce5ef2667a8858295429c627ac3460519",
+  "result": "CONTROLLED_INTAKE_COMPLETE_REVIEW_REQUIRED",
+  "authorization_boundary": {
+    "controlled_package_intake_authorized": true,
+    "final_source_attestation_authorized": false,
+    "source_authority_acceptance_authorized": false,
+    "source_cohort_acceptance_authorized": false,
+    "canonical_gate_mutation_authorized": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "package_identity": {
+    "package_file_title": "source-002-attestation-derived-values-v2-rederived(1).json",
+    "package_id": "source-002-attestation-derived-values-v2-rederived",
+    "package_canonical_sha256": "9220ec20bd9d2fb3e466ad8936382327e045a4ba09df99a0f06d42b0aa5da19f",
+    "package_content_accessed": true,
+    "recovery_channel": "CHATGPT_FILE_LIBRARY",
+    "raw_rows_in_package": false,
+    "private_google_drive_locator_recovered": false,
+    "source_002_reread_performed": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "source_002_reconstruction_performed": false,
+    "exact_file_bytes_sha256_recomputed_this_task": false,
+    "pr226_custody_evidence_remains_authoritative": true
+  },
+  "prior_custody_authority": {
+    "binding_reference": "source-002-v2-package-custody-binding-v1",
+    "package_canonical_sha256": "9220ec20bd9d2fb3e466ad8936382327e045a4ba09df99a0f06d42b0aa5da19f",
+    "file_byte_count": 9944,
+    "file_bytes_sha256": "0ce08cf071816e80d6144337200d8fa1f1be0c7a76f025b78b79cf01829fcf59",
+    "durable_external_copy_created": true,
+    "opaque_reference_bound": true,
+    "handoff_complete": true,
+    "custody_binding_complete": true,
+    "custody_binding_accepted": false,
+    "file_bytes_sha256_recomputed_this_task": false,
+    "private_locator_or_provider_object_reopened_this_task": false
+  },
+  "concrete_scope_arrays": {
+    "coverage_scope.farms": {
+      "concrete_array_accessed": true,
+      "count": 84,
+      "sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+      "governed_identity_parity": "PASS",
+      "ready_for_final_binding": true,
+      "committed_to_git": false,
+      "array_value_recorded_in_git": false
+    },
+    "coverage_scope.subfarms": {
+      "concrete_array_accessed": true,
+      "count": 192,
+      "sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+      "governed_identity_parity": "PASS",
+      "ready_for_final_binding": true,
+      "committed_to_git": false,
+      "array_value_recorded_in_git": false
+    },
+    "coverage_scope.varieties": {
+      "concrete_array_accessed": true,
+      "count": 20,
+      "sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+      "governed_identity_parity": "PASS",
+      "ready_for_final_binding": true,
+      "committed_to_git": false,
+      "array_value_recorded_in_git": false
+    },
+    "full_identity_arrays_committed_to_git": false,
+    "counts_or_hashes_may_substitute_for_arrays": false,
+    "identity_array_fields_ready_count_before": 0,
+    "identity_array_fields_ready_count_after": 3,
+    "identity_array_fields_ready_count": 3,
+    "verified_concrete_array_values_available_for_later_controlled_final_binding": true
+  },
+  "scope_and_date_readiness": {
+    "coverage_scope.business_date_start": {
+      "value": "2025-08-05",
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "completeness_watermark": false
+    },
+    "coverage_scope.business_date_end": {
+      "value": "2026-04-16",
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "completeness_watermark": false
+    },
+    "coverage_summary.first_harvest_business_date": {
+      "value": "2025-08-05",
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "completeness_watermark": false
+    },
+    "coverage_summary.last_harvest_business_date": {
+      "value": "2026-04-16",
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "completeness_watermark": false
+    },
+    "coverage_scope.farms": {
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "count": 84,
+      "sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381"
+    },
+    "coverage_scope.subfarms": {
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "count": 192,
+      "sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13"
+    },
+    "coverage_scope.varieties": {
+      "status": "READY_FOR_CONTROLLED_FINAL_BINDING",
+      "count": 20,
+      "sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209"
+    },
+    "scope_date_required_field_count": 7,
+    "scope_date_fields_ready_count": 7,
+    "all_7_scope_date_fields_ready_for_controlled_final_binding": true,
+    "coverage_end_is_completeness_watermark": false
+  },
+  "hard_blocker_reconciliation": {
+    "previous_hard_blocker_count": 9,
+    "resolved_blocker": "CONCRETE_SCOPE_ARRAYS_NOT_INTAKEN_FOR_FINAL_ATTESTATION",
+    "resolved_blocker_scope": "The verified concrete farms, subfarms, and varieties values are available for later controlled final binding; this intake does not issue the final attestation or write arrays to Git.",
+    "remaining_hard_blocker_count": 8,
+    "remaining_hard_blockers": [
+      "REVISION_POLICY_IDENTITY_NOT_BOUND_AS_SCHEMA_VALID_OPAQUE_REFERENCE",
+      "SOURCE_002_IDFL_LATE_ENTRY_RULE_NOT_BOUND",
+      "SOURCE_002_IDFL_ACTUAL_LABEL_VISIBILITY_BOUNDARY_NOT_BOUND",
+      "TOP_LEVEL_CORRECTION_RULE_NOT_BOUND",
+      "TOP_LEVEL_VOID_RULE_NOT_BOUND",
+      "TOP_LEVEL_FINAL_CONFIRMATION_RULE_NOT_BOUND",
+      "SOURCE_COMPLETENESS_DECLARATION_AND_WATERMARK_NOT_ISSUED",
+      "FINAL_SOURCE_OWNER_ATTESTATION_EVENT_AND_INDEPENDENT_ACCEPTANCE_NOT_ISSUED"
+    ]
+  },
+  "canonical_state": {
+    "current_canonical_gate_pass_count": 2,
+    "current_canonical_gate_blocked_count": 15,
+    "source_authority_accepted": false,
+    "source_cohort_accepted": false,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_changed": false,
+    "final_attestation_schema_ready": false,
+    "final_attestation_issuance_ready": false,
+    "final_attestation_issued": false
+  },
+  "safety_and_non_actions": {
+    "source_002_mutation": false,
+    "production_database_read": false,
+    "production_database_write": false,
+    "test_data_access": false,
+    "external_holdout_data_access": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "metric_execution_performed": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false,
+    "raw_rows_committed_to_git": false,
+    "full_farm_array_committed_to_git": false,
+    "full_subfarm_array_committed_to_git": false,
+    "full_variety_array_committed_to_git": false,
+    "private_locator_committed_to_git": false,
+    "credential_or_token_committed_to_git": false
+  },
+  "review_boundary": {
+    "independent_review_required": true,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "next_recommended_action": "RUN_SOURCE_002_V2_CONCRETE_SCOPE_ARRAY_CONTROLLED_INTAKE_EXACT_HEAD_INDEPENDENT_REVIEW",
+  "validation_contract": {
+    "json_syntax_required": true,
+    "schema_and_governance_checks_required": true,
+    "git_diff_check_required": true,
+    "changed_file_count": 2
+  }
+}
