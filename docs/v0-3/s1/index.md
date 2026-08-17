@@ -30,6 +30,10 @@ authorize data access or implementation.
 | `schemas/business-source-attestation.schema.json` | Machine-readable attestation shape without personal identity fields. |
 | `schemas/source-cohort-manifest.schema.json` | Machine-readable aggregate cohort and source-object identity shape. |
 | `schemas/s1-acceptance-record.schema.json` | Machine-readable gate and independent-review record shape. |
+| `evidence/source-002-q2c-business-source-attestation.json` | Issued Q2C business-source attestation projection. |
+| `evidence/source-002-q2c-final-decision.json` | Issued Q2C six-dimension decision record. |
+| `evidence/source-002-q2c-business-attestation-and-decision-issuance.json` | Q2C issuance provenance, validation, and state evidence. |
+| `workpapers/source-002-q2c-business-attestation-and-decision-issuance.md` | Q2C issuance workpaper and six-dimension reconciliation. |
 
 ## Authority precedence
 
@@ -57,9 +61,16 @@ The following are current facts, not acceptance claims:
 CURRENT_V0_3_S1_COMPLETE=false
 CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
 V0_3_S1_ACCEPTED=false
-CURRENT_S1_TARGET_DECISION=UNRESOLVED_PENDING_INDEPENDENT_REVIEW
-CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
-PROPOSED_TARGET_DECISION=NOT_PROPOSED
+CURRENT_S1_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
+CURRENT_S1_TARGET_DECISION_REVIEW_STATUS=PENDING_INDEPENDENT_REVIEW
+CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
+CURRENT_Q2C_OUTCOME=PROVEN_EXACT
+Q2C_DECISION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+CURRENT_FORECAST_TARGET=model_harvested_marketable_quantity_kg
+CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
+TARGET_TRANSFORMATION=NONE
+TRANSFORMATION_REQUIRED=false
+PROPOSED_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
 CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
 CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
@@ -73,6 +84,10 @@ CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626
 CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
 CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
 CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
+CURRENT_Q2C_BUSINESS_SOURCE_ATTESTATION_VERSION=source-002-q2c-business-source-attestation-v1
+CURRENT_Q2C_BUSINESS_SOURCE_ATTESTATION_HASH=09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2
+CURRENT_Q2C_DECISION_VERSION=source-002-q2c-final-decision-v1
+CURRENT_Q2C_DECISION_HASH=c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18
 CURRENT_S1_HOLDOUT_FEASIBILITY_DECISION=NOT_EVALUATED
 PROPOSED_S1_HOLDOUT_FEASIBILITY_DECISION=BLOCKED
 CURRENT_EXTERNAL_HOLDOUT_GATE_STATUS=BLOCKED
@@ -83,11 +98,12 @@ CURRENT_V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
 ```
 
-`PROPOSED_TARGET_DECISION=NOT_PROPOSED` is intentional: no six-dimensional
-business evidence package was supplied to this task. The six dimensions are
-physical event, quantity basis, marketability boundary, sorting boundary,
-post-harvest boundary, and time/grain. The package defines how the decision is
-made; it does not make the decision.
+The six-dimensional Q2C business evidence package is issued on current main
+with `Q2C_OUTCOME=PROVEN_EXACT`. The six dimensions are physical event,
+quantity basis, marketability boundary, sorting boundary, post-harvest
+boundary, and time/grain. Independent review and canonical Q2C acceptance are
+still pending, so `Q2C_ACCEPTED=false` and the S1-Q2C-TARGET gate remains
+`BLOCKED`.
 
 The following requirements are future acceptance requirements:
 
