@@ -2,12 +2,12 @@
   "artifact_id": "V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION",
   "artifact_version": "canonical-s1-gate-reconciliation-v2",
   "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION",
-  "audited_repository_sha": "d3828041f15d9bba0b201429250a2041bcf63c2f",
+  "audited_repository_sha": "5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b",
   "canonical_gate_count": 17,
   "canonical_completion_rule": "ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS",
   "canonical_acceptance_status": "BLOCKED",
-  "current_canonical_gate_pass_count": 3,
-  "current_canonical_gate_blocked_count": 14,
+  "current_canonical_gate_pass_count": 4,
+  "current_canonical_gate_blocked_count": 13,
   "canonical_acceptance_status_mutation_allowed": true,
   "s1_acceptance_issuance_allowed": false,
   "reconciled_gate_count": 17,
@@ -41,9 +41,9 @@
   "current_main_artifact_wins": true,
   "historical_pr_history_is_provenance_only": true,
   "gate_class_counts": {
-    "FORMALIZATION_OR_REVIEW_READY": 6,
+    "FORMALIZATION_OR_REVIEW_READY": 7,
     "NARROW_CORRECTION_REQUIRED": 1,
-    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 4,
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 3,
     "UPSTREAM_DEPENDENCY_BLOCKED": 6
   },
   "dependency_semantics": {
@@ -171,13 +171,13 @@
         "Current main contains source-002-final-source-owner-attestation-v1 with source owner role 农场数据负责人, status ATTESTED, and attestation hash 2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1.",
         "PR #238 exact-head independent acceptance review 4946622009 returned PASS on reviewed head 9b181f4e160981dca7a28fa584855e70a9555f34; exact-head CI 31955752008 completed success.",
         "PR #238 merge d3828041f15d9bba0b201429250a2041bcf63c2f is the audited current main and contains the accepted final Source Owner Attestation.",
-        "This closeout changes only S1-SOURCE-AUTHORITY; Source Cohort, Q2C, and all other canonical gates remain outside this acceptance."
+        "PR #238 remains the gate-local Source Authority closeout; PR #241 separately closes S1-SOURCE-COHORT. Q2C and all other canonical gates remain outside this acceptance."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
       "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
-      "reconciliation_reason": "The final Source Owner Attestation is issued and independently accepted on the exact PR #238 head, its hash and owner role are bound, and the merge commit is present on current main; the Source Authority gate can therefore be recorded PASS without closing any downstream gate.",
+      "reconciliation_reason": "The final Source Owner Attestation is issued and independently accepted on the exact PR #238 head, its hash and owner role are bound, and the merge commit is present on current main; the Source Authority gate is PASS while the separately reviewed Source Cohort closeout is recorded independently.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
@@ -193,48 +193,43 @@
     },
     {
       "gate_id": "S1-SOURCE-COHORT",
-      "canonical_runtime_status": "BLOCKED",
-      "canonical_block_reason": "SOURCE_COHORT_NOT_FROZEN",
+      "canonical_runtime_status": "PASS",
+      "canonical_block_reason": "NONE",
       "gate_class": "source",
       "owner_role": "data_governance_owner_role",
-      "authoritative_artifact": "source cohort manifest",
+      "authoritative_artifact": "Source002 final Source Cohort Manifest",
       "acceptance_threshold_source": "source cohort contract",
       "acceptance_threshold": "MANIFEST_HASH_AND_SCOPE_PRESENT",
       "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest-issuance.json",
+        "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest-hash-contract.json",
         "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
-        "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
-        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
-        "docs/v0-3/s1/evidence/source-002-custody-record.json",
+        "docs/v0-3/s1/source-authority-and-cohort-manifest.md",
         "docs/v0-3/s1/schemas/source-cohort-manifest.schema.json"
       ],
       "supporting_evidence_facts": [
-        "Aggregate source identity and coverage metadata are available, including 84 farms, 192 subfarms, 20 varieties, 233171 rows, and source-object hashes.",
-        "The deterministic scope-identity preparation package and inclusion/exclusion manifest were reviewed as preparation evidence.",
-        "Formal cohort manifest, cohort identity, concrete schema-bound scope, and accepted mapping are not issued."
+        "The merged final Source Cohort Manifest binds manifest_version source-002-final-source-cohort-manifest-v1, cohort_id source-002-s1-cohort-v1, manifest_hash 27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca, 84 farms, 192 subfarms, 20 varieties, business dates 2025-08-05 through 2026-04-16, 233171 declared source rows, and 28668416 declared source bytes.",
+        "PR #241 exact-head independent review 4948013727 returned PASS on reviewed head b856d3823e51bb6e4f8b780363203a1c477677ca; the manifest hash replay passed and exact-head CI 31986614521 completed success before PR #241 merged as 5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b.",
+        "S1 freezes the Source Cohort identity only; S1 does not freeze the final clean/materialized rowset and S2 owns that final materialized rowset."
       ],
-      "missing_authoritative_artifacts": [
-        "Schema-valid versioned source-cohort manifest",
-        "Cohort manifest hash bound to accepted source authority and scope",
-        "Independent review of the aggregate cohort artifact"
-      ],
-      "missing_decisions_or_authorities": [
-        "Governed source cohort freeze and mapping/scope applicability decision"
-      ],
+      "missing_authoritative_artifacts": [],
+      "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
-      "reconciliation_reason": "Preparation metadata is present, but the source owner and governance owner have not issued an accepted cohort identity and manifest.",
-      "requires_new_business_input": true,
-      "requires_source_owner_authority": true,
-      "requires_validation_policy_decision": true,
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "The schema-valid final Source Cohort Manifest, concrete scope arrays, manifest hash contract, exact-head independent review, successful exact-head CI, and PR #241 merge are present on audited current main; this gate can be recorded PASS without accepting any co-bound gate.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
-      "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-INCLUSION-EXCLUSION", "S1-CANONICAL-GRAIN"],
-      "can_be_formalized_without_new_business_fact": false,
-      "can_be_closed_by_current_task": false,
-      "recommended_next_action": "CREATE_AND_ACCEPT_VERSIONED_SOURCE_COHORT_MANIFEST_AFTER_SOURCE_AUTHORITY_AND_SCOPE_DECISION",
-      "recommended_action_class": "SOURCE_AUTHORITY_FORMALIZATION"
+      "requires_docs_formalization": false,
+      "requires_independent_review": false,
+      "hard_prerequisite_gate_ids": [],
+      "co_resolution_gate_ids": [],
+      "can_be_formalized_without_new_business_fact": true,
+      "can_be_closed_by_current_task": true,
+      "recommended_next_action": "PRESERVE_S1_SOURCE_COHORT_IDENTITY_AND_S2_FINAL_ROWSET_BOUNDARY",
+      "recommended_action_class": "SOURCE_COHORT_CANONICAL_ACCEPTANCE"
     },
     {
       "gate_id": "S1-PHYSICAL-MEANING",
@@ -337,7 +332,7 @@
       ],
       "supporting_evidence_facts": [
         "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE is the recorded current grain and source fields support farm, subfarm, variety, and business date.",
-        "Scope preparation hashes and aggregate counts exist, but formal mapping acceptance is false and the schema-valid cohort manifest is absent.",
+        "The accepted final cohort manifest binds the schema-valid aggregate scope, but the separate canonical-grain gate and formal mapping acceptance remain blocked.",
         "July unmapped rows and the pending unmapped-date policy prevent silent date/grain closure."
       ],
       "missing_authoritative_artifacts": [
@@ -469,7 +464,7 @@
       ],
       "supporting_evidence_facts": [
         "The preparation manifest records retained July unmapped rows, no automatic July assignment, unknown-not-zero missingness, and an explicit source-scope exclusion statement.",
-        "Aggregate mapping/scope and inclusion artifacts are issued for independent review, but formal mapping acceptance and cohort acceptance remain false.",
+        "Aggregate mapping/scope and inclusion artifacts are issued for independent review; Source Cohort acceptance is now PASS, while the separate inclusion/exclusion gate and formal mapping acceptance remain false.",
         "UNMAPPED_DATE_POLICY remains PENDING; this is not equivalent to an empty exclusions list or a resolved policy."
       ],
       "missing_authoritative_artifacts": [
@@ -556,7 +551,7 @@
       ],
       "supporting_evidence_facts": [
         "The contract defines time-ordered TRAIN/VALIDATION/TEST, no adjacent random split, immutable split hashes, and TEST custody boundaries.",
-        "No TEST or external holdout data was accessed; no accepted source cohort or final rowset exists from which a split manifest can be issued.",
+        "No TEST or external holdout data was accessed; the Source Cohort identity is accepted, but no accepted final clean rowset exists from which a split manifest can be issued.",
         "The custody record is issued for review but not accepted, and visibility/threshold dependencies remain open."
       ],
       "missing_authoritative_artifacts": [
@@ -760,7 +755,7 @@
       ],
       "supporting_evidence_facts": [
         "The feasibility gate is required and may close with a reviewed FEASIBLE or reviewed NOT_FEASIBLE decision.",
-        "No accepted source cohort, distinct-cohort coverage summary, or accepted custody record is available for the feasibility decision.",
+        "No accepted final clean rowset, distinct-cohort coverage summary, or accepted custody record is available for the feasibility decision; the Source Cohort identity itself is accepted.",
         "TEST and external holdout access remain unauthorized and were not performed."
       ],
       "missing_authoritative_artifacts": [
@@ -799,7 +794,7 @@
         "docs/v0-3/development-plan.md"
       ],
       "supporting_evidence_facts": [
-        "The canonical record contains exactly 17 required gates; the overall acceptance remains BLOCKED while two required gate rows are PASS and fifteen remain BLOCKED.",
+        "The canonical record contains exactly 17 required gates; the overall acceptance remains BLOCKED while four required gate rows are PASS and thirteen remain BLOCKED.",
         "Independent review status is NOT_STARTED and the completion rule requires every required row to be PASS.",
         "This reconciliation package is evidence preparation only and cannot self-attest the final S1 result."
       ],
