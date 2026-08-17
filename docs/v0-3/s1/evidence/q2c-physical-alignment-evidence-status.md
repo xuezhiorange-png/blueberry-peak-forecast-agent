@@ -43,8 +43,11 @@ Q2C_ACCEPTED=true
 CANONICAL_Q2C_GATE_STATUS=PASS
 SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
-CURRENT_CANONICAL_GATE_PASS_COUNT=5
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+PHYSICAL_MEANING_ACCEPTED=true
+UNIT_TIME_BASIS_ACCEPTED=true
+CANONICAL_GRAIN_ACCEPTED=false
 ```
 
 ```text
@@ -78,16 +81,20 @@ The following fields are now populated and bound by the issued Q2C package:
 ## Fail-closed interpretation
 
 This current status record records the accepted target decision and PROVEN_EXACT
-outcome for S1-Q2C-TARGET. It does not accept Physical Meaning, Unit/Time
-Basis, or any other canonical gate. The V0.3 profile does not require
-reconstructing a theoretical pre-weigh farm-pick weight;
+outcome for S1-Q2C-TARGET. The Q2C artifact itself did not imply acceptance of
+Physical Meaning or Unit/Time Basis; PR #245 independently reviewed and merged
+their issued attestations, and PR #246 separately records their canonical
+gate-local closeout. The V0.3 profile does not require reconstructing a
+theoretical pre-weigh farm-pick weight;
 transport, storage, post-harvest, tare-method and device-metrology details are
 optional evidence for this label profile. Missing observations remain missing
 and no numeric or percentage value is issued.
 
 The six-dimensional decision was recomputed from one governed source
 attestation and cohort package. The current Q2C state is accepted at its
-gate-local boundary; this record does not convert any separate gate to
+gate-local boundary; the PR #246 Physical Meaning and Unit/Time Basis canonical
+closeout is separate, while Canonical Grain and all remaining gates stay
+separate and BLOCKED. This record does not convert any unrelated gate to
 accepted, FAIL, NOT_FEASIBLE, or NOT_APPLICABLE.
 
 ## Authority
