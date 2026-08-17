@@ -9,6 +9,7 @@ data, credentials, private locators, or fabricated business facts.
     EVIDENCE_PACKAGE_ID=V0_3_S1_BUSINESS_ACCEPTANCE_EVIDENCE_PACKAGE
     EVIDENCE_PACKAGE_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
     EVIDENCE_BASELINE_MAIN_SHA=99b98e6cd2fced364fe3b9db816e562bae9f8771
+    CURRENT_MAIN_SHA=fa828e05ac5599ba2bce87e4260749210516376b
     EVIDENCE_SCOPE=NON_ROW_LEVEL_BUSINESS_ACCEPTANCE_METADATA_ONLY
     REAL_BUSINESS_ROW_LEVEL_DATA_READ=false
     REAL_BUSINESS_ROW_LEVEL_DATA_IMPORTED=false
@@ -27,7 +28,7 @@ data, credentials, private locators, or fabricated business facts.
 
 | Record | Current status | Meaning |
 | --- | --- | --- |
-| Q2C physical alignment decision | ISSUED_PENDING_INDEPENDENT_REVIEW | Versioned business-source attestation and final Q2C decision are issued with `PROVEN_EXACT`; independent review remains pending and the canonical gate remains blocked. |
+| Q2C physical alignment decision | ACCEPTED | Versioned business-source attestation and final Q2C decision are issued with `PROVEN_EXACT`; PR #243 exact-head independent review passed and the canonical S1-Q2C-TARGET gate is PASS. |
 | Source owner and authority status | ACCEPTED | Current main contains the accepted Source002 Source Owner Attestation and Source Authority closeout. |
 | Source cohort status | ACCEPTED | Current main contains the accepted Source002 final Source Cohort Manifest and Source Cohort closeout. |
 | Data custody status | BLOCKED | C1-C6 business/governance answers are recorded; formal custody roles, policies and binding hash remain absent. |
@@ -45,30 +46,31 @@ unresolved until separately supplied and independently reviewed.
 STATUS_RECONCILIATION_ONLY=true
 STATUS_RECONCILIATION_APPLIED=true
 LATER_EVIDENCE_CONSUMED=true
-CANONICAL_GATE_STATUS_CHANGED=false
+CANONICAL_GATE_STATUS_CHANGED=true
 FORMAL_ACCEPTANCE_ISSUED=false
 ```
 
 The later Source 002 and Q2C workpapers update the factual evidence layer,
-including the V0.3 recorded-business-label boundary. Q2C issuance updates the
-current evidence state but does not override this package's blocked canonical
-acceptance state.
+including the V0.3 recorded-business-label boundary. PR #243 now closes the
+Q2C target gate only; the overall S1 package remains blocked by the other
+canonical gates and final S1 independent review.
 
 ## Current authorization state
 
     CURRENT_V0_3_S1_COMPLETE=false
     CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
     V0_3_S1_ACCEPTED=false
-    CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
+    CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=ACCEPTED
     CURRENT_Q2C_OUTCOME=PROVEN_EXACT
-    Q2C_DECISION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+    Q2C_DECISION_STATUS=ACCEPTED
     CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
     CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
     CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
     CURRENT_SOURCE_COHORT_ACCEPTED=true
-    CURRENT_Q2C_ACCEPTED=false
-    CURRENT_CANONICAL_GATE_PASS_COUNT=4
-    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+    CURRENT_Q2C_ACCEPTED=true
+    CURRENT_CANONICAL_Q2C_GATE_STATUS=PASS
+    CURRENT_CANONICAL_GATE_PASS_COUNT=5
+    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
     BUSINESS_SOURCE_ATTESTATION_VERSION=source-002-q2c-business-source-attestation-v1
     BUSINESS_SOURCE_ATTESTATION_HASH=09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2
     Q2C_DECISION_VERSION=source-002-q2c-final-decision-v1
