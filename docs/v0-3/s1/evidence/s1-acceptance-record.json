@@ -73,12 +73,12 @@
       "acceptance_threshold_source": "Q2C physical dimensions",
       "acceptance_threshold": "EVENT_AND_MARKETABILITY_BOUNDARY_EVIDENCED",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "MISSING_MEASUREMENT_BOUNDARY",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Formal Source002 Physical Meaning Attestation source-002-physical-meaning-attestation-v1 is issued pending independent review; event and marketability threshold facts are evidenced and Q2C is already accepted. Independent gate-local review has not occurred, so the canonical Physical Meaning gate remains BLOCKED with MISSING_MEASUREMENT_BOUNDARY; this issuance does not accept the gate."
+      "reviewer": "github-review-4949133128",
+      "reviewed_at": "2026-08-17T06:58:24Z",
+      "notes": "PR #245 independently reviewed the Physical Meaning Attestation PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8; exact-head CI 32002755230 completed success and PR #245 merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed attestation/evidence on current main. This PR #246 performs the separate canonical row closeout from BLOCKED/MISSING_MEASUREMENT_BOUNDARY to PASS/NONE; the first valid governed field scan-weigh event and marketability boundary are bound. No other canonical gate is implied accepted."
     },
     {
       "gate_id": "S1-UNIT-AND-TIME-BASIS",
@@ -92,12 +92,12 @@
       "acceptance_threshold_source": "Q2C physical and time dimensions",
       "acceptance_threshold": "KG_AND_FARM_LOCAL_DATE_BOUND",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "UNIT_OR_TIME_AUTHORITY_MISSING",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Formal Source002 Unit/Time Basis Attestation source-002-unit-time-basis-attestation-v1 is issued pending independent review; KG and farm-local HARVEST_BUSINESS_DATE in Asia/Shanghai are bound. Independent gate-local review has not occurred, so the canonical Unit/Time Basis gate remains BLOCKED with UNIT_OR_TIME_AUTHORITY_MISSING; Canonical Grain remains separate and unaccepted."
+      "reviewer": "github-review-4949133128",
+      "reviewed_at": "2026-08-17T06:58:24Z",
+      "notes": "PR #245 independently reviewed the Unit/Time Basis Attestation PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8; exact-head CI 32002755230 completed success and PR #245 merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed attestation/evidence on current main. This PR #246 performs the separate canonical row closeout from BLOCKED/UNIT_OR_TIME_AUTHORITY_MISSING to PASS/NONE. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai are bound; the 0.001 kg representation remains representation, not device metrology. Canonical Grain and Inclusion/Exclusion remain separate and BLOCKED."
     },
     {
       "gate_id": "S1-CANONICAL-GRAIN",
@@ -333,7 +333,7 @@
     "reviewer": "PENDING_INDEPENDENT_REVIEW",
     "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
     "review_result": "NOT_STARTED",
-    "review_notes": "Independent review has not started. Five canonical gates are PASS and twelve remain BLOCKED; overall S1 independent review has not started. Physical Meaning and Unit/Time Basis attestations are issued pending their separate gate-local review and remain unaccepted."
+    "review_notes": "The PR #245 gate-local review completed PASS for both attestations; this PR #246 records the separate canonical closeout. Seven canonical gates are PASS and ten remain BLOCKED; final S1 independent review remains NOT_STARTED."
   },
   "derived_status": {
     "all_required_gates_pass": false,

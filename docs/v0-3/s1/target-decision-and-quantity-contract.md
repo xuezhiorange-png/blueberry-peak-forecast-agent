@@ -21,8 +21,10 @@ PROPOSED_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
 ```
 
 This document fixes the decision procedure and mirrors the accepted current
-Q2C decision. It does not accept Physical Meaning, Unit/Time Basis, or any
-other canonical gate.
+Q2C decision. The Q2C decision itself did not accept Physical Meaning or
+Unit/Time Basis; PR #245 independently reviewed and merged their attestations,
+and PR #246 records their separate canonical closeout. No other canonical gate
+is implied accepted.
 
 ## Existing forecast vocabulary
 
@@ -88,9 +90,11 @@ selects `OBSERVED_FARM_PICK_QUANTITY`, binds
 `model_harvested_marketable_quantity_kg` to the governed recorded-label
 boundary, and records `Q2C_OUTCOME=PROVEN_EXACT`.
 `effective_marketable_quantity_kg` is not the selected Q2C target.
-That pre-issuance state is superseded by the current PR #243 closeout: the
-Q2C target is accepted, while the separate Physical Meaning and Unit/Time
-Basis gates remain blocked pending their own gate-local closeouts.
+That pre-issuance state is superseded by the current PR #243 Q2C canonical
+closeout, PR #245 attestation review/merge, and PR #246 Physical Meaning and
+Unit/Time Basis canonical closeout: the Q2C target is accepted, the two
+physical/unit-time rows are canonical PASS, and Canonical Grain remains
+separate and BLOCKED.
 
 ## Q2C six-dimensional decision matrix
 
@@ -100,12 +104,12 @@ not evidence of closure.
 
 | Dimension | Required closure | Current status | Blocking condition |
 | --- | --- | --- | --- |
-| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `ACCEPTED` | No remaining Q2C dimension blocker; Physical Meaning remains a separate gate-local closeout. |
-| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `ACCEPTED` | No remaining Q2C dimension blocker; Unit/Time Basis remains a separate gate-local closeout. |
+| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `ACCEPTED` | No remaining Q2C dimension blocker; Physical Meaning is separately canonical PASS. |
+| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `ACCEPTED` | No remaining Q2C dimension blocker; Unit/Time Basis is separately canonical PASS. |
 | Marketability boundary | Explicit all-picked versus marketable definition | `ACCEPTED` | No remaining Q2C dimension blocker; other canonical gates remain separate. |
 | Sorting boundary | Field, packhouse, and rejected-fruit rules | `ACCEPTED` | No remaining Q2C dimension blocker; other canonical gates remain separate. |
 | Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `ACCEPTED` | No remaining Q2C dimension blocker; other canonical gates remain separate. |
-| Time and grain | Farm-local business date and canonical grain | `ACCEPTED` | No remaining Q2C dimension blocker; Unit/Time Basis and Canonical Grain remain separate gate-local closeouts. |
+| Time and grain | Farm-local business date and canonical grain | `ACCEPTED` | Unit/Time Basis is separately canonical PASS; Canonical Grain remains separate and BLOCKED. |
 
 The canonical evaluation grain is fixed by the accepted Q2A/I7 and Q2C design:
 
@@ -249,6 +253,8 @@ V0_3_RECORDED_LABEL_PROFILE_REQUIRES_PRE_WEIGH_RECONSTRUCTION=false
 FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 ```
 
-The Q2C target is now accepted at its gate-local boundary. Physical Meaning,
-Unit/Time Basis, Canonical Grain, and every other remaining gate require their
-own closeout; acceptance of this target does not imply the next step.
+The Q2C target is now accepted at its gate-local boundary. PR #245 provides the
+reviewed and merged Physical Meaning and Unit/Time Basis evidence, while PR
+#246 records those two rows as canonical PASS; Canonical Grain and every other
+remaining gate require their own closeout. Acceptance of any one target or gate
+does not imply the next step.

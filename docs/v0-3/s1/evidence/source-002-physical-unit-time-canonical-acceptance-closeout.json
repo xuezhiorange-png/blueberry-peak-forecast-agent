@@ -1,0 +1,172 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_PHYSICAL_UNIT_TIME_CANONICAL_ACCEPTANCE_CLOSEOUT",
+  "artifact_version": "source-002-physical-unit-time-canonical-acceptance-closeout-v1",
+  "artifact_status": "CLOSED_FOR_PHYSICAL_MEANING_AND_UNIT_TIME_BASIS_ONLY",
+  "task_id": "S1_REMAINING_02_PHYSICAL_UNIT_TIME_CANONICAL_CLOSEOUT",
+  "task_class": "DOCS_ONLY_GATE_LOCAL_CANONICAL_ACCEPTANCE_CLOSEOUT",
+  "base_main_sha": "1ee6da741fe13e163b53c26b2a6705ac8eb28a72",
+  "audited_main_sha": "1ee6da741fe13e163b53c26b2a6705ac8eb28a72",
+  "target_gate_ids": [
+    "S1-PHYSICAL-MEANING",
+    "S1-UNIT-AND-TIME-BASIS"
+  ],
+  "pr245_provenance": {
+    "pr_number": 245,
+    "reviewed_head_sha": "7acea813d3f0ae17579da325dfa2f38c7ea9d0c8",
+    "merge_sha": "1ee6da741fe13e163b53c26b2a6705ac8eb28a72",
+    "independent_review_numeric_id": 4949133128,
+    "independent_review_graphql_id": "PRR_kwDOS_gTTs8AAAABJv3HSA",
+    "review_submitted_at": "2026-08-17T06:58:24Z",
+    "review_result": "PASS",
+    "physical_meaning_review_result": "PASS",
+    "unit_time_basis_review_result": "PASS",
+    "p0_findings": 0,
+    "p1_findings": 0,
+    "p2_findings": 0,
+    "exact_head_ci_run_id": 32002755230,
+    "exact_head_ci_run_number": 1308,
+    "exact_head_ci_head_sha": "7acea813d3f0ae17579da325dfa2f38c7ea9d0c8",
+    "exact_head_ci_status": "completed",
+    "exact_head_ci_conclusion": "success",
+    "merged": true
+  },
+  "attestations": {
+    "physical_meaning": {
+      "path": "docs/v0-3/s1/evidence/source-002-physical-meaning-attestation.json",
+      "version": "source-002-physical-meaning-attestation-v1",
+      "hash": "1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944",
+      "threshold_satisfied": true,
+      "accepted": true
+    },
+    "unit_time_basis": {
+      "path": "docs/v0-3/s1/evidence/source-002-unit-time-basis-attestation.json",
+      "version": "source-002-unit-time-basis-attestation-v1",
+      "hash": "d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee",
+      "threshold_satisfied": true,
+      "accepted": true
+    }
+  },
+  "upstream_accepted_bindings": {
+    "source_authority_accepted": true,
+    "source_owner_attestation_hash": "2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1",
+    "source_cohort_accepted": true,
+    "source_cohort_manifest_hash": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+    "q2c_accepted": true,
+    "q2c_business_source_attestation_hash": "09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2",
+    "q2c_decision_hash": "c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18"
+  },
+  "gate_transitions": [
+    {
+      "gate_id": "S1-PHYSICAL-MEANING",
+      "previous_status": "BLOCKED",
+      "new_status": "PASS",
+      "previous_block_reason": "MISSING_MEASUREMENT_BOUNDARY",
+      "new_block_reason": "NONE",
+      "reviewer": "github-review-4949133128",
+      "reviewed_at": "2026-08-17T06:58:24Z",
+      "attestation_hash": "1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944",
+      "closeout_scope": "PHYSICAL_MEANING_ONLY"
+    },
+    {
+      "gate_id": "S1-UNIT-AND-TIME-BASIS",
+      "previous_status": "BLOCKED",
+      "new_status": "PASS",
+      "previous_block_reason": "UNIT_OR_TIME_AUTHORITY_MISSING",
+      "new_block_reason": "NONE",
+      "reviewer": "github-review-4949133128",
+      "reviewed_at": "2026-08-17T06:58:24Z",
+      "attestation_hash": "d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee",
+      "closeout_scope": "UNIT_AND_TIME_BASIS_ONLY"
+    }
+  ],
+  "mutation_accounting": {
+    "target_gate_status_mutation_count": 2,
+    "target_gate_block_reason_mutation_count": 2,
+    "other_gate_status_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 0,
+    "exactly_two_target_gates_changed": true,
+    "downstream_gate_acceptance_implied": false
+  },
+  "current_canonical_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 7,
+    "current_canonical_gate_blocked_count": 10,
+    "canonical_acceptance_status": "BLOCKED",
+    "source_authority_accepted": true,
+    "source_cohort_accepted": true,
+    "q2c_accepted": true,
+    "physical_meaning_accepted": true,
+    "unit_time_basis_accepted": true,
+    "canonical_grain_accepted": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false
+  },
+  "remaining_blocked_gates": [
+    "S1-CANONICAL-GRAIN",
+    "S1-VISIBILITY",
+    "S1-REVISION-WINNER",
+    "S1-INCLUSION-EXCLUSION",
+    "S1-MISSING-CORRECTION-CANCELLATION",
+    "S1-SPLIT-POLICY",
+    "S1-METRIC-CONTRACT",
+    "S1-DATA-CUSTODY",
+    "S1-HOLDOUT-FEASIBILITY",
+    "S1-INDEPENDENT-REVIEW"
+  ],
+  "current_state_stale_literal_reconciliation": {
+    "current_state_stale_literal_found": 15,
+    "current_state_stale_literal_resolved": 15,
+    "current_state_stale_literal_remaining": 0,
+    "historical_pre_closeout_text_preserved_only_when_explicitly_historical": true
+  },
+  "validation": {
+    "json_syntax": "PASS",
+    "acceptance_record_schema_validation": "PASS",
+    "canonical_gate_count_validation": "PASS",
+    "canonical_gate_id_uniqueness": "PASS",
+    "target_gate_status_mutation_validation": "PASS",
+    "target_gate_block_reason_mutation_validation": "PASS",
+    "other_gate_status_mutation_count": "PASS",
+    "other_gate_block_reason_mutation_count": "PASS",
+    "physical_meaning_attestation_hash_parity": "PASS",
+    "unit_time_basis_attestation_hash_parity": "PASS",
+    "pr245_review_binding": "PASS",
+    "pr245_exact_head_ci_binding": "PASS",
+    "pr245_merge_binding": "PASS",
+    "current_state_stale_literal_scan": "PASS",
+    "protected_attestation_hashes_unchanged": "PASS",
+    "data_safety_boundary": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "data_safety": {
+    "source_002_read": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_accessed": false,
+    "external_holdout_data_accessed": false,
+    "metric_execution_performed": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false
+  },
+  "authorization_boundary": {
+    "physical_meaning_gate_local_closeout_authorized": true,
+    "unit_time_basis_gate_local_closeout_authorized": true,
+    "canonical_gate_status_mutation_authorized": true,
+    "source_authority_acceptance_performed": false,
+    "source_cohort_acceptance_performed": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "ready_performed": false,
+    "merge_performed": false,
+    "independent_s1_review_performed": false,
+    "no_step_implies_the_next": true
+  }
+}
