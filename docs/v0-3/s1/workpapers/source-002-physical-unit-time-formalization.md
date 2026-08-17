@@ -156,7 +156,7 @@ UNIT_TIME_ATTESTATION_HASH_CANONICALIZATION=UTF8_JSON_SORT_KEYS_RECURSIVELY_COMP
 UNIT_TIME_ATTESTATION_HASH_REPLAY=PASS
 ```
 
-The authorized current-state mirror correction removed 17 stale literal
+The authorized current-state mirror correction removed 15 stale literal
 occurrences. Historical pre-issuance statements remain only where explicitly
 identified as historical; current mirrors now point to the issued artifacts
 and say that independent review is pending.
