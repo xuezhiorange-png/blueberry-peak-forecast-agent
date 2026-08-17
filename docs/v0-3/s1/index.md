@@ -36,6 +36,10 @@ authorize data access or implementation.
 | `workpapers/source-002-q2c-business-attestation-and-decision-issuance.md` | Q2C issuance workpaper and six-dimension reconciliation. |
 | `evidence/source-002-q2c-canonical-acceptance-closeout.json` | Canonical S1-Q2C-TARGET closeout evidence. |
 | `workpapers/source-002-q2c-canonical-acceptance-closeout.md` | Q2C gate-local closeout workpaper and current-state reconciliation. |
+| `evidence/source-002-physical-meaning-attestation.json` | Issued Source002 Physical Meaning attestation pending independent gate-local review. |
+| `evidence/source-002-unit-time-basis-attestation.json` | Issued Source002 Unit/Time Basis attestation pending independent gate-local review. |
+| `evidence/source-002-physical-unit-time-formalization-issuance.json` | Combined Physical Meaning and Unit/Time formalization issuance and provenance. |
+| `workpapers/source-002-physical-unit-time-formalization.md` | Physical, quantity, unit, time, and bounded acceptance-state workpaper. |
 
 ## Authority precedence
 
@@ -81,6 +85,14 @@ Q2C_ACCEPTED=true
 CANONICAL_Q2C_GATE_STATUS=PASS
 CURRENT_CANONICAL_GATE_PASS_COUNT=5
 CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
+PHYSICAL_MEANING_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
+PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
+UNIT_TIME_BASIS_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+UNIT_TIME_BASIS_ATTESTATION_VERSION=source-002-unit-time-basis-attestation-v1
+UNIT_TIME_BASIS_ATTESTATION_HASH=d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee
+PHYSICAL_MEANING_ACCEPTED=false
+UNIT_TIME_BASIS_ACCEPTED=false
 CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
 CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
 CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
@@ -133,18 +145,21 @@ Source Cohort Manifest. S1 remains blocked because downstream gates still
 require the evidence listed below. This list is a contract of remaining
 evidence, not a claim that any value exists.
 
-- source system, dataset, and immutable source version;
-- physical event, weighing point, measurement method, unit, and calibration
-  authority;
-- marketability, field sorting, packhouse sorting, rejection, and post-harvest
-  loss boundaries;
-- farm-local date policy, source-recorded-time authority, late entry, revision,
-  void, correction, and finalization rules;
-- canonical grain and mapping evidence for farm, subfarm, variety, season, and
-  business date;
-- coverage, exclusions, missing-day policy, and cohort summary;
-- immutable object identity, schema/mapping hashes, and custody record;
-- split and external-holdout feasibility evidence.
+- canonical-grain gate-local acceptance and mapping review;
+- inclusion/exclusion authority, including unmapped-date applicability;
+- revision/winner and remaining correction, missing-day, and cancellation
+  acceptance;
+- visibility prerequisites and mixed-authority reconciliation;
+- custody review/acceptance;
+- time-ordered split and metric-contract evidence;
+- external holdout-feasibility decision; and
+- final independent S1 review.
+
+The source identity, physical event, weighing point, marketability boundary, KG
+unit, and farm-local Asia/Shanghai business-date basis are already governed and
+bound by the accepted Source002/Q2C package and the two issued attestations
+listed above. The two target gates remain BLOCKED until their independent
+gate-local reviews occur.
 
 No row-level data is requested or read by this package.
 
