@@ -6,12 +6,22 @@
 CONTRACT_ID=V0_3_S1_TARGET_AND_QUANTITY_CONTRACT
 Q2C_AUTHORITY=docs/forecast-quality/q2c-physical-target-equivalence-contract.md
 Q2C_AUTHORITY_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
-CURRENT_TARGET_DECISION=UNRESOLVED_PENDING_INDEPENDENT_REVIEW
-PROPOSED_TARGET_DECISION=NOT_PROPOSED
+CURRENT_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
+CURRENT_TARGET_DECISION_REVIEW_STATUS=PENDING_INDEPENDENT_REVIEW
+Q2C_DECISION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+CURRENT_Q2C_OUTCOME=PROVEN_EXACT
+CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
+CURRENT_FORECAST_TARGET=model_harvested_marketable_quantity_kg
+CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
+TARGET_TRANSFORMATION=NONE
+TRANSFORMATION_REQUIRED=false
+Q2C_ACCEPTED=false
+PROPOSED_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
 ```
 
-This document fixes the decision procedure. It does not select a business
-source and does not assert that a source satisfies the procedure.
+This document fixes the decision procedure and mirrors the issued current Q2C
+decision. It does not independently accept the decision or close the
+canonical Q2C gate.
 
 ## Existing forecast vocabulary
 
@@ -68,10 +78,17 @@ LABEL_ELIGIBILITY` means that a field is not required for this label
 eligibility decision; it does not assert `FALSE`, `ZERO`, or that the process
 or device detail does not exist.
 
-This boundary correction does not select a forecast-side target, prove exact
-equivalence to `effective_marketable_quantity_kg` or
-`model_harvested_marketable_quantity_kg`, issue Q2C acceptance, or change the
-canonical gate status.
+### Historical pre-issuance boundary-correction note
+
+The earlier recorded-label boundary correction by itself did not select a
+forecast-side target or prove exact Q2C equivalence. That statement is retained
+as historical provenance. The subsequently issued Q2C decision in PR #243
+selects `OBSERVED_FARM_PICK_QUANTITY`, binds
+`model_harvested_marketable_quantity_kg` to the governed recorded-label
+boundary, and records `Q2C_OUTCOME=PROVEN_EXACT`.
+`effective_marketable_quantity_kg` is not the selected Q2C target.
+Independent review and canonical Q2C acceptance remain pending, so
+`Q2C_ACCEPTED=false` and the canonical Q2C gate remains `BLOCKED`.
 
 ## Q2C six-dimensional decision matrix
 
@@ -81,12 +98,12 @@ not evidence of closure.
 
 | Dimension | Required closure | Current status | Blocking condition |
 | --- | --- | --- | --- |
-| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `BLOCKED` | Formal source attestation and independent review are not supplied. |
-| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `BLOCKED` | Formal source attestation and target decision are not issued. |
-| Marketability boundary | Explicit all-picked versus marketable definition | `BLOCKED` | Business boundary and rejection rule not supplied. |
-| Sorting boundary | Field, packhouse, and rejected-fruit rules | `BLOCKED` | Sorting stages and exclusions not supplied. |
-| Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `BLOCKED` | Formal source attestation, coverage and governance are not supplied; pre-weigh reconstruction is not a label-eligibility prerequisite. |
-| Time and grain | Farm-local business date and canonical grain | `BLOCKED` | Source time authority, mapping, and cohort evidence not supplied. |
+| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Marketability boundary | Explicit all-picked versus marketable definition | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Sorting boundary | Field, packhouse, and rejected-fruit rules | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Time and grain | Farm-local business date and canonical grain | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
 
 The canonical evaluation grain is fixed by the accepted Q2A/I7 and Q2C design:
 
@@ -112,11 +129,19 @@ BLOCKED_BY_TRANSFORMATION_AUTHORITY
 BLOCKED_BY_GRAIN_OR_DATE_MISMATCH
 ```
 
-The currently applicable state is:
+The currently issued-but-not-accepted state is:
 
 ```text
-CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
-CURRENT_Q2C_OUTCOME=BLOCKED_BY_MISSING_BUSINESS_ATTESTATION
+CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
+CURRENT_Q2C_OUTCOME=PROVEN_EXACT
+Q2C_DECISION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+CURRENT_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
+CURRENT_TARGET_DECISION_REVIEW_STATUS=PENDING_INDEPENDENT_REVIEW
+CURRENT_FORECAST_TARGET=model_harvested_marketable_quantity_kg
+CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
+TARGET_TRANSFORMATION=NONE
+TRANSFORMATION_REQUIRED=false
+Q2C_ACCEPTED=false
 ```
 
 The outcome must be recomputed from the accepted evidence package. It must not
@@ -149,13 +174,11 @@ weight at plant removal before the scan-weigh record.
 
 ## Candidate target paths
 
-### Candidate A: observed recorded-label target (not selected by this correction)
+### Historical Candidate A wording before Q2C issuance
 
-This path remains a conditional target path and is not selected by this
-boundary correction. Its exact target binding requires a separately reviewed
-Q2C decision over the V0.3 recorded-label profile, including `KG`, farm-local
-harvest business date, canonical grain, and marketability/sorting boundaries.
-It would bind `actual_harvest_quantity_kg` directly only after that decision.
+This pre-issuance candidate wording is retained for provenance. The issued
+Q2C decision now selects `OBSERVED_FARM_PICK_QUANTITY` and binds
+`actual_harvest_quantity_kg` directly, with independent review still pending.
 
 ```text
 WHEN_Q2C_PROVEN_EXACT:
@@ -206,6 +229,6 @@ V0_3_RECORDED_LABEL_PROFILE_REQUIRES_PRE_WEIGH_RECONSTRUCTION=false
 FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 ```
 
-Until these requirements are met, `PROPOSED_TARGET_DECISION=NOT_PROPOSED` and
-`CURRENT_S1_TARGET_DECISION=UNRESOLVED_PENDING_INDEPENDENT_REVIEW` remain in
-force.
+Until independent review and canonical acceptance are complete,
+`Q2C_ACCEPTED=false` and the canonical Q2C gate remains `BLOCKED`; issuance
+does not imply the next step.
