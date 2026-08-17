@@ -1,0 +1,198 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_GRAIN_INCLUSION_REVISION_CANONICAL_ACCEPTANCE_CLOSEOUT",
+  "artifact_version": "source-002-grain-inclusion-revision-canonical-acceptance-closeout-v1",
+  "artifact_status": "PARTIAL_CLOSEOUT_GRAIN_AND_INCLUSION_PASS_REVISION_WINNER_BLOCKED",
+  "task_id": "S1_REMAINING_03_GATE_LOCAL_CANONICAL_CLOSEOUT",
+  "task_class": "DOCS_ONLY_GATE_LOCAL_CANONICAL_ACCEPTANCE_CLOSEOUT",
+  "base_main_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
+  "reviewed_stack_base_head_sha": "ac2ad97579c005c488701e4d3be22531a595ee5f",
+  "stack_base_branch": "docs/v0-3-s1-grain-inclusion-revision-current-main-formalization",
+  "requested_target_gate_ids": [
+    "S1-CANONICAL-GRAIN",
+    "S1-INCLUSION-EXCLUSION",
+    "S1-REVISION-WINNER"
+  ],
+  "independent_review_provenance": {
+    "pr_number": 247,
+    "review_numeric_id": 4951647818,
+    "review_graphql_id": "PRR_kwDOS_gTTs8AAAABJyQmSg",
+    "reviewed_head_sha": "ac2ad97579c005c488701e4d3be22531a595ee5f",
+    "review_submitted_at": "2026-08-17T12:37:08Z",
+    "review_state": "COMMENTED",
+    "review_result": "PASS",
+    "blocking_findings_reported_at_review": 0,
+    "exact_head_ci_run_id": 32018019710,
+    "exact_head_ci_head_sha": "ac2ad97579c005c488701e4d3be22531a595ee5f",
+    "exact_head_ci_status": "completed",
+    "exact_head_ci_conclusion": "success"
+  },
+  "reviewed_evidence": {
+    "canonical_grain": {
+      "path": "docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json",
+      "version": "source-002-canonical-grain-mapping-gate-evidence-v1",
+      "hash": "6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc",
+      "fact_threshold_satisfied": true,
+      "review_result": "PASS"
+    },
+    "inclusion_exclusion": {
+      "path": "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-gate-evidence.json",
+      "version": "source-002-inclusion-exclusion-gate-evidence-v1",
+      "hash": "b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580",
+      "fact_threshold_satisfied": true,
+      "review_result": "PASS"
+    },
+    "revision_winner": {
+      "path": "docs/v0-3/s1/evidence/source-002-revision-winner-gate-evidence.json",
+      "version": "source-002-revision-winner-gate-evidence-v1",
+      "hash": "5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e",
+      "fact_threshold_satisfied": true,
+      "review_result": "PASS",
+      "mode_specific_disposition": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"
+    }
+  },
+  "precondition_evaluation": {
+    "hard_prerequisite_semantics": "A gate or accepted artifact that must close before the current gate can close.",
+    "canonical_grain_hard_prerequisites_satisfied": true,
+    "inclusion_exclusion_hard_prerequisites_satisfied": true,
+    "revision_winner_hard_prerequisites_satisfied": false,
+    "revision_winner_blocking_hard_prerequisite_gate_id": "S1-MISSING-CORRECTION-CANCELLATION",
+    "revision_winner_blocking_hard_prerequisite_status": "BLOCKED",
+    "revision_winner_blocking_hard_prerequisite_block_reason": "REVISION_POLICY_NOT_FROZEN",
+    "revision_winner_closeout_allowed_now": false,
+    "revision_winner_forced_pass_prohibited": true
+  },
+  "gate_transitions": [
+    {
+      "gate_id": "S1-CANONICAL-GRAIN",
+      "previous_status": "BLOCKED",
+      "new_status": "PASS",
+      "previous_block_reason": "GRAIN_OR_DATE_AUTHORITY_MISSING",
+      "new_block_reason": "NONE",
+      "reviewer": "github-review-4951647818",
+      "reviewed_at": "2026-08-17T12:37:08Z",
+      "evidence_hash": "6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc",
+      "closeout_scope": "CANONICAL_GRAIN_AND_MAPPING_ONLY"
+    },
+    {
+      "gate_id": "S1-INCLUSION-EXCLUSION",
+      "previous_status": "BLOCKED",
+      "new_status": "PASS",
+      "previous_block_reason": "INCLUSION_POLICY_NOT_FROZEN",
+      "new_block_reason": "NONE",
+      "reviewer": "github-review-4951647818",
+      "reviewed_at": "2026-08-17T12:37:08Z",
+      "evidence_hash": "b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580",
+      "closeout_scope": "INCLUSION_EXCLUSION_ONLY"
+    },
+    {
+      "gate_id": "S1-REVISION-WINNER",
+      "previous_status": "BLOCKED",
+      "new_status": "BLOCKED",
+      "previous_block_reason": "REVISION_WINNER_NOT_VERIFIED",
+      "new_block_reason": "REVISION_WINNER_NOT_VERIFIED",
+      "reviewer": "PENDING_PREREQUISITE_CLOSEOUT",
+      "reviewed_at": "PENDING_PREREQUISITE_CLOSEOUT",
+      "evidence_hash": "5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e",
+      "closeout_scope": "NO_CANONICAL_MUTATION_HARD_PREREQUISITE_BLOCKED"
+    }
+  ],
+  "mutation_accounting": {
+    "requested_target_gate_count": 3,
+    "eligible_target_gate_count": 2,
+    "blocked_target_gate_count": 1,
+    "target_gate_status_mutation_count": 2,
+    "target_gate_block_reason_mutation_count": 2,
+    "other_gate_status_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 0,
+    "revision_winner_status_mutation_count": 0,
+    "revision_winner_block_reason_mutation_count": 0,
+    "downstream_gate_acceptance_implied": false
+  },
+  "current_canonical_state_after_closeout": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 9,
+    "current_canonical_gate_blocked_count": 8,
+    "canonical_acceptance_status": "BLOCKED",
+    "source_authority_accepted": true,
+    "source_cohort_accepted": true,
+    "q2c_accepted": true,
+    "physical_meaning_accepted": true,
+    "unit_time_basis_accepted": true,
+    "canonical_grain_accepted": true,
+    "inclusion_exclusion_accepted": true,
+    "revision_winner_accepted": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false
+  },
+  "remaining_blocked_gates": [
+    "S1-VISIBILITY",
+    "S1-REVISION-WINNER",
+    "S1-MISSING-CORRECTION-CANCELLATION",
+    "S1-SPLIT-POLICY",
+    "S1-METRIC-CONTRACT",
+    "S1-DATA-CUSTODY",
+    "S1-HOLDOUT-FEASIBILITY",
+    "S1-INDEPENDENT-REVIEW"
+  ],
+  "non_target_reconciliation_boundary": {
+    "visibility_status_mutated": false,
+    "visibility_block_reason_mutated": false,
+    "visibility_current_block_reason_becomes_stale_after_grain_and_inclusion_closeout": true,
+    "visibility_current_block_reason": "UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED",
+    "visibility_true_remaining_work_is_narrow_pit_correction": true,
+    "visibility_reconciliation_deferred_to": "S1-REMAINING-04",
+    "missing_correction_cancellation_status_mutated": false,
+    "missing_correction_cancellation_block_reason_mutated": false,
+    "no_fourth_gate_semantic_mutation_performed": true
+  },
+  "revision_winner_reconciliation_correction": {
+    "formalization_evidence_reviewed_pass": true,
+    "canonical_closeout_eligible": false,
+    "previous_reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+    "correct_reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
+    "reason": "S1-MISSING-CORRECTION-CANCELLATION remains a declared hard prerequisite and is not accepted.",
+    "recommended_next_action": "CLOSE_S1_MISSING_CORRECTION_CANCELLATION_THEN_REEVALUATE_REVISION_WINNER_CLOSEOUT"
+  },
+  "validation": {
+    "review_id_binding": "PASS",
+    "reviewed_head_binding": "PASS",
+    "exact_head_ci_binding": "PASS",
+    "canonical_grain_evidence_hash_binding": "PASS",
+    "inclusion_exclusion_evidence_hash_binding": "PASS",
+    "revision_winner_evidence_hash_binding": "PASS",
+    "hard_prerequisite_fail_closed": "PASS",
+    "target_status_mutation_scope": "PASS",
+    "target_block_reason_mutation_scope": "PASS",
+    "no_forced_revision_winner_pass": "PASS",
+    "no_ready_or_merge": "PASS"
+  },
+  "data_safety": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_accessed": false,
+    "external_holdout_data_accessed": false,
+    "metric_execution_performed": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "production_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "model_changed": false
+  },
+  "authorization_boundary": {
+    "gate_local_closeout_authorized": true,
+    "canonical_grain_closeout_performed": true,
+    "inclusion_exclusion_closeout_performed": true,
+    "revision_winner_closeout_performed": false,
+    "revision_winner_closeout_blocked_by_hard_prerequisite": true,
+    "other_gate_mutation_authorized": false,
+    "ready_performed": false,
+    "merge_performed": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  }
+}
