@@ -135,7 +135,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-Q2C-TARGET, S1-SOURCE-COHORT, S1-CANONICAL-GRAIN, and S1-INCLUSION-EXCLUSION have not been accepted."
+      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-Q2C-TARGET, S1-CANONICAL-GRAIN, and S1-INCLUSION-EXCLUSION have not been accepted."
     },
     {
       "gate_id": "S1-REVISION-WINNER",
@@ -201,7 +201,7 @@
       "owner_role": "model_validation_owner_role",
       "authoritative_artifact": "split policy and custody record",
       "artifact_identity": "SPLIT_POLICY_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_SOURCE_COHORT",
+      "artifact_hash_or_status": "BLOCKED_SPLIT_POLICY_NOT_FROZEN",
       "metric_contract_version": "PENDING_S1_METRIC_CONTRACT_FREEZE",
       "acceptance_threshold_source": "split contract",
       "acceptance_threshold": "TIME_ORDERED_SPLITS_AND_NO_LEAKAGE",
