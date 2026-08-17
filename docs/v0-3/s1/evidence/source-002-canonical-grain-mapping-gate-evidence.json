@@ -1,0 +1,136 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_CANONICAL_GRAIN_MAPPING_GATE_EVIDENCE",
+  "artifact_version": "source-002-canonical-grain-mapping-gate-evidence-v1",
+  "artifact_status": "ISSUED_PENDING_INDEPENDENT_GATE_LOCAL_REVIEW",
+  "task_id": "S1_REMAINING_03_CANONICAL_GRAIN_INCLUSION_REVISION_CURRENT_MAIN_FORMALIZATION",
+  "task_class": "DOCS_ONLY_CURRENT_MAIN_GATE_LOCAL_FORMALIZATION",
+  "base_main_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
+  "audited_main_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
+  "gate_id": "S1-CANONICAL-GRAIN",
+  "canonical_runtime_status": "BLOCKED",
+  "canonical_block_reason": "GRAIN_OR_DATE_AUTHORITY_MISSING",
+  "accepted": false,
+  "authority_bindings": {
+    "source_authority": {
+      "path": "docs/v0-3/s1/evidence/source-authority-and-scope-business-owner-decision-record.json",
+      "decision_record_version": "source-authority-and-scope-business-owner-decision-v1",
+      "decision_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+      "accepted_on_current_main": true
+    },
+    "source_cohort": {
+      "path": "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
+      "manifest_version": "source-002-final-source-cohort-manifest-v1",
+      "cohort_id": "source-002-s1-cohort-v1",
+      "manifest_hash": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+      "accepted_on_current_main": true,
+      "acceptance_pr": 241,
+      "acceptance_review_id": 4948013727,
+      "acceptance_merge_sha": "5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b"
+    },
+    "q2c": {
+      "decision_path": "docs/v0-3/s1/evidence/source-002-q2c-final-decision.json",
+      "decision_hash": "c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18",
+      "accepted_on_current_main": true
+    },
+    "unit_time_basis": {
+      "path": "docs/v0-3/s1/evidence/source-002-unit-time-basis-attestation.json",
+      "version": "source-002-unit-time-basis-attestation-v1",
+      "hash": "d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee",
+      "accepted_on_current_main": true
+    },
+    "historical_task3_reviewed_authority": {
+      "path": "docs/v0-3/s1/evidence/source-002-cohort-grain-inclusion-revision-decision-record.json",
+      "decision_record_version": "source-002-cohort-grain-inclusion-revision-decision-v1",
+      "decision_record_sha256": "1d737e1a6e2ce3cfaebf1d3449af86a51572d58333cdc1cdfe397a570084f955",
+      "pr_number": 199,
+      "review_id": 4912786743,
+      "reviewed_head_sha": "32fe6ce50cdd090df8eaeb0d92008e5748f168c5",
+      "review_result": "PASS",
+      "merge_sha": "582c5518f120f5dc5719cf13899c3c65d94596b3"
+    }
+  },
+  "governed_facts": {
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "plot_supported": false,
+    "mapping_policy_version": "source-002-mapping-policy-v1",
+    "harvest_business_date_basis": "HARVEST_BUSINESS_DATE",
+    "farm_local_timezone": "Asia/Shanghai",
+    "source_identity": {
+      "source_system": "扫码称重系统",
+      "source_dataset": "田间商品果每日采摘净重汇总",
+      "source_version": "scan-weight-export:v0_3_s1:002",
+      "source_snapshot_reference": "snapshot:v0_3_s1:002",
+      "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+      "source_row_count": 233171,
+      "source_byte_count": 28668416,
+      "schema_version": "observed-source-schema-v1",
+      "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867"
+    },
+    "mapped_scope": {
+      "mapped_seasons": ["2025~2026"],
+      "farm_count": 84,
+      "subfarm_count": 192,
+      "variety_count": 20,
+      "mapped_canonical_group_count": 529,
+      "mapped_canonical_row_count": 233169,
+      "farms_array_sha256": "2daf09d38efb41bada5a1b493974c569e64b63abdd322e5ab4dacc206edb0381",
+      "subfarms_array_sha256": "921a56006d1a75f683c62c8a930e913fc39cabf2dcffec88b16549ed95945e13",
+      "varieties_array_sha256": "fe6274775796193318fa3ad504ba8cc4e2196b8c58dd8f795cec80cc22c26209",
+      "coverage_scope_identity_package_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+      "business_date_start": "2025-08-05",
+      "business_date_end": "2026-04-16"
+    },
+    "july_boundary": {
+      "unmapped_date": "2025-07-22",
+      "unmapped_row_count": 2,
+      "policy": "RETAIN_RAW_EXCLUDE_CANONICAL_COHORT_NO_SILENT_ASSIGNMENT",
+      "raw_rows_retained": true,
+      "canonical_s1_cohort_included": false,
+      "silent_season_assignment": false
+    }
+  },
+  "acceptance_threshold": "CANONICAL_GRAIN_AND_MAPPING_BOUND",
+  "gate_fact_threshold_satisfied": true,
+  "mapping_and_grain_structurally_compatible": true,
+  "new_business_input_required": false,
+  "independent_review_status": "NOT_STARTED",
+  "canonical_closeout_performed": false,
+  "recommended_next_action": "INDEPENDENTLY_REVIEW_CANONICAL_GRAIN_GATE_EVIDENCE_THEN_GATE_LOCAL_CLOSEOUT",
+  "recommended_action_class": "INDEPENDENT_REVIEW",
+  "validation": {
+    "json_syntax": "PASS",
+    "governed_grain_parity": "PASS",
+    "mapping_policy_parity": "PASS",
+    "source_cohort_manifest_parity": "PASS",
+    "unit_time_date_basis_parity": "PASS",
+    "july_boundary_parity": "PASS",
+    "evidence_hash_replay": "PASS"
+  },
+  "data_safety": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "metric_execution": false,
+    "backtest_executed": false,
+    "model_training_executed": false
+  },
+  "authorization_boundary": {
+    "current_main_formalization_authorized": true,
+    "canonical_gate_status_mutation_authorized": false,
+    "canonical_gate_acceptance_authorized": false,
+    "independent_review_performed": false,
+    "ready_performed": false,
+    "merge_performed": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "hash_contract": {
+    "hash_algorithm": "SHA-256",
+    "canonicalization": "UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE",
+    "hash_scope": "FULL_ARTIFACT_EXCLUDING_FIELD_evidence_sha256",
+    "evidence_sha256": "6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc"
+  }
+}
