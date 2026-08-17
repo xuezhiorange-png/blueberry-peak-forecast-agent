@@ -9,19 +9,19 @@
       "gate_class": "business",
       "required_or_conditional": "required",
       "owner_role": "business_data_owner_role",
-      "authoritative_artifact": "business source attestation",
-      "artifact_identity": "BUSINESS_ATTESTATION_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_EXTERNAL_ATTESTATION",
+      "authoritative_artifact": "Source002 Q2C business-source attestation and final Q2C decision",
+      "artifact_identity": "source-002-q2c-final-decision-v1",
+      "artifact_hash_or_status": "c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2C contract",
       "acceptance_threshold": "Q2C_OUTCOME_CLOSED",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "MISSING_BUSINESS_ATTESTATION",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Six Q2C dimensions remain unclosed."
+      "reviewer": "github-review-4948542090",
+      "reviewed_at": "2026-08-17T04:52:16Z",
+      "notes": "Business-source attestation source-002-q2c-business-source-attestation-v1 with hash 09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2 and Q2C final decision source-002-q2c-final-decision-v1 with hash c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18 were issued. TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY, FORECAST_TARGET=model_harvested_marketable_quantity_kg, ACTUAL_LABEL=actual_harvest_quantity_kg, Q2C_OUTCOME=PROVEN_EXACT, all six dimensions are PROVEN_EXACT, and no Q2C transformation is required. PR #243 exact-head independent review 4948542090 returned PASS on reviewed head 88082afb26c33a69e119a3c8b1ce2d215b815f54; exact-head CI 31995247463 completed success; PR #243 merge fa828e05ac5599ba2bce87e4260749210516376b entered current main. This closes S1-Q2C-TARGET only; Physical Meaning, Unit/Time Basis, and every other canonical gate remain separate."
     },
     {
       "gate_id": "S1-SOURCE-AUTHORITY",
@@ -135,7 +135,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-Q2C-TARGET, S1-CANONICAL-GRAIN, and S1-INCLUSION-EXCLUSION have not been accepted."
+      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-CANONICAL-GRAIN and S1-INCLUSION-EXCLUSION have not been accepted; S1-Q2C-TARGET is accepted separately."
     },
     {
       "gate_id": "S1-REVISION-WINNER",

@@ -7,21 +7,22 @@ CONTRACT_ID=V0_3_S1_TARGET_AND_QUANTITY_CONTRACT
 Q2C_AUTHORITY=docs/forecast-quality/q2c-physical-target-equivalence-contract.md
 Q2C_AUTHORITY_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
 CURRENT_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
-CURRENT_TARGET_DECISION_REVIEW_STATUS=PENDING_INDEPENDENT_REVIEW
-Q2C_DECISION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+CURRENT_TARGET_DECISION_REVIEW_STATUS=ACCEPTED
+Q2C_DECISION_STATUS=ACCEPTED
 CURRENT_Q2C_OUTCOME=PROVEN_EXACT
-CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
+CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=ACCEPTED
 CURRENT_FORECAST_TARGET=model_harvested_marketable_quantity_kg
 CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
 TARGET_TRANSFORMATION=NONE
 TRANSFORMATION_REQUIRED=false
-Q2C_ACCEPTED=false
+Q2C_ACCEPTED=true
+CANONICAL_Q2C_GATE_STATUS=PASS
 PROPOSED_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
 ```
 
-This document fixes the decision procedure and mirrors the issued current Q2C
-decision. It does not independently accept the decision or close the
-canonical Q2C gate.
+This document fixes the decision procedure and mirrors the accepted current
+Q2C decision. It does not accept Physical Meaning, Unit/Time Basis, or any
+other canonical gate.
 
 ## Existing forecast vocabulary
 
@@ -87,8 +88,9 @@ selects `OBSERVED_FARM_PICK_QUANTITY`, binds
 `model_harvested_marketable_quantity_kg` to the governed recorded-label
 boundary, and records `Q2C_OUTCOME=PROVEN_EXACT`.
 `effective_marketable_quantity_kg` is not the selected Q2C target.
-Independent review and canonical Q2C acceptance remain pending, so
-`Q2C_ACCEPTED=false` and the canonical Q2C gate remains `BLOCKED`.
+That pre-issuance state is superseded by the current PR #243 closeout: the
+Q2C target is accepted, while the separate Physical Meaning and Unit/Time
+Basis gates remain blocked pending their own gate-local closeouts.
 
 ## Q2C six-dimensional decision matrix
 
@@ -98,12 +100,12 @@ not evidence of closure.
 
 | Dimension | Required closure | Current status | Blocking condition |
 | --- | --- | --- | --- |
-| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
-| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
-| Marketability boundary | Explicit all-picked versus marketable definition | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
-| Sorting boundary | Field, packhouse, and rejected-fruit rules | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
-| Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
-| Time and grain | Farm-local business date and canonical grain | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `ACCEPTED` | No remaining Q2C dimension blocker; Physical Meaning remains a separate gate-local closeout. |
+| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `ACCEPTED` | No remaining Q2C dimension blocker; Unit/Time Basis remains a separate gate-local closeout. |
+| Marketability boundary | Explicit all-picked versus marketable definition | `ACCEPTED` | No remaining Q2C dimension blocker; other canonical gates remain separate. |
+| Sorting boundary | Field, packhouse, and rejected-fruit rules | `ACCEPTED` | No remaining Q2C dimension blocker; other canonical gates remain separate. |
+| Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `ACCEPTED` | No remaining Q2C dimension blocker; other canonical gates remain separate. |
+| Time and grain | Farm-local business date and canonical grain | `ACCEPTED` | No remaining Q2C dimension blocker; Unit/Time Basis and Canonical Grain remain separate gate-local closeouts. |
 
 The canonical evaluation grain is fixed by the accepted Q2A/I7 and Q2C design:
 
@@ -129,7 +131,9 @@ BLOCKED_BY_TRANSFORMATION_AUTHORITY
 BLOCKED_BY_GRAIN_OR_DATE_MISMATCH
 ```
 
-The currently issued-but-not-accepted state is:
+### Historical pre-acceptance Q2C state
+
+The following block is retained as historical pre-acceptance provenance:
 
 ```text
 CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
@@ -142,6 +146,22 @@ CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
 TARGET_TRANSFORMATION=NONE
 TRANSFORMATION_REQUIRED=false
 Q2C_ACCEPTED=false
+```
+
+The current accepted Q2C state is:
+
+```text
+CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=ACCEPTED
+CURRENT_Q2C_OUTCOME=PROVEN_EXACT
+Q2C_DECISION_STATUS=ACCEPTED
+CURRENT_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
+CURRENT_TARGET_DECISION_REVIEW_STATUS=ACCEPTED
+CURRENT_FORECAST_TARGET=model_harvested_marketable_quantity_kg
+CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
+TARGET_TRANSFORMATION=NONE
+TRANSFORMATION_REQUIRED=false
+Q2C_ACCEPTED=true
+CANONICAL_Q2C_GATE_STATUS=PASS
 ```
 
 The outcome must be recomputed from the accepted evidence package. It must not
@@ -229,6 +249,6 @@ V0_3_RECORDED_LABEL_PROFILE_REQUIRES_PRE_WEIGH_RECONSTRUCTION=false
 FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 ```
 
-Until independent review and canonical acceptance are complete,
-`Q2C_ACCEPTED=false` and the canonical Q2C gate remains `BLOCKED`; issuance
-does not imply the next step.
+The Q2C target is now accepted at its gate-local boundary. Physical Meaning,
+Unit/Time Basis, Canonical Grain, and every other remaining gate require their
+own closeout; acceptance of this target does not imply the next step.
