@@ -34,8 +34,8 @@ data, credentials, private locators, or fabricated business facts.
 | Data custody status | BLOCKED | C1-C6 business/governance answers are recorded; formal custody roles, policies and binding hash remain absent. |
 | Coverage and quality thresholds | ACCEPTED | `S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` are canonical PASS from independently reviewed versioned owner decisions; this accepts the threshold policies only and does not accept `S1-METRIC-CONTRACT` or imply data execution. |
 | Holdout feasibility | NOT_EVALUATED | No evidence permits a feasible, not-feasible, or not-applicable conclusion. |
-| Physical Meaning attestation | ACCEPTED | `source-002-physical-meaning-attestation-v1` with hash `1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944` was independently reviewed PASS as `github-review-4949133128` on PR #245 and entered current main via merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72`; this closes the Physical Meaning gate only. |
-| Unit/Time Basis attestation | ACCEPTED | `source-002-unit-time-basis-attestation-v1` with hash `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee` was independently reviewed PASS as `github-review-4949133128` on PR #245 and entered current main via merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72`; this closes the Unit/Time Basis gate only. |
+| Physical Meaning attestation | ACCEPTED | `source-002-physical-meaning-attestation-v1` with hash `1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944` was independently reviewed PASS as `github-review-4949133128` on PR #245 and entered current main via merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72`; PR #245 supplies the reviewed attestation/evidence, while PR #246 performs the separate canonical Physical Meaning row closeout. |
+| Unit/Time Basis attestation | ACCEPTED | `source-002-unit-time-basis-attestation-v1` with hash `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee` was independently reviewed PASS as `github-review-4949133128` on PR #245 and entered current main via merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72`; PR #245 supplies the reviewed attestation/evidence, while PR #246 performs the separate canonical Unit/Time Basis row closeout. |
 | S1 acceptance record | BLOCKED | Seven required gates are PASS and ten remain blocked; overall S1 acceptance and final independent review remain incomplete. |
 
 Each record is a status record rather than a substitute for missing external
@@ -54,10 +54,10 @@ FORMAL_ACCEPTANCE_ISSUED=false
 
 The later Source 002 and Q2C workpapers update the factual evidence layer,
 including the V0.3 recorded-business-label boundary. PR #243 closes the Q2C
-target gate, and PR #245 subsequently closes the Physical Meaning and Unit/Time
-Basis gates through their own independent review and canonical closeout. The
-overall S1 package remains blocked by the other canonical gates and final S1
-independent review.
+target gate; PR #245 independently reviews and merges the Physical Meaning and
+Unit/Time Basis attestations, and PR #246 performs their separate canonical row
+closeout. The overall S1 package remains blocked by the other canonical gates
+and final S1 independent review.
 
 ## Current authorization state
 
@@ -101,9 +101,10 @@ independent review.
 No record in this package authorizes S1 implementation, S2, TEST access,
 external-holdout access, Ready transition, merge, tag, or release. Historical
 Q2C issuance alone did not imply acceptance; current main now records Q2C as
-separately accepted. The Physical Meaning and Unit/Time Basis attestations are
-now separately accepted through PR #245 independent review and canonical
-closeout; this does not imply acceptance of any other canonical gate.
+separately accepted. PR #245 independently reviewed and merged the Physical
+Meaning and Unit/Time Basis attestations, and PR #246 separately records their
+canonical rows as accepted; this does not imply acceptance of any other
+canonical gate.
 
 ## Governing references
 

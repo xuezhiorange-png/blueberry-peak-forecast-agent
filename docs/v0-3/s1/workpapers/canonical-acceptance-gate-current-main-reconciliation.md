@@ -26,8 +26,9 @@ PR #238 issued and independently accepted the final Source Owner Attestation;
 PR #241 issued and independently accepted the final Source Cohort Manifest,
 and PR #243 issued and independently accepted the Q2C target decision. PR #245
 then issued, independently reviewed, and merged the Physical Meaning and
-Unit/Time Basis closeout, which this reconciliation records as the seventh
-passing gate. It does not accept S1,
+Unit/Time Basis attestations; PR #246 performs the separate canonical row
+closeout, which this reconciliation records as the seventh passing gate. It
+does not accept S1,
 authorize S2, or read Source 002 raw rows. The current
 main artifact wins over historical PR descriptions when they differ; PR
 history is used only as provenance for already merged implementation work.
@@ -40,8 +41,12 @@ CURRENT_CANONICAL_GATE_PASS_COUNT=7
 CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
 FACT_LAYER_COMPLETE=true
 FORMAL_ATTESTATIONS_ISSUED=true
-INDEPENDENT_GATE_LOCAL_REVIEW_PENDING=true
-CANONICAL_GATE_ACCEPTANCE_PENDING=true
+INDEPENDENT_GATE_LOCAL_REVIEW_PENDING=false
+CANONICAL_GATE_ACCEPTANCE_PENDING=false
+PHYSICAL_UNIT_TIME_INDEPENDENT_GATE_LOCAL_REVIEW_COMPLETE=true
+PHYSICAL_UNIT_TIME_CANONICAL_GATE_ACCEPTANCE_COMPLETE=true
+REMAINING_CANONICAL_GATE_CLOSEOUTS_PENDING=true
+OVERALL_S1_ACCEPTANCE_PENDING=true
 PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
@@ -57,11 +62,17 @@ V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
 ```
 
-The four reconciliation classes are independent of runtime status:
+The two false pending values above are target-scope values for Physical
+Meaning and Unit/Time Basis. Ten other canonical gates remain `BLOCKED`;
+overall S1 remains `BLOCKED`, and final S1 independent review remains
+`NOT_STARTED`.
+
+The five reconciliation classes are independent of runtime status:
 
 | Class | Meaning in this workpaper |
 | --- | --- |
 | `FORMALIZATION_OR_REVIEW_READY` | Evidence is substantially present; the remaining step is a formal artifact/review boundary. |
+| `CANONICALLY_ACCEPTED` | The required artifact/authority and independent review are complete and the canonical gate-local acceptance row is PASS/NONE. |
 | `NARROW_CORRECTION_REQUIRED` | A bounded repository implementation/provenance/reconciliation gap remains; no new business fact is being invented. |
 | `EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED` | A source owner, business owner, governance owner, or validation-policy authority must provide or approve a value/decision not derivable from current main. |
 | `UPSTREAM_DEPENDENCY_BLOCKED` | The rule is known, but a prerequisite gate/artifact must close first. |
@@ -128,8 +139,9 @@ The current main contains meaningful evidence beyond the initial registry:
   this closeout for the data-quality gate only.
 - PR #243's issued business-source attestation and final Q2C decision are
   independently reviewed and merged; Q2C is accepted only at its own
-  canonical gate. PR #245 separately closes Physical Meaning and Unit/Time
-  Basis; no downstream gate is implied.
+  canonical gate. PR #245 supplies the independently reviewed and merged
+  Physical Meaning and Unit/Time Basis evidence; PR #246 separately records
+  their canonical PASS/NONE closeout. No downstream gate is implied.
 
 ## 3. Current-main evidence sources reviewed
 
@@ -182,8 +194,8 @@ actual-label lifecycle, custody, and PIT workpapers under
 | `S1-Q2C-TARGET` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued business-source attestation and Q2C decision bind `OBSERVED_FARM_PICK_QUANTITY`, `PROVEN_EXACT`, six exact dimensions, and no transformation; PR #243 review and CI passed before merge. | None for Q2C; Physical Meaning and Unit/Time Basis remain separate gate-local closeouts. | None | None | Preserve Physical Meaning, Unit/Time Basis, and downstream gate blockers. |
 | `S1-SOURCE-AUTHORITY` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final Source Owner Attestation, owner role, effective time, completeness binding, and attestation hash are present; PR #238 exact-head review `4946622009` and CI `31955752008` passed before merge `d3828041f15d9bba0b201429250a2041bcf63c2f`. | None for Source Authority; Source Cohort is separately accepted by PR #241, while Q2C and other gates remain separate. | None | None | Preserve Q2C and downstream gate blockers. |
 | `S1-SOURCE-COHORT` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final manifest `source-002-final-source-cohort-manifest-v1` binds cohort `source-002-s1-cohort-v1`, hash `27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca`, 84 farms, 192 subfarms, 20 varieties, business dates `2025-08-05..2026-04-16`, 233171 rows, and 28668416 bytes; PR #241 review `4948013727` and CI `31986614521` passed before merge `5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b`. | None for Source Cohort; S1 freezes identity only and S2 owns the final materialized rowset. | None | None | Preserve canonical-grain, inclusion/exclusion, visibility, custody, split, Q2C, and other gate blockers. |
-| `S1-PHYSICAL-MEANING` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued Physical Meaning Attestation binds the scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics; PR #245 exact-head review and CI passed before merge. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Preserve the accepted physical boundary while downstream gates remain blocked. |
-| `S1-UNIT-AND-TIME-BASIS` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued Unit/Time Basis Attestation binds KG, Asia/Shanghai, local-day rule, business-date rule, and grain context; PR #245 exact-head review and CI passed before merge. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Preserve the accepted unit/time basis while downstream gates remain blocked. |
+| `S1-PHYSICAL-MEANING` | `PASS` | `CANONICALLY_ACCEPTED` | Issued Physical Meaning Attestation binds the scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics; PR #245 exact-head review and CI passed before merge, and PR #246 records the canonical row as PASS/NONE. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Preserve the accepted physical boundary while downstream gates remain blocked. |
+| `S1-UNIT-AND-TIME-BASIS` | `PASS` | `CANONICALLY_ACCEPTED` | Issued Unit/Time Basis Attestation binds KG, Asia/Shanghai, local-day rule, business-date rule, and grain context; PR #245 exact-head review and CI passed before merge, and PR #246 records the canonical row as PASS/NONE. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Preserve the accepted unit/time basis while downstream gates remain blocked. |
 | `S1-CANONICAL-GRAIN` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Canonical grain and aggregate scope support are present; the separate canonical-grain/mapping gate remains unaccepted. | Accepted mapping applicability and canonical-grain review are required before grain can be frozen. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Formalize grain after source authority and mapping review. |
 | `S1-VISIBILITY` | `BLOCKED` | `NARROW_CORRECTION_REQUIRED` | Current PIT evidence is 4/17/0/1; PR #189/#190/#192/#194 controls are represented. | Four current gaps remain: planning provenance, Analytics taxonomy, Analytics source cutoff, and Task9 mixed authority. | `S1-SOURCE-AUTHORITY`; `S1-Q2C-TARGET`; `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION` | None | Close the four PIT source-class and mixed-authority gaps. |
 | `S1-REVISION-WINNER` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Q2A/I7 rules and IDFL mode semantics are defined; IDFL label-side winner is not required. | Source-specific disposition and applicability are not frozen or independently reviewed. | `S1-SOURCE-AUTHORITY`; `S1-MISSING-CORRECTION-CANCELLATION` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Reconcile the source-specific winner disposition after source/cohort freeze. |
@@ -205,8 +217,8 @@ following cross-cutting findings explain the important status corrections:
 1. `S1-PHYSICAL-MEANING` and `S1-UNIT-AND-TIME-BASIS` are closed only within
    their authorized gate-local scope. Current main contains the reconciled fact
    layer, both formal attestations, PR #245 exact-head review `4949133128`, and
-   successful exact-head CI `32002755230`; the two target statuses are now
-   `PASS` with block reasons `NONE`. No downstream gate is implied.
+   successful exact-head CI `32002755230`; PR #246 records the two target rows
+   as `PASS` with block reasons `NONE`. No downstream gate is implied.
 2. `S1-DATA-QUALITY-THRESHOLDS` is closed only at the policy-governance layer:
    the accepted versioned policy is not a data execution result. `S1-DATA-CUSTODY`
    has a versioned custody record issued for review. It is
@@ -303,13 +315,11 @@ Mutual membership in these groups does not create a hard-prerequisite cycle.
 These are not accepted gates; they are the shortest queue for artifacts whose
 current facts are substantially present:
 
-- Preserve the accepted physical-meaning attestation and gate-local closeout;
-  no downstream gate acceptance is implied.
-- Preserve the accepted unit/time attestation and gate-local closeout; no
-  downstream gate acceptance is implied.
+- Preserve the PR #246 Physical Meaning and Unit/Time canonical closeout; no
+  new formalization or downstream task is authorized here.
 - Submit the issued custody record and its hashes for independent review.
-- Preserve the accepted Q2C target binding while formalizing the separate
-  physical-meaning and unit/time gate artifacts.
+- Preserve the accepted Q2C target binding while keeping the separate
+  physical-meaning and unit/time canonical closeout bounded to its two rows.
 
 ## 8. Narrow correction queue
 
@@ -358,10 +368,9 @@ cannot be used to self-attest this workpaper.
    dependencies: none) — obtain the owner
    attestation and resolve applicability, completeness, scope, date, and
    inclusion authority.
-2. **Physical/unit/time formalization** (`S1-REMAINING-02`, dependency:
-   `S1-REMAINING-01`) — submit the issued separate physical-meaning and
-   unit/time artifacts for independent gate-local review; the Q2C target is
-   already accepted.
+2. **Physical/unit/time canonical closeout** (`S1-REMAINING-02`, dependency:
+   `S1-REMAINING-01`) — completed by PR #246; preserve the two `PASS/NONE`
+   target rows and do not infer any downstream authorization.
 3. **Source cohort, canonical grain, inclusion, and revision artifacts**
    (`S1-REMAINING-03`, dependencies: `S1-REMAINING-01`,
    `S1-REMAINING-02`) — freeze the accepted source universe and source-specific lifecycle
@@ -477,7 +486,8 @@ RECONCILED_GATE_COUNT=17
 UNIQUE_GATE_ID_COUNT=17
 MISSING_GATE_COUNT=0
 DUPLICATE_GATE_COUNT=0
-FORMALIZATION_OR_REVIEW_READY_COUNT=8
+FORMALIZATION_OR_REVIEW_READY_COUNT=6
+CANONICALLY_ACCEPTED_COUNT=2
 NARROW_CORRECTION_REQUIRED_COUNT=1
 EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=2
 UPSTREAM_DEPENDENCY_BLOCKED_COUNT=6

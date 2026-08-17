@@ -22,9 +22,9 @@ PROPOSED_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
 
 This document fixes the decision procedure and mirrors the accepted current
 Q2C decision. The Q2C decision itself did not accept Physical Meaning or
-Unit/Time Basis; those gates are now separately accepted through their own
-attestations, independent review, and canonical closeout. No other canonical
-gate is implied accepted.
+Unit/Time Basis; PR #245 independently reviewed and merged their attestations,
+and PR #246 records their separate canonical closeout. No other canonical gate
+is implied accepted.
 
 ## Existing forecast vocabulary
 
@@ -90,10 +90,11 @@ selects `OBSERVED_FARM_PICK_QUANTITY`, binds
 `model_harvested_marketable_quantity_kg` to the governed recorded-label
 boundary, and records `Q2C_OUTCOME=PROVEN_EXACT`.
 `effective_marketable_quantity_kg` is not the selected Q2C target.
-That pre-issuance state is superseded by the current PR #243 and PR #245
-closeouts: the Q2C target is accepted, Physical Meaning and Unit/Time Basis are
-now separately canonical PASS, and Canonical Grain remains separate and
-BLOCKED.
+That pre-issuance state is superseded by the current PR #243 Q2C canonical
+closeout, PR #245 attestation review/merge, and PR #246 Physical Meaning and
+Unit/Time Basis canonical closeout: the Q2C target is accepted, the two
+physical/unit-time rows are canonical PASS, and Canonical Grain remains
+separate and BLOCKED.
 
 ## Q2C six-dimensional decision matrix
 
@@ -252,7 +253,8 @@ V0_3_RECORDED_LABEL_PROFILE_REQUIRES_PRE_WEIGH_RECONSTRUCTION=false
 FORECAST_SIDE_TARGET_BINDING_CHANGED=false
 ```
 
-The Q2C target is now accepted at its gate-local boundary. Physical Meaning and
-Unit/Time Basis are separately canonical PASS through PR #245; Canonical Grain
-and every other remaining gate require their own closeout. Acceptance of any
-one target or gate does not imply the next step.
+The Q2C target is now accepted at its gate-local boundary. PR #245 provides the
+reviewed and merged Physical Meaning and Unit/Time Basis evidence, while PR
+#246 records those two rows as canonical PASS; Canonical Grain and every other
+remaining gate require their own closeout. Acceptance of any one target or gate
+does not imply the next step.

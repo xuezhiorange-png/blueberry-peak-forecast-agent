@@ -10,8 +10,12 @@
   "current_canonical_gate_blocked_count": 10,
   "fact_layer_complete": true,
   "formal_attestations_issued": true,
-  "independent_gate_local_review_pending": true,
-  "canonical_gate_acceptance_pending": true,
+  "independent_gate_local_review_pending": false,
+  "canonical_gate_acceptance_pending": false,
+  "physical_unit_time_independent_gate_local_review_complete": true,
+  "physical_unit_time_canonical_gate_acceptance_complete": true,
+  "remaining_canonical_gate_closeouts_pending": true,
+  "overall_s1_acceptance_pending": true,
   "physical_meaning_attestation_status": "ACCEPTED",
   "physical_meaning_attestation_version": "source-002-physical-meaning-attestation-v1",
   "physical_meaning_attestation_hash": "1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944",
@@ -55,7 +59,8 @@
   "current_main_artifact_wins": true,
   "historical_pr_history_is_provenance_only": true,
   "gate_class_counts": {
-    "FORMALIZATION_OR_REVIEW_READY": 8,
+    "FORMALIZATION_OR_REVIEW_READY": 6,
+    "CANONICALLY_ACCEPTED": 2,
     "NARROW_CORRECTION_REQUIRED": 1,
     "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 2,
     "UPSTREAM_DEPENDENCY_BLOCKED": 6
@@ -262,13 +267,13 @@
       "supporting_evidence_facts": [
         "The issued Physical Meaning Attestation binds the first valid governed field scan-weigh event at the field harvest point and recorded marketable net weight in KG.",
         "Field non-marketable fruit is excluded before the recorded target; packhouse sorting, rejection, return, and pre-weigh reconstruction do not retroactively change it.",
-        "The event and marketability threshold is satisfied; PR #245 independent gate-local review 4949133128 returned PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8, exact-head CI 32002755230 completed success, and merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered current main."
+        "The event and marketability threshold is satisfied; PR #245 independent gate-local review 4949133128 returned PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8, exact-head CI 32002755230 completed success, and merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed evidence on current main. PR #246 records the separate canonical row closeout as PASS/NONE."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
       "reconciliation_class": "CANONICALLY_ACCEPTED",
-      "reconciliation_reason": "The formal Physical Meaning Attestation was independently reviewed PASS on PR #245 exact head and the reviewed merge is present on current main; this gate is closed without changing any other gate.",
+      "reconciliation_reason": "PR #245 independently reviewed the formal Physical Meaning Attestation PASS and its reviewed merge is present on current main; PR #246 records the separate canonical row closeout as PASS/NONE without changing any other gate.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
@@ -305,13 +310,13 @@
       "supporting_evidence_facts": [
         "The issued Unit/Time Basis Attestation binds KG, farm-local HARVEST_BUSINESS_DATE, FARM_LOCAL_CALENDAR_DAY, and Asia/Shanghai.",
         "The source quantity representation is recorded as 0.001 kg with three decimal places; this is not being promoted to device metrology.",
-        "PR #245 independent gate-local review 4949133128 returned PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8, exact-head CI 32002755230 completed success, and merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered current main. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai are bound; Canonical Grain and Inclusion/Exclusion remain separate blockers."
+        "PR #245 independent gate-local review 4949133128 returned PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8, exact-head CI 32002755230 completed success, and merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed evidence on current main. PR #246 records the separate canonical row closeout as PASS/NONE. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai are bound; Canonical Grain and Inclusion/Exclusion remain separate blockers."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
       "reconciliation_class": "CANONICALLY_ACCEPTED",
-      "reconciliation_reason": "The formal Unit/Time Basis Attestation was independently reviewed PASS on PR #245 exact head and the reviewed merge is present on current main; this gate is closed without accepting Canonical Grain or Inclusion/Exclusion.",
+      "reconciliation_reason": "PR #245 independently reviewed the formal Unit/Time Basis Attestation PASS and its reviewed merge is present on current main; PR #246 records the separate canonical row closeout as PASS/NONE without accepting Canonical Grain or Inclusion/Exclusion.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,

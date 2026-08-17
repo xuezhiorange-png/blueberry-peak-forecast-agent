@@ -119,10 +119,10 @@ The six-dimensional Q2C business evidence package is accepted on current main
 with `Q2C_OUTCOME=PROVEN_EXACT`. The six dimensions are physical event,
 quantity basis, marketability boundary, sorting boundary, post-harvest
 boundary, and time/grain. PR #243 exact-head independent review passed and the
-S1-Q2C-TARGET gate is `PASS`. PR #245 then independently reviewed and merged
-the Physical Meaning and Unit/Time Basis closeout, so those two gate-local
-statuses are now `PASS`; the other canonical gates remain separate and
-blocked.
+S1-Q2C-TARGET gate is `PASS`. PR #245 independently reviewed and merged the
+Physical Meaning and Unit/Time Basis attestations; PR #246 is the separate
+canonical closeout that records those two gate rows as `PASS/NONE`; the other
+canonical gates remain separate and blocked.
 
 The following requirements are future acceptance requirements:
 
