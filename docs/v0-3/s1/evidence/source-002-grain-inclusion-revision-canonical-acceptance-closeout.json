@@ -26,6 +26,21 @@
     "exact_head_ci_status": "completed",
     "exact_head_ci_conclusion": "success"
   },
+  "correction_r1_provenance": {
+    "task_id": "PR248_CLOSEOUT_CURRENT_STATE_CORRECTION_R1",
+    "previous_head_sha": "db331ae7e657727480490446ff01cc926b6aae3b",
+    "review_id": 4951863615,
+    "review_result": "FAIL",
+    "blocking_finding_count": 1,
+    "blocker": "AUTHORITATIVE_VISIBILITY_BLOCK_REASON_KNOWN_STALE_AFTER_CLOSEOUT",
+    "scope": "CURRENT_STATE_VISIBILITY_BLOCK_REASON_ONLY",
+    "visibility_status_remains_blocked": true,
+    "visibility_acceptance_performed": false,
+    "s1_remaining_04_performed": false,
+    "ready_performed": false,
+    "merge_performed": false,
+    "no_step_implies_the_next": true
+  },
   "reviewed_evidence": {
     "canonical_grain": {
       "path": "docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json",
@@ -97,13 +112,23 @@
     }
   ],
   "mutation_accounting": {
+    "scope": "PR248_CLOSEOUT_PLUS_R1_CURRENT_STATE_CORRECTION",
     "requested_target_gate_count": 3,
     "eligible_target_gate_count": 2,
     "blocked_target_gate_count": 1,
     "target_gate_status_mutation_count": 2,
     "target_gate_block_reason_mutation_count": 2,
     "other_gate_status_mutation_count": 0,
-    "other_gate_block_reason_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 1,
+    "pr_level_target_gate_status_mutation_count": 2,
+    "pr_level_target_gate_block_reason_mutation_count": 2,
+    "pr_level_non_target_gate_status_mutation_count": 0,
+    "pr_level_non_target_gate_block_reason_mutation_count": 1,
+    "r1_canonical_gate_status_mutation_count": 0,
+    "r1_visibility_block_reason_correction_count": 1,
+    "r1_revision_winner_status_mutation_count": 0,
+    "r1_revision_winner_block_reason_mutation_count": 0,
+    "r1_other_gate_status_mutation_count": 0,
     "revision_winner_status_mutation_count": 0,
     "revision_winner_block_reason_mutation_count": 0,
     "downstream_gate_acceptance_implied": false
@@ -137,13 +162,19 @@
   ],
   "non_target_reconciliation_boundary": {
     "visibility_status_mutated": false,
-    "visibility_block_reason_mutated": false,
-    "visibility_current_block_reason_becomes_stale_after_grain_and_inclusion_closeout": true,
-    "visibility_current_block_reason": "UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED",
+    "visibility_block_reason_mutated": true,
+    "r1_visibility_block_reason_correction_count": 1,
+    "visibility_current_block_reason_becomes_stale_after_grain_and_inclusion_closeout": false,
+    "visibility_previous_block_reason": "UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED",
+    "visibility_current_block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+    "visibility_status": "BLOCKED",
+    "visibility_accepted": false,
+    "visibility_next_task": "S1-REMAINING-04",
     "visibility_true_remaining_work_is_narrow_pit_correction": true,
     "visibility_reconciliation_deferred_to": "S1-REMAINING-04",
     "missing_correction_cancellation_status_mutated": false,
     "missing_correction_cancellation_block_reason_mutated": false,
+    "no_fourth_gate_status_acceptance_performed": true,
     "no_fourth_gate_semantic_mutation_performed": true
   },
   "revision_winner_reconciliation_correction": {
@@ -164,6 +195,9 @@
     "hard_prerequisite_fail_closed": "PASS",
     "target_status_mutation_scope": "PASS",
     "target_block_reason_mutation_scope": "PASS",
+    "r1_visibility_block_reason_correction": "PASS",
+    "r1_visibility_status_preserved": "PASS",
+    "r1_visibility_acceptance_not_performed": "PASS",
     "no_forced_revision_winner_pass": "PASS",
     "no_ready_or_merge": "PASS"
   },
@@ -189,6 +223,8 @@
     "revision_winner_closeout_performed": false,
     "revision_winner_closeout_blocked_by_hard_prerequisite": true,
     "other_gate_mutation_authorized": false,
+    "r1_visibility_block_reason_correction_authorized": true,
+    "r1_visibility_acceptance_performed": false,
     "ready_performed": false,
     "merge_performed": false,
     "v0_3_s1_accepted": false,
