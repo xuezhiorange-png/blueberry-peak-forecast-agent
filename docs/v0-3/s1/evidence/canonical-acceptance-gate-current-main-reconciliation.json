@@ -2,12 +2,12 @@
   "artifact_id": "V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION",
   "artifact_version": "canonical-s1-gate-reconciliation-v2",
   "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION",
-  "audited_repository_sha": "5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b",
+  "audited_repository_sha": "fa828e05ac5599ba2bce87e4260749210516376b",
   "canonical_gate_count": 17,
   "canonical_completion_rule": "ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS",
   "canonical_acceptance_status": "BLOCKED",
-  "current_canonical_gate_pass_count": 4,
-  "current_canonical_gate_blocked_count": 13,
+  "current_canonical_gate_pass_count": 5,
+  "current_canonical_gate_blocked_count": 12,
   "canonical_acceptance_status_mutation_allowed": true,
   "s1_acceptance_issuance_allowed": false,
   "reconciled_gate_count": 17,
@@ -41,9 +41,9 @@
   "current_main_artifact_wins": true,
   "historical_pr_history_is_provenance_only": true,
   "gate_class_counts": {
-    "FORMALIZATION_OR_REVIEW_READY": 7,
+    "FORMALIZATION_OR_REVIEW_READY": 8,
     "NARROW_CORRECTION_REQUIRED": 1,
-    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 3,
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 2,
     "UPSTREAM_DEPENDENCY_BLOCKED": 6
   },
   "dependency_semantics": {
@@ -110,47 +110,43 @@
   "gates": [
     {
       "gate_id": "S1-Q2C-TARGET",
-      "canonical_runtime_status": "BLOCKED",
-      "canonical_block_reason": "MISSING_BUSINESS_ATTESTATION",
+      "canonical_runtime_status": "PASS",
+      "canonical_block_reason": "NONE",
       "gate_class": "business",
       "owner_role": "business_data_owner_role",
-      "authoritative_artifact": "business source attestation and Q2C decision record",
+      "authoritative_artifact": "Source002 Q2C business-source attestation and final Q2C decision",
       "acceptance_threshold_source": "Q2C contract",
       "acceptance_threshold": "Q2C_OUTCOME_CLOSED",
       "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-q2c-business-source-attestation.json",
+        "docs/v0-3/s1/evidence/source-002-q2c-final-decision.json",
+        "docs/v0-3/s1/evidence/source-002-q2c-business-attestation-and-decision-issuance.json",
         "docs/v0-3/s1/evidence/q2c-physical-alignment-evidence-status.md",
-        "docs/v0-3/s1/workpapers/q2c-target-decision-draft.md",
-        "docs/v0-3/s1/workpapers/source-measurement-and-finalization-rules-draft.md",
         "docs/v0-3/s1/target-decision-and-quantity-contract.md",
         "docs/forecast-quality/q2c-physical-target-equivalence-contract.md"
       ],
       "supporting_evidence_facts": [
-        "Business physical facts are present: valid field scan-weigh harvest event, recorded marketable net weight, KG, Asia/Shanghai, and canonical grain.",
-        "The recorded-label correction does not select a forecast-side target and does not issue Q2C acceptance.",
-        "Q2C decision status remains NOT_ISSUED and formal attestation is missing."
+        "Business owner confirmation, business-source attestation source-002-q2c-business-source-attestation-v1, and attestation hash 09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2 are issued and bound.",
+        "Q2C final decision source-002-q2c-final-decision-v1 with hash c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18 selects OBSERVED_FARM_PICK_QUANTITY, binds model_harvested_marketable_quantity_kg to actual_harvest_quantity_kg, records Q2C_OUTCOME=PROVEN_EXACT, closes all six dimensions as PROVEN_EXACT, and requires no transformation.",
+        "PR #243 exact-head independent review 4948542090 returned PASS on reviewed head 88082afb26c33a69e119a3c8b1ce2d215b815f54; exact-head CI 31995247463 completed success; PR #243 merge fa828e05ac5599ba2bce87e4260749210516376b is present on current main."
       ],
-      "missing_authoritative_artifacts": [
-        "Versioned business-source attestation bound to the source object",
-        "Q2C decision record and decision hash"
-      ],
-      "missing_decisions_or_authorities": [
-        "Business owner confirmation of the closed physical target equivalence outcome"
-      ],
+      "missing_authoritative_artifacts": [],
+      "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
-      "reconciliation_reason": "The factual layer is populated, but the formal source attestation and the closed Q2C outcome are owner decisions that current repository evidence cannot issue.",
-      "requires_new_business_input": true,
-      "requires_source_owner_authority": true,
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "The issued Q2C attestation and decision, exact-head independent review, successful exact-head CI, and PR #243 merge are present on current main; the Q2C target gate can be recorded PASS without accepting any co-bound gate.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
-      "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-PHYSICAL-MEANING", "S1-UNIT-AND-TIME-BASIS"],
-      "can_be_formalized_without_new_business_fact": false,
-      "can_be_closed_by_current_task": false,
-      "recommended_next_action": "OBTAIN_AND_FORMALIZE_Q2C_BUSINESS_SOURCE_ATTESTATION_AND_TARGET_DECISION",
-      "recommended_action_class": "BUSINESS_DECISION"
+      "requires_docs_formalization": false,
+      "requires_independent_review": false,
+      "hard_prerequisite_gate_ids": [],
+      "co_resolution_gate_ids": [],
+      "can_be_formalized_without_new_business_fact": true,
+      "can_be_closed_by_current_task": true,
+      "recommended_next_action": "PRESERVE_PHYSICAL_MEANING_UNIT_TIME_AND_OTHER_GATES_AS_SEPARATE_CANONICAL_CLOSEOUTS",
+      "recommended_action_class": "Q2C_CANONICAL_ACCEPTANCE"
     },
     {
       "gate_id": "S1-SOURCE-AUTHORITY",
@@ -851,12 +847,12 @@
     {
       "order": 2,
       "task_id": "S1-REMAINING-02",
-      "task": "Q2C_PHYSICAL_UNIT_TIME_FORMALIZATION",
-      "objective": "Turn the already reconciled physical, recorded-label, unit, time, and grain facts into the formal source attestation/Q2C decision package after source authority is available.",
-      "advances_gate_ids": ["S1-Q2C-TARGET", "S1-PHYSICAL-MEANING", "S1-UNIT-AND-TIME-BASIS"],
+      "task": "PHYSICAL_UNIT_TIME_FORMALIZATION",
+      "objective": "Turn the already reconciled physical, recorded-label, unit, time, and grain facts into the separate Physical Meaning and Unit/Time Basis gate artifacts; the Q2C target is already accepted.",
+      "advances_gate_ids": ["S1-PHYSICAL-MEANING", "S1-UNIT-AND-TIME-BASIS"],
       "dependencies": ["S1-REMAINING-01"],
       "action_class": "BUSINESS_DECISION",
-      "why_ordered_here": "Q2C and physical/time authority must be closed before downstream target, split, metric, and holdout artifacts can bind to a stable label.",
+      "why_ordered_here": "The Q2C target is closed; separate physical/time authority must still be formally bound before downstream split, metric, and holdout artifacts can close.",
       "no_forecast_side_target_substitution": true
     },
     {

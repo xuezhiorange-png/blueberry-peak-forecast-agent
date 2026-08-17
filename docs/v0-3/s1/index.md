@@ -34,6 +34,8 @@ authorize data access or implementation.
 | `evidence/source-002-q2c-final-decision.json` | Issued Q2C six-dimension decision record. |
 | `evidence/source-002-q2c-business-attestation-and-decision-issuance.json` | Q2C issuance provenance, validation, and state evidence. |
 | `workpapers/source-002-q2c-business-attestation-and-decision-issuance.md` | Q2C issuance workpaper and six-dimension reconciliation. |
+| `evidence/source-002-q2c-canonical-acceptance-closeout.json` | Canonical S1-Q2C-TARGET closeout evidence. |
+| `workpapers/source-002-q2c-canonical-acceptance-closeout.md` | Q2C gate-local closeout workpaper and current-state reconciliation. |
 
 ## Authority precedence
 
@@ -62,10 +64,10 @@ CURRENT_V0_3_S1_COMPLETE=false
 CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
 V0_3_S1_ACCEPTED=false
 CURRENT_S1_TARGET_DECISION=OBSERVED_FARM_PICK_QUANTITY
-CURRENT_S1_TARGET_DECISION_REVIEW_STATUS=PENDING_INDEPENDENT_REVIEW
-CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW
+CURRENT_S1_TARGET_DECISION_REVIEW_STATUS=ACCEPTED
+CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=ACCEPTED
 CURRENT_Q2C_OUTCOME=PROVEN_EXACT
-Q2C_DECISION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+Q2C_DECISION_STATUS=ACCEPTED
 CURRENT_FORECAST_TARGET=model_harvested_marketable_quantity_kg
 CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg
 TARGET_TRANSFORMATION=NONE
@@ -75,9 +77,10 @@ CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
 CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
-Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=4
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+Q2C_ACCEPTED=true
+CANONICAL_Q2C_GATE_STATUS=PASS
+CURRENT_CANONICAL_GATE_PASS_COUNT=5
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
 CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
 CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
 CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
@@ -98,12 +101,12 @@ CURRENT_V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
 ```
 
-The six-dimensional Q2C business evidence package is issued on current main
+The six-dimensional Q2C business evidence package is accepted on current main
 with `Q2C_OUTCOME=PROVEN_EXACT`. The six dimensions are physical event,
 quantity basis, marketability boundary, sorting boundary, post-harvest
-boundary, and time/grain. Independent review and canonical Q2C acceptance are
-still pending, so `Q2C_ACCEPTED=false` and the S1-Q2C-TARGET gate remains
-`BLOCKED`.
+boundary, and time/grain. PR #243 exact-head independent review passed and the
+S1-Q2C-TARGET gate is `PASS`; Physical Meaning, Unit/Time Basis, and all other
+canonical gates remain separate.
 
 The following requirements are future acceptance requirements:
 
@@ -189,7 +192,7 @@ NO_STEP_IMPLIES_THE_NEXT=true
 This is the historical post-PR238, pre-PR241 snapshot and is retained as
 provenance only; it is not the current Source Cohort state.
 
-## Current post-PR241 Source Cohort closeout mirror
+## Historical post-PR241 Source Cohort closeout mirror
 
 ```text
 POST_PR241_CURRENT_MAIN_REVALIDATION=PASS
