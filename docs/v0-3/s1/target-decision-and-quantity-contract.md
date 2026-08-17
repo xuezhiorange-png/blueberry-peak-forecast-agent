@@ -78,10 +78,17 @@ LABEL_ELIGIBILITY` means that a field is not required for this label
 eligibility decision; it does not assert `FALSE`, `ZERO`, or that the process
 or device detail does not exist.
 
-This boundary correction does not select a forecast-side target, prove exact
-equivalence to `effective_marketable_quantity_kg` or
-`model_harvested_marketable_quantity_kg`, issue Q2C acceptance, or change the
-canonical gate status.
+### Historical pre-issuance boundary-correction note
+
+The earlier recorded-label boundary correction by itself did not select a
+forecast-side target or prove exact Q2C equivalence. That statement is retained
+as historical provenance. The subsequently issued Q2C decision in PR #243
+selects `OBSERVED_FARM_PICK_QUANTITY`, binds
+`model_harvested_marketable_quantity_kg` to the governed recorded-label
+boundary, and records `Q2C_OUTCOME=PROVEN_EXACT`.
+`effective_marketable_quantity_kg` is not the selected Q2C target.
+Independent review and canonical Q2C acceptance remain pending, so
+`Q2C_ACCEPTED=false` and the canonical Q2C gate remains `BLOCKED`.
 
 ## Q2C six-dimensional decision matrix
 
@@ -91,12 +98,12 @@ not evidence of closure.
 
 | Dimension | Required closure | Current status | Blocking condition |
 | --- | --- | --- | --- |
-| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `BLOCKED` | Formal source attestation and independent review are not supplied. |
-| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `BLOCKED` | Formal source attestation and target decision are not issued. |
-| Marketability boundary | Explicit all-picked versus marketable definition | `BLOCKED` | Business boundary and rejection rule not supplied. |
-| Sorting boundary | Field, packhouse, and rejected-fruit rules | `BLOCKED` | Sorting stages and exclusions not supplied. |
-| Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `BLOCKED` | Formal source attestation, coverage and governance are not supplied; pre-weigh reconstruction is not a label-eligibility prerequisite. |
-| Time and grain | Farm-local business date and canonical grain | `BLOCKED` | Source time authority, mapping, and cohort evidence not supplied. |
+| Physical event | V0.3 `HARVEST` business event measured by a governed valid field scan/weigh record | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Quantity basis | V0.3 `RECORDED_MARKETABLE_NET_WEIGHT` in `KG` | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Marketability boundary | Explicit all-picked versus marketable definition | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Sorting boundary | Field, packhouse, and rejected-fruit rules | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Post-harvest boundary | Recorded-label profile treats pre-record upstream history as part of the recorded label; no retroactive factory adjustment | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
+| Time and grain | Farm-local business date and canonical grain | `PROVEN_EXACT_PENDING_INDEPENDENT_REVIEW` | Independent review and canonical Q2C acceptance remain pending; no six-dimension evidence-layer blocker remains in the issued Q2C decision. |
 
 The canonical evaluation grain is fixed by the accepted Q2A/I7 and Q2C design:
 
