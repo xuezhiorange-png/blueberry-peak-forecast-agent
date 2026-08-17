@@ -15,11 +15,11 @@ CURRENT_CANONICAL_GATE_PASS_COUNT=7
 CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
 ```
 
-This closeout is limited to the two authorized canonical rows. It records the
-PR #245 exact-head independent review, successful exact-head CI, and merged
-current-main commit for the already-issued Physical Meaning and Unit/Time
-Basis attestations. It does not constitute overall S1 acceptance and does not
-authorize any downstream gate or V0.3-S2.
+This closeout is limited to the two authorized canonical rows. PR #245
+independently reviewed and merged the already-issued Physical Meaning and
+Unit/Time Basis attestations; PR #246 performs the separate canonical row
+closeout using that reviewed evidence. It does not constitute overall S1
+acceptance and does not authorize any downstream gate or V0.3-S2.
 
 ## PR245 review and merge binding
 
@@ -41,11 +41,15 @@ PR245_EXACT_HEAD_CI_RUN_NUMBER=1308
 PR245_EXACT_HEAD_CI_STATUS=completed
 PR245_EXACT_HEAD_CI_CONCLUSION=success
 PR245_MERGED=true
+PR245_REVIEWED_EVIDENCE_ROLE=true
+PR245_CANONICAL_CLOSEOUT_ROLE=false
+PR246_CANONICAL_CLOSEOUT_ROLE=true
 ```
 
 The reviewed head is the PR #245 head and the merge SHA is the audited
-current-main SHA. The independent review closed the two gate-local evidence
-packages; it did not perform the final independent S1 review.
+current-main SHA. The independent review completed the two gate-local evidence
+packages; PR #246 records their canonical rows as PASS/NONE. It did not perform
+the final independent S1 review.
 
 ## Authorized gate transitions
 
@@ -102,15 +106,65 @@ Canonical Grain remains false. `V0_3_S1_COMPLETE=false` and
 ## Stale current-state reconciliation
 
 The closeout reconciles 15 stale pre-closeout current-state literals across the
-authorized current-state mirrors. All 15 were resolved to the PR245-reviewed
-and merged current state. Historical pre-closeout snapshots remain only where
-their sections are explicitly identified as historical provenance.
+authorized current-state mirrors. All 15 original stale pre-closeout literals
+were reconciled by this PR246 canonical closeout using the independently
+reviewed and merged PR245 evidence. Historical pre-closeout snapshots remain
+only where their sections are explicitly identified as historical provenance.
 
 ```text
 CURRENT_STATE_STALE_LITERAL_FOUND=15
 CURRENT_STATE_STALE_LITERAL_RESOLVED=15
 CURRENT_STATE_STALE_LITERAL_REMAINING=0
 HISTORICAL_PRE_CLOSEOUT_TEXT_PRESERVED_ONLY_WHEN_EXPLICITLY_HISTORICAL=true
+```
+
+## R1 review correction
+
+```text
+CORRECTION_R1_TASK_ID=PR246_PHYSICAL_UNIT_TIME_CANONICAL_CLOSEOUT_CURRENT_STATE_CORRECTION_R1
+CORRECTION_R1_PREVIOUS_HEAD=3e356222f905cfa62efbe6f485aef53078493bff
+R1_P2_FOUND=3
+R1_P2_RESOLVED=3
+R1_P2_REMAINING=0
+R1_P2_01=PR245_CANONICAL_CLOSEOUT_PROVENANCE_MISATTRIBUTION
+R1_P2_02=RECONCILIATION_WORKPAPER_CLASS_NOT_CANONICALLY_ACCEPTED
+R1_P2_03=PHYSICAL_UNIT_TIME_PENDING_FLAGS_NOT_SCOPE_RECONCILED
+R1_PR245_CLOSEOUT_MISATTRIBUTION_REMAINING=0
+R1_CANONICAL_GATE_STATUS_MUTATION_COUNT=0
+R1_CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=0
+R1_ATTESTATION_HASH_MUTATION_COUNT=0
+R1_Q2C_DECISION_MUTATION_COUNT=0
+R1_OTHER_GATE_SEMANTIC_MUTATION_COUNT=0
+R1_PR245_REVIEWED_EVIDENCE_ROLE=true
+R1_PR245_CANONICAL_CLOSEOUT_ROLE=false
+R1_PR246_CANONICAL_CLOSEOUT_ROLE=true
+R1_TARGET_RECONCILIATION_CLASS=CANONICALLY_ACCEPTED
+PHYSICAL_MEANING_RECONCILIATION_CLASS=CANONICALLY_ACCEPTED
+UNIT_TIME_BASIS_RECONCILIATION_CLASS=CANONICALLY_ACCEPTED
+R1_TARGET_INDEPENDENT_GATE_LOCAL_REVIEW_COMPLETE=true
+R1_TARGET_CANONICAL_GATE_ACCEPTANCE_COMPLETE=true
+R1_REMAINING_CANONICAL_GATE_CLOSEOUTS_PENDING=true
+R1_OVERALL_S1_ACCEPTANCE_PENDING=true
+PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
+UNIT_TIME_BASIS_ATTESTATION_HASH=d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee
+PHYSICAL_MEANING_ATTESTATION_HASH_UNCHANGED=true
+UNIT_TIME_BASIS_ATTESTATION_HASH_UNCHANGED=true
+PHYSICAL_MEANING_GATE_STATUS=PASS
+PHYSICAL_MEANING_GATE_BLOCK_REASON=NONE
+UNIT_TIME_GATE_STATUS=PASS
+UNIT_TIME_GATE_BLOCK_REASON=NONE
+PR_LEVEL_TARGET_GATE_STATUS_MUTATION_COUNT=2
+PR_LEVEL_TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=2
+PR_LEVEL_OTHER_GATE_STATUS_MUTATION_COUNT=0
+PR_LEVEL_OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+CANONICAL_GRAIN_ACCEPTED=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+CURRENT_STATE_STALE_LITERAL_FOUND=15
+CURRENT_STATE_STALE_LITERAL_RESOLVED=15
+CURRENT_STATE_STALE_LITERAL_REMAINING=0
 ```
 
 ## Validation evidence
@@ -131,6 +185,9 @@ PR245_EXACT_HEAD_CI_BINDING=PASS
 PR245_MERGE_BINDING=PASS
 CURRENT_STATE_STALE_LITERAL_SCAN=PASS
 PROTECTED_ATTESTATION_HASHES_UNCHANGED=PASS
+R1_PROVENANCE_ROLE_RECONCILIATION=PASS
+R1_RECONCILIATION_CLASS_PARITY=PASS
+R1_TARGET_FLAG_SCOPE_RECONCILIATION=PASS
 DATA_SAFETY_BOUNDARY=PASS
 GIT_DIFF_CHECK=PASS
 ```
