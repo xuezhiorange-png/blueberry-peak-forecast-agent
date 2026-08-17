@@ -66,9 +66,9 @@
       "gate_class": "business",
       "required_or_conditional": "required",
       "owner_role": "business_data_owner_role",
-      "authoritative_artifact": "physical measurement attestation",
-      "artifact_identity": "PHYSICAL_MEANING_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_MEASUREMENT_EVIDENCE",
+      "authoritative_artifact": "Source002 Physical Meaning Attestation",
+      "artifact_identity": "source-002-physical-meaning-attestation-v1",
+      "artifact_hash_or_status": "1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2C physical dimensions",
       "acceptance_threshold": "EVENT_AND_MARKETABILITY_BOUNDARY_EVIDENCED",
@@ -78,16 +78,16 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Farm-pick versus marketability remains unresolved."
+      "notes": "Formal Source002 Physical Meaning Attestation source-002-physical-meaning-attestation-v1 is issued pending independent review; event and marketability threshold facts are evidenced and Q2C is already accepted. Independent gate-local review has not occurred, so the canonical Physical Meaning gate remains BLOCKED with MISSING_MEASUREMENT_BOUNDARY; this issuance does not accept the gate."
     },
     {
       "gate_id": "S1-UNIT-AND-TIME-BASIS",
       "gate_class": "business",
       "required_or_conditional": "required",
       "owner_role": "business_data_owner_role",
-      "authoritative_artifact": "physical and time attestation",
-      "artifact_identity": "UNIT_TIME_BASIS_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_UNIT_TIME_EVIDENCE",
+      "authoritative_artifact": "Source002 Unit/Time Basis Attestation",
+      "artifact_identity": "source-002-unit-time-basis-attestation-v1",
+      "artifact_hash_or_status": "d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2C physical and time dimensions",
       "acceptance_threshold": "KG_AND_FARM_LOCAL_DATE_BOUND",
@@ -97,7 +97,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "No unit or timezone is inferred."
+      "notes": "Formal Source002 Unit/Time Basis Attestation source-002-unit-time-basis-attestation-v1 is issued pending independent review; KG and farm-local HARVEST_BUSINESS_DATE in Asia/Shanghai are bound. Independent gate-local review has not occurred, so the canonical Unit/Time Basis gate remains BLOCKED with UNIT_OR_TIME_AUTHORITY_MISSING; Canonical Grain remains separate and unaccepted."
     },
     {
       "gate_id": "S1-CANONICAL-GRAIN",
@@ -333,7 +333,7 @@
     "reviewer": "PENDING_INDEPENDENT_REVIEW",
     "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
     "review_result": "NOT_STARTED",
-    "review_notes": "Independent review has not started. Four canonical gates are PASS and thirteen remain BLOCKED; overall S1 independent review has not started."
+    "review_notes": "Independent review has not started. Five canonical gates are PASS and twelve remain BLOCKED; overall S1 independent review has not started. Physical Meaning and Unit/Time Basis attestations are issued pending their separate gate-local review and remain unaccepted."
   },
   "derived_status": {
     "all_required_gates_pass": false,

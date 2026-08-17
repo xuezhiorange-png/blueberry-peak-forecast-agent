@@ -1,0 +1,112 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_PHYSICAL_MEANING_ATTESTATION",
+  "artifact_version": "source-002-physical-meaning-attestation-v1",
+  "artifact_status": "ISSUED_PENDING_INDEPENDENT_REVIEW",
+  "task_id": "S1_REMAINING_02_PHYSICAL_UNIT_TIME_FORMALIZATION",
+  "base_main_sha": "e0ffc184aaca32fda196fdd2f39a7dfa00376a56",
+  "authority_role": "business_data_owner_role",
+  "authority_confirmation_at": "2026-08-17T11:53:00+08:00",
+  "source_identity": {
+    "source_system": "扫码称重系统",
+    "source_dataset": "田间商品果每日采摘净重汇总",
+    "source_version": "scan-weight-export:v0_3_s1:002",
+    "source_snapshot_reference": "snapshot:v0_3_s1:002",
+    "schema_version": "observed-source-schema-v1",
+    "schema_hash": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867"
+  },
+  "source_authority_binding": {
+    "accepted": true,
+    "attestation_version": "source-002-final-source-owner-attestation-v1",
+    "attestation_hash": "2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1",
+    "artifact_path": "docs/v0-3/s1/evidence/source-002-final-source-owner-attestation.json",
+    "git_blob_sha": "e860141a79e5bb2c18cde1b95d2daf8de20787e8"
+  },
+  "source_cohort_binding": {
+    "accepted": true,
+    "manifest_version": "source-002-final-source-cohort-manifest-v1",
+    "cohort_id": "source-002-s1-cohort-v1",
+    "manifest_hash": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+    "artifact_path": "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
+    "git_blob_sha": "b54f3ff0334df2f48a2f039b5d3958cb2b6735b7"
+  },
+  "q2c_binding": {
+    "accepted": true,
+    "business_source_attestation_version": "source-002-q2c-business-source-attestation-v1",
+    "business_source_attestation_hash": "09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2",
+    "business_source_attestation_path": "docs/v0-3/s1/evidence/source-002-q2c-business-source-attestation.json",
+    "business_source_attestation_git_blob_sha": "45d56a78e362646874931d9ff472e72bfd74890b",
+    "decision_version": "source-002-q2c-final-decision-v1",
+    "decision_hash": "c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18",
+    "decision_path": "docs/v0-3/s1/evidence/source-002-q2c-final-decision.json",
+    "decision_git_blob_sha": "8b726e6e83d344c1239af1a301d771e028920df1",
+    "target_decision": "OBSERVED_FARM_PICK_QUANTITY",
+    "forecast_target": "model_harvested_marketable_quantity_kg",
+    "actual_label": "actual_harvest_quantity_kg",
+    "outcome": "PROVEN_EXACT",
+    "dimension_count": 6,
+    "proven_exact_dimension_count": 6,
+    "unresolved_dimension_count": 0
+  },
+  "business_owner_confirmation": {
+    "role": "business_data_owner_role",
+    "confirmed_at": "2026-08-17T11:53:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "source": "source-002-q2c-final-decision-v1",
+    "physical_event_statement": "V0.3 target physical event is the first valid governed scan-weigh event at the field harvest point.",
+    "quantity_statement": "Target quantity is field marketable-fruit net weight in KG.",
+    "marketability_statement": "Field non-marketable fruit is excluded.",
+    "sorting_statement": "Factory/packhouse downstream sorting, rejection and return do not retroactively change the field target.",
+    "pre_scan_reconstruction_statement": "Pre-scan transport, storage or theoretical loss is not reconstructed into a different target.",
+    "time_statement": "Time basis is farm-local HARVEST_BUSINESS_DATE in Asia/Shanghai.",
+    "grain_context_statement": "Canonical grain context is SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE.",
+    "plot_supported": false
+  },
+  "physical_meaning": {
+    "business_event": "HARVEST",
+    "physical_event": "田间采收点首次有效扫码称重",
+    "measurement_event": "VALID_FIELD_SCAN_WEIGH_RECORD",
+    "measurement_boundary": "RECORDED_VALID_FIELD_SCAN_WEIGH",
+    "weighing_point": "田间采收点",
+    "quantity_basis": "RECORDED_MARKETABLE_NET_WEIGHT",
+    "quantity_business_meaning": "商品果净重",
+    "quantity_unit": "KG",
+    "recorded_net_weight_is_business_truth": true,
+    "marketability_boundary": "FIELD_MARKETABLE_FRUIT_ONLY",
+    "field_non_marketable_fruit_excluded": true,
+    "field_sorting_rule": "FIELD_NON_MARKETABLE_FRUIT_EXCLUDED_BEFORE_RECORDED_TARGET",
+    "packhouse_sorting_retroactive_adjustment": false,
+    "factory_rejection_retroactive_adjustment": false,
+    "factory_return_retroactive_adjustment": false,
+    "post_harvest_retroactive_adjustment": false,
+    "pre_measurement_weight_reconstruction_required": false,
+    "pre_weigh_transport_reconstruction_required": false,
+    "pre_weigh_storage_reconstruction_required": false,
+    "pre_weigh_theoretical_loss_reconstruction_required": false,
+    "tare_already_deducted": true,
+    "tare_deduction_method": "NOT_PROVIDED",
+    "tare_method_required_for_v0_3_recorded_label_eligibility": false,
+    "scale_device_precision_required_for_v0_3_recorded_label_eligibility": false,
+    "scale_calibration_authority_required_for_v0_3_recorded_label_eligibility": false
+  },
+  "threshold": {
+    "physical_meaning_acceptance_threshold": "EVENT_AND_MARKETABILITY_BOUNDARY_EVIDENCED",
+    "event_boundary_evidenced": true,
+    "marketability_boundary_evidenced": true,
+    "physical_meaning_threshold_satisfied": true
+  },
+  "canonical_gate_state": {
+    "gate_id": "S1-PHYSICAL-MEANING",
+    "canonical_gate_status": "BLOCKED",
+    "canonical_gate_block_reason": "MISSING_MEASUREMENT_BOUNDARY",
+    "canonical_gate_status_changed": false,
+    "canonical_gate_block_reason_changed": false,
+    "independent_review_status": "NOT_STARTED",
+    "physical_meaning_accepted": false
+  },
+  "hash_contract": {
+    "algorithm": "SHA-256",
+    "canonicalization": "UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE",
+    "scope": "FULL_PHYSICAL_MEANING_ATTESTATION_OBJECT_EXCLUDING_ONLY_attestation_record_sha256"
+  },
+  "attestation_record_sha256": "1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944"
+}
