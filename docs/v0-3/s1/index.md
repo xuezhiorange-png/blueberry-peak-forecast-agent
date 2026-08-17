@@ -61,12 +61,15 @@ CURRENT_S1_TARGET_DECISION=UNRESOLVED_PENDING_INDEPENDENT_REVIEW
 CURRENT_Q2C_PHYSICAL_ALIGNMENT_STATUS=BLOCKED
 PROPOSED_TARGET_DECISION=NOT_PROPOSED
 CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
-CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
+CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
-SOURCE_COHORT_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=3
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
+CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
 CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
 CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
 CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
@@ -105,10 +108,11 @@ No requirement above authorizes its own implementation. The execution order is
 
 ## Missing external inputs
 
-Source Authority is accepted on current main from the merged final Source Owner
-Attestation and exact-head independent acceptance. S1 remains blocked because
-downstream gates still require the evidence listed below. This list is a contract
-of remaining evidence, not a claim that any value exists.
+Source Authority and Source Cohort are accepted on current main from the merged
+final Source Owner Attestation and the merged, independently reviewed final
+Source Cohort Manifest. S1 remains blocked because downstream gates still
+require the evidence listed below. This list is a contract of remaining
+evidence, not a claim that any value exists.
 
 - source system, dataset, and immutable source version;
 - physical event, weighing point, measurement method, unit, and calibration
@@ -120,8 +124,7 @@ of remaining evidence, not a claim that any value exists.
 - canonical grain and mapping evidence for farm, subfarm, variety, season, and
   business date;
 - coverage, exclusions, missing-day policy, and cohort summary;
-- immutable object identity, schema/mapping hashes, manifest hash, and custody
-  record;
+- immutable object identity, schema/mapping hashes, and custody record;
 - split and external-holdout feasibility evidence.
 
 No row-level data is requested or read by this package.
@@ -151,7 +154,7 @@ The final S1 decision must be recorded in the acceptance schema with a
 separate independent reviewer. Until then, `CURRENT_V0_3_S1_ACCEPTANCE_STATUS`
 remains `BLOCKED`.
 
-## Current Source Authority closeout mirror
+## Historical post-PR238 Source Authority closeout mirror
 
 ```text
 POST_PR238_CURRENT_MAIN_REVALIDATION=PASS
@@ -167,5 +170,37 @@ V0_3_S2_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
-The Source Authority gate closeout is not Source Cohort acceptance and does not
-authorize data access, Remaining-06, or V0.3-S2.
+This is the historical post-PR238, pre-PR241 snapshot and is retained as
+provenance only; it is not the current Source Cohort state.
+
+## Current post-PR241 Source Cohort closeout mirror
+
+```text
+POST_PR241_CURRENT_MAIN_REVALIDATION=PASS
+PR241_MERGED=true
+PR241_HEAD_SHA=b856d3823e51bb6e4f8b780363203a1c477677ca
+PR241_MERGE_SHA=5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b
+SOURCE_COHORT_INDEPENDENT_REVIEW_ID=4948013727
+SOURCE_COHORT_INDEPENDENT_REVIEW_GRAPHQL_ID=PRR_kwDOS_gTTs8AAAABJuyynw
+SOURCE_COHORT_REVIEWED_AT=2026-08-17T02:25:52Z
+SOURCE_COHORT_EXACT_HEAD_CI_RUN_ID=31986614521
+SOURCE_COHORT_EXACT_HEAD_CI_CONCLUSION=success
+SOURCE_COHORT_ID=source-002-s1-cohort-v1
+SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=true
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+S1_FREEZES_SOURCE_COHORT_IDENTITY=true
+S1_FREEZES_FINAL_CLEAN_ROWSET=false
+S2_OWNS_FINAL_MATERIALIZED_ROWSET=true
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The Source Cohort closeout is gate-local. It freezes the Source Cohort identity
+and manifest only; it does not accept Q2C, canonical grain, inclusion/exclusion,
+visibility, revision, custody, split, holdout, overall S1, or V0.3-S2.

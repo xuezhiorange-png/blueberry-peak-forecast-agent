@@ -9,29 +9,32 @@ fixture, or file name is not sufficient.
 
 ```text
 CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
-CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
-CURRENT_SOURCE_MANIFEST_STATUS=BLOCKED
+CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
+CURRENT_SOURCE_MANIFEST_STATUS=ACCEPTED
 CURRENT_SOURCE_OWNER_ROLE=农场数据负责人
 CURRENT_SOURCE_SYSTEM=扫码称重系统
 CURRENT_SOURCE_DATASET=田间商品果每日采摘净重汇总
 CURRENT_SOURCE_VERSION=scan-weight-export:v0_3_s1:002
 CURRENT_SOURCE_SNAPSHOT_REFERENCE=snapshot:v0_3_s1:002
-CURRENT_SOURCE_COHORT_ID=NOT_ISSUED
+CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
+CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
 CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
 CURRENT_SOURCE_ATTESTATION_EFFECTIVE_AT=2026-08-16T21:42:00+08:00
 CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
 CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
-SOURCE_COHORT_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=3
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
 ```
 
 The current source-authority fields above are bound to the merged final Source
-Owner Attestation. The cohort and manifest fields remain explicit absence states:
-they are not placeholders for approval and cannot be used as cohort acceptance
-evidence.
+Owner Attestation. The cohort and manifest fields are bound to the merged,
+schema-valid final Source Cohort Manifest and its independently reviewed hash.
+This freezes the Source Cohort identity only; it does not freeze or materialize
+the final clean rowset owned by S2.
 
 The source-authority contract is source-class and label-mode aware. The
 accepted IDFL_V1 mode changes only the actual-label representation rules; it
@@ -45,7 +48,7 @@ DESIGN_STATUS=ACCEPTED_DESIGN_NOT_IMPLEMENTED
 CURRENT_SOURCE_IDFL_V1_ELIGIBILITY=false
 CURRENT_SOURCE_IDFL_V1_ELIGIBILITY_STATUS=BLOCKED_PENDING_SOURCE_SPECIFIC_GATES
 SOURCE_AUTHORITY_ACCEPTED=true
-SOURCE_COHORT_ACCEPTED=false
+SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=false
 ```
 
@@ -498,16 +501,19 @@ hashes and policy identities may be retained in Git.
 
 ```text
 CURRENT_SOURCE_AUTHORITY_BINDING_STATUS=ACCEPTED
-CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
+CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
 CURRENT_SOURCE_ATTESTATION_STATUS=ATTESTED
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 CURRENT_SOURCE_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
 CURRENT_SOURCE_ATTESTATION_EFFECTIVE_AT=2026-08-16T21:42:00+08:00
 CURRENT_SOURCE_ATTESTATION_HASH=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
-SOURCE_COHORT_ACCEPTED=false
+CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
+CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
+SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=3
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
 S1_ACCEPTANCE_REQUIRES_ATTESTATION_STATUS_ATTESTED=true
 S1_ACCEPTANCE_REQUIRES_IMMUTABLE_SOURCE_VERSION=true
 S1_ACCEPTANCE_REQUIRES_SCHEMA_VERSION=true
@@ -522,8 +528,9 @@ S1_ACCEPTANCE_REQUIRES_CUSTODY_RECORD=true
 
 This document does not itself issue a source-specific or cohort-specific
 acceptance result. The current canonical acceptance record now records Source
-Authority acceptance from the merged PR #238 final-attestation closeout; this
-contract still does not accept Source Cohort or Q2C. It may carry
+Authority acceptance from the merged PR #238 final-attestation closeout and
+Source Cohort acceptance from the merged PR #241 final-manifest closeout; this
+contract still does not accept Q2C. It may carry
 `IDFL_V1_SOURCE_AUTHORITY_MODE_SEMANTICS_ACCEPTED=true` because that is
 mode-contract semantic acceptance, not source or cohort acceptance.
 
@@ -553,7 +560,7 @@ V0_3_S1_ACCEPTED=false
 V0_3_S2_AUTHORIZED=false
 ```
 
-## Post-PR238 Source Authority current-main mirror
+## Historical post-PR238 pre-PR241 Source Authority mirror
 
 ```text
 POST_PR238_CURRENT_MAIN_REVALIDATION=PASS
@@ -569,5 +576,40 @@ Q2C_ACCEPTED=false
 S1_ACCEPTED=false
 ```
 
-The closeout is gate-local and preserves the separate cohort-manifest, Q2C, and
-remaining S1 acceptance boundaries.
+This is a historical snapshot from after PR #238 and before PR #241; it is
+preserved as provenance and is not the current Source Cohort state.
+
+## Post-PR241 current-main Source Cohort mirror
+
+```text
+POST_PR241_CURRENT_MAIN_REVALIDATION=PASS
+PR241_MERGED=true
+PR241_HEAD_SHA=b856d3823e51bb6e4f8b780363203a1c477677ca
+PR241_MERGE_COMMIT_SHA=5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b
+SOURCE_COHORT_INDEPENDENT_REVIEW_ID=4948013727
+SOURCE_COHORT_INDEPENDENT_REVIEW_GRAPHQL_ID=PRR_kwDOS_gTTs8AAAABJuyynw
+SOURCE_COHORT_REVIEWED_AT=2026-08-17T02:25:52Z
+SOURCE_COHORT_EXACT_HEAD_CI_RUN_ID=31986614521
+SOURCE_COHORT_EXACT_HEAD_CI_CONCLUSION=success
+CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
+CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
+CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
+CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
+CURRENT_SOURCE_MANIFEST_STATUS=ACCEPTED
+SOURCE_COHORT_ACCEPTED=true
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+S1_FREEZES_SOURCE_COHORT_IDENTITY=true
+S1_FREEZES_FINAL_CLEAN_ROWSET=false
+S2_OWNS_FINAL_MATERIALIZED_ROWSET=true
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The PR #241 closeout is gate-local: it accepts Source Cohort identity and
+manifest evidence only. It does not accept Q2C, canonical grain,
+inclusion/exclusion, visibility, revision, custody, split, holdout, or overall
+S1 acceptance.
