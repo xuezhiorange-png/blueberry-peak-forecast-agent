@@ -9,7 +9,7 @@ data, credentials, private locators, or fabricated business facts.
     EVIDENCE_PACKAGE_ID=V0_3_S1_BUSINESS_ACCEPTANCE_EVIDENCE_PACKAGE
     EVIDENCE_PACKAGE_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
     EVIDENCE_BASELINE_MAIN_SHA=99b98e6cd2fced364fe3b9db816e562bae9f8771
-    CURRENT_MAIN_SHA=e0ffc184aaca32fda196fdd2f39a7dfa00376a56
+    CURRENT_MAIN_SHA=1ee6da741fe13e163b53c26b2a6705ac8eb28a72
     EVIDENCE_SCOPE=NON_ROW_LEVEL_BUSINESS_ACCEPTANCE_METADATA_ONLY
     REAL_BUSINESS_ROW_LEVEL_DATA_READ=false
     REAL_BUSINESS_ROW_LEVEL_DATA_IMPORTED=false
@@ -34,9 +34,9 @@ data, credentials, private locators, or fabricated business facts.
 | Data custody status | BLOCKED | C1-C6 business/governance answers are recorded; formal custody roles, policies and binding hash remain absent. |
 | Coverage and quality thresholds | ACCEPTED | `S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` are canonical PASS from independently reviewed versioned owner decisions; this accepts the threshold policies only and does not accept `S1-METRIC-CONTRACT` or imply data execution. |
 | Holdout feasibility | NOT_EVALUATED | No evidence permits a feasible, not-feasible, or not-applicable conclusion. |
-| Physical Meaning attestation | ISSUED_PENDING_INDEPENDENT_REVIEW | `source-002-physical-meaning-attestation-v1` is issued with hash `1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944`; its canonical gate remains BLOCKED pending independent gate-local review. |
-| Unit/Time Basis attestation | ISSUED_PENDING_INDEPENDENT_REVIEW | `source-002-unit-time-basis-attestation-v1` is issued with hash `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee`; its canonical gate remains BLOCKED pending independent gate-local review. |
-| S1 acceptance record | BLOCKED | Five required gates are PASS and twelve remain blocked; overall S1 acceptance and independent review remain incomplete. |
+| Physical Meaning attestation | ACCEPTED | `source-002-physical-meaning-attestation-v1` with hash `1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944` was independently reviewed PASS as `github-review-4949133128` on PR #245 and entered current main via merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72`; this closes the Physical Meaning gate only. |
+| Unit/Time Basis attestation | ACCEPTED | `source-002-unit-time-basis-attestation-v1` with hash `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee` was independently reviewed PASS as `github-review-4949133128` on PR #245 and entered current main via merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72`; this closes the Unit/Time Basis gate only. |
+| S1 acceptance record | BLOCKED | Seven required gates are PASS and ten remain blocked; overall S1 acceptance and final independent review remain incomplete. |
 
 Each record is a status record rather than a substitute for missing external
 proof. A value marked NOT_PROVIDED, NOT_ISSUED, or NOT_EVALUATED must remain
@@ -53,9 +53,11 @@ FORMAL_ACCEPTANCE_ISSUED=false
 ```
 
 The later Source 002 and Q2C workpapers update the factual evidence layer,
-including the V0.3 recorded-business-label boundary. PR #243 now closes the
-Q2C target gate only; the overall S1 package remains blocked by the other
-canonical gates and final S1 independent review.
+including the V0.3 recorded-business-label boundary. PR #243 closes the Q2C
+target gate, and PR #245 subsequently closes the Physical Meaning and Unit/Time
+Basis gates through their own independent review and canonical closeout. The
+overall S1 package remains blocked by the other canonical gates and final S1
+independent review.
 
 ## Current authorization state
 
@@ -71,16 +73,16 @@ canonical gates and final S1 independent review.
     CURRENT_SOURCE_COHORT_ACCEPTED=true
     CURRENT_Q2C_ACCEPTED=true
     CURRENT_CANONICAL_Q2C_GATE_STATUS=PASS
-    CURRENT_CANONICAL_GATE_PASS_COUNT=5
-    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
-    CURRENT_PHYSICAL_MEANING_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+    CURRENT_CANONICAL_GATE_PASS_COUNT=7
+    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+    CURRENT_PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
     CURRENT_PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
     CURRENT_PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
-    CURRENT_UNIT_TIME_BASIS_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+    CURRENT_UNIT_TIME_BASIS_ATTESTATION_STATUS=ACCEPTED
     CURRENT_UNIT_TIME_BASIS_ATTESTATION_VERSION=source-002-unit-time-basis-attestation-v1
     CURRENT_UNIT_TIME_BASIS_ATTESTATION_HASH=d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee
-    PHYSICAL_MEANING_ACCEPTED=false
-    UNIT_TIME_BASIS_ACCEPTED=false
+    PHYSICAL_MEANING_ACCEPTED=true
+    UNIT_TIME_BASIS_ACCEPTED=true
     BUSINESS_SOURCE_ATTESTATION_VERSION=source-002-q2c-business-source-attestation-v1
     BUSINESS_SOURCE_ATTESTATION_HASH=09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2
     Q2C_DECISION_VERSION=source-002-q2c-final-decision-v1
@@ -99,8 +101,9 @@ canonical gates and final S1 independent review.
 No record in this package authorizes S1 implementation, S2, TEST access,
 external-holdout access, Ready transition, merge, tag, or release. Historical
 Q2C issuance alone did not imply acceptance; current main now records Q2C as
-separately accepted. The newly issued Physical Meaning and Unit/Time Basis
-attestations likewise do not imply acceptance of either canonical gate.
+separately accepted. The Physical Meaning and Unit/Time Basis attestations are
+now separately accepted through PR #245 independent review and canonical
+closeout; this does not imply acceptance of any other canonical gate.
 
 ## Governing references
 

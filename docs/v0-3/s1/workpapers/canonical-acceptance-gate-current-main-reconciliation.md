@@ -5,12 +5,12 @@
 ```text
 WORKPAPER_ID=V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION
 TASK_CLASS=DOCS_ONLY_GOVERNANCE_RECONCILIATION
-AUDITED_REPOSITORY_SHA=e0ffc184aaca32fda196fdd2f39a7dfa00376a56
+AUDITED_REPOSITORY_SHA=1ee6da741fe13e163b53c26b2a6705ac8eb28a72
 CANONICAL_GATE_COUNT=17
 CANONICAL_ACCEPTANCE_STATUS=BLOCKED
 CANONICAL_ACCEPTANCE_STATUS_MUTATION_ALLOWED=true
-CURRENT_TASK_CANONICAL_GATE_STATUS_MUTATION_COUNT=0
-CURRENT_TASK_CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=0
+CURRENT_TASK_CANONICAL_GATE_STATUS_MUTATION_COUNT=2
+CURRENT_TASK_CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=2
 S1_ACCEPTANCE_ISSUANCE_ALLOWED=false
 SOURCE_002_READ=false
 REAL_BUSINESS_DATA_READ=false
@@ -24,8 +24,10 @@ minimum-coverage policy; PR #221 closed the standalone minimum-coverage gate;
 PR #222 issued and independently reviewed the separate data-quality policy, and
 PR #238 issued and independently accepted the final Source Owner Attestation;
 PR #241 issued and independently accepted the final Source Cohort Manifest,
-and PR #243 issued and independently accepted the Q2C target decision, which
-this closeout records as the fifth passing gate. It does not accept S1,
+and PR #243 issued and independently accepted the Q2C target decision. PR #245
+then issued, independently reviewed, and merged the Physical Meaning and
+Unit/Time Basis closeout, which this reconciliation records as the seventh
+passing gate. It does not accept S1,
 authorize S2, or read Source 002 raw rows. The current
 main artifact wins over historical PR descriptions when they differ; PR
 history is used only as provenance for already merged implementation work.
@@ -34,20 +36,20 @@ The authoritative completion rule remains:
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_CANONICAL_GATE_PASS_COUNT=5
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
 FACT_LAYER_COMPLETE=true
 FORMAL_ATTESTATIONS_ISSUED=true
 INDEPENDENT_GATE_LOCAL_REVIEW_PENDING=true
 CANONICAL_GATE_ACCEPTANCE_PENDING=true
-PHYSICAL_MEANING_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
-UNIT_TIME_BASIS_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+UNIT_TIME_BASIS_ATTESTATION_STATUS=ACCEPTED
 UNIT_TIME_BASIS_ATTESTATION_VERSION=source-002-unit-time-basis-attestation-v1
 UNIT_TIME_BASIS_ATTESTATION_HASH=d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee
-PHYSICAL_MEANING_ACCEPTED=false
-UNIT_TIME_BASIS_ACCEPTED=false
+PHYSICAL_MEANING_ACCEPTED=true
+UNIT_TIME_BASIS_ACCEPTED=true
 ALL_CANONICAL_RUNTIME_STATUS_BLOCKED=false
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
@@ -65,7 +67,7 @@ The four reconciliation classes are independent of runtime status:
 | `UPSTREAM_DEPENDENCY_BLOCKED` | The rule is known, but a prerequisite gate/artifact must close first. |
 
 None of these classes alone means `PASS` or `ACCEPTED`. The companion artifact
-records the four separately closed rows explicitly; all remaining
+records the two separately closed rows explicitly; all remaining
 blocked rows retain `can_be_closed_by_current_task=false`.
 
 ### Dependency semantics
@@ -104,7 +106,8 @@ The current acceptance record at
 `docs/v0-3/s1/evidence/s1-acceptance-record.json` contains exactly the 17
 required gate IDs, each once. `S1-MINIMUM-COVERAGE`,
 `S1-DATA-QUALITY-THRESHOLDS`, `S1-SOURCE-AUTHORITY`, `S1-SOURCE-COHORT`, and
-`S1-Q2C-TARGET` are `PASS`; the other twelve rows remain `BLOCKED`. Historical block reasons are preserved in the
+`S1-Q2C-TARGET`, `S1-PHYSICAL-MEANING`, and `S1-UNIT-AND-TIME-BASIS` are
+`PASS`; the other ten rows remain `BLOCKED`. Historical block reasons are preserved in the
 reconciliation artifact, but are not copied as if they were a current factual
 audit without checking later evidence.
 
@@ -125,8 +128,8 @@ The current main contains meaningful evidence beyond the initial registry:
   this closeout for the data-quality gate only.
 - PR #243's issued business-source attestation and final Q2C decision are
   independently reviewed and merged; Q2C is accepted only at its own
-  canonical gate and does not accept Physical Meaning, Unit/Time Basis, or
-  any downstream gate.
+  canonical gate. PR #245 separately closes Physical Meaning and Unit/Time
+  Basis; no downstream gate is implied.
 
 ## 3. Current-main evidence sources reviewed
 
@@ -179,8 +182,8 @@ actual-label lifecycle, custody, and PIT workpapers under
 | `S1-Q2C-TARGET` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued business-source attestation and Q2C decision bind `OBSERVED_FARM_PICK_QUANTITY`, `PROVEN_EXACT`, six exact dimensions, and no transformation; PR #243 review and CI passed before merge. | None for Q2C; Physical Meaning and Unit/Time Basis remain separate gate-local closeouts. | None | None | Preserve Physical Meaning, Unit/Time Basis, and downstream gate blockers. |
 | `S1-SOURCE-AUTHORITY` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final Source Owner Attestation, owner role, effective time, completeness binding, and attestation hash are present; PR #238 exact-head review `4946622009` and CI `31955752008` passed before merge `d3828041f15d9bba0b201429250a2041bcf63c2f`. | None for Source Authority; Source Cohort is separately accepted by PR #241, while Q2C and other gates remain separate. | None | None | Preserve Q2C and downstream gate blockers. |
 | `S1-SOURCE-COHORT` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final manifest `source-002-final-source-cohort-manifest-v1` binds cohort `source-002-s1-cohort-v1`, hash `27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca`, 84 farms, 192 subfarms, 20 varieties, business dates `2025-08-05..2026-04-16`, 233171 rows, and 28668416 bytes; PR #241 review `4948013727` and CI `31986614521` passed before merge `5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b`. | None for Source Cohort; S1 freezes identity only and S2 owns the final materialized rowset. | None | None | Preserve canonical-grain, inclusion/exclusion, visibility, custody, split, Q2C, and other gate blockers. |
-| `S1-PHYSICAL-MEANING` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Issued Physical Meaning Attestation binds the scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics. | Independent gate-local review and hash verification remain pending; runtime block reason is preserved. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Independently review the issued Physical Meaning Attestation, then perform gate-local closeout. |
-| `S1-UNIT-AND-TIME-BASIS` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Issued Unit/Time Basis Attestation binds KG, Asia/Shanghai, local-day rule, business-date rule, and grain context. | Independent gate-local review and hash verification remain pending; runtime block reason is preserved. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Independently review the issued Unit/Time Basis Attestation, then perform gate-local closeout. |
+| `S1-PHYSICAL-MEANING` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued Physical Meaning Attestation binds the scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics; PR #245 exact-head review and CI passed before merge. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Preserve the accepted physical boundary while downstream gates remain blocked. |
+| `S1-UNIT-AND-TIME-BASIS` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued Unit/Time Basis Attestation binds KG, Asia/Shanghai, local-day rule, business-date rule, and grain context; PR #245 exact-head review and CI passed before merge. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Preserve the accepted unit/time basis while downstream gates remain blocked. |
 | `S1-CANONICAL-GRAIN` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Canonical grain and aggregate scope support are present; the separate canonical-grain/mapping gate remains unaccepted. | Accepted mapping applicability and canonical-grain review are required before grain can be frozen. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Formalize grain after source authority and mapping review. |
 | `S1-VISIBILITY` | `BLOCKED` | `NARROW_CORRECTION_REQUIRED` | Current PIT evidence is 4/17/0/1; PR #189/#190/#192/#194 controls are represented. | Four current gaps remain: planning provenance, Analytics taxonomy, Analytics source cutoff, and Task9 mixed authority. | `S1-SOURCE-AUTHORITY`; `S1-Q2C-TARGET`; `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION` | None | Close the four PIT source-class and mixed-authority gaps. |
 | `S1-REVISION-WINNER` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Q2A/I7 rules and IDFL mode semantics are defined; IDFL label-side winner is not required. | Source-specific disposition and applicability are not frozen or independently reviewed. | `S1-SOURCE-AUTHORITY`; `S1-MISSING-CORRECTION-CANCELLATION` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Reconcile the source-specific winner disposition after source/cohort freeze. |
@@ -199,11 +202,11 @@ actual-label lifecycle, custody, and PIT workpapers under
 The machine-readable artifact is the field-level record for every row. The
 following cross-cutting findings explain the important status corrections:
 
-1. `S1-PHYSICAL-MEANING` and `S1-UNIT-AND-TIME-BASIS` are not treated as
-   missing-fact rows merely because their preserved runtime block reasons are
-   `MISSING_MEASUREMENT_BOUNDARY` and `UNIT_OR_TIME_AUTHORITY_MISSING`.
-   Current main contains the reconciled fact layer and both formal attestations
-   are issued; independent gate-local review is still required.
+1. `S1-PHYSICAL-MEANING` and `S1-UNIT-AND-TIME-BASIS` are closed only within
+   their authorized gate-local scope. Current main contains the reconciled fact
+   layer, both formal attestations, PR #245 exact-head review `4949133128`, and
+   successful exact-head CI `32002755230`; the two target statuses are now
+   `PASS` with block reasons `NONE`. No downstream gate is implied.
 2. `S1-DATA-QUALITY-THRESHOLDS` is closed only at the policy-governance layer:
    the accepted versioned policy is not a data execution result. `S1-DATA-CUSTODY`
    has a versioned custody record issued for review. It is
@@ -300,10 +303,10 @@ Mutual membership in these groups does not create a hard-prerequisite cycle.
 These are not accepted gates; they are the shortest queue for artifacts whose
 current facts are substantially present:
 
-- Independently review the issued physical-meaning attestation, then perform
-  the gate-local closeout without changing its BLOCKED runtime status here.
-- Independently review the issued unit/time attestation, then perform the
-  gate-local closeout without changing its BLOCKED runtime status here.
+- Preserve the accepted physical-meaning attestation and gate-local closeout;
+  no downstream gate acceptance is implied.
+- Preserve the accepted unit/time attestation and gate-local closeout; no
+  downstream gate acceptance is implied.
 - Submit the issued custody record and its hashes for independent review.
 - Preserve the accepted Q2C target binding while formalizing the separate
   physical-meaning and unit/time gate artifacts.
@@ -383,17 +386,16 @@ authorize the first item or imply the next item automatically.
 
 ## 12. S1 acceptance boundary
 
-This workpaper updates the current evidence identity for the two target rows
-to the issued attestations while preserving their canonical runtime status and
-block reasons. It does not accept Physical Meaning, Unit/Time Basis, custody,
-or final S1 acceptance and does not claim S1 completion. The authoritative
-record remains:
+This workpaper records the authorized gate-local closeout for the two target
+rows. It accepts Physical Meaning and Unit/Time Basis only; it does not accept
+custody or final S1 acceptance and does not claim S1 completion. The
+authoritative record remains:
 
 ```text
-CURRENT_CANONICAL_GATE_PASS_COUNT=5
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
-PHYSICAL_MEANING_ACCEPTED=false
-UNIT_TIME_BASIS_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+PHYSICAL_MEANING_ACCEPTED=true
+UNIT_TIME_BASIS_ACCEPTED=true
 V0_3_S1_COMPLETE=false
 V0_3_S1_ACCEPTED=false
 ```

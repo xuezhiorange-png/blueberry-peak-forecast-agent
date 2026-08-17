@@ -36,10 +36,12 @@ authorize data access or implementation.
 | `workpapers/source-002-q2c-business-attestation-and-decision-issuance.md` | Q2C issuance workpaper and six-dimension reconciliation. |
 | `evidence/source-002-q2c-canonical-acceptance-closeout.json` | Canonical S1-Q2C-TARGET closeout evidence. |
 | `workpapers/source-002-q2c-canonical-acceptance-closeout.md` | Q2C gate-local closeout workpaper and current-state reconciliation. |
-| `evidence/source-002-physical-meaning-attestation.json` | Issued Source002 Physical Meaning attestation pending independent gate-local review. |
-| `evidence/source-002-unit-time-basis-attestation.json` | Issued Source002 Unit/Time Basis attestation pending independent gate-local review. |
+| `evidence/source-002-physical-meaning-attestation.json` | Issued Source002 Physical Meaning attestation; its canonical gate-local acceptance is recorded by the closeout below. |
+| `evidence/source-002-unit-time-basis-attestation.json` | Issued Source002 Unit/Time Basis attestation; its canonical gate-local acceptance is recorded by the closeout below. |
 | `evidence/source-002-physical-unit-time-formalization-issuance.json` | Combined Physical Meaning and Unit/Time formalization issuance and provenance. |
 | `workpapers/source-002-physical-unit-time-formalization.md` | Physical, quantity, unit, time, and bounded acceptance-state workpaper. |
+| `evidence/source-002-physical-unit-time-canonical-acceptance-closeout.json` | Canonical Physical Meaning and Unit/Time Basis closeout evidence. |
+| `workpapers/source-002-physical-unit-time-canonical-acceptance-closeout.md` | Gate-local canonical closeout workpaper. |
 
 ## Authority precedence
 
@@ -83,16 +85,16 @@ CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=true
 CANONICAL_Q2C_GATE_STATUS=PASS
-CURRENT_CANONICAL_GATE_PASS_COUNT=5
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=12
-PHYSICAL_MEANING_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
-UNIT_TIME_BASIS_ATTESTATION_STATUS=ISSUED_PENDING_INDEPENDENT_REVIEW
+UNIT_TIME_BASIS_ATTESTATION_STATUS=ACCEPTED
 UNIT_TIME_BASIS_ATTESTATION_VERSION=source-002-unit-time-basis-attestation-v1
 UNIT_TIME_BASIS_ATTESTATION_HASH=d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee
-PHYSICAL_MEANING_ACCEPTED=false
-UNIT_TIME_BASIS_ACCEPTED=false
+PHYSICAL_MEANING_ACCEPTED=true
+UNIT_TIME_BASIS_ACCEPTED=true
 CURRENT_SOURCE_COHORT_ID=source-002-s1-cohort-v1
 CURRENT_SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
 CURRENT_SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
@@ -117,8 +119,10 @@ The six-dimensional Q2C business evidence package is accepted on current main
 with `Q2C_OUTCOME=PROVEN_EXACT`. The six dimensions are physical event,
 quantity basis, marketability boundary, sorting boundary, post-harvest
 boundary, and time/grain. PR #243 exact-head independent review passed and the
-S1-Q2C-TARGET gate is `PASS`; Physical Meaning, Unit/Time Basis, and all other
-canonical gates remain separate.
+S1-Q2C-TARGET gate is `PASS`. PR #245 then independently reviewed and merged
+the Physical Meaning and Unit/Time Basis closeout, so those two gate-local
+statuses are now `PASS`; the other canonical gates remain separate and
+blocked.
 
 The following requirements are future acceptance requirements:
 
@@ -157,9 +161,10 @@ evidence, not a claim that any value exists.
 
 The source identity, physical event, weighing point, marketability boundary, KG
 unit, and farm-local Asia/Shanghai business-date basis are already governed and
-bound by the accepted Source002/Q2C package and the two issued attestations
-listed above. The two target gates remain BLOCKED until their independent
-gate-local reviews occur.
+bound by the accepted Source002/Q2C package and the two accepted attestations
+listed above. The two target gates are closed only within their gate-local
+scope; canonical grain, inclusion/exclusion, visibility, custody, split,
+metrics, holdout, and final independent S1 review remain blocked or pending.
 
 No row-level data is requested or read by this package.
 
