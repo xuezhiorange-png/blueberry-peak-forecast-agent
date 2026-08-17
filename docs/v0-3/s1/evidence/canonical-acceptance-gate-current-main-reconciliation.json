@@ -139,7 +139,7 @@
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
+      "requires_docs_formalization": false,
       "requires_independent_review": false,
       "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
