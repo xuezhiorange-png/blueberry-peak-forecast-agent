@@ -3,12 +3,12 @@
 ## Current evidence state
 
     EVIDENCE_RECORD_ID=V0_3_S1_SOURCE_COHORT_EVIDENCE
-    EVIDENCE_RECORD_STATUS=BLOCKED
-    CURRENT_SOURCE_COHORT_FREEZE_STATUS=BLOCKED
-    SOURCE_COHORT_MANIFEST_STATUS=NOT_ISSUED
-    SOURCE_COHORT_ID=NOT_ISSUED
-    MANIFEST_VERSION=NOT_PROVIDED
-    MANIFEST_HASH=NOT_ISSUED
+    EVIDENCE_RECORD_STATUS=ACCEPTED
+    CURRENT_SOURCE_COHORT_FREEZE_STATUS=ACCEPTED
+    SOURCE_COHORT_MANIFEST_STATUS=ACCEPTED
+    SOURCE_COHORT_ID=source-002-s1-cohort-v1
+    MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+    MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
     SOURCE_OBJECT_IDENTITY_HASHES=SOURCE_002_SHA256_FC83859871C544B584B3999B6796DDD518CDC8BB8DD9754F5B5C9D6AE62DB81A
     SOURCE_OBJECT_IDENTITY_HASHES_STATUS=AVAILABLE_PREPARATION_ONLY
     DECLARED_SOURCE_ROW_COUNT=233171
@@ -32,18 +32,28 @@
     MAPPED_CANONICAL_GROUP_COUNT=529
     UNMAPPED_ROW_COUNT=2
     UNMAPPED_DISTINCT_DATE_COUNT=1
-    INDEPENDENT_REVIEW_STATUS=NOT_STARTED
+    INDEPENDENT_REVIEW_STATUS=PASS
 
-Source 002 governed evidence now supplies source-object identity and aggregate
-coverage metadata for preparation. It still does not issue a cohort identity,
-manifest version, manifest hash, scope arrays, or a final rowset.
+Current main contains the accepted final Source Cohort Manifest with its
+version, cohort identity, manifest hash, concrete 84/192/20 scope arrays, and
+aggregate coverage metadata. The manifest freezes the Source Cohort identity;
+it does not issue or materialize the final clean rowset.
 
 ```text
 SOURCE_COHORT_FACTS_RECONCILED=true
 PACKAGE_A_FORMALIZATION_APPLIED=true
-FORMAL_SOURCE_COHORT_MANIFEST_CREATED=false
-SOURCE_COHORT_ACCEPTED=false
+FORMAL_SOURCE_COHORT_MANIFEST_CREATED=true
+SOURCE_COHORT_MANIFEST_INDEPENDENTLY_ACCEPTED=true
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=true
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
 STATUS_RECONCILIATION_APPLIED=true
+PR241_INDEPENDENT_REVIEW_ID=4948013727
+PR241_INDEPENDENT_REVIEWED_HEAD=b856d3823e51bb6e4f8b780363203a1c477677ca
+PR241_EXACT_HEAD_CI_RUN_ID=31986614521
+PR241_MERGE_SHA=5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b
 FACT_LAYER_RECONCILED_FROM=docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md
 ```
 
@@ -56,21 +66,54 @@ FACT_LAYER_RECONCILED_FROM=docs/v0-3/s1/evidence/source-002-governed-snapshot-ev
     SOURCE_ROW_COUNT_IS_NOT_S2_ACCEPTED_ROW_COUNT=true
     SOURCE_ROW_COUNT_DOES_NOT_FREEZE_FINAL_ROWSET=true
 
-The reconciled counts and reviewed identity-package hashes are preparation
-metadata, never an accepted S2 row count or a source-cohort manifest. The full
-84/192/20 arrays remain outside Git, and this status record does not issue a
-final rowset identity or a cohort manifest. S2 remains unauthorized.
+The reconciled counts and reviewed identity-package hashes remain aggregate
+metadata, never an accepted S2 row count. The merged final manifest now contains
+the concrete 84/192/20 arrays in Git and freezes the source-cohort identity; it
+does not issue a final clean rowset identity or materialized rowset. S2 remains
+unauthorized.
 
-## Required cohort metadata still missing
+## Historical preparation gaps superseded by PR241
+
+The following bullets describe the pre-PR241 preparation state and are retained
+as historical provenance only; they are not current blockers after the merged
+final manifest closeout:
 
 - Governed cohort identity bound to a source attestation.
 - Concrete scope arrays inside a schema-valid source-cohort manifest; the
-  Package A reference intentionally stores counts and hashes only.
+  Package A reference intentionally stored counts and hashes only.
 - Versioned mapping, visibility, inclusion, revision, and split policy
   identities.
 - A versioned cohort manifest hash bound to the available source-object
   identity and aggregate scope evidence.
 - Independent review of the resulting aggregate-only manifest.
+
+## Post-PR241 current-main acceptance mirror
+
+```text
+POST_PR241_CURRENT_MAIN_REVALIDATION=PASS
+PR241_MERGED=true
+PR241_HEAD_SHA=b856d3823e51bb6e4f8b780363203a1c477677ca
+PR241_MERGE_SHA=5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b
+PR241_INDEPENDENT_REVIEW_NUMERIC_ID=4948013727
+PR241_INDEPENDENT_REVIEW_GRAPHQL_ID=PRR_kwDOS_gTTs8AAAABJuyynw
+PR241_INDEPENDENT_REVIEW_SUBMITTED_AT=2026-08-17T02:25:52Z
+PR241_INDEPENDENT_REVIEW_RESULT=PASS
+PR241_EXACT_HEAD_CI_RUN_ID=31986614521
+PR241_EXACT_HEAD_CI_CONCLUSION=success
+MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+SOURCE_COHORT_ID=source-002-s1-cohort-v1
+MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
+FORMAL_SOURCE_COHORT_MANIFEST_CREATED=true
+SOURCE_COHORT_MANIFEST_INDEPENDENTLY_ACCEPTED=true
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=true
+Q2C_ACCEPTED=false
+CURRENT_CANONICAL_GATE_PASS_COUNT=4
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+S1_FREEZES_SOURCE_COHORT_IDENTITY=true
+S1_FREEZES_FINAL_CLEAN_ROWSET=false
+S2_OWNS_FINAL_MATERIALIZED_ROWSET=true
+```
 
 ## Authority
 
