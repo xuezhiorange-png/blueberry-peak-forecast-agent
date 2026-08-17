@@ -32,7 +32,7 @@ data, credentials, private locators, or fabricated business facts.
 | Source owner and authority status | ACCEPTED | Current main contains the accepted Source002 Source Owner Attestation and Source Authority closeout. |
 | Source cohort status | ACCEPTED | Current main contains the accepted Source002 final Source Cohort Manifest and Source Cohort closeout. |
 | Data custody status | BLOCKED | C1-C6 business/governance answers are recorded; formal custody roles, policies and binding hash remain absent. |
-| Coverage and quality thresholds | BLOCKED | No approved S1 threshold decision was supplied; no percentage is invented. |
+| Coverage and quality thresholds | ACCEPTED | `S1-MINIMUM-COVERAGE` and `S1-DATA-QUALITY-THRESHOLDS` are canonical PASS from independently reviewed versioned owner decisions; this accepts the threshold policies only and does not accept `S1-METRIC-CONTRACT` or imply data execution. |
 | Holdout feasibility | NOT_EVALUATED | No evidence permits a feasible, not-feasible, or not-applicable conclusion. |
 | Physical Meaning attestation | ISSUED_PENDING_INDEPENDENT_REVIEW | `source-002-physical-meaning-attestation-v1` is issued with hash `1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944`; its canonical gate remains BLOCKED pending independent gate-local review. |
 | Unit/Time Basis attestation | ISSUED_PENDING_INDEPENDENT_REVIEW | `source-002-unit-time-basis-attestation-v1` is issued with hash `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee`; its canonical gate remains BLOCKED pending independent gate-local review. |
