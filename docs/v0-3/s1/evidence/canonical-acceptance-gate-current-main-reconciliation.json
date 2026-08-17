@@ -2,7 +2,7 @@
   "artifact_id": "V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION",
   "artifact_version": "canonical-s1-gate-reconciliation-v2",
   "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION",
-  "audited_repository_sha": "1ee6da741fe13e163b53c26b2a6705ac8eb28a72",
+  "audited_repository_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
   "canonical_gate_count": 17,
   "canonical_completion_rule": "ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS",
   "canonical_acceptance_status": "BLOCKED",
@@ -10,8 +10,8 @@
   "current_canonical_gate_blocked_count": 10,
   "fact_layer_complete": true,
   "formal_attestations_issued": true,
-  "independent_gate_local_review_pending": false,
-  "canonical_gate_acceptance_pending": false,
+  "independent_gate_local_review_pending": true,
+  "canonical_gate_acceptance_pending": true,
   "physical_unit_time_independent_gate_local_review_complete": true,
   "physical_unit_time_canonical_gate_acceptance_complete": true,
   "remaining_canonical_gate_closeouts_pending": true,
@@ -24,9 +24,9 @@
   "unit_time_basis_attestation_hash": "d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee",
   "physical_meaning_accepted": true,
   "unit_time_basis_accepted": true,
-  "canonical_acceptance_status_mutation_allowed": true,
-  "current_task_canonical_gate_status_mutation_count": 2,
-  "current_task_canonical_gate_block_reason_mutation_count": 2,
+  "canonical_acceptance_status_mutation_allowed": false,
+  "current_task_canonical_gate_status_mutation_count": 0,
+  "current_task_canonical_gate_block_reason_mutation_count": 0,
   "s1_acceptance_issuance_allowed": false,
   "reconciled_gate_count": 17,
   "unique_gate_id_count": 17,
@@ -36,7 +36,7 @@
   "pit_minimum_implementation_gap_count": 4,
   "pit_gaps_treated_as_s1_total_remaining_tasks": false,
   "authoritative_acceptance_record_changed": true,
-  "canonical_gate_status_changed": true,
+  "canonical_gate_status_changed": false,
   "source_002_read": false,
   "real_business_data_read": false,
   "test_data_accessed": false,
@@ -59,11 +59,11 @@
   "current_main_artifact_wins": true,
   "historical_pr_history_is_provenance_only": true,
   "gate_class_counts": {
-    "FORMALIZATION_OR_REVIEW_READY": 6,
+    "FORMALIZATION_OR_REVIEW_READY": 9,
     "CANONICALLY_ACCEPTED": 2,
     "NARROW_CORRECTION_REQUIRED": 1,
-    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 2,
-    "UPSTREAM_DEPENDENCY_BLOCKED": 6
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 1,
+    "UPSTREAM_DEPENDENCY_BLOCKED": 4
   },
   "dependency_semantics": {
     "hard_prerequisite_definition": "A gate or accepted artifact that must close before the current gate can close.",
@@ -340,37 +340,37 @@
       "acceptance_threshold_source": "Q2A/I7 and Q2C",
       "acceptance_threshold": "CANONICAL_GRAIN_AND_MAPPING_BOUND",
       "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json",
+        "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
         "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
         "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+        "docs/v0-3/s1/evidence/source-002-physical-unit-time-canonical-acceptance-closeout.json",
         "docs/v0-3/s1/evidence/source-cohort-evidence-status.md",
         "docs/v0-3/s1/workpapers/source-schema-field-map-and-gap-register.md",
         "docs/v0-3/s1/source-authority-and-cohort-manifest.md"
       ],
       "supporting_evidence_facts": [
-        "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE is the recorded current grain and source fields support farm, subfarm, variety, and business date.",
-        "The accepted final cohort manifest binds the schema-valid aggregate scope, but the separate canonical-grain gate and formal mapping acceptance remain blocked.",
-        "July unmapped rows and the pending unmapped-date policy prevent silent date/grain closure."
+        "The current-main gate-local evidence binds SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE, plot_supported=false, mapping policy source-002-mapping-policy-v1, farm-local Asia/Shanghai date basis, and the accepted final Source Cohort Manifest.",
+        "The accepted Source Cohort Manifest binds the aggregate scope and the accepted Unit/Time Basis binds HARVEST_BUSINESS_DATE; the mapped scope is 529 canonical groups and 233169 mapped rows.",
+        "The approved July boundary retains two raw rows, excludes them from the canonical S1 cohort, and prohibits silent season assignment; no new business input is required for this formalization."
       ],
-      "missing_authoritative_artifacts": [
-        "Accepted mapping policy identity",
-        "Schema-valid cohort manifest with bound scope and grain hash"
-      ],
+      "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
-      "reconciliation_reason": "The grain rule is explicit, but closure depends on accepted source authority, cohort scope/mapping, and inclusion/exclusion artifacts rather than a new grain formula.",
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "Current-main evidence and accepted upstream bindings support the canonical grain and mapping facts; the remaining boundary is independent review followed by a separate gate-local closeout.",
       "requires_new_business_input": false,
-      "requires_source_owner_authority": true,
-      "requires_validation_policy_decision": true,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
+      "requires_docs_formalization": false,
       "requires_independent_review": true,
       "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
       "co_resolution_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION"],
-      "can_be_formalized_without_new_business_fact": false,
+      "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
-      "recommended_next_action": "FORMALIZE_CANONICAL_GRAIN_AFTER_SOURCE_AUTHORITY_AND_COHORT_MAPPING_FREEZE",
-      "recommended_action_class": "EVIDENCE_FORMALIZATION"
+      "recommended_next_action": "INDEPENDENTLY_REVIEW_CANONICAL_GRAIN_GATE_EVIDENCE_THEN_GATE_LOCAL_CLOSEOUT",
+      "recommended_action_class": "INDEPENDENT_REVIEW"
     },
     {
       "gate_id": "S1-VISIBILITY",
@@ -432,35 +432,35 @@
       "supporting_evidence_paths": [
         "docs/forecast-quality/q2a-i7-label-snapshot-and-revision-winner-contract.md",
         "docs/v0-3/s1/visibility-inclusion-revision-contract.md",
+        "docs/v0-3/s1/evidence/source-002-revision-winner-gate-evidence.json",
+        "docs/v0-3/s1/evidence/source-002-idfl-revision-policy-identity-binding.json",
+        "docs/v0-3/s1/evidence/source-002-cohort-grain-inclusion-revision-decision-record.json",
         "docs/v0-3/s1/workpapers/actual-harvest-immutable-daily-label-compatibility-decision.md",
         "docs/v0-3/s1/workpapers/immutable-daily-final-label-contract-acceptance-decision.md",
         "docs/v0-3/s1/workpapers/actual-harvest-label-lifecycle-and-point-in-time-preparation.md"
       ],
       "supporting_evidence_facts": [
-        "Q2A/I7 winner rules and the IDFL_V1 mode semantics are defined and the IDFL design semantics say record-level revision winner is not required for that label mode.",
-        "The current Source 002 governed representation does not expose source-recorded time or revision lineage, and source-specific eligibility remains blocked.",
-        "The IDFL design decision is not source/cohort acceptance and does not independently close the canonical revision gate."
+        "The current-main evidence binds the accepted IDFL_V1 mode, source-002-idfl-revision-policy-v1, identity source-002-idfl-revision-policy-identity-v1, and winner/lineage rule NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE.",
+        "PR #199 CGR-006 was independently reviewed PASS; revision_winner_required, IDFL winner manifest, and IDFL revision graph are false, while replay-mode and forecast-input requirements remain preserved.",
+        "No winner manifest or synthetic revision graph is required or created for the Source002 IDFL label side; independent review and separate canonical closeout remain pending."
       ],
-      "missing_authoritative_artifacts": [
-        "Source-specific revision/winner disposition bound to the accepted label mode",
-        "Independent review of the source-class applicability and winner disposition"
-      ],
+      "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
-      "reconciliation_reason": "The rule and the IDFL exception semantics are known, but a source-specific disposition cannot be accepted until source authority/cohort and label-mode applicability artifacts are frozen.",
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "The accepted IDFL mode and reviewed Source002 CGR-006 disposition are bound; the remaining boundary is independent review and later gate-local closeout, not a missing physical winner manifest.",
       "requires_new_business_input": false,
-      "requires_source_owner_authority": true,
-      "requires_validation_policy_decision": true,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
+      "requires_docs_formalization": false,
       "requires_independent_review": true,
       "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-MISSING-CORRECTION-CANCELLATION"],
       "co_resolution_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION"],
-      "can_be_formalized_without_new_business_fact": false,
+      "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
-      "recommended_next_action": "RECONCILE_SOURCE_SPECIFIC_REVISION_WINNER_DISPOSITION_AFTER_SOURCE_AUTHORITY_AND_COHORT_FREEZE",
-      "recommended_action_class": "GOVERNANCE_FORMALIZATION"
+      "recommended_next_action": "INDEPENDENTLY_REVIEW_REVISION_WINNER_DISPOSITION_EVIDENCE_THEN_GATE_LOCAL_CLOSEOUT",
+      "recommended_action_class": "INDEPENDENT_REVIEW"
     },
     {
       "gate_id": "S1-INCLUSION-EXCLUSION",
@@ -472,6 +472,8 @@
       "acceptance_threshold_source": "Q2A/I7 and Q2C",
       "acceptance_threshold": "REASONS_AND_COUNTS_RECONCILED",
       "supporting_evidence_paths": [
+        "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-gate-evidence.json",
+        "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
         "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
         "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
         "docs/v0-3/s1/evidence/source-002-governed-snapshot-evidence.md",
@@ -479,32 +481,27 @@
         "docs/v0-3/s1/workpapers/source-002-idfl-v1-source-specific-eligibility-package.md"
       ],
       "supporting_evidence_facts": [
-        "The preparation manifest records retained July unmapped rows, no automatic July assignment, unknown-not-zero missingness, and an explicit source-scope exclusion statement.",
-        "Aggregate mapping/scope and inclusion artifacts are issued for independent review; Source Cohort acceptance is now PASS, while the separate inclusion/exclusion gate and formal mapping acceptance remain false.",
-        "UNMAPPED_DATE_POLICY remains PENDING; this is not equivalent to an empty exclusions list or a resolved policy."
+        "The current-main gate-local evidence binds D-003/D-009, retained July unmapped rows, no automatic July assignment, no known S1 business exclusions, and the accepted Source Cohort identity.",
+        "Declared 233171 rows reconcile to 233169 mapped canonical rows plus two retained July rows; the S2 technical/data-quality exclusion boundary remains separate.",
+        "Reasons and counts are reconciled and no new business input is required; independent review and separate canonical closeout remain pending."
       ],
-      "missing_authoritative_artifacts": [
-        "Accepted inclusion/exclusion policy manifest bound to the source cohort",
-        "Accepted unmapped-date disposition and policy identity"
-      ],
-      "missing_decisions_or_authorities": [
-        "Governance decision for July/unmapped dates and source-scope applicability"
-      ],
+      "missing_authoritative_artifacts": [],
+      "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
-      "reconciliation_reason": "The observed boundaries are recorded, but the pending unmapped-date and scope applicability decisions cannot be inferred from counts or from the repository.",
-      "requires_new_business_input": true,
-      "requires_source_owner_authority": true,
-      "requires_validation_policy_decision": true,
+      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
+      "reconciliation_reason": "D-003/D-009, the accepted Source Cohort, and the reconciled inclusion/exclusion evidence provide the current facts; the remaining boundary is independent review followed by separate gate-local closeout.",
+      "requires_new_business_input": false,
+      "requires_source_owner_authority": false,
+      "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
+      "requires_docs_formalization": false,
       "requires_independent_review": true,
       "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
       "co_resolution_gate_ids": ["S1-SOURCE-COHORT", "S1-CANONICAL-GRAIN"],
-      "can_be_formalized_without_new_business_fact": false,
+      "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
-      "recommended_next_action": "RESOLVE_UNMAPPED_DATE_AND_SOURCE_SCOPE_INCLUSION_EXCLUSION_AUTHORITY",
-      "recommended_action_class": "BUSINESS_DECISION"
+      "recommended_next_action": "INDEPENDENTLY_REVIEW_INCLUSION_EXCLUSION_GATE_EVIDENCE_THEN_GATE_LOCAL_CLOSEOUT",
+      "recommended_action_class": "INDEPENDENT_REVIEW"
     },
     {
       "gate_id": "S1-MISSING-CORRECTION-CANCELLATION",
