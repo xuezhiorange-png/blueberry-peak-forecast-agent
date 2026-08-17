@@ -41,6 +41,22 @@
     "merge_performed": false,
     "no_step_implies_the_next": true
   },
+  "correction_r2_provenance": {
+    "task_id": "PR248_CLOSEOUT_EVIDENCE_SEMANTIC_ACCOUNTING_CORRECTION_R2",
+    "previous_head_sha": "98d303a68f3166cd69ce7b0072bc148a013e74db",
+    "review_id": 4952129709,
+    "review_result": "FAIL",
+    "blocking_finding_count": 1,
+    "blocker": "R1_EVIDENCE_SEMANTIC_MUTATION_ASSERTION_SELF_CONTRADICTORY",
+    "scope": "EVIDENCE_ACCOUNTING_ASSERTION_ONLY",
+    "runtime_gate_status_mutation_performed": false,
+    "runtime_gate_block_reason_mutation_performed": false,
+    "visibility_status_changed": false,
+    "visibility_block_reason_changed_by_r2": false,
+    "ready_performed": false,
+    "merge_performed": false,
+    "no_step_implies_the_next": true
+  },
   "reviewed_evidence": {
     "canonical_grain": {
       "path": "docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json",
@@ -129,6 +145,13 @@
     "r1_revision_winner_status_mutation_count": 0,
     "r1_revision_winner_block_reason_mutation_count": 0,
     "r1_other_gate_status_mutation_count": 0,
+    "r2_canonical_gate_status_mutation_count": 0,
+    "r2_canonical_gate_block_reason_mutation_count": 0,
+    "r2_visibility_status_mutation_count": 0,
+    "r2_visibility_block_reason_mutation_count": 0,
+    "r2_other_gate_status_mutation_count": 0,
+    "r2_other_gate_block_reason_mutation_count": 0,
+    "r2_evidence_accounting_assertion_correction_count": 1,
     "revision_winner_status_mutation_count": 0,
     "revision_winner_block_reason_mutation_count": 0,
     "downstream_gate_acceptance_implied": false
@@ -175,7 +198,10 @@
     "missing_correction_cancellation_status_mutated": false,
     "missing_correction_cancellation_block_reason_mutated": false,
     "no_fourth_gate_status_acceptance_performed": true,
-    "no_fourth_gate_semantic_mutation_performed": true
+    "fourth_gate_semantic_mutation_performed": true,
+    "fourth_gate_semantic_mutation_scope": "S1_VISIBILITY_BLOCK_REASON_ONLY",
+    "fourth_gate_status_mutation_performed": false,
+    "fourth_gate_acceptance_performed": false
   },
   "revision_winner_reconciliation_correction": {
     "formalization_evidence_reviewed_pass": true,
@@ -222,8 +248,15 @@
     "inclusion_exclusion_closeout_performed": true,
     "revision_winner_closeout_performed": false,
     "revision_winner_closeout_blocked_by_hard_prerequisite": true,
-    "other_gate_mutation_authorized": false,
+    "original_task3_other_gate_mutation_authorized": false,
     "r1_visibility_block_reason_correction_authorized": true,
+    "r1_visibility_block_reason_correction_scope": "S1_VISIBILITY_BLOCK_REASON_ONLY",
+    "r1_visibility_status_mutation_authorized": false,
+    "r1_visibility_acceptance_authorized": false,
+    "r1_s1_remaining_04_execution_authorized": false,
+    "r2_evidence_accounting_correction_authorized": true,
+    "r2_runtime_gate_mutation_authorized": false,
+    "r2_runtime_gate_mutation_performed": false,
     "r1_visibility_acceptance_performed": false,
     "ready_performed": false,
     "merge_performed": false,
