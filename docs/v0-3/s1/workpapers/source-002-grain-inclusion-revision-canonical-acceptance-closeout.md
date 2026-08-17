@@ -31,6 +31,24 @@ PR247_EXACT_HEAD_CI_CONCLUSION=success
 
 The review accepted the three gate-local formalization evidence packages as evidence. It did not itself perform canonical closeout.
 
+## PR #248 correction R1
+
+```text
+CORRECTION_R1_TASK_ID=PR248_CLOSEOUT_CURRENT_STATE_CORRECTION_R1
+CORRECTION_R1_PREVIOUS_HEAD=db331ae7e657727480490446ff01cc926b6aae3b
+R1_REVIEW_ID=4951863615
+R1_REVIEW_RESULT=FAIL
+R1_BLOCKER=AUTHORITATIVE_VISIBILITY_BLOCK_REASON_KNOWN_STALE_AFTER_CLOSEOUT
+R1_SCOPE=CURRENT_STATE_VISIBILITY_BLOCK_REASON_ONLY
+R1_VISIBILITY_STATUS=BLOCKED
+R1_VISIBILITY_ACCEPTED=false
+R1_S1_REMAINING_04_PERFORMED=false
+```
+
+The R1 correction updates the authoritative current-state reason after the
+two bounded target closeouts. It does not reopen either PASS gate, close
+Visibility, change Revision Winner, or implement S1-REMAINING-04.
+
 ## Reviewed evidence identities
 
 ```text
@@ -102,7 +120,16 @@ REVISION_WINNER_CLOSEOUT_BLOCKED_BY=S1-MISSING-CORRECTION-CANCELLATION
 TARGET_GATE_STATUS_MUTATION_COUNT=2
 TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=2
 OTHER_GATE_STATUS_MUTATION_COUNT=0
-OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0
+OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=1
+PR_LEVEL_TARGET_GATE_STATUS_MUTATION_COUNT=2
+PR_LEVEL_TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=2
+PR_LEVEL_NON_TARGET_GATE_STATUS_MUTATION_COUNT=0
+PR_LEVEL_NON_TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=1
+R1_CANONICAL_GATE_STATUS_MUTATION_COUNT=0
+R1_VISIBILITY_BLOCK_REASON_CORRECTION_COUNT=1
+R1_REVISION_WINNER_STATUS_MUTATION_COUNT=0
+R1_REVISION_WINNER_BLOCK_REASON_MUTATION_COUNT=0
+R1_OTHER_GATE_STATUS_MUTATION_COUNT=0
 REVISION_WINNER_STATUS_MUTATION_COUNT=0
 REVISION_WINNER_BLOCK_REASON_MUTATION_COUNT=0
 ```
@@ -142,17 +169,24 @@ S1-INDEPENDENT-REVIEW
 
 ## Non-target visibility boundary
 
-Closing Canonical Grain and Inclusion/Exclusion makes the existing canonical Visibility block reason `UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED` stale. This closeout does **not** rewrite that fourth gate because the authorization is gate-local to the Task-3 targets.
+R1 is a current-state consistency correction, not a fourth gate closeout. Canonical Grain and Inclusion/Exclusion are PASS, so the previous Visibility reason `UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED` is no longer authoritative. The existing reconciliation authority supplies the fail-closed current reason `HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE` for the remaining PIT, source-class, and mixed-authority gaps.
 
 ```text
 S1_VISIBILITY_STATUS_MUTATED=false
-S1_VISIBILITY_BLOCK_REASON_MUTATED=false
-S1_VISIBILITY_STALE_BLOCK_REASON_AFTER_CLOSEOUT=true
+S1_VISIBILITY_BLOCK_REASON_MUTATED=true
+R1_VISIBILITY_BLOCK_REASON_CORRECTION_COUNT=1
+S1_VISIBILITY_PREVIOUS_BLOCK_REASON=UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED
+S1_VISIBILITY_CURRENT_BLOCK_REASON=HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE
+S1_VISIBILITY_STATUS=BLOCKED
+S1_VISIBILITY_ACCEPTED=false
 S1_VISIBILITY_RECONCILIATION_REQUIRED=true
 S1_VISIBILITY_RECONCILIATION_DEFERRED_TO=S1-REMAINING-04
+S1_REMAINING_04_PERFORMED=false
 ```
 
-The reconciliation workpaper already records the true remaining Visibility work as a narrow PIT correction. A later authorized task must reconcile the canonical Visibility reason without retroactively expanding this closeout's mutation scope.
+The four existing PIT/source-class/mixed-authority gaps remain owned by
+`S1-REMAINING-04` (`NARROW_PIT_VISIBILITY_AND_MIXED_AUTHORITY_CORRECTION`). This
+R1 performs no implementation of those gaps and does not accept Visibility.
 
 ## Revision Winner reconciliation correction
 

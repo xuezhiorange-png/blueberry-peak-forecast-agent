@@ -131,11 +131,11 @@
       "acceptance_threshold": "SOURCE_CLASS_CUTOFF_RULES_EVIDENCED",
       "allowed_not_applicable_condition": "NEVER",
       "status": "BLOCKED",
-      "block_reason": "UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED",
+      "block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Canonical Grain and Inclusion/Exclusion are now closed by the bounded Task-3 closeout, so this pre-existing block reason requires a separately authorized S1-REMAINING-04 reconciliation. This closeout intentionally does not mutate the fourth gate. The reconciliation workpaper records the true remaining Visibility work as the narrow PIT source-class/mixed-authority correction."
+      "notes": "Canonical Grain and Inclusion/Exclusion are PASS, so UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED is no longer the current runtime reason. Visibility remains BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE because the existing PIT, source-class, and mixed-authority gaps remain. S1-REMAINING-04 owns the subsequent narrow correction; this R1 only reconciles the authoritative current-state reason and does not execute S1-REMAINING-04 or independently accept Visibility."
     },
     {
       "gate_id": "S1-REVISION-WINNER",
