@@ -1,0 +1,208 @@
+{
+  "artifact_id": "V0_3_S1_SOURCE_002_GRAIN_INCLUSION_REVISION_CURRENT_MAIN_FORMALIZATION_ISSUANCE",
+  "artifact_version": "source-002-grain-inclusion-revision-current-main-formalization-issuance-v1",
+  "artifact_status": "ISSUED_PENDING_INDEPENDENT_GATE_LOCAL_REVIEW",
+  "task_id": "S1_REMAINING_03_CANONICAL_GRAIN_INCLUSION_REVISION_CURRENT_MAIN_FORMALIZATION",
+  "task_class": "DOCS_ONLY_CURRENT_MAIN_FORMALIZATION",
+  "base_main_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
+  "audited_main_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
+  "target_gate_ids": [
+    "S1-CANONICAL-GRAIN",
+    "S1-INCLUSION-EXCLUSION",
+    "S1-REVISION-WINNER"
+  ],
+  "historical_pr199_provenance": {
+    "pr_number": 199,
+    "review_id": 4912786743,
+    "reviewed_head_sha": "32fe6ce50cdd090df8eaeb0d92008e5748f168c5",
+    "review_result": "PASS",
+    "exact_head_ci_run": 31559326898,
+    "merge_sha": "582c5518f120f5dc5719cf13899c3c65d94596b3",
+    "decision_record_path": "docs/v0-3/s1/evidence/source-002-cohort-grain-inclusion-revision-decision-record.json",
+    "decision_record_version": "source-002-cohort-grain-inclusion-revision-decision-v1",
+    "decision_record_sha256": "1d737e1a6e2ce3cfaebf1d3449af86a51572d58333cdc1cdfe397a570084f955"
+  },
+  "upstream_accepted_bindings": {
+    "source_authority": {
+      "path": "docs/v0-3/s1/evidence/source-authority-and-scope-business-owner-decision-record.json",
+      "decision_record_version": "source-authority-and-scope-business-owner-decision-v1",
+      "decision_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+      "accepted": true
+    },
+    "pr197_owner_decision_provenance": {
+      "pr_number": 197,
+      "review_id": 4912212874,
+      "reviewed_head_sha": "14593f7371a6b78ca3bb44719fef59ec05b7f876",
+      "merge_sha": "0746e99a359f54e5916da482a750b723eca600f3",
+      "decision_record_sha256": "d5f8e46b7d634def4c5e3ba968e0310925c7b710701850f75728edb589184e69",
+      "review_result": "PASS"
+    },
+    "source_cohort": {
+      "path": "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
+      "manifest_version": "source-002-final-source-cohort-manifest-v1",
+      "cohort_id": "source-002-s1-cohort-v1",
+      "manifest_hash": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+      "accepted": true,
+      "acceptance_pr": 241,
+      "acceptance_review_id": 4948013727,
+      "acceptance_merge_sha": "5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b"
+    },
+    "q2c": {
+      "decision_hash": "c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18",
+      "accepted": true
+    },
+    "physical_meaning": {
+      "version": "source-002-physical-meaning-attestation-v1",
+      "hash": "1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944",
+      "accepted": true
+    },
+    "unit_time_basis": {
+      "version": "source-002-unit-time-basis-attestation-v1",
+      "hash": "d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee",
+      "accepted": true
+    }
+  },
+  "target_evidence": {
+    "canonical_grain": {
+      "path": "docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json",
+      "artifact_version": "source-002-canonical-grain-mapping-gate-evidence-v1",
+      "evidence_sha256": "6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc",
+      "gate_fact_threshold_satisfied": true,
+      "accepted": false
+    },
+    "inclusion_exclusion": {
+      "path": "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-gate-evidence.json",
+      "artifact_version": "source-002-inclusion-exclusion-gate-evidence-v1",
+      "evidence_sha256": "b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580",
+      "gate_fact_threshold_satisfied": true,
+      "accepted": false
+    },
+    "revision_winner": {
+      "path": "docs/v0-3/s1/evidence/source-002-revision-winner-gate-evidence.json",
+      "artifact_version": "source-002-revision-winner-gate-evidence-v1",
+      "evidence_sha256": "5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e",
+      "gate_fact_threshold_satisfied": true,
+      "accepted": false
+    }
+  },
+  "current_main_gate_reconciliation": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 7,
+    "current_canonical_gate_blocked_count": 10,
+    "target_gate_status_mutation_count": 0,
+    "target_gate_block_reason_mutation_count": 0,
+    "other_gate_status_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 0,
+    "canonical_gate_status_changed": false,
+    "canonical_acceptance_record_status_changed": false,
+    "target_gates_remain_blocked": true,
+    "target_gate_states": {
+      "S1-CANONICAL-GRAIN": {
+        "status": "BLOCKED",
+        "block_reason": "GRAIN_OR_DATE_AUTHORITY_MISSING",
+        "threshold": "CANONICAL_GRAIN_AND_MAPPING_BOUND",
+        "accepted": false
+      },
+      "S1-INCLUSION-EXCLUSION": {
+        "status": "BLOCKED",
+        "block_reason": "INCLUSION_POLICY_NOT_FROZEN",
+        "threshold": "REASONS_AND_COUNTS_RECONCILED",
+        "accepted": false
+      },
+      "S1-REVISION-WINNER": {
+        "status": "BLOCKED",
+        "block_reason": "REVISION_WINNER_NOT_VERIFIED",
+        "threshold": "ONE_VALID_WINNER_PER_KEY",
+        "accepted": false
+      }
+    }
+  },
+  "formalization_facts": {
+    "canonical_grain_fact_threshold_satisfied": true,
+    "inclusion_exclusion_fact_threshold_satisfied": true,
+    "revision_winner_fact_threshold_satisfied": true,
+    "new_business_input_required": false,
+    "new_source_owner_authority_required": false,
+    "new_validation_policy_decision_required": false,
+    "no_final_source_cohort_manifest_created_by_this_task": true,
+    "no_final_clean_rowset_materialized_by_this_task": true,
+    "source_cohort_identity_remains_accepted": true,
+    "s2_owns_final_materialized_rowset": true
+  },
+  "current_source_cohort_boundaries": {
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "plot_supported": false,
+    "mapping_policy_version": "source-002-mapping-policy-v1",
+    "inclusion_policy_version": "source-002-inclusion-exclusion-boundary-v1",
+    "revision_policy_version": "source-002-idfl-revision-policy-v1",
+    "revision_policy_identity": "source-002-idfl-revision-policy-identity-v1",
+    "winner_and_lineage_rule": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE",
+    "july_unmapped_date": "2025-07-22",
+    "july_unmapped_row_count": 2,
+    "july_raw_rows_retained": true,
+    "july_canonical_s1_cohort_included": false,
+    "july_silent_assignment": false,
+    "known_s1_business_exclusions": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+    "mapped_canonical_row_count": 233169,
+    "declared_source_row_count": 233171,
+    "row_count_reconciliation": "233171 = 233169 + 2",
+    "source_completeness_binding": {
+      "complete_through_business_date": "2026-04-16",
+      "evidence_hash": "ee30f3ddcc615453ff923b38622d256659c1bcc2609dcd47ddeef1fce0b00d47",
+      "missing_day_rule": "EXPLICIT_SOURCE_DATA_LOSS_ONLY",
+      "missing_day_count": 0
+    }
+  },
+  "validation": {
+    "json_syntax": "PASS",
+    "target_evidence_hash_replay": "PASS",
+    "pr199_review_binding": "PASS",
+    "pr197_owner_decision_binding": "PASS",
+    "pr241_source_cohort_binding": "PASS",
+    "pr246_physical_unit_time_binding": "PASS",
+    "target_gate_status_preserved": "PASS",
+    "target_gate_block_reason_preserved": "PASS",
+    "canonical_gate_count_reconciliation": "PASS",
+    "current_state_stale_literal_found": 16,
+    "current_state_stale_literal_resolved": 16,
+    "current_state_stale_literal_remaining": 0,
+    "target_reconciliation_class_mutation_count": 3,
+    "other_reconciliation_class_mutation_count": 0,
+    "structural_dependency_topology_not_rewritten": "PASS",
+    "no_raw_source_read": "PASS",
+    "no_canonical_closeout": "PASS",
+    "issuance_hash_replay": "PASS"
+  },
+  "authorization_boundary": {
+    "current_main_formalization_authorized": true,
+    "canonical_gate_status_mutation_authorized": false,
+    "canonical_gate_acceptance_performed": false,
+    "independent_review_performed": false,
+    "ready_performed": false,
+    "merge_performed": false,
+    "s1_overall_acceptance": false,
+    "s1_remaining_06_authorized": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "data_safety": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "production_database_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "metric_execution": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "production_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false
+  },
+  "hash_contract": {
+    "hash_algorithm": "SHA-256",
+    "canonicalization": "UTF8_JSON_SORT_KEYS_RECURSIVELY_COMPACT_SEPARATORS_ENSURE_ASCII_FALSE",
+    "hash_scope": "FULL_ISSUANCE_EXCLUDING_FIELD_issuance_sha256",
+    "issuance_sha256": "0ace453c549e95b3b1b6be29d0bdcd4904f00a5e27d6fee1d67028d5b2712c4c"
+  }
+}

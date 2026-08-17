@@ -104,9 +104,9 @@
       "gate_class": "source",
       "required_or_conditional": "required",
       "owner_role": "source_governance_owner_role",
-      "authoritative_artifact": "source and mapping manifest",
-      "artifact_identity": "CANONICAL_GRAIN_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_MAPPING_EVIDENCE",
+      "authoritative_artifact": "docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json",
+      "artifact_identity": "source-002-canonical-grain-mapping-gate-evidence-v1",
+      "artifact_hash_or_status": "6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2A/I7 and Q2C",
       "acceptance_threshold": "CANONICAL_GRAIN_AND_MAPPING_BOUND",
@@ -116,7 +116,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Plot support remains false."
+      "notes": "Current-main gate-local evidence is issued with canonical grain SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE, plot support false, mapping policy source-002-mapping-policy-v1, and the accepted Source Cohort / Unit-Time bindings. The fact threshold is satisfied, but this gate remains BLOCKED/GRAIN_OR_DATE_AUTHORITY_MISSING because independent gate-local review and separate canonical closeout have not occurred."
     },
     {
       "gate_id": "S1-VISIBILITY",
@@ -142,9 +142,9 @@
       "gate_class": "data",
       "required_or_conditional": "required",
       "owner_role": "data_governance_owner_role",
-      "authoritative_artifact": "revision lineage and winner manifest",
-      "artifact_identity": "WINNER_MANIFEST_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_REVISION_EVIDENCE",
+      "authoritative_artifact": "docs/v0-3/s1/evidence/source-002-revision-winner-gate-evidence.json",
+      "artifact_identity": "source-002-revision-winner-gate-evidence-v1",
+      "artifact_hash_or_status": "5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2A/I7 contract",
       "acceptance_threshold": "ONE_VALID_WINNER_PER_KEY",
@@ -154,16 +154,16 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Lineage cannot be inferred from import order."
+      "notes": "Current-main evidence binds accepted IDFL_V1 mode authority, PR #199 CGR-006 PASS, the deterministic revision-policy identity, and the mode-specific NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE disposition; no winner manifest or synthetic revision graph is created, and replay/forecast requirements remain intact. The gate remains BLOCKED/REVISION_WINNER_NOT_VERIFIED pending independent review and separate canonical closeout."
     },
     {
       "gate_id": "S1-INCLUSION-EXCLUSION",
       "gate_class": "data",
       "required_or_conditional": "required",
       "owner_role": "data_quality_owner_role",
-      "authoritative_artifact": "inclusion and exclusion manifest",
-      "artifact_identity": "EXCLUSION_MANIFEST_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_COHORT_EVIDENCE",
+      "authoritative_artifact": "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-gate-evidence.json",
+      "artifact_identity": "source-002-inclusion-exclusion-gate-evidence-v1",
+      "artifact_hash_or_status": "b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580",
       "metric_contract_version": "NOT_APPLICABLE_FOR_THIS_GATE",
       "acceptance_threshold_source": "Q2A/I7 and Q2C",
       "acceptance_threshold": "REASONS_AND_COUNTS_RECONCILED",
@@ -173,7 +173,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Unknown is not zero."
+      "notes": "Current-main gate-local evidence binds D-003/D-009, the retained two-row 2025-07-22 boundary, zero known S1 business exclusions, and 233171 = 233169 + 2 with the S2 technical/data-quality boundary kept separate. The fact threshold and reasons/counts reconciliation are satisfied, but the gate remains BLOCKED/INCLUSION_POLICY_NOT_FROZEN pending independent review and separate canonical closeout."
     },
     {
       "gate_id": "S1-MISSING-CORRECTION-CANCELLATION",

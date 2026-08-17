@@ -10,7 +10,7 @@
     MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
     MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
     SOURCE_OBJECT_IDENTITY_HASHES=SOURCE_002_SHA256_FC83859871C544B584B3999B6796DDD518CDC8BB8DD9754F5B5C9D6AE62DB81A
-    SOURCE_OBJECT_IDENTITY_HASHES_STATUS=AVAILABLE_PREPARATION_ONLY
+    SOURCE_OBJECT_IDENTITY_HASHES_STATUS=ACCEPTED_MANIFEST_BOUND
     DECLARED_SOURCE_ROW_COUNT=233171
     DECLARED_SOURCE_BYTE_COUNT=28668416
     LOCAL_DAY_BOUNDARY=LOCAL_CALENDAR_DAY_00_00_ASIA_SHANGHAI
@@ -32,7 +32,7 @@
     MAPPED_CANONICAL_GROUP_COUNT=529
     UNMAPPED_ROW_COUNT=2
     UNMAPPED_DISTINCT_DATE_COUNT=1
-    INDEPENDENT_REVIEW_STATUS=PASS
+    SOURCE_COHORT_MANIFEST_INDEPENDENT_REVIEW_STATUS=PASS
 
 Current main contains the accepted final Source Cohort Manifest with its
 version, cohort identity, manifest hash, concrete 84/192/20 scope arrays, and
@@ -46,9 +46,9 @@ FORMAL_SOURCE_COHORT_MANIFEST_CREATED=true
 SOURCE_COHORT_MANIFEST_INDEPENDENTLY_ACCEPTED=true
 SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
-Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=4
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+Q2C_ACCEPTED=true
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
 STATUS_RECONCILIATION_APPLIED=true
 PR241_INDEPENDENT_REVIEW_ID=4948013727
 PR241_INDEPENDENT_REVIEWED_HEAD=b856d3823e51bb6e4f8b780363203a1c477677ca
@@ -87,7 +87,11 @@ final manifest closeout:
   identity and aggregate scope evidence.
 - Independent review of the resulting aggregate-only manifest.
 
-## Post-PR241 current-main acceptance mirror
+## Historical post-PR241 pre-PR243/Q2C snapshot
+
+`HISTORICAL_POST_PR241_PRE_LATER_ACCEPTANCE_SNAPSHOT=true`.
+The values below are retained as historical provenance only; the current-main
+refresh follows this section.
 
 ```text
 POST_PR241_CURRENT_MAIN_REVALIDATION=PASS
@@ -120,7 +124,7 @@ S2_OWNS_FINAL_MATERIALIZED_ROWSET=true
     AUTHORITY_CONTRACT=docs/v0-3/s1/source-authority-and-cohort-manifest.md
     MANIFEST_SCHEMA=docs/v0-3/s1/schemas/source-cohort-manifest.schema.json
 
-## S1-REMAINING-03 current formalization (2026-08-12)
+## HISTORICAL_PR199_PRE_LATER_ACCEPTANCE_SNAPSHOT: Task-3 preparation (2026-08-12)
 
 This section records the Task-3 formalization candidate prepared from the
 current-main governed evidence. It does not rewrite the historical
@@ -192,3 +196,56 @@ CUSTODY_RECORD_REFERENCE=source-002-custody-record-v1
 The four source-cohort-related canonical runtime rows remain `BLOCKED` and no
 canonical acceptance record was changed. This Task-3 status is preparation
 evidence pending independent review, not gate acceptance.
+
+## Current-main Task-3 formalization refresh
+
+This is the authoritative current-main mirror for the present formalization
+task. It supersedes the historical preparation values above without mutating
+the reviewed PR #199 decision record.
+
+```text
+CURRENT_MAIN_TASK3_REFRESH_BASE_SHA=5e541dabeb66f8c569227ae9c769f2441aba210e
+CURRENT_MAIN_TASK3_REFRESH_ISSUED=true
+CANONICAL_GRAIN_GATE_EVIDENCE_PATH=docs/v0-3/s1/evidence/source-002-canonical-grain-mapping-gate-evidence.json
+CANONICAL_GRAIN_GATE_EVIDENCE_VERSION=source-002-canonical-grain-mapping-gate-evidence-v1
+CANONICAL_GRAIN_GATE_EVIDENCE_SHA256=6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc
+INCLUSION_EXCLUSION_GATE_EVIDENCE_PATH=docs/v0-3/s1/evidence/source-002-inclusion-exclusion-gate-evidence.json
+INCLUSION_EXCLUSION_GATE_EVIDENCE_VERSION=source-002-inclusion-exclusion-gate-evidence-v1
+INCLUSION_EXCLUSION_GATE_EVIDENCE_SHA256=b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580
+REVISION_WINNER_GATE_EVIDENCE_PATH=docs/v0-3/s1/evidence/source-002-revision-winner-gate-evidence.json
+REVISION_WINNER_GATE_EVIDENCE_VERSION=source-002-revision-winner-gate-evidence-v1
+REVISION_WINNER_GATE_EVIDENCE_SHA256=5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e
+CURRENT_MAIN_FORMALIZATION_ISSUANCE_PATH=docs/v0-3/s1/evidence/source-002-grain-inclusion-revision-current-main-formalization-issuance.json
+CURRENT_MAIN_FORMALIZATION_ISSUANCE_VERSION=source-002-grain-inclusion-revision-current-main-formalization-issuance-v1
+CURRENT_MAIN_FORMALIZATION_ISSUANCE_SHA256=0ace453c549e95b3b1b6be29d0bdcd4904f00a5e27d6fee1d67028d5b2712c4c
+PR199_REVIEW_ID=4912786743
+PR199_REVIEW_RESULT=PASS
+PR199_REVIEWED_HEAD_SHA=32fe6ce50cdd090df8eaeb0d92008e5748f168c5
+TASK3_CURRENT_MAIN_FORMALIZATION_READY_FOR_INDEPENDENT_REVIEW=true
+CANONICAL_GRAIN_FACT_THRESHOLD_SATISFIED=true
+INCLUSION_EXCLUSION_FACT_THRESHOLD_SATISFIED=true
+REVISION_WINNER_FACT_THRESHOLD_SATISFIED=true
+S1-CANONICAL-GRAIN=BLOCKED
+S1-CANONICAL-GRAIN_BLOCK_REASON=GRAIN_OR_DATE_AUTHORITY_MISSING
+S1-INCLUSION-EXCLUSION=BLOCKED
+S1-INCLUSION-EXCLUSION_BLOCK_REASON=INCLUSION_POLICY_NOT_FROZEN
+S1-REVISION-WINNER=BLOCKED
+S1-REVISION-WINNER_BLOCK_REASON=REVISION_WINNER_NOT_VERIFIED
+S1_REMAINING_03_CANONICAL_CLOSURE=BLOCKED
+S1_REMAINING_03_COMPLETE=false
+INDEPENDENT_GATE_LOCAL_REVIEW_STATUS=NOT_STARTED
+CANONICAL_GATE_LOCAL_CLOSEOUT_PERFORMED=false
+SOURCE_AUTHORITY_ACCEPTED=true
+SOURCE_COHORT_ACCEPTED=true
+Q2C_ACCEPTED=true
+CURRENT_CANONICAL_GATE_PASS_COUNT=7
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The three fact thresholds are satisfied for formalization purposes only. The
+three canonical runtime rows remain blocked, and no accepted gate result is
+claimed until the separately required independent gate-local reviews and
+closeouts occur.
