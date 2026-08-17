@@ -78,7 +78,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "github-review-4949133128",
       "reviewed_at": "2026-08-17T06:58:24Z",
-      "notes": "PR #245 independently reviewed the Physical Meaning Attestation PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8; exact-head CI 32002755230 completed success and PR #245 merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed attestation/evidence on current main. This PR #246 performs the separate canonical row closeout from BLOCKED/MISSING_MEASUREMENT_BOUNDARY to PASS/NONE; the first valid governed field scan-weigh event and marketability boundary are bound. No other canonical gate is implied accepted."
+      "notes": "PR #245 independently reviewed the Physical Meaning Attestation PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8; exact-head CI 32002755230 completed success and PR #245 merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed attestation/evidence on current main. PR #246 performed the separate Physical Meaning canonical row closeout. No other canonical gate is implied accepted by that historical closeout."
     },
     {
       "gate_id": "S1-UNIT-AND-TIME-BASIS",
@@ -97,7 +97,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "github-review-4949133128",
       "reviewed_at": "2026-08-17T06:58:24Z",
-      "notes": "PR #245 independently reviewed the Unit/Time Basis Attestation PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8; exact-head CI 32002755230 completed success and PR #245 merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed attestation/evidence on current main. This PR #246 performs the separate canonical row closeout from BLOCKED/UNIT_OR_TIME_AUTHORITY_MISSING to PASS/NONE. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai are bound; the 0.001 kg representation remains representation, not device metrology. Canonical Grain and Inclusion/Exclusion remain separate and BLOCKED."
+      "notes": "PR #245 independently reviewed the Unit/Time Basis Attestation PASS on exact head 7acea813d3f0ae17579da325dfa2f38c7ea9d0c8; exact-head CI 32002755230 completed success and PR #245 merge 1ee6da741fe13e163b53c26b2a6705ac8eb28a72 entered the reviewed attestation/evidence on current main. PR #246 performed the separate Unit/Time Basis canonical row closeout. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai remain bound; 0.001 kg remains representation, not device metrology."
     },
     {
       "gate_id": "S1-CANONICAL-GRAIN",
@@ -111,12 +111,12 @@
       "acceptance_threshold_source": "Q2A/I7 and Q2C",
       "acceptance_threshold": "CANONICAL_GRAIN_AND_MAPPING_BOUND",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "GRAIN_OR_DATE_AUTHORITY_MISSING",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Current-main gate-local evidence is issued with canonical grain SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE, plot support false, mapping policy source-002-mapping-policy-v1, and the accepted Source Cohort / Unit-Time bindings. The fact threshold is satisfied, but this gate remains BLOCKED/GRAIN_OR_DATE_AUTHORITY_MISSING because independent gate-local review and separate canonical closeout have not occurred."
+      "reviewer": "github-review-4951647818",
+      "reviewed_at": "2026-08-17T12:37:08Z",
+      "notes": "PR #247 exact-head independent gate-local review 4951647818 returned PASS on reviewed head ac2ad97579c005c488701e4d3be22531a595ee5f; exact-head CI 32018019710 completed success. The reviewed evidence binds SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE, plot support false, mapping policy source-002-mapping-policy-v1, accepted Source Cohort scope, accepted Unit/Time basis, and the retained two-row July boundary. This separately authorized closeout changes only S1-CANONICAL-GRAIN from BLOCKED/GRAIN_OR_DATE_AUTHORITY_MISSING to PASS/NONE."
     },
     {
       "gate_id": "S1-VISIBILITY",
@@ -131,11 +131,11 @@
       "acceptance_threshold": "SOURCE_CLASS_CUTOFF_RULES_EVIDENCED",
       "allowed_not_applicable_condition": "NEVER",
       "status": "BLOCKED",
-      "block_reason": "UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED",
+      "block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "PIT v2 is PASS with 21 used rows PASS and 1 NOT_USED; Task4 implementation and post-merge evidence revalidation are complete, and SOURCE_CLASS_CUTOFF_RULES_EVIDENCED is supported. Canonical visibility remains BLOCKED solely because S1-CANONICAL-GRAIN and S1-INCLUSION-EXCLUSION have not been accepted; S1-Q2C-TARGET is accepted separately."
+      "notes": "Canonical Grain and Inclusion/Exclusion are PASS, so UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED is no longer the current runtime reason. Visibility remains BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE because the existing PIT, source-class, and mixed-authority gaps remain. S1-REMAINING-04 owns the subsequent narrow correction; this R1 only reconciles the authoritative current-state reason and does not execute S1-REMAINING-04 or independently accept Visibility."
     },
     {
       "gate_id": "S1-REVISION-WINNER",
@@ -154,7 +154,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Current-main evidence binds accepted IDFL_V1 mode authority, PR #199 CGR-006 PASS, the deterministic revision-policy identity, and the mode-specific NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE disposition; no winner manifest or synthetic revision graph is created, and replay/forecast requirements remain intact. The gate remains BLOCKED/REVISION_WINNER_NOT_VERIFIED pending independent review and separate canonical closeout."
+      "notes": "PR #247 exact-head review accepted the mode-specific IDFL evidence, including NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE and the absence of a synthetic winner manifest/revision graph. Canonical closeout is not performed because S1-MISSING-CORRECTION-CANCELLATION remains a declared hard prerequisite and is still BLOCKED/REVISION_POLICY_NOT_FROZEN."
     },
     {
       "gate_id": "S1-INCLUSION-EXCLUSION",
@@ -168,12 +168,12 @@
       "acceptance_threshold_source": "Q2A/I7 and Q2C",
       "acceptance_threshold": "REASONS_AND_COUNTS_RECONCILED",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "INCLUSION_POLICY_NOT_FROZEN",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Current-main gate-local evidence binds D-003/D-009, the retained two-row 2025-07-22 boundary, zero known S1 business exclusions, and 233171 = 233169 + 2 with the S2 technical/data-quality boundary kept separate. The fact threshold and reasons/counts reconciliation are satisfied, but the gate remains BLOCKED/INCLUSION_POLICY_NOT_FROZEN pending independent review and separate canonical closeout."
+      "reviewer": "github-review-4951647818",
+      "reviewed_at": "2026-08-17T12:37:08Z",
+      "notes": "PR #247 exact-head independent gate-local review 4951647818 returned PASS on reviewed head ac2ad97579c005c488701e4d3be22531a595ee5f; exact-head CI 32018019710 completed success. The reviewed evidence binds D-003/D-009, retains the two 2025-07-22 raw rows outside the canonical S1 cohort with no silent assignment, records zero known S1 business exclusions, and reconciles 233171 = 233169 + 2 while keeping S2 technical/data-quality exclusions separate. This separately authorized closeout changes only S1-INCLUSION-EXCLUSION from BLOCKED/INCLUSION_POLICY_NOT_FROZEN to PASS/NONE."
     },
     {
       "gate_id": "S1-MISSING-CORRECTION-CANCELLATION",
@@ -192,7 +192,7 @@
       "reviewer_role": "independent S1 reviewer",
       "reviewer": "PENDING_INDEPENDENT_REVIEW",
       "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Delayed, corrected, and void records need authority."
+      "notes": "Delayed, corrected, and void records need authority. This gate remains the hard prerequisite blocking S1-REVISION-WINNER canonical closeout."
     },
     {
       "gate_id": "S1-SPLIT-POLICY",
@@ -333,7 +333,7 @@
     "reviewer": "PENDING_INDEPENDENT_REVIEW",
     "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
     "review_result": "NOT_STARTED",
-    "review_notes": "The PR #245 gate-local review completed PASS for both attestations; this PR #246 records the separate canonical closeout. Seven canonical gates are PASS and ten remain BLOCKED; final S1 independent review remains NOT_STARTED."
+    "review_notes": "PR #247 exact-head gate-local evidence review 4951647818 passed for the Task-3 formalization package. The separately authorized bounded closeout accepts Canonical Grain and Inclusion/Exclusion only; Revision Winner remains blocked by S1-MISSING-CORRECTION-CANCELLATION. Nine canonical gates are PASS and eight remain BLOCKED; final S1 independent review remains NOT_STARTED."
   },
   "derived_status": {
     "all_required_gates_pass": false,
