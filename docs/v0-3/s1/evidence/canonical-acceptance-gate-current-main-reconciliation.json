@@ -1,14 +1,15 @@
 {
   "artifact_id": "V0_3_S1_CANONICAL_ACCEPTANCE_GATE_CURRENT_MAIN_RECONCILIATION",
-  "artifact_version": "canonical-s1-gate-reconciliation-v2",
-  "task_id": "V0_3_S1_POST_TASK3_MERGE_CURRENT_MAIN_RECONCILIATION_REFRESH_R1",
-  "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION",
-  "audited_repository_sha": "01b37d8f1ca8af43bbec9cbf76c0e542e7446c91",
+  "artifact_version": "canonical-s1-gate-reconciliation-v3",
+  "task_id": "POST_PR250_CURRENT_MAIN_GLOBAL_RECONCILIATION_REFRESH_R1",
+  "task_class": "DOCS_ONLY_GOVERNANCE_RECONCILIATION_REFRESH",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "6575fcbbc64e4d5b5ab6b7115c3191e1183ad1b8",
   "canonical_gate_count": 17,
   "canonical_completion_rule": "ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS",
   "canonical_acceptance_status": "BLOCKED",
-  "current_canonical_gate_pass_count": 9,
-  "current_canonical_gate_blocked_count": 8,
+  "current_canonical_gate_pass_count": 10,
+  "current_canonical_gate_blocked_count": 7,
   "fact_layer_complete": true,
   "formal_attestations_issued": true,
   "independent_gate_local_review_pending": true,
@@ -63,26 +64,42 @@
   "current_main_artifact_wins": true,
   "historical_pr_history_is_provenance_only": true,
   "current_main_refresh": {
-    "task_id": "V0_3_S1_POST_TASK3_MERGE_CURRENT_MAIN_RECONCILIATION_REFRESH_R1",
-    "audited_repository_sha": "01b37d8f1ca8af43bbec9cbf76c0e542e7446c91",
-    "previous_audited_repository_sha": "5e541dabeb66f8c569227ae9c769f2441aba210e",
+    "task_id": "POST_PR250_CURRENT_MAIN_GLOBAL_RECONCILIATION_REFRESH_R1",
+    "audited_repository_sha": "6575fcbbc64e4d5b5ab6b7115c3191e1183ad1b8",
+    "previous_audited_repository_sha": "01b37d8f1ca8af43bbec9cbf76c0e542e7446c91",
     "canonical_runtime_source": "docs/v0-3/s1/evidence/s1-acceptance-record.json",
     "canonical_runtime_status_mutation_performed": false,
     "canonical_runtime_block_reason_mutation_performed": false,
     "authoritative_acceptance_record_changed": false,
-    "acceptance_record_sha256": "992d96de915ca1641b732f9ed500cbafe9b8b901",
-    "acceptance_package_sha256": "835cf6e6829f3502e2464dac218b295a9a2ff76e",
-    "current_canonical_gate_pass_count": 9,
-    "current_canonical_gate_blocked_count": 8,
+    "acceptance_record_git_blob_sha": "6a182ab9869f7d9565427275fe1552accf1972cd",
+    "acceptance_package_git_blob_sha": "db358ee7118ae7a5cf9be39d5b6c59e757ceb63f",
+    "acceptance_record_sha256": "b4088e78d96a8987afa4dd902e34546be715a2c610e772da055d1aa20019f3c3",
+    "acceptance_package_sha256": "7fc7bc147d24337289a83cff65c6a6daebb0522974ba1beea1c313f17d9d01bd",
+    "current_canonical_gate_pass_count": 10,
+    "current_canonical_gate_blocked_count": 7,
     "pit_audited_input_count": 22,
     "pit_pass_count": 21,
     "pit_partial_count": 0,
     "pit_blocked_count": 0,
     "pit_not_used_count": 1,
     "pit_minimum_implementation_gap_count": 0,
+    "pit_evidence_git_blob_sha": "9ea78aa7f6bc8a5e23e5360be7962af4d7d5737f",
+    "pit_workpaper_git_blob_sha": "5bd46214e0c766bba9c63df5b191846a38645e3f",
     "s1_remaining_04_complete": true,
     "s1_remaining_04_reexecution_required": false,
     "s1_remaining_04_executed_by_this_task": false,
+    "source_pr_number": 250,
+    "source_pr_head_sha": "e42f90dd375d60b7f587e8cd46f510f5357deca4",
+    "source_pr_merge_sha": "6575fcbbc64e4d5b5ab6b7115c3191e1183ad1b8",
+    "source_exact_head_ci_run_id": 32092509734,
+    "source_exact_head_ci_head_sha": "e42f90dd375d60b7f587e8cd46f510f5357deca4",
+    "source_exact_head_ci_status": "completed",
+    "source_exact_head_ci_conclusion": "success",
+    "source_closeout_review_id": 4956699710,
+    "source_closeout_review_graphql_node": "PRR_kwDOS_gTTs8AAAABJ3E8Pg",
+    "source_closeout_review_result": "PASS",
+    "source_merge_decision_comment_id": 5322913507,
+    "source_post_merge_verification_comment_id": 5322951733,
     "no_step_implies_the_next": true
   },
   "post_task4_current_state": {
@@ -96,7 +113,15 @@
     "pit_gap_count": 0,
     "pit_revalidation_result": "PASS",
     "visibility_threshold_evidence_satisfied": true,
-    "remaining_action": "SEPARATELY_AUTHORIZED_VISIBILITY_GATE_LOCAL_RECONCILIATION_AND_REVIEW"
+    "remaining_action": "PRESERVE_ACCEPTED_VISIBILITY_GATE_AND_NO_PIT_REEXECUTION",
+    "audited_repository_sha": "6575fcbbc64e4d5b5ab6b7115c3191e1183ad1b8",
+    "pit_audited_input_count": 22,
+    "pit_pass_count": 21,
+    "pit_partial_count": 0,
+    "pit_blocked_count": 0,
+    "pit_not_used_count": 1,
+    "visibility_current_main_status_after_pr250": "PASS",
+    "visibility_current_main_block_reason_after_pr250": "NONE"
   },
   "historical_current_pit_gap_accounting": {
     "historical_task_id": "S1-REMAINING-04",
@@ -106,14 +131,15 @@
     "current_pit_revalidation_result": "PASS",
     "historical_current_pit_gap_semantics_separated": true,
     "s1_remaining_04_reexecution_required": false,
-    "s1_remaining_04_executed_by_this_task": false
+    "s1_remaining_04_executed_by_this_task": false,
+    "historical_values_are_provenance_only": true
   },
   "gate_class_counts": {
-    "FORMALIZATION_OR_REVIEW_READY": 3,
-    "CANONICALLY_ACCEPTED": 9,
+    "CANONICALLY_ACCEPTED": 10,
+    "FORMALIZATION_OR_REVIEW_READY": 2,
     "NARROW_CORRECTION_REQUIRED": 0,
-    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 0,
-    "UPSTREAM_DEPENDENCY_BLOCKED": 5
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 1,
+    "UPSTREAM_DEPENDENCY_BLOCKED": 4
   },
   "dependency_semantics": {
     "hard_prerequisite_definition": "A gate or accepted artifact that must close before the current gate can close.",
@@ -178,7 +204,7 @@
   ],
   "gates": [
     {
-      "gate_id": "S1-Q2C-TARGET",
+    "gate_id": "S1-Q2C-TARGET",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "business",
@@ -213,12 +239,12 @@
       "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "PRESERVE_PHYSICAL_MEANING_UNIT_TIME_AND_OTHER_GATES_AS_SEPARATE_CANONICAL_CLOSEOUTS",
       "recommended_action_class": "Q2C_CANONICAL_ACCEPTANCE"
     },
     {
-      "gate_id": "S1-SOURCE-AUTHORITY",
+    "gate_id": "S1-SOURCE-AUTHORITY",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "source",
@@ -252,12 +278,12 @@
       "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "PRESERVE_SOURCE_COHORT_AND_DOWNSTREAM_GATE_BLOCKERS",
       "recommended_action_class": "SOURCE_AUTHORITY_FORMALIZATION"
     },
     {
-      "gate_id": "S1-SOURCE-COHORT",
+    "gate_id": "S1-SOURCE-COHORT",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "source",
@@ -292,12 +318,12 @@
       "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "PRESERVE_S1_SOURCE_COHORT_IDENTITY_AND_S2_FINAL_ROWSET_BOUNDARY",
       "recommended_action_class": "SOURCE_COHORT_CANONICAL_ACCEPTANCE"
     },
     {
-      "gate_id": "S1-PHYSICAL-MEANING",
+    "gate_id": "S1-PHYSICAL-MEANING",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "business",
@@ -330,15 +356,19 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": false,
       "requires_independent_review": false,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-Q2C-TARGET"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY"
+      ],
+      "co_resolution_gate_ids": [
+        "S1-Q2C-TARGET"
+      ],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "PRESERVE_ACCEPTED_PHYSICAL_MEANING_BOUNDARY",
       "recommended_action_class": "PHYSICAL_MEANING_CANONICAL_ACCEPTANCE"
     },
     {
-      "gate_id": "S1-UNIT-AND-TIME-BASIS",
+    "gate_id": "S1-UNIT-AND-TIME-BASIS",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "business",
@@ -373,10 +403,15 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": false,
       "requires_independent_review": false,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-Q2C-TARGET", "S1-INCLUSION-EXCLUSION"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY"
+      ],
+      "co_resolution_gate_ids": [
+        "S1-Q2C-TARGET",
+        "S1-INCLUSION-EXCLUSION"
+      ],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "PRESERVE_ACCEPTED_UNIT_TIME_BASIS",
       "recommended_action_class": "UNIT_TIME_BASIS_CANONICAL_ACCEPTANCE"
     },
@@ -415,8 +450,13 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": false,
       "requires_independent_review": false,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY"
+      ],
+      "co_resolution_gate_ids": [
+        "S1-SOURCE-COHORT",
+        "S1-INCLUSION-EXCLUSION"
+      ],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
       "recommended_next_action": "PRESERVE_CANONICAL_GRAIN_PASS_AND_RECONCILE_DOWNSTREAM_GATE_LOCAL_BLOCKERS",
@@ -424,8 +464,8 @@
     },
     {
       "gate_id": "S1-VISIBILITY",
-      "canonical_runtime_status": "BLOCKED",
-      "canonical_block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+      "canonical_runtime_status": "PASS",
+      "canonical_block_reason": "NONE",
       "gate_class": "data",
       "owner_role": "data_governance_owner_role",
       "authoritative_artifact": "visibility and snapshot manifest",
@@ -440,31 +480,39 @@
         "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
       ],
       "supporting_evidence_facts": [
-        "Current-main PIT evidence is 21 PASS, 0 PARTIAL, 0 BLOCKED, 1 NOT_USED across 22 audited inputs; its minimum implementation gap count is 0 and its revalidation result is PASS.",
-        "PR #189 Task8/exact-cutoff, PR #190 Task8 persisted availability, PR #192 residual artifact authority, and PR #194 Weather authority are revalidated in current evidence.",
-        "Task4 is complete in current-main evidence; the remaining action is a separately authorized visibility gate-local reconciliation/review, not a new PIT implementation."
+        "Current-main PIT evidence contains 22 audited inputs: 21 PASS, 0 PARTIAL, 0 BLOCKED, and 1 NOT_USED; minimum implementation gap count is 0 and PIT revalidation is PASS.",
+        "S1-REMAINING-04 is complete in current-main evidence and reexecution_required=false; no new PIT implementation is required by this refresh.",
+        "PR #250 exact-head formalization review 4956221333 and exact-head CI 32086692500 are provenance for the reviewed evidence. PR #250 closeout review 4956699710, merge decision comment 5322913507, and post-merge verification comment 5322951733 establish that the closeout content entered current main unchanged.",
+        "The authoritative acceptance row is PASS/NONE with reviewer github-review-4956221333 and reviewed_at 2026-08-18T01:22:10Z. This refresh does not reattribute that row to the later closeout review and does not imply downstream or S1 acceptance."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
-      "reconciliation_reason": "Current-main PIT evidence satisfies the visibility threshold and all five hard prerequisites pass in the authoritative acceptance record. The canonical row remains BLOCKED with HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE; that stored reason is semantically stale, so a separately authorized gate-local reconciliation/review is required before PASS/NONE can be written.",
+      "reconciliation_class": "CANONICALLY_ACCEPTED",
+      "reconciliation_reason": "Current-main evidence and the merged PR #250 closeout support the canonical S1-VISIBILITY PASS/NONE state. The canonical row was already changed by the separately authorized PR #250 closeout; this refresh records no new gate mutation.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
-      "requires_docs_formalization": true,
-      "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-Q2C-TARGET", "S1-SOURCE-COHORT", "S1-CANONICAL-GRAIN", "S1-INCLUSION-EXCLUSION"],
+      "requires_docs_formalization": false,
+      "requires_independent_review": false,
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY",
+        "S1-Q2C-TARGET",
+        "S1-SOURCE-COHORT",
+        "S1-CANONICAL-GRAIN",
+        "S1-INCLUSION-EXCLUSION"
+      ],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
-      "current_canonical_block_reason_semantically_stale": true,
+      "current_canonical_block_reason_semantically_stale": false,
       "visibility_threshold_evidence_satisfied": true,
       "visibility_implementation_gap_count": 0,
       "visibility_all_hard_prerequisites_pass": true,
-      "recommended_next_action": "PERFORM_GATE_LOCAL_VISIBILITY_RECONCILIATION_AND_INDEPENDENT_REVIEW_BEFORE_PASS_NONE_CLOSEOUT",
-      "recommended_action_class": "GATE_LOCAL_RECONCILIATION_AND_INDEPENDENT_REVIEW"
+      "recommended_next_action": "PRESERVE_CANONICAL_VISIBILITY_PASS_NONE_AND_RECONCILE_ONLY_SEPARATELY_AUTHORIZED_DOWNSTREAM_GATES",
+      "recommended_action_class": "CANONICALLY_ACCEPTED",
+      "canonical_pass_none_write_required": false
     },
     {
       "gate_id": "S1-REVISION-WINNER",
@@ -486,23 +534,29 @@
         "docs/v0-3/s1/workpapers/actual-harvest-label-lifecycle-and-point-in-time-preparation.md"
       ],
       "supporting_evidence_facts": [
-        "The current-main evidence binds the accepted IDFL_V1 mode, source-002-idfl-revision-policy-v1, identity source-002-idfl-revision-policy-identity-v1, and winner/lineage rule NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE.",
-        "PR #199 CGR-006 was independently reviewed PASS; revision_winner_required, IDFL winner manifest, and IDFL revision graph are false, while replay-mode and forecast-input requirements remain preserved.",
-        "No winner manifest or synthetic revision graph is required or created for the Source002 IDFL label side; independent review and separate canonical closeout remain pending."
+        "Current-main IDFL evidence binds revision_policy_version source-002-idfl-revision-policy-v1, revision_policy_identity source-002-idfl-revision-policy-identity-v1, and winner/lineage rule NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE.",
+        "Revision winner and lineage are not required for the accepted IDFL label-side mode; no synthetic winner manifest, revision graph, latest-row fallback, largest-revision fallback, or fabricated lifecycle fact is created.",
+        "The canonical row remains BLOCKED/REVISION_WINNER_NOT_VERIFIED because S1-MISSING-CORRECTION-CANCELLATION remains its hard prerequisite and is BLOCKED/REVISION_POLICY_NOT_FROZEN."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
       "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
-      "reconciliation_reason": "The accepted IDFL mode and reviewed Source002 CGR-006 disposition are bound, and no synthetic winner manifest or revision graph is required. The canonical row remains BLOCKED until the separately authorized S1-MISSING-CORRECTION-CANCELLATION gate-local closeout is complete.",
+      "reconciliation_reason": "Revision Winner remains upstream-dependency blocked until the separately authorized Missing/Correction/Cancellation gate-local closeout; no revision-winner implementation is required or performed here.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
       "requires_docs_formalization": false,
       "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-MISSING-CORRECTION-CANCELLATION"],
-      "co_resolution_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY",
+        "S1-MISSING-CORRECTION-CANCELLATION"
+      ],
+      "co_resolution_gate_ids": [
+        "S1-SOURCE-COHORT",
+        "S1-INCLUSION-EXCLUSION"
+      ],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
       "revision_winner_required": false,
@@ -546,8 +600,13 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": false,
       "requires_independent_review": false,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-SOURCE-COHORT", "S1-CANONICAL-GRAIN"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY"
+      ],
+      "co_resolution_gate_ids": [
+        "S1-SOURCE-COHORT",
+        "S1-CANONICAL-GRAIN"
+      ],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
       "recommended_next_action": "PRESERVE_INCLUSION_EXCLUSION_PASS_AND_RECONCILE_DOWNSTREAM_GATE_LOCAL_BLOCKERS",
@@ -577,23 +636,25 @@
         "docs/v0-3/s1/evidence/source-002-revision-winner-gate-evidence.json"
       ],
       "supporting_evidence_facts": [
-        "The current-main evidence binds revision_policy_version source-002-idfl-revision-policy-v1, revision_policy_identity source-002-idfl-revision-policy-identity-v1, and winner/lineage rule NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE.",
+        "Current-main evidence binds revision_policy_version source-002-idfl-revision-policy-v1, revision_policy_identity source-002-idfl-revision-policy-identity-v1, and winner/lineage rule NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE.",
         "The final Source Owner Attestation contains non-empty governed late_entry_rule, missing_day_rule, correction_rule, void_rule, and final_confirmation_rule values.",
         "The current-main completeness authority binds source-002-completeness-policy-v1, source-002-completeness-declaration-v1, and the 2026-04-16 source-object completeness watermark.",
-        "The canonical row remains BLOCKED with REVISION_POLICY_NOT_FROZEN; this reconciliation does not close the gate, and a separately authorized gate-local closeout and independent review remain required."
+        "The canonical row remains BLOCKED with REVISION_POLICY_NOT_FROZEN. The threshold evidence is satisfied, but this refresh does not close the gate; a separately authorized gate-local closeout and independent review remain required."
       ],
       "missing_authoritative_artifacts": [],
       "missing_decisions_or_authorities": [],
       "remaining_repository_corrections": [],
       "reconciliation_class": "FORMALIZATION_OR_REVIEW_READY",
-      "reconciliation_reason": "Current-main evidence satisfies the LATE_ENTRY_REVISION_VOID_RULES_PRESENT threshold: the governed lifecycle bindings, completeness authority, and final Source Owner Attestation values are present. The canonical row remains BLOCKED with REVISION_POLICY_NOT_FROZEN and requires a separately authorized gate-local closeout and independent review; no new business or Source Owner input is required.",
+      "reconciliation_reason": "Current-main evidence satisfies LATE_ENTRY_REVISION_VOID_RULES_PRESENT. No new business or Source Owner input is required; docs formalization and independent review remain the separately authorized next action.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": false,
       "requires_production_code_change": false,
       "requires_docs_formalization": true,
       "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY"
+      ],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
@@ -638,7 +699,13 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": true,
       "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION", "S1-VISIBILITY", "S1-METRIC-CONTRACT", "S1-DATA-CUSTODY"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-COHORT",
+        "S1-INCLUSION-EXCLUSION",
+        "S1-VISIBILITY",
+        "S1-METRIC-CONTRACT",
+        "S1-DATA-CUSTODY"
+      ],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": false,
       "can_be_closed_by_current_task": false,
@@ -661,33 +728,42 @@
         "docs/v0-3/s1/evidence/source-cohort-evidence-status.md"
       ],
       "supporting_evidence_facts": [
-        "Metric identities, status semantics, Decimal rules, and the S2 daily-rowset dependency are defined in current contracts.",
-        "The S1 minimum-coverage and data-quality policies are independently reviewed and accepted as standalone gates; the metric contract remains blocked by the other source, target, visibility, rowset, and metric-binding prerequisites.",
-        "No accepted source, Q2C target, visibility package, or S1 metric binding record is available for a closed metric contract."
+        "Current-main Remaining-05 readiness records metric contract version v0.3-metric-contract-v1, 22 registry identities, planning alias crosswalk bound, and execution status NOT_EXECUTED.",
+        "Decision S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE remains PREPARED_NOT_ACCEPTED for owner_role model_validation_owner_role; repository evidence is present but an external validation-policy decision is required.",
+        "Visibility is now PASS/NONE in current-main, so the prior Visibility prerequisite is no longer a blocker. No metric execution, metric result issuance, TEST access, or holdout access is performed by this reconciliation.",
+        "The external decision cannot be inferred and cannot be decided in this task; metric acceptance remains false and the canonical row remains BLOCKED/METRIC_CONTRACT_NOT_ACCEPTED."
       ],
       "missing_authoritative_artifacts": [
-        "Accepted S1 metric binding record/version",
-        "Source/target/visibility prerequisites and accepted metric binding"
+        "Accepted S1 metric binding record/version"
       ],
-      "missing_decisions_or_authorities": [],
+      "missing_decisions_or_authorities": [
+        "External model-validation-owner decision S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE"
+      ],
       "remaining_repository_corrections": [],
-      "reconciliation_class": "UPSTREAM_DEPENDENCY_BLOCKED",
-      "reconciliation_reason": "The metric definitions are present, but acceptance cannot occur before source, target, visibility, and threshold authorities are resolved.",
+      "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+      "reconciliation_reason": "Metric definitions and repository evidence are prepared, but external validation-policy authority must accept the metric contract. The classification is external authority required, not an upstream Visibility failure.",
       "requires_new_business_input": false,
       "requires_source_owner_authority": false,
       "requires_validation_policy_decision": true,
       "requires_production_code_change": false,
       "requires_docs_formalization": true,
       "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-Q2C-TARGET", "S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-VISIBILITY", "S1-MINIMUM-COVERAGE", "S1-DATA-QUALITY-THRESHOLDS"],
+      "hard_prerequisite_gate_ids": [
+        "S1-Q2C-TARGET",
+        "S1-SOURCE-AUTHORITY",
+        "S1-SOURCE-COHORT",
+        "S1-VISIBILITY",
+        "S1-MINIMUM-COVERAGE",
+        "S1-DATA-QUALITY-THRESHOLDS"
+      ],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": false,
       "can_be_closed_by_current_task": false,
-      "recommended_next_action": "FREEZE_S1_METRIC_CONTRACT_AFTER_SOURCE_TARGET_VISIBILITY_AND_THRESHOLD_AUTHORITY",
-      "recommended_action_class": "VALIDATION_POLICY_DECISION"
+      "recommended_next_action": "OBTAIN_EXTERNAL_S1_METRIC_CONTRACT_DECISION_FROM_MODEL_VALIDATION_OWNER",
+      "recommended_action_class": "EXTERNAL_VALIDATION_POLICY_DECISION"
     },
     {
-      "gate_id": "S1-MINIMUM-COVERAGE",
+    "gate_id": "S1-MINIMUM-COVERAGE",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "metrics",
@@ -723,12 +799,12 @@
       "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "REVALIDATE_REMAINING_05_AFTER_DATA_QUALITY_GATE_CLOSEOUT",
       "recommended_action_class": "GOVERNANCE_FORMALIZATION"
     },
     {
-      "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
+    "gate_id": "S1-DATA-QUALITY-THRESHOLDS",
       "canonical_runtime_status": "PASS",
       "canonical_block_reason": "NONE",
       "gate_class": "data",
@@ -764,7 +840,7 @@
       "hard_prerequisite_gate_ids": [],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": true,
-      "can_be_closed_by_current_task": true,
+    "can_be_closed_by_current_task": true,
       "recommended_next_action": "REVALIDATE_REMAINING_05_AFTER_DATA_QUALITY_GATE_CLOSEOUT",
       "recommended_action_class": "GOVERNANCE_FORMALIZATION"
     },
@@ -801,8 +877,12 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": false,
       "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-AUTHORITY"],
-      "co_resolution_gate_ids": ["S1-SOURCE-COHORT"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-AUTHORITY"
+      ],
+      "co_resolution_gate_ids": [
+        "S1-SOURCE-COHORT"
+      ],
       "can_be_formalized_without_new_business_fact": true,
       "can_be_closed_by_current_task": false,
       "recommended_next_action": "SUBMIT_ISSUED_CUSTODY_RECORD_FOR_INDEPENDENT_REVIEW",
@@ -841,7 +921,15 @@
       "requires_production_code_change": false,
       "requires_docs_formalization": true,
       "requires_independent_review": true,
-      "hard_prerequisite_gate_ids": ["S1-SOURCE-COHORT", "S1-CANONICAL-GRAIN", "S1-INCLUSION-EXCLUSION", "S1-VISIBILITY", "S1-MINIMUM-COVERAGE", "S1-DATA-CUSTODY", "S1-SPLIT-POLICY"],
+      "hard_prerequisite_gate_ids": [
+        "S1-SOURCE-COHORT",
+        "S1-CANONICAL-GRAIN",
+        "S1-INCLUSION-EXCLUSION",
+        "S1-VISIBILITY",
+        "S1-MINIMUM-COVERAGE",
+        "S1-DATA-CUSTODY",
+        "S1-SPLIT-POLICY"
+      ],
       "co_resolution_gate_ids": [],
       "can_be_formalized_without_new_business_fact": false,
       "can_be_closed_by_current_task": false,
@@ -864,7 +952,7 @@
         "docs/v0-3/development-plan.md"
       ],
       "supporting_evidence_facts": [
-        "The canonical record contains exactly 17 required gates; the overall acceptance remains BLOCKED while nine required gate rows are PASS and eight remain BLOCKED.",
+        "The canonical record contains exactly 17 required gates; the overall acceptance remains BLOCKED while ten required gate rows are PASS and seven remain BLOCKED.",
         "Independent review status is NOT_STARTED and the completion rule requires every required row to be PASS.",
         "This reconciliation package is evidence preparation only and cannot self-attest the final S1 result."
       ],
@@ -912,7 +1000,13 @@
       "task_id": "S1-REMAINING-01",
       "task": "SOURCE_AUTHORITY_AND_SCOPE_DECISION_PACKAGE",
       "objective": "Obtain the source-owner attestation and resolve applicability, completeness, local-date, unmapped-date, coverage-scope, and inclusion/exclusion authority without reading new raw rows in this task.",
-      "advances_gate_ids": ["S1-SOURCE-AUTHORITY", "S1-SOURCE-COHORT", "S1-INCLUSION-EXCLUSION", "S1-CANONICAL-GRAIN", "S1-MISSING-CORRECTION-CANCELLATION"],
+      "advances_gate_ids": [
+        "S1-SOURCE-AUTHORITY",
+        "S1-SOURCE-COHORT",
+        "S1-INCLUSION-EXCLUSION",
+        "S1-CANONICAL-GRAIN",
+        "S1-MISSING-CORRECTION-CANCELLATION"
+      ],
       "dependencies": [],
       "action_class": "BUSINESS_DECISION",
       "why_ordered_here": "This is the highest-leverage upstream authority package and removes the largest shared blocker for source, scope, grain, date, lifecycle, Q2C, visibility, split, and holdout work.",
@@ -923,8 +1017,13 @@
       "task_id": "S1-REMAINING-02",
       "task": "PHYSICAL_UNIT_TIME_FORMALIZATION",
       "objective": "Turn the already reconciled physical, recorded-label, unit, time, and grain facts into the separate Physical Meaning and Unit/Time Basis gate artifacts; the Q2C target is already accepted.",
-      "advances_gate_ids": ["S1-PHYSICAL-MEANING", "S1-UNIT-AND-TIME-BASIS"],
-      "dependencies": ["S1-REMAINING-01"],
+      "advances_gate_ids": [
+        "S1-PHYSICAL-MEANING",
+        "S1-UNIT-AND-TIME-BASIS"
+      ],
+      "dependencies": [
+        "S1-REMAINING-01"
+      ],
       "action_class": "BUSINESS_DECISION",
       "why_ordered_here": "The Q2C target is closed; separate physical/time authority must still be formally bound before downstream split, metric, and holdout artifacts can close.",
       "no_forecast_side_target_substitution": true
@@ -934,8 +1033,16 @@
       "task_id": "S1-REMAINING-03",
       "task": "FORMALIZE_SOURCE_COHORT_GRAIN_INCLUSION_AND_REVISION_ARTIFACTS",
       "objective": "Issue the accepted cohort, mapping, inclusion/exclusion, canonical-grain, and source-specific revision/winner dispositions from the approved authority package.",
-      "advances_gate_ids": ["S1-SOURCE-COHORT", "S1-CANONICAL-GRAIN", "S1-INCLUSION-EXCLUSION", "S1-REVISION-WINNER"],
-      "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02"],
+      "advances_gate_ids": [
+        "S1-SOURCE-COHORT",
+        "S1-CANONICAL-GRAIN",
+        "S1-INCLUSION-EXCLUSION",
+        "S1-REVISION-WINNER"
+      ],
+      "dependencies": [
+        "S1-REMAINING-01",
+        "S1-REMAINING-02"
+      ],
       "action_class": "EVIDENCE_FORMALIZATION",
       "why_ordered_here": "These artifacts freeze the source universe and winner/inclusion semantics needed by visibility, split, quality, and holdout decisions.",
       "no_final_rowset_materialization": true
@@ -945,35 +1052,65 @@
       "task_id": "S1-REMAINING-04",
       "task": "NARROW_PIT_VISIBILITY_AND_MIXED_AUTHORITY_CORRECTION",
       "objective": "Close the four current PIT implementation/authority gaps: planning as-of provenance, Analytics factory-receipt taxonomy, Analytics composite source-cutoff binding, and Task9 mixed-authority reconciliation.",
-      "advances_gate_ids": ["S1-VISIBILITY"],
-      "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02", "S1-REMAINING-03"],
+      "advances_gate_ids": [
+        "S1-VISIBILITY"
+      ],
+      "dependencies": [
+        "S1-REMAINING-01",
+        "S1-REMAINING-02",
+        "S1-REMAINING-03"
+      ],
       "action_class": "NARROW_IMPLEMENTATION_CORRECTION",
       "why_ordered_here": "The historical correction package was ordered after source-class and target authorities were stable and before visibility formalization; its completion is preserved as current execution state below.",
       "pit_gap_count": 4,
-      "does_not_equal_four_total_s1_tasks": true
+      "does_not_equal_four_total_s1_tasks": true,
+      "execution_state": "COMPLETE",
+      "current_main_status": "COMPLETE",
+      "remaining_task": false,
+      "reexecution_required": false,
+      "executed_by_this_task": false
     },
     {
       "order": 5,
       "task_id": "S1-REMAINING-05",
       "task": "THRESHOLD_METRIC_SPLIT_AND_HOLDOUT_DECISION_PACKAGE",
       "objective": "Reconcile the accepted minimum-coverage and data-quality policies, freeze the metric contract, then prepare the time-ordered split and holdout-feasibility artifacts.",
-      "advances_gate_ids": ["S1-METRIC-CONTRACT", "S1-SPLIT-POLICY", "S1-HOLDOUT-FEASIBILITY"],
-      "dependencies": ["S1-REMAINING-03", "S1-REMAINING-04"],
-      "required_gate_artifact_ids": ["S1-DATA-CUSTODY"],
+      "advances_gate_ids": [
+        "S1-METRIC-CONTRACT",
+        "S1-SPLIT-POLICY",
+        "S1-HOLDOUT-FEASIBILITY"
+      ],
+      "dependencies": [
+        "S1-REMAINING-03",
+        "S1-REMAINING-04"
+      ],
+      "required_gate_artifact_ids": [
+        "S1-DATA-CUSTODY"
+      ],
       "action_class": "VALIDATION_POLICY_DECISION",
       "why_ordered_here": "Thresholds and source/visibility authority are prerequisites to a defensible metric, split, and feasibility decision; no threshold may be inferred from observed counts.",
-      "test_or_external_holdout_access": "NOT_AUTHORIZED_BY_THIS_TASK"
+      "test_or_external_holdout_access": "NOT_AUTHORIZED_BY_THIS_TASK",
+      "execution_state": "NOT_AUTHORIZED"
     },
     {
       "order": 6,
       "task_id": "S1-REMAINING-06",
       "task": "FINAL_S1_INDEPENDENT_ACCEPTANCE_REVIEW",
       "objective": "Review all 17 required canonical artifacts, record accepted gate rows, and independently calculate S1 acceptance.",
-      "advances_gate_ids": ["S1-INDEPENDENT-REVIEW"],
-      "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02", "S1-REMAINING-03", "S1-REMAINING-04", "S1-REMAINING-05"],
+      "advances_gate_ids": [
+        "S1-INDEPENDENT-REVIEW"
+      ],
+      "dependencies": [
+        "S1-REMAINING-01",
+        "S1-REMAINING-02",
+        "S1-REMAINING-03",
+        "S1-REMAINING-04",
+        "S1-REMAINING-05"
+      ],
       "action_class": "INDEPENDENT_REVIEW",
       "why_ordered_here": "The canonical completion rule requires all 17 required rows to be PASS; this reconciliation cannot issue that result.",
-      "s1_acceptance_issued_by_this_task": false
+      "s1_acceptance_issued_by_this_task": false,
+      "execution_state": "NOT_AUTHORIZED"
     }
   ],
   "s1_acceptance_boundary": {
@@ -986,16 +1123,18 @@
     "s1_acceptance_issued": false
   },
   "visibility_current_main_reconciliation": {
-    "canonical_runtime_status": "BLOCKED",
-    "canonical_runtime_block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+    "canonical_runtime_status": "PASS",
+    "canonical_runtime_block_reason": "NONE",
     "canonical_runtime_row_mutated_by_this_task": false,
-    "current_canonical_block_reason_semantically_stale": true,
+    "current_canonical_block_reason_semantically_stale": false,
     "pit_audited_input_count": 22,
     "pit_pass_count": 21,
     "pit_partial_count": 0,
     "pit_blocked_count": 0,
     "pit_not_used_count": 1,
     "pit_minimum_implementation_gap_count": 0,
+    "pit_evidence_git_blob_sha": "9ea78aa7f6bc8a5e23e5360be7962af4d7d5737f",
+    "pit_workpaper_git_blob_sha": "5bd46214e0c766bba9c63df5b191846a38645e3f",
     "pit_revalidation_result": "PASS",
     "pit_supports_s1_visibility": true,
     "task4_complete": true,
@@ -1007,10 +1146,13 @@
     "visibility_reimplementation_required": false,
     "visibility_requires_new_business_input": false,
     "visibility_requires_production_code_change": false,
-    "visibility_requires_docs_formalization": true,
-    "visibility_requires_independent_review": true,
-    "canonical_pass_none_write_required": true,
-    "next_action": "PERFORM_GATE_LOCAL_VISIBILITY_RECONCILIATION_AND_INDEPENDENT_REVIEW_BEFORE_PASS_NONE_CLOSEOUT"
+    "visibility_requires_docs_formalization": false,
+    "visibility_requires_independent_review": false,
+    "canonical_pass_none_write_required": false,
+    "pr250_closeout_review_id": 4956699710,
+    "canonical_row_reviewer": "github-review-4956221333",
+    "canonical_row_reviewed_at": "2026-08-18T01:22:10Z",
+    "next_action": "PRESERVE_CANONICAL_VISIBILITY_PASS_NONE_AND_RECONCILE_ONLY_SEPARATELY_AUTHORIZED_DOWNSTREAM_GATES"
   },
   "missing_correction_cancellation_current_main_reconciliation": {
     "canonical_runtime_status": "BLOCKED",
@@ -1050,7 +1192,8 @@
     "s1_remaining_04_executed_by_this_task": false,
     "s1_remaining_05_authorized": false,
     "s1_remaining_06_authorized": false,
-    "no_step_implies_the_next": true
+    "no_step_implies_the_next": true,
+    "audited_repository_sha": "6575fcbbc64e4d5b5ab6b7115c3191e1183ad1b8"
   },
   "validation": {
     "json_syntax": "PASS",
@@ -1058,15 +1201,15 @@
     "unique_gate_id_count": 17,
     "missing_gate_count": 0,
     "duplicate_gate_count": 0,
-    "authoritative_acceptance_record_pass_count": 9,
-    "authoritative_acceptance_record_blocked_count": 8,
-    "reconciliation_pass_count": 9,
-    "reconciliation_blocked_count": 8,
-    "canonically_accepted_count": 9,
-    "formalization_or_review_ready_count": 3,
+    "authoritative_acceptance_record_pass_count": 10,
+    "authoritative_acceptance_record_blocked_count": 7,
+    "reconciliation_pass_count": 10,
+    "reconciliation_blocked_count": 7,
+    "canonically_accepted_count": 10,
+    "formalization_or_review_ready_count": 2,
     "narrow_correction_required_count": 0,
-    "external_authority_or_decision_required_count": 0,
-    "upstream_dependency_blocked_count": 5,
+    "external_authority_or_decision_required_count": 1,
+    "upstream_dependency_blocked_count": 4,
     "classification_count_sum": 17,
     "all_runtime_pass_rows_classified_canonically_accepted": true,
     "s1_remaining_04_task_id_unchanged": true,
@@ -1089,14 +1232,23 @@
     "s1_remaining_04_complete": true,
     "s1_remaining_04_reexecution_required": false,
     "visibility_all_hard_prerequisites_pass": true,
+    "visibility_threshold_evidence_satisfied": true,
+    "visibility_current_status": "PASS",
+    "visibility_current_block_reason": "NONE",
     "missing_correction_cancellation_required_rule_bindings_present": true,
+    "missing_correction_cancellation_threshold_evidence_satisfied": true,
     "revision_policy_identity_present": true,
     "revision_winner_required": false,
     "synthetic_revision_winner_artifact_created": false,
+    "metric_contract_reclassified_after_visibility_closeout": true,
+    "metric_contract_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+    "metric_contract_external_decision_required": true,
     "json_markdown_current_state_parity": "PASS",
     "dependency_graph_validation": "PASS",
     "task_graph_validation": "PASS",
-    "git_diff_check": "PASS"
+    "git_diff_check": "PASS",
+    "no_gate_closeout_performed": true,
+    "next_gate_started": false
   },
   "s2_authorization_boundary": {
     "dependency": "S1_ACCEPTED -> S2_MAY_BE_AUTHORIZED",
@@ -1104,5 +1256,75 @@
     "v0_3_s2_started": false,
     "s2_task_created_by_this_artifact": false,
     "no_step_implies_the_next": true
+  },
+  "pr250_visibility_closeout_provenance": {
+    "source_pr_number": 250,
+    "source_pr_head_sha": "e42f90dd375d60b7f587e8cd46f510f5357deca4",
+    "source_pr_merge_sha": "6575fcbbc64e4d5b5ab6b7115c3191e1183ad1b8",
+    "source_exact_head_ci_run_id": 32092509734,
+    "source_exact_head_ci_head_sha": "e42f90dd375d60b7f587e8cd46f510f5357deca4",
+    "source_exact_head_ci_status": "completed",
+    "source_exact_head_ci_conclusion": "success",
+    "formalization_review_id": 4956221333,
+    "formalization_reviewed_head_sha": "65eff0186094f5bae5e4bdd5283a2a1491099041",
+    "formalization_review_result": "PASS",
+    "formalization_review_exact_head_ci_run_id": 32086692500,
+    "closeout_review_id": 4956699710,
+    "closeout_review_graphql_node": "PRR_kwDOS_gTTs8AAAABJ3E8Pg",
+    "closeout_reviewed_head_sha": "e42f90dd375d60b7f587e8cd46f510f5357deca4",
+    "closeout_review_result": "PASS",
+    "closeout_reviewed_head_to_merged_main_changed_file_count": 0,
+    "closeout_reviewed_content_entered_main_unchanged": true,
+    "merge_decision_comment_id": 5322913507,
+    "post_merge_verification_comment_id": 5322951733,
+    "canonical_acceptance_row_reviewer": "github-review-4956221333",
+    "canonical_acceptance_row_reviewed_at": "2026-08-18T01:22:10Z",
+    "closeout_review_not_canonical_row_reviewer": true,
+    "formalization_review_not_reviewed_later_closeout_commit": true,
+    "canonical_runtime_status_after_pr250": "PASS",
+    "canonical_runtime_block_reason_after_pr250": "NONE",
+    "canonical_gate_status_mutation_performed_by_this_refresh": false,
+    "canonical_gate_block_reason_mutation_performed_by_this_refresh": false,
+    "no_step_implies_the_next": true
+  },
+  "gate_classification_counts": {
+    "CANONICALLY_ACCEPTED": 10,
+    "FORMALIZATION_OR_REVIEW_READY": 2,
+    "NARROW_CORRECTION_REQUIRED": 0,
+    "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED": 1,
+    "UPSTREAM_DEPENDENCY_BLOCKED": 4
+  },
+  "acceptance_boundary": {
+    "canonical_runtime_status_remains_blocked": true,
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 10,
+    "current_canonical_gate_blocked_count": 7,
+    "all_17_required_gate_rows_must_be_pass": true,
+    "reconciliation_class_is_not_gate_status": true,
+    "formal_acceptance_record_mutated": false,
+    "canonical_gate_status_changed": false,
+    "canonical_gate_block_reason_changed": false,
+    "s1_acceptance_issued": false,
+    "visibility_canonical_status_from_current_main": "PASS",
+    "visibility_canonical_block_reason_from_current_main": "NONE",
+    "no_gate_closeout_performed_by_this_refresh": true
+  },
+  "metric_contract_current_main_reconciliation": {
+    "canonical_runtime_status": "BLOCKED",
+    "canonical_runtime_block_reason": "METRIC_CONTRACT_NOT_ACCEPTED",
+    "reconciliation_class": "EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED",
+    "readiness_status": "PREPARED_NOT_ACCEPTED",
+    "metric_contract_version": "v0.3-metric-contract-v1",
+    "decision_id": "S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE",
+    "decision_owner_role": "model_validation_owner_role",
+    "repository_evidence_proven": true,
+    "external_decision_required": true,
+    "external_decision_can_be_inferred": false,
+    "external_decision_can_be_decided_in_current_task": false,
+    "accepted_metric_contract": false,
+    "metric_execution_performed": false,
+    "metric_result_issued": false,
+    "visibility_prerequisite_current_main_pass": true,
+    "next_action": "OBTAIN_EXTERNAL_S1_METRIC_CONTRACT_DECISION_FROM_MODEL_VALIDATION_OWNER"
   }
 }
