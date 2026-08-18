@@ -5,26 +5,30 @@
 TASK_ID=S1-REMAINING-05
 TASK_CLASS=DOCS_ONLY_DECISION_AND_POLICY_READINESS
 BASE_MAIN_SHA=0ed98ee8fa51601f939315a6cfc08e2b690e1bc1
-CURRENT_MAIN_REVALIDATED_SHA=74a42136b29d6c43780f92c84e59fd6f8ac26558
+HISTORICAL_CURRENT_MAIN_REVALIDATED_SHA=74a42136b29d6c43780f92c84e59fd6f8ac26558
+CURRENT_MAIN_REVALIDATED_SHA=4a5ae07ad9ed1f580c3e7627ded3acc719ba6bb2
+CURRENT_MAIN_REVALIDATED_TREE_SHA=12f8f1e7d8b1d821d98cbea3354eafc1ecd2937c
 READINESS_PACKAGE_ONLY=true
 NO_STEP_IMPLIES_THE_NEXT=true
 
 This package prepares decision and policy readiness for threshold, metric,
 split, and holdout work. PR #219 issued and independently reviewed the
 minimum-coverage policy; PR #221 closed the standalone canonical
-S1-MINIMUM-COVERAGE gate; this current-main closeout records the separately
-reviewed data-quality policy gate. This package still does not accept a metric
-contract, accept a split, decide holdout feasibility, accept custody, complete
-Remaining-05, or authorize any later S1/S2 task.
+S1-MINIMUM-COVERAGE gate; this package retains the historical readiness
+snapshot while the current-main owner-binding namespace below records the
+separately verified 13 PASS / 4 BLOCKED runtime. The metric owner decision is
+bound for review, but this package still does not close the metric gate, accept
+a split, decide holdout feasibility, accept custody, complete Remaining-05, or
+authorize any later S1/S2 task.
 
-The authoritative runtime registry remains canonical; the PR #221 canonical
-closeout changed only the standalone minimum-coverage row:
+The original package snapshot is retained as historical provenance; it is not
+the current-main state:
 
 | State | Value |
 | --- | --- |
-| CANONICAL_GATE_COUNT | 17 |
-| CURRENT_CANONICAL_GATE_PASS_COUNT | 2 |
-| CURRENT_CANONICAL_GATE_BLOCKED_COUNT | 15 |
+| HISTORICAL_CANONICAL_GATE_COUNT | 17 |
+| HISTORICAL_CURRENT_CANONICAL_GATE_PASS_COUNT | 2 |
+| HISTORICAL_CURRENT_CANONICAL_GATE_BLOCKED_COUNT | 15 |
 | CANONICAL_GATE_STATUS_CHANGED | true |
 | CANONICAL_ACCEPTANCE_RECORD_CHANGED | true |
 | V0_3_S1_COMPLETE | false |
@@ -33,8 +37,17 @@ closeout changed only the standalone minimum-coverage row:
 | V0_3_S2_AUTHORIZED | false |
 | V0_3_S2_STARTED | false |
 
-CURRENT_CANONICAL_GATE_PASS_COUNT=2
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=15
+### Current-main owner-binding runtime (read-only)
+
+CURRENT_MAIN_SHA=4a5ae07ad9ed1f580c3e7627ded3acc719ba6bb2
+CURRENT_MAIN_TREE_SHA=12f8f1e7d8b1d821d98cbea3354eafc1ecd2937c
+CANONICAL_GATE_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=13
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=4
+S1-METRIC-CONTRACT=BLOCKED/METRIC_CONTRACT_NOT_ACCEPTED
+S1-DATA-CUSTODY=PASS/NONE
+CANONICAL_GATE_STATUS_MUTATION_BY_THIS_PACKAGE=false
+CANONICAL_ACCEPTANCE_RECORD_CHANGED_BY_THIS_PACKAGE=false
 
 Authoritative inputs reviewed:
 
@@ -56,7 +69,7 @@ Authoritative inputs reviewed:
 | --- | --- | --- | --- |
 | Minimum coverage | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the owner policy, SHA, independent review, and exact-head CI | Does not execute coverage or close any downstream gate |
 | Data quality thresholds | ISSUED_AND_INDEPENDENTLY_REVIEWED / gate PASS | Binds the authenticated owner policy, SHA, review, and exact-head CI | Does not execute Source 002 or claim a data-quality measurement result |
-| Metric contract | PREPARED_NOT_ACCEPTED / gate BLOCKED | Binds the current version and canonical metric registry | Does not execute metrics or issue results |
+| Metric contract | OWNER_DECISION_ISSUED_REVIEW_REQUIRED / gate BLOCKED | Binds the authenticated owner decision, current version, and canonical metric registry | Does not execute metrics, issue results, or close the canonical gate |
 | Split policy | CANDIDATE_NOT_ACCEPTED / gate BLOCKED | Provides a versioned time-ordered candidate and partition purposes | Does not materialize any rowset or authorize TEST access |
 | Holdout feasibility | NOT_EVALUATED / gate BLOCKED | Provides feasibility criteria and conditional usage rules | Does not access or materialize external holdout data |
 | Data custody | ISSUED_FOR_INDEPENDENT_REVIEW / gate BLOCKED | Reuses the existing custody identity and hash | Does not accept custody |
@@ -188,10 +201,57 @@ remain unresolved; no downstream gate is promoted by this package.
 The current contract identity is:
 
 V0_3_METRIC_CONTRACT_VERSION=v0.3-metric-contract-v1
+METRIC_CONTRACT_AUTHORITY=docs/forecast-quality/s3-quality-metrics-contract.md
+METRIC_REGISTRY_COUNT=22
+CURRENT_STATUS=OWNER_DECISION_ISSUED_REVIEW_REQUIRED
+EXTERNAL_DECISION_REQUIRED=false
+ACCEPTED_VALUE=v0.3-metric-contract-v1
+OWNER_DECISION_ISSUED=true
+OWNER_DECISION_COMMENT_ID=5330399072
+OWNER_DECISION_SHA256=e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_PAYLOAD_BINDING=PASS
+OWNER_DECISION_BINDING=PASS
+POLICY_INDEPENDENTLY_REVIEWED=false
 CURRENT_METRIC_EXECUTION_STATUS=NOT_EXECUTED
 CURRENT_METRIC_RESULT_STATUS=NOT_ISSUED
+CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_P50_SEMANTICS_VERIFIED=false
+CURRENT_P80_SEMANTICS_VERIFIED=false
+CURRENT_P90_SEMANTICS_VERIFIED=false
 METRIC_REGISTRY_BOUND=true
 S1_METRIC_CONTRACT_CANONICAL_GATE_PASS=false
+S1-METRIC-CONTRACT=BLOCKED
+BLOCK_REASON=METRIC_CONTRACT_NOT_ACCEPTED
+CANONICAL_GATE_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=13
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=4
+
+The owner decision source is `PR_256_COMMENT_5330399072` from
+`xuezhiorange-png`, acting under `model_validation_owner_role`. It freezes
+the prepared contract definition, canonical identities, formulas/policies,
+and planning crosswalk only. The accepted contract version is not a metric
+result and does not change the canonical gate.
+
+OWNER_DECISION_SOURCE=PR_256_COMMENT_5330399072
+OWNER_IDENTITY=xuezhiorange-png
+OWNER_ROLE=model_validation_owner_role
+OWNER_ROLE_ATTESTATION=I_AM_ACTING_AS_MODEL_VALIDATION_OWNER_ROLE
+OWNER_PROVENANCE=AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-18
+DECIDED_AT=2026-08-18T23:23:00+08:00
+
+The binding uses the existing Data Quality owner-decision convention:
+UTF-8, uppercase-as-issued payload keys, sorted JSON keys, compact `,` and
+`:` separators, SHA-256, and exclusion of the self-referential hash field.
+The exact payload and replay record are in the companion binding artifact:
+
+```text
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_PAYLOAD_BINDING=PASS
+OWNER_DECISION_BINDING=PASS
+OWNER_DECISION_SHA256=e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd
+```
 
 The machine-readable registry in the companion JSON binds these 22 canonical
 S3 metric identities:
@@ -224,12 +284,24 @@ interval widths. No metric is executed by this package.
 | Field | Value |
 | --- | --- |
 | DECISION_ID | S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE |
-| CURRENT_STATUS | PREPARED_NOT_ACCEPTED |
-| ACCEPTED_VALUE | null |
-| EXTERNAL_DECISION_REQUIRED | true |
+| CURRENT_STATUS | OWNER_DECISION_ISSUED_REVIEW_REQUIRED |
+| ACCEPTED_VALUE | v0.3-metric-contract-v1 |
+| EXTERNAL_DECISION_REQUIRED | false |
 | CAN_BE_INFERRED | false |
 | CAN_BE_DECIDED_IN_CURRENT_TASK | false |
-| BLOCK_REASON | UPSTREAM_SOURCE_TARGET_ROWSET_THRESHOLD_AND_DATA_QUALITY_PREREQUISITES_NOT_ACCEPTED |
+| BLOCK_REASON | METRIC_CONTRACT_NOT_ACCEPTED |
+| DEPENDENCY_BLOCK_REASON | UPSTREAM_SOURCE_TARGET_ROWSET_THRESHOLD_AND_DATA_QUALITY_PREREQUISITES_NOT_ACCEPTED |
+| OWNER_DECISION_ISSUED | true |
+| OWNER_DECISION_COMMENT_ID | 5330399072 |
+| OWNER_DECISION_SHA256 | `e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd` |
+| OWNER_DECISION_HASH_REPLAY | PASS |
+| OWNER_DECISION_PAYLOAD_BINDING | PASS |
+| OWNER_DECISION_BINDING | PASS |
+| POLICY_INDEPENDENTLY_REVIEWED | false |
+
+The owner decision does not make `S1-METRIC-CONTRACT` PASS. Independent review
+is still required, and this task stops before that review, Ready, Merge, any
+metric execution, or any downstream gate.
 
 ## 6. Candidate time-ordered split policy
 
@@ -350,7 +422,7 @@ storage locator, credential, source row, or custody decision is created.
 | --- | --- | --- | --- | --- | --- | --- |
 | S1_MINIMUM_COVERAGE_THRESHOLD_POLICY | S1-MINIMUM-COVERAGE | CLOSED_BY_INDEPENDENT_REVIEW | model_validation_owner_role | no | 0.900000 / 0.900000 | closed by owner decision, review `4937929668`, and exact-head CI `31806575112` |
 | S1_DATA_QUALITY_THRESHOLD_POLICY | S1-DATA-QUALITY-THRESHOLDS | ISSUED_AND_INDEPENDENTLY_REVIEWED | data_quality_owner_role | no | policy version / accepted policy | closed by owner decision SHA `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969`, review `4943327077`, and exact-head CI `31872490353` |
-| S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE | S1-METRIC-CONTRACT | PREPARED_NOT_ACCEPTED | model_validation_owner_role | yes | registry candidate / null | upstream prerequisites |
+| S1_METRIC_CONTRACT_FREEZE_AND_ACCEPTANCE | S1-METRIC-CONTRACT | OWNER_DECISION_ISSUED_REVIEW_REQUIRED | model_validation_owner_role | no | registry / v0.3-metric-contract-v1 | canonical gate remains blocked pending independent review |
 | S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE | S1-SPLIT-POLICY | CANDIDATE_NOT_ACCEPTED | model_validation_owner_role | yes | v1 candidate / null | cohort, visibility, metric, custody |
 | S1_HOLDOUT_FEASIBILITY_DECISION | S1-HOLDOUT-FEASIBILITY | NOT_EVALUATED | model_validation_owner_role | yes | criteria only / null | upstream evidence and review |
 | S1_TASK05_CUSTODY_ARTIFACT_BINDING_REVIEW | S1-DATA-CUSTODY | ISSUED_FOR_INDEPENDENT_REVIEW | data_governance_owner_role | yes | existing identity / null | custody review not complete |
@@ -384,6 +456,11 @@ EXTERNAL_HOLDOUT_DATA_ACCESS=false
 BACKTEST_EXECUTED=false
 MODEL_TRAINING_EXECUTED=false
 METRIC_EXECUTION_PERFORMED=false
+CURRENT_METRIC_RESULT_STATUS=NOT_ISSUED
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_P50_SEMANTICS_VERIFIED=false
+CURRENT_P80_SEMANTICS_VERIFIED=false
+CURRENT_P90_SEMANTICS_VERIFIED=false
 PRODUCTION_CODE_CHANGED=false
 TEST_CODE_CHANGED=false
 DATABASE_SCHEMA_CHANGED=false
@@ -411,7 +488,15 @@ TEST_ACCESS_CURRENTLY_AUTHORIZED=false
 EXTERNAL_HOLDOUT_DATA_ACCESS=false
 METRIC_EXECUTION_PERFORMED=false
 SOURCE_002_RAW_READ=false
-CANONICAL_ACCEPTANCE_RECORD_CHANGED=true
+CANONICAL_ACCEPTANCE_RECORD_CHANGED=false
+CANONICAL_GATE_STATUS_MUTATION_COUNT=0
+CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=0
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_PAYLOAD_BINDING=PASS
+OWNER_DECISION_BINDING=PASS
+CANONICAL_GATE_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=13
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=4
 JSON_MARKDOWN_CONSISTENCY=PASS
 
 ## 13. Next action
