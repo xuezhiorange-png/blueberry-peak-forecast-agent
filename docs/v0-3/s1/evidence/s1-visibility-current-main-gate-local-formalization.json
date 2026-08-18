@@ -1,0 +1,219 @@
+{
+  "artifact_id": "V0_3_S1_VISIBILITY_CURRENT_MAIN_GATE_LOCAL_FORMALIZATION",
+  "artifact_version": "s1-visibility-current-main-gate-local-formalization-v1",
+  "artifact_status": "FORMALIZED_FOR_INDEPENDENT_GATE_LOCAL_REVIEW",
+  "task_id": "S1_VISIBILITY_GATE_LOCAL_RECONCILIATION_FORMALIZATION_R1",
+  "task_class": "DOCS_ONLY_GATE_LOCAL_RECONCILIATION_FORMALIZATION",
+  "base_main_sha": "52f7e6428cff1236020b108aebe84faa3ff7f5dc",
+  "audited_main_sha": "52f7e6428cff1236020b108aebe84faa3ff7f5dc",
+  "target_gate_id": "S1-VISIBILITY",
+  "authority_scope": "S1_VISIBILITY_ONLY",
+  "authoritative_runtime_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 9,
+    "current_canonical_gate_blocked_count": 8,
+    "canonical_acceptance_status": "BLOCKED",
+    "target_gate_status": "BLOCKED",
+    "target_gate_block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+    "current_runtime_block_reason_semantically_stale": true,
+    "canonical_gate_pass": false,
+    "canonical_gate_status_mutation_performed": false,
+    "canonical_gate_block_reason_mutation_performed": false,
+    "authoritative_acceptance_record_changed": false,
+    "acceptance_package_changed": false
+  },
+  "current_evidence_assessment": {
+    "visibility_threshold_evidence_satisfied": true,
+    "pit_minimum_implementation_gap_count": 0,
+    "visibility_implementation_gap_count": 0,
+    "all_visibility_hard_prerequisites_pass": true,
+    "new_implementation_required": false,
+    "new_business_input_required": false,
+    "source_owner_input_required": false,
+    "task4_reexecution_required": false,
+    "pit_reimplementation_required": false,
+    "requires_docs_formalization": true,
+    "requires_independent_review": true
+  },
+  "visibility_threshold": {
+    "acceptance_threshold": "SOURCE_CLASS_CUTOFF_RULES_EVIDENCED",
+    "evidence_satisfied": true,
+    "exact_timestamp_authority": "known_at <= exact forecast_cutoff_at and/or source_available_at <= exact forecast_cutoff_at",
+    "task9_local_date_authority": "available_at <= as_of_date",
+    "analytics_authority": "persisted build-derived source cutoff",
+    "universal_timestamp_policy": false,
+    "new_universal_timestamp_rule_invented": false
+  },
+  "pit_evidence": {
+    "audited_input_count": 22,
+    "pass_count": 21,
+    "partial_count": 0,
+    "blocked_count": 0,
+    "not_used_count": 1,
+    "minimum_implementation_gap_count": 0,
+    "revalidation_result": "PASS",
+    "revalidation_supports_s1_visibility": true,
+    "forecast_input_evidence_ready_for_independent_review": true,
+    "implementation_gap_found": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "task4_reimplementation_required": false
+  },
+  "task4_provenance": {
+    "historical_task_id": "S1-REMAINING-04",
+    "historical_task_name": "NARROW_PIT_VISIBILITY_AND_MIXED_AUTHORITY_CORRECTION",
+    "historical_action_class": "NARROW_IMPLEMENTATION_CORRECTION",
+    "historical_task_initial_pit_gap_count": 4,
+    "historical_implementation_gaps": [
+      "planning as-of provenance",
+      "Analytics factory-receipt taxonomy",
+      "Analytics composite source-cutoff binding",
+      "Task9 mixed-authority reconciliation"
+    ],
+    "historical_definition_preserved": true,
+    "s1_remaining_04_complete": true,
+    "s1_remaining_04_reexecution_required": false,
+    "s1_remaining_04_executed_by_this_task": false,
+    "current_pit_gap_count": 0,
+    "pit_revalidation_result": "PASS",
+    "task4_reimplementation_required": false
+  },
+  "hard_prerequisites": {
+    "count": 5,
+    "pass_count": 5,
+    "all_pass": true,
+    "gates": [
+      {
+        "gate_id": "S1-SOURCE-AUTHORITY",
+        "status": "PASS",
+        "block_reason": "NONE"
+      },
+      {
+        "gate_id": "S1-Q2C-TARGET",
+        "status": "PASS",
+        "block_reason": "NONE"
+      },
+      {
+        "gate_id": "S1-SOURCE-COHORT",
+        "status": "PASS",
+        "block_reason": "NONE"
+      },
+      {
+        "gate_id": "S1-CANONICAL-GRAIN",
+        "status": "PASS",
+        "block_reason": "NONE"
+      },
+      {
+        "gate_id": "S1-INCLUSION-EXCLUSION",
+        "status": "PASS",
+        "block_reason": "NONE"
+      }
+    ]
+  },
+  "pr249_current_main_provenance": {
+    "source_pr_number": 249,
+    "source_pr_merge_sha": "52f7e6428cff1236020b108aebe84faa3ff7f5dc",
+    "source_reviewed_head_sha": "c41c1fe81fa7544ff4eedd376b5a09ef07490326",
+    "source_independent_review_id": 4955874107,
+    "source_independent_review_result": "PASS",
+    "source_exact_head_ci_run_id": 32083686717,
+    "source_exact_head_ci_result": "completed/success",
+    "pr249_reviewed_head_to_merged_main_file_diff_count": 0,
+    "pr249_reviewed_content_entered_main_unchanged": true,
+    "pr249_review_was_visibility_gate_local_acceptance": false
+  },
+  "historical_pr202_provenance": {
+    "historical_artifacts_preserved": true,
+    "visibility_json_path": "docs/v0-3/s1/evidence/s1-visibility-post-task4-canonical-reconciliation.json",
+    "visibility_json_blob_sha": "183e3bea332c79c1985b77a7a036935ee75b5d23",
+    "visibility_md_path": "docs/v0-3/s1/workpapers/s1-visibility-post-task4-canonical-reconciliation.md",
+    "visibility_md_blob_sha": "0a6b4cddcb4a8dad26ac96d99a1fadc6615f4bbc",
+    "historical_files_updated_by_this_task": false
+  },
+  "formalization_result": {
+    "gate_local_formalization_result": "PASS",
+    "gate_local_independent_review_eligible": true,
+    "canonical_closeout_candidate": true,
+    "canonical_gate_pass": false,
+    "statement": "The current evidence supports presenting S1-VISIBILITY as a PASS/NONE canonical closeout candidate to a separately authorized exact-head independent gate-local review. This formalization does not itself perform that transition."
+  },
+  "proposed_future_transition": {
+    "proposed_status": "PASS",
+    "proposed_block_reason": "NONE",
+    "proposed_transition_executed": false,
+    "canonical_gate_status_mutation_performed": false,
+    "canonical_gate_block_reason_mutation_performed": false,
+    "canonical_closeout_requires_separate_authorization": true
+  },
+  "authorization_boundary": {
+    "gate_local_formalization_authorized": true,
+    "canonical_runtime_transition_authorized": false,
+    "canonical_gate_status_mutation_authorized": false,
+    "canonical_gate_block_reason_mutation_authorized": false,
+    "other_gate_mutation_authorized": false,
+    "independent_review_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "final_v0_3_s1_acceptance_authorized": false,
+    "v0_3_s2_authorized": false,
+    "s1_remaining_04_reexecution_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "runtime_safety": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "real_business_data_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_change": false,
+    "backtest_executed": false,
+    "model_training_executed": false
+  },
+  "validation_contract": {
+    "json_validation": "PASS",
+    "json_markdown_parity": "PASS",
+    "base_main_sha_valid": true,
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 9,
+    "current_canonical_gate_blocked_count": 8,
+    "visibility_runtime_status": "BLOCKED",
+    "visibility_runtime_block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+    "visibility_threshold_evidence_satisfied": true,
+    "pit_audited_input_count": 22,
+    "pit_pass_count": 21,
+    "pit_partial_count": 0,
+    "pit_blocked_count": 0,
+    "pit_not_used_count": 1,
+    "pit_minimum_implementation_gap_count": 0,
+    "s1_remaining_04_complete": true,
+    "s1_remaining_04_reexecution_required": false,
+    "visibility_hard_prerequisite_count": 5,
+    "visibility_hard_prerequisite_pass_count": 5,
+    "all_visibility_hard_prerequisites_pass": true,
+    "new_business_input_required": false,
+    "new_implementation_required": false,
+    "gate_local_formalization_result": "PASS",
+    "gate_local_independent_review_eligible": true,
+    "canonical_closeout_candidate": true,
+    "proposed_transition_executed": false,
+    "canonical_gate_status_mutation_count": 0,
+    "canonical_gate_block_reason_mutation_count": 0,
+    "authoritative_acceptance_record_unchanged": true,
+    "acceptance_package_unchanged": true,
+    "historical_visibility_json_unchanged": true,
+    "historical_visibility_md_unchanged": true,
+    "global_reconciliation_artifacts_unchanged": true,
+    "changed_file_scope": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "changed_files": [
+    "docs/v0-3/s1/evidence/s1-visibility-current-main-gate-local-formalization.json",
+    "docs/v0-3/s1/workpapers/s1-visibility-current-main-gate-local-formalization.md"
+  ],
+  "v0_3_s1_accepted": false,
+  "v0_3_s2_authorized": false,
+  "no_step_implies_the_next": true
+}

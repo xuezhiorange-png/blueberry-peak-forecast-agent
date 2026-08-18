@@ -130,12 +130,12 @@
       "acceptance_threshold_source": "Q2A/I7 contract",
       "acceptance_threshold": "SOURCE_CLASS_CUTOFF_RULES_EVIDENCED",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Canonical Grain and Inclusion/Exclusion are PASS, so UPSTREAM_CANONICAL_PREREQUISITES_NOT_ACCEPTED is no longer the current runtime reason. Visibility remains BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE because the existing PIT, source-class, and mixed-authority gaps remain. S1-REMAINING-04 owns the subsequent narrow correction; this R1 only reconciles the authoritative current-state reason and does not execute S1-REMAINING-04 or independently accept Visibility."
+      "reviewer": "github-review-4956221333",
+      "reviewed_at": "2026-08-18T01:22:10Z",
+      "notes": "PR #250 exact-head Visibility gate-local review 4956221333 returned PASS on reviewed formalization head 65eff0186094f5bae5e4bdd5283a2a1491099041; exact-head CI 32086692500 completed success. The reviewed evidence confirms SOURCE_CLASS_CUTOFF_RULES_EVIDENCED, PIT 22 audited inputs with 21 PASS / 0 PARTIAL / 0 BLOCKED / 1 NOT_USED, minimum implementation gap count 0, S1-REMAINING-04 complete with reexecution_required=false, and all five strict Visibility hard prerequisites PASS/NONE. Separately authorized closeout decision 5322269014 approved the transition from BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE to PASS/NONE. This closeout accepts S1-VISIBILITY only and implies no downstream gate, final S1, or S2 acceptance."
     },
     {
       "gate_id": "S1-REVISION-WINNER",
