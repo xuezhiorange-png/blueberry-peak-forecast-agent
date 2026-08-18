@@ -56,6 +56,48 @@
     "r2_global_reconciliation_mutation_authorized": false,
     "r2_source_revision_winner_evidence_mutation_authorized": false
   },
+  "correction_review_1_provenance": {
+    "numeric_id": 4957903763,
+    "graphql_id": "PRR_kwDOS_gTTs8AAAABJ4Obkw",
+    "target_head_sha": "b2ff16cdf275eddb1f3feb1632bd2cac26efcbe9",
+    "result": "BLOCKED",
+    "blocker_id": "PR253-CLOSEOUT-PROVENANCE-001",
+    "blocker_class": "AUTHORIZED_CLOSEOUT_PROVENANCE_ARTIFACTS_MISSING",
+    "blocker_resolution": "DEDICATED_CLOSEOUT_PROVENANCE_ARTIFACTS_ADDED",
+    "blocker_resolution_commit_sha": "216ecf2919871d8a714908efdd78e06accb33744",
+    "resolved": true
+  },
+  "correction_review_2_provenance": {
+    "numeric_id": 4958056316,
+    "graphql_id": "PRR_kwDOS_gTTs8AAAABJ4XvfA",
+    "target_head_sha": "216ecf2919871d8a714908efdd78e06accb33744",
+    "result": "BLOCKED",
+    "blocker_id": "PR253-CLOSEOUT-PROVENANCE-002",
+    "blocker_class": "CORRECTION_REVIEW_PROVENANCE_NOT_BOUND",
+    "authorized_task": "PR253_REVISION_WINNER_CORRECTION_REVIEW_PROVENANCE_BINDING_R3",
+    "authorized_scope": "MODIFY_THE_TWO_EXISTING_DEDICATED_CLOSEOUT_ARTIFACTS_ONLY",
+    "independent_closeout_acceptance": false,
+    "blocker_resolution": "CORRECTION_REVIEW_CHAIN_BOUND_IN_DEDICATED_CLOSEOUT_ARTIFACTS",
+    "blocker_resolved_by_r3": true
+  },
+  "r3_provenance_boundary": {
+    "self_commit_sha_bound_in_artifact": false,
+    "self_commit_sha_binding_not_required_by_design": true,
+    "exact_head_identity_source": "GIT_COMMIT_HISTORY_AND_FUTURE_EXACT_HEAD_REVIEW",
+    "r3_changed_file_count": 2,
+    "r3_changed_files": [
+      "docs/v0-3/s1/evidence/s1-revision-winner-canonical-acceptance-closeout.json",
+      "docs/v0-3/s1/workpapers/s1-revision-winner-canonical-acceptance-closeout.md"
+    ],
+    "r3_canonical_gate_status_mutation_count": 0,
+    "r3_canonical_gate_block_reason_mutation_count": 0,
+    "r3_other_gate_status_mutation_count": 0,
+    "r3_other_gate_block_reason_mutation_count": 0,
+    "r3_acceptance_record_mutation_count": 0,
+    "r3_acceptance_package_mutation_count": 0,
+    "r3_global_reconciliation_mutation_count": 0,
+    "r3_source_revision_winner_evidence_mutation_count": 0
+  },
   "approved_transition": {
     "previous_status": "BLOCKED",
     "previous_block_reason": "REVISION_WINNER_NOT_VERIFIED",
@@ -198,6 +240,11 @@
     "current_canonical_counts_parity": "PASS",
     "r2_mutation_counts_zero": "PASS",
     "r2_changed_file_scope": "PASS",
+    "correction_review_1_provenance_parity": "PASS",
+    "correction_review_2_provenance_parity": "PASS",
+    "r3_self_commit_sha_rule": "PASS",
+    "r3_mutation_counts_zero": "PASS",
+    "r3_changed_file_scope": "PASS",
     "json_markdown_parity": "PASS",
     "git_diff_check": "PASS"
   },
