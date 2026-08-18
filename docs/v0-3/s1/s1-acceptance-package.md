@@ -59,7 +59,7 @@ PR250_VISIBILITY_CLOSEOUT_DECISION_COMMENT_ID=5322269014
 ```
 
 This is the single runtime gate registry for S1. Every row uses the same
-runtime field set; there is no separate initial-status authority. Eight required
+runtime field set; there is no separate initial-status authority. Seven required
 rows remain blocked because other gate-specific evidence and final independent
 review are not present. Source Authority is accepted by the PR #238 exact-head
 reviewed attestation closeout, Source Cohort by PR #241, Q2C by PR #243, and
