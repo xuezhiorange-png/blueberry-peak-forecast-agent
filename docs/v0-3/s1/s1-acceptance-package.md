@@ -6,8 +6,8 @@
 ACCEPTANCE_PACKAGE_ID=V0_3_S1_ACCEPTANCE_PACKAGE
 SLICE=V0.3-S1
 CANONICAL_GATE_COUNT=17
-CURRENT_CANONICAL_GATE_PASS_COUNT=9
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=8
+CURRENT_CANONICAL_GATE_PASS_COUNT=10
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=7
 CURRENT_PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 CURRENT_PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 CURRENT_PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
@@ -51,6 +51,11 @@ PR247_REVIEWED_HEAD_SHA=ac2ad97579c005c488701e4d3be22531a595ee5f
 PR247_REVIEW_SUBMITTED_AT=2026-08-17T12:37:08Z
 PR247_EXACT_HEAD_CI_RUN_ID=32018019710
 PR247_EXACT_HEAD_CI_CONCLUSION=success
+VISIBILITY_ACCEPTED=true
+PR250_VISIBILITY_GATE_LOCAL_REVIEW_ID=4956221333
+PR250_VISIBILITY_REVIEWED_HEAD_SHA=65eff0186094f5bae5e4bdd5283a2a1491099041
+PR250_VISIBILITY_EXACT_HEAD_CI_RUN_ID=32086692500
+PR250_VISIBILITY_CLOSEOUT_DECISION_COMMENT_ID=5322269014
 ```
 
 This is the single runtime gate registry for S1. Every row uses the same
@@ -115,7 +120,7 @@ package; it is not permitted to turn this required feasibility gate into
 | `S1-PHYSICAL-MEANING` | business | required | business_data_owner_role | Source002 Physical Meaning Attestation | `source-002-physical-meaning-attestation-v1` | `1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2C physical dimensions | `EVENT_AND_MARKETABILITY_BOUNDARY_EVIDENCED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4949133128` | `2026-08-17T06:58:24Z` | PR #245 independently reviewed the attestation PASS on exact head `7acea813d3f0ae17579da325dfa2f38c7ea9d0c8`; exact-head CI `32002755230` completed success and merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72` entered the reviewed evidence on current main. PR #246 performed the separate canonical closeout to PASS/NONE. |
 | `S1-UNIT-AND-TIME-BASIS` | business | required | business_data_owner_role | Source002 Unit/Time Basis Attestation | `source-002-unit-time-basis-attestation-v1` | `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2C physical and time dimensions | `KG_AND_FARM_LOCAL_DATE_BOUND` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4949133128` | `2026-08-17T06:58:24Z` | PR #245 independently reviewed the attestation PASS on exact head `7acea813d3f0ae17579da325dfa2f38c7ea9d0c8`; exact-head CI `32002755230` completed success and merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72` entered the reviewed evidence on current main. PR #246 performed the separate canonical closeout to PASS/NONE. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai remain bound. |
 | `S1-CANONICAL-GRAIN` | source | required | source_governance_owner_role | current-main canonical grain/mapping gate evidence | `source-002-canonical-grain-mapping-gate-evidence-v1` | `6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 and Q2C | `CANONICAL_GRAIN_AND_MAPPING_BOUND` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4951647818` | `2026-08-17T12:37:08Z` | PR #247 exact-head review accepted the canonical grain evidence on `ac2ad97579c005c488701e4d3be22531a595ee5f`; CI `32018019710` succeeded. This bounded closeout changes only this row from BLOCKED/GRAIN_OR_DATE_AUTHORITY_MISSING to PASS/NONE. |
-| `S1-VISIBILITY` | data | required | data_governance_owner_role | visibility and snapshot manifest | `V0_3_S1_FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_AUDIT@forecast-input-pit-leakage-audit-v2` | `eeaa91cd1121664d87e129dd4099d976e34d35da66df35299449d311055fb050` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `SOURCE_CLASS_CUTOFF_RULES_EVIDENCED` | `NEVER` | `BLOCKED` | `HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Canonical Grain and Inclusion/Exclusion are PASS. Visibility remains BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE because the existing PIT, source-class, and mixed-authority gaps remain; `S1-REMAINING-04` owns the subsequent narrow correction. This R1 does not accept Visibility or execute S1-REMAINING-04. |
+| `S1-VISIBILITY` | data | required | data_governance_owner_role | visibility and snapshot manifest | `V0_3_S1_FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_AUDIT@forecast-input-pit-leakage-audit-v2` | `eeaa91cd1121664d87e129dd4099d976e34d35da66df35299449d311055fb050` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `SOURCE_CLASS_CUTOFF_RULES_EVIDENCED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4956221333` | `2026-08-18T01:22:10Z` | PR #250 exact-head Visibility gate-local review 4956221333 returned PASS on reviewed formalization head `65eff0186094f5bae5e4bdd5283a2a1491099041`; exact-head CI `32086692500` completed success. The reviewed evidence confirms the Visibility threshold, PIT 22 audited inputs with 21 PASS / 0 PARTIAL / 0 BLOCKED / 1 NOT_USED, minimum implementation gap count 0, S1-REMAINING-04 complete with reexecution_required=false, and all five strict hard prerequisites PASS/NONE. Separately authorized closeout decision `5322269014` approved this S1-VISIBILITY-only transition. No downstream gate, final S1, or S2 acceptance is implied. |
 | `S1-REVISION-WINNER` | data | required | data_governance_owner_role | current-main revision/winner gate evidence | `source-002-revision-winner-gate-evidence-v1` | `5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `ONE_VALID_WINNER_PER_KEY` | `NEVER` | `BLOCKED` | `REVISION_WINNER_NOT_VERIFIED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | PR #247 reviewed the IDFL mode-specific evidence PASS, but canonical closeout is blocked because `S1-MISSING-CORRECTION-CANCELLATION` remains a declared hard prerequisite and is still BLOCKED. |
 | `S1-INCLUSION-EXCLUSION` | data | required | data_quality_owner_role | current-main inclusion/exclusion gate evidence | `source-002-inclusion-exclusion-gate-evidence-v1` | `b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 and Q2C | `REASONS_AND_COUNTS_RECONCILED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4951647818` | `2026-08-17T12:37:08Z` | PR #247 exact-head review accepted the inclusion/exclusion evidence on `ac2ad97579c005c488701e4d3be22531a595ee5f`; CI `32018019710` succeeded. This bounded closeout changes only this row from BLOCKED/INCLUSION_POLICY_NOT_FROZEN to PASS/NONE. |
 | `S1-MISSING-CORRECTION-CANCELLATION` | data | required | data_quality_owner_role | correction, missing-day, and cancellation policy | `MISSING_CORRECTION_CANCELLATION_REQUIRED` | `BLOCKED_NO_SOURCE_POLICY` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `LATE_ENTRY_REVISION_VOID_RULES_PRESENT` | `NEVER` | `BLOCKED` | `REVISION_POLICY_NOT_FROZEN` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Delayed, corrected, and void records need authority; this row is the declared hard prerequisite preventing Revision Winner closeout. |
@@ -131,8 +136,8 @@ package; it is not permitted to turn this required feasibility gate into
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_REQUIRED_GATE_PASS_COUNT=9
-CURRENT_REQUIRED_GATE_BLOCKED_COUNT=8
+CURRENT_REQUIRED_GATE_PASS_COUNT=10
+CURRENT_REQUIRED_GATE_BLOCKED_COUNT=7
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 CURRENT_SOURCE_COHORT_ACCEPTED=true
 CURRENT_Q2C_ACCEPTED=true
@@ -141,19 +146,22 @@ CURRENT_REQUIRED_GATE_BLOCKED=true
 CURRENT_ACCEPTANCE_RESULT=BLOCKED
 CURRENT_S1_ACCEPTED=false
 CURRENT_S2_AUTHORIZATION=false
+VISIBILITY_ACCEPTED=true
 ```
 
-The current package records nine closed gates. Canonical Grain and
+The current package records ten closed gates. Canonical Grain and
 Inclusion/Exclusion are now accepted through the reviewed Task-3 evidence and
-this separately authorized bounded closeout. Revision Winner is not accepted:
-its reviewed IDFL evidence is preserved, but `S1-MISSING-CORRECTION-CANCELLATION`
-remains a declared hard prerequisite. Visibility remains
-`BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE` because its PIT,
-source-class, and mixed-authority gaps remain; `S1-REMAINING-04` owns the
-subsequent narrow correction. This R1 does not execute that task or accept
-Visibility. Source Cohort acceptance freezes identity only; S2 still owns the
-final materialized rowset. All downstream and unrelated gates remain
-fail-closed.
+this separately authorized bounded closeout. Visibility is accepted through
+PR #250 exact-head gate-local review `4956221333`, reviewed formalization head
+`65eff0186094f5bae5e4bdd5283a2a1491099041`, exact-head CI `32086692500`, and
+closeout decision `5322269014`. This bounded closeout changes only
+S1-VISIBILITY from BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE to
+PASS/NONE. Revision Winner is not accepted: its reviewed IDFL evidence is
+preserved, but `S1-MISSING-CORRECTION-CANCELLATION` remains a declared hard
+prerequisite. This closeout does not execute `S1-REMAINING-04`, accept any
+downstream gate, or imply final S1 acceptance. Source Cohort acceptance freezes
+identity only; S2 still owns the final materialized rowset. All downstream and
+unrelated gates remain fail-closed.
 
 The JSON schema in this directory requires exactly these seventeen canonical
 gate IDs once each. A required gate cannot be `NOT_APPLICABLE`; only a future
