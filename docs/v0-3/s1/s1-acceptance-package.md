@@ -6,8 +6,8 @@
 ACCEPTANCE_PACKAGE_ID=V0_3_S1_ACCEPTANCE_PACKAGE
 SLICE=V0.3-S1
 CANONICAL_GATE_COUNT=17
-CURRENT_CANONICAL_GATE_PASS_COUNT=12
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=5
+CURRENT_CANONICAL_GATE_PASS_COUNT=13
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=4
 CURRENT_PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 CURRENT_PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 CURRENT_PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
@@ -180,7 +180,7 @@ package; it is not permitted to turn this required feasibility gate into
 | `S1-METRIC-CONTRACT` | metrics | required | model_validation_owner_role | S1 metric contract and S3 binding | `METRIC_CONTRACT_REQUIRED` | `BLOCKED_NO_ACCEPTED_SOURCE` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | S3 contract | `ALL_CANONICAL_METRIC_IDS_AND_STATES_BOUND` | `NEVER` | `BLOCKED` | `METRIC_CONTRACT_NOT_ACCEPTED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Quantile and baseline gates remain fail-closed. |
 | `S1-MINIMUM-COVERAGE` | metrics | required | model_validation_owner_role | coverage threshold decision record | `v0-3-s1-minimum-coverage-threshold-v1` | `a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692` | `v0.3-metric-contract-v1` | S3 contract and independently reviewed owner decision `4937929668` | `S3_COVERAGE_RATIO_GREATER_THAN_OR_EQUAL_0.900000_PER_APPLICATION_CELL` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4937929668` | `2026-08-14T14:04:08Z` | Owner decision payload/hash and exact-head CI were independently reviewed on PR #219 head `5775e908cfe072fa962c99e822901b7157128418`; S3 reporting floor 10 is not the S1 threshold. |
 | `S1-DATA-QUALITY-THRESHOLDS` | data | required | data_quality_owner_role | `v0-3-s1-data-quality-threshold-policy-v1` | `v0-3-s1-data-quality-threshold-policy-v1` | `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969` | `v0.3-metric-contract-v1` | reviewed versioned data-quality owner policy | `VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_GREATER_THAN_OR_EQUAL_1.000000_PER_APPLICATION_CELL` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4943327077` | `2026-08-15T08:09:57Z` | Owner decision comment `5301040523` and exact-head CI `31872490353` are bound; this accepts the policy only, not data execution or any other gate. |
-| `S1-DATA-CUSTODY` | governance | required | data_governance_owner_role | versioned custody record | `CUSTODY_RECORD_REQUIRED` | `BLOCKED_NO_GOVERNED_CUSTODY_RECORD` | `NOT_APPLICABLE_FOR_THIS_GATE` | source custody contract | `ACCESS_RETENTION_WITHDRAWAL_VOID_EVIDENCED` | `NEVER` | `BLOCKED` | `SOURCE_CUSTODY_NOT_VERIFIED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Policy identities and hashes only. |
+| `S1-DATA-CUSTODY` | governance | required | data_governance_owner_role | versioned custody record | `s1-data-custody-current-main-gate-local-formalization-v1` | `GIT_BLOB_SHA:47f76feb1302876aed6854d44ae2e93debb5f0fa` | `NOT_APPLICABLE_FOR_THIS_GATE` | source custody contract | `ACCESS_RETENTION_WITHDRAWAL_VOID_EVIDENCED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-PRR_kwDOS_gTTs8AAAABJ6xf-g` | `2026-08-18T11:40:49Z` | Canonical closeout task `S1_DATA_CUSTODY_CANONICAL_CLOSEOUT_IMPLEMENTATION_R1` authorized by comment `5327668507`; source gate-local formalization exact head `be8f64e8b7c36bf640f786ebb55b0542e16354d0`, tree `7d729f6d0cf7fa1f0872ba9e7c1b42f5db76325e`, source independent review `PRR_kwDOS_gTTs8AAAABJ6xf-g` returned PASS, and source exact-head CI `32131494627` completed success. Custody record `source-002-custody-record-v1` blob `fc0c60550bb1740f2e3cd9b45ce9b317de93afc7`, custody hash `99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6`, external binding hash `1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece`; this single transition is BLOCKED/SOURCE_CUSTODY_NOT_VERIFIED -> PASS/NONE. CUSTODY_RECORD_ACCEPTED=false; DOWNSTREAM_PROPAGATION_INDEPENDENTLY_ACCEPTED=false; custody/formalization artifacts are not mutated; no final S1 acceptance or S2 authorization is implied. |
 | `S1-HOLDOUT-FEASIBILITY` | evaluation | required | model_validation_owner_role | external holdout feasibility record | `HOLDOUT_FEASIBILITY_REQUIRED` | `BLOCKED_NO_COHORT_FEASIBILITY_EVIDENCE` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | split contract | `REVIEWED_FEASIBLE_OR_REVIEWED_NOT_FEASIBLE` | `NEVER` | `BLOCKED` | `FEASIBILITY_NOT_YET_ACCEPTED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | This gate is required; it is not materialization. |
 | `S1-INDEPENDENT-REVIEW` | governance | required | independent_reviewer_role | complete S1 acceptance record | `ACCEPTANCE_RECORD_REQUIRED` | `BLOCKED_NO_INDEPENDENT_REVIEW` | `NOT_APPLICABLE_FOR_THIS_GATE` | S1 package | `ALL_REQUIRED_GATES_CLOSED` | `NEVER` | `BLOCKED` | `NOT_YET_INDEPENDENTLY_REVIEWED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Review cannot be self-attested. |
 
@@ -188,8 +188,8 @@ package; it is not permitted to turn this required feasibility gate into
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_REQUIRED_GATE_PASS_COUNT=12
-CURRENT_REQUIRED_GATE_BLOCKED_COUNT=5
+CURRENT_REQUIRED_GATE_PASS_COUNT=13
+CURRENT_REQUIRED_GATE_BLOCKED_COUNT=4
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 CURRENT_SOURCE_COHORT_ACCEPTED=true
 CURRENT_Q2C_ACCEPTED=true
@@ -201,7 +201,7 @@ CURRENT_S2_AUTHORIZATION=false
 VISIBILITY_ACCEPTED=true
 ```
 
-The current package records twelve closed gates. Canonical Grain and
+The current package records thirteen closed gates. Canonical Grain and
 Inclusion/Exclusion are now accepted through the reviewed Task-3 evidence and
 this separately authorized bounded closeout. Visibility is accepted through
 PR #250 exact-head gate-local review `4956221333`, reviewed formalization head
@@ -213,7 +213,15 @@ S1-REVISION-WINNER from BLOCKED/REVISION_WINNER_NOT_VERIFIED to PASS/NONE,
 using the reviewed IDFL disposition `REVISION_WINNER_REQUIRED=false` and the
 current-main PASS/NONE prerequisite `S1-MISSING-CORRECTION-CANCELLATION`.
 No winner manifest, revision graph, or fabricated lifecycle fact is created.
-This closeout does not execute `S1-REMAINING-04`, accept any
+The separately authorized Data Custody closeout changes only
+`S1-DATA-CUSTODY` from `BLOCKED/SOURCE_CUSTODY_NOT_VERIFIED` to `PASS/NONE`
+using the reviewed gate-local formalization and exact-head independent review
+provenance above. It preserves `CUSTODY_RECORD_ACCEPTED=false` and
+`DOWNSTREAM_PROPAGATION_INDEPENDENTLY_ACCEPTED=false`; the custody record and
+formalization artifacts are not mutated. Before this PR merges, current main
+remains authoritative at twelve PASS and five BLOCKED; this branch candidate
+records thirteen PASS and four BLOCKED. This closeout does not execute
+`S1-REMAINING-04`, accept any
 downstream gate, or imply final S1 acceptance. Source Cohort acceptance freezes
 identity only; S2 still owns the final materialized rowset. All downstream and
 unrelated gates remain fail-closed.
