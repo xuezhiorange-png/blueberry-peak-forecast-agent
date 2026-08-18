@@ -149,12 +149,12 @@
       "acceptance_threshold_source": "Q2A/I7 contract",
       "acceptance_threshold": "ONE_VALID_WINNER_PER_KEY",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "REVISION_WINNER_NOT_VERIFIED",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "PR #247 exact-head review accepted the mode-specific IDFL evidence, including NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE and the absence of a synthetic winner manifest/revision graph. The S1-MISSING-CORRECTION-CANCELLATION hard prerequisite is satisfied by the separately authorized PR #252 canonical closeout candidate: review 4957329568 on reviewed head 35b128a6ded6b6e8b9a7870ce022f3d8f4196e92, exact-head CI 32099525500, and closeout decision comment 5323774567. Revision Winner remains BLOCKED/REVISION_WINNER_NOT_VERIFIED; no Revision Winner reevaluation or closeout was executed. REVISION_WINNER_NOTE_ONLY_SYNC=true; final S1 independent review remains NOT_STARTED."
+      "reviewer": "github-review-4951647818",
+      "reviewed_at": "2026-08-17T12:37:08Z",
+      "notes": "PR #247 exact-head gate-local review 4951647818 (GraphQL PRR_kwDOS_gTTs8AAAABJyQmSg) returned PASS on reviewed head ac2ad97579c005c488701e4d3be22531a595ee5f; exact-head CI 32018019710 completed success. The reviewed IDFL_V1 disposition binds REVISION_WINNER_REQUIRED=false, WINNER_AND_LINEAGE_RULE=NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE, and no synthetic winner manifest or revision graph. Its S1-MISSING-CORRECTION-CANCELLATION hard prerequisite is PASS/NONE on current main after PR #252 merge 4c4fa51e4994a2a06c60fb724b4fb07343e2efb0. This separately authorized S1_REVISION_WINNER_CANONICAL_CLOSEOUT_IMPLEMENTATION_R1 changes only this gate from BLOCKED/REVISION_WINNER_NOT_VERIFIED to PASS/NONE. No winner manifest, revision graph, source-system lifecycle fact, Source002 reread, TEST/holdout access, or production code change was performed; final S1 independent review remains NOT_STARTED."
     },
     {
       "gate_id": "S1-INCLUSION-EXCLUSION",
@@ -333,7 +333,7 @@
     "reviewer": "PENDING_INDEPENDENT_REVIEW",
     "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
     "review_result": "NOT_STARTED",
-    "review_notes": "PR #247 exact-head gate-local evidence review 4951647818 passed for the Task-3 formalization package, and PR #252 exact-head gate-local review 4957329568 passed the Missing/Correction/Cancellation formalization and closeout candidate. The current candidate state has eleven canonical gates PASS and six remain BLOCKED; Revision Winner remains BLOCKED/REVISION_WINNER_NOT_VERIFIED pending its separately authorized reevaluation/closeout. Final S1 independent review remains NOT_STARTED."
+    "review_notes": "PR #247 exact-head gate-local evidence review 4951647818 passed the Task-3 formalization package, and PR #252 exact-head gate-local review 4957329568 passed the Missing/Correction/Cancellation formalization and closeout candidate. The separately authorized Revision Winner canonical closeout now records twelve canonical gates PASS and five remain BLOCKED; final S1 independent review remains NOT_STARTED."
   },
   "derived_status": {
     "all_required_gates_pass": false,
