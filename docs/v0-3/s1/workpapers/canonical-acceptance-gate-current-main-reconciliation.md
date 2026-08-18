@@ -79,6 +79,11 @@ Visibility and Missing/Correction/Cancellation retain
 `can_be_closed_by_current_task=false`, and Revision Winner remains blocked by
 the latter gate's canonical dependency.
 
+Under these definitions, every current canonical `PASS/NONE` runtime row is
+classified `CANONICALLY_ACCEPTED`. `FORMALIZATION_OR_REVIEW_READY` is retained
+only for blocked gates whose evidence is ready for a formalization or review
+boundary.
+
 ### Dependency semantics
 
 The reconciliation separates three graphs that were previously conflated:
@@ -204,9 +209,9 @@ actual-label lifecycle, custody, and PIT workpapers under
 
 | Gate | Runtime | Reconciliation class | Existing evidence | True remaining blocker | Hard prerequisite | Co-resolution | Recommended next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `S1-Q2C-TARGET` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Issued business-source attestation and Q2C decision bind `OBSERVED_FARM_PICK_QUANTITY`, `PROVEN_EXACT`, six exact dimensions, and no transformation; PR #243 review and CI passed before merge. | None for Q2C; the accepted Physical Meaning and Unit/Time Basis rows remain separate gate-local outcomes. | None | None | Preserve the accepted physical/unit-time boundaries and downstream gate blockers. |
-| `S1-SOURCE-AUTHORITY` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final Source Owner Attestation, owner role, effective time, completeness binding, and attestation hash are present; PR #238 exact-head review `4946622009` and CI `31955752008` passed before merge `d3828041f15d9bba0b201429250a2041bcf63c2f`. | None for Source Authority; Source Cohort is separately accepted by PR #241, while Q2C and other gates remain separate. | None | None | Preserve Q2C and downstream gate blockers. |
-| `S1-SOURCE-COHORT` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Final manifest `source-002-final-source-cohort-manifest-v1` binds cohort `source-002-s1-cohort-v1`, hash `27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca`, 84 farms, 192 subfarms, 20 varieties, business dates `2025-08-05..2026-04-16`, 233171 rows, and 28668416 bytes; PR #241 review `4948013727` and CI `31986614521` passed before merge `5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b`. | None for Source Cohort; S1 freezes identity only and S2 owns the final materialized rowset. | None | None | Preserve canonical-grain, inclusion/exclusion, visibility, custody, split, Q2C, and other gate blockers. |
+| `S1-Q2C-TARGET` | `PASS` | `CANONICALLY_ACCEPTED` | Issued business-source attestation and Q2C decision bind `OBSERVED_FARM_PICK_QUANTITY`, `PROVEN_EXACT`, six exact dimensions, and no transformation; PR #243 review and CI passed before merge. | None for this canonical PASS/NONE row; no additional gate-local acceptance is implied. | None | None | Preserve the accepted Q2C boundary and downstream gate blockers. |
+| `S1-SOURCE-AUTHORITY` | `PASS` | `CANONICALLY_ACCEPTED` | Final Source Owner Attestation, owner role, effective time, completeness binding, and attestation hash are present; PR #238 exact-head review `4946622009` and CI `31955752008` passed before merge `d3828041f15d9bba0b201429250a2041bcf63c2f`. | None for this canonical PASS/NONE row; no additional gate-local acceptance is implied. | None | None | Preserve Source Authority and downstream gate blockers. |
+| `S1-SOURCE-COHORT` | `PASS` | `CANONICALLY_ACCEPTED` | Final manifest `source-002-final-source-cohort-manifest-v1` binds cohort `source-002-s1-cohort-v1`, hash `27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca`, 84 farms, 192 subfarms, 20 varieties, business dates `2025-08-05..2026-04-16`, 233171 rows, and 28668416 bytes; PR #241 review `4948013727` and CI `31986614521` passed before merge `5caa63a20ee45b7e725b3c2c696a41cd3dd4a06b`. | None for this canonical PASS/NONE row; no additional gate-local acceptance is implied. | None | None | Preserve Source Cohort identity and downstream gate blockers. |
 | `S1-PHYSICAL-MEANING` | `PASS` | `CANONICALLY_ACCEPTED` | Issued Physical Meaning Attestation binds the scan-weigh event, marketable net weight, KG, sorting, rejection, and recorded-label semantics; PR #245 exact-head review and CI passed before merge, and PR #246 records the canonical row as PASS/NONE. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET` | Preserve the accepted physical boundary while downstream gates remain blocked. |
 | `S1-UNIT-AND-TIME-BASIS` | `PASS` | `CANONICALLY_ACCEPTED` | Issued Unit/Time Basis Attestation binds KG, Asia/Shanghai, local-day rule, business-date rule, and grain context; PR #245 exact-head review and CI passed before merge, and PR #246 records the canonical row as PASS/NONE. | None for this gate-local closeout; downstream canonical gates remain separate. | `S1-SOURCE-AUTHORITY` | `S1-Q2C-TARGET`; `S1-INCLUSION-EXCLUSION` | Preserve the accepted unit/time basis while downstream gates remain blocked. |
 | `S1-CANONICAL-GRAIN` | `PASS` | `CANONICALLY_ACCEPTED` | Current-main acceptance record is `PASS/NONE`; evidence binds `SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE`, plot support false, mapping policy `source-002-mapping-policy-v1`, accepted Source Cohort scope, and accepted Unit/Time basis. | None for this runtime gate; downstream gate-local blockers remain separate. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION` | Preserve Canonical Grain `PASS/NONE` and reconcile downstream gate-local blockers. |
@@ -216,8 +221,8 @@ actual-label lifecycle, custody, and PIT workpapers under
 | `S1-MISSING-CORRECTION-CANCELLATION` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Current-main evidence binds the IDFL revision identity, late-entry/correction/void/final-confirmation rules, completeness policy/watermark, and non-empty final Source Owner Attestation values. | Canonical runtime remains `BLOCKED/REVISION_POLICY_NOT_FROZEN`; threshold evidence is satisfied, but separate gate-local closeout and independent review remain required. | `S1-SOURCE-AUTHORITY` | None | Perform separately authorized Missing/Correction/Cancellation gate-local closeout and independent review. |
 | `S1-SPLIT-POLICY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Time-ordering, no leakage, TEST seal, and custody rules are defined. | The Source Cohort identity is accepted, but no accepted final clean rowset or final split artifact exists. | `S1-SOURCE-COHORT`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-METRIC-CONTRACT`; `S1-DATA-CUSTODY` | None | Prepare split/custody artifact after remaining upstream acceptance. |
 | `S1-METRIC-CONTRACT` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Metric identities, S3 binding rules, and the independently reviewed minimum-coverage and data-quality policies are defined. | Source/target/visibility/rowset prerequisites and an accepted metric binding still prevent metric acceptance. | `S1-Q2C-TARGET`; `S1-SOURCE-AUTHORITY`; `S1-SOURCE-COHORT`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-QUALITY-THRESHOLDS` | None | Freeze metric contract after the remaining upstream authority decisions. |
-| `S1-MINIMUM-COVERAGE` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Versioned owner policy, SHA-256 binding, independent review `4937929668`, and exact-head CI `31806575112` are present. | None for this standalone gate; downstream metric/cohort prerequisites remain separate. | None | None | Revalidate Remaining-05 after the minimum-coverage gate closeout. |
-| `S1-DATA-QUALITY-THRESHOLDS` | `PASS` | `FORMALIZATION_OR_REVIEW_READY` | Versioned owner policy, SHA-256 binding, independent review `4943327077`, and exact-head CI `31872490353` are present. | None for this standalone policy gate; Source 002 execution and downstream gates remain separate. | None | None | Revalidate Remaining-05 after the data-quality gate closeout. |
+| `S1-MINIMUM-COVERAGE` | `PASS` | `CANONICALLY_ACCEPTED` | Versioned owner policy, SHA-256 binding, independent review `4937929668`, and exact-head CI `31806575112` are present. | None for this canonical PASS/NONE row; no additional gate-local acceptance is implied. | None | None | Preserve Minimum Coverage and reconcile Remaining-05 downstream blockers. |
+| `S1-DATA-QUALITY-THRESHOLDS` | `PASS` | `CANONICALLY_ACCEPTED` | Versioned owner policy, SHA-256 binding, independent review `4943327077`, and exact-head CI `31872490353` are present. | None for this canonical PASS/NONE row; no additional gate-local acceptance or data execution is implied. | None | None | Preserve Data Quality Thresholds and reconcile Remaining-05 downstream blockers. |
 | `S1-DATA-CUSTODY` | `BLOCKED` | `FORMALIZATION_OR_REVIEW_READY` | Versioned custody record, policy identities, hashes, access, retention, withdrawal, and void propagation are issued for review. | Independent custody review/acceptance is absent. | `S1-SOURCE-AUTHORITY` | `S1-SOURCE-COHORT` | Submit the issued custody record for independent review. |
 | `S1-HOLDOUT-FEASIBILITY` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Feasibility rule and no-data boundary are clear; no TEST/holdout was accessed. | Source Cohort identity is accepted, but no accepted final clean rowset, distinct-cohort coverage summary, custody, split, or reviewed feasibility decision exists. | `S1-SOURCE-COHORT`; `S1-CANONICAL-GRAIN`; `S1-INCLUSION-EXCLUSION`; `S1-VISIBILITY`; `S1-MINIMUM-COVERAGE`; `S1-DATA-CUSTODY`; `S1-SPLIT-POLICY` | None | Prepare and review feasibility after prerequisites close. |
 | `S1-INDEPENDENT-REVIEW` | `BLOCKED` | `UPSTREAM_DEPENDENCY_BLOCKED` | Registry has 17 required rows; review status is not started. | All required gate artifacts must close before independent S1 review. | All other 16 gates | None | Run final independent S1 acceptance review. |
@@ -274,6 +279,20 @@ CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=0
 S1_REMAINING_04_COMPLETE=true
 S1_REMAINING_04_REEXECUTION_REQUIRED=false
 S1_REMAINING_04_EXECUTED_BY_THIS_TASK=false
+```
+
+The historical Task4 definition is preserved separately from current execution
+state:
+
+```text
+HISTORICAL_TASK_ID=S1-REMAINING-04
+HISTORICAL_TASK_NAME=NARROW_PIT_VISIBILITY_AND_MIXED_AUTHORITY_CORRECTION
+HISTORICAL_TASK_ACTION_CLASS=NARROW_IMPLEMENTATION_CORRECTION
+HISTORICAL_TASK_OBJECTIVE=Close the four current PIT implementation/authority gaps: planning as-of provenance, Analytics factory-receipt taxonomy, Analytics composite source-cutoff binding, and Task9 mixed-authority reconciliation.
+HISTORICAL_TASK_COMPLETE=true
+CURRENT_PIT_GAP_COUNT=0
+CURRENT_PIT_REVALIDATION_RESULT=PASS
+POST_TASK4_RECONCILIATION_ACTION=SEPARATELY_AUTHORIZED_VISIBILITY_GATE_LOCAL_RECONCILIATION_AND_REVIEW
 ```
 
 ## 6. Cross-gate dependency graph
@@ -441,11 +460,11 @@ all other required rows and cannot be used to self-attest this workpaper.
    `S1-REMAINING-02`) — current-main formalization evidence is now issued for
    independent gate-local review; it does not freeze a new source universe or
    perform canonical acceptance.
-4. **Task4 PIT evidence revalidation and Visibility reconciliation**
-   (`S1-REMAINING-04`, dependencies: `S1-REMAINING-01`, `S1-REMAINING-02`,
-   `S1-REMAINING-03`) — Task4 is complete; current evidence is formalized here
-   without changing the canonical Visibility row. A separately authorized
-   gate-local reconciliation/review is still required.
+4. **S1-REMAINING-04 — NARROW_PIT_VISIBILITY_AND_MIXED_AUTHORITY_CORRECTION**
+   (dependencies: `S1-REMAINING-01`, `S1-REMAINING-02`,
+   `S1-REMAINING-03`) — historical implementation package: COMPLETE; the four PIT gaps are CLOSED; current PIT gap count is `0`; re-execution is `false`.
+   The current remaining Visibility action is a separately authorized
+   gate-local reconciliation/review, not a re-execution of this task.
 5. **Threshold, metric, split, and holdout package** (`S1-REMAINING-05`,
    dependencies: `S1-REMAINING-03`, `S1-REMAINING-04`; required gate artifact:
    `S1-DATA-CUSTODY`) — decide thresholds,
@@ -563,12 +582,13 @@ RECONCILED_GATE_COUNT=17
 UNIQUE_GATE_ID_COUNT=17
 MISSING_GATE_COUNT=0
 DUPLICATE_GATE_COUNT=0
-FORMALIZATION_OR_REVIEW_READY_COUNT=8
-CANONICALLY_ACCEPTED_COUNT=4
+FORMALIZATION_OR_REVIEW_READY_COUNT=3
+CANONICALLY_ACCEPTED_COUNT=9
 NARROW_CORRECTION_REQUIRED_COUNT=0
 EXTERNAL_AUTHORITY_OR_DECISION_REQUIRED_COUNT=0
 UPSTREAM_DEPENDENCY_BLOCKED_COUNT=5
 CLASSIFICATION_COUNT_SUM=17
+ALL_RUNTIME_PASS_ROWS_CLASSIFIED_CANONICALLY_ACCEPTED=true
 HARD_PREREQUISITE_CYCLE_FOUND=false
 HARD_PREREQUISITE_CYCLE_COUNT=0
 SELF_DEPENDENCY_COUNT=0
@@ -578,8 +598,13 @@ TOPOLOGICAL_ORDER_GATE_COUNT=17
 TASK_PACKAGE_COUNT=6
 TASK_PACKAGE_DEPENDENCY_CYCLE_FOUND=false
 TASK_PACKAGE_TOPOLOGICAL_ORDER_VALID=true
+TASK_GRAPH_VALIDATION=PASS
 PIT_MINIMUM_IMPLEMENTATION_GAP_COUNT=0
 PIT_GAPS_TREATED_AS_S1_TOTAL_REMAINING_TASKS=false
+S1_REMAINING_04_TASK_ID_UNCHANGED=true
+S1_REMAINING_04_TASK_NAME_UNCHANGED=true
+S1_REMAINING_04_HISTORICAL_OBJECTIVE_PRESERVED=true
+S1_REMAINING_04_HISTORICAL_ACTION_CLASS=NARROW_IMPLEMENTATION_CORRECTION
 S1_REMAINING_04_COMPLETE=true
 S1_REMAINING_04_REEXECUTION_REQUIRED=false
 S1_REMAINING_04_EXECUTED_BY_THIS_TASK=false
