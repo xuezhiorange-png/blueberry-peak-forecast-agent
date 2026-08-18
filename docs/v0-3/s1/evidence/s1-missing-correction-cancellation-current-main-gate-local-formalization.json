@@ -161,7 +161,16 @@
       "final_owner_new_value_required_field_count": 0,
       "owner_confirmation_is_comprehensive_final_event": true,
       "owner_confirmation_binds_existing_governed_values": true,
-      "source_owner_attestation_independently_accepted": false
+      "source_owner_attestation_independently_accepted": true,
+      "independent_acceptance_pr_number": 238,
+      "independent_acceptance_review_id": 4946622009,
+      "independent_acceptance_review_graphql_id": "PRR_kwDOS_gTTs8AAAABJtd2OQ",
+      "independent_acceptance_review_result": "PASS",
+      "independent_acceptance_reviewed_head_sha": "9b181f4e160981dca7a28fa584855e70a9555f34",
+      "independent_acceptance_review_submitted_at": "2026-08-16T16:17:55Z",
+      "independent_acceptance_exact_head_ci_run_id": 31955752008,
+      "independent_acceptance_exact_head_ci_valid": true,
+      "independent_acceptance_pr_merge_sha": "d3828041f15d9bba0b201429250a2041bcf63c2f"
     }
   },
   "formalization_finding": {
@@ -223,6 +232,9 @@
     "target_gate_canonical_closeout_authorized": false,
     "independent_review_execution_authorized": false,
     "independent_review_performed": false,
+    "historical_source_owner_attestation_review_result": "PASS",
+    "pr252_gate_local_independent_review_performed": false,
+    "pr252_gate_local_independent_review_required": true,
     "ready_performed": false,
     "merge_performed": false,
     "source_authority_acceptance_authorized": false,
@@ -253,6 +265,7 @@
     "canonical_gate_status_mutation_count": 0,
     "canonical_gate_block_reason_mutation_count": 0,
     "json_markdown_parity": "PASS",
+    "source_owner_attestation_acceptance_provenance_replay": "PASS",
     "git_diff_check": "PASS"
   },
   "no_step_implies_the_next": true
