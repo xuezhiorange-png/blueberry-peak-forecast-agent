@@ -6,8 +6,8 @@
 ACCEPTANCE_PACKAGE_ID=V0_3_S1_ACCEPTANCE_PACKAGE
 SLICE=V0.3-S1
 CANONICAL_GATE_COUNT=17
-CURRENT_CANONICAL_GATE_PASS_COUNT=11
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=6
+CURRENT_CANONICAL_GATE_PASS_COUNT=12
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=5
 CURRENT_PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 CURRENT_PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 CURRENT_PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
@@ -18,7 +18,7 @@ PHYSICAL_MEANING_ACCEPTED=true
 UNIT_TIME_BASIS_ACCEPTED=true
 Q2C_ACCEPTED=true
 CURRENT_TASK3_FORMALIZATION_STATUS=INDEPENDENT_REVIEW_PASS
-CURRENT_TASK3_CLOSEOUT_STATUS=GRAIN_AND_INCLUSION_PASS_MISSING_CORRECTION_CANCELLATION_PASS_REVISION_WINNER_REEVALUATION_PENDING
+CURRENT_TASK3_CLOSEOUT_STATUS=GRAIN_AND_INCLUSION_PASS_MISSING_CORRECTION_CANCELLATION_PASS_REVISION_WINNER_PASS
 CURRENT_CANONICAL_GRAIN_GATE_EVIDENCE_VERSION=source-002-canonical-grain-mapping-gate-evidence-v1
 CURRENT_CANONICAL_GRAIN_GATE_EVIDENCE_HASH=6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc
 CURRENT_INCLUSION_EXCLUSION_GATE_EVIDENCE_VERSION=source-002-inclusion-exclusion-gate-evidence-v1
@@ -30,17 +30,25 @@ CURRENT_TASK3_INCLUSION_EXCLUSION_FACT_THRESHOLD_SATISFIED=true
 CURRENT_TASK3_REVISION_WINNER_FACT_THRESHOLD_SATISFIED=true
 CURRENT_TASK3_CANONICAL_GRAIN_ACCEPTED=true
 CURRENT_TASK3_INCLUSION_EXCLUSION_ACCEPTED=true
-CURRENT_TASK3_REVISION_WINNER_ACCEPTED=false
+CURRENT_TASK3_REVISION_WINNER_ACCEPTED=true
 MISSING_CORRECTION_CANCELLATION_ACCEPTED=true
 PR252_MISSING_CORRECTION_CANCELLATION_REVIEW_ID=4957329568
 PR252_MISSING_CORRECTION_CANCELLATION_REVIEWED_HEAD_SHA=35b128a6ded6b6e8b9a7870ce022f3d8f4196e92
 PR252_MISSING_CORRECTION_CANCELLATION_EXACT_HEAD_CI_RUN_ID=32099525500
 PR252_MISSING_CORRECTION_CANCELLATION_CLOSEOUT_DECISION_COMMENT_ID=5323774567
 REVISION_WINNER_HARD_PREREQUISITE_SATISFIED=true
-REVISION_WINNER_ACCEPTED=false
-REVISION_WINNER_REEVALUATION_EXECUTED=false
+REVISION_WINNER_ACCEPTED=true
+REVISION_WINNER_REEVALUATION_EXECUTED=true
+REVISION_WINNER_REQUIRED=false
+WINNER_MANIFEST_CREATED=false
+REVISION_GRAPH_CREATED=false
+REVISION_WINNER_CANONICAL_CLOSEOUT_TASK_ID=S1_REVISION_WINNER_CANONICAL_CLOSEOUT_IMPLEMENTATION_R1
+REVISION_WINNER_EVIDENCE_REVIEW_ID=4951647818
+REVISION_WINNER_EVIDENCE_REVIEWED_HEAD_SHA=ac2ad97579c005c488701e4d3be22531a595ee5f
+REVISION_WINNER_EXACT_HEAD_CI_RUN_ID=32018019710
+CURRENT_MAIN_AFTER_PR252_MERGE_SHA=4c4fa51e4994a2a06c60fb724b4fb07343e2efb0
 CURRENT_TASK3_REVISION_WINNER_HARD_PREREQUISITE_SATISFIED=true
-CURRENT_TASK3_REVISION_WINNER_REEVALUATION_EXECUTED=false
+CURRENT_TASK3_REVISION_WINNER_REEVALUATION_EXECUTED=true
 V0_3_S1_ACCEPTED=false
 V0_3_S2_AUTHORIZED=false
 SOURCE_AUTHORITY_ACCEPTED=true
@@ -65,17 +73,21 @@ PR250_VISIBILITY_GATE_LOCAL_REVIEW_ID=4956221333
 PR250_VISIBILITY_REVIEWED_HEAD_SHA=65eff0186094f5bae5e4bdd5283a2a1491099041
 PR250_VISIBILITY_EXACT_HEAD_CI_RUN_ID=32086692500
 PR250_VISIBILITY_CLOSEOUT_DECISION_COMMENT_ID=5322269014
+TARGET_GATE_ID=S1-REVISION-WINNER
 TARGET_GATE_STATUS_MUTATION_COUNT=1
 TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=1
 OTHER_GATE_STATUS_MUTATION_COUNT=0
 OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0
-REVISION_WINNER_STATUS_MUTATION=false
-REVISION_WINNER_BLOCK_REASON_MUTATION=false
-REVISION_WINNER_NOTE_ONLY_SYNC=true
-REVISION_WINNER_REEVALUATION_EXECUTED=false
-REVISION_WINNER_CLOSEOUT_EXECUTED=false
-S1_REVISION_WINNER_STATUS_CHANGED=false
-S1_REVISION_WINNER_BLOCK_REASON_CHANGED=false
+REVISION_WINNER_STATUS_MUTATION=true
+REVISION_WINNER_BLOCK_REASON_MUTATION=true
+REVISION_WINNER_NOTE_ONLY_SYNC=false
+REVISION_WINNER_REEVALUATION_EXECUTED=true
+REVISION_WINNER_CLOSEOUT_EXECUTED=true
+S1_REVISION_WINNER_STATUS_CHANGED=true
+S1_REVISION_WINNER_BLOCK_REASON_CHANGED=true
+GLOBAL_RECONCILIATION_ARTIFACTS_CHANGED=false
+SOURCE_REVISION_WINNER_EVIDENCE_CHANGED=false
+INDEPENDENT_CLOSEOUT_REVIEW_PERFORMED=false
 S1_SPLIT_POLICY_MUTATED=false
 S1_METRIC_CONTRACT_MUTATED=false
 S1_DATA_CUSTODY_MUTATED=false
@@ -95,17 +107,20 @@ NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
 This is the single runtime gate registry for S1. Every row uses the same
-runtime field set; there is no separate initial-status authority. Six required
+runtime field set; there is no separate initial-status authority. Five required
 rows remain blocked because other gate-specific evidence and final independent
 review are not present. Source Authority is accepted by the PR #238 exact-head
 reviewed attestation closeout, Source Cohort by PR #241, Q2C by PR #243, and
 Physical Meaning / Unit-Time by PR #246. PR #247 exact-head review
 `4951647818` accepted the Task-3 formalization evidence; the separately
 authorized bounded closeout accepts Canonical Grain and Inclusion/Exclusion.
-Revision Winner remains `BLOCKED/REVISION_WINNER_NOT_VERIFIED`; its hard
-prerequisite `S1-MISSING-CORRECTION-CANCELLATION` is satisfied by this
-separately authorized closeout candidate, but Revision Winner reevaluation and
-closeout remain pending. No row-level data is issued by this package.
+Revision Winner is `PASS/NONE` because the accepted IDFL_V1 disposition is
+`REVISION_WINNER_REQUIRED=false` and
+`WINNER_AND_LINEAGE_RULE=NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE`; its hard
+prerequisite `S1-MISSING-CORRECTION-CANCELLATION` is satisfied on current main
+after PR #252 merge. This separately authorized closeout creates no winner
+manifest, revision graph, or source lifecycle fact. No row-level data is issued
+by this package.
 
 ```text
 COMPLETION_GATE_REGISTRY_IS_AUTHORITATIVE=true
@@ -158,7 +173,7 @@ package; it is not permitted to turn this required feasibility gate into
 | `S1-UNIT-AND-TIME-BASIS` | business | required | business_data_owner_role | Source002 Unit/Time Basis Attestation | `source-002-unit-time-basis-attestation-v1` | `d6a58c61a8e0f789e928ef26e864a7e995c50a891b3452c7dc6a6fc6645f17ee` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2C physical and time dimensions | `KG_AND_FARM_LOCAL_DATE_BOUND` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4949133128` | `2026-08-17T06:58:24Z` | PR #245 independently reviewed the attestation PASS on exact head `7acea813d3f0ae17579da325dfa2f38c7ea9d0c8`; exact-head CI `32002755230` completed success and merge `1ee6da741fe13e163b53c26b2a6705ac8eb28a72` entered the reviewed evidence on current main. PR #246 performed the separate canonical closeout to PASS/NONE. KG, farm-local HARVEST_BUSINESS_DATE, and Asia/Shanghai remain bound. |
 | `S1-CANONICAL-GRAIN` | source | required | source_governance_owner_role | current-main canonical grain/mapping gate evidence | `source-002-canonical-grain-mapping-gate-evidence-v1` | `6717ccd9d21aa3575f1ac66264d271c6371e55268633d786bcf7a29129b7fabc` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 and Q2C | `CANONICAL_GRAIN_AND_MAPPING_BOUND` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4951647818` | `2026-08-17T12:37:08Z` | PR #247 exact-head review accepted the canonical grain evidence on `ac2ad97579c005c488701e4d3be22531a595ee5f`; CI `32018019710` succeeded. This bounded closeout changes only this row from BLOCKED/GRAIN_OR_DATE_AUTHORITY_MISSING to PASS/NONE. |
 | `S1-VISIBILITY` | data | required | data_governance_owner_role | visibility and snapshot manifest | `V0_3_S1_FORECAST_INPUT_POINT_IN_TIME_LEAKAGE_AUDIT@forecast-input-pit-leakage-audit-v2` | `eeaa91cd1121664d87e129dd4099d976e34d35da66df35299449d311055fb050` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `SOURCE_CLASS_CUTOFF_RULES_EVIDENCED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4956221333` | `2026-08-18T01:22:10Z` | PR #250 exact-head Visibility gate-local review 4956221333 returned PASS on reviewed formalization head `65eff0186094f5bae5e4bdd5283a2a1491099041`; exact-head CI `32086692500` completed success. The reviewed evidence confirms the Visibility threshold, PIT 22 audited inputs with 21 PASS / 0 PARTIAL / 0 BLOCKED / 1 NOT_USED, minimum implementation gap count 0, S1-REMAINING-04 complete with reexecution_required=false, and all five strict hard prerequisites PASS/NONE. Separately authorized closeout decision `5322269014` approved this S1-VISIBILITY-only transition. No downstream gate, final S1, or S2 acceptance is implied. |
-| `S1-REVISION-WINNER` | data | required | data_governance_owner_role | current-main revision/winner gate evidence | `source-002-revision-winner-gate-evidence-v1` | `5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `ONE_VALID_WINNER_PER_KEY` | `NEVER` | `BLOCKED` | `REVISION_WINNER_NOT_VERIFIED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | PR #247 reviewed the IDFL mode-specific evidence PASS. The hard prerequisite `S1-MISSING-CORRECTION-CANCELLATION` is satisfied by PR #252 closeout review 4957329568 on reviewed head 35b128a6ded6b6e8b9a7870ce022f3d8f4196e92 with exact-head CI 32099525500 and closeout decision comment 5323774567. Revision Winner remains BLOCKED/REVISION_WINNER_NOT_VERIFIED; REVISION_WINNER_NOTE_ONLY_SYNC=true; reevaluation and closeout were not executed. |
+| `S1-REVISION-WINNER` | data | required | data_governance_owner_role | current-main revision/winner gate evidence | `source-002-revision-winner-gate-evidence-v1` | `5774ad13b89e72efb40f63c9b3f9fb5096621b1f0382e4f5d35c097c79b6fc5e` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `ONE_VALID_WINNER_PER_KEY` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4951647818` | `2026-08-17T12:37:08Z` | PR #247 exact-head review 4951647818 (GraphQL `PRR_kwDOS_gTTs8AAAABJyQmSg`) returned PASS on reviewed head `ac2ad97579c005c488701e4d3be22531a595ee5f`; exact-head CI `32018019710` completed success. The reviewed IDFL_V1 disposition binds `REVISION_WINNER_REQUIRED=false`, `WINNER_AND_LINEAGE_RULE=NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE`, and no synthetic winner manifest or revision graph. The hard prerequisite `S1-MISSING-CORRECTION-CANCELLATION` is PASS/NONE on current main after PR #252 merge `4c4fa51e4994a2a06c60fb724b4fb07343e2efb0`. This separately authorized closeout changes only this row to PASS/NONE; `WINNER_MANIFEST_CREATED=false`, `REVISION_GRAPH_CREATED=false`, and `INDEPENDENT_CLOSEOUT_REVIEW_PERFORMED=false`. |
 | `S1-INCLUSION-EXCLUSION` | data | required | data_quality_owner_role | current-main inclusion/exclusion gate evidence | `source-002-inclusion-exclusion-gate-evidence-v1` | `b5ef85cf54b54751c8407c21c252074b67fe61d7f8833466a681176690c6b580` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 and Q2C | `REASONS_AND_COUNTS_RECONCILED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4951647818` | `2026-08-17T12:37:08Z` | PR #247 exact-head review accepted the inclusion/exclusion evidence on `ac2ad97579c005c488701e4d3be22531a595ee5f`; CI `32018019710` succeeded. This bounded closeout changes only this row from BLOCKED/INCLUSION_POLICY_NOT_FROZEN to PASS/NONE. |
 | `S1-MISSING-CORRECTION-CANCELLATION` | data | required | data_quality_owner_role | docs/v0-3/s1/evidence/s1-missing-correction-cancellation-current-main-gate-local-formalization.json | `s1-missing-correction-cancellation-current-main-gate-local-formalization-v1` | `GIT_BLOB_SHA:717fc7683345d8cef559c4ab30493f64286e86da` | `NOT_APPLICABLE_FOR_THIS_GATE` | Q2A/I7 contract | `LATE_ENTRY_REVISION_VOID_RULES_PRESENT` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4957329568` | `2026-08-18T04:49:26Z` | PR #252 exact-head review 4957329568 (GraphQL PRR_kwDOS_gTTs8AAAABJ3rYoA) returned PASS on reviewed formalization head 35b128a6ded6b6e8b9a7870ce022f3d8f4196e92; exact-head CI 32099525500 completed success; closeout decision comment 5323774567 authorized this gate-only transition. No new business input, Source Owner input, Source002 reread, TEST/holdout access, or production code change was required. This closes only S1-MISSING-CORRECTION-CANCELLATION. |
 | `S1-SPLIT-POLICY` | evaluation | required | model_validation_owner_role | split policy and custody record | `SPLIT_POLICY_REQUIRED` | `BLOCKED_SPLIT_POLICY_NOT_FROZEN` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | split contract | `TIME_ORDERED_SPLITS_AND_NO_LEAKAGE` | `NEVER` | `BLOCKED` | `SPLIT_POLICY_NOT_FROZEN` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | No TEST or holdout is accessed. |
@@ -173,8 +188,8 @@ package; it is not permitted to turn this required feasibility gate into
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_REQUIRED_GATE_PASS_COUNT=11
-CURRENT_REQUIRED_GATE_BLOCKED_COUNT=6
+CURRENT_REQUIRED_GATE_PASS_COUNT=12
+CURRENT_REQUIRED_GATE_BLOCKED_COUNT=5
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 CURRENT_SOURCE_COHORT_ACCEPTED=true
 CURRENT_Q2C_ACCEPTED=true
@@ -186,17 +201,19 @@ CURRENT_S2_AUTHORIZATION=false
 VISIBILITY_ACCEPTED=true
 ```
 
-The current package records eleven closed gates. Canonical Grain and
+The current package records twelve closed gates. Canonical Grain and
 Inclusion/Exclusion are now accepted through the reviewed Task-3 evidence and
 this separately authorized bounded closeout. Visibility is accepted through
 PR #250 exact-head gate-local review `4956221333`, reviewed formalization head
 `65eff0186094f5bae5e4bdd5283a2a1491099041`, exact-head CI `32086692500`, and
 closeout decision `5322269014`. This bounded closeout changes only
 S1-VISIBILITY from BLOCKED/HISTORICAL_VISIBILITY_NOT_RECONSTRUCTABLE to
-PASS/NONE. Revision Winner is not accepted: its reviewed IDFL evidence is
-preserved, its hard prerequisite `S1-MISSING-CORRECTION-CANCELLATION` is
-satisfied by the separately authorized closeout candidate, and its separate
-reevaluation/closeout remains pending. This closeout does not execute `S1-REMAINING-04`, accept any
+PASS/NONE. The separately authorized Revision Winner closeout changes only
+S1-REVISION-WINNER from BLOCKED/REVISION_WINNER_NOT_VERIFIED to PASS/NONE,
+using the reviewed IDFL disposition `REVISION_WINNER_REQUIRED=false` and the
+current-main PASS/NONE prerequisite `S1-MISSING-CORRECTION-CANCELLATION`.
+No winner manifest, revision graph, or fabricated lifecycle fact is created.
+This closeout does not execute `S1-REMAINING-04`, accept any
 downstream gate, or imply final S1 acceptance. Source Cohort acceptance freezes
 identity only; S2 still owns the final materialized rowset. All downstream and
 unrelated gates remain fail-closed.
