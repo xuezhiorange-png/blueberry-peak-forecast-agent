@@ -98,6 +98,16 @@
     "visibility_threshold_evidence_satisfied": true,
     "remaining_action": "SEPARATELY_AUTHORIZED_VISIBILITY_GATE_LOCAL_RECONCILIATION_AND_REVIEW"
   },
+  "historical_current_pit_gap_accounting": {
+    "historical_task_id": "S1-REMAINING-04",
+    "historical_task_initial_pit_gap_count": 4,
+    "current_pit_gap_count": 0,
+    "historical_task_complete": true,
+    "current_pit_revalidation_result": "PASS",
+    "historical_current_pit_gap_semantics_separated": true,
+    "s1_remaining_04_reexecution_required": false,
+    "s1_remaining_04_executed_by_this_task": false
+  },
   "gate_class_counts": {
     "FORMALIZATION_OR_REVIEW_READY": 3,
     "CANONICALLY_ACCEPTED": 9,
@@ -939,7 +949,7 @@
       "dependencies": ["S1-REMAINING-01", "S1-REMAINING-02", "S1-REMAINING-03"],
       "action_class": "NARROW_IMPLEMENTATION_CORRECTION",
       "why_ordered_here": "The historical correction package was ordered after source-class and target authorities were stable and before visibility formalization; its completion is preserved as current execution state below.",
-      "pit_gap_count": 0,
+      "pit_gap_count": 4,
       "does_not_equal_four_total_s1_tasks": true
     },
     {
@@ -1063,6 +1073,9 @@
     "s1_remaining_04_task_name_unchanged": true,
     "s1_remaining_04_historical_objective_preserved": true,
     "s1_remaining_04_historical_action_class": "NARROW_IMPLEMENTATION_CORRECTION",
+    "s1_remaining_04_historical_pit_gap_count": 4,
+    "current_pit_gap_count": 0,
+    "historical_current_pit_gap_semantics_separated": true,
     "acceptance_record_hash_unchanged": true,
     "acceptance_package_hash_unchanged": true,
     "canonical_gate_status_mutation_count": 0,
