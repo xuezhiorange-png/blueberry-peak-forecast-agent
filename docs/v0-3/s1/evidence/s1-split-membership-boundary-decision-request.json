@@ -1,0 +1,374 @@
+{
+  "artifact_id": "V0_3_S1_SPLIT_MEMBERSHIP_BOUNDARY_DECISION_REQUEST",
+  "artifact_version": "v0-3-s1-split-membership-boundary-decision-request-v1",
+  "artifact_status": "OWNER_DECISION_REQUIRED",
+  "task_id": "S1_SPLIT_MEMBERSHIP_BOUNDARY_DECISION_REQUEST_R1",
+  "task_class": "DOCS_ONLY_MODEL_VALIDATION_DECISION_PREPARATION",
+  "authorization_comment_id": 5337413615,
+  "source_prior_authorization_comment_id": 5337280420,
+  "authorization_generation": "R2_AFTER_LOCAL_RECOVERY",
+  "base_main_sha": "294f66d57f84609e3e08810a93a3e3f6d0f09ff7",
+  "base_main_tree_sha": "b26e47c8a033baa9f764b43f7f7652995fd9cce7",
+  "decision_id": "S1_SPLIT_MEMBERSHIP_BOUNDARY_DECISION",
+  "gate_id": "S1-SPLIT-POLICY",
+  "owner_role": "model_validation_owner_role",
+  "decision_required": true,
+  "owner_decision_issued": false,
+  "can_be_inferred": false,
+  "decision_result_preselected": false,
+  "candidate_value": null,
+  "accepted_value": null,
+  "current_block_reason": "INSUFFICIENT_ACCEPTED_SPLIT_MEMBERSHIP_AND_SPLIT_HASH_IDENTITIES",
+  "no_step_implies_the_next": true,
+  "authoritative_inputs": {
+    "split_policy_binding": "docs/v0-3/s1/evidence/s1-split-policy-owner-decision-binding.json",
+    "split_policy_binding_workpaper": "docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md",
+    "split_contract": "docs/v0-3/s1/split-holdout-and-custody-contract.md",
+    "remaining_05_readiness": "docs/v0-3/s1/evidence/s1-remaining-05-threshold-metric-split-holdout-readiness.json",
+    "acceptance_record": "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+    "custody_record": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+    "metric_contract": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "source_owner_decision_comment_id": 5336738442,
+    "source_formalization_blocked_result_comment_id": 5337246245
+  },
+  "repository_proven_constraints": {
+    "split_policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+    "required_dataset_splits": ["TRAIN", "VALIDATION", "TEST"],
+    "train_purpose": "CANDIDATE_FITTING_ONLY",
+    "validation_purpose": "CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+    "test_purpose": "SEALED_FINAL_EVALUATION_ONLY",
+    "external_holdout_policy": "CONDITIONAL_ON_S1_FEASIBILITY_GATE",
+    "use_complete_time_intervals_or_complete_seasons": true,
+    "random_adjacent_date_split_allowed": false,
+    "future_label_leakage_allowed": false,
+    "future_source_revision_leakage_allowed": false,
+    "source_lineage_binding_required": true,
+    "mapping_identity_binding_required": true,
+    "visibility_identity_binding_required": true,
+    "inclusion_exclusion_identity_binding_required": true,
+    "revision_winner_disposition_binding_required": true,
+    "custody_identity_binding_required": true,
+    "requested_horizons_binding_required": true,
+    "test_sealed_before_candidate_tuning": true,
+    "test_seal_is_not_test_access_authorization": true,
+    "test_access_currently_authorized": false,
+    "external_holdout_access_currently_authorized": false,
+    "repository_proven_requested_horizons": [7, 14, 21],
+    "requested_horizons_source": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "requested_horizons_are_not_new_owner_decision": true
+  },
+  "previous_formalization_block": {
+    "task_id": "S1_SPLIT_POLICY_MANIFEST_AND_TEST_CUSTODY_FORMALIZATION_R1",
+    "authorization_comment_id": 5337243500,
+    "blocked_result_comment_id": 5337246245,
+    "result": "BLOCKED",
+    "block_reason": "INSUFFICIENT_ACCEPTED_SPLIT_MEMBERSHIP_AND_SPLIT_HASH_IDENTITIES",
+    "concrete_train_membership_boundary_present": false,
+    "concrete_validation_membership_boundary_present": false,
+    "concrete_test_membership_boundary_present": false,
+    "accepted_split_percentage_policy_present": false,
+    "accepted_split_date_cutoff_policy_present": false,
+    "accepted_split_rowset_identity_present": false,
+    "accepted_split_hash_present": false,
+    "source_cohort_identity_does_not_determine_three_partition_membership": true
+  },
+  "required_decision_dimensions": {
+    "PARTITIONING_BASIS": {
+      "decision_required": true,
+      "allowed_owner_choices": [
+        "CONCRETE_TIME_INTERVALS",
+        "COMPLETE_SEASONS",
+        "HYBRID",
+        "OTHER_WITH_REASON"
+      ],
+      "preselected_value": null,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "owner_question": "What identity basis partitions the accepted source cohort into TRAIN, VALIDATION, and TEST while preserving strict time ordering?"
+    },
+    "TRAIN_MEMBERSHIP_BOUNDARY": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "subfields": {
+        "season_membership": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "farm_membership_or_scope": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_start": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_end": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_boundary_inclusivity": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "membership_rule": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "gap_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "overlap_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      }
+    },
+    "VALIDATION_MEMBERSHIP_BOUNDARY": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "subfields": {
+        "season_membership": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "farm_membership_or_scope": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_start": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_end": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_boundary_inclusivity": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "membership_rule": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "gap_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "overlap_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      },
+      "required_confirmation": {
+        "decision_required": true,
+        "owner_input": "<OWNER_CONFIRMATION_REQUIRED>",
+        "accepted_value": null,
+        "question": "Confirm that VALIDATION is later than TRAIN under the accepted time-ordering semantics."
+      }
+    },
+    "TEST_MEMBERSHIP_BOUNDARY": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "subfields": {
+        "season_membership": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "farm_membership_or_scope": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_start": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_end": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interval_boundary_inclusivity": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "membership_rule": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "gap_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "overlap_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      },
+      "repository_constraints": {
+        "test_sealed_before_candidate_tuning": true,
+        "test_seal_is_not_test_access_authorization": true,
+        "test_access_authorization_separate": true
+      },
+      "required_confirmations": {
+        "TEST_ORDERED_AFTER_VALIDATION": {"decision_required": true, "owner_input": "<OWNER_CONFIRMATION_REQUIRED>", "accepted_value": null},
+        "TEST_MEMBERSHIP_IMMUTABLE_AFTER_SEAL": {"decision_required": true, "owner_input": "<OWNER_CONFIRMATION_REQUIRED>", "accepted_value": null},
+        "TEST_ACCESS_AUTHORIZATION_SEPARATE": {"decision_required": true, "owner_input": "<OWNER_CONFIRMATION_REQUIRED>", "accepted_value": null}
+      }
+    },
+    "FARM_OR_SEASON_ISOLATION_RULE": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "subfields": {
+        "isolation_enabled": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "isolation_dimension": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "isolated_identity_scope": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "reason": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "interaction_with_time_ordering": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      }
+    },
+    "FORECAST_CUTOFF_POLICY": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "subfields": {
+        "forecast_cutoff_basis": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "cutoff_timestamp_or_business_date_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "timezone_or_business_time_basis": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "boundary_inclusivity": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "relationship_to_target_date": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "relationship_to_requested_horizon": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "drift_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      }
+    },
+    "LABEL_OBSERVATION_CUTOFF_POLICY": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "repository_constraint": {"future_label_leakage_prohibited": true},
+      "subfields": {
+        "label_observation_cutoff_basis": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "label_visibility_boundary": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "late_entry_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "revision_after_cutoff_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "final_confirmation_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      }
+    },
+    "REQUESTED_HORIZONS_BINDING": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "allowed_owner_choices": [
+        "BIND_REPOSITORY_PROVEN_7_14_21",
+        "DEFER_AND_REQUEST_SEPARATE_HORIZON_AUTHORITY"
+      ],
+      "repository_observed_values": [7, 14, 21],
+      "source_authority": "docs/forecast-quality/s3-quality-metrics-contract.md",
+      "accepted_value": null,
+      "requested_horizons_binding_confirmed": false
+    },
+    "SPLIT_MANIFEST_CANONICALIZATION_VERSION": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "repository_observed_canonicalization_patterns": {
+        "encoding_policy": "UTF-8",
+        "key_ordering_policy": "SORTED_JSON_KEYS",
+        "serialization_policy": "COMPACT_JSON_SEPARATORS_COMMA_COLON",
+        "hash_algorithm_observed_elsewhere": "SHA-256",
+        "authoritative": false
+      },
+      "subfields": {
+        "canonicalization_version": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "encoding_policy": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "key_ordering_policy": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "serialization_policy": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "null_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "array_order_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "date_serialization_semantics": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null},
+        "identity_hash_scope": {"decision_required": true, "owner_input": "<OWNER_INPUT_REQUIRED>", "accepted_value": null}
+      }
+    },
+    "SPLIT_HASH_ALGORITHM": {
+      "decision_required": true,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null,
+      "accepted_split_hash_algorithm": null,
+      "repository_observed_hash_algorithm": "SHA-256",
+      "repository_observation_is_not_owner_decision": true,
+      "owner_confirmation_required": true
+    }
+  },
+  "cross_partition_decision_questions": {
+    "TRAIN_BEFORE_VALIDATION_REQUIRED": {
+      "decision_required": true,
+      "repository_constraint": true,
+      "repository_constraint_value": true,
+      "owner_input": "<OWNER_CONFIRMATION_REQUIRED>",
+      "owner_membership_decision": "<OWNER_CONFIRMATION_REQUIRED>",
+      "accepted_value": null
+    },
+    "VALIDATION_BEFORE_TEST_REQUIRED": {
+      "decision_required": true,
+      "repository_constraint": true,
+      "repository_constraint_value": true,
+      "owner_input": "<OWNER_CONFIRMATION_REQUIRED>",
+      "owner_membership_decision": "<OWNER_CONFIRMATION_REQUIRED>",
+      "accepted_value": null
+    },
+    "PARTITION_OVERLAP_ALLOWED": {
+      "decision_required": true,
+      "repository_constraint": false,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "owner_membership_decision": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null
+    },
+    "PARTITION_GAPS_ALLOWED": {
+      "decision_required": true,
+      "repository_constraint": false,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "owner_membership_decision": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null
+    },
+    "BOUNDARY_DATE_INCLUSIVITY": {
+      "decision_required": true,
+      "repository_constraint": false,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "owner_membership_decision": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null
+    },
+    "SAME_FARM_ALLOWED_ACROSS_PARTITIONS": {
+      "decision_required": true,
+      "repository_constraint": false,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "owner_membership_decision": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null
+    },
+    "SAME_SEASON_ALLOWED_ACROSS_PARTITIONS": {
+      "decision_required": true,
+      "repository_constraint": false,
+      "owner_input": "<OWNER_INPUT_REQUIRED>",
+      "owner_membership_decision": "<OWNER_INPUT_REQUIRED>",
+      "accepted_value": null
+    },
+    "TEST_MEMBERSHIP_IMMUTABLE_AFTER_SEAL": {
+      "decision_required": true,
+      "repository_constraint": true,
+      "repository_constraint_value": true,
+      "owner_input": "<OWNER_CONFIRMATION_REQUIRED>",
+      "owner_membership_decision": "<OWNER_CONFIRMATION_REQUIRED>",
+      "accepted_value": null
+    },
+    "SOURCE_OR_MAPPING_DRIFT_INVALIDATES_SPLIT": {
+      "decision_required": true,
+      "repository_constraint": true,
+      "repository_constraint_value": true,
+      "owner_input": "<OWNER_CONFIRMATION_REQUIRED>",
+      "owner_membership_decision": "<OWNER_CONFIRMATION_REQUIRED>",
+      "accepted_value": null
+    },
+    "REVISION_OR_CUSTODY_DRIFT_INVALIDATES_SPLIT": {
+      "decision_required": true,
+      "repository_constraint": true,
+      "repository_constraint_value": true,
+      "owner_input": "<OWNER_CONFIRMATION_REQUIRED>",
+      "owner_membership_decision": "<OWNER_CONFIRMATION_REQUIRED>",
+      "accepted_value": null
+    }
+  },
+  "execution_boundary": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "train_rowset_materialized": false,
+    "validation_rowset_materialized": false,
+    "test_rowset_materialized": false,
+    "external_holdout_rowset_materialized": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "real_data_import": false,
+    "metric_execution": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "concrete_split_date_preselected": false,
+    "concrete_split_ratio_preselected": false,
+    "train_membership_preselected": false,
+    "validation_membership_preselected": false,
+    "test_membership_preselected": false,
+    "split_manifest_created": false,
+    "split_rowset_identity_created": false,
+    "split_hash_created": false,
+    "test_custody_record_created": false,
+    "owner_decision_issued": false,
+    "owner_decision_accepted": false,
+    "owner_decision_independently_reviewed": false,
+    "s1_split_policy_canonical_gate_pass": false,
+    "canonical_gate_status_mutation_count": 0,
+    "canonical_gate_block_reason_mutation_count": 0,
+    "canonical_closeout_performed": false,
+    "holdout_feasibility_decision_authorized": false,
+    "final_s1_independent_review_authorized": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "current_governance_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 14,
+    "current_canonical_gate_blocked_count": 3,
+    "s1_split_policy_status": "BLOCKED",
+    "s1_split_policy_block_reason": "SPLIT_POLICY_NOT_FROZEN",
+    "canonical_gate_status_mutation_count": 0,
+    "canonical_gate_block_reason_mutation_count": 0,
+    "canonical_closeout_performed": false,
+    "acceptance_record_changed": false,
+    "acceptance_package_changed": false,
+    "canonical_reconciliation_changed": false,
+    "holdout_feasibility_decision_authorized": false,
+    "final_s1_independent_review_authorized": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "artifact_boundary": {
+    "this_artifact_is_not_a_split_manifest": true,
+    "this_artifact_is_not_a_test_custody_record": true,
+    "this_artifact_does_not_close_s1_split_policy": true,
+    "authorized_changed_files_exactly": [
+      "docs/v0-3/s1/evidence/s1-split-membership-boundary-decision-request.json",
+      "docs/v0-3/s1/workpapers/s1-split-membership-boundary-decision-request.md"
+    ]
+  }
+}

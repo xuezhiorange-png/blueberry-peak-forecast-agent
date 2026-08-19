@@ -1,0 +1,237 @@
+{
+  "artifact_id": "V0_3_S1_SPLIT_MEMBERSHIP_BOUNDARY_OWNER_DECISION_BINDING",
+  "artifact_version": "v0-3-s1-split-membership-boundary-owner-decision-binding-v1",
+  "artifact_status": "OWNER_DECISION_BOUND_REVIEW_REQUIRED",
+  "task_id": "S1_SPLIT_MEMBERSHIP_BOUNDARY_OWNER_DECISION_BINDING_R1",
+  "authorization_comment_id": 5337769133,
+  "source_owner_decision_comment_id": 5337704077,
+  "source_decision_request_pr": 260,
+  "source_decision_request_head_sha": "1474e4f1245be17f5e746889d019ba61322bee98",
+  "source_decision_request_head_tree_sha": "c92271433a5eab4d17fb0eb3d5a5020f82c93ac2",
+  "source_independent_review_id": 4968465217,
+  "source_exact_head_ci_run_id": 32215616703,
+  "decision_id": "S1_SPLIT_MEMBERSHIP_BOUNDARY_DECISION",
+  "decision": "ACCEPT",
+  "owner_identity": "xuezhiorange-png",
+  "owner_role": "model_validation_owner_role",
+  "owner_role_attestation": "I_AM_ACTING_AS_MODEL_VALIDATION_OWNER_ROLE",
+  "decided_at": "2026-08-19T12:51:00+08:00",
+  "owner_decision_payload": {
+    "decision_identity": {
+      "decision_id": "S1_SPLIT_MEMBERSHIP_BOUNDARY_DECISION",
+      "decision": "ACCEPT",
+      "decision_status": "OWNER_DECISION_ISSUED",
+      "decided_at": "2026-08-19T12:51:00+08:00",
+      "owner_identity": "xuezhiorange-png",
+      "owner_role": "model_validation_owner_role",
+      "owner_role_attestation": "I_AM_ACTING_AS_MODEL_VALIDATION_OWNER_ROLE",
+      "owner_provenance": "AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-19"
+    },
+    "source_authority": {
+      "split_policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+      "source_cohort_id": "source-002-s1-cohort-v1",
+      "source_cohort_season": "2025~2026",
+      "source_cohort_business_date_start": "2025-08-05",
+      "source_cohort_business_date_end": "2026-04-16"
+    },
+    "partition_policy": {
+      "partitioning_basis": "CONCRETE_TIME_INTERVALS",
+      "partition_membership_date_field": "HARVEST_BUSINESS_DATE",
+      "boundary_inclusivity": "BOTH_ENDS_INCLUSIVE",
+      "overlap_allowed": false,
+      "gaps_allowed": false,
+      "partition_order": [
+        "TRAIN",
+        "VALIDATION",
+        "TEST"
+      ],
+      "total_accepted_date_span_day_count": 255,
+      "informational_time_ratio_approx": "TRAIN_70.2_PERCENT,VALIDATION_14.9_PERCENT,TEST_14.9_PERCENT",
+      "ratio_is_not_split_identity": true,
+      "date_boundaries_are_split_identity": true,
+      "train_before_validation_required": true,
+      "validation_before_test_required": true,
+      "time_overlap_remains_prohibited": true
+    },
+    "partitions": {
+      "TRAIN": {
+        "season_membership": "2025~2026",
+        "farm_scope": "ALL_ACCEPTED_SOURCE_COHORT_FARMS_WITH_ROWS_IN_INTERVAL",
+        "interval_start": "2025-08-05",
+        "interval_end": "2026-01-30",
+        "day_count": 179,
+        "membership_rule": "ACCEPTED_SOURCE_COHORT_ROWS_WITH_HARVEST_BUSINESS_DATE_IN_INCLUSIVE_INTERVAL"
+      },
+      "VALIDATION": {
+        "season_membership": "2025~2026",
+        "farm_scope": "ALL_ACCEPTED_SOURCE_COHORT_FARMS_WITH_ROWS_IN_INTERVAL",
+        "interval_start": "2026-01-31",
+        "interval_end": "2026-03-09",
+        "day_count": 38,
+        "membership_rule": "ACCEPTED_SOURCE_COHORT_ROWS_WITH_HARVEST_BUSINESS_DATE_IN_INCLUSIVE_INTERVAL"
+      },
+      "TEST": {
+        "season_membership": "2025~2026",
+        "farm_scope": "ALL_ACCEPTED_SOURCE_COHORT_FARMS_WITH_ROWS_IN_INTERVAL",
+        "interval_start": "2026-03-10",
+        "interval_end": "2026-04-16",
+        "day_count": 38,
+        "membership_rule": "ACCEPTED_SOURCE_COHORT_ROWS_WITH_HARVEST_BUSINESS_DATE_IN_INCLUSIVE_INTERVAL"
+      }
+    },
+    "isolation_policy": {
+      "isolation_enabled": false,
+      "isolation_dimension": "NONE",
+      "same_farm_allowed_across_partitions": true,
+      "same_season_allowed_across_partitions": true,
+      "farm_identity_must_remain_stable_across_partitions": true
+    },
+    "test_seal_policy": {
+      "test_is_latest_time_interval": true,
+      "membership_immutable_after_seal": true,
+      "sealed_before_candidate_tuning": true,
+      "seal_is_not_access_authorization": true,
+      "data_access_authorized": false
+    },
+    "forecast_cutoff_authority": {
+      "policy": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
+      "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+      "authority": "EXACT_FORECAST_CUTOFF_AT",
+      "input_known_at_requirement": "KNOWN_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+      "input_source_available_at_requirement": "SOURCE_AVAILABLE_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+      "timestamp_identity": "TIMEZONE_AWARE_CANONICAL_UTC",
+      "target_relation": "FORECAST_CUTOFF_AT_STRICTLY_BEFORE_FORECAST_TARGET_DATE_OR_WINDOW_END",
+      "drift_semantics": "FAIL_CLOSED_OR_NEW_IDENTITY_NO_SILENT_SUBSTITUTION"
+    },
+    "label_authority": {
+      "policy": "BIND_EXISTING_SOURCE_002_IDFL_V1_AUTHORITY",
+      "mode": "IMMUTABLE_DAILY_FINAL_LABEL",
+      "mode_version": "IDFL_V1",
+      "observation_cutoff_required": false,
+      "side_point_in_time_replay_required": false,
+      "visibility_authority": "NOT_POINT_IN_TIME_REPLAYABLE",
+      "source_object_completeness_authority_required": true,
+      "source_object_bound_row_lineage_required": true,
+      "forecast_input_visibility_domain_separate": true,
+      "late_or_revised_source_identity_semantics": "INVALIDATE_EXISTING_SPLIT_IDENTITY_AND_REQUIRE_NEW_VERSION_NO_IN_PLACE_REWRITE"
+    },
+    "requested_horizons": {
+      "binding": "BIND_REPOSITORY_PROVEN_7_14_21",
+      "values": [
+        7,
+        14,
+        21
+      ],
+      "binding_confirmed": true
+    },
+    "manifest_canonicalization": {
+      "version": "v0-3-s1-split-manifest-canonicalization-v1",
+      "authority": "BIND_EXISTING_REPOSITORY_CANONICAL_JSON_RULES",
+      "encoding": "UTF-8",
+      "key_ordering": "LEXICOGRAPHICALLY_SORTED_JSON_OBJECT_KEYS",
+      "serialization": "COMPACT_JSON_SEPARATORS_COMMA_COLON",
+      "null_semantics": "RETAIN_JSON_NULL",
+      "array_order_semantics": "CONTRACT_DEFINED_STABLE_ORDER_NEVER_DATABASE_OR_QUERY_ORDER",
+      "partition_array_stable_order": [
+        "TRAIN",
+        "VALIDATION",
+        "TEST"
+      ],
+      "date_serialization_semantics": "BUSINESS_DATE_ISO_8601_YYYY_MM_DD;TIMESTAMP_IS_TIMEZONE_AWARE_UTC_Z",
+      "identity_hash_scope": "INCLUDE_POLICY_VERSION_SOURCE_COHORT_PARTITION_BOUNDARIES_SOURCE_MAPPING_VISIBILITY_REVISION_CUSTODY_IDENTITIES_AND_REQUESTED_HORIZONS;EXCLUDE_RUNTIME_ONLY_DATABASE_IDS_CREDENTIALS_SECRETS_AND_SELF_REFERENTIAL_HASH_FIELDS"
+    },
+    "split_hash_policy": {
+      "algorithm": "SHA-256",
+      "encoding": "LOWERCASE_HEXADECIMAL"
+    },
+    "drift_invalidation": {
+      "source_or_mapping_drift_invalidates_split": true,
+      "revision_or_custody_drift_invalidates_split": true,
+      "source_time_or_visibility_drift_invalidates_split": true,
+      "regeneration_on_drift": "SAME_IDENTITY_REUSE_PROHIBITED_NEW_VERSION_OR_FAIL_CLOSED_REQUIRED"
+    }
+  },
+  "owner_decision_payload_sha256": "a0a8ccc18c9879719048781e0e3a27a02b9fe9504f39db2d95870d552760742a",
+  "owner_decision_comment_body_sha256": "aca2e29531467f4969d7605d6831952dee6c5acc64a5618b5f4512f30b6b1c67",
+  "binding_hash_contract": {
+    "contract_version": "v0-3-s1-split-membership-owner-decision-binding-hash-v1",
+    "comment_body_hash_input": "EXACT_DECODED_GITHUB_COMMENT_BODY_UTF8_WITHOUT_TRIM_OR_LINE_ENDING_NORMALIZATION",
+    "payload_hash_input": "UTF8_JSON_SERIALIZATION_OF_OWNER_DECISION_PAYLOAD",
+    "ensure_ascii": false,
+    "sort_keys": true,
+    "separators": ",:",
+    "hash_algorithm": "SHA-256",
+    "hex_encoding": "LOWERCASE_HEXADECIMAL",
+    "self_referential_hash_fields_excluded_from_payload": true,
+    "serialization_identity": "UTF8_BYTES_OF_JSON_DUMPS_WITH_ENSURE_ASCII_FALSE_SORT_KEYS_TRUE_AND_SEPARATORS_COMMA_COLON"
+  },
+  "validation": {
+    "owner_decision_comment_fetched_authenticated": true,
+    "owner_decision_values_replayed": true,
+    "owner_decision_comment_body_hash_replay": "PASS",
+    "owner_decision_payload_hash_replay": "PASS",
+    "owner_decision_payload_binding": "PASS",
+    "source_request_head_provenance_verified": true,
+    "source_independent_review_provenance_verified": true,
+    "source_exact_head_ci_provenance_verified": true,
+    "json_markdown_parity_required": true,
+    "json_markdown_parity_performed": true
+  },
+  "runtime_safety": {
+    "owner_decision_issued": true,
+    "owner_decision_accepted": true,
+    "owner_decision_bound": true,
+    "binding_independent_review_required": true,
+    "binding_independent_review_performed": false,
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "train_rowset_materialized": false,
+    "validation_rowset_materialized": false,
+    "test_rowset_materialized": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "metric_execution": false,
+    "backtest_executed": false,
+    "model_training_executed": false,
+    "split_manifest_created": false,
+    "split_rowset_identity_created": false,
+    "split_hash_created": false,
+    "test_custody_record_created": false
+  },
+  "canonical_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 14,
+    "current_canonical_gate_blocked_count": 3,
+    "s1_split_policy_status": "BLOCKED",
+    "s1_split_policy_block_reason": "SPLIT_POLICY_NOT_FROZEN",
+    "canonical_gate_status_changed": false,
+    "canonical_gate_block_reason_changed": false,
+    "canonical_closeout_performed": false
+  },
+  "authorization_boundary": {
+    "canonical_gate_status_mutation_authorized": false,
+    "canonical_gate_block_reason_mutation_authorized": false,
+    "canonical_closeout_authorized": false,
+    "split_manifest_creation_authorized": false,
+    "split_rowset_identity_creation_authorized": false,
+    "split_hash_creation_authorized": false,
+    "test_custody_creation_authorized": false,
+    "test_access_authorized": false,
+    "holdout_feasibility_decision_authorized": false,
+    "final_s1_independent_review_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "stop_boundary": {
+    "this_artifact_is_an_owner_decision_binding": true,
+    "this_artifact_is_not_a_split_manifest": true,
+    "this_artifact_is_not_a_split_rowset": true,
+    "this_artifact_is_not_a_test_custody_record": true,
+    "this_artifact_does_not_authorize_test_access": true,
+    "this_artifact_does_not_close_s1_split_policy": true,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  }
+}
