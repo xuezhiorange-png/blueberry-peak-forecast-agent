@@ -1,0 +1,179 @@
+# S1 Split Policy Owner-Decision Binding
+
+## 1. Task and exact baseline
+
+```text
+TASK_ID=S1_SPLIT_POLICY_OWNER_DECISION_BINDING_R1
+TASK_CLASS=DOCS_ONLY_SPLIT_POLICY_OWNER_DECISION_BINDING_AND_FORMALIZATION
+AUTHORIZATION_COMMENT_ID=5336792360
+BASE_MAIN_SHA=f78d4276a1cd2c84b0f8f060faa91879bf9efc5b
+BASE_MAIN_TREE_SHA=310f39c4661ae29b2338fe3dcec86592f7a3b7bd
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+This workpaper binds the authenticated model-validation-owner decision recorded
+in PR #258 comment `5336738442`. It formalizes the accepted policy definition
+only. It does not modify the canonical acceptance record, acceptance package,
+current-main reconciliation, Remaining-05 readiness package, or any row-level
+data.
+
+## 2. Owner decision identity
+
+```text
+DECISION_ID=S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE
+DECISION=ACCEPT
+OWNER_DECISION_SOURCE=PR_258_COMMENT_5336738442
+OWNER_DECISION_COMMENT_ID=5336738442
+OWNER_IDENTITY=xuezhiorange-png
+OWNER_ROLE=model_validation_owner_role
+OWNER_ROLE_ATTESTATION=I_AM_ACTING_AS_MODEL_VALIDATION_OWNER_ROLE
+OWNER_PROVENANCE=AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-19
+DECIDED_AT=2026-08-19T10:16:00+08:00
+SPLIT_POLICY_VERSION=v0-3-s1-time-ordered-split-policy-v1
+ACCEPTED_VALUE=v0-3-s1-time-ordered-split-policy-v1
+SPLIT_CONTRACT_AUTHORITY=docs/v0-3/s1/split-holdout-and-custody-contract.md
+```
+
+The owner accepts the prepared time-ordered split-policy definition. The
+accepted value is the policy version. It is not a materialized TRAIN,
+VALIDATION, TEST, or external-holdout rowset and it is not a canonical
+`S1-SPLIT-POLICY` PASS.
+
+## 3. Frozen policy semantics
+
+The accepted policy binds these rules exactly:
+
+```text
+REQUIRED_DATASET_SPLITS=TRAIN,VALIDATION,TEST
+TRAIN_PURPOSE=CANDIDATE_FITTING_ONLY
+VALIDATION_PURPOSE=CANDIDATE_SELECTION_AND_VALIDATION_ONLY
+TEST_PURPOSE=SEALED_FINAL_EVALUATION_ONLY
+EXTERNAL_HOLDOUT_POLICY=CONDITIONAL_ON_S1_FEASIBILITY_GATE
+USE_COMPLETE_TIME_INTERVALS_OR_COMPLETE_SEASONS=true
+RANDOM_ADJACENT_DATE_SPLIT_ALLOWED=false
+FUTURE_LABEL_LEAKAGE_ALLOWED=false
+FUTURE_SOURCE_REVISION_LEAKAGE_ALLOWED=false
+SOURCE_LINEAGE_BINDING_REQUIRED=true
+MAPPING_IDENTITY_BINDING_REQUIRED=true
+VISIBILITY_IDENTITY_BINDING_REQUIRED=true
+INCLUSION_EXCLUSION_IDENTITY_BINDING_REQUIRED=true
+REVISION_WINNER_DISPOSITION_BINDING_REQUIRED=true
+CUSTODY_IDENTITY_BINDING_REQUIRED=true
+REQUESTED_HORIZONS_BINDING_REQUIRED=true
+SPLIT_MANIFEST_IDENTITY_AND_HASH_FREEZE_REQUIRED=true
+TEST_SEALED_BEFORE_CANDIDATE_TUNING=true
+TEST_SEAL_IS_NOT_TEST_ACCESS_AUTHORIZATION=true
+TEST_ACCESS_CURRENTLY_AUTHORIZED=false
+EXTERNAL_HOLDOUT_ACCESS_CURRENTLY_AUTHORIZED=false
+```
+
+The policy therefore freezes time ordering, partition-purpose separation,
+lineage/visibility/custody binding, immutable split-manifest identity, and the
+TEST seal boundary without authorizing TEST or external-holdout access.
+
+## 4. Deterministic payload and SHA-256 replay
+
+The binding follows the repository owner-decision convention: UTF-8,
+uppercase-as-issued payload keys, sorted JSON keys, compact `,` and `:`
+separators, and SHA-256. The replay payload contains only semantic decision
+fields issued in the owner comment. Baseline/runtime observations and the
+self-referential hash field are excluded.
+
+```text
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_PAYLOAD_BINDING=PASS
+OWNER_DECISION_BINDING=PASS
+OWNER_DECISION_SHA256=ddbb28452a8229ee99caa6a133e169221115d0f359d9dbc060b2f785893fa080
+CANONICALIZATION_ENCODING=UTF-8
+CANONICALIZATION_JSON_KEYS=SORTED
+CANONICALIZATION_JSON_SEPARATORS=,:
+CANONICALIZATION_PAYLOAD_KEY_CASE=UPPERCASE_AS_ISSUED
+CANONICALIZATION_HASH_ALGORITHM=SHA-256
+CANONICALIZATION_HASH_SCOPE=OWNER_DECISION_SEMANTIC_PAYLOAD_EXCLUDING_BASELINE_RUNTIME_AND_SELF_REFERENTIAL_HASH_FIELDS
+```
+
+The exact canonical payload serialized with sorted keys and compact separators
+is:
+
+```json
+{"ACCEPTED_VALUE":"v0-3-s1-time-ordered-split-policy-v1","CUSTODY_IDENTITY_BINDING_REQUIRED":true,"DECIDED_AT":"2026-08-19T10:16:00+08:00","DECISION":"ACCEPT","DECISION_ID":"S1_SPLIT_POLICY_FREEZE_AND_ACCEPTANCE","DECISION_SOURCE_READINESS_ARTIFACT":"docs/v0-3/s1/evidence/s1-remaining-05-threshold-metric-split-holdout-readiness.json","DECISION_SOURCE_READINESS_WORKPAPER":"docs/v0-3/s1/workpapers/s1-remaining-05-threshold-metric-split-holdout-readiness.md","EXTERNAL_HOLDOUT_ACCESS_CURRENTLY_AUTHORIZED":false,"EXTERNAL_HOLDOUT_POLICY":"CONDITIONAL_ON_S1_FEASIBILITY_GATE","FUTURE_LABEL_LEAKAGE_ALLOWED":false,"FUTURE_SOURCE_REVISION_LEAKAGE_ALLOWED":false,"INCLUSION_EXCLUSION_IDENTITY_BINDING_REQUIRED":true,"MAPPING_IDENTITY_BINDING_REQUIRED":true,"OWNER_IDENTITY":"xuezhiorange-png","OWNER_PROVENANCE":"AUTHENTICATED_REPOSITORY_OWNER_EXPLICIT_INTERACTIVE_APPROVAL_2026-08-19","OWNER_ROLE":"model_validation_owner_role","OWNER_ROLE_ATTESTATION":"I_AM_ACTING_AS_MODEL_VALIDATION_OWNER_ROLE","RANDOM_ADJACENT_DATE_SPLIT_ALLOWED":false,"REQUESTED_HORIZONS_BINDING_REQUIRED":true,"REQUIRED_DATASET_SPLITS":"TRAIN,VALIDATION,TEST","REVISION_WINNER_DISPOSITION_BINDING_REQUIRED":true,"SOURCE_LINEAGE_BINDING_REQUIRED":true,"SPLIT_CONTRACT_AUTHORITY":"docs/v0-3/s1/split-holdout-and-custody-contract.md","SPLIT_MANIFEST_IDENTITY_AND_HASH_FREEZE_REQUIRED":true,"SPLIT_POLICY_VERSION":"v0-3-s1-time-ordered-split-policy-v1","TEST_ACCESS_CURRENTLY_AUTHORIZED":false,"TEST_PURPOSE":"SEALED_FINAL_EVALUATION_ONLY","TEST_SEALED_BEFORE_CANDIDATE_TUNING":true,"TEST_SEAL_IS_NOT_TEST_ACCESS_AUTHORIZATION":true,"TRAIN_PURPOSE":"CANDIDATE_FITTING_ONLY","USE_COMPLETE_TIME_INTERVALS_OR_COMPLETE_SEASONS":true,"VALIDATION_PURPOSE":"CANDIDATE_SELECTION_AND_VALIDATION_ONLY","VISIBILITY_IDENTITY_BINDING_REQUIRED":true}
+```
+
+## 5. Current canonical state remains unchanged
+
+The current runtime authority is
+`docs/v0-3/s1/evidence/s1-acceptance-record.json` at Git blob
+`aabe82b1a6f1645e9f6fe898b36b00d2eb1e70f5`. The current-main reconciliation
+is `canonical-s1-gate-reconciliation-v6` at Git blob
+`556b9f22cac3a215c139be99ab2efbbc9315752a`.
+
+```text
+CANONICAL_GATE_COUNT=17
+CURRENT_CANONICAL_GATE_PASS_COUNT=14
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=3
+S1_SPLIT_POLICY_CANONICAL_GATE_PASS=false
+S1-SPLIT-POLICY=BLOCKED
+BLOCK_REASON=SPLIT_POLICY_NOT_FROZEN
+CURRENT_STATUS=OWNER_DECISION_ISSUED_REVIEW_REQUIRED
+POLICY_INDEPENDENTLY_REVIEWED=false
+CANONICAL_GATE_STATUS_MUTATION_COUNT=0
+CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=0
+CANONICAL_CLOSEOUT_PERFORMED=false
+```
+
+The binding does not rewrite the canonical row. The owner decision is now
+formally replayable and reviewable, but the gate remains blocked.
+
+## 6. Remaining formalization requirements
+
+The current reconciliation identified authoritative artifacts that remain
+separate from the policy decision. This binding does not synthesize them.
+
+```text
+POLICY_INDEPENDENT_REVIEW_REQUIRED=true
+POLICY_INDEPENDENT_REVIEW_PERFORMED=false
+VERSIONED_SPLIT_MANIFEST_BOUND_TO_ACCEPTED_COHORT_PRESENT=false
+ACCEPTED_TEST_CUSTODY_AND_SPLIT_HASH_RECORD_PRESENT=false
+CANONICAL_GATE_CLOSEOUT_ELIGIBLE=false
+HOLDOUT_FEASIBILITY_DECISION_AUTHORIZED=false
+FINAL_S1_INDEPENDENT_REVIEW_AUTHORIZED=false
+```
+
+Accordingly, a PASS review of this owner-decision binding would verify the
+policy decision and its deterministic binding only. It would not by itself
+prove that all canonical Split Policy acceptance requirements are satisfied.
+
+## 7. Data and lifecycle boundary
+
+```text
+TRAIN_ROWSET_MATERIALIZED=false
+VALIDATION_ROWSET_MATERIALIZED=false
+TEST_ROWSET_MATERIALIZED=false
+EXTERNAL_HOLDOUT_ROWSET_MATERIALIZED=false
+SOURCE_002_RAW_READ=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_DATA_ACCESS=false
+EXTERNAL_HOLDOUT_ACCESS=false
+METRIC_EXECUTION=false
+BACKTEST_EXECUTED=false
+MODEL_TRAINING_EXECUTED=false
+PRODUCTION_CODE_CHANGED=false
+TEST_CODE_CHANGED=false
+DATABASE_SCHEMA_CHANGED=false
+MIGRATION_CREATED=false
+MODEL_CHANGED=false
+ACCEPTANCE_RECORD_CHANGED=false
+ACCEPTANCE_PACKAGE_CHANGED=false
+CANONICAL_RECONCILIATION_CHANGED=false
+REMAINING_05_READINESS_CHANGED=false
+READY_PERFORMED=false
+MERGE_PERFORMED=false
+NEXT_GATE_STARTED=false
+V0_3_S1_COMPLETE=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+No rowset, metric result, holdout decision, final S1 review, S1 acceptance, or
+S2 authorization is created or implied by this task.
