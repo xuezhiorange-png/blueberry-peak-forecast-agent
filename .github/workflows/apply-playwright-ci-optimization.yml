@@ -4,13 +4,18 @@ on:
   push:
     branches:
       - infra/playwright-browser-cache-r1
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: >-
+      github.actor != 'github-actions[bot]' &&
+      (github.event_name == 'push' || github.head_ref == 'infra/playwright-browser-cache-r1')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +32,7 @@ jobs:
             echo "BASE_MAIN_DRIFT expected=$expected_main actual=$actual_main" >&2
             exit 1
           fi
+          git checkout -B infra/playwright-browser-cache-r1
           git reset --hard origin/main
 
       - name: Patch frontend-e2e Playwright bootstrap
