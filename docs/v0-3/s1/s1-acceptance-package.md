@@ -253,9 +253,10 @@ The separately authorized Data Custody closeout changes only
 using the reviewed gate-local formalization and exact-head independent review
 provenance above. It preserves `CUSTODY_RECORD_ACCEPTED=false` and
 `DOWNSTREAM_PROPAGATION_INDEPENDENTLY_ACCEPTED=false`; the custody record and
-formalization artifacts are not mutated. Before this PR merges, current main
-remains authoritative at thirteen PASS and four BLOCKED; this branch candidate
-records fourteen PASS and three BLOCKED. This closeout does not execute
+formalization artifacts are not mutated. At the time of the earlier Data
+Custody closeout, pre-merge current main was thirteen PASS and four BLOCKED
+and that historical branch candidate was fourteen PASS and three BLOCKED.
+This closeout does not execute
 `S1-REMAINING-04`, accept any
 downstream gate, or imply final S1 acceptance. Source Cohort acceptance freezes
 identity only; S2 still owns the final materialized rowset. All downstream and
