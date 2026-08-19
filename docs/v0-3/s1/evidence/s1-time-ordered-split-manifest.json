@@ -59,7 +59,7 @@
       "end_date": "2026-01-30",
       "boundaries": "BOTH_ENDS_INCLUSIVE",
       "logical_rowset_id": "source-002-s1-cohort-v1:TRAIN:2025-08-05..2026-01-30:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
-      "logical_rowset_sha256": "521e50bcc686e6f08f76d67e1c1dd7663eb7654774523067323e15aa6eb32dc0"
+      "logical_rowset_sha256": "aedf0495d59578f2ba90265c4f5f50360d6d8d9fede7a1a1d2524a7278a4bcee"
     },
     {
       "name": "VALIDATION",
@@ -68,7 +68,7 @@
       "end_date": "2026-03-09",
       "boundaries": "BOTH_ENDS_INCLUSIVE",
       "logical_rowset_id": "source-002-s1-cohort-v1:VALIDATION:2026-01-31..2026-03-09:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
-      "logical_rowset_sha256": "6c0d85ad74ceea8d92ea7ef190f8e21ec4a932af395d1634f67fe3a9edb95953"
+      "logical_rowset_sha256": "389691f6da7e82c7e31efd7cfee4eb629778845e0055694f591f985d2d312cb4"
     },
     {
       "name": "TEST",
@@ -77,7 +77,7 @@
       "end_date": "2026-04-16",
       "boundaries": "BOTH_ENDS_INCLUSIVE",
       "logical_rowset_id": "source-002-s1-cohort-v1:TEST:2026-03-10..2026-04-16:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
-      "logical_rowset_sha256": "fdee66cc86155f3f3d0a5084d621940d6f31a9d6f0f1b89849a8ed28f03555dd"
+      "logical_rowset_sha256": "a96534bacb4b77d8851644569c348179376b7b42102296a97f4279eabbde0f73"
     }
   ],
   "logical_rowset_identities": [
@@ -125,6 +125,16 @@
           "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
           "forecast_cutoff_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1"
         },
+        "forecast_cutoff_authority": {
+          "policy": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
+          "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+          "authority": "EXACT_FORECAST_CUTOFF_AT",
+          "input_known_at_requirement": "KNOWN_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+          "input_source_available_at_requirement": "SOURCE_AVAILABLE_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+          "timestamp_identity": "TIMEZONE_AWARE_CANONICAL_UTC",
+          "target_relation": "FORECAST_CUTOFF_AT_STRICTLY_BEFORE_FORECAST_TARGET_DATE_OR_WINDOW_END",
+          "drift_semantics": "FAIL_CLOSED_OR_NEW_IDENTITY_NO_SILENT_SUBSTITUTION"
+        },
         "revision_identity": {
           "policy_version": "source-002-idfl-revision-policy-v1",
           "policy_identity": "source-002-idfl-revision-policy-identity-v1",
@@ -138,7 +148,13 @@
         "materialized_rowset_created": false,
         "materialized_row_content_hash": false
       },
-      "logical_rowset_sha256": "521e50bcc686e6f08f76d67e1c1dd7663eb7654774523067323e15aa6eb32dc0",
+      "exact_forecast_cutoff_authority_in_logical_hash_payload": true,
+      "known_at_requirement_in_logical_hash_payload": true,
+      "source_available_at_requirement_in_logical_hash_payload": true,
+      "timestamp_identity_in_logical_hash_payload": true,
+      "target_relation_in_logical_hash_payload": true,
+      "drift_semantics_in_logical_hash_payload": true,
+      "logical_rowset_sha256": "aedf0495d59578f2ba90265c4f5f50360d6d8d9fede7a1a1d2524a7278a4bcee",
       "hash_replay": "PASS"
     },
     {
@@ -185,6 +201,16 @@
           "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
           "forecast_cutoff_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1"
         },
+        "forecast_cutoff_authority": {
+          "policy": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
+          "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+          "authority": "EXACT_FORECAST_CUTOFF_AT",
+          "input_known_at_requirement": "KNOWN_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+          "input_source_available_at_requirement": "SOURCE_AVAILABLE_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+          "timestamp_identity": "TIMEZONE_AWARE_CANONICAL_UTC",
+          "target_relation": "FORECAST_CUTOFF_AT_STRICTLY_BEFORE_FORECAST_TARGET_DATE_OR_WINDOW_END",
+          "drift_semantics": "FAIL_CLOSED_OR_NEW_IDENTITY_NO_SILENT_SUBSTITUTION"
+        },
         "revision_identity": {
           "policy_version": "source-002-idfl-revision-policy-v1",
           "policy_identity": "source-002-idfl-revision-policy-identity-v1",
@@ -198,7 +224,13 @@
         "materialized_rowset_created": false,
         "materialized_row_content_hash": false
       },
-      "logical_rowset_sha256": "6c0d85ad74ceea8d92ea7ef190f8e21ec4a932af395d1634f67fe3a9edb95953",
+      "exact_forecast_cutoff_authority_in_logical_hash_payload": true,
+      "known_at_requirement_in_logical_hash_payload": true,
+      "source_available_at_requirement_in_logical_hash_payload": true,
+      "timestamp_identity_in_logical_hash_payload": true,
+      "target_relation_in_logical_hash_payload": true,
+      "drift_semantics_in_logical_hash_payload": true,
+      "logical_rowset_sha256": "389691f6da7e82c7e31efd7cfee4eb629778845e0055694f591f985d2d312cb4",
       "hash_replay": "PASS"
     },
     {
@@ -245,6 +277,16 @@
           "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
           "forecast_cutoff_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1"
         },
+        "forecast_cutoff_authority": {
+          "policy": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
+          "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+          "authority": "EXACT_FORECAST_CUTOFF_AT",
+          "input_known_at_requirement": "KNOWN_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+          "input_source_available_at_requirement": "SOURCE_AVAILABLE_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+          "timestamp_identity": "TIMEZONE_AWARE_CANONICAL_UTC",
+          "target_relation": "FORECAST_CUTOFF_AT_STRICTLY_BEFORE_FORECAST_TARGET_DATE_OR_WINDOW_END",
+          "drift_semantics": "FAIL_CLOSED_OR_NEW_IDENTITY_NO_SILENT_SUBSTITUTION"
+        },
         "revision_identity": {
           "policy_version": "source-002-idfl-revision-policy-v1",
           "policy_identity": "source-002-idfl-revision-policy-identity-v1",
@@ -258,7 +300,13 @@
         "materialized_rowset_created": false,
         "materialized_row_content_hash": false
       },
-      "logical_rowset_sha256": "fdee66cc86155f3f3d0a5084d621940d6f31a9d6f0f1b89849a8ed28f03555dd",
+      "exact_forecast_cutoff_authority_in_logical_hash_payload": true,
+      "known_at_requirement_in_logical_hash_payload": true,
+      "source_available_at_requirement_in_logical_hash_payload": true,
+      "timestamp_identity_in_logical_hash_payload": true,
+      "target_relation_in_logical_hash_payload": true,
+      "drift_semantics_in_logical_hash_payload": true,
+      "logical_rowset_sha256": "a96534bacb4b77d8851644569c348179376b7b42102296a97f4279eabbde0f73",
       "hash_replay": "PASS"
     }
   ],
@@ -269,9 +317,14 @@
   "split_manifest_hash_is_governance_identity": true,
   "split_manifest_hash_is_materialized_data_content_hash": false,
   "forecast_cutoff_authority": {
+    "policy": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
     "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
-    "authority": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
-    "forecast_cutoff_field": "FORECAST_CUTOFF_AT",
+    "authority": "EXACT_FORECAST_CUTOFF_AT",
+    "input_known_at_requirement": "KNOWN_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+    "input_source_available_at_requirement": "SOURCE_AVAILABLE_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+    "timestamp_identity": "TIMEZONE_AWARE_CANONICAL_UTC",
+    "target_relation": "FORECAST_CUTOFF_AT_STRICTLY_BEFORE_FORECAST_TARGET_DATE_OR_WINDOW_END",
+    "drift_semantics": "FAIL_CLOSED_OR_NEW_IDENTITY_NO_SILENT_SUBSTITUTION",
     "future_label_visibility_allowed": false,
     "future_source_revision_visibility_allowed": false
   },
@@ -341,7 +394,9 @@
     "row_count_required_for_s1": false,
     "partition_boundaries_verified": true,
     "partition_overlap_verified": true,
-    "partition_gap_verified": true
+    "partition_gap_verified": true,
+    "all_logical_rowset_payloads_bind_exact_forecast_cutoff_authority": true,
+    "all_logical_rowset_payloads_bind_full_pit_semantics": true
   },
   "data_safety": {
     "source_002_raw_read": false,
@@ -399,10 +454,10 @@
     "merge_authorized": false,
     "next_gate_authorized": false
   },
-  "split_manifest_sha256": "9d659cf731eaec83d06011683e01aa6a4b48e0af829d0ae073b68ed0a852970b",
+  "split_manifest_sha256": "f2c4b32b60c94fa2887fbe80c7a25f0fc5a54528585342e49a288cbf07ea9a5f",
   "split_manifest_hash": {
     "algorithm": "SHA-256",
-    "value": "9d659cf731eaec83d06011683e01aa6a4b48e0af829d0ae073b68ed0a852970b",
+    "value": "f2c4b32b60c94fa2887fbe80c7a25f0fc5a54528585342e49a288cbf07ea9a5f",
     "hash_replay": "PASS",
     "hash_is_governance_identity": true,
     "hash_is_materialized_data_content_hash": false,
