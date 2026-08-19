@@ -1,0 +1,220 @@
+# V0.3-S1 Time-Ordered Split Manifest
+
+## Formalization identity
+
+    ARTIFACT_ID=V0_3_S1_TIME_ORDERED_SPLIT_MANIFEST
+    ARTIFACT_VERSION=v0-3-s1-time-ordered-split-manifest-v1
+    ARTIFACT_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
+    STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
+    TASK_ID=S1_SPLIT_POLICY_MANIFEST_AND_TEST_CUSTODY_FORMALIZATION_R2
+    AUTHORIZATION_COMMENT_ID=5338348772
+
+This workpaper freezes a governance identity for three logical partitions.
+It does not read, copy, materialize, count, or hash Source002 rows. The
+partition identity is a deterministic description of membership rules and
+source-policy bindings, not a materialized data snapshot.
+
+## Source, mapping, inclusion, revision, and custody bindings
+
+    SOURCE_COHORT_ID=source-002-s1-cohort-v1
+    SOURCE_COHORT_MANIFEST_VERSION=source-002-final-source-cohort-manifest-v1
+    SOURCE_COHORT_MANIFEST_SHA256=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca
+    SOURCE_SNAPSHOT_REFERENCE=snapshot:v0_3_s1:002
+    SOURCE_OBJECT_SHA256=fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a
+    SOURCE_SCHEMA_SHA256=919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867
+    SOURCE_OWNER_ATTESTATION_SHA256=2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1
+    SOURCE_OWNER_ATTESTATION_VERSION=source-002-final-source-owner-attestation-v1
+    SOURCE_VISIBILITY_POLICY_VERSION=source-002-idfl-actual-label-visibility-boundary-v1
+    FORECAST_PIT_POLICY_VERSION=v0-3-s1-forecast-input-pit-visibility-v1
+
+    SOURCE_MAPPING_POLICY_VERSION=source-002-mapping-policy-v1
+    SOURCE_MAPPING_IDENTITY_SHA256=6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10
+    SOURCE_INCLUSION_POLICY_VERSION=source-002-inclusion-exclusion-boundary-v1
+    SOURCE_INCLUSION_MANIFEST_SHA256=f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8
+    SOURCE_REVISION_POLICY_VERSION=source-002-idfl-revision-policy-v1
+    SOURCE_REVISION_POLICY_IDENTITY=source-002-idfl-revision-policy-identity-v1
+    SOURCE_REVISION_POLICY_BINDING_SHA256=bed73c6515073fe36b0e6ceee376644078a1ad988125b40ac48af274135d6b86
+
+    SOURCE_CUSTODY_RECORD_VERSION=source-002-custody-record-v1
+    SOURCE_CUSTODY_RECORD_SHA256=99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6
+    SOURCE_EXTERNAL_OBJECT_BINDING_SHA256=1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece
+    SOURCE_CUSTODY_RECORD_STATUS=ISSUED_FOR_INDEPENDENT_REVIEW
+    SOURCE_CUSTODY_RECORD_ACCEPTED=false
+
+The authoritative paths are recorded in the companion JSON. Only
+non-sensitive policy identities and hashes are bound here; no credential,
+private locator, URL, plaintext storage path, business row, or row identifier
+is included.
+
+## Time-ordered partition policy
+
+    SPLIT_POLICY_VERSION=v0-3-s1-time-ordered-split-policy-v1
+    PARTITIONING_BASIS=CONCRETE_TIME_INTERVALS
+    PARTITION_DATE_FIELD=HARVEST_BUSINESS_DATE
+    BOUNDARIES=BOTH_ENDS_INCLUSIVE
+    OVERLAP_ALLOWED=false
+    GAPS_ALLOWED=false
+    PARTITION_ORDER=TRAIN,VALIDATION,TEST
+    SAME_FARM_ALLOWED_ACROSS_PARTITIONS=true
+    SAME_SEASON_ALLOWED_ACROSS_PARTITIONS=true
+    RANDOM_ADJACENT_DATE_SPLIT_ALLOWED=false
+    REQUESTED_HORIZONS_DAYS=(7,14,21)
+
+| Partition | Inclusive interval | Purpose | Logical identity hash |
+| --- | --- | --- | --- |
+| TRAIN | 2025-08-05 through 2026-01-30 | CANDIDATE_FITTING_ONLY | 521e50bcc686e6f08f76d67e1c1dd7663eb7654774523067323e15aa6eb32dc0 |
+| VALIDATION | 2026-01-31 through 2026-03-09 | CANDIDATE_SELECTION_AND_VALIDATION_ONLY | 6c0d85ad74ceea8d92ea7ef190f8e21ec4a932af395d1634f67fe3a9edb95953 |
+| TEST | 2026-03-10 through 2026-04-16 | SEALED_FINAL_EVALUATION_ONLY | fdee66cc86155f3f3d0a5084d621940d6f31a9d6f0f1b89849a8ed28f03555dd |
+
+All three intervals use the same governed canonical grain:
+
+    CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+
+The end points are inclusive. The dates are consecutive, so the policy
+declares no overlap and no gap. A farm or season may occur in more than one
+partition; time visibility, not an invented farm/season exclusion, controls
+membership. The TEST interval is the latest interval.
+
+## Logical row-set identity and hash replay
+
+Each row-set identity binds the source cohort, snapshot, canonical grain,
+exact interval, partition purpose, mapping identity, inclusion identity,
+visibility policy, revision policy, custody identity, missing-day semantics,
+requested horizons, and split-policy version. It is not a count and is not a
+hash of rows.
+
+    LOGICAL_ROWSET_IDENTITY_ONLY=true
+    MATERIALIZED_ROWSET_CREATED=false
+    MATERIALIZED_ROW_CONTENT_HASH=false
+    ROW_COUNT_REQUIRED_FOR_S1=false
+    LOGICAL_ROWSET_HASH_SCOPE=CANONICAL_LOGICAL_ROWSET_IDENTITY_PAYLOAD_ONLY
+    LOGICAL_ROWSET_HASH_REPLAY=PASS
+
+The exact payloads are stored in the companion JSON; a reviewer can replay
+each hash using the canonicalization below without accessing Source002.
+
+## Forecast cutoff and label authority
+
+    FORECAST_CUTOFF_AUTHORITY=BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY
+    FORECAST_CUTOFF_POLICY_VERSION=v0-3-s1-forecast-input-pit-visibility-v1
+    FORECAST_CUTOFF_FIELD=FORECAST_CUTOFF_AT
+    FUTURE_LABEL_VISIBILITY_ALLOWED=false
+    FUTURE_SOURCE_REVISION_VISIBILITY_ALLOWED=false
+
+    LABEL_AUTHORITY=SOURCE_002_IDFL_ACTUAL_LABEL_VISIBILITY_BOUNDARY
+    LABEL_DATE_FIELD=HARVEST_BUSINESS_DATE
+    REVISION_DISPOSITION=SOURCE_REVISION_POLICY_BOUND
+
+The row-set identity therefore prevents future labels and future source
+revisions from being visible before the governed forecast cutoff. Missing
+days remain unknown rather than zero:
+
+    MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+    MISSING_DAY_NUMERIC_IMPUTATION_ALLOWED=false
+    KNOWN_BUSINESS_EXCLUSIONS=NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE
+
+## TEST seal and access boundary
+
+    TEST_IS_LATEST_TIME_INTERVAL=true
+    TEST_PURPOSE=SEALED_FINAL_EVALUATION_ONLY
+    TEST_MEMBERSHIP_IMMUTABLE_AFTER_SEAL=true
+    TEST_SEALED_BEFORE_CANDIDATE_TUNING=true
+    TEST_SEAL_IS_NOT_TEST_ACCESS_AUTHORIZATION=true
+    TEST_DATA_ACCESS_AUTHORIZED=false
+    TEST_DATA_ACCESS=false
+    EXTERNAL_HOLDOUT_ACCESS=false
+
+The TEST membership is frozen as a logical identity before candidate tuning.
+The seal is not an access grant. No TEST row-set is materialized and no TEST
+or external holdout data is accessed by this formalization.
+
+## Drift invalidation
+
+Source manifest, mapping, inclusion, visibility, revision, or custody identity
+drift invalidates this identity. A replacement source or policy requires a
+new versioned identity and a new hash; it must block rather than silently
+regenerate the prior split.
+
+    SOURCE_MANIFEST_DRIFT_INVALIDATES=true
+    MAPPING_IDENTITY_DRIFT_INVALIDATES=true
+    INCLUSION_IDENTITY_DRIFT_INVALIDATES=true
+    REVISION_IDENTITY_DRIFT_INVALIDATES=true
+    VISIBILITY_IDENTITY_DRIFT_INVALIDATES=true
+    CUSTODY_IDENTITY_DRIFT_INVALIDATES=true
+    REPLACEMENT_REQUIRES_NEW_MANIFEST_AND_HASH=true
+    DRIFT_ACTION=BLOCK_AND_ISSUE_NEW_VERSIONED_IDENTITY
+
+## Canonicalization and replay
+
+    CANONICALIZATION_VERSION=v0-3-s1-split-manifest-canonicalization-v1
+    ENCODING=UTF-8
+    ENSURE_ASCII=false
+    JSON_KEYS=SORTED
+    JSON_SEPARATORS=,:
+    ARRAYS_STABLE_ORDER=true
+    DATE_FORMAT=YYYY-MM-DD
+    HASH_ALGORITHM=SHA-256
+    HASH_HEX_CASE=LOWERCASE
+    SERIALIZATION_IDENTITY=UTF-8 bytes of sorted-key compact JSON serialization
+
+Logical row-set hashes are computed from each canonical_payload only. The
+complete split-manifest hash is computed from the manifest's top-level
+canonical payload after excluding only the self-referential
+split_manifest_sha256 and split_manifest_hash fields:
+
+    SPLIT_MANIFEST_SHA256=9d659cf731eaec83d06011683e01aa6a4b48e0af829d0ae073b68ed0a852970b
+    SPLIT_MANIFEST_HASH_REPLAY=PASS
+    TRAIN_LOGICAL_ROWSET_HASH_REPLAY=PASS
+    VALIDATION_LOGICAL_ROWSET_HASH_REPLAY=PASS
+    TEST_LOGICAL_ROWSET_HASH_REPLAY=PASS
+    JSON_MARKDOWN_PARITY=true
+    SPLIT_MANIFEST_HASH_IS_GOVERNANCE_IDENTITY=true
+    SPLIT_MANIFEST_HASH_IS_MATERIALIZED_DATA_CONTENT_HASH=false
+
+## Non-mutation and governance state
+
+    SOURCE_002_RAW_READ=false
+    SOURCE_002_ROW_LEVEL_READ=false
+    TEST_DATA_ACCESS=false
+    EXTERNAL_HOLDOUT_ACCESS=false
+    TRAIN_ROWSET_MATERIALIZED=false
+    VALIDATION_ROWSET_MATERIALIZED=false
+    TEST_ROWSET_MATERIALIZED=false
+    CREDENTIALS_READ=false
+    PRIVATE_LOCATOR_RECORDED=false
+
+    SOURCE_002_RAW_READ_AUTHORIZED=false
+    SOURCE_002_ROW_LEVEL_READ_AUTHORIZED=false
+    REAL_BUSINESS_DATA_READ_AUTHORIZED=false
+    PRODUCTION_DATABASE_READ_AUTHORIZED=false
+    TRAIN_ROWSET_MATERIALIZATION_AUTHORIZED=false
+    VALIDATION_ROWSET_MATERIALIZATION_AUTHORIZED=false
+    TEST_ROWSET_MATERIALIZATION_AUTHORIZED=false
+    METRIC_EXECUTION_AUTHORIZED=false
+    BACKTEST_AUTHORIZED=false
+    MODEL_TRAINING_AUTHORIZED=false
+    CANONICAL_GATE_STATUS_MUTATION_AUTHORIZED=false
+    CANONICAL_GATE_BLOCK_REASON_MUTATION_AUTHORIZED=false
+    ACCEPTANCE_RECORD_MUTATION_AUTHORIZED=false
+    ACCEPTANCE_PACKAGE_MUTATION_AUTHORIZED=false
+    CANONICAL_RECONCILIATION_MUTATION_AUTHORIZED=false
+    HOLDOUT_FEASIBILITY_DECISION_AUTHORIZED=false
+    FINAL_S1_INDEPENDENT_REVIEW_AUTHORIZED=false
+    V0_3_S1_ACCEPTANCE_AUTHORIZED=false
+
+    CANONICAL_GATE_COUNT=17
+    CURRENT_CANONICAL_GATE_PASS_COUNT=14
+    CURRENT_CANONICAL_GATE_BLOCKED_COUNT=3
+    S1_SPLIT_POLICY_STATUS=BLOCKED
+    S1_SPLIT_POLICY_BLOCK_REASON=SPLIT_POLICY_NOT_FROZEN
+    CANONICAL_GATE_STATUS_CHANGED=false
+    CANONICAL_GATE_BLOCK_REASON_CHANGED=false
+    CANONICAL_CLOSEOUT_PERFORMED=false
+    V0_3_S1_COMPLETE=false
+    V0_3_S1_ACCEPTED=false
+    V0_3_S2_AUTHORIZED=false
+    NO_STEP_IMPLIES_THE_NEXT=true
+
+This is formalization only. Independent review, canonical closeout, TEST
+access, Ready, Merge, downstream gates, final S1 acceptance, and V0.3-S2 are
+not authorized or performed.

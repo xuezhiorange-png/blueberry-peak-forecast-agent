@@ -1,0 +1,411 @@
+{
+  "artifact_id": "V0_3_S1_TIME_ORDERED_SPLIT_MANIFEST",
+  "artifact_version": "v0-3-s1-time-ordered-split-manifest-v1",
+  "artifact_status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "status": "ISSUED_FOR_INDEPENDENT_REVIEW",
+  "task_id": "S1_SPLIT_POLICY_MANIFEST_AND_TEST_CUSTODY_FORMALIZATION_R2",
+  "authorization_comment_id": 5338348772,
+  "authority_bindings": {
+    "source_cohort_manifest": "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
+    "mapping_identity_manifest": "docs/v0-3/s1/evidence/source-002-mapping-and-scope-identity-manifest.json",
+    "inclusion_exclusion_manifest": "docs/v0-3/s1/evidence/source-002-inclusion-exclusion-manifest.json",
+    "revision_identity_binding": "docs/v0-3/s1/evidence/source-002-idfl-revision-policy-identity-binding.json",
+    "custody_record": "docs/v0-3/s1/evidence/source-002-custody-record.json",
+    "split_contract": "docs/v0-3/s1/split-holdout-and-custody-contract.md"
+  },
+  "source_identity": {
+    "cohort_id": "source-002-s1-cohort-v1",
+    "manifest_version": "source-002-final-source-cohort-manifest-v1",
+    "manifest_sha256": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+    "snapshot_reference": "snapshot:v0_3_s1:002",
+    "source_object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+    "owner_attestation_sha256": "2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1",
+    "custody_record_version": "source-002-custody-record-v1",
+    "custody_record_sha256": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+    "external_object_binding_sha256": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece"
+  },
+  "source_owner_attestation_version": "source-002-final-source-owner-attestation-v1",
+  "source_visibility_policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
+  "forecast_pit_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+  "source_mapping_policy_version": "source-002-mapping-policy-v1",
+  "source_mapping_identity_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10",
+  "source_inclusion_policy_version": "source-002-inclusion-exclusion-boundary-v1",
+  "source_inclusion_manifest_sha256": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8",
+  "source_revision_policy_version": "source-002-idfl-revision-policy-v1",
+  "source_revision_policy_identity": "source-002-idfl-revision-policy-identity-v1",
+  "source_revision_policy_binding_sha256": "bed73c6515073fe36b0e6ceee376644078a1ad988125b40ac48af274135d6b86",
+  "source_custody_record_version": "source-002-custody-record-v1",
+  "source_custody_record_sha256": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+  "source_external_object_binding_sha256": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece",
+  "split_policy": {
+    "version": "v0-3-s1-time-ordered-split-policy-v1",
+    "partitioning_basis": "CONCRETE_TIME_INTERVALS",
+    "partition_date_field": "HARVEST_BUSINESS_DATE",
+    "boundaries": "BOTH_ENDS_INCLUSIVE",
+    "overlap_allowed": false,
+    "gaps_allowed": false,
+    "partition_order": ["TRAIN", "VALIDATION", "TEST"],
+    "same_farm_allowed_across_partitions": true,
+    "same_season_allowed_across_partitions": true,
+    "requested_horizons_days": [7, 14, 21],
+    "random_adjacent_date_split_allowed": false
+  },
+  "partitions": [
+    {
+      "name": "TRAIN",
+      "purpose": "CANDIDATE_FITTING_ONLY",
+      "start_date": "2025-08-05",
+      "end_date": "2026-01-30",
+      "boundaries": "BOTH_ENDS_INCLUSIVE",
+      "logical_rowset_id": "source-002-s1-cohort-v1:TRAIN:2025-08-05..2026-01-30:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+      "logical_rowset_sha256": "521e50bcc686e6f08f76d67e1c1dd7663eb7654774523067323e15aa6eb32dc0"
+    },
+    {
+      "name": "VALIDATION",
+      "purpose": "CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+      "start_date": "2026-01-31",
+      "end_date": "2026-03-09",
+      "boundaries": "BOTH_ENDS_INCLUSIVE",
+      "logical_rowset_id": "source-002-s1-cohort-v1:VALIDATION:2026-01-31..2026-03-09:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+      "logical_rowset_sha256": "6c0d85ad74ceea8d92ea7ef190f8e21ec4a932af395d1634f67fe3a9edb95953"
+    },
+    {
+      "name": "TEST",
+      "purpose": "SEALED_FINAL_EVALUATION_ONLY",
+      "start_date": "2026-03-10",
+      "end_date": "2026-04-16",
+      "boundaries": "BOTH_ENDS_INCLUSIVE",
+      "logical_rowset_id": "source-002-s1-cohort-v1:TEST:2026-03-10..2026-04-16:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+      "logical_rowset_sha256": "fdee66cc86155f3f3d0a5084d621940d6f31a9d6f0f1b89849a8ed28f03555dd"
+    }
+  ],
+  "logical_rowset_identities": [
+    {
+      "partition_name": "TRAIN",
+      "logical_rowset_id": "source-002-s1-cohort-v1:TRAIN:2025-08-05..2026-01-30:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+      "canonical_payload": {
+        "identity_type": "LOGICAL_ROWSET_IDENTITY_ONLY",
+        "logical_rowset_id": "source-002-s1-cohort-v1:TRAIN:2025-08-05..2026-01-30:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+        "source_identity": {
+          "cohort_id": "source-002-s1-cohort-v1",
+          "manifest_version": "source-002-final-source-cohort-manifest-v1",
+          "manifest_sha256": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+          "snapshot_reference": "snapshot:v0_3_s1:002",
+          "source_object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+          "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+          "owner_attestation_sha256": "2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1",
+          "custody_record_version": "source-002-custody-record-v1",
+          "custody_record_sha256": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+          "external_object_binding_sha256": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece"
+        },
+        "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+        "partition": {
+          "name": "TRAIN",
+          "purpose": "CANDIDATE_FITTING_ONLY",
+          "start_date": "2025-08-05",
+          "end_date": "2026-01-30",
+          "date_field": "HARVEST_BUSINESS_DATE",
+          "boundaries": "BOTH_ENDS_INCLUSIVE",
+          "overlap_allowed": false,
+          "gaps_allowed": false,
+          "partition_order": ["TRAIN", "VALIDATION", "TEST"],
+          "same_farm_allowed_across_partitions": true,
+          "same_season_allowed_across_partitions": true
+        },
+        "mapping_identity": {
+          "policy_version": "source-002-mapping-policy-v1",
+          "identity_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10"
+        },
+        "inclusion_exclusion_identity": {
+          "policy_version": "source-002-inclusion-exclusion-boundary-v1",
+          "manifest_sha256": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8"
+        },
+        "visibility_identity": {
+          "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
+          "forecast_cutoff_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1"
+        },
+        "revision_identity": {
+          "policy_version": "source-002-idfl-revision-policy-v1",
+          "policy_identity": "source-002-idfl-revision-policy-identity-v1",
+          "binding_sha256": "bed73c6515073fe36b0e6ceee376644078a1ad988125b40ac48af274135d6b86"
+        },
+        "requested_horizons_days": [7, 14, 21],
+        "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+        "missing_day_numeric_imputation_allowed": false,
+        "split_policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+        "row_count_required_for_s1": false,
+        "materialized_rowset_created": false,
+        "materialized_row_content_hash": false
+      },
+      "logical_rowset_sha256": "521e50bcc686e6f08f76d67e1c1dd7663eb7654774523067323e15aa6eb32dc0",
+      "hash_replay": "PASS"
+    },
+    {
+      "partition_name": "VALIDATION",
+      "logical_rowset_id": "source-002-s1-cohort-v1:VALIDATION:2026-01-31..2026-03-09:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+      "canonical_payload": {
+        "identity_type": "LOGICAL_ROWSET_IDENTITY_ONLY",
+        "logical_rowset_id": "source-002-s1-cohort-v1:VALIDATION:2026-01-31..2026-03-09:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+        "source_identity": {
+          "cohort_id": "source-002-s1-cohort-v1",
+          "manifest_version": "source-002-final-source-cohort-manifest-v1",
+          "manifest_sha256": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+          "snapshot_reference": "snapshot:v0_3_s1:002",
+          "source_object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+          "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+          "owner_attestation_sha256": "2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1",
+          "custody_record_version": "source-002-custody-record-v1",
+          "custody_record_sha256": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+          "external_object_binding_sha256": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece"
+        },
+        "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+        "partition": {
+          "name": "VALIDATION",
+          "purpose": "CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+          "start_date": "2026-01-31",
+          "end_date": "2026-03-09",
+          "date_field": "HARVEST_BUSINESS_DATE",
+          "boundaries": "BOTH_ENDS_INCLUSIVE",
+          "overlap_allowed": false,
+          "gaps_allowed": false,
+          "partition_order": ["TRAIN", "VALIDATION", "TEST"],
+          "same_farm_allowed_across_partitions": true,
+          "same_season_allowed_across_partitions": true
+        },
+        "mapping_identity": {
+          "policy_version": "source-002-mapping-policy-v1",
+          "identity_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10"
+        },
+        "inclusion_exclusion_identity": {
+          "policy_version": "source-002-inclusion-exclusion-boundary-v1",
+          "manifest_sha256": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8"
+        },
+        "visibility_identity": {
+          "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
+          "forecast_cutoff_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1"
+        },
+        "revision_identity": {
+          "policy_version": "source-002-idfl-revision-policy-v1",
+          "policy_identity": "source-002-idfl-revision-policy-identity-v1",
+          "binding_sha256": "bed73c6515073fe36b0e6ceee376644078a1ad988125b40ac48af274135d6b86"
+        },
+        "requested_horizons_days": [7, 14, 21],
+        "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+        "missing_day_numeric_imputation_allowed": false,
+        "split_policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+        "row_count_required_for_s1": false,
+        "materialized_rowset_created": false,
+        "materialized_row_content_hash": false
+      },
+      "logical_rowset_sha256": "6c0d85ad74ceea8d92ea7ef190f8e21ec4a932af395d1634f67fe3a9edb95953",
+      "hash_replay": "PASS"
+    },
+    {
+      "partition_name": "TEST",
+      "logical_rowset_id": "source-002-s1-cohort-v1:TEST:2026-03-10..2026-04-16:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+      "canonical_payload": {
+        "identity_type": "LOGICAL_ROWSET_IDENTITY_ONLY",
+        "logical_rowset_id": "source-002-s1-cohort-v1:TEST:2026-03-10..2026-04-16:HARVEST_BUSINESS_DATE:v0-3-s1-time-ordered-split-policy-v1",
+        "source_identity": {
+          "cohort_id": "source-002-s1-cohort-v1",
+          "manifest_version": "source-002-final-source-cohort-manifest-v1",
+          "manifest_sha256": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+          "snapshot_reference": "snapshot:v0_3_s1:002",
+          "source_object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+          "schema_sha256": "919e63c4d3b4d00b304a045f63bfb050d4eb9abec3b0a318186b7ca2e7276867",
+          "owner_attestation_sha256": "2c7bd156da2eb3d7c2cb5906e23cb3d380f709b43e39e1c6a6ce38f5587971e1",
+          "custody_record_version": "source-002-custody-record-v1",
+          "custody_record_sha256": "99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6",
+          "external_object_binding_sha256": "1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece"
+        },
+        "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+        "partition": {
+          "name": "TEST",
+          "purpose": "SEALED_FINAL_EVALUATION_ONLY",
+          "start_date": "2026-03-10",
+          "end_date": "2026-04-16",
+          "date_field": "HARVEST_BUSINESS_DATE",
+          "boundaries": "BOTH_ENDS_INCLUSIVE",
+          "overlap_allowed": false,
+          "gaps_allowed": false,
+          "partition_order": ["TRAIN", "VALIDATION", "TEST"],
+          "same_farm_allowed_across_partitions": true,
+          "same_season_allowed_across_partitions": true
+        },
+        "mapping_identity": {
+          "policy_version": "source-002-mapping-policy-v1",
+          "identity_sha256": "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10"
+        },
+        "inclusion_exclusion_identity": {
+          "policy_version": "source-002-inclusion-exclusion-boundary-v1",
+          "manifest_sha256": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8"
+        },
+        "visibility_identity": {
+          "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
+          "forecast_cutoff_policy_version": "v0-3-s1-forecast-input-pit-visibility-v1"
+        },
+        "revision_identity": {
+          "policy_version": "source-002-idfl-revision-policy-v1",
+          "policy_identity": "source-002-idfl-revision-policy-identity-v1",
+          "binding_sha256": "bed73c6515073fe36b0e6ceee376644078a1ad988125b40ac48af274135d6b86"
+        },
+        "requested_horizons_days": [7, 14, 21],
+        "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+        "missing_day_numeric_imputation_allowed": false,
+        "split_policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+        "row_count_required_for_s1": false,
+        "materialized_rowset_created": false,
+        "materialized_row_content_hash": false
+      },
+      "logical_rowset_sha256": "fdee66cc86155f3f3d0a5084d621940d6f31a9d6f0f1b89849a8ed28f03555dd",
+      "hash_replay": "PASS"
+    }
+  ],
+  "logical_rowset_identity_only": true,
+  "materialized_row_content_hash": false,
+  "materialized_rowset_created": false,
+  "row_count_required_for_s1": false,
+  "split_manifest_hash_is_governance_identity": true,
+  "split_manifest_hash_is_materialized_data_content_hash": false,
+  "forecast_cutoff_authority": {
+    "policy_version": "v0-3-s1-forecast-input-pit-visibility-v1",
+    "authority": "BIND_EXISTING_REPOSITORY_POINT_IN_TIME_AUTHORITY",
+    "forecast_cutoff_field": "FORECAST_CUTOFF_AT",
+    "future_label_visibility_allowed": false,
+    "future_source_revision_visibility_allowed": false
+  },
+  "label_authority": {
+    "authority": "SOURCE_002_IDFL_ACTUAL_LABEL_VISIBILITY_BOUNDARY",
+    "policy_version": "source-002-idfl-actual-label-visibility-boundary-v1",
+    "label_date_field": "HARVEST_BUSINESS_DATE",
+    "revision_disposition": "SOURCE_REVISION_POLICY_BOUND"
+  },
+  "requested_horizons": {
+    "values": [7, 14, 21],
+    "unit": "DAYS",
+    "binding_required": true
+  },
+  "inclusion_and_missing_semantics": {
+    "inclusion_policy_version": "source-002-inclusion-exclusion-boundary-v1",
+    "inclusion_manifest_sha256": "f6dd8e0d7d2adadcaafc7fbeef646809cbe27f886ba054aad0237e50635bc5c8",
+    "known_business_exclusions": "NO_KNOWN_BUSINESS_EXCLUSIONS_AT_S1_SOURCE_SCOPE",
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "missing_day_numeric_imputation_allowed": false
+  },
+  "test_seal": {
+    "test_partition_name": "TEST",
+    "test_is_latest_time_interval": true,
+    "test_purpose": "SEALED_FINAL_EVALUATION_ONLY",
+    "test_membership_immutable_after_seal": true,
+    "test_sealed_before_candidate_tuning": true,
+    "test_seal_is_not_test_access_authorization": true,
+    "test_data_access_authorized": false,
+    "test_data_access": false
+  },
+  "drift_invalidation": {
+    "source_manifest_drift_invalidates": true,
+    "mapping_identity_drift_invalidates": true,
+    "inclusion_identity_drift_invalidates": true,
+    "revision_identity_drift_invalidates": true,
+    "visibility_identity_drift_invalidates": true,
+    "custody_identity_drift_invalidates": true,
+    "replacement_requires_new_manifest_and_hash": true,
+    "drift_action": "BLOCK_AND_ISSUE_NEW_VERSIONED_IDENTITY"
+  },
+  "canonicalization": {
+    "version": "v0-3-s1-split-manifest-canonicalization-v1",
+    "encoding": "UTF-8",
+    "ensure_ascii": false,
+    "json_keys": "SORTED",
+    "json_separators": ",:",
+    "arrays_stable_order": true,
+    "date_format": "YYYY-MM-DD",
+    "hash_algorithm": "SHA-256",
+    "hash_scope": "ALL_TOP_LEVEL_FIELDS_EXCEPT_SPLIT_MANIFEST_SHA256_AND_SPLIT_MANIFEST_HASH",
+    "logical_rowset_hash_scope": "CANONICAL_LOGICAL_ROWSET_IDENTITY_PAYLOAD_ONLY",
+    "serialization_identity": "UTF-8 bytes of sorted-key compact JSON serialization",
+    "hash_hex_case": "LOWERCASE"
+  },
+  "validation": {
+    "train_logical_rowset_hash_replay": "PASS",
+    "validation_logical_rowset_hash_replay": "PASS",
+    "test_logical_rowset_hash_replay": "PASS",
+    "logical_rowset_hash_replay": "PASS",
+    "split_manifest_hash_replay": "PASS",
+    "json_markdown_parity": true,
+    "logical_rowset_hash_count": 3,
+    "logical_rowset_identity_only": true,
+    "materialized_row_content_hash": false,
+    "materialized_rowset_created": false,
+    "row_count_required_for_s1": false,
+    "partition_boundaries_verified": true,
+    "partition_overlap_verified": true,
+    "partition_gap_verified": true
+  },
+  "data_safety": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "train_rowset_materialized": false,
+    "validation_rowset_materialized": false,
+    "test_rowset_materialized": false,
+    "materialized_row_content_hash": false,
+    "credentials_read": false,
+    "private_locator_recorded": false
+  },
+  "canonical_state": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 14,
+    "current_canonical_gate_blocked_count": 3,
+    "gate_id": "S1-SPLIT-POLICY",
+    "status": "BLOCKED",
+    "block_reason": "SPLIT_POLICY_NOT_FROZEN",
+    "canonical_gate_status_changed": false,
+    "canonical_gate_block_reason_changed": false,
+    "canonical_closeout_performed": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "authorization_boundary": {
+    "source_002_raw_read_authorized": false,
+    "source_002_row_level_read_authorized": false,
+    "real_business_data_read_authorized": false,
+    "production_database_read_authorized": false,
+    "train_rowset_materialization_authorized": false,
+    "validation_rowset_materialization_authorized": false,
+    "test_rowset_materialization_authorized": false,
+    "test_data_access_authorized": false,
+    "external_holdout_access_authorized": false,
+    "metric_execution_authorized": false,
+    "backtest_authorized": false,
+    "model_training_authorized": false,
+    "split_policy_canonical_closeout_authorized": false,
+    "canonical_gate_status_mutation_authorized": false,
+    "canonical_gate_block_reason_mutation_authorized": false,
+    "canonical_closeout_authorized": false,
+    "acceptance_record_mutation_authorized": false,
+    "acceptance_package_mutation_authorized": false,
+    "canonical_reconciliation_mutation_authorized": false,
+    "holdout_feasibility_decision_authorized": false,
+    "final_s1_independent_review_authorized": false,
+    "v0_3_s1_acceptance_authorized": false,
+    "v0_3_s2_authorized": false,
+    "independent_review_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "next_gate_authorized": false
+  },
+  "split_manifest_sha256": "9d659cf731eaec83d06011683e01aa6a4b48e0af829d0ae073b68ed0a852970b",
+  "split_manifest_hash": {
+    "algorithm": "SHA-256",
+    "value": "9d659cf731eaec83d06011683e01aa6a4b48e0af829d0ae073b68ed0a852970b",
+    "hash_replay": "PASS",
+    "hash_is_governance_identity": true,
+    "hash_is_materialized_data_content_hash": false,
+    "self_referential_field_excluded": true
+  }
+}
