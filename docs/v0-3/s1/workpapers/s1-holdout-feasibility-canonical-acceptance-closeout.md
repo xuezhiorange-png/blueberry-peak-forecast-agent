@@ -1,0 +1,283 @@
+# S1 Holdout Feasibility Canonical Acceptance Closeout R1
+
+## 1. Scope and authority
+
+```text
+ARTIFACT_ID=V0_3_S1_HOLDOUT_FEASIBILITY_CANONICAL_ACCEPTANCE_CLOSEOUT
+ARTIFACT_VERSION=s1-holdout-feasibility-canonical-acceptance-closeout-v1
+ARTIFACT_STATUS=CLOSED_FOR_HOLDOUT_FEASIBILITY_ONLY
+TASK_ID=S1_HOLDOUT_FEASIBILITY_CANONICAL_CLOSEOUT_R1
+TASK_CLASS=DOCS_ONLY_CANONICAL_GATE_ACCEPTANCE_CLOSEOUT
+TARGET_GATE_ID=S1-HOLDOUT-FEASIBILITY
+AUTHORITY_SCOPE=S1_HOLDOUT_FEASIBILITY_ONLY
+BASE_MAIN_SHA=0fca2cf4be9a841aabd6dfe3932c69c37babbd13
+BASE_MAIN_TREE_SHA=2d3da6af9d6456d206838f6465006bbf80d0aaf8
+AUTHORIZATION_RECORD_ID=5342900522
+```
+
+This closeout performs exactly one canonical transition:
+`S1-HOLDOUT-FEASIBILITY` from
+`BLOCKED/FEASIBILITY_NOT_YET_ACCEPTED` to `PASS/NONE`. It does not close
+`S1-INDEPENDENT-REVIEW`, perform final S1 review, accept S1, authorize S2,
+authorize TEST or external-holdout access, or access Source002 data.
+
+## 2. Pre-closeout canonical state
+
+```text
+CANONICAL_GATE_COUNT=17
+PRE_CLOSEOUT_PASS_COUNT=15
+PRE_CLOSEOUT_BLOCKED_COUNT=2
+ROOT_STATUS=BLOCKED
+S1-HOLDOUT-FEASIBILITY=BLOCKED/FEASIBILITY_NOT_YET_ACCEPTED
+S1-INDEPENDENT-REVIEW=BLOCKED/NOT_YET_INDEPENDENTLY_REVIEWED
+```
+
+The precondition was checked against the exact current-main acceptance
+record. No other gate row was eligible for mutation under this
+authorization.
+
+## 3. Source formalization provenance versus this closeout review
+
+The source chain already present on current main is:
+
+```text
+SOURCE_FORMALIZATION_PR=264
+SOURCE_FORMALIZATION_HEAD_SHA=8b004d9d17be63719b1586802a122258fb227504
+SOURCE_FORMALIZATION_HEAD_TREE_SHA=2d3da6af9d6456d206838f6465006bbf80d0aaf8
+SOURCE_FORMALIZATION_MERGE_SHA=0fca2cf4be9a841aabd6dfe3932c69c37babbd13
+SOURCE_FORMALIZATION_MERGE_TREE_SHA=2d3da6af9d6456d206838f6465006bbf80d0aaf8
+SOURCE_EXACT_HEAD_CI_RUN_ID=32256554865
+SOURCE_EXACT_HEAD_CI_RESULT=completed/success
+SOURCE_FORMALIZATION_REVIEW_ID=4972667025
+SOURCE_FORMALIZATION_REVIEW_GRAPHQL_ID=PRR_kwDOS_gTTs8AAAABKGTgkQ
+SOURCE_FORMALIZATION_REVIEW_RESULT=PASS
+SOURCE_REVIEWED_HEAD_SHA=8b004d9d17be63719b1586802a122258fb227504
+SOURCE_REVIEW_SUBMITTED_AT=2026-08-19T13:30:38Z
+SOURCE_REVIEW_BLOCKER_COUNT=0
+SOURCE_OWNER_DECISION_ARTIFACT=docs/v0-3/s1/evidence/s1-holdout-feasibility-owner-decision.json
+SOURCE_OWNER_DECISION_ARTIFACT_VERSION=v0-3-s1-holdout-feasibility-owner-decision-v1
+SOURCE_OWNER_DECISION_ARTIFACT_GIT_BLOB_SHA=207a69b4c6ffa23e573581b830f5702c128fc5ff
+```
+
+Review `4972667025` is the independent review of the owner-decision
+formalization source package. It is not an independent review of this new
+closeout commit. Therefore:
+
+```text
+INDEPENDENT_CLOSEOUT_REVIEW_REQUIRED=true
+INDEPENDENT_CLOSEOUT_REVIEW_PERFORMED=false
+INDEPENDENT_CLOSEOUT_REVIEW_AUTHORIZED=false
+SOURCE_REVIEW_IS_THIS_CLOSEOUT_REVIEW=false
+```
+
+## 4. Owner decision provenance
+
+```text
+OWNER_DECISION_REQUEST_COMMENT_ID=5342374808
+OWNER_DECISION_COMMENT_ID=5342408710
+DECISION_ID=S1_HOLDOUT_FEASIBILITY_DECISION
+OWNER_IDENTITY=xuezhiorange-png
+OWNER_ROLE=model_validation_owner_role
+OWNER_DECISION=REVIEWED_NOT_FEASIBLE
+OWNER_DECISION_ACCEPTED_VALUE=NOT_FEASIBLE
+OWNER_DECISION_FINAL=true
+OWNER_DECISION_DECIDED_AT=2026-08-19T20:55:00+08:00
+OWNER_DECISION_SHA256=e943681865886173dfde9ca9e8e63dce6552d1087b7ae8d6191430e2cb4d8683
+OWNER_DECISION_HASH_REPLAY=PASS
+OWNER_DECISION_BINDING=PASS
+OWNER_DECISION_READY_FOR_INDEPENDENT_REVIEW=true
+```
+
+`REVIEWED_NOT_FEASIBLE` is a legal result for this required feasibility
+decision gate. It is not an `N/A` status. The owner decision says that the
+current frozen split has no independent external-holdout boundary; it does
+not grant access to TEST or an external holdout.
+
+## 5. Frozen split and reviewed feasibility basis
+
+```text
+SPLIT_POLICY_VERSION=v0-3-s1-time-ordered-split-policy-v1
+SPLIT_MANIFEST_VERSION=v0-3-s1-time-ordered-split-manifest-v1
+SPLIT_MANIFEST_SHA256=f2c4b32b60c94fa2887fbe80c7a25f0fc5a54528585342e49a288cbf07ea9a5f
+SPLIT_MANIFEST_GIT_BLOB_SHA=366994d1a1968c337472554700d54ffac9740314
+TRAIN=2025-08-05..2026-01-30
+VALIDATION=2026-01-31..2026-03-09
+TEST=2026-03-10..2026-04-16
+TRAIN_LOGICAL_ROWSET_SHA256=aedf0495d59578f2ba90265c4f5f50360d6d8d9fede7a1a1d2524a7278a4bcee
+VALIDATION_LOGICAL_ROWSET_SHA256=389691f6da7e82c7e31efd7cfee4eb629778845e0055694f591f985d2d312cb4
+TEST_LOGICAL_ROWSET_SHA256=a96534bacb4b77d8851644569c348179376b7b42102296a97f4279eabbde0f73
+PARTITION_ORDER=TRAIN,VALIDATION,TEST
+BOUNDARIES=BOTH_ENDS_INCLUSIVE
+OVERLAP_ALLOWED=false
+GAPS_ALLOWED=false
+SAME_FARM_ALLOWED_ACROSS_PARTITIONS=true
+SAME_SEASON_ALLOWED_ACROSS_PARTITIONS=true
+REQUESTED_HORIZONS_DAYS=7,14,21
+EXTERNAL_HOLDOUT_BOUNDARY_RESERVED=false
+MATERIALIZED_ROWSETS=false
+```
+
+The frozen split is a continuous time-ordered TRAIN/VALIDATION/TEST
+partition. It permits the same farm and season across time partitions and
+does not reserve an independent farm or season boundary for an external
+holdout. The decision basis is:
+
+```text
+REASON_CODE=NO_INDEPENDENT_EXTERNAL_HOLDOUT_BOUNDARY_IN_FROZEN_TIME_ORDERED_SPLIT
+FEASIBILITY_BASIS=CURRENT_FROZEN_TRAIN_VALIDATION_TEST_PARTITION_EXHAUSTS_GOVERNED_SPLIT_BOUNDARY
+NEW_SPLIT_REQUIRED_FOR_FEASIBLE_EXTERNAL_HOLDOUT=true
+EXTERNAL_HOLDOUT_REQUIRED=false
+EXTERNAL_HOLDOUT_NOT_APPLICABLE=true
+```
+
+The last two values are scoped to the owner decision and frozen snapshot.
+They are not a separately canonicalized runtime N/A state. A future
+`FEASIBLE` result would require a new versioned split identity, manifest,
+hash, and governance chain; no silent regeneration is allowed.
+
+## 6. Canonical transition and mutation accounting
+
+```text
+PREVIOUS_STATUS=BLOCKED
+PREVIOUS_BLOCK_REASON=FEASIBILITY_NOT_YET_ACCEPTED
+NEW_STATUS=PASS
+NEW_BLOCK_REASON=NONE
+ACCEPTANCE_THRESHOLD=REVIEWED_FEASIBLE_OR_REVIEWED_NOT_FEASIBLE
+TARGET_GATE_STATUS_MUTATION_COUNT=1
+TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=1
+OTHER_GATE_STATUS_MUTATION_COUNT=0
+OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0
+CANONICAL_GATE_STATUS_MUTATION_COUNT=1
+CANONICAL_GATE_BLOCK_REASON_MUTATION_COUNT=1
+CHANGED_GATE_COUNT=1
+CHANGED_GATE=S1-HOLDOUT-FEASIBILITY
+S1_INDEPENDENT_REVIEW_MUTATED=false
+```
+
+Only `S1-HOLDOUT-FEASIBILITY` changes. The `S1-INDEPENDENT-REVIEW` row
+remains `BLOCKED/NOT_YET_INDEPENDENTLY_REVIEWED` with pending reviewer and
+review timestamp. The acceptance record root remains `BLOCKED`.
+
+## 7. Current main versus branch candidate
+
+Before this branch closeout, current main remains:
+
+```text
+CURRENT_MAIN_CANONICAL_GATE_COUNT=17
+CURRENT_MAIN_CANONICAL_GATE_PASS_COUNT=15
+CURRENT_MAIN_CANONICAL_GATE_BLOCKED_COUNT=2
+CURRENT_MAIN_S1_HOLDOUT_FEASIBILITY_GATE_PASS=false
+```
+
+After this branch-only closeout, the candidate state is:
+
+```text
+PR_BRANCH_CANDIDATE_CANONICAL_GATE_COUNT=17
+PR_BRANCH_CANDIDATE_CANONICAL_GATE_PASS_COUNT=16
+PR_BRANCH_CANDIDATE_CANONICAL_GATE_BLOCKED_COUNT=1
+PR_BRANCH_CANDIDATE_S1_HOLDOUT_FEASIBILITY_GATE_PASS=true
+ROOT_ACCEPTANCE_STATUS=BLOCKED
+ALL_17_REQUIRED_GATES_PASS=false
+V0_3_S1_COMPLETE=false
+V0_3_S1_ACCEPTED=false
+V0_3_S2_AUTHORIZED=false
+```
+
+The only remaining blocked gate is:
+
+```text
+S1-INDEPENDENT-REVIEW=BLOCKED/NOT_YET_INDEPENDENTLY_REVIEWED
+```
+
+This PR does not change current main and does not imply that the final S1
+review has started.
+
+## 8. TEST, external-holdout, and execution boundary
+
+```text
+TEST_CUSTODY_RECORD_ACCEPTED=false
+TEST_CUSTODY_ACCEPTANCE_AUTHORIZED=false
+TEST_DATA_ACCESS=false
+EXTERNAL_HOLDOUT_ACCESS=false
+SOURCE_002_RAW_READ=false
+SOURCE_002_ROW_LEVEL_READ=false
+TRAIN_ROWSET_MATERIALIZED=false
+VALIDATION_ROWSET_MATERIALIZED=false
+TEST_ROWSET_MATERIALIZED=false
+METRIC_EXECUTION_PERFORMED=false
+BACKTEST_EXECUTED=false
+MODEL_TRAINING_EXECUTED=false
+PRODUCTION_CODE_CHANGED=false
+TEST_CODE_CHANGED=false
+DATABASE_SCHEMA_CHANGED=false
+MIGRATION_CREATED=false
+```
+
+The frozen TEST seal is not TEST access authorization. No TEST, external
+holdout, or Source002 raw/row-level data was read, and no partition rowset was
+materialized. This is a governance-only documentation mutation.
+
+## 9. Downstream and authorization boundaries
+
+```text
+HOLDOUT_FEASIBILITY_CLOSEOUT_PERFORMED=true
+S1_INDEPENDENT_REVIEW_CLOSEOUT_PERFORMED=false
+FINAL_S1_INDEPENDENT_REVIEW_PERFORMED=false
+FINAL_V0_3_S1_ACCEPTANCE_PERFORMED=false
+V0_3_S2_AUTHORIZED=false
+TARGET_GATE_CLOSEOUT_AUTHORIZED=true
+OTHER_GATE_MUTATION_AUTHORIZED=false
+HOLDOUT_FEASIBILITY_DECISION_AUTHORIZED=false
+INDEPENDENT_REVIEW_AUTHORIZED=false
+FINAL_S1_INDEPENDENT_REVIEW_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NEXT_GATE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The formalized owner decision is the source decision being closed; this task
+does not issue a new feasibility decision. A separate exact-head independent
+closeout review is still required. No Ready, Merge, final S1 acceptance, or
+V0.3-S2 authorization is performed.
+
+## 10. Changed files and validation
+
+Exactly four files are authorized for this branch candidate:
+
+```text
+docs/v0-3/s1/evidence/s1-acceptance-record.json
+docs/v0-3/s1/s1-acceptance-package.md
+docs/v0-3/s1/evidence/s1-holdout-feasibility-canonical-acceptance-closeout.json
+docs/v0-3/s1/workpapers/s1-holdout-feasibility-canonical-acceptance-closeout.md
+```
+
+The global current-main reconciliation artifacts and the PR #264 source
+formalization artifacts remain unchanged. The expected validation is:
+
+```text
+JSON_SYNTAX=PASS
+S1_ACCEPTANCE_RECORD_SCHEMA_VALIDATION=PASS
+CANONICAL_GATE_COUNT=17
+UNIQUE_GATE_ID_COUNT=17
+MISSING_GATE_COUNT=0
+DUPLICATE_GATE_COUNT=0
+PASS_COUNT=16
+BLOCKED_COUNT=1
+TARGET_GATE_STATUS_MUTATION_COUNT=1
+TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=1
+OTHER_GATE_STATUS_MUTATION_COUNT=0
+OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0
+ROOT_ACCEPTANCE_STATUS=BLOCKED
+ACCEPTANCE_RECORD_PACKAGE_PARITY=PASS
+CLOSEOUT_JSON_MARKDOWN_PARITY=PASS
+GLOBAL_RECONCILIATION_ARTIFACTS_UNCHANGED=true
+SOURCE_FORMALIZATION_ARTIFACTS_UNCHANGED=true
+GIT_DIFF_CHECK=PASS
+AUTHORIZED_FILE_SCOPE=PASS
+```
+
+This implementation stops after the closeout commit, push, Draft PR
+creation, and one exact-head CI snapshot. It does not perform the new
+independent closeout review, mark the PR Ready, merge the PR, perform final
+S1 review, accept V0.3-S1, or authorize V0.3-S2.
