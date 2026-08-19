@@ -1,0 +1,120 @@
+name: Apply Playwright CI optimization
+
+on:
+  push:
+    branches:
+      - infra/playwright-browser-cache-r1
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify authorized base and reset staging commit
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          expected_main=3bd7a24033d41d69197cb58cbf70bca477e679d6
+          actual_main="$(git rev-parse origin/main)"
+          if [ "$actual_main" != "$expected_main" ]; then
+            echo "BASE_MAIN_DRIFT expected=$expected_main actual=$actual_main" >&2
+            exit 1
+          fi
+          git reset --hard origin/main
+
+      - name: Patch frontend-e2e Playwright bootstrap
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/ci.yml')
+          text = path.read_text(encoding='utf-8')
+          old = '''      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Install existing Playwright Chromium
+        run: frontend/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start real backend
+'''
+          new = '''      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Resolve Playwright browser version
+        id: playwright-version
+        run: |
+          version="$(node -p "require('./frontend/node_modules/@playwright/test/package.json').version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "PLAYWRIGHT_VERSION=${version}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Restore Playwright Chromium cache
+        id: playwright-browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-only-shell-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright-version.outputs.version }}
+      - name: Verify Playwright Chromium system dependencies
+        id: playwright-system-deps
+        timeout-minutes: 2
+        run: |
+          set +e
+          frontend/node_modules/.bin/playwright install-deps --dry-run chromium > /tmp/playwright-install-deps-dry-run.log 2>&1
+          status=$?
+          cat /tmp/playwright-install-deps-dry-run.log
+          if [ "$status" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "PLAYWRIGHT_SYSTEM_DEPS=already_satisfied" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "PLAYWRIGHT_SYSTEM_DEPS=install_required" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+      - name: Install missing Playwright Chromium system dependencies
+        if: steps.playwright-system-deps.outputs.ready != 'true'
+        timeout-minutes: 6
+        run: frontend/node_modules/.bin/playwright install-deps chromium
+      - name: Ensure Playwright Chromium headless shell
+        timeout-minutes: 5
+        run: |
+          echo "PLAYWRIGHT_BROWSER_CACHE_HIT=${{ steps.playwright-browser-cache.outputs.cache-hit }}" >> "$GITHUB_STEP_SUMMARY"
+          frontend/node_modules/.bin/playwright install --only-shell chromium
+      - name: Start real backend
+'''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one Playwright install block, found {count}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+      - name: Validate narrow workflow diff
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only)"
+          if [ "$changed" != ".github/workflows/ci.yml" ]; then
+            echo "unexpected changed files:" >&2
+            printf '%s\n' "$changed" >&2
+            exit 1
+          fi
+          grep -F "actions/cache@v4" .github/workflows/ci.yml
+          grep -F "playwright install --only-shell chromium" .github/workflows/ci.yml
+          grep -F "timeout-minutes: 5" .github/workflows/ci.yml
+          if grep -Fq "Install existing Playwright Chromium" .github/workflows/ci.yml; then
+            echo "legacy combined Playwright install step still present" >&2
+            exit 1
+          fi
+
+      - name: Commit as Codex Agent and replace staging history
+        env:
+          TARGET_BRANCH: infra/playwright-browser-cache-r1
+        run: |
+          set -euo pipefail
+          git config user.name "Codex Agent"
+          git config user.email "codex@openai.com"
+          git add .github/workflows/ci.yml
+          git commit -m "ci: bound and cache Playwright Chromium bootstrap"
+          git push --force-with-lease origin "HEAD:${TARGET_BRANCH}"
