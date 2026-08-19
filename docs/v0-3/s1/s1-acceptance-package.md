@@ -6,16 +6,18 @@
 ACCEPTANCE_PACKAGE_ID=V0_3_S1_ACCEPTANCE_PACKAGE
 SLICE=V0.3-S1
 CANONICAL_GATE_COUNT=17
-CURRENT_CANONICAL_GATE_PASS_COUNT=15
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=2
-CURRENT_MAIN_CANONICAL_GATE_PASS_COUNT=14
-CURRENT_MAIN_CANONICAL_GATE_BLOCKED_COUNT=3
-PR_BRANCH_CANDIDATE_CANONICAL_GATE_PASS_COUNT=15
-PR_BRANCH_CANDIDATE_CANONICAL_GATE_BLOCKED_COUNT=2
+CURRENT_CANONICAL_GATE_PASS_COUNT=16
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=1
+CURRENT_MAIN_CANONICAL_GATE_PASS_COUNT=15
+CURRENT_MAIN_CANONICAL_GATE_BLOCKED_COUNT=2
+PR_BRANCH_CANDIDATE_CANONICAL_GATE_PASS_COUNT=16
+PR_BRANCH_CANDIDATE_CANONICAL_GATE_BLOCKED_COUNT=1
 CURRENT_MAIN_S1_METRIC_CONTRACT_GATE_PASS=true
 PR_BRANCH_CANDIDATE_S1_METRIC_CONTRACT_GATE_PASS=true
-CURRENT_MAIN_S1_SPLIT_POLICY_GATE_PASS=false
+CURRENT_MAIN_S1_SPLIT_POLICY_GATE_PASS=true
 PR_BRANCH_CANDIDATE_S1_SPLIT_POLICY_GATE_PASS=true
+CURRENT_MAIN_S1_HOLDOUT_FEASIBILITY_GATE_PASS=false
+PR_BRANCH_CANDIDATE_S1_HOLDOUT_FEASIBILITY_GATE_PASS=true
 CURRENT_PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 CURRENT_PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 CURRENT_PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
@@ -81,21 +83,24 @@ PR250_VISIBILITY_GATE_LOCAL_REVIEW_ID=4956221333
 PR250_VISIBILITY_REVIEWED_HEAD_SHA=65eff0186094f5bae5e4bdd5283a2a1491099041
 PR250_VISIBILITY_EXACT_HEAD_CI_RUN_ID=32086692500
 PR250_VISIBILITY_CLOSEOUT_DECISION_COMMENT_ID=5322269014
-TARGET_GATE_ID=S1-METRIC-CONTRACT
+TARGET_GATE_ID=S1-HOLDOUT-FEASIBILITY
 TARGET_GATE_STATUS_MUTATION_COUNT=1
 TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=1
 OTHER_GATE_STATUS_MUTATION_COUNT=0
 OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0
-PREVIOUS_CLOSEOUT_TARGET_GATE_ID=S1-METRIC-CONTRACT
-CURRENT_CLOSEOUT_TARGET_GATE_ID=S1-SPLIT-POLICY
-CURRENT_CLOSEOUT_TASK_ID=S1_SPLIT_POLICY_CANONICAL_CLOSEOUT_R1
-CURRENT_CLOSEOUT_AUTHORIZATION_COMMENT_ID=5340788044
+PREVIOUS_CLOSEOUT_TARGET_GATE_ID=S1-SPLIT-POLICY
+CURRENT_CLOSEOUT_TARGET_GATE_ID=S1-HOLDOUT-FEASIBILITY
+CURRENT_CLOSEOUT_TASK_ID=S1_HOLDOUT_FEASIBILITY_CANONICAL_CLOSEOUT_R1
+CURRENT_CLOSEOUT_AUTHORIZATION_COMMENT_ID=5342900522
 METRIC_CONTRACT_STATUS_MUTATION=true
 METRIC_CONTRACT_BLOCK_REASON_MUTATION=true
 METRIC_CONTRACT_CLOSEOUT_EXECUTED=true
 SPLIT_POLICY_STATUS_MUTATION=true
 SPLIT_POLICY_BLOCK_REASON_MUTATION=true
 SPLIT_POLICY_CLOSEOUT_EXECUTED=true
+HOLDOUT_FEASIBILITY_STATUS_MUTATION=true
+HOLDOUT_FEASIBILITY_BLOCK_REASON_MUTATION=true
+HOLDOUT_FEASIBILITY_CLOSEOUT_EXECUTED=true
 REVISION_WINNER_STATUS_MUTATION=true
 REVISION_WINNER_BLOCK_REASON_MUTATION=true
 REVISION_WINNER_NOTE_ONLY_SYNC=false
@@ -104,12 +109,14 @@ REVISION_WINNER_CLOSEOUT_EXECUTED=true
 S1_REVISION_WINNER_STATUS_CHANGED=true
 S1_REVISION_WINNER_BLOCK_REASON_CHANGED=true
 S1_SPLIT_POLICY_MUTATED=true
+S1_HOLDOUT_FEASIBILITY_MUTATED=true
+S1_INDEPENDENT_REVIEW_MUTATED=false
 GLOBAL_RECONCILIATION_ARTIFACTS_CHANGED=false
+SOURCE_HOLDOUT_FORMALIZATION_ARTIFACTS_CHANGED=false
 SOURCE_REVISION_WINNER_EVIDENCE_CHANGED=false
 INDEPENDENT_CLOSEOUT_REVIEW_PERFORMED=false
 S1_METRIC_CONTRACT_MUTATED=true
 S1_DATA_CUSTODY_MUTATED=false
-S1_HOLDOUT_FEASIBILITY_MUTATED=false
 S1_INDEPENDENT_REVIEW_MUTATED=false
 S1_REMAINING_04_COMPLETE=true
 S1_REMAINING_04_REEXECUTION_REQUIRED=false
@@ -208,15 +215,15 @@ package; it is not permitted to turn this required feasibility gate into
 | `S1-MINIMUM-COVERAGE` | metrics | required | model_validation_owner_role | coverage threshold decision record | `v0-3-s1-minimum-coverage-threshold-v1` | `a9361145eaa04e93e6b7bc3a4e4faa7a42c542b29de4978988658f53fa11f692` | `v0.3-metric-contract-v1` | S3 contract and independently reviewed owner decision `4937929668` | `S3_COVERAGE_RATIO_GREATER_THAN_OR_EQUAL_0.900000_PER_APPLICATION_CELL` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4937929668` | `2026-08-14T14:04:08Z` | Owner decision payload/hash and exact-head CI were independently reviewed on PR #219 head `5775e908cfe072fa962c99e822901b7157128418`; S3 reporting floor 10 is not the S1 threshold. |
 | `S1-DATA-QUALITY-THRESHOLDS` | data | required | data_quality_owner_role | `v0-3-s1-data-quality-threshold-policy-v1` | `v0-3-s1-data-quality-threshold-policy-v1` | `11e810f4385965f173c6a269d08a1469f6eb4f6173610d272b4ecc09b2171969` | `v0.3-metric-contract-v1` | reviewed versioned data-quality owner policy | `VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_GREATER_THAN_OR_EQUAL_1.000000_PER_APPLICATION_CELL` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4943327077` | `2026-08-15T08:09:57Z` | Owner decision comment `5301040523` and exact-head CI `31872490353` are bound; this accepts the policy only, not data execution or any other gate. |
 | `S1-DATA-CUSTODY` | governance | required | data_governance_owner_role | versioned custody record | `s1-data-custody-current-main-gate-local-formalization-v1` | `GIT_BLOB_SHA:47f76feb1302876aed6854d44ae2e93debb5f0fa` | `NOT_APPLICABLE_FOR_THIS_GATE` | source custody contract | `ACCESS_RETENTION_WITHDRAWAL_VOID_EVIDENCED` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-PRR_kwDOS_gTTs8AAAABJ6xf-g` | `2026-08-18T11:40:49Z` | Canonical closeout task `S1_DATA_CUSTODY_CANONICAL_CLOSEOUT_IMPLEMENTATION_R1` authorized by comment `5327668507`; source gate-local formalization exact head `be8f64e8b7c36bf640f786ebb55b0542e16354d0`, tree `7d729f6d0cf7fa1f0872ba9e7c1b42f5db76325e`, source independent review `PRR_kwDOS_gTTs8AAAABJ6xf-g` returned PASS, and source exact-head CI `32131494627` completed success. Custody record `source-002-custody-record-v1` blob `fc0c60550bb1740f2e3cd9b45ce9b317de93afc7`, custody hash `99edffb9d076e9ab938a9021e1950a7d909dd7303e6d4677a46a5c1b8db8dde6`, external binding hash `1d64cc5e4e1e06fb40065e3e8a0dfc3da56d20afb04300db4c5c58d5c5243ece`; this single transition is BLOCKED/SOURCE_CUSTODY_NOT_VERIFIED -> PASS/NONE. CUSTODY_RECORD_ACCEPTED=false; DOWNSTREAM_PROPAGATION_INDEPENDENTLY_ACCEPTED=false; custody/formalization artifacts are not mutated; no final S1 acceptance or S2 authorization is implied. |
-| `S1-HOLDOUT-FEASIBILITY` | evaluation | required | model_validation_owner_role | external holdout feasibility record | `HOLDOUT_FEASIBILITY_REQUIRED` | `BLOCKED_NO_COHORT_FEASIBILITY_EVIDENCE` | `PENDING_S1_METRIC_CONTRACT_FREEZE` | split contract | `REVIEWED_FEASIBLE_OR_REVIEWED_NOT_FEASIBLE` | `NEVER` | `BLOCKED` | `FEASIBILITY_NOT_YET_ACCEPTED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | This gate is required; it is not materialization. |
+| `S1-HOLDOUT-FEASIBILITY` | evaluation | required | model_validation_owner_role | `docs/v0-3/s1/evidence/s1-holdout-feasibility-owner-decision.json` | `v0-3-s1-holdout-feasibility-owner-decision-v1` | `e943681865886173dfde9ca9e8e63dce6552d1087b7ae8d6191430e2cb4d8683` | `v0.3-metric-contract-v1` | split contract | `REVIEWED_FEASIBLE_OR_REVIEWED_NOT_FEASIBLE` | `NEVER` | `PASS` | `NONE` | independent S1 reviewer | `github-review-4972667025` | `2026-08-19T13:30:38Z` | CANONICAL_CLOSEOUT_TASK_ID=S1_HOLDOUT_FEASIBILITY_CANONICAL_CLOSEOUT_R1; AUTHORIZATION_RECORD_ID=5342900522; OWNER_DECISION_COMMENT_ID=5342408710; OWNER_DECISION=REVIEWED_NOT_FEASIBLE; OWNER_DECISION_ACCEPTED_VALUE=NOT_FEASIBLE; OWNER_DECISION_SHA256=e943681865886173dfde9ca9e8e63dce6552d1087b7ae8d6191430e2cb4d8683; FORMALIZATION_PR=264; FORMALIZATION_HEAD_SHA=8b004d9d17be63719b1586802a122258fb227504; FORMALIZATION_MERGE_SHA=0fca2cf4be9a841aabd6dfe3932c69c37babbd13; FORMALIZATION_REVIEW_ID=4972667025; FORMALIZATION_REVIEW_RESULT=PASS; SOURCE_EXACT_HEAD_CI_RUN_ID=32256554865; EXTERNAL_HOLDOUT_REQUIRED=false; EXTERNAL_HOLDOUT_NOT_APPLICABLE=true; NEW_SPLIT_REQUIRED_FOR_FEASIBLE_EXTERNAL_HOLDOUT=true. This required feasibility decision accepts the reviewed NOT_FEASIBLE result as PASS/NONE; it does not materialize an external holdout or authorize TEST access. |
 | `S1-INDEPENDENT-REVIEW` | governance | required | independent_reviewer_role | complete S1 acceptance record | `ACCEPTANCE_RECORD_REQUIRED` | `BLOCKED_NO_INDEPENDENT_REVIEW` | `NOT_APPLICABLE_FOR_THIS_GATE` | S1 package | `ALL_REQUIRED_GATES_CLOSED` | `NEVER` | `BLOCKED` | `NOT_YET_INDEPENDENTLY_REVIEWED` | independent S1 reviewer | `PENDING_INDEPENDENT_REVIEW` | `PENDING_INDEPENDENT_REVIEW` | Review cannot be self-attested. |
 
 ## Acceptance calculation
 
 ```text
 COMPLETION_RULE=ALL_17_REQUIRED_GATE_ROWS_STATUS_PASS
-CURRENT_REQUIRED_GATE_PASS_COUNT=15
-CURRENT_REQUIRED_GATE_BLOCKED_COUNT=2
+CURRENT_REQUIRED_GATE_PASS_COUNT=16
+CURRENT_REQUIRED_GATE_BLOCKED_COUNT=1
 CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 CURRENT_SOURCE_COHORT_ACCEPTED=true
 CURRENT_Q2C_ACCEPTED=true
@@ -228,7 +235,8 @@ CURRENT_S2_AUTHORIZATION=false
 VISIBILITY_ACCEPTED=true
 ```
 
-The current package records fifteen closed gates. Canonical Grain and
+The current branch candidate records sixteen closed gates and one blocked
+gate. Canonical Grain and
 Inclusion/Exclusion are now accepted through the reviewed Task-3 evidence and
 this separately authorized bounded closeout. Visibility is accepted through
 PR #250 exact-head gate-local review `4956221333`, reviewed formalization head
@@ -245,9 +253,10 @@ The separately authorized Data Custody closeout changes only
 using the reviewed gate-local formalization and exact-head independent review
 provenance above. It preserves `CUSTODY_RECORD_ACCEPTED=false` and
 `DOWNSTREAM_PROPAGATION_INDEPENDENTLY_ACCEPTED=false`; the custody record and
-formalization artifacts are not mutated. Before this PR merges, current main
-remains authoritative at thirteen PASS and four BLOCKED; this branch candidate
-records fourteen PASS and three BLOCKED. This closeout does not execute
+formalization artifacts are not mutated. At the time of the earlier Data
+Custody closeout, pre-merge current main was thirteen PASS and four BLOCKED
+and that historical branch candidate was fourteen PASS and three BLOCKED.
+This closeout does not execute
 `S1-REMAINING-04`, accept any
 downstream gate, or imply final S1 acceptance. Source Cohort acceptance freezes
 identity only; S2 still owns the final materialized rowset. All downstream and
@@ -280,11 +289,28 @@ The reviewed split policy is `v0-3-s1-time-ordered-split-policy-v1` with manifes
 and `EXACT_FORECAST_CUTOFF_AT` point-in-time semantics. TEST is sealed as
 governed membership evidence but remains inaccessible: TEST custody is not
 accepted, TEST access is unauthorized, and no TRAIN, VALIDATION, or TEST rowset
-is materialized. Before this PR merges, current main remains authoritative at
-fourteen PASS and three BLOCKED; this branch candidate records fifteen PASS and
-two BLOCKED. Only `S1-HOLDOUT-FEASIBILITY` and `S1-INDEPENDENT-REVIEW` remain
-blocked. Holdout Feasibility, final S1 independent review, S1 acceptance, and
-V0.3-S2 remain separate and unauthorized.
+is materialized. At the time of the earlier Split Policy closeout, pre-merge
+current main was fourteen PASS and three BLOCKED and that historical branch
+candidate was fifteen PASS and two BLOCKED. At that historical point,
+`S1-HOLDOUT-FEASIBILITY` and `S1-INDEPENDENT-REVIEW` remained blocked. Holdout
+Feasibility, final S1 independent review, S1 acceptance, and V0.3-S2 remain
+separate and unauthorized.
+
+The current Holdout Feasibility closeout changes only
+`S1-HOLDOUT-FEASIBILITY` from
+`BLOCKED/FEASIBILITY_NOT_YET_ACCEPTED` to `PASS/NONE`. The source
+formalization review `4972667025` independently verified the authenticated
+owner decision `REVIEWED_NOT_FEASIBLE` from comment `5342408710`, including
+the decision hash and frozen split basis. Because this is a required
+feasibility decision gate, reviewed `NOT_FEASIBLE` is a legal PASS result and
+is not `NOT_APPLICABLE`. It does not materialize an external holdout, grant
+TEST access, or mutate the frozen split. Before this PR merges, current main
+remains authoritative at fifteen PASS and two BLOCKED; this branch candidate
+records sixteen PASS and one BLOCKED. The only remaining blocked gate is
+`S1-INDEPENDENT-REVIEW=BLOCKED/NOT_YET_INDEPENDENTLY_REVIEWED`.
+The source formalization review is not a review of this new closeout commit;
+`INDEPENDENT_CLOSEOUT_REVIEW_PERFORMED=false`, and final S1 review, S1
+acceptance, and V0.3-S2 remain separately unauthorized.
 
 The JSON schema in this directory requires exactly these seventeen canonical
 gate IDs once each. A required gate cannot be `NOT_APPLICABLE`; only a future
