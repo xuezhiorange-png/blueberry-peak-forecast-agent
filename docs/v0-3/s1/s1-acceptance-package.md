@@ -288,11 +288,12 @@ The reviewed split policy is `v0-3-s1-time-ordered-split-policy-v1` with manifes
 and `EXACT_FORECAST_CUTOFF_AT` point-in-time semantics. TEST is sealed as
 governed membership evidence but remains inaccessible: TEST custody is not
 accepted, TEST access is unauthorized, and no TRAIN, VALIDATION, or TEST rowset
-is materialized. Before this PR merges, current main remains authoritative at
-fourteen PASS and three BLOCKED; this branch candidate records fifteen PASS and
-two BLOCKED. Only `S1-HOLDOUT-FEASIBILITY` and `S1-INDEPENDENT-REVIEW` remain
-blocked. Holdout Feasibility, final S1 independent review, S1 acceptance, and
-V0.3-S2 remain separate and unauthorized.
+is materialized. At the time of the earlier Split Policy closeout, pre-merge
+current main was fourteen PASS and three BLOCKED and that historical branch
+candidate was fifteen PASS and two BLOCKED. At that historical point,
+`S1-HOLDOUT-FEASIBILITY` and `S1-INDEPENDENT-REVIEW` remained blocked. Holdout
+Feasibility, final S1 independent review, S1 acceptance, and V0.3-S2 remain
+separate and unauthorized.
 
 The current Holdout Feasibility closeout changes only
 `S1-HOLDOUT-FEASIBILITY` from
