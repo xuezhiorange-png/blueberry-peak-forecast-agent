@@ -175,7 +175,7 @@
     "source_independent_review_provenance_verified": true,
     "source_exact_head_ci_provenance_verified": true,
     "json_markdown_parity_required": true,
-    "json_markdown_parity_performed": false
+    "json_markdown_parity_performed": true
   },
   "runtime_safety": {
     "owner_decision_issued": true,
