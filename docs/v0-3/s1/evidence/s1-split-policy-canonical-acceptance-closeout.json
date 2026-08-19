@@ -1,0 +1,201 @@
+{
+  "artifact_id": "V0_3_S1_SPLIT_POLICY_CANONICAL_ACCEPTANCE_CLOSEOUT",
+  "artifact_version": "s1-split-policy-canonical-acceptance-closeout-v1",
+  "artifact_status": "CLOSED_FOR_SPLIT_POLICY_ONLY",
+  "task_id": "S1_SPLIT_POLICY_CANONICAL_CLOSEOUT_R1",
+  "task_class": "DOCS_ONLY_CANONICAL_GATE_ACCEPTANCE_CLOSEOUT",
+  "target_gate_id": "S1-SPLIT-POLICY",
+  "authority_scope": "S1_SPLIT_POLICY_ONLY",
+  "base_main_sha": "f6c031f4d4993ae9ea1e190b42614caf47eba84c",
+  "base_main_tree_sha": "58d5270fe3192b95f1acd37c7cc83b592e5f79bb",
+  "authorization_comment_id": 5340788044,
+  "pre_closeout_state": {
+    "canonical_gate_count": 17,
+    "pass_count": 14,
+    "blocked_count": 3,
+    "root_status": "BLOCKED",
+    "target_gate_id": "S1-SPLIT-POLICY",
+    "target_status": "BLOCKED",
+    "target_block_reason": "SPLIT_POLICY_NOT_FROZEN"
+  },
+  "source_formalization_provenance": {
+    "source_pr_number": 261,
+    "source_pr_head_sha": "6ffb02dac35a80ab21e097e58138fd399a05d90d",
+    "source_pr_head_tree_sha": "58d5270fe3192b95f1acd37c7cc83b592e5f79bb",
+    "source_pr_merge_sha": "f6c031f4d4993ae9ea1e190b42614caf47eba84c",
+    "source_pr_merge_tree_sha": "58d5270fe3192b95f1acd37c7cc83b592e5f79bb",
+    "source_exact_head_ci_run_id": 32231959159,
+    "source_exact_head_ci_run_attempt": 2,
+    "source_exact_head_ci_result": "completed/success"
+  },
+  "independent_review_provenance": {
+    "review_id": 4970920987,
+    "review_graphql_id": "PRR_kwDOS_gTTs8AAAABKEo8Gw",
+    "review_result": "PASS",
+    "reviewed_head_sha": "6ffb02dac35a80ab21e097e58138fd399a05d90d",
+    "reviewed_head_tree_sha": "58d5270fe3192b95f1acd37c7cc83b592e5f79bb",
+    "submitted_at": "2026-08-19T10:04:03Z",
+    "blocker_count": 0,
+    "review_scope": "SPLIT_MANIFEST_AND_TEST_CUSTODY_FORMALIZATION_ONLY",
+    "reviewed_new_closeout_head": false
+  },
+  "owner_decision_provenance": {
+    "split_policy_owner_decision_comment_id": 5336738442,
+    "split_membership_owner_decision_comment_id": 5337704077,
+    "owner_decision_scope": "SPLIT_POLICY_AND_MEMBERSHIP_BOUNDARY_ONLY"
+  },
+  "reviewed_split_evidence": {
+    "split_policy_version": "v0-3-s1-time-ordered-split-policy-v1",
+    "split_manifest_version": "v0-3-s1-time-ordered-split-manifest-v1",
+    "split_manifest_sha256": "f2c4b32b60c94fa2887fbe80c7a25f0fc5a54528585342e49a288cbf07ea9a5f",
+    "partitions": {
+      "TRAIN": {
+        "interval": "2025-08-05..2026-01-30",
+        "logical_rowset_sha256": "aedf0495d59578f2ba90265c4f5f50360d6d8d9fede7a1a1d2524a7278a4bcee",
+        "logical_rowset_hash_replay": "PASS"
+      },
+      "VALIDATION": {
+        "interval": "2026-01-31..2026-03-09",
+        "logical_rowset_sha256": "389691f6da7e82c7e31efd7cfee4eb629778845e0055694f591f985d2d312cb4",
+        "logical_rowset_hash_replay": "PASS"
+      },
+      "TEST": {
+        "interval": "2026-03-10..2026-04-16",
+        "logical_rowset_sha256": "a96534bacb4b77d8851644569c348179376b7b42102296a97f4279eabbde0f73",
+        "logical_rowset_hash_replay": "PASS"
+      }
+    },
+    "partition_order": ["TRAIN", "VALIDATION", "TEST"],
+    "overlap": false,
+    "gaps": false,
+    "boundaries": "BOTH_ENDS_INCLUSIVE",
+    "requested_horizons_days": [7, 14, 21],
+    "pit_semantics": {
+      "authority": "EXACT_FORECAST_CUTOFF_AT",
+      "input_known_at_requirement": "KNOWN_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+      "input_source_available_at_requirement": "SOURCE_AVAILABLE_AT_LESS_THAN_OR_EQUAL_TO_EXACT_FORECAST_CUTOFF_AT",
+      "timestamp_identity": "TIMEZONE_AWARE_CANONICAL_UTC",
+      "target_relation": "FORECAST_CUTOFF_AT_STRICTLY_BEFORE_FORECAST_TARGET_DATE_OR_WINDOW_END",
+      "drift_semantics": "FAIL_CLOSED_OR_NEW_IDENTITY_NO_SILENT_SUBSTITUTION"
+    },
+    "threshold": "TIME_ORDERED_SPLITS_AND_NO_LEAKAGE",
+    "split_manifest_hash_replay": "PASS",
+    "test_seal_is_not_test_access_authorization": true
+  },
+  "gate_transition": {
+    "previous_status": "BLOCKED",
+    "new_status": "PASS",
+    "previous_block_reason": "SPLIT_POLICY_NOT_FROZEN",
+    "new_block_reason": "NONE",
+    "acceptance_threshold": "TIME_ORDERED_SPLITS_AND_NO_LEAKAGE",
+    "split_policy_status": "PASS",
+    "split_policy_block_reason": "NONE"
+  },
+  "mutation_accounting": {
+    "target_gate_status_mutation_count": 1,
+    "target_gate_block_reason_mutation_count": 1,
+    "other_gate_status_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 0,
+    "canonical_gate_status_mutation_performed": true,
+    "canonical_gate_block_reason_mutation_performed": true
+  },
+  "current_main_state_before_merge": {
+    "canonical_gate_count": 17,
+    "canonical_gate_pass_count": 14,
+    "canonical_gate_blocked_count": 3,
+    "split_policy_status": "BLOCKED",
+    "split_policy_block_reason": "SPLIT_POLICY_NOT_FROZEN"
+  },
+  "current_branch_state_after_closeout": {
+    "canonical_gate_count": 17,
+    "current_canonical_gate_pass_count": 15,
+    "current_canonical_gate_blocked_count": 2,
+    "root_status": "BLOCKED",
+    "all_17_required_gates_pass": false,
+    "v0_3_s1_complete": false,
+    "v0_3_s1_accepted": false,
+    "v0_3_s2_authorized": false,
+    "split_policy_status": "PASS",
+    "split_policy_block_reason": "NONE"
+  },
+  "remaining_blocked_gates": [
+    {
+      "gate_id": "S1-HOLDOUT-FEASIBILITY",
+      "status": "BLOCKED",
+      "block_reason": "FEASIBILITY_NOT_YET_ACCEPTED"
+    },
+    {
+      "gate_id": "S1-INDEPENDENT-REVIEW",
+      "status": "BLOCKED",
+      "block_reason": "NOT_YET_INDEPENDENTLY_REVIEWED"
+    }
+  ],
+  "runtime_data_safety": {
+    "source_002_raw_read": false,
+    "source_002_row_level_read": false,
+    "test_data_access": false,
+    "external_holdout_access": false,
+    "train_rowset_materialized": false,
+    "validation_rowset_materialized": false,
+    "test_rowset_materialized": false,
+    "test_custody_record_accepted": false,
+    "test_custody_acceptance_authorized": false,
+    "production_code_changed": false,
+    "test_code_changed": false,
+    "database_schema_changed": false,
+    "migration_created": false,
+    "metric_execution_performed": false,
+    "backtest_executed": false,
+    "model_training_executed": false
+  },
+  "downstream_boundaries": {
+    "holdout_feasibility_closeout_performed": false,
+    "s1_independent_review_closeout_performed": false,
+    "final_v0_3_s1_acceptance_performed": false,
+    "v0_3_s2_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "authorization_boundary": {
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "holdout_feasibility_decision_authorized": false,
+    "final_s1_independent_review_authorized": false,
+    "test_custody_acceptance_authorized": false,
+    "test_data_access_authorized": false,
+    "next_gate_authorized": false
+  },
+  "changed_files": [
+    "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+    "docs/v0-3/s1/s1-acceptance-package.md",
+    "docs/v0-3/s1/evidence/s1-split-policy-canonical-acceptance-closeout.json",
+    "docs/v0-3/s1/workpapers/s1-split-policy-canonical-acceptance-closeout.md"
+  ],
+  "validation": {
+    "json_syntax": "PASS",
+    "s1_acceptance_record_schema_validation": "PASS",
+    "canonical_gate_count": 17,
+    "unique_gate_id_count": 17,
+    "missing_gate_count": 0,
+    "duplicate_gate_count": 0,
+    "pass_count": 15,
+    "blocked_count": 2,
+    "target_gate_status_mutation_count": 1,
+    "target_gate_block_reason_mutation_count": 1,
+    "other_gate_status_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 0,
+    "root_acceptance_status": "BLOCKED",
+    "acceptance_record_package_parity": "PASS",
+    "closeout_json_markdown_parity": "PASS",
+    "global_reconciliation_artifacts_unchanged": true,
+    "source_formalization_artifacts_unchanged": true,
+    "test_custody_acceptance": false,
+    "git_diff_check": "PASS"
+  },
+  "split_policy_canonical_closeout_performed": true,
+  "independent_closeout_review_performed": false,
+  "ready_performed": false,
+  "merge_performed": false,
+  "v0_3_s1_accepted": false,
+  "v0_3_s2_authorized": false,
+  "no_step_implies_the_next": true
+}
