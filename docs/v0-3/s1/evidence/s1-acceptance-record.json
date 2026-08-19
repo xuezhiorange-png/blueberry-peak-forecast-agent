@@ -219,18 +219,18 @@
       "required_or_conditional": "required",
       "owner_role": "model_validation_owner_role",
       "authoritative_artifact": "S1 metric contract and S3 binding",
-      "artifact_identity": "METRIC_CONTRACT_REQUIRED",
-      "artifact_hash_or_status": "BLOCKED_NO_ACCEPTED_SOURCE",
-      "metric_contract_version": "PENDING_S1_METRIC_CONTRACT_FREEZE",
+      "artifact_identity": "v0-3-s1-metric-contract-owner-decision-binding-v1",
+      "artifact_hash_or_status": "GIT_BLOB_SHA:bbc689a8ef9892ec9658642528d4fa3c24c8562c",
+      "metric_contract_version": "v0.3-metric-contract-v1",
       "acceptance_threshold_source": "S3 contract",
       "acceptance_threshold": "ALL_CANONICAL_METRIC_IDS_AND_STATES_BOUND",
       "allowed_not_applicable_condition": "NEVER",
-      "status": "BLOCKED",
-      "block_reason": "METRIC_CONTRACT_NOT_ACCEPTED",
+      "status": "PASS",
+      "block_reason": "NONE",
       "reviewer_role": "independent S1 reviewer",
-      "reviewer": "PENDING_INDEPENDENT_REVIEW",
-      "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
-      "notes": "Quantile and baseline gates remain fail-closed."
+      "reviewer": "github-review-PRR_kwDOS_gTTs8AAAABKAqTlQ",
+      "reviewed_at": "2026-08-18T22:58:37Z",
+      "notes": "CANONICAL_CLOSEOUT_TASK_ID=S1_METRIC_CONTRACT_CANONICAL_CLOSEOUT_IMPLEMENTATION_R1; AUTHORIZATION_COMMENT_ID=5335567332; OWNER_DECISION_COMMENT_ID=5330399072; OWNER_DECISION=ACCEPT; OWNER_DECISION_SHA256=e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd; BINDING_ARTIFACT_VERSION=v0-3-s1-metric-contract-owner-decision-binding-v1; BINDING_ARTIFACT_GIT_BLOB_SHA=bbc689a8ef9892ec9658642528d4fa3c24c8562c; BINDING_REVIEW_ID=4966749077; BINDING_REVIEW_GRAPHQL_ID=PRR_kwDOS_gTTs8AAAABKAqTlQ; BINDING_REVIEW_RESULT=PASS; BINDING_REVIEWED_HEAD_SHA=93d00ab96a6c71c5bfaa403806a723397ad0e3eb; BINDING_REVIEWED_HEAD_TREE_SHA=31996fe6d031c5202864ecd3cd01c18cfaa15b0e; EXACT_HEAD_CI_RUN_ID=32158726167; EXACT_HEAD_CI_RUN_ATTEMPT=2; EXACT_HEAD_CI_CONCLUSION=success; METRIC_CONTRACT_VERSION=v0.3-metric-contract-v1; METRIC_REGISTRY_COUNT=22. This closeout accepts the frozen metric contract definition only. CURRENT_METRIC_EXECUTION_STATUS=NOT_EXECUTED; CURRENT_METRIC_RESULT_STATUS=NOT_ISSUED; CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false; CURRENT_P50_SEMANTICS_VERIFIED=false; CURRENT_P80_SEMANTICS_VERIFIED=false; CURRENT_P90_SEMANTICS_VERIFIED=false; METRIC_EXECUTION=false; BACKTEST_EXECUTED=false; MODEL_TRAINING_EXECUTED=false; TEST_DATA_ACCESS=false; EXTERNAL_HOLDOUT_ACCESS=false; SOURCE_002_RAW_READ=false; SOURCE_002_ROW_LEVEL_READ=false. This single transition is BLOCKED/METRIC_CONTRACT_NOT_ACCEPTED -> PASS/NONE; TARGET_GATE_STATUS_MUTATION_COUNT=1; TARGET_GATE_BLOCK_REASON_MUTATION_COUNT=1; OTHER_GATE_STATUS_MUTATION_COUNT=0; OTHER_GATE_BLOCK_REASON_MUTATION_COUNT=0. No final S1 acceptance or V0.3-S2 authorization is implied; final S1 independent review remains pending."
     },
     {
       "gate_id": "S1-MINIMUM-COVERAGE",
@@ -333,7 +333,7 @@
     "reviewer": "PENDING_INDEPENDENT_REVIEW",
     "reviewed_at": "PENDING_INDEPENDENT_REVIEW",
     "review_result": "NOT_STARTED",
-    "review_notes": "PR #247 exact-head gate-local evidence review 4951647818 passed the Task-3 formalization package, and PR #252 exact-head gate-local review 4957329568 passed the Missing/Correction/Cancellation formalization and closeout candidate. The separately authorized Revision Winner canonical closeout now records twelve canonical gates PASS and five remain BLOCKED; final S1 independent review remains NOT_STARTED."
+    "review_notes": "PR #247 exact-head gate-local evidence review 4951647818 passed the Task-3 formalization package, PR #252 exact-head gate-local review 4957329568 passed the Missing/Correction/Cancellation formalization and closeout candidate, and the separately authorized Revision Winner canonical closeout records thirteen canonical gates PASS and four remain BLOCKED before this candidate closeout. This separately authorized Metric Contract closeout records fourteen branch-candidate gates PASS and three remain BLOCKED; final S1 independent review remains NOT_STARTED."
   },
   "derived_status": {
     "all_required_gates_pass": false,
