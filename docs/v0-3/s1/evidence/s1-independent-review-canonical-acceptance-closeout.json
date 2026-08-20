@@ -38,6 +38,7 @@
     "final_s1_independent_review_comment_id": 5356254504,
     "final_s1_independent_review_task_id": "V0_3_S1_FINAL_CANONICAL_INDEPENDENT_REVIEW_RERUN_R2",
     "final_s1_independent_review_result": "PASS",
+    "reviewer": "github-issue-comment-5356254504",
     "review_scope": "CURRENT_MAIN",
     "reviewed_current_main_sha": "f07e68387ba7f0b9effb0246a0d2ab3d96e27fa0",
     "reviewed_current_main_tree_sha": "573d472f673e645e267c50e70c45110c0f28b6e6",
@@ -88,7 +89,7 @@
     "artifact_identity": "s1-independent-review-canonical-acceptance-closeout-v1",
     "artifact_hash_definition": "SHA-256 of exact UTF-8 bytes of this JSON file; no self-referential file hash field",
     "evidence_sha256": "08c89f3d93864f75ba3c72d09bb8fc0ed0635dd9d631dd0b8d742e6363183539",
-    "reviewer": "github-review-4982958876",
+    "reviewer": "github-issue-comment-5356254504",
     "reviewed_at": "2026-08-20T13:02:56Z"
   },
   "mutation_accounting": {
