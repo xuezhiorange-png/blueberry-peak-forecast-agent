@@ -90,8 +90,8 @@ CURRENT_SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=true
 CANONICAL_Q2C_GATE_STATUS=PASS
-CURRENT_CANONICAL_GATE_PASS_COUNT=7
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+CURRENT_CANONICAL_GATE_PASS_COUNT=16
+CURRENT_CANONICAL_GATE_BLOCKED_COUNT=1
 PHYSICAL_MEANING_ATTESTATION_STATUS=ACCEPTED
 PHYSICAL_MEANING_ATTESTATION_VERSION=source-002-physical-meaning-attestation-v1
 PHYSICAL_MEANING_ATTESTATION_HASH=1cacd18aa17797ba229b0198240ef41e753cb9db2763fd7681828e7a77ff3944
@@ -110,17 +110,21 @@ CURRENT_Q2C_BUSINESS_SOURCE_ATTESTATION_VERSION=source-002-q2c-business-source-a
 CURRENT_Q2C_BUSINESS_SOURCE_ATTESTATION_HASH=09a1ccc02036d353ab1fb8cd7a25edcdc0458a736fec510cd1c3711f51137be2
 CURRENT_Q2C_DECISION_VERSION=source-002-q2c-final-decision-v1
 CURRENT_Q2C_DECISION_HASH=c7feccd6791b6e9879f82c034552e53d5cc96922314cffa4d21fe5ee1e5d0e18
-CURRENT_TASK3_FORMALIZATION_STATUS=ISSUED_PENDING_INDEPENDENT_GATE_LOCAL_REVIEW
-CURRENT_CANONICAL_GRAIN_GATE_STATUS=BLOCKED
-CURRENT_INCLUSION_EXCLUSION_GATE_STATUS=BLOCKED
-CURRENT_REVISION_WINNER_GATE_STATUS=BLOCKED
-CURRENT_TASK3_FORMALIZATION_READY_FOR_INDEPENDENT_REVIEW=true
+CURRENT_TASK3_FORMALIZATION_STATUS=CANONICALLY_ACCEPTED
+CURRENT_CANONICAL_GRAIN_GATE_STATUS=PASS
+CURRENT_INCLUSION_EXCLUSION_GATE_STATUS=PASS
+CURRENT_REVISION_WINNER_GATE_STATUS=PASS
+CURRENT_TASK3_FORMALIZATION_READY_FOR_INDEPENDENT_REVIEW=false
 CURRENT_TASK3_FORMALIZATION_BASE_SHA=5e541dabeb66f8c569227ae9c769f2441aba210e
-CURRENT_S1_HOLDOUT_FEASIBILITY_DECISION=NOT_EVALUATED
-PROPOSED_S1_HOLDOUT_FEASIBILITY_DECISION=BLOCKED
-CURRENT_EXTERNAL_HOLDOUT_GATE_STATUS=BLOCKED
-CURRENT_EXTERNAL_HOLDOUT_GATE_BLOCK_REASON=FEASIBILITY_NOT_YET_ACCEPTED
-CURRENT_EXTERNAL_HOLDOUT_NOT_APPLICABLE=false
+CURRENT_S1_HOLDOUT_FEASIBILITY_DECISION=REVIEWED_NOT_FEASIBLE
+CURRENT_S1_HOLDOUT_FEASIBILITY_GATE_STATUS=PASS
+CURRENT_S1_HOLDOUT_FEASIBILITY_GATE_BLOCK_REASON=NONE
+CURRENT_EXTERNAL_HOLDOUT_REQUIRED=false
+CURRENT_EXTERNAL_HOLDOUT_NOT_APPLICABLE=true
+CURRENT_S1_INDEPENDENT_REVIEW_GATE_STATUS=BLOCKED
+CURRENT_S1_INDEPENDENT_REVIEW_GATE_BLOCK_REASON=NOT_YET_INDEPENDENTLY_REVIEWED
+CURRENT_FINAL_S1_INDEPENDENT_REVIEW_ATTEMPT_RESULT=CHANGES_REQUIRED
+CURRENT_FINAL_S1_INDEPENDENT_REVIEW_COMMENT_ID=5348991507
 CURRENT_CROSS_FARM_GENERALIZATION_CLAIM_ALLOWED=false
 CURRENT_V0_3_S2_AUTHORIZED=false
 V0_3_S2_STARTED=false
@@ -132,8 +136,9 @@ quantity basis, marketability boundary, sorting boundary, post-harvest
 boundary, and time/grain. PR #243 exact-head independent review passed and the
 S1-Q2C-TARGET gate is `PASS`. PR #245 independently reviewed and merged the
 Physical Meaning and Unit/Time Basis attestations; PR #246 is the separate
-canonical closeout that records those two gate rows as `PASS/NONE`; the other
-canonical gates remain separate and blocked.
+canonical closeout that records those two gate rows as `PASS/NONE`. Current
+runtime authority is 16 PASS / 1 BLOCKED; only S1-INDEPENDENT-REVIEW remains
+blocked pending a separately authorized final independent review.
 
 The following requirements are future acceptance requirements:
 
@@ -156,31 +161,21 @@ No requirement above authorizes its own implementation. The execution order is
 
 Source Authority and Source Cohort are accepted on current main from the merged
 final Source Owner Attestation and the merged, independently reviewed final
-Source Cohort Manifest. S1 remains blocked because downstream gates still
-require the evidence listed below. This list is a contract of remaining
-evidence, not a claim that any value exists.
+Source Cohort Manifest. All gate-local prerequisites are now accepted on
+current main; S1 remains blocked only because the final independent S1 review
+has not been accepted. This remaining requirement is a contract of required
+review, not a claim that S1 is complete.
 
-- independent gate-local review and closeout for the current canonical-grain
-  evidence;
-- independent gate-local review and closeout for the current inclusion/exclusion
-  evidence, including the already bound unmapped-date applicability;
-- independent gate-local review and closeout for the current IDFL
-  revision/winner disposition, while remaining correction, missing-day, and
-  cancellation acceptance stays separate;
-- visibility prerequisites and mixed-authority reconciliation;
-- custody review/acceptance;
-- time-ordered split and metric-contract evidence;
-- external holdout-feasibility decision; and
-- final independent S1 review.
+- final independent S1 review and canonical acceptance decision.
 
 The source identity, physical event, weighing point, marketability boundary, KG
 unit, and farm-local Asia/Shanghai business-date basis are already governed and
 bound by the accepted Source002/Q2C package and the two accepted attestations
 listed above. Source Authority, Source Cohort, Q2C, Physical Meaning, and
-Unit/Time Basis are accepted only within their own gate-local scopes. The three
-Task-3 target gates have formalized fact evidence but remain BLOCKED pending
-independent review and separate closeout; visibility, custody, split, metrics,
-holdout, and final independent S1 review remain blocked or pending.
+Unit/Time Basis are accepted only within their own gate-local scopes. The
+Task-3 target gates, Visibility, Custody, Split Policy, Metric Contract, and
+Holdout Feasibility are PASS/NONE in the current runtime. Final independent S1
+review remains the sole BLOCKED gate.
 
 No row-level data is requested or read by this package.
 
@@ -216,8 +211,8 @@ POST_PR238_CURRENT_MAIN_REVALIDATION=PASS
 SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=false
 Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=3
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=14
+HISTORICAL_CANONICAL_GATE_PASS_COUNT=3
+HISTORICAL_CANONICAL_GATE_BLOCKED_COUNT=14
 SOURCE_AUTHORITY_INDEPENDENT_REVIEW_ID=4946622009
 SOURCE_AUTHORITY_EXACT_HEAD_CI_RUN_ID=31955752008
 S1_ACCEPTED=false
@@ -246,8 +241,8 @@ SOURCE_COHORT_MANIFEST_HASH=27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b4
 SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=4
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=13
+HISTORICAL_CANONICAL_GATE_PASS_COUNT=4
+HISTORICAL_CANONICAL_GATE_BLOCKED_COUNT=13
 S1_FREEZES_SOURCE_COHORT_IDENTITY=true
 S1_FREEZES_FINAL_CLEAN_ROWSET=false
 S2_OWNS_FINAL_MATERIALIZED_ROWSET=true
@@ -260,33 +255,40 @@ The Source Cohort closeout is gate-local. It freezes the Source Cohort identity
 and manifest only; it does not accept Q2C, canonical grain, inclusion/exclusion,
 visibility, revision, custody, split, holdout, overall S1, or V0.3-S2.
 
-## Current-main Task-3 formalization mirror
+## Historical Task-3 formalization snapshot
 
 ```text
-CURRENT_MAIN_TASK3_FORMALIZATION_BASE_SHA=5e541dabeb66f8c569227ae9c769f2441aba210e
-CURRENT_MAIN_TASK3_FORMALIZATION_STATUS=ISSUED_PENDING_INDEPENDENT_GATE_LOCAL_REVIEW
+HISTORICAL=true
+HISTORICAL_SNAPSHOT_TYPE=PRE_GATE_LOCAL_CLOSEOUT_TASK3_FORMALIZATION
+HISTORICAL_BASE_SHA=5e541dabeb66f8c569227ae9c769f2441aba210e
+HISTORICAL_TASK3_FORMALIZATION_STATUS=ISSUED_PENDING_INDEPENDENT_GATE_LOCAL_REVIEW
 CANONICAL_GRAIN_GATE_EVIDENCE_VERSION=source-002-canonical-grain-mapping-gate-evidence-v1
 INCLUSION_EXCLUSION_GATE_EVIDENCE_VERSION=source-002-inclusion-exclusion-gate-evidence-v1
 REVISION_WINNER_GATE_EVIDENCE_VERSION=source-002-revision-winner-gate-evidence-v1
 CANONICAL_GRAIN_FACT_THRESHOLD_SATISFIED=true
 INCLUSION_EXCLUSION_FACT_THRESHOLD_SATISFIED=true
 REVISION_WINNER_FACT_THRESHOLD_SATISFIED=true
-CANONICAL_GRAIN_GATE_STATUS=BLOCKED
-INCLUSION_EXCLUSION_GATE_STATUS=BLOCKED
-REVISION_WINNER_GATE_STATUS=BLOCKED
-CANONICAL_GRAIN_GATE_ACCEPTED=false
-INCLUSION_EXCLUSION_GATE_ACCEPTED=false
-REVISION_WINNER_GATE_ACCEPTED=false
-CURRENT_CANONICAL_GATE_PASS_COUNT=7
-CURRENT_CANONICAL_GATE_BLOCKED_COUNT=10
+HISTORICAL_CANONICAL_GRAIN_GATE_STATUS=BLOCKED
+HISTORICAL_INCLUSION_EXCLUSION_GATE_STATUS=BLOCKED
+HISTORICAL_REVISION_WINNER_GATE_STATUS=BLOCKED
+HISTORICAL_CANONICAL_GRAIN_GATE_ACCEPTED=false
+HISTORICAL_INCLUSION_EXCLUSION_GATE_ACCEPTED=false
+HISTORICAL_REVISION_WINNER_GATE_ACCEPTED=false
+HISTORICAL_CANONICAL_GATE_PASS_COUNT=7
+HISTORICAL_CANONICAL_GATE_BLOCKED_COUNT=10
 SOURCE_AUTHORITY_ACCEPTED=true
 SOURCE_COHORT_ACCEPTED=true
 Q2C_ACCEPTED=true
-CURRENT_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
+HISTORICAL_V0_3_S1_ACCEPTANCE_STATUS=BLOCKED
 V0_3_S2_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
+HISTORICAL_SNAPSHOT_IS_NOT_CURRENT_RUNTIME_AUTHORITY=true
+CURRENT_RUNTIME_AUTHORITY=docs/v0-3/s1/evidence/s1-acceptance-record.json
+CURRENT_RUNTIME_PASS_COUNT=16
+CURRENT_RUNTIME_BLOCKED_COUNT=1
 ```
 
-The current-main mirror is formalization-only. It does not mutate the
-canonical acceptance record's target statuses or reasons and does not authorize
-any next gate or implementation step.
+This historical snapshot is formalization-only and does not override the
+current runtime authority. It does not mutate the canonical acceptance
+record's target statuses or reasons and does not authorize any next gate or
+implementation step.
