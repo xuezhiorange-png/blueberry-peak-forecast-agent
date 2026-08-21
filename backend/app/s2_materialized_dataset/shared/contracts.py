@@ -15,9 +15,7 @@ from typing import Protocol, runtime_checkable
 # --- Inherited S1 authority (read-only references) --------------------------------
 
 SOURCE_COHORT_ID = "source-002-s1-cohort-v1"
-SOURCE_COHORT_MANIFEST_SHA256 = (
-    "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca"
-)
+SOURCE_COHORT_MANIFEST_SHA256 = "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca"
 TARGET_DECISION = "OBSERVED_FARM_PICK_QUANTITY"
 ACTUAL_LABEL = "actual_harvest_quantity_kg"
 CANONICAL_GRAIN = "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE"

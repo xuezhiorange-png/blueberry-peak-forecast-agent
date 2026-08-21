@@ -5,22 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from backend.app.s2_materialized_dataset.lane_d.canonical import (
-    build_partition_bytes,
-    build_test_synthetic_bytes,
+from backend.app.s2_materialized_dataset.lane_d.identity import (
+    materialized_dataset_identity_sha256,
+    materialized_partition_identity_sha256,
+    partition_row_identities,
 )
-from backend.app.s2_materialized_dataset.lane_d.hashing import content_sha256
-from backend.app.s2_materialized_dataset.lane_d.manifest import build_partition_manifest
-from backend.app.s2_materialized_dataset.lane_d.partitions import FROZEN_PARTITIONS, PartitionSpec
+from backend.app.s2_materialized_dataset.lane_d.materialize import rows_for_partition
+from backend.app.s2_materialized_dataset.lane_d.partitions import FROZEN_PARTITIONS
+from backend.app.s2_materialized_dataset.lane_d.quality import evaluate_quality_gate
+from backend.app.s2_materialized_dataset.lane_d.replay import verify_partition_rebuild_hash_replay
 from backend.app.s2_materialized_dataset.lane_d.schemas import (
     MaterializedDatasetResult,
-    MaterializedPartitionBytes,
     PartitionManifest,
 )
 from backend.app.s2_materialized_dataset.shared.contracts import (
-    SPLIT_POLICY_VERSION,
-    MaterializableRow,
-    PartitionName,
     QualityGateStatus,
     RebuildHashReplayStatus,
     UpstreamBundlePort,
@@ -39,44 +37,6 @@ class MaterializedDatasetBuildError(Exception):
 class BuildTimestamps:
     started_at: datetime
     completed_at: datetime
-
-
-def _rows_for_partition(
-    rows: tuple[MaterializableRow, ...],
-    partition: PartitionSpec,
-) -> tuple[MaterializableRow, ...]:
-    return tuple(
-        row
-        for row in rows
-        if partition.start_date <= row.harvest_business_date <= partition.end_date
-    )
-
-
-def materialize_partition_bytes(
-    *,
-    partition: PartitionSpec,
-    upstream_rows: tuple[MaterializableRow, ...],
-) -> MaterializedPartitionBytes:
-    if partition.name is PartitionName.TEST:
-        content_bytes = build_test_synthetic_bytes(
-            partition_name=partition.name.value,
-            partition_start_date=partition.start_date.isoformat(),
-            partition_end_date=partition.end_date.isoformat(),
-            split_policy_version=SPLIT_POLICY_VERSION,
-        )
-        row_count = 0
-    else:
-        selected = _rows_for_partition(upstream_rows, partition)
-        content_bytes = build_partition_bytes(selected)
-        row_count = len(selected)
-    byte_count = len(content_bytes)
-    return MaterializedPartitionBytes(
-        partition_name=partition.name,
-        content_bytes=content_bytes,
-        row_count=row_count,
-        byte_count=byte_count,
-        content_sha256=content_sha256(content_bytes),
-    )
 
 
 def build_materialized_dataset(
@@ -103,41 +63,73 @@ def build_materialized_dataset(
     upstream_rows = upstream.lane_b.iter_materializable_rows()
 
     partition_manifests: list[PartitionManifest] = []
+    partition_identities: list[str] = []
+    partition_content_hashes: list[str] = []
+
     for partition in FROZEN_PARTITIONS:
-        partition_bytes = materialize_partition_bytes(
+        selected_rows = rows_for_partition(upstream_rows, partition)
+        cleaned_identities, pit_identities = partition_row_identities(selected_rows)
+        partition_identity = materialized_partition_identity_sha256(
+            dataset_id=dataset_id,
+            dataset_version=dataset_version,
+            partition_name=partition.name,
+            partition_start_date=partition.start_date,
+            partition_end_date=partition.end_date,
+            ordered_cleaned_row_identities=cleaned_identities,
+            ordered_pit_visibility_identities=pit_identities,
+        )
+        _partition_bytes, manifest, replay_status = verify_partition_rebuild_hash_replay(
+            dataset_id=dataset_id,
+            dataset_version=dataset_version,
             partition=partition,
             upstream_rows=upstream_rows,
+            upstream=upstream,
+            lineage_complete=True,
+            build_started_at=started,
+            build_completed_at=completed,
+            partition_identity_sha256=partition_identity,
         )
-        partition_manifests.append(
-            build_partition_manifest(
-                dataset_id=dataset_id,
-                dataset_version=dataset_version,
-                partition=partition,
-                upstream=upstream,
-                row_count=partition_bytes.row_count,
-                byte_count=partition_bytes.byte_count,
-                content_hash=partition_bytes.content_sha256,
-                lineage_complete=True,
-                build_started_at=started,
-                build_completed_at=completed,
-                quality_gate_status=QualityGateStatus.ACCEPTED,
-                rebuild_hash_replay_status=RebuildHashReplayStatus.PASS,
+        if replay_status is not RebuildHashReplayStatus.PASS:
+            raise MaterializedDatasetBuildError(
+                f"rebuild_hash_replay_status=FAIL for partition {partition.name.value}"
             )
+        partition_identities.append(partition_identity)
+        partition_content_hashes.append(manifest.content_sha256)
+        partition_manifests.append(manifest)
+
+    dataset_identity = materialized_dataset_identity_sha256(
+        dataset_id=dataset_id,
+        dataset_version=dataset_version,
+        raw_policy_version=upstream.lane_a.raw_policy_version,
+        cleaning_policy_version=upstream.lane_b.cleaning_policy_version,
+        correction_policy_version=upstream.lane_b.correction_policy_version,
+        exclusion_policy_version=upstream.lane_b.exclusion_policy_version,
+        visibility_policy_version=upstream.lane_c.visibility_policy_version,
+        revision_winner_policy_version=upstream.lane_c.revision_winner_policy_version,
+        ordered_partition_identities=tuple(partition_identities),
+        ordered_partition_content_hashes=tuple(partition_content_hashes),
+    )
+
+    provisional = tuple(partition_manifests)
+    quality_status = evaluate_quality_gate(
+        lineage_complete=True,
+        partition_manifests=provisional,
+    )
+    if quality_status is not QualityGateStatus.ACCEPTED:
+        raise MaterializedDatasetBuildError(
+            "quality_gate_status=REJECTED after replay verification"
         )
+
+    final_manifests = tuple(
+        manifest.model_copy(update={"quality_gate_status": quality_status})
+        for manifest in provisional
+    )
 
     return MaterializedDatasetResult(
         dataset_id=dataset_id,
         dataset_version=dataset_version,
+        materialized_dataset_identity_sha256=dataset_identity,
         lineage_complete=True,
-        quality_gate_status=QualityGateStatus.ACCEPTED,
-        partitions=tuple(partition_manifests),
+        quality_gate_status=quality_status,
+        partitions=final_manifests,
     )
-
-
-def rebuild_partition_bytes(
-    *,
-    partition: PartitionSpec,
-    upstream_rows: tuple[MaterializableRow, ...],
-) -> MaterializedPartitionBytes:
-    """Deterministic rebuild helper for hash replay verification."""
-    return materialize_partition_bytes(partition=partition, upstream_rows=upstream_rows)

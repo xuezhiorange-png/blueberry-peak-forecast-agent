@@ -29,4 +29,6 @@ def test_builder_consumes_registered_upstream_bundle() -> None:
         assert manifest.row_count >= 0
         assert manifest.byte_count >= 0
         assert len(manifest.content_sha256) == 64
+        assert len(manifest.partition_identity_sha256) == 64
         assert len(manifest.manifest_sha256) == 64
+    assert len(result.materialized_dataset_identity_sha256) == 64
