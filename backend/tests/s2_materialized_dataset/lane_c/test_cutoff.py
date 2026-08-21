@@ -25,9 +25,7 @@ def test_normalize_forecast_cutoff_at_converts_naive_to_utc() -> None:
 
 
 def test_validate_forecast_cutoff_context_accepts_canonical_context() -> None:
-    context = ForecastCutoffContext(
-        forecast_cutoff_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC)
-    )
+    context = ForecastCutoffContext(forecast_cutoff_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC))
     validated = validate_forecast_cutoff_context(context)
     assert validated.forecast_cutoff_at == context.forecast_cutoff_at
 

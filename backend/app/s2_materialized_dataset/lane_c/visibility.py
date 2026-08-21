@@ -14,10 +14,7 @@ from backend.app.s2_materialized_dataset.lane_c.schemas import (
 
 
 def _timestamps_are_contradictory(timestamps: SourceRowLifecycleTimestamps) -> bool:
-    if (
-        timestamps.source_finalized_at is not None
-        and timestamps.source_cancelled_at is not None
-    ):
+    if timestamps.source_finalized_at is not None and timestamps.source_cancelled_at is not None:
         return True
     if (
         timestamps.source_recorded_at is not None
