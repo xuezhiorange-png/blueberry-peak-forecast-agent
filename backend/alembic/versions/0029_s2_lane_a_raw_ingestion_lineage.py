@@ -159,6 +159,7 @@ def upgrade() -> None:
         sa.Column("validation_policy_version", sa.Text(), nullable=False),
         sa.Column("source_cohort_id", sa.Text(), nullable=False),
         sa.Column("import_request_identity", sa.Text(), nullable=False),
+        sa.Column("source_row_identity_hashes_json", sa.Text(), nullable=False),
         sa.Column("source_row_count", sa.Integer(), nullable=False),
         sa.Column(
             "registered_at",
@@ -219,12 +220,6 @@ def upgrade() -> None:
         sa.Column("source_row_number", sa.Integer(), nullable=True),
         sa.Column("source_column_mapping_snapshot_hash", sa.Text(), nullable=False),
         sa.Column(
-            "winner_selection_blocked",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.false(),
-        ),
-        sa.Column(
             "registered_at",
             sa.DateTime(timezone=True),
             nullable=False,
@@ -264,7 +259,8 @@ def upgrade() -> None:
         ),
         sa.UniqueConstraint(
             "source_row_identity_hash",
-            name="uq_s2_source_row_lineage_identity_hash",
+            "content_sha256",
+            name="uq_s2_source_row_lineage_identity_content",
         ),
     )
 

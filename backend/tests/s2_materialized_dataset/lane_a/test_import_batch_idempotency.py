@@ -8,6 +8,9 @@ from backend.app.s2_materialized_dataset.lane_a.import_batch import (
     build_raw_import_batch_identity,
     register_raw_import_batch,
 )
+from backend.app.s2_materialized_dataset.lane_a.persistence import (
+    fetch_import_batch_by_identity_hash,
+)
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
     ImportBatchIdempotencyConflict,
     ImportBatchRegistrationResult,
@@ -117,6 +120,52 @@ def test_import_batch_identity_orders_source_row_content_hashes(
     )
 
     assert first.raw_import_batch_identity_hash == second.raw_import_batch_identity_hash
+
+
+def test_import_batch_content_sha256_differs_from_identity_hash(
+    synthetic_artifact_bytes: bytes,
+) -> None:
+    artifact = build_raw_source_artifact_identity(
+        artifact_input=_artifact_input(),
+        artifact_bytes=synthetic_artifact_bytes,
+    )
+    row = build_source_row_identity(
+        artifact_identity_hash=artifact.source_artifact_identity_hash,
+        batch_identity_hash="b" * 64,
+        row_input=_row_input(),
+    )
+    identity = build_raw_import_batch_identity(
+        batch_input=_batch_input(),
+        raw_source_artifact_identity_hash=artifact.source_artifact_identity_hash,
+        source_row_identities=(row,),
+    )
+
+    assert identity.content_sha256 != identity.raw_import_batch_identity_hash
+
+
+def test_fetch_import_batch_returns_persisted_source_row_identity_hashes(
+    lane_a_session,
+    synthetic_artifact_bytes: bytes,
+) -> None:
+    artifact = _register_artifact(lane_a_session, synthetic_artifact_bytes)
+    row = build_source_row_identity(
+        artifact_identity_hash=artifact.source_artifact_identity_hash,
+        batch_identity_hash="b" * 64,
+        row_input=_row_input(),
+    )
+    registered = register_raw_import_batch(
+        lane_a_session,
+        batch_input=_batch_input(),
+        raw_source_artifact_identity_hash=artifact.source_artifact_identity_hash,
+        source_row_identities=(row,),
+    )
+    fetched = fetch_import_batch_by_identity_hash(
+        lane_a_session,
+        raw_import_batch_identity_hash=registered.identity.raw_import_batch_identity_hash,
+    )
+
+    assert fetched is not None
+    assert fetched.source_row_identity_hashes == (row.source_row_identity_hash,)
 
 
 def test_register_import_batch_is_idempotent(

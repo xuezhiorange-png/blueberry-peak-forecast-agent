@@ -25,7 +25,6 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SourceRowLineageInput,
     SourceRowRegistration,
     SourceRowRegistrationResult,
-    SourceRowRevisionConflict,
 )
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_raw_source_artifact_identity,
@@ -56,7 +55,6 @@ __all__ = [
     "SourceRowLineageInput",
     "SourceRowRegistration",
     "SourceRowRegistrationResult",
-    "SourceRowRevisionConflict",
     "build_raw_import_batch_identity",
     "build_raw_source_artifact_identity",
     "build_source_row_identity",

@@ -59,6 +59,7 @@ class ImportBatchRegistrationResult(StrEnum):
 class SourceRowRegistrationResult(StrEnum):
     FIRST_SEEN = "FIRST_SEEN"
     EXACT_REPLAY = "EXACT_REPLAY"
+    CONTENT_CONFLICT_CANDIDATE = "CONTENT_CONFLICT_CANDIDATE"
 
 
 class _LaneABaseModel(BaseModel):

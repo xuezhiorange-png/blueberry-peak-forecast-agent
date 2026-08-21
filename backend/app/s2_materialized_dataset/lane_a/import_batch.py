@@ -61,10 +61,7 @@ def build_raw_import_batch_identity(
 ) -> RawImportBatchIdentity:
     ordered_content_hashes, ordered_identity_hashes = _ordered_row_hashes(source_row_identities)
     content_sha256 = compute_raw_import_batch_content_sha256(
-        batch_input=batch_input,
-        raw_source_artifact_identity_hash=raw_source_artifact_identity_hash,
         ordered_row_content_hashes=ordered_content_hashes,
-        ordered_row_identity_hashes=ordered_identity_hashes,
     )
     raw_import_batch_identity_hash = compute_raw_import_batch_identity_hash(
         batch_input=batch_input,

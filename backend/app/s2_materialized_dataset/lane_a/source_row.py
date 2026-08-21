@@ -9,10 +9,10 @@ from backend.app.s2_materialized_dataset.lane_a.hashes import (
     compute_source_row_identity_hash,
 )
 from backend.app.s2_materialized_dataset.lane_a.persistence import (
-    fetch_source_row_by_identity_hash,
-    fetch_source_rows_by_logical_key,
+    derive_winner_selection_blocked,
+    fetch_source_row_by_identity_and_content,
+    fetch_source_rows_by_identity_hash,
     insert_source_row_lineage,
-    mark_logical_record_candidates_blocked,
 )
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
     MissingExternalLogicalRecordIdError,
@@ -20,7 +20,6 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SourceRowLineageInput,
     SourceRowRegistration,
     SourceRowRegistrationResult,
-    SourceRowRevisionConflict,
 )
 
 
@@ -62,6 +61,24 @@ def build_source_row_identity(
     )
 
 
+def _with_derived_blocked_state(
+    session: Session,
+    *,
+    identity: SourceRowIdentity,
+) -> SourceRowIdentity:
+    return identity.model_copy(
+        update={
+            "winner_selection_blocked": derive_winner_selection_blocked(
+                session,
+                raw_source_artifact_identity_hash=identity.raw_source_artifact_identity_hash,
+                source_system=identity.source_system,
+                external_logical_record_id=identity.external_logical_record_id,
+                source_row_identity_hash=identity.source_row_identity_hash,
+            )
+        }
+    )
+
+
 def register_source_row_lineage(
     session: Session,
     *,
@@ -75,56 +92,42 @@ def register_source_row_lineage(
         row_input=row_input,
     )
 
-    existing = fetch_source_row_by_identity_hash(
+    existing = fetch_source_row_by_identity_and_content(
+        session,
+        source_row_identity_hash=identity.source_row_identity_hash,
+        content_sha256=identity.content_sha256,
+    )
+    if existing is not None:
+        return SourceRowRegistration(
+            result=SourceRowRegistrationResult.EXACT_REPLAY,
+            identity=_with_derived_blocked_state(session, identity=existing),
+        )
+
+    conflicting_rows = fetch_source_rows_by_identity_hash(
         session,
         source_row_identity_hash=identity.source_row_identity_hash,
     )
-    if existing is not None:
-        if existing.content_sha256 != identity.content_sha256:
-            raise SourceRowRevisionConflict(
-                "same source row identity with different canonical content"
-            )
-        refreshed = fetch_source_row_by_identity_hash(
+    if conflicting_rows:
+        insert_source_row_lineage(session, identity=identity)
+        persisted = fetch_source_row_by_identity_and_content(
             session,
             source_row_identity_hash=identity.source_row_identity_hash,
+            content_sha256=identity.content_sha256,
         )
-        assert refreshed is not None
+        assert persisted is not None
         return SourceRowRegistration(
-            result=SourceRowRegistrationResult.EXACT_REPLAY,
-            identity=refreshed,
+            result=SourceRowRegistrationResult.CONTENT_CONFLICT_CANDIDATE,
+            identity=_with_derived_blocked_state(session, identity=persisted),
         )
-
-    logical_candidates = fetch_source_rows_by_logical_key(
-        session,
-        raw_source_artifact_identity_hash=artifact_identity_hash,
-        source_system=row_input.source_system,
-        external_logical_record_id=row_input.external_logical_record_id,
-    )
-    if logical_candidates:
-        mark_logical_record_candidates_blocked(
-            session,
-            raw_source_artifact_identity_hash=artifact_identity_hash,
-            source_system=row_input.source_system,
-            external_logical_record_id=row_input.external_logical_record_id,
-        )
-        identity = identity.model_copy(update={"winner_selection_blocked": True})
 
     insert_source_row_lineage(session, identity=identity)
-    if logical_candidates:
-        mark_logical_record_candidates_blocked(
-            session,
-            raw_source_artifact_identity_hash=artifact_identity_hash,
-            source_system=row_input.source_system,
-            external_logical_record_id=row_input.external_logical_record_id,
-        )
-        refreshed = fetch_source_row_by_identity_hash(
-            session,
-            source_row_identity_hash=identity.source_row_identity_hash,
-        )
-        assert refreshed is not None
-        identity = refreshed
-
+    persisted = fetch_source_row_by_identity_and_content(
+        session,
+        source_row_identity_hash=identity.source_row_identity_hash,
+        content_sha256=identity.content_sha256,
+    )
+    assert persisted is not None
     return SourceRowRegistration(
         result=SourceRowRegistrationResult.FIRST_SEEN,
-        identity=identity,
+        identity=_with_derived_blocked_state(session, identity=persisted),
     )
