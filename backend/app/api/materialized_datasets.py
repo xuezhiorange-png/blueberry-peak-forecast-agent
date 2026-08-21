@@ -6,9 +6,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from backend.app.db.session import get_db_session
-from backend.app.s2_materialized_dataset.lane_d.schemas import MaterializedDatasetApiResponse
+from backend.app.s2_materialized_dataset.lane_d.schemas import (
+    MaterializedDatasetApiResponse,
+    MaterializedDatasetResult,
+)
 from backend.app.s2_materialized_dataset.lane_d.service import load_materialized_dataset_result
 from backend.app.s2_materialized_dataset.shared.contracts import (
     MATERIALIZED_DATASET_API_POLICY_VERSION,
@@ -29,7 +33,7 @@ async def get_materialized_dataset_manifest(
     """Return persisted partition manifests and hashes without partition byte payloads."""
     from backend.app.s2_materialized_dataset.lane_d.builder import MaterializedDatasetBuildError
 
-    def _load(sync_session):
+    def _load(sync_session: Session) -> MaterializedDatasetResult:
         return load_materialized_dataset_result(
             sync_session,
             dataset_id=dataset_id,
