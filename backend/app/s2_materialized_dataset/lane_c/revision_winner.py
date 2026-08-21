@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
+from backend.app.s2_materialized_dataset.lane_c.cutoff import validate_forecast_cutoff_context
 from backend.app.s2_materialized_dataset.lane_c.hashes import (
     compute_revision_winner_content_hash,
     ordered_candidate_identity_hashes,
@@ -28,6 +29,16 @@ REVISION_WINNER_ALGORITHM = "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"
 _WINNER_ELIGIBLE_STATUSES = frozenset({"ACTIVE", "FINALIZED"})
 
 
+def _duplicate_revision_ids(candidates: Sequence[RevisionCandidateRecord]) -> bool:
+    seen: set[str] = set()
+    for candidate in candidates:
+        revision_id = candidate.source_row_identity.external_revision_id
+        if revision_id in seen:
+            return True
+        seen.add(revision_id)
+    return False
+
+
 def resolve_revision_winner(
     *,
     logical_record_key: LogicalRecordKey,
@@ -35,12 +46,13 @@ def resolve_revision_winner(
     cutoff_context: ForecastCutoffContext,
     mode: RevisionWinnerMode,
 ) -> RevisionWinnerDecision:
+    validated_context = validate_forecast_cutoff_context(cutoff_context)
     ordered_identities = ordered_candidate_identity_hashes(candidates)
 
     if mode is RevisionWinnerMode.IDFL_LABEL_SIDE:
         return _decision(
             logical_record_key=logical_record_key,
-            cutoff_context=cutoff_context,
+            cutoff_context=validated_context,
             mode=mode,
             revision_winner_required=False,
             winner_manifest_required=False,
@@ -50,16 +62,25 @@ def resolve_revision_winner(
             ordered_candidate_identities=ordered_identities,
         )
 
+    if _duplicate_revision_ids(candidates):
+        return _blocked(
+            logical_record_key=logical_record_key,
+            cutoff_context=validated_context,
+            mode=mode,
+            ordered_candidate_identities=ordered_identities,
+            reason=RevisionWinnerBlockReason.DUPLICATE_REVISION_CANDIDATE_IDENTITY,
+        )
+
     for candidate in candidates:
         visibility = evaluate_pit_visibility(
             source_row_identity=candidate.source_row_identity,
             timestamps=candidate.timestamps,
-            cutoff_context=cutoff_context,
+            cutoff_context=validated_context,
         )
         if visibility.block_reason is PitVisibilityBlockReason.CONTRADICTORY_TIMESTAMPS:
             return _blocked(
                 logical_record_key=logical_record_key,
-                cutoff_context=cutoff_context,
+                cutoff_context=validated_context,
                 mode=mode,
                 ordered_candidate_identities=ordered_identities,
                 reason=RevisionWinnerBlockReason.CONTRADICTORY_EVIDENCE,
@@ -71,23 +92,32 @@ def resolve_revision_winner(
         if evaluate_pit_visibility(
             source_row_identity=candidate.source_row_identity,
             timestamps=candidate.timestamps,
-            cutoff_context=cutoff_context,
+            cutoff_context=validated_context,
         ).eligible
     ]
 
     if not visible_candidates:
         return _blocked(
             logical_record_key=logical_record_key,
-            cutoff_context=cutoff_context,
+            cutoff_context=validated_context,
             mode=mode,
             ordered_candidate_identities=ordered_identities,
             reason=RevisionWinnerBlockReason.NO_VISIBLE_CANDIDATE_AT_CUTOFF,
         )
 
-    visible_by_revision_id = {
-        candidate.source_row_identity.external_revision_id: candidate
-        for candidate in visible_candidates
-    }
+    visible_by_revision_id: dict[str, RevisionCandidateRecord] = {}
+    for candidate in visible_candidates:
+        revision_id = candidate.source_row_identity.external_revision_id
+        if revision_id in visible_by_revision_id:
+            return _blocked(
+                logical_record_key=logical_record_key,
+                cutoff_context=validated_context,
+                mode=mode,
+                ordered_candidate_identities=ordered_identities,
+                reason=RevisionWinnerBlockReason.DUPLICATE_REVISION_CANDIDATE_IDENTITY,
+            )
+        visible_by_revision_id[revision_id] = candidate
+
     visible_successors: dict[str, list[RevisionCandidateRecord]] = defaultdict(list)
     for candidate in visible_candidates:
         predecessor = candidate.supersedes_external_revision_id
@@ -107,7 +137,7 @@ def resolve_revision_winner(
     if len(terminals) != 1:
         return _blocked(
             logical_record_key=logical_record_key,
-            cutoff_context=cutoff_context,
+            cutoff_context=validated_context,
             mode=mode,
             ordered_candidate_identities=ordered_identities,
             reason=RevisionWinnerBlockReason.MULTIPLE_VISIBLE_TERMINALS
@@ -119,7 +149,7 @@ def resolve_revision_winner(
     if terminal.record_status not in _WINNER_ELIGIBLE_STATUSES:
         return _blocked(
             logical_record_key=logical_record_key,
-            cutoff_context=cutoff_context,
+            cutoff_context=validated_context,
             mode=mode,
             ordered_candidate_identities=ordered_identities,
             reason=RevisionWinnerBlockReason.NO_WINNER,
@@ -130,7 +160,7 @@ def resolve_revision_winner(
         if finalized_at is None:
             return _blocked(
                 logical_record_key=logical_record_key,
-                cutoff_context=cutoff_context,
+                cutoff_context=validated_context,
                 mode=mode,
                 ordered_candidate_identities=ordered_identities,
                 reason=RevisionWinnerBlockReason.CONTRADICTORY_EVIDENCE,
@@ -138,7 +168,7 @@ def resolve_revision_winner(
 
     return _decision(
         logical_record_key=logical_record_key,
-        cutoff_context=cutoff_context,
+        cutoff_context=validated_context,
         mode=mode,
         revision_winner_required=True,
         winner_manifest_required=True,
