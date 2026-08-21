@@ -16,16 +16,60 @@ BASE_MAIN_SHA=0a13da0738bb8311d200eaae67404e5d7cd99e70
 BASE_MAIN_TREE_SHA=b64c2f6375c2a7f2d5b1b6e16320ec746d0bb630
 P0_IMPLEMENTATION_PERFORMED=true
 CONTRACT_ONLY=true
+P0_IDENTITY_DOES_NOT_AUTHORIZE_ALLOWLIST_PASS=true
+~~~
+
+The block above is inherited P0 provenance. It records the original
+contract-freeze task. It does not authorize
+`IMPLEMENTATION_ALLOWLIST_READINESS=PASS`.
+
+### Current amendment identity
+
+The following identity is the current-task authority for the allowlist and
+migration-ownership mutation in this document.
+
+~~~text
+AMENDMENT_ID=V0_3_S2_IMPLEMENTATION_ALLOWLIST_AND_MIGRATION_OWNERSHIP_RESOLUTION
+AMENDMENT_VERSION=v0-3-s2-allowlist-migration-ownership-r2
+TASK_ID=V03_S2_IMPLEMENTATION_ALLOWLIST_AND_MIGRATION_OWNERSHIP_RESOLUTION_R2
+TASK_CLASS=CONTRACT_ONLY_ALLOWLIST_AND_MIGRATION_OWNERSHIP_RESOLUTION
+AUTHORIZATION_SCOPE=S2_ALLOWLIST_AND_MIGRATION_OWNERSHIP_RESOLUTION_ONLY
+SOURCE_PR_NUMBER=275
+SOURCE_PR_HEAD_SHA=9f797ef52c7c9328e5827b54cde34397003c8116
+P0_TASK_ID=V03_S2_MATERIALIZED_DATASET_CONTRACT_FREEZE_R1
+P0_AUTHORIZATION_SCOPE=S2_P0_CONTRACT_FREEZE_ONLY
+P0_BASE_MAIN_SHA=0a13da0738bb8311d200eaae67404e5d7cd99e70
+BASE_MAIN_SHA=f89acfad1fe3281ae9c8d8b8c5765eabff7890a9
+BASE_MAIN_TREE_SHA=6ed9fc91eb590b23a5422fa122eb4ff05d8d6b9c
+IMPLEMENTATION_ALLOWLIST_READINESS_PREVIOUS=BLOCKED
+IMPLEMENTATION_ALLOWLIST_READINESS=PASS
+ALLOWLIST_PASS_BOUND_TO_THIS_AMENDMENT=true
+C0_REVIEW_RESULT=CHANGES_REQUIRED
+C0_P0_1=DOCUMENT_IDENTITY_AND_ALLOWLIST_PASS_PROVENANCE
+C0_P0_2=PACKAGE_ROOT_OWNERSHIP_AND_NAMESPACE_MODE
+CONTRACT_ONLY=true
+PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+TEST_CODE_MUTATION_AUTHORIZED=false
+MIGRATION_CREATION_AUTHORIZED=false
+A_IMPLEMENTATION_AUTHORIZED=false
+B_IMPLEMENTATION_AUTHORIZED=false
+C_IMPLEMENTATION_AUTHORIZED=false
+D_IMPLEMENTATION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+V0_3_S3_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 
 This document freezes the shared V0.3-S2 materialized-dataset contract before
 any implementation lane begins. It is a governance contract, not an
 implementation, migration, data-access grant, or acceptance result.
 
-This task creates only this document. It does not implement ingestion,
-cleaning, point-in-time reconstruction, revision selection, materialization,
-partition building, metrics, backtests, model training, or S3. It does not
-change any S1 authority artifact.
+P0 created this document. This amendment mutates only this document, to bind
+the allowlist PASS and package-root ownership to the current task identity.
+It does not implement ingestion, cleaning, point-in-time reconstruction,
+revision selection, materialization, partition building, metrics, backtests,
+model training, or S3. It does not change any S1 authority artifact.
 
 The S2 phase authorization permits separate implementation lanes to prepare
 Draft PRs. It does not authorize any lane implementation in this task, and it
@@ -538,8 +582,13 @@ ALLOWLIST_MODE=FROZEN_EXACT_MAXIMUM_PATHS
 IMPLEMENTATION_FILES_CREATED_BY_THIS_TASK=0
 CURRENT_ARCHITECTURE_FILE_OWNERSHIP_FROZEN=true
 OWNERSHIP_RESOLUTION_QUESTIONS_REMAINING=0
-SHARED_INTEGRATION_SEAM_COUNT=6
+SHARED_INTEGRATION_SEAM_COUNT=7
 MIGRATION_OWNERSHIP_RESOLVED=true
+S2_MATERIALIZED_DATASET_PACKAGE_MODE=PEP420_NAMESPACE
+NAMESPACE_PARENT_INIT_CREATION_ALLOWED=false
+NAMESPACE_SHARED_INIT_CREATION_ALLOWED=false
+ACTUAL_HARVEST_IMPORT_INIT_MERGE_OWNER=LANE_D
+EXPLICIT_PRODUCTION_ALLOWLIST_OVERRIDES_FORBIDDEN_GLOB=true
 ~~~
 
 The current architecture is cross-layer, so ownership is resolved by assigning
@@ -558,9 +607,15 @@ The following ownership decisions are normative:
 - Lane C is the sole owner of actual-harvest label snapshot, PIT, and revision
   winner projections. Existing forecast/backtest consumers are read-only
   adapters unless a later lane authorization names a path.
-- Lane D is the sole owner of the new materialized-dataset package and all
-  shared registration/integration seams.
-- Existing files outside the lists are read-only to all four lanes.
+- Lane D is the sole owner of `lane_d/`, the listed `shared/` modules, and
+  all named shared registration/integration seams. Lane A owns `lane_a/`,
+  Lane B owns `lane_b/`, and Lane C owns `lane_c/`.
+- The parent package `backend/app/s2_materialized_dataset/` is a PEP 420
+  namespace package. No lane may create
+  `backend/app/s2_materialized_dataset/__init__.py` or
+  `backend/app/s2_materialized_dataset/shared/__init__.py`.
+- Existing files outside the lists are read-only to all four lanes, except
+  a named shared seam whose merge owner is Lane D.
 - No production path is assigned to two lanes. A shared path is permitted only
   when listed below as SHARED_INTEGRATION_SEAM with exactly one MERGE_OWNER.
 
@@ -591,6 +646,10 @@ SHARED_INTEGRATION_SEAM_6=backend/app/s2_materialized_dataset/shared/contracts.p
 SHARED_INTEGRATION_SEAM_6_CONSUMERS=A,B,C,D
 SHARED_INTEGRATION_SEAM_6_MERGE_OWNER=LANE_D
 
+SHARED_INTEGRATION_SEAM_7=backend/app/actual_harvest_import/__init__.py
+SHARED_INTEGRATION_SEAM_7_CONSUMERS=A,B
+SHARED_INTEGRATION_SEAM_7_MERGE_OWNER=LANE_D
+
 SHARED_INTEGRATION_SEAM_EDITORS_ONLY=LANE_D
 SHARED_INTEGRATION_SEAM_PARALLEL_EDITING_ALLOWED=false
 ~~~
@@ -614,6 +673,20 @@ READ_ONLY_LEGACY_SURFACE_5=backend/app/models/* EXCEPT backend/app/models/__init
 
 A later authorization may add a legacy adapter only as a new, explicitly
 owned path. It may not silently broaden a lane's allowlist.
+
+The following package-root paths are frozen as not-owned-for-creation.
+A, B, C, and D fail closed if they add either file:
+
+~~~text
+FORBIDDEN_NAMESPACE_INIT_1=backend/app/s2_materialized_dataset/__init__.py
+FORBIDDEN_NAMESPACE_INIT_2=backend/app/s2_materialized_dataset/shared/__init__.py
+~~~
+
+`backend/app/actual_harvest_import/__init__.py` already exists and re-exports
+both Lane A schemas/enums and Lane B validation symbols. It is shared seam 7.
+Lane A and Lane B may import it and may not edit it. Lane D is the sole
+merge owner. An explicit D production-allowlist entry overrides the D
+forbidden glob `backend/app/actual_harvest_import/*`.
 
 ### 7.3 Lane A maximum allowlists
 
@@ -681,6 +754,9 @@ LANE_A_MIGRATION_ALLOWLIST=
 backend/alembic/versions/<lane-a-raw-ingestion-lineage-revision>.py
 
 LANE_A_FORBIDDEN_PATHS=
+backend/app/s2_materialized_dataset/__init__.py
+backend/app/s2_materialized_dataset/shared/__init__.py
+backend/app/actual_harvest_import/__init__.py
 backend/app/actual_harvest_import/validation.py
 backend/app/actual_harvest_import/validation_hashes.py
 backend/app/actual_harvest_import/validation_models.py
@@ -723,6 +799,9 @@ LANE_B_MIGRATION_ALLOWLIST=
 backend/alembic/versions/<lane-b-cleaning-quality-correction-revision>.py
 
 LANE_B_FORBIDDEN_PATHS=
+backend/app/s2_materialized_dataset/__init__.py
+backend/app/s2_materialized_dataset/shared/__init__.py
+backend/app/actual_harvest_import/__init__.py
 backend/app/actual_harvest_import/models.py
 backend/app/actual_harvest_import/persistence.py
 backend/app/actual_harvest_labels/*
@@ -779,6 +858,10 @@ backend/app/residual_model/forecast_cutoff.py
 backend/app/residual_model/visibility.py
 backend/app/rolling_backtest/availability.py
 backend/app/rolling_backtest/resolution.py
+
+LANE_C_FORBIDDEN_PATHS=
+backend/app/s2_materialized_dataset/__init__.py
+backend/app/s2_materialized_dataset/shared/__init__.py
 ~~~
 
 Lane C owns the label snapshot surface and new S2 PIT/revision projections.
@@ -806,6 +889,7 @@ backend/app/models/__init__.py
 backend/app/main.py
 backend/app/api/__init__.py
 backend/app/repositories/__init__.py
+backend/app/actual_harvest_import/__init__.py
 
 LANE_D_TEST_ALLOWLIST=
 backend/tests/s2_materialized_dataset/shared/test_contract_registration.py
@@ -823,11 +907,16 @@ LANE_D_MIGRATION_ALLOWLIST=
 backend/alembic/versions/<lane-d-materialized-dataset-revision>.py
 
 LANE_D_FORBIDDEN_PATHS=
+backend/app/s2_materialized_dataset/__init__.py
+backend/app/s2_materialized_dataset/shared/__init__.py
 backend/app/actual_harvest_import/*
 backend/app/actual_harvest_labels/*
 backend/app/harvest_state/*
 backend/app/residual_model/*
 backend/app/rolling_backtest/*
+
+LANE_D_FORBIDDEN_PATH_EXCEPTIONS=
+backend/app/actual_harvest_import/__init__.py
 ~~~
 
 Lane D is the sole editor of shared registration and integration seams and
@@ -844,13 +933,18 @@ SHARED_INTEGRATION_SEAM_REQUIRES_EXACTLY_ONE_MERGE_OWNER=true
 LEGACY_SURFACE_MUTATION_WITHOUT_EXPLICIT_AUTHORIZATION=false
 ALLOWLIST_PATH_NOT_LISTED_REQUIRES_BLOCK=true
 LANE_PR_MAY_EDIT_ONLY_OWNED_PATHS=true
+S2_MATERIALIZED_DATASET_PACKAGE_MODE=PEP420_NAMESPACE
+NAMESPACE_PARENT_INIT_CREATION_ALLOWED=false
+NAMESPACE_SHARED_INIT_CREATION_ALLOWED=false
+EXPLICIT_PRODUCTION_ALLOWLIST_OVERRIDES_FORBIDDEN_GLOB=true
 ~~~
 
 The current architecture resolution is complete: validation is B-owned,
-actual-harvest label snapshots are C-owned, S2-specific packages are
-lane-owned, and shared registration is D-owned. Existing broad forecast and
-backtest consumers remain read-only. This removes the prior ambiguity without
-changing those consumers.
+actual-harvest label snapshots are C-owned, S2 lane packages are
+lane-owned, shared registration is D-owned, the parent S2 package is a
+PEP 420 namespace, and `actual_harvest_import/__init__.py` is shared seam 7.
+Existing broad forecast and backtest consumers remain read-only. This removes
+the prior ambiguity without changing those consumers.
 
 ## 8. Migration ownership and ordering
 
@@ -1070,7 +1164,11 @@ CONTRACT_REQUIRED_LANES=4
 CONTRACT_REQUIRED_ALLOWLIST_SETS=12
 CONTRACT_REQUIRED_MANIFEST_FIELDS_PRESENT=true
 CONTRACT_REQUIRED_DATA_BOUNDARIES_PRESENT=true
+CONTRACT_REQUIRED_PACKAGE_ROOT_OWNERSHIP_PRESENT=true
 IMPLEMENTATION_ALLOWLIST_READINESS=PASS
+ALLOWLIST_PASS_BOUND_TO_THIS_AMENDMENT=true
+S2_MATERIALIZED_DATASET_PACKAGE_MODE=PEP420_NAMESPACE
+SHARED_INTEGRATION_SEAM_COUNT=7
 ~~~
 
 The contract does not assert that any implementation lane is complete, that a
@@ -1091,7 +1189,8 @@ NEXT_SLICE_STARTED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 
-The only repository mutation for this task is creation of
-docs/v0-3/s2/s2-materialized-dataset-contract.md. S1 acceptance records,
-reconciliation artifacts, source evidence, production code, tests, schemas,
-migrations, workflows, dependencies, and data artifacts remain unchanged.
+P0 created `docs/v0-3/s2/s2-materialized-dataset-contract.md`. This amendment
+mutates only that file, to bind allowlist PASS provenance and package-root
+ownership. S1 acceptance records, reconciliation artifacts, source evidence,
+production code, tests, schemas, migrations, workflows, dependencies, and data
+artifacts remain unchanged.
