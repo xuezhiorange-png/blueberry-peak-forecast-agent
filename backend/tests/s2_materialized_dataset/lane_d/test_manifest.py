@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from backend.app.s2_materialized_dataset.lane_d.identity import (
+from backend.app.s2_materialized_dataset.lane_d.builder import (
+    rows_for_partition,
+    verify_partition_rebuild_hash_replay,
+)
+from backend.app.s2_materialized_dataset.lane_d.hashing import (
     materialized_partition_identity_sha256,
 )
-from backend.app.s2_materialized_dataset.lane_d.materialize import rows_for_partition
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
-from backend.app.s2_materialized_dataset.lane_d.replay import verify_partition_rebuild_hash_replay
 from backend.app.s2_materialized_dataset.shared.contracts import (
     PARTITION_DATE_FIELD,
     PartitionName,
@@ -31,9 +33,7 @@ def test_manifest_contains_required_metrics() -> None:
         partition_name=partition.name,
         partition_start_date=partition.start_date,
         partition_end_date=partition.end_date,
-        ordered_cleaned_row_identities=tuple(
-            row.cleaned_row_identity for row in selected_rows
-        ),
+        ordered_cleaned_row_identities=tuple(row.cleaned_row_identity for row in selected_rows),
         ordered_pit_visibility_identities=tuple(
             row.pit_visibility_identity for row in selected_rows
         ),
