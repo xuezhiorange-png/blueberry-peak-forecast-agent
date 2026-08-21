@@ -12,6 +12,7 @@ from backend.app.api.actual_harvest_imports import router as actual_harvest_impo
 from backend.app.api.harvest_state import router as harvest_state_router
 from backend.app.api.health import router as health_router
 from backend.app.api.master_data import router as master_data_router
+from backend.app.api.materialized_datasets import router as materialized_datasets_router
 from backend.app.api.maturity import router as maturity_router
 from backend.app.api.planning import router as planning_router
 from backend.app.api.production_plans import router as production_plan_router
@@ -188,6 +189,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         tags=["rolling-backtest", "task-012"],
     )
     app.include_router(trial_router, prefix="/api/v1/trial", tags=["trial"])
+    app.include_router(
+        materialized_datasets_router,
+        prefix="/api/v1/materialized-datasets",
+        tags=["materialized-datasets"],
+    )
     return app
 
 

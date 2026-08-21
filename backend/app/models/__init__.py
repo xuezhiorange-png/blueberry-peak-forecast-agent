@@ -184,6 +184,9 @@ __all__ = [
     "RollingBacktestResolvedInput",
     "RollingBacktestRun",
     "RollingBacktestStageEvent",
+    "S2MaterializedDatasetModel",
+    "S2MaterializedMaterializableRowModel",
+    "S2MaterializedPartitionModel",
     "Task9AuthorityLifecycleEvent",
     "Task9CapacityPoolDefinition",
     "Task9CapacityPoolMember",
@@ -206,3 +209,17 @@ __all__ = [
     "WeatherImportRun",
     "WeatherSourceLocation",
 ]
+
+_S2_MODEL_EXPORTS = {
+    "S2MaterializedDatasetModel",
+    "S2MaterializedMaterializableRowModel",
+    "S2MaterializedPartitionModel",
+}
+
+
+def __getattr__(name: str):
+    if name in _S2_MODEL_EXPORTS:
+        from backend.app.s2_materialized_dataset.lane_d import service as lane_d_service
+
+        return getattr(lane_d_service, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

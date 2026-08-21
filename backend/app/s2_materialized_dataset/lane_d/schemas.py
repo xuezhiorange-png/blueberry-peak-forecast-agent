@@ -82,3 +82,79 @@ class MaterializedPartitionBytes(BaseModel):
     row_count: int
     byte_count: int
     content_sha256: str
+
+
+class PartitionManifestApiResponse(BaseModel):
+    """Partition manifest returned by the Lane D API (no byte payload)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    dataset_id: str
+    dataset_version: str
+    partition_name: PartitionName
+    source_cohort_id: str
+    source_cohort_manifest_sha256: str
+    target_decision: str
+    canonical_grain: str
+    partition_date_field: Literal["HARVEST_BUSINESS_DATE"]
+    partition_start_date: date
+    partition_end_date: date
+    raw_policy_version: str
+    cleaning_policy_version: str
+    correction_policy_version: str
+    exclusion_policy_version: str
+    visibility_policy_version: str
+    revision_winner_policy_version: str
+    split_policy_version: str
+    builder_version: str
+    dataset_schema_version: str
+    manifest_schema_version: str
+    materialized_partition_schema_version: str
+    row_count: int = Field(ge=0)
+    byte_count: int = Field(ge=0)
+    content_sha256: str
+    partition_identity_sha256: str
+    manifest_sha256: str
+    build_started_at: datetime
+    build_completed_at: datetime
+    lineage_complete: bool
+    quality_gate_status: QualityGateStatus
+    rebuild_hash_replay_status: RebuildHashReplayStatus
+
+    @classmethod
+    def from_manifest(cls, manifest: PartitionManifest) -> PartitionManifestApiResponse:
+        return cls.model_validate(manifest.model_dump(mode="python"))
+
+
+class MaterializedDatasetApiResponse(BaseModel):
+    """Dataset-level manifest response without TEST/TRAIN/VALIDATION byte payloads."""
+
+    model_config = ConfigDict(frozen=True)
+
+    dataset_id: str
+    dataset_version: str
+    materialized_dataset_identity_sha256: str
+    lineage_complete: bool
+    quality_gate_status: QualityGateStatus
+    partitions: tuple[PartitionManifestApiResponse, ...]
+    provenance: dict[str, str]
+
+    @classmethod
+    def from_result(
+        cls,
+        result: MaterializedDatasetResult,
+        *,
+        api_policy_version: str,
+    ) -> MaterializedDatasetApiResponse:
+        return cls(
+            dataset_id=result.dataset_id,
+            dataset_version=result.dataset_version,
+            materialized_dataset_identity_sha256=result.materialized_dataset_identity_sha256,
+            lineage_complete=result.lineage_complete,
+            quality_gate_status=result.quality_gate_status,
+            partitions=tuple(
+                PartitionManifestApiResponse.from_manifest(manifest)
+                for manifest in result.partitions
+            ),
+            provenance={"api_policy_version": api_policy_version},
+        )
