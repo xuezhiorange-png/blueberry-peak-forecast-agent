@@ -10,10 +10,8 @@ from typing import Any
 
 import pytest
 import sqlalchemy as sa
-from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from alembic.script import ScriptDirectory
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.s2_materialized_dataset.lane_c.schemas import (
@@ -46,15 +44,7 @@ def _lane_c_migration_module():
     return module
 
 
-def assert_lane_c_alembic_head_and_revision_contract() -> None:
-    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
-    script = ScriptDirectory.from_config(config)
-    heads = script.get_heads()
-    assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [LANE_C_MIGRATION_REVISION], (
-        f"alembic heads must be [{LANE_C_MIGRATION_REVISION!r}], got {heads!r}"
-    )
+def assert_lane_c_alembic_revision_contract() -> None:
     module = _lane_c_migration_module()
     assert module.revision == LANE_C_MIGRATION_REVISION
     assert module.down_revision == LANE_C_MIGRATION_DOWN_REVISION

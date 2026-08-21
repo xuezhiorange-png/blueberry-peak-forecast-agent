@@ -28,6 +28,7 @@ MANIFEST_SCHEMA_VERSION = "v0-3-s2-materialized-dataset-manifest-v1"
 MATERIALIZED_PARTITION_SCHEMA_VERSION = "v0-3-s2-materialized-partition-v1"
 
 SOURCE_002_ROW_LEVEL_READ = False
+MATERIALIZED_DATASET_API_POLICY_VERSION = "v0-3-s2-lane-d-api-r1"
 
 
 class PartitionName(StrEnum):

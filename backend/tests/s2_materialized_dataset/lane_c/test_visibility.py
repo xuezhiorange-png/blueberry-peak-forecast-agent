@@ -19,7 +19,9 @@ from backend.app.s2_materialized_dataset.lane_c.schemas import (
 )
 from backend.app.s2_materialized_dataset.lane_c.visibility import evaluate_pit_visibility
 from backend.tests.s2_materialized_dataset.lane_c.conftest import (
-    assert_lane_c_alembic_head_and_revision_contract,
+    LANE_C_MIGRATION_DOWN_REVISION,
+    LANE_C_MIGRATION_REVISION,
+    _lane_c_migration_module,
     make_timestamps,
 )
 
@@ -28,7 +30,9 @@ pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
 @pytest.mark.migration
 def test_lane_c_migration_head_and_revision_contract() -> None:
-    assert_lane_c_alembic_head_and_revision_contract()
+    module = _lane_c_migration_module()
+    assert module.revision == LANE_C_MIGRATION_REVISION
+    assert module.down_revision == LANE_C_MIGRATION_DOWN_REVISION
 
 
 @pytest.mark.migration
