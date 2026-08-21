@@ -43,9 +43,7 @@ async def test_historical_backtest_migration_round_trip_preserves_legacy_rows() 
     )
     conn = await asyncpg.connect(url)
     try:
-        assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-            "0029_s2_lane_a_raw_ingestion_lineage"
-        )
+        assert await conn.fetchval("SELECT version_num FROM alembic_version") == ("2af278a20e2a")
         table_names = {
             row["tablename"]
             for row in await conn.fetch(
@@ -160,9 +158,7 @@ async def test_historical_backtest_migration_round_trip_preserves_legacy_rows() 
 
     conn = await asyncpg.connect(url)
     try:
-        assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-            "0029_s2_lane_a_raw_ingestion_lineage"
-        )
+        assert await conn.fetchval("SELECT version_num FROM alembic_version") == ("2af278a20e2a")
         preserved = await conn.fetchrow(
             """
             SELECT s2_contract_version, s2_node_count, backtest_request_hash
