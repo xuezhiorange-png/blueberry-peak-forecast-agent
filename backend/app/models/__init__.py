@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from backend.app.actual_harvest_import.commit_models import (
     ActualHarvestCommitManifestModel,
 )
@@ -217,7 +221,7 @@ _S2_MODEL_EXPORTS = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name in _S2_MODEL_EXPORTS:
         from backend.app.s2_materialized_dataset.lane_d import service as lane_d_service
 

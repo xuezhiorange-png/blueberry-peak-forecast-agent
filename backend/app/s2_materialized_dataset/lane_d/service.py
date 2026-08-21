@@ -25,9 +25,16 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from backend.app.db.base import Base
+from backend.app.s2_materialized_dataset.lane_d.builder import (
+    BuildTimestamps,
+    MaterializedDatasetBuildError,
+    build_materialized_dataset,
+    materialize_partition_bytes,
+)
 from backend.app.s2_materialized_dataset.lane_d.manifest import (
     recompute_manifest_sha256_from_published,
 )
+from backend.app.s2_materialized_dataset.lane_d.partitions import FROZEN_PARTITIONS
 from backend.app.s2_materialized_dataset.lane_d.schemas import (
     MaterializedDatasetResult,
     PartitionManifest,
@@ -50,24 +57,6 @@ class MaterializedDatasetConflictError(Exception):
 
 class MaterializedDatasetStorageRebuildError(Exception):
     """Raised when storage-backed rebuild does not match persisted hashes."""
-
-
-def _builder_imports():
-    from backend.app.s2_materialized_dataset.lane_d.builder import (
-        BuildTimestamps,
-        MaterializedDatasetBuildError,
-        build_materialized_dataset,
-        materialize_partition_bytes,
-    )
-    from backend.app.s2_materialized_dataset.lane_d.partitions import FROZEN_PARTITIONS
-
-    return (
-        BuildTimestamps,
-        MaterializedDatasetBuildError,
-        build_materialized_dataset,
-        materialize_partition_bytes,
-        FROZEN_PARTITIONS,
-    )
 
 
 def _sqlite_bigint() -> Any:
@@ -306,8 +295,7 @@ def load_upstream_bundle_from_storage(
     *,
     dataset_id: str,
     dataset_version: str,
-) -> tuple[S2MaterializedDatasetModel, StoredUpstreamBundle, Any]:
-    _BuildTimestamps, MaterializedDatasetBuildError, *_rest = _builder_imports()
+) -> tuple[S2MaterializedDatasetModel, StoredUpstreamBundle, BuildTimestamps]:
     dataset = session.scalar(
         select(S2MaterializedDatasetModel).where(
             S2MaterializedDatasetModel.dataset_id == dataset_id,
@@ -356,7 +344,7 @@ def load_upstream_bundle_from_storage(
             revision_winner_policy_version=dataset.revision_winner_policy_version,
         ),
     )
-    timestamps = _BuildTimestamps(
+    timestamps = BuildTimestamps(
         started_at=dataset.build_started_at,
         completed_at=dataset.build_completed_at,
     )
@@ -410,7 +398,6 @@ def load_materialized_dataset_result(
     dataset_id: str,
     dataset_version: str,
 ) -> MaterializedDatasetResult:
-    _BuildTimestamps, MaterializedDatasetBuildError, *_rest = _builder_imports()
     dataset_row = session.scalar(
         select(S2MaterializedDatasetModel).where(
             S2MaterializedDatasetModel.dataset_id == dataset_id,
@@ -447,9 +434,6 @@ def rebuild_materialized_dataset_from_storage(
     dataset_version: str,
 ) -> MaterializedDatasetResult:
     """Reload versioned upstream inputs from storage and rerun the D1 builder."""
-    _BuildTimestamps, _MaterializedDatasetBuildError, build_materialized_dataset, *_rest = (
-        _builder_imports()
-    )
     _dataset_row, upstream, timestamps = load_upstream_bundle_from_storage(
         session,
         dataset_id=dataset_id,
@@ -512,15 +496,8 @@ def persist_materialized_dataset(
     dataset_id: str,
     dataset_version: str,
     upstream: UpstreamBundlePort,
-    timestamps: Any | None = None,
+    timestamps: BuildTimestamps | None = None,
 ) -> MaterializedDatasetResult:
-    (
-        BuildTimestamps,
-        MaterializedDatasetBuildError,
-        build_materialized_dataset,
-        materialize_partition_bytes,
-        FROZEN_PARTITIONS,
-    ) = _builder_imports()
     built = build_materialized_dataset(
         dataset_id=dataset_id,
         dataset_version=dataset_version,
