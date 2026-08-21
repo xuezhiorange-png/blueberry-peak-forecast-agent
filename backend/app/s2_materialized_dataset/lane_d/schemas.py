@@ -52,6 +52,7 @@ class PartitionManifest(BaseModel):
     row_count: int = Field(ge=0)
     byte_count: int = Field(ge=0)
     content_sha256: str
+    partition_identity_sha256: str
     manifest_sha256: str
 
     build_started_at: datetime
@@ -67,6 +68,7 @@ class MaterializedDatasetResult(BaseModel):
 
     dataset_id: str
     dataset_version: str
+    materialized_dataset_identity_sha256: str
     lineage_complete: bool
     quality_gate_status: QualityGateStatus
     partitions: tuple[PartitionManifest, ...]

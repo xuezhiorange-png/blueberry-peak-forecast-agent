@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.app.s2_materialized_dataset.lane_d.builder import materialize_partition_bytes
+from backend.app.s2_materialized_dataset.lane_d.materialize import materialize_partition_bytes
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
 from backend.app.s2_materialized_dataset.shared.contracts import (
     SOURCE_002_ROW_LEVEL_READ,

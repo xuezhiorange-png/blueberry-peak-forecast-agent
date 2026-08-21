@@ -10,13 +10,14 @@ from backend.app.s2_materialized_dataset.lane_d.builder import (
     BuildTimestamps,
     MaterializedDatasetBuildError,
     build_materialized_dataset,
-    materialize_partition_bytes,
 )
+from backend.app.s2_materialized_dataset.lane_d.materialize import materialize_partition_bytes
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
 from backend.app.s2_materialized_dataset.shared.contracts import (
     PARTITION_DATE_FIELD,
     PartitionName,
     QualityGateStatus,
+    RebuildHashReplayStatus,
 )
 from backend.tests.s2_materialized_dataset.lane_d.conftest import (
     FakeLaneA,
@@ -60,6 +61,10 @@ def test_builder_splits_rows_by_harvest_business_date() -> None:
     assert by_name[PartitionName.TEST].row_count == 0
     assert result.lineage_complete is True
     assert result.quality_gate_status is QualityGateStatus.ACCEPTED
+    assert len(result.materialized_dataset_identity_sha256) == 64
+    for manifest in result.partitions:
+        assert manifest.rebuild_hash_replay_status is RebuildHashReplayStatus.PASS
+        assert manifest.partition_identity_sha256 != manifest.content_sha256
 
 
 def test_builder_fail_closed_when_lineage_incomplete() -> None:
