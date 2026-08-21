@@ -37,6 +37,10 @@ MIGRATION_LANE_B_PATH = (
     _ALEMBIC_VERSIONS_DIR / "2af278a20e2a_s2_lane_b_cleaning_quality_correction.py"
 )
 MIGRATION_LANE_B_REVISION = "2af278a20e2a"
+MIGRATION_LANE_C_PATH = (
+    _ALEMBIC_VERSIONS_DIR / "8c6aead9f8e9_s2_lane_c_pit_visibility_revision_winner.py"
+)
+MIGRATION_LANE_C_REVISION = "8c6aead9f8e9"
 
 
 def _migration_module() -> ModuleType:
@@ -79,11 +83,11 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
     # 0022 remains the I7 lineage parent for finalized_at, 0023 remains the
-    # S2 historical binding extension, and Lane B is the current unique head.
+    # S2 historical binding extension, and Lane C is the current unique head.
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_LANE_B_REVISION], (
-        f"alembic heads must be [{MIGRATION_LANE_B_REVISION!r}], got {heads!r}"
+    assert heads == [MIGRATION_LANE_C_REVISION], (
+        f"alembic heads must be [{MIGRATION_LANE_C_REVISION!r}], got {heads!r}"
     )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
@@ -160,6 +164,14 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     spec_lane_b.loader.exec_module(migration_lane_b)
     assert migration_lane_b.revision == MIGRATION_LANE_B_REVISION
     assert migration_lane_b.down_revision == MIGRATION_0029_REVISION
+    spec_lane_c = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_lane_c", MIGRATION_LANE_C_PATH
+    )
+    assert spec_lane_c is not None and spec_lane_c.loader is not None
+    migration_lane_c = importlib.util.module_from_spec(spec_lane_c)
+    spec_lane_c.loader.exec_module(migration_lane_c)
+    assert migration_lane_c.revision == MIGRATION_LANE_C_REVISION
+    assert migration_lane_c.down_revision == MIGRATION_LANE_B_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
