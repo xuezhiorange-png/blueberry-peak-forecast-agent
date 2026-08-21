@@ -86,9 +86,7 @@ def _prepare_rows(request: CleaningBuildRequest) -> tuple[PreparedCleaningRow, .
                 quantity_presence_status=resolve_quantity_presence(source_row),
             )
         )
-    return tuple(
-        sorted(prepared, key=lambda item: item.source_row_identity_hash)
-    )
+    return tuple(sorted(prepared, key=lambda item: item.source_row_identity_hash))
 
 
 def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
@@ -249,9 +247,7 @@ def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
         exclusion_ledger_identity_hashes=(
             entry.exclusion_ledger_entry_identity_hash for entry in exclusion_entries
         ),
-        cleaned_row_content_hashes=(
-            row.cleaned_row_content_hash for row in cleaned_rows_tuple
-        ),
+        cleaned_row_content_hashes=(row.cleaned_row_content_hash for row in cleaned_rows_tuple),
     )
 
     version = CleanedDatasetVersionRecord(

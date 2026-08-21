@@ -58,9 +58,7 @@ def test_duplicate_correction_event_with_different_digest_fails(
         manual_actor_or_authority_reference="auditor-1",
     )
     second = first.model_copy(update={"corrected_value": Decimal("19.000000")})
-    request = cleaning_build_request.model_copy(
-        update={"manual_corrections": (first, second)}
-    )
+    request = cleaning_build_request.model_copy(update={"manual_corrections": (first, second)})
 
     with pytest.raises(CorrectionLedgerConflictError):
         build_cleaned_dataset(request)

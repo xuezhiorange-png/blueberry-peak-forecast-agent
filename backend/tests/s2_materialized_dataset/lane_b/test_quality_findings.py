@@ -22,9 +22,7 @@ def test_missing_quantity_emits_quality_finding(
     cleaning_build_request: CleaningBuildRequest,
     missing_quantity_row: SyntheticSourceRowInput,
 ) -> None:
-    request = cleaning_build_request.model_copy(
-        update={"source_rows": (missing_quantity_row,)}
-    )
+    request = cleaning_build_request.model_copy(update={"source_rows": (missing_quantity_row,)})
     result = build_cleaned_dataset(request)
 
     assert len(result.quality_findings) == 1
@@ -73,9 +71,7 @@ def test_same_finding_identity_with_changed_severity_is_conflict(
     cleaning_build_request: CleaningBuildRequest,
     missing_quantity_row: SyntheticSourceRowInput,
 ) -> None:
-    request = cleaning_build_request.model_copy(
-        update={"source_rows": (missing_quantity_row,)}
-    )
+    request = cleaning_build_request.model_copy(update={"source_rows": (missing_quantity_row,)})
     result = build_cleaned_dataset(request)
     finding = result.quality_findings[0]
 
