@@ -8,7 +8,7 @@ from decimal import Decimal
 from hashlib import sha256
 from typing import Any
 
-from backend.app.rolling_backtest.canonical import canonical_json_dumps
+from backend.app.rolling_backtest.canonical import canonical_json_dumps, canonical_json_value
 
 S2_CANONICAL_SERIALIZATION_PROFILE = "v0-3-s2-materialized-identity-canonical-v1"
 
@@ -44,12 +44,21 @@ def digest(value: object) -> str:
     return sha256(canonical_json_dumps(value).encode("utf-8")).hexdigest()
 
 
+def _canonical_optional_decimal(value: Decimal | None) -> str | None:
+    if value is None:
+        return None
+    encoded = canonical_json_value(value)
+    if not isinstance(encoded, str):
+        raise TypeError("canonical decimal encoding must be a string")
+    return encoded
+
+
 def compute_value_digest(*, field_name: str, value: Decimal | None) -> str:
     return digest(
         {
             "policy_version": VALUE_DIGEST_POLICY_VERSION,
             "field_name": field_name,
-            "value": None if value is None else str(value),
+            "value": _canonical_optional_decimal(value),
         }
     )
 
@@ -304,15 +313,11 @@ def compute_cleaned_row_content_hash(
                 "cleaning_policy_version": cleaning_policy_version,
                 "correction_policy_version": correction_policy_version,
                 "exclusion_policy_version": exclusion_policy_version,
-                "source_actual_harvest_quantity_kg": (
-                    None
-                    if source_actual_harvest_quantity_kg is None
-                    else str(source_actual_harvest_quantity_kg)
+                "source_actual_harvest_quantity_kg": _canonical_optional_decimal(
+                    source_actual_harvest_quantity_kg
                 ),
-                "effective_actual_harvest_quantity_kg": (
-                    None
-                    if effective_actual_harvest_quantity_kg is None
-                    else str(effective_actual_harvest_quantity_kg)
+                "effective_actual_harvest_quantity_kg": _canonical_optional_decimal(
+                    effective_actual_harvest_quantity_kg
                 ),
                 "quantity_presence_status": quantity_presence_status,
                 "is_excluded": is_excluded,

@@ -5,12 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from backend.app.s2_materialized_dataset.lane_b.exclusion_ledger import is_row_excluded
 from backend.app.s2_materialized_dataset.lane_b.hashes import (
     QUALITY_RULE_VERSION,
     compute_quality_finding_identity_hash,
     digest,
 )
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
+    ExclusionLedgerEntryRecord,
     QualityFindingCode,
     QualityFindingRecord,
     QualityFindingSeverity,
@@ -47,6 +49,9 @@ def evaluate_quality_findings(
     quality_policy_version: str,
     quality_schema_version: str,
     prepared_rows: tuple[PreparedCleaningRow, ...],
+    cleaned_row_identity_by_source: dict[str, str],
+    duplicate_groups: dict[str, tuple[str, ...]],
+    exclusion_entries: tuple[ExclusionLedgerEntryRecord, ...],
 ) -> tuple[QualityFindingRecord, ...]:
     findings: list[QualityFindingRecord] = []
 
@@ -74,7 +79,9 @@ def evaluate_quality_findings(
                     quality_finding_identity_hash=identity_hash,
                     cleaned_dataset_version_identity_hash=cleaned_dataset_version_identity_hash,
                     source_row_identity_hash=prepared.source_row_identity_hash,
-                    cleaned_row_identity_hash=None,
+                    cleaned_row_identity_hash=cleaned_row_identity_by_source.get(
+                        prepared.source_row_identity_hash
+                    ),
                     quality_rule_id=MISSING_QUANTITY_RULE_ID,
                     quality_rule_version=QUALITY_RULE_VERSION,
                     observed_field="actual_harvest_quantity_kg",
@@ -86,15 +93,16 @@ def evaluate_quality_findings(
                 )
             )
 
-    grain_to_rows: dict[str, list[str]] = {}
-    for prepared in prepared_rows:
-        grain_key = digest(prepared.canonical_grain_key_payload)
-        grain_to_rows.setdefault(grain_key, []).append(prepared.source_row_identity_hash)
-    for source_row_hashes in grain_to_rows.values():
-        if len(source_row_hashes) <= 1:
-            continue
+    prepared_by_source = {row.source_row_identity_hash: row for row in prepared_rows}
+    for grain_key, source_row_hashes in sorted(duplicate_groups.items()):
         for source_row_identity_hash in sorted(source_row_hashes):
-            normalized = "duplicate_canonical_grain"
+            if not is_row_excluded(
+                source_row_identity_hash=source_row_identity_hash,
+                entries=exclusion_entries,
+            ):
+                continue
+            prepared = prepared_by_source[source_row_identity_hash]
+            normalized = f"duplicate_canonical_grain:{grain_key}"
             identity_hash = compute_quality_finding_identity_hash(
                 cleaned_dataset_version_identity_hash=cleaned_dataset_version_identity_hash,
                 source_row_identity_hash=source_row_identity_hash,
@@ -113,7 +121,9 @@ def evaluate_quality_findings(
                     quality_finding_identity_hash=identity_hash,
                     cleaned_dataset_version_identity_hash=cleaned_dataset_version_identity_hash,
                     source_row_identity_hash=source_row_identity_hash,
-                    cleaned_row_identity_hash=None,
+                    cleaned_row_identity_hash=cleaned_row_identity_by_source.get(
+                        source_row_identity_hash
+                    ),
                     quality_rule_id=DUPLICATE_GRAIN_RULE_ID,
                     quality_rule_version=QUALITY_RULE_VERSION,
                     observed_field="canonical_grain_key",

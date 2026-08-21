@@ -65,10 +65,12 @@ def build_correction_ledger_entries(
             manual_actor_or_authority_reference=correction.manual_actor_or_authority_reference,
         )
         prior = seen_event_ids.get(correction.correction_event_id)
-        if prior is not None and prior != entry:
-            raise CorrectionLedgerConflictError(
-                "duplicate correction event with different before/after digests or reason"
-            )
+        if prior is not None:
+            if prior != entry:
+                raise CorrectionLedgerConflictError(
+                    "duplicate correction event with different before/after digests or reason"
+                )
+            continue
         seen_event_ids[correction.correction_event_id] = entry
         entries.append(entry)
 

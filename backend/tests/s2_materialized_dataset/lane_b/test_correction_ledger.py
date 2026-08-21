@@ -8,6 +8,7 @@ from backend.app.s2_materialized_dataset.lane_b.cleaning import build_cleaned_da
 from backend.app.s2_materialized_dataset.lane_b.correction_ledger import (
     CorrectionLedgerConflictError,
 )
+from backend.app.s2_materialized_dataset.lane_b.hashes import compute_value_digest
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
     CleaningBuildRequest,
     ManualCorrectionRequest,
@@ -15,6 +16,18 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
 from backend.tests.s2_materialized_dataset.lane_b.conftest import make_source_row_identity_hash
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+def test_value_digest_uses_canonical_decimal_encoding() -> None:
+    left = compute_value_digest(field_name="actual_harvest_quantity_kg", value=Decimal("12.5"))
+    right = compute_value_digest(
+        field_name="actual_harvest_quantity_kg", value=Decimal("12.500000")
+    )
+    assert left == right
+    assert left != compute_value_digest(
+        field_name="actual_harvest_quantity_kg",
+        value=Decimal("12.500001"),
+    )
 
 
 def test_correction_ledger_is_append_only_audit_trail(
@@ -62,3 +75,25 @@ def test_duplicate_correction_event_with_different_digest_fails(
 
     with pytest.raises(CorrectionLedgerConflictError):
         build_cleaned_dataset(request)
+
+
+def test_duplicate_correction_event_id_is_deduped_in_memory(
+    cleaning_build_request: CleaningBuildRequest,
+    known_quantity_row,
+) -> None:
+    source_hash = make_source_row_identity_hash(known_quantity_row)
+    correction = ManualCorrectionRequest(
+        correction_event_id="corr-dedup",
+        source_row_identity_hash=source_hash,
+        field_name="actual_harvest_quantity_kg",
+        corrected_value=Decimal("18.000000"),
+        reason="same correction submitted twice",
+        manual_actor_or_authority_reference="auditor-1",
+    )
+    request = cleaning_build_request.model_copy(
+        update={"manual_corrections": (correction, correction)}
+    )
+    result = build_cleaned_dataset(request)
+
+    assert len(result.correction_ledger_entries) == 1
+    assert result.correction_ledger_entries[0].correction_event_id == "corr-dedup"
