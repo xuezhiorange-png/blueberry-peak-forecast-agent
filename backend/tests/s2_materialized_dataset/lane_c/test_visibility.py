@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+import pytest
+
+from backend.app.s2_materialized_dataset.lane_c.schemas import (
+    ForecastCutoffContext,
+    PitVisibilityBlockReason,
+    SourceRowIdentity,
+    SourceRowLifecycleTimestamps,
+)
+from backend.app.s2_materialized_dataset.lane_c.visibility import evaluate_pit_visibility
+from backend.tests.s2_materialized_dataset.lane_c.conftest import make_timestamps
+
+
+def test_eligible_row_requires_source_available_at_on_or_before_cutoff(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(source_available_at=datetime(2026, 2, 28, 12, 0, tzinfo=UTC)),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.eligible is True
+    assert decision.blocked is False
+    assert decision.block_reason is None
+    assert len(decision.content_sha256) == 64
+
+
+def test_future_source_available_at_blocks_row(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(source_available_at=datetime(2026, 2, 28, 12, 0, 1, tzinfo=UTC)),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.eligible is False
+    assert decision.blocked is True
+    assert decision.block_reason == PitVisibilityBlockReason.SOURCE_AVAILABLE_AFTER_CUTOFF
+
+
+def test_missing_source_available_at_blocks_row_without_fabrication(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(source_available_at=None),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.eligible is False
+    assert decision.blocked is True
+    assert decision.block_reason == PitVisibilityBlockReason.SOURCE_AVAILABLE_MISSING
+
+
+def test_unknown_timestamps_remain_explicit_nulls_in_hash_payload(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    timestamps = SourceRowLifecycleTimestamps(
+        source_recorded_at=None,
+        source_available_at=datetime(2026, 2, 27, 9, 0, tzinfo=UTC),
+        source_revised_at=None,
+        source_finalized_at=None,
+        source_cancelled_at=None,
+    )
+    first = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=timestamps,
+        cutoff_context=cutoff_context,
+    )
+    second = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=timestamps,
+        cutoff_context=cutoff_context,
+    )
+
+    assert first.content_sha256 == second.content_sha256
+    assert first.timestamps.source_recorded_at is None
+
+
+def test_contradictory_finalized_and_cancelled_timestamps_block_row(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(
+            source_finalized_at=datetime(2026, 2, 27, 10, 0, tzinfo=UTC),
+            source_cancelled_at=datetime(2026, 2, 27, 11, 0, tzinfo=UTC),
+        ),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.blocked is True
+    assert decision.block_reason == PitVisibilityBlockReason.CONTRADICTORY_TIMESTAMPS
+
+
+@pytest.mark.parametrize(
+    "available_at",
+    [
+        datetime(2026, 2, 28, 11, 59, 59, tzinfo=UTC),
+        datetime(2026, 2, 28, 12, 0, 0, tzinfo=UTC),
+    ],
+)
+def test_source_available_at_equal_or_before_cutoff_is_eligible(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+    available_at: datetime,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(source_available_at=available_at),
+        cutoff_context=cutoff_context,
+    )
+    assert decision.eligible is True
