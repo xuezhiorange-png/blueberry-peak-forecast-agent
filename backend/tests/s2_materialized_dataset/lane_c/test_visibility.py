@@ -103,6 +103,58 @@ def test_contradictory_finalized_and_cancelled_timestamps_block_row(
     assert decision.block_reason == PitVisibilityBlockReason.CONTRADICTORY_TIMESTAMPS
 
 
+def test_cancelled_at_or_before_cutoff_is_not_pit_eligible(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(
+            source_available_at=datetime(2026, 2, 27, 9, 0, tzinfo=UTC),
+            source_cancelled_at=datetime(2026, 2, 28, 10, 0, tzinfo=UTC),
+        ),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.eligible is False
+    assert decision.blocked is True
+    assert decision.block_reason == PitVisibilityBlockReason.SOURCE_CANCELLED
+
+
+def test_source_revised_after_available_is_allowed_for_ordinary_revision(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(
+            source_available_at=datetime(2026, 2, 27, 9, 0, tzinfo=UTC),
+            source_revised_at=datetime(2026, 2, 27, 15, 0, tzinfo=UTC),
+        ),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.eligible is True
+    assert decision.blocked is False
+
+
+def test_naive_timestamp_blocks_without_utc_coercion(
+    synthetic_source_row_identity: SourceRowIdentity,
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(
+            source_available_at=datetime(2026, 2, 27, 9, 0),
+        ),
+        cutoff_context=cutoff_context,
+    )
+
+    assert decision.eligible is False
+    assert decision.blocked is True
+    assert decision.block_reason == PitVisibilityBlockReason.NAIVE_TIMESTAMP
+
+
 @pytest.mark.parametrize(
     "available_at",
     [

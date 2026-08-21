@@ -220,3 +220,38 @@ def test_revision_winner_hash_is_deterministic_for_same_inputs(
     )
 
     assert first.content_sha256 == second.content_sha256
+
+
+def test_duplicate_external_revision_id_fails_closed(
+    cutoff_context: ForecastCutoffContext,
+) -> None:
+    logical = LogicalRecordKey(
+        source_system="synthetic-scan-weight",
+        external_logical_record_id="LR-DUP",
+    )
+    first = make_revision_candidate(
+        logical_record_id="LR-DUP",
+        revision_id="REV-DUP",
+        revision_number=1,
+        identity_hash="9" * 64,
+        timestamps=make_timestamps(),
+    )
+    second = make_revision_candidate(
+        logical_record_id="LR-DUP",
+        revision_id="REV-DUP",
+        revision_number=2,
+        identity_hash="a" * 64,
+        timestamps=make_timestamps(),
+    )
+
+    decision = resolve_revision_winner(
+        logical_record_key=logical,
+        candidates=(first, second),
+        cutoff_context=cutoff_context,
+        mode=RevisionWinnerMode.REPLAY_REVISION_GRAPH,
+    )
+
+    assert decision.blocked is True
+    assert (
+        decision.no_winner_reason == RevisionWinnerBlockReason.DUPLICATE_REVISION_CANDIDATE_IDENTITY
+    )
