@@ -1,17 +1,20 @@
-"""Lane B cleaned-dataset ORM persistence (Draft-only; no Alembic migration)."""
+"""Lane B cleaned-dataset ORM persistence."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     Text,
     UniqueConstraint,
     func,
@@ -119,10 +122,14 @@ class S2CleanedRowModel(Base):
     cleaning_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
     correction_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
     exclusion_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
-    source_actual_harvest_quantity_kg: Mapped[str | None] = mapped_column(Text, nullable=True)
-    effective_actual_harvest_quantity_kg: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_actual_harvest_quantity_kg: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 6), nullable=True
+    )
+    effective_actual_harvest_quantity_kg: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 6), nullable=True
+    )
     quantity_presence_status: Mapped[str] = mapped_column(Text, nullable=False)
-    is_excluded: Mapped[bool] = mapped_column(nullable=False)
+    is_excluded: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
@@ -346,16 +353,8 @@ def persist_cleaning_build_result(
                 cleaning_policy_version=row.cleaning_policy_version,
                 correction_policy_version=row.correction_policy_version,
                 exclusion_policy_version=row.exclusion_policy_version,
-                source_actual_harvest_quantity_kg=(
-                    None
-                    if row.source_actual_harvest_quantity_kg is None
-                    else str(row.source_actual_harvest_quantity_kg)
-                ),
-                effective_actual_harvest_quantity_kg=(
-                    None
-                    if row.effective_actual_harvest_quantity_kg is None
-                    else str(row.effective_actual_harvest_quantity_kg)
-                ),
+                source_actual_harvest_quantity_kg=row.source_actual_harvest_quantity_kg,
+                effective_actual_harvest_quantity_kg=row.effective_actual_harvest_quantity_kg,
                 quantity_presence_status=row.quantity_presence_status.value,
                 is_excluded=row.is_excluded,
             )

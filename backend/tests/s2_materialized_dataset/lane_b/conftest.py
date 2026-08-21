@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import importlib.util
 from collections.abc import Iterator
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
+import sqlalchemy as sa
+from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -44,6 +51,37 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
 MAPPING_REGISTRY_HASH = digest({"registry": "synthetic-lane-b-mapping-v1"})
 ARTIFACT_HASH = "a" * 64
 BATCH_PAYLOAD_HASH = "b" * 64
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
+LANE_B_MIGRATION_PATH = (
+    _BACKEND_ROOT / "alembic" / "versions" / "2af278a20e2a_s2_lane_b_cleaning_quality_correction.py"
+)
+LANE_B_MIGRATION_REVISION = "2af278a20e2a"
+LANE_B_MIGRATION_DOWN_REVISION = "0029_s2_lane_a_raw_ingestion_lineage"
+
+
+def _lane_b_migration_module():
+    spec = importlib.util.spec_from_file_location(
+        "lane_b_migration_0030",
+        LANE_B_MIGRATION_PATH,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def assert_lane_b_alembic_head_and_revision_contract() -> None:
+    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
+    script = ScriptDirectory.from_config(config)
+    heads = script.get_heads()
+    assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
+    assert heads == [LANE_B_MIGRATION_REVISION], (
+        f"alembic heads must be [{LANE_B_MIGRATION_REVISION!r}], got {heads!r}"
+    )
+    module = _lane_b_migration_module()
+    assert module.revision == LANE_B_MIGRATION_REVISION
+    assert module.down_revision == LANE_B_MIGRATION_DOWN_REVISION
 
 
 @pytest.fixture
@@ -162,6 +200,22 @@ def cleaning_build_request(
         exclusion_schema_version=EXCLUSION_SCHEMA_VERSION,
         quality_rule_version="v0-3-s2-quality-rule-v1",
     )
+
+
+@pytest.fixture
+def lane_b_migrated_session() -> Iterator[Session]:
+    module = _lane_b_migration_module()
+    engine = sa.create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        module.op = Operations(MigrationContext.configure(connection))
+        module.upgrade()
+    maker = sessionmaker(bind=engine, expire_on_commit=False)
+    session = maker()
+    try:
+        yield session
+    finally:
+        session.close()
+        engine.dispose()
 
 
 @pytest.fixture
