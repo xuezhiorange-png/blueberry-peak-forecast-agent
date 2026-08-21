@@ -17,11 +17,9 @@ def test_normalize_forecast_cutoff_at_preserves_utc_aware_value() -> None:
     assert normalize_forecast_cutoff_at(value) == value
 
 
-def test_normalize_forecast_cutoff_at_converts_naive_to_utc() -> None:
-    naive = datetime(2026, 2, 28, 12, 0)
-    normalized = normalize_forecast_cutoff_at(naive)
-    assert normalized.tzinfo == UTC
-    assert normalized.hour == 12
+def test_normalize_forecast_cutoff_at_rejects_naive_datetime() -> None:
+    with pytest.raises(ForecastCutoffValidationError, match="timezone-aware"):
+        normalize_forecast_cutoff_at(datetime(2026, 2, 28, 12, 0))
 
 
 def test_validate_forecast_cutoff_context_accepts_canonical_context() -> None:
