@@ -12,6 +12,12 @@ from backend.app.s2_materialized_dataset.lane_b.exclusion_ledger import (
     exclusion_identities_for_row,
     is_row_excluded,
 )
+from backend.app.s2_materialized_dataset.lane_b.grain_conflicts import (
+    CleanedRowConflictError,
+    assert_duplicate_grains_resolved_or_fail,
+    duplicate_grain_groups,
+    should_publish_cleaned_row,
+)
 from backend.app.s2_materialized_dataset.lane_b.hashes import (
     compute_canonical_grain_key_payload,
     compute_cleaned_dataset_version_content_hash,
@@ -34,17 +40,24 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
     CleanedRowRecord,
     CleaningBuildRequest,
     CleaningBuildResult,
+    CorrectionLedgerEntryRecord,
+    ExclusionLedgerEntryRecord,
     QuantityPresenceStatus,
     SyntheticSourceRowInput,
 )
 
+__all__ = [
+    "CleanedDatasetVersionConflictError",
+    "CleanedRowConflictError",
+    "assert_replay_parity",
+    "build_canonical_grain_key",
+    "build_cleaned_dataset",
+    "resolve_quantity_presence",
+]
+
 
 class CleanedDatasetVersionConflictError(ValueError):
     """Raised when the same version identity would carry different content."""
-
-
-class CleanedRowConflictError(ValueError):
-    """Raised when duplicate grain keys or lineage conflicts appear."""
 
 
 def resolve_quantity_presence(source_row: SyntheticSourceRowInput) -> QuantityPresenceStatus:
@@ -89,6 +102,90 @@ def _prepare_rows(request: CleaningBuildRequest) -> tuple[PreparedCleaningRow, .
     return tuple(sorted(prepared, key=lambda item: item.source_row_identity_hash))
 
 
+def _grain_key_text(grain: CanonicalGrainKey) -> str:
+    return grain.canonical_grain_key
+
+
+def _build_cleaned_row_record(
+    *,
+    prepared: PreparedCleaningRow,
+    request: CleaningBuildRequest,
+    version_identity_hash: str,
+    exclusion_entries: tuple[ExclusionLedgerEntryRecord, ...],
+    correction_entries: tuple[CorrectionLedgerEntryRecord, ...],
+    quality_finding_hashes: tuple[str, ...],
+) -> CleanedRowRecord:
+    grain = build_canonical_grain_key(prepared.source_row)
+    excluded = is_row_excluded(
+        source_row_identity_hash=prepared.source_row_identity_hash,
+        entries=exclusion_entries,
+    )
+    source_quantity = prepared.source_row.actual_harvest_quantity_kg
+    effective_quantity = effective_quantity_after_corrections(
+        source_row_identity_hash=prepared.source_row_identity_hash,
+        source_quantity=source_quantity,
+        manual_corrections=request.manual_corrections,
+    )
+    if excluded:
+        effective_quantity = None
+
+    correction_hashes = correction_identities_for_row(
+        correction_entries,
+        source_row_identity_hash=prepared.source_row_identity_hash,
+    )
+    exclusion_hashes = exclusion_identities_for_row(
+        exclusion_entries,
+        source_row_identity_hash=prepared.source_row_identity_hash,
+    )
+
+    content_hash = compute_cleaned_row_content_hash(
+        source_row_identity_hash=prepared.source_row_identity_hash,
+        canonical_grain_key=prepared.canonical_grain_key_payload,
+        cleaning_projection_version=request.cleaning_projection_version,
+        cleaned_row_schema_version=request.cleaned_schema_version,
+        cleaning_policy_version=request.cleaning_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        source_actual_harvest_quantity_kg=source_quantity,
+        effective_actual_harvest_quantity_kg=effective_quantity,
+        quantity_presence_status=prepared.quantity_presence_status.value,
+        is_excluded=excluded,
+        quality_finding_identity_hashes=quality_finding_hashes,
+        correction_ledger_entry_identity_hashes=correction_hashes,
+        exclusion_ledger_entry_identity_hashes=exclusion_hashes,
+    )
+    row_identity_hash = compute_cleaned_row_identity_hash(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        source_row_identity_hash=prepared.source_row_identity_hash,
+        canonical_grain_key=prepared.canonical_grain_key_payload,
+        cleaning_projection_version=request.cleaning_projection_version,
+        cleaned_row_schema_version=request.cleaned_schema_version,
+        cleaning_policy_version=request.cleaning_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        cleaned_row_content_hash=content_hash,
+    )
+    return CleanedRowRecord(
+        cleaned_row_identity_hash=row_identity_hash,
+        cleaned_row_content_hash=content_hash,
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        source_row_identity_hash=prepared.source_row_identity_hash,
+        canonical_grain_key=grain,
+        cleaning_projection_version=request.cleaning_projection_version,
+        cleaned_row_schema_version=request.cleaned_schema_version,
+        cleaning_policy_version=request.cleaning_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        source_actual_harvest_quantity_kg=source_quantity,
+        effective_actual_harvest_quantity_kg=effective_quantity,
+        quantity_presence_status=prepared.quantity_presence_status,
+        is_excluded=excluded,
+        quality_finding_identity_hashes=quality_finding_hashes,
+        correction_ledger_entry_identity_hashes=correction_hashes,
+        exclusion_ledger_entry_identity_hashes=exclusion_hashes,
+    )
+
+
 def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
     artifact_hashes = tuple(
         sorted(
@@ -104,6 +201,7 @@ def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
     )
     prepared_rows = _prepare_rows(request)
     source_row_hashes = tuple(item.source_row_identity_hash for item in prepared_rows)
+    duplicate_groups = duplicate_grain_groups(prepared_rows)
 
     version_identity_hash = compute_cleaned_dataset_version_identity_hash(
         source_cohort_id=request.source_cohort_id,
@@ -134,12 +232,86 @@ def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
         manual_exclusions=request.manual_exclusions,
     )
 
+    assert_duplicate_grains_resolved_or_fail(
+        duplicate_groups=duplicate_groups,
+        exclusion_entries=exclusion_entries,
+    )
+
+    publishable_rows = tuple(
+        prepared
+        for prepared in prepared_rows
+        if should_publish_cleaned_row(
+            source_row_identity_hash=prepared.source_row_identity_hash,
+            grain_key=_grain_key_text(build_canonical_grain_key(prepared.source_row)),
+            duplicate_groups=duplicate_groups,
+            exclusion_entries=exclusion_entries,
+        )
+    )
+
+    draft_rows = tuple(
+        _build_cleaned_row_record(
+            prepared=prepared,
+            request=request,
+            version_identity_hash=version_identity_hash,
+            exclusion_entries=exclusion_entries,
+            correction_entries=correction_entries,
+            quality_finding_hashes=(),
+        )
+        for prepared in publishable_rows
+    )
+    cleaned_row_identity_by_source = {
+        row.source_row_identity_hash: row.cleaned_row_identity_hash for row in draft_rows
+    }
+
     quality_findings = evaluate_quality_findings(
         cleaned_dataset_version_identity_hash=version_identity_hash,
         quality_policy_version=request.quality_policy_version,
         quality_schema_version=request.quality_schema_version,
         prepared_rows=prepared_rows,
+        cleaned_row_identity_by_source=cleaned_row_identity_by_source,
+        duplicate_groups=duplicate_groups,
+        exclusion_entries=exclusion_entries,
     )
+
+    cleaned_rows_tuple = tuple(
+        sorted(
+            (
+                _build_cleaned_row_record(
+                    prepared=prepared,
+                    request=request,
+                    version_identity_hash=version_identity_hash,
+                    exclusion_entries=exclusion_entries,
+                    correction_entries=correction_entries,
+                    quality_finding_hashes=findings_for_source_row(
+                        quality_findings,
+                        source_row_identity_hash=prepared.source_row_identity_hash,
+                    ),
+                )
+                for prepared in publishable_rows
+            ),
+            key=lambda item: item.cleaned_row_identity_hash,
+        )
+    )
+
+    final_cleaned_row_identity_by_source = {
+        row.source_row_identity_hash: row.cleaned_row_identity_hash for row in cleaned_rows_tuple
+    }
+    quality_findings = tuple(
+        sorted(
+            (
+                finding.model_copy(
+                    update={
+                        "cleaned_row_identity_hash": final_cleaned_row_identity_by_source.get(
+                            finding.source_row_identity_hash
+                        )
+                    }
+                )
+                for finding in quality_findings
+            ),
+            key=lambda item: item.quality_finding_identity_hash,
+        )
+    )
+
     quality_report_identity_hash = compute_quality_report_identity_hash(
         cleaned_dataset_version_identity_hash=version_identity_hash,
         quality_policy_version=request.quality_policy_version,
@@ -148,93 +320,6 @@ def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
         ),
     )
 
-    cleaned_rows: list[CleanedRowRecord] = []
-    seen_grain_keys: dict[str, str] = {}
-    for prepared in prepared_rows:
-        grain = build_canonical_grain_key(prepared.source_row)
-        grain_key_text = grain.canonical_grain_key
-        if grain_key_text in seen_grain_keys:
-            continue
-        seen_grain_keys[grain_key_text] = prepared.source_row_identity_hash
-
-        excluded = is_row_excluded(
-            source_row_identity_hash=prepared.source_row_identity_hash,
-            entries=exclusion_entries,
-        )
-        source_quantity = prepared.source_row.actual_harvest_quantity_kg
-        effective_quantity = effective_quantity_after_corrections(
-            source_row_identity_hash=prepared.source_row_identity_hash,
-            source_quantity=source_quantity,
-            manual_corrections=request.manual_corrections,
-        )
-        if excluded:
-            effective_quantity = None
-
-        finding_hashes = findings_for_source_row(
-            quality_findings,
-            source_row_identity_hash=prepared.source_row_identity_hash,
-        )
-        correction_hashes = correction_identities_for_row(
-            correction_entries,
-            source_row_identity_hash=prepared.source_row_identity_hash,
-        )
-        exclusion_hashes = exclusion_identities_for_row(
-            exclusion_entries,
-            source_row_identity_hash=prepared.source_row_identity_hash,
-        )
-
-        content_hash = compute_cleaned_row_content_hash(
-            source_row_identity_hash=prepared.source_row_identity_hash,
-            canonical_grain_key=prepared.canonical_grain_key_payload,
-            cleaning_projection_version=request.cleaning_projection_version,
-            cleaned_row_schema_version=request.cleaned_schema_version,
-            cleaning_policy_version=request.cleaning_policy_version,
-            correction_policy_version=request.correction_policy_version,
-            exclusion_policy_version=request.exclusion_policy_version,
-            source_actual_harvest_quantity_kg=source_quantity,
-            effective_actual_harvest_quantity_kg=effective_quantity,
-            quantity_presence_status=prepared.quantity_presence_status.value,
-            is_excluded=excluded,
-            quality_finding_identity_hashes=finding_hashes,
-            correction_ledger_entry_identity_hashes=correction_hashes,
-            exclusion_ledger_entry_identity_hashes=exclusion_hashes,
-        )
-        row_identity_hash = compute_cleaned_row_identity_hash(
-            cleaned_dataset_version_identity_hash=version_identity_hash,
-            source_row_identity_hash=prepared.source_row_identity_hash,
-            canonical_grain_key=prepared.canonical_grain_key_payload,
-            cleaning_projection_version=request.cleaning_projection_version,
-            cleaned_row_schema_version=request.cleaned_schema_version,
-            cleaning_policy_version=request.cleaning_policy_version,
-            correction_policy_version=request.correction_policy_version,
-            exclusion_policy_version=request.exclusion_policy_version,
-            cleaned_row_content_hash=content_hash,
-        )
-        cleaned_rows.append(
-            CleanedRowRecord(
-                cleaned_row_identity_hash=row_identity_hash,
-                cleaned_row_content_hash=content_hash,
-                cleaned_dataset_version_identity_hash=version_identity_hash,
-                source_row_identity_hash=prepared.source_row_identity_hash,
-                canonical_grain_key=grain,
-                cleaning_projection_version=request.cleaning_projection_version,
-                cleaned_row_schema_version=request.cleaned_schema_version,
-                cleaning_policy_version=request.cleaning_policy_version,
-                correction_policy_version=request.correction_policy_version,
-                exclusion_policy_version=request.exclusion_policy_version,
-                source_actual_harvest_quantity_kg=source_quantity,
-                effective_actual_harvest_quantity_kg=effective_quantity,
-                quantity_presence_status=prepared.quantity_presence_status,
-                is_excluded=excluded,
-                quality_finding_identity_hashes=finding_hashes,
-                correction_ledger_entry_identity_hashes=correction_hashes,
-                exclusion_ledger_entry_identity_hashes=exclusion_hashes,
-            )
-        )
-
-    cleaned_rows_tuple = tuple(
-        sorted(cleaned_rows, key=lambda item: item.cleaned_row_identity_hash)
-    )
     content_hash = compute_cleaned_dataset_version_content_hash(
         cleaned_dataset_version_identity_hash=version_identity_hash,
         raw_source_artifact_identity_hashes=artifact_hashes,
