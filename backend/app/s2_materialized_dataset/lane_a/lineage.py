@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from backend.app.s2_materialized_dataset.lane_a.persistence import (
     fetch_import_batch_by_identity_hash,
     fetch_source_artifact_by_identity_hash,
-    fetch_source_row_by_identity_hash,
+    fetch_source_row_by_identity_and_content,
 )
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
     LaneALineageNotFoundError,
@@ -19,10 +19,12 @@ def query_source_row_lineage_chain(
     session: Session,
     *,
     source_row_identity_hash: str,
+    content_sha256: str,
 ) -> SourceRowLineageChain:
-    source_row = fetch_source_row_by_identity_hash(
+    source_row = fetch_source_row_by_identity_and_content(
         session,
         source_row_identity_hash=source_row_identity_hash,
+        content_sha256=content_sha256,
     )
     if source_row is None:
         raise LaneALineageNotFoundError("source row lineage reference was not found")

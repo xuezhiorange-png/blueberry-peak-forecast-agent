@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import (
     BigInteger,
-    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKeyConstraint,
@@ -20,6 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from backend.app.db.base import Base
+from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
     RawImportBatchIdentity,
     RawSourceArtifactIdentity,
@@ -37,6 +38,17 @@ def _sha256_hex_check(column: str, *, nullable: bool = False) -> str:
         expression = f"replace({expression}, '{character}', '')"
     valid = f"length({column}) = 64 AND lower({column}) = {column} AND length({expression}) = 0"
     return f"{column} IS NULL OR ({valid})" if nullable else valid
+
+
+def _encode_identity_hashes(hashes: tuple[str, ...]) -> str:
+    return canonical_json_dumps(list(hashes))
+
+
+def _decode_identity_hashes(payload: str) -> tuple[str, ...]:
+    decoded = json.loads(payload)
+    if not isinstance(decoded, list) or not all(isinstance(item, str) for item in decoded):
+        raise ValueError("stored source row identity hashes must be a JSON string list")
+    return tuple(decoded)
 
 
 class S2RawSourceArtifactModel(Base):
@@ -103,6 +115,7 @@ class S2RawImportBatchModel(Base):
     validation_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
     source_cohort_id: Mapped[str] = mapped_column(Text, nullable=False)
     import_request_identity: Mapped[str] = mapped_column(Text, nullable=False)
+    source_row_identity_hashes_json: Mapped[str] = mapped_column(Text, nullable=False)
     source_row_count: Mapped[int] = mapped_column(Integer, nullable=False)
     registered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -163,7 +176,6 @@ class S2SourceRowLineageModel(Base):
     source_sheet_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_row_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source_column_mapping_snapshot_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    winner_selection_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     registered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -171,7 +183,8 @@ class S2SourceRowLineageModel(Base):
     __table_args__ = (
         UniqueConstraint(
             "source_row_identity_hash",
-            name="uq_s2_source_row_lineage_identity_hash",
+            "content_sha256",
+            name="uq_s2_source_row_lineage_identity_content",
         ),
         ForeignKeyConstraint(
             ["raw_source_artifact_identity_hash"],
@@ -245,6 +258,9 @@ def _batch_model_from_identity(identity: RawImportBatchIdentity) -> S2RawImportB
         validation_policy_version=identity.validation_policy_version,
         source_cohort_id=identity.source_cohort_id,
         import_request_identity=identity.import_request_identity,
+        source_row_identity_hashes_json=_encode_identity_hashes(
+            identity.source_row_identity_hashes
+        ),
         source_row_count=len(identity.source_row_identity_hashes),
         registered_at=_utc_now(),
     )
@@ -266,7 +282,6 @@ def _row_model_from_identity(identity: SourceRowIdentity) -> S2SourceRowLineageM
         source_sheet_name=identity.source_sheet_name,
         source_row_number=identity.source_row_number,
         source_column_mapping_snapshot_hash=identity.source_column_mapping_snapshot_hash,
-        winner_selection_blocked=identity.winner_selection_blocked,
         registered_at=_utc_now(),
     )
 
@@ -309,12 +324,18 @@ def _batch_from_model(model: S2RawImportBatchModel) -> RawImportBatchIdentity:
             "validation_policy_version": model.validation_policy_version,
             "source_cohort_id": model.source_cohort_id,
             "import_request_identity": model.import_request_identity,
-            "source_row_identity_hashes": tuple(),
+            "source_row_identity_hashes": _decode_identity_hashes(
+                model.source_row_identity_hashes_json
+            ),
         }
     )
 
 
-def _row_from_model(model: S2SourceRowLineageModel) -> SourceRowIdentity:
+def _row_from_model(
+    model: S2SourceRowLineageModel,
+    *,
+    winner_selection_blocked: bool,
+) -> SourceRowIdentity:
     return SourceRowIdentity.model_validate(
         {
             "source_row_identity_hash": model.source_row_identity_hash,
@@ -331,9 +352,41 @@ def _row_from_model(model: S2SourceRowLineageModel) -> SourceRowIdentity:
             "source_sheet_name": model.source_sheet_name,
             "source_row_number": model.source_row_number,
             "source_column_mapping_snapshot_hash": model.source_column_mapping_snapshot_hash,
-            "winner_selection_blocked": model.winner_selection_blocked,
+            "winner_selection_blocked": winner_selection_blocked,
         }
     )
+
+
+def derive_winner_selection_blocked(
+    session: Session,
+    *,
+    raw_source_artifact_identity_hash: str,
+    source_system: str,
+    external_logical_record_id: str,
+    source_row_identity_hash: str,
+) -> bool:
+    identity_models = session.scalars(
+        select(S2SourceRowLineageModel).where(
+            S2SourceRowLineageModel.source_row_identity_hash == source_row_identity_hash
+        )
+    ).all()
+    if len({model.content_sha256 for model in identity_models}) > 1:
+        return True
+
+    logical_models = session.scalars(
+        select(S2SourceRowLineageModel).where(
+            S2SourceRowLineageModel.raw_source_artifact_identity_hash
+            == raw_source_artifact_identity_hash,
+            S2SourceRowLineageModel.source_system == source_system,
+            S2SourceRowLineageModel.external_logical_record_id == external_logical_record_id,
+        )
+    ).all()
+    revision_ids_by_number: dict[int, set[str]] = {}
+    for model in logical_models:
+        revision_ids_by_number.setdefault(model.revision_number, set()).add(
+            model.external_revision_id
+        )
+    return any(len(revision_ids) > 1 for revision_ids in revision_ids_by_number.values())
 
 
 def fetch_source_artifact_by_identity_hash(
@@ -343,8 +396,7 @@ def fetch_source_artifact_by_identity_hash(
 ) -> RawSourceArtifactIdentity | None:
     model = session.scalar(
         select(S2RawSourceArtifactModel).where(
-            S2RawSourceArtifactModel.source_artifact_identity_hash
-            == source_artifact_identity_hash
+            S2RawSourceArtifactModel.source_artifact_identity_hash == source_artifact_identity_hash
         )
     )
     if model is None:
@@ -387,19 +439,55 @@ def fetch_import_batch_by_external_identity(
     return _batch_from_model(model)
 
 
-def fetch_source_row_by_identity_hash(
+def fetch_source_rows_by_identity_hash(
     session: Session,
     *,
     source_row_identity_hash: str,
+) -> tuple[SourceRowIdentity, ...]:
+    models = session.scalars(
+        select(S2SourceRowLineageModel)
+        .where(S2SourceRowLineageModel.source_row_identity_hash == source_row_identity_hash)
+        .order_by(S2SourceRowLineageModel.content_sha256)
+    ).all()
+    return tuple(
+        _row_from_model(
+            model,
+            winner_selection_blocked=derive_winner_selection_blocked(
+                session,
+                raw_source_artifact_identity_hash=model.raw_source_artifact_identity_hash,
+                source_system=model.source_system,
+                external_logical_record_id=model.external_logical_record_id,
+                source_row_identity_hash=model.source_row_identity_hash,
+            ),
+        )
+        for model in models
+    )
+
+
+def fetch_source_row_by_identity_and_content(
+    session: Session,
+    *,
+    source_row_identity_hash: str,
+    content_sha256: str,
 ) -> SourceRowIdentity | None:
     model = session.scalar(
         select(S2SourceRowLineageModel).where(
-            S2SourceRowLineageModel.source_row_identity_hash == source_row_identity_hash
+            S2SourceRowLineageModel.source_row_identity_hash == source_row_identity_hash,
+            S2SourceRowLineageModel.content_sha256 == content_sha256,
         )
     )
     if model is None:
         return None
-    return _row_from_model(model)
+    return _row_from_model(
+        model,
+        winner_selection_blocked=derive_winner_selection_blocked(
+            session,
+            raw_source_artifact_identity_hash=model.raw_source_artifact_identity_hash,
+            source_system=model.source_system,
+            external_logical_record_id=model.external_logical_record_id,
+            source_row_identity_hash=model.source_row_identity_hash,
+        ),
+    )
 
 
 def fetch_source_rows_by_logical_key(
@@ -420,9 +508,22 @@ def fetch_source_rows_by_logical_key(
         .order_by(
             S2SourceRowLineageModel.revision_number,
             S2SourceRowLineageModel.external_revision_id,
+            S2SourceRowLineageModel.content_sha256,
         )
     ).all()
-    return tuple(_row_from_model(model) for model in models)
+    return tuple(
+        _row_from_model(
+            model,
+            winner_selection_blocked=derive_winner_selection_blocked(
+                session,
+                raw_source_artifact_identity_hash=model.raw_source_artifact_identity_hash,
+                source_system=model.source_system,
+                external_logical_record_id=model.external_logical_record_id,
+                source_row_identity_hash=model.source_row_identity_hash,
+            ),
+        )
+        for model in models
+    )
 
 
 def insert_source_artifact(
@@ -453,23 +554,3 @@ def insert_source_row_lineage(
     session.add(_row_model_from_identity(identity))
     session.flush()
     return identity
-
-
-def mark_logical_record_candidates_blocked(
-    session: Session,
-    *,
-    raw_source_artifact_identity_hash: str,
-    source_system: str,
-    external_logical_record_id: str,
-) -> None:
-    models = session.scalars(
-        select(S2SourceRowLineageModel).where(
-            S2SourceRowLineageModel.raw_source_artifact_identity_hash
-            == raw_source_artifact_identity_hash,
-            S2SourceRowLineageModel.source_system == source_system,
-            S2SourceRowLineageModel.external_logical_record_id == external_logical_record_id,
-        )
-    ).all()
-    for model in models:
-        model.winner_selection_blocked = True
-    session.flush()

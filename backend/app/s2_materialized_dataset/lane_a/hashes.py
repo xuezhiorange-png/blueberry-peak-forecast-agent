@@ -17,6 +17,7 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
 S2_CANONICAL_SERIALIZATION_PROFILE = "v0-3-s2-materialized-identity-canonical-v1"
 SOURCE_ARTIFACT_IDENTITY_HASH_POLICY_VERSION = "v0-3-s2-source-artifact-identity-hash-v1"
 RAW_IMPORT_BATCH_IDENTITY_HASH_POLICY_VERSION = "v0-3-s2-raw-import-batch-identity-hash-v1"
+RAW_IMPORT_BATCH_CONTENT_HASH_POLICY_VERSION = "v0-3-s2-raw-import-batch-content-hash-v1"
 SOURCE_ROW_IDENTITY_HASH_POLICY_VERSION = "v0-3-s2-source-row-identity-hash-v1"
 SOURCE_ROW_CONTENT_HASH_POLICY_VERSION = "v0-3-s2-source-row-content-hash-v1"
 
@@ -98,6 +99,9 @@ def source_row_identity_payload(
             "schema_version": row_input.schema_version,
             "source_version": row_input.source_version,
         },
+        "lineage_fields": {
+            "source_column_mapping_snapshot_hash": row_input.source_column_mapping_snapshot_hash,
+        },
     }
 
 
@@ -132,6 +136,29 @@ def ordered_source_row_content_hashes(
     return tuple(
         str(item["content_sha256"])
         for item in sorted(source_row_identities, key=_source_row_sort_key)
+    )
+
+
+def raw_import_batch_content_payload(
+    *,
+    ordered_row_content_hashes: tuple[str, ...],
+) -> dict[str, Any]:
+    return {
+        "canonical_serialization_profile": S2_CANONICAL_SERIALIZATION_PROFILE,
+        "policy_version": RAW_IMPORT_BATCH_CONTENT_HASH_POLICY_VERSION,
+        "identity_kind": "RAW_IMPORT_BATCH_CONTENT",
+        "ordered_source_row_content_hashes": ordered_row_content_hashes,
+    }
+
+
+def compute_raw_import_batch_content_sha256(
+    *,
+    ordered_row_content_hashes: tuple[str, ...],
+) -> str:
+    return _digest(
+        raw_import_batch_content_payload(
+            ordered_row_content_hashes=ordered_row_content_hashes,
+        )
     )
 
 
@@ -183,19 +210,4 @@ def compute_raw_import_batch_identity_hash(
             ordered_row_content_hashes=ordered_row_content_hashes,
             ordered_row_identity_hashes=ordered_row_identity_hashes,
         )
-    )
-
-
-def compute_raw_import_batch_content_sha256(
-    *,
-    batch_input: RawImportBatchIdentityInput,
-    raw_source_artifact_identity_hash: str,
-    ordered_row_content_hashes: tuple[str, ...],
-    ordered_row_identity_hashes: tuple[str, ...],
-) -> str:
-    return compute_raw_import_batch_identity_hash(
-        batch_input=batch_input,
-        raw_source_artifact_identity_hash=raw_source_artifact_identity_hash,
-        ordered_row_content_hashes=ordered_row_content_hashes,
-        ordered_row_identity_hashes=ordered_row_identity_hashes,
     )
