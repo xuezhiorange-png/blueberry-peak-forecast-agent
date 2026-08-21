@@ -12,8 +12,8 @@ class ForecastCutoffValidationError(ValueError):
 
 
 def normalize_forecast_cutoff_at(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ForecastCutoffValidationError("forecast_cutoff_at must be timezone-aware")
     return value.astimezone(UTC)
 
 
