@@ -10,8 +10,10 @@ from backend.app.s2_materialized_dataset.lane_d.builder import (
     BuildTimestamps,
     MaterializedDatasetBuildError,
     build_materialized_dataset,
+    evaluate_quality_gate,
+    materialize_partition_bytes,
 )
-from backend.app.s2_materialized_dataset.lane_d.materialize import materialize_partition_bytes
+from backend.app.s2_materialized_dataset.lane_d.hashing import materialized_dataset_identity_sha256
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
 from backend.app.s2_materialized_dataset.shared.contracts import (
     PARTITION_DATE_FIELD,
@@ -118,3 +120,115 @@ def test_partition_date_field_is_harvest_business_date() -> None:
     )
     for manifest in result.partitions:
         assert manifest.partition_date_field == PARTITION_DATE_FIELD
+
+
+def test_dataset_identity_is_deterministic() -> None:
+    upstream = complete_upstream()
+    timestamps = BuildTimestamps(
+        started_at=datetime(2026, 4, 1, tzinfo=UTC),
+        completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+    )
+    first = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=timestamps,
+    )
+    second = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=timestamps,
+    )
+    assert first.materialized_dataset_identity_sha256 == second.materialized_dataset_identity_sha256
+    assert len(first.materialized_dataset_identity_sha256) == 64
+
+
+def test_dataset_identity_binds_partition_identities_and_content_hashes() -> None:
+    upstream = complete_upstream()
+    result = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=BuildTimestamps(
+            started_at=datetime(2026, 4, 1, tzinfo=UTC),
+            completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+        ),
+    )
+    recomputed = materialized_dataset_identity_sha256(
+        dataset_id=result.dataset_id,
+        dataset_version=result.dataset_version,
+        raw_policy_version=upstream.lane_a.raw_policy_version,
+        cleaning_policy_version=upstream.lane_b.cleaning_policy_version,
+        correction_policy_version=upstream.lane_b.correction_policy_version,
+        exclusion_policy_version=upstream.lane_b.exclusion_policy_version,
+        visibility_policy_version=upstream.lane_c.visibility_policy_version,
+        revision_winner_policy_version=upstream.lane_c.revision_winner_policy_version,
+        ordered_partition_identities=tuple(
+            manifest.partition_identity_sha256 for manifest in result.partitions
+        ),
+        ordered_partition_content_hashes=tuple(
+            manifest.content_sha256 for manifest in result.partitions
+        ),
+    )
+    assert recomputed == result.materialized_dataset_identity_sha256
+
+
+def test_quality_gate_rejects_incomplete_lineage() -> None:
+    upstream = complete_upstream()
+    result = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=BuildTimestamps(
+            started_at=datetime(2026, 4, 1, tzinfo=UTC),
+            completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+        ),
+    )
+    rejected = evaluate_quality_gate(
+        lineage_complete=False,
+        partition_manifests=result.partitions,
+    )
+    assert rejected is QualityGateStatus.REJECTED
+
+
+def test_quality_gate_rejects_failed_replay() -> None:
+    upstream = complete_upstream()
+    result = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=BuildTimestamps(
+            started_at=datetime(2026, 4, 1, tzinfo=UTC),
+            completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+        ),
+    )
+    failed_manifest = result.partitions[0].model_copy(
+        update={"rebuild_hash_replay_status": RebuildHashReplayStatus.FAIL}
+    )
+    partitions = (failed_manifest, *result.partitions[1:])
+    rejected = evaluate_quality_gate(
+        lineage_complete=True,
+        partition_manifests=partitions,
+    )
+    assert rejected is QualityGateStatus.REJECTED
+
+
+def test_builder_quality_gate_is_not_empty_stamp() -> None:
+    upstream = complete_upstream()
+    result = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=BuildTimestamps(
+            started_at=datetime(2026, 4, 1, tzinfo=UTC),
+            completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+        ),
+    )
+    assert (
+        evaluate_quality_gate(
+            lineage_complete=result.lineage_complete,
+            partition_manifests=result.partitions,
+        )
+        is QualityGateStatus.ACCEPTED
+    )

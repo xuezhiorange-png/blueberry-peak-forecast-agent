@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from backend.app.s2_materialized_dataset.lane_d.identity import (
-    materialized_partition_identity_sha256,
-)
-from backend.app.s2_materialized_dataset.lane_d.materialize import (
+from backend.app.s2_materialized_dataset.lane_d.builder import (
     materialize_partition_bytes,
     rebuild_partition_bytes,
     rows_for_partition,
+    verify_partition_rebuild_hash_replay,
+)
+from backend.app.s2_materialized_dataset.lane_d.hashing import (
+    materialized_partition_identity_sha256,
 )
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
-from backend.app.s2_materialized_dataset.lane_d.replay import verify_partition_rebuild_hash_replay
 from backend.app.s2_materialized_dataset.shared.contracts import (
     PartitionName,
     RebuildHashReplayStatus,
@@ -58,9 +58,7 @@ def test_replay_verification_sets_pass_only_after_hash_match() -> None:
         partition_name=partition.name,
         partition_start_date=partition.start_date,
         partition_end_date=partition.end_date,
-        ordered_cleaned_row_identities=tuple(
-            row.cleaned_row_identity for row in selected_rows
-        ),
+        ordered_cleaned_row_identities=tuple(row.cleaned_row_identity for row in selected_rows),
         ordered_pit_visibility_identities=tuple(
             row.pit_visibility_identity for row in selected_rows
         ),
