@@ -293,9 +293,13 @@ def persist_cleaning_build_result(
     session: Session,
     result: CleaningBuildResult,
 ) -> S2CleanedDatasetVersionModel:
-    existing = session.query(S2CleanedDatasetVersionModel).filter_by(
-        cleaned_dataset_version_identity_hash=result.version.cleaned_dataset_version_identity_hash
-    ).one_or_none()
+    existing = (
+        session.query(S2CleanedDatasetVersionModel)
+        .filter_by(
+            cleaned_dataset_version_identity_hash=result.version.cleaned_dataset_version_identity_hash
+        )
+        .one_or_none()
+    )
     if existing is not None:
         if (
             existing.cleaned_dataset_version_content_hash

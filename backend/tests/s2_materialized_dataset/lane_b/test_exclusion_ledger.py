@@ -56,9 +56,7 @@ def test_contradictory_exclusion_entries_for_same_row_fail_closed(
         decision_authority_reference="approver-1",
     )
     second = first.model_copy(update={"exclusion_event_id": "exclude-b"})
-    request = cleaning_build_request.model_copy(
-        update={"manual_exclusions": (first, second)}
-    )
+    request = cleaning_build_request.model_copy(update={"manual_exclusions": (first, second)})
 
     with pytest.raises(ExclusionLedgerConflictError):
         build_cleaned_dataset(request)

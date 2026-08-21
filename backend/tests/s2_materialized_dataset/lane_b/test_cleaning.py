@@ -55,9 +55,7 @@ def test_missing_day_stays_unknown_not_zero(
     cleaning_build_request: CleaningBuildRequest,
     missing_quantity_row: SyntheticSourceRowInput,
 ) -> None:
-    request = cleaning_build_request.model_copy(
-        update={"source_rows": (missing_quantity_row,)}
-    )
+    request = cleaning_build_request.model_copy(update={"source_rows": (missing_quantity_row,)})
     result = build_cleaned_dataset(request)
     row = result.cleaned_rows[0]
 
