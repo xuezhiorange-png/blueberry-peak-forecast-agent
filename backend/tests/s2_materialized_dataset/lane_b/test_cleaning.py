@@ -25,7 +25,9 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SyntheticSourceRowInput,
 )
 from backend.tests.s2_materialized_dataset.lane_b.conftest import (
-    assert_lane_b_alembic_head_and_revision_contract,
+    LANE_B_MIGRATION_DOWN_REVISION,
+    LANE_B_MIGRATION_REVISION,
+    _lane_b_migration_module,
     make_source_row,
     make_source_row_identity_hash,
 )
@@ -35,7 +37,9 @@ pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
 @pytest.mark.migration
 def test_lane_b_migration_head_and_revision_contract() -> None:
-    assert_lane_b_alembic_head_and_revision_contract()
+    module = _lane_b_migration_module()
+    assert module.revision == LANE_B_MIGRATION_REVISION
+    assert module.down_revision == LANE_B_MIGRATION_DOWN_REVISION
 
 
 @pytest.mark.migration
