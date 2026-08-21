@@ -5,16 +5,22 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from backend.app.s2_materialized_dataset.lane_d.builder import (
+    BuildTimestamps,
+    build_materialized_dataset,
     rows_for_partition,
     verify_partition_rebuild_hash_replay,
 )
 from backend.app.s2_materialized_dataset.lane_d.hashing import (
     materialized_partition_identity_sha256,
 )
+from backend.app.s2_materialized_dataset.lane_d.manifest import (
+    recompute_manifest_sha256_from_published,
+)
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
 from backend.app.s2_materialized_dataset.shared.contracts import (
     PARTITION_DATE_FIELD,
     PartitionName,
+    QualityGateStatus,
     RebuildHashReplayStatus,
 )
 from backend.tests.s2_materialized_dataset.lane_d.conftest import complete_upstream, make_row
@@ -72,3 +78,21 @@ def test_partition_identity_differs_from_content_hash() -> None:
         ordered_pit_visibility_identities=(row.pit_visibility_identity,),
     )
     assert partition_identity != "abc123"
+
+
+def test_published_manifest_sha256_matches_accepted_quality_gate_digest() -> None:
+    upstream = complete_upstream()
+    result = build_materialized_dataset(
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=BuildTimestamps(
+            started_at=datetime(2026, 4, 1, tzinfo=UTC),
+            completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+        ),
+    )
+    for manifest in result.partitions:
+        assert manifest.quality_gate_status is QualityGateStatus.ACCEPTED
+        assert manifest.rebuild_hash_replay_status is RebuildHashReplayStatus.PASS
+        recomputed = recompute_manifest_sha256_from_published(manifest)
+        assert recomputed == manifest.manifest_sha256
