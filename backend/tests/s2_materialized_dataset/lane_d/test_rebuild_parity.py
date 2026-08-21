@@ -270,3 +270,32 @@ def test_persisted_rows_do_not_coerce_unknown_days_to_zero(lane_d_migrated_sessi
         upstream.lane_b.rows[1].actual_harvest_quantity_kg,
     ]
     assert all(quantity != 0 for quantity in quantities)
+
+
+def test_persisted_partition_bytes_match_stored_hashes(lane_d_migrated_session) -> None:
+    import hashlib
+
+    upstream = complete_upstream()
+    timestamps = BuildTimestamps(
+        started_at=datetime(2026, 4, 1, tzinfo=UTC),
+        completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+    )
+    persist_materialized_dataset(
+        lane_d_migrated_session,
+        dataset_id="materialized-ds-1",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=timestamps,
+    )
+    lane_d_migrated_session.commit()
+    partition_rows = lane_d_migrated_session.scalars(
+        sa.select(S2MaterializedPartitionModel).order_by(
+            S2MaterializedPartitionModel.partition_name
+        )
+    ).all()
+    assert len(partition_rows) == 3
+    for partition_row in partition_rows:
+        assert (
+            hashlib.sha256(partition_row.content_bytes).hexdigest() == partition_row.content_sha256
+        )
+        assert partition_row.byte_count == len(partition_row.content_bytes)

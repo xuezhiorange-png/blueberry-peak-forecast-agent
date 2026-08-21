@@ -606,6 +606,21 @@ def persist_materialized_dataset(
             partition=partition_spec,
             upstream_rows=stored_upstream.lane_b.rows,
         )
+        if partition_bytes.content_sha256 != manifest.content_sha256:
+            raise MaterializedDatasetConflictError(
+                f"partition bytes/hash mismatch for {manifest.partition_name.value}: "
+                "content_sha256 differs from built manifest"
+            )
+        if len(partition_bytes.content_bytes) != manifest.byte_count:
+            raise MaterializedDatasetConflictError(
+                f"partition bytes/hash mismatch for {manifest.partition_name.value}: "
+                "byte_count differs from built manifest"
+            )
+        if partition_bytes.row_count != manifest.row_count:
+            raise MaterializedDatasetConflictError(
+                f"partition bytes/hash mismatch for {manifest.partition_name.value}: "
+                "row_count differs from built manifest"
+            )
         session.add(
             S2MaterializedPartitionModel(
                 materialized_dataset_id=dataset_row.id,

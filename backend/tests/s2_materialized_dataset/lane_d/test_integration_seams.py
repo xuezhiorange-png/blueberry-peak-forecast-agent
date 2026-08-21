@@ -142,8 +142,7 @@ def test_repositories_init_reexports_lane_d_service() -> None:
 def test_main_includes_materialized_datasets_router() -> None:
     schema = create_app().openapi()
     assert (
-        "/api/v1/materialized-datasets/{dataset_id}/versions/{dataset_version}"
-        in schema["paths"]
+        "/api/v1/materialized-datasets/{dataset_id}/versions/{dataset_version}" in schema["paths"]
     )
 
 
