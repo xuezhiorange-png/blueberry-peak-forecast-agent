@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import pytest
+import sqlalchemy as sa
 
 from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     CleanedRowConflictError,
     build_cleaned_dataset,
 )
 from backend.app.s2_materialized_dataset.lane_b.hashes import compute_quality_finding_identity_hash
+from backend.app.s2_materialized_dataset.lane_b.persistence import persist_cleaning_build_result
 from backend.app.s2_materialized_dataset.lane_b.quality import (
     DUPLICATE_GRAIN_RULE_ID,
     MISSING_QUANTITY_RULE_ID,
@@ -135,3 +137,40 @@ def test_same_finding_identity_with_changed_severity_is_conflict(
         rule_definition_hash=finding.rule_definition_hash,
     )
     assert recomputed != finding.quality_finding_identity_hash
+
+
+@pytest.mark.migration
+def test_lane_b_quality_finding_table_enforces_code_and_immutability(
+    lane_b_migrated_session,
+    cleaning_build_request: CleaningBuildRequest,
+    missing_quantity_row: SyntheticSourceRowInput,
+) -> None:
+    request = cleaning_build_request.model_copy(update={"source_rows": (missing_quantity_row,)})
+    result = build_cleaned_dataset(request)
+    version_row = persist_cleaning_build_result(lane_b_migrated_session, result)
+    lane_b_migrated_session.commit()
+    inspector = sa.inspect(lane_b_migrated_session.bind)
+    checks = {check["name"] for check in inspector.get_check_constraints("s2_quality_finding")}
+    assert "ck_s2_quality_finding_code" in checks
+    assert "ck_s2_quality_finding_severity" in checks
+    finding_id = lane_b_migrated_session.execute(
+        sa.text(
+            """
+            SELECT id FROM s2_quality_finding
+            WHERE cleaned_dataset_version_id = :version_id
+            """
+        ),
+        {"version_id": version_row.id},
+    ).scalar_one()
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_b_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_quality_finding
+                SET severity = 'ERROR'
+                WHERE id = :finding_id
+                """
+            ),
+            {"finding_id": finding_id},
+        )
+        lane_b_migrated_session.commit()

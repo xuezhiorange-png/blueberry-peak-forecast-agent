@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
+import sqlalchemy as sa
 
 from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     assert_replay_parity,
@@ -24,11 +25,73 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SyntheticSourceRowInput,
 )
 from backend.tests.s2_materialized_dataset.lane_b.conftest import (
+    assert_lane_b_alembic_head_and_revision_contract,
     make_source_row,
     make_source_row_identity_hash,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+@pytest.mark.migration
+def test_lane_b_migration_head_and_revision_contract() -> None:
+    assert_lane_b_alembic_head_and_revision_contract()
+
+
+@pytest.mark.migration
+def test_lane_b_migration_creates_cleaned_tables_with_numeric_quantity_columns(
+    lane_b_migrated_session,
+) -> None:
+    inspector = sa.inspect(lane_b_migrated_session.bind)
+    assert {
+        "s2_cleaned_dataset_version",
+        "s2_cleaned_row",
+        "s2_quality_finding",
+        "s2_correction_ledger_entry",
+        "s2_exclusion_ledger_entry",
+    }.issubset(set(inspector.get_table_names()))
+    row_columns = {column["name"]: column for column in inspector.get_columns("s2_cleaned_row")}
+    for column_name in (
+        "source_actual_harvest_quantity_kg",
+        "effective_actual_harvest_quantity_kg",
+    ):
+        column = row_columns[column_name]
+        assert "NUMERIC" in str(column["type"]).upper()
+
+
+@pytest.mark.migration
+def test_lane_b_cleaned_tables_reject_update_under_migration_triggers(
+    lane_b_migrated_session,
+    cleaning_build_request: CleaningBuildRequest,
+) -> None:
+    result = build_cleaned_dataset(cleaning_build_request)
+    version_row = persist_cleaning_build_result(lane_b_migrated_session, result)
+    lane_b_migrated_session.commit()
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_b_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_cleaned_dataset_version
+                SET row_count = 99
+                WHERE id = :version_id
+                """
+            ),
+            {"version_id": version_row.id},
+        )
+        lane_b_migrated_session.commit()
+    lane_b_migrated_session.rollback()
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_b_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_cleaned_row
+                SET is_excluded = 1
+                WHERE cleaned_dataset_version_id = :version_id
+                """
+            ),
+            {"version_id": version_row.id},
+        )
+        lane_b_migrated_session.commit()
 
 
 def test_synthetic_upstream_identities_are_deterministic(

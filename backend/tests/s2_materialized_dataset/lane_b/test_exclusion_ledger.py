@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import pytest
+import sqlalchemy as sa
 
 from backend.app.s2_materialized_dataset.lane_b.cleaning import build_cleaned_dataset
 from backend.app.s2_materialized_dataset.lane_b.exclusion_ledger import ExclusionLedgerConflictError
+from backend.app.s2_materialized_dataset.lane_b.persistence import persist_cleaning_build_result
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
     CleaningBuildRequest,
     ExclusionCode,
@@ -60,3 +62,49 @@ def test_contradictory_exclusion_entries_for_same_row_fail_closed(
 
     with pytest.raises(ExclusionLedgerConflictError):
         build_cleaned_dataset(request)
+
+
+@pytest.mark.migration
+def test_lane_b_exclusion_ledger_rejects_update_under_migration_triggers(
+    lane_b_migrated_session,
+    cleaning_build_request: CleaningBuildRequest,
+    known_quantity_row,
+) -> None:
+    source_hash = make_source_row_identity_hash(known_quantity_row)
+    request = cleaning_build_request.model_copy(
+        update={
+            "manual_exclusions": (
+                ManualExclusionRequest(
+                    exclusion_event_id="exclude-migration-1",
+                    source_row_identity_hash=source_hash,
+                    exclusion_code=ExclusionCode.BUSINESS_EXCLUSION,
+                    exclusion_reason_reference="policy-ref-1",
+                    decision_authority_reference="approver-1",
+                ),
+            )
+        }
+    )
+    result = build_cleaned_dataset(request)
+    version_row = persist_cleaning_build_result(lane_b_migrated_session, result)
+    lane_b_migrated_session.commit()
+    entry_id = lane_b_migrated_session.execute(
+        sa.text(
+            """
+            SELECT id FROM s2_exclusion_ledger_entry
+            WHERE cleaned_dataset_version_id = :version_id
+            """
+        ),
+        {"version_id": version_row.id},
+    ).scalar_one()
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_b_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_exclusion_ledger_entry
+                SET exclusion_reason_reference = 'mutated'
+                WHERE id = :entry_id
+                """
+            ),
+            {"entry_id": entry_id},
+        )
+        lane_b_migrated_session.commit()
