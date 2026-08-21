@@ -1,0 +1,139 @@
+{
+  "artifact_id": "V0_3_S2_POST_ABCD1_CURRENT_MAIN_REVALIDATION",
+  "artifact_version": "s2-post-abcd1-current-main-revalidation-v1",
+  "task_id": "V03_S2_POST_D1_CURRENT_MAIN_REVALIDATION_R1",
+  "task_class": "DOCS_ONLY_GOVERNANCE_REVALIDATION",
+  "authorization_scope": "S2_CURRENT_MAIN_REVALIDATION_ONLY",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "reviewed_at": "2026-08-21T15:35:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "07986a31d4b80a90b1c292404f2940c15b669c19",
+  "audited_repository_tree_sha": "524cddddbeb592b3dbae3412a029fea7f4e0ad5e",
+  "audited_ref": "origin/main",
+  "contract_id": "V0_3_S2_MATERIALIZED_DATASET_CONTRACT",
+  "contract_version": "v0-3-s2-materialized-dataset-contract-v1",
+  "amendment_version": "v0-3-s2-allowlist-migration-ownership-r2",
+  "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+  "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+  "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+  "workpaper_path": "docs/v0-3/s2/workpapers/s2-post-abcd1-current-main-revalidation.md",
+  "unique_alembic_head": "8c6aead9f8e9",
+  "unique_alembic_head_count": 1,
+  "parallel_alembic_heads_allowed": false,
+  "lane_d_migration_present": false,
+  "alembic_chain": [
+    "0028_quality_child_hash_scope",
+    "0029_s2_lane_a_raw_ingestion_lineage",
+    "2af278a20e2a",
+    "8c6aead9f8e9"
+  ],
+  "merge_ancestry": [
+    {
+      "lane": "A",
+      "pr": 277,
+      "merge_commit": "fedc4ef9147747ee001fbfd44f60c3ee5dd4078c",
+      "merged_at": "2026-08-21T13:30:59Z"
+    },
+    {
+      "lane": "B",
+      "pr": 280,
+      "merge_commit": "77d0f17f52d734c57becd118e1c6d695229b72c0",
+      "merged_at": "2026-08-21T14:32:54Z"
+    },
+    {
+      "lane": "C",
+      "pr": 278,
+      "merge_commit": "bd590e8a3f63d9b0f401b5d0bf119f74214ac4e8",
+      "merged_at": "2026-08-21T15:19:23Z"
+    },
+    {
+      "lane": "D1",
+      "pr": 279,
+      "merge_commit": "07986a31d4b80a90b1c292404f2940c15b669c19",
+      "merged_at": "2026-08-21T15:22:02Z"
+    }
+  ],
+  "pep420_namespace": true,
+  "forbidden_production_inits_exist": false,
+  "authorized_empty_test_inits": [
+    "backend/tests/s2_materialized_dataset/__init__.py",
+    "backend/tests/s2_materialized_dataset/shared/__init__.py",
+    "backend/tests/s2_materialized_dataset/lane_d/__init__.py"
+  ],
+  "lane_d_allowlist_gaps": [
+    "backend/app/s2_materialized_dataset/lane_d/service.py",
+    "backend/app/api/materialized_datasets.py",
+    "backend/alembic/versions/<lane-d-materialized-dataset-revision>.py"
+  ],
+  "shared_seams_s2_wired": false,
+  "source_cohort_id": "source-002-s1-cohort-v1",
+  "source_cohort_manifest_sha256": "27ddb9a77d9ce7d4b0579d0648c23b5ade7d6a090626b695e5b41827e714fcca",
+  "s1_manifest_digest_matches_inherited_contract": true,
+  "source_002_read": false,
+  "source_002_raw_read": false,
+  "source_002_row_level_read": false,
+  "train_row_access": false,
+  "validation_row_access": false,
+  "test_row_access": false,
+  "test_materialization_executed": false,
+  "metric_execution": false,
+  "backtest_executed": false,
+  "model_training_executed": false,
+  "local_pytest": {
+    "command": "PYTHONPATH=. pytest backend/tests/s2_materialized_dataset -q",
+    "collected": 105,
+    "passed": 105,
+    "head": "07986a31d4b80a90b1c292404f2940c15b669c19"
+  },
+  "github_ci_at_review_time": {
+    "pr_277_run_32487245768": "success",
+    "pr_280_run_32492732797": "success",
+    "pr_278_run_32496963867": "in_progress",
+    "pr_279_run_32497207605": "in_progress",
+    "green_ci_does_not_equal_contract_pass": true
+  },
+  "lane_implementation_on_main": {
+    "A": "PASS",
+    "B": "PASS",
+    "C": "PASS",
+    "D1_freeze_logic": "PASS",
+    "D_persistence_api_seams": "NOT_PERFORMED"
+  },
+  "section_11_items": {
+    "IMMUTABLE_RAW_REFERENCE_ACCEPTED": false,
+    "SOURCE_ROW_LINEAGE_ACCEPTED": false,
+    "CLEANED_DATA_MANIFEST_ACCEPTED": false,
+    "QUALITY_REPORT_ACCEPTED": false,
+    "CORRECTION_LEDGER_ACCEPTED": false,
+    "EXCLUSION_LEDGER_ACCEPTED": false,
+    "TIME_VISIBILITY_REPORT_ACCEPTED": false,
+    "TRAIN_MATERIALIZED_MANIFEST_ACCEPTED": false,
+    "VALIDATION_MATERIALIZED_MANIFEST_ACCEPTED": false,
+    "TEST_MATERIALIZED_MANIFEST_ACCEPTED": false,
+    "FINAL_SPLIT_MANIFEST_ACCEPTED": false,
+    "FINAL_DATASET_HASHES_ACCEPTED": false,
+    "DETERMINISTIC_REBUILD_PARITY_ACCEPTED": false
+  },
+  "s2_acceptance_items_true_count": 0,
+  "s2_acceptance_items_false_count": 13,
+  "current_main_revalidation_status": "PASS",
+  "s2_acceptance_decision": "NOT_ACCEPTED",
+  "materialized_dataset_freeze_complete": false,
+  "final_split_manifest_accepted": false,
+  "final_dataset_hashes_accepted": false,
+  "slice_s2_complete": false,
+  "s2_accepted_does_not_imply_s3": true,
+  "v0_3_s3_authorized": false,
+  "d2_authorized": false,
+  "next_slice_started": false,
+  "production_code_changed_by_this_task": false,
+  "test_code_changed_by_this_task": false,
+  "migration_created_by_this_task": false,
+  "contract_changed_by_this_task": false,
+  "development_plan_changed_by_this_task": false,
+  "s1_authority_changed_by_this_task": false,
+  "recommended_next_implementation_slice_if_authorized": "D2",
+  "recommended_next_implementation_slice_authorized": false
+}
