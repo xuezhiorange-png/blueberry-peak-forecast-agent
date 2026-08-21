@@ -108,3 +108,38 @@ def build_partition_manifest(
         quality_gate_status=quality_gate_status,
         rebuild_hash_replay_status=rebuild_hash_replay_status,
     )
+
+
+def recompute_manifest_sha256_from_published(manifest: PartitionManifest) -> str:
+    """Recompute MANIFEST_SHA256 from published manifest fields (excluding self hash)."""
+    payload = {
+        "builder_version": manifest.builder_version,
+        "byte_count": manifest.byte_count,
+        "canonical_grain": manifest.canonical_grain,
+        "cleaning_policy_version": manifest.cleaning_policy_version,
+        "content_sha256": manifest.content_sha256,
+        "correction_policy_version": manifest.correction_policy_version,
+        "dataset_id": manifest.dataset_id,
+        "dataset_schema_version": manifest.dataset_schema_version,
+        "dataset_version": manifest.dataset_version,
+        "exclusion_policy_version": manifest.exclusion_policy_version,
+        "lineage_complete": manifest.lineage_complete,
+        "manifest_schema_version": manifest.manifest_schema_version,
+        "materialized_partition_schema_version": manifest.materialized_partition_schema_version,
+        "partition_date_field": manifest.partition_date_field,
+        "partition_end_date": manifest.partition_end_date,
+        "partition_identity_sha256": manifest.partition_identity_sha256,
+        "partition_name": manifest.partition_name,
+        "partition_start_date": manifest.partition_start_date,
+        "quality_gate_status": manifest.quality_gate_status,
+        "raw_policy_version": manifest.raw_policy_version,
+        "rebuild_hash_replay_status": manifest.rebuild_hash_replay_status,
+        "revision_winner_policy_version": manifest.revision_winner_policy_version,
+        "row_count": manifest.row_count,
+        "source_cohort_id": manifest.source_cohort_id,
+        "source_cohort_manifest_sha256": manifest.source_cohort_manifest_sha256,
+        "split_policy_version": manifest.split_policy_version,
+        "target_decision": manifest.target_decision,
+        "visibility_policy_version": manifest.visibility_policy_version,
+    }
+    return manifest_sha256(payload)

@@ -245,6 +245,9 @@ def build_materialized_dataset(
     partition_manifests: list[PartitionManifest] = []
     partition_identities: list[str] = []
     partition_content_hashes: list[str] = []
+    partition_build_states: list[
+        tuple[PartitionSpec, MaterializedPartitionBytes, str, RebuildHashReplayStatus]
+    ] = []
 
     for partition in FROZEN_PARTITIONS:
         selected_rows = rows_for_partition(upstream_rows, partition)
@@ -258,7 +261,7 @@ def build_materialized_dataset(
             ordered_cleaned_row_identities=cleaned_identities,
             ordered_pit_visibility_identities=pit_identities,
         )
-        _partition_bytes, manifest, replay_status = verify_partition_rebuild_hash_replay(
+        partition_bytes, manifest, replay_status = verify_partition_rebuild_hash_replay(
             dataset_id=dataset_id,
             dataset_version=dataset_version,
             partition=partition,
@@ -273,6 +276,9 @@ def build_materialized_dataset(
             raise MaterializedDatasetBuildError(
                 f"rebuild_hash_replay_status=FAIL for partition {partition.name.value}"
             )
+        partition_build_states.append(
+            (partition, partition_bytes, partition_identity, replay_status)
+        )
         partition_identities.append(partition_identity)
         partition_content_hashes.append(manifest.content_sha256)
         partition_manifests.append(manifest)
@@ -300,10 +306,25 @@ def build_materialized_dataset(
             "quality_gate_status=REJECTED after replay verification"
         )
 
-    final_manifests = tuple(
-        manifest.model_copy(update={"quality_gate_status": quality_status})
-        for manifest in provisional
-    )
+    final_manifests: list[PartitionManifest] = []
+    for partition, partition_bytes, partition_identity, replay_status in partition_build_states:
+        final_manifests.append(
+            build_partition_manifest(
+                dataset_id=dataset_id,
+                dataset_version=dataset_version,
+                partition=partition,
+                upstream=upstream,
+                row_count=partition_bytes.row_count,
+                byte_count=partition_bytes.byte_count,
+                content_hash=partition_bytes.content_sha256,
+                partition_identity_sha256=partition_identity,
+                lineage_complete=True,
+                build_started_at=started,
+                build_completed_at=completed,
+                quality_gate_status=quality_status,
+                rebuild_hash_replay_status=replay_status,
+            )
+        )
 
     return MaterializedDatasetResult(
         dataset_id=dataset_id,
@@ -311,5 +332,5 @@ def build_materialized_dataset(
         materialized_dataset_identity_sha256=dataset_identity,
         lineage_complete=True,
         quality_gate_status=quality_status,
-        partitions=final_manifests,
+        partitions=tuple(final_manifests),
     )
