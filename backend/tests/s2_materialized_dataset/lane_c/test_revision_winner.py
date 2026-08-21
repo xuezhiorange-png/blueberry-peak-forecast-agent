@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+import sqlalchemy as sa
+
+from backend.app.s2_materialized_dataset.lane_c.persistence import persist_revision_winner_decision
 from backend.app.s2_materialized_dataset.lane_c.revision_winner import (
     IDFL_REVISION_WINNER_REQUIRED,
     resolve_revision_winner,
@@ -16,6 +20,48 @@ from backend.tests.s2_materialized_dataset.lane_c.conftest import (
     make_revision_candidate,
     make_timestamps,
 )
+
+pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+@pytest.mark.migration
+def test_lane_c_revision_winner_table_enforces_mode_and_immutability(
+    lane_c_migrated_session,
+    cutoff_context,
+) -> None:
+    candidate = make_revision_candidate(
+        logical_record_id="LR-MIG",
+        revision_id="REV-MIG",
+        revision_number=1,
+        identity_hash="c" * 64,
+        timestamps=make_timestamps(),
+    )
+    decision = resolve_revision_winner(
+        logical_record_key=candidate.logical_record_key,
+        candidates=(candidate,),
+        cutoff_context=cutoff_context,
+        mode=RevisionWinnerMode.REPLAY_REVISION_GRAPH,
+    )
+    row = persist_revision_winner_decision(lane_c_migrated_session, decision)
+    lane_c_migrated_session.commit()
+    inspector = sa.inspect(lane_c_migrated_session.bind)
+    checks = {
+        check["name"] for check in inspector.get_check_constraints("s2_revision_winner_decision")
+    }
+    assert "ck_s2_revision_winner_mode" in checks
+    assert "ck_s2_revision_winner_no_winner_reason" in checks
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_c_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_revision_winner_decision
+                SET blocked = 1
+                WHERE id = :row_id
+                """
+            ),
+            {"row_id": row.id},
+        )
+        lane_c_migrated_session.commit()
 
 
 def test_idfl_mode_returns_explicit_no_winner_without_manifest(

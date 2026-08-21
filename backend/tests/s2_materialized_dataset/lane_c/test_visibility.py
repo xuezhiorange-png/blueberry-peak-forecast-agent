@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+import sqlalchemy as sa
 
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.s2_materialized_dataset.lane_c.hashes import (
     canonical_timestamp_string,
     compute_pit_visibility_content_hash,
 )
+from backend.app.s2_materialized_dataset.lane_c.persistence import persist_pit_visibility_decision
 from backend.app.s2_materialized_dataset.lane_c.schemas import (
     ForecastCutoffContext,
     PitVisibilityBlockReason,
@@ -16,7 +18,76 @@ from backend.app.s2_materialized_dataset.lane_c.schemas import (
     SourceRowLifecycleTimestamps,
 )
 from backend.app.s2_materialized_dataset.lane_c.visibility import evaluate_pit_visibility
-from backend.tests.s2_materialized_dataset.lane_c.conftest import make_timestamps
+from backend.tests.s2_materialized_dataset.lane_c.conftest import (
+    assert_lane_c_alembic_head_and_revision_contract,
+    make_timestamps,
+)
+
+pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+@pytest.mark.migration
+def test_lane_c_migration_head_and_revision_contract() -> None:
+    assert_lane_c_alembic_head_and_revision_contract()
+
+
+@pytest.mark.migration
+def test_lane_c_migration_creates_pit_visibility_table_with_timezone_columns(
+    lane_c_migrated_session,
+) -> None:
+    inspector = sa.inspect(lane_c_migrated_session.bind)
+    assert "s2_pit_visibility_decision" in inspector.get_table_names()
+    assert "s2_revision_winner_decision" in inspector.get_table_names()
+    timestamp_columns = {
+        column["name"]: column
+        for column in inspector.get_columns("s2_pit_visibility_decision")
+        if column["name"]
+        in {
+            "source_recorded_at",
+            "source_available_at",
+            "source_revised_at",
+            "source_finalized_at",
+            "source_cancelled_at",
+            "forecast_cutoff_at",
+            "created_at",
+        }
+    }
+    for column_name in timestamp_columns:
+        assert "DATETIME" in str(timestamp_columns[column_name]["type"]).upper()
+
+
+@pytest.mark.migration
+def test_lane_c_pit_visibility_table_rejects_update_under_migration_triggers(
+    lane_c_migrated_session,
+    synthetic_source_row_identity,
+    cutoff_context,
+) -> None:
+    decision = evaluate_pit_visibility(
+        source_row_identity=synthetic_source_row_identity,
+        timestamps=make_timestamps(source_available_at=datetime(2026, 2, 27, 9, 0, tzinfo=UTC)),
+        cutoff_context=cutoff_context,
+    )
+    row = persist_pit_visibility_decision(lane_c_migrated_session, decision)
+    lane_c_migrated_session.commit()
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_c_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_pit_visibility_decision
+                SET eligible = 0
+                WHERE id = :row_id
+                """
+            ),
+            {"row_id": row.id},
+        )
+        lane_c_migrated_session.commit()
+    lane_c_migrated_session.rollback()
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_c_migrated_session.execute(
+            sa.text("DELETE FROM s2_pit_visibility_decision WHERE id = :row_id"),
+            {"row_id": row.id},
+        )
+        lane_c_migrated_session.commit()
 
 
 def test_eligible_row_requires_source_available_at_on_or_before_cutoff(

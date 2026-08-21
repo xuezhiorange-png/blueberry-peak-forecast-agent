@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import importlib.util
+from collections.abc import Iterator
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pytest
+import sqlalchemy as sa
+from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from alembic.script import ScriptDirectory
+from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.s2_materialized_dataset.lane_c.schemas import (
     ForecastCutoffContext,
@@ -14,6 +23,57 @@ from backend.app.s2_materialized_dataset.lane_c.schemas import (
     SourceRowIdentity,
     SourceRowLifecycleTimestamps,
 )
+
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
+LANE_C_MIGRATION_PATH = (
+    _BACKEND_ROOT
+    / "alembic"
+    / "versions"
+    / "8c6aead9f8e9_s2_lane_c_pit_visibility_revision_winner.py"
+)
+LANE_C_MIGRATION_REVISION = "8c6aead9f8e9"
+LANE_C_MIGRATION_DOWN_REVISION = "2af278a20e2a"
+
+
+def _lane_c_migration_module():
+    spec = importlib.util.spec_from_file_location(
+        "lane_c_migration_0031",
+        LANE_C_MIGRATION_PATH,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def assert_lane_c_alembic_head_and_revision_contract() -> None:
+    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
+    script = ScriptDirectory.from_config(config)
+    heads = script.get_heads()
+    assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
+    assert heads == [LANE_C_MIGRATION_REVISION], (
+        f"alembic heads must be [{LANE_C_MIGRATION_REVISION!r}], got {heads!r}"
+    )
+    module = _lane_c_migration_module()
+    assert module.revision == LANE_C_MIGRATION_REVISION
+    assert module.down_revision == LANE_C_MIGRATION_DOWN_REVISION
+
+
+@pytest.fixture
+def lane_c_migrated_session() -> Iterator[Session]:
+    module = _lane_c_migration_module()
+    engine = sa.create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        module.op = Operations(MigrationContext.configure(connection))
+        module.upgrade()
+    maker = sessionmaker(bind=engine, expire_on_commit=False)
+    session = maker()
+    try:
+        yield session
+    finally:
+        session.close()
+        engine.dispose()
 
 
 def _dt(text: str) -> datetime:
