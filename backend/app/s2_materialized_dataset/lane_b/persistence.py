@@ -379,37 +379,43 @@ def persist_cleaning_build_result(
             )
         )
 
-    for entry in result.correction_ledger_entries:
+    for correction_entry in result.correction_ledger_entries:
         session.add(
             S2CorrectionLedgerEntryModel(
                 cleaned_dataset_version_id=version_row.id,
-                correction_ledger_entry_identity_hash=entry.correction_ledger_entry_identity_hash,
-                source_row_identity_hash=entry.source_row_identity_hash,
-                correction_event_id=entry.correction_event_id,
-                field_name=entry.field_name,
-                correction_policy_version=entry.correction_policy_version,
-                correction_schema_version=entry.correction_schema_version,
-                quality_finding_identity_hash=entry.quality_finding_identity_hash,
-                original_value_digest=entry.original_value_digest,
-                corrected_value_digest=entry.corrected_value_digest,
-                reason=entry.reason,
-                manual_actor_or_authority_reference=entry.manual_actor_or_authority_reference,
+                correction_ledger_entry_identity_hash=(
+                    correction_entry.correction_ledger_entry_identity_hash
+                ),
+                source_row_identity_hash=correction_entry.source_row_identity_hash,
+                correction_event_id=correction_entry.correction_event_id,
+                field_name=correction_entry.field_name,
+                correction_policy_version=correction_entry.correction_policy_version,
+                correction_schema_version=correction_entry.correction_schema_version,
+                quality_finding_identity_hash=correction_entry.quality_finding_identity_hash,
+                original_value_digest=correction_entry.original_value_digest,
+                corrected_value_digest=correction_entry.corrected_value_digest,
+                reason=correction_entry.reason,
+                manual_actor_or_authority_reference=(
+                    correction_entry.manual_actor_or_authority_reference
+                ),
             )
         )
 
-    for entry in result.exclusion_ledger_entries:
+    for exclusion_entry in result.exclusion_ledger_entries:
         session.add(
             S2ExclusionLedgerEntryModel(
                 cleaned_dataset_version_id=version_row.id,
-                exclusion_ledger_entry_identity_hash=entry.exclusion_ledger_entry_identity_hash,
-                source_row_identity_hash=entry.source_row_identity_hash,
-                exclusion_event_id=entry.exclusion_event_id,
-                exclusion_code=entry.exclusion_code.value,
-                exclusion_policy_version=entry.exclusion_policy_version,
-                exclusion_schema_version=entry.exclusion_schema_version,
-                quality_finding_identity_hash=entry.quality_finding_identity_hash,
-                exclusion_reason_reference=entry.exclusion_reason_reference,
-                decision_authority_reference=entry.decision_authority_reference,
+                exclusion_ledger_entry_identity_hash=(
+                    exclusion_entry.exclusion_ledger_entry_identity_hash
+                ),
+                source_row_identity_hash=exclusion_entry.source_row_identity_hash,
+                exclusion_event_id=exclusion_entry.exclusion_event_id,
+                exclusion_code=exclusion_entry.exclusion_code.value,
+                exclusion_policy_version=exclusion_entry.exclusion_policy_version,
+                exclusion_schema_version=exclusion_entry.exclusion_schema_version,
+                quality_finding_identity_hash=exclusion_entry.quality_finding_identity_hash,
+                exclusion_reason_reference=exclusion_entry.exclusion_reason_reference,
+                decision_authority_reference=exclusion_entry.decision_authority_reference,
             )
         )
 
