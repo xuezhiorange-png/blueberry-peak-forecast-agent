@@ -4059,10 +4059,7 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
         try:
             # §8 oracle
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert (
-                await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "2af278a20e2a"
-            )
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "2af278a20e2a"
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_name = 'model_baseline_comparison'"
@@ -4155,10 +4152,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             # §11.3 oracle: current_database is still the temp DB and
             # version is still 0026.
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert (
-                await conn.fetchval("SELECT version_num FROM alembic_version")
-                == "2af278a20e2a"
-            )
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "2af278a20e2a"
             assert (
                 await conn.fetchval(
                     "SELECT count(*) FROM quality_evaluation_run "
