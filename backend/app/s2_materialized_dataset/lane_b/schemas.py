@@ -18,6 +18,9 @@ SOURCE_002_JULY_COHORT_EXCLUSION_REASON = "source-002-s1-cohort-unmapped-july-20
 SOURCE_002_CLEANING_DECISION_AUTHORITY = "source-002-final-source-cohort-manifest-v1"
 SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT = 2
 SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION = "s2-source-002-canonical-grain-kg-sum-v1"
+SOURCE_002_CLEANING_POLICY_VERSION = (
+    "v0-3-s2-cleaning-policy-v2+" + SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+)
 
 
 class QuantityPresenceStatus(StrEnum):
@@ -188,23 +191,6 @@ class Source002E3DiagnosticReport(_FrozenContractModel):
     collision_group_samples: tuple[Source002E3CollisionGroupSample, ...] = ()
 
 
-class CanonicalGrainCollisionBlockedError(Source002CleaningBlockedError):
-    """Unresolved canonical-grain collisions require Lane C winner selection."""
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        conflict_group_count: int,
-        conflict_group_row_counts: tuple[tuple[str, int], ...],
-        diagnostics: Source002E3DiagnosticReport | None = None,
-    ) -> None:
-        super().__init__(message)
-        self.conflict_group_count = conflict_group_count
-        self.conflict_group_row_counts = conflict_group_row_counts
-        self.diagnostics = diagnostics
-
-
 class CleaningBuildRequest(_FrozenContractModel):
     source_cohort_id: str = SOURCE_COHORT_ID
     raw_source_artifacts: tuple[SyntheticRawSourceArtifactIdentity, ...] = ()
@@ -371,4 +357,8 @@ class Source002CleaningResult(_FrozenContractModel):
     july_excluded_row_count: int
     grain_conflict_group_count: int
     diagnostics: Source002E3DiagnosticReport | None = None
+    kg_sum_source_rows: Decimal | None = None
+    kg_sum_cleaned_grains: Decimal | None = None
+    cleaned_dataset_version_identity_hash: str | None = None
+    cleaned_dataset_version_content_hash: str | None = None
     cleaning: CleaningBuildResult
