@@ -1,20 +1,33 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 import sqlalchemy as sa
 
-from backend.app.s2_materialized_dataset.lane_c.persistence import persist_revision_winner_decision
+from backend.app.s2_materialized_dataset.lane_c.cutoff import (
+    ForecastCutoffValidationError,
+    validate_forecast_cutoff_context,
+)
+from backend.app.s2_materialized_dataset.lane_c.persistence import (
+    LaneCPersistenceStore,
+    idfl_null_timestamps,
+    persist_idfl_revision_winner_decision,
+    pit_sql_persist_blocked_without_forecast_cutoff,
+    revision_winner_sql_persist_blocked_without_forecast_cutoff,
+)
 from backend.app.s2_materialized_dataset.lane_c.revision_winner import (
     IDFL_REVISION_WINNER_REQUIRED,
+    resolve_idfl_revision_winner_for_source_row,
     resolve_revision_winner,
 )
 from backend.app.s2_materialized_dataset.lane_c.schemas import (
     ForecastCutoffContext,
+    IdflLabelSideContext,
     LogicalRecordKey,
     RevisionWinnerBlockReason,
     RevisionWinnerMode,
+    SourceRowIdentity,
 )
 from backend.tests.s2_materialized_dataset.lane_c.conftest import (
     make_revision_candidate,
@@ -42,6 +55,10 @@ def test_lane_c_revision_winner_table_enforces_mode_and_immutability(
         cutoff_context=cutoff_context,
         mode=RevisionWinnerMode.REPLAY_REVISION_GRAPH,
     )
+    from backend.app.s2_materialized_dataset.lane_c.persistence import (
+        persist_revision_winner_decision,
+    )
+
     row = persist_revision_winner_decision(lane_c_migrated_session, decision)
     lane_c_migrated_session.commit()
     inspector = sa.inspect(lane_c_migrated_session.bind)
@@ -65,22 +82,10 @@ def test_lane_c_revision_winner_table_enforces_mode_and_immutability(
 
 
 def test_idfl_mode_returns_explicit_no_winner_without_manifest(
-    cutoff_context: ForecastCutoffContext,
-    revision_candidate_factory: object,
+    synthetic_source_row_identity: SourceRowIdentity,
 ) -> None:
-    candidate = make_revision_candidate(
-        logical_record_id="LR-IDFL",
-        revision_id="REV-1",
-        revision_number=1,
-        identity_hash="d" * 64,
-        timestamps=make_timestamps(),
-    )
-
-    decision = resolve_revision_winner(
-        logical_record_key=candidate.logical_record_key,
-        candidates=(candidate,),
-        cutoff_context=cutoff_context,
-        mode=RevisionWinnerMode.IDFL_LABEL_SIDE,
+    decision = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
     )
 
     assert IDFL_REVISION_WINNER_REQUIRED is False
@@ -89,6 +94,87 @@ def test_idfl_mode_returns_explicit_no_winner_without_manifest(
     assert decision.no_winner_reason == RevisionWinnerBlockReason.NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE
     assert decision.blocked is False
     assert decision.winner_manifest_required is False
+    assert decision.cutoff_context is None
+    assert decision.idfl_label_side_context is not None
+
+
+def test_idfl_revision_winner_timestamps_are_explicit_nulls(
+    synthetic_source_row_identity: SourceRowIdentity,
+) -> None:
+    decision = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+
+    assert decision.timestamps == idfl_null_timestamps()
+    assert decision.timestamps.source_recorded_at is None
+    assert decision.timestamps.source_available_at is None
+    assert decision.timestamps.source_revised_at is None
+    assert decision.timestamps.source_finalized_at is None
+    assert decision.timestamps.source_cancelled_at is None
+
+
+def test_idfl_revision_winner_hash_is_stable_across_replays(
+    synthetic_source_row_identity: SourceRowIdentity,
+) -> None:
+    first = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+    second = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+
+    assert first.content_sha256 == second.content_sha256
+
+
+def test_idfl_revision_winner_can_persist_without_fabricated_cutoff(
+    lane_c_migrated_session,
+    synthetic_source_row_identity: SourceRowIdentity,
+) -> None:
+    assert pit_sql_persist_blocked_without_forecast_cutoff(lane_c_migrated_session)
+    assert revision_winner_sql_persist_blocked_without_forecast_cutoff(lane_c_migrated_session)
+
+    decision = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+    store = LaneCPersistenceStore()
+    first = persist_idfl_revision_winner_decision(
+        lane_c_migrated_session,
+        decision,
+        store=store,
+    )
+    second = persist_idfl_revision_winner_decision(
+        lane_c_migrated_session,
+        decision,
+        store=store,
+    )
+
+    assert first is None
+    assert second is None
+    assert len(store.revision_winner_decisions) == 1
+    assert store.revision_winner_decisions[0].content_sha256 == decision.content_sha256
+
+
+def test_idfl_revision_winner_does_not_require_source_available_at(
+    synthetic_source_row_identity: SourceRowIdentity,
+) -> None:
+    decision = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+
+    assert decision.blocked is False
+    assert decision.no_winner_reason == RevisionWinnerBlockReason.NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE
+    assert decision.no_winner_reason != RevisionWinnerBlockReason.NO_VISIBLE_CANDIDATE_AT_CUTOFF
+
+
+def test_harvest_business_date_cannot_be_used_as_idfl_forecast_cutoff() -> None:
+    harvest_date = date(2026, 2, 10)
+    with pytest.raises((TypeError, ValueError)):
+        IdflLabelSideContext(forecast_cutoff_at=harvest_date)  # type: ignore[call-arg]
+    naive_harvest_cutoff = datetime.combine(harvest_date, datetime.min.time())
+    with pytest.raises(ForecastCutoffValidationError, match="timezone-aware"):
+        validate_forecast_cutoff_context(
+            ForecastCutoffContext(forecast_cutoff_at=naive_harvest_cutoff),
+        )
 
 
 def test_unique_visible_terminal_wins_for_replay_mode(
