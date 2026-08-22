@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -58,10 +59,11 @@ from backend.app.s2_materialized_dataset.lane_b.quality import (
 )
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SOURCE_002_CLEANING_DECISION_AUTHORITY,
-    SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON,
+    SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT,
     SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
     SOURCE_002_MAPPED_SEASON_BUSINESS_KEY,
     SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY,
+    CanonicalGrainCollisionBlockedError,
     CanonicalGrainKey,
     CleanedDatasetVersionRecord,
     CleanedRowRecord,
@@ -80,18 +82,21 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SyntheticSourceRowInput,
 )
 
+logger = logging.getLogger(__name__)
+
 __all__ = [
     "CleanedDatasetVersionConflictError",
     "CleanedRowConflictError",
     "SOURCE_002_JULY_EXCLUSION_DATE",
     "SOURCE_002_SEASON_END",
     "SOURCE_002_SEASON_START",
+    "assert_no_canonical_grain_collisions_or_fail",
     "assert_replay_parity",
-    "build_canonical_grain_collision_exclusions",
     "build_canonical_grain_key",
     "build_cleaned_dataset",
     "build_july_cohort_exclusions",
     "build_source_002_cleaning_request",
+    "canonical_grain_collision_groups",
     "clean_source_002_from_persisted",
     "controlled_clean_source_002_from_environment",
     "resolve_quantity_presence",
@@ -251,38 +256,47 @@ def build_july_cohort_exclusions(
     return tuple(sorted(exclusions, key=lambda item: item.exclusion_event_id))
 
 
-def build_canonical_grain_collision_exclusions(
-    *,
+def canonical_grain_collision_groups(
     source_rows: tuple[SyntheticSourceRowInput, ...],
-) -> tuple[ManualExclusionRequest, ...]:
+) -> dict[str, tuple[str, ...]]:
     groups: dict[str, list[str]] = {}
     for source_row in source_rows:
         if source_row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE:
             continue
         grain_key = build_canonical_grain_key(source_row).canonical_grain_key
         groups.setdefault(grain_key, []).append(_source_row_identity_hash(source_row))
+    return {
+        grain_key: tuple(sorted(row_hashes))
+        for grain_key, row_hashes in groups.items()
+        if len(row_hashes) > 1
+    }
 
-    exclusions: list[ManualExclusionRequest] = []
-    for _grain_key, row_hashes in sorted(groups.items()):
-        if len(row_hashes) <= 1:
-            continue
-        survivor = min(row_hashes)
-        for loser_hash in sorted(row_hashes):
-            if loser_hash == survivor:
-                continue
-            exclusions.append(
-                ManualExclusionRequest(
-                    exclusion_event_id=(
-                        f"source-002-canonical-grain-collision-exclusion:{loser_hash}"
-                    ),
-                    source_row_identity_hash=loser_hash,
-                    exclusion_code=ExclusionCode.QUALITY_BLOCKED,
-                    exclusion_reason_reference=SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON,
-                    decision_authority_reference=SOURCE_002_CLEANING_DECISION_AUTHORITY,
-                    quality_finding_identity_hash=None,
-                )
-            )
-    return tuple(sorted(exclusions, key=lambda item: item.exclusion_event_id))
+
+def assert_no_canonical_grain_collisions_or_fail(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+) -> int:
+    conflicts = canonical_grain_collision_groups(source_rows)
+    if not conflicts:
+        return 0
+    conflict_group_row_counts = tuple(
+        (grain_key, len(row_hashes))
+        for grain_key, row_hashes in sorted(conflicts.items())
+    )
+    for grain_key, row_count in conflict_group_row_counts:
+        print(
+            f"SOURCE_002_GRAIN_CONFLICT_GROUP grain={grain_key} rows={row_count}",
+            flush=True,
+        )
+    summary = "; ".join(f"{grain_key}={count}" for grain_key, count in conflict_group_row_counts)
+    raise CanonicalGrainCollisionBlockedError(
+        (
+            f"unresolved canonical grain collisions: {len(conflicts)} groups ({summary}); "
+            "Lane C winner selection required"
+        ),
+        conflict_group_count=len(conflicts),
+        conflict_group_row_counts=conflict_group_row_counts,
+    )
 
 
 def _resolve_lineage_identity_hashes(
@@ -389,13 +403,7 @@ def build_source_002_cleaning_request(
         for row_input, identity in zip(row_inputs, parsed_identities, strict=True)
     )
     july_exclusions = build_july_cohort_exclusions(source_rows=source_rows)
-    grain_exclusions = build_canonical_grain_collision_exclusions(source_rows=source_rows)
-    manual_exclusions = tuple(
-        sorted(
-            (*july_exclusions, *grain_exclusions),
-            key=lambda item: item.exclusion_event_id,
-        )
-    )
+    assert_no_canonical_grain_collisions_or_fail(source_rows=source_rows)
     return CleaningBuildRequest(
         source_cohort_id=SOURCE_002_COHORT_ID,
         persisted_raw_source_artifact_identity_hashes=(artifact_hash,),
@@ -413,7 +421,7 @@ def build_source_002_cleaning_request(
         exclusion_schema_version=EXCLUSION_SCHEMA_VERSION,
         quality_rule_version=QUALITY_RULE_VERSION,
         manual_corrections=manual_corrections,
-        manual_exclusions=manual_exclusions,
+        manual_exclusions=july_exclusions,
     )
 
 
@@ -433,6 +441,26 @@ def _fetch_source_002_controlled_batch(
             "SOURCE_002 controlled import batch is not materialized in Lane A"
         )
     return batch
+
+
+def _emit_source_002_run_report(
+    *,
+    ingest_first_seen_row_count: int,
+    ingest_replay_row_count: int,
+    july_excluded_row_count: int,
+    canonical_non_excluded_row_count: int,
+    grain_conflict_group_count: int,
+) -> None:
+    report = (
+        "SOURCE_002_E3_REPORT "
+        f"e2_first_seen={ingest_first_seen_row_count} "
+        f"e2_exact_replay={ingest_replay_row_count} "
+        f"july_excluded={july_excluded_row_count} "
+        f"canonical_non_excluded={canonical_non_excluded_row_count} "
+        f"grain_conflict_groups={grain_conflict_group_count}"
+    )
+    logger.info(report)
+    print(report, flush=True)
 
 
 def _canonical_cleaned_row_count(cleaning: CleaningBuildResult) -> int:
@@ -460,11 +488,7 @@ def clean_source_002_from_persisted(
         for row in request.source_rows
         if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
     )
-    grain_count = sum(
-        1
-        for entry in cleaning.exclusion_ledger_entries
-        if entry.exclusion_reason_reference == SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON
-    )
+    grain_conflict_group_count = len(canonical_grain_collision_groups(request.source_rows))
     return Source002CleaningResult(
         ingest_source_row_count=len(request.source_rows),
         ingest_first_seen_row_count=0,
@@ -472,7 +496,7 @@ def clean_source_002_from_persisted(
         raw_source_row_count=len(request.source_rows),
         canonical_source_row_count=_canonical_cleaned_row_count(cleaning),
         july_excluded_row_count=july_count,
-        grain_collision_exclusion_count=grain_count,
+        grain_conflict_group_count=grain_conflict_group_count,
         cleaning=cleaning,
     )
 
@@ -504,11 +528,21 @@ def controlled_clean_source_002_from_environment(
         search_roots=search_roots,
     )
     batch = ingest_result.batch_registration.identity
-    request = build_source_002_cleaning_request(
-        session,
-        artifact_bytes=artifact_bytes,
-        batch=batch,
-    )
+    try:
+        request = build_source_002_cleaning_request(
+            session,
+            artifact_bytes=artifact_bytes,
+            batch=batch,
+        )
+    except CanonicalGrainCollisionBlockedError as exc:
+        _emit_source_002_run_report(
+            ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+            ingest_replay_row_count=ingest_result.replay_row_count,
+            july_excluded_row_count=SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT,
+            canonical_non_excluded_row_count=0,
+            grain_conflict_group_count=exc.conflict_group_count,
+        )
+        raise
     cleaning = build_cleaned_dataset(request)
     if persist:
         persist_cleaning_build_result(session, cleaning)
@@ -517,19 +551,23 @@ def controlled_clean_source_002_from_environment(
         for row in request.source_rows
         if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
     )
-    grain_count = sum(
-        1
-        for entry in cleaning.exclusion_ledger_entries
-        if entry.exclusion_reason_reference == SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON
+    grain_conflict_group_count = len(canonical_grain_collision_groups(request.source_rows))
+    canonical_non_excluded = _canonical_cleaned_row_count(cleaning)
+    _emit_source_002_run_report(
+        ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+        ingest_replay_row_count=ingest_result.replay_row_count,
+        july_excluded_row_count=july_count,
+        canonical_non_excluded_row_count=canonical_non_excluded,
+        grain_conflict_group_count=grain_conflict_group_count,
     )
     return Source002CleaningResult(
         ingest_source_row_count=ingest_result.source_row_count,
         ingest_first_seen_row_count=ingest_result.first_seen_row_count,
         ingest_replay_row_count=ingest_result.replay_row_count,
         raw_source_row_count=len(request.source_rows),
-        canonical_source_row_count=_canonical_cleaned_row_count(cleaning),
+        canonical_source_row_count=canonical_non_excluded,
         july_excluded_row_count=july_count,
-        grain_collision_exclusion_count=grain_count,
+        grain_conflict_group_count=grain_conflict_group_count,
         cleaning=cleaning,
     )
 

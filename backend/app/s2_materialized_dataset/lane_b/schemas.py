@@ -15,10 +15,8 @@ CANONICAL_GRAIN = "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
 SOURCE_002_MAPPED_SEASON_BUSINESS_KEY = "2025~2026"
 SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY = "UNMAPPED_NOT_IN_S1_COHORT"
 SOURCE_002_JULY_COHORT_EXCLUSION_REASON = "source-002-s1-cohort-unmapped-july-2025-07-22-option-a"
-SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON = (
-    "source-002-canonical-grain-collision-loser-exclusion-v1"
-)
 SOURCE_002_CLEANING_DECISION_AUTHORITY = "source-002-final-source-cohort-manifest-v1"
+SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT = 2
 
 
 class QuantityPresenceStatus(StrEnum):
@@ -155,6 +153,21 @@ class LaneASourceRowsNotMaterializedError(ValueError):
 
 class Source002CleaningBlockedError(ValueError):
     """SOURCE_002 cleaning cannot proceed under governed policy."""
+
+
+class CanonicalGrainCollisionBlockedError(Source002CleaningBlockedError):
+    """Unresolved canonical-grain collisions require Lane C winner selection."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        conflict_group_count: int,
+        conflict_group_row_counts: tuple[tuple[str, int], ...],
+    ) -> None:
+        super().__init__(message)
+        self.conflict_group_count = conflict_group_count
+        self.conflict_group_row_counts = conflict_group_row_counts
 
 
 class CleaningBuildRequest(_FrozenContractModel):
@@ -320,5 +333,5 @@ class Source002CleaningResult(_FrozenContractModel):
     raw_source_row_count: int
     canonical_source_row_count: int
     july_excluded_row_count: int
-    grain_collision_exclusion_count: int
+    grain_conflict_group_count: int
     cleaning: CleaningBuildResult
