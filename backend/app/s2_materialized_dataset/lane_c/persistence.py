@@ -525,8 +525,8 @@ def controlled_persist_source_002_idfl_from_environment(
     content_hashes: list[str] = []
     winner_blocked = 0
     winner_rows_resolved = 0
-    winner_sql_persist_blocked = (
-        revision_winner_sql_persist_blocked_without_forecast_cutoff(session)
+    winner_sql_persist_blocked = revision_winner_sql_persist_blocked_without_forecast_cutoff(
+        session
     )
 
     for identity_hash in e3_result.cleaning.version.source_row_identity_hashes:
