@@ -64,11 +64,10 @@ from backend.app.s2_materialized_dataset.lane_b.quality import (
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION,
     SOURCE_002_CLEANING_DECISION_AUTHORITY,
-    SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT,
+    SOURCE_002_CLEANING_POLICY_VERSION,
     SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
     SOURCE_002_MAPPED_SEASON_BUSINESS_KEY,
     SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY,
-    CanonicalGrainCollisionBlockedError,
     CanonicalGrainKey,
     CleanedDatasetVersionRecord,
     CleanedRowRecord,
@@ -98,9 +97,8 @@ __all__ = [
     "SOURCE_002_JULY_EXCLUSION_DATE",
     "SOURCE_002_SEASON_END",
     "SOURCE_002_SEASON_START",
-    "assert_no_canonical_grain_collisions_or_fail",
-    "assert_replay_parity",
     "build_canonical_grain_key",
+    "assert_replay_parity",
     "build_cleaned_dataset",
     "build_july_cohort_exclusions",
     "build_source_002_cleaning_request",
@@ -110,6 +108,7 @@ __all__ = [
     "controlled_clean_source_002_from_environment",
     "resolve_quantity_presence",
     "resolve_source_002_season_business_key",
+    "reconcile_source_002_kg_sums_or_fail",
     "source_row_input_from_persisted_lane_a",
 ]
 
@@ -644,27 +643,107 @@ def _emit_source_002_diagnostic_report(diagnostics: Source002E3DiagnosticReport)
         print(sample_line, flush=True)
 
 
-def assert_no_canonical_grain_collisions_or_fail(
+def _kg_sum_non_excluded_source_rows(
     *,
     source_rows: tuple[SyntheticSourceRowInput, ...],
-    diagnostics: Source002E3DiagnosticReport | None = None,
-) -> int:
-    conflicts = canonical_grain_collision_groups(source_rows)
-    if not conflicts:
-        return 0
-    conflict_group_row_counts = tuple(
-        (grain_key, len(row_hashes)) for grain_key, row_hashes in sorted(conflicts.items())
+    exclusion_entries: tuple[ExclusionLedgerEntryRecord, ...],
+) -> Decimal:
+    total = Decimal("0")
+    for source_row in source_rows:
+        source_hash = _source_row_identity_hash(source_row)
+        if is_row_excluded(source_row_identity_hash=source_hash, entries=exclusion_entries):
+            continue
+        quantity = source_row.actual_harvest_quantity_kg
+        if quantity is None:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded source row is missing kilogram quantity for reconciliation"
+            )
+        if quantity < 0:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded source row has negative kilogram quantity for reconciliation"
+            )
+        total += quantity
+    return total
+
+
+def _kg_sum_non_excluded_cleaned_grains(cleaning: CleaningBuildResult) -> Decimal:
+    total = Decimal("0")
+    for row in cleaning.cleaned_rows:
+        if row.is_excluded:
+            continue
+        quantity = row.effective_actual_harvest_quantity_kg
+        if quantity is None:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded cleaned row is missing effective kilogram quantity for reconciliation"
+            )
+        if quantity < 0:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded cleaned row has negative effective kilogram quantity"
+            )
+        total += quantity
+    return total
+
+
+def reconcile_source_002_kg_sums_or_fail(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+    cleaning: CleaningBuildResult,
+) -> tuple[Decimal, Decimal]:
+    kg_sum_source_rows = _kg_sum_non_excluded_source_rows(
+        source_rows=source_rows,
+        exclusion_entries=cleaning.exclusion_ledger_entries,
     )
-    summary = "; ".join(f"{grain_key}={count}" for grain_key, count in conflict_group_row_counts)
-    raise CanonicalGrainCollisionBlockedError(
-        (
-            f"unresolved canonical grain collisions: {len(conflicts)} groups ({summary}); "
-            "Lane C winner selection required"
-        ),
-        conflict_group_count=len(conflicts),
-        conflict_group_row_counts=conflict_group_row_counts,
-        diagnostics=diagnostics,
+    kg_sum_cleaned_grains = _kg_sum_non_excluded_cleaned_grains(cleaning)
+    kg_equal = kg_sum_source_rows == kg_sum_cleaned_grains
+    reconcile_line = (
+        "SOURCE_002_E3_KG_RECONCILE "
+        f"kg_sum_source_rows={format(kg_sum_source_rows, 'f')} "
+        f"kg_sum_cleaned_grains={format(kg_sum_cleaned_grains, 'f')} "
+        f"kg_equal={str(kg_equal).lower()}"
     )
+    logger.info(reconcile_line)
+    print(reconcile_line, flush=True)
+    if not kg_equal:
+        raise Source002GrainKgSumBlockedError(
+            "SOURCE_002 kilogram reconciliation failed: "
+            "source-row sum does not equal cleaned-grain sum"
+        )
+    return kg_sum_source_rows, kg_sum_cleaned_grains
+
+
+def _emit_source_002_e3_sum_report(
+    *,
+    ingest_first_seen_row_count: int,
+    ingest_replay_row_count: int,
+    july_excluded_row_count: int,
+    diagnostics: Source002E3DiagnosticReport,
+    unique_canonical_grains_persisted: int,
+    kg_sum_source_rows: Decimal,
+    kg_sum_cleaned_grains: Decimal,
+    cleaned_dataset_version_identity_hash: str,
+    cleaned_dataset_version_content_hash: str,
+    replay_identity_match: bool,
+    replay_content_match: bool,
+) -> None:
+    report = (
+        "SOURCE_002_E3_SUM_REPORT "
+        f"e2_first_seen={ingest_first_seen_row_count} "
+        f"e2_exact_replay={ingest_replay_row_count} "
+        f"july_excluded={july_excluded_row_count} "
+        f"source_rows_in_scope={diagnostics.source_rows_in_scope} "
+        f"collision_grain_count={diagnostics.collision_grain_count} "
+        f"unique_canonical_grains_persisted={unique_canonical_grains_persisted} "
+        f"kg_sum_source_rows={format(kg_sum_source_rows, 'f')} "
+        f"kg_sum_cleaned_grains={format(kg_sum_cleaned_grains, 'f')} "
+        f"kg_equal=true "
+        f"cleaned_dataset_version_identity_hash={cleaned_dataset_version_identity_hash} "
+        f"cleaned_dataset_version_content_hash={cleaned_dataset_version_content_hash} "
+        f"replay_identity_match={str(replay_identity_match).lower()} "
+        f"replay_content_match={str(replay_content_match).lower()} "
+        f"e3_status=PERSISTED"
+    )
+    logger.info(report)
+    print(report, flush=True)
 
 
 def _resolve_lineage_identity_hashes(
@@ -732,7 +811,6 @@ def build_source_002_cleaning_request(
 ) -> tuple[CleaningBuildRequest, Source002E3DiagnosticReport]:
     from backend.app.s2_materialized_dataset.lane_b.hashes import (
         CLEANED_SCHEMA_VERSION,
-        CLEANING_POLICY_VERSION,
         CLEANING_PROJECTION_VERSION,
         CORRECTION_POLICY_VERSION,
         CORRECTION_SCHEMA_VERSION,
@@ -786,7 +864,7 @@ def build_source_002_cleaning_request(
             persisted_raw_import_batch_identity_hashes=(batch_hash,),
             source_rows=source_rows,
             mapping_registry_hash=SOURCE_002_MAPPING_SNAPSHOT_HASH,
-            cleaning_policy_version=CLEANING_POLICY_VERSION,
+            cleaning_policy_version=SOURCE_002_CLEANING_POLICY_VERSION,
             quality_policy_version=QUALITY_POLICY_VERSION,
             correction_policy_version=CORRECTION_POLICY_VERSION,
             exclusion_policy_version=EXCLUSION_POLICY_VERSION,
@@ -888,6 +966,7 @@ def controlled_clean_source_002_from_environment(
     *,
     search_roots: tuple[Path, ...] = (),
     persist: bool = True,
+    previous_result: Source002CleaningResult | None = None,
 ) -> Source002CleaningResult:
     from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
         verify_source_002_frozen_object_identity,
@@ -910,22 +989,16 @@ def controlled_clean_source_002_from_environment(
         search_roots=search_roots,
     )
     batch = ingest_result.batch_registration.identity
-    try:
-        request, diagnostics = build_source_002_cleaning_request(
-            session,
-            artifact_bytes=artifact_bytes,
-            batch=batch,
-        )
-    except CanonicalGrainCollisionBlockedError as exc:
-        _emit_source_002_run_report(
-            ingest_first_seen_row_count=ingest_result.first_seen_row_count,
-            ingest_replay_row_count=ingest_result.replay_row_count,
-            july_excluded_row_count=SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT,
-            canonical_non_excluded_row_count=0,
-            grain_conflict_group_count=exc.conflict_group_count,
-        )
-        raise
+    request, diagnostics = build_source_002_cleaning_request(
+        session,
+        artifact_bytes=artifact_bytes,
+        batch=batch,
+    )
     cleaning = build_cleaned_dataset(request)
+    kg_sum_source_rows, kg_sum_cleaned_grains = reconcile_source_002_kg_sums_or_fail(
+        source_rows=request.source_rows,
+        cleaning=cleaning,
+    )
     if persist:
         persist_cleaning_build_result(session, cleaning)
     july_count = sum(
@@ -933,14 +1006,39 @@ def controlled_clean_source_002_from_environment(
         for row in request.source_rows
         if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
     )
-    grain_conflict_group_count = len(canonical_grain_collision_groups(request.source_rows))
+    grain_conflict_group_count = diagnostics.collision_grain_count
     canonical_non_excluded = _canonical_cleaned_row_count(cleaning)
+    version_identity_hash = cleaning.version.cleaned_dataset_version_identity_hash
+    version_content_hash = cleaning.version.cleaned_dataset_version_content_hash
+    replay_identity_match = (
+        True
+        if previous_result is None
+        else previous_result.cleaned_dataset_version_identity_hash == version_identity_hash
+    )
+    replay_content_match = (
+        True
+        if previous_result is None
+        else previous_result.cleaned_dataset_version_content_hash == version_content_hash
+    )
     _emit_source_002_run_report(
         ingest_first_seen_row_count=ingest_result.first_seen_row_count,
         ingest_replay_row_count=ingest_result.replay_row_count,
         july_excluded_row_count=july_count,
         canonical_non_excluded_row_count=canonical_non_excluded,
         grain_conflict_group_count=grain_conflict_group_count,
+    )
+    _emit_source_002_e3_sum_report(
+        ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+        ingest_replay_row_count=ingest_result.replay_row_count,
+        july_excluded_row_count=july_count,
+        diagnostics=diagnostics,
+        unique_canonical_grains_persisted=canonical_non_excluded,
+        kg_sum_source_rows=kg_sum_source_rows,
+        kg_sum_cleaned_grains=kg_sum_cleaned_grains,
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        cleaned_dataset_version_content_hash=version_content_hash,
+        replay_identity_match=replay_identity_match,
+        replay_content_match=replay_content_match,
     )
     return Source002CleaningResult(
         ingest_source_row_count=ingest_result.source_row_count,
@@ -951,6 +1049,10 @@ def controlled_clean_source_002_from_environment(
         july_excluded_row_count=july_count,
         grain_conflict_group_count=grain_conflict_group_count,
         diagnostics=diagnostics,
+        kg_sum_source_rows=kg_sum_source_rows,
+        kg_sum_cleaned_grains=kg_sum_cleaned_grains,
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        cleaned_dataset_version_content_hash=version_content_hash,
         cleaning=cleaning,
     )
 

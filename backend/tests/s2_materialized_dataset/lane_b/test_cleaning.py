@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
@@ -17,6 +18,7 @@ from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     build_cleaned_dataset,
     build_july_cohort_exclusions,
     build_source_002_e3_grain_diagnostics,
+    reconcile_source_002_kg_sums_or_fail,
     resolve_quantity_presence,
     resolve_source_002_season_business_key,
     source_row_input_from_persisted_lane_a,
@@ -33,6 +35,7 @@ from backend.app.s2_materialized_dataset.lane_b.persistence import (
 )
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION,
+    SOURCE_002_CLEANING_POLICY_VERSION,
     SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
     SOURCE_002_MAPPED_SEASON_BUSINESS_KEY,
     SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY,
@@ -327,7 +330,8 @@ def test_july_cohort_exclusions_reference_option_a_reason() -> None:
     assert exclusions[0].exclusion_reason_reference == SOURCE_002_JULY_COHORT_EXCLUSION_REASON
 
 
-def test_source_002_canonical_grain_kg_sum_collapses_collision_group(
+def test_source_002_canonical_grain_kg_sum_collapses_10_plus_8_and_reconciles(
+    sqlite_session,
     synthetic_batch,
     synthetic_artifact,
     cleaning_build_request: CleaningBuildRequest,
@@ -344,33 +348,62 @@ def test_source_002_canonical_grain_kg_sum_collapses_collision_group(
         artifact=synthetic_artifact,
         logical_id="logical-b",
         harvest_date=date(2026, 2, 10),
-        quantity=Decimal("20.000000"),
+        quantity=Decimal("8.000000"),
     )
-    hash_a = make_source_row_identity_hash(row_a)
-    hash_b = make_source_row_identity_hash(row_b)
-    row_a = row_a.model_copy(update={"persisted_source_row_identity_hash": hash_a})
-    row_b = row_b.model_copy(update={"persisted_source_row_identity_hash": hash_b})
-
-    diagnostics = build_source_002_e3_grain_diagnostics(
-        (row_a, row_b),
-        july_excluded_row_count=0,
-    )
-    assert diagnostics.collision_grain_count == 1
-    assert diagnostics.kg_in_collision_grains == Decimal("30.000000")
-
     request = cleaning_build_request.model_copy(
         update={
             "source_rows": (row_a, row_b),
+            "cleaning_policy_version": SOURCE_002_CLEANING_POLICY_VERSION,
             "canonical_grain_kg_sum_ledger_policy_version": (
                 SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
             ),
         }
     )
     result = build_cleaned_dataset(request)
+    kg_sum_source_rows, kg_sum_cleaned_grains = reconcile_source_002_kg_sums_or_fail(
+        source_rows=request.source_rows,
+        cleaning=result,
+    )
+    assert kg_sum_source_rows == Decimal("18.000000")
+    assert kg_sum_cleaned_grains == Decimal("18.000000")
     active_rows = [row for row in result.cleaned_rows if not row.is_excluded]
     assert len(active_rows) == 1
-    assert active_rows[0].effective_actual_harvest_quantity_kg == Decimal("30.000000")
-    assert len(result.version.source_row_identity_hashes) == 2
+    assert active_rows[0].effective_actual_harvest_quantity_kg == Decimal("18.000000")
+    persist_cleaning_build_result(sqlite_session, result)
+    sqlite_session.commit()
+
+
+def test_source_002_kg_sum_replay_produces_identical_version_hashes(
+    cleaning_build_request: CleaningBuildRequest,
+    synthetic_batch,
+    synthetic_artifact,
+) -> None:
+    row_a = make_source_row(
+        batch=synthetic_batch,
+        artifact=synthetic_artifact,
+        logical_id="logical-a",
+        harvest_date=date(2026, 2, 10),
+        quantity=Decimal("10.000000"),
+    )
+    row_b = make_source_row(
+        batch=synthetic_batch,
+        artifact=synthetic_artifact,
+        logical_id="logical-b",
+        harvest_date=date(2026, 2, 10),
+        quantity=Decimal("8.000000"),
+    )
+    request = cleaning_build_request.model_copy(
+        update={
+            "source_rows": (row_a, row_b),
+            "cleaning_policy_version": SOURCE_002_CLEANING_POLICY_VERSION,
+            "canonical_grain_kg_sum_ledger_policy_version": (
+                SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+            ),
+        }
+    )
+    first = build_cleaned_dataset(request)
+    second = build_cleaned_dataset(request)
+    assert_replay_parity(first, second)
 
 
 def test_source_002_kg_sum_blocks_mixed_known_and_unknown_in_one_grain(
@@ -396,6 +429,13 @@ def test_source_002_kg_sum_blocks_mixed_known_and_unknown_in_one_grain(
     )
     with pytest.raises(Source002GrainKgSumBlockedError):
         build_cleaned_dataset(request)
+
+
+def test_lane_b_source_002_paths_do_not_reference_lane_c_winner_selection() -> None:
+    lane_b_root = Path(__file__).resolve().parents[3] / "app" / "s2_materialized_dataset" / "lane_b"
+    forbidden = "Lane C winner"
+    for path in lane_b_root.rglob("*.py"):
+        assert forbidden not in path.read_text(encoding="utf-8"), path
 
 
 def test_e3_grain_diagnostics_no_collision_allows_persist(
