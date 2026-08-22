@@ -80,6 +80,15 @@ def compute_canonical_grain_key_payload(
     }
 
 
+def compute_collapsed_grain_source_row_identity_hash(
+    contributor_source_row_identity_hashes: Iterable[str],
+) -> str:
+    sorted_hashes = tuple(sorted(contributor_source_row_identity_hashes))
+    if len(sorted_hashes) == 1:
+        return sorted_hashes[0]
+    return digest({"contributor_source_row_identity_hashes": sorted_hashes})
+
+
 def compute_synthetic_raw_source_artifact_identity_hash(
     artifact: Mapping[str, Any],
 ) -> str:
@@ -300,35 +309,46 @@ def compute_cleaned_row_content_hash(
     quality_finding_identity_hashes: Iterable[str],
     correction_ledger_entry_identity_hashes: Iterable[str],
     exclusion_ledger_entry_identity_hashes: Iterable[str],
+    contributor_source_row_identity_hashes: Iterable[str] | None = None,
+    canonical_grain_kg_sum_ledger_policy_version: str | None = None,
 ) -> str:
+    payload: dict[str, object] = {
+        "source_row_identity": source_row_identity_hash,
+        "canonical_grain_key": dict(canonical_grain_key),
+        "cleaning_projection_version": cleaning_projection_version,
+        "cleaned_row_schema_version": cleaned_row_schema_version,
+        "cleaning_policy_version": cleaning_policy_version,
+        "correction_policy_version": correction_policy_version,
+        "exclusion_policy_version": exclusion_policy_version,
+        "source_actual_harvest_quantity_kg": _canonical_optional_decimal(
+            source_actual_harvest_quantity_kg
+        ),
+        "effective_actual_harvest_quantity_kg": _canonical_optional_decimal(
+            effective_actual_harvest_quantity_kg
+        ),
+        "quantity_presence_status": quantity_presence_status,
+        "is_excluded": is_excluded,
+        "quality_finding_identity_hashes": tuple(sorted(quality_finding_identity_hashes)),
+        "correction_ledger_entry_identity_hashes": tuple(
+            sorted(correction_ledger_entry_identity_hashes)
+        ),
+        "exclusion_ledger_entry_identity_hashes": tuple(
+            sorted(exclusion_ledger_entry_identity_hashes)
+        ),
+    }
+    if contributor_source_row_identity_hashes is not None:
+        payload["contributor_source_row_identity_hashes"] = tuple(
+            sorted(contributor_source_row_identity_hashes)
+        )
+    if canonical_grain_kg_sum_ledger_policy_version is not None:
+        payload["canonical_grain_kg_sum_ledger_policy_version"] = (
+            canonical_grain_kg_sum_ledger_policy_version
+        )
     return digest(
         {
             "policy_version": CLEANED_ROW_IDENTITY_POLICY_VERSION,
             "serialization_profile": S2_CANONICAL_SERIALIZATION_PROFILE,
-            "payload": {
-                "source_row_identity": source_row_identity_hash,
-                "canonical_grain_key": dict(canonical_grain_key),
-                "cleaning_projection_version": cleaning_projection_version,
-                "cleaned_row_schema_version": cleaned_row_schema_version,
-                "cleaning_policy_version": cleaning_policy_version,
-                "correction_policy_version": correction_policy_version,
-                "exclusion_policy_version": exclusion_policy_version,
-                "source_actual_harvest_quantity_kg": _canonical_optional_decimal(
-                    source_actual_harvest_quantity_kg
-                ),
-                "effective_actual_harvest_quantity_kg": _canonical_optional_decimal(
-                    effective_actual_harvest_quantity_kg
-                ),
-                "quantity_presence_status": quantity_presence_status,
-                "is_excluded": is_excluded,
-                "quality_finding_identity_hashes": tuple(sorted(quality_finding_identity_hashes)),
-                "correction_ledger_entry_identity_hashes": tuple(
-                    sorted(correction_ledger_entry_identity_hashes)
-                ),
-                "exclusion_ledger_entry_identity_hashes": tuple(
-                    sorted(exclusion_ledger_entry_identity_hashes)
-                ),
-            },
+            "payload": payload,
         }
     )
 

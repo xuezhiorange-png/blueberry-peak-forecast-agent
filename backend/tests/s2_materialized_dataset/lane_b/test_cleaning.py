@@ -13,12 +13,10 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
 )
 from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     SOURCE_002_JULY_EXCLUSION_DATE,
-    assert_no_canonical_grain_collisions_or_fail,
     assert_replay_parity,
     build_cleaned_dataset,
     build_july_cohort_exclusions,
     build_source_002_e3_grain_diagnostics,
-    canonical_grain_collision_groups,
     resolve_quantity_presence,
     resolve_source_002_season_business_key,
     source_row_input_from_persisted_lane_a,
@@ -34,15 +32,16 @@ from backend.app.s2_materialized_dataset.lane_b.persistence import (
     persist_cleaning_build_result,
 )
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
+    SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION,
     SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
     SOURCE_002_MAPPED_SEASON_BUSINESS_KEY,
     SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY,
-    CanonicalGrainCollisionBlockedError,
     CleaningBuildRequest,
     ExclusionCode,
     ManualCorrectionRequest,
     QuantityPresenceStatus,
     Source002CleaningBlockedError,
+    Source002GrainKgSumBlockedError,
     SyntheticSourceRowInput,
 )
 from backend.tests.s2_materialized_dataset.lane_b.conftest import (
@@ -328,9 +327,10 @@ def test_july_cohort_exclusions_reference_option_a_reason() -> None:
     assert exclusions[0].exclusion_reason_reference == SOURCE_002_JULY_COHORT_EXCLUSION_REASON
 
 
-def test_canonical_grain_collision_fails_closed_with_group_counts(
+def test_source_002_canonical_grain_kg_sum_collapses_collision_group(
     synthetic_batch,
     synthetic_artifact,
+    cleaning_build_request: CleaningBuildRequest,
 ) -> None:
     row_a = make_source_row(
         batch=synthetic_batch,
@@ -354,43 +354,48 @@ def test_canonical_grain_collision_fails_closed_with_group_counts(
     diagnostics = build_source_002_e3_grain_diagnostics(
         (row_a, row_b),
         july_excluded_row_count=0,
-        dimension_hints={
-            "logical-a": ("chain-a", "size-a"),
-            "logical-b": ("chain-b", "size-b"),
-        },
     )
-    assert diagnostics.source_rows_in_scope == 2
-    assert diagnostics.unique_canonical_grains == 1
-    assert diagnostics.singleton_grain_count == 0
     assert diagnostics.collision_grain_count == 1
-    assert diagnostics.rows_in_singleton_grains == 0
-    assert diagnostics.rows_in_collision_grains == 2
     assert diagnostics.kg_in_collision_grains == Decimal("30.000000")
-    assert diagnostics.kg_total_in_scope == Decimal("30.000000")
-    assert diagnostics.collision_group_size_min == 2
-    assert diagnostics.collision_group_size_p50 == 2
-    assert diagnostics.collision_group_size_p90 == 2
-    assert diagnostics.collision_group_size_max == 2
-    assert len(diagnostics.collision_group_samples) == 1
-    assert diagnostics.collision_group_samples[0].chain_distinct_count == 2
-    assert diagnostics.collision_group_samples[0].fruit_size_distinct_count == 2
-    assert set(diagnostics.collision_group_samples[0].kg_values) == {
-        "10.000000",
-        "20.000000",
-    }
 
-    conflicts = canonical_grain_collision_groups(source_rows=(row_a, row_b))
-    assert len(conflicts) == 1
-    assert len(next(iter(conflicts.values()))) == 2
+    request = cleaning_build_request.model_copy(
+        update={
+            "source_rows": (row_a, row_b),
+            "canonical_grain_kg_sum_ledger_policy_version": (
+                SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+            ),
+        }
+    )
+    result = build_cleaned_dataset(request)
+    active_rows = [row for row in result.cleaned_rows if not row.is_excluded]
+    assert len(active_rows) == 1
+    assert active_rows[0].effective_actual_harvest_quantity_kg == Decimal("30.000000")
+    assert len(result.version.source_row_identity_hashes) == 2
 
-    with pytest.raises(CanonicalGrainCollisionBlockedError) as exc_info:
-        assert_no_canonical_grain_collisions_or_fail(
-            source_rows=(row_a, row_b),
-            diagnostics=diagnostics,
-        )
-    assert exc_info.value.conflict_group_count == 1
-    assert exc_info.value.conflict_group_row_counts[0][1] == 2
-    assert exc_info.value.diagnostics == diagnostics
+
+def test_source_002_kg_sum_blocks_mixed_known_and_unknown_in_one_grain(
+    synthetic_batch,
+    synthetic_artifact,
+    cleaning_build_request: CleaningBuildRequest,
+    missing_quantity_row: SyntheticSourceRowInput,
+) -> None:
+    known_row = make_source_row(
+        batch=synthetic_batch,
+        artifact=synthetic_artifact,
+        logical_id="logical-known",
+        harvest_date=date(2026, 2, 10),
+        quantity=Decimal("10.000000"),
+    )
+    request = cleaning_build_request.model_copy(
+        update={
+            "source_rows": (known_row, missing_quantity_row),
+            "canonical_grain_kg_sum_ledger_policy_version": (
+                SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+            ),
+        }
+    )
+    with pytest.raises(Source002GrainKgSumBlockedError):
+        build_cleaned_dataset(request)
 
 
 def test_e3_grain_diagnostics_no_collision_allows_persist(
@@ -412,11 +417,14 @@ def test_e3_grain_diagnostics_no_collision_allows_persist(
     assert diagnostics.collision_group_size_min == 0
     assert diagnostics.collision_group_samples == ()
 
-    assert_no_canonical_grain_collisions_or_fail(
-        source_rows=(known_quantity_row,),
-        diagnostics=diagnostics,
+    request = cleaning_build_request.model_copy(
+        update={
+            "canonical_grain_kg_sum_ledger_policy_version": (
+                SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+            ),
+        }
     )
-    result = build_cleaned_dataset(cleaning_build_request)
+    result = build_cleaned_dataset(request)
     row = persist_cleaning_build_result(sqlite_session, result)
     sqlite_session.commit()
     assert row.row_count == 1
