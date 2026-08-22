@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from backend.app.s2_materialized_dataset.shared.contracts import (
     SOURCE_COHORT_MANIFEST_SHA256,
+    SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED,
+    SOURCE_002_ROW_LEVEL_READ,
     LaneAUpstreamPort,
     LaneBUpstreamPort,
     LaneCUpstreamPort,
@@ -20,6 +22,11 @@ from backend.tests.s2_materialized_dataset.lane_d.conftest import (
     complete_upstream,
     make_row,
 )
+
+
+def test_source_002_controlled_sql_flag_enabled() -> None:
+    assert SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED is True
+    assert SOURCE_002_ROW_LEVEL_READ is False
 
 
 def test_register_upstream_exposes_bundle_ports() -> None:

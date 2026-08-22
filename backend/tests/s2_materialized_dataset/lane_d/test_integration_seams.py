@@ -20,6 +20,7 @@ from backend.app.repositories import (
 from backend.app.s2_materialized_dataset.lane_d.builder import build_materialized_dataset
 from backend.app.s2_materialized_dataset.shared.contracts import (
     MATERIALIZED_DATASET_API_POLICY_VERSION,
+    SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED,
     SOURCE_002_ROW_LEVEL_READ,
     PartitionName,
 )
@@ -155,6 +156,10 @@ def test_api_init_exports_materialized_datasets_router() -> None:
 
 def test_source_002_row_level_read_remains_false() -> None:
     assert SOURCE_002_ROW_LEVEL_READ is False
+
+
+def test_source_002_controlled_sql_materialization_enabled() -> None:
+    assert SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED is True
 
 
 @pytest.mark.asyncio
