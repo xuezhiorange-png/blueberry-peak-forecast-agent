@@ -12,6 +12,16 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 SOURCE_COHORT_ID = "source-002-s1-cohort-v1"
 CANONICAL_GRAIN = "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE"
 
+SOURCE_002_MAPPED_SEASON_BUSINESS_KEY = "2025~2026"
+SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY = "UNMAPPED_NOT_IN_S1_COHORT"
+SOURCE_002_JULY_COHORT_EXCLUSION_REASON = "source-002-s1-cohort-unmapped-july-2025-07-22-option-a"
+SOURCE_002_CLEANING_DECISION_AUTHORITY = "source-002-final-source-cohort-manifest-v1"
+SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT = 2
+SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION = "s2-source-002-canonical-grain-kg-sum-v1"
+SOURCE_002_CLEANING_POLICY_VERSION = (
+    "v0-3-s2-cleaning-policy-v2+" + SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+)
+
 
 class QuantityPresenceStatus(StrEnum):
     KNOWN = "KNOWN"
@@ -103,6 +113,11 @@ class SyntheticSourceRowInput(_FrozenContractModel):
     missing_record_semantics: str = "UNKNOWN_NOT_ZERO"
     record_status: str = "FINALIZED"
     source_recorded_at: datetime | None = None
+    persisted_source_row_identity_hash: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+    )
 
     @model_validator(mode="after")
     def _reject_zero_imputation_for_unknown(self) -> Self:
@@ -136,10 +151,52 @@ class ManualExclusionRequest(_FrozenContractModel):
     quality_finding_identity_hash: str | None = Field(default=None, min_length=64, max_length=64)
 
 
+class LaneASourceRowsNotMaterializedError(ValueError):
+    """Lane A SOURCE_002 facts are not persisted and E3 cleaning must stop."""
+
+
+class Source002CleaningBlockedError(ValueError):
+    """SOURCE_002 cleaning cannot proceed under governed policy."""
+
+
+class Source002GrainKgSumBlockedError(Source002CleaningBlockedError):
+    """Canonical-grain kilogram sum collapse cannot proceed under ledger policy."""
+
+
+class Source002E3CollisionGroupSample(_FrozenContractModel):
+    farm_business_key: str
+    subfarm_business_key: str
+    variety_business_key: str
+    harvest_business_date: date
+    row_count: int
+    chain_distinct_count: int
+    fruit_size_distinct_count: int
+    kg_values: tuple[str, ...]
+
+
+class Source002E3DiagnosticReport(_FrozenContractModel):
+    source_rows_in_scope: int
+    unique_canonical_grains: int
+    singleton_grain_count: int
+    collision_grain_count: int
+    rows_in_singleton_grains: int
+    rows_in_collision_grains: int
+    kg_in_singleton_grains: Decimal
+    kg_in_collision_grains: Decimal
+    kg_total_in_scope: Decimal
+    collision_group_size_min: int
+    collision_group_size_p50: int
+    collision_group_size_p90: int
+    collision_group_size_max: int
+    collision_group_samples: tuple[Source002E3CollisionGroupSample, ...] = ()
+
+
 class CleaningBuildRequest(_FrozenContractModel):
     source_cohort_id: str = SOURCE_COHORT_ID
-    raw_source_artifacts: tuple[SyntheticRawSourceArtifactIdentity, ...]
-    raw_import_batches: tuple[SyntheticRawImportBatchIdentity, ...]
+    raw_source_artifacts: tuple[SyntheticRawSourceArtifactIdentity, ...] = ()
+    raw_import_batches: tuple[SyntheticRawImportBatchIdentity, ...] = ()
+    persisted_raw_source_artifact_identity_hashes: tuple[str, ...] = ()
+    persisted_raw_import_batch_identity_hashes: tuple[str, ...] = ()
     source_rows: tuple[SyntheticSourceRowInput, ...]
     mapping_registry_hash: str = Field(min_length=64, max_length=64)
     cleaning_policy_version: str
@@ -154,8 +211,16 @@ class CleaningBuildRequest(_FrozenContractModel):
     quality_rule_version: str
     manual_corrections: tuple[ManualCorrectionRequest, ...] = ()
     manual_exclusions: tuple[ManualExclusionRequest, ...] = ()
+    canonical_grain_kg_sum_ledger_policy_version: str | None = None
 
-    @field_validator("raw_source_artifacts", "raw_import_batches", "source_rows", mode="before")
+    @field_validator(
+        "raw_source_artifacts",
+        "raw_import_batches",
+        "source_rows",
+        "persisted_raw_source_artifact_identity_hashes",
+        "persisted_raw_import_batch_identity_hashes",
+        mode="before",
+    )
     @classmethod
     def _coerce_sequences(cls, value: object) -> object:
         if isinstance(value, list):
@@ -166,6 +231,26 @@ class CleaningBuildRequest(_FrozenContractModel):
     def _require_non_empty_rows(self) -> Self:
         if not self.source_rows:
             raise ValueError("cleaning build requires at least one source row")
+        return self
+
+    @model_validator(mode="after")
+    def _require_lineage_binding(self) -> Self:
+        has_synthetic = bool(self.raw_source_artifacts or self.raw_import_batches)
+        has_persisted = bool(
+            self.persisted_raw_source_artifact_identity_hashes
+            or self.persisted_raw_import_batch_identity_hashes
+        )
+        if has_synthetic and has_persisted:
+            raise ValueError("cleaning build cannot mix synthetic and persisted lineage")
+        if not has_synthetic and not has_persisted:
+            raise ValueError("cleaning build requires synthetic or persisted lineage")
+        if has_synthetic and (not self.raw_source_artifacts or not self.raw_import_batches):
+            raise ValueError("synthetic cleaning build requires artifact and batch identities")
+        if has_persisted and (
+            not self.persisted_raw_source_artifact_identity_hashes
+            or not self.persisted_raw_import_batch_identity_hashes
+        ):
+            raise ValueError("persisted cleaning build requires artifact and batch hashes")
         return self
 
 
@@ -261,3 +346,19 @@ class CleaningBuildResult(_FrozenContractModel):
     quality_findings: tuple[QualityFindingRecord, ...]
     correction_ledger_entries: tuple[CorrectionLedgerEntryRecord, ...]
     exclusion_ledger_entries: tuple[ExclusionLedgerEntryRecord, ...]
+
+
+class Source002CleaningResult(_FrozenContractModel):
+    ingest_source_row_count: int
+    ingest_first_seen_row_count: int
+    ingest_replay_row_count: int
+    raw_source_row_count: int
+    canonical_source_row_count: int
+    july_excluded_row_count: int
+    grain_conflict_group_count: int
+    diagnostics: Source002E3DiagnosticReport | None = None
+    kg_sum_source_rows: Decimal | None = None
+    kg_sum_cleaned_grains: Decimal | None = None
+    cleaned_dataset_version_identity_hash: str | None = None
+    cleaned_dataset_version_content_hash: str | None = None
+    cleaning: CleaningBuildResult
