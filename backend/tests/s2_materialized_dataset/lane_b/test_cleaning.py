@@ -18,6 +18,7 @@ from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     build_cleaned_dataset,
     build_july_cohort_exclusions,
     canonical_grain_collision_groups,
+    resolve_quantity_presence,
     resolve_source_002_season_business_key,
     source_row_input_from_persisted_lane_a,
 )
@@ -294,6 +295,21 @@ def test_source_002_july_date_uses_unmapped_sentinel_not_auto_season() -> None:
 def test_source_002_out_of_scope_date_fails_closed() -> None:
     with pytest.raises(Source002CleaningBlockedError):
         resolve_source_002_season_business_key(date(2024, 1, 1))
+
+
+def test_persisted_lane_a_zero_kg_uses_known_quantity_semantics() -> None:
+    row_input, identity = _persisted_identity(
+        logical_id="zero-kg-row",
+        harvest_date=date(2026, 2, 10),
+        quantity=Decimal("0"),
+    )
+    source_row = source_row_input_from_persisted_lane_a(
+        row_input=row_input,
+        persisted_identity=identity,
+    )
+    assert source_row.actual_harvest_quantity_kg == Decimal("0")
+    assert source_row.missing_record_semantics == "KNOWN"
+    assert resolve_quantity_presence(source_row) == QuantityPresenceStatus.KNOWN
 
 
 def test_july_cohort_exclusions_reference_option_a_reason() -> None:

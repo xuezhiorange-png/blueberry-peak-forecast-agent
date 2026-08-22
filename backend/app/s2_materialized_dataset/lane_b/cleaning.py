@@ -231,6 +231,8 @@ def source_row_input_from_persisted_lane_a(
         variety_business_key=business.variety_code,
         harvest_business_date=harvest_date,
         actual_harvest_quantity_kg=business.actual_harvest_quantity_kg,
+        # Lane A rejects missing weights; explicit zero kg is a known quantity.
+        missing_record_semantics="KNOWN",
         persisted_source_row_identity_hash=persisted_identity.source_row_identity_hash,
     )
 
