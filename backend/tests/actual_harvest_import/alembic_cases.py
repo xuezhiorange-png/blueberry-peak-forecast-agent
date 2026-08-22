@@ -41,6 +41,8 @@ MIGRATION_LANE_C_PATH = (
     _ALEMBIC_VERSIONS_DIR / "8c6aead9f8e9_s2_lane_c_pit_visibility_revision_winner.py"
 )
 MIGRATION_LANE_C_REVISION = "8c6aead9f8e9"
+MIGRATION_LANE_D_PATH = _ALEMBIC_VERSIONS_DIR / "d4e8f1a2b3c5_s2_lane_d_materialized_dataset.py"
+MIGRATION_LANE_D_REVISION = "d4e8f1a2b3c5"
 
 
 def _migration_module() -> ModuleType:
@@ -83,11 +85,11 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
     # 0022 remains the I7 lineage parent for finalized_at, 0023 remains the
-    # S2 historical binding extension, and Lane C is the current unique head.
+    # S2 historical binding extension, and Lane D is the current unique head.
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_LANE_C_REVISION], (
-        f"alembic heads must be [{MIGRATION_LANE_C_REVISION!r}], got {heads!r}"
+    assert heads == [MIGRATION_LANE_D_REVISION], (
+        f"alembic heads must be [{MIGRATION_LANE_D_REVISION!r}], got {heads!r}"
     )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
@@ -172,6 +174,14 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     spec_lane_c.loader.exec_module(migration_lane_c)
     assert migration_lane_c.revision == MIGRATION_LANE_C_REVISION
     assert migration_lane_c.down_revision == MIGRATION_LANE_B_REVISION
+    spec_lane_d = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_lane_d", MIGRATION_LANE_D_PATH
+    )
+    assert spec_lane_d is not None and spec_lane_d.loader is not None
+    migration_lane_d = importlib.util.module_from_spec(spec_lane_d)
+    spec_lane_d.loader.exec_module(migration_lane_d)
+    assert migration_lane_d.revision == MIGRATION_LANE_D_REVISION
+    assert migration_lane_d.down_revision == MIGRATION_LANE_C_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
