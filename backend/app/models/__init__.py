@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from backend.app.actual_harvest_import.commit_models import (
     ActualHarvestCommitManifestModel,
 )
@@ -184,6 +188,9 @@ __all__ = [
     "RollingBacktestResolvedInput",
     "RollingBacktestRun",
     "RollingBacktestStageEvent",
+    "S2MaterializedDatasetModel",
+    "S2MaterializedMaterializableRowModel",
+    "S2MaterializedPartitionModel",
     "Task9AuthorityLifecycleEvent",
     "Task9CapacityPoolDefinition",
     "Task9CapacityPoolMember",
@@ -206,3 +213,17 @@ __all__ = [
     "WeatherImportRun",
     "WeatherSourceLocation",
 ]
+
+_S2_MODEL_EXPORTS = {
+    "S2MaterializedDatasetModel",
+    "S2MaterializedMaterializableRowModel",
+    "S2MaterializedPartitionModel",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _S2_MODEL_EXPORTS:
+        from backend.app.s2_materialized_dataset.lane_d import service as lane_d_service
+
+        return getattr(lane_d_service, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
