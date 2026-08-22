@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -18,8 +19,10 @@ from backend.app.s2_materialized_dataset.lane_a.hashes import (
     compute_source_row_identity_hash,
 )
 from backend.app.s2_materialized_dataset.lane_a.persistence import (
+    bulk_insert_source_row_lineage,
     derive_winner_selection_blocked,
     fetch_source_row_by_identity_and_content,
+    fetch_source_row_content_index_for_batch,
     fetch_source_rows_by_identity_hash,
     insert_source_row_lineage,
 )
@@ -29,6 +32,8 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SOURCE_002_EXPECTED_FIELD_COUNT,
     SOURCE_002_EXPECTED_HEADERS,
     SOURCE_002_IDFL_REVISION_ID,
+    SOURCE_002_INGEST_BATCH_SIZE,
+    SOURCE_002_INGEST_PROGRESS_INTERVAL,
     SOURCE_002_OBSERVED_SCHEMA_SHA256,
     SOURCE_002_ROW_EVIDENCE_IDENTITY_POLICY_VERSION,
     SOURCE_002_SCHEMA_VERSION,
@@ -43,6 +48,13 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SourceRowRegistration,
     SourceRowRegistrationResult,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SourceRowBatchRegistrationSummary:
+    first_seen_count: int
+    replay_count: int
+    conflict_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -400,4 +412,75 @@ def register_source_row_lineage(
     return SourceRowRegistration(
         result=SourceRowRegistrationResult.FIRST_SEEN,
         identity=_with_derived_blocked_state(session, identity=persisted),
+    )
+
+
+def register_source_row_identities_batched(
+    session: Session,
+    *,
+    batch_identity_hash: str,
+    row_identities: tuple[SourceRowIdentity, ...],
+    batch_size: int = SOURCE_002_INGEST_BATCH_SIZE,
+    progress_interval: int = SOURCE_002_INGEST_PROGRESS_INTERVAL,
+    progress_logger: logging.Logger | None = None,
+) -> SourceRowBatchRegistrationSummary:
+    logger = progress_logger or logging.getLogger(__name__)
+    content_index = fetch_source_row_content_index_for_batch(
+        session,
+        raw_import_batch_identity_hash=batch_identity_hash,
+    )
+    first_seen_count = 0
+    replay_count = 0
+    conflict_count = 0
+    pending: list[SourceRowIdentity] = []
+    total_rows = len(row_identities)
+
+    def _flush_pending() -> None:
+        nonlocal first_seen_count
+        if not pending:
+            return
+        bulk_insert_source_row_lineage(session, identities=tuple(pending))
+        for identity in pending:
+            content_index.setdefault(identity.source_row_identity_hash, set()).add(
+                identity.content_sha256
+            )
+            first_seen_count += 1
+        pending.clear()
+
+    for index, identity in enumerate(row_identities, start=1):
+        existing_contents = content_index.get(identity.source_row_identity_hash)
+        if existing_contents is not None and identity.content_sha256 in existing_contents:
+            replay_count += 1
+        elif existing_contents is not None:
+            insert_source_row_lineage(session, identity=identity)
+            content_index.setdefault(identity.source_row_identity_hash, set()).add(
+                identity.content_sha256
+            )
+            conflict_count += 1
+        else:
+            pending.append(identity)
+            if len(pending) >= batch_size:
+                _flush_pending()
+
+        if progress_interval > 0 and index % progress_interval == 0:
+            logger.info(
+                "lane_a source_002 ingest progress rows=%s/%s first_seen=%s replay=%s",
+                index,
+                total_rows,
+                first_seen_count + len(pending),
+                replay_count,
+            )
+
+    _flush_pending()
+    logger.info(
+        "lane_a source_002 ingest complete rows=%s first_seen=%s replay=%s conflict=%s",
+        total_rows,
+        first_seen_count,
+        replay_count,
+        conflict_count,
+    )
+    return SourceRowBatchRegistrationSummary(
+        first_seen_count=first_seen_count,
+        replay_count=replay_count,
+        conflict_count=conflict_count,
     )
