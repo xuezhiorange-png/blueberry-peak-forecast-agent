@@ -31,6 +31,11 @@ LANE_C_MIGRATION_PATH = (
 )
 LANE_C_MIGRATION_REVISION = "8c6aead9f8e9"
 LANE_C_MIGRATION_DOWN_REVISION = "2af278a20e2a"
+LANE_C_E4B_MIGRATION_PATH = (
+    _BACKEND_ROOT / "alembic" / "versions" / "a7c3e9f1b2d4_s2_lane_c_idfl_label_side_winner.py"
+)
+LANE_C_E4B_MIGRATION_REVISION = "a7c3e9f1b2d4"
+LANE_C_E4B_MIGRATION_DOWN_REVISION = "d4e8f1a2b3c5"
 
 
 def _lane_c_migration_module():
@@ -48,6 +53,42 @@ def assert_lane_c_alembic_revision_contract() -> None:
     module = _lane_c_migration_module()
     assert module.revision == LANE_C_MIGRATION_REVISION
     assert module.down_revision == LANE_C_MIGRATION_DOWN_REVISION
+
+
+def _lane_c_e4b_migration_module():
+    spec = importlib.util.spec_from_file_location(
+        "lane_c_migration_e4b",
+        LANE_C_E4B_MIGRATION_PATH,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def assert_lane_c_e4b_alembic_revision_contract() -> None:
+    module = _lane_c_e4b_migration_module()
+    assert module.revision == LANE_C_E4B_MIGRATION_REVISION
+    assert module.down_revision == LANE_C_E4B_MIGRATION_DOWN_REVISION
+
+
+@pytest.fixture
+def lane_c_e4b_migrated_session() -> Iterator[Session]:
+    lane_c_module = _lane_c_migration_module()
+    e4b_module = _lane_c_e4b_migration_module()
+    engine = sa.create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        lane_c_module.op = Operations(MigrationContext.configure(connection))
+        lane_c_module.upgrade()
+        e4b_module.op = Operations(MigrationContext.configure(connection))
+        e4b_module.upgrade()
+    maker = sessionmaker(bind=engine, expire_on_commit=False)
+    session = maker()
+    try:
+        yield session
+    finally:
+        session.close()
+        engine.dispose()
 
 
 @pytest.fixture
