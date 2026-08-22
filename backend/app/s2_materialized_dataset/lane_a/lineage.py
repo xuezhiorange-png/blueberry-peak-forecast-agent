@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from hashlib import sha256
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SOURCE_002_CONTROLLED_EXTERNAL_BATCH_ID,
     SOURCE_002_CONTROLLED_IMPORT_REQUEST_IDENTITY,
     SOURCE_002_IMPORT_POLICY_VERSION,
+    SOURCE_002_INGEST_BATCH_SIZE,
+    SOURCE_002_INGEST_PROGRESS_INTERVAL,
     SOURCE_002_MAPPING_POLICY_VERSION,
     SOURCE_002_MAPPING_SNAPSHOT_HASH,
     SOURCE_002_SCHEMA_VERSION,
@@ -31,7 +34,6 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     Source002IdentityVerificationRecord,
     Source002IdentityVerificationStatus,
     SourceRowLineageChain,
-    SourceRowRegistrationResult,
 )
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_source_002_artifact_input,
@@ -41,8 +43,10 @@ from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
 from backend.app.s2_materialized_dataset.lane_a.source_row import (
     build_source_row_identity,
     iter_source_002_row_inputs,
-    register_source_row_lineage,
+    register_source_row_identities_batched,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def query_source_row_lineage_chain(
@@ -141,28 +145,31 @@ def controlled_ingest_source_002(
         source_row_identities=placeholder_rows,
     )
     batch_hash = batch_registration.identity.raw_import_batch_identity_hash
-
-    first_seen_row_count = 0
-    replay_row_count = 0
-    for row_input in row_inputs:
-        row_registration = register_source_row_lineage(
-            session,
-            artifact_identity_hash=artifact_hash,
-            batch_identity_hash=batch_hash,
-            row_input=row_input,
-        )
-        if row_registration.result == SourceRowRegistrationResult.FIRST_SEEN:
-            first_seen_row_count += 1
-        else:
-            replay_row_count += 1
+    row_identities = tuple(
+        identity.model_copy(update={"raw_import_batch_identity_hash": batch_hash})
+        for identity in placeholder_rows
+    )
+    logger.info(
+        "lane_a source_002 row ingest starting rows=%s batch_size=%s",
+        len(row_identities),
+        SOURCE_002_INGEST_BATCH_SIZE,
+    )
+    row_summary = register_source_row_identities_batched(
+        session,
+        batch_identity_hash=batch_hash,
+        row_identities=row_identities,
+        batch_size=SOURCE_002_INGEST_BATCH_SIZE,
+        progress_interval=SOURCE_002_INGEST_PROGRESS_INTERVAL,
+        progress_logger=logger,
+    )
 
     return Source002ControlledIngestResult(
         verification=verification,
         artifact_registration=artifact_registration,
         batch_registration=batch_registration,
-        source_row_count=len(row_inputs),
-        first_seen_row_count=first_seen_row_count,
-        replay_row_count=replay_row_count,
+        source_row_count=len(row_identities),
+        first_seen_row_count=row_summary.first_seen_count,
+        replay_row_count=row_summary.replay_count,
     )
 
 

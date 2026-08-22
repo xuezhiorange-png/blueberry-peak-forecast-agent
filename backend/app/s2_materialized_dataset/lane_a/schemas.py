@@ -28,9 +28,7 @@ _LANE_A_URL_PATH_RE = re.compile(
     r"(?:https?://|ftp://|//|\\\\|[a-zA-Z]:[\\/]|docs\.google\.com|drive\.google)",
     re.IGNORECASE,
 )
-_LANE_A_VERSION_REFERENCE_PATTERN = re.compile(
-    r"^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$"
-)
+_LANE_A_VERSION_REFERENCE_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$")
 
 
 def validate_lane_a_governed_business_identity(value: object, *, field_name: str) -> str:
@@ -130,9 +128,7 @@ SOURCE_002_MAPPING_POLICY_VERSION = "source-002-mapping-policy-v1"
 SOURCE_002_MAPPING_SNAPSHOT_HASH = (
     "6f07bc878935060f57a2ef24318d6d3b17e27c7f096885f813ac80bed6ac9d10"
 )
-SOURCE_002_STORAGE_LOCATOR_HASH = (
-    "df39369fde69dd0f573952dcc84f8c0f8c3376541c7447e104bb7869400afb5a"
-)
+SOURCE_002_STORAGE_LOCATOR_HASH = "df39369fde69dd0f573952dcc84f8c0f8c3376541c7447e104bb7869400afb5a"
 SOURCE_002_FORBIDDEN_STORAGE_LOCATOR_HASH = (
     "b8808e32eec032060894b9839dae7969bccad50ba4bf0c399fe19c5b16958eb9"
 )
@@ -146,6 +142,8 @@ SOURCE_002_CONTROLLED_IMPORT_REQUEST_IDENTITY = "source-002-controlled-materiali
 SOURCE_002_CONTROLLED_EXTERNAL_BATCH_ID = "source-002-controlled-materialization-batch-v1"
 SOURCE_002_ROW_EVIDENCE_IDENTITY_POLICY_VERSION = "v0-3-s2-source-002-row-evidence-identity-v1"
 SOURCE_002_FROZEN_OBJECT_PATH_ENV = "SOURCE_002_FROZEN_OBJECT_PATH"
+SOURCE_002_INGEST_BATCH_SIZE = 5000
+SOURCE_002_INGEST_PROGRESS_INTERVAL = 10000
 
 
 class SourceArtifactRegistrationResult(StrEnum):
