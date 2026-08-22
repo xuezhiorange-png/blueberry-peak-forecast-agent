@@ -2,6 +2,34 @@
 
 from __future__ import annotations
 
+from datetime import date
+from pathlib import Path
+
+from sqlalchemy.orm import Session
+
+from backend.app.s2_materialized_dataset.lane_a.lineage import (
+    controlled_ingest_source_002_from_environment,
+    run_source_002_identity_verification,
+)
+from backend.app.s2_materialized_dataset.lane_a.persistence import (
+    fetch_import_batch_by_external_identity,
+    fetch_source_row_by_identity_and_content,
+)
+from backend.app.s2_materialized_dataset.lane_a.schemas import (
+    SOURCE_002_COHORT_ID,
+    SOURCE_002_CONTROLLED_EXTERNAL_BATCH_ID,
+    SOURCE_002_DECLARED_ROW_COUNT,
+    SOURCE_002_MAPPING_SNAPSHOT_HASH,
+    SOURCE_002_SOURCE_SYSTEM,
+    RawImportBatchIdentity,
+    Source002IdentityVerificationStatus,
+    SourceRowIdentity,
+    SourceRowLineageInput,
+)
+from backend.app.s2_materialized_dataset.lane_a.source_row import (
+    build_source_row_identity,
+    iter_source_002_row_inputs,
+)
 from backend.app.s2_materialized_dataset.lane_b.correction_ledger import (
     build_correction_ledger_entries,
     correction_identities_for_row,
@@ -29,25 +57,52 @@ from backend.app.s2_materialized_dataset.lane_b.quality import (
     findings_for_source_row,
 )
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
+    SOURCE_002_CLEANING_DECISION_AUTHORITY,
+    SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON,
+    SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
+    SOURCE_002_MAPPED_SEASON_BUSINESS_KEY,
+    SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY,
     CanonicalGrainKey,
     CleanedDatasetVersionRecord,
     CleanedRowRecord,
     CleaningBuildRequest,
     CleaningBuildResult,
     CorrectionLedgerEntryRecord,
+    ExclusionCode,
     ExclusionLedgerEntryRecord,
+    LaneASourceRowsNotMaterializedError,
+    ManualCorrectionRequest,
+    ManualExclusionRequest,
     QuantityPresenceStatus,
+    Source002CleaningBlockedError,
+    Source002CleaningResult,
+    SyntheticSourceRowIdentity,
     SyntheticSourceRowInput,
 )
 
 __all__ = [
     "CleanedDatasetVersionConflictError",
     "CleanedRowConflictError",
+    "SOURCE_002_JULY_EXCLUSION_DATE",
+    "SOURCE_002_SEASON_END",
+    "SOURCE_002_SEASON_START",
     "assert_replay_parity",
+    "build_canonical_grain_collision_exclusions",
     "build_canonical_grain_key",
     "build_cleaned_dataset",
+    "build_july_cohort_exclusions",
+    "build_source_002_cleaning_request",
+    "clean_source_002_from_persisted",
+    "controlled_clean_source_002_from_environment",
     "resolve_quantity_presence",
+    "resolve_source_002_season_business_key",
+    "source_row_input_from_persisted_lane_a",
 ]
+
+
+SOURCE_002_SEASON_START = date(2025, 8, 1)
+SOURCE_002_SEASON_END = date(2026, 6, 30)
+SOURCE_002_JULY_EXCLUSION_DATE = date(2025, 7, 22)
 
 
 class CleanedDatasetVersionConflictError(ValueError):
@@ -128,8 +183,355 @@ def build_canonical_grain_key(source_row: SyntheticSourceRowInput) -> CanonicalG
 
 
 def _source_row_identity_hash(source_row: SyntheticSourceRowInput) -> str:
+    if source_row.persisted_source_row_identity_hash is not None:
+        return source_row.persisted_source_row_identity_hash
     identity = source_row.identity.model_dump(mode="python")
     return compute_synthetic_source_row_identity_hash(identity)
+
+
+def resolve_source_002_season_business_key(harvest_business_date: date) -> str:
+    if harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE:
+        return SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY
+    if SOURCE_002_SEASON_START <= harvest_business_date <= SOURCE_002_SEASON_END:
+        return SOURCE_002_MAPPED_SEASON_BUSINESS_KEY
+    raise Source002CleaningBlockedError(
+        f"harvest date {harvest_business_date.isoformat()} is outside governed season mapping"
+    )
+
+
+def source_row_input_from_persisted_lane_a(
+    *,
+    row_input: SourceRowLineageInput,
+    persisted_identity: SourceRowIdentity,
+) -> SyntheticSourceRowInput:
+    business = row_input.business_content
+    harvest_date = business.harvest_business_date
+    return SyntheticSourceRowInput(
+        identity=SyntheticSourceRowIdentity(
+            raw_source_artifact_identity_hash=persisted_identity.raw_source_artifact_identity_hash,
+            raw_import_batch_identity_hash=persisted_identity.raw_import_batch_identity_hash,
+            external_logical_record_id=persisted_identity.external_logical_record_id,
+            external_revision_id=persisted_identity.external_revision_id,
+            revision_number=persisted_identity.revision_number,
+            source_system=persisted_identity.source_system,
+            source_row_identity_version=persisted_identity.source_row_identity_version,
+            schema_version=persisted_identity.schema_version,
+            source_version=persisted_identity.source_version,
+            source_sheet_name=persisted_identity.source_sheet_name,
+            source_row_number=persisted_identity.source_row_number,
+        ),
+        season_business_key=resolve_source_002_season_business_key(harvest_date),
+        farm_business_key=business.farm_code,
+        subfarm_business_key=business.subfarm_or_plot_code,
+        variety_business_key=business.variety_code,
+        harvest_business_date=harvest_date,
+        actual_harvest_quantity_kg=business.actual_harvest_quantity_kg,
+        persisted_source_row_identity_hash=persisted_identity.source_row_identity_hash,
+    )
+
+
+def build_july_cohort_exclusions(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+) -> tuple[ManualExclusionRequest, ...]:
+    exclusions: list[ManualExclusionRequest] = []
+    for source_row in source_rows:
+        if source_row.harvest_business_date != SOURCE_002_JULY_EXCLUSION_DATE:
+            continue
+        source_hash = _source_row_identity_hash(source_row)
+        exclusions.append(
+            ManualExclusionRequest(
+                exclusion_event_id=f"source-002-s1-july-cohort-exclusion:{source_hash}",
+                source_row_identity_hash=source_hash,
+                exclusion_code=ExclusionCode.BUSINESS_EXCLUSION,
+                exclusion_reason_reference=SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
+                decision_authority_reference=SOURCE_002_CLEANING_DECISION_AUTHORITY,
+            )
+        )
+    return tuple(sorted(exclusions, key=lambda item: item.exclusion_event_id))
+
+
+def build_canonical_grain_collision_exclusions(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+) -> tuple[ManualExclusionRequest, ...]:
+    groups: dict[str, list[str]] = {}
+    for source_row in source_rows:
+        if source_row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE:
+            continue
+        grain_key = build_canonical_grain_key(source_row).canonical_grain_key
+        groups.setdefault(grain_key, []).append(_source_row_identity_hash(source_row))
+
+    exclusions: list[ManualExclusionRequest] = []
+    for _grain_key, row_hashes in sorted(groups.items()):
+        if len(row_hashes) <= 1:
+            continue
+        survivor = min(row_hashes)
+        for loser_hash in sorted(row_hashes):
+            if loser_hash == survivor:
+                continue
+            exclusions.append(
+                ManualExclusionRequest(
+                    exclusion_event_id=(
+                        f"source-002-canonical-grain-collision-exclusion:{loser_hash}"
+                    ),
+                    source_row_identity_hash=loser_hash,
+                    exclusion_code=ExclusionCode.QUALITY_BLOCKED,
+                    exclusion_reason_reference=SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON,
+                    decision_authority_reference=SOURCE_002_CLEANING_DECISION_AUTHORITY,
+                    quality_finding_identity_hash=None,
+                )
+            )
+    return tuple(sorted(exclusions, key=lambda item: item.exclusion_event_id))
+
+
+def _resolve_lineage_identity_hashes(
+    request: CleaningBuildRequest,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if request.persisted_raw_source_artifact_identity_hashes:
+        return (
+            tuple(sorted(request.persisted_raw_source_artifact_identity_hashes)),
+            tuple(sorted(request.persisted_raw_import_batch_identity_hashes)),
+        )
+    artifact_hashes = tuple(
+        sorted(
+            compute_synthetic_raw_source_artifact_identity_hash(artifact.model_dump(mode="python"))
+            for artifact in request.raw_source_artifacts
+        )
+    )
+    batch_hashes = tuple(
+        sorted(
+            compute_synthetic_raw_import_batch_identity_hash(batch.model_dump(mode="python"))
+            for batch in request.raw_import_batches
+        )
+    )
+    return artifact_hashes, batch_hashes
+
+
+def _verify_persisted_lane_a_batch(
+    session: Session,
+    *,
+    batch: RawImportBatchIdentity,
+    parsed_identities: tuple[SourceRowIdentity, ...],
+) -> None:
+    if batch.source_cohort_id != SOURCE_002_COHORT_ID:
+        raise Source002CleaningBlockedError("SOURCE_002 batch cohort binding mismatch")
+    if len(batch.source_row_identity_hashes) != SOURCE_002_DECLARED_ROW_COUNT:
+        raise LaneASourceRowsNotMaterializedError(
+            "SOURCE_002 import batch row count does not match the frozen declaration"
+        )
+    if len(parsed_identities) != SOURCE_002_DECLARED_ROW_COUNT:
+        raise LaneASourceRowsNotMaterializedError(
+            "SOURCE_002 parsed row identities do not match the frozen declaration"
+        )
+    persisted_hashes = set(batch.source_row_identity_hashes)
+    for identity in parsed_identities:
+        if identity.source_row_identity_hash not in persisted_hashes:
+            raise LaneASourceRowsNotMaterializedError(
+                "SOURCE_002 parsed row identity is not present in the persisted import batch"
+            )
+        stored = fetch_source_row_by_identity_and_content(
+            session,
+            source_row_identity_hash=identity.source_row_identity_hash,
+            content_sha256=identity.content_sha256,
+        )
+        if stored is None:
+            raise LaneASourceRowsNotMaterializedError(
+                "SOURCE_002 row lineage is not materialized in Lane A persistence"
+            )
+
+
+def build_source_002_cleaning_request(
+    session: Session,
+    *,
+    artifact_bytes: bytes,
+    batch: RawImportBatchIdentity,
+    manual_corrections: tuple[ManualCorrectionRequest, ...] = (),
+) -> CleaningBuildRequest:
+    from backend.app.s2_materialized_dataset.lane_b.hashes import (
+        CLEANED_SCHEMA_VERSION,
+        CLEANING_POLICY_VERSION,
+        CLEANING_PROJECTION_VERSION,
+        CORRECTION_POLICY_VERSION,
+        CORRECTION_SCHEMA_VERSION,
+        EXCLUSION_POLICY_VERSION,
+        EXCLUSION_SCHEMA_VERSION,
+        QUALITY_POLICY_VERSION,
+        QUALITY_RULE_VERSION,
+        QUALITY_SCHEMA_VERSION,
+    )
+
+    row_inputs = iter_source_002_row_inputs(
+        artifact_bytes,
+        source_column_mapping_snapshot_hash=SOURCE_002_MAPPING_SNAPSHOT_HASH,
+    )
+    artifact_hash = batch.raw_source_artifact_identity_hash
+    batch_hash = batch.raw_import_batch_identity_hash
+    parsed_identities = tuple(
+        build_source_row_identity(
+            artifact_identity_hash=artifact_hash,
+            batch_identity_hash=batch_hash,
+            row_input=row_input,
+        )
+        for row_input in row_inputs
+    )
+    _verify_persisted_lane_a_batch(
+        session,
+        batch=batch,
+        parsed_identities=parsed_identities,
+    )
+
+    source_rows = tuple(
+        source_row_input_from_persisted_lane_a(
+            row_input=row_input,
+            persisted_identity=identity,
+        )
+        for row_input, identity in zip(row_inputs, parsed_identities, strict=True)
+    )
+    july_exclusions = build_july_cohort_exclusions(source_rows=source_rows)
+    grain_exclusions = build_canonical_grain_collision_exclusions(source_rows=source_rows)
+    manual_exclusions = tuple(
+        sorted(
+            (*july_exclusions, *grain_exclusions),
+            key=lambda item: item.exclusion_event_id,
+        )
+    )
+    return CleaningBuildRequest(
+        source_cohort_id=SOURCE_002_COHORT_ID,
+        persisted_raw_source_artifact_identity_hashes=(artifact_hash,),
+        persisted_raw_import_batch_identity_hashes=(batch_hash,),
+        source_rows=source_rows,
+        mapping_registry_hash=SOURCE_002_MAPPING_SNAPSHOT_HASH,
+        cleaning_policy_version=CLEANING_POLICY_VERSION,
+        quality_policy_version=QUALITY_POLICY_VERSION,
+        correction_policy_version=CORRECTION_POLICY_VERSION,
+        exclusion_policy_version=EXCLUSION_POLICY_VERSION,
+        cleaned_schema_version=CLEANED_SCHEMA_VERSION,
+        cleaning_projection_version=CLEANING_PROJECTION_VERSION,
+        quality_schema_version=QUALITY_SCHEMA_VERSION,
+        correction_schema_version=CORRECTION_SCHEMA_VERSION,
+        exclusion_schema_version=EXCLUSION_SCHEMA_VERSION,
+        quality_rule_version=QUALITY_RULE_VERSION,
+        manual_corrections=manual_corrections,
+        manual_exclusions=manual_exclusions,
+    )
+
+
+def _fetch_source_002_controlled_batch(
+    session: Session,
+    *,
+    artifact_identity_hash: str,
+) -> RawImportBatchIdentity:
+    batch = fetch_import_batch_by_external_identity(
+        session,
+        raw_source_artifact_identity_hash=artifact_identity_hash,
+        source_system=SOURCE_002_SOURCE_SYSTEM,
+        external_batch_id=SOURCE_002_CONTROLLED_EXTERNAL_BATCH_ID,
+    )
+    if batch is None:
+        raise LaneASourceRowsNotMaterializedError(
+            "SOURCE_002 controlled import batch is not materialized in Lane A"
+        )
+    return batch
+
+
+def _canonical_cleaned_row_count(cleaning: CleaningBuildResult) -> int:
+    return sum(1 for row in cleaning.cleaned_rows if not row.is_excluded)
+
+
+def clean_source_002_from_persisted(
+    session: Session,
+    *,
+    artifact_bytes: bytes,
+    artifact_identity_hash: str,
+) -> Source002CleaningResult:
+    batch = _fetch_source_002_controlled_batch(
+        session,
+        artifact_identity_hash=artifact_identity_hash,
+    )
+    request = build_source_002_cleaning_request(
+        session,
+        artifact_bytes=artifact_bytes,
+        batch=batch,
+    )
+    cleaning = build_cleaned_dataset(request)
+    july_count = sum(
+        1
+        for row in request.source_rows
+        if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
+    )
+    grain_count = sum(
+        1
+        for entry in cleaning.exclusion_ledger_entries
+        if entry.exclusion_reason_reference == SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON
+    )
+    return Source002CleaningResult(
+        ingest_source_row_count=len(request.source_rows),
+        ingest_first_seen_row_count=0,
+        ingest_replay_row_count=0,
+        raw_source_row_count=len(request.source_rows),
+        canonical_source_row_count=_canonical_cleaned_row_count(cleaning),
+        july_excluded_row_count=july_count,
+        grain_collision_exclusion_count=grain_count,
+        cleaning=cleaning,
+    )
+
+
+def controlled_clean_source_002_from_environment(
+    session: Session,
+    *,
+    search_roots: tuple[Path, ...] = (),
+    persist: bool = True,
+) -> Source002CleaningResult:
+    from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
+        verify_source_002_frozen_object_identity,
+    )
+    from backend.app.s2_materialized_dataset.lane_b.persistence import persist_cleaning_build_result
+
+    verification = run_source_002_identity_verification(search_roots=search_roots)
+    if verification.status != Source002IdentityVerificationStatus.PASS:
+        raise Source002CleaningBlockedError(
+            "SOURCE_002 E3 cleaning requires a passing E1 identity verification"
+        )
+    _, artifact_bytes, _ = verify_source_002_frozen_object_identity(search_roots=search_roots)
+    if artifact_bytes is None:
+        raise Source002CleaningBlockedError(
+            "SOURCE_002 E3 cleaning requires verified immutable artifact bytes"
+        )
+
+    ingest_result = controlled_ingest_source_002_from_environment(
+        session,
+        search_roots=search_roots,
+    )
+    batch = ingest_result.batch_registration.identity
+    request = build_source_002_cleaning_request(
+        session,
+        artifact_bytes=artifact_bytes,
+        batch=batch,
+    )
+    cleaning = build_cleaned_dataset(request)
+    if persist:
+        persist_cleaning_build_result(session, cleaning)
+    july_count = sum(
+        1
+        for row in request.source_rows
+        if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
+    )
+    grain_count = sum(
+        1
+        for entry in cleaning.exclusion_ledger_entries
+        if entry.exclusion_reason_reference == SOURCE_002_GRAIN_COLLISION_EXCLUSION_REASON
+    )
+    return Source002CleaningResult(
+        ingest_source_row_count=ingest_result.source_row_count,
+        ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+        ingest_replay_row_count=ingest_result.replay_row_count,
+        raw_source_row_count=len(request.source_rows),
+        canonical_source_row_count=_canonical_cleaned_row_count(cleaning),
+        july_excluded_row_count=july_count,
+        grain_collision_exclusion_count=grain_count,
+        cleaning=cleaning,
+    )
 
 
 def _prepare_rows(request: CleaningBuildRequest) -> tuple[PreparedCleaningRow, ...]:
@@ -238,18 +640,7 @@ def _build_cleaned_row_record(
 
 
 def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
-    artifact_hashes = tuple(
-        sorted(
-            compute_synthetic_raw_source_artifact_identity_hash(artifact.model_dump(mode="python"))
-            for artifact in request.raw_source_artifacts
-        )
-    )
-    batch_hashes = tuple(
-        sorted(
-            compute_synthetic_raw_import_batch_identity_hash(batch.model_dump(mode="python"))
-            for batch in request.raw_import_batches
-        )
-    )
+    artifact_hashes, batch_hashes = _resolve_lineage_identity_hashes(request)
     prepared_rows = _prepare_rows(request)
     source_row_hashes = tuple(item.source_row_identity_hash for item in prepared_rows)
     duplicate_groups = duplicate_grain_groups(prepared_rows)
