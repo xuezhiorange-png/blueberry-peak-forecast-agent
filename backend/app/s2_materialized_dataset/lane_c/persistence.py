@@ -412,11 +412,42 @@ def persist_idfl_revision_winner_decision(
 
 def count_revision_winner_sql_rows(session: Session) -> int:
     return int(
-        session.scalar(
-            sa.select(sa.func.count()).select_from(S2RevisionWinnerDecisionModel)
-        )
-        or 0
+        session.scalar(sa.select(sa.func.count()).select_from(S2RevisionWinnerDecisionModel)) or 0
     )
+
+
+def _default_source_002_e4_search_roots() -> tuple[Path, ...]:
+    workspace_root = Path(__file__).resolve().parents[4]
+    return (
+        Path("/tmp"),
+        Path("/tmp/source-002-custody"),
+        workspace_root,
+    )
+
+
+def _resolve_source_002_e4_search_roots(
+    search_roots: tuple[Path, ...],
+) -> tuple[Path, ...]:
+    if search_roots:
+        return search_roots
+    return _default_source_002_e4_search_roots()
+
+
+def _ensure_source_002_frozen_object_available(
+    *,
+    search_roots: tuple[Path, ...],
+) -> None:
+    from backend.app.s2_materialized_dataset.lane_a.schemas import (
+        Source002IdentityVerificationStatus,
+    )
+    from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
+        verify_source_002_frozen_object_identity,
+    )
+
+    record, _, _ = verify_source_002_frozen_object_identity(search_roots=search_roots)
+    if record.status != Source002IdentityVerificationStatus.PASS:
+        print("SOURCE_002_E4_OBJECT_MISSING", flush=True)
+        raise FileNotFoundError("SOURCE_002 frozen object not found for E4 materialization")
 
 
 def _emit_source_002_e4_report(result: Source002E4Result) -> None:
@@ -455,9 +486,25 @@ def controlled_persist_source_002_idfl_from_environment(
         controlled_clean_source_002_from_environment,
     )
 
+    resolved_search_roots = _resolve_source_002_e4_search_roots(search_roots)
+    _ensure_source_002_frozen_object_available(search_roots=resolved_search_roots)
+
+    from backend.app.s2_materialized_dataset.lane_a.lineage import (
+        controlled_ingest_source_002_from_environment,
+    )
+
+    existing_lane_a_rows = int(
+        session.scalar(sa.select(sa.func.count()).select_from(S2SourceRowLineageModel)) or 0
+    )
+    if existing_lane_a_rows == 0:
+        controlled_ingest_source_002_from_environment(
+            session,
+            search_roots=resolved_search_roots,
+        )
+
     e3_result = controlled_clean_source_002_from_environment(
         session,
-        search_roots=search_roots,
+        search_roots=resolved_search_roots,
         persist=persist,
     )
     pit_status = resolve_idfl_label_side_pit_status()
@@ -466,22 +513,21 @@ def controlled_persist_source_002_idfl_from_environment(
 
     batch_hashes = e3_result.cleaning.version.raw_import_batch_identity_hashes
     if len(batch_hashes) != 1:
-        raise ValueError(
-            "SOURCE_002 E4 IDFL requires exactly one raw import batch identity hash"
-        )
+        raise ValueError("SOURCE_002 E4 IDFL requires exactly one raw import batch identity hash")
     batch_hash = batch_hashes[0]
     lane_a_rows = session.scalars(
         select(S2SourceRowLineageModel)
         .where(S2SourceRowLineageModel.raw_import_batch_identity_hash == batch_hash)
         .order_by(S2SourceRowLineageModel.source_row_identity_hash)
     ).all()
-    lane_a_by_identity_hash = {
-        row.source_row_identity_hash: row for row in lane_a_rows
-    }
+    lane_a_by_identity_hash = {row.source_row_identity_hash: row for row in lane_a_rows}
 
     content_hashes: list[str] = []
     winner_blocked = 0
     winner_rows_resolved = 0
+    winner_sql_persist_blocked = (
+        revision_winner_sql_persist_blocked_without_forecast_cutoff(session)
+    )
 
     for identity_hash in e3_result.cleaning.version.source_row_identity_hashes:
         lane_a_row = lane_a_by_identity_hash.get(identity_hash)
@@ -495,20 +541,18 @@ def controlled_persist_source_002_idfl_from_environment(
         if decision.blocked:
             winner_blocked += 1
         content_hashes.append(decision.content_sha256)
-        if persist:
+        if persist and not winner_sql_persist_blocked:
             persist_idfl_revision_winner_decision(session, decision)
 
-    winner_rows_sql_persisted = (
-        count_revision_winner_sql_rows(session) if persist else 0
-    )
+    winner_rows_sql_persisted = count_revision_winner_sql_rows(session) if persist else 0
 
     content_hashes_tuple = tuple(content_hashes)
-    replay_identity_match = (
-        True
+    replay_content_match = (
+        False
         if previous_result is None
         else previous_result.revision_winner_content_hashes == content_hashes_tuple
     )
-    replay_content_match = replay_identity_match
+    replay_identity_match = replay_content_match
     kg_sum_equal = (
         e3_result.kg_sum_source_rows is not None
         and e3_result.kg_sum_cleaned_grains is not None
