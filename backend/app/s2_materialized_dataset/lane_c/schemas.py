@@ -5,7 +5,17 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED = False
+SOURCE_AVAILABLE_AT_REQUIRED_FOR_IDFL_LABEL_SIDE = False
+FORECAST_INPUT_VISIBILITY_POLICY_REUSED_FOR_ACTUAL_LABEL = False
+VISIBILITY_BOUNDARY = (
+    "NOT_POINT_IN_TIME_REPLAYABLE_FOR_IDFL_LABEL_SIDE;"
+    " SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED;"
+    " SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED;"
+    " FORECAST_INPUT_VISIBILITY_DOMAIN_SEPARATE"
+)
 
 
 class PitVisibilityBlockReason(StrEnum):
@@ -77,6 +87,17 @@ class ForecastCutoffContext(BaseModel):
     revision_schema_version: str = "v0-3-s2-revision-schema-v1"
 
 
+class IdflLabelSideContext(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    visibility_policy_version: str = "v0-3-s2-idfl-label-side-visibility-v1"
+    visibility_schema_version: str = "v0-3-s2-idfl-label-side-visibility-schema-v1"
+    forecast_cutoff_identity_version: str = "v0-3-s2-idfl-forecast-cutoff-not-applicable-v1"
+    revision_winner_policy_version: str = "v0-3-s2-idfl-revision-winner-v1"
+    revision_schema_version: str = "v0-3-s2-idfl-revision-schema-v1"
+    visibility_boundary: str = VISIBILITY_BOUNDARY
+
+
 class LogicalRecordKey(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -111,7 +132,10 @@ class RevisionWinnerDecision(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     logical_record_key: LogicalRecordKey
-    cutoff_context: ForecastCutoffContext
+    source_row_identity: SourceRowIdentity | None = None
+    timestamps: SourceRowLifecycleTimestamps | None = None
+    cutoff_context: ForecastCutoffContext | None = None
+    idfl_label_side_context: IdflLabelSideContext | None = None
     mode: RevisionWinnerMode
     revision_winner_required: bool
     winner_manifest_required: bool
@@ -121,9 +145,26 @@ class RevisionWinnerDecision(BaseModel):
     ordered_candidate_identities: tuple[str, ...]
     content_sha256: str
 
+    @model_validator(mode="after")
+    def _validate_context_by_mode(self) -> RevisionWinnerDecision:
+        if self.mode is RevisionWinnerMode.IDFL_LABEL_SIDE:
+            if self.cutoff_context is not None:
+                raise ValueError("IDFL_LABEL_SIDE decisions must not carry forecast cutoff context")
+            if self.idfl_label_side_context is None:
+                raise ValueError("IDFL_LABEL_SIDE decisions require idfl_label_side_context")
+            return self
+        if self.idfl_label_side_context is not None:
+            raise ValueError("replay decisions must not carry idfl_label_side_context")
+        if self.cutoff_context is None:
+            raise ValueError("replay decisions require cutoff_context")
+        return self
+
 
 __all__ = [
+    "FORECAST_INPUT_VISIBILITY_POLICY_REUSED_FOR_ACTUAL_LABEL",
     "ForecastCutoffContext",
+    "IdflLabelSideContext",
+    "IDFL_LABEL_SIDE_POINT_IN_TIME_REPLAY_REQUIRED",
     "LogicalRecordKey",
     "PitVisibilityBlockReason",
     "PitVisibilityDecision",
@@ -131,6 +172,8 @@ __all__ = [
     "RevisionWinnerBlockReason",
     "RevisionWinnerDecision",
     "RevisionWinnerMode",
+    "SOURCE_AVAILABLE_AT_REQUIRED_FOR_IDFL_LABEL_SIDE",
     "SourceRowIdentity",
     "SourceRowLifecycleTimestamps",
+    "VISIBILITY_BOUNDARY",
 ]
