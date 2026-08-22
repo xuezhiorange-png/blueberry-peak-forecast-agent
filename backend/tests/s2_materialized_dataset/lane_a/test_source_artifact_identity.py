@@ -259,3 +259,24 @@ def test_source_002_e1_skips_wrong_size_before_reading_bytes(tmp_path: Path, mon
 
     assert record.failure_code == Source002IdentityFailureCode.OBJECT_NOT_FOUND
     assert reads == []
+
+
+def test_source_002_governed_identity_inputs_accept_frozen_metadata() -> None:
+    artifact_input = RawSourceArtifactIdentityInput(
+        source_system=SOURCE_002_SOURCE_SYSTEM,
+        source_dataset=SOURCE_002_SOURCE_DATASET,
+        source_version=SOURCE_002_SOURCE_VERSION,
+        source_snapshot_reference=SOURCE_002_SNAPSHOT_REFERENCE,
+        source_object_identity="snapshot:v0_3_s1:002",
+        source_artifact_sequence=1,
+        schema_version=SOURCE_002_SCHEMA_VERSION,
+        mapping_policy_version="source-002-mapping-policy-v1",
+        source_artifact_identity_version="v0-3-s2-source-artifact-identity-v1",
+        source_owner_attestation="source-002-final-source-owner-attestation-v1",
+        cohort_manifest_reference="source-002-s1-cohort-v1",
+        custody_record_reference="source-002-custody-record-v1",
+        storage_locator_hash=source_002_frozen_storage_locator_hash(),
+    )
+
+    assert artifact_input.source_system == SOURCE_002_SOURCE_SYSTEM
+    assert artifact_input.source_version == SOURCE_002_SOURCE_VERSION
