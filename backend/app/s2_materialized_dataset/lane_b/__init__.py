@@ -6,6 +6,9 @@ from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     assert_replay_parity,
     build_canonical_grain_key,
     build_cleaned_dataset,
+    build_source_002_cleaning_request,
+    clean_source_002_from_persisted,
+    controlled_clean_source_002_from_environment,
     resolve_quantity_presence,
 )
 from backend.app.s2_materialized_dataset.lane_b.correction_ledger import (
@@ -50,8 +53,10 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
     CleaningBuildRequest,
     CleaningBuildResult,
     ExclusionCode,
+    LaneASourceRowsNotMaterializedError,
     QualityFindingCode,
     QuantityPresenceStatus,
+    Source002CleaningResult,
 )
 
 __all__ = [
@@ -68,6 +73,7 @@ __all__ = [
     "CorrectionLedgerConflictError",
     "ExclusionCode",
     "ExclusionLedgerConflictError",
+    "LaneASourceRowsNotMaterializedError",
     "PersistedCleanedDatasetVersionConflictError",
     "QUALITY_POLICY_VERSION",
     "QUALITY_RULE_VERSION",
@@ -77,6 +83,7 @@ __all__ = [
     "QualityFindingCode",
     "QuantityPresenceStatus",
     "SOURCE_COHORT_ID",
+    "Source002CleaningResult",
     "S2CleanedDatasetVersionModel",
     "S2CleanedRowModel",
     "S2CorrectionLedgerEntryModel",
@@ -85,8 +92,11 @@ __all__ = [
     "assert_replay_parity",
     "build_canonical_grain_key",
     "build_cleaned_dataset",
+    "build_source_002_cleaning_request",
     "build_correction_ledger_entries",
     "build_exclusion_ledger_entries",
+    "clean_source_002_from_persisted",
+    "controlled_clean_source_002_from_environment",
     "correction_identities_for_row",
     "effective_quantity_after_corrections",
     "evaluate_quality_findings",
