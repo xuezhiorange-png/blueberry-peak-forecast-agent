@@ -11,6 +11,7 @@ from backend.app.s2_materialized_dataset.lane_c.cutoff import (
 )
 from backend.app.s2_materialized_dataset.lane_c.persistence import (
     LaneCPersistenceStore,
+    count_revision_winner_sql_rows,
     idfl_null_timestamps,
     persist_idfl_revision_winner_decision,
     pit_sql_persist_blocked_without_forecast_cutoff,
@@ -126,7 +127,7 @@ def test_idfl_revision_winner_hash_is_stable_across_replays(
     assert first.content_sha256 == second.content_sha256
 
 
-def test_idfl_revision_winner_can_persist_without_fabricated_cutoff(
+def test_idfl_revision_winner_resolved_without_sql_persist_when_cutoff_required(
     lane_c_migrated_session,
     synthetic_source_row_identity: SourceRowIdentity,
 ) -> None:
@@ -136,20 +137,21 @@ def test_idfl_revision_winner_can_persist_without_fabricated_cutoff(
     decision = resolve_idfl_revision_winner_for_source_row(
         source_row_identity=synthetic_source_row_identity,
     )
-    store = LaneCPersistenceStore()
     first = persist_idfl_revision_winner_decision(
         lane_c_migrated_session,
         decision,
-        store=store,
     )
     second = persist_idfl_revision_winner_decision(
         lane_c_migrated_session,
         decision,
-        store=store,
     )
 
     assert first is None
     assert second is None
+    assert count_revision_winner_sql_rows(lane_c_migrated_session) == 0
+
+    store = LaneCPersistenceStore()
+    store.record_revision_winner(decision)
     assert len(store.revision_winner_decisions) == 1
     assert store.revision_winner_decisions[0].content_sha256 == decision.content_sha256
 

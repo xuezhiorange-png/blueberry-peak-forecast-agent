@@ -340,7 +340,8 @@ class Source002E4Result:
     canonical_non_excluded_row_count: int
     kg_sum_equal: bool
     winner_mode: str
-    winner_rows_persisted: int
+    winner_rows_resolved: int
+    winner_rows_sql_persisted: int
     winner_blocked: int
     pit_rows_persisted: int
     pit_eligible: int
@@ -399,20 +400,23 @@ def lane_c_source_row_identity_from_lane_a(row: Any) -> SourceRowIdentity:
 def persist_idfl_revision_winner_decision(
     session: Session,
     decision: RevisionWinnerDecision,
-    *,
-    store: LaneCPersistenceStore | None = None,
 ) -> S2RevisionWinnerDecisionModel | None:
     if decision.mode is not RevisionWinnerMode.IDFL_LABEL_SIDE:
         raise ValueError("persist_idfl_revision_winner_decision requires IDFL_LABEL_SIDE mode")
-    if store is not None:
-        existing_hashes = {item.content_sha256 for item in store.revision_winner_decisions}
-        if decision.content_sha256 not in existing_hashes:
-            store.record_revision_winner(decision)
     if revision_winner_sql_persist_blocked_without_forecast_cutoff(session):
         return None
     if decision.cutoff_context is None:
         return None
     return persist_revision_winner_decision(session, decision)
+
+
+def count_revision_winner_sql_rows(session: Session) -> int:
+    return int(
+        session.scalar(
+            sa.select(sa.func.count()).select_from(S2RevisionWinnerDecisionModel)
+        )
+        or 0
+    )
 
 
 def _emit_source_002_e4_report(result: Source002E4Result) -> None:
@@ -422,7 +426,8 @@ def _emit_source_002_e4_report(result: Source002E4Result) -> None:
         f"e3_grains={result.canonical_non_excluded_row_count} "
         f"e3_kg_equal={'true' if result.kg_sum_equal else 'false'} "
         f"winner_mode={result.winner_mode} "
-        f"winner_rows_persisted={result.winner_rows_persisted} "
+        f"winner_rows_resolved={result.winner_rows_resolved} "
+        f"winner_rows_sql_persisted={result.winner_rows_sql_persisted} "
         f"winner_blocked={result.winner_blocked} "
         f"pit_rows_persisted={result.pit_rows_persisted} "
         f"pit_eligible={result.pit_eligible} "
@@ -431,6 +436,7 @@ def _emit_source_002_e4_report(result: Source002E4Result) -> None:
     )
     if result.e4_blocked_reason is not None:
         report = f"{report} e4_blocked_reason={result.e4_blocked_reason}"
+    report = f"{report} replay_content_match={'true' if result.replay_content_match else 'false'}"
     logger.info(report)
     print(report, flush=True)
 
@@ -442,9 +448,9 @@ def controlled_persist_source_002_idfl_from_environment(
     persist: bool = True,
     previous_result: Source002E4Result | None = None,
 ) -> Source002E4Result:
-    from backend.app.s2_materialized_dataset.lane_a.persistence import (
-        fetch_source_rows_by_identity_hash,
-    )
+    from sqlalchemy import select
+
+    from backend.app.s2_materialized_dataset.lane_a.persistence import S2SourceRowLineageModel
     from backend.app.s2_materialized_dataset.lane_b.cleaning import (
         controlled_clean_source_002_from_environment,
     )
@@ -458,30 +464,43 @@ def controlled_persist_source_002_idfl_from_environment(
     if pit_status.e4_blocked_reason is not None:
         print(f"E4_BLOCKED_REASON={pit_status.e4_blocked_reason}", flush=True)
 
-    store = LaneCPersistenceStore()
+    batch_hashes = e3_result.cleaning.version.raw_import_batch_identity_hashes
+    if len(batch_hashes) != 1:
+        raise ValueError(
+            "SOURCE_002 E4 IDFL requires exactly one raw import batch identity hash"
+        )
+    batch_hash = batch_hashes[0]
+    lane_a_rows = session.scalars(
+        select(S2SourceRowLineageModel)
+        .where(S2SourceRowLineageModel.raw_import_batch_identity_hash == batch_hash)
+        .order_by(S2SourceRowLineageModel.source_row_identity_hash)
+    ).all()
+    lane_a_by_identity_hash = {
+        row.source_row_identity_hash: row for row in lane_a_rows
+    }
+
     content_hashes: list[str] = []
     winner_blocked = 0
-    winner_persisted = 0
+    winner_rows_resolved = 0
 
     for identity_hash in e3_result.cleaning.version.source_row_identity_hashes:
-        rows = fetch_source_rows_by_identity_hash(
-            session,
-            source_row_identity_hash=identity_hash,
-        )
-        if not rows:
+        lane_a_row = lane_a_by_identity_hash.get(identity_hash)
+        if lane_a_row is None:
             raise ValueError(f"Lane A source row missing for identity hash {identity_hash}")
-        lane_c_identity = lane_c_source_row_identity_from_lane_a(rows[0])
+        lane_c_identity = lane_c_source_row_identity_from_lane_a(lane_a_row)
         decision = resolve_idfl_revision_winner_for_source_row(
             source_row_identity=lane_c_identity,
         )
+        winner_rows_resolved += 1
         if decision.blocked:
             winner_blocked += 1
         content_hashes.append(decision.content_sha256)
         if persist:
-            before_count = len(store.revision_winner_decisions)
-            persist_idfl_revision_winner_decision(session, decision, store=store)
-            if len(store.revision_winner_decisions) > before_count:
-                winner_persisted += 1
+            persist_idfl_revision_winner_decision(session, decision)
+
+    winner_rows_sql_persisted = (
+        count_revision_winner_sql_rows(session) if persist else 0
+    )
 
     content_hashes_tuple = tuple(content_hashes)
     replay_identity_match = (
@@ -500,12 +519,13 @@ def controlled_persist_source_002_idfl_from_environment(
         canonical_non_excluded_row_count=e3_result.canonical_source_row_count,
         kg_sum_equal=kg_sum_equal,
         winner_mode=RevisionWinnerMode.IDFL_LABEL_SIDE.value,
-        winner_rows_persisted=winner_persisted,
+        winner_rows_resolved=winner_rows_resolved,
+        winner_rows_sql_persisted=winner_rows_sql_persisted,
         winner_blocked=winner_blocked,
         pit_rows_persisted=pit_status.pit_rows_persisted,
         pit_eligible=pit_status.pit_eligible,
         pit_status=pit_status.pit_status,
-        e4_status="PERSISTED",
+        e4_status="RESOLVED_NOT_SQL_PERSISTED",
         e4_blocked_reason=pit_status.e4_blocked_reason,
         revision_winner_content_hashes=content_hashes_tuple,
         replay_identity_match=replay_identity_match,
@@ -523,6 +543,7 @@ __all__ = [
     "S2RevisionWinnerDecisionModel",
     "Source002E4Result",
     "controlled_persist_source_002_idfl_from_environment",
+    "count_revision_winner_sql_rows",
     "idfl_null_timestamps",
     "lane_c_source_row_identity_from_lane_a",
     "persist_idfl_revision_winner_decision",
