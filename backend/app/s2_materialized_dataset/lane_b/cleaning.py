@@ -2,6 +2,38 @@
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+
+from sqlalchemy.orm import Session
+
+from backend.app.s2_materialized_dataset.lane_a.lineage import (
+    controlled_ingest_source_002_from_environment,
+    run_source_002_identity_verification,
+)
+from backend.app.s2_materialized_dataset.lane_a.persistence import (
+    fetch_import_batch_by_external_identity,
+    fetch_source_row_content_index_for_batch,
+)
+from backend.app.s2_materialized_dataset.lane_a.schemas import (
+    SOURCE_002_COHORT_ID,
+    SOURCE_002_CONTROLLED_EXTERNAL_BATCH_ID,
+    SOURCE_002_DECLARED_ROW_COUNT,
+    SOURCE_002_MAPPING_SNAPSHOT_HASH,
+    SOURCE_002_SOURCE_SYSTEM,
+    RawImportBatchIdentity,
+    Source002IdentityVerificationStatus,
+    SourceRowIdentity,
+    SourceRowLineageInput,
+)
+from backend.app.s2_materialized_dataset.lane_a.source_row import (
+    build_source_row_identity,
+    iter_source_002_row_inputs,
+)
 from backend.app.s2_materialized_dataset.lane_b.correction_ledger import (
     build_correction_ledger_entries,
     correction_identities_for_row,
@@ -18,6 +50,7 @@ from backend.app.s2_materialized_dataset.lane_b.hashes import (
     compute_cleaned_dataset_version_identity_hash,
     compute_cleaned_row_content_hash,
     compute_cleaned_row_identity_hash,
+    compute_collapsed_grain_source_row_identity_hash,
     compute_quality_report_identity_hash,
     compute_synthetic_raw_import_batch_identity_hash,
     compute_synthetic_raw_source_artifact_identity_hash,
@@ -29,25 +62,60 @@ from backend.app.s2_materialized_dataset.lane_b.quality import (
     findings_for_source_row,
 )
 from backend.app.s2_materialized_dataset.lane_b.schemas import (
+    SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION,
+    SOURCE_002_CLEANING_DECISION_AUTHORITY,
+    SOURCE_002_CLEANING_POLICY_VERSION,
+    SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
+    SOURCE_002_MAPPED_SEASON_BUSINESS_KEY,
+    SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY,
     CanonicalGrainKey,
     CleanedDatasetVersionRecord,
     CleanedRowRecord,
     CleaningBuildRequest,
     CleaningBuildResult,
     CorrectionLedgerEntryRecord,
+    ExclusionCode,
     ExclusionLedgerEntryRecord,
+    LaneASourceRowsNotMaterializedError,
+    ManualCorrectionRequest,
+    ManualExclusionRequest,
     QuantityPresenceStatus,
+    Source002CleaningBlockedError,
+    Source002CleaningResult,
+    Source002E3CollisionGroupSample,
+    Source002E3DiagnosticReport,
+    Source002GrainKgSumBlockedError,
+    SyntheticSourceRowIdentity,
     SyntheticSourceRowInput,
 )
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "CleanedDatasetVersionConflictError",
     "CleanedRowConflictError",
-    "assert_replay_parity",
+    "SOURCE_002_JULY_EXCLUSION_DATE",
+    "SOURCE_002_SEASON_END",
+    "SOURCE_002_SEASON_START",
     "build_canonical_grain_key",
+    "assert_replay_parity",
     "build_cleaned_dataset",
+    "build_july_cohort_exclusions",
+    "build_source_002_cleaning_request",
+    "build_source_002_e3_grain_diagnostics",
+    "canonical_grain_collision_groups",
+    "clean_source_002_from_persisted",
+    "controlled_clean_source_002_from_environment",
     "resolve_quantity_presence",
+    "resolve_source_002_season_business_key",
+    "reconcile_source_002_kg_sums_or_fail",
+    "source_row_input_from_persisted_lane_a",
 ]
+
+
+SOURCE_002_SEASON_START = date(2025, 8, 1)
+SOURCE_002_SEASON_END = date(2026, 6, 30)
+SOURCE_002_JULY_EXCLUSION_DATE = date(2025, 7, 22)
 
 
 class CleanedDatasetVersionConflictError(ValueError):
@@ -56,6 +124,148 @@ class CleanedDatasetVersionConflictError(ValueError):
 
 class CleanedRowConflictError(ValueError):
     """Raised when duplicate grain keys or lineage conflicts appear."""
+
+
+def _grain_key_from_prepared(prepared: PreparedCleaningRow) -> str:
+    return "|".join(
+        (
+            str(prepared.canonical_grain_key_payload["season_business_key"]),
+            str(prepared.canonical_grain_key_payload["farm_business_key"]),
+            str(prepared.canonical_grain_key_payload["subfarm_business_key"]),
+            str(prepared.canonical_grain_key_payload["variety_business_key"]),
+            str(prepared.canonical_grain_key_payload["harvest_business_date"]),
+        )
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _KgSumPublishUnit:
+    contributors: tuple[PreparedCleaningRow, ...]
+    ledger_source_row_identity_hash: str
+    source_actual_harvest_quantity_kg: Decimal | None
+    effective_actual_harvest_quantity_kg: Decimal | None
+    quantity_presence_status: QuantityPresenceStatus
+    is_excluded: bool
+
+
+def _assert_source_002_kg_sum_quantity_rules(
+    contributors: tuple[PreparedCleaningRow, ...],
+    *,
+    grain_key: str,
+) -> None:
+    presences = {prepared.quantity_presence_status for prepared in contributors}
+    if len(presences) > 1:
+        raise Source002GrainKgSumBlockedError(
+            f"mixed known and unknown quantity in canonical grain: {grain_key}"
+        )
+    for prepared in contributors:
+        quantity = prepared.source_row.actual_harvest_quantity_kg
+        if quantity is not None and quantity < 0:
+            raise Source002GrainKgSumBlockedError(
+                f"negative kilogram quantity in canonical grain: {grain_key}"
+            )
+
+
+def _summed_kg_for_contributors(
+    contributors: tuple[PreparedCleaningRow, ...],
+    *,
+    request: CleaningBuildRequest,
+    grain_key: str,
+) -> tuple[Decimal | None, Decimal | None, QuantityPresenceStatus]:
+    _assert_source_002_kg_sum_quantity_rules(contributors, grain_key=grain_key)
+    presence = contributors[0].quantity_presence_status
+    if presence == QuantityPresenceStatus.UNKNOWN_NOT_ZERO:
+        return None, None, presence
+
+    source_total = Decimal("0")
+    effective_total = Decimal("0")
+    for prepared in contributors:
+        source_quantity = prepared.source_row.actual_harvest_quantity_kg
+        if source_quantity is None:
+            raise Source002GrainKgSumBlockedError(
+                f"missing kilogram quantity in known-quantity grain: {grain_key}"
+            )
+        effective_quantity = effective_quantity_after_corrections(
+            source_row_identity_hash=prepared.source_row_identity_hash,
+            source_quantity=source_quantity,
+            manual_corrections=request.manual_corrections,
+        )
+        if effective_quantity is not None and effective_quantity < 0:
+            raise Source002GrainKgSumBlockedError(
+                f"negative effective kilogram quantity in canonical grain: {grain_key}"
+            )
+        source_total += source_quantity
+        effective_total += effective_quantity or Decimal("0")
+    return source_total, effective_total, presence
+
+
+def _build_source_002_kg_sum_publish_units(
+    *,
+    prepared_rows: tuple[PreparedCleaningRow, ...],
+    request: CleaningBuildRequest,
+    exclusion_entries: tuple[ExclusionLedgerEntryRecord, ...],
+) -> tuple[_KgSumPublishUnit, ...]:
+    excluded_units: list[_KgSumPublishUnit] = []
+    active_groups: dict[str, list[PreparedCleaningRow]] = {}
+    for prepared in prepared_rows:
+        if is_row_excluded(
+            source_row_identity_hash=prepared.source_row_identity_hash,
+            entries=exclusion_entries,
+        ):
+            source_quantity = prepared.source_row.actual_harvest_quantity_kg
+            effective_quantity = effective_quantity_after_corrections(
+                source_row_identity_hash=prepared.source_row_identity_hash,
+                source_quantity=source_quantity,
+                manual_corrections=request.manual_corrections,
+            )
+            excluded_units.append(
+                _KgSumPublishUnit(
+                    contributors=(prepared,),
+                    ledger_source_row_identity_hash=prepared.source_row_identity_hash,
+                    source_actual_harvest_quantity_kg=source_quantity,
+                    effective_actual_harvest_quantity_kg=None
+                    if effective_quantity is None
+                    else effective_quantity,
+                    quantity_presence_status=prepared.quantity_presence_status,
+                    is_excluded=True,
+                )
+            )
+            continue
+        grain_key = _grain_key_from_prepared(prepared)
+        active_groups.setdefault(grain_key, []).append(prepared)
+
+    collapsed_units: list[_KgSumPublishUnit] = []
+    for grain_key, contributors in sorted(active_groups.items()):
+        sorted_contributors = tuple(
+            sorted(contributors, key=lambda item: item.source_row_identity_hash)
+        )
+        contributor_hashes = tuple(
+            prepared.source_row_identity_hash for prepared in sorted_contributors
+        )
+        source_total, effective_total, presence = _summed_kg_for_contributors(
+            sorted_contributors,
+            request=request,
+            grain_key=grain_key,
+        )
+        collapsed_units.append(
+            _KgSumPublishUnit(
+                contributors=sorted_contributors,
+                ledger_source_row_identity_hash=compute_collapsed_grain_source_row_identity_hash(
+                    contributor_hashes
+                ),
+                source_actual_harvest_quantity_kg=source_total,
+                effective_actual_harvest_quantity_kg=effective_total,
+                quantity_presence_status=presence,
+                is_excluded=False,
+            )
+        )
+
+    return tuple(
+        sorted(
+            [*excluded_units, *collapsed_units],
+            key=lambda unit: unit.ledger_source_row_identity_hash,
+        )
+    )
 
 
 def duplicate_grain_groups(
@@ -128,8 +338,723 @@ def build_canonical_grain_key(source_row: SyntheticSourceRowInput) -> CanonicalG
 
 
 def _source_row_identity_hash(source_row: SyntheticSourceRowInput) -> str:
+    if source_row.persisted_source_row_identity_hash is not None:
+        return source_row.persisted_source_row_identity_hash
     identity = source_row.identity.model_dump(mode="python")
     return compute_synthetic_source_row_identity_hash(identity)
+
+
+def resolve_source_002_season_business_key(harvest_business_date: date) -> str:
+    if harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE:
+        return SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY
+    if SOURCE_002_SEASON_START <= harvest_business_date <= SOURCE_002_SEASON_END:
+        return SOURCE_002_MAPPED_SEASON_BUSINESS_KEY
+    raise Source002CleaningBlockedError(
+        f"harvest date {harvest_business_date.isoformat()} is outside governed season mapping"
+    )
+
+
+def source_row_input_from_persisted_lane_a(
+    *,
+    row_input: SourceRowLineageInput,
+    persisted_identity: SourceRowIdentity,
+) -> SyntheticSourceRowInput:
+    business = row_input.business_content
+    harvest_date = business.harvest_business_date
+    return SyntheticSourceRowInput(
+        identity=SyntheticSourceRowIdentity(
+            raw_source_artifact_identity_hash=persisted_identity.raw_source_artifact_identity_hash,
+            raw_import_batch_identity_hash=persisted_identity.raw_import_batch_identity_hash,
+            external_logical_record_id=persisted_identity.external_logical_record_id,
+            external_revision_id=persisted_identity.external_revision_id,
+            revision_number=persisted_identity.revision_number,
+            source_system=persisted_identity.source_system,
+            source_row_identity_version=persisted_identity.source_row_identity_version,
+            schema_version=persisted_identity.schema_version,
+            source_version=persisted_identity.source_version,
+            source_sheet_name=persisted_identity.source_sheet_name,
+            source_row_number=persisted_identity.source_row_number,
+        ),
+        season_business_key=resolve_source_002_season_business_key(harvest_date),
+        farm_business_key=business.farm_code,
+        subfarm_business_key=business.subfarm_or_plot_code,
+        variety_business_key=business.variety_code,
+        harvest_business_date=harvest_date,
+        actual_harvest_quantity_kg=business.actual_harvest_quantity_kg,
+        # Lane A rejects missing weights; explicit zero kg is a known quantity.
+        missing_record_semantics="KNOWN",
+        persisted_source_row_identity_hash=persisted_identity.source_row_identity_hash,
+    )
+
+
+def build_july_cohort_exclusions(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+) -> tuple[ManualExclusionRequest, ...]:
+    exclusions: list[ManualExclusionRequest] = []
+    for source_row in source_rows:
+        if source_row.harvest_business_date != SOURCE_002_JULY_EXCLUSION_DATE:
+            continue
+        source_hash = _source_row_identity_hash(source_row)
+        exclusions.append(
+            ManualExclusionRequest(
+                exclusion_event_id=f"source-002-s1-july-cohort-exclusion:{source_hash}",
+                source_row_identity_hash=source_hash,
+                exclusion_code=ExclusionCode.BUSINESS_EXCLUSION,
+                exclusion_reason_reference=SOURCE_002_JULY_COHORT_EXCLUSION_REASON,
+                decision_authority_reference=SOURCE_002_CLEANING_DECISION_AUTHORITY,
+            )
+        )
+    return tuple(sorted(exclusions, key=lambda item: item.exclusion_event_id))
+
+
+def canonical_grain_collision_groups(
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+) -> dict[str, tuple[str, ...]]:
+    groups: dict[str, list[str]] = {}
+    for source_row in source_rows:
+        if source_row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE:
+            continue
+        grain_key = build_canonical_grain_key(source_row).canonical_grain_key
+        groups.setdefault(grain_key, []).append(_source_row_identity_hash(source_row))
+    return {
+        grain_key: tuple(sorted(row_hashes))
+        for grain_key, row_hashes in groups.items()
+        if len(row_hashes) > 1
+    }
+
+
+def _source_002_in_scope_rows(
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+) -> tuple[SyntheticSourceRowInput, ...]:
+    return tuple(
+        source_row
+        for source_row in source_rows
+        if source_row.harvest_business_date != SOURCE_002_JULY_EXCLUSION_DATE
+    )
+
+
+def _source_002_row_kg_for_diagnostics(source_row: SyntheticSourceRowInput) -> Decimal:
+    quantity = source_row.actual_harvest_quantity_kg
+    if quantity is None:
+        return Decimal("0")
+    return quantity
+
+
+def _nearest_rank_percentile(sorted_values: list[int], percentile: int) -> int:
+    if not sorted_values:
+        return 0
+    if percentile <= 0:
+        return sorted_values[0]
+    if percentile >= 100:
+        return sorted_values[-1]
+    rank = max(1, round(percentile / 100 * len(sorted_values)))
+    return sorted_values[min(rank - 1, len(sorted_values) - 1)]
+
+
+def _source_002_dimension_hints_by_logical_record_id(
+    artifact_bytes: bytes,
+) -> dict[str, tuple[str, str]]:
+    from backend.app.s2_materialized_dataset.lane_a.schemas import SOURCE_002_EXPECTED_HEADERS
+    from backend.app.s2_materialized_dataset.lane_a.source_row import (
+        _normalize_cell_text,
+        _open_source_002_workbook,
+        _parse_business_date,
+        _parse_header_row,
+        derive_source_002_external_logical_record_id,
+    )
+
+    workbook = _open_source_002_workbook(artifact_bytes)
+    hints: dict[str, tuple[str, str]] = {}
+    for sheet in workbook.sheets():
+        header_row = 0
+        header_map: dict[str, int] = {}
+        for row_index in range(sheet.nrows):
+            values = [
+                _normalize_cell_text(sheet.cell_value(row_index, col_index))
+                for col_index in range(sheet.ncols)
+            ]
+            if set(SOURCE_002_EXPECTED_HEADERS).issubset({value for value in values if value}):
+                header_row = row_index
+                header_fields = _parse_header_row(sheet, header_row)
+                header_map = {name: header_fields.index(name) for name in header_fields}
+                break
+        else:
+            continue
+        for row_index in range(header_row + 1, sheet.nrows):
+            raw_values = [
+                sheet.cell_value(row_index, col_index) for col_index in range(sheet.ncols)
+            ]
+            if not any(_normalize_cell_text(value) for value in raw_values):
+                continue
+            harvest_business_date = _parse_business_date(
+                raw_values[header_map["时间"]],
+                datemode=workbook.datemode,
+            )
+            chain = _normalize_cell_text(raw_values[header_map["链路"]])
+            farm = _normalize_cell_text(raw_values[header_map["农场"]])
+            subfarm = _normalize_cell_text(raw_values[header_map["分场"]])
+            variety = _normalize_cell_text(raw_values[header_map["品种"]])
+            fruit_size = _normalize_cell_text(raw_values[header_map["果径"]])
+            if (
+                chain is None
+                or farm is None
+                or subfarm is None
+                or variety is None
+                or fruit_size is None
+            ):
+                continue
+            logical_record_id = derive_source_002_external_logical_record_id(
+                harvest_business_date=harvest_business_date,
+                chain=chain,
+                farm=farm,
+                subfarm=subfarm,
+                variety=variety,
+                fruit_size=fruit_size,
+            )
+            hints[logical_record_id] = (chain, fruit_size)
+    return hints
+
+
+def build_source_002_e3_grain_diagnostics(
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+    *,
+    july_excluded_row_count: int,
+    dimension_hints: Mapping[str, tuple[str, str]] | None = None,
+) -> Source002E3DiagnosticReport:
+    in_scope_rows = _source_002_in_scope_rows(source_rows)
+    source_rows_in_scope = len(source_rows) - july_excluded_row_count
+    if source_rows_in_scope != len(in_scope_rows):
+        raise Source002CleaningBlockedError(
+            "SOURCE_002 in-scope row count does not reconcile with July exclusions"
+        )
+
+    grain_groups: dict[str, list[SyntheticSourceRowInput]] = {}
+    for source_row in in_scope_rows:
+        grain_key = build_canonical_grain_key(source_row).canonical_grain_key
+        grain_groups.setdefault(grain_key, []).append(source_row)
+
+    singleton_groups = [rows for rows in grain_groups.values() if len(rows) == 1]
+    collision_groups = [rows for rows in grain_groups.values() if len(rows) > 1]
+
+    rows_in_singleton_grains = sum(len(rows) for rows in singleton_groups)
+    rows_in_collision_grains = sum(len(rows) for rows in collision_groups)
+    kg_in_singleton_grains = sum(
+        (_source_002_row_kg_for_diagnostics(row) for rows in singleton_groups for row in rows),
+        Decimal("0"),
+    )
+    kg_in_collision_grains = sum(
+        (_source_002_row_kg_for_diagnostics(row) for rows in collision_groups for row in rows),
+        Decimal("0"),
+    )
+    kg_total_in_scope = kg_in_singleton_grains + kg_in_collision_grains
+
+    collision_sizes = sorted(len(rows) for rows in collision_groups)
+    hints = dimension_hints or {}
+
+    def _dimension_values(
+        rows: tuple[SyntheticSourceRowInput, ...] | list[SyntheticSourceRowInput],
+        *,
+        index: int,
+    ) -> set[str]:
+        values: set[str] = set()
+        for row in rows:
+            hint = hints.get(row.identity.external_logical_record_id)
+            if hint is not None:
+                values.add(hint[index])
+        return values
+
+    collision_group_samples: list[Source002E3CollisionGroupSample] = []
+    sorted_collision_groups = sorted(
+        collision_groups,
+        key=lambda group: build_canonical_grain_key(group[0]).canonical_grain_key,
+    )
+    for rows in sorted_collision_groups[:3]:
+        representative = rows[0]
+        grain = build_canonical_grain_key(representative)
+        sorted_rows = sorted(rows, key=_source_row_identity_hash)
+        collision_group_samples.append(
+            Source002E3CollisionGroupSample(
+                farm_business_key=grain.farm_business_key,
+                subfarm_business_key=grain.subfarm_business_key,
+                variety_business_key=grain.variety_business_key,
+                harvest_business_date=grain.harvest_business_date,
+                row_count=len(rows),
+                chain_distinct_count=len(_dimension_values(rows, index=0)),
+                fruit_size_distinct_count=len(_dimension_values(rows, index=1)),
+                kg_values=tuple(
+                    format(_source_002_row_kg_for_diagnostics(row), "f") for row in sorted_rows
+                ),
+            )
+        )
+
+    return Source002E3DiagnosticReport(
+        source_rows_in_scope=source_rows_in_scope,
+        unique_canonical_grains=len(grain_groups),
+        singleton_grain_count=len(singleton_groups),
+        collision_grain_count=len(collision_groups),
+        rows_in_singleton_grains=rows_in_singleton_grains,
+        rows_in_collision_grains=rows_in_collision_grains,
+        kg_in_singleton_grains=kg_in_singleton_grains,
+        kg_in_collision_grains=kg_in_collision_grains,
+        kg_total_in_scope=kg_total_in_scope,
+        collision_group_size_min=collision_sizes[0] if collision_sizes else 0,
+        collision_group_size_p50=_nearest_rank_percentile(collision_sizes, 50),
+        collision_group_size_p90=_nearest_rank_percentile(collision_sizes, 90),
+        collision_group_size_max=collision_sizes[-1] if collision_sizes else 0,
+        collision_group_samples=tuple(collision_group_samples),
+    )
+
+
+def _emit_source_002_diagnostic_report(diagnostics: Source002E3DiagnosticReport) -> None:
+    report = (
+        "SOURCE_002_E3_DIAGNOSTIC_REPORT "
+        f"source_rows_in_scope={diagnostics.source_rows_in_scope} "
+        f"unique_canonical_grains={diagnostics.unique_canonical_grains} "
+        f"singleton_grain_count={diagnostics.singleton_grain_count} "
+        f"collision_grain_count={diagnostics.collision_grain_count} "
+        f"rows_in_singleton_grains={diagnostics.rows_in_singleton_grains} "
+        f"rows_in_collision_grains={diagnostics.rows_in_collision_grains} "
+        f"kg_in_singleton_grains={format(diagnostics.kg_in_singleton_grains, 'f')} "
+        f"kg_in_collision_grains={format(diagnostics.kg_in_collision_grains, 'f')} "
+        f"kg_total_in_scope={format(diagnostics.kg_total_in_scope, 'f')} "
+        f"collision_group_size_min={diagnostics.collision_group_size_min} "
+        f"collision_group_size_p50={diagnostics.collision_group_size_p50} "
+        f"collision_group_size_p90={diagnostics.collision_group_size_p90} "
+        f"collision_group_size_max={diagnostics.collision_group_size_max}"
+    )
+    logger.info(report)
+    print(report, flush=True)
+    for index, sample in enumerate(diagnostics.collision_group_samples, start=1):
+        kg_list = ",".join(sample.kg_values)
+        sample_line = (
+            "SOURCE_002_E3_COLLISION_SAMPLE "
+            f"index={index} "
+            f"farm={sample.farm_business_key} "
+            f"subfarm={sample.subfarm_business_key} "
+            f"variety={sample.variety_business_key} "
+            f"date={sample.harvest_business_date.isoformat()} "
+            f"rows={sample.row_count} "
+            f"chain_distinct={sample.chain_distinct_count} "
+            f"fruit_size_distinct={sample.fruit_size_distinct_count} "
+            f"kg_list={kg_list}"
+        )
+        logger.info(sample_line)
+        print(sample_line, flush=True)
+
+
+def _kg_sum_non_excluded_source_rows(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+    exclusion_entries: tuple[ExclusionLedgerEntryRecord, ...],
+) -> Decimal:
+    total = Decimal("0")
+    for source_row in source_rows:
+        source_hash = _source_row_identity_hash(source_row)
+        if is_row_excluded(source_row_identity_hash=source_hash, entries=exclusion_entries):
+            continue
+        quantity = source_row.actual_harvest_quantity_kg
+        if quantity is None:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded source row is missing kilogram quantity for reconciliation"
+            )
+        if quantity < 0:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded source row has negative kilogram quantity for reconciliation"
+            )
+        total += quantity
+    return total
+
+
+def _kg_sum_non_excluded_cleaned_grains(cleaning: CleaningBuildResult) -> Decimal:
+    total = Decimal("0")
+    for row in cleaning.cleaned_rows:
+        if row.is_excluded:
+            continue
+        quantity = row.effective_actual_harvest_quantity_kg
+        if quantity is None:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded cleaned row is missing effective kilogram quantity for reconciliation"
+            )
+        if quantity < 0:
+            raise Source002GrainKgSumBlockedError(
+                "non-excluded cleaned row has negative effective kilogram quantity"
+            )
+        total += quantity
+    return total
+
+
+def reconcile_source_002_kg_sums_or_fail(
+    *,
+    source_rows: tuple[SyntheticSourceRowInput, ...],
+    cleaning: CleaningBuildResult,
+) -> tuple[Decimal, Decimal]:
+    kg_sum_source_rows = _kg_sum_non_excluded_source_rows(
+        source_rows=source_rows,
+        exclusion_entries=cleaning.exclusion_ledger_entries,
+    )
+    kg_sum_cleaned_grains = _kg_sum_non_excluded_cleaned_grains(cleaning)
+    kg_equal = kg_sum_source_rows == kg_sum_cleaned_grains
+    reconcile_line = (
+        "SOURCE_002_E3_KG_RECONCILE "
+        f"kg_sum_source_rows={format(kg_sum_source_rows, 'f')} "
+        f"kg_sum_cleaned_grains={format(kg_sum_cleaned_grains, 'f')} "
+        f"kg_equal={str(kg_equal).lower()}"
+    )
+    logger.info(reconcile_line)
+    print(reconcile_line, flush=True)
+    if not kg_equal:
+        raise Source002GrainKgSumBlockedError(
+            "SOURCE_002 kilogram reconciliation failed: "
+            "source-row sum does not equal cleaned-grain sum"
+        )
+    return kg_sum_source_rows, kg_sum_cleaned_grains
+
+
+def _emit_source_002_e3_sum_report(
+    *,
+    ingest_first_seen_row_count: int,
+    ingest_replay_row_count: int,
+    july_excluded_row_count: int,
+    diagnostics: Source002E3DiagnosticReport,
+    unique_canonical_grains_persisted: int,
+    kg_sum_source_rows: Decimal,
+    kg_sum_cleaned_grains: Decimal,
+    cleaned_dataset_version_identity_hash: str,
+    cleaned_dataset_version_content_hash: str,
+    replay_identity_match: bool,
+    replay_content_match: bool,
+) -> None:
+    report = (
+        "SOURCE_002_E3_SUM_REPORT "
+        f"e2_first_seen={ingest_first_seen_row_count} "
+        f"e2_exact_replay={ingest_replay_row_count} "
+        f"july_excluded={july_excluded_row_count} "
+        f"source_rows_in_scope={diagnostics.source_rows_in_scope} "
+        f"collision_grain_count={diagnostics.collision_grain_count} "
+        f"unique_canonical_grains_persisted={unique_canonical_grains_persisted} "
+        f"kg_sum_source_rows={format(kg_sum_source_rows, 'f')} "
+        f"kg_sum_cleaned_grains={format(kg_sum_cleaned_grains, 'f')} "
+        f"kg_equal=true "
+        f"cleaned_dataset_version_identity_hash={cleaned_dataset_version_identity_hash} "
+        f"cleaned_dataset_version_content_hash={cleaned_dataset_version_content_hash} "
+        f"replay_identity_match={str(replay_identity_match).lower()} "
+        f"replay_content_match={str(replay_content_match).lower()} "
+        f"e3_status=PERSISTED"
+    )
+    logger.info(report)
+    print(report, flush=True)
+
+
+def _resolve_lineage_identity_hashes(
+    request: CleaningBuildRequest,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if request.persisted_raw_source_artifact_identity_hashes:
+        return (
+            tuple(sorted(request.persisted_raw_source_artifact_identity_hashes)),
+            tuple(sorted(request.persisted_raw_import_batch_identity_hashes)),
+        )
+    artifact_hashes = tuple(
+        sorted(
+            compute_synthetic_raw_source_artifact_identity_hash(artifact.model_dump(mode="python"))
+            for artifact in request.raw_source_artifacts
+        )
+    )
+    batch_hashes = tuple(
+        sorted(
+            compute_synthetic_raw_import_batch_identity_hash(batch.model_dump(mode="python"))
+            for batch in request.raw_import_batches
+        )
+    )
+    return artifact_hashes, batch_hashes
+
+
+def _verify_persisted_lane_a_batch(
+    session: Session,
+    *,
+    batch: RawImportBatchIdentity,
+    parsed_identities: tuple[SourceRowIdentity, ...],
+) -> None:
+    if batch.source_cohort_id != SOURCE_002_COHORT_ID:
+        raise Source002CleaningBlockedError("SOURCE_002 batch cohort binding mismatch")
+    if len(batch.source_row_identity_hashes) != SOURCE_002_DECLARED_ROW_COUNT:
+        raise LaneASourceRowsNotMaterializedError(
+            "SOURCE_002 import batch row count does not match the frozen declaration"
+        )
+    if len(parsed_identities) != SOURCE_002_DECLARED_ROW_COUNT:
+        raise LaneASourceRowsNotMaterializedError(
+            "SOURCE_002 parsed row identities do not match the frozen declaration"
+        )
+    persisted_hashes = set(batch.source_row_identity_hashes)
+    content_index = fetch_source_row_content_index_for_batch(
+        session,
+        raw_import_batch_identity_hash=batch.raw_import_batch_identity_hash,
+    )
+    for identity in parsed_identities:
+        if identity.source_row_identity_hash not in persisted_hashes:
+            raise LaneASourceRowsNotMaterializedError(
+                "SOURCE_002 parsed row identity is not present in the persisted import batch"
+            )
+        existing_contents = content_index.get(identity.source_row_identity_hash)
+        if existing_contents is None or identity.content_sha256 not in existing_contents:
+            raise LaneASourceRowsNotMaterializedError(
+                "SOURCE_002 row lineage is not materialized in Lane A persistence"
+            )
+
+
+def build_source_002_cleaning_request(
+    session: Session,
+    *,
+    artifact_bytes: bytes,
+    batch: RawImportBatchIdentity,
+    manual_corrections: tuple[ManualCorrectionRequest, ...] = (),
+) -> tuple[CleaningBuildRequest, Source002E3DiagnosticReport]:
+    from backend.app.s2_materialized_dataset.lane_b.hashes import (
+        CLEANED_SCHEMA_VERSION,
+        CLEANING_PROJECTION_VERSION,
+        CORRECTION_POLICY_VERSION,
+        CORRECTION_SCHEMA_VERSION,
+        EXCLUSION_POLICY_VERSION,
+        EXCLUSION_SCHEMA_VERSION,
+        QUALITY_POLICY_VERSION,
+        QUALITY_RULE_VERSION,
+        QUALITY_SCHEMA_VERSION,
+    )
+
+    row_inputs = iter_source_002_row_inputs(
+        artifact_bytes,
+        source_column_mapping_snapshot_hash=SOURCE_002_MAPPING_SNAPSHOT_HASH,
+    )
+    artifact_hash = batch.raw_source_artifact_identity_hash
+    batch_hash = batch.raw_import_batch_identity_hash
+    parsed_identities = tuple(
+        build_source_row_identity(
+            artifact_identity_hash=artifact_hash,
+            batch_identity_hash=batch_hash,
+            row_input=row_input,
+        )
+        for row_input in row_inputs
+    )
+    _verify_persisted_lane_a_batch(
+        session,
+        batch=batch,
+        parsed_identities=parsed_identities,
+    )
+
+    source_rows = tuple(
+        source_row_input_from_persisted_lane_a(
+            row_input=row_input,
+            persisted_identity=identity,
+        )
+        for row_input, identity in zip(row_inputs, parsed_identities, strict=True)
+    )
+    july_exclusions = build_july_cohort_exclusions(source_rows=source_rows)
+    july_count = len(july_exclusions)
+    dimension_hints = _source_002_dimension_hints_by_logical_record_id(artifact_bytes)
+    diagnostics = build_source_002_e3_grain_diagnostics(
+        source_rows,
+        july_excluded_row_count=july_count,
+        dimension_hints=dimension_hints,
+    )
+    _emit_source_002_diagnostic_report(diagnostics)
+    return (
+        CleaningBuildRequest(
+            source_cohort_id=SOURCE_002_COHORT_ID,
+            persisted_raw_source_artifact_identity_hashes=(artifact_hash,),
+            persisted_raw_import_batch_identity_hashes=(batch_hash,),
+            source_rows=source_rows,
+            mapping_registry_hash=SOURCE_002_MAPPING_SNAPSHOT_HASH,
+            cleaning_policy_version=SOURCE_002_CLEANING_POLICY_VERSION,
+            quality_policy_version=QUALITY_POLICY_VERSION,
+            correction_policy_version=CORRECTION_POLICY_VERSION,
+            exclusion_policy_version=EXCLUSION_POLICY_VERSION,
+            cleaned_schema_version=CLEANED_SCHEMA_VERSION,
+            cleaning_projection_version=CLEANING_PROJECTION_VERSION,
+            quality_schema_version=QUALITY_SCHEMA_VERSION,
+            correction_schema_version=CORRECTION_SCHEMA_VERSION,
+            exclusion_schema_version=EXCLUSION_SCHEMA_VERSION,
+            quality_rule_version=QUALITY_RULE_VERSION,
+            manual_corrections=manual_corrections,
+            manual_exclusions=july_exclusions,
+            canonical_grain_kg_sum_ledger_policy_version=(
+                SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION
+            ),
+        ),
+        diagnostics,
+    )
+
+
+def _fetch_source_002_controlled_batch(
+    session: Session,
+    *,
+    artifact_identity_hash: str,
+) -> RawImportBatchIdentity:
+    batch = fetch_import_batch_by_external_identity(
+        session,
+        raw_source_artifact_identity_hash=artifact_identity_hash,
+        source_system=SOURCE_002_SOURCE_SYSTEM,
+        external_batch_id=SOURCE_002_CONTROLLED_EXTERNAL_BATCH_ID,
+    )
+    if batch is None:
+        raise LaneASourceRowsNotMaterializedError(
+            "SOURCE_002 controlled import batch is not materialized in Lane A"
+        )
+    return batch
+
+
+def _emit_source_002_run_report(
+    *,
+    ingest_first_seen_row_count: int,
+    ingest_replay_row_count: int,
+    july_excluded_row_count: int,
+    canonical_non_excluded_row_count: int,
+    grain_conflict_group_count: int,
+) -> None:
+    report = (
+        "SOURCE_002_E3_REPORT "
+        f"e2_first_seen={ingest_first_seen_row_count} "
+        f"e2_exact_replay={ingest_replay_row_count} "
+        f"july_excluded={july_excluded_row_count} "
+        f"canonical_non_excluded={canonical_non_excluded_row_count} "
+        f"grain_conflict_groups={grain_conflict_group_count}"
+    )
+    logger.info(report)
+    print(report, flush=True)
+
+
+def _canonical_cleaned_row_count(cleaning: CleaningBuildResult) -> int:
+    return sum(1 for row in cleaning.cleaned_rows if not row.is_excluded)
+
+
+def clean_source_002_from_persisted(
+    session: Session,
+    *,
+    artifact_bytes: bytes,
+    artifact_identity_hash: str,
+) -> Source002CleaningResult:
+    batch = _fetch_source_002_controlled_batch(
+        session,
+        artifact_identity_hash=artifact_identity_hash,
+    )
+    request, diagnostics = build_source_002_cleaning_request(
+        session,
+        artifact_bytes=artifact_bytes,
+        batch=batch,
+    )
+    cleaning = build_cleaned_dataset(request)
+    july_count = sum(
+        1
+        for row in request.source_rows
+        if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
+    )
+    grain_conflict_group_count = len(canonical_grain_collision_groups(request.source_rows))
+    return Source002CleaningResult(
+        ingest_source_row_count=len(request.source_rows),
+        ingest_first_seen_row_count=0,
+        ingest_replay_row_count=0,
+        raw_source_row_count=len(request.source_rows),
+        canonical_source_row_count=_canonical_cleaned_row_count(cleaning),
+        july_excluded_row_count=july_count,
+        grain_conflict_group_count=grain_conflict_group_count,
+        diagnostics=diagnostics,
+        cleaning=cleaning,
+    )
+
+
+def controlled_clean_source_002_from_environment(
+    session: Session,
+    *,
+    search_roots: tuple[Path, ...] = (),
+    persist: bool = True,
+    previous_result: Source002CleaningResult | None = None,
+) -> Source002CleaningResult:
+    from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
+        verify_source_002_frozen_object_identity,
+    )
+    from backend.app.s2_materialized_dataset.lane_b.persistence import persist_cleaning_build_result
+
+    verification = run_source_002_identity_verification(search_roots=search_roots)
+    if verification.status != Source002IdentityVerificationStatus.PASS:
+        raise Source002CleaningBlockedError(
+            "SOURCE_002 E3 cleaning requires a passing E1 identity verification"
+        )
+    _, artifact_bytes, _ = verify_source_002_frozen_object_identity(search_roots=search_roots)
+    if artifact_bytes is None:
+        raise Source002CleaningBlockedError(
+            "SOURCE_002 E3 cleaning requires verified immutable artifact bytes"
+        )
+
+    ingest_result = controlled_ingest_source_002_from_environment(
+        session,
+        search_roots=search_roots,
+    )
+    batch = ingest_result.batch_registration.identity
+    request, diagnostics = build_source_002_cleaning_request(
+        session,
+        artifact_bytes=artifact_bytes,
+        batch=batch,
+    )
+    cleaning = build_cleaned_dataset(request)
+    kg_sum_source_rows, kg_sum_cleaned_grains = reconcile_source_002_kg_sums_or_fail(
+        source_rows=request.source_rows,
+        cleaning=cleaning,
+    )
+    if persist:
+        persist_cleaning_build_result(session, cleaning)
+    july_count = sum(
+        1
+        for row in request.source_rows
+        if row.harvest_business_date == SOURCE_002_JULY_EXCLUSION_DATE
+    )
+    grain_conflict_group_count = diagnostics.collision_grain_count
+    canonical_non_excluded = _canonical_cleaned_row_count(cleaning)
+    version_identity_hash = cleaning.version.cleaned_dataset_version_identity_hash
+    version_content_hash = cleaning.version.cleaned_dataset_version_content_hash
+    replay_identity_match = (
+        True
+        if previous_result is None
+        else previous_result.cleaned_dataset_version_identity_hash == version_identity_hash
+    )
+    replay_content_match = (
+        True
+        if previous_result is None
+        else previous_result.cleaned_dataset_version_content_hash == version_content_hash
+    )
+    _emit_source_002_run_report(
+        ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+        ingest_replay_row_count=ingest_result.replay_row_count,
+        july_excluded_row_count=july_count,
+        canonical_non_excluded_row_count=canonical_non_excluded,
+        grain_conflict_group_count=grain_conflict_group_count,
+    )
+    _emit_source_002_e3_sum_report(
+        ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+        ingest_replay_row_count=ingest_result.replay_row_count,
+        july_excluded_row_count=july_count,
+        diagnostics=diagnostics,
+        unique_canonical_grains_persisted=canonical_non_excluded,
+        kg_sum_source_rows=kg_sum_source_rows,
+        kg_sum_cleaned_grains=kg_sum_cleaned_grains,
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        cleaned_dataset_version_content_hash=version_content_hash,
+        replay_identity_match=replay_identity_match,
+        replay_content_match=replay_content_match,
+    )
+    return Source002CleaningResult(
+        ingest_source_row_count=ingest_result.source_row_count,
+        ingest_first_seen_row_count=ingest_result.first_seen_row_count,
+        ingest_replay_row_count=ingest_result.replay_row_count,
+        raw_source_row_count=len(request.source_rows),
+        canonical_source_row_count=canonical_non_excluded,
+        july_excluded_row_count=july_count,
+        grain_conflict_group_count=grain_conflict_group_count,
+        diagnostics=diagnostics,
+        kg_sum_source_rows=kg_sum_source_rows,
+        kg_sum_cleaned_grains=kg_sum_cleaned_grains,
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        cleaned_dataset_version_content_hash=version_content_hash,
+        cleaning=cleaning,
+    )
 
 
 def _prepare_rows(request: CleaningBuildRequest) -> tuple[PreparedCleaningRow, ...]:
@@ -237,19 +1162,285 @@ def _build_cleaned_row_record(
     )
 
 
+def _build_cleaned_row_from_kg_sum_unit(
+    *,
+    unit: _KgSumPublishUnit,
+    request: CleaningBuildRequest,
+    version_identity_hash: str,
+    exclusion_entries: tuple[ExclusionLedgerEntryRecord, ...],
+    correction_entries: tuple[CorrectionLedgerEntryRecord, ...],
+    quality_finding_hashes: tuple[str, ...],
+) -> CleanedRowRecord:
+    representative = unit.contributors[0]
+    grain = build_canonical_grain_key(representative.source_row)
+    contributor_hashes = tuple(prepared.source_row_identity_hash for prepared in unit.contributors)
+    correction_hashes = tuple(
+        sorted(
+            {
+                correction_hash
+                for prepared in unit.contributors
+                for correction_hash in correction_identities_for_row(
+                    correction_entries,
+                    source_row_identity_hash=prepared.source_row_identity_hash,
+                )
+            }
+        )
+    )
+    exclusion_hashes = tuple(
+        sorted(
+            {
+                exclusion_hash
+                for prepared in unit.contributors
+                for exclusion_hash in exclusion_identities_for_row(
+                    exclusion_entries,
+                    source_row_identity_hash=prepared.source_row_identity_hash,
+                )
+            }
+        )
+    )
+    content_hash = compute_cleaned_row_content_hash(
+        source_row_identity_hash=unit.ledger_source_row_identity_hash,
+        canonical_grain_key=representative.canonical_grain_key_payload,
+        cleaning_projection_version=request.cleaning_projection_version,
+        cleaned_row_schema_version=request.cleaned_schema_version,
+        cleaning_policy_version=request.cleaning_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        source_actual_harvest_quantity_kg=unit.source_actual_harvest_quantity_kg,
+        effective_actual_harvest_quantity_kg=unit.effective_actual_harvest_quantity_kg,
+        quantity_presence_status=unit.quantity_presence_status.value,
+        is_excluded=unit.is_excluded,
+        quality_finding_identity_hashes=quality_finding_hashes,
+        correction_ledger_entry_identity_hashes=correction_hashes,
+        exclusion_ledger_entry_identity_hashes=exclusion_hashes,
+        contributor_source_row_identity_hashes=contributor_hashes
+        if len(contributor_hashes) > 1
+        else None,
+        canonical_grain_kg_sum_ledger_policy_version=(
+            request.canonical_grain_kg_sum_ledger_policy_version
+        ),
+    )
+    row_identity_hash = compute_cleaned_row_identity_hash(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        source_row_identity_hash=unit.ledger_source_row_identity_hash,
+        canonical_grain_key=representative.canonical_grain_key_payload,
+        cleaning_projection_version=request.cleaning_projection_version,
+        cleaned_row_schema_version=request.cleaned_schema_version,
+        cleaning_policy_version=request.cleaning_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        cleaned_row_content_hash=content_hash,
+    )
+    return CleanedRowRecord(
+        cleaned_row_identity_hash=row_identity_hash,
+        cleaned_row_content_hash=content_hash,
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        source_row_identity_hash=unit.ledger_source_row_identity_hash,
+        canonical_grain_key=grain,
+        cleaning_projection_version=request.cleaning_projection_version,
+        cleaned_row_schema_version=request.cleaned_schema_version,
+        cleaning_policy_version=request.cleaning_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        source_actual_harvest_quantity_kg=unit.source_actual_harvest_quantity_kg,
+        effective_actual_harvest_quantity_kg=unit.effective_actual_harvest_quantity_kg,
+        quantity_presence_status=unit.quantity_presence_status,
+        is_excluded=unit.is_excluded,
+        quality_finding_identity_hashes=quality_finding_hashes,
+        correction_ledger_entry_identity_hashes=correction_hashes,
+        exclusion_ledger_entry_identity_hashes=exclusion_hashes,
+    )
+
+
+def _build_cleaned_dataset_with_kg_sum_collapse(
+    request: CleaningBuildRequest,
+) -> CleaningBuildResult:
+    if request.canonical_grain_kg_sum_ledger_policy_version is None:
+        raise Source002CleaningBlockedError(
+            "SOURCE_002 kilogram-sum collapse requires an explicit ledger policy version"
+        )
+
+    artifact_hashes, batch_hashes = _resolve_lineage_identity_hashes(request)
+    prepared_rows = _prepare_rows(request)
+    source_row_hashes = tuple(item.source_row_identity_hash for item in prepared_rows)
+
+    version_identity_hash = compute_cleaned_dataset_version_identity_hash(
+        source_cohort_id=request.source_cohort_id,
+        raw_import_batch_identity_hashes=batch_hashes,
+        cleaning_policy_version=request.cleaning_policy_version,
+        quality_policy_version=request.quality_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        mapping_registry_hash=request.mapping_registry_hash,
+        cleaned_schema_version=request.cleaned_schema_version,
+    )
+
+    source_values_by_row = {
+        prepared.source_row_identity_hash: prepared.source_row.actual_harvest_quantity_kg
+        for prepared in prepared_rows
+    }
+    correction_entries = build_correction_ledger_entries(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        correction_policy_version=request.correction_policy_version,
+        correction_schema_version=request.correction_schema_version,
+        source_values_by_row=source_values_by_row,
+        manual_corrections=request.manual_corrections,
+    )
+    exclusion_entries = build_exclusion_ledger_entries(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        exclusion_policy_version=request.exclusion_policy_version,
+        exclusion_schema_version=request.exclusion_schema_version,
+        manual_exclusions=request.manual_exclusions,
+    )
+
+    publish_units = _build_source_002_kg_sum_publish_units(
+        prepared_rows=prepared_rows,
+        request=request,
+        exclusion_entries=exclusion_entries,
+    )
+
+    draft_rows = tuple(
+        _build_cleaned_row_from_kg_sum_unit(
+            unit=unit,
+            request=request,
+            version_identity_hash=version_identity_hash,
+            exclusion_entries=exclusion_entries,
+            correction_entries=correction_entries,
+            quality_finding_hashes=(),
+        )
+        for unit in publish_units
+    )
+    contributor_to_cleaned = {
+        prepared.source_row_identity_hash: row.cleaned_row_identity_hash
+        for unit, row in zip(publish_units, draft_rows, strict=True)
+        for prepared in unit.contributors
+    }
+
+    quality_findings = evaluate_quality_findings(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        quality_policy_version=request.quality_policy_version,
+        quality_schema_version=request.quality_schema_version,
+        prepared_rows=prepared_rows,
+        cleaned_row_identity_by_source=contributor_to_cleaned,
+        duplicate_groups={},
+        exclusion_entries=exclusion_entries,
+    )
+
+    cleaned_rows_tuple = tuple(
+        sorted(
+            (
+                _build_cleaned_row_from_kg_sum_unit(
+                    unit=unit,
+                    request=request,
+                    version_identity_hash=version_identity_hash,
+                    exclusion_entries=exclusion_entries,
+                    correction_entries=correction_entries,
+                    quality_finding_hashes=tuple(
+                        sorted(
+                            {
+                                finding_hash
+                                for prepared in unit.contributors
+                                for finding_hash in findings_for_source_row(
+                                    quality_findings,
+                                    source_row_identity_hash=prepared.source_row_identity_hash,
+                                )
+                            }
+                        )
+                    ),
+                )
+                for unit in publish_units
+            ),
+            key=lambda item: item.cleaned_row_identity_hash,
+        )
+    )
+
+    quality_findings = tuple(
+        sorted(
+            (
+                finding.model_copy(
+                    update={
+                        "cleaned_row_identity_hash": contributor_to_cleaned.get(
+                            finding.source_row_identity_hash
+                        )
+                    }
+                )
+                for finding in quality_findings
+            ),
+            key=lambda item: item.quality_finding_identity_hash,
+        )
+    )
+
+    quality_report_identity_hash = compute_quality_report_identity_hash(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        quality_policy_version=request.quality_policy_version,
+        finding_identity_hashes=(
+            finding.quality_finding_identity_hash for finding in quality_findings
+        ),
+    )
+
+    content_hash = compute_cleaned_dataset_version_content_hash(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        raw_source_artifact_identity_hashes=artifact_hashes,
+        raw_import_batch_identity_hashes=batch_hashes,
+        source_row_identity_hashes=source_row_hashes,
+        quality_report_identity_hash=quality_report_identity_hash,
+        correction_ledger_identity_hashes=(
+            entry.correction_ledger_entry_identity_hash for entry in correction_entries
+        ),
+        exclusion_ledger_identity_hashes=(
+            entry.exclusion_ledger_entry_identity_hash for entry in exclusion_entries
+        ),
+        cleaned_row_content_hashes=(row.cleaned_row_content_hash for row in cleaned_rows_tuple),
+    )
+
+    version = CleanedDatasetVersionRecord(
+        cleaned_dataset_version_identity_hash=version_identity_hash,
+        cleaned_dataset_version_content_hash=content_hash,
+        source_cohort_id=request.source_cohort_id,
+        mapping_registry_hash=request.mapping_registry_hash,
+        cleaning_policy_version=request.cleaning_policy_version,
+        quality_policy_version=request.quality_policy_version,
+        correction_policy_version=request.correction_policy_version,
+        exclusion_policy_version=request.exclusion_policy_version,
+        cleaned_schema_version=request.cleaned_schema_version,
+        raw_source_artifact_identity_hashes=artifact_hashes,
+        raw_import_batch_identity_hashes=batch_hashes,
+        source_row_identity_hashes=source_row_hashes,
+        quality_report_identity_hash=quality_report_identity_hash,
+        correction_ledger_identity_hashes=tuple(
+            entry.correction_ledger_entry_identity_hash for entry in correction_entries
+        ),
+        exclusion_ledger_identity_hashes=tuple(
+            entry.exclusion_ledger_entry_identity_hash for entry in exclusion_entries
+        ),
+        cleaned_row_identity_hashes=tuple(
+            row.cleaned_row_identity_hash for row in cleaned_rows_tuple
+        ),
+        cleaned_row_content_hashes=tuple(
+            row.cleaned_row_content_hash for row in cleaned_rows_tuple
+        ),
+        row_count=len(cleaned_rows_tuple),
+        excluded_row_count=sum(1 for row in cleaned_rows_tuple if row.is_excluded),
+        unknown_quantity_row_count=sum(
+            1
+            for row in cleaned_rows_tuple
+            if row.quantity_presence_status == QuantityPresenceStatus.UNKNOWN_NOT_ZERO
+        ),
+    )
+
+    return CleaningBuildResult(
+        version=version,
+        cleaned_rows=cleaned_rows_tuple,
+        quality_findings=quality_findings,
+        correction_ledger_entries=correction_entries,
+        exclusion_ledger_entries=exclusion_entries,
+    )
+
+
 def build_cleaned_dataset(request: CleaningBuildRequest) -> CleaningBuildResult:
-    artifact_hashes = tuple(
-        sorted(
-            compute_synthetic_raw_source_artifact_identity_hash(artifact.model_dump(mode="python"))
-            for artifact in request.raw_source_artifacts
-        )
-    )
-    batch_hashes = tuple(
-        sorted(
-            compute_synthetic_raw_import_batch_identity_hash(batch.model_dump(mode="python"))
-            for batch in request.raw_import_batches
-        )
-    )
+    if request.canonical_grain_kg_sum_ledger_policy_version is not None:
+        return _build_cleaned_dataset_with_kg_sum_collapse(request)
+    artifact_hashes, batch_hashes = _resolve_lineage_identity_hashes(request)
     prepared_rows = _prepare_rows(request)
     source_row_hashes = tuple(item.source_row_identity_hash for item in prepared_rows)
     duplicate_groups = duplicate_grain_groups(prepared_rows)
