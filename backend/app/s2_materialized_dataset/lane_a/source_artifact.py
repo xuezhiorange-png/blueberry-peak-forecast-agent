@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import os
-from hashlib import sha256
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from backend.app.s2_materialized_dataset.lane_a.hashes import (
     compute_raw_source_artifact_identity_hash,
+    compute_source_002_frozen_storage_locator_hash,
     compute_source_artifact_sha256,
 )
 from backend.app.s2_materialized_dataset.lane_a.persistence import (
@@ -34,11 +34,13 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SOURCE_002_SOURCE_DATASET,
     SOURCE_002_SOURCE_SYSTEM,
     SOURCE_002_SOURCE_VERSION,
+    SOURCE_002_STORAGE_LOCATOR_HASH,
     RawSourceArtifactIdentity,
     RawSourceArtifactIdentityInput,
     Source002IdentityFailureCode,
     Source002IdentityVerificationRecord,
     Source002IdentityVerificationStatus,
+    Source002ParseError,
     SourceArtifactIntegrityConflict,
     SourceArtifactRegistration,
     SourceArtifactRegistrationResult,
@@ -111,19 +113,23 @@ def _is_forbidden_source_path(path: Path) -> bool:
     return path.name in SOURCE_002_FORBIDDEN_BASENAMES
 
 
-def _storage_locator_hash_for_path(path: Path) -> str:
-    return sha256(str(path.resolve()).encode("utf-8")).hexdigest()
-
-
-def storage_locator_hash_for_path(path: Path) -> str:
-    return _storage_locator_hash_for_path(path)
+def source_002_frozen_storage_locator_hash() -> str:
+    storage_locator_hash = compute_source_002_frozen_storage_locator_hash()
+    if storage_locator_hash != SOURCE_002_STORAGE_LOCATOR_HASH:
+        raise Source002ParseError("SOURCE_002 storage locator hash binding mismatch")
+    return storage_locator_hash
 
 
 def build_source_002_artifact_input(
     *,
-    storage_locator_hash: str,
+    storage_locator_hash: str | None = None,
     source_artifact_sequence: int = 1,
 ) -> RawSourceArtifactIdentityInput:
+    resolved_storage_locator_hash = (
+        storage_locator_hash
+        if storage_locator_hash is not None
+        else source_002_frozen_storage_locator_hash()
+    )
     return RawSourceArtifactIdentityInput(
         source_system=SOURCE_002_SOURCE_SYSTEM,
         source_dataset=SOURCE_002_SOURCE_DATASET,
@@ -137,7 +143,7 @@ def build_source_002_artifact_input(
         source_owner_attestation=SOURCE_002_OWNER_ATTESTATION,
         cohort_manifest_reference=SOURCE_002_COHORT_ID,
         custody_record_reference=SOURCE_002_CUSTODY_RECORD,
-        storage_locator_hash=storage_locator_hash,
+        storage_locator_hash=resolved_storage_locator_hash,
     )
 
 
@@ -205,26 +211,19 @@ def verify_source_002_frozen_object_identity(
 ) -> tuple[Source002IdentityVerificationRecord, bytes | None, Path | None]:
     for path in _candidate_paths(search_roots=search_roots):
         if _is_forbidden_source_path(path):
-            return (
-                _failure_record(
-                    failure_code=Source002IdentityFailureCode.FORBIDDEN_OBJECT,
-                    object_present=True,
-                ),
-                None,
-                path,
-            )
+            continue
         if not path.is_file():
             continue
-        artifact_bytes = path.read_bytes()
-        byte_count = len(artifact_bytes)
-        object_sha256 = compute_source_artifact_sha256(artifact_bytes)
+        byte_count = path.stat().st_size
         if byte_count != SOURCE_002_BYTE_COUNT:
             continue
+        artifact_bytes = path.read_bytes()
+        object_sha256 = compute_source_artifact_sha256(artifact_bytes)
         if object_sha256 != SOURCE_002_OBJECT_SHA256:
             continue
         try:
             evidence = extract_source_002_workbook_evidence(artifact_bytes)
-        except Exception:
+        except Source002ParseError:
             return (
                 _failure_record(
                     failure_code=Source002IdentityFailureCode.HEADER_MISMATCH,

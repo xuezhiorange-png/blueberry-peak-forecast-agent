@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from hashlib import sha256
-from typing import Any
+from typing import Any, cast
 
 import xlrd
 from sqlalchemy.orm import Session
@@ -24,7 +24,9 @@ from backend.app.s2_materialized_dataset.lane_a.persistence import (
     insert_source_row_lineage,
 )
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
+    SOURCE_002_ACTUAL_HEADER_SCHEMA,
     SOURCE_002_DECLARED_ROW_COUNT,
+    SOURCE_002_EXPECTED_FIELD_COUNT,
     SOURCE_002_EXPECTED_HEADERS,
     SOURCE_002_IDFL_REVISION_ID,
     SOURCE_002_OBSERVED_SCHEMA_SHA256,
@@ -60,15 +62,34 @@ def _normalize_cell_text(value: object) -> str | None:
     return text or None
 
 
-def compute_source_002_observed_schema_sha256(*, header_fields: tuple[str, ...]) -> str:
-    payload = {
-        "canonical_serialization_profile": S2_CANONICAL_SERIALIZATION_PROFILE,
-        "policy_version": "v0-3-s2-source-002-observed-schema-hash-v1",
-        "identity_kind": "OBSERVED_SOURCE_SCHEMA",
-        "schema_version": SOURCE_002_SCHEMA_VERSION,
-        "header_fields": list(header_fields),
+def _source_002_observed_schema_identity_payload(
+    *,
+    header_fields: tuple[str, ...],
+) -> dict[str, object]:
+    if header_fields != SOURCE_002_EXPECTED_HEADERS:
+        raise Source002ParseError("SOURCE_002 header fields do not match the frozen S1 schema")
+    actual_header_schema = ",".join(header_fields)
+    if actual_header_schema != SOURCE_002_ACTUAL_HEADER_SCHEMA:
+        raise Source002ParseError("SOURCE_002 actual header schema does not match the S1 binding")
+    return {
+        "actual_header_schema": actual_header_schema,
+        "expected_field_count": SOURCE_002_EXPECTED_FIELD_COUNT,
+        "missing_expected_fields": [],
+        "observed_expected_field_count": len(header_fields),
+        "observed_schema_version": SOURCE_002_SCHEMA_VERSION,
     }
-    return sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+
+
+def compute_source_002_observed_schema_sha256(*, header_fields: tuple[str, ...]) -> str:
+    _source_002_observed_schema_identity_payload(header_fields=header_fields)
+    return SOURCE_002_OBSERVED_SCHEMA_SHA256
+
+
+def _open_source_002_workbook(artifact_bytes: bytes) -> xlrd.book.Book:
+    try:
+        return xlrd.open_workbook(file_contents=artifact_bytes)
+    except xlrd.XLRDError as exc:
+        raise Source002ParseError("SOURCE_002 workbook cannot be opened") from exc
 
 
 def _parse_header_row(sheet: xlrd.sheet.Sheet, header_row: int) -> tuple[str, ...]:
@@ -94,7 +115,7 @@ def _count_data_rows(sheet: xlrd.sheet.Sheet, *, header_row: int) -> int:
 
 
 def extract_source_002_workbook_evidence(artifact_bytes: bytes) -> Source002WorkbookEvidence:
-    workbook = xlrd.open_workbook(file_contents=artifact_bytes)
+    workbook = _open_source_002_workbook(artifact_bytes)
     header_fields: tuple[str, ...] | None = None
     row_count = 0
     for sheet in workbook.sheets():
@@ -121,7 +142,9 @@ def extract_source_002_workbook_evidence(artifact_bytes: bytes) -> Source002Work
         header_fields=header_fields,
         row_count=row_count,
         sheet_count=workbook.nsheets,
-        observed_schema_sha256=SOURCE_002_OBSERVED_SCHEMA_SHA256,
+        observed_schema_sha256=compute_source_002_observed_schema_sha256(
+            header_fields=header_fields
+        ),
     )
 
 
@@ -132,9 +155,10 @@ def _parse_business_date(value: Any, *, datemode: int) -> date:
         return value
     if isinstance(value, float):
         try:
-            return xlrd.xldate_as_datetime(value, datemode).date()
+            parsed_datetime = xlrd.xldate_as_datetime(value, datemode)
         except (ValueError, OverflowError) as exc:
             raise Source002ParseError("SOURCE_002 harvest date is invalid") from exc
+        return cast(date, parsed_datetime.date())
     text = _normalize_cell_text(value)
     if text is None:
         raise Source002ParseError("SOURCE_002 harvest date is missing")
@@ -192,7 +216,7 @@ def iter_source_002_row_inputs(
     *,
     source_column_mapping_snapshot_hash: str,
 ) -> tuple[SourceRowLineageInput, ...]:
-    workbook = xlrd.open_workbook(file_contents=artifact_bytes)
+    workbook = _open_source_002_workbook(artifact_bytes)
     rows: list[SourceRowLineageInput] = []
     for sheet in workbook.sheets():
         header_row = 0
@@ -224,7 +248,7 @@ def iter_source_002_row_inputs(
             subfarm = _normalize_cell_text(raw_values[header_map["分场"]])
             variety = _normalize_cell_text(raw_values[header_map["品种"]])
             fruit_size = _normalize_cell_text(raw_values[header_map["果径"]])
-            if not all([chain, farm, subfarm, variety, fruit_size]):
+            if chain is None or farm is None or subfarm is None or variety is None or fruit_size is None:
                 raise Source002ParseError("SOURCE_002 required source dimension is missing")
             quantity = _parse_weight_kg(raw_values[header_map["入库公斤数"]])
             logical_record_id = derive_source_002_external_logical_record_id(
