@@ -248,7 +248,13 @@ def iter_source_002_row_inputs(
             subfarm = _normalize_cell_text(raw_values[header_map["分场"]])
             variety = _normalize_cell_text(raw_values[header_map["品种"]])
             fruit_size = _normalize_cell_text(raw_values[header_map["果径"]])
-            if chain is None or farm is None or subfarm is None or variety is None or fruit_size is None:
+            if (
+                chain is None
+                or farm is None
+                or subfarm is None
+                or variety is None
+                or fruit_size is None
+            ):
                 raise Source002ParseError("SOURCE_002 required source dimension is missing")
             quantity = _parse_weight_kg(raw_values[header_map["入库公斤数"]])
             logical_record_id = derive_source_002_external_logical_record_id(
