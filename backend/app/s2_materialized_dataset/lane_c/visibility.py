@@ -153,4 +153,14 @@ def _decision(
     )
 
 
-__all__ = ["evaluate_pit_visibility"]
+def evaluate_idfl_label_side_visibility(
+    *,
+    source_row_identity: SourceRowIdentity,
+) -> None:
+    """IDFL label-side visibility is not point-in-time replayable and has no PIT row."""
+
+    _ = source_row_identity
+    return None
+
+
+__all__ = ["evaluate_idfl_label_side_visibility", "evaluate_pit_visibility"]
