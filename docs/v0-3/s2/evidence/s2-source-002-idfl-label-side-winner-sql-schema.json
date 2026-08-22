@@ -1,0 +1,211 @@
+{
+  "artifact_id": "V0_3_S2_SOURCE_002_IDFL_LABEL_SIDE_WINNER_SQL_SCHEMA",
+  "artifact_version": "s2-source-002-idfl-label-side-winner-sql-schema-v1",
+  "ledger_policy_version": "s2-source-002-idfl-label-side-winner-sql-v1",
+  "task_id": "V03_S2_SOURCE_002_IDFL_LABEL_SIDE_WINNER_SQL_SCHEMA_R1",
+  "task_class": "DOCS_ONLY_SCHEMA_LEDGER_GRANT",
+  "authorization_scope": "S2_SOURCE_002_IDFL_LABEL_SIDE_WINNER_SQL_SCHEMA_ONLY",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "authorized_at": "2026-08-22T15:05:00Z",
+  "recorded_at": "2026-08-22T15:10:00Z",
+  "authorization_utterance": "授权",
+  "authorization_context": "Coordinator recommended option 2: new IDFL table; do not make existing cutoff columns nullable. User replied 授权.",
+  "no_step_implies_the_next": true,
+  "base_main_sha": "2101acf9350f7ca170cabadbd2dc18d65cf3c3d2",
+  "base_main_ref": "origin/main",
+  "e4_merged_pr": 288,
+  "contract_id": "V0_3_S2_MATERIALIZED_DATASET_CONTRACT",
+  "contract_version": "v0-3-s2-materialized-dataset-contract-v1",
+  "amendment_version": "v0-3-s2-allowlist-migration-ownership-r2",
+  "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+  "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+  "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+  "contract_mutated_by_this_task": false,
+  "development_plan_mutated_by_this_task": false,
+  "workpaper_path": "docs/v0-3/s2/workpapers/s2-source-002-idfl-label-side-winner-sql-schema.md",
+  "evidence_json_path": "docs/v0-3/s2/evidence/s2-source-002-idfl-label-side-winner-sql-schema.json",
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "contract": false,
+    "development_plan": false,
+    "allowlist_expansion": false
+  },
+  "authorization_flags": {
+    "production_code_mutation_authorized": false,
+    "test_code_mutation_authorized": false,
+    "migration_creation_authorized": false,
+    "contract_mutation_authorized": false,
+    "development_plan_mutation_authorized": false,
+    "allowlist_expansion_in_this_pr": false,
+    "lane_c_implementation_authorized": false,
+    "lane_d_start_authorized": false,
+    "s2_acceptance_authorized": false,
+    "v0_3_s3_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "future_implementation_grant": {
+    "schema_and_ledger_design_only": true,
+    "migration_authorized": false,
+    "allowlist_expansion_authorized": false,
+    "lane_d_start_authorized": false,
+    "requires_separate_user_implementation_authorization": true
+  },
+  "design_decisions": {
+    "rejected": {
+      "nullable_forecast_cutoff_on_s2_pit_visibility_decision": true,
+      "nullable_forecast_cutoff_on_s2_revision_winner_decision": true,
+      "sentinel_or_placeholder_datetime_for_cutoff": true,
+      "harvest_business_date_as_source_available_at": true,
+      "harvest_business_date_as_forecast_cutoff_at": true,
+      "insert_idfl_rows_into_s2_pit_visibility_decision": true,
+      "insert_idfl_rows_into_s2_revision_winner_decision": true
+    },
+    "accepted": {
+      "new_table_s2_idfl_label_side_winner_decision": true,
+      "new_table_must_not_have_forecast_cutoff_at_column": true,
+      "new_alembic_down_revision": "d4e8f1a2b3c5",
+      "new_alembic_must_become_unique_head": true,
+      "parallel_alembic_heads_allowed": false,
+      "implementation_order": "TESTS_FIRST_THEN_MIGRATION"
+    }
+  },
+  "lane_c_semantic_alignment": {
+    "revision_winner_mode": "IDFL_LABEL_SIDE",
+    "revision_winner_required": false,
+    "winner_manifest_required": false,
+    "blocked": false,
+    "no_winner_reason": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE",
+    "idfl_label_side_point_in_time_replay_required": false,
+    "source_available_at_required_for_idfl_label_side": false,
+    "forecast_input_visibility_policy_reused_for_actual_label": false,
+    "lifecycle_timestamps_explicit_null_allowed": true,
+    "forecast_cutoff_context_carried": false,
+    "candidate_shape": "SINGLETON_PER_SOURCE_ROW",
+    "revision_winner_algorithm": "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE",
+    "identity_input_must_not_include_forecast_cutoff_at": true,
+    "version_strings": {
+      "visibility_policy_version": "v0-3-s2-idfl-label-side-visibility-v1",
+      "visibility_schema_version": "v0-3-s2-idfl-label-side-visibility-schema-v1",
+      "forecast_cutoff_identity_version": "v0-3-s2-idfl-forecast-cutoff-not-applicable-v1",
+      "revision_winner_policy_version": "v0-3-s2-idfl-revision-winner-v1",
+      "revision_schema_version": "v0-3-s2-idfl-revision-schema-v1",
+      "visibility_boundary": "NOT_POINT_IN_TIME_REPLAYABLE_FOR_IDFL_LABEL_SIDE; SOURCE_OBJECT_COMPLETENESS_AUTHORITY_REQUIRED; SOURCE_OBJECT_BOUND_ROW_LINEAGE_REQUIRED; FORECAST_INPUT_VISIBILITY_DOMAIN_SEPARATE",
+      "idfl_revision_winner_hash_policy_version": "v0-3-s2-idfl-revision-winner-hash-v1"
+    }
+  },
+  "proposed_table": {
+    "name": "s2_idfl_label_side_winner_decision",
+    "forbidden_columns": [
+      "forecast_cutoff_at",
+      "eligible",
+      "block_reason"
+    ],
+    "required_columns": [
+      "id",
+      "source_row_identity_hash",
+      "source_system",
+      "external_logical_record_id",
+      "external_revision_id",
+      "revision_number",
+      "raw_source_artifact_identity_hash",
+      "raw_import_batch_identity_hash",
+      "source_recorded_at",
+      "source_available_at",
+      "source_revised_at",
+      "source_finalized_at",
+      "source_cancelled_at",
+      "visibility_policy_version",
+      "visibility_schema_version",
+      "forecast_cutoff_identity_version",
+      "revision_winner_policy_version",
+      "revision_schema_version",
+      "visibility_boundary",
+      "mode",
+      "revision_winner_required",
+      "winner_manifest_required",
+      "winner_source_row_identity_hash",
+      "winner_source_system",
+      "winner_external_logical_record_id",
+      "winner_external_revision_id",
+      "winner_revision_number",
+      "winner_raw_source_artifact_identity_hash",
+      "winner_raw_import_batch_identity_hash",
+      "blocked",
+      "no_winner_reason",
+      "ordered_candidate_identities_json",
+      "content_sha256",
+      "created_at"
+    ],
+    "constraints": {
+      "unique_content_sha256": "uq_s2_idfl_label_side_winner_decision_content",
+      "check_mode_enum": "IDFL_LABEL_SIDE_ONLY",
+      "check_no_winner_reason_enum": "REVISION_WINNER_BLOCK_REASON_VALUES",
+      "check_sha256_columns": [
+        "source_row_identity_hash",
+        "raw_source_artifact_identity_hash",
+        "raw_import_batch_identity_hash",
+        "content_sha256"
+      ],
+      "check_revision_number_gte_1": true,
+      "check_winner_identity_all_or_nothing": true,
+      "append_only_immutability_trigger_required": true
+    },
+    "content_hash_function": "compute_idfl_revision_winner_content_hash"
+  },
+  "ledger_semantics": {
+    "winner_rows_resolved_counts_in_memory_and_sql": true,
+    "winner_rows_sql_persisted_counts_sql_rows_only": true,
+    "in_memory_lane_c_persistence_store_does_not_count": true,
+    "pit_rows_persisted_must_remain_0": true
+  },
+  "e4_observed_facts": {
+    "e4_merged_pr": 288,
+    "e4_merged_sha": "2101acf9350f7ca170cabadbd2dc18d65cf3c3d2",
+    "e4_status": "RESOLVED_NOT_SQL_PERSISTED",
+    "winner_rows_resolved": 233171,
+    "winner_rows_sql_persisted": 0,
+    "e3_unique_canonical_grains": 33894,
+    "e3_kg_equal": true,
+    "e4_blocked_reason": "PIT_CUTOFF_NOT_APPLICABLE_FOR_IDFL_NO_FABRICATION",
+    "pit_rows_persisted": 0,
+    "pit_status": "NOT_APPLICABLE_NOT_PERSISTED"
+  },
+  "alembic": {
+    "current_unique_head": "d4e8f1a2b3c5",
+    "proposed_down_revision": "d4e8f1a2b3c5",
+    "parallel_alembic_heads_allowed": false,
+    "migration_authorized_by_this_grant": false
+  },
+  "pep420": {
+    "forbidden_production_inits": [
+      "backend/app/s2_materialized_dataset/__init__.py",
+      "backend/app/s2_materialized_dataset/shared/__init__.py"
+    ]
+  },
+  "future_sequence": {
+    "e4b_lane_c_sql_persist": {
+      "authorized_by_this_grant": false,
+      "requires_separate_user_implementation_authorization": true,
+      "target_winner_rows_sql_persisted": 233171,
+      "target_pit_rows_persisted": 0,
+      "allowlist_expansion_may_be_required": true
+    },
+    "e5_lane_d_materialization": {
+      "authorized_by_this_grant": false,
+      "requires_e4b_sql_persist_confirmed": true,
+      "must_consume_persisted_sql_abc_and_idfl_table": true,
+      "fake_ports_and_in_memory_store_forbidden_for_source_002": true
+    }
+  },
+  "s2_acceptance_decision": "NOT_ACCEPTED",
+  "materialized_dataset_freeze_complete": false,
+  "slice_s2_complete": false,
+  "v0_3_s3_authorized": false,
+  "section_11_scored_by_this_grant": false,
+  "development_plan_gates_scored_by_this_grant": false
+}
