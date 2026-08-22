@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -20,6 +22,43 @@ SHA256Hex = Annotated[
     Field(strict=True, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"),
 ]
 NonEmptyString = Annotated[str, Field(strict=True, min_length=1)]
+
+_UNRESOLVED_SENTINELS = frozenset({"NOT_PROVIDED", "NOT_ISSUED", "PENDING"})
+_LANE_A_URL_PATH_RE = re.compile(
+    r"(?:https?://|ftp://|//|\\\\|[a-zA-Z]:[\\/]|docs\.google\.com|drive\.google)",
+    re.IGNORECASE,
+)
+_LANE_A_VERSION_REFERENCE_PATTERN = re.compile(
+    r"^[a-z0-9](?:[a-z0-9._:-]{0,126}[a-z0-9])?$"
+)
+
+
+def validate_lane_a_governed_business_identity(value: object, *, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    text = unicodedata.normalize("NFC", value).strip()
+    if not text or len(text) > 256:
+        raise ValueError(f"{field_name} must be a non-empty governed business identity")
+    if text.upper() in _UNRESOLVED_SENTINELS:
+        raise ValueError(f"{field_name} must not use an unresolved status sentinel")
+    if _LANE_A_URL_PATH_RE.search(text):
+        raise ValueError(f"{field_name} must not contain a URL or path")
+    return text
+
+
+def validate_lane_a_governed_version_reference(value: object, *, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    text = value.strip()
+    if not text or len(text) > 128:
+        raise ValueError(f"{field_name} must be a non-empty version reference")
+    if text.upper() in _UNRESOLVED_SENTINELS:
+        raise ValueError(f"{field_name} must not use an unresolved status sentinel")
+    if _LANE_A_URL_PATH_RE.search(text):
+        raise ValueError(f"{field_name} must not contain a URL or path")
+    if _LANE_A_VERSION_REFERENCE_PATTERN.fullmatch(text) is None:
+        raise ValueError(f"{field_name} must be a governed version reference")
+    return text
 
 
 class LaneALineageError(ValueError):
@@ -144,13 +183,24 @@ class RawSourceArtifactIdentityInput(_LaneABaseModel):
     custody_record_reference: NonEmptyString
     storage_locator_hash: SHA256Hex
 
+    @field_validator("source_system", "source_dataset")
+    @classmethod
+    def _validate_business_identities(cls, value: object, info: object) -> str:
+        field_name = getattr(info, "field_name", "identifier")
+        return validate_lane_a_governed_business_identity(value, field_name=field_name)
+
     @field_validator(
-        "source_system",
-        "source_dataset",
         "source_version",
         "source_snapshot_reference",
         "source_object_identity",
         "schema_version",
+    )
+    @classmethod
+    def _validate_version_references(cls, value: object, info: object) -> str:
+        field_name = getattr(info, "field_name", "version_reference")
+        return validate_lane_a_governed_version_reference(value, field_name=field_name)
+
+    @field_validator(
         "source_owner_attestation",
         "cohort_manifest_reference",
         "custody_record_reference",
@@ -202,7 +252,13 @@ class RawImportBatchIdentityInput(_LaneABaseModel):
     source_cohort_id: NonEmptyString
     import_request_identity: NonEmptyString
 
-    @field_validator("external_batch_id", "source_system", "source_dataset", "source_cohort_id")
+    @field_validator("source_system", "source_dataset")
+    @classmethod
+    def _validate_business_identities(cls, value: object, info: object) -> str:
+        field_name = getattr(info, "field_name", "identifier")
+        return validate_lane_a_governed_business_identity(value, field_name=field_name)
+
+    @field_validator("external_batch_id", "source_cohort_id")
     @classmethod
     def _validate_identifiers(cls, value: object, info: object) -> str:
         field_name = getattr(info, "field_name", "identifier")
@@ -213,9 +269,13 @@ class RawImportBatchIdentityInput(_LaneABaseModel):
     def _validate_import_request_identity(cls, value: object) -> str:
         return validate_batch_a_identifier(value, field_name="import_request_identity")
 
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: object) -> str:
+        return validate_lane_a_governed_version_reference(value, field_name="schema_version")
+
     @field_validator(
         "import_policy_version",
-        "schema_version",
         "mapping_policy_version",
         "validation_policy_version",
     )
@@ -275,17 +335,22 @@ class SourceRowLineageInput(_LaneABaseModel):
     source_column_mapping_snapshot_hash: SHA256Hex
     business_content: SourceRowBusinessContent
 
-    @field_validator("external_logical_record_id", "external_revision_id", "source_system")
+    @field_validator("external_logical_record_id", "external_revision_id")
     @classmethod
     def _validate_identifiers(cls, value: object, info: object) -> str:
         field_name = getattr(info, "field_name", "identifier")
         return validate_batch_a_identifier(value, field_name=field_name)
 
+    @field_validator("source_system")
+    @classmethod
+    def _validate_source_system(cls, value: object) -> str:
+        return validate_lane_a_governed_business_identity(value, field_name="source_system")
+
     @field_validator("source_version", "schema_version")
     @classmethod
     def _validate_versions(cls, value: object, info: object) -> str:
         field_name = getattr(info, "field_name", "version")
-        return validate_batch_a_identifier(value, field_name=field_name)
+        return validate_lane_a_governed_version_reference(value, field_name=field_name)
 
     @field_validator("source_row_identity_version")
     @classmethod
