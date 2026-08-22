@@ -11,10 +11,11 @@ from backend.app.s2_materialized_dataset.lane_c.cutoff import (
 )
 from backend.app.s2_materialized_dataset.lane_c.persistence import (
     LaneCPersistenceStore,
+    S2IdflLabelSideWinnerDecisionModel,
+    count_idfl_label_side_winner_sql_rows,
     count_revision_winner_sql_rows,
     idfl_null_timestamps,
     persist_idfl_revision_winner_decision,
-    pit_sql_persist_blocked_without_forecast_cutoff,
     revision_winner_sql_persist_blocked_without_forecast_cutoff,
 )
 from backend.app.s2_materialized_dataset.lane_c.revision_winner import (
@@ -127,28 +128,89 @@ def test_idfl_revision_winner_hash_is_stable_across_replays(
     assert first.content_sha256 == second.content_sha256
 
 
-def test_idfl_revision_winner_resolved_without_sql_persist_when_cutoff_required(
-    lane_c_migrated_session,
+def test_idfl_label_side_winner_table_has_no_forecast_cutoff_column(
+    lane_c_e4b_migrated_session,
+) -> None:
+    inspector = sa.inspect(lane_c_e4b_migrated_session.bind)
+    columns = {
+        column["name"] for column in inspector.get_columns("s2_idfl_label_side_winner_decision")
+    }
+    assert "forecast_cutoff_at" not in columns
+    assert "eligible" not in columns
+    assert "block_reason" not in columns
+
+
+@pytest.mark.migration
+def test_idfl_label_side_winner_persists_to_new_table_not_old_winner_table(
+    lane_c_e4b_migrated_session,
     synthetic_source_row_identity: SourceRowIdentity,
 ) -> None:
-    assert pit_sql_persist_blocked_without_forecast_cutoff(lane_c_migrated_session)
-    assert revision_winner_sql_persist_blocked_without_forecast_cutoff(lane_c_migrated_session)
+    decision = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+    row = persist_idfl_revision_winner_decision(lane_c_e4b_migrated_session, decision)
+    lane_c_e4b_migrated_session.commit()
+
+    assert row is not None
+    assert isinstance(row, S2IdflLabelSideWinnerDecisionModel)
+    assert count_idfl_label_side_winner_sql_rows(lane_c_e4b_migrated_session) == 1
+    assert count_revision_winner_sql_rows(lane_c_e4b_migrated_session) == 0
+
+
+@pytest.mark.migration
+def test_idfl_label_side_winner_table_enforces_mode_and_immutability(
+    lane_c_e4b_migrated_session,
+    synthetic_source_row_identity: SourceRowIdentity,
+) -> None:
+    decision = resolve_idfl_revision_winner_for_source_row(
+        source_row_identity=synthetic_source_row_identity,
+    )
+    row = persist_idfl_revision_winner_decision(lane_c_e4b_migrated_session, decision)
+    lane_c_e4b_migrated_session.commit()
+    inspector = sa.inspect(lane_c_e4b_migrated_session.bind)
+    checks = {
+        check["name"]
+        for check in inspector.get_check_constraints("s2_idfl_label_side_winner_decision")
+    }
+    assert "ck_s2_idfl_label_side_winner_mode" in checks
+    assert "ck_s2_idfl_label_side_winner_no_winner_reason" in checks
+    with pytest.raises(sa.exc.IntegrityError):
+        lane_c_e4b_migrated_session.execute(
+            sa.text(
+                """
+                UPDATE s2_idfl_label_side_winner_decision
+                SET blocked = 1
+                WHERE id = :row_id
+                """
+            ),
+            {"row_id": row.id},
+        )
+        lane_c_e4b_migrated_session.commit()
+
+
+def test_idfl_revision_winner_sql_persist_uses_new_table_not_old_winner_table(
+    lane_c_e4b_migrated_session,
+    synthetic_source_row_identity: SourceRowIdentity,
+) -> None:
+    assert revision_winner_sql_persist_blocked_without_forecast_cutoff(lane_c_e4b_migrated_session)
 
     decision = resolve_idfl_revision_winner_for_source_row(
         source_row_identity=synthetic_source_row_identity,
     )
     first = persist_idfl_revision_winner_decision(
-        lane_c_migrated_session,
+        lane_c_e4b_migrated_session,
         decision,
     )
     second = persist_idfl_revision_winner_decision(
-        lane_c_migrated_session,
+        lane_c_e4b_migrated_session,
         decision,
     )
 
-    assert first is None
-    assert second is None
-    assert count_revision_winner_sql_rows(lane_c_migrated_session) == 0
+    assert first is not None
+    assert second is not None
+    assert first.id == second.id
+    assert count_idfl_label_side_winner_sql_rows(lane_c_e4b_migrated_session) == 1
+    assert count_revision_winner_sql_rows(lane_c_e4b_migrated_session) == 0
 
     store = LaneCPersistenceStore()
     store.record_revision_winner(decision)

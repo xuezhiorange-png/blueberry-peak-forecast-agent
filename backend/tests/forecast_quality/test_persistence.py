@@ -741,7 +741,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "d4e8f1a2b3c5"
+                "a7c3e9f1b2d4"
             )
             nullable_rows = await conn.fetch(
                 """
@@ -804,7 +804,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "d4e8f1a2b3c5"
+                "a7c3e9f1b2d4"
             )
         finally:
             await conn.close()
@@ -4059,7 +4059,7 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
         try:
             # §8 oracle
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "d4e8f1a2b3c5"
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "a7c3e9f1b2d4"
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_name = 'model_baseline_comparison'"
@@ -4152,7 +4152,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             # §11.3 oracle: current_database is still the temp DB and
             # version is still 0026.
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "d4e8f1a2b3c5"
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "a7c3e9f1b2d4"
             assert (
                 await conn.fetchval(
                     "SELECT count(*) FROM quality_evaluation_run "
