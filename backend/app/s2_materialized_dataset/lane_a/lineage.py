@@ -36,7 +36,7 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_source_002_artifact_input,
     register_raw_source_artifact,
-    storage_locator_hash_for_path,
+    source_002_frozen_storage_locator_hash,
     verify_source_002_frozen_object_identity,
 )
 from backend.app.s2_materialized_dataset.lane_a.source_row import (
@@ -94,7 +94,7 @@ def controlled_ingest_source_002(
     *,
     verification: Source002IdentityVerificationRecord,
     artifact_bytes: bytes,
-    storage_locator_hash: str,
+    storage_locator_hash: str | None = None,
 ) -> Source002ControlledIngestResult:
     if verification.status != Source002IdentityVerificationStatus.PASS:
         raise Source002ControlledIngestBlocked(
@@ -105,7 +105,9 @@ def controlled_ingest_source_002(
 
     artifact_registration = register_raw_source_artifact(
         session,
-        artifact_input=build_source_002_artifact_input(storage_locator_hash=storage_locator_hash),
+        artifact_input=build_source_002_artifact_input(
+            storage_locator_hash=storage_locator_hash,
+        ),
         artifact_bytes=artifact_bytes,
     )
     artifact_hash = artifact_registration.identity.source_artifact_identity_hash
@@ -185,5 +187,4 @@ def controlled_ingest_source_002_from_environment(
         session,
         verification=verification,
         artifact_bytes=artifact_bytes,
-        storage_locator_hash=storage_locator_hash_for_path(path),
     )

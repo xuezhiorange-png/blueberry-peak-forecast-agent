@@ -29,10 +29,18 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SourceArtifactIntegrityConflict,
     SourceArtifactRegistrationResult,
 )
+from backend.app.s2_materialized_dataset.lane_a.schemas import (
+    SOURCE_002_EXPECTED_HEADERS,
+    Source002ParseError,
+)
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_raw_source_artifact_identity,
     register_raw_source_artifact,
+    source_002_frozen_storage_locator_hash,
     verify_source_002_frozen_object_identity,
+)
+from backend.app.s2_materialized_dataset.lane_a.source_row import (
+    compute_source_002_observed_schema_sha256,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
@@ -212,3 +220,44 @@ def test_source_002_e1_record_binds_frozen_identity_metadata() -> None:
 def test_source_002_e2_is_blocked_when_e1_does_not_pass(lane_a_session) -> None:
     with pytest.raises(Source002ControlledIngestBlocked):
         controlled_ingest_source_002_from_environment(lane_a_session)
+
+
+def test_source_002_storage_locator_hash_is_cross_environment_stable() -> None:
+    first = source_002_frozen_storage_locator_hash()
+    second = source_002_frozen_storage_locator_hash()
+
+    assert first == second
+    assert first != "b8808e32eec032060894b9839dae7969bccad50ba4bf0c399fe19c5b16958eb9"
+    assert len(first) == 64
+
+
+def test_source_002_observed_schema_sha256_matches_s1_binding() -> None:
+    observed = compute_source_002_observed_schema_sha256(
+        header_fields=SOURCE_002_EXPECTED_HEADERS,
+    )
+
+    assert observed == SOURCE_002_OBSERVED_SCHEMA_SHA256
+
+
+def test_source_002_observed_schema_sha256_rejects_non_frozen_headers() -> None:
+    with pytest.raises(Source002ParseError):
+        compute_source_002_observed_schema_sha256(header_fields=("时间",))
+
+
+def test_source_002_e1_skips_wrong_size_before_reading_bytes(tmp_path: Path, monkeypatch) -> None:
+    reads: list[Path] = []
+    original_read_bytes = Path.read_bytes
+
+    def _tracking_read_bytes(self: Path) -> bytes:
+        reads.append(self)
+        return original_read_bytes(self)
+
+    monkeypatch.setattr(Path, "read_bytes", _tracking_read_bytes)
+
+    wrong_size_path = tmp_path / "wrong-size-candidate.xls"
+    wrong_size_path.write_bytes(b"x" * (SOURCE_002_BYTE_COUNT - 1))
+
+    record, _, _ = verify_source_002_frozen_object_identity(search_roots=(tmp_path,))
+
+    assert record.failure_code == Source002IdentityFailureCode.OBJECT_NOT_FOUND
+    assert reads == []
