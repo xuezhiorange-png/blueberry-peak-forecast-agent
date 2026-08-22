@@ -36,7 +36,6 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_source_002_artifact_input,
     register_raw_source_artifact,
-    source_002_frozen_storage_locator_hash,
     verify_source_002_frozen_object_identity,
 )
 from backend.app.s2_materialized_dataset.lane_a.source_row import (

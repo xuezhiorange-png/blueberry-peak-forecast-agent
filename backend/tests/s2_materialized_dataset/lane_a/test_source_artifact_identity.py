@@ -14,6 +14,7 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SOURCE_002_COHORT_ID,
     SOURCE_002_COHORT_MANIFEST_SHA256,
     SOURCE_002_DECLARED_ROW_COUNT,
+    SOURCE_002_EXPECTED_HEADERS,
     SOURCE_002_FORBIDDEN_BASENAMES,
     SOURCE_002_OBJECT_SHA256,
     SOURCE_002_OBSERVED_SCHEMA_SHA256,
@@ -26,12 +27,9 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     Source002ControlledIngestBlocked,
     Source002IdentityFailureCode,
     Source002IdentityVerificationStatus,
+    Source002ParseError,
     SourceArtifactIntegrityConflict,
     SourceArtifactRegistrationResult,
-)
-from backend.app.s2_materialized_dataset.lane_a.schemas import (
-    SOURCE_002_EXPECTED_HEADERS,
-    Source002ParseError,
 )
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_raw_source_artifact_identity,
