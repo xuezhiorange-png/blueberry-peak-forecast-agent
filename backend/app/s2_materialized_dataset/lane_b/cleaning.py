@@ -280,8 +280,7 @@ def assert_no_canonical_grain_collisions_or_fail(
     if not conflicts:
         return 0
     conflict_group_row_counts = tuple(
-        (grain_key, len(row_hashes))
-        for grain_key, row_hashes in sorted(conflicts.items())
+        (grain_key, len(row_hashes)) for grain_key, row_hashes in sorted(conflicts.items())
     )
     for grain_key, row_count in conflict_group_row_counts:
         print(
