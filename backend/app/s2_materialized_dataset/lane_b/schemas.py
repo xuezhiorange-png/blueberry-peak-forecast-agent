@@ -155,6 +155,34 @@ class Source002CleaningBlockedError(ValueError):
     """SOURCE_002 cleaning cannot proceed under governed policy."""
 
 
+class Source002E3CollisionGroupSample(_FrozenContractModel):
+    farm_business_key: str
+    subfarm_business_key: str
+    variety_business_key: str
+    harvest_business_date: date
+    row_count: int
+    chain_distinct_count: int
+    fruit_size_distinct_count: int
+    kg_values: tuple[str, ...]
+
+
+class Source002E3DiagnosticReport(_FrozenContractModel):
+    source_rows_in_scope: int
+    unique_canonical_grains: int
+    singleton_grain_count: int
+    collision_grain_count: int
+    rows_in_singleton_grains: int
+    rows_in_collision_grains: int
+    kg_in_singleton_grains: Decimal
+    kg_in_collision_grains: Decimal
+    kg_total_in_scope: Decimal
+    collision_group_size_min: int
+    collision_group_size_p50: int
+    collision_group_size_p90: int
+    collision_group_size_max: int
+    collision_group_samples: tuple[Source002E3CollisionGroupSample, ...] = ()
+
+
 class CanonicalGrainCollisionBlockedError(Source002CleaningBlockedError):
     """Unresolved canonical-grain collisions require Lane C winner selection."""
 
@@ -164,10 +192,12 @@ class CanonicalGrainCollisionBlockedError(Source002CleaningBlockedError):
         *,
         conflict_group_count: int,
         conflict_group_row_counts: tuple[tuple[str, int], ...],
+        diagnostics: Source002E3DiagnosticReport | None = None,
     ) -> None:
         super().__init__(message)
         self.conflict_group_count = conflict_group_count
         self.conflict_group_row_counts = conflict_group_row_counts
+        self.diagnostics = diagnostics
 
 
 class CleaningBuildRequest(_FrozenContractModel):
@@ -334,4 +364,5 @@ class Source002CleaningResult(_FrozenContractModel):
     canonical_source_row_count: int
     july_excluded_row_count: int
     grain_conflict_group_count: int
+    diagnostics: Source002E3DiagnosticReport | None = None
     cleaning: CleaningBuildResult
