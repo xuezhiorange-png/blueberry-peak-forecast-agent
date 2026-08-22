@@ -17,6 +17,7 @@ from backend.app.s2_materialized_dataset.lane_b.cleaning import (
     assert_replay_parity,
     build_cleaned_dataset,
     build_july_cohort_exclusions,
+    build_source_002_e3_grain_diagnostics,
     canonical_grain_collision_groups,
     resolve_quantity_presence,
     resolve_source_002_season_business_key,
@@ -336,26 +337,89 @@ def test_canonical_grain_collision_fails_closed_with_group_counts(
         artifact=synthetic_artifact,
         logical_id="logical-a",
         harvest_date=date(2026, 2, 10),
+        quantity=Decimal("10.000000"),
     )
     row_b = make_source_row(
         batch=synthetic_batch,
         artifact=synthetic_artifact,
         logical_id="logical-b",
         harvest_date=date(2026, 2, 10),
+        quantity=Decimal("20.000000"),
     )
     hash_a = make_source_row_identity_hash(row_a)
     hash_b = make_source_row_identity_hash(row_b)
     row_a = row_a.model_copy(update={"persisted_source_row_identity_hash": hash_a})
     row_b = row_b.model_copy(update={"persisted_source_row_identity_hash": hash_b})
 
+    diagnostics = build_source_002_e3_grain_diagnostics(
+        (row_a, row_b),
+        july_excluded_row_count=0,
+        dimension_hints={
+            "logical-a": ("chain-a", "size-a"),
+            "logical-b": ("chain-b", "size-b"),
+        },
+    )
+    assert diagnostics.source_rows_in_scope == 2
+    assert diagnostics.unique_canonical_grains == 1
+    assert diagnostics.singleton_grain_count == 0
+    assert diagnostics.collision_grain_count == 1
+    assert diagnostics.rows_in_singleton_grains == 0
+    assert diagnostics.rows_in_collision_grains == 2
+    assert diagnostics.kg_in_collision_grains == Decimal("30.000000")
+    assert diagnostics.kg_total_in_scope == Decimal("30.000000")
+    assert diagnostics.collision_group_size_min == 2
+    assert diagnostics.collision_group_size_p50 == 2
+    assert diagnostics.collision_group_size_p90 == 2
+    assert diagnostics.collision_group_size_max == 2
+    assert len(diagnostics.collision_group_samples) == 1
+    assert diagnostics.collision_group_samples[0].chain_distinct_count == 2
+    assert diagnostics.collision_group_samples[0].fruit_size_distinct_count == 2
+    assert set(diagnostics.collision_group_samples[0].kg_values) == {
+        "10.000000",
+        "20.000000",
+    }
+
     conflicts = canonical_grain_collision_groups(source_rows=(row_a, row_b))
     assert len(conflicts) == 1
     assert len(next(iter(conflicts.values()))) == 2
 
     with pytest.raises(CanonicalGrainCollisionBlockedError) as exc_info:
-        assert_no_canonical_grain_collisions_or_fail(source_rows=(row_a, row_b))
+        assert_no_canonical_grain_collisions_or_fail(
+            source_rows=(row_a, row_b),
+            diagnostics=diagnostics,
+        )
     assert exc_info.value.conflict_group_count == 1
     assert exc_info.value.conflict_group_row_counts[0][1] == 2
+    assert exc_info.value.diagnostics == diagnostics
+
+
+def test_e3_grain_diagnostics_no_collision_allows_persist(
+    sqlite_session,
+    cleaning_build_request: CleaningBuildRequest,
+    known_quantity_row: SyntheticSourceRowInput,
+) -> None:
+    diagnostics = build_source_002_e3_grain_diagnostics(
+        (known_quantity_row,),
+        july_excluded_row_count=0,
+    )
+    assert diagnostics.collision_grain_count == 0
+    assert diagnostics.singleton_grain_count == 1
+    assert diagnostics.source_rows_in_scope == 1
+    assert diagnostics.rows_in_singleton_grains == 1
+    assert diagnostics.rows_in_collision_grains == 0
+    assert diagnostics.kg_in_singleton_grains == Decimal("12.500000")
+    assert diagnostics.kg_total_in_scope == Decimal("12.500000")
+    assert diagnostics.collision_group_size_min == 0
+    assert diagnostics.collision_group_samples == ()
+
+    assert_no_canonical_grain_collisions_or_fail(
+        source_rows=(known_quantity_row,),
+        diagnostics=diagnostics,
+    )
+    result = build_cleaned_dataset(cleaning_build_request)
+    row = persist_cleaning_build_result(sqlite_session, result)
+    sqlite_session.commit()
+    assert row.row_count == 1
 
 
 def test_july_rows_remain_in_source_lineage_but_not_canonical_output(
