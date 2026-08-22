@@ -8,6 +8,8 @@ from typing import Any
 
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
+    SOURCE_002_OBJECT_SHA256,
+    SOURCE_002_SNAPSHOT_REFERENCE,
     RawImportBatchIdentityInput,
     RawSourceArtifactIdentityInput,
     SourceRowBusinessContent,
@@ -28,6 +30,18 @@ def _digest(value: Mapping[str, Any]) -> str:
 
 def compute_source_artifact_sha256(artifact_bytes: bytes) -> str:
     return sha256(artifact_bytes).hexdigest()
+
+
+def source_002_frozen_storage_locator_payload() -> str:
+    lines = (
+        f"SOURCE_OBJECT_SHA256={SOURCE_002_OBJECT_SHA256}",
+        f"SOURCE_SNAPSHOT_REFERENCE={SOURCE_002_SNAPSHOT_REFERENCE}",
+    )
+    return "\n".join(lines)
+
+
+def compute_source_002_frozen_storage_locator_hash() -> str:
+    return sha256(source_002_frozen_storage_locator_payload().encode("utf-8")).hexdigest()
 
 
 def source_artifact_identity_payload(

@@ -294,3 +294,34 @@ def test_hash_payload_serializes_timestamps_with_z_suffix(
 def test_naive_timestamp_in_hash_scope_raises() -> None:
     with pytest.raises(ValueError, match="timezone-aware"):
         canonical_timestamp_string(datetime(2026, 2, 28, 12, 0))
+
+
+def test_idfl_label_side_does_not_persist_pit_without_observed_cutoff(
+    lane_c_migrated_session,
+    synthetic_source_row_identity,
+) -> None:
+    from backend.app.s2_materialized_dataset.lane_c.persistence import (
+        PIT_CUTOFF_NOT_APPLICABLE_FOR_IDFL_NO_FABRICATION,
+        pit_sql_persist_blocked_without_forecast_cutoff,
+        resolve_idfl_label_side_pit_status,
+    )
+
+    assert pit_sql_persist_blocked_without_forecast_cutoff(lane_c_migrated_session)
+    status = resolve_idfl_label_side_pit_status()
+    assert status.pit_rows_persisted == 0
+    assert status.pit_status == "NOT_APPLICABLE_NOT_PERSISTED"
+    assert status.e4_blocked_reason == PIT_CUTOFF_NOT_APPLICABLE_FOR_IDFL_NO_FABRICATION
+
+
+def test_idfl_label_side_does_not_use_source_available_missing_success_path(
+    synthetic_source_row_identity,
+) -> None:
+    from backend.app.s2_materialized_dataset.lane_c.visibility import (
+        evaluate_idfl_label_side_visibility,
+    )
+
+    decision = evaluate_idfl_label_side_visibility(
+        source_row_identity=synthetic_source_row_identity,
+    )
+
+    assert decision is None

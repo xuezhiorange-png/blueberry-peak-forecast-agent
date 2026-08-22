@@ -8,7 +8,9 @@ from typing import Any
 
 from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.s2_materialized_dataset.lane_c.schemas import (
+    VISIBILITY_BOUNDARY,
     ForecastCutoffContext,
+    IdflLabelSideContext,
     LogicalRecordKey,
     PitVisibilityBlockReason,
     RevisionCandidateRecord,
@@ -18,6 +20,7 @@ from backend.app.s2_materialized_dataset.lane_c.schemas import (
 
 VISIBILITY_HASH_POLICY_VERSION = "v0-3-s2-pit-visibility-hash-v1"
 REVISION_WINNER_HASH_POLICY_VERSION = "v0-3-s2-revision-winner-hash-v1"
+IDFL_REVISION_WINNER_HASH_POLICY_VERSION = "v0-3-s2-idfl-revision-winner-hash-v1"
 _NAIVE_TIMESTAMP_HASH_SENTINEL = "NAIVE_TIMESTAMP_REJECTED"
 
 
@@ -165,10 +168,50 @@ def compute_revision_winner_content_hash(
     return sha256_payload(payload)
 
 
+def compute_idfl_revision_winner_content_hash(
+    *,
+    logical_record_key: LogicalRecordKey,
+    source_row_identity: SourceRowIdentity,
+    timestamps: SourceRowLifecycleTimestamps,
+    idfl_label_side_context: IdflLabelSideContext,
+    ordered_candidate_identities: Sequence[str],
+    winner_source_row_identity_hash: str | None,
+    blocked: bool,
+    no_winner_reason: str | None,
+    mode: str,
+) -> str:
+    payload = {
+        "policy_version": IDFL_REVISION_WINNER_HASH_POLICY_VERSION,
+        "logical_record_key": {
+            "source_system": logical_record_key.source_system,
+            "external_logical_record_id": logical_record_key.external_logical_record_id,
+        },
+        "source_row_identity": _source_row_identity_payload(source_row_identity),
+        "timestamps": _timestamps_payload(timestamps, reject_naive=False),
+        "visibility_policy_version": idfl_label_side_context.visibility_policy_version,
+        "visibility_schema_version": idfl_label_side_context.visibility_schema_version,
+        "forecast_cutoff_identity_version": (
+            idfl_label_side_context.forecast_cutoff_identity_version
+        ),
+        "revision_winner_policy_version": idfl_label_side_context.revision_winner_policy_version,
+        "revision_schema_version": idfl_label_side_context.revision_schema_version,
+        "visibility_boundary": idfl_label_side_context.visibility_boundary,
+        "visibility_boundary_constant": VISIBILITY_BOUNDARY,
+        "mode": mode,
+        "ordered_revision_candidate_identities": list(ordered_candidate_identities),
+        "winner_source_row_identity_hash": winner_source_row_identity_hash,
+        "blocked": blocked,
+        "no_winner_reason": no_winner_reason,
+    }
+    return sha256_payload(payload)
+
+
 __all__ = [
+    "IDFL_REVISION_WINNER_HASH_POLICY_VERSION",
     "REVISION_WINNER_HASH_POLICY_VERSION",
     "VISIBILITY_HASH_POLICY_VERSION",
     "canonical_timestamp_string",
+    "compute_idfl_revision_winner_content_hash",
     "compute_pit_visibility_content_hash",
     "compute_revision_winner_content_hash",
     "ordered_candidate_identity_hashes",

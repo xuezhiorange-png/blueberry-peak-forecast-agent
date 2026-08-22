@@ -57,6 +57,7 @@ LANE_B_MIGRATION_PATH = (
 )
 LANE_B_MIGRATION_REVISION = "2af278a20e2a"
 LANE_B_MIGRATION_DOWN_REVISION = "0029_s2_lane_a_raw_ingestion_lineage"
+ALEMBIC_SINGLE_HEAD = "a7c3e9f1b2d4"
 
 
 def _lane_b_migration_module():
@@ -76,8 +77,8 @@ def assert_lane_b_alembic_head_and_revision_contract() -> None:
     script = ScriptDirectory.from_config(config)
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [LANE_B_MIGRATION_REVISION], (
-        f"alembic heads must be [{LANE_B_MIGRATION_REVISION!r}], got {heads!r}"
+    assert heads == [ALEMBIC_SINGLE_HEAD], (
+        f"alembic heads must be [{ALEMBIC_SINGLE_HEAD!r}], got {heads!r}"
     )
     module = _lane_b_migration_module()
     assert module.revision == LANE_B_MIGRATION_REVISION
