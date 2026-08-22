@@ -17,6 +17,7 @@ SOURCE_002_UNMAPPED_SEASON_BUSINESS_KEY = "UNMAPPED_NOT_IN_S1_COHORT"
 SOURCE_002_JULY_COHORT_EXCLUSION_REASON = "source-002-s1-cohort-unmapped-july-2025-07-22-option-a"
 SOURCE_002_CLEANING_DECISION_AUTHORITY = "source-002-final-source-cohort-manifest-v1"
 SOURCE_002_JULY_COHORT_EXCLUDED_ROW_COUNT = 2
+SOURCE_002_CANONICAL_GRAIN_KG_SUM_LEDGER_POLICY_VERSION = "s2-source-002-canonical-grain-kg-sum-v1"
 
 
 class QuantityPresenceStatus(StrEnum):
@@ -155,6 +156,10 @@ class Source002CleaningBlockedError(ValueError):
     """SOURCE_002 cleaning cannot proceed under governed policy."""
 
 
+class Source002GrainKgSumBlockedError(Source002CleaningBlockedError):
+    """Canonical-grain kilogram sum collapse cannot proceed under ledger policy."""
+
+
 class Source002E3CollisionGroupSample(_FrozenContractModel):
     farm_business_key: str
     subfarm_business_key: str
@@ -220,6 +225,7 @@ class CleaningBuildRequest(_FrozenContractModel):
     quality_rule_version: str
     manual_corrections: tuple[ManualCorrectionRequest, ...] = ()
     manual_exclusions: tuple[ManualExclusionRequest, ...] = ()
+    canonical_grain_kg_sum_ledger_policy_version: str | None = None
 
     @field_validator(
         "raw_source_artifacts",
