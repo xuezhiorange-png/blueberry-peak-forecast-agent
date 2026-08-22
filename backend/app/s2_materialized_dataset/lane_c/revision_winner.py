@@ -7,11 +7,13 @@ from collections.abc import Sequence
 
 from backend.app.s2_materialized_dataset.lane_c.cutoff import validate_forecast_cutoff_context
 from backend.app.s2_materialized_dataset.lane_c.hashes import (
+    compute_idfl_revision_winner_content_hash,
     compute_revision_winner_content_hash,
     ordered_candidate_identity_hashes,
 )
 from backend.app.s2_materialized_dataset.lane_c.schemas import (
     ForecastCutoffContext,
+    IdflLabelSideContext,
     LogicalRecordKey,
     PitVisibilityBlockReason,
     RevisionCandidateRecord,
@@ -19,6 +21,7 @@ from backend.app.s2_materialized_dataset.lane_c.schemas import (
     RevisionWinnerDecision,
     RevisionWinnerMode,
     SourceRowIdentity,
+    SourceRowLifecycleTimestamps,
 )
 from backend.app.s2_materialized_dataset.lane_c.visibility import evaluate_pit_visibility
 
@@ -27,6 +30,56 @@ LATEST_ROW_FALLBACK_ALLOWED = False
 REVISION_WINNER_ALGORITHM = "NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE"
 
 _WINNER_ELIGIBLE_STATUSES = frozenset({"ACTIVE", "FINALIZED"})
+
+
+def idfl_null_timestamps() -> SourceRowLifecycleTimestamps:
+    return SourceRowLifecycleTimestamps(
+        source_recorded_at=None,
+        source_available_at=None,
+        source_revised_at=None,
+        source_finalized_at=None,
+        source_cancelled_at=None,
+    )
+
+
+def resolve_idfl_revision_winner_for_source_row(
+    *,
+    source_row_identity: SourceRowIdentity,
+    idfl_label_side_context: IdflLabelSideContext | None = None,
+) -> RevisionWinnerDecision:
+    label_context = idfl_label_side_context or IdflLabelSideContext()
+    timestamps = idfl_null_timestamps()
+    logical_record_key = LogicalRecordKey(
+        source_system=source_row_identity.source_system,
+        external_logical_record_id=source_row_identity.external_logical_record_id,
+    )
+    ordered_identities = (source_row_identity.source_row_identity_hash,)
+    content_sha256 = compute_idfl_revision_winner_content_hash(
+        logical_record_key=logical_record_key,
+        source_row_identity=source_row_identity,
+        timestamps=timestamps,
+        idfl_label_side_context=label_context,
+        ordered_candidate_identities=ordered_identities,
+        winner_source_row_identity_hash=None,
+        blocked=False,
+        no_winner_reason=RevisionWinnerBlockReason.NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE.value,
+        mode=RevisionWinnerMode.IDFL_LABEL_SIDE.value,
+    )
+    return RevisionWinnerDecision(
+        logical_record_key=logical_record_key,
+        source_row_identity=source_row_identity,
+        timestamps=timestamps,
+        cutoff_context=None,
+        idfl_label_side_context=label_context,
+        mode=RevisionWinnerMode.IDFL_LABEL_SIDE,
+        revision_winner_required=False,
+        winner_manifest_required=False,
+        winner_source_row_identity=None,
+        blocked=False,
+        no_winner_reason=RevisionWinnerBlockReason.NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE,
+        ordered_candidate_identities=ordered_identities,
+        content_sha256=content_sha256,
+    )
 
 
 def _duplicate_revision_ids(candidates: Sequence[RevisionCandidateRecord]) -> bool:
@@ -43,24 +96,23 @@ def resolve_revision_winner(
     *,
     logical_record_key: LogicalRecordKey,
     candidates: Sequence[RevisionCandidateRecord],
-    cutoff_context: ForecastCutoffContext,
     mode: RevisionWinnerMode,
+    cutoff_context: ForecastCutoffContext | None = None,
+    idfl_label_side_context: IdflLabelSideContext | None = None,
 ) -> RevisionWinnerDecision:
-    validated_context = validate_forecast_cutoff_context(cutoff_context)
     ordered_identities = ordered_candidate_identity_hashes(candidates)
 
     if mode is RevisionWinnerMode.IDFL_LABEL_SIDE:
-        return _decision(
-            logical_record_key=logical_record_key,
-            cutoff_context=validated_context,
-            mode=mode,
-            revision_winner_required=False,
-            winner_manifest_required=False,
-            winner_source_row_identity=None,
-            blocked=False,
-            no_winner_reason=RevisionWinnerBlockReason.NOT_APPLICABLE_FOR_IDFL_LABEL_SIDE,
-            ordered_candidate_identities=ordered_identities,
+        if len(candidates) != 1:
+            raise ValueError("IDFL_LABEL_SIDE requires exactly one source row candidate")
+        return resolve_idfl_revision_winner_for_source_row(
+            source_row_identity=candidates[0].source_row_identity,
+            idfl_label_side_context=idfl_label_side_context,
         )
+
+    if cutoff_context is None:
+        raise ValueError("replay revision-winner resolution requires cutoff_context")
+    validated_context = validate_forecast_cutoff_context(cutoff_context)
 
     if _duplicate_revision_ids(candidates):
         return _blocked(
@@ -227,7 +279,10 @@ def _decision(
     )
     return RevisionWinnerDecision(
         logical_record_key=logical_record_key,
+        source_row_identity=None,
+        timestamps=None,
         cutoff_context=cutoff_context,
+        idfl_label_side_context=None,
         mode=mode,
         revision_winner_required=revision_winner_required,
         winner_manifest_required=winner_manifest_required,
@@ -243,5 +298,7 @@ __all__ = [
     "IDFL_REVISION_WINNER_REQUIRED",
     "LATEST_ROW_FALLBACK_ALLOWED",
     "REVISION_WINNER_ALGORITHM",
+    "idfl_null_timestamps",
+    "resolve_idfl_revision_winner_for_source_row",
     "resolve_revision_winner",
 ]

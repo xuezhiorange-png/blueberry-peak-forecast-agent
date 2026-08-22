@@ -4,8 +4,18 @@ from backend.app.s2_materialized_dataset.lane_a.import_batch import (
     build_raw_import_batch_identity,
     register_raw_import_batch,
 )
-from backend.app.s2_materialized_dataset.lane_a.lineage import query_source_row_lineage_chain
+from backend.app.s2_materialized_dataset.lane_a.lineage import (
+    controlled_ingest_source_002,
+    controlled_ingest_source_002_from_environment,
+    query_source_row_lineage_chain,
+    run_source_002_identity_verification,
+)
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
+    SOURCE_002_BYTE_COUNT,
+    SOURCE_002_DECLARED_ROW_COUNT,
+    SOURCE_002_FORBIDDEN_BASENAMES,
+    SOURCE_002_OBJECT_SHA256,
+    SOURCE_002_OBSERVED_SCHEMA_SHA256,
     ImportBatchIdempotencyConflict,
     ImportBatchRegistration,
     ImportBatchRegistrationResult,
@@ -16,6 +26,9 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
     RawImportBatchIdentityInput,
     RawSourceArtifactIdentity,
     RawSourceArtifactIdentityInput,
+    Source002ControlledIngestBlocked,
+    Source002IdentityFailureCode,
+    Source002IdentityVerificationStatus,
     SourceArtifactIntegrityConflict,
     SourceArtifactRegistration,
     SourceArtifactRegistrationResult,
@@ -28,7 +41,9 @@ from backend.app.s2_materialized_dataset.lane_a.schemas import (
 )
 from backend.app.s2_materialized_dataset.lane_a.source_artifact import (
     build_raw_source_artifact_identity,
+    build_source_002_artifact_input,
     register_raw_source_artifact,
+    verify_source_002_frozen_object_identity,
 )
 from backend.app.s2_materialized_dataset.lane_a.source_row import (
     build_source_row_identity,
@@ -46,6 +61,14 @@ __all__ = [
     "RawImportBatchIdentityInput",
     "RawSourceArtifactIdentity",
     "RawSourceArtifactIdentityInput",
+    "SOURCE_002_BYTE_COUNT",
+    "SOURCE_002_DECLARED_ROW_COUNT",
+    "SOURCE_002_FORBIDDEN_BASENAMES",
+    "SOURCE_002_OBJECT_SHA256",
+    "SOURCE_002_OBSERVED_SCHEMA_SHA256",
+    "Source002ControlledIngestBlocked",
+    "Source002IdentityFailureCode",
+    "Source002IdentityVerificationStatus",
     "SourceArtifactIntegrityConflict",
     "SourceArtifactRegistration",
     "SourceArtifactRegistrationResult",
@@ -57,9 +80,14 @@ __all__ = [
     "SourceRowRegistrationResult",
     "build_raw_import_batch_identity",
     "build_raw_source_artifact_identity",
+    "build_source_002_artifact_input",
     "build_source_row_identity",
+    "controlled_ingest_source_002",
+    "controlled_ingest_source_002_from_environment",
     "query_source_row_lineage_chain",
     "register_raw_import_batch",
     "register_raw_source_artifact",
     "register_source_row_lineage",
+    "run_source_002_identity_verification",
+    "verify_source_002_frozen_object_identity",
 ]

@@ -33,6 +33,7 @@ LANE_D_MIGRATION_PATH = (
 )
 LANE_D_MIGRATION_REVISION = "d4e8f1a2b3c5"
 LANE_D_MIGRATION_DOWN_REVISION = "8c6aead9f8e9"
+ALEMBIC_SINGLE_HEAD = "a7c3e9f1b2d4"
 
 
 def _identity_hash(label: str) -> str:
@@ -100,8 +101,8 @@ def assert_lane_d_alembic_head_and_revision_contract() -> None:
     script = ScriptDirectory.from_config(config)
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [LANE_D_MIGRATION_REVISION], (
-        f"alembic heads must be [{LANE_D_MIGRATION_REVISION!r}], got {heads!r}"
+    assert heads == [ALEMBIC_SINGLE_HEAD], (
+        f"alembic heads must be [{ALEMBIC_SINGLE_HEAD!r}], got {heads!r}"
     )
     module = _lane_d_migration_module()
     assert module.revision == LANE_D_MIGRATION_REVISION

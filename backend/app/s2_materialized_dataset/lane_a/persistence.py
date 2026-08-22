@@ -554,3 +554,34 @@ def insert_source_row_lineage(
     session.add(_row_model_from_identity(identity))
     session.flush()
     return identity
+
+
+def bulk_insert_source_row_lineage(
+    session: Session,
+    *,
+    identities: tuple[SourceRowIdentity, ...],
+) -> None:
+    if not identities:
+        return
+    session.add_all(_row_model_from_identity(identity) for identity in identities)
+    session.flush()
+
+
+def fetch_source_row_content_index_for_batch(
+    session: Session,
+    *,
+    raw_import_batch_identity_hash: str,
+) -> dict[str, set[str]]:
+    rows = session.execute(
+        select(
+            S2SourceRowLineageModel.source_row_identity_hash,
+            S2SourceRowLineageModel.content_sha256,
+        ).where(
+            S2SourceRowLineageModel.raw_import_batch_identity_hash
+            == raw_import_batch_identity_hash,
+        )
+    ).all()
+    index: dict[str, set[str]] = {}
+    for identity_hash, content_sha256 in rows:
+        index.setdefault(identity_hash, set()).add(content_sha256)
+    return index
