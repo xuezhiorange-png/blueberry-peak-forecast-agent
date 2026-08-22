@@ -14,7 +14,7 @@ from backend.app.s2_materialized_dataset.lane_a.lineage import (
 )
 from backend.app.s2_materialized_dataset.lane_a.persistence import (
     fetch_import_batch_by_external_identity,
-    fetch_source_row_by_identity_and_content,
+    fetch_source_row_content_index_for_batch,
 )
 from backend.app.s2_materialized_dataset.lane_a.schemas import (
     SOURCE_002_COHORT_ID,
@@ -338,17 +338,17 @@ def _verify_persisted_lane_a_batch(
             "SOURCE_002 parsed row identities do not match the frozen declaration"
         )
     persisted_hashes = set(batch.source_row_identity_hashes)
+    content_index = fetch_source_row_content_index_for_batch(
+        session,
+        raw_import_batch_identity_hash=batch.raw_import_batch_identity_hash,
+    )
     for identity in parsed_identities:
         if identity.source_row_identity_hash not in persisted_hashes:
             raise LaneASourceRowsNotMaterializedError(
                 "SOURCE_002 parsed row identity is not present in the persisted import batch"
             )
-        stored = fetch_source_row_by_identity_and_content(
-            session,
-            source_row_identity_hash=identity.source_row_identity_hash,
-            content_sha256=identity.content_sha256,
-        )
-        if stored is None:
+        existing_contents = content_index.get(identity.source_row_identity_hash)
+        if existing_contents is None or identity.content_sha256 not in existing_contents:
             raise LaneASourceRowsNotMaterializedError(
                 "SOURCE_002 row lineage is not materialized in Lane A persistence"
             )
