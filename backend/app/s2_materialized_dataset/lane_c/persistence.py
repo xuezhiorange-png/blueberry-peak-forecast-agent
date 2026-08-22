@@ -211,6 +211,125 @@ class S2RevisionWinnerDecisionModel(Base):
     )
 
 
+class S2IdflLabelSideWinnerDecisionModel(Base):
+    __tablename__ = "s2_idfl_label_side_winner_decision"
+
+    id: Mapped[int] = mapped_column(_sqlite_bigint(), primary_key=True, autoincrement=True)
+    source_row_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    source_system: Mapped[str] = mapped_column(Text, nullable=False)
+    external_logical_record_id: Mapped[str] = mapped_column(Text, nullable=False)
+    external_revision_id: Mapped[str] = mapped_column(Text, nullable=False)
+    revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    raw_source_artifact_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    raw_import_batch_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    source_recorded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    source_available_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    source_revised_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    source_finalized_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    source_cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    visibility_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
+    visibility_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
+    forecast_cutoff_identity_version: Mapped[str] = mapped_column(Text, nullable=False)
+    revision_winner_policy_version: Mapped[str] = mapped_column(Text, nullable=False)
+    revision_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
+    visibility_boundary: Mapped[str] = mapped_column(Text, nullable=False)
+    mode: Mapped[str] = mapped_column(Text, nullable=False)
+    revision_winner_required: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    winner_manifest_required: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    winner_source_row_identity_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    winner_source_system: Mapped[str | None] = mapped_column(Text, nullable=True)
+    winner_external_logical_record_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    winner_external_revision_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    winner_revision_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    winner_raw_source_artifact_identity_hash: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )
+    winner_raw_import_batch_identity_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    blocked: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    no_winner_reason: Mapped[str] = mapped_column(Text, nullable=False)
+    ordered_candidate_identities_json: Mapped[str] = mapped_column(Text, nullable=False)
+    content_sha256: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "content_sha256",
+            name="uq_s2_idfl_label_side_winner_decision_content",
+        ),
+        CheckConstraint(
+            _sha_check("source_row_identity_hash"),
+            name="ck_s2_idfl_label_side_winner_source_row_identity_hash",
+        ),
+        CheckConstraint(
+            _sha_check("raw_source_artifact_identity_hash"),
+            name="ck_s2_idfl_label_side_winner_raw_source_artifact_hash",
+        ),
+        CheckConstraint(
+            _sha_check("raw_import_batch_identity_hash"),
+            name="ck_s2_idfl_label_side_winner_raw_import_batch_hash",
+        ),
+        CheckConstraint(
+            _sha_check("content_sha256"),
+            name="ck_s2_idfl_label_side_winner_content_sha256",
+        ),
+        CheckConstraint(
+            "revision_number >= 1", name="ck_s2_idfl_label_side_winner_revision_number"
+        ),
+        CheckConstraint(
+            _enum_check("mode", (RevisionWinnerMode.IDFL_LABEL_SIDE.value,)),
+            name="ck_s2_idfl_label_side_winner_mode",
+        ),
+        CheckConstraint(
+            _enum_check("no_winner_reason", REVISION_WINNER_BLOCK_REASON_VALUES),
+            name="ck_s2_idfl_label_side_winner_no_winner_reason",
+        ),
+        CheckConstraint(
+            _sha_check("winner_source_row_identity_hash", nullable=True),
+            name="ck_s2_idfl_label_side_winner_winner_identity_hash",
+        ),
+        CheckConstraint(
+            _sha_check("winner_raw_source_artifact_identity_hash", nullable=True),
+            name="ck_s2_idfl_label_side_winner_winner_artifact_hash",
+        ),
+        CheckConstraint(
+            _sha_check("winner_raw_import_batch_identity_hash", nullable=True),
+            name="ck_s2_idfl_label_side_winner_winner_batch_hash",
+        ),
+        CheckConstraint(
+            (
+                "(winner_source_row_identity_hash IS NULL "
+                "AND winner_source_system IS NULL "
+                "AND winner_external_logical_record_id IS NULL "
+                "AND winner_external_revision_id IS NULL "
+                "AND winner_revision_number IS NULL "
+                "AND winner_raw_source_artifact_identity_hash IS NULL "
+                "AND winner_raw_import_batch_identity_hash IS NULL) "
+                "OR (winner_source_row_identity_hash IS NOT NULL "
+                "AND winner_source_system IS NOT NULL "
+                "AND winner_external_logical_record_id IS NOT NULL "
+                "AND winner_external_revision_id IS NOT NULL "
+                "AND winner_revision_number IS NOT NULL "
+                "AND winner_raw_source_artifact_identity_hash IS NOT NULL "
+                "AND winner_raw_import_batch_identity_hash IS NOT NULL "
+                "AND winner_revision_number >= 1)"
+            ),
+            name="ck_s2_idfl_label_side_winner_winner_identity_presence",
+        ),
+    )
+
+
 @dataclass
 class LaneCPersistenceStore:
     """Append-only in-memory store for deterministic replay during Draft R1."""
@@ -342,6 +461,7 @@ class Source002E4Result:
     winner_mode: str
     winner_rows_resolved: int
     winner_rows_sql_persisted: int
+    winner_rows_old_table: int
     winner_blocked: int
     pit_rows_persisted: int
     pit_eligible: int
@@ -397,17 +517,95 @@ def lane_c_source_row_identity_from_lane_a(row: Any) -> SourceRowIdentity:
     )
 
 
+def persist_idfl_label_side_winner_decision(
+    session: Session,
+    decision: RevisionWinnerDecision,
+) -> S2IdflLabelSideWinnerDecisionModel:
+    if decision.mode is not RevisionWinnerMode.IDFL_LABEL_SIDE:
+        raise ValueError("persist_idfl_label_side_winner_decision requires IDFL_LABEL_SIDE mode")
+    if decision.source_row_identity is None:
+        raise ValueError("IDFL_LABEL_SIDE decisions require source_row_identity")
+    if decision.timestamps is None:
+        raise ValueError("IDFL_LABEL_SIDE decisions require timestamps")
+    if decision.idfl_label_side_context is None:
+        raise ValueError("IDFL_LABEL_SIDE decisions require idfl_label_side_context")
+    if decision.no_winner_reason is None:
+        raise ValueError("IDFL_LABEL_SIDE decisions require no_winner_reason")
+
+    existing = (
+        session.query(S2IdflLabelSideWinnerDecisionModel)
+        .filter_by(content_sha256=decision.content_sha256)
+        .one_or_none()
+    )
+    if existing is not None:
+        return existing
+
+    identity = decision.source_row_identity
+    timestamps = decision.timestamps
+    label_context = decision.idfl_label_side_context
+    winner = decision.winner_source_row_identity
+    row = S2IdflLabelSideWinnerDecisionModel(
+        source_row_identity_hash=identity.source_row_identity_hash,
+        source_system=identity.source_system,
+        external_logical_record_id=identity.external_logical_record_id,
+        external_revision_id=identity.external_revision_id,
+        revision_number=identity.revision_number,
+        raw_source_artifact_identity_hash=identity.raw_source_artifact_identity_hash,
+        raw_import_batch_identity_hash=identity.raw_import_batch_identity_hash,
+        source_recorded_at=timestamps.source_recorded_at,
+        source_available_at=timestamps.source_available_at,
+        source_revised_at=timestamps.source_revised_at,
+        source_finalized_at=timestamps.source_finalized_at,
+        source_cancelled_at=timestamps.source_cancelled_at,
+        visibility_policy_version=label_context.visibility_policy_version,
+        visibility_schema_version=label_context.visibility_schema_version,
+        forecast_cutoff_identity_version=label_context.forecast_cutoff_identity_version,
+        revision_winner_policy_version=label_context.revision_winner_policy_version,
+        revision_schema_version=label_context.revision_schema_version,
+        visibility_boundary=label_context.visibility_boundary,
+        mode=decision.mode.value,
+        revision_winner_required=decision.revision_winner_required,
+        winner_manifest_required=decision.winner_manifest_required,
+        winner_source_row_identity_hash=(
+            winner.source_row_identity_hash if winner is not None else None
+        ),
+        winner_source_system=winner.source_system if winner is not None else None,
+        winner_external_logical_record_id=(
+            winner.external_logical_record_id if winner is not None else None
+        ),
+        winner_external_revision_id=winner.external_revision_id if winner is not None else None,
+        winner_revision_number=winner.revision_number if winner is not None else None,
+        winner_raw_source_artifact_identity_hash=(
+            winner.raw_source_artifact_identity_hash if winner is not None else None
+        ),
+        winner_raw_import_batch_identity_hash=(
+            winner.raw_import_batch_identity_hash if winner is not None else None
+        ),
+        blocked=decision.blocked,
+        no_winner_reason=decision.no_winner_reason.value,
+        ordered_candidate_identities_json=json.dumps(list(decision.ordered_candidate_identities)),
+        content_sha256=decision.content_sha256,
+        created_at=datetime.now(UTC),
+    )
+    session.add(row)
+    session.flush()
+    return row
+
+
 def persist_idfl_revision_winner_decision(
     session: Session,
     decision: RevisionWinnerDecision,
-) -> S2RevisionWinnerDecisionModel | None:
+) -> S2IdflLabelSideWinnerDecisionModel | None:
     if decision.mode is not RevisionWinnerMode.IDFL_LABEL_SIDE:
         raise ValueError("persist_idfl_revision_winner_decision requires IDFL_LABEL_SIDE mode")
-    if revision_winner_sql_persist_blocked_without_forecast_cutoff(session):
-        return None
-    if decision.cutoff_context is None:
-        return None
-    return persist_revision_winner_decision(session, decision)
+    return persist_idfl_label_side_winner_decision(session, decision)
+
+
+def count_idfl_label_side_winner_sql_rows(session: Session) -> int:
+    return int(
+        session.scalar(sa.select(sa.func.count()).select_from(S2IdflLabelSideWinnerDecisionModel))
+        or 0
+    )
 
 
 def count_revision_winner_sql_rows(session: Session) -> int:
@@ -448,6 +646,26 @@ def _ensure_source_002_frozen_object_available(
     if record.status != Source002IdentityVerificationStatus.PASS:
         print("SOURCE_002_E4_OBJECT_MISSING", flush=True)
         raise FileNotFoundError("SOURCE_002 frozen object not found for E4 materialization")
+
+
+def _emit_source_002_e4b_report(result: Source002E4Result) -> None:
+    report = (
+        "SOURCE_002_E4B_REPORT "
+        f"e2_replay={result.ingest_replay_row_count} "
+        f"e3_grains={result.canonical_non_excluded_row_count} "
+        f"e3_kg_equal={'true' if result.kg_sum_equal else 'false'} "
+        f"winner_mode={result.winner_mode} "
+        f"winner_rows_resolved={result.winner_rows_resolved} "
+        f"winner_rows_sql_persisted={result.winner_rows_sql_persisted} "
+        f"winner_rows_old_table={result.winner_rows_old_table} "
+        f"pit_rows_persisted={result.pit_rows_persisted} "
+        f"e4_status={result.e4_status}"
+    )
+    if result.e4_blocked_reason is not None:
+        report = f"{report} e4_blocked_reason={result.e4_blocked_reason}"
+    report = f"{report} replay_content_match={'true' if result.replay_content_match else 'false'}"
+    logger.info(report)
+    print(report, flush=True)
 
 
 def _emit_source_002_e4_report(result: Source002E4Result) -> None:
@@ -525,9 +743,6 @@ def controlled_persist_source_002_idfl_from_environment(
     content_hashes: list[str] = []
     winner_blocked = 0
     winner_rows_resolved = 0
-    winner_sql_persist_blocked = revision_winner_sql_persist_blocked_without_forecast_cutoff(
-        session
-    )
 
     for identity_hash in e3_result.cleaning.version.source_row_identity_hashes:
         lane_a_row = lane_a_by_identity_hash.get(identity_hash)
@@ -541,10 +756,11 @@ def controlled_persist_source_002_idfl_from_environment(
         if decision.blocked:
             winner_blocked += 1
         content_hashes.append(decision.content_sha256)
-        if persist and not winner_sql_persist_blocked:
+        if persist:
             persist_idfl_revision_winner_decision(session, decision)
 
-    winner_rows_sql_persisted = count_revision_winner_sql_rows(session) if persist else 0
+    winner_rows_sql_persisted = count_idfl_label_side_winner_sql_rows(session) if persist else 0
+    winner_rows_old_table = count_revision_winner_sql_rows(session) if persist else 0
 
     content_hashes_tuple = tuple(content_hashes)
     replay_content_match = (
@@ -558,6 +774,12 @@ def controlled_persist_source_002_idfl_from_environment(
         and e3_result.kg_sum_cleaned_grains is not None
         and e3_result.kg_sum_source_rows == e3_result.kg_sum_cleaned_grains
     )
+    if persist and winner_rows_sql_persisted == winner_rows_resolved and winner_rows_resolved > 0:
+        e4_status = "SQL_PERSISTED"
+        e4_blocked_reason = None
+    else:
+        e4_status = "RESOLVED_NOT_SQL_PERSISTED"
+        e4_blocked_reason = pit_status.e4_blocked_reason
     result = Source002E4Result(
         ingest_replay_row_count=e3_result.ingest_replay_row_count,
         canonical_non_excluded_row_count=e3_result.canonical_source_row_count,
@@ -565,17 +787,18 @@ def controlled_persist_source_002_idfl_from_environment(
         winner_mode=RevisionWinnerMode.IDFL_LABEL_SIDE.value,
         winner_rows_resolved=winner_rows_resolved,
         winner_rows_sql_persisted=winner_rows_sql_persisted,
+        winner_rows_old_table=winner_rows_old_table,
         winner_blocked=winner_blocked,
         pit_rows_persisted=pit_status.pit_rows_persisted,
         pit_eligible=pit_status.pit_eligible,
         pit_status=pit_status.pit_status,
-        e4_status="RESOLVED_NOT_SQL_PERSISTED",
-        e4_blocked_reason=pit_status.e4_blocked_reason,
+        e4_status=e4_status,
+        e4_blocked_reason=e4_blocked_reason,
         revision_winner_content_hashes=content_hashes_tuple,
         replay_identity_match=replay_identity_match,
         replay_content_match=replay_content_match,
     )
-    _emit_source_002_e4_report(result)
+    _emit_source_002_e4b_report(result)
     return result
 
 
@@ -583,13 +806,16 @@ __all__ = [
     "IdflLabelSidePitStatus",
     "LaneCPersistenceStore",
     "PIT_CUTOFF_NOT_APPLICABLE_FOR_IDFL_NO_FABRICATION",
+    "S2IdflLabelSideWinnerDecisionModel",
     "S2PitVisibilityDecisionModel",
     "S2RevisionWinnerDecisionModel",
     "Source002E4Result",
     "controlled_persist_source_002_idfl_from_environment",
+    "count_idfl_label_side_winner_sql_rows",
     "count_revision_winner_sql_rows",
     "idfl_null_timestamps",
     "lane_c_source_row_identity_from_lane_a",
+    "persist_idfl_label_side_winner_decision",
     "persist_idfl_revision_winner_decision",
     "persist_pit_visibility_decision",
     "persist_revision_winner_decision",
