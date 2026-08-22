@@ -24,7 +24,7 @@ CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
 CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
 WORKPAPER_PATH=docs/v0-3/s2/workpapers/s2-source-002-idfl-label-side-winner-sql-schema.md
 EVIDENCE_JSON_PATH=docs/v0-3/s2/evidence/s2-source-002-idfl-label-side-winner-sql-schema.json
-EVIDENCE_JSON_SHA256=ae3251d4253690f6a43ee65044aa65fe5cb067b56c8af5940dd80aa37ff0654a
+EVIDENCE_JSON_SHA256=307b4867d15e0f87c01fdf02c0ea56dc3b898276d13959e683e55de6a039995e
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 
@@ -271,8 +271,10 @@ IN_MEMORY_LANE_C_PERSISTENCE_STORE_DOES_NOT_COUNT=true
 PIT_ROWS_PERSISTED_MUST_REMAIN_0=true
 ~~~
 
-- `winner_rows_resolved`: number of IDFL decisions computed (one per in-cohort
-  source row after E3).
+- `winner_rows_resolved`: number of IDFL decisions computed (one per identity
+  in Lane B `cleaned version.source_row_identity_hashes`; observed length
+  `233171`, including July Option A lineage rows; not the in-cohort count
+  `233169`).
 - `winner_rows_sql_persisted`: `COUNT(*)` from `s2_idfl_label_side_winner_decision`
   only. In-memory `LaneCPersistenceStore` rows do not count.
 - `pit_rows_persisted`: must remain `0` for SOURCE_002 IDFL E4/E4b. IDFL does
@@ -287,7 +289,14 @@ are not tonnage and must not be extrapolated.
 E4_MERGED_PR=288
 E4_MERGED_SHA=2101acf9350f7ca170cabadbd2dc18d65cf3c3d2
 E4_STATUS=RESOLVED_NOT_SQL_PERSISTED
-WINNER_ROWS_RESOLVED=233171
+DECLARED_SOURCE_ROW_COUNT=233171
+E2_EXACT_REPLAY=233171
+JULY_OPTION_A_EXCLUDED_SOURCE_ROW_COUNT=2
+SOURCE_ROWS_IN_SCOPE=233169
+E4_WINNER_ROWS_RESOLVED=233171
+E4_ITERATES=Lane B cleaned version.source_row_identity_hashes (length 233171, includes July 2 lineage rows)
+IN_COHORT_NE_RESOLVED=true
+E4B_TARGET_WINNER_ROWS_SQL_PERSISTED=233171
 WINNER_ROWS_SQL_PERSISTED=0
 E3_UNIQUE_CANONICAL_GRAINS=33894
 E3_KG_EQUAL=true
@@ -301,13 +310,25 @@ because `s2_revision_winner_decision.forecast_cutoff_at` is `NOT NULL` and
 IDFL decisions do not carry cutoff context. That is the expected blocked
 state until the new table exists.
 
-`winner_rows_resolved=233171` matches in-cohort source-row count (declared
-`233171` minus July Option A excluded rows). Each source row yields exactly
-one singleton IDFL decision.
+Frozen counting semantics:
 
-`e3 unique_canonical_grains=33894` is the distinct canonical-grain count
-after E3 collapse. Lane C IDFL resolution is per source row, not per
-canonical grain.
+- `DECLARED_SOURCE_ROW_COUNT=233171` and `E2_EXACT_REPLAY=233171` bind the
+  full declared source object.
+- `JULY_OPTION_A_EXCLUDED_SOURCE_ROW_COUNT=2` and
+  `SOURCE_ROWS_IN_SCOPE=233169` (`233171 - 2`) are the in-cohort source-row
+  count. Do not call `233171` “产季内”.
+- `E4_WINNER_ROWS_RESOLVED=233171` because E4 iterates Lane B
+  `cleaned version.source_row_identity_hashes` (length `233171`, including
+  the July 2 lineage rows). `IN_COHORT_NE_RESOLVED=true`: resolved winner
+  count is not the in-cohort count.
+- July Option A rows remain `BUSINESS_EXCLUSION` in Lane B. E4b must not
+  shrink SQL persist to `233169` only because of July exclusion. Target
+  `E4B_TARGET_WINNER_ROWS_SQL_PERSISTED=233171`, aligned with observed E4
+  resolved count.
+- Each iterated identity yields exactly one singleton IDFL decision.
+- `E3_UNIQUE_CANONICAL_GRAINS=33894` is the distinct canonical-grain count
+  after E3 collapse. It is a grain count, not Lane C winner row count. Lane C
+  IDFL resolution is per source-row identity, not per canonical grain.
 
 ## 7. Future implementation sequence (not authorized here)
 
@@ -325,7 +346,8 @@ When separately authorized, E4b may:
 3. extend `controlled_persist_source_002_idfl_from_environment` to write
    `s2_idfl_label_side_winner_decision` instead of attempting
    `s2_revision_winner_decision`;
-4. target `winner_rows_sql_persisted=233171` with `pit_rows_persisted=0`.
+4. target `E4B_TARGET_WINNER_ROWS_SQL_PERSISTED=233171` (aligned with
+   observed E4 resolved count; not `233169`) with `pit_rows_persisted=0`.
 
 Allowlist expansion for a new migration file path or new production module
 is **not** authorized by this document. A future implementation PR may need a

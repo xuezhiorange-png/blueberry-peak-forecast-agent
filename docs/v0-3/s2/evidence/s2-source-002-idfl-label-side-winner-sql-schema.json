@@ -167,13 +167,28 @@
     "e4_merged_pr": 288,
     "e4_merged_sha": "2101acf9350f7ca170cabadbd2dc18d65cf3c3d2",
     "e4_status": "RESOLVED_NOT_SQL_PERSISTED",
-    "winner_rows_resolved": 233171,
+    "declared_source_row_count": 233171,
+    "e2_exact_replay": 233171,
+    "july_option_a_excluded_source_row_count": 2,
+    "source_rows_in_scope": 233169,
+    "e4_winner_rows_resolved": 233171,
+    "e4_iterates": "Lane B cleaned version.source_row_identity_hashes (length 233171, includes July 2 lineage rows)",
+    "in_cohort_ne_resolved": true,
+    "e4b_target_winner_rows_sql_persisted": 233171,
     "winner_rows_sql_persisted": 0,
     "e3_unique_canonical_grains": 33894,
     "e3_kg_equal": true,
     "e4_blocked_reason": "PIT_CUTOFF_NOT_APPLICABLE_FOR_IDFL_NO_FABRICATION",
     "pit_rows_persisted": 0,
-    "pit_status": "NOT_APPLICABLE_NOT_PERSISTED"
+    "pit_status": "NOT_APPLICABLE_NOT_PERSISTED",
+    "counting_notes": {
+      "declared_233171_is_not_in_cohort_count": true,
+      "source_rows_in_scope_is_233169_not_233171": true,
+      "e4_resolves_233171_because_iterates_full_cleaned_identity_list": true,
+      "july_2_remain_business_exclusion": true,
+      "e4b_must_not_shrink_to_233169_only": true,
+      "e3_unique_canonical_grains_is_grain_count_not_lane_c_winner_row_count": true
+    }
   },
   "alembic": {
     "current_unique_head": "d4e8f1a2b3c5",
@@ -192,6 +207,7 @@
       "authorized_by_this_grant": false,
       "requires_separate_user_implementation_authorization": true,
       "target_winner_rows_sql_persisted": 233171,
+      "e4b_target_winner_rows_sql_persisted": 233171,
       "target_pit_rows_persisted": 0,
       "allowlist_expansion_may_be_required": true
     },
