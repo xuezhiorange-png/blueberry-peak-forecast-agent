@@ -22,7 +22,7 @@ CONTRACT_PATH=docs/v0-3/s3/s3-pit-backtest-execution-contract.md
 CONTRACT_VERSION=v0-3-s3-c0-pit-backtest-execution-contract-v1
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-c0-pit-backtest-contract.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-c0-pit-backtest-contract.json
-EVIDENCE_JSON_SHA256=13893b4bfe5a4af6ab9f11eb52a0031943984db9fe41d11781fd42eca016d823
+EVIDENCE_JSON_SHA256=12c40e013c60de9f9dbcfd7b5e7788281d9c7d6adcde641d6d436b3e65b5d7e1
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 
