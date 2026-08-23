@@ -20,6 +20,7 @@ CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
 AMENDMENT_VERSION=v0-3-s2-allowlist-migration-ownership-r2
 WORKPAPER_PATH=docs/v0-3/s2/workpapers/s2-source-002-official-hash-package.md
 EVIDENCE_JSON_PATH=docs/v0-3/s2/evidence/s2-source-002-official-hash-package.json
+EVIDENCE_JSON_SHA256=63bc6e23ce4ffec8de268e7b11d99fab007a168007b24c6498489ef6d0cc9b52
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 
