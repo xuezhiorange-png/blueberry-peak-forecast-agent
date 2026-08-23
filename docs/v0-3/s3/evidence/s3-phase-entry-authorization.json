@@ -1,0 +1,138 @@
+{
+  "artifact_id": "V0_3_S3_PHASE_ENTRY_AUTHORIZATION",
+  "artifact_version": "s3-phase-entry-authorization-v1",
+  "task_id": "V03_S3_P0_PHASE_ENTRY_AUTHORIZATION_R1",
+  "task_class": "DOCS_ONLY_S3_PHASE_ENTRY",
+  "authorization_scope": "S3_P0_CONTRACT_FREEZE_ONLY",
+  "slice": "V0.3-S3",
+  "english_id": "CURRENT_MODEL_POINT_IN_TIME_BACKTEST_AND_ERROR_DIAGNOSIS",
+  "user_gate": "可以实施",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "docs_only_agent": "https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2",
+  "recorded_at": "2026-08-23T14:01:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "9a68698c0ff5454708d0bd52596788d9dfb6cc8f",
+  "audited_repository_tree_sha": "85fbc852dd730a408226652b2fb2b790849a9256",
+  "audited_ref": "origin/main",
+  "contract_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+  "contract_version": "v0-3-s3-backtest-and-diagnosis-contract-v1",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-phase-entry-authorization.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-phase-entry-authorization.json",
+  "v0_3_s3_phase_entry_authorized": true,
+  "s3_contract_freeze_authorized": true,
+  "s3_production_code_mutation_authorized": false,
+  "s3_test_code_mutation_authorized": false,
+  "s3_backtest_execution_authorized": false,
+  "s3_metric_execution_authorized": false,
+  "test_evaluation_authorized": false,
+  "test_remains_sealed": true,
+  "model_change_allowed": false,
+  "parameter_change_allowed": false,
+  "v0_3_s4_authorized": false,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "contract_merge_does_not_authorize_backtest": true,
+  "prerequisites": {
+    "s2_acceptance_pr": 296,
+    "s2_registry_closeout_pr": 297,
+    "current_v0_3_s2_complete": true,
+    "current_v0_3_s2_acceptance_status": "ACCEPTED",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_row_count": 0,
+    "test_byte_count": 240,
+    "test_is_sealed_placeholder": true,
+    "q2c_accepted": true,
+    "v0_3_metric_contract_version": "v0.3-metric-contract-v1",
+    "external_holdout_owner_decision": "REVIEWED_NOT_FEASIBLE",
+    "external_holdout_not_applicable": true,
+    "frozen_source_artifact_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "input_authority": {
+    "v0_2_s3_input_authority_historical": "S2_IMMUTABLE_BACKTEST_BINDING",
+    "v0_2_metric_contract_path": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "metric_contract_authority_base_sha": "b873dd63fc0d5b6375f94674abbd24a94d915f3c",
+    "s1_metric_contract_path": "docs/v0-3/s1/metric-coverage-and-quality-contract.md",
+    "v0_3_s3_actuals_authority": "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION",
+    "v0_3_s3_forecasts_authority": "V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF",
+    "v0_3_s3_visibility_authority": "SOURCE_002_IDFL_LABEL_SIDE",
+    "conflation_forbidden": true
+  },
+  "evaluation_scope": {
+    "s3_evaluation_partitions": [
+      "TRAIN",
+      "VALIDATION"
+    ],
+    "test_evaluation_authorized": false,
+    "random_adjacent_date_split_forbidden": true
+  },
+  "daily_rowset_state": {
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_amendment_complete": false,
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "s2_to_s3_daily_rowset_amendment_required": true,
+    "missing_day_policy": "UNKNOWN_NOT_ZERO"
+  },
+  "quantile_state": {
+    "current_p50_semantics_status": "NOT_VERIFIED",
+    "current_p80_semantics_status": "NOT_VERIFIED",
+    "current_p90_semantics_status": "NOT_VERIFIED",
+    "current_p80_coverage_computable": false,
+    "current_p90_coverage_computable": false,
+    "not_verified_is_not_pass": true,
+    "not_computable_is_not_zero": true
+  },
+  "sustained_peak_conflict": {
+    "product_sustained_peak_window_days": 3,
+    "plan_sustained_peak_window_days": 7,
+    "p0_sustained_peak_window_conflict": "UNRESOLVED",
+    "p0_does_not_resolve_3_vs_7": true
+  },
+  "future_acceptance_gates": {
+    "daily_rowset_amendment_complete": false,
+    "p50_p80_p90_semantics_verified": false,
+    "point_in_time_replay": false,
+    "leakage_audit": false,
+    "current_model_baseline": false,
+    "error_diagnosis": false,
+    "slice_s3_complete": false,
+    "current_v0_3_s3_complete": false,
+    "v0_3_s4_authorized": false
+  },
+  "subtask_roadmap": {
+    "s3_p0": "contract freeze (this task)",
+    "s3_a": "daily rowset amendment contract (not authorized)",
+    "s3_b": "quantile semantics verification (not authorized)",
+    "s3_c": "train/val pit backtest execution (not authorized)",
+    "s3_d": "error attribution matrix (not authorized)",
+    "next_subtask_not_implied": true
+  },
+  "development_plan_mutation": {
+    "mutation_count": 1,
+    "field": "V0_3_S3_IMPLEMENTATION_AUTHORIZED",
+    "before": false,
+    "after": true,
+    "unchanged_fields": {
+      "current_v0_3_s3_complete": false,
+      "slice_s3_complete": "BLOCKED",
+      "next_task": "V0_3_S1"
+    }
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "contract": true,
+    "development_plan": true,
+    "s2_contract": false,
+    "s2_acceptance_archive": false,
+    "v0_2_metric_contract": false
+  },
+  "evidence_json_sha256": "580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c"
+}
