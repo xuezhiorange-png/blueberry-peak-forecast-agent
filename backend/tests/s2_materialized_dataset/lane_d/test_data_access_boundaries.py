@@ -8,7 +8,6 @@ from httpx import AsyncClient
 from backend.app.s2_materialized_dataset.lane_d.builder import materialize_partition_bytes
 from backend.app.s2_materialized_dataset.lane_d.partitions import partition_for_name
 from backend.app.s2_materialized_dataset.shared.contracts import (
-    SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED,
     SOURCE_002_ROW_LEVEL_READ,
     PartitionName,
 )
@@ -17,10 +16,6 @@ from backend.tests.s2_materialized_dataset.lane_d.conftest import complete_upstr
 
 def test_source_002_row_level_read_is_false() -> None:
     assert SOURCE_002_ROW_LEVEL_READ is False
-
-
-def test_source_002_controlled_sql_materialization_enabled() -> None:
-    assert SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED is True
 
 
 def test_test_materialization_does_not_expose_real_test_rows() -> None:

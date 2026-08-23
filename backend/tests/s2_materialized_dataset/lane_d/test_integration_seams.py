@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
+from unittest.mock import MagicMock
+
 import pytest
 import sqlalchemy as sa
 from httpx import AsyncClient
@@ -17,10 +20,23 @@ from backend.app.repositories import (
     persist_materialized_dataset,
     verify_storage_rebuild_parity,
 )
-from backend.app.s2_materialized_dataset.lane_d.builder import build_materialized_dataset
+from backend.app.s2_materialized_dataset.lane_d.builder import (
+    BuildTimestamps,
+    build_materialized_dataset,
+)
+from backend.app.s2_materialized_dataset.lane_d.partitions import TEST_END, TEST_START
+from backend.app.s2_materialized_dataset.lane_d.service import (
+    Source002E5MaterializationError,
+    compute_grain_revision_winner_identity,
+    compute_idfl_pit_visibility_not_applicable_identity,
+    controlled_materialize_source_002_from_environment,
+    partition_row_counts_for_e5_report,
+    verify_source_002_sql_boundaries,
+)
 from backend.app.s2_materialized_dataset.shared.contracts import (
     MATERIALIZED_DATASET_API_POLICY_VERSION,
-    SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED,
+    SOURCE_002_EXPECTED_IDFL_SQL_ROW_COUNT,
+    SOURCE_002_EXPECTED_NON_EXCLUDED_GRAIN_COUNT,
     SOURCE_002_ROW_LEVEL_READ,
     PartitionName,
 )
@@ -33,6 +49,7 @@ from backend.tests.s2_materialized_dataset.lane_d.conftest import (
     LANE_D_MIGRATION_REVISION,
     assert_lane_d_alembic_head_and_revision_contract,
     complete_upstream,
+    make_row,
 )
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
@@ -158,8 +175,160 @@ def test_source_002_row_level_read_remains_false() -> None:
     assert SOURCE_002_ROW_LEVEL_READ is False
 
 
-def test_source_002_controlled_sql_materialization_enabled() -> None:
-    assert SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED is True
+def test_pit_visibility_not_applicable_identity_is_stable() -> None:
+    first = compute_idfl_pit_visibility_not_applicable_identity()
+    second = compute_idfl_pit_visibility_not_applicable_identity()
+    assert first == second
+    assert len(first) == 64
+
+
+def test_grain_revision_winner_identity_singleton_uses_content_hash() -> None:
+    content_hash = "a" * 64
+    assert compute_grain_revision_winner_identity((content_hash,)) == content_hash
+
+
+def test_grain_revision_winner_identity_multi_contributor_is_deterministic() -> None:
+    hashes = ("b" * 64, "a" * 64)
+    assert compute_grain_revision_winner_identity(hashes) == compute_grain_revision_winner_identity(
+        tuple(reversed(hashes))
+    )
+    assert compute_grain_revision_winner_identity(hashes) != hashes[0]
+
+
+def test_verify_sql_boundaries_fail_closed_on_idfl_count(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = MagicMock()
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_idfl_label_side_winner_sql_rows",
+        lambda _session: 1,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_pit_visibility_sql_rows",
+        lambda _session: 0,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_revision_winner_sql_rows",
+        lambda _session: 0,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_non_excluded_cleaned_grain_sql_rows",
+        lambda _session: SOURCE_002_EXPECTED_NON_EXCLUDED_GRAIN_COUNT,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service._verify_kg_equal_from_sql_and_replay",
+        lambda *_args, **_kwargs: True,
+    )
+    with pytest.raises(Source002E5MaterializationError, match="IDFL SQL count mismatch"):
+        verify_source_002_sql_boundaries(
+            session,
+            artifact_bytes=b"bytes",
+            batch=MagicMock(),
+        )
+
+
+def test_verify_sql_boundaries_fail_closed_on_pit_sql(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = MagicMock()
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_idfl_label_side_winner_sql_rows",
+        lambda _session: SOURCE_002_EXPECTED_IDFL_SQL_ROW_COUNT,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_pit_visibility_sql_rows",
+        lambda _session: 1,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_revision_winner_sql_rows",
+        lambda _session: 0,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service.count_non_excluded_cleaned_grain_sql_rows",
+        lambda _session: SOURCE_002_EXPECTED_NON_EXCLUDED_GRAIN_COUNT,
+    )
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service._verify_kg_equal_from_sql_and_replay",
+        lambda *_args, **_kwargs: True,
+    )
+    with pytest.raises(Source002E5MaterializationError, match="PIT SQL must be 0"):
+        verify_source_002_sql_boundaries(
+            session,
+            artifact_bytes=b"bytes",
+            batch=MagicMock(),
+        )
+
+
+def test_controlled_materialize_reports_object_missing_without_frozen_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "backend.app.s2_materialized_dataset.lane_d.service._source_002_frozen_object_available",
+        lambda _roots: False,
+    )
+    report = controlled_materialize_source_002_from_environment(
+        MagicMock(),
+        dataset_id="source-002",
+        dataset_version="e5-v1",
+        persist=False,
+    )
+    assert report.rebuild_parity == "OBJECT_MISSING"
+    assert report.dataset_identity is None
+    assert report.test_rows == 0
+
+
+def test_e5_report_test_rows_zero_when_upstream_has_test_window_grains() -> None:
+    upstream = complete_upstream(
+        rows=(
+            make_row(harvest_business_date=date(2025, 9, 1)),
+            make_row(
+                harvest_business_date=TEST_START,
+                source_row_identity="c" * 64,
+                cleaned_row_identity="d" * 64,
+                pit_visibility_identity="e" * 64,
+                revision_winner_identity="f" * 64,
+            ),
+        )
+    )
+    train_rows, val_rows, test_rows = partition_row_counts_for_e5_report(
+        upstream.lane_b.iter_materializable_rows()
+    )
+    assert test_rows == 0
+    assert train_rows == 1
+    assert val_rows == 0
+
+
+def test_persisted_test_partition_row_count_zero_with_upstream_test_window_grains(
+    lane_d_migrated_session,
+) -> None:
+    upstream = complete_upstream(
+        rows=(
+            make_row(harvest_business_date=date(2025, 9, 1)),
+            make_row(
+                harvest_business_date=TEST_END,
+                source_row_identity="1" * 64,
+                cleaned_row_identity="2" * 64,
+                pit_visibility_identity="3" * 64,
+                revision_winner_identity="4" * 64,
+            ),
+        )
+    )
+    timestamps = BuildTimestamps(
+        started_at=datetime(2026, 4, 1, tzinfo=UTC),
+        completed_at=datetime(2026, 4, 1, tzinfo=UTC),
+    )
+    result = persist_materialized_dataset(
+        lane_d_migrated_session,
+        dataset_id="materialized-ds-test-window",
+        dataset_version="v1",
+        upstream=upstream,
+        timestamps=timestamps,
+    )
+    lane_d_migrated_session.commit()
+    test_partition = next(
+        partition
+        for partition in result.partitions
+        if partition.partition_name is PartitionName.TEST
+    )
+    assert test_partition.row_count == 0
+    _, _, test_rows = partition_row_counts_for_e5_report(upstream.lane_b.iter_materializable_rows())
+    assert test_rows == 0
 
 
 @pytest.mark.asyncio
