@@ -1,0 +1,204 @@
+{
+  "artifact_id": "V0_3_S3_B_QUANTILE_SEMANTICS_CONTRACT",
+  "artifact_version": "s3-b-quantile-semantics-contract-v1",
+  "task_id": "V03_S3_B_QUANTILE_SEMANTICS_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_B_QUANTILE_SEMANTICS_CONTRACT_ONLY",
+  "parallel_lane": "S3-B",
+  "slice": "V0.3-S3",
+  "user_gate": "\u53ef\u4ee5\u4e0b\u4e00\u6b65 \u5e76\u884c\u5f00\u53d1",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "recorded_at": "2026-08-23T15:10:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "fd793de12bfe2df646925d9e7adc1d59c046ecdf",
+  "audited_repository_tree_sha": "61d8550f1311e3c0949f5bf08814fc69ddf0fde5",
+  "audited_ref": "origin/main",
+  "contract_path": "docs/v0-3/s3/s3-quantile-semantics-contract.md",
+  "contract_version": "v0-3-s3-b-quantile-semantics-contract-v1",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-b-quantile-semantics.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-b-quantile-semantics.json",
+  "p0_binding": {
+    "contract_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+    "contract_version": "v0-3-s3-backtest-and-diagnosis-contract-v1",
+    "contract_git_blob_sha": "45f900f4dfa1ef5da8ea898a39bdded4c8c11f08",
+    "contract_sha256": "490f48cde5fd7543f2d7608b0dff388c9a7f99f44d77ed4337f55331e950d7a8",
+    "evidence_json_sha256": "580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c"
+  },
+  "s3_a_binding": {
+    "amendment_path": "docs/v0-3/s3/s3-daily-rowset-amendment.md",
+    "amendment_version": "v0-3-s3-daily-rowset-amendment-v1",
+    "amendment_git_blob_sha": "1baf930287598f5df78ac28d49c159b4231c0fc6",
+    "amendment_sha256": "f2b2473bd7ebe52349010403cbcc45a8a18f3ae7ad3512c97d8b2a30b205a7be",
+    "evidence_json_sha256": "b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a",
+    "coverage_blocked_by_s3_b": true,
+    "s3_a_rowset_materialization_authorized": false
+  },
+  "metric_authority": {
+    "q1_path": "docs/forecast-quality/slice-q1-forecast-target-and-evaluation-contract.md",
+    "q1_quantile_calibration_section": "\u00a79.7",
+    "q1_interval_width_section": "\u00a79.8",
+    "q1_pinball_loss_section": "\u00a79.9",
+    "v0_2_metric_contract_path": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "v0_2_quantile_coverage_section": "\u00a710",
+    "metric_contract_authority_base_sha": "b873dd63fc0d5b6375f94674abbd24a94d915f3c",
+    "do_not_mutate_v0_2_metric_contract": true
+  },
+  "authorization": {
+    "s3_b_quantile_semantics_contract_authorized": true,
+    "s3_b_semantics_verified_claim_authorized": false,
+    "s3_b_coverage_execution_authorized": false,
+    "s3_backtest_execution_authorized": false,
+    "s3_a_rowset_materialization_authorized": false,
+    "s3_production_code_mutation_authorized": false,
+    "s3_test_code_mutation_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": false,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "verification_objective": {
+    "target": "true_upper_quantile_per_q1_section_9_7",
+    "legal_verified_status": "VERIFIED_TRUE_UPPER_QUANTILE",
+    "field_name_is_not_verification": true,
+    "empirical_coverage_is_not_semantics_verification": true,
+    "automatic_pass_from_field_names_forbidden": true
+  },
+  "frozen_definitions": {
+    "p50_coverage_definition": "actual<=forecast_p50",
+    "p80_coverage_definition": "actual<=forecast_p80",
+    "p90_coverage_definition": "actual<=forecast_p90",
+    "p80_upper_quantile_spread": "P80-P50",
+    "p90_upper_quantile_spread": "P90-P50",
+    "p80_upper_quantile_spread_is_prediction_interval_width": false,
+    "p90_upper_quantile_spread_is_prediction_interval_width": false,
+    "p80_interval_width": "NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE",
+    "p90_interval_width": "NOT_COMPUTABLE_LOWER_BOUND_UNAVAILABLE",
+    "is_prediction_interval_width": false,
+    "forbidden_interval_width_proxy_p90_minus_p50": true,
+    "forbidden_interval_width_proxy_p80_minus_p50": true,
+    "coverage_requires_complete_daily_row_set": false,
+    "coverage_requires_valid_pairing": true,
+    "pairing_failure_status": "NOT_COMPUTABLE",
+    "pairing_failure_is_not_zero": true,
+    "pinball_under_prediction_condition": "actual>=forecast_q",
+    "pinball_under_prediction_term": "q*(actual-forecast_q)",
+    "pinball_over_prediction_condition": "actual<forecast_q",
+    "pinball_over_prediction_term": "(q-1)*(actual-forecast_q)",
+    "pinball_branch_reversal_forbidden": true
+  },
+  "baseline_policy": {
+    "naive_baseline_name": "PRIOR_SEASON_ANALOG_DAY_ACTUAL",
+    "naive_baseline_type": "POINT_FORECAST",
+    "naive_baseline_p80_status": "NOT_COMPUTABLE",
+    "naive_baseline_p90_status": "NOT_COMPUTABLE",
+    "naive_baseline_p80_p90_reason": "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "baseline_pass_by_incumbent_match_forbidden": true
+  },
+  "incumbent_code_audit_bindings": [
+    {
+      "layer": "harvest_state_enum",
+      "path": "backend/app/harvest_state/enums.py",
+      "git_blob_sha": "1e71bc0f1a624fe89f0c0b28782157a087f3e9dc",
+      "field": "ForecastQuantile.P50/P80/P90",
+      "observed_role": "canonical_label_set"
+    },
+    {
+      "layer": "core_forecast_schema",
+      "path": "backend/app/core_forecast/schemas.py",
+      "git_blob_sha": "394ca8681de5b906e85908ebd7cf3a0460a18409",
+      "field": "QUANTILES",
+      "observed_role": "composition_triplet_labels"
+    },
+    {
+      "layer": "task8_maturity_p50",
+      "path": "backend/app/maturity/service.py",
+      "git_blob_sha": "80632f330973baa844ae1fbe62684b9beeb687bd",
+      "symbol": "reconcile_p50_mass",
+      "observed_role": "point_mass_allocation_not_quantile_fit"
+    },
+    {
+      "layer": "task8_maturity_p80_p90",
+      "path": "backend/app/maturity/service.py",
+      "git_blob_sha": "80632f330973baa844ae1fbe62684b9beeb687bd",
+      "formula": "p50 + effective_total * margin_share",
+      "observed_role": "symmetric_margin_around_p50",
+      "interval_semantics": "pointwise_marginal"
+    },
+    {
+      "layer": "residual_quantile_regression",
+      "path": "backend/app/residual_model/model.py",
+      "git_blob_sha": "c4c6d2907cf3a0b67787606b9b538edc1e1277c6",
+      "estimator": "HistGradientBoostingRegressor(loss=quantile)",
+      "observed_role": "quantile_regression_on_residual_label"
+    },
+    {
+      "layer": "residual_projection",
+      "path": "backend/app/residual_model/projection.py",
+      "git_blob_sha": "4ce69012d4596f396d4d963c96c02f5d20a7e5c3",
+      "symbols": [
+        "project_corrected_quantiles",
+        "quantile_projection_applied"
+      ],
+      "observed_role": "p50_structural_anchor_plus_monotonic_projection"
+    },
+    {
+      "layer": "pinball_reference",
+      "path": "backend/app/residual_model/metrics.py",
+      "git_blob_sha": "1a68d9d367982ac5829e5099c938a52cdf4fb8de",
+      "symbol": "pinball_loss",
+      "observed_role": "implementation_reference_not_semantics_proof"
+    }
+  ],
+  "preliminary_code_read": {
+    "incumbent_pipeline_uses_p50_p80_p90_labels": true,
+    "incumbent_pipeline_single_true_quantile_model": false,
+    "incumbent_task8_p50_is_point_mass_allocation": true,
+    "incumbent_task8_p80_p90_are_p50_plus_margin": true,
+    "incumbent_residual_uses_quantile_regression_on_residual": true,
+    "incumbent_residual_final_values_use_monotonic_projection": true,
+    "preliminary_semantics_verification_outcome": "PENDING_COORDINATOR_EXECUTION",
+    "coverage_numbers_published": false,
+    "do_not_invent_hashes_or_tonnes": true
+  },
+  "current_status_flags": {
+    "current_p50_semantics_status": "NOT_VERIFIED",
+    "current_p80_semantics_status": "NOT_VERIFIED",
+    "current_p90_semantics_status": "NOT_VERIFIED",
+    "current_p50_coverage_computable": false,
+    "current_p80_coverage_computable": false,
+    "current_p90_coverage_computable": false,
+    "current_baseline_p80_computable": false,
+    "current_baseline_p90_computable": false,
+    "current_quantile_reason_code": "QUANTILE_SEMANTICS_NOT_VERIFIED",
+    "p50_semantics_verified": false,
+    "p80_semantics_verified": false,
+    "p90_semantics_verified": false,
+    "p50_p80_p90_semantics_verified": false,
+    "not_verified_is_not_pass": true,
+    "not_computable_is_not_zero": true
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "v0_2_metric_contract": false,
+    "s3_a_daily_rowset_files": false,
+    "development_plan": false,
+    "backend": false,
+    "allowlist": false
+  },
+  "self_hash_recipe": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "recursively_sorted_compact_canonical_json",
+    "excluded_field": "evidence_json_sha256"
+  },
+  "evidence_json_sha256": "1f4fd14423a0d65b3278df58ed077b3619517db0d17379e253a11b856926be8d"
+}
