@@ -1,0 +1,64 @@
+{
+  "artifact_id": "V0_3_S3_A_COMPLETENESS_VERIFIER_R1",
+  "artifact_version": "s3-a-completeness-verifier-r1",
+  "task_id": "V03_S3_A_COMPLETENESS_VERIFIER_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_A_COMPLETENESS_VERIFICATION_IMPLEMENTATION_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以实施",
+  "recorded_at": "2026-08-23T22:50:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "a4d94f345ea8f4ae9296013a16c1e4277dec6c5f",
+  "audited_repository_tree_sha": "6a0c8daf8334b49e453cc6b72f8f0c529253b2ac",
+  "authorization_evidence": {
+    "pr_number": 306,
+    "merge_commit": "a4d94f345ea8f4ae9296013a16c1e4277dec6c5f",
+    "auth_evidence_json_sha256": "783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc",
+    "s3_a_completeness_verification_authorized": true
+  },
+  "s2_binding": {
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785"
+  },
+  "implementation": {
+    "package_path": "backend/app/s3_daily_rowset/completeness.py",
+    "persistence": "IN_MEMORY_SERVICE_ONLY",
+    "deterministic_completeness_verification_service_implemented": true,
+    "predicate_ids": [
+      "FULL_CALENDAR_DAY_COVERAGE_IN_WINDOW",
+      "NO_SILENT_MISSING_DAYS",
+      "NO_ZERO_FILL_FOR_UNKNOWN",
+      "OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN",
+      "FORECAST_DAILY_CURVE_VISIBLE_AT_CUTOFF"
+    ],
+    "fixture_window_predicate_pass_with_dataset_flag_false": true,
+    "horizon_h7_success_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18"
+  },
+  "authorization": {
+    "deterministic_completeness_verification_service_implemented": true,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "s3_backtest_execution_authorized": false,
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": false,
+    "model_change_allowed": false,
+    "sustained_peak_pass_forbidden_until_owner_decision": true,
+    "p0_sustained_peak_window_conflict": "UNRESOLVED",
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "global_state_preserved": {
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "dataset_completeness_verified": false,
+    "emitted_no_complete_nday_window": false
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a-completeness-verifier-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a-completeness-verifier-r1.json",
+  "evidence_json_sha256": "78912e668dfd72ae08b94c86851a3dd812479527c6881659f0c5d630c4134358"
+}
