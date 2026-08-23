@@ -1,0 +1,217 @@
+# V0.3-S3-C0 PIT backtest execution contract
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_C0_PIT_BACKTEST_EXECUTION_CONTRACT
+ARTIFACT_VERSION=s3-c0-pit-backtest-execution-contract-v1
+TASK_ID=V03_S3_C0_PIT_BACKTEST_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_C0_PIT_BACKTEST_CONTRACT_ONLY
+SLICE=V0.3-S3
+PARALLEL_LANE=S3-C0
+USER_GATE=可以下一步 并行开发
+REVIEWER_ROLE=COORDINATOR
+USER_WAIVED_THIRD_PARTY_REVIEW=true
+COORDINATOR_REVIEW_COUNTS=true
+COORDINATOR_AGENT=https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794
+AUDITED_REPOSITORY_SHA=fd793de12bfe2df646925d9e7adc1d59c046ecdf
+AUDITED_REPOSITORY_TREE_SHA=61d8550f1311e3c0949f5bf08814fc69ddf0fde5
+AUDITED_REF=origin/main
+CONTRACT_PATH=docs/v0-3/s3/s3-pit-backtest-execution-contract.md
+CONTRACT_VERSION=v0-3-s3-c0-pit-backtest-execution-contract-v1
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-c0-pit-backtest-contract.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-c0-pit-backtest-contract.json
+EVIDENCE_JSON_SHA256=13893b4bfe5a4af6ab9f11eb52a0031943984db9fe41d11781fd42eca016d823
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+This workpaper records the S3-C0 point-in-time backtest execution contract
+freeze after user authorization 「可以下一步 并行开发」. This PR defines how a
+future authorized runner must execute PIT backtests on TRAIN and VALIDATION. It
+does not implement a runner, execute backtests, read TEST, read SOURCE_002
+row-level data, or change the model.
+
+~~~text
+S3_C0_PIT_BACKTEST_CONTRACT_AUTHORIZED=true
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+## 1. Parent bindings
+
+### 1.1 P0 contract
+
+~~~text
+P0_PR=298
+P0_MERGE=0a6f412aad63e1f66a5e14e5960ca88deb9b2dcd
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+P0_CONTRACT_VERSION=v0-3-s3-backtest-and-diagnosis-contract-v1
+P0_CONTRACT_GIT_BLOB_SHA=45f900f4dfa1ef5da8ea898a39bdded4c8c11f08
+P0_CONTRACT_SHA256=490f48cde5fd7543f2d7608b0dff388c9a7f99f44d77ed4337f55331e950d7a8
+P0_EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
+~~~
+
+### 1.2 S3-A amendment (merged)
+
+~~~text
+S3_A_PR=299
+S3_A_MERGE=fd793de12bfe2df646925d9e7adc1d59c046ecdf
+S3_A_AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
+S3_A_AMENDMENT_VERSION=v0-3-s3-daily-rowset-amendment-v1
+S3_A_AMENDMENT_GIT_BLOB_SHA=1baf930287598f5df78ac28d49c159b4231c0fc6
+S3_A_AMENDMENT_SHA256=f2b2473bd7ebe52349010403cbcc45a8a18f3ae7ad3512c97d8b2a30b205a7be
+S3_A_EVIDENCE_JSON_SHA256=cd70cb3f85759924d2c7d8775c734aa8fab736cfffcd414768600dacb74534da
+~~~
+
+## 2. Bound S2 facts (not recomputed)
+
+~~~text
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+V0_3_S3_VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+PIT_SQL_COUNT_EXPECTED=0
+OLD_WINNER_SQL_COUNT_EXPECTED=0
+~~~
+
+## 3. Authority distinction
+
+~~~text
+V0_2_S3_INPUT_AUTHORITY=S2_IMMUTABLE_BACKTEST_BINDING
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+CONFLATION_FORBIDDEN=true
+DO_NOT_CONFLATE_V0_2_S2_IMMUTABLE_BACKTEST_BINDING_WITH_V0_3_S2_DATASET=true
+~~~
+
+## 4. S3-C0 contract core semantics
+
+### 4.1 PIT forecast input
+
+- Every forecast input at `FORECAST_CUTOFF_AT` requires
+  `SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT`
+- Final-season facts, future revisions, and later labels must not construct
+  historical inputs
+- Incumbent model replay only; no model or parameter change
+
+### 4.2 Actual pairing (IDFL label-side)
+
+- Actual pairing uses `SOURCE_002_IDFL_LABEL_SIDE`, not PIT or old-winner tables
+- `PIT_SQL=0` and `OLD_WINNER_SQL=0` are expected for SOURCE_002
+- Forecast-input and label-observation visibility domains remain separate
+
+### 4.3 Evaluation window anchor (S3-A1 pending)
+
+~~~text
+S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED
+S3_A1_PENDING_WINDOW_ANCHOR=cutoff+1 … cutoff+H
+S3_C0_MUST_NOT_INVENT_ALTERNATE_WINDOW_ANCHOR=true
+~~~
+
+Until S3-A1 merges, C0 references only the pending anchor. It does not fix `H`
+or select alternate calendar anchors.
+
+### 4.4 Missing-day and recording
+
+~~~text
+MISSING_DAY_POLICY=UNKNOWN_NOT_ZERO
+MISSING_DAY_ZERO_FILL=false
+PAIRING_FAILURE_MUST_BE_RECORDED=true
+EXCLUSION_MUST_BE_RECORDED=true
+INSUFFICIENT_COVERAGE_MUST_BE_RECORDED=true
+SILENT_FILL_FORBIDDEN=true
+~~~
+
+### 4.5 Baseline parity
+
+Incumbent model and naive baseline share identical exclusion and missing-day
+policies.
+
+### 4.6 Metric computability (definition only)
+
+~~~text
+DAILY_POINT_METRICS_NOT_BLOCKED_BY_COMPLETE_DAILY_ROWSET=true
+DAILY_POINT_METRICS_REQUIRE_OBSERVED_ACTUAL=true
+THIS_PR_DOES_NOT_EXECUTE_METRICS=true
+PEAK_CUMULATIVE_COMPLETE_HORIZON_BLOCKED=true
+PEAK_BLOCKER_REASON=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+QUANTILE_COVERAGE_BLOCKED_BY_S3_B=true
+QUANTILE_BLOCKER_REASON=QUANTILE_SEMANTICS_NOT_VERIFIED
+~~~
+
+### 4.7 Leakage audit checklist
+
+Frozen for future execution: post-cutoff weather, retrospective phenology,
+post-season yield per mu, final marketable rate, TEST labels, ungoverned master
+data, ineligible `SOURCE_AVAILABLE_AT`, PIT/old-winner primary path, and
+final-season or later-label input construction.
+
+~~~text
+LEAKAGE_AUDIT_PERFORMED_IN_THIS_PR=false
+~~~
+
+## 5. Split and holdout boundaries
+
+~~~text
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+TEST_REMAINS_SEALED=true
+TEST_ROW_COUNT_ZERO_IS_NOT_EVALUATION_FAILURE=true
+EXTERNAL_HOLDOUT_NOT_APPLICABLE=true
+EXTERNAL_HOLDOUT_BYTES_EXIST=false
+RANDOM_ADJACENT_DATE_SPLIT_FORBIDDEN=true
+~~~
+
+## 6. Current status flags (unchanged by this PR)
+
+~~~text
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_P50_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P90_SEMANTICS_STATUS=NOT_VERIFIED
+DEVELOPMENT_PLAN_CURRENT_FIELDS_UNCHANGED=true
+POINT_IN_TIME_REPLAY=false
+LEAKAGE_AUDIT=false
+CURRENT_MODEL_BASELINE=false
+ERROR_DIAGNOSIS=false
+~~~
+
+This PR does not edit `development-plan.md`, P0, S3-A, S2 contracts, or backend
+code.
+
+## 7. Not authorized
+
+~~~text
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_B_AUTHORIZED=false
+S3_D_AUTHORIZED=false
+BACKTEST_RUNNER_IMPLEMENTED=false
+DETERMINISTIC_METRIC_SERVICE_IMPLEMENTED=false
+next_subtask_not_implied=true
+CONTRACT_MERGE_DOES_NOT_AUTHORIZE_BACKTEST=true
+~~~
+
+## 8. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+CONTRACT_MERGE_IS_NOT_BACKTEST_EXECUTION=true
+CONTRACT_MERGE_IS_NOT_METRIC_EXECUTION=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
