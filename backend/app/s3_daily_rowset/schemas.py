@@ -99,3 +99,31 @@ class SustainedPeakPredicateResult(_FrozenModel):
     predicate_defined: bool = True
     pass_allowed: bool = False
     conflict_status: Literal["UNRESOLVED"] = "UNRESOLVED"
+
+
+class CompletenessPredicateId(StrEnum):
+    FULL_CALENDAR_DAY_COVERAGE_IN_WINDOW = "FULL_CALENDAR_DAY_COVERAGE_IN_WINDOW"
+    NO_SILENT_MISSING_DAYS = "NO_SILENT_MISSING_DAYS"
+    NO_ZERO_FILL_FOR_UNKNOWN = "NO_ZERO_FILL_FOR_UNKNOWN"
+    OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN = "OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN"
+    FORECAST_DAILY_CURVE_VISIBLE_AT_CUTOFF = "FORECAST_DAILY_CURVE_VISIBLE_AT_CUTOFF"
+
+
+class PredicateStatus(StrEnum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+
+
+class CompletenessPredicateResult(_FrozenModel):
+    predicate_id: CompletenessPredicateId
+    status: PredicateStatus
+
+
+class WindowCompletenessVerificationResult(_FrozenModel):
+    window_predicates_all_pass: bool
+    predicates: tuple[CompletenessPredicateResult, ...]
+    dataset_completeness_verified: bool = False
+    current_s3_daily_rowset_completeness_verified: bool = False
+    evaluation_instance_registry_available: bool = False
+    materialization_outcome: MaterializationOutcome
+    rowset_identity_sha256: str | None = None
