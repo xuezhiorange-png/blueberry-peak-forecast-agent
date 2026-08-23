@@ -75,7 +75,15 @@ from backend.app.s2_materialized_dataset.lane_d.builder import (
 from backend.app.s2_materialized_dataset.lane_d.manifest import (
     recompute_manifest_sha256_from_published,
 )
-from backend.app.s2_materialized_dataset.lane_d.partitions import FROZEN_PARTITIONS
+from backend.app.s2_materialized_dataset.lane_d.partitions import (
+    FROZEN_PARTITIONS,
+    TEST_END,
+    TEST_START,
+    TRAIN_END,
+    TRAIN_START,
+    VALIDATION_END,
+    VALIDATION_START,
+)
 from backend.app.s2_materialized_dataset.lane_d.schemas import (
     MaterializedDatasetResult,
     PartitionManifest,
@@ -699,12 +707,13 @@ class Source002E5Report:
     train_rows: int
     val_rows: int
     test_rows: int
+    test_window_grains_not_persisted: int
     dataset_identity: str | None
     rebuild_parity: str
 
     def format_line(self) -> str:
         identity = self.dataset_identity or "OBJECT_MISSING"
-        return (
+        line = (
             "SOURCE_002_E5_REPORT "
             f"e2={self.e2} "
             f"e3_grains={self.e3_grains} "
@@ -715,9 +724,11 @@ class Source002E5Report:
             f"train_rows={self.train_rows} "
             f"val_rows={self.val_rows} "
             f"test_rows={self.test_rows} "
+            f"test_window_grains_not_persisted={self.test_window_grains_not_persisted} "
             f"dataset_identity={identity} "
             f"rebuild_parity={self.rebuild_parity}"
         )
+        return line
 
 
 def count_pit_visibility_sql_rows(session: Session) -> int:
@@ -851,6 +862,90 @@ def verify_source_002_sql_boundaries(
     return counts
 
 
+def source_002_harvest_date_allowed_for_materialization(harvest_business_date: date) -> bool:
+    """SOURCE_002 E5 may only materialize TRAIN or VALIDATION split dates."""
+    if TRAIN_START <= harvest_business_date <= TRAIN_END:
+        return True
+    return VALIDATION_START <= harvest_business_date <= VALIDATION_END
+
+
+def source_002_harvest_date_in_test_window(harvest_business_date: date) -> bool:
+    return TEST_START <= harvest_business_date <= TEST_END
+
+
+def count_source_002_test_window_grains_not_persisted(session: Session) -> int:
+    version = _fetch_latest_source_002_cleaned_version(session)
+    cleaned_rows = session.scalars(
+        select(S2CleanedRowModel).where(
+            S2CleanedRowModel.cleaned_dataset_version_id == version.id,
+            S2CleanedRowModel.is_excluded.is_(False),
+            S2CleanedRowModel.harvest_business_date >= TEST_START,
+            S2CleanedRowModel.harvest_business_date <= TEST_END,
+        )
+    ).all()
+    return len(cleaned_rows)
+
+
+def _build_source_002_materializable_rows_from_cleaned(
+    *,
+    cleaned_rows: tuple[S2CleanedRowModel, ...] | list[S2CleanedRowModel],
+    grain_index: dict[str, tuple[str, ...]],
+    idfl_by_identity: dict[str, str],
+) -> tuple[tuple[MaterializableRow, ...], int]:
+    pit_identity = compute_idfl_pit_visibility_not_applicable_identity()
+    materializable: list[MaterializableRow] = []
+    test_window_grains_not_persisted = 0
+
+    for cleaned in cleaned_rows:
+        if not source_002_harvest_date_allowed_for_materialization(cleaned.harvest_business_date):
+            if source_002_harvest_date_in_test_window(cleaned.harvest_business_date):
+                test_window_grains_not_persisted += 1
+            continue
+
+        if cleaned.quantity_presence_status == QuantityPresenceStatus.UNKNOWN_NOT_ZERO.value:
+            raise Source002E5MaterializationError(
+                "UNKNOWN_NOT_ZERO cleaned grain must not enter MaterializableRow"
+            )
+        effective = cleaned.effective_actual_harvest_quantity_kg
+        if effective is None:
+            raise Source002E5MaterializationError(
+                "non-excluded cleaned grain is missing effective kilogram quantity"
+            )
+
+        collapsed_hash = cleaned.source_row_identity_hash
+        contributors = grain_index.get(collapsed_hash)
+        if contributors is None:
+            raise Source002E5MaterializationError(
+                f"grain contributor mapping missing for cleaned identity {collapsed_hash}"
+            )
+
+        idfl_hashes: list[str] = []
+        for contributor in contributors:
+            idfl_hash = idfl_by_identity.get(contributor)
+            if idfl_hash is None:
+                raise Source002E5MaterializationError(
+                    f"IDFL SQL row missing for contributor {contributor}"
+                )
+            idfl_hashes.append(idfl_hash)
+
+        materializable.append(
+            MaterializableRow(
+                season=cleaned.season_business_key,
+                farm=cleaned.farm_business_key,
+                subfarm=cleaned.subfarm_business_key,
+                variety=cleaned.variety_business_key,
+                harvest_business_date=cleaned.harvest_business_date,
+                actual_harvest_quantity_kg=effective,
+                source_row_identity=collapsed_hash,
+                cleaned_row_identity=cleaned.cleaned_row_identity_hash,
+                pit_visibility_identity=pit_identity,
+                revision_winner_identity=compute_grain_revision_winner_identity(idfl_hashes),
+            )
+        )
+
+    return tuple(sorted(materializable, key=_row_sort_key)), test_window_grains_not_persisted
+
+
 def _build_collapsed_grain_contributor_index(
     session: Session,
     *,
@@ -919,52 +1014,12 @@ def load_source_002_materializable_rows_from_sql(
         artifact_bytes=artifact_bytes,
         batch=batch,
     )
-    pit_identity = compute_idfl_pit_visibility_not_applicable_identity()
-
-    materializable: list[MaterializableRow] = []
-    for cleaned in cleaned_rows:
-        if cleaned.quantity_presence_status == QuantityPresenceStatus.UNKNOWN_NOT_ZERO.value:
-            raise Source002E5MaterializationError(
-                "UNKNOWN_NOT_ZERO cleaned grain must not enter MaterializableRow"
-            )
-        effective = cleaned.effective_actual_harvest_quantity_kg
-        if effective is None:
-            raise Source002E5MaterializationError(
-                "non-excluded cleaned grain is missing effective kilogram quantity"
-            )
-
-        collapsed_hash = cleaned.source_row_identity_hash
-        contributors = grain_index.get(collapsed_hash)
-        if contributors is None:
-            raise Source002E5MaterializationError(
-                f"grain contributor mapping missing for cleaned identity {collapsed_hash}"
-            )
-
-        idfl_hashes: list[str] = []
-        for contributor in contributors:
-            idfl_hash = idfl_by_identity.get(contributor)
-            if idfl_hash is None:
-                raise Source002E5MaterializationError(
-                    f"IDFL SQL row missing for contributor {contributor}"
-                )
-            idfl_hashes.append(idfl_hash)
-
-        materializable.append(
-            MaterializableRow(
-                season=cleaned.season_business_key,
-                farm=cleaned.farm_business_key,
-                subfarm=cleaned.subfarm_business_key,
-                variety=cleaned.variety_business_key,
-                harvest_business_date=cleaned.harvest_business_date,
-                actual_harvest_quantity_kg=effective,
-                source_row_identity=collapsed_hash,
-                cleaned_row_identity=cleaned.cleaned_row_identity_hash,
-                pit_visibility_identity=pit_identity,
-                revision_winner_identity=compute_grain_revision_winner_identity(idfl_hashes),
-            )
-        )
-
-    return tuple(sorted(materializable, key=_row_sort_key))
+    rows, _test_window_skipped = _build_source_002_materializable_rows_from_cleaned(
+        cleaned_rows=tuple(cleaned_rows),
+        grain_index=grain_index,
+        idfl_by_identity=idfl_by_identity,
+    )
+    return rows
 
 
 def build_source_002_upstream_bundle_from_sql(
@@ -1102,6 +1157,7 @@ def controlled_materialize_source_002_from_environment(
             train_rows=0,
             val_rows=0,
             test_rows=0,
+            test_window_grains_not_persisted=0,
             dataset_identity=None,
             rebuild_parity="OBJECT_MISSING",
         )
@@ -1135,6 +1191,7 @@ def controlled_materialize_source_002_from_environment(
         batch=batch,
     )
     train_rows, val_rows, test_rows = partition_row_counts_for_e5_report(upstream.lane_b.rows)
+    test_window_grains_not_persisted = count_source_002_test_window_grains_not_persisted(session)
 
     dataset_identity: str | None = None
     rebuild_parity = "NOT_RUN"
@@ -1167,6 +1224,7 @@ def controlled_materialize_source_002_from_environment(
         train_rows=train_rows,
         val_rows=val_rows,
         test_rows=test_rows,
+        test_window_grains_not_persisted=test_window_grains_not_persisted,
         dataset_identity=dataset_identity,
         rebuild_parity=rebuild_parity,
     )
