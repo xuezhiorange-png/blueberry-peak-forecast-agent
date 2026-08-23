@@ -22,7 +22,7 @@ CONTRACT_PATH=docs/v0-3/s3/s3-quantile-semantics-contract.md
 CONTRACT_VERSION=v0-3-s3-b-quantile-semantics-contract-v1
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-b-quantile-semantics.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-b-quantile-semantics.json
-EVIDENCE_JSON_SHA256=1f4fd14423a0d65b3278df58ed077b3619517db0d17379e253a11b856926be8d
+EVIDENCE_JSON_SHA256=52dfe07eb6a17004704a1545c136a51c4646fbc7b7f7bca80b13f87a71e2d3e7
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 

@@ -200,5 +200,5 @@
     "serialization": "recursively_sorted_compact_canonical_json",
     "excluded_field": "evidence_json_sha256"
   },
-  "evidence_json_sha256": "1f4fd14423a0d65b3278df58ed077b3619517db0d17379e253a11b856926be8d"
+  "evidence_json_sha256": "52dfe07eb6a17004704a1545c136a51c4646fbc7b7f7bca80b13f87a71e2d3e7"
 }
