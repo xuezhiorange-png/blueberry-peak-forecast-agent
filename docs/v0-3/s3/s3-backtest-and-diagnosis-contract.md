@@ -410,7 +410,9 @@ The following subtasks are named for planning. None are authorized by P0.
 
 ~~~text
 next_subtask_not_implied=true
-S3_A_AUTHORIZED=false
+S3_A_AUTHORIZED=true
+S3_A_AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
+S3_A_AMENDMENT_VERSION=v0-3-s3-daily-rowset-amendment-v1
 S3_B_AUTHORIZED=false
 S3_C_AUTHORIZED=false
 S3_D_AUTHORIZED=false
