@@ -436,6 +436,14 @@ Materialization grant does not execute materialization, authorize completeness
 verification, or authorize backtest execution. The `Authorized by P0` table
 column above is the P0 freeze snapshot.
 
+Live `S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md`.
+Completeness verification grant does not execute verification, flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, or authorize backtest
+execution. P0 §4.2 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false` remains
+the P0 freeze snapshot.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
