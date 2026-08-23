@@ -1,0 +1,478 @@
+# V0.3-S3 Daily Rowset Amendment Contract
+
+## Amendment identity and phase boundary
+
+~~~text
+AMENDMENT_ID=V0_3_S3_DAILY_ROWSET_AMENDMENT
+AMENDMENT_VERSION=v0-3-s3-daily-rowset-amendment-v1
+TASK_ID=V03_S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=CURRENT_MODEL_POINT_IN_TIME_BACKTEST_AND_ERROR_DIAGNOSIS
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=0a6f412aad63e1f66a5e14e5960ca88deb9b2dcd
+BASE_MAIN_TREE_SHA=281d6ecae3daca2acc52e3a7be6522acf12df8ae
+BASE_REF=origin/main
+PARENT_CONTRACT_ID=V0_3_S3_BACKTEST_AND_DIAGNOSIS_CONTRACT
+PARENT_CONTRACT_VERSION=v0-3-s3-backtest-and-diagnosis-contract-v1
+PARENT_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+PARENT_CONTRACT_GIT_BLOB_SHA=500896b8150c232e4476e98253b5a7439850001d
+PARENT_CONTRACT_SHA256=090acecf54409b86aadaee61cee00a1dd4880450f3f22d183474e00910130bc1
+P0_PR=298
+P0_MERGE=0a6f412aad63e1f66a5e14e5960ca88deb9b2dcd
+REVIEWER_ROLE=COORDINATOR
+USER_WAIVED_THIRD_PARTY_REVIEW=true
+COORDINATOR_REVIEW_COUNTS=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_AUTHORIZED=true
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+S3_B_AUTHORIZED=false
+S3_C_AUTHORIZED=false
+S3_D_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+SOURCE_002_ROW_LEVEL_READ=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+V0_3_S4_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+LLM_MUST_NOT_INVENT_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes the V0.3-S3-A daily rowset amendment contract. It defines
+how sparse SOURCE_002 harvest grains and incumbent-model forecasts must be
+expanded into a complete, auditable calendar daily row set for peak and
+cumulative metrics. It is a governance amendment, not materialization,
+completeness verification, backtest execution, or metric computation.
+
+Merging this amendment does **not** materialize a daily rowset table, does
+**not** authorize backtest execution, and does **not** make peak metrics
+computable until a separately authorized materialization and completeness
+verification pass.
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 Parent S3 P0 contract
+
+~~~text
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+P0_CONTRACT_VERSION=v0-3-s3-backtest-and-diagnosis-contract-v1
+P0_EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
+V0_3_S3_PHASE_ENTRY_AUTHORIZED=true
+~~~
+
+### 1.2 S2 materialized dataset (accepted)
+
+~~~text
+S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+FROZEN_SOURCE_ARTIFACT_SHA256=fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a
+~~~
+
+### 1.3 V0.3-S3 input authorities (distinct; do not conflate)
+
+~~~text
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+V0_3_S3_VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+V0_2_S3_INPUT_AUTHORITY_HISTORICAL=S2_IMMUTABLE_BACKTEST_BINDING
+DO_NOT_CONFLATE_V0_2_S2_IMMUTABLE_BACKTEST_BINDING_WITH_V0_3_S2_DATASET=true
+~~~
+
+The V0.2 metric contract names `S3_INPUT_AUTHORITY=S2_IMMUTABLE_BACKTEST_BINDING`
+for the V0.2 engineering trial pairing. That artifact exposes sparse
+`forecast_horizon_days ∈ {7,14,21}` target-date rows. It is **not** the V0.3-S2
+materialized dataset `source-002/e5-live-v1`. S3-A must not treat sparse
+7/14/21 binding rows as proof that a complete calendar daily curve already
+exists.
+
+### 1.4 Metric formula authority (reference only; do not mutate)
+
+~~~text
+V0_2_METRIC_CONTRACT_PATH=docs/forecast-quality/s3-quality-metrics-contract.md
+METRIC_CONTRACT_AUTHORITY_BASE_SHA=b873dd63fc0d5b6375f94674abbd24a94d915f3c
+S1_METRIC_CONTRACT_PATH=docs/v0-3/s1/metric-coverage-and-quality-contract.md
+V0_3_METRIC_CONTRACT_VERSION=v0.3-metric-contract-v1
+DO_NOT_MUTATE_V0_2_METRIC_CONTRACT=true
+~~~
+
+## 2. Terminology (not interchangeable)
+
+Copied from V0.2 metric contract §2 without formula mutation:
+
+~~~text
+forecast_horizon_days
+  = the lead time between forecast_cutoff_at and the target_date of a single
+    binding row. Currently frozen at 7, 14, or 21.
+
+evaluation_window_days
+  = the length of the continuous target-date window required for a cumulative,
+    single-day peak, or sustained peak metric. Currently frozen as 7, 14, or 21
+    days depending on the requested horizon.
+
+forecast_target_date
+  = the calendar business date a single binding row is comparing against.
+
+SPARSE_HORIZON_ROWS_ARE_NOT_COMPLETE_DAILY_CURVE=true
+REQUESTED_HORIZONS_7_14_21_ARE_NOT_CONTINUOUS_CALENDAR_DAYS=true
+~~~
+
+`forecast_horizon_days` and `evaluation_window_days` are distinct concepts.
+A 7-day forecast horizon is not the same as a complete 7-calendar-day daily
+curve between cutoff and target.
+
+## 3. Amendment scope and current status
+
+### 3.1 What S3-A defines
+
+S3-A defines the **operational contract** for expanding each evaluation
+instance cell into a complete calendar daily row set:
+
+~~~text
+EVALUATION_INSTANCE_CELL_GRAIN=SEASON,FARM,SUBFARM,VARIETY,MODEL,FORECAST_CUTOFF,FORECAST_QUANTILE
+~~~
+
+For each cell and requested `evaluation_window_days`, the amendment specifies:
+
+- calendar expansion rules
+- per-day row status semantics
+- actual kg sourcing from accepted S2 grains
+- forecast replay requirements at historical cutoff
+- window rejection rules for missing or unknown days
+- completeness predicates for future verification
+
+### 3.2 What S3-A does not do
+
+~~~text
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
+AMENDMENT_MERGE_DOES_NOT_MATERIALIZE_ROWSET=true
+AMENDMENT_MERGE_DOES_NOT_AUTHORIZE_BACKTEST=true
+AMENDMENT_MERGE_DOES_NOT_MAKE_PEAK_METRICS_COMPUTABLE=true
+~~~
+
+Until materialization and completeness verification are separately authorized
+and accepted, peak and cumulative metrics remain `NOT_COMPUTABLE` with
+`reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. S3-A must
+not substitute a different reason code implying a complete row set already
+exists.
+
+## 4. Missing-day policy
+
+~~~text
+MISSING_DAY_POLICY=UNKNOWN_NOT_ZERO
+MISSING_DAY_ZERO_FILL=false
+MISSING_ACTUAL_TREATED_AS_ZERO=false
+NUMERIC_IMPUTATION_ALLOWED=false
+~~~
+
+Rules:
+
+- A calendar day with no accepted S2 harvest grain is `UNKNOWN`, not `0` kg.
+- `UNKNOWN` actual kg is `null` / absent; it must not be written as numeric zero.
+- If any calendar day in a requested evaluation window is `UNKNOWN` or lacks an
+  explicit daily row, the window is **REJECTED** and the metric cell is
+  `NOT_COMPUTABLE`.
+- `NOT_COMPUTABLE` is not zero error and not zero kg.
+
+~~~text
+WINDOW_REJECTION_ON_ANY_UNKNOWN_OR_MISSING_DAY=true
+NOT_COMPUTABLE_IS_NOT_ZERO=true
+~~~
+
+## 5. Calendar expansion operational definition
+
+For each evaluation instance cell
+`(season, farm, subfarm, variety, model, forecast_cutoff, quantile)` and each
+requested `evaluation_window_days` window within the TRAIN or VALIDATION
+partition:
+
+### 5.1 Window selection
+
+- The window is a contiguous inclusive calendar-date range of exactly
+  `evaluation_window_days` days.
+- Default season scope uses months 1–4 only, inherited from S2 exclusion policy.
+- Factory building area must not be used as a peak-prediction feature.
+
+### 5.2 Per-calendar-day row requirement
+
+Every calendar day in the window must have exactly one explicit daily row. Silent
+omission of a calendar day is forbidden.
+
+~~~text
+SILENT_MISSING_CALENDAR_DAY_FORBIDDEN=true
+EACH_CALENDAR_DAY_REQUIRES_EXPLICIT_ROW=true
+~~~
+
+### 5.3 Per-day status semantics
+
+Each daily row carries `daily_row_status ∈ {OBSERVED, UNKNOWN, EXCLUDED}`.
+
+| Status | Actual kg | Forecast kg | Metric use |
+|---|---|---|---|
+| `OBSERVED` | Decimal kg from accepted S2 grain | From incumbent replay at cutoff | eligible when forecast available |
+| `UNKNOWN` | null / absent (not 0) | From replay if available; else unavailable | window REJECT if actual UNKNOWN |
+| `EXCLUDED` | excluded by inherited S2 policy | not used in metrics | excluded from comparable set |
+
+`EXCLUDED` inherits S2 exclusions without reopening them:
+
+~~~text
+EXCLUDED_VARIETIES=普鲜,普青,普冻,废果
+EXCLUDED_FACTORY_BASON=true
+DEFAULT_MONTH_SCOPE=1-4
+EXCLUSION_POLICY_REOPEN_FORBIDDEN=true
+~~~
+
+### 5.4 Actual side (OBSERVED)
+
+- `OBSERVED` kg may come only from accepted S2 TRAIN/VALIDATION grains at
+  `CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE`.
+- Units are `kg`, stored and aggregated as `Decimal`; float accumulation is
+  forbidden.
+- No reread of xls, Google Sheets, S1 derived JSON, PIT tables, or old-winner
+  tables as SOURCE_002 primary input.
+
+### 5.5 Forecast side (incumbent replay)
+
+- Forecasts must come from `V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF`.
+- For each calendar day in the window, the incumbent model must be replayed with
+  only information visible at `forecast_cutoff`.
+- If a calendar day has no legal forecast under cutoff visibility, that day is
+  `FORECAST_UNAVAILABLE`; the window is **REJECTED** and the metric is
+  `NOT_COMPUTABLE`.
+- `FORECAST_UNAVAILABLE` is not numeric zero.
+
+~~~text
+FORECAST_UNAVAILABLE_IS_NOT_ZERO=true
+FINAL_SEASON_FACTS_AT_CUTOFF_FORBIDDEN=true
+~~~
+
+### 5.6 Peak definition guardrails
+
+Peak metrics must use the complete calendar daily row set inside the evaluation
+window. Redefining peak as the maximum over observed sparse days only is
+forbidden.
+
+~~~text
+PEAK_OVER_OBSERVED_DAYS_ONLY=false
+DO_NOT_REDEFINE_PEAK_AS_MAX_OF_SPARSE_OBSERVED=true
+SINGLE_DAY_PEAK_REQUIRES_COMPLETE_DAILY_ROWSET=true
+SUSTAINED_PEAK_REQUIRES_COMPLETE_DAILY_ROWSET=true
+~~~
+
+## 6. Pairing and reporting grains
+
+Aligned with development-plan §4.4 and V0.2 metric contract §11:
+
+~~~text
+GROUPING_GRAIN=SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_TARGET_DATE_X_FORECAST_CUTOFF_X_MODEL_IDENTITY_X_FORECAST_QUANTILE
+REPORTING_GRAIN=SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_HARVEST_BUSINESS_DATE
+Q2C_TARGET=OBSERVED_FARM_PICK_QUANTITY
+ACTUAL_UNIT=kg
+DECIMAL_ARITHMETIC_REQUIRED=true
+FLOAT_ACCUMULATION_FORBIDDEN=true
+~~~
+
+Evaluation partitions:
+
+~~~text
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+EXTERNAL_HOLDOUT_NOT_APPLICABLE=true
+RANDOM_ADJACENT_DATE_SPLIT_FORBIDDEN=true
+~~~
+
+## 7. Metric computability under this amendment
+
+S3-A defines computability rules only. It does not compute metrics.
+
+### 7.1 Daily point metrics (not blocked by complete daily rowset)
+
+Per V0.2 metric contract §6:
+
+~~~text
+DAILY_POINT_METRICS=daily_mae,daily_wape,daily_smape
+DAILY_POINT_METRICS_BLOCKED_BY_COMPLETE_DAILY_ROWSET=false
+DAILY_POINT_METRICS_REQUIRE_VALID_PAIRING=true
+PAIRING_FAILURE_STATUS=NOT_COMPUTABLE
+PAIRING_FAILURE_IS_NOT_ZERO=true
+~~~
+
+Daily point metrics run only on legal `OBSERVED` actual ∩ legal forecast pairs.
+Pairing failure is `NOT_COMPUTABLE`, not zero error.
+
+### 7.2 Peak, cumulative, and complete-horizon metrics
+
+Until `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=true`:
+
+~~~text
+SINGLE_DAY_PEAK_STATUS=NOT_COMPUTABLE
+SEASON_CUMULATIVE_STATUS=NOT_COMPUTABLE
+COMPLETE_HORIZON_STATUS=NOT_COMPUTABLE
+SUSTAINED_PEAK_STATUS=NOT_COMPUTABLE
+BLOCKER_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+NOT_COMPUTABLE_IS_NOT_ZERO=true
+~~~
+
+S3-A must not claim these metrics are computable in this PR.
+
+### 7.3 Quantile coverage (S3-B gate)
+
+~~~text
+P80_COVERAGE_COMPUTABLE=false
+P90_COVERAGE_COMPUTABLE=false
+QUANTILE_SEMANTICS_GATE=S3-B
+S3_A_DOES_NOT_CLAIM_COVERAGE_COMPUTABLE=true
+COVERAGE_BLOCKED_BY_QUANTILE_SEMANTICS_NOT_VERIFIED=true
+~~~
+
+### 7.4 Sustained peak window conflict (UNRESOLVED)
+
+~~~text
+PRODUCT_SUSTAINED_PEAK_WINDOW_DAYS=3
+PLAN_SUSTAINED_PEAK_WINDOW_DAYS=7
+V0_2_METRIC_ID=SUSTAINED_7DAY_PEAK
+P0_SUSTAINED_PEAK_WINDOW_CONFLICT=UNRESOLVED
+S3_A_DOES_NOT_RESOLVE_3_VS_7=true
+SUSTAINED_PEAK_PASS_FORBIDDEN_UNTIL_OWNER_DECISION=true
+~~~
+
+S3-A may define completeness predicates for both 3-day and 7-day sustained
+windows, but must not choose a product winner. Until owner decision:
+
+~~~text
+SUSTAINED_3DAY_COMPLETENESS_PREDICATE_DEFINED=true
+SUSTAINED_7DAY_COMPLETENESS_PREDICATE_DEFINED=true
+SUSTAINED_PEAK_METRIC_PASS_FORBIDDEN=true
+~~~
+
+### 7.5 Sustained peak reason-code ordering (V0.2 mutual exclusivity)
+
+Per V0.2 metric contract and development-plan §4.4:
+
+~~~text
+SUSTAINED_PEAK_STAGE_ORDER=ROWSET_AVAILABILITY_THEN_WINDOW_AVAILABILITY
+SUSTAINED_PEAK_STAGE_2_ALLOWED_ONLY_AFTER_STAGE_1_PASS=true
+SUSTAINED_PEAK_STAGE_REASONS_MUTUALLY_EXCLUSIVE=true
+WHEN_COMPLETE_DAILY_ROWSET_UNAVAILABLE:
+  SUSTAINED_PEAK_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+WHEN_COMPLETE_DAILY_ROWSET_AVAILABLE_BUT_NO_COMPLETE_NDAY_WINDOW:
+  SUSTAINED_PEAK_REASON_CODE=NO_COMPLETE_NDAY_WINDOW
+MISSING_ROWSET_NEVER_RELABELED_AS_MISSING_WINDOW=true
+~~~
+
+While `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, only the rowset
+blocker reason may be published. S3-A must not emit `NO_COMPLETE_7DAY_WINDOW`
+or `NO_COMPLETE_3DAY_WINDOW` before rowset completeness is verified.
+
+## 8. Daily rowset identity schema (sentinels only)
+
+Per V0.2 metric contract §2 identity fields. S3-A binds schema and explicit
+sentinels only. No materialized hash may be invented in this task.
+
+~~~text
+S3_DAILY_ROW_SET_AUTHORITY=V0_3_S3_DAILY_ROWSET_AMENDMENT
+S3_DAILY_ROW_SET_IDENTITY=NOT_MATERIALIZED
+S3_DAILY_ROW_SET_HASH=NOT_MATERIALIZED
+S3_DAILY_ROW_SET_START_DATE=NOT_MATERIALIZED
+S3_DAILY_ROW_SET_END_DATE=NOT_MATERIALIZED
+S3_DAILY_ROW_SET_EXPECTED_DAY_COUNT=NOT_MATERIALIZED
+S3_DAILY_ROW_SET_ACTUAL_DAY_COUNT=NOT_MATERIALIZED
+S3_DAILY_ROW_SET_COMPLETENESS_STATUS=BLOCKED_PENDING_MATERIALIZATION_AND_VERIFICATION
+DO_NOT_INVENT_MATERIALIZED_HASH=true
+~~~
+
+### 8.1 Completeness predicate (defined, not verified)
+
+Future completeness verification must prove, for each evaluation instance cell
+and requested window:
+
+~~~text
+COMPLETENESS_PREDICATE_1=FULL_CALENDAR_DAY_COVERAGE_IN_WINDOW
+COMPLETENESS_PREDICATE_2=NO_SILENT_MISSING_DAYS
+COMPLETENESS_PREDICATE_3=NO_ZERO_FILL_FOR_UNKNOWN
+COMPLETENESS_PREDICATE_4=OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN
+COMPLETENESS_PREDICATE_5=FORECAST_DAILY_CURVE_VISIBLE_AT_CUTOFF
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+~~~
+
+This PR does not claim any predicate has passed.
+
+## 9. Forbidden inputs (inherited from P0)
+
+~~~text
+FORBIDDEN_REREAD_XLS=true
+FORBIDDEN_REREAD_GOOGLE_SHEETS=true
+FORBIDDEN_S1_DERIVED_JSON_AS_PRIMARY_INPUT=true
+FORBIDDEN_FACTORY_BASON=true
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_PIT_TABLE_AS_SOURCE_002_PRIMARY=true
+FORBIDDEN_OLD_WINNER_TABLE_AS_SOURCE_002_PRIMARY=true
+FORBIDDEN_TEST_PLACEHOLDER_AS_EVALUATION_ROWS=true
+FORBIDDEN_FINAL_SEASON_FACTS_AT_HISTORICAL_CUTOFF=true
+FORBIDDEN_UNGOVERNED_MASTER_DATA=true
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 10. Subtask boundaries
+
+~~~text
+S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_AUTHORIZED=true
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
+S3_B_AUTHORIZED=false
+S3_C_AUTHORIZED=false
+S3_D_AUTHORIZED=false
+next_subtask_not_implied=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+| Subtask | Status after S3-A merge |
+|---|---|
+| S3-A contract | frozen (this document) |
+| S3-A materialization | not authorized |
+| S3-A completeness verification | not authorized |
+| S3-B quantile semantics | not authorized |
+| S3-C backtest execution | not authorized |
+| S3-D error attribution | not authorized |
+
+## 11. LLM and deterministic service boundary
+
+~~~text
+LLM_MUST_NOT_INVENT_TONNES=true
+ALL_TONNAGE_FROM_DETERMINISTIC_SERVICE=true
+DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED=false
+METRIC_EXECUTION_IMPLEMENTED=false
+~~~
+
+LLM agents must not invent kg values, row counts, completeness results, or
+materialized hashes. Those must come from separately authorized deterministic
+services after materialization is authorized.
