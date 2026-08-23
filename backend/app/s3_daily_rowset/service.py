@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from datetime import date
 
 from backend.app.s3_daily_rowset.actuals import (
-    InMemoryS2ActualsSource,
     S2ActualsSourcePort,
-    is_evaluation_partition_allowed,
+    window_contains_test_partition,
 )
 from backend.app.s3_daily_rowset.exclusion import is_cell_level_excluded
 from backend.app.s3_daily_rowset.forecast_port import (
@@ -134,27 +133,7 @@ class DailyRowsetMaterializerService:
         window_dates: tuple[date, ...],
         evaluation_window_days: int | None,
     ) -> DailyRowsetResult:
-        if isinstance(self.actuals_source, InMemoryS2ActualsSource):
-            if self.actuals_source.contains_test_partition_row():
-                return DailyRowsetResult(
-                    outcome=MaterializationOutcome.REJECTED,
-                    reason_code=ReasonCode.TEST_PARTITION_NOT_ALLOWED,
-                    window_kind=window_kind,
-                    evaluation_window_days=evaluation_window_days,
-                    window_start_date=window_dates[0] if window_dates else None,
-                    window_end_date=window_dates[-1] if window_dates else None,
-                )
-            if self.actuals_source.window_uses_test_partition(window_dates):
-                return DailyRowsetResult(
-                    outcome=MaterializationOutcome.REJECTED,
-                    reason_code=ReasonCode.TEST_PARTITION_NOT_ALLOWED,
-                    window_kind=window_kind,
-                    evaluation_window_days=evaluation_window_days,
-                    window_start_date=window_dates[0],
-                    window_end_date=window_dates[-1],
-                )
-
-        if any(not is_evaluation_partition_allowed(day) for day in window_dates):
+        if window_contains_test_partition(window_dates):
             return DailyRowsetResult(
                 outcome=MaterializationOutcome.REJECTED,
                 reason_code=ReasonCode.TEST_PARTITION_NOT_ALLOWED,

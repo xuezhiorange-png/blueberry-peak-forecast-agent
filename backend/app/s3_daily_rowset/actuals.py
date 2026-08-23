@@ -33,6 +33,10 @@ def is_evaluation_partition_allowed(harvest_business_date: date) -> bool:
     return partition in {"TRAIN", "VALIDATION"}
 
 
+def window_contains_test_partition(window_dates: tuple[date, ...]) -> bool:
+    return any(not is_evaluation_partition_allowed(day) for day in window_dates)
+
+
 @dataclass(frozen=True, slots=True)
 class ActualLookup:
     daily_row_status: DailyRowStatus
@@ -76,11 +80,3 @@ class InMemoryS2ActualsSource(S2ActualsSourcePort):
             daily_row_status=DailyRowStatus.OBSERVED,
             actual_harvest_quantity_kg=row.actual_harvest_quantity_kg,
         )
-
-    def contains_test_partition_row(self) -> bool:
-        return any(
-            partition_for_harvest_date(row.harvest_business_date) == "TEST" for row in self.rows
-        )
-
-    def window_uses_test_partition(self, window_dates: tuple[date, ...]) -> bool:
-        return any(partition_for_harvest_date(day) == "TEST" for day in window_dates)
