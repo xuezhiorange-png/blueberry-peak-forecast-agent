@@ -57,6 +57,11 @@ above is the S3-A contract freeze-time snapshot. Live materialization
 authorization is maintained in `docs/v0-3/development-plan.md` §4.4 and the
 S3-A rowset materialization authorization package when issued.
 
+The `S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false` line in the identity
+block above is the S3-A contract freeze-time snapshot. Live completeness
+verification authorization is maintained in `docs/v0-3/development-plan.md` §4.4
+and the S3-A completeness verification authorization package when issued.
+
 This document freezes the V0.3-S3-A daily rowset amendment contract. It defines
 how sparse SOURCE_002 harvest grains and incumbent-model forecasts must be
 expanded into a complete, auditable calendar daily row set for peak and
@@ -177,7 +182,7 @@ CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
 CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
 S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
-S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=true
 AMENDMENT_MERGE_DOES_NOT_MATERIALIZE_ROWSET=true
 AMENDMENT_MERGE_DOES_NOT_AUTHORIZE_BACKTEST=true
 AMENDMENT_MERGE_DOES_NOT_MAKE_PEAK_METRICS_COMPUTABLE=true
@@ -185,8 +190,10 @@ MATERIALIZATION_GRANT_DOES_NOT_EXECUTE_MATERIALIZATION=true
 ~~~
 
 Materialization is authorized by a separate grant package; this amendment
-contract does not execute materialization. Until materialization is performed
-and completeness verification is separately authorized and accepted, peak and
+contract does not execute materialization. Completeness verification is
+authorized by a separate grant package; this amendment contract does not execute
+verification or flip `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. Until
+materialization output is verified and accepted in a future closeout, peak and
 cumulative metrics remain `NOT_COMPUTABLE` with
 `reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. S3-A must
 not substitute a different reason code implying a complete row set already
@@ -561,7 +568,7 @@ SOURCE_002_ROW_LEVEL_READ=false
 ~~~text
 S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_AUTHORIZED=true
 S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
-S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=true
 S3_B_AUTHORIZED=false
 S3_C_AUTHORIZED=false
 S3_D_AUTHORIZED=false
@@ -573,7 +580,7 @@ NO_STEP_IMPLIES_THE_NEXT=true
 |---|---|
 | S3-A contract | frozen (this document) |
 | S3-A materialization | authorized (grant only; not executed) |
-| S3-A completeness verification | not authorized |
+| S3-A completeness verification | authorized (grant only; not executed) |
 | S3-B quantile semantics | not authorized |
 | S3-C backtest execution | not authorized |
 | S3-D error attribution | not authorized |
@@ -624,3 +631,23 @@ run computes them.
 Live `CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE` authority:
 `docs/v0-3/development-plan.md` §4.4. Frozen snapshots in S1, S3-B, and S3-C0
 contract files remain historical; they are not overwritten by this closeout.
+
+## 14. Completeness verification authorization pointer
+
+~~~text
+S3_A_COMPLETENESS_VERIFICATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md
+S3_A_COMPLETENESS_VERIFICATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a-completeness-verification-authorization.json
+EVIDENCE_JSON_SHA256=783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+AUTHORIZATION_MERGE_DOES_NOT_EXECUTE_VERIFICATION=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this authorization package.
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED` may flip only in a future
+coordinator-reviewed verification closeout, not in this authorization grant.
+Identity sentinels may remain `NOT_MATERIALIZED` until verification output is
+accepted.
