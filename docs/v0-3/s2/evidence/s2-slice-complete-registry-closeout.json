@@ -1,0 +1,118 @@
+{
+  "artifact_id": "V0_3_S2_SLICE_COMPLETE_REGISTRY_CLOSEOUT",
+  "artifact_version": "s2-slice-complete-registry-closeout-v1",
+  "task_id": "V03_S2_SLICE_COMPLETE_REGISTRY_CLOSEOUT_R1",
+  "task_class": "DOCS_ONLY_S2_REGISTRY_CLOSEOUT",
+  "authorization_scope": "S2_SLICE_COMPLETE_REGISTRY_CLOSEOUT_ONLY",
+  "user_gate": "可以下一步",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "docs_only_agent": "https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2",
+  "recorded_at": "2026-08-23T13:22:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "9aa4de9367d065dcb642ae233325640d24da69d6",
+  "audited_repository_tree_sha": "e424226841431b1968baff0edc455b78112e14fa",
+  "audited_ref": "origin/main",
+  "workpaper_path": "docs/v0-3/s2/workpapers/s2-slice-complete-registry-closeout.md",
+  "evidence_json_path": "docs/v0-3/s2/evidence/s2-slice-complete-registry-closeout.json",
+  "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+  "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+  "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+  "s2_acceptance_package": {
+    "pr_number": 296,
+    "merge_commit": "9aa4de9367d065dcb642ae233325640d24da69d6",
+    "workpaper_path": "docs/v0-3/s2/workpapers/s2-source-002-acceptance-package.md",
+    "evidence_json_path": "docs/v0-3/s2/evidence/s2-source-002-acceptance-package.json",
+    "evidence_json_sha256": "f7856e99ded3cf4c56f1d6e4b283ccd903e35302cb06db606c6446419d76e02f",
+    "s2_acceptance_decision": "ACCEPTED",
+    "s2_acceptance_items_true_count": 13,
+    "s2_acceptance_items_false_count": 0,
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "development_plan_registry_updated_by_acceptance_pr": false
+  },
+  "mutated_gate_ids": [
+    "SLICE_S2_COMPLETE",
+    "MODEL_MATERIALIZED_DATASET_ACCEPTED",
+    "MODEL_MATERIALIZED_DATASET_FREEZE_COMPLETE",
+    "MODEL_FINAL_SPLIT_MANIFEST_ACCEPTED",
+    "MODEL_FINAL_DATASET_HASHES_ACCEPTED"
+  ],
+  "gate_transition": {
+    "previous_status": "BLOCKED",
+    "previous_block_reason": "NOT_YET_EXECUTED",
+    "new_status": "PASS",
+    "new_block_reason": "NONE",
+    "artifact_hash_or_run_id": "f7856e99ded3cf4c56f1d6e4b283ccd903e35302cb06db606c6446419d76e02f",
+    "reviewer_role": "COORDINATOR",
+    "reviewer": "COORDINATOR",
+    "reviewed_at": "2026-08-23T13:22:00Z"
+  },
+  "mutation_accounting": {
+    "target_gate_status_mutation_count": 5,
+    "other_gate_status_mutation_count": 0,
+    "other_gate_block_reason_mutation_count": 0,
+    "section_12_boolean_mutation_count": 1
+  },
+  "section_12_changes": {
+    "current_v0_3_s2_complete": {
+      "before": false,
+      "after": true
+    },
+    "current_v0_3_s2_acceptance_status": {
+      "before": null,
+      "after": "ACCEPTED"
+    },
+    "s2_accepted_does_not_imply_s3": {
+      "before": null,
+      "after": true
+    },
+    "unchanged": {
+      "current_v0_3_s1_complete": false,
+      "current_v0_3_s3_complete": false,
+      "v0_3_s3_implementation_authorized": false,
+      "v0_3_s2_implementation_authorized": false,
+      "next_task": "V0_3_S1"
+    }
+  },
+  "completion_boolean_mapping": {
+    "v0_3_s2_complete": "SLICE_S2_COMPLETE",
+    "real_dataset_frozen": "MODEL_MATERIALIZED_DATASET_ACCEPTED",
+    "materialized_dataset_freeze_complete": "MODEL_MATERIALIZED_DATASET_FREEZE_COMPLETE",
+    "final_split_manifest_accepted": "MODEL_FINAL_SPLIT_MANIFEST_ACCEPTED",
+    "final_dataset_hashes_accepted": "MODEL_FINAL_DATASET_HASHES_ACCEPTED"
+  },
+  "test_partition_seal": {
+    "test_row_count": 0,
+    "test_byte_count": 240,
+    "test_is_sealed_placeholder": true,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true
+  },
+  "external_holdout": {
+    "external_holdout_not_applicable": true,
+    "s1_holdout_feasibility_decision": "REVIEWED_NOT_FEASIBLE",
+    "holdout_bytes_exist": false
+  },
+  "boundaries": {
+    "merge_of_296_did_not_update_registry": true,
+    "this_pr_updates_registry_only": true,
+    "green_ci_is_not_s3": true,
+    "v0_3_s3_authorized": false,
+    "s2_accepted_does_not_imply_s3": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "contract": false,
+    "development_plan": true,
+    "acceptance_package_archive": false
+  },
+  "evidence_json_sha256": "02f87a547fb38cc015734857d4788492e1bc292ebfa3cf84e005faf7ea61e4e8"
+}
