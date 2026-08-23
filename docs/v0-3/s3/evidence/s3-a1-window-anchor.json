@@ -1,0 +1,119 @@
+{
+  "artifact_id": "V0_3_S3_A1_WINDOW_ANCHOR_AND_EXCLUDED",
+  "artifact_version": "s3-a1-window-anchor-v1",
+  "task_id": "V03_S3_A1_WINDOW_ANCHOR_AND_EXCLUDED_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_A1_WINDOW_ANCHOR_AND_EXCLUDED_ONLY",
+  "parallel_lane": "S3-A1",
+  "slice": "V0.3-S3",
+  "user_gate": "可以下一步 并行开发",
+  "reviewer_role": "COORDINATOR",
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "recorded_at": "2026-08-23T14:58:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "fd793de12bfe2df646925d9e7adc1d59c046ecdf",
+  "audited_repository_tree_sha": "61d8550f1311e3c0949f5bf08814fc69ddf0fde5",
+  "audited_ref": "origin/main",
+  "timezone": "Asia/Shanghai",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a1-window-anchor.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a1-window-anchor.json",
+  "s3_a_binding": {
+    "pr_number": 299,
+    "merge_commit": "fd793de12bfe2df646925d9e7adc1d59c046ecdf",
+    "amendment_path": "docs/v0-3/s3/s3-daily-rowset-amendment.md",
+    "amendment_git_blob_sha": "1baf930287598f5df78ac28d49c159b4231c0fc6",
+    "amendment_sha256": "f2b2473bd7ebe52349010403cbcc45a8a18f3ae7ad3512c97d8b2a30b205a7be",
+    "evidence_json_sha256": "b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a"
+  },
+  "authorization": {
+    "s3_a1_window_anchor_contract_authorized": true,
+    "s3_a_rowset_materialization_authorized": false,
+    "s3_a_completeness_verification_authorized": false,
+    "s3_b_authorized": false,
+    "s3_c_authorized": false,
+    "s3_backtest_execution_authorized": false,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "horizon_window_anchor": {
+    "timezone": "Asia/Shanghai",
+    "horizons_days": [
+      7,
+      14,
+      21
+    ],
+    "harvest_business_date_is_not_forecast_cutoff": true,
+    "cutoff_business_date": "calendar date of forecast_cutoff_at in Asia/Shanghai",
+    "evaluation_window_start_date": "cutoff_business_date + 1 day",
+    "evaluation_window_end_date": "cutoff_business_date + H days",
+    "window_interval": "closed_inclusive",
+    "window_calendar_day_count": "H",
+    "cutoff_day_excluded_from_window": true,
+    "forecast_target_date_required": "cutoff_business_date + H days",
+    "target_date_mismatch_reason_code": "TARGET_DATE_CUTOFF_HORIZON_MISMATCH",
+    "window_or_horizon_realignment_forbidden": true
+  },
+  "complete_season_window_anchor": {
+    "default_month_scope": "1-4",
+    "window_start": "January 1 of SEASON year in Asia/Shanghai",
+    "window_end": "April 30 of SEASON year in Asia/Shanghai",
+    "window_interval": "closed_inclusive",
+    "season_year_source": "accepted S2 grain SEASON field",
+    "season_year_derivation_failure": "NOT_COMPUTABLE",
+    "invented_season_year_forbidden": true,
+    "factory_building_area_as_peak_feature_forbidden": true
+  },
+  "excluded_semantics": {
+    "cell_level_excluded_no_window_generated": true,
+    "cell_excluded_varieties": [
+      "普鲜",
+      "普青",
+      "普冻",
+      "废果"
+    ],
+    "cell_excluded_factory_bason": true,
+    "cell_excluded_non_1_4_month_scope": true,
+    "day_level_excluded_in_window": "REJECT_WINDOW",
+    "excluded_day_in_window_equals_unknown_for_rejection": true,
+    "excluded_hole_punching_for_peak_forbidden": true,
+    "peak_over_observed_days_only": false
+  },
+  "sustained_peak_conflict": {
+    "product_sustained_peak_window_days": 3,
+    "plan_sustained_peak_window_days": 7,
+    "conflict_status": "UNRESOLVED",
+    "sliding_nday_is_second_stage_inside_anchored_window": true,
+    "no_complete_nday_window_forbidden_while_completeness_unverified": true
+  },
+  "current_status_flags": {
+    "current_s3_daily_rowset_amendment_complete": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "identity_sentinels_remain_not_materialized": true
+  },
+  "amendment_patch_scope": {
+    "mutated_sections": [
+      "5.1",
+      "5.3"
+    ],
+    "development_plan_unchanged": true,
+    "p0_contract_unchanged": true,
+    "v0_2_metric_contract_unchanged": true,
+    "s2_contract_unchanged": true
+  },
+  "subtask_roadmap": {
+    "s3_b_authorized": false,
+    "s3_c_authorized": false,
+    "next_subtask_not_implied": true
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "s3_a_amendment_contract_patch": true,
+    "development_plan": false,
+    "p0_contract": false
+  },
+  "evidence_json_sha256": "7d5e915bf1eb8b0d7a4f7f271e7f4d492023391a6860e7debc6e403c8898dc89"
+}
