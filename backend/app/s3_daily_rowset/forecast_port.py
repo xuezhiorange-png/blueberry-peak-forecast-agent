@@ -1,0 +1,85 @@
+"""Incumbent daily forecast curve provider port for S3-A."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date, timedelta
+from decimal import Decimal
+from enum import StrEnum
+from zoneinfo import ZoneInfo
+
+from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
+
+SHANGHAI = ZoneInfo("Asia/Shanghai")
+
+
+class ForecastAvailability(StrEnum):
+    AVAILABLE = "AVAILABLE"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+@dataclass(frozen=True, slots=True)
+class ForecastDayResult:
+    availability: ForecastAvailability
+    forecast_harvest_quantity_kg: Decimal | None = None
+
+
+class IncumbentDailyCurveProvider:
+    """Read-only incumbent replay port; production adapters must be PIT-visible."""
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        raise NotImplementedError
+
+
+@dataclass
+class FakeIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
+    """Test double for incumbent daily curves. Not for production use."""
+
+    forecasts: dict[date, Decimal] | None = None
+    unavailable: bool = False
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        del cell
+        if self.unavailable:
+            return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
+        if self.forecasts is None or business_date not in self.forecasts:
+            return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
+        return ForecastDayResult(
+            availability=ForecastAvailability.AVAILABLE,
+            forecast_harvest_quantity_kg=self.forecasts[business_date],
+        )
+
+
+@dataclass
+class SparseHorizonBindingForecastProvider(IncumbentDailyCurveProvider):
+    """Test double mimicking sparse 7/14/21 binding rows only. Not for production."""
+
+    sparse_horizon_days: tuple[int, ...] = (7, 14, 21)
+    forecast_kg: Decimal = Decimal("1.0")
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        cutoff_date = cell.forecast_cutoff_at.astimezone(SHANGHAI).date()
+        sparse_target_dates = {
+            cutoff_date + timedelta(days=horizon_days) for horizon_days in self.sparse_horizon_days
+        }
+        if business_date not in sparse_target_dates:
+            return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
+        return ForecastDayResult(
+            availability=ForecastAvailability.AVAILABLE,
+            forecast_harvest_quantity_kg=self.forecast_kg,
+        )
