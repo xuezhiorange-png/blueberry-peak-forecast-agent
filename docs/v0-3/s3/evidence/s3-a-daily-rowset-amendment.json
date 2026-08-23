@@ -1,0 +1,188 @@
+{
+  "artifact_id": "V0_3_S3_A_DAILY_ROWSET_AMENDMENT",
+  "artifact_version": "s3-a-daily-rowset-amendment-v1",
+  "task_id": "V03_S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以下一步",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "docs_only_agent": "https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2",
+  "recorded_at": "2026-08-23T14:28:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "0a6f412aad63e1f66a5e14e5960ca88deb9b2dcd",
+  "audited_repository_tree_sha": "281d6ecae3daca2acc52e3a7be6522acf12df8ae",
+  "audited_ref": "origin/main",
+  "amendment_path": "docs/v0-3/s3/s3-daily-rowset-amendment.md",
+  "amendment_version": "v0-3-s3-daily-rowset-amendment-v1",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a-daily-rowset-amendment.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a-daily-rowset-amendment.json",
+  "p0_binding": {
+    "pr_number": 298,
+    "merge_commit": "0a6f412aad63e1f66a5e14e5960ca88deb9b2dcd",
+    "contract_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+    "contract_version": "v0-3-s3-backtest-and-diagnosis-contract-v1",
+    "contract_git_blob_sha": "500896b8150c232e4476e98253b5a7439850001d",
+    "contract_sha256": "090acecf54409b86aadaee61cee00a1dd4880450f3f22d183474e00910130bc1",
+    "evidence_json_sha256": "580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c"
+  },
+  "s2_binding": {
+    "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_row_count": 0,
+    "test_byte_count": 240,
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO"
+  },
+  "input_authority": {
+    "v0_3_s3_actuals_authority": "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION",
+    "v0_3_s3_forecasts_authority": "V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF",
+    "v0_3_s3_visibility_authority": "SOURCE_002_IDFL_LABEL_SIDE",
+    "v0_2_s3_input_authority_historical": "S2_IMMUTABLE_BACKTEST_BINDING",
+    "do_not_conflate_v0_2_binding_with_v0_3_s2_dataset": true,
+    "v0_2_metric_contract_path": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "metric_contract_authority_base_sha": "b873dd63fc0d5b6375f94674abbd24a94d915f3c",
+    "do_not_mutate_v0_2_metric_contract": true
+  },
+  "terminology": {
+    "forecast_horizon_days_definition": "lead time between forecast_cutoff_at and single target_date in {7,14,21}",
+    "evaluation_window_days_definition": "continuous calendar window length for cumulative/peak metrics in {7,14,21}",
+    "sparse_horizon_rows_are_not_complete_daily_curve": true
+  },
+  "authorization": {
+    "s3_a_daily_rowset_amendment_contract_authorized": true,
+    "s3_a_rowset_materialization_authorized": false,
+    "s3_a_completeness_verification_authorized": false,
+    "s3_production_code_mutation_authorized": false,
+    "s3_test_code_mutation_authorized": false,
+    "s3_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "s3_b_authorized": false,
+    "s3_c_authorized": false,
+    "s3_d_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "allowlist_expansion_authorized": false,
+    "v0_3_s4_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "missing_day_policy": {
+    "missing_day_policy": "UNKNOWN_NOT_ZERO",
+    "missing_day_zero_fill": false,
+    "missing_actual_treated_as_zero": false,
+    "numeric_imputation_allowed": false,
+    "window_rejection_on_unknown_or_missing_day": true,
+    "not_computable_is_not_zero": true
+  },
+  "pairing_grain": {
+    "grouping_grain": "SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_TARGET_DATE_X_FORECAST_CUTOFF_X_MODEL_IDENTITY_X_FORECAST_QUANTILE",
+    "reporting_grain": "SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_HARVEST_BUSINESS_DATE",
+    "q2c_target": "OBSERVED_FARM_PICK_QUANTITY",
+    "actual_unit": "kg",
+    "decimal_arithmetic_required": true,
+    "evaluation_partitions": [
+      "TRAIN",
+      "VALIDATION"
+    ],
+    "external_holdout_not_applicable": true,
+    "random_adjacent_date_split_forbidden": true
+  },
+  "calendar_expansion": {
+    "silent_missing_calendar_day_forbidden": true,
+    "daily_row_status_allowed": [
+      "OBSERVED",
+      "UNKNOWN",
+      "EXCLUDED"
+    ],
+    "observed_kg_source": "accepted S2 TRAIN/VALIDATION canonical grain Decimal kg",
+    "unknown_kg_is_null_not_zero": true,
+    "forecast_replay_at_cutoff_required": true,
+    "forecast_unavailable_rejects_window": true,
+    "peak_over_observed_days_only": false,
+    "do_not_redefine_peak_as_max_of_sparse_observed": true
+  },
+  "metric_computability": {
+    "daily_point_metrics_blocked_by_complete_daily_rowset": false,
+    "daily_point_metrics_require_valid_pairing": true,
+    "pairing_failure_status": "NOT_COMPUTABLE",
+    "peak_cumulative_complete_horizon_blocked_until_completeness_verified": true,
+    "current_blocker_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "coverage_blocked_by_s3_b": true,
+    "s3_a_does_not_claim_coverage_computable": true
+  },
+  "sustained_peak_conflict": {
+    "product_sustained_peak_window_days": 3,
+    "plan_sustained_peak_window_days": 7,
+    "conflict_status": "UNRESOLVED",
+    "s3_a_does_not_resolve_3_vs_7": true,
+    "sustained_peak_pass_forbidden_until_owner_decision": true,
+    "sustained_peak_stage_order": "ROWSET_AVAILABILITY_THEN_WINDOW_AVAILABILITY",
+    "missing_rowset_never_relabeled_as_missing_window": true
+  },
+  "identity_sentinels": {
+    "s3_daily_row_set_authority": "V0_3_S3_DAILY_ROWSET_AMENDMENT",
+    "s3_daily_row_set_identity": "NOT_MATERIALIZED",
+    "s3_daily_row_set_hash": "NOT_MATERIALIZED",
+    "s3_daily_row_set_start_date": "NOT_MATERIALIZED",
+    "s3_daily_row_set_end_date": "NOT_MATERIALIZED",
+    "s3_daily_row_set_expected_day_count": "NOT_MATERIALIZED",
+    "s3_daily_row_set_actual_day_count": "NOT_MATERIALIZED",
+    "s3_daily_row_set_completeness_status": "BLOCKED_PENDING_MATERIALIZATION_AND_VERIFICATION",
+    "do_not_invent_materialized_hash": true
+  },
+  "current_status_flags": {
+    "current_s3_daily_rowset_amendment_complete": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "development_plan_current_fields_unchanged": true
+  },
+  "forbidden_inputs": {
+    "forbidden_reread_xls": true,
+    "forbidden_reread_google_sheets": true,
+    "forbidden_s1_derived_json_as_primary_input": true,
+    "forbidden_factory_bason": true,
+    "forbidden_varieties": [
+      "普鲜",
+      "普青",
+      "普冻",
+      "废果"
+    ],
+    "forbidden_pit_table_as_source_002_primary": true,
+    "forbidden_old_winner_table_as_source_002_primary": true,
+    "forbidden_test_placeholder_as_evaluation_rows": true,
+    "forbidden_final_season_facts_at_historical_cutoff": true,
+    "source_002_row_level_read": false
+  },
+  "subtask_roadmap": {
+    "s3_a_contract": "frozen by this task",
+    "s3_a_materialization": "not authorized",
+    "s3_a_completeness_verification": "not authorized",
+    "s3_b": "not authorized",
+    "s3_c": "not authorized",
+    "s3_d": "not authorized",
+    "next_subtask_not_implied": true
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "v0_2_metric_contract": false,
+    "development_plan": false,
+    "s2_contract": false,
+    "p0_contract_pointer_only": true
+  },
+  "evidence_json_sha256": "b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a"
+}
