@@ -52,6 +52,11 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 ~~~
 
+The `S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false` line in the identity block
+above is the S3-A contract freeze-time snapshot. Live materialization
+authorization is maintained in `docs/v0-3/development-plan.md` §4.4 and the
+S3-A rowset materialization authorization package when issued.
+
 This document freezes the V0.3-S3-A daily rowset amendment contract. It defines
 how sparse SOURCE_002 harvest grains and incumbent-model forecasts must be
 expanded into a complete, auditable calendar daily row set for peak and
@@ -171,15 +176,18 @@ CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
 CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
-S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
 S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
 AMENDMENT_MERGE_DOES_NOT_MATERIALIZE_ROWSET=true
 AMENDMENT_MERGE_DOES_NOT_AUTHORIZE_BACKTEST=true
 AMENDMENT_MERGE_DOES_NOT_MAKE_PEAK_METRICS_COMPUTABLE=true
+MATERIALIZATION_GRANT_DOES_NOT_EXECUTE_MATERIALIZATION=true
 ~~~
 
-Until materialization and completeness verification are separately authorized
-and accepted, peak and cumulative metrics remain `NOT_COMPUTABLE` with
+Materialization is authorized by a separate grant package; this amendment
+contract does not execute materialization. Until materialization is performed
+and completeness verification is separately authorized and accepted, peak and
+cumulative metrics remain `NOT_COMPUTABLE` with
 `reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. S3-A must
 not substitute a different reason code implying a complete row set already
 exists.
@@ -552,7 +560,7 @@ SOURCE_002_ROW_LEVEL_READ=false
 
 ~~~text
 S3_A_DAILY_ROWSET_AMENDMENT_CONTRACT_AUTHORIZED=true
-S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
 S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
 S3_B_AUTHORIZED=false
 S3_C_AUTHORIZED=false
@@ -564,7 +572,7 @@ NO_STEP_IMPLIES_THE_NEXT=true
 | Subtask | Status after S3-A merge |
 |---|---|
 | S3-A contract | frozen (this document) |
-| S3-A materialization | not authorized |
+| S3-A materialization | authorized (grant only; not executed) |
 | S3-A completeness verification | not authorized |
 | S3-B quantile semantics | not authorized |
 | S3-C backtest execution | not authorized |
@@ -591,9 +599,27 @@ S3_A_AMENDMENT_CLOSEOUT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a-amendment-close
 EVIDENCE_JSON_SHA256=7ce9c1bf1c2eee9a3cd0d6176d6a31466e308bd991ab206cf0285967c68523ef
 CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
-S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
 CLOSEOUT_MERGE_DOES_NOT_AUTHORIZE_MATERIALIZATION=true
 ~~~
+
+## 13. Rowset materialization authorization pointer
+
+~~~text
+S3_A_ROWSET_MATERIALIZATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-rowset-materialization-authorization.md
+S3_A_ROWSET_MATERIALIZATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a-rowset-materialization-authorization.json
+EVIDENCE_JSON_SHA256=df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+MATERIALIZATION_AUTH_MERGE_DOES_NOT_EXECUTE_MATERIALIZATION=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A_ROWSET_MATERIALIZATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this authorization package. Identity
+sentinels remain `NOT_MATERIALIZED` until a separately gated implementation
+run computes them.
 
 Live `CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE` authority:
 `docs/v0-3/development-plan.md` §4.4. Frozen snapshots in S1, S3-B, and S3-C0
