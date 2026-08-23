@@ -106,9 +106,7 @@ def test_unknown_day_fails_completeness_predicates() -> None:
     cutoff = datetime(2026, 2, 28, 16, 0, tzinfo=UTC)
     dates = horizon_dates(cutoff, 7)
     rows = tuple(
-        make_row(harvest_business_date=day, quantity="2.0")
-        for day in dates
-        if day != dates[3]
+        make_row(harvest_business_date=day, quantity="2.0") for day in dates if day != dates[3]
     )
     service = _service(rows)
     rowset = _materialize(service, cutoff)
@@ -244,3 +242,44 @@ def test_missing_rowset_identity_hash_fails_traceability_predicate() -> None:
     trace_id = CompletenessPredicateId.OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN
     assert statuses[trace_id] == PredicateStatus.FAIL
     assert verification.dataset_completeness_verified is False
+
+
+def test_tampered_success_with_unknown_row_fails_predicates_two_and_three() -> None:
+    cutoff = datetime(2026, 2, 28, 16, 0, tzinfo=UTC)
+    dates = horizon_dates(cutoff, 7)
+    daily_rows = []
+    for index, day in enumerate(dates):
+        if index == 3:
+            daily_rows.append(
+                DailyRow(
+                    business_date=day,
+                    daily_row_status=DailyRowStatus.UNKNOWN,
+                    actual_harvest_quantity_kg=None,
+                    forecast_harvest_quantity_kg=Decimal("1.0"),
+                )
+            )
+        else:
+            daily_rows.append(
+                DailyRow(
+                    business_date=day,
+                    daily_row_status=DailyRowStatus.OBSERVED,
+                    actual_harvest_quantity_kg=Decimal("1.0"),
+                    forecast_harvest_quantity_kg=Decimal("1.0"),
+                )
+            )
+    tampered = DailyRowsetResult(
+        outcome=MaterializationOutcome.SUCCESS,
+        window_kind=WindowKind.HORIZON,
+        evaluation_window_days=7,
+        window_start_date=dates[0],
+        window_end_date=dates[-1],
+        daily_rows=tuple(daily_rows),
+        rowset_identity_sha256=HORIZON_H7_SUCCESS_FIXTURE_HASH,
+    )
+    verification = CompletenessVerifier().verify_window(tampered)
+    statuses = _predicate_statuses(verification)
+    assert statuses[CompletenessPredicateId.NO_SILENT_MISSING_DAYS] == PredicateStatus.FAIL
+    assert statuses[CompletenessPredicateId.NO_ZERO_FILL_FOR_UNKNOWN] == PredicateStatus.FAIL
+    assert verification.window_predicates_all_pass is False
+    assert verification.dataset_completeness_verified is False
+    assert verification.current_s3_daily_rowset_completeness_verified is False

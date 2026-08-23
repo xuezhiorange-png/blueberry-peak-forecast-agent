@@ -58,6 +58,11 @@ def _predicate_no_silent_missing_days(rowset: DailyRowsetResult) -> PredicateSta
     dates = [row.business_date for row in rowset.daily_rows]
     if len(dates) != len(set(dates)):
         return PredicateStatus.FAIL
+    if any(
+        row.daily_row_status in {DailyRowStatus.UNKNOWN, DailyRowStatus.EXCLUDED}
+        for row in rowset.daily_rows
+    ):
+        return PredicateStatus.FAIL
     return _predicate_full_calendar_day_coverage(rowset)
 
 
@@ -66,8 +71,7 @@ def _predicate_no_zero_fill_for_unknown(rowset: DailyRowsetResult) -> PredicateS
         return PredicateStatus.FAIL
     for row in rowset.daily_rows:
         if row.daily_row_status in {DailyRowStatus.UNKNOWN, DailyRowStatus.EXCLUDED}:
-            if row.actual_harvest_quantity_kg is not None:
-                return PredicateStatus.FAIL
+            return PredicateStatus.FAIL
         if row.daily_row_status == DailyRowStatus.OBSERVED:
             if row.actual_harvest_quantity_kg is None:
                 return PredicateStatus.FAIL
