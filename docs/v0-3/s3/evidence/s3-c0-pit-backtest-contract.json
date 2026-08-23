@@ -1,0 +1,212 @@
+{
+  "artifact_id": "V0_3_S3_C0_PIT_BACKTEST_EXECUTION_CONTRACT",
+  "artifact_version": "s3-c0-pit-backtest-execution-contract-v1",
+  "task_id": "V03_S3_C0_PIT_BACKTEST_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_C0_PIT_BACKTEST_CONTRACT_ONLY",
+  "slice": "V0.3-S3",
+  "parallel_lane": "S3-C0",
+  "user_gate": "可以下一步 并行开发",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "recorded_at": "2026-08-23T15:00:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "fd793de12bfe2df646925d9e7adc1d59c046ecdf",
+  "audited_repository_tree_sha": "61d8550f1311e3c0949f5bf08814fc69ddf0fde5",
+  "audited_ref": "origin/main",
+  "contract_path": "docs/v0-3/s3/s3-pit-backtest-execution-contract.md",
+  "contract_version": "v0-3-s3-c0-pit-backtest-execution-contract-v1",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-c0-pit-backtest-contract.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-c0-pit-backtest-contract.json",
+  "p0_binding": {
+    "pr_number": 298,
+    "merge_commit": "0a6f412aad63e1f66a5e14e5960ca88deb9b2dcd",
+    "contract_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+    "contract_version": "v0-3-s3-backtest-and-diagnosis-contract-v1",
+    "contract_git_blob_sha": "45f900f4dfa1ef5da8ea898a39bdded4c8c11f08",
+    "contract_sha256": "490f48cde5fd7543f2d7608b0dff388c9a7f99f44d77ed4337f55331e950d7a8",
+    "evidence_json_sha256": "580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c"
+  },
+  "s3_a_binding": {
+    "pr_number": 299,
+    "merge_commit": "fd793de12bfe2df646925d9e7adc1d59c046ecdf",
+    "amendment_path": "docs/v0-3/s3/s3-daily-rowset-amendment.md",
+    "amendment_version": "v0-3-s3-daily-rowset-amendment-v1",
+    "amendment_git_blob_sha": "1baf930287598f5df78ac28d49c159b4231c0fc6",
+    "amendment_sha256": "f2b2473bd7ebe52349010403cbcc45a8a18f3ae7ad3512c97d8b2a30b205a7be",
+    "evidence_json_sha256": "cd70cb3f85759924d2c7d8775c734aa8fab736cfffcd414768600dacb74534da"
+  },
+  "s2_binding": {
+    "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_row_count": 0,
+    "test_byte_count": 240,
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO",
+    "pit_sql_count_expected": 0,
+    "old_winner_sql_count_expected": 0
+  },
+  "input_authority": {
+    "v0_3_s3_actuals_authority": "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION",
+    "v0_3_s3_forecasts_authority": "V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF",
+    "v0_3_s3_visibility_authority": "SOURCE_002_IDFL_LABEL_SIDE",
+    "v0_2_s3_input_authority_historical": "S2_IMMUTABLE_BACKTEST_BINDING",
+    "do_not_conflate_v0_2_binding_with_v0_3_s2_dataset": true,
+    "v0_2_metric_contract_path": "docs/forecast-quality/s3-quality-metrics-contract.md",
+    "metric_contract_authority_base_sha": "b873dd63fc0d5b6375f94674abbd24a94d915f3c",
+    "do_not_mutate_v0_2_metric_contract": true
+  },
+  "authorization": {
+    "s3_c0_pit_backtest_contract_authorized": true,
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "s3_a_rowset_materialization_authorized": false,
+    "s3_b_authorized": false,
+    "s3_d_authorized": false,
+    "s3_production_code_mutation_authorized": false,
+    "s3_test_code_mutation_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "allowlist_expansion_authorized": false,
+    "v0_3_s4_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "pit_forecast_input": {
+    "forecast_input_eligibility_rule": "SOURCE_AVAILABLE_AT <= FORECAST_CUTOFF_AT",
+    "forecasts_must_use_historical_cutoff_visibility": true,
+    "forecast_cutoff_authority": "EXACT_FORECAST_CUTOFF_AT",
+    "forbidden_final_season_facts_at_historical_cutoff": true,
+    "forbidden_future_revisions_at_historical_cutoff": true,
+    "forbidden_later_labels_for_historical_input": true,
+    "evaluated_model": "V0_2_CURRENT_INCUMBENT"
+  },
+  "actual_pairing": {
+    "actual_pairing_visibility_path": "IDFL_LABEL_SIDE",
+    "forbidden_pit_table_as_source_002_primary": true,
+    "forbidden_old_winner_table_as_source_002_primary": true,
+    "forecast_input_visibility_reused_for_actual_label": false,
+    "grouping_grain": "SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_TARGET_DATE_X_FORECAST_CUTOFF_X_MODEL_IDENTITY_X_FORECAST_QUANTILE",
+    "reporting_grain": "SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_HARVEST_BUSINESS_DATE",
+    "pairing_failure_status": "NOT_COMPUTABLE",
+    "pairing_failure_must_be_recorded": true
+  },
+  "evaluation_window_anchor": {
+    "s3_a1_evaluation_window_anchor_status": "PENDING_NOT_MERGED",
+    "s3_a1_pending_window_anchor": "cutoff+1 … cutoff+H",
+    "s3_c0_must_not_invent_alternate_window_anchor": true,
+    "s3_c0_must_not_fix_h_without_s3_a1": true
+  },
+  "missing_day_policy": {
+    "missing_day_policy": "UNKNOWN_NOT_ZERO",
+    "missing_day_zero_fill": false,
+    "missing_actual_treated_as_zero": false,
+    "numeric_imputation_allowed": false,
+    "exclusion_must_be_recorded": true,
+    "insufficient_coverage_must_be_recorded": true,
+    "silent_fill_forbidden": true,
+    "not_computable_is_not_zero": true
+  },
+  "baseline_parity": {
+    "incumbent_and_naive_baseline_exclusion_policy_identical": true,
+    "incumbent_and_naive_baseline_missing_day_policy_identical": true
+  },
+  "split_and_holdout": {
+    "evaluation_partitions": [
+      "TRAIN",
+      "VALIDATION"
+    ],
+    "test_row_count_zero_is_not_evaluation_failure": true,
+    "external_holdout_not_applicable": true,
+    "external_holdout_bytes_exist": false,
+    "random_adjacent_date_split_forbidden": true
+  },
+  "metric_computability": {
+    "daily_point_metrics_blocked_by_complete_daily_rowset": false,
+    "daily_point_metrics_require_valid_pairing": true,
+    "daily_point_metrics_require_observed_actual": true,
+    "this_pr_does_not_execute_metrics": true,
+    "peak_cumulative_complete_horizon_blocked": true,
+    "peak_blocker_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "quantile_coverage_blocked_by_s3_b": true,
+    "quantile_blocker_reason_code": "QUANTILE_SEMANTICS_NOT_VERIFIED"
+  },
+  "leakage_audit_checklist": {
+    "items": [
+      "post_cutoff_weather_observations",
+      "retrospective_phenology",
+      "post_season_yield_per_mu",
+      "final_marketable_rate",
+      "test_partition_labels",
+      "ungoverned_master_data",
+      "source_available_at_after_forecast_cutoff",
+      "pit_or_old_winner_as_source_002_primary",
+      "final_season_facts_at_historical_cutoff",
+      "later_labels_for_historical_input"
+    ],
+    "leakage_audit_performed_in_this_pr": false,
+    "point_in_time_replay": false,
+    "leakage_audit": false
+  },
+  "current_status_flags": {
+    "current_s3_daily_rowset_amendment_complete": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "current_p50_semantics_status": "NOT_VERIFIED",
+    "current_p80_semantics_status": "NOT_VERIFIED",
+    "current_p90_semantics_status": "NOT_VERIFIED",
+    "development_plan_current_fields_unchanged": true
+  },
+  "forbidden_inputs": {
+    "forbidden_reread_xls": true,
+    "forbidden_reread_google_sheets": true,
+    "forbidden_s1_derived_json_as_primary_input": true,
+    "forbidden_factory_bason": true,
+    "forbidden_varieties": [
+      "普鲜",
+      "普青",
+      "普冻",
+      "废果"
+    ],
+    "forbidden_pit_table_as_source_002_primary": true,
+    "forbidden_old_winner_table_as_source_002_primary": true,
+    "forbidden_test_placeholder_as_evaluation_rows": true,
+    "forbidden_final_season_facts_at_historical_cutoff": true,
+    "source_002_row_level_read": false,
+    "forbidden_test_read_in_this_task": true,
+    "forbidden_sql_dump": true,
+    "forbidden_backtest_run_in_this_task": true
+  },
+  "subtask_roadmap": {
+    "s3_c0_contract": "frozen by this task",
+    "s3_c_backtest_execution": "not authorized",
+    "s3_metric_execution": "not authorized",
+    "s3_a_materialization": "not authorized",
+    "s3_b": "not authorized",
+    "s3_d": "not authorized",
+    "next_subtask_not_implied": true,
+    "contract_merge_does_not_authorize_backtest": true
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "v0_2_metric_contract": false,
+    "development_plan": false,
+    "s2_contract": false,
+    "p0_contract": false,
+    "s3_a_amendment": false,
+    "backtest_runner": false,
+    "deterministic_metric_service": false
+  },
+  "evidence_json_sha256": "13893b4bfe5a4af6ab9f11eb52a0031943984db9fe41d11781fd42eca016d823"
+}
