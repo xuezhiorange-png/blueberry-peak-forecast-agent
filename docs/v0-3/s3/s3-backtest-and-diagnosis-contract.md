@@ -422,11 +422,19 @@ next_subtask_not_implied=true
 S3_A_AUTHORIZED=true
 S3_A_AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
 S3_A_AMENDMENT_VERSION=v0-3-s3-daily-rowset-amendment-v1
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
 S3_B_AUTHORIZED=false
 S3_C_AUTHORIZED=false
 S3_D_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
+
+Live `S3_A_ROWSET_MATERIALIZATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a-rowset-materialization-authorization.md`.
+Materialization grant does not execute materialization, authorize completeness
+verification, or authorize backtest execution. The `Authorized by P0` table
+column above is the P0 freeze snapshot.
 
 ## 12. Phase-entry effect on development plan
 
