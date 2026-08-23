@@ -1,0 +1,64 @@
+{
+  "artifact_id": "V0_3_S3_A_ROWSET_MATERIALIZER_R1",
+  "artifact_version": "s3-a-rowset-materializer-r1",
+  "task_id": "V03_S3_A_ROWSET_MATERIALIZER_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_A_ROWSET_MATERIALIZER_IMPLEMENTATION_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以实施",
+  "recorded_at": "2026-08-23T17:45:00Z",
+  "no_step_implies_the_next": true,
+  "audited_repository_sha": "a824c204a0ff9d944027000fb14ddb5c0a88218e",
+  "audited_repository_tree_sha": "d9c20c0bb9bdac157d4cc1038003da9dff0a3e6b",
+  "authorization_evidence": {
+    "pr_number": 304,
+    "merge_commit": "a824c204a0ff9d944027000fb14ddb5c0a88218e",
+    "auth_evidence_json_sha256": "df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239",
+    "s3_a_rowset_materialization_authorized": true
+  },
+  "s2_binding": {
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "canonical_grain": "SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE",
+    "missing_day_semantics": "UNKNOWN_NOT_ZERO"
+  },
+  "implementation": {
+    "package_path": "backend/app/s3_daily_rowset",
+    "persistence": "IN_MEMORY_SERVICE_ONLY",
+    "deterministic_daily_rowset_service_implemented": true,
+    "sparse_horizon_interpolation_forbidden": true,
+    "alembic_unique_head": "a7c3e9f1b2d4",
+    "fixture_identity_hashes": {
+      "horizon_h7_success_fixture": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18"
+    }
+  },
+  "authorization": {
+    "deterministic_daily_rowset_service_implemented": true,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "s3_a_completeness_verification_authorized": false,
+    "s3_backtest_execution_authorized": false,
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "s3_b_semantics_verified_claim_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": false,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "sustained_peak_pass_forbidden_until_owner_decision": true,
+    "p0_sustained_peak_window_conflict": "UNRESOLVED",
+    "v0_3_s4_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "global_state_preserved": {
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "peak_metrics_computable": false,
+    "cumulative_metrics_computable": false,
+    "sustained_peak_pass_emitted": false
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a-rowset-materializer-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a-rowset-materializer-r1.json"
+}
