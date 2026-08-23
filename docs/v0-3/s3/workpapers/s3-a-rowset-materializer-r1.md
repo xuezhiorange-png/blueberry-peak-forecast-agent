@@ -13,6 +13,7 @@ USER_GATE=可以实施
 COORDINATOR_AGENT=https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794
 BASE_MAIN_SHA=a824c204a0ff9d944027000fb14ddb5c0a88218e
 BASE_MAIN_TREE_SHA=d9c20c0bb9bdac157d4cc1038003da9dff0a3e6b
+FEATURE_HEAD_SHA=pending-after-commit
 AUTH_EVIDENCE_PR=304
 AUTH_EVIDENCE_JSON_SHA256=df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a-rowset-materializer-r1.md
@@ -84,6 +85,10 @@ MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
 - Day-level EXCLUDED or UNKNOWN → entire window REJECTED; kg never coerced to 0
 - `FORECAST_UNAVAILABLE` → window REJECTED (not 0)
 - `COMPLETE_SEASON` = Jan 1 .. Apr 30 of derived SEASON year
+- `COMPLETE_SEASON` windows that include TEST partition dates
+  (`2026-03-10` .. `2026-04-16`) → entire materialization `REJECTED` with
+  `TEST_PARTITION_NOT_ALLOWED`. This is TEST seal enforcement, not completeness
+  verification PASS.
 
 ## 4. Global state preserved
 

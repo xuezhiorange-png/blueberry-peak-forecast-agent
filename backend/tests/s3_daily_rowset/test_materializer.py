@@ -11,7 +11,10 @@ import pytest
 from backend.app.s2_materialized_dataset.lane_d.partitions import TEST_START
 from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow
 from backend.app.s3_daily_rowset.actuals import InMemoryS2ActualsSource
-from backend.app.s3_daily_rowset.forecast_port import FakeIncumbentDailyCurveProvider
+from backend.app.s3_daily_rowset.forecast_port import (
+    FakeIncumbentDailyCurveProvider,
+    SparseHorizonBindingForecastProvider,
+)
 from backend.app.s3_daily_rowset.schemas import (
     DailyRowStatus,
     DatasetIdentity,
@@ -30,6 +33,7 @@ from backend.app.s3_daily_rowset.window import (
 )
 from backend.tests.s3_daily_rowset.conftest import (
     DATASET_IDENTITY,
+    HORIZON_H7_SUCCESS_FIXTURE_HASH,
     horizon_dates,
     make_cell,
     make_row,
@@ -257,3 +261,54 @@ def test_complete_season_window_spans_jan_to_apr() -> None:
     assert window[0] == date(2026, 1, 1)
     assert window[-1] == date(2026, 4, 30)
     assert len(window) == 120
+
+
+def test_sparse_horizon_binding_forecast_rejects_daily_window() -> None:
+    cutoff = datetime(2026, 2, 28, 16, 0, tzinfo=UTC)
+    dates = horizon_dates(cutoff, 7)
+    rows = tuple(make_row(harvest_business_date=day, quantity="1.0") for day in dates)
+    service = DailyRowsetMaterializerService(
+        dataset_identity=DATASET_IDENTITY,
+        actuals_source=InMemoryS2ActualsSource(rows),
+        forecast_provider=SparseHorizonBindingForecastProvider(),
+    )
+    result = _materialize(service, cutoff)
+    assert result.outcome == MaterializationOutcome.REJECTED
+    assert result.reason_code == ReasonCode.FORECAST_UNAVAILABLE
+    assert any(
+        row.forecast_harvest_quantity_kg is None
+        for row in result.daily_rows
+        if row.business_date != dates[-1]
+    )
+
+
+def test_complete_season_window_rejects_test_partition_dates() -> None:
+    jan_to_mar_rows = tuple(
+        make_row(harvest_business_date=date(2026, month, day), quantity="1.0")
+        for month, day in (
+            (1, 15),
+            (2, 10),
+            (3, 5),
+        )
+    )
+    service = DailyRowsetMaterializerService(
+        dataset_identity=DATASET_IDENTITY,
+        actuals_source=InMemoryS2ActualsSource(jan_to_mar_rows),
+        forecast_provider=FakeIncumbentDailyCurveProvider(
+            forecasts={date(2026, 1, 15): Decimal("1.0")},
+        ),
+    )
+    result = service.materialize_complete_season_window(make_cell())
+    assert result.outcome == MaterializationOutcome.REJECTED
+    assert result.reason_code == ReasonCode.TEST_PARTITION_NOT_ALLOWED
+    assert result.current_s3_daily_rowset_completeness_verified is False
+
+
+def test_success_fixture_hash_matches_evidence(
+    materializer: DailyRowsetMaterializerService,
+    cell: EvaluationInstanceCell,
+    horizon_request: HorizonWindowRequest,
+) -> None:
+    result = materializer.materialize_horizon_window(cell, horizon_request)
+    assert result.outcome == MaterializationOutcome.SUCCESS
+    assert result.rowset_identity_sha256 == HORIZON_H7_SUCCESS_FIXTURE_HASH
