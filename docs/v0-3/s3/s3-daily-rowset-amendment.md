@@ -637,7 +637,7 @@ contract files remain historical; they are not overwritten by this closeout.
 ~~~text
 S3_A_COMPLETENESS_VERIFICATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md
 S3_A_COMPLETENESS_VERIFICATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a-completeness-verification-authorization.json
-EVIDENCE_JSON_SHA256=961472d8805e26a17233e2d5f38af74de334ac46ff47d60ef909015ce5b8ddf6
+EVIDENCE_JSON_SHA256=783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc
 S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=true
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false

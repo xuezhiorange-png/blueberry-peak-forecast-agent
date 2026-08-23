@@ -42,7 +42,7 @@
   },
   "s2_binding": {
     "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
-    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee410fb1af136ec1099",
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
     "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
     "dataset_id": "source-002",
     "dataset_version": "e5-live-v1",
@@ -126,5 +126,5 @@
     "s3_a_amendment_live_field": true,
     "p0_contract_live_pointer": true
   },
-  "evidence_json_sha256": "961472d8805e26a17233e2d5f38af74de334ac46ff47d60ef909015ce5b8ddf6"
+  "evidence_json_sha256": "783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc"
 }

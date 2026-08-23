@@ -20,7 +20,7 @@ BASE_MAIN_SHA=5e4cf39270ef7b569a95530037e0121d7915cebc
 BASE_MAIN_TREE_SHA=3e1cb701f559075c611f98c81a5d43173b913e3e
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a-completeness-verification-authorization.json
-EVIDENCE_JSON_SHA256=961472d8805e26a17233e2d5f38af74de334ac46ff47d60ef909015ce5b8ddf6
+EVIDENCE_JSON_SHA256=783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc
 NO_STEP_IMPLIES_THE_NEXT=true
 THIS_DRAFT_IS_NOT_READY=true
 READY_AUTHORIZED=false
@@ -79,7 +79,7 @@ body is not rewritten by this authorization grant.
 
 ~~~text
 S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
-S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee410fb1af136ec1099
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
 S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
 DATASET_ID=source-002
 DATASET_VERSION=e5-live-v1
