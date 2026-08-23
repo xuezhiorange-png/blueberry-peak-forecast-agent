@@ -20,6 +20,7 @@ CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
 AMENDMENT_VERSION=v0-3-s2-allowlist-migration-ownership-r2
 WORKPAPER_PATH=docs/v0-3/s2/workpapers/s2-source-002-e5-postgres-live-replay-evidence.md
 EVIDENCE_JSON_PATH=docs/v0-3/s2/evidence/s2-source-002-e5-postgres-live-replay-evidence.json
+EVIDENCE_JSON_SHA256=07544e1fd9ded3294e649fc98cd41549d26b7364bc55887c7228ffc98b5134bf
 NO_STEP_IMPLIES_THE_NEXT=true
 ~~~
 
