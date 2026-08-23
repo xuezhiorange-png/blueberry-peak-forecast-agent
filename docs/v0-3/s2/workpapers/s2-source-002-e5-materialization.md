@@ -30,7 +30,7 @@ row count 0 for SOURCE_002.
 ## Flags
 
 - `SOURCE_002_ROW_LEVEL_READ = false` (unchanged)
-- `SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED = true` (new controlled SQL path)
+- `SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED = true` (controlled SQL path in `lane_d/service.py`)
 
 ## Live report
 
