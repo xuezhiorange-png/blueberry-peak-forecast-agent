@@ -36,7 +36,7 @@
     "amendment_version": "v0-3-s3-daily-rowset-amendment-v1",
     "amendment_git_blob_sha": "1baf930287598f5df78ac28d49c159b4231c0fc6",
     "amendment_sha256": "f2b2473bd7ebe52349010403cbcc45a8a18f3ae7ad3512c97d8b2a30b205a7be",
-    "evidence_json_sha256": "cd70cb3f85759924d2c7d8775c734aa8fab736cfffcd414768600dacb74534da"
+    "evidence_json_sha256": "b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a"
   },
   "s2_binding": {
     "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
@@ -208,5 +208,5 @@
     "backtest_runner": false,
     "deterministic_metric_service": false
   },
-  "evidence_json_sha256": "13893b4bfe5a4af6ab9f11eb52a0031943984db9fe41d11781fd42eca016d823"
+  "evidence_json_sha256": "12c40e013c60de9f9dbcfd7b5e7788281d9c7d6adcde641d6d436b3e65b5d7e1"
 }
