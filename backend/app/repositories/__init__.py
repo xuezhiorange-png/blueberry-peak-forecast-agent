@@ -10,6 +10,9 @@ __all__ = [
     "persist_materialized_dataset",
     "rebuild_materialized_dataset_from_storage",
     "verify_storage_rebuild_parity",
+    "controlled_materialize_source_002_from_environment",
+    "load_source_002_materializable_rows_from_sql",
+    "verify_source_002_sql_boundaries",
 ]
 
 
