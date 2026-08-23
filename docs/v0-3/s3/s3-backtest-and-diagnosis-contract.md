@@ -212,13 +212,18 @@ copies that state verbatim; it does not claim amendment completion.
 
 ~~~text
 CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
-CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=false
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
 S2_TO_S3_DAILY_ROWSET_AMENDMENT_REQUIRED=true
 ~~~
 
-P0 does **not** define how sparse harvest grains become a complete calendar
+Live `CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and the S3-A closeout package. Amendment
+contract text completion does not imply a materialized calendar daily row set
+exists from the current S2 binding.
+
+P0 did **not** define how sparse harvest grains become a complete calendar
 daily row set. That requires a separately authorized S3-A daily-rowset amendment
 contract.
 
@@ -395,6 +400,10 @@ V0_3_S4_AUTHORIZED=false
 ~~~
 
 `NOT_VERIFIED` is not `PASS`. `NOT_COMPUTABLE` is not zero.
+
+Live amendment-complete status is maintained in `docs/v0-3/development-plan.md`
+and `docs/v0-3/s3/workpapers/s3-a-amendment-closeout.md`. The block above is
+the P0 freeze snapshot.
 
 ## 11. Subtask roadmap (named only; not authorized)
 
