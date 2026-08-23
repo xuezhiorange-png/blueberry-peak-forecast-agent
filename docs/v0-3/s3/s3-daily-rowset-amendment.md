@@ -216,10 +216,74 @@ partition:
 
 ### 5.1 Window selection
 
-- The window is a contiguous inclusive calendar-date range of exactly
-  `evaluation_window_days` days.
+All calendar-date arithmetic in this section uses `TIMEZONE=Asia/Shanghai`.
+`HARVEST_BUSINESS_DATE` must not be used as `forecast_cutoff`.
+
+#### 5.1.1 Horizon windows (`H ∈ {7,14,21}`)
+
+For horizon-based evaluation where `evaluation_window_days = H`:
+
+~~~text
+TIMEZONE=Asia/Shanghai
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+cutoff_business_date = calendar date of forecast_cutoff_at in Asia/Shanghai
+evaluation_window_start_date = cutoff_business_date + 1 day
+evaluation_window_end_date   = cutoff_business_date + H days
+WINDOW_INTERVAL=CLOSED_INCLUSIVE
+WINDOW_CALENDAR_DAY_COUNT=H
+CUTOFF_DAY_EXCLUDED_FROM_WINDOW=true
+~~~
+
+The evaluation window is a closed inclusive calendar-date range containing
+exactly `H` calendar days. It starts the day after `cutoff_business_date` and
+ends on `cutoff_business_date + H days`. The cutoff calendar day itself is not
+included in the window.
+
+Incumbent horizon consistency check:
+
+~~~text
+IF forecast_target_date EXISTS FOR horizon H:
+  REQUIRED forecast_target_date = cutoff_business_date + H days
+  ON_MISMATCH:
+    metric_status=NOT_COMPUTABLE
+    reason_code=TARGET_DATE_CUTOFF_HORIZON_MISMATCH
+WINDOW_OR_HORIZON_REALIGNMENT_FORBIDDEN=true
+~~~
+
+If the incumbent model's `forecast_target_date` for horizon `H` exists and does
+not equal `cutoff_business_date + H days`, the evaluation instance is
+`NOT_COMPUTABLE` with `reason_code=TARGET_DATE_CUTOFF_HORIZON_MISMATCH`.
+Adjusting the window boundaries or changing `H` to force alignment is forbidden.
+
+#### 5.1.2 Complete-season window (`COMPLETE_SEASON`)
+
+For complete-season cumulative and peak metrics over the default in-season scope:
+
+~~~text
+COMPLETE_SEASON_DEFAULT_MONTH_SCOPE=1-4
+COMPLETE_SEASON_WINDOW_START=January 1 of SEASON year in Asia/Shanghai
+COMPLETE_SEASON_WINDOW_END=April 30 of SEASON year in Asia/Shanghai
+COMPLETE_SEASON_WINDOW_INTERVAL=CLOSED_INCLUSIVE
+SEASON_YEAR_SOURCE=accepted S2 grain SEASON field
+SEASON_YEAR_DERIVATION_FAILURE=NOT_COMPUTABLE
+INVENTED_SEASON_YEAR_FORBIDDEN=true
+FACTORY_BUILDING_AREA_AS_PEAK_FEATURE_FORBIDDEN=true
+~~~
+
+The `SEASON` year must be derived from the accepted S2 canonical grain `SEASON`
+field. If the season year cannot be derived, the evaluation instance is
+`NOT_COMPUTABLE`; inventing a season year is forbidden.
+
+Factory building area must not be used as a peak-prediction feature.
+
+#### 5.1.3 General window constraints
+
 - Default season scope uses months 1–4 only, inherited from S2 exclusion policy.
-- Factory building area must not be used as a peak-prediction feature.
+- Sustained-peak sliding `n`-day windows are a second-stage operation inside an
+  already-anchored evaluation window. They do not redefine the anchor window in
+  §5.1.1 or §5.1.2.
+- `PRODUCT_SUSTAINED_PEAK_WINDOW_DAYS=3` vs `PLAN_SUSTAINED_PEAK_WINDOW_DAYS=7`
+  remains `UNRESOLVED`; this section does not choose `n`.
 
 ### 5.2 Per-calendar-day row requirement
 
@@ -239,13 +303,55 @@ Each daily row carries `daily_row_status ∈ {OBSERVED, UNKNOWN, EXCLUDED}`.
 |---|---|---|---|
 | `OBSERVED` | Decimal kg from accepted S2 grain | From incumbent replay at cutoff | eligible when forecast available |
 | `UNKNOWN` | null / absent (not 0) | From replay if available; else unavailable | window REJECT if actual UNKNOWN |
-| `EXCLUDED` | excluded by inherited S2 policy | not used in metrics | excluded from comparable set |
+| `EXCLUDED` | excluded by inherited S2 policy | not used in metrics | see cell-level vs day-level rules below |
 
-`EXCLUDED` inherits S2 exclusions without reopening them:
+#### 5.3.1 Cell-level EXCLUDED (no window generated)
+
+Cell-level exclusion applies before window generation. If the evaluation
+instance cell matches any inherited S2 exclusion, the entire cell is not
+evaluated and **no evaluation window is generated**:
 
 ~~~text
-EXCLUDED_VARIETIES=普鲜,普青,普冻,废果
-EXCLUDED_FACTORY_BASON=true
+CELL_LEVEL_EXCLUDED_NO_WINDOW_GENERATED=true
+CELL_EXCLUDED_VARIETIES=普鲜,普青,普冻,废果
+CELL_EXCLUDED_FACTORY_BASON=true
+CELL_EXCLUDED_NON_1_4_MONTH_SCOPE=true
+EXCLUSION_POLICY_REOPEN_FORBIDDEN=true
+~~~
+
+Cell-level exclusions include forbidden varieties, 巴松 factory, and evaluation
+cells outside the default 1–4 month scope.
+
+#### 5.3.2 Day-level EXCLUDED inside a generated window
+
+If a generated evaluation window contains any calendar day with
+`daily_row_status=EXCLUDED`, that day is treated the same as `UNKNOWN` for
+window acceptance:
+
+~~~text
+DAY_LEVEL_EXCLUDED_IN_WINDOW=REJECT_WINDOW
+EXCLUDED_DAY_IN_WINDOW_EQUALS_UNKNOWN_FOR_REJECTION=true
+WINDOW_REJECTION_ON_ANY_EXCLUDED_DAY=true
+EXCLUDED_HOLE_PUNCHING_FOR_PEAK_FORBIDDEN=true
+PEAK_OVER_OBSERVED_DAYS_ONLY=false
+DO_NOT_REDEFINE_PEAK_AS_MAX_OF_SPARSE_OBSERVED=true
+~~~
+
+Rules:
+
+- A day-level `EXCLUDED` row inside an already-generated window causes the
+  **entire window** to be **REJECTED** and the metric cell to be
+  `NOT_COMPUTABLE`.
+- Using `EXCLUDED` days to punch holes in the window and then taking the
+  maximum over the remaining observed days is forbidden.
+- `PEAK_OVER_OBSERVED_DAYS_ONLY=false` remains binding.
+
+While `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, window rejection
+for incomplete rowsets must still publish
+`reason_code=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. S3-A1 must
+not substitute `NO_COMPLETE_NDAY_WINDOW` before completeness verification.
+
+~~~text
 DEFAULT_MONTH_SCOPE=1-4
 EXCLUSION_POLICY_REOPEN_FORBIDDEN=true
 ~~~
