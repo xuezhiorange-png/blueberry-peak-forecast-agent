@@ -167,7 +167,7 @@ For each cell and requested `evaluation_window_days`, the amendment specifies:
 ### 3.2 What S3-A does not do
 
 ~~~text
-CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=false
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
 CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
@@ -582,3 +582,19 @@ METRIC_EXECUTION_IMPLEMENTED=false
 LLM agents must not invent kg values, row counts, completeness results, or
 materialized hashes. Those must come from separately authorized deterministic
 services after materialization is authorized.
+
+## 12. Amendment closeout pointer
+
+~~~text
+S3_A_AMENDMENT_CLOSEOUT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-amendment-closeout.md
+S3_A_AMENDMENT_CLOSEOUT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a-amendment-closeout.json
+EVIDENCE_JSON_SHA256=7ce9c1bf1c2eee9a3cd0d6176d6a31466e308bd991ab206cf0285967c68523ef
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=false
+CLOSEOUT_MERGE_DOES_NOT_AUTHORIZE_MATERIALIZATION=true
+~~~
+
+Live `CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE` authority:
+`docs/v0-3/development-plan.md` §4.4. Frozen snapshots in S1, S3-B, and S3-C0
+contract files remain historical; they are not overwritten by this closeout.
