@@ -1,0 +1,206 @@
+# V0.3-S3-A completeness verification authorization
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A_COMPLETENESS_VERIFICATION_AUTHORIZATION
+ARTIFACT_VERSION=s3-a-completeness-verification-authorization-v1
+TASK_ID=V03_S3_A_COMPLETENESS_VERIFICATION_AUTHORIZATION_R1
+TASK_CLASS=DOCS_ONLY_AUTHORIZATION_ISSUANCE
+AUTHORIZATION_SCOPE=S3_A_COMPLETENESS_VERIFICATION_GRANT_ONLY
+SLICE=V0.3-S3
+USER_GATE=可以下一步
+REVIEWER_ROLE=COORDINATOR
+USER_WAIVED_THIRD_PARTY_REVIEW=true
+COORDINATOR_REVIEW_COUNTS=true
+COORDINATOR_AGENT=https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794
+DOCS_ONLY_AGENT=https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2
+BASE_REF=origin/main
+BASE_MAIN_SHA=5e4cf39270ef7b569a95530037e0121d7915cebc
+BASE_MAIN_TREE_SHA=3e1cb701f559075c611f98c81a5d43173b913e3e
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a-completeness-verification-authorization.json
+EVIDENCE_JSON_SHA256=783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+AUTHORIZATION_MERGE_DOES_NOT_EXECUTE_VERIFICATION=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+The user authorized issuance of the S3-A daily rowset completeness verification
+grant after materialization authorization #304 and materializer implementation
+#305. This document records what a **later** deterministic verification service
+may do when the user again says 「可以实施」. This PR does not execute
+verification, run the materializer, flip `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`,
+authorize backtests, or claim S3-B semantics verified.
+
+Analogous to #304 materialization authorization: grant only; no backend code in
+this PR.
+
+~~~text
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+~~~
+
+## 1. Upstream bindings (reference only)
+
+~~~text
+PR305_MERGE=5e4cf39270ef7b569a95530037e0121d7915cebc
+MATERIALIZER_EVIDENCE_JSON_SHA256=4eefdfbaee5be91c594d5f0203270ce52a42ec71538659c5484d436a3eb7e65c
+AUTH_PR=304
+AUTH_EVIDENCE_JSON_SHA256=df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239
+CLOSEOUT_PR=303
+CLOSEOUT_EVIDENCE_JSON_SHA256=7ce9c1bf1c2eee9a3cd0d6176d6a31466e308bd991ab206cf0285967c68523ef
+AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
+AMENDMENT_GIT_BLOB_SHA=c8fda984357c1da36b58b43d6d09d32bba0a6bc5
+P0_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+P0_GIT_BLOB_SHA=f777d188a55fd2bd4b40c5eff1d8cd3bef984fc3
+P0_EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
+S3_A_EVIDENCE_JSON_SHA256=b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a
+S3_A1_EVIDENCE_JSON_SHA256=7d5e915bf1eb8b0d7a4f7f271e7f4d492023391a6860e7debc6e403c8898dc89
+S3_B_EVIDENCE_JSON_SHA256=52dfe07eb6a17004704a1545c136a51c4646fbc7b7f7bca80b13f87a71e2d3e7
+S3_C0_EVIDENCE_JSON_SHA256=12c40e013c60de9f9dbcfd7b5e7788281d9c7d6adcde641d6d436b3e65b5d7e1
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
+DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED=true
+~~~
+
+Evidence JSON self-hashes above are binding references, not whole-file
+`sha256sum` values. Materializer R1 evidence is referenced only; its workpaper
+body is not rewritten by this authorization grant.
+
+## 2. Inherited S2 and input authority (not reopened)
+
+~~~text
+S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+Q2C_TARGET=OBSERVED_FARM_PICK_QUANTITY
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+V0_3_S3_VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 3. What this authorization grants
+
+A later deterministic verification implementation may, under a separate user
+「可以实施」 gate, evaluate materialized TRAIN/VALIDATION daily rowsets against
+amendment §8.1 completeness predicates:
+
+~~~text
+COMPLETENESS_PREDICATE_1=FULL_CALENDAR_DAY_COVERAGE_IN_WINDOW
+COMPLETENESS_PREDICATE_2=NO_SILENT_MISSING_DAYS
+COMPLETENESS_PREDICATE_3=NO_ZERO_FILL_FOR_UNKNOWN
+COMPLETENESS_PREDICATE_4=OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN
+COMPLETENESS_PREDICATE_5=FORECAST_DAILY_CURVE_VISIBLE_AT_CUTOFF
+~~~
+
+Window rules remain frozen from S3-A1:
+
+~~~text
+HORIZONS_DAYS=7,14,21
+TIMEZONE=Asia/Shanghai
+evaluation_window_start_date=cutoff_business_date + 1 day
+evaluation_window_end_date=cutoff_business_date + H days
+WINDOW_OR_HORIZON_REALIGNMENT_FORBIDDEN=true
+CELL_LEVEL_EXCLUDED_NO_WINDOW=true
+DAY_LEVEL_EXCLUDED_IN_WINDOW=REJECT_WINDOW
+PEAK_OVER_OBSERVED_DAYS_ONLY=false
+~~~
+
+## 4. Fail-closed conditions (must not be reported as PASS)
+
+Future verification must fail closed when:
+
+- TEST partition dates (`2026-03-10..2026-04-16`) enter an evaluation window
+- `COMPLETE_SEASON` is rejected because it would cover sealed TEST dates
+- any calendar day is `UNKNOWN`, day-level `EXCLUDED`, or `FORECAST_UNAVAILABLE`
+- sparse 7/14/21 binding rows are interpolated into a daily curve
+- peak is taken as max over observed sparse days only
+- 3-day vs 7-day sustained peak winner is chosen
+- raw SOURCE_002, xls, Sheets, S1 JSON, PIT, or old-winner tables are used as
+  SOURCE_002 primary input
+- LLM invents tonnage, row counts, predicate outcomes, or identity hashes
+
+~~~text
+SINGLE_H7_FIXTURE_SUCCESS_DOES_NOT_EQUAL_DATASET_COMPLETE=true
+R1_PERSISTENCE=IN_MEMORY_SERVICE_ONLY
+IDENTITY_SENTINELS_MAY_REMAIN_NOT_MATERIALIZED=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_COMPLETENESS_VERIFIED=true
+COMPLETENESS_VERIFIED_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+~~~
+
+## 5. What remains forbidden / not authorized
+
+~~~text
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+CURRENT_V0_3_S3_COMPLETE=false
+V0_3_S4_AUTHORIZED=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+P0_SUSTAINED_PEAK_WINDOW_CONFLICT=UNRESOLVED
+SUSTAINED_PEAK_PASS_FORBIDDEN_UNTIL_OWNER_DECISION=true
+~~~
+
+While `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, metric blockers
+must remain `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. Emitting
+`NO_COMPLETE_NDAY_WINDOW` before completeness verification closeout is forbidden.
+
+Frozen snapshots in S1, S3-B, and S3-C0 contracts that still record
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false` are historical. Live
+authority is `docs/v0-3/development-plan.md` §4.4.
+
+## 6. Registry flip manifest
+
+~~~text
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` live blocks and §14 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer
+
+Unchanged live flags retained:
+
+~~~text
+CURRENT_S3_DAILY_ROWSET_AMENDMENT_COMPLETE=true
+S3_A_ROWSET_MATERIALIZATION_AUTHORIZED=true
+DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+~~~
+
+## 7. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+AUTHORIZATION_MERGE_DOES_NOT_EXECUTE_VERIFICATION=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
