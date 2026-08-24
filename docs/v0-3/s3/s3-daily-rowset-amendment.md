@@ -867,3 +867,30 @@ Live `S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_AUTHORIZED` authority:
 This contract defines how a future versioned forecast input artifact may be identified
 and accepted; it does not implement an adapter, write forecast artifacts, produce
 catalogs, or flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
+
+## 25. Incumbent forecast artifact implementation authorization pointer
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_IMPLEMENTATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-authorization.md
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_IMPLEMENTATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-authorization.json
+EVIDENCE_JSON_SHA256=1928d044d85c9dbff3c71d14551409c9c61404ed84174f20979fbc31ba6fae00
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_IMPLEMENTATION_AUTHORIZED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+AUTHORIZATION_MERGE_DOES_NOT_PRODUCE_FORECAST_ARTIFACT=true
+AUTHORIZATION_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+AUTHORIZATION_MERGE_DOES_NOT_BIND_CATALOG=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_ADAPTER=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+Live `S3_A2_INCUMBENT_FORECAST_ARTIFACT_IMPLEMENTATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this implementation authorization package.
+This grant records what a later deterministic adapter may do; it does not implement
+an adapter, write forecast artifacts, produce catalogs, or flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
