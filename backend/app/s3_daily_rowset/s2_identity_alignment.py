@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date
 from typing import Literal
 
 from backend.app.s3_daily_rowset.actuals import partition_for_harvest_date
@@ -11,7 +11,7 @@ from backend.app.s3_daily_rowset.catalog_artifact import (
     S2AlignedIdentity,
     S2IdentityAlignmentPort,
 )
-from backend.app.s3_daily_rowset.exclusion import is_cell_level_excluded
+from backend.app.s3_daily_rowset.exclusion import is_bason_factory, is_forbidden_variety
 from backend.app.s3_daily_rowset.registry import (
     HORIZON_H7_SUCCESS_FIXTURE_HASH,
     CatalogSourceKind,
@@ -20,7 +20,6 @@ from backend.app.s3_daily_rowset.schemas import (
     EXPECTED_DATASET_ID,
     EXPECTED_DATASET_VERSION,
     EXPECTED_MATERIALIZED_DATASET_IDENTITY_SHA256,
-    EvaluationInstanceCell,
 )
 from backend.app.s3_daily_rowset.window import DEFAULT_IN_SEASON_MONTHS
 
@@ -32,9 +31,6 @@ FORBIDDEN_EMPTY_ALIGNMENT_EVIDENCE_HASHES = frozenset(
         "0" * 64,
     }
 )
-
-_ALIGNMENT_PROJECTION_CUTOFF = datetime(2026, 2, 15, 16, 0, tzinfo=UTC)
-
 
 class ForbiddenS2IdentityAlignmentError(ValueError):
     """Raised when S2 identity alignment evidence is forbidden."""
@@ -76,23 +72,8 @@ def _canonical_field(value: str, *, field_name: str) -> str:
     return trimmed
 
 
-def _row_is_excluded(
-    *,
-    season: str,
-    farm: str,
-    subfarm: str,
-    variety: str,
-) -> bool:
-    cell = EvaluationInstanceCell(
-        season=season,
-        farm=farm,
-        subfarm=subfarm,
-        variety=variety,
-        model_id="alignment-projection-only",
-        forecast_cutoff_at=_ALIGNMENT_PROJECTION_CUTOFF,
-        forecast_quantile="P50",
-    )
-    return is_cell_level_excluded(cell)
+def _row_is_excluded(*, farm: str, variety: str) -> bool:
+    return is_forbidden_variety(variety) or is_bason_factory(farm)
 
 
 def _project_identity(row: AcceptedS2IdentityEvidenceRow) -> S2AlignedIdentity | None:
@@ -110,7 +91,7 @@ def _project_identity(row: AcceptedS2IdentityEvidenceRow) -> S2AlignedIdentity |
         return None
     if row.harvest_business_date.month not in DEFAULT_IN_SEASON_MONTHS:
         return None
-    if _row_is_excluded(season=season, farm=farm, subfarm=subfarm, variety=variety):
+    if _row_is_excluded(farm=farm, variety=variety):
         return None
 
     return S2AlignedIdentity(
