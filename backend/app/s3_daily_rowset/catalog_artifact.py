@@ -195,11 +195,17 @@ def _unbound_result(
     )
 
 
+def _default_forecast_artifact_port() -> IncumbentForecastArtifactPort:
+    from backend.app.s3_daily_rowset.forecast_artifact import IncumbentForecastArtifactAdapter
+
+    return IncumbentForecastArtifactAdapter()
+
+
 @dataclass
 class EvaluationInstanceCatalogArtifactProductionService:
     dataset_identity: DatasetIdentity
     forecast_port: IncumbentForecastArtifactPort = field(
-        default_factory=MissingIncumbentForecastArtifactPort
+        default_factory=_default_forecast_artifact_port
     )
     alignment_port: S2IdentityAlignmentPort = field(default_factory=EmptyS2IdentityAlignmentPort)
 
