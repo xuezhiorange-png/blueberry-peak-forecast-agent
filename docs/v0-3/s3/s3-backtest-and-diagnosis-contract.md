@@ -460,6 +460,14 @@ Registry implementation grant does not execute registry implementation, flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, or authorize backtest execution.
 P0 §4.2 freeze snapshots remain historical.
 
+Live `EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-registry-implementation-r1.md`.
+R1 implementation delivers the deterministic in-memory registry service only;
+it does not flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE` or
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
