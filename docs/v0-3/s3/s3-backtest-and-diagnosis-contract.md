@@ -492,6 +492,15 @@ bind a live catalog, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
 historical.
 
+Live `S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-catalog-artifact-contract.md`.
+Catalog artifact contract freeze defines how a future versioned catalog may be
+produced and accepted; it does not produce a catalog, bind a catalog, flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
