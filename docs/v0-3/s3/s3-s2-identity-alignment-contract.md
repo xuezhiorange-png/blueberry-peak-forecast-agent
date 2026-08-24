@@ -123,7 +123,7 @@ CATALOG_ARTIFACT_CONTRACT_FREEZE_SHA256=c32c4275422e2ef39d90449b71d2bfc54d3a0948
 CATALOG_ARTIFACT_CONTRACT_EVIDENCE_JSON_SHA256=501dcf1034e615f60ca9b76b79cbbe8f9d352c3ea85abf4380d763842ddd4ca6
 FORECAST_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md
 FORECAST_ARTIFACT_ADAPTER_R1_EVIDENCE_JSON_SHA256=31bb6d24cf4c398eeea86c18d2dece16b9e0ab6f704e9ab229eac5a363d296a0
-CATALOG_ARTIFACT_PY_BLOB=772068c9e68ca8bf0e5bacf280a9f2dad59d9734
+CATALOG_ARTIFACT_PY_BLOB=d4212b8c8888b866eb613660d4f645da8e257081
 H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
 FORBIDDEN_SAMPLE_H7_FIXTURE_AS_CATALOG=true
 FORBIDDEN_SAMPLE_H7_FIXTURE_AS_ALIGNMENT_IDENTITY=true
@@ -192,8 +192,12 @@ ALIGNMENT_SOURCE_DATASET_VERSION=e5-live-v1
 ALIGNMENT_SOURCE_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
 DEFAULT_MONTH_SCOPE=1-4
 ALIGNMENT_PROJECT_FROM_ACCEPTED_S2_TRAIN_VALIDATION_ONLY=true
-ALIGNMENT_DEDUPLICATE=true
-ALIGNMENT_STABLE_SORT=true
+ALIGNMENT_PROJECTION_VERSION=v0-3-s3-a2-s2-identity-alignment-projection-v1
+ALIGNMENT_DEDUP_KEY=season,farm,subfarm,variety,partition
+ALIGNMENT_SORT_KEY=partition,season,farm,subfarm,variety
+ALIGNMENT_SORT_DIRECTION=ASCENDING
+ALIGNMENT_USES_ACCEPTED_S2_CANONICAL_STRINGS=true
+BLANK_AFTER_WHITESPACE_TRIM_REJECT=true
 FORBIDDEN_HANDWRITTEN_FARM_LISTS=true
 FORBIDDEN_HANDWRITTEN_CELL_LISTS=true
 FORBIDDEN_HANDWRITTEN_DATE_LISTS=true
@@ -205,8 +209,11 @@ Future alignment must:
 1. Start from accepted S2 `source-002/e5-live-v1` TRAIN/VALIDATION materialized
    identities only.
 2. Default to months 1–4 accepted grain before projection.
-3. Deduplicate on `SEASON × FARM × SUBFARM × VARIETY × PARTITION`.
-4. Return rows in stable deterministic sort order.
+3. Deduplicate on `ALIGNMENT_DEDUP_KEY` (`season`, `farm`, `subfarm`, `variety`,
+   `partition`).
+4. Return rows sorted by `ALIGNMENT_SORT_KEY` (`partition`, `season`, `farm`,
+   `subfarm`, `variety`) in `ASCENDING` order using accepted S2 canonical strings;
+   reject blank fields after whitespace trim.
 5. Never treat `harvest_business_date` as `forecast_cutoff`.
 
 ### 3.2 Mandatory exclusions
@@ -216,7 +223,7 @@ FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
 FORBIDDEN_FACTORY_BASON=true
 FORBIDDEN_FACTORY_BASON_PROCESSING_PLANT_BUILDING_AREA_AS_FEATURE=true
 FORBIDDEN_NON_1_4_MONTH_SCOPE=true
-FORBIDDEN_TEST_PARTITION=true
+FORBIDDEN_TEST_SOURCE_IDENTITY_IN_ALIGNMENT=true
 ~~~
 
 Processing-plant building area must not enter alignment or downstream prediction
@@ -230,13 +237,18 @@ TEST_REMAINS_SEALED=true
 TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
 VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
 TEST_PARTITION_DATES=2026-03-10..2026-04-16
-FORBIDDEN_TEST_IDENTITY_OR_WINDOW_IN_ALIGNMENT=true
+FORBIDDEN_TEST_SOURCE_IDENTITY_IN_ALIGNMENT=true
+ALIGNMENT_DOES_NOT_EVALUATE_FORECAST_WINDOWS=true
+TEST_WINDOW_FILTER_AUTHORITY=INCUMBENT_FORECAST_ARTIFACT_ADAPTER_AND_DAILY_ROWSET_MATERIALIZER
 COMPLETE_SEASON_IS_NOT_DATASET_COMPLETENESS_PASS=true
 COMPLETE_SEASON_INTERSECTING_TEST_IS_NOT_DATASET_PASS=true
 ~~~
 
-Any alignment identity or evaluation window intersecting TEST partition dates must
-not enter a future accepted alignment result.
+Alignment rejects only identities whose `partition` is `TEST` or whose accepted S2
+source row is TEST-partitioned. `S2AlignedIdentity` carries no `forecast_cutoff` or
+horizon; alignment does **not** evaluate whether a forecast evaluation window
+intersects TEST. That window filter remains with the incumbent forecast artifact
+adapter and daily rowset materializer.
 
 ## 5. Source kind and alignment evidence requirements
 
@@ -305,8 +317,8 @@ A future live adapter must:
    `SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` when evidence is accepted.
 3. Fail closed on dataset identity mismatch, missing versioned alignment evidence,
    `UNBOUND`/fixture/forbidden source kinds, blank identity fields, non
-   TRAIN/VALIDATION partitions, TEST intersection, post-exclusion emptiness, or
-   forbidden substitutions.
+   TRAIN/VALIDATION partitions, TEST-partition source identities,
+   post-exclusion emptiness, or forbidden substitutions.
 4. Hand accepted identities to existing `EvaluationInstanceCatalogArtifactProductionService`.
 5. Not flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`,
    `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, or

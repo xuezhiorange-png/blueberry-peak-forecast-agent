@@ -36,7 +36,7 @@
     "binding_contract_freeze_sha256": "ea49044b7c3481070534d98b57de212d67c29ff4b3b9fae01160b669794e5156",
     "a2_registry_contract_freeze_git_blob_sha": "189b9b480cc5d1699dd1c0475cbf09802cf741f0",
     "a2_registry_contract_sha256": "d7c681c0179b834c01f9fa760361ac13fed1040d3a8900a58dab24654488b762",
-    "catalog_artifact_py_blob": "772068c9e68ca8bf0e5bacf280a9f2dad59d9734",
+    "catalog_artifact_py_blob": "d4212b8c8888b866eb613660d4f645da8e257081",
     "binding_py_blob": "0a335f682a923bcd73908b58cd70cd49c9ab0117",
     "registry_py_blob": "b5ad9e87dadf9947348d6576cdcb544a58a20b95",
     "h7_success_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18",
@@ -81,6 +81,12 @@
       "VALIDATION"
     ],
     "s2_identity_alignment_source_kind": "SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT",
+    "alignment_projection_version": "v0-3-s3-a2-s2-identity-alignment-projection-v1",
+    "alignment_dedup_key": "season,farm,subfarm,variety,partition",
+    "alignment_sort_key": "partition,season,farm,subfarm,variety",
+    "alignment_sort_direction": "ASCENDING",
+    "alignment_uses_accepted_s2_canonical_strings": true,
+    "blank_after_whitespace_trim_reject": true,
     "default_month_scope": "1-4",
     "harvest_business_date_is_not_forecast_cutoff": true,
     "alignment_does_not_carry_model": true,
@@ -95,7 +101,9 @@
     ],
     "forbidden_factory_bason": true,
     "forbidden_factory_building_area_as_feature": true,
-    "forbidden_test_partition": true,
+    "forbidden_test_source_identity_in_alignment": true,
+    "alignment_does_not_evaluate_forecast_windows": true,
+    "test_window_filter_authority": "INCUMBENT_FORECAST_ARTIFACT_ADAPTER_AND_DAILY_ROWSET_MATERIALIZER",
     "forbidden_invent_alignment_hashes": true,
     "forbidden_handwritten_farm_lists": true,
     "forbidden_repository_scan_for_substitutes": true,
@@ -153,7 +161,7 @@
     "after": true,
     "locations": [
       "docs/v0-3/development-plan.md §4.4",
-      "docs/v0-3/s3/s3-daily-rowset-amendment.md §26 pointer",
+      "docs/v0-3/s3/s3-daily-rowset-amendment.md §27 pointer",
       "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md §11",
       "docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md §11",
       "docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md §15",
@@ -185,5 +193,5 @@
     "binding_contract_pointer": true,
     "a2_registry_contract_pointer": true
   },
-  "evidence_json_sha256": "077d43f436113fce0228f06f2756a54f0f88cc1dad8378793f468fbe64f5634c"
+  "evidence_json_sha256": "e69478f732675f04e3c981d99676b6f28e6bf7ddee43a7af7174f0a75802212a"
 }
