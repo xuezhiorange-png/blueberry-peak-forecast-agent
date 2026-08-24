@@ -382,3 +382,21 @@ IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
 Live `S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED` authority:
 `docs/v0-3/development-plan.md` §4.4 and the authorization package above.
 This pointer does not rewrite contract freeze rules in §§1–7.
+
+## 9. Registry implementation pointer
+
+~~~text
+S3_A2_REGISTRY_IMPLEMENTATION_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-registry-implementation-r1.md
+S3_A2_REGISTRY_IMPLEMENTATION_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-registry-implementation-r1.json
+EVIDENCE_JSON_SHA256=8fe740675e0dbe0ad3a4a4c85a5786262877d12fd2c8e704899bef8ffda2f43e
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+IMPLEMENTATION_R1_DOES_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_R1_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
+~~~
+
+Live `EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this implementation package.
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE` may flip only in a future
+coordinator-reviewed registry closeout, not in R1 implementation.
