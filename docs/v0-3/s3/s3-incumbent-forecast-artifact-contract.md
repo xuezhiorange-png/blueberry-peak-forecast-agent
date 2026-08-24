@@ -1,0 +1,339 @@
+# V0.3-S3-A2 Incumbent Forecast Artifact Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-contract-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=VERSIONED_INCUMBENT_FORECAST_ARTIFACT_PRODUCTION_AND_ACCEPTANCE
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=0fa683b41360d59bd0b8b60729921f72e97c77dc
+BASE_MAIN_TREE_SHA=3e68ede594fecc67f8e45115ab569580b85dcaa3
+BASE_REF=origin/main
+PARENT_CATALOG_ARTIFACT_CONTRACT_ID=V0_3_S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT
+PARENT_CATALOG_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md
+PARENT_CATALOG_ARTIFACT_CONTRACT_FREEZE_GIT_BLOB_SHA=93b30bbaa72267c3fcb032c4c3d8c9462f54a968
+PARENT_CATALOG_ARTIFACT_CONTRACT_FREEZE_SHA256=c32c4275422e2ef39d90449b71d2bfc54d3a094824286a59d6063187fa50563d
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_AGENT=https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794
+DOCS_ONLY_AGENT=https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_PRODUCTION_AUTHORIZED=true
+DETERMINISTIC_EVALUATION_INSTANCE_CATALOG_ARTIFACT_SERVICE_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+REGISTRY_SOURCE_STATUS=NOT_MATERIALIZED_OR_NOT_BOUND
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+CURRENT_V0_3_S3_COMPLETE=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+SOURCE_002_ROW_LEVEL_READ=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes **how** a future versioned incumbent forecast artifact may
+be identified, hashed, and accepted as input to catalog artifact production.
+It defines forecast-artifact grain, authoritative source layering, content/manifest
+hash requirements, repository audit classification, and the boundary between
+contract authorization and live catalog production.
+
+This is a governance contract only. It does **not** implement a forecast adapter,
+write forecast artifacts into the repository, produce evaluation instance catalogs,
+bind catalogs, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, run completeness
+verification, flip `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, execute
+backtests, or claim S3-B semantics verified.
+
+PR #316 delivered `EvaluationInstanceCatalogArtifactProductionService` with default
+`MissingIncumbentForecastArtifactPort` (`produce()` →
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`). Catalog artifact contract #314 defines
+catalog output; it does not freeze the forecast **input** artifact itself. This
+contract fills that gap without implementing it.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_PRODUCE_FORECAST_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 S2 materialized dataset (accepted)
+
+~~~text
+S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+TIMEZONE=Asia/Shanghai
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+Q2C_TARGET=OBSERVED_FARM_PICK_QUANTITY
+~~~
+
+### 1.2 Input authorities (distinct; do not conflate)
+
+~~~text
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+V0_3_S3_VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+V0_2_S3_INPUT_AUTHORITY_HISTORICAL=S2_IMMUTABLE_BACKTEST_BINDING
+DO_NOT_CONFLATE_V0_2_S2_IMMUTABLE_BACKTEST_BINDING_WITH_V0_3_S2_DATASET=true
+SOURCE_002_ROW_LEVEL_READ=false
+FORBIDDEN_PIT_TABLE_AS_SOURCE_002_PRIMARY=true
+FORBIDDEN_OLD_WINNER_TABLE_AS_SOURCE_002_PRIMARY=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY=true
+~~~
+
+### 1.3 Upstream contract and implementation references (not rewritten)
+
+~~~text
+CATALOG_ARTIFACT_CONTRACT_FREEZE_GIT_BLOB_SHA=93b30bbaa72267c3fcb032c4c3d8c9462f54a968
+CATALOG_ARTIFACT_CONTRACT_FREEZE_SHA256=c32c4275422e2ef39d90449b71d2bfc54d3a094824286a59d6063187fa50563d
+CATALOG_ARTIFACT_CONTRACT_EVIDENCE_JSON_SHA256=501dcf1034e615f60ca9b76b79cbbe8f9d352c3ea85abf4380d763842ddd4ca6
+AUTH315_EVIDENCE_JSON_SHA256=427dbc4534c9537dbe168e0283644952d82606a481ad0142227dcf7693c9fc09
+PRODUCTION_R1_EVIDENCE_JSON_SHA256=a776e557c06e7c31787b9824dedc69735f0143b9a221334a72452ea443cb9dbc
+BINDING_IMPL_EVIDENCE_JSON_SHA256=d86ad33cba6299a1b58a28598d82a90b20b53fb73700e037919698e89ef24ae5
+CATALOG_ARTIFACT_PY_BLOB=772068c9e68ca8bf0e5bacf280a9f2dad59d9734
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+REGISTRY_PY_BLOB=b5ad9e87dadf9947348d6576cdcb544a58a20b95
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+FORBIDDEN_SAMPLE_H7_FIXTURE_AS_CATALOG=true
+FORBIDDEN_SAMPLE_H7_FIXTURE_AS_FORECAST_ARTIFACT=true
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+PARALLEL_ALEMBIC_HEADS_ALLOWED=false
+~~~
+
+Evidence JSON self-hashes above are binding references, not whole-file
+`sha256sum` values. Archived workpaper/evidence bodies from #303–#316 are
+referenced only; not rewritten by this contract task.
+
+## 2. Forecast artifact definition
+
+### 2.1 What the artifact is
+
+A versioned incumbent forecast artifact is the **production input** to catalog
+artifact generation. It carries forecast-side evaluation-instance fields only:
+
+~~~text
+FORECAST_ARTIFACT_FIELDS=FORECAST_CUTOFF,MODEL,FORECAST_QUANTILE
+FORECAST_ARTIFACT_MAY_CARRY_MODEL_IDENTITY_METADATA=true
+FORECAST_ARTIFACT_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+FORECAST_ARTIFACT_REQUIRES_PIT_REPLAY_AT_HISTORICAL_CUTOFF=true
+FORECAST_ARTIFACT_REQUIRES_IDFL_LABEL_SIDE_VISIBILITY=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+~~~
+
+The artifact must be replayable at historical cutoff under IDFL label-side
+visibility rules. It supplies `FORECAST_CUTOFF`, `MODEL`, and `FORECAST_QUANTILE`
+(and necessary model identity metadata) for downstream catalog row construction.
+It does **not** carry daily kg curves, observed kg, or materialized rowset windows.
+
+### 2.2 What the artifact is not
+
+~~~text
+FORECAST_ARTIFACT_IS_NOT_EVALUATION_INSTANCE_CATALOG=true
+FORECAST_ARTIFACT_IS_NOT_INCUMBENT_DAILY_CURVE=true
+FORECAST_ARTIFACT_IS_NOT_V0_2_S3_BINDING_ROW_SET=true
+FORECAST_ARTIFACT_IS_NOT_S2_HARVEST_GRAIN=true
+FORECAST_ARTIFACT_IS_NOT_H7_FIXTURE=true
+FORECAST_ARTIFACT_IS_NOT_MISSING_PORT_DEFAULT=true
+FORECAST_ARTIFACT_IS_NOT_TEST_ONLY_FIXTURE=true
+~~~
+
+Specifically excluded:
+
+- `EvaluationInstanceCatalogArtifact` output (catalog artifact contract + production service output)
+- `IncumbentDailyCurveProvider` / `FakeIncumbentDailyCurveProvider` daily kg curves (materializer input)
+- `SparseHorizonBindingForecastProvider` sparse 7/14/21 binding rows
+- V0.2 `S3BindingRow` sparse horizon rows
+- S2 harvest grain / `harvest_business_date` enumeration
+- H=7 fixture hash `8e74d6be…`
+- `MissingIncumbentForecastArtifactPort` default (not a versioned artifact)
+- `FakeIncumbentForecastArtifactPort` in tests (fixture only)
+
+`catalog_artifact.py` production service consumes forecast artifacts; it is not
+the forecast artifact itself.
+
+## 3. Authoritative source and acceptance rules
+
+### 3.1 Forecast authority
+
+~~~text
+FORECAST_CUTOFF_SOURCE=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+MODEL_SOURCE=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+FORECAST_QUANTILE_SOURCE=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+FORBIDDEN_INVENT_CUTOFFS=true
+FORBIDDEN_HANDWRITTEN_CUTOFF_LISTS=true
+FORBIDDEN_FARM_PICK_DAY_ENUMERATION_AS_FORECAST_CUTOFF=true
+~~~
+
+Future artifacts must derive cutoff and quantile fields from versioned incumbent
+forecast replay at historical cutoff. Hand-written cutoff lists are forbidden.
+
+### 3.2 Visibility and TEST seal
+
+~~~text
+VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+FORBIDDEN_TEST_CUTOFF_OR_WINDOW_IN_ARTIFACT=true
+COMPLETE_SEASON_IS_NOT_DATASET_COMPLETENESS_PASS=true
+~~~
+
+Any forecast cutoff or evaluation window intersecting TEST partition dates must not
+enter a future accepted artifact.
+
+### 3.3 Artifact identity and hash requirements
+
+~~~text
+FORECAST_ARTIFACT_REQUIRES_CONTENT_OR_MANIFEST_HASH=true
+FORECAST_ARTIFACT_HASH_IS_NOT_CATALOG_IDENTITY_HASH=true
+FORECAST_ARTIFACT_HASH_IS_NOT_ROWSET_WINDOW_HASH=true
+FORECAST_ARTIFACT_HASH_IS_NOT_H7_FIXTURE_HASH=true
+FORECAST_ARTIFACT_HASH_IS_NOT_EMPTY_FORECAST_SENTINEL=true
+FORBIDDEN_INVENT_FORECAST_ARTIFACT_HASHES=true
+~~~
+
+A future accepted artifact must carry its own versioned content hash or manifest
+hash. **This PR does not invent that hash**, cutoff lists, or cell counts.
+
+## 4. Repository audit classification (read-only at 0fa683b)
+
+Audit at base `0fa683b41360d59bd0b8b60729921f72e97c77dc` classifies existing
+repository objects. This section records classification only.
+
+| Object | Classification |
+|---|---|
+| `MissingIncumbentForecastArtifactPort` (production default) | `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT` |
+| tests `FakeIncumbentForecastArtifactPort` | `FIXTURE_ONLY_NOT_LIVE_ARTIFACT` |
+| `IncumbentDailyCurveProvider` / `FakeIncumbentDailyCurveProvider` | `NOT_FORECAST_ARTIFACT` |
+| `SparseHorizonBindingForecastProvider` | `FORBIDDEN_SUBSTITUTION` |
+| `S3BindingRow` | `FORBIDDEN_SUBSTITUTION` |
+| S2 harvest grain | `FORBIDDEN_SUBSTITUTION` |
+| H=7 fixture `8e74d6be…` | `FORBIDDEN_SUBSTITUTION` |
+| `catalog_artifact.py` production service | `NOT_FORECAST_ARTIFACT` (consumer, not artifact) |
+| `UnboundEvaluationInstanceCatalog` | `NOT_FORECAST_ARTIFACT` |
+
+~~~text
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+FORBIDDEN_INVENT_CELL_ROWS=true
+FORBIDDEN_HANDWRITTEN_FARM_LISTS=true
+~~~
+
+Authorizing this contract does **not** mean a versioned forecast artifact exists
+in the repository.
+
+## 5. Future adapter acceptance (defined, not authorized)
+
+This contract defines what a **later** `IncumbentForecastArtifactPort` live
+adapter may target when the user separately says 「可以实施」. This contract merge
+does **not** authorize that implementation.
+
+A future live adapter must:
+
+1. Expose versioned incumbent forecast artifact rows via `IncumbentForecastArtifactPort`.
+2. Replay at historical cutoff under `V0_3_S3_FORECASTS_AUTHORITY` and IDFL visibility.
+3. Attach forecast-artifact content/manifest hash and model identity lineage.
+4. Fail closed when no versioned artifact exists (no repository scan, no invented cutoffs).
+5. Hand accepted rows to `EvaluationInstanceCatalogArtifactProductionService`.
+
+~~~text
+S2_IDENTITY_ALIGNMENT_PORT_LIVE_ADAPTER_NOT_THIS_CONTRACT=true
+MISSING_PORT_REPLACEMENT_REQUIRES_SEPARATE_USER_GATE=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_COMPLETENESS_VERIFIED=true
+~~~
+
+## 6. What remains forbidden / not authorized
+
+~~~text
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+V0_3_S4_AUTHORIZED=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+P0_SUSTAINED_PEAK_WINDOW_CONFLICT=UNRESOLVED
+SUSTAINED_PEAK_PASS_FORBIDDEN_UNTIL_OWNER_DECISION=true
+EMIT_NO_COMPLETE_NDAY_WINDOW_FORBIDDEN=true
+~~~
+
+While `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, metric blockers
+must remain `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`.
+
+Out of scope for this contract: S2 identity alignment live adapter contract,
+AVAILABLE closeout, VERIFIED closeout, S3-B verified claim, S3-C backtest,
+TEST unseal, SOURCE_002 row-level read.
+
+## 7. Subtask boundaries
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_EVALUATION_INSTANCE_CATALOG_ARTIFACT_SERVICE_IMPLEMENTED=true
+next_subtask_not_implied=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+| Subtask | Status after forecast artifact contract merge |
+|---|---|
+| S3-A2 incumbent forecast artifact contract | frozen (this document) |
+| S3-A2 catalog artifact contract | frozen (#314) |
+| S3-A2 catalog production R1 | merged (#316) |
+| Forecast artifact live adapter | not authorized |
+| Catalog binding (live) | not performed |
+| Registry AVAILABLE closeout | not performed |
+
+## 8. LLM and deterministic service boundary
+
+~~~text
+LLM_MUST_NOT_INVENT_CUTOFF_LISTS=true
+LLM_MUST_NOT_INVENT_FORECAST_ARTIFACT_HASHES=true
+LLM_MUST_NOT_INVENT_CELL_ROWS=true
+LLM_MUST_NOT_INVENT_FARM_LISTS=true
+ALL_FORECAST_ARTIFACT_CONTENT_FROM_VERSIONED_ARTIFACT=true
+~~~
+
+LLM agents organize explanation and invoke tools. Forecast artifact contents,
+hashes, cutoff lists, and availability flags must come from versioned artifacts
+and coordinator-reviewed evidence only.
