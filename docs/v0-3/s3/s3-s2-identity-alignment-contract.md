@@ -392,3 +392,26 @@ ALL_ALIGNMENT_CONTENT_FROM_VERSIONED_ACCEPTED_S2_EVIDENCE=true
 LLM agents organize explanation and invoke tools. Alignment identities, hashes,
 cell counts, farm lists, and availability flags must come from versioned accepted
 S2 evidence and coordinator-reviewed artifacts only.
+
+## 11. S2 identity alignment implementation authorization pointer
+
+~~~text
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-authorization.md
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-s2-identity-alignment-authorization.json
+EVIDENCE_JSON_SHA256=efb3d9d668f283f00afcb1bc661b6ab6dca10fb48877c00676fefa25e9a32807
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED=false
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_ALIGNMENT_ADAPTER=true
+AUTHORIZATION_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and the implementation authorization package above.
+This pointer does not rewrite contract freeze rules in §§1–10.
