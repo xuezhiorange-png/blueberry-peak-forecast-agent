@@ -31,6 +31,8 @@ def _registry(
     catalog: InMemoryEvaluationInstanceCatalog | None = None,
     dataset_identity: DatasetIdentity = DATASET_IDENTITY,
 ) -> EvaluationInstanceRegistryService:
+    if catalog is None:
+        return EvaluationInstanceRegistryService(dataset_identity=dataset_identity)
     return EvaluationInstanceRegistryService(
         dataset_identity=dataset_identity,
         catalog=catalog,
