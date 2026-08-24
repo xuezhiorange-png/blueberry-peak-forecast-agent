@@ -15,6 +15,7 @@ from backend.app.s3_daily_rowset.binding import (
     expected_catalog_binding_lineage,
 )
 from backend.app.s3_daily_rowset.registry import (
+    ALLOWED_ALIGNMENT_SOURCE_KINDS,
     FORBIDDEN_CATALOG_SOURCE_KINDS,
     HORIZON_H7_SUCCESS_FIXTURE_HASH,
     REGISTRY_SOURCE_STATUS_UNBOUND,
@@ -201,13 +202,21 @@ def _default_forecast_artifact_port() -> IncumbentForecastArtifactPort:
     return IncumbentForecastArtifactAdapter()
 
 
+def _default_s2_identity_alignment_port() -> S2IdentityAlignmentPort:
+    from backend.app.s3_daily_rowset.s2_identity_alignment import S2IdentityAlignmentAdapter
+
+    return S2IdentityAlignmentAdapter()
+
+
 @dataclass
 class EvaluationInstanceCatalogArtifactProductionService:
     dataset_identity: DatasetIdentity
     forecast_port: IncumbentForecastArtifactPort = field(
         default_factory=_default_forecast_artifact_port
     )
-    alignment_port: S2IdentityAlignmentPort = field(default_factory=EmptyS2IdentityAlignmentPort)
+    alignment_port: S2IdentityAlignmentPort = field(
+        default_factory=_default_s2_identity_alignment_port
+    )
 
     def _validate_dataset_identity(self) -> None:
         identity = self.dataset_identity
@@ -313,6 +322,18 @@ class EvaluationInstanceCatalogArtifactProductionService:
                     dataset_identity=self.dataset_identity,
                     candidate=None,
                 ).validate(),
+            )
+
+        if alignment_source_kind == CatalogSourceKind.UNBOUND:
+            return _unbound_result(
+                dataset_identity=self.dataset_identity,
+                reason_code=CatalogArtifactReasonCode.FORBIDDEN_CATALOG_SOURCE,
+            )
+
+        if alignment_source_kind not in ALLOWED_ALIGNMENT_SOURCE_KINDS:
+            return _unbound_result(
+                dataset_identity=self.dataset_identity,
+                reason_code=CatalogArtifactReasonCode.FORBIDDEN_CATALOG_SOURCE,
             )
 
         catalog_entries = self._build_catalog_entries(forecast_entries, aligned_identities)
