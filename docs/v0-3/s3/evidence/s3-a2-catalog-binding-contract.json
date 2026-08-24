@@ -1,0 +1,181 @@
+{
+  "artifact_id": "V0_3_S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT",
+  "artifact_version": "v0-3-s3-a2-evaluation-instance-catalog-binding-contract-v1",
+  "task_id": "V03_S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以下一步",
+  "reviewer_role": "COORDINATOR",
+  "user_waived_third_party_review": true,
+  "coordinator_review_counts": true,
+  "coordinator_agent": "https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "docs_only_agent": "https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2",
+  "recorded_at": "2026-08-24T02:50:00Z",
+  "no_step_implies_the_next": true,
+  "contract_only": true,
+  "this_draft_is_not_ready": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "contract_merge_does_not_bind_catalog": true,
+  "audited_repository_sha": "363e0b7b35e6207d3b849501a9f142f941d5ddbf",
+  "audited_repository_tree_sha": "f764e00600c6862056e98343324872388cd1fbcb",
+  "audited_ref": "origin/main",
+  "contract_path": "docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-catalog-binding-contract.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-catalog-binding-contract.json",
+  "upstream_bindings": {
+    "pr310_merge": "363e0b7b35e6207d3b849501a9f142f941d5ddbf",
+    "registry_impl_evidence_json_sha256": "8fe740675e0dbe0ad3a4a4c85a5786262877d12fd2c8e704899bef8ffda2f43e",
+    "auth309_evidence_json_sha256": "9e8031f4efc06084dd4ee783943b76d47bbd31bd54ed1976853cf2e79e5eda2a",
+    "a2_contract_path": "docs/v0-3/s3/s3-evaluation-instance-registry-contract.md",
+    "a2_contract_freeze_git_blob_sha": "189b9b480cc5d1699dd1c0475cbf09802cf741f0",
+    "a2_contract_freeze_sha256": "d7c681c0179b834c01f9fa760361ac13fed1040d3a8900a58dab24654488b762",
+    "a2_contract_evidence_json_sha256": "e4b1c86e890de1106c018e130920a0ad4005de631a47c6c34435fcab10148aa4",
+    "a2_contract_live_git_blob_sha": "3ba85e25ed9efb9f6ce841b664f4160849546eaa",
+    "h7_success_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18",
+    "forbidden_sample_h7_fixture_as_catalog": true
+  },
+  "s2_binding": {
+    "contract_path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_row_count": 0,
+    "test_byte_count": 240,
+    "evaluation_partitions": [
+      "TRAIN",
+      "VALIDATION"
+    ],
+    "test_partition_dates": "2026-03-10..2026-04-16",
+    "timezone": "Asia/Shanghai"
+  },
+  "binding_contract": {
+    "evaluation_instance_cell_grain": [
+      "SEASON",
+      "FARM",
+      "SUBFARM",
+      "VARIETY",
+      "MODEL",
+      "FORECAST_CUTOFF",
+      "FORECAST_QUANTILE"
+    ],
+    "verification_unit": "IN_SCOPE_CELL × H",
+    "horizons_days": [
+      7,
+      14,
+      21
+    ],
+    "harvest_business_date_is_not_forecast_cutoff": true,
+    "non_empty_in_scope_set_required": true,
+    "binding_is_not_available_closeout": true,
+    "available_closeout_required_for_live_flip": true,
+    "binding_implementation_requires_separate_user_gate": true
+  },
+  "repository_audit": {
+    "no_bindable_catalog_in_repository": true,
+    "registry_source_status": "NOT_MATERIALIZED_OR_NOT_BOUND",
+    "do_not_invent_registry_hash": true,
+    "candidates": [
+      {
+        "name": "UnboundEvaluationInstanceCatalog",
+        "path": "backend/app/s3_daily_rowset/registry.py",
+        "git_blob_sha": "b5ad9e87dadf9947348d6576cdcb544a58a20b95",
+        "classification": "NOT_BINDABLE"
+      },
+      {
+        "name": "InMemoryEvaluationInstanceCatalog",
+        "path": "backend/app/s3_daily_rowset/registry.py",
+        "git_blob_sha": "b5ad9e87dadf9947348d6576cdcb544a58a20b95",
+        "classification": "NOT_BINDABLE"
+      },
+      {
+        "name": "S3BindingRow",
+        "path": "backend/app/forecast_quality/schemas.py",
+        "git_blob_sha": "ab15ecf01762b3a0940115438311bcb4fdb2af0b",
+        "classification": "FORBIDDEN_SUBSTITUTION"
+      },
+      {
+        "name": "S2_harvest_grain_contract",
+        "path": "docs/v0-3/s2/s2-materialized-dataset-contract.md",
+        "git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+        "classification": "FORBIDDEN_SUBSTITUTION"
+      },
+      {
+        "name": "H7_rowset_fixture_hash",
+        "reference": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18",
+        "classification": "FORBIDDEN_SUBSTITUTION"
+      }
+    ]
+  },
+  "registry_state": {
+    "s3_a2_evaluation_instance_catalog_binding_contract_authorized": true,
+    "s3_a2_evaluation_instance_registry_contract_authorized": true,
+    "s3_a2_evaluation_instance_registry_implementation_authorized": true,
+    "evaluation_instance_registry_implemented": true,
+    "evaluation_instance_registry_available": false,
+    "registry_source_status": "NOT_MATERIALIZED_OR_NOT_BOUND"
+  },
+  "completeness_state": {
+    "current_s3_daily_rowset_completeness_verified": false,
+    "completeness_verification_status": "NOT_PERFORMED",
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "emit_no_complete_nday_window_forbidden": true,
+    "emitted_no_complete_nday_window": false
+  },
+  "authorization": {
+    "s3_production_code_mutation_authorized": false,
+    "s3_test_code_mutation_authorized": false,
+    "s3_backtest_execution_authorized": false,
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "s3_b_semantics_verified_claim_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "current_v0_3_s3_complete": false,
+    "v0_3_s4_authorized": false,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "allowlist_expansion_authorized": false,
+    "source_002_row_level_read": false,
+    "sustained_peak_pass_forbidden_until_owner_decision": true,
+    "p0_sustained_peak_window_conflict": "UNRESOLVED"
+  },
+  "registry_flip": {
+    "field": "S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_AUTHORIZED",
+    "before": false,
+    "after": true,
+    "locations": [
+      "docs/v0-3/development-plan.md §4.4",
+      "docs/v0-3/s3/s3-daily-rowset-amendment.md §18 pointer",
+      "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md §11 live pointer",
+      "docs/v0-3/s3/s3-evaluation-instance-registry-contract.md §10 pointer"
+    ]
+  },
+  "frozen_snapshot_authority": {
+    "live_current_fields_authority": "docs/v0-3/development-plan.md",
+    "a2_contract_freeze_sections_1_to_7_not_rewritten": true,
+    "s1_s3_b_s3_c0_contract_snapshots_not_mutated": true
+  },
+  "this_task_mutations": {
+    "production_code": false,
+    "test_code": false,
+    "migration": false,
+    "allowlist": false,
+    "s2_contract": false,
+    "v0_2_metric_contract": false,
+    "s1_contract": false,
+    "s3_b_contract": false,
+    "s3_c0_contract": false,
+    "development_plan": true,
+    "s3_a_amendment_pointer": true,
+    "a2_contract_pointer": true,
+    "p0_contract_live_pointer": true
+  },
+  "evidence_json_sha256": "1122134e91610eb88c5521fce3ffe76d4e7e9a05ff02b8c719cf8459daac2a4b"
+}
