@@ -430,3 +430,28 @@ IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
 Live `S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED` authority:
 `docs/v0-3/development-plan.md` §4.4 and the implementation authorization package above.
 This pointer does not rewrite contract freeze rules in §§1–8.
+
+## 13. S2 identity alignment implementation authorization amendment R1 pointer
+
+~~~text
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTH_AMENDMENT_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-authorization-amendment-r1.md
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTH_AMENDMENT_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-s2-identity-alignment-authorization-amendment-r1.json
+EVIDENCE_JSON_SHA256=c4d26633413dcde42b989684c1eb372443f5598c210d6a920dc51e50bc4093a4
+ORIGINAL_AUTH_EVIDENCE_JSON_SHA256=1d1b213e6a31e899ce777440f1f1dce63be66006520e417775cdb330d335221d
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED=false
+BOUND_FIXTURE_IS_NOT_LIVE_ALIGNMENT_AUTHORITY=true
+TEST_ONLY_EXPLICIT_INJECTION_BOUND_FIXTURE_PATH_PRESERVED=true
+FIXTURE_PATH_OUTCOME=FIXTURE_ONLY_CATALOG_NOT_BINDABLE
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_STATE_FLIPS=true
+AMENDMENT_ONLY=true
+AMENDMENT_MERGE_DOES_NOT_IMPLEMENT_ALIGNMENT_ADAPTER=true
+AMENDMENT_MERGE_DOES_NOT_FLIP_LIVE_FLAGS=true
+~~~
+
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED` semantics are amended
+by this R1 package only within the test-only structural `BOUND_FIXTURE` scope.
+The original authorization workpaper and evidence JSON are not rewritten. This
+pointer does not rewrite contract freeze rules in §§1–8.
