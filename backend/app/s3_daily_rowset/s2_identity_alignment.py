@@ -32,6 +32,7 @@ FORBIDDEN_EMPTY_ALIGNMENT_EVIDENCE_HASHES = frozenset(
     }
 )
 
+
 class ForbiddenS2IdentityAlignmentError(ValueError):
     """Raised when S2 identity alignment evidence is forbidden."""
 
