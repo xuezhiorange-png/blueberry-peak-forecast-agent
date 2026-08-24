@@ -577,6 +577,15 @@ an adapter, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, or authorize backtest execution.
 P0 §4.2 freeze snapshots remain historical.
 
+Live `DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-adapter-r1.md`.
+S2 identity alignment adapter R1 delivers the in-memory live adapter only; it does not
+write live S2 alignment facts into the repository, flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
