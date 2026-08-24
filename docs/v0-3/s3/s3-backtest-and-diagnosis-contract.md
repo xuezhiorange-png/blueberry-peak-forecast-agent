@@ -565,6 +565,18 @@ forecast artifacts, produce catalogs, bind catalogs, flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, or authorize backtest execution.
 P0 §4.2 freeze snapshots remain historical.
 
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED` semantics are amended
+by `docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-authorization-amendment-r1.md`
+and `docs/v0-3/s3/evidence/s3-a2-s2-identity-alignment-authorization-amendment-r1.json`
+(`EVIDENCE_JSON_SHA256=c4d26633413dcde42b989684c1eb372443f5598c210d6a920dc51e50bc4093a4`)
+only within the test-only structural `BOUND_FIXTURE` scope. `BOUND_FIXTURE` is not
+live alignment authority; live alignment may use only
+`SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT`. The original authorization
+workpaper and evidence JSON are not rewritten. This amendment does not implement
+an adapter, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, or authorize backtest execution.
+P0 §4.2 freeze snapshots remain historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
