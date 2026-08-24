@@ -1,0 +1,323 @@
+# V0.3-S3-A2 Evaluation Instance Catalog Binding Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-evaluation-instance-catalog-binding-contract-v1
+TASK_ID=V03_S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=EVALUATION_INSTANCE_CATALOG_BINDING_FOR_REGISTRY_AVAILABILITY
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=363e0b7b35e6207d3b849501a9f142f941d5ddbf
+BASE_MAIN_TREE_SHA=f764e00600c6862056e98343324872388cd1fbcb
+BASE_REF=origin/main
+PARENT_A2_CONTRACT_ID=V0_3_S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT
+PARENT_A2_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-registry-contract.md
+PARENT_A2_CONTRACT_FREEZE_GIT_BLOB_SHA=189b9b480cc5d1699dd1c0475cbf09802cf741f0
+PARENT_A2_CONTRACT_FREEZE_SHA256=d7c681c0179b834c01f9fa760361ac13fed1040d3a8900a58dab24654488b762
+PARENT_A2_CONTRACT_LIVE_GIT_BLOB_SHA=3ba85e25ed9efb9f6ce841b664f4160849546eaa
+PARENT_AMENDMENT_ID=V0_3_S3_DAILY_ROWSET_AMENDMENT
+PARENT_AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_AGENT=https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794
+DOCS_ONLY_AGENT=https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+REGISTRY_SOURCE_STATUS=NOT_MATERIALIZED_OR_NOT_BOUND
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+CURRENT_V0_3_S3_COMPLETE=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+SOURCE_002_ROW_LEVEL_READ=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes **how** a future versioned evaluation instance master
+catalog may be bound to `EvaluationInstanceRegistryService`. It defines bindable
+catalog requirements, forbidden substitutions, repository audit classification,
+and the boundary between contract authorization and live `AVAILABLE` closeout.
+
+This is a governance contract only. It does **not** bind a catalog, enumerate
+cells, implement a catalog binder, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`,
+run completeness verification, flip `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`,
+execute backtests, or claim S3-B semantics verified.
+
+PR #310 delivered `EvaluationInstanceRegistryService` with default unbound
+fail-closed binding. A2 §4.1 already recorded that the repository has no
+bindable, versioned incumbent master catalog. This contract defines binding
+rules for a future artifact; it does not create one.
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 S2 materialized dataset (accepted)
+
+~~~text
+S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TIMEZONE=Asia/Shanghai
+~~~
+
+### 1.2 A2 registry contract (frozen §§1–7; not rewritten)
+
+~~~text
+A2_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-registry-contract.md
+A2_CONTRACT_FREEZE_GIT_BLOB_SHA=189b9b480cc5d1699dd1c0475cbf09802cf741f0
+A2_CONTRACT_FREEZE_SHA256=d7c681c0179b834c01f9fa760361ac13fed1040d3a8900a58dab24654488b762
+A2_CONTRACT_EVIDENCE_JSON_SHA256=e4b1c86e890de1106c018e130920a0ad4005de631a47c6c34435fcab10148aa4
+EVALUATION_INSTANCE_CELL_GRAIN=SEASON,FARM,SUBFARM,VARIETY,MODEL,FORECAST_CUTOFF,FORECAST_QUANTILE
+VERIFICATION_UNIT=IN_SCOPE_CELL × H
+HORIZONS_DAYS=7,14,21
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+CELL_LEVEL_EXCLUDED_NO_WINDOW=true
+~~~
+
+Live `EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true` is maintained in
+`docs/v0-3/development-plan.md` §4.4. A2 §4.1 freeze snapshot
+`EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=false` remains historical.
+
+### 1.3 Input authorities (distinct; do not conflate)
+
+~~~text
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+V0_3_S3_VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+V0_2_S3_INPUT_AUTHORITY_HISTORICAL=S2_IMMUTABLE_BACKTEST_BINDING
+DO_NOT_CONFLATE_V0_2_S2_IMMUTABLE_BACKTEST_BINDING_WITH_V0_3_S2_DATASET=true
+SOURCE_002_ROW_LEVEL_READ=false
+FORBIDDEN_PIT_TABLE_AS_SOURCE_002_PRIMARY=true
+FORBIDDEN_OLD_WINNER_TABLE_AS_SOURCE_002_PRIMARY=true
+~~~
+
+### 1.4 Upstream implementation references (not rewritten)
+
+~~~text
+PR310_MERGE=363e0b7b35e6207d3b849501a9f142f941d5ddbf
+REGISTRY_IMPL_EVIDENCE_JSON_SHA256=8fe740675e0dbe0ad3a4a4c85a5786262877d12fd2c8e704899bef8ffda2f43e
+AUTH309_EVIDENCE_JSON_SHA256=9e8031f4efc06084dd4ee783943b76d47bbd31bd54ed1976853cf2e79e5eda2a
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+FORBIDDEN_SAMPLE_H7_FIXTURE_AS_CATALOG=true
+~~~
+
+## 2. Binding purpose and current repository state
+
+### 2.1 What binding means
+
+Binding attaches a **versioned, non-empty** evaluation instance master catalog
+to the registry service at amendment cell grain. Binding is necessary but not
+sufficient for `EVALUATION_INSTANCE_REGISTRY_AVAILABLE=true`. Live AVAILABLE
+requires a separately gated coordinator-reviewed closeout after binding
+acceptance.
+
+~~~text
+BINDING_IS_NOT_AVAILABLE_CLOSEOUT=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+BINDING_IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+### 2.2 Current repository audit (read-only at contract freeze)
+
+Audited at `BASE_MAIN_SHA=363e0b7b35e6207d3b849501a9f142f941d5ddbf`:
+
+~~~text
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+REGISTRY_SOURCE_STATUS=NOT_MATERIALIZED_OR_NOT_BOUND
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+DO_NOT_INVENT_REGISTRY_HASH=true
+~~~
+
+No versioned incumbent evaluation instance master catalog artifact was found.
+The following candidates were examined and classified. None are bindable live
+catalogs:
+
+| Candidate | Path / reference | Classification |
+|---|---|---|
+| Default unbound registry port | `backend/app/s3_daily_rowset/registry.py` (`UnboundEvaluationInstanceCatalog`) | NOT_BINDABLE — service default; zero cells |
+| Test fixture catalog port | `backend/app/s3_daily_rowset/registry.py` (`InMemoryEvaluationInstanceCatalog`) | NOT_BINDABLE — test injection only |
+| V0.2 sparse binding rows | `backend/app/forecast_quality/schemas.py` (`S3BindingRow`) | FORBIDDEN_SUBSTITUTION |
+| S2 harvest-grain materialized rows | `docs/v0-3/s2/s2-materialized-dataset-contract.md` canonical grain | FORBIDDEN_SUBSTITUTION |
+| H=7 single-window rowset identity | hash `8e74d6be…` | FORBIDDEN_SUBSTITUTION |
+
+This contract records audit classification only. It does not enumerate cells,
+cutoffs, farm lists, or catalog identity hashes.
+
+## 3. Bindable catalog requirements
+
+A bindable catalog, if it ever exists, MUST provide all of the following:
+
+1. **Versioned registry identity** — content hash or manifest hash of the
+   catalog artifact itself (not an empty-catalog hash; not a rowset window hash).
+2. **Authoritative source lineage** — incumbent model replay authority plus
+   accepted S2 binding to `DATASET_ID=source-002` and `DATASET_VERSION=e5-live-v1`
+   over TRAIN and VALIDATION only.
+3. **Explicit in-scope cell enumeration** at amendment grain
+   `SEASON,FARM,SUBFARM,VARIETY,MODEL,FORECAST_CUTOFF,FORECAST_QUANTILE`.
+4. **Partition label per cell** — `TRAIN` or `VALIDATION` only.
+5. **Non-empty in-scope set** after applying A2 inclusion and exclusion rules.
+
+~~~text
+NON_EMPTY_IN_SCOPE_SET_REQUIRED=true
+EMPTY_CATALOG_NOT_BINDABLE=true
+UNBOUND_CATALOG_NOT_BINDABLE=true
+FIXTURE_ONLY_CATALOG_NOT_BINDABLE=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+WINDOW_OR_HORIZON_REALIGNMENT_FORBIDDEN=true
+~~~
+
+Empty, unbound, fixture-only, or service-default catalogs are not bindable live
+catalogs and must not flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
+
+## 4. Forbidden catalog substitutions
+
+The following are **not bindable**, even if discovered in the repository:
+
+~~~text
+FORBIDDEN_INVENT_CUTOFFS=true
+FORBIDDEN_INVENT_CELL_ROWS=true
+FORBIDDEN_HANDWRITTEN_FARM_LISTS=true
+FORBIDDEN_HANDWRITTEN_CUTOFF_LISTS=true
+FORBIDDEN_HANDWRITTEN_CELL_COUNTS=true
+FORBIDDEN_S2_HARVEST_GRAIN_CATALOG_AS_EVALUATION_INSTANCE_REGISTRY=true
+FORBIDDEN_V0_2_S3_BINDING_ROWS_AS_V0_3_COMPLETE_REGISTRY=true
+FORBIDDEN_FARM_PICK_DAY_ENUMERATION_AS_FORECAST_CUTOFF=true
+FORBIDDEN_SAMPLE_H7_FIXTURE_AS_CATALOG=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY=true
+FORBIDDEN_PIT_TABLE_AS_SOURCE_002_PRIMARY=true
+FORBIDDEN_OLD_WINNER_TABLE_AS_SOURCE_002_PRIMARY=true
+~~~
+
+Additional binding rejections inherited from A2:
+
+~~~text
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+DEFAULT_SEASON_MONTH_SCOPE=1-4
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+COMPLETE_SEASON_IS_NOT_DATASET_COMPLETENESS_PASS=true
+COMPLETE_SEASON_TEST_INTERSECTION_REMAINS_REJECT=true
+~~~
+
+Any catalog row, window, or partition intersecting the sealed TEST partition
+dates is rejected. `COMPLETE_SEASON` coverage must not be treated as dataset
+completeness PASS.
+
+## 5. AVAILABLE necessary conditions (not claimed here)
+
+This contract defines prerequisites for future binding acceptance. **This PR
+does not claim any condition is satisfied.**
+
+### 5.1 Necessary conditions before AVAILABLE closeout
+
+~~~text
+REQUIREMENT_1=VERSIONED_BINDABLE_CATALOG_ARTIFACT_ACCEPTED
+REQUIREMENT_2=NON_EMPTY_IN_SCOPE_CELL_SET_AT_AMENDMENT_GRAIN
+REQUIREMENT_3=LINEAGE_MATCHES_INCUMBENT_PLUS_SOURCE_002_E5_LIVE_V1_TRAIN_VAL
+REQUIREMENT_4=NO_FORBIDDEN_SUBSTITUTION_OR_HANDWRITTEN_ENUMERATION
+REQUIREMENT_5=COORDINATOR_REVIEWED_AVAILABLE_CLOSEOUT
+REQUIREMENT_6=EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+~~~
+
+Concretely:
+
+1. A versioned catalog artifact is bound and accepted (not merely authorized).
+2. In-scope cells are explicit at amendment grain with TRAIN/VALIDATION labels.
+3. Lineage matches incumbent replay + accepted S2 TRAIN/VALIDATION binding.
+4. No forbidden substitution source was used to construct the catalog.
+5. Coordinator-reviewed closeout flips `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
+6. Registry service implementation exists (`EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true`).
+
+Binding contract merge alone satisfies none of the above closeout steps.
+
+### 5.2 What this contract does not authorize
+
+~~~text
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+BINDING_IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_COMPLETENESS_VERIFIED=true
+~~~
+
+While `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, metric blockers must
+remain `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. Emitting
+`NO_COMPLETE_NDAY_WINDOW` before completeness verification closeout is forbidden.
+
+## 6. Subtask boundaries
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_COMPLETENESS_VERIFICATION_SERVICE_IMPLEMENTED=true
+S3_B_AUTHORIZED=false
+S3_C_AUTHORIZED=false
+S3_D_AUTHORIZED=false
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+next_subtask_not_implied=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+| Subtask | Status after catalog binding contract merge |
+|---|---|
+| S3-A2 registry contract | frozen (A2 §§1–7 historical) |
+| S3-A2 registry R1 implementation | merged (#310) |
+| S3-A2 catalog binding contract | frozen (this document) |
+| Catalog binding implementation | not authorized |
+| Registry AVAILABLE closeout | not performed |
+| Dataset completeness VERIFIED | not performed |
+| S3-B quantile semantics | not authorized |
+| S3-C backtest execution | not authorized |
+
+## 7. LLM and deterministic service boundary
+
+~~~text
+LLM_MUST_NOT_INVENT_REGISTRY_ROWS=true
+LLM_MUST_NOT_INVENT_CATALOG_HASHES=true
+LLM_MUST_NOT_INVENT_CELL_COUNTS=true
+LLM_MUST_NOT_INVENT_CUTOFF_LISTS=true
+ALL_CATALOG_CONTENT_FROM_VERSIONED_ARTIFACT=true
+~~~
+
+LLM agents organize explanation and invoke tools. Catalog contents, binding
+identity hashes, cell counts, and availability flags must come from versioned
+artifacts and coordinator-reviewed evidence only.

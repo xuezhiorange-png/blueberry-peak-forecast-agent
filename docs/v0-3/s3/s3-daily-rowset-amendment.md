@@ -716,3 +716,23 @@ Live `EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED` authority:
 `docs/v0-3/development-plan.md` §4.4 and this implementation package.
 `EVALUATION_INSTANCE_REGISTRY_AVAILABLE` may flip only in a future
 coordinator-reviewed registry closeout, not in R1 implementation.
+
+## 18. Evaluation instance catalog binding contract pointer
+
+~~~text
+S3_A2_CATALOG_BINDING_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md
+S3_A2_CATALOG_BINDING_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-catalog-binding-contract.md
+S3_A2_CATALOG_BINDING_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-catalog-binding-contract.json
+EVIDENCE_JSON_SHA256=1122134e91610eb88c5521fce3ffe76d4e7e9a05ff02b8c719cf8459daac2a4b
+S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+BINDING_IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this catalog binding contract package.
+This contract defines how a future catalog may be bound; it does not bind one or
+flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
