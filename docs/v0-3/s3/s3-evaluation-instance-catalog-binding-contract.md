@@ -321,3 +321,22 @@ ALL_CATALOG_CONTENT_FROM_VERSIONED_ARTIFACT=true
 LLM agents organize explanation and invoke tools. Catalog contents, binding
 identity hashes, cell counts, and availability flags must come from versioned
 artifacts and coordinator-reviewed evidence only.
+
+## 8. Catalog binding implementation authorization pointer
+
+~~~text
+S3_A2_CATALOG_BINDING_IMPLEMENTATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-catalog-binding-authorization.md
+S3_A2_CATALOG_BINDING_IMPLEMENTATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-catalog-binding-authorization.json
+EVIDENCE_JSON_SHA256=22b8e4bd0c8d530008afd42b3f9213f4c47b4870b5709576ea7993725cf9f379
+S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_IMPLEMENTATION_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+AUTHORIZATION_MERGE_DOES_NOT_BIND_CATALOG=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_IMPLEMENTATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and the authorization package above.
+This pointer does not rewrite contract freeze rules in §§1–7.
