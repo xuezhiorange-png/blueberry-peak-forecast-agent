@@ -480,3 +480,23 @@ CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
 Live `S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT_AUTHORIZED` authority:
 `docs/v0-3/development-plan.md` §4.4 and this catalog artifact contract package.
 This pointer does not rewrite A2 contract freeze rules in §§1–7.
+
+## 14. Catalog artifact production authorization pointer
+
+~~~text
+S3_A2_CATALOG_ARTIFACT_PRODUCTION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-catalog-artifact-authorization.md
+S3_A2_CATALOG_ARTIFACT_PRODUCTION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-catalog-artifact-authorization.json
+EVIDENCE_JSON_SHA256=427dbc4534c9537dbe168e0283644952d82606a481ad0142227dcf7693c9fc09
+S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_PRODUCTION_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+AUTHORIZATION_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+AUTHORIZATION_MERGE_DOES_NOT_BIND_CATALOG=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_PRODUCTION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and the authorization package above.
+This pointer does not rewrite A2 contract freeze rules in §§1–7.
