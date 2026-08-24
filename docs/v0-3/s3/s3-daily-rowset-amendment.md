@@ -736,3 +736,26 @@ Live `S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_CONTRACT_AUTHORIZED` authority:
 `docs/v0-3/development-plan.md` §4.4 and this catalog binding contract package.
 This contract defines how a future catalog may be bound; it does not bind one or
 flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
+
+## 19. Evaluation instance catalog binding implementation authorization pointer
+
+~~~text
+S3_A2_CATALOG_BINDING_IMPLEMENTATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-catalog-binding-authorization.md
+S3_A2_CATALOG_BINDING_IMPLEMENTATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-catalog-binding-authorization.json
+EVIDENCE_JSON_SHA256=22b8e4bd0c8d530008afd42b3f9213f4c47b4870b5709576ea7993725cf9f379
+S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_IMPLEMENTATION_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+AUTHORIZATION_MERGE_DOES_NOT_BIND_CATALOG=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_IMPLEMENTATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this authorization package.
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE` may flip only in a future
+coordinator-reviewed registry closeout, not in this authorization grant.
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED` may flip only after dataset-wide
+verification closeout.
