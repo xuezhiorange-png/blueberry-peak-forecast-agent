@@ -364,3 +364,21 @@ LLM_MUST_NOT_INVENT_PREDICATE_OUTCOMES=true
 LLM agents organize explanation and invoke tools. Registry contents, cell counts,
 predicate outcomes, and completeness flags must come from deterministic services
 and coordinator-reviewed evidence only.
+
+## 8. Implementation authorization pointer
+
+~~~text
+S3_A2_REGISTRY_IMPLEMENTATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-registry-implementation-authorization.md
+S3_A2_REGISTRY_IMPLEMENTATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-registry-implementation-authorization.json
+EVIDENCE_JSON_SHA256=9e8031f4efc06084dd4ee783943b76d47bbd31bd54ed1976853cf2e79e5eda2a
+S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+AUTHORIZATION_MERGE_DOES_NOT_EXECUTE_REGISTRY=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and the authorization package above.
+This pointer does not rewrite contract freeze rules in §§1–7.
