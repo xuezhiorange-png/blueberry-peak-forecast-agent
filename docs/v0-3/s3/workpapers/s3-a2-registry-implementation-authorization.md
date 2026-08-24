@@ -1,0 +1,216 @@
+# V0.3-S3-A2 evaluation instance registry implementation authorization
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZATION
+ARTIFACT_VERSION=s3-a2-registry-implementation-authorization-v1
+TASK_ID=V03_S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZATION_R1
+TASK_CLASS=DOCS_ONLY_AUTHORIZATION_ISSUANCE
+AUTHORIZATION_SCOPE=S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_GRANT_ONLY
+SLICE=V0.3-S3
+USER_GATE=可以下一步
+REVIEWER_ROLE=COORDINATOR
+USER_WAIVED_THIRD_PARTY_REVIEW=true
+COORDINATOR_REVIEW_COUNTS=true
+COORDINATOR_AGENT=https://cursor.com/agents/bc-01a02307-c032-7da6-8a02-00d9b3518794
+DOCS_ONLY_AGENT=https://cursor.com/agents/bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2
+BASE_REF=origin/main
+BASE_MAIN_SHA=cc2bed262f960494bd6439d43cde3549b6f1c706
+BASE_MAIN_TREE_SHA=4b81987a81a24eac174dc47ce8316747f910adcc
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-registry-implementation-authorization.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-registry-implementation-authorization.json
+EVIDENCE_JSON_SHA256=9e8031f4efc06084dd4ee783943b76d47bbd31bd54ed1976853cf2e79e5eda2a
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+AUTHORIZATION_MERGE_DOES_NOT_EXECUTE_REGISTRY=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+The user authorized issuance of the S3-A2 evaluation instance registry
+implementation grant after contract freeze #308. This document records what a
+**later** deterministic registry service may do when the user again says
+「可以实施」. This PR does not implement the registry, enumerate cells, run
+`CompletenessVerifier`, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, authorize backtests, or claim
+S3-B semantics verified.
+
+Analogous to #304 materialization authorization and #306 completeness verification
+authorization: grant only; no backend code in this PR.
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+~~~
+
+## 1. Upstream bindings (reference only)
+
+~~~text
+PR308_MERGE=cc2bed262f960494bd6439d43cde3549b6f1c706
+A2_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-registry-contract.md
+A2_CONTRACT_GIT_BLOB_SHA=189b9b480cc5d1699dd1c0475cbf09802cf741f0
+A2_CONTRACT_SHA256=d7c681c0179b834c01f9fa760361ac13fed1040d3a8900a58dab24654488b762
+A2_EVIDENCE_JSON_SHA256=e4b1c86e890de1106c018e130920a0ad4005de631a47c6c34435fcab10148aa4
+PR307_MERGE=f05f6ed71b82188bea4dbbf7b892e5c99dc380af
+VERIFIER_EVIDENCE_JSON_SHA256=78912e668dfd72ae08b94c86851a3dd812479527c6881659f0c5d630c4134358
+AUTH306_EVIDENCE_JSON_SHA256=783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc
+MATERIALIZER_EVIDENCE_JSON_SHA256=4eefdfbaee5be91c594d5f0203270ce52a42ec71538659c5484d436a3eb7e65c
+AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
+AMENDMENT_GIT_BLOB_SHA=ef7ce9585e3ee03ff6fd80f927460d8b9e402ed7
+AMENDMENT_SHA256=275e72e3bd48f06ac5d1e15e27aee3beb3a2eeb4baa01e10e5c88e6ca156ba9d
+P0_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+P0_GIT_BLOB_SHA=638b5c0a126c666482bacb59b55d6218e3392799
+P0_SHA256=a566cf1d7fd77636f147828a9ffc3bac321743d9321aff0c71a301a8e2f0a3d6
+P0_EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+FORBIDDEN_SAMPLE_H7_FIXTURE_AS_CATALOG=true
+S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_COMPLETENESS_VERIFICATION_SERVICE_IMPLEMENTED=true
+~~~
+
+Evidence JSON self-hashes above are binding references, not whole-file
+`sha256sum` values. Archived workpaper/evidence bodies from #303–#308 are
+referenced only; not rewritten by this authorization grant.
+
+## 2. Inherited S2 and input authority (not reopened)
+
+~~~text
+S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+Q2C_TARGET=OBSERVED_FARM_PICK_QUANTITY
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+V0_3_S3_VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+SOURCE_002_ROW_LEVEL_READ=false
+REGISTRY_SOURCE_STATUS=NOT_MATERIALIZED_OR_NOT_BOUND
+~~~
+
+## 3. What this authorization grants
+
+A later deterministic registry implementation may, under a separate user
+「可以实施」 gate, deliver an in-memory registry service (PEP 420 namespace;
+no production `__init__.py`; no Alembic) that:
+
+~~~text
+EVALUATION_INSTANCE_CELL_GRAIN=SEASON,FARM,SUBFARM,VARIETY,MODEL,FORECAST_CUTOFF,FORECAST_QUANTILE
+REGISTRY_PARTITION_SCOPE=TRAIN,VALIDATION
+PERSISTENCE=IN_MEMORY_SERVICE_ONLY
+DETERMINISTIC_AND_REPRODUCIBLE=true
+~~~
+
+The service must expose catalog interfaces at amendment cell grain. When no
+bindable, versioned incumbent master catalog exists, it must fail closed:
+
+~~~text
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+REGISTRY_SOURCE_STATUS=NOT_MATERIALIZED_OR_NOT_BOUND
+FORBIDDEN_INVENT_CUTOFFS=true
+FORBIDDEN_INVENT_CELL_ROWS=true
+FORBIDDEN_SAMPLE_H7_FIXTURE_AS_CATALOG=true
+~~~
+
+Tests may use injected empty or fixture catalogs. Fixture catalogs must not be
+written as dataset-level `EVALUATION_INSTANCE_REGISTRY_AVAILABLE=true` or
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=true`.
+
+## 4. Fail-closed conditions (must not be reported as PASS)
+
+Future implementation must fail closed when:
+
+- hand-written farm lists, cutoff lists, cell counts, or registry hashes are used
+- S2 harvest grain, farm pick-day enumeration, or V0.2 `S3BindingRow` sparse rows
+  substitute for the V0.3 complete evaluation instance catalog
+- H=7 fixture hash `8e74d6be…` is cited as catalog or dataset completeness evidence
+- raw SOURCE_002, xls, Sheets, S1 JSON, PIT, or old-winner tables are used as
+  SOURCE_002 primary input
+- LLM invents registry rows, cell counts, predicate outcomes, or identity hashes
+
+~~~text
+IMPLEMENTATION_PR_MAY_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_COMPLETENESS_VERIFIED=true
+REGISTRY_AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+COMPLETENESS_VERIFIED_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+EMIT_NO_COMPLETE_NDAY_WINDOW_FORBIDDEN=true
+~~~
+
+## 5. What remains forbidden / not authorized
+
+~~~text
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+CURRENT_S3_DAILY_ROWSET_CONTRACT_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_METRIC_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+CURRENT_V0_3_S3_COMPLETE=false
+V0_3_S4_AUTHORIZED=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+P0_SUSTAINED_PEAK_WINDOW_CONFLICT=UNRESOLVED
+SUSTAINED_PEAK_PASS_FORBIDDEN_UNTIL_OWNER_DECISION=true
+~~~
+
+While `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, metric blockers
+must remain `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`. Emitting
+`NO_COMPLETE_NDAY_WINDOW` before completeness verification closeout is forbidden.
+
+Frozen snapshots in S1, S3-B, and S3-C0 contracts that still record blocked
+states are historical. Live authority is `docs/v0-3/development-plan.md` §4.4.
+
+## 6. Registry flip manifest
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §16 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` implementation authorization pointer
+
+Unchanged live flags retained:
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_COMPLETENESS_VERIFICATION_SERVICE_IMPLEMENTED=true
+~~~
+
+## 7. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+AUTHORIZATION_MERGE_DOES_NOT_EXECUTE_REGISTRY=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
