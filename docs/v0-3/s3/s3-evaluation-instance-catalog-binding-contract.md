@@ -340,3 +340,23 @@ IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
 Live `S3_A2_EVALUATION_INSTANCE_CATALOG_BINDING_IMPLEMENTATION_AUTHORIZED` authority:
 `docs/v0-3/development-plan.md` §4.4 and the authorization package above.
 This pointer does not rewrite contract freeze rules in §§1–7.
+
+## 9. Catalog binding implementation pointer
+
+~~~text
+S3_A2_CATALOG_BINDING_IMPLEMENTATION_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-catalog-binding-implementation-r1.md
+S3_A2_CATALOG_BINDING_IMPLEMENTATION_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-catalog-binding-implementation-r1.json
+EVIDENCE_JSON_SHA256=d86ad33cba6299a1b58a28598d82a90b20b53fb73700e037919698e89ef24ae5
+DETERMINISTIC_EVALUATION_INSTANCE_CATALOG_BINDING_SERVICE_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+IMPLEMENTATION_R1_DOES_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_R1_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
+~~~
+
+Live `DETERMINISTIC_EVALUATION_INSTANCE_CATALOG_BINDING_SERVICE_IMPLEMENTED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this implementation package.
+R1 delivers the in-memory structural validator only; it does not bind a live
+catalog or flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
