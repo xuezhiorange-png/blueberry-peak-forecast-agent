@@ -779,3 +779,25 @@ Live `DETERMINISTIC_EVALUATION_INSTANCE_CATALOG_BINDING_SERVICE_IMPLEMENTED` aut
 `docs/v0-3/development-plan.md` §4.4 and this implementation package.
 R1 delivers the in-memory structural validator only; it does not bind a live
 catalog or flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
+
+## 21. Evaluation instance catalog artifact contract pointer
+
+~~~text
+S3_A2_CATALOG_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md
+S3_A2_CATALOG_ARTIFACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-catalog-artifact-contract.md
+S3_A2_CATALOG_ARTIFACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-catalog-artifact-contract.json
+EVIDENCE_JSON_SHA256=501dcf1034e615f60ca9b76b79cbbe8f9d352c3ea85abf4380d763842ddd4ca6
+S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_CATALOG_ARTIFACT_CONTRACT_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this catalog artifact contract package.
+This contract defines how a future catalog artifact may be produced; it does not
+produce one or flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
