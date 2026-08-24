@@ -1,0 +1,61 @@
+{
+  "artifact_id": "V0_3_S3_A2_EVALUATION_INSTANCE_REGISTRY_R1",
+  "artifact_version": "s3-a2-registry-implementation-r1",
+  "task_id": "V03_S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_A2_EVALUATION_INSTANCE_REGISTRY_IMPLEMENTATION_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以实施",
+  "recorded_at": "2026-08-24T01:30:00Z",
+  "no_step_implies_the_next": true,
+  "this_draft_is_not_ready": true,
+  "audited_repository_sha": "33a236873851d4b95b4e03c064f8a6185ee1e19f",
+  "audited_repository_tree_sha": "3d1b6e0ca0b3fef0e74a4a23218088b1a9d6f0b2",
+  "authorization_evidence": {
+    "pr_number": 309,
+    "merge_commit": "33a236873851d4b95b4e03c064f8a6185ee1e19f",
+    "auth_evidence_json_sha256": "9e8031f4efc06084dd4ee783943b76d47bbd31bd54ed1976853cf2e79e5eda2a",
+    "s3_a2_evaluation_instance_registry_implementation_authorized": true
+  },
+  "s2_binding": {
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "contract_sha256": "52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785"
+  },
+  "implementation": {
+    "package_path": "backend/app/s3_daily_rowset/registry.py",
+    "persistence": "IN_MEMORY_SERVICE_ONLY",
+    "evaluation_instance_registry_implemented": true,
+    "default_registry_source_status": "NOT_MATERIALIZED_OR_NOT_BOUND",
+    "verification_unit_expansion": "IN_SCOPE_CELL_x_H_7_14_21",
+    "forbidden_sample_h7_fixture_as_catalog": true,
+    "horizon_h7_success_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18"
+  },
+  "authorization": {
+    "evaluation_instance_registry_implemented": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "s3_backtest_execution_authorized": false,
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "test_evaluation_authorized": false,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": false,
+    "model_change_allowed": false,
+    "sustained_peak_pass_forbidden_until_owner_decision": true,
+    "p0_sustained_peak_window_conflict": "UNRESOLVED",
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "global_state_preserved": {
+    "current_s3_daily_rowset_contract_status": "NOT_AVAILABLE_FROM_CURRENT_S2_BINDING",
+    "current_s3_daily_rowset_reason_code": "COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING",
+    "dataset_completeness_verified": false,
+    "emitted_no_complete_nday_window": false
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-registry-implementation-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-registry-implementation-r1.json",
+  "evidence_json_sha256": "8fe740675e0dbe0ad3a4a4c85a5786262877d12fd2c8e704899bef8ffda2f43e"
+}
