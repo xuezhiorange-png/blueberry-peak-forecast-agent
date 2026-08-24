@@ -16,7 +16,7 @@ BASE_MAIN_SHA=f950f1f7a4ce046f7e10993812d1e6bc9e3238cd
 BASE_MAIN_TREE_SHA=0ae09806742dc2d86fa8b45210f49e00ca8910f7
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-authorization.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-s2-identity-alignment-authorization.json
-EVIDENCE_JSON_SHA256=efb3d9d668f283f00afcb1bc661b6ab6dca10fb48877c00676fefa25e9a32807
+EVIDENCE_JSON_SHA256=1d1b213e6a31e899ce777440f1f1dce63be66006520e417775cdb330d335221d
 NO_STEP_IMPLIES_THE_NEXT=true
 THIS_DRAFT_IS_NOT_READY=true
 READY_AUTHORIZED=false
@@ -108,7 +108,7 @@ user 「可以实施」 gate, deliver an in-memory service (PEP 420 namespace; n
 NEW_BACKEND_APP_S3_DAILY_ROWSET_S2_IDENTITY_ALIGNMENT_PY=true
 NEW_BACKEND_TESTS_S3_DAILY_ROWSET_TEST_S2_IDENTITY_ALIGNMENT_PY=true
 REGISTRY_PY_MAY_ADD_SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT_ONLY=true
-CATALOG_ARTIFACT_PY_MAY_ADD_LAZY_DEFAULT_FACTORY_WIRING_ONLY=true
+CATALOG_ARTIFACT_PY_MAY_ADD_LAZY_DEFAULT_FACTORY_AND_ALIGNMENT_SOURCE_VALIDATION_ONLY=true
 ~~~
 
 Future implementation may add:
@@ -121,10 +121,14 @@ Limited modifications:
 - `backend/app/s3_daily_rowset/registry.py` — add only
   `SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` (not `UNBOUND`, not
   `BOUND_FIXTURE`, not forbidden substitution)
-- `backend/app/s3_daily_rowset/catalog_artifact.py` — lazy `default_factory`
-  wiring to fail-closed adapter only; reject non-empty rows with
-  `UNBOUND`/fixture/forbidden source kinds; do not change existing port method
-  signatures
+- `backend/app/s3_daily_rowset/catalog_artifact.py` — **only**:
+  1. lazy `default_factory` wiring to fail-closed alignment adapter;
+  2. alignment source validation that rejects non-empty `aligned_identities()`
+     when `alignment_source_kind()` is `UNBOUND`, `BOUND_FIXTURE`/test fixture,
+     or any forbidden source kind;
+  3. no changes to existing port method signatures;
+  4. no expansion into catalog production, binding, `AVAILABLE`, or `VERIFIED`
+     closeout logic
 
 ### 3.2 Adapter semantics (future implementation only)
 

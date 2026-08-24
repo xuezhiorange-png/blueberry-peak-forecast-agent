@@ -75,7 +75,7 @@
       "backend/tests/s3_daily_rowset/test_s2_identity_alignment.py"
     ],
     "limited_registry_py_change": "ADD_SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT_ONLY",
-    "limited_catalog_artifact_py_change": "LAZY_DEFAULT_FACTORY_WIRING_ONLY",
+    "limited_catalog_artifact_py_change": "LAZY_DEFAULT_FACTORY_AND_ALIGNMENT_SOURCE_VALIDATION_ONLY",
     "forbidden_repository_scan": true,
     "forbidden_direct_raw_source_002_read": true,
     "forbidden_log_sensitive_full_row_data": true,
@@ -151,5 +151,5 @@
     "binding_contract_pointer": true,
     "a2_registry_contract_pointer": true
   },
-  "evidence_json_sha256": "efb3d9d668f283f00afcb1bc661b6ab6dca10fb48877c00676fefa25e9a32807"
+  "evidence_json_sha256": "1d1b213e6a31e899ce777440f1f1dce63be66006520e417775cdb330d335221d"
 }
