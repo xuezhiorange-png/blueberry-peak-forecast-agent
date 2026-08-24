@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Literal
 
@@ -147,11 +147,9 @@ class InMemoryEvaluationInstanceCatalog(EvaluationInstanceCatalogPort):
 @dataclass
 class EvaluationInstanceRegistryService:
     dataset_identity: DatasetIdentity
-    catalog: EvaluationInstanceCatalogPort | None = None
+    catalog: EvaluationInstanceCatalogPort = field(default_factory=UnboundEvaluationInstanceCatalog)
 
     def __post_init__(self) -> None:
-        if self.catalog is None:
-            self.catalog = UnboundEvaluationInstanceCatalog()
         self._validate_dataset_identity()
         self._validate_catalog_source()
 
@@ -199,14 +197,17 @@ class EvaluationInstanceRegistryService:
     def list_in_scope_cells(self) -> tuple[InScopeRegistryCell, ...]:
         in_scope: list[InScopeRegistryCell] = []
         for entry in self.catalog.entries():
+            if entry.partition == "TEST":
+                continue
             if entry.partition not in EVALUATION_PARTITIONS:
                 continue
-            if not self._cell_is_in_scope(entry.cell, entry.partition):
+            partition: Literal["TRAIN", "VALIDATION"] = entry.partition
+            if not self._cell_is_in_scope(entry.cell, partition):
                 continue
             in_scope.append(
                 InScopeRegistryCell(
                     cell=entry.cell,
-                    partition=entry.partition,
+                    partition=partition,
                 )
             )
         return tuple(in_scope)
@@ -237,7 +238,7 @@ class EvaluationInstanceRegistryService:
     def _cell_is_in_scope(
         self,
         cell: EvaluationInstanceCell,
-        partition: Literal["TRAIN", "VALIDATION", "TEST"],
+        partition: Literal["TRAIN", "VALIDATION"],
     ) -> bool:
         if partition not in EVALUATION_PARTITIONS:
             return False
