@@ -652,3 +652,27 @@ Live `S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED` authority:
 coordinator-reviewed verification closeout, not in this authorization grant.
 Identity sentinels may remain `NOT_MATERIALIZED` until verification output is
 accepted.
+
+## 15. Evaluation instance registry contract pointer
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-registry-contract.md
+S3_A2_EVALUATION_INSTANCE_REGISTRY_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-evaluation-instance-registry.md
+S3_A2_EVALUATION_INSTANCE_REGISTRY_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-evaluation-instance-registry.json
+EVIDENCE_JSON_SHA256=e4b1c86e890de1106c018e130920a0ad4005de631a47c6c34435fcab10148aa4
+S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_AUTHORIZED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_REGISTRY=true
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+Live `S3_A2_EVALUATION_INSTANCE_REGISTRY_CONTRACT_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and this contract package.
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE` may flip only after a separately gated
+registry implementation and coordinator-reviewed closeout.
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED` may flip only after dataset-wide
+verification closeout, not in this contract freeze.
