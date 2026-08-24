@@ -520,3 +520,25 @@ IMPLEMENTATION_MERGE_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
 Live `DETERMINISTIC_EVALUATION_INSTANCE_CATALOG_ARTIFACT_SERVICE_IMPLEMENTED` is
 maintained in `docs/v0-3/development-plan.md` §4.4 and this R1 package.
 This pointer does not rewrite A2 contract freeze rules in §§1–7.
+
+## 16. Incumbent forecast artifact contract pointer
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-contract.md
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-contract.json
+EVIDENCE_JSON_SHA256=8e19a623c6739abeb047768ef642281b86ac7f2d73ea35fcff83ae3165f40376
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_AUTHORIZED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CONTRACT_MERGE_DOES_NOT_PRODUCE_FORECAST_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and the incumbent forecast artifact contract package above.
+This pointer does not rewrite A2 contract freeze rules in §§1–7.
