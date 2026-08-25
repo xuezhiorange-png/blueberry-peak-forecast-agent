@@ -586,6 +586,18 @@ write live S2 alignment facts into the repository, flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
 historical.
 
+Live `S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-accepted-s2-identity-alignment-evidence-contract.md`
+(`EVIDENCE_JSON_SHA256=2bdb9a578592dadd8cf9d15a8071d46f9983e7bb973159d0c3b6ec21b5725add`).
+Accepted S2 identity alignment evidence producer contract defines how a future
+deterministic producer may construct `VersionedAcceptedS2IdentityAlignmentEvidence`
+for injection into `S2IdentityAlignmentAdapter`; it does not implement a producer,
+write live S2 identity facts into the repository, produce catalogs, flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in

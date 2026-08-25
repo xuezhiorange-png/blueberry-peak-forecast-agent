@@ -1,0 +1,374 @@
+# V0.3-S3-A2 Accepted S2 Identity Alignment Evidence Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-accepted-s2-identity-alignment-evidence-contract-v1
+TASK_ID=V03_S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=5b55e2f2323ff79c629aa883d57251bda93d397d
+BASE_MAIN_TREE_SHA=953916de3bab04c86239e291c21f68dd053c6f90
+BASE_REF=origin/main
+PARENT_S2_IDENTITY_ALIGNMENT_CONTRACT_ID=V0_3_S3_A2_S2_IDENTITY_ALIGNMENT_CONTRACT
+PARENT_S2_IDENTITY_ALIGNMENT_CONTRACT_PATH=docs/v0-3/s3/s3-s2-identity-alignment-contract.md
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+REVIEWER_ROLE=COORDINATOR
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_AUTHORIZED=true
+S3_A2_S2_IDENTITY_ALIGNMENT_CONTRACT_AUTHORIZED=true
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_SERVICE_IMPLEMENTED=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+CURRENT_V0_3_S3_COMPLETE=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes **how** a future deterministic producer service may
+construct `VersionedAcceptedS2IdentityAlignmentEvidence` from accepted S2
+`source-002/e5-live-v1` TRAIN/VALIDATION materialized identities for injection
+into the landed `S2IdentityAlignmentAdapter` consumer. It defines producer
+scope, authoritative inputs, evidence row shape, fail-closed rules, and
+boundaries with adjacent slices.
+
+This is a **producer** governance contract only. It is **not** the S2 identity
+alignment adapter consumer contract (`docs/v0-3/s3/s3-s2-identity-alignment-contract.md`
+§§1–10), **not** an implementation authorization, and **not** evidence that
+live S2 identity facts exist in the repository today.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_EVIDENCE_PRODUCER=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_S2_ALIGNMENT_FACTS=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_FORECAST_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 S2 materialized dataset (accepted)
+
+~~~text
+S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+S3_EVALUATION_PARTITIONS=TRAIN,VALIDATION
+TIMEZONE=Asia/Shanghai
+CANONICAL_GRAIN=SEASON × FARM × SUBFARM × VARIETY × HARVEST_BUSINESS_DATE
+MISSING_DAY_SEMANTICS=UNKNOWN_NOT_ZERO
+Q2C_TARGET=OBSERVED_FARM_PICK_QUANTITY
+~~~
+
+Harvest row counts above are accepted S2 materialization facts. This contract
+does **not** publish projected distinct identity counts or
+`content_identity_sha256` values.
+
+### 1.2 Upstream alignment consumer contract and adapter (reference only)
+
+~~~text
+S2_IDENTITY_ALIGNMENT_CONTRACT_PATH=docs/v0-3/s3/s3-s2-identity-alignment-contract.md
+S2_IDENTITY_ALIGNMENT_CONTRACT_GIT_BLOB_SHA=ed3d16c72c78e8bf7c3c610b6212b7444b95c897
+S2_IDENTITY_ALIGNMENT_CONTRACT_EVIDENCE_JSON_SHA256=e69478f732675f04e3c981d99676b6f28e6bf7ddee43a7af7174f0a75802212a
+S2_IDENTITY_ALIGNMENT_ADAPTER_R1_EVIDENCE_JSON_SHA256=9813dec98c43edd2e66ac0ce04a27bd6dbe4edb06ba9eb9105736d3d30c547f9
+S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTH_EVIDENCE_JSON_SHA256=1d1b213e6a31e899ce777440f1f1dce63be66006520e417775cdb330d335221d
+S2_IDENTITY_ALIGNMENT_AUTH_AMENDMENT_R1_EVIDENCE_JSON_SHA256=c4d26633413dcde42b989684c1eb372443f5598c210d6a920dc51e50bc4093a4
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ALIGNMENT_PROJECTION_VERSION=v0-3-s3-a2-s2-identity-alignment-projection-v1
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+~~~
+
+The alignment consumer contract §§1–10 remain authoritative and are not
+rewritten by this producer contract.
+
+### 1.3 Repository audit references (read-only at 5b55e2f)
+
+~~~text
+CATALOG_ARTIFACT_PY_BLOB=968e841527b696d17364ddae11693fadb49462b8
+FORECAST_ARTIFACT_PY_BLOB=f928c6c9fa94e91e33c37edd8e9ab57c6e138480
+REGISTRY_PY_BLOB=d3d4dc77e6340786ddcca128eb02e0c1d898a502
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_S2_IDENTITY_ALIGNMENT_PY_BLOB=9c653823ebca79fdb12d61325fdb4b18e17d0cef
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+PARALLEL_ALEMBIC_HEADS_ALLOWED=false
+~~~
+
+Evidence JSON self-hashes above are binding references, not whole-file
+`sha256sum` values.
+
+## 2. What the producer is
+
+### 2.1 Producer definition
+
+A future deterministic **accepted S2 identity alignment evidence producer**
+projects accepted S2 materialized dataset identities into
+`VersionedAcceptedS2IdentityAlignmentEvidence` for caller injection into
+`S2IdentityAlignmentAdapter`.
+
+~~~text
+PRODUCER_OUTPUT_TYPE=VersionedAcceptedS2IdentityAlignmentEvidence
+EVIDENCE_ROW_TYPE=AcceptedS2IdentityEvidenceRow
+EVIDENCE_ROW_FIELDS=season,farm,subfarm,variety,harvest_business_date
+VERSIONED_BINDING_FIELDS=dataset_id,dataset_version,materialized_dataset_identity_sha256,content_identity_sha256
+PRODUCER_IS_NOT_ALIGNMENT_ADAPTER=true
+PRODUCER_IS_NOT_CATALOG_ARTIFACT=true
+PRODUCER_IS_NOT_HARVEST_GRAIN_ENUMERATION=true
+PRODUCER_IS_NOT_FORECAST_ARTIFACT=true
+~~~
+
+Each `AcceptedS2IdentityEvidenceRow` carries only:
+
+- `season`
+- `farm`
+- `subfarm`
+- `variety`
+- `harvest_business_date`
+
+The versioned envelope additionally binds:
+
+- `dataset_id`
+- `dataset_version`
+- `materialized_dataset_identity_sha256`
+- `content_identity_sha256`
+
+The producer must **not** carry tonnes, daily kg curves, `model_id`,
+`forecast_cutoff`, quantiles, processing-plant building area, or evaluation
+instance catalog fields.
+
+### 2.2 Consumer handoff (adapter R1; not redefined here)
+
+`S2IdentityAlignmentAdapter` (landed in `s2_identity_alignment.py`) consumes
+caller-injected `VersionedAcceptedS2IdentityAlignmentEvidence` only. Default
+construction has `evidence=None` → `alignment_source_kind=UNBOUND`,
+`aligned_identities=()`, and `EvaluationInstanceCatalogArtifactProductionService.produce()`
+with forecast only → `NO_S2_IDENTITY_ALIGNMENT`.
+
+The adapter projects each evidence row via `partition_for_harvest_date`,
+`DEFAULT_IN_SEASON_MONTHS`, `is_forbidden_variety`, and `is_bason_factory` into
+`S2AlignedIdentity` at `ALIGNMENT_GRAIN` (`season`, `farm`, `subfarm`,
+`variety`, `partition`), then discards `harvest_business_date`.
+
+~~~text
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+ADAPTER_PROJECTS_EVIDENCE_ROWS_ONLY=true
+ADAPTER_DOES_NOT_READ_REPOSITORY_FOR_EVIDENCE=true
+ADAPTER_DOES_NOT_READ_RAW_SOURCE_002=true
+~~~
+
+### 2.3 Catalog artifact coupling (unchanged)
+
+`catalog_artifact.py` `produce()` copies `catalog_source_kind` from
+`forecast_source_kind`, not from alignment source kind. Default forecast remains
+`BOUND_FIXTURE`; even with future live alignment evidence injected, catalog
+production may still yield `FIXTURE_ONLY_CATALOG_NOT_BINDABLE` when forecast
+source kind is fixture-bound.
+
+~~~text
+CATALOG_SOURCE_KIND_COPIED_FROM_FORECAST_SOURCE_KIND=true
+THIS_CONTRACT_DOES_NOT_CHANGE_CATALOG_SOURCE_KIND_PROVENANCE=true
+BOUND_FIXTURE_IS_NOT_LIVE_ALIGNMENT_AUTHORITY=true
+TEST_ONLY_EXPLICIT_INJECTION_BOUND_FIXTURE_PATH_PRESERVED=true
+~~~
+
+## 3. Allowed authoritative inputs (semantic freeze; not implemented by this contract)
+
+### 3.1 Bound S2 materialization authority
+
+~~~text
+PRODUCER_SOURCE_DATASET_ID=source-002
+PRODUCER_SOURCE_DATASET_VERSION=e5-live-v1
+PRODUCER_SOURCE_MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+PRODUCER_PARTITION_SCOPE=TRAIN,VALIDATION
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+DEFAULT_MONTH_SCOPE=1-4
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+Future implementation may project from accepted S2 Lane D materialized harvest
+grain by `DISTINCT`/projection into `AcceptedS2IdentityEvidenceRow` tuples.
+Harvest grain enumeration supplies producer input only; it is **not** the
+evaluation instance catalog artifact.
+
+`harvest_business_date` is used by the adapter to derive `partition` and apply
+month-scope filtering, then is discarded. It must not substitute for
+`forecast_cutoff`.
+
+### 3.2 Content identity hash (defined, not invented)
+
+~~~text
+CONTENT_IDENTITY_SHA256_MUST_BE_DETERMINISTIC_OVER_REAL_EVIDENCE_ROWS=true
+FORBIDDEN_PLACEHOLDER_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_EMPTY_STRING_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_ZERO_SENTINEL_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_H7_FIXTURE_AS_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_INVENT_CONTENT_IDENTITY_SHA256=true
+~~~
+
+A future producer implementation must compute `content_identity_sha256` from the
+actual accepted evidence rows using a separately versioned deterministic recipe.
+This contract merge does **not** publish that hash value or distinct projected
+identity counts.
+
+## 4. Forbidden inputs and substitutions
+
+~~~text
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_HANDWRITTEN_FARM_LISTS=true
+FORBIDDEN_HANDWRITTEN_CELL_LISTS=true
+FORBIDDEN_HANDWRITTEN_DATE_LISTS=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE=true
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+FORBIDDEN_BOUND_FIXTURE_AS_LIVE_EVIDENCE=true
+FORBIDDEN_UNBOUND_AS_LIVE_EVIDENCE=true
+FORBIDDEN_TEST_PARTITION_IDENTITY_IN_EVIDENCE=true
+FORBIDDEN_S2_HARVEST_GRAIN_AS_CATALOG=true
+FORBIDDEN_V0_2_S3_BINDING_ROW_AS_EVIDENCE=true
+FORBIDDEN_INCUMBENT_DAILY_CURVE_AS_EVIDENCE=true
+FORBIDDEN_MODIFY_PYTHON_PORT_SIGNATURES=true
+FORBIDDEN_MODIFY_CATALOG_SOURCE_KIND_PROVENANCE=true
+FORBIDDEN_MODIFY_FORBIDDEN_CATALOG_SOURCE_KINDS=true
+FORBIDDEN_MODIFY_ALLOWED_ALIGNMENT_SOURCE_KINDS=true
+FORBIDDEN_NEW_ALEMBIC=true
+FORBIDDEN_TOUCH_FROZEN_TEST_CATALOG_ARTIFACT_PY=true
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+~~~
+
+Live evidence source kind for the adapter consumer remains
+`SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` only. `BOUND_FIXTURE` and
+`UNBOUND` are not live evidence authorities. #322 amendment semantics for
+test-only explicit `BOUND_FIXTURE` injection remain unchanged.
+
+## 5. Fail-closed producer rules
+
+1. **Dataset identity mismatch** → reject; do not emit versioned evidence with
+   wrong `dataset_id`, `dataset_version`, or `materialized_dataset_identity_sha256`.
+2. **Missing accepted S2 materialized identity projection** → do not invent farm,
+   cell, or date lists. Future implementation should yield empty evidence /
+   caller leaves adapter at default `evidence=None` / adapter remains `UNBOUND` /
+   `produce()` with forecast only remains `NO_S2_IDENTITY_ALIGNMENT`.
+3. **Post-exclusion empty evidence** → must not be labeled with live alignment
+   source kind.
+4. **Repository has no live S2 identity facts today** → contract authorization
+   does not mean accepted evidence rows are already materialized in the
+   repository.
+
+~~~text
+FAIL_CLOSED_ON_DATASET_IDENTITY_MISMATCH=true
+FAIL_CLOSED_ON_FORBIDDEN_CONTENT_IDENTITY_SHA256=true
+FAIL_CLOSED_ON_EMPTY_POST_EXCLUSION_EVIDENCE=true
+NO_LIVE_S2_IDENTITY_FACTS_IN_REPOSITORY_TODAY=true
+CONTRACT_AUTHORIZATION_DOES_NOT_WRITE_LIVE_FACTS=true
+~~~
+
+Mandatory exclusions inherited from the alignment consumer contract:
+
+~~~text
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+FORBIDDEN_NON_1_4_MONTH_SCOPE=true
+FORBIDDEN_TEST_SOURCE_IDENTITY_IN_ALIGNMENT=true
+~~~
+
+## 6. Explicit non-scope (not authorized by this contract)
+
+This contract merge does **not** authorize:
+
+- live incumbent forecast artifact content or non-`BOUND_FIXTURE` live forecast
+  source kinds
+- bindable catalog production
+- `EVALUATION_INSTANCE_REGISTRY_AVAILABLE` closeout
+- `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED` closeout
+- S3-B semantics verified claims
+- S3-C backtest execution
+- TEST evaluation or TEST unseal
+- modifying `catalog_artifact.produce()` to set `catalog_source_kind` from
+  alignment source kind
+- writing live S2 identity alignment facts into the repository
+- implementing the evidence producer service (requires separate 「可以实施」 gate
+  and docs-only implementation authorization)
+
+~~~text
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+~~~
+
+## 7. LLM and deterministic service boundary
+
+LLM agents organize explanation and invoke tools. Evidence rows, identity hashes,
+cell counts, farm lists, and availability flags must come from versioned accepted
+S2 evidence and coordinator-reviewed artifacts only. LLM must not invent tonnes,
+farms, cells, cutoff lists, identity hashes, or distinct identity counts.
+
+## 8. Registry flip manifest
+
+~~~text
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live block and pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §31 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §14 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §15 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §19 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §20 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §23 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+S3_A2_S2_IDENTITY_ALIGNMENT_CONTRACT_AUTHORIZED=true
+S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_SERVICE_IMPLEMENTED=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+~~~
