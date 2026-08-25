@@ -710,6 +710,16 @@ it does not implement code, wire producer/adapter defaults, write live forecast
 artifacts, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 `DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED` remains `false`.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-live-source-kind-r1.md`
+(`EVIDENCE_JSON_SHA256=3a7a1f4f74074630c4eedb658ca361db579e16b1f7e4630f51b04266fa963a7a`).
+Incumbent forecast live source kind R1 lands
+`CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` in `registry.py` only;
+it does not wire producer/adapter defaults, write live forecast artifacts into the
+repository, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`. Historical grant and
+contract pointer snapshots may remain `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
