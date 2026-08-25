@@ -730,6 +730,18 @@ implement assignment logic, wire obtain→produce→adapter, write live forecast
 artifacts, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 `DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED` remains `false`.
 
+Live `S3_A2_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-live-envelope-authorization.md`
+(`EVIDENCE_JSON_SHA256=86d6937c11783d1c95aa6da5de281b749c1272092b452383f2bc27b1c33544b5`).
+Incumbent forecast live envelope implementation grant records what a later
+deterministic R1 may do when the user again says 「可以实施」: implement parent
+contract §3 envelope assignment on `IncumbentForecastArtifactContentProducer` via
+optional `declared_catalog_source_kind`; it does not implement assignment logic,
+wire obtain→produce→adapter, write live forecast artifacts, or flip
+`NO_VERSIONED` / `AVAILABLE` / `VERIFIED`. `DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED`
+remains `false` until a separate implementation R1.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
