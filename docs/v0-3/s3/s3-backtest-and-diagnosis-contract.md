@@ -677,6 +677,17 @@ produce catalogs, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
 historical.
 
+
+Live `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-source-r1.md`
+(`EVIDENCE_JSON_SHA256=59a198c38c0c1e8e17a718bb5623943c4035b4b9b582e2216b922d526b508929`).
+Incumbent forecast replay source R1 delivers the in-memory replay-row obtain service
+only; it does not write live forecast artifacts into the repository, wire producer or
+adapter defaults, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
