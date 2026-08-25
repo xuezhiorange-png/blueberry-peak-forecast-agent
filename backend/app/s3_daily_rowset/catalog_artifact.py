@@ -202,10 +202,18 @@ def _default_forecast_artifact_port() -> IncumbentForecastArtifactPort:
     return IncumbentForecastArtifactAdapter()
 
 
-def _default_s2_identity_alignment_port() -> S2IdentityAlignmentPort:
+def _default_s2_identity_alignment_port(
+    dataset_identity: DatasetIdentity,
+) -> S2IdentityAlignmentPort:
+    from backend.app.s3_daily_rowset.accepted_s2_identity_alignment_evidence import (
+        AcceptedS2IdentityAlignmentEvidenceProducer,
+    )
     from backend.app.s3_daily_rowset.s2_identity_alignment import S2IdentityAlignmentAdapter
 
-    return S2IdentityAlignmentAdapter()
+    evidence = AcceptedS2IdentityAlignmentEvidenceProducer(
+        dataset_identity=dataset_identity,
+    ).produce()
+    return S2IdentityAlignmentAdapter(evidence=evidence)
 
 
 @dataclass
@@ -214,9 +222,11 @@ class EvaluationInstanceCatalogArtifactProductionService:
     forecast_port: IncumbentForecastArtifactPort = field(
         default_factory=_default_forecast_artifact_port
     )
-    alignment_port: S2IdentityAlignmentPort = field(
-        default_factory=_default_s2_identity_alignment_port
-    )
+    alignment_port: S2IdentityAlignmentPort | None = None
+
+    def __post_init__(self) -> None:
+        if self.alignment_port is None:
+            self.alignment_port = _default_s2_identity_alignment_port(self.dataset_identity)
 
     def _validate_dataset_identity(self) -> None:
         identity = self.dataset_identity
@@ -305,14 +315,17 @@ class EvaluationInstanceCatalogArtifactProductionService:
                 ).validate(),
             )
 
-        alignment_source_kind = self.alignment_port.alignment_source_kind()
+        assert self.alignment_port is not None
+        alignment_port = self.alignment_port
+
+        alignment_source_kind = alignment_port.alignment_source_kind()
         if alignment_source_kind in FORBIDDEN_CATALOG_SOURCE_KINDS:
             return _unbound_result(
                 dataset_identity=self.dataset_identity,
                 reason_code=CatalogArtifactReasonCode.FORBIDDEN_CATALOG_SOURCE,
             )
 
-        aligned_identities = self.alignment_port.aligned_identities()
+        aligned_identities = alignment_port.aligned_identities()
         if not aligned_identities:
             return CatalogArtifactProductionResult(
                 reason_code=CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT,
