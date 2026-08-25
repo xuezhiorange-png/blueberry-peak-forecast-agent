@@ -762,6 +762,17 @@ default-chain behavior; it does not implement wiring, authorize V0.2 obtain, or 
 `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 `DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED` remains `false`.
 
+Live `S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-fail-closed-wiring-authorization.md`
+(`EVIDENCE_JSON_SHA256=84c4491daefa59f74d875f7b311612efbead4143688b5582c499981fe82210e0`).
+Incumbent forecast fail-closed wiring implementation grant records what a later
+deterministic wiring R1 may do when the user again says 「可以实施」: implement parent
+contract §3 obtain→produce→adapter default-chain wiring; it does not implement wiring,
+authorize V0.2 obtain, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+`DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED` remains `false`
+until a separate implementation R1.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
