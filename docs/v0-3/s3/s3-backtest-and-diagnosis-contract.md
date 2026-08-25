@@ -742,6 +742,17 @@ wire obtain→produce→adapter, write live forecast artifacts, or flip
 `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`. `DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED`
 remains `false` until a separate implementation R1.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-live-envelope-r1.md`
+(`EVIDENCE_JSON_SHA256=164b2396091dc5b2daf790f09c92e9ebf628c6e577a37acdc6e4dc0c88b3e601`).
+Incumbent forecast live envelope R1 implements parent contract §3 envelope
+assignment on `IncumbentForecastArtifactContentProducer` via optional
+`declared_catalog_source_kind`; it does not wire obtain→produce→adapter defaults,
+write live forecast artifacts into the repository, or flip `NO_VERSIONED` /
+`AVAILABLE` / `VERIFIED`. Historical grant and contract pointer snapshots may
+remain `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
