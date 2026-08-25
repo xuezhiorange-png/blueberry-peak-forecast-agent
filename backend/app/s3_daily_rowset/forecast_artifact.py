@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from backend.app.s3_daily_rowset.actuals import (
     is_evaluation_partition_allowed,
@@ -19,6 +20,20 @@ from backend.app.s3_daily_rowset.registry import (
 )
 from backend.app.s3_daily_rowset.schemas import HORIZON_DAYS
 from backend.app.s3_daily_rowset.window import cutoff_business_date, horizon_window_dates
+
+if TYPE_CHECKING:
+    from backend.app.s3_daily_rowset.incumbent_forecast_artifact_content import (
+        IncumbentForecastArtifactContentProducer,
+    )
+
+
+def _default_content_producer() -> IncumbentForecastArtifactContentProducer:
+    from backend.app.s3_daily_rowset.incumbent_forecast_artifact_content import (
+        IncumbentForecastArtifactContentProducer,
+    )
+
+    return IncumbentForecastArtifactContentProducer()
+
 
 FORBIDDEN_EMPTY_FORECAST_ARTIFACT_HASHES = frozenset(
     {
@@ -77,29 +92,41 @@ class VersionedIncumbentForecastArtifact:
 @dataclass
 class IncumbentForecastArtifactAdapter(IncumbentForecastArtifactPort):
     artifact: VersionedIncumbentForecastArtifact | None = None
+    producer: IncumbentForecastArtifactContentProducer = field(
+        default_factory=_default_content_producer
+    )
+
+    def _resolved_artifact(self) -> VersionedIncumbentForecastArtifact | None:
+        if self.artifact is not None:
+            return self.artifact
+        return self.producer.produce()
 
     def has_versioned_artifact(self) -> bool:
-        if self.artifact is None:
+        artifact = self._resolved_artifact()
+        if artifact is None:
             return False
-        if self.artifact.uses_harvest_date_as_forecast_cutoff:
+        if artifact.uses_harvest_date_as_forecast_cutoff:
             return True
-        return bool(_accepted_rows(self.artifact.rows))
+        return bool(_accepted_rows(artifact.rows))
 
     def catalog_source_kind(self) -> CatalogSourceKind:
-        if self.artifact is None:
+        artifact = self._resolved_artifact()
+        if artifact is None:
             return CatalogSourceKind.UNBOUND
-        if self.artifact.uses_harvest_date_as_forecast_cutoff:
-            return self.artifact.catalog_source_kind
-        if not _accepted_rows(self.artifact.rows):
+        if artifact.uses_harvest_date_as_forecast_cutoff:
+            return artifact.catalog_source_kind
+        if not _accepted_rows(artifact.rows):
             return CatalogSourceKind.UNBOUND
-        return self.artifact.catalog_source_kind
+        return artifact.catalog_source_kind
 
     def entries(self) -> tuple[IncumbentForecastArtifactEntry, ...]:
-        if self.artifact is None or self.artifact.uses_harvest_date_as_forecast_cutoff:
+        artifact = self._resolved_artifact()
+        if artifact is None or artifact.uses_harvest_date_as_forecast_cutoff:
             return ()
-        return _accepted_rows(self.artifact.rows)
+        return _accepted_rows(artifact.rows)
 
     def uses_harvest_date_as_forecast_cutoff(self) -> bool:
-        if self.artifact is None:
+        artifact = self._resolved_artifact()
+        if artifact is None:
             return False
-        return self.artifact.uses_harvest_date_as_forecast_cutoff
+        return artifact.uses_harvest_date_as_forecast_cutoff
