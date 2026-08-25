@@ -852,6 +852,16 @@ S2 identity alignment producer→adapter wiring R1 wires default
 `VERIFIED` or read SOURCE_002 row-level harvest. Historical grant and contract
 pointer snapshots may remain `false`.
 
+
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-harvest-source-contract.md`
+(`EVIDENCE_JSON_SHA256=92da3bc9ffab3cb90c825292e8c53f79b1ce5d6abc2ff0ccbedda8b31ba6cb3a`).
+S2 identity alignment harvest source contract freezes fail-closed upstream harvest
+authority for `MaterializableRow` tuples; it does not implement obtain, invent harvest
+rows or SQL, or flip `NO_LIVE_S2` / `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+`DETERMINISTIC_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_IMPLEMENTED` remains `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
