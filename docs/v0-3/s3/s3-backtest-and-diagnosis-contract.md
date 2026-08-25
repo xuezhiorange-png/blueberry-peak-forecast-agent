@@ -753,6 +753,15 @@ write live forecast artifacts into the repository, or flip `NO_VERSIONED` /
 `AVAILABLE` / `VERIFIED`. Historical grant and contract pointer snapshots may
 remain `false`.
 
+Live `S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-fail-closed-wiring-contract.md`
+(`EVIDENCE_JSON_SHA256=2ea44667836957fa736828cbd4ae123c5d2144a43918939ab4d494f4cbcaf1ff`).
+Incumbent forecast fail-closed wiring contract freezes deterministic obtain→produce→adapter
+default-chain behavior; it does not implement wiring, authorize V0.2 obtain, or flip
+`NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+`DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED` remains `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
