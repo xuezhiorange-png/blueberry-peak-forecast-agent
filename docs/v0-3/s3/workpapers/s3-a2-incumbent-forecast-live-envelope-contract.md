@@ -18,7 +18,7 @@ BASE_MAIN_TREE_SHA=7eba0765f28c2cc30e743897f96130983b9eb80b
 CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-live-envelope-contract.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-live-envelope-contract.json
-EVIDENCE_JSON_SHA256=bec6560beac306018c909e49ccd0c44d1bd6cf1a22e5331b63834f1fdadef3f0
+EVIDENCE_JSON_SHA256=9b67eabc5ae01f5e834dda4d8321208198a4bef3ad3e1d5f6a3bdf2fe5ed27d4
 NO_STEP_IMPLIES_THE_NEXT=true
 CONTRACT_ONLY=true
 THIS_DRAFT_IS_NOT_READY=true
@@ -31,8 +31,9 @@ freeze after live source kind R1 (#335). Enum member
 `CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` is landed; content
 producer still assigns `BOUND_FIXTURE` on every non-empty projection. This contract
 freezes deterministic envelope `catalog_source_kind` assignment only. It does
-**not** implement assignment logic, wire obtain→produce→adapter, write live
-artifacts, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+**not** reopen live source kind §§1–9, replay source §§1–9, or content producer
+§§1–9. It does **not** implement assignment logic, wire obtain→produce→adapter,
+write live artifacts, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 
 ~~~text
 S3_A2_INCUMBENT_FORECAST_LIVE_ENVELOPE_CONTRACT_AUTHORIZED=true
@@ -88,39 +89,68 @@ NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
 SOURCE_002_ROW_LEVEL_READ=false
 ~~~
 
-## 4. Envelope assignment scope summary
+## 4. Envelope assignment freeze (core)
 
-### 4.1 Assignment outcomes
+Default construction: `replay_rows=()` and no declared live kind →
+`produce()`=`None`. No envelope; live kind must not be claimed.
+
+| `declared_catalog_source_kind` | post-exclusion rows | `harvest_date_as_cutoff` | `produce()` | envelope `catalog_source_kind` |
+|---|---|---|---|---|
+| default / `BOUND_FIXTURE` | empty | false | `None` | no envelope |
+| default / `BOUND_FIXTURE` | non-empty | false | artifact | `BOUND_FIXTURE` |
+| `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` | empty | false | `None` | no envelope; live kind prohibited |
+| `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` | non-empty | false | artifact | `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` |
+| any | any | true | `None` | no envelope |
+| `UNBOUND` / `FORBIDDEN_*` / `SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` | any | any | forbidden / fail-closed | must not be assigned to forecast envelope |
+
+### 4.1 Live envelope semantic authority (named only)
 
 ~~~text
-LIVE_ENVELOPE_KIND=CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
-FIXTURE_ENVELOPE_KIND=CatalogSourceKind.BOUND_FIXTURE
+LIVE_ENVELOPE_KIND=V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+FORBIDDEN_INVENT_CUTOFF_LISTS=true
+FORBIDDEN_INVENT_CONTENT_IDENTITY_SHA256=true
 FORBIDDEN_INFER_LIVE_KIND_FROM_ROW_TUPLE_ALONE=true
 ~~~
 
-### 4.2 Live envelope eligibility (all required)
+### 4.2 Authority declaration (future implementation only)
 
 ~~~text
-NAMED_V0_2_REPLAY_AUTHORITY_REQUIRED=true
-NON_EMPTY_POST_EXCLUSION_REPLAY_ROWS_REQUIRED=true
-CONTENT_IDENTITY_COMPUTED_BY_LANDED_RECIPE_REQUIRED=true
-EXPLICIT_LIVE_ASSIGNMENT_REQUIRED=true
+FORBIDDEN_MODIFY_FORECAST_ADAPTER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_CONTENT_PRODUCER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_REPLAY_SOURCE_PORT_SIGNATURE=true
+DECLARED_KIND_VIA_OPTIONAL_DATACLASS_FIELDS_ONLY=true
+FORBIDDEN_ADD_CATALOG_SOURCE_KIND_TO_INCUMBENT_FORECAST_ARTIFACT_ENTRY=true
 ~~~
 
-### 4.3 Bindable catalog prerequisite
+### 4.3 Fixture path and bindable catalog
 
 ~~~text
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+TEST_INJECTION_MUST_NOT_USE_LIVE_FORECAST_SOURCE_KIND=true
+FIXTURE_PATH_OUTCOME=FIXTURE_ONLY_CATALOG_NOT_BINDABLE
 LIVE_ENVELOPE_KIND_NECESSARY_BUT_NOT_SUFFICIENT_FOR_BINDABLE_CATALOG=true
 NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+~~~
+
+### 4.4 Default fail-closed (not wired by this contract)
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_WIRE_PRODUCER_OR_ADAPTER=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_PRODUCE_FROM_NONE=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+EMPTY_OBTAIN_MUST_NOT_CLAIM_LIVE_KIND=true
+EMPTY_PRODUCE_MUST_NOT_CLAIM_LIVE_KIND=true
+ADAPTER_ARTIFACT_NONE_MUST_NOT_CLAIM_LIVE_KIND=true
 ~~~
 
 ## 5. What remains forbidden / not authorized
 
 ~~~text
 CONTRACT_MERGE_DOES_NOT_IMPLEMENT_LIVE_ENVELOPE_ASSIGNMENT=true
-CONTRACT_MERGE_DOES_NOT_WIRE_PRODUCER_OR_ADAPTER=true
 CONTRACT_MERGE_DOES_NOT_MODIFY_REGISTRY_PY_ENUM=true
-CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
 DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED=false
 EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
@@ -128,6 +158,9 @@ S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
 S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
 TEST_REMAINS_SEALED=true
 PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+FUTURE_BACKEND_APP_PATH=backend/app/s3_daily_rowset/incumbent_forecast_artifact_content.py
+FUTURE_TEST_PATH=backend/tests/s3_daily_rowset/test_incumbent_forecast_live_envelope.py
+PERSISTENCE=IN_MEMORY_SERVICE_ONLY
 ~~~
 
 ## 6. Registry flip manifest
