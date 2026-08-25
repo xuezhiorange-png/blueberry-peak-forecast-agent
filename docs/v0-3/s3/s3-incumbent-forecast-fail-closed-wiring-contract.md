@@ -1,0 +1,430 @@
+# V0.3-S3-A2 Incumbent Forecast Fail-Closed Wiring Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-incumbent-forecast-fail-closed-wiring-contract-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_FAIL_CLOSED_WIRING
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=0bb5877c7c65b75361fe134765a8912788b947b3
+BASE_MAIN_TREE_SHA=78a5473169e8dd1e75762bb252aa08b40bd3d295
+BASE_REF=origin/main
+PARENT_LIVE_ENVELOPE_CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_LIVE_ENVELOPE_CONTRACT
+PARENT_LIVE_ENVELOPE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md
+PARENT_REPLAY_SOURCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md
+PARENT_CONTENT_PRODUCER_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md
+GRANDPARENT_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+REVIEWER_ROLE=COORDINATOR
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_LIVE_ENVELOPE_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED=false
+S3_A2_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+CURRENT_V0_3_S3_COMPLETE=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes deterministic **fail-closed default-chain wiring** authority:
+how `IncumbentForecastReplaySource.obtain()`, `IncumbentForecastArtifactContentProducer.produce()`,
+and `IncumbentForecastArtifactAdapter` may be connected so that produced forecast envelopes
+reach catalog `produce()` without inventing versioned artifacts from empty obtain.
+
+Parent contracts **not reopened** by this wiring contract:
+
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §§1–9 and §11 (envelope
+  assignment table; R1 landed by #338)
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §§1–9 (live kind enum)
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §§1–9 (replay obtain)
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §§1–9 (projection and
+  content identity)
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §§1–8 (adapter port)
+
+This is a **fail-closed wiring governance** contract only. It is **not** an implementation
+authorization grant, **not** an R1 implementation package, **not** V0.2 postgres obtain,
+**not** alignment producer→adapter wiring, **not** live BINDABLE catalog closeout, and
+**not** evidence that versioned forecast artifacts exist in the repository today.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_WIRING=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_PRODUCE_FROM_NONE=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+EMPTY_OBTAIN_MUST_NOT_CLAIM_LIVE_KIND=true
+EMPTY_PRODUCE_MUST_NOT_CLAIM_LIVE_KIND=true
+ADAPTER_ARTIFACT_NONE_MUST_NOT_CLAIM_LIVE_KIND=true
+DEFAULT_CATALOG_FIRST_BLOCKER_REMAINS_NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 Parent live envelope contract and landed R1 (#338) (reference only)
+
+~~~text
+LIVE_ENVELOPE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md
+LIVE_ENVELOPE_CONTRACT_GIT_BLOB_SHA=6121c5d5f02c2fa45b9c16b0c417ebb3d06e27fe
+LIVE_ENVELOPE_CONTRACT_EVIDENCE_JSON_SHA256=9b67eabc5ae01f5e834dda4d8321208198a4bef3ad3e1d5f6a3bdf2fe5ed27d4
+LIVE_ENVELOPE_AUTH_EVIDENCE_JSON_SHA256=86d6937c11783d1c95aa6da5de281b749c1272092b452383f2bc27b1c33544b5
+LIVE_ENVELOPE_R1_EVIDENCE_JSON_SHA256=164b2396091dc5b2daf790f09c92e9ebf628c6e577a37acdc6e4dc0c88b3e601
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=12fdac5db326cd2105a12b24f18fcb37a7e75d63
+TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY_BLOB=cf34f76c734388129b7dbf8d4f585bde584fceac
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+~~~
+
+Live envelope contract §§1–9 and §11 remain authoritative for envelope assignment.
+R1 (#338) landed `declared_catalog_source_kind` on
+`IncumbentForecastArtifactContentProducer`; it did not wire obtain→produce→adapter
+defaults. Parent envelope §3 assignment table is not modified by this wiring contract.
+
+### 1.2 Parent replay source and content producer (reference only)
+
+~~~text
+REPLAY_SOURCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md
+REPLAY_SOURCE_CONTRACT_EVIDENCE_JSON_SHA256=59e452eedc6b8db82063d11ccaf7af177447074c7ad68565b31a6d86d5d4b457
+REPLAY_SOURCE_R1_EVIDENCE_JSON_SHA256=59a198c38c0c1e8e17a718bb5623943c4035b4b9b582e2216b922d526b508929
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=070f54311f08a5c7758602fbe105e511fefd8eca
+CONTENT_PRODUCER_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md
+CONTENT_CONTRACT_EVIDENCE_JSON_SHA256=6294f2028509f2b1021741ac7aea3f20efdcbe07669b87a1782d18c0a5ca9eae
+CONTENT_PRODUCER_R1_EVIDENCE_JSON_SHA256=d159c010b4f527972e7554789e85808ae48e11941499c6f597f124fd471ff228
+~~~
+
+`IncumbentForecastReplaySource` default `obtain()`=`()`. `replay_source.py` already
+imports `project_incumbent_forecast_artifact_entries` from the content producer module;
+the producer must not top-level import `IncumbentForecastReplaySource` (circular import).
+Future wiring must remain fail-closed and may use lazy import or adapter-locus wiring;
+this contract freezes behavior only, not concrete Python structure.
+
+### 1.3 Grandparent forecast artifact adapter and catalog (reference only)
+
+~~~text
+INCUMBENT_FORECAST_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md
+FORECAST_ARTIFACT_PY_BLOB=f928c6c9fa94e91e33c37edd8e9ab57c6e138480
+CATALOG_ARTIFACT_PY_BLOB=968e841527b696d17364ddae11693fadb49462b8
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+~~~
+
+`IncumbentForecastArtifactAdapter` default `artifact=None`.
+`catalog_artifact._default_forecast_artifact_port()` returns
+`IncumbentForecastArtifactAdapter()` without calling `produce()` or `obtain()`.
+Catalog default `produce()` first blocker remains
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
+### 1.4 S2 binding seal (reference only)
+
+~~~text
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+PEP_420_NAMESPACE=true
+PRODUCTION_INIT_PY_FORBIDDEN=true
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 2. Why this contract is the unique remaining gap
+
+After live envelope R1 (#338):
+
+1. `IncumbentForecastReplaySource.obtain()` default remains `()`.
+2. `IncumbentForecastArtifactContentProducer` can assign `catalog_source_kind` per
+   parent envelope contract §3; default `replay_rows=()` → `produce()`=`None`; default
+   `declared_catalog_source_kind=BOUND_FIXTURE`.
+3. `IncumbentForecastArtifactAdapter` default `artifact=None`; catalog
+   `_default_forecast_artifact_port()` returns bare `IncumbentForecastArtifactAdapter()`
+   without calling `produce()` or `obtain()`.
+4. Therefore default catalog `produce()` first blocker remains
+   `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+5. `replay_source.py` already imports `project_incumbent_forecast_artifact_entries`
+   from the content producer; producer cannot top-level import replay source (circular
+   import). Wiring must be fail-closed and avoid cycles (lazy import or adapter-locus
+   allowed as future implementation mechanisms only).
+6. Without wiring, future V0.2 postgres obtain cannot enter the default catalog path;
+   wiring itself must not claim empty obtain as an existing versioned artifact.
+7. This contract does not authorize: alignment producer→adapter wiring, live BINDABLE
+   success enumeration, AVAILABLE/VERIFIED closeout, TEST unseal, SOURCE_002 row-level
+   read, or V0.2 SQL/table names.
+
+## 3. Fail-closed default-chain wiring freeze
+
+### 3.1 Default-chain outcome table (core freeze)
+
+| explicit `adapter.artifact` | explicit `producer.replay_rows` | `obtain()` | `harvest_as_cutoff` | default-path outcome |
+|---|---|---|---|---|
+| not `None` (injected) | any | any | false | injection wins; envelope still follows frozen envelope §3 |
+| `None` | non-empty | any | false | if wired: `produce(replay_rows)` result enters adapter; if unwired: still `NO_VERSIONED` |
+| `None` | empty | `()` | false | `produce()`=`None`; adapter has no versioned artifact; catalog=`NO_VERSIONED`; live kind prohibited |
+| `None` | empty | non-empty | false | envelope possible only when future obtain is implemented **and** wired; this contract does not authorize non-empty obtain |
+| any | any | any | true | no envelope / empty obtain; catalog must not treat harvest date as forecast cutoff |
+
+Current repository state (pre-wiring): rows with `adapter.artifact=None` and empty
+`replay_rows` always yield catalog `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
+### 3.2 Wiring priority (future R1 must obey; frozen here)
+
+1. Explicit `adapter.artifact is not None` → injection wins; empty obtain must not
+   overwrite injected artifact.
+2. Otherwise, when wired, adapter uses `producer.produce()` result.
+3. Producer: explicit non-empty `replay_rows` wins; otherwise call `obtain()`.
+4. Empty obtain / empty post-exclusion rows / `harvest_as_cutoff=true` →
+   `produce()`=`None`; live envelope must not be assigned.
+5. Default `declared_catalog_source_kind` remains `BOUND_FIXTURE`; must not become
+   `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` by default wiring alone.
+6. `BOUND_FIXTURE` test-injection path must remain; frozen test modules must not change.
+
+### 3.3 Envelope assignment remains parent authority
+
+Envelope `catalog_source_kind` assignment continues to follow parent live envelope
+contract §3.2. This wiring contract does not modify the envelope assignment table,
+content identity recipe, or `declared_catalog_source_kind` semantics.
+
+~~~text
+FORBIDDEN_MODIFY_ENVELOPE_ASSIGNMENT_TABLE=true
+FORBIDDEN_MODIFY_CONTENT_IDENTITY_RECIPE=true
+LIVE_ENVELOPE_KIND=V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+DEFAULT_DECLARED_CATALOG_SOURCE_KIND=BOUND_FIXTURE
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+~~~
+
+### 3.4 Port signatures and circular-import constraint
+
+~~~text
+FORBIDDEN_MODIFY_FORECAST_ADAPTER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_CONTENT_PRODUCER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_REPLAY_SOURCE_PORT_SIGNATURE=true
+PRODUCE_SIGNATURE=produce(self)->VersionedIncumbentForecastArtifact|None
+OBTAIN_SIGNATURE=obtain(self)->tuple[IncumbentForecastArtifactEntry,...]
+ADAPTER_PORT_METHODS=has_versioned_artifact,catalog_source_kind,entries,uses_harvest_date_as_forecast_cutoff
+REPLAY_SOURCE_IMPORTS_CONTENT_PROJECTION=true
+PRODUCER_MUST_NOT_TOP_LEVEL_IMPORT_REPLAY_SOURCE=true
+CIRCULAR_IMPORT_AVOIDANCE_REQUIRED=true
+~~~
+
+Future R1 may add optional dataclass fields and lazy `default_factory` wiring.
+`produce()` and `obtain()` must not gain parameters.
+
+### 3.5 Catalog and binding (reference only)
+
+~~~text
+CATALOG_PRODUCE_COPIES_CATALOG_SOURCE_KIND_FROM_FORECAST_NOT_ALIGNMENT=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+BOUND_FIXTURE_YIELDS_FIXTURE_ONLY_CATALOG_NOT_BINDABLE=true
+LIVE_ENVELOPE_KIND_NECESSARY_BUT_NOT_SUFFICIENT_FOR_BINDABLE_CATALOG=true
+FORBIDDEN_LIVE_BINDABLE_SUCCESS_ENUM=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+FORBIDDEN_WIRE_ALIGNMENT_PRODUCER_IN_THIS_CONTRACT=true
+~~~
+
+### 3.6 Fixture test injection path (preserved)
+
+~~~text
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+TEST_INJECTION_MUST_NOT_USE_LIVE_FORECAST_SOURCE_KIND=true
+FIXTURE_PATH_OUTCOME=FIXTURE_ONLY_CATALOG_NOT_BINDABLE
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+FORBIDDEN_TOUCH_TEST_FORECAST_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY=true
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY=true
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY=true
+TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY_BLOB=cf34f76c734388129b7dbf8d4f585bde584fceac
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY=true
+TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY_BLOB=10ac671d603b842ece5cb3ae449b1580715ed2b0
+~~~
+
+## 4. Explicit non-scope (not authorized by this contract)
+
+This contract merge does **not** authorize:
+
+- implementing obtain→produce→adapter wiring in Python
+- V0.2 postgres obtain or repository scan
+- modifying `registry.py`, `binding.py`, or S2 identity modules
+- alignment producer→adapter wiring
+- writing versioned incumbent forecast artifacts into the repository
+- flipping `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY`
+- bindable catalog production or `EVALUATION_INSTANCE_REGISTRY_AVAILABLE` closeout
+- `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED` closeout
+- live S2 identity alignment facts
+- S3-B semantics verified claims or S3-C backtest execution
+- TEST evaluation or TEST unseal
+- SOURCE_002 row-level primary read
+- new Alembic migrations
+- changing envelope assignment table or content identity recipe
+
+~~~text
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+FUTURE_MAY_LIMITED_EDIT_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY=true
+FUTURE_MAY_LIMITED_EDIT_FORECAST_ARTIFACT_PY_ADAPTER_WIRING_ONLY=true
+FUTURE_MAY_LIMITED_EDIT_CATALOG_ARTIFACT_PY_DEFAULT_FORECAST_PORT_ONLY=true
+FUTURE_TEST_PATH=backend/tests/s3_daily_rowset/test_incumbent_forecast_fail_closed_wiring.py
+PERSISTENCE=IN_MEMORY_SERVICE_ONLY
+~~~
+
+Future implementation paths above are named only; this contract does not create
+implementation authorization or mutate production/test code.
+
+## 5. Frozen Python blob audit (byte-identical at contract merge)
+
+~~~text
+FORECAST_ARTIFACT_PY_BLOB=f928c6c9fa94e91e33c37edd8e9ab57c6e138480
+CATALOG_ARTIFACT_PY_BLOB=968e841527b696d17364ddae11693fadb49462b8
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=14e5614c9069b7b50d12bf3caa36305245c2cc39
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=12fdac5db326cd2105a12b24f18fcb37a7e75d63
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=070f54311f08a5c7758602fbe105e511fefd8eca
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+REGISTRY_PY_BLOB=ca16d518ab18136059cd08bcf4b247774d750bb5
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY_BLOB=cf34f76c734388129b7dbf8d4f585bde584fceac
+TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY_BLOB=10ac671d603b842ece5cb3ae449b1580715ed2b0
+FROZEN_PYTHON_BLOBS_NOT_MUTATED_BY_THIS_CONTRACT=true
+~~~
+
+## 6. Forbidden inputs and substitutions
+
+~~~text
+FORBIDDEN_USE_HARVEST_BUSINESS_DATE_AS_FORECAST_CUTOFF=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+FORBIDDEN_MODIFY_REPLAY_SOURCE_OBTAIN_SEMANTICS=true
+FORBIDDEN_MODIFY_REGISTRY_PY=true
+FORBIDDEN_MODIFY_BINDING_PY=true
+FORBIDDEN_MODIFY_S2_IDENTITY_ALIGNMENT_PY=true
+FORBIDDEN_MODIFY_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY=true
+FORBIDDEN_MODIFY_ENVELOPE_ASSIGNMENT_TABLE=true
+FORBIDDEN_MODIFY_CONTENT_IDENTITY_RECIPE=true
+FORBIDDEN_ADD_CATALOG_SOURCE_KIND_TO_INCUMBENT_FORECAST_ARTIFACT_ENTRY=true
+FORBIDDEN_WIRE_ALIGNMENT_PRODUCER_IN_THIS_CONTRACT=true
+FORBIDDEN_LIVE_BINDABLE_SUCCESS_ENUM=true
+FORBIDDEN_FLIP_NO_VERSIONED=true
+FORBIDDEN_FLIP_NO_BINDABLE=true
+FORBIDDEN_FLIP_AVAILABLE_OR_VERIFIED=true
+FORBIDDEN_V0_2_POSTGRES_OBTAIN=true
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+FORBIDDEN_INVENT_CUTOFF_LISTS=true
+FORBIDDEN_INVENT_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_INVENT_CATALOG_IDENTITY=true
+FORBIDDEN_INVENT_DISTINCT_ENTRY_COUNTS=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_NEW_ALEMBIC=true
+~~~
+
+## 7. TEST seal and exclusion policy
+
+~~~text
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+FORBIDDEN_TEST_CUTOFF_OR_HORIZON_INTERSECTION=true
+DEFAULT_MONTH_SCOPE=1-4
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+~~~
+
+## 8. LLM and deterministic service boundary
+
+LLM agents organize explanation and invoke tools. Wiring outcomes, cutoff lists,
+identity hashes, and distinct entry counts must come from deterministic service
+logic and coordinator-reviewed artifacts only. LLM must not invent tonnes, farms,
+cells, cutoff lists, identity hashes, SQL, table names, or distinct entry counts.
+
+## 9. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live block and pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §12 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §15 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §18 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §21 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §30 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §46 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §29 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §34 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §35 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §38 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §23 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_SERVICE_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+~~~
