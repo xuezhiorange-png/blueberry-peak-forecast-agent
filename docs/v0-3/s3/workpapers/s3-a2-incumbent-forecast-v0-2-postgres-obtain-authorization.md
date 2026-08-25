@@ -1,0 +1,303 @@
+# V0.3-S3-A2 Incumbent forecast V0.2 postgres obtain implementation authorization
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTATION_AUTHORIZATION
+ARTIFACT_VERSION=s3-a2-incumbent-forecast-v0-2-postgres-obtain-authorization-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTATION_AUTHORIZATION_R1
+TASK_CLASS=DOCS_ONLY_AUTHORIZATION_ISSUANCE
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTATION_GRANT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN
+USER_GATE=可以实施
+REVIEWER_ROLE=COORDINATOR
+BASE_REF=origin/main
+BASE_MAIN_SHA=9f853da12c9925eb48ba2822a766116e2e6092d2
+BASE_MAIN_TREE_SHA=4fca6f0c366ead9cda5fa3095b6455a9f7a678f5
+PARENT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md
+PARENT_CONTRACT_GIT_BLOB_SHA=e2544a26cc46b00844224d27236a76edfb33502c
+PARENT_CONTRACT_EVIDENCE_JSON_SHA256=a6ff0d53db223d6ec1258b38378d62c6ecb8a37fe908458a5a734efe7e203b49
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-postgres-obtain-authorization.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-v0-2-postgres-obtain-authorization.json
+GRANT_ONLY=true
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_V0_2_POSTGRES_OBTAIN=true
+AUTHORIZATION_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+AUTHORIZATION_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+The user authorized issuance of the S3-A2 **incumbent forecast V0.2 postgres obtain**
+implementation grant after the V0.2 postgres obtain contract freeze on main. This document
+records what a **later** deterministic obtain R1 may do when the user again says
+「可以实施」. This PR does not implement postgres reading, modify Python, invent SQL or
+table names, write live forecast artifacts, flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`,
+or authorize alignment wiring or BINDABLE catalog closeout.
+
+This is **V0.2 postgres obtain** implementation authorization only. Parent contract §§1–9
+remain authoritative and are not reopened. Do not re-authorize wiring R1, alignment
+producer→adapter wiring, or catalog binding closeout.
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTATION_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_ENVELOPE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_SERVICE_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+~~~
+
+## 1. Upstream bindings (reference only)
+
+~~~text
+PARENT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md
+PARENT_CONTRACT_GIT_BLOB_SHA=e2544a26cc46b00844224d27236a76edfb33502c
+PARENT_CONTRACT_EVIDENCE_JSON_SHA256=a6ff0d53db223d6ec1258b38378d62c6ecb8a37fe908458a5a734efe7e203b49
+FAIL_CLOSED_WIRING_R1_EVIDENCE_JSON_SHA256=875480dd04970eedf597a766d702fea1eeeda27512984ca51a725eace0014f0e
+FAIL_CLOSED_WIRING_AUTH_EVIDENCE_JSON_SHA256=84c4491daefa59f74d875f7b311612efbead4143688b5582c499981fe82210e0
+FAIL_CLOSED_WIRING_CONTRACT_EVIDENCE_JSON_SHA256=2ea44667836957fa736828cbd4ae123c5d2144a43918939ab4d494f4cbcaf1ff
+LIVE_ENVELOPE_R1_EVIDENCE_JSON_SHA256=164b2396091dc5b2daf790f09c92e9ebf628c6e577a37acdc6e4dc0c88b3e601
+REPLAY_SOURCE_CONTRACT_EVIDENCE_JSON_SHA256=59e452eedc6b8db82063d11ccaf7af177447074c7ad68565b31a6d86d5d4b457
+REPLAY_SOURCE_R1_EVIDENCE_JSON_SHA256=59a198c38c0c1e8e17a718bb5623943c4035b4b9b582e2216b922d526b508929
+FORECAST_ARTIFACT_PY_BLOB=73e65fbe6774ef555f825efc74c9c8eb5f003575
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=0cc05fff3deff00d279070aa246f241ff3754e89
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=070f54311f08a5c7758602fbe105e511fefd8eca
+TEST_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_PY_BLOB=97b072ca484ce50be6796b88c28b8999d9bde353
+CATALOG_ARTIFACT_PY_BLOB=968e841527b696d17364ddae11693fadb49462b8
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=14e5614c9069b7b50d12bf3caa36305245c2cc39
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+REGISTRY_PY_BLOB=ca16d518ab18136059cd08bcf4b247774d750bb5
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY_BLOB=cf34f76c734388129b7dbf8d4f585bde584fceac
+TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY_BLOB=10ac671d603b842ece5cb3ae449b1580715ed2b0
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+ALIGNMENT_PROJECTION_VERSION=v0-3-s3-a2-s2-identity-alignment-projection-v1
+~~~
+
+Evidence JSON self-hashes above are binding references, not whole-file
+`sha256sum` values. Archived workpaper/evidence bodies are referenced only; not
+rewritten by this authorization grant.
+
+## 2. Inherited S2 and parent contract authority (not reopened)
+
+~~~text
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+FORECAST_REPLAY_IS_NOT_MODEL_RETRAINING=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+SOURCE_002_ROW_LEVEL_READ=false
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+PEP_420_NAMESPACE=true
+PRODUCTION_INIT_PY_FORBIDDEN=true
+~~~
+
+## 3. What this authorization grants
+
+A later deterministic obtain R1 may, under a separate user 「可以实施」 gate,
+implement parent contract §3.2 empty-default obtain priority for
+`IncumbentForecastReplaySource.obtain()` and add
+`backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_postgres_obtain.py`.
+Default construction must remain fail-closed; empty obtain must not claim live kind;
+catalog default first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
+### 3.1 Allowed file changes (future implementation only)
+
+#### 3.1.1 `incumbent_forecast_replay_source.py` (empty-default obtain path only)
+
+~~~text
+MODIFY_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_EMPTY_DEFAULT_OBTAIN_PATH_ONLY=true
+FORBIDDEN_MODIFY_REPLAY_SOURCE_PORT_SIGNATURE=true
+FORBIDDEN_ADD_PARAMETERS_TO_OBTAIN=true
+OBTAIN_SIGNATURE=obtain(self)->tuple[IncumbentForecastArtifactEntry,...]
+REPLAY_SOURCE_GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REPLAY_SOURCE_OUTPUT_FIELDS=model_id,forecast_cutoff_at,forecast_quantile
+REPLAY_SOURCE_CARRIES_NO_KG_OR_TONNES=true
+REPLAY_SOURCE_CARRIES_NO_DAILY_CURVE=true
+REPLAY_SOURCE_CARRIES_NO_HARVEST_BUSINESS_DATE=true
+REPLAY_SOURCE_CARRIES_NO_CATALOG_CELL=true
+REPLAY_SOURCE_CARRIES_NO_ALIGNMENT_IDENTITY=true
+~~~
+
+Future implementation may modify only the empty-default obtain path inside
+`IncumbentForecastReplaySource.obtain()`. Port signature must not change; no
+parameters may be added to `obtain()`.
+
+#### 3.1.2 New test module
+
+~~~text
+NEW_BACKEND_TESTS_S3_DAILY_ROWSET_TEST_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_PY=true
+FUTURE_TEST_PATH=backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_postgres_obtain.py
+~~~
+
+Tests must cover fail-closed behavior: `harvest_as_cutoff=true` → `()`; injected
+non-empty `replay_rows` must not read postgres; missing/unreadable/post-exclusion
+empty → `()`. Do not use H7 fixture as live evidence. Do not invent cutoff lists
+as gold standard. Do not modify frozen test modules.
+
+### 3.2 Obtain priority table (parent contract §3.2)
+
+| priority | condition | outcome |
+|---|---|---|
+| 1 | `uses_harvest_date_as_forecast_cutoff=true` | `()`; postgres forbidden |
+| 2 | explicit non-empty `replay_rows` | existing projection path; postgres forbidden |
+| 3 | explicit empty `replay_rows` and `harvest=false` | future R1 may attempt V0.2 postgres obtain |
+| 4 | postgres missing/unreadable/ambiguous/unauthorized/projection missing/post-exclusion empty | `()` |
+| 5 | empty result | no live kind; no versioned artifact claim |
+| 6 | non-empty result | landed wiring chain and frozen envelope table |
+| 7 | default empty obtain | catalog first blocker `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT` |
+
+### 3.3 Forbidden in future implementation
+
+~~~text
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+FORBIDDEN_INVENT_CONNECTION_STRINGS=true
+FORBIDDEN_INVENT_DSN_OR_DATABASE_NAMES=true
+FORBIDDEN_INVENT_CUTOFF_LISTS=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+POSTGRES_OBTAIN_IS_NOT_SOURCE_002_HARVEST_ROW_READ=true
+POSTGRES_OBTAIN_IS_NOT_S2_HARVEST_GRAIN_ENUMERATION=true
+FORBIDDEN_MODIFY_WIRING_R1=true
+FORBIDDEN_MODIFY_ENVELOPE_ASSIGNMENT_TABLE=true
+FORBIDDEN_MODIFY_CONTENT_IDENTITY_RECIPE=true
+FORBIDDEN_MODIFY_FORECAST_ARTIFACT_PY=true
+FORBIDDEN_MODIFY_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY=true
+FORBIDDEN_MODIFY_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_MODIFY_S2_IDENTITY_ALIGNMENT_PY=true
+FORBIDDEN_MODIFY_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY=true
+FORBIDDEN_MODIFY_BINDING_PY=true
+FORBIDDEN_MODIFY_REGISTRY_PY=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_TEST_FORECAST_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY=true
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY=true
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY=true
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY=true
+FORBIDDEN_TOUCH_TEST_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_PY=true
+FORBIDDEN_WIRE_ALIGNMENT_PRODUCER_IN_THIS_GRANT=true
+FORBIDDEN_LIVE_BINDABLE_SUCCESS_ENUM=true
+FORBIDDEN_FLIP_NO_VERSIONED=true
+FORBIDDEN_FLIP_NO_BINDABLE=true
+FORBIDDEN_FLIP_AVAILABLE_OR_VERIFIED=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_V0_2_POSTGRES_CONCURRENCY_CANARY_FLAKY_TESTS=true
+FORBIDDEN_NEW_ALEMBIC=true
+FORBIDDEN_PRODUCTION_INIT_PY=true
+DEFAULT_DECLARED_CATALOG_SOURCE_KIND=BOUND_FIXTURE
+IMPLEMENTATION_PR_MAY_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_COMPLETENESS_VERIFIED=true
+IMPLEMENTATION_PR_MAY_NOT_WRITE_LIVE_FORECAST_ARTIFACT_TO_REPOSITORY=true
+IMPLEMENTATION_PR_MAY_NOT_PRODUCE_BINDABLE_CATALOG=true
+~~~
+
+Future R1 may bind only coordinator-reviewed, already-frozen V0.2/S3 authority object
+names present in the repository. If no such frozen object name exists, implementation
+must fail-closed to `()` rather than invent names.
+
+The only implementation-status flip permitted by a future implementation PR is:
+
+~~~text
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTED=false → true
+~~~
+
+That flip must be recorded in `docs/v0-3/development-plan.md` §4.4 live block, not
+only in an R1 pointer snapshot.
+
+## 4. What remains forbidden / not authorized
+
+~~~text
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+CURRENT_V0_3_S3_COMPLETE=false
+V0_3_S4_AUTHORIZED=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+ALLOWLIST_EXPANSION_AUTHORIZED=false
+SOURCE_002_ROW_LEVEL_READ=false
+AUTHORIZATION_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+~~~
+
+## 5. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTATION_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md` §10 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md` §13 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §16 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §19 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §22 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §25 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §34 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §50 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §33 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §38 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §39 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §42 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §27 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+~~~
+
+## 6. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_V0_2_POSTGRES_OBTAIN=true
+AUTHORIZATION_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
