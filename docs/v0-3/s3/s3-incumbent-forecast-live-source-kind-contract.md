@@ -739,3 +739,36 @@ follows `docs/v0-3/development-plan.md` §4.4 live state block; this pointer doe
 not rewrite live source kind contract freeze rules in §§1–9. R1 lands empty-default fail-closed postgres obtain;
 no frozen SQL or table names exist in repository contracts so default `obtain()`
 remains `()`.
+
+## 21. S2 identity alignment producer→adapter wiring contract pointer
+
+~~~text
+CONTRACT_PATH=docs/v0-3/s3/s3-s2-identity-alignment-producer-adapter-wiring-contract.md
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-producer-adapter-wiring-contract.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-s2-identity-alignment-producer-adapter-wiring-contract.json
+EVIDENCE_JSON_SHA256=89e4a35e68d70d942df0c795953573828618d62ac3caddc78dba5609608ec36a
+PARENT_ALIGNMENT_CONTRACT_GIT_BLOB_SHA=7568a608b891d4b98b9aaf7f6857a28eb90bb123
+PARENT_EVIDENCE_PRODUCER_CONTRACT_GIT_BLOB_SHA=22f49d7a78bad1a9332040e9f890daa22ef4b1e3
+ALIGNMENT_ADAPTER_R1_EVIDENCE_JSON_SHA256=9813dec98c43edd2e66ac0ce04a27bd6dbe4edb06ba9eb9105736d3d30c547f9
+EVIDENCE_PRODUCER_R1_EVIDENCE_JSON_SHA256=b563f3372e72736f09c750485d24e176ed36448ca8f4ce033ffdbebd51d35ac3
+POSTGRES_OBTAIN_R1_EVIDENCE_JSON_SHA256=66c992c6ef6a085f8856afdc0456fb727d1dc31d32152ca7006b4c33aaff6c10
+FAIL_CLOSED_WIRING_R1_EVIDENCE_JSON_SHA256=875480dd04970eedf597a766d702fea1eeeda27512984ca51a725eace0014f0e
+S3_A2_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_IMPLEMENTED=false
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER_IMPLEMENTED=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_WIRING=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_PRODUCE_FROM_NONE=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+~~~
+
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_CONTRACT_AUTHORIZED` authority
+follows `docs/v0-3/development-plan.md` §4.4 live state block; this pointer does
+not rewrite live source kind contract freeze rules in §§1–9.

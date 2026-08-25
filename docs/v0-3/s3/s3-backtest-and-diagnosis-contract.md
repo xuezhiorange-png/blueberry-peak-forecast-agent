@@ -817,6 +817,16 @@ default `obtain()` remains `()`. It does not flip `NO_VERSIONED` / `AVAILABLE` /
 `VERIFIED` or wire alignment producer→adapter. Historical grant and contract
 pointer snapshots may remain `false`.
 
+
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-producer-adapter-wiring-contract.md`
+(`EVIDENCE_JSON_SHA256=89e4a35e68d70d942df0c795953573828618d62ac3caddc78dba5609608ec36a`).
+S2 identity alignment producer→adapter wiring contract freezes fail-closed default wiring
+authority from producer `produce()` into adapter `evidence`; it does not implement wiring,
+invent harvest rows or SQL, or flip `NO_LIVE_S2` / `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+`DETERMINISTIC_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_IMPLEMENTED` remains `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
