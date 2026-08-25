@@ -620,6 +620,18 @@ projector only; it does not write live S2 alignment facts into the repository, f
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
 historical.
 
+Live `S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-content-contract.md`
+(`EVIDENCE_JSON_SHA256=6294f2028509f2b1021741ac7aea3f20efdcbe07669b87a1782d18c0a5ca9eae`).
+Incumbent forecast artifact content producer contract defines how a future deterministic
+producer may construct `VersionedIncumbentForecastArtifact` for injection into
+`IncumbentForecastArtifactAdapter`; it does not implement a producer, write live forecast
+artifacts into the repository, produce catalogs, flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
