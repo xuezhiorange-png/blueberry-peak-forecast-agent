@@ -470,6 +470,8 @@ S3_A2_S2_IDENTITY_ALIGNMENT_CONTRACT_AUTHORIZED=true
 S3_A2_S2_IDENTITY_ALIGNMENT_IMPLEMENTATION_AUTHORIZED=true
 DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED=true
 S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_AUTHORIZED=true
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER_IMPLEMENTED=false
 EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
 EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
@@ -937,6 +939,30 @@ maintained in this §4.4 block and the producer contract package above. This
 contract defines how a future deterministic producer may construct
 `VersionedAcceptedS2IdentityAlignmentEvidence`; it does not implement a producer,
 write live S2 identity facts, produce catalogs, or authorize backtest execution.
+
+#### Accepted S2 identity alignment evidence producer implementation authorization pointer
+
+```text
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IMPLEMENTATION_AUTH_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-accepted-s2-identity-alignment-evidence-authorization.md
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IMPLEMENTATION_AUTH_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-accepted-s2-identity-alignment-evidence-authorization.json
+EVIDENCE_JSON_SHA256=7a9fb4be04a165cb83cda2c09585b54624401cc9c004c5e48c49496913dce52e
+EVIDENCE_PRODUCER_CONTRACT_EVIDENCE_JSON_SHA256=2bdb9a578592dadd8cf9d15a8071d46f9983e7bb973159d0c3b6ec21b5725add
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IMPLEMENTATION_AUTHORIZED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_EVIDENCE_PRODUCER=true
+AUTHORIZATION_MERGE_DOES_NOT_WRITE_LIVE_S2_ALIGNMENT_FACTS=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+```
+
+Live `S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IMPLEMENTATION_AUTHORIZED` is
+maintained in this §4.4 block and the implementation authorization package above.
+This grant records what a later deterministic evidence producer may do; it does not
+implement a producer, write live S2 identity facts, produce catalogs, or authorize
+backtest execution.
 
 ### 4.5 V0.3 metric contract and threshold boundary
 
