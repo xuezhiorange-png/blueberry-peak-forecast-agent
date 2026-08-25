@@ -1,0 +1,382 @@
+# V0.3-S3-A2 Incumbent Forecast Live Source Kind Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-incumbent-forecast-live-source-kind-contract-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_LIVE_SOURCE_KIND
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=b499ad88e6dfba9c01cdefae1341eb0fda8f6ade
+BASE_MAIN_TREE_SHA=5b02ffb814c56118d0de4471a07ce7749a694e7c
+BASE_REF=origin/main
+PARENT_REPLAY_SOURCE_CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_CONTRACT
+PARENT_REPLAY_SOURCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md
+PARENT_CONTENT_PRODUCER_CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_CONTRACT
+PARENT_CONTENT_PRODUCER_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md
+GRANDPARENT_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTRACT
+GRANDPARENT_INCUMBENT_FORECAST_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+REVIEWER_ROLE=COORDINATOR
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_SERVICE_IMPLEMENTED=true
+DETERMINISTIC_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_IMPLEMENTED=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+CURRENT_V0_3_S3_COMPLETE=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes **when** a future incumbent forecast artifact envelope may
+claim the live forecast `catalog_source_kind`, and **which** `CatalogSourceKind`
+values may never impersonate live forecast authority. Parent replay source
+contract `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §§1–9
+already freeze replay-row obtain authority; parent content producer contract
+`docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §§1–9 already
+freeze how injected rows become `VersionedIncumbentForecastArtifact`. This
+contract closes the remaining governance gap: live forecast source kind naming,
+impersonation prohibition, and bindable-catalog prerequisites.
+
+This is a **live source kind** governance contract only. It is **not** a replay
+source contract, **not** a content producer contract, **not** an implementation
+authorization, and **not** evidence that live forecast artifacts or bindable
+catalogs exist in the repository today.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_LIVE_SOURCE_KIND=true
+CONTRACT_MERGE_DOES_NOT_MODIFY_REGISTRY_PY_ENUM=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_WIRE_PRODUCER_OR_ADAPTER=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 Parent replay source contract and landed R1 (reference only)
+
+~~~text
+REPLAY_SOURCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md
+REPLAY_SOURCE_CONTRACT_GIT_BLOB_SHA=f26a3443d7f6e40fcb533e32dfcdd517a04cf3bf
+REPLAY_SOURCE_CONTRACT_EVIDENCE_JSON_SHA256=59e452eedc6b8db82063d11ccaf7af177447074c7ad68565b31a6d86d5d4b457
+REPLAY_SOURCE_AUTH_EVIDENCE_JSON_SHA256=601e06ac1d679d7fb165a481cc01c27dd01fdd68e5a0d9699098c214ba88c890
+REPLAY_SOURCE_R1_EVIDENCE_JSON_SHA256=59a198c38c0c1e8e17a718bb5623943c4035b4b9b582e2216b922d526b508929
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=070f54311f08a5c7758602fbe105e511fefd8eca
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+~~~
+
+Replay source contract §§1–9 remain authoritative and are not rewritten by this
+live source kind contract. `IncumbentForecastReplaySource` (R1, #332) is landed;
+default `obtain()`=`()`. This contract does not re-authorize or re-implement the
+replay source.
+
+### 1.2 Parent content producer contract and landed R1 (reference only)
+
+~~~text
+CONTENT_PRODUCER_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md
+CONTENT_PRODUCER_CONTRACT_GIT_BLOB_SHA=9a1e58958f6cd7e09b34371293f3f8d3b94a7dee
+CONTENT_CONTRACT_EVIDENCE_JSON_SHA256=6294f2028509f2b1021741ac7aea3f20efdcbe07669b87a1782d18c0a5ca9eae
+CONTENT_AUTH_EVIDENCE_JSON_SHA256=29a486d5fa04542404c6629509ee65ebdf3931c30cf758db643faf93cfd35a38
+CONTENT_PRODUCER_R1_EVIDENCE_JSON_SHA256=d159c010b4f527972e7554789e85808ae48e11941499c6f597f124fd471ff228
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=18c1b1c8d66f2e8ae4476f24692f5ebeb85a9a95
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+~~~
+
+Content producer contract §§1–9 remain authoritative. `IncumbentForecastArtifactContentProducer`
+(R1, #329) default `replay_rows=()` → `produce()`=`None`; envelope
+`catalog_source_kind=CatalogSourceKind.BOUND_FIXTURE` (fixture-only, not live).
+`catalog_artifact.produce()` copies `catalog_source_kind` from forecast, not from
+alignment. This contract does not re-authorize or re-implement the content
+producer.
+
+### 1.3 Grandparent forecast artifact contract and adapter (reference only)
+
+~~~text
+INCUMBENT_FORECAST_ARTIFACT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md
+FORECAST_CONTRACT_EVIDENCE_JSON_SHA256=8e19a623c6739abeb047768ef642281b86ac7f2d73ea35fcff83ae3165f40376
+FORECAST_ADAPTER_R1_EVIDENCE_JSON_SHA256=31bb6d24cf4c398eeea86c18d2dece16b9e0ab6f704e9ab229eac5a363d296a0
+FORECAST_ARTIFACT_PY_BLOB=f928c6c9fa94e91e33c37edd8e9ab57c6e138480
+CATALOG_ARTIFACT_PY_BLOB=968e841527b696d17364ddae11693fadb49462b8
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+~~~
+
+Grandparent contract §§1–8 remain authoritative. `IncumbentForecastArtifactAdapter`
+(R1, #319) default `artifact=None` → catalog `produce()` first blocker remains
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract does not wire producer
+or adapter `default_factory`.
+
+### 1.4 S2 binding and adjacent producers (reference only)
+
+~~~text
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+S2_CONTRACT_SHA256=52388e434cf4e0183dbfe2420b4fbcec54fd85934906f4f9a0dfb59e4dd17616
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=14e5614c9069b7b50d12bf3caa36305245c2cc39
+REGISTRY_PY_BLOB=d3d4dc77e6340786ddcca128eb02e0c1d898a502
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+PEP_420_NAMESPACE=true
+PRODUCTION_INIT_PY_FORBIDDEN=true
+~~~
+
+## 2. Why this contract is the unique remaining gap
+
+Catalog `produce()` first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`
+because:
+
+1. Replay source contract is frozen and R1 is landed; default `obtain()`=`()`.
+2. Content producer R1 is landed; default `replay_rows=()` → `produce()`=`None`;
+   envelope `catalog_source_kind=BOUND_FIXTURE`.
+3. Forecast adapter default `artifact=None`.
+4. `CatalogSourceKind` has `UNBOUND`, `BOUND_FIXTURE`,
+   `SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT`, and forbidden kinds — but
+   no landed `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` enum member.
+5. Parent contracts §3.3 name `LIVE_FORECAST_SOURCE_KIND_CANDIDATE` only and
+   state enum unchanged; binding: `BOUND_FIXTURE` →
+   `FIXTURE_ONLY_CATALOG_NOT_BINDABLE`; other structural passes remain
+   `NOT_BINDABLE`; no live `BINDABLE` success path exists.
+
+This contract freezes live forecast source kind governance only. It does not
+re-open replay source contract §§1–9 or content producer contract §§1–9.
+
+## 3. Live forecast source kind freeze
+
+### 3.1 Authoritative live forecast source kind (named only; enum unchanged)
+
+~~~text
+LIVE_FORECAST_SOURCE_KIND=V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+LIVE_FORECAST_SOURCE_KIND_CANDIDATE=V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+LIVE_FORECAST_SOURCE_KIND_EQUALS_NAMED_CANDIDATE=true
+THIS_CONTRACT_DOES_NOT_MODIFY_REGISTRY_PY_ENUM=true
+ONLY_THIS_KIND_MAY_BE_LIVE_FORECAST_CATALOG_SOURCE_KIND=true
+~~~
+
+`V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` is the sole authoritative live
+forecast `catalog_source_kind`. It is the same name as
+`LIVE_FORECAST_SOURCE_KIND_CANDIDATE` in parent contracts §3.3. This contract
+merge does **not** add the enum member to `registry.py` or `CatalogSourceKind`;
+enum landing remains for a later implementation authorization and code lane.
+
+### 3.2 Non-live forecast source kinds (impersonation forbidden)
+
+~~~text
+BOUND_FIXTURE_IS_NOT_LIVE_FORECAST_SOURCE_KIND=true
+UNBOUND_IS_NOT_LIVE_FORECAST_SOURCE_KIND=true
+FORBIDDEN_CATALOG_SOURCE_KINDS_ARE_NOT_LIVE_FORECAST_SOURCE_KINDS=true
+FORBIDDEN_KINDS=H7_FIXTURE_HASH,S2_HARVEST_GRAIN,V0_2_S3_BINDING_ROWS,HANDWRITTEN_FARM_LIST,HANDWRITTEN_CUTOFF_LIST,FARM_PICK_DAY_ENUMERATION
+~~~
+
+The following must **never** be claimed as live forecast `catalog_source_kind`:
+
+- `BOUND_FIXTURE`
+- `UNBOUND`
+- any `FORBIDDEN_CATALOG_SOURCE_KINDS` member:
+  `H7_FIXTURE_HASH`, `S2_HARVEST_GRAIN`, `V0_2_S3_BINDING_ROWS`,
+  `HANDWRITTEN_FARM_LIST`, `HANDWRITTEN_CUTOFF_LIST`, `FARM_PICK_DAY_ENUMERATION`
+
+### 3.3 Alignment kind is not forecast source kind (layering prohibition)
+
+~~~text
+SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT_IS_ALIGNMENT_KIND_ONLY=true
+ALIGNMENT_KIND_MUST_NOT_BE_FORECAST_SOURCE_KIND=true
+CATALOG_PRODUCE_COPIES_CATALOG_SOURCE_KIND_FROM_FORECAST_NOT_ALIGNMENT=true
+~~~
+
+`SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` is an **alignment**
+`catalog_source_kind` only. It must not be used as a forecast source kind or
+substituted for `LIVE_FORECAST_SOURCE_KIND`. `catalog_artifact.produce()` copies
+`catalog_source_kind` from the forecast artifact envelope, not from alignment
+evidence.
+
+### 3.4 Live kind and bindable catalog (necessary, not sufficient)
+
+~~~text
+LIVE_FORECAST_SOURCE_KIND_NECESSARY_BUT_NOT_SUFFICIENT_FOR_BINDABLE_CATALOG=true
+BOUND_FIXTURE_YIELDS_FIXTURE_ONLY_CATALOG_NOT_BINDABLE=true
+THIS_CONTRACT_DOES_NOT_INTRODUCE_LIVE_BINDABLE_SUCCESS_ENUM=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+~~~
+
+Live `LIVE_FORECAST_SOURCE_KIND` is a **necessary but not sufficient**
+condition for bindable catalog production. This contract does **not** introduce
+a `BindingClassification` live `BINDABLE` success enumeration, does **not** flip
+`NO_BINDABLE_CATALOG_IN_REPOSITORY`, and does **not** flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`. `BOUND_FIXTURE` forecast paths remain
+→ `FIXTURE_ONLY_CATALOG_NOT_BINDABLE`.
+
+## 4. Empty-state and default-construction prohibition
+
+~~~text
+EMPTY_OBTAIN_MUST_NOT_CLAIM_LIVE_KIND=true
+EMPTY_PRODUCE_MUST_NOT_CLAIM_LIVE_KIND=true
+ADAPTER_ARTIFACT_NONE_MUST_NOT_CLAIM_LIVE_KIND=true
+DEFAULT_CONSTRUCTION_MUST_FAIL_CLOSED=true
+~~~
+
+The following repository defaults must **not** carry live forecast
+`catalog_source_kind`:
+
+| State | Authority | Live kind prohibited |
+|---|---|---|
+| `IncumbentForecastReplaySource.obtain()`=`()` | replay source R1 default | yes |
+| `IncumbentForecastArtifactContentProducer.produce()`=`None` | content producer R1 default | yes |
+| `IncumbentForecastArtifactAdapter.artifact=None` | forecast adapter R1 default | yes |
+
+Catalog default `produce()` first blocker remains
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Contract authorization does not
+mean live forecast artifacts are already materialized.
+
+## 5. Fixture test injection path (preserved)
+
+~~~text
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+TEST_INJECTION_MUST_NOT_USE_LIVE_FORECAST_SOURCE_KIND=true
+FIXTURE_PATH_OUTCOME=FIXTURE_ONLY_CATALOG_NOT_BINDABLE
+FORBIDDEN_TOUCH_FROZEN_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_FROZEN_TEST_FORECAST_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_FROZEN_TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY=true
+FORBIDDEN_TOUCH_FROZEN_TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY=true
+~~~
+
+Test-injected `BOUND_FIXTURE` forecast envelope paths in frozen test modules must
+remain unchanged and must continue to yield
+`FIXTURE_ONLY_CATALOG_NOT_BINDABLE`. Live `LIVE_FORECAST_SOURCE_KIND` must not
+be used for test fixture envelopes.
+
+## 6. Future envelope eligibility (named only; not implemented)
+
+A future content producer implementation may set
+`catalog_source_kind=LIVE_FORECAST_SOURCE_KIND` on a produced
+`VersionedIncumbentForecastArtifact` envelope **only when all** of the following
+hold:
+
+1. Replay rows originate from named `V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF`
+   authority with `SOURCE_002_IDFL_LABEL_SIDE` point-in-time visibility.
+2. Post-exclusion replay row set is non-empty (TEST partition exclusion applied).
+3. `content_identity_sha256` is computed by the landed content identity recipe
+   over the actual produced rows (not invented here).
+
+Default construction must remain fail-closed: `produce()`=`None` or test-only
+`BOUND_FIXTURE` injection. This contract merge does **not** authorize changing
+Python, writing live artifacts, or flipping `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY`.
+
+~~~text
+FUTURE_ENVELOPE_REQUIRES_NON_EMPTY_POST_EXCLUSION_REPLAY_ROWS=true
+FUTURE_ENVELOPE_REQUIRES_NAMED_V0_2_AUTHORITY=true
+THIS_CONTRACT_DOES_NOT_INVENT_CONTENT_IDENTITY_SHA256=true
+THIS_CONTRACT_DOES_NOT_INVENT_CATALOG_IDENTITY=true
+THIS_CONTRACT_DOES_NOT_INVENT_CUTOFF_LISTS=true
+THIS_CONTRACT_DOES_NOT_INVENT_DISTINCT_ENTRY_COUNTS=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+~~~
+
+## 7. Forbidden inputs and substitutions
+
+~~~text
+FORBIDDEN_USE_HARVEST_BUSINESS_DATE_AS_FORECAST_CUTOFF=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+FORBIDDEN_SUBSTITUTION_INCUMBENT_DAILY_CURVE_PROVIDER=true
+FORBIDDEN_SUBSTITUTION_SPARSE_HORIZON_BINDING_FORECAST_PROVIDER=true
+FORBIDDEN_SUBSTITUTION_S3_BINDING_ROW=true
+FORBIDDEN_SUBSTITUTION_S2_HARVEST_GRAIN=true
+FORBIDDEN_SUBSTITUTION_H7_FIXTURE=true
+FORBIDDEN_MODIFY_FORECAST_ADAPTER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_CONTENT_PRODUCER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_REPLAY_SOURCE_PORT_SIGNATURE=true
+FORBIDDEN_NEW_ALEMBIC=true
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 8. TEST seal and exclusion policy
+
+~~~text
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+FORBIDDEN_TEST_CUTOFF_OR_HORIZON_INTERSECTION=true
+DEFAULT_MONTH_SCOPE=1-4
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+~~~
+
+Any `forecast_cutoff_at` or evaluation horizon window intersecting TEST partition
+dates `2026-03-10..2026-04-16` must be excluded before live kind may be claimed.
+
+## 9. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_CONTRACT_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live block and pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §12 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §15 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §24 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §40 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §23 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §28 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §29 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §32 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §17 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_SOURCE_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+~~~
