@@ -609,6 +609,17 @@ identity facts into the repository, produce catalogs, flip
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
 historical.
 
+
+Live `DETERMINISTIC_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PRODUCER_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-accepted-s2-identity-alignment-evidence-producer-r1.md`
+(`EVIDENCE_JSON_SHA256=b563f3372e72736f09c750485d24e176ed36448ca8f4ce033ffdbebd51d35ac3`).
+Accepted S2 identity alignment evidence producer R1 delivers the in-memory harvest-grain
+projector only; it does not write live S2 alignment facts into the repository, flip
+`EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
