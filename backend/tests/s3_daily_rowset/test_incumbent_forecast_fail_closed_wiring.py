@@ -187,12 +187,8 @@ def test_content_module_has_no_top_level_replay_source_import() -> None:
             assert node.module is None or "incumbent_forecast_replay_source" not in node.module
 
     pre_type_checking = source.split("if TYPE_CHECKING:")[0]
-    forbidden_import = (
-        "from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import"
-    )
-    forbidden_module_import = (
-        "import backend.app.s3_daily_rowset.incumbent_forecast_replay_source"
-    )
+    forbidden_import = "from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import"
+    forbidden_module_import = "import backend.app.s3_daily_rowset.incumbent_forecast_replay_source"
     assert forbidden_import not in pre_type_checking
     assert forbidden_module_import not in pre_type_checking
 

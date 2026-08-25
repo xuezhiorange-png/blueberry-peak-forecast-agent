@@ -777,7 +777,7 @@ until a separate implementation R1.
 Live `DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED` is maintained in
 `docs/v0-3/development-plan.md` §4.4 live state block and
 `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-fail-closed-wiring-r1.md`
-(`EVIDENCE_JSON_SHA256=a0f3185fda6c243a7013cb01c724d64cf3d74aff19d17370916483cabda94736`).
+(`EVIDENCE_JSON_SHA256=875480dd04970eedf597a766d702fea1eeeda27512984ca51a725eace0014f0e`).
 Incumbent forecast fail-closed wiring R1 wires obtain→produce→adapter defaults while
 empty obtain remains fail-closed; it does not implement V0.2 postgres obtain, wire
 alignment producer→adapter, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
