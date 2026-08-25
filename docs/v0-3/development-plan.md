@@ -1045,6 +1045,32 @@ This grant records what a later deterministic content producer may do; it does n
 implement a producer, write live forecast artifacts, produce catalogs, or authorize
 backtest execution.
 
+
+#### Incumbent forecast artifact content producer R1 pointer
+
+```text
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-content-producer-r1.md
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-content-producer-r1.json
+EVIDENCE_JSON_SHA256=d159c010b4f527972e7554789e85808ae48e11941499c6f597f124fd471ff228
+DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_IMPLEMENTATION_AUTHORIZED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+IMPLEMENTATION_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
+```
+
+Live `DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PRODUCER_IMPLEMENTED` is
+maintained in this §4.4 block and the content producer R1 package above. Default
+construction remains fail-closed without injected replay rows; this does not write
+live forecast artifacts into the repository or flip AVAILABLE/VERIFIED closeout flags.
+
 ### 4.5 V0.3 metric contract and threshold boundary
 
 ```text
