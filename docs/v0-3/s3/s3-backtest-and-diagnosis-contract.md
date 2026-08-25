@@ -773,6 +773,16 @@ authorize V0.2 obtain, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 `DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED` remains `false`
 until a separate implementation R1.
 
+
+Live `DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-fail-closed-wiring-r1.md`
+(`EVIDENCE_JSON_SHA256=875480dd04970eedf597a766d702fea1eeeda27512984ca51a725eace0014f0e`).
+Incumbent forecast fail-closed wiring R1 wires obtain→produce→adapter defaults while
+empty obtain remains fail-closed; it does not implement V0.2 postgres obtain, wire
+alignment producer→adapter, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+Historical grant and contract pointer snapshots may remain `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
