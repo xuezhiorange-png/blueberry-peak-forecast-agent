@@ -10,7 +10,11 @@ from backend.app.s3_daily_rowset.forecast_artifact import (
     VersionedIncumbentForecastArtifact,
     _entry_intersects_test_partition,
 )
-from backend.app.s3_daily_rowset.registry import HORIZON_H7_SUCCESS_FIXTURE_HASH, CatalogSourceKind
+from backend.app.s3_daily_rowset.registry import (
+    FORBIDDEN_CATALOG_SOURCE_KINDS,
+    HORIZON_H7_SUCCESS_FIXTURE_HASH,
+    CatalogSourceKind,
+)
 from backend.app.s3_daily_rowset.window import DEFAULT_IN_SEASON_MONTHS, cutoff_business_date
 
 INCUMBENT_FORECAST_ARTIFACT_CONTENT_IDENTITY_VERSION = (
@@ -123,10 +127,43 @@ def compute_content_identity_sha256(
     return digest
 
 
+def envelope_catalog_source_kind_for_declaration(
+    declared_catalog_source_kind: CatalogSourceKind,
+) -> CatalogSourceKind:
+    if declared_catalog_source_kind == CatalogSourceKind.BOUND_FIXTURE:
+        return CatalogSourceKind.BOUND_FIXTURE
+    if (
+        declared_catalog_source_kind
+        == CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+    ):
+        return CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+    if declared_catalog_source_kind == CatalogSourceKind.UNBOUND:
+        raise ForbiddenIncumbentForecastArtifactContentError(
+            "UNBOUND catalog source kind cannot be assigned to forecast envelope"
+        )
+    if declared_catalog_source_kind in FORBIDDEN_CATALOG_SOURCE_KINDS:
+        raise ForbiddenIncumbentForecastArtifactContentError(
+            "forbidden catalog source kind cannot be assigned to forecast envelope: "
+            f"{declared_catalog_source_kind}"
+        )
+    if (
+        declared_catalog_source_kind
+        == CatalogSourceKind.SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT
+    ):
+        raise ForbiddenIncumbentForecastArtifactContentError(
+            "alignment catalog source kind cannot be assigned to forecast envelope"
+        )
+    raise ForbiddenIncumbentForecastArtifactContentError(
+        "catalog source kind cannot be assigned to forecast envelope: "
+        f"{declared_catalog_source_kind}"
+    )
+
+
 @dataclass
 class IncumbentForecastArtifactContentProducer:
     replay_rows: tuple[IncumbentForecastArtifactEntry, ...] = ()
     uses_harvest_date_as_forecast_cutoff: bool = False
+    declared_catalog_source_kind: CatalogSourceKind = CatalogSourceKind.BOUND_FIXTURE
 
     def produce(self) -> VersionedIncumbentForecastArtifact | None:
         if self.uses_harvest_date_as_forecast_cutoff:
@@ -138,10 +175,13 @@ class IncumbentForecastArtifactContentProducer:
         if not rows:
             return None
 
+        envelope_kind = envelope_catalog_source_kind_for_declaration(
+            self.declared_catalog_source_kind
+        )
         content_identity_sha256 = compute_content_identity_sha256(rows=rows)
         return VersionedIncumbentForecastArtifact(
             content_identity_sha256=content_identity_sha256,
             rows=rows,
-            catalog_source_kind=CatalogSourceKind.BOUND_FIXTURE,
+            catalog_source_kind=envelope_kind,
             uses_harvest_date_as_forecast_cutoff=False,
         )
