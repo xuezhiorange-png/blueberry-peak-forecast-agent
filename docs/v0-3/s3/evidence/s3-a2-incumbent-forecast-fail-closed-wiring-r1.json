@@ -47,7 +47,7 @@
     "pep_420_namespace": true,
     "production_init_py_forbidden": true,
     "test_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_fail_closed_wiring.py",
-    "test_incumbent_forecast_fail_closed_wiring_py_blob": "565919fd5555ab6421c73f47431dad65f8a563de"
+    "test_incumbent_forecast_fail_closed_wiring_py_blob": "97b072ca484ce50be6796b88c28b8999d9bde353"
   },
   "authorization": {
     "deterministic_incumbent_forecast_fail_closed_wiring_implemented": true,
@@ -86,5 +86,5 @@
   },
   "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-fail-closed-wiring-r1.md",
   "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-fail-closed-wiring-r1.json",
-  "evidence_json_sha256": "a0f3185fda6c243a7013cb01c724d64cf3d74aff19d17370916483cabda94736"
+  "evidence_json_sha256": "875480dd04970eedf597a766d702fea1eeeda27512984ca51a725eace0014f0e"
 }
