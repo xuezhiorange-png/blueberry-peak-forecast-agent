@@ -16,6 +16,8 @@
   "contract_merge_does_not_implement_live_envelope_assignment": true,
   "contract_merge_does_not_modify_registry_py_enum": true,
   "contract_merge_does_not_wire_producer_or_adapter": true,
+  "contract_merge_does_not_change_default_obtain_from_empty": true,
+  "contract_merge_does_not_change_default_produce_from_none": true,
   "contract_merge_does_not_write_live_forecast_artifact": true,
   "contract_merge_does_not_produce_catalog": true,
   "contract_merge_does_not_bind_catalog": true,
@@ -43,6 +45,8 @@
     "forecast_artifact_py_blob": "f928c6c9fa94e91e33c37edd8e9ab57c6e138480",
     "catalog_artifact_py_blob": "968e841527b696d17364ddae11693fadb49462b8",
     "binding_py_blob": "0a335f682a923bcd73908b58cd70cd49c9ab0117",
+    "s2_identity_alignment_py_blob": "b899e52dbd8752b30395441389ad93fc98d9dbf7",
+    "accepted_s2_identity_alignment_evidence_py_blob": "14e5614c9069b7b50d12bf3caa36305245c2cc39",
     "incumbent_forecast_artifact_content_py_blob": "18c1b1c8d66f2e8ae4476f24692f5ebeb85a9a95",
     "incumbent_forecast_replay_source_py_blob": "070f54311f08a5c7758602fbe105e511fefd8eca",
     "test_catalog_artifact_py_blob": "af59a9f1d291ab32eff23684aca477f0e4a852cd",
@@ -69,10 +73,21 @@
     "harvest_business_date_is_not_forecast_cutoff": true
   },
   "contract_scope": {
+    "parent_contracts_not_reopened": [
+      "s3-incumbent-forecast-live-source-kind-contract §§1-9",
+      "s3-incumbent-forecast-replay-source-contract §§1-9",
+      "s3-incumbent-forecast-artifact-content-contract §§1-9"
+    ],
     "envelope_assignment_locus": "IncumbentForecastArtifactContentProducer.produced_artifact.catalog_source_kind",
     "live_envelope_kind": "V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF",
     "fixture_envelope_kind": "BOUND_FIXTURE",
+    "declared_catalog_source_kind_via_optional_dataclass_fields_only": true,
+    "forbidden_modify_forecast_adapter_port_signature": true,
+    "forbidden_modify_content_producer_port_signature": true,
+    "forbidden_modify_replay_source_port_signature": true,
     "forbidden_infer_live_kind_from_row_tuple_alone": true,
+    "forbidden_infer_live_kind_from_model_id_string_scan": true,
+    "forbidden_add_catalog_source_kind_to_incumbent_forecast_artifact_entry": true,
     "replay_row_fields": [
       "model_id",
       "forecast_cutoff_at",
@@ -81,15 +96,14 @@
     "catalog_produce_copies_catalog_source_kind_from_forecast_not_alignment": true,
     "live_envelope_requires_named_v0_2_replay_authority": true,
     "live_envelope_requires_non_empty_post_exclusion_replay_rows": true,
-    "live_envelope_requires_content_identity_by_landed_recipe": true,
     "live_envelope_requires_explicit_assignment": true,
     "bound_fixture_test_injection_path_must_remain": true,
+    "test_injection_must_not_use_live_forecast_source_kind": true,
     "fixture_path_outcome": "FIXTURE_ONLY_CATALOG_NOT_BINDABLE",
     "live_envelope_kind_necessary_but_not_sufficient_for_bindable_catalog": true,
-    "empty_obtain_must_not_assign_live_envelope": true,
-    "empty_replay_rows_must_not_assign_live_envelope": true,
-    "produce_none_must_not_assign_live_envelope": true,
-    "adapter_artifact_none_must_not_assign_live_envelope": true,
+    "empty_obtain_must_not_claim_live_kind": true,
+    "empty_produce_must_not_claim_live_kind": true,
+    "adapter_artifact_none_must_not_claim_live_kind": true,
     "forbidden_wire_obtain_to_produce_to_adapter": true,
     "forbidden_v0_2_postgres_obtain": true,
     "forbidden_repository_scan": true,
@@ -103,8 +117,55 @@
     "test_partition_exclusion_required": true,
     "pep_420_namespace": true,
     "production_init_py_forbidden": true,
-    "alembic_forbidden": true
+    "alembic_forbidden": true,
+    "future_backend_app_path": "backend/app/s3_daily_rowset/incumbent_forecast_artifact_content.py",
+    "future_test_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_live_envelope.py",
+    "persistence": "IN_MEMORY_SERVICE_ONLY"
   },
+  "envelope_assignment_table": [
+    {
+      "declared_catalog_source_kind": "default_or_BOUND_FIXTURE",
+      "post_exclusion_rows": "empty",
+      "harvest_date_as_cutoff": false,
+      "produce_outcome": "None",
+      "envelope_catalog_source_kind": "no_envelope"
+    },
+    {
+      "declared_catalog_source_kind": "default_or_BOUND_FIXTURE",
+      "post_exclusion_rows": "non_empty",
+      "harvest_date_as_cutoff": false,
+      "produce_outcome": "artifact",
+      "envelope_catalog_source_kind": "BOUND_FIXTURE"
+    },
+    {
+      "declared_catalog_source_kind": "V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF",
+      "post_exclusion_rows": "empty",
+      "harvest_date_as_cutoff": false,
+      "produce_outcome": "None",
+      "envelope_catalog_source_kind": "no_envelope_live_kind_prohibited"
+    },
+    {
+      "declared_catalog_source_kind": "V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF",
+      "post_exclusion_rows": "non_empty",
+      "harvest_date_as_cutoff": false,
+      "produce_outcome": "artifact",
+      "envelope_catalog_source_kind": "V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF"
+    },
+    {
+      "declared_catalog_source_kind": "any",
+      "post_exclusion_rows": "any",
+      "harvest_date_as_cutoff": true,
+      "produce_outcome": "None",
+      "envelope_catalog_source_kind": "no_envelope"
+    },
+    {
+      "declared_catalog_source_kind": "UNBOUND_or_FORBIDDEN_or_SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT",
+      "post_exclusion_rows": "any",
+      "harvest_date_as_cutoff": "any",
+      "produce_outcome": "forbidden_fail_closed",
+      "envelope_catalog_source_kind": "must_not_be_assigned_to_forecast_envelope"
+    }
+  ],
   "s3_a2_incumbent_forecast_live_envelope_contract_authorized": true,
   "s3_a2_incumbent_forecast_live_source_kind_contract_authorized": true,
   "s3_a2_incumbent_forecast_live_source_kind_implementation_authorized": true,
@@ -150,6 +211,8 @@
   },
   "frozen_snapshot_authority": {
     "live_source_kind_contract_body_not_mutated": true,
+    "replay_source_contract_body_not_mutated": true,
+    "content_producer_contract_body_not_mutated": true,
     "archived_workpapers_not_rewritten": true,
     "s2_contract_not_mutated": true,
     "frozen_python_blobs_not_mutated": true
@@ -172,5 +235,5 @@
     "a2_registry_contract_pointer": true,
     "accepted_s2_identity_alignment_evidence_contract_pointer": true
   },
-  "evidence_json_sha256": "bec6560beac306018c909e49ccd0c44d1bd6cf1a22e5331b63834f1fdadef3f0"
+  "evidence_json_sha256": "9b67eabc5ae01f5e834dda4d8321208198a4bef3ad3e1d5f6a3bdf2fe5ed27d4"
 }

@@ -63,12 +63,19 @@ MERGE_AUTHORIZED=false
 This document freezes deterministic **envelope assignment** authority: how
 `VersionedIncumbentForecastArtifact` envelope field `catalog_source_kind` may be
 set by the content producer (and therefore observed by the forecast adapter and
-catalog artifact). Parent live source kind contract
-`docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §§1–9 already
-freeze which `CatalogSourceKind` may be called live forecast authority and which
-kinds must never impersonate it; live source kind R1 (#335) already landed
-`CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` in `registry.py`.
-This contract does **not** re-freeze the enum, re-open live kind impersonation
+catalog artifact).
+
+Parent contracts **not reopened** by this envelope contract:
+
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §§1–9 (live
+  kind naming and impersonation prohibition; enum landed by R1 #335)
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §§1–9 (replay-row
+  obtain authority)
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §§1–9 (row
+  projection and content identity)
+
+This contract operationalizes parent live source kind contract §6 only. It does
+**not** re-freeze the `CatalogSourceKind` enum, re-open live kind impersonation
 rules, or authorize wiring.
 
 This is a **live envelope assignment** governance contract only. It is **not** a
@@ -81,9 +88,14 @@ that versioned forecast artifacts exist in the repository today.
 CONTRACT_MERGE_DOES_NOT_IMPLEMENT_LIVE_ENVELOPE_ASSIGNMENT=true
 CONTRACT_MERGE_DOES_NOT_MODIFY_REGISTRY_PY_ENUM=true
 CONTRACT_MERGE_DOES_NOT_WIRE_PRODUCER_OR_ADAPTER=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_PRODUCE_FROM_NONE=true
 CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
 CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
 CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+EMPTY_OBTAIN_MUST_NOT_CLAIM_LIVE_KIND=true
+EMPTY_PRODUCE_MUST_NOT_CLAIM_LIVE_KIND=true
+ADAPTER_ARTIFACT_NONE_MUST_NOT_CLAIM_LIVE_KIND=true
 AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
 IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
 PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
@@ -202,69 +214,120 @@ bindable catalog closeout.
 
 ## 3. Live envelope assignment freeze
 
-### 3.1 Assignment locus and provenance
+### 3.1 Live forecast source kind (reference only; enum landed)
 
 ~~~text
-ENVELOPE_ASSIGNMENT_LOCUS=IncumbentForecastArtifactContentProducer.produced_artifact.catalog_source_kind
-ADAPTER_READS_ENVELOPE_FROM_INJECTED_ARTIFACT_ONLY=true
-CATALOG_PRODUCE_COPIES_CATALOG_SOURCE_KIND_FROM_FORECAST_NOT_ALIGNMENT=true
+LIVE_FORECAST_SOURCE_KIND=V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+REGISTRY_PY_BLOB=ca16d518ab18136059cd08bcf4b247774d750bb5
+THIS_CONTRACT_DOES_NOT_ADD_CATALOG_SOURCE_KIND_MEMBERS=true
+THIS_CONTRACT_DOES_NOT_MODIFY_FORBIDDEN_CATALOG_SOURCE_KINDS=true
+THIS_CONTRACT_DOES_NOT_MODIFY_ALLOWED_ALIGNMENT_SOURCE_KINDS=true
+~~~
+
+`CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` is already landed
+in `registry.py` (R1 #335). This contract does **not** add enum members or modify
+`FORBIDDEN_CATALOG_SOURCE_KINDS` or `ALLOWED_ALIGNMENT_SOURCE_KINDS`.
+
+### 3.2 Envelope assignment table (core freeze)
+
+Default construction: `replay_rows=()` and no declared live kind →
+`produce()`=`None`. No envelope exists; live kind must not be claimed.
+
+| `declared_catalog_source_kind` | post-exclusion rows | `harvest_date_as_cutoff` | `produce()` | envelope `catalog_source_kind` |
+|---|---|---|---|---|
+| default / `BOUND_FIXTURE` | empty | false | `None` | no envelope |
+| default / `BOUND_FIXTURE` | non-empty | false | artifact | `BOUND_FIXTURE` |
+| `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` | empty | false | `None` | no envelope; live kind prohibited |
+| `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` | non-empty | false | artifact | `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` |
+| any | any | true | `None` | no envelope |
+| `UNBOUND` / `FORBIDDEN_*` / `SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` | any | any | forbidden / fail-closed | must not be assigned to forecast envelope |
+
+`declared_catalog_source_kind` is an explicit producer-side declaration mechanism
+(§3.4); it is **not** inferred from replay row tuples alone.
+
+### 3.3 Live envelope semantic authority (named only; not implemented here)
+
+Claiming live envelope `catalog_source_kind` additionally requires replay rows
+from named authority `V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF` with
+`SOURCE_002_IDFL_LABEL_SIDE` point-in-time visibility at historical cutoff.
+TEST-partition intersecting `forecast_cutoff_at` or 7/14/21-day horizon windows
+must be excluded before live envelope may be assigned.
+
+This contract does **not** implement V0.2 obtain, invent SQL or table names,
+publish cutoff lists, publish distinct entry counts, or publish
+`content_identity_sha256` values.
+
+~~~text
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+VISIBILITY_AUTHORITY=SOURCE_002_IDFL_LABEL_SIDE
+FORECAST_ARTIFACT_REQUIRES_PIT_REPLAY_AT_HISTORICAL_CUTOFF=true
+FORBIDDEN_INVENT_CUTOFF_LISTS=true
+FORBIDDEN_INVENT_DISTINCT_ENTRY_COUNTS=true
+FORBIDDEN_INVENT_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_INVENT_CATALOG_IDENTITY=true
+~~~
+
+### 3.4 Authority declaration mechanism (future implementation only)
+
+Port signatures must remain unchanged:
+
+~~~text
+FORBIDDEN_MODIFY_FORECAST_ADAPTER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_CONTENT_PRODUCER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_REPLAY_SOURCE_PORT_SIGNATURE=true
+PRODUCE_SIGNATURE=produce(self)->VersionedIncumbentForecastArtifact|None
+OBTAIN_SIGNATURE=obtain(self)->tuple[IncumbentForecastArtifactEntry,...]
+~~~
+
+Future implementation may add optional **dataclass constructor fields** on
+`IncumbentForecastArtifactContentProducer` (not `produce()` parameters) to carry
+`declared_catalog_source_kind`. Defaults must preserve landed fail-closed behavior:
+
+- unspecified declaration + empty `replay_rows` → `produce()`=`None`
+- unspecified declaration + non-empty test-injected rows → envelope
+  `catalog_source_kind=BOUND_FIXTURE`
+
+Forbidden:
+
+~~~text
 FORBIDDEN_INFER_LIVE_KIND_FROM_ROW_TUPLE_ALONE=true
+FORBIDDEN_INFER_LIVE_KIND_FROM_MODEL_ID_STRING_SCAN=true
+FORBIDDEN_ADD_CATALOG_SOURCE_KIND_TO_INCUMBENT_FORECAST_ARTIFACT_ENTRY=true
+FORBIDDEN_USE_ALIGNMENT_EVIDENCE_AS_FORECAST_ENVELOPE_KIND=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_USE_HARVEST_BUSINESS_DATE_AS_FORECAST_CUTOFF=true
 REPLAY_ROW_FIELDS=model_id,forecast_cutoff_at,forecast_quantile
 ~~~
 
-Envelope `catalog_source_kind` is assigned at content producer production time on
-`VersionedIncumbentForecastArtifact`. The forecast adapter exposes the injected
-artifact envelope unchanged. Catalog artifact copies `catalog_source_kind` from
-forecast, not from alignment evidence. Replay row field tuples alone are
-insufficient to infer live vs fixture authority.
-
-### 3.2 Permitted envelope values (assignment outcomes)
+### 3.5 Adapter, catalog, and binding (reference only)
 
 ~~~text
-LIVE_ENVELOPE_KIND=CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
-FIXTURE_ENVELOPE_KIND=CatalogSourceKind.BOUND_FIXTURE
-EMPTY_PRODUCTION_OUTCOME=produce()=None
+ENVELOPE_ASSIGNMENT_LOCUS=IncumbentForecastArtifactContentProducer.produced_artifact.catalog_source_kind
+ADAPTER_COPIES_ARTIFACT_ENVELOPE_UNCHANGED=true
+CATALOG_PRODUCE_COPIES_CATALOG_SOURCE_KIND_FROM_FORECAST_NOT_ALIGNMENT=true
+ADAPTER_ARTIFACT_NONE_MUST_NOT_CLAIM_LIVE_KIND=true
+LIVE_FORECAST_SOURCE_KIND_NECESSARY_BUT_NOT_SUFFICIENT_FOR_BINDABLE_CATALOG=true
+BOUND_FIXTURE_YIELDS_FIXTURE_ONLY_CATALOG_NOT_BINDABLE=true
+THIS_CONTRACT_DOES_NOT_INTRODUCE_LIVE_BINDABLE_SUCCESS_ENUM=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
 ~~~
 
-A future implementation may assign exactly one of:
+The forecast adapter continues to expose injected `artifact.catalog_source_kind`
+unchanged. `artifact=None` must not invent live kind. Catalog artifact continues
+to copy `catalog_source_kind` from forecast, not from alignment. Live envelope
+kind is necessary but not sufficient for bindable catalog; this contract does not
+flip `NO_BINDABLE_CATALOG_IN_REPOSITORY`.
 
-| Outcome | `catalog_source_kind` | When |
-|---|---|---|
-| No artifact | `produce()`=`None` | No replay rows, post-exclusion emptiness, or missing projection |
-| Fixture envelope | `BOUND_FIXTURE` | Test-only explicit fixture injection path (preserved) |
-| Live envelope | `V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` | Named live replay authority with non-empty post-exclusion rows (§3.3) |
-
-`UNBOUND`, `FORBIDDEN_CATALOG_SOURCE_KINDS` members, and
-`SOURCE_002_E5_LIVE_V1_TRAIN_VALIDATION_ALIGNMENT` must never be assigned as
-forecast envelope `catalog_source_kind`.
-
-### 3.3 Live envelope eligibility (all required)
-
-`catalog_source_kind=V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF` may be assigned
-**only when all** of the following hold simultaneously:
-
-1. **Named replay authority**: injected `replay_rows` are obtained under
-   `V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF` with
-   `SOURCE_002_IDFL_LABEL_SIDE` point-in-time visibility at historical cutoff
-   (inherited from replay source contract; not re-derived from row tuples alone).
-2. **Non-empty post-exclusion set**: after TEST partition and business exclusion
-   filters, at least one `IncumbentForecastArtifactEntry` remains.
-3. **Content identity computed**: `content_identity_sha256` is produced by the
-   landed content identity recipe over actual produced rows (recipe not invented
-   here).
-4. **Explicit live assignment**: producer envelope assignment logic explicitly
-   selects live kind; silent default or row-shape inference is forbidden.
-
-If any condition fails → `produce()`=`None` or test-only `BOUND_FIXTURE`; must
-not assign live kind.
-
-### 3.4 Fixture test injection path (preserved)
+### 3.6 Fixture test injection path (preserved)
 
 ~~~text
 BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
-TEST_INJECTION_MUST_USE_BOUND_FIXTURE_NOT_LIVE_KIND=true
+TEST_INJECTION_MUST_NOT_USE_LIVE_FORECAST_SOURCE_KIND=true
 FIXTURE_PATH_OUTCOME=FIXTURE_ONLY_CATALOG_NOT_BINDABLE
 FORBIDDEN_TOUCH_FROZEN_TEST_CATALOG_ARTIFACT_PY=true
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
 FORBIDDEN_TOUCH_FROZEN_TEST_FORECAST_ARTIFACT_PY=true
 FORBIDDEN_TOUCH_FROZEN_TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY=true
 FORBIDDEN_TOUCH_FROZEN_TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY=true
@@ -275,31 +338,20 @@ produce `catalog_source_kind=BOUND_FIXTURE` and yield
 `FIXTURE_ONLY_CATALOG_NOT_BINDABLE`. Live envelope kind must not replace fixture
 test envelopes.
 
-### 3.5 Live envelope and bindable catalog (necessary, not sufficient)
+### 3.7 Default construction fail-closed (not wired by this contract)
 
 ~~~text
-LIVE_ENVELOPE_KIND_NECESSARY_BUT_NOT_SUFFICIENT_FOR_BINDABLE_CATALOG=true
-BOUND_FIXTURE_YIELDS_FIXTURE_ONLY_CATALOG_NOT_BINDABLE=true
-THIS_CONTRACT_DOES_NOT_INTRODUCE_LIVE_BINDABLE_SUCCESS_ENUM=true
-NO_BINDABLE_CATALOG_IN_REPOSITORY=true
-~~~
-
-Assigning live envelope `catalog_source_kind` is **necessary but not sufficient**
-for bindable catalog production. This contract does **not** introduce a
-`BindingClassification` live `BINDABLE` success enumeration and does **not** flip
-`NO_BINDABLE_CATALOG_IN_REPOSITORY` or `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`.
-
-## 4. Empty-state and default-construction prohibition
-
-~~~text
-EMPTY_OBTAIN_MUST_NOT_ASSIGN_LIVE_ENVELOPE=true
-EMPTY_REPLAY_ROWS_MUST_NOT_ASSIGN_LIVE_ENVELOPE=true
-PRODUCE_NONE_MUST_NOT_ASSIGN_LIVE_ENVELOPE=true
-ADAPTER_ARTIFACT_NONE_MUST_NOT_ASSIGN_LIVE_ENVELOPE=true
+CONTRACT_MERGE_DOES_NOT_WIRE_PRODUCER_OR_ADAPTER=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_PRODUCE_FROM_NONE=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+EMPTY_OBTAIN_MUST_NOT_CLAIM_LIVE_KIND=true
+EMPTY_PRODUCE_MUST_NOT_CLAIM_LIVE_KIND=true
+ADAPTER_ARTIFACT_NONE_MUST_NOT_CLAIM_LIVE_KIND=true
 DEFAULT_CONSTRUCTION_MUST_FAIL_CLOSED=true
 ~~~
 
-| Repository default | Live envelope prohibited |
+| Repository default | Live kind prohibited |
 |---|---|
 | `IncumbentForecastReplaySource.obtain()`=`()` | yes |
 | `IncumbentForecastArtifactContentProducer.replay_rows=()` → `produce()`=`None` | yes |
@@ -309,7 +361,7 @@ Catalog default `produce()` first blocker remains
 `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Contract authorization does not mean
 live forecast artifacts are materialized in the repository.
 
-## 5. Explicit non-scope (not authorized by this contract)
+## 4. Explicit non-scope (not authorized by this contract)
 
 This contract merge does **not** authorize:
 
@@ -336,7 +388,33 @@ EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 NO_BINDABLE_CATALOG_IN_REPOSITORY=true
 NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+FUTURE_BACKEND_APP_PATH=backend/app/s3_daily_rowset/incumbent_forecast_artifact_content.py
+FUTURE_TEST_PATH=backend/tests/s3_daily_rowset/test_incumbent_forecast_live_envelope.py
+PERSISTENCE=IN_MEMORY_SERVICE_ONLY
 ~~~
+
+Future implementation paths above are named only; this contract does not create
+implementation authorization or mutate production/test code.
+
+## 5. Frozen Python blob audit (byte-identical at contract merge)
+
+~~~text
+FORECAST_ARTIFACT_PY_BLOB=f928c6c9fa94e91e33c37edd8e9ab57c6e138480
+CATALOG_ARTIFACT_PY_BLOB=968e841527b696d17364ddae11693fadb49462b8
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=14e5614c9069b7b50d12bf3caa36305245c2cc39
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=18c1b1c8d66f2e8ae4476f24692f5ebeb85a9a95
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=070f54311f08a5c7758602fbe105e511fefd8eca
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+REGISTRY_PY_BLOB=ca16d518ab18136059cd08bcf4b247774d750bb5
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+FROZEN_PYTHON_BLOBS_NOT_MUTATED_BY_THIS_CONTRACT=true
+~~~
+
+Contract merge must leave every blob above byte-identical.
 
 ## 6. Forbidden inputs and substitutions
 
@@ -351,6 +429,7 @@ FORBIDDEN_SUBSTITUTION_S3_BINDING_ROW=true
 FORBIDDEN_SUBSTITUTION_S2_HARVEST_GRAIN=true
 FORBIDDEN_SUBSTITUTION_H7_FIXTURE=true
 FORBIDDEN_MODIFY_FORECAST_ADAPTER_PORT_SIGNATURE=true
+FORBIDDEN_MODIFY_CONTENT_PRODUCER_PORT_SIGNATURE=true
 FORBIDDEN_MODIFY_REPLAY_SOURCE_PORT_SIGNATURE=true
 FORBIDDEN_MODIFY_CATALOG_SOURCE_KIND_PROVENANCE=true
 FORBIDDEN_NEW_ALEMBIC=true

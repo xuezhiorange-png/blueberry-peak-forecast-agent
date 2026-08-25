@@ -723,7 +723,7 @@ contract pointer snapshots may remain `false`.
 Live `S3_A2_INCUMBENT_FORECAST_LIVE_ENVELOPE_CONTRACT_AUTHORIZED` is maintained in
 `docs/v0-3/development-plan.md` §4.4 live state block and
 `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-live-envelope-contract.md`
-(`EVIDENCE_JSON_SHA256=bec6560beac306018c909e49ccd0c44d1bd6cf1a22e5331b63834f1fdadef3f0`).
+(`EVIDENCE_JSON_SHA256=9b67eabc5ae01f5e834dda4d8321208198a4bef3ad3e1d5f6a3bdf2fe5ed27d4`).
 Incumbent forecast live envelope contract freezes deterministic
 `catalog_source_kind` envelope assignment on produced forecast artifacts; it does not
 implement assignment logic, wire obtain→produce→adapter, write live forecast
