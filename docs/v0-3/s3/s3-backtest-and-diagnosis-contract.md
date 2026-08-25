@@ -654,6 +654,18 @@ projector only; it does not write live forecast artifacts into the repository, f
 `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
 historical.
 
+Live `S3_A2_INCUMBENT_FORECAST_REPLAY_SOURCE_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-source-contract.md`
+(`EVIDENCE_JSON_SHA256=59e452eedc6b8db82063d11ccaf7af177447074c7ad68565b31a6d86d5d4b457`).
+Incumbent forecast replay source contract defines how a future deterministic replay
+source may obtain injectable rows for the landed
+`IncumbentForecastArtifactContentProducer`; it does not implement a replay source,
+wire producer/adapter defaults, write live forecast artifacts into the repository,
+produce catalogs, flip `EVALUATION_INSTANCE_REGISTRY_AVAILABLE`, or flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`. P0 §4.2 freeze snapshots remain
+historical.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
