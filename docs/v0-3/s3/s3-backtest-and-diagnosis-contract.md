@@ -840,6 +840,18 @@ implement wiring, invent harvest rows or SQL, or flip `NO_LIVE_S2` / `NO_VERSION
 `DETERMINISTIC_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_IMPLEMENTED` remains `false`
 until a separate implementation R1.
 
+
+Live `DETERMINISTIC_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-producer-adapter-wiring-r1.md`
+(`EVIDENCE_JSON_SHA256=1349db0e8ef64f99250ae965b99fbba52d817f682201286852dccaa3df20c579`).
+S2 identity alignment producer→adapter wiring R1 wires default
+`AcceptedS2IdentityAlignmentEvidenceProducer.produce()` into
+`S2IdentityAlignmentAdapter.evidence`; default `harvest_rows=()` still yields
+`evidence=None`. It does not flip `NO_LIVE_S2` / `NO_VERSIONED` / `AVAILABLE` /
+`VERIFIED` or read SOURCE_002 row-level harvest. Historical grant and contract
+pointer snapshots may remain `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
