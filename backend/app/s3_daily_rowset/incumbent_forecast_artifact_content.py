@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s3_daily_rowset.catalog_artifact import IncumbentForecastArtifactEntry
@@ -16,6 +17,20 @@ from backend.app.s3_daily_rowset.registry import (
     CatalogSourceKind,
 )
 from backend.app.s3_daily_rowset.window import DEFAULT_IN_SEASON_MONTHS, cutoff_business_date
+
+if TYPE_CHECKING:
+    from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
+        IncumbentForecastReplaySource,
+    )
+
+
+def _default_replay_source() -> IncumbentForecastReplaySource:
+    from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
+        IncumbentForecastReplaySource,
+    )
+
+    return IncumbentForecastReplaySource()
+
 
 INCUMBENT_FORECAST_ARTIFACT_CONTENT_IDENTITY_VERSION = (
     "v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1"
@@ -162,16 +177,21 @@ def envelope_catalog_source_kind_for_declaration(
 @dataclass
 class IncumbentForecastArtifactContentProducer:
     replay_rows: tuple[IncumbentForecastArtifactEntry, ...] = ()
+    replay_source: IncumbentForecastReplaySource = field(default_factory=_default_replay_source)
     uses_harvest_date_as_forecast_cutoff: bool = False
     declared_catalog_source_kind: CatalogSourceKind = CatalogSourceKind.BOUND_FIXTURE
 
     def produce(self) -> VersionedIncumbentForecastArtifact | None:
         if self.uses_harvest_date_as_forecast_cutoff:
             return None
-        if not self.replay_rows:
+
+        source_rows = self.replay_rows
+        if not source_rows:
+            source_rows = self.replay_source.obtain()
+        if not source_rows:
             return None
 
-        rows = project_incumbent_forecast_artifact_entries(self.replay_rows)
+        rows = project_incumbent_forecast_artifact_entries(source_rows)
         if not rows:
             return None
 

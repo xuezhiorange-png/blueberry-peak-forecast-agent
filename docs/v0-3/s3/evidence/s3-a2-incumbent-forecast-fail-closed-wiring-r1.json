@@ -1,0 +1,90 @@
+{
+  "artifact_id": "V0_3_S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_R1",
+  "artifact_version": "s3-a2-incumbent-forecast-fail-closed-wiring-r1",
+  "task_id": "V03_S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_A2_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTATION_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以实施",
+  "recorded_at": "2026-08-25T12:26:13Z",
+  "no_step_implies_the_next": true,
+  "this_draft_is_not_ready": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "audited_repository_sha": "ddb76d3b13c5663203b1fb73057d4a5eb86568bb",
+  "audited_repository_tree_sha": "6c772f7595251580e89a8f6342cc6584b4c7de27",
+  "authorization_evidence": {
+    "pr_number": 340,
+    "auth_evidence_json_sha256": "84c4491daefa59f74d875f7b311612efbead4143688b5582c499981fe82210e0",
+    "fail_closed_wiring_contract_evidence_json_sha256": "2ea44667836957fa736828cbd4ae123c5d2144a43918939ab4d494f4cbcaf1ff",
+    "live_envelope_r1_evidence_json_sha256": "164b2396091dc5b2daf790f09c92e9ebf628c6e577a37acdc6e4dc0c88b3e601",
+    "s3_a2_incumbent_forecast_fail_closed_wiring_implementation_authorized": true
+  },
+  "s2_binding": {
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "test_partition_dates": "2026-03-10..2026-04-16",
+    "source_002_row_level_read": false
+  },
+  "fail_closed_wiring_contract": {
+    "contract_path": "docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md"
+  },
+  "implementation": {
+    "content_producer_path": "backend/app/s3_daily_rowset/incumbent_forecast_artifact_content.py",
+    "incumbent_forecast_artifact_content_py_blob": "0cc05fff3deff00d279070aa246f241ff3754e89",
+    "forecast_adapter_path": "backend/app/s3_daily_rowset/forecast_artifact.py",
+    "forecast_artifact_py_blob": "73e65fbe6774ef555f825efc74c9c8eb5f003575",
+    "optional_replay_source_field": "replay_source",
+    "optional_producer_field": "producer",
+    "default_declared_catalog_source_kind": "BOUND_FIXTURE",
+    "deterministic_incumbent_forecast_fail_closed_wiring_implemented": true,
+    "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+    "content_identity_version": "v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1",
+    "forbidden_h7_fixture_as_content_identity": true,
+    "horizon_h7_success_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18",
+    "pep_420_namespace": true,
+    "production_init_py_forbidden": true,
+    "test_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_fail_closed_wiring.py",
+    "test_incumbent_forecast_fail_closed_wiring_py_blob": "565919fd5555ab6421c73f47431dad65f8a563de"
+  },
+  "authorization": {
+    "deterministic_incumbent_forecast_fail_closed_wiring_implemented": true,
+    "s3_a2_incumbent_forecast_fail_closed_wiring_implementation_authorized": true,
+    "s3_a2_incumbent_forecast_fail_closed_wiring_contract_authorized": true,
+    "no_versioned_incumbent_forecast_artifact_in_repository": true,
+    "no_live_s2_identity_alignment_adapter_in_repository": true,
+    "no_bindable_catalog_in_repository": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "source_002_row_level_read": false,
+    "test_remains_sealed": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "unique_flip": {
+    "field": "DETERMINISTIC_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_IMPLEMENTED",
+    "before": false,
+    "after": true,
+    "locations": [
+      "docs/v0-3/development-plan.md §4.4 live state block",
+      "docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md §11 pointer",
+      "docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md §14 pointer",
+      "docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md §17 pointer",
+      "docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md §20 pointer",
+      "docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md §23 pointer",
+      "docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md §32 pointer",
+      "docs/v0-3/s3/s3-daily-rowset-amendment.md §48 pointer",
+      "docs/v0-3/s3/s3-s2-identity-alignment-contract.md §31 pointer",
+      "docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md §36 pointer",
+      "docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md §37 pointer",
+      "docs/v0-3/s3/s3-evaluation-instance-registry-contract.md §40 pointer",
+      "docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md §25 pointer",
+      "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md §11 live pointer paragraph"
+    ]
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-fail-closed-wiring-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-fail-closed-wiring-r1.json",
+  "evidence_json_sha256": "a0f3185fda6c243a7013cb01c724d64cf3d74aff19d17370916483cabda94736"
+}
