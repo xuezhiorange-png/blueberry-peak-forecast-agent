@@ -462,3 +462,24 @@ IMPLEMENTATION_MERGE_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
 Live `DETERMINISTIC_S2_IDENTITY_ALIGNMENT_SERVICE_IMPLEMENTED` is maintained in
 `docs/v0-3/development-plan.md` §4.4 and this R1 package.
 This pointer does not rewrite contract freeze rules in §§1–10.
+
+## 14. Accepted S2 identity alignment evidence producer contract pointer
+
+~~~text
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_PATH=docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-accepted-s2-identity-alignment-evidence-contract.md
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-accepted-s2-identity-alignment-evidence-contract.json
+EVIDENCE_JSON_SHA256=2bdb9a578592dadd8cf9d15a8071d46f9983e7bb973159d0c3b6ec21b5725add
+S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_AUTHORIZED=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_EVIDENCE_PRODUCER=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_S2_ALIGNMENT_FACTS=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Live `S3_A2_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_CONTRACT_AUTHORIZED` authority:
+`docs/v0-3/development-plan.md` §4.4 and the producer contract package above.
+This pointer does not rewrite alignment consumer contract freeze rules in §§1–10.
