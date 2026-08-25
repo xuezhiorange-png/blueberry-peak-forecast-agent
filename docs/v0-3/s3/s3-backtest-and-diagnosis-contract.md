@@ -783,6 +783,16 @@ empty obtain remains fail-closed; it does not implement V0.2 postgres obtain, wi
 alignment producer→adapter, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 Historical grant and contract pointer snapshots may remain `false`.
 
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-postgres-obtain-contract.md`
+(`EVIDENCE_JSON_SHA256=a6ff0d53db223d6ec1258b38378d62c6ecb8a37fe908458a5a734efe7e203b49`).
+Incumbent forecast V0.2 postgres obtain contract freezes empty-default obtain authority
+from named V0.2 point-in-time replay; it does not implement postgres reading, invent SQL
+or table names, or flip `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTED` remains `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
