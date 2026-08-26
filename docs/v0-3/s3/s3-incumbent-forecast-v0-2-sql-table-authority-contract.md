@@ -1,0 +1,433 @@
+# V0.3-S3-A2 Incumbent Forecast V0.2/S3 SQL Table-Name Authority Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-incumbent-forecast-v0-2-sql-table-authority-contract-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=2cfc2c0d3d576f24f574a30cfb27cefc46274587
+BASE_MAIN_TREE_SHA=8cd09910e90dc9a08a9cf63fb92ef30e3329ffdb
+BASE_REF=origin/main
+PARENT_POSTGRES_OBTAIN_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md
+PARENT_POSTGRES_OBTAIN_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=c02ae702995c38f33ca73c3af26e8fdb33cc8e04
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+REVIEWER_ROLE=COORDINATOR
+NO_STEP_IMPLIES_THE_NEXT=true
+~~~
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes **V0.2/S3 SQL table-name authority** for incumbent forecast
+postgres obtain: a read-only Alembic audit of every `op.create_table` name present
+on `origin/main` at `2cfc2c0`, classified against the frozen replay-source grain
+`DISTINCT(forecast_cutoff_at, model_id, forecast_quantile)` without kg/tonnes, daily
+curves, harvest grain, or alignment identity.
+
+This is a **SQL/table-name authority** governance contract only. It is **not** an
+implementation authorization grant, **not** live postgres read R1, **not** harvest
+source work, **not** live BINDABLE catalog closeout, **not** SOURCE_002 row-level
+read, **not** TEST unseal, and **not** evidence that versioned forecast artifacts
+exist in the repository today.
+
+Contract merge does **not** implement live postgres read, does **not** invent SQL or
+table names, does **not** change default `obtain()`=`()`, and does **not** flip
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY`.
+
+Parent postgres obtain contract §§1–9 remain authoritative and are not reopened.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_LIVE_POSTGRES_READ=true
+CONTRACT_MERGE_DOES_NOT_INVENT_SQL_OR_TABLE_NAMES=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_LIVE_S2=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_BINDABLE=true
+CONTRACT_MERGE_DOES_NOT_FLIP_AVAILABLE_OR_VERIFIED=true
+CONTRACT_MERGE_DOES_NOT_UNSEAL_TEST=true
+CONTRACT_MERGE_DOES_NOT_SOURCE_002_ROW_LEVEL_READ=true
+CONTRACT_MERGE_DOES_NOT_LIVE_BINDABLE_SUCCESS_ENUM=true
+CONTRACT_MERGE_DOES_NOT_REWRITE_ALIGNMENT_CONTRACT_SECTION_6_AUDIT=true
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+DEFAULT_CATALOG_FIRST_BLOCKER_REMAINS_NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+FORBIDDEN_NEW_ALEMBIC=true
+FORBIDDEN_PRODUCTION_INIT_PY=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 Parent postgres obtain contract (reference only)
+
+~~~text
+PARENT_POSTGRES_OBTAIN_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md
+PARENT_POSTGRES_OBTAIN_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=c02ae702995c38f33ca73c3af26e8fdb33cc8e04
+CURRENT_ORIGIN_MAIN_POSTGRES_OBTAIN_CONTRACT_GIT_BLOB_SHA=cd2331dcd645676321cdeffb2e438f496810e6d1
+V0_2_POSTGRES_OBTAIN_CONTRACT_EVIDENCE_JSON_SHA256=a6ff0d53db223d6ec1258b38378d62c6ecb8a37fe908458a5a734efe7e203b49
+POSTGRES_OBTAIN_R1_EVIDENCE_JSON_SHA256=66c992c6ef6a085f8856afdc0456fb727d1dc31d32152ca7006b4c33aaff6c10
+FAIL_CLOSED_WIRING_R1_EVIDENCE_JSON_SHA256=875480dd04970eedf597a766d702fea1eeeda27512984ca51a725eace0014f0e
+HARVEST_SOURCE_CONTRACT_EVIDENCE_JSON_SHA256=92da3bc9ffab3cb90c825292e8c53f79b1ce5d6abc2ff0ccbedda8b31ba6cb3a
+HARVEST_SOURCE_GRANT_EVIDENCE_JSON_SHA256=bad95719d0f2af0481093251707643ec6aa69fc299770d27e7a52e3703d24c64
+HARVEST_SOURCE_R1_EVIDENCE_JSON_SHA256=bef3cedecf7498064f9929e7c40b863ed8ad028d0cf0e9f30e7b547bc7af408e
+WIRING_R1_EVIDENCE_JSON_SHA256=1349db0e8ef64f99250ae965b99fbba52d817f682201286852dccaa3df20c579
+EVIDENCE_PRODUCER_R1_EVIDENCE_JSON_SHA256=b563f3372e72736f09c750485d24e176ed36448ca8f4ce033ffdbebd51d35ac3
+ALIGNMENT_ADAPTER_R1_EVIDENCE_JSON_SHA256=9813dec98c43edd2e66ac0ce04a27bd6dbe4edb06ba9eb9105736d3d30c547f9
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+~~~
+
+Parent contract §3.1: future implementation may bind only to coordinator-reviewed
+frozen V0.2/S3 authority object names already present in repository contracts. If
+no such frozen name exists, obtain must fail-closed to `()`. This contract supplies
+that frozen audit without inventing names.
+
+### 1.2 Frozen replay-source grain (reference only)
+
+~~~text
+V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+REPLAY_SOURCE_GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REPLAY_SOURCE_OUTPUT_FIELDS=model_id,forecast_cutoff_at,forecast_quantile
+REPLAY_SOURCE_CARRIES_NO_KG_OR_TONNES=true
+REPLAY_SOURCE_CARRIES_NO_DAILY_CURVE=true
+REPLAY_SOURCE_CARRIES_NO_HARVEST_BUSINESS_DATE=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+~~~
+
+## 2. Why this contract is the unique remaining gap
+
+1. Harvest source R1 (#350) landed; default `harvest_source.obtain()`=`()` still
+   yields `produce()`=`None`.
+2. Postgres obtain R1 landed; default `v0_2_postgres_obtain.obtain()`=`()` remains
+   fail-closed.
+3. Default catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+4. Parent postgres obtain contract forbids inventing SQL/table names but did not
+   freeze which existing repository table names (if any) may bind.
+5. Without this audit, a future R1 could invent SQL or mis-bind kg-bearing tables
+   such as `core_forecast_daily_row` or `rolling_backtest_binding_row`.
+6. This contract freezes the read-only Alembic audit outcome only.
+
+Live S2 alignment remains a separate second blocker when forecast is non-empty and
+alignment is empty (`NO_S2_IDENTITY_ALIGNMENT`). This contract does not address S2.
+
+## 3. Read-only Alembic audit freeze
+
+### 3.1 Audit method
+
+~~~text
+AUDITED_REF=origin/main
+AUDITED_REPOSITORY_SHA=2cfc2c0d3d576f24f574a30cfb27cefc46274587
+AUDITED_REPOSITORY_TREE_SHA=8cd09910e90dc9a08a9cf63fb92ef30e3329ffdb
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+AUDIT_SCOPE=backend/alembic/versions/*.py op.create_table names only
+AUDIT_TABLE_COUNT=106
+MATCH_TABLE_COUNT=0
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+~~~
+
+At `2cfc2c0`, every `op.create_table` name in `backend/alembic/versions/*.py` was
+classified `MATCH` or `NOT_MATCH` against:
+
+1. Must be able to project `DISTINCT(forecast_cutoff_at, model_id, forecast_quantile)`
+2. Must not carry kg/tonnes, daily curve, `harvest_business_date`, catalog cell, or
+   alignment identity payload
+3. Must not be SOURCE_002 row-level read authority
+4. `harvest_business_date` must not substitute for `forecast_cutoff`
+
+### 3.2 Audit outcome
+
+~~~text
+MATCH_TABLE_NAMES=()
+BINDABLE_V0_2_SQL_TABLE_NAME_SET=()
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+~~~
+
+**Zero `MATCH` tables.** No existing Alembic-created table name in the repository
+may bind as V0.2 incumbent forecast replay postgres obtain authority under the frozen
+grain. Future live postgres read R1 must remain fail-closed to `()` until a separate
+coordinator-reviewed contract introduces a bindable name (this contract does not).
+
+### 3.3 Representative `NOT_MATCH` categories (all 106 tables audited)
+
+| category | example table names | why NOT_MATCH |
+|---|---|---|
+| V0.1 core forecast persistence | `core_forecast_run`, `core_forecast_daily_row`, `core_forecast_metric` | V0.1 docstring; daily rows carry kg columns; `date` is harvest-business-date basis not `forecast_cutoff_at`; missing `model_id` |
+| rolling backtest orchestration | `rolling_backtest_run`, `rolling_backtest_node`, `rolling_backtest_binding_row` | orchestration/binding grain; `rolling_backtest_binding_row` carries `forecast_value_kg` and `physical_alignment_status` |
+| forecast quality / baseline | `quality_evaluation_run`, `quality_metric_result`, `model_baseline_comparison` | quality metrics not incumbent artifact replay grain |
+| harvest state persistence | `harvest_state_run`, `harvest_state_daily_pool_row` | harvest-state quantile rows with kg inventory columns |
+| actual harvest lane | `actual_harvest_import_record`, `actual_harvest_label_snapshot_winner` | actual harvest quantities with `harvest_business_date` and kg |
+| S2 lane tables | `s2_materialized_materializable_row`, `s2_idfl_label_side_winner_decision` | SOURCE_002 materialization / PIT visibility not forecast artifact |
+| trial / evidence persistence | `trial_forecast_evidence` | trial creation evidence with farm scope and kg planting area |
+| master / ingest / weather / maturity | `dim_season`, `fact_receipt_daily`, `maturity_daily_prediction` | unrelated grains; many carry kg or harvest dates |
+
+Full per-table audit with Alembic path is in workpaper §3 and evidence JSON
+`alembic_table_audit`.
+
+### 3.4 Full per-table audit register
+
+| table_name | alembic_revision_path | verdict | reason |
+|---|---|---|---|
+| `dim_season` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_factory` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_farm` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_variety` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_grade` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_subfarm` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_holiday` | `backend/alembic/versions/0002_master_data.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `ingest_file` | `backend/alembic/versions/0003_historical_ingest.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `fact_receipt_raw` | `backend/alembic/versions/0003_historical_ingest.py` | NOT_MATCH | carries_kg_or_weight_columns:weight_kg_raw,weight_kg,is_weight_valid; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `analytics_build_run` | `backend/alembic/versions/0004_daily_facts_peak_metrics.py` | NOT_MATCH | carries_kg_or_weight_columns:source_eligible_weight_kg; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `fact_receipt_daily` | `backend/alembic/versions/0004_daily_facts_peak_metrics.py` | NOT_MATCH | carries_kg_or_weight_columns:weight_kg; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `factory_season_peak_metric` | `backend/alembic/versions/0004_daily_facts_peak_metrics.py` | NOT_MATCH | carries_kg_or_weight_columns:total_weight_kg,single_day_peak_kg,stable_median_3d_peak_kg,mean_3d_peak_kg,unknown_farm_weight_share...; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `baseline_backtest_run` | `backend/alembic/versions/0005_baseline_backtest.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `baseline_backtest_result` | `backend/alembic/versions/0005_baseline_backtest.py` | NOT_MATCH | carries_kg_or_weight_columns:actual_stable_peak_kg,predicted_stable_peak_kg,absolute_error_kg,signed_error_kg; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `dim_agro_climate_zone` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `climate_zone_import_run` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `location_reference` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `parameter_library_version` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `parameter_observation` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | carries_kg_or_weight_columns:sample_weight; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `minimal_forecast_task` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `parameter_inference_run` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `parameter_inference_result` | `backend/alembic/versions/0006_minimal_input_parameters.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `farm_season_variety_plan` | `backend/alembic/versions/0007_prod_plan_phenology.py` | NOT_MATCH | carries_kg_or_weight_columns:planted_area_mu,expected_yield_kg_per_mu,expected_total_marketable_kg; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `production_plan_import_run` | `backend/alembic/versions/0007_prod_plan_phenology.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `weather_source_location` | `backend/alembic/versions/0008_weather_timeline.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `weather_daily_observation` | `backend/alembic/versions/0008_weather_timeline.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `weather_import_run` | `backend/alembic/versions/0008_weather_timeline.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `location_weather_mapping` | `backend/alembic/versions/0008_weather_timeline.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `base_temperature_search_run` | `backend/alembic/versions/0008_weather_timeline.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `weather_feature_run` | `backend/alembic/versions/0008_weather_timeline.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `maturity_model_run` | `backend/alembic/versions/0009_natural_maturity_curve.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `maturity_model_artifact` | `backend/alembic/versions/0009_natural_maturity_curve.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `maturity_forecast_run` | `backend/alembic/versions/0009_natural_maturity_curve.py` | NOT_MATCH | carries_kg_or_weight_columns:expected_marketable_total_kg; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `maturity_daily_prediction` | `backend/alembic/versions/0009_natural_maturity_curve.py` | NOT_MATCH | carries_kg_or_weight_columns:p50_kg,p80_kg,p90_kg,cumulative_p50_kg,cumulative_p80_kg...; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `harvest_state_run` | `backend/alembic/versions/0010_harvest_state_persistence.py` | NOT_MATCH | harvest_state_quantile_persistence_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `harvest_state_daily_pool_row` | `backend/alembic/versions/0010_harvest_state_persistence.py` | NOT_MATCH | carries_kg_or_weight_columns:opening_mature_inventory_kg,natural_maturity_supply_kg,available_mature_quantity_kg,mature_inventory_loss_quantity_kg,harvestable_mature_quantity_kg...; harvest_state_quantile_persistence_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id |
+| `harvest_state_daily_member_row` | `backend/alembic/versions/0010_harvest_state_persistence.py` | NOT_MATCH | carries_kg_or_weight_columns:opening_mature_inventory_kg,natural_maturity_supply_kg,available_mature_quantity_kg,mature_inventory_loss_quantity_kg,harvestable_mature_quantity_kg...; harvest_state_quantile_persistence_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id |
+| `harvest_state_cohort_transition_row` | `backend/alembic/versions/0010_harvest_state_persistence.py` | NOT_MATCH | carries_kg_or_weight_columns:opening_quantity_kg,new_supply_quantity_kg,quantity_before_loss_kg,mature_inventory_loss_quantity_kg,quantity_before_harvest_kg...; harvest_state_quantile_persistence_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id |
+| `harvest_state_future_arrival_row` | `backend/alembic/versions/0010_harvest_state_persistence.py` | NOT_MATCH | carries_kg_or_weight_columns:quantity_kg; harvest_state_quantile_persistence_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id |
+| `residual_model_training_run` | `backend/alembic/versions/0011_residual_model.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `residual_model_manifest_row` | `backend/alembic/versions/0011_residual_model.py` | NOT_MATCH | carries_kg_or_weight_columns:observed_effective_receipt_kg,structural_p50_kg,structural_p80_kg,structural_p90_kg,residual_label_kg...; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `residual_model_artifact` | `backend/alembic/versions/0011_residual_model.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `residual_model_prediction_run` | `backend/alembic/versions/0011_residual_model.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `residual_model_prediction_row` | `backend/alembic/versions/0011_residual_model.py` | NOT_MATCH | carries_kg_or_weight_columns:structural_p50_kg,structural_p80_kg,structural_p90_kg,raw_residual_p50_kg,raw_residual_p80_kg...; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `residual_model_execution_attempt` | `backend/alembic/versions/0011_residual_model.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_run` | `backend/alembic/versions/0012_rolling_backtest.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_node` | `backend/alembic/versions/0012_rolling_backtest.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_attempt` | `backend/alembic/versions/0012_rolling_backtest.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_resolved_input` | `backend/alembic/versions/0012_rolling_backtest.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_availability_audit` | `backend/alembic/versions/0012_rolling_backtest.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_dag_snapshot` | `backend/alembic/versions/0012_rolling_backtest.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_stage_event` | `backend/alembic/versions/0013_rolling_backtest_orchestration.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_orchestration_snapshot` | `backend/alembic/versions/0013_rolling_backtest_orchestration.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `harvest_state_replay_source_visibility_audit` | `backend/alembic/versions/0015_task11_phase3_schema_gap.py` | NOT_MATCH | harvest_state_quantile_persistence_not_incumbent_artifact; missing_model_id; missing_forecast_quantile |
+| `core_forecast_run` | `backend/alembic/versions/0017_core_forecast_run_persistence.py` | NOT_MATCH | V0_1_core_forecast_persistence_docstring_not_replay_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `core_forecast_daily_row` | `backend/alembic/versions/0017_core_forecast_run_persistence.py` | NOT_MATCH | daily_curve_grain_date_plus_quantile_without_forecast_cutoff; V0_1_core_forecast_persistence_docstring_not_replay_grain; missing_forecast_cutoff_at; missing_model_id |
+| `core_forecast_metric` | `backend/alembic/versions/0017_core_forecast_run_persistence.py` | NOT_MATCH | carries_kg_or_weight_columns:single_day_peak_quantity_kg,sustained_7day_cumulative_quantity_kg,sustained_7day_daily_average_kg_per_day,season_cumulative_effective_marketable_kg; V0_1_core_forecast_persistence_docstring_not_replay_grain; missing_forecast_cutoff_at; missing_model_id |
+| `actual_harvest_import_batch` | `backend/alembic/versions/0018_actual_harvest_import_staging.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_import_record` | `backend/alembic/versions/0018_actual_harvest_import_staging.py` | NOT_MATCH | carries_kg_or_weight_columns:actual_harvest_quantity_kg; carries_harvest_business_date:harvest_business_date; actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_mapping_policy_registry` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_mapping_registry_entry` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_run` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_attempt` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_mapping_snapshot` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_result` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_record` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_mapping_evidence` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_error` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_lineage_node` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_lineage_edge` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_lineage_basis` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_validation_lineage_basis_member` | `backend/alembic/versions/0019_actual_harvest_validation_evidence.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_commit_manifest` | `backend/alembic/versions/0020_actual_harvest_commit_manifest.py` | NOT_MATCH | actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_label_snapshot` | `backend/alembic/versions/0021_actual_harvest_label_snapshot.py` | NOT_MATCH | carries_harvest_business_date:harvest_date_start,harvest_date_end; actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_label_snapshot_winner` | `backend/alembic/versions/0021_actual_harvest_label_snapshot.py` | NOT_MATCH | carries_kg_or_weight_columns:actual_harvest_quantity_kg; carries_harvest_business_date:harvest_business_date; actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_label_snapshot_label` | `backend/alembic/versions/0021_actual_harvest_label_snapshot.py` | NOT_MATCH | carries_kg_or_weight_columns:exact_decimal_quantity_sum_kg; carries_harvest_business_date:harvest_business_date; actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `actual_harvest_label_snapshot_exclusion` | `backend/alembic/versions/0021_actual_harvest_label_snapshot.py` | NOT_MATCH | carries_harvest_business_date:harvest_business_date_or_null; actual_harvest_lane_not_forecast_replay; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `core_forecast_code_authority` | `backend/alembic/versions/0023_historical_backtest_binding.py` | NOT_MATCH | V0_1_core_forecast_persistence_docstring_not_replay_grain; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_manifest` | `backend/alembic/versions/0023_historical_backtest_binding.py` | NOT_MATCH | rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `rolling_backtest_binding_row` | `backend/alembic/versions/0023_historical_backtest_binding.py` | NOT_MATCH | carries_kg_or_weight_columns:forecast_value_kg,actual_value_kg; carries_alignment_or_catalog_cell_fields:physical_alignment_status; rolling_backtest_orchestration_not_incumbent_artifact_grain; missing_model_id; missing_forecast_quantile |
+| `quality_evaluation_run` | `backend/alembic/versions/0024_s3_forecast_quality_persistence.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `quality_metric_result` | `backend/alembic/versions/0024_s3_forecast_quality_persistence.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `quality_breakdown_result` | `backend/alembic/versions/0024_s3_forecast_quality_persistence.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `naive_baseline_run` | `backend/alembic/versions/0024_s3_forecast_quality_persistence.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `model_baseline_comparison` | `backend/alembic/versions/0024_s3_forecast_quality_persistence.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `quality_evaluation_manifest` | `backend/alembic/versions/0024_s3_forecast_quality_persistence.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `model_baseline_comparison` | `backend/alembic/versions/0025_s3_model_baseline_comparison.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `model_baseline_comparison` | `backend/alembic/versions/0025_s3_model_baseline_comparison.py` | NOT_MATCH | forecast_quality_or_baseline_metrics_not_incumbent_artifact; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `core_forecast_marketable_policy` | `backend/alembic/versions/0026_s5_round_a2_policy_and_trial_resource_binding.py` | NOT_MATCH | V0_1_core_forecast_persistence_docstring_not_replay_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `core_forecast_marketable_policy_entry` | `backend/alembic/versions/0026_s5_round_a2_policy_and_trial_resource_binding.py` | NOT_MATCH | V0_1_core_forecast_persistence_docstring_not_replay_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `trial_resource_binding` | `backend/alembic/versions/0026_s5_round_a2_policy_and_trial_resource_binding.py` | NOT_MATCH | missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `trial_forecast_evidence` | `backend/alembic/versions/0027_s5_a2_forecast_evidence_persistence.py` | NOT_MATCH | carries_kg_or_weight_columns:planting_area_mu; trial_forecast_evidence_not_distinct_replay_grain; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_raw_source_artifact` | `backend/alembic/versions/0029_s2_lane_a_raw_ingestion_lineage.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_raw_import_batch` | `backend/alembic/versions/0029_s2_lane_a_raw_ingestion_lineage.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_source_row_lineage` | `backend/alembic/versions/0029_s2_lane_a_raw_ingestion_lineage.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_cleaned_dataset_version` | `backend/alembic/versions/2af278a20e2a_s2_lane_b_cleaning_quality_correction.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_cleaned_row` | `backend/alembic/versions/2af278a20e2a_s2_lane_b_cleaning_quality_correction.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; carries_kg_or_weight_columns:source_actual_harvest_quantity_kg,effective_actual_harvest_quantity_kg; carries_harvest_business_date:harvest_business_date; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_quality_finding` | `backend/alembic/versions/2af278a20e2a_s2_lane_b_cleaning_quality_correction.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_correction_ledger_entry` | `backend/alembic/versions/2af278a20e2a_s2_lane_b_cleaning_quality_correction.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_exclusion_ledger_entry` | `backend/alembic/versions/2af278a20e2a_s2_lane_b_cleaning_quality_correction.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_pit_visibility_decision` | `backend/alembic/versions/8c6aead9f8e9_s2_lane_c_pit_visibility_revision_winner.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_model_id; missing_forecast_quantile |
+| `s2_revision_winner_decision` | `backend/alembic/versions/8c6aead9f8e9_s2_lane_c_pit_visibility_revision_winner.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_model_id; missing_forecast_quantile |
+| `s2_idfl_label_side_winner_decision` | `backend/alembic/versions/a7c3e9f1b2d4_s2_lane_c_idfl_label_side_winner.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_materialized_dataset` | `backend/alembic/versions/d4e8f1a2b3c5_s2_lane_d_materialized_dataset.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_materialized_materializable_row` | `backend/alembic/versions/d4e8f1a2b3c5_s2_lane_d_materialized_dataset.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; carries_kg_or_weight_columns:actual_harvest_quantity_kg; carries_harvest_business_date:harvest_business_date; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+| `s2_materialized_partition` | `backend/alembic/versions/d4e8f1a2b3c5_s2_lane_d_materialized_dataset.py` | NOT_MATCH | S2_lane_table_not_incumbent_forecast_artifact_authority; missing_forecast_cutoff_at; missing_model_id; missing_forecast_quantile |
+
+## 4. Explicit non-scope (not authorized by this contract)
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_LIVE_POSTGRES_READ=true
+CONTRACT_MERGE_DOES_NOT_INVENT_SQL_OR_TABLE_NAMES=true
+CONTRACT_MERGE_DOES_NOT_WRITE_LIVE_FORECAST_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_PRODUCE_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_BIND_CATALOG=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_LIVE_S2=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_BINDABLE=true
+CONTRACT_MERGE_DOES_NOT_FLIP_AVAILABLE_OR_VERIFIED=true
+CONTRACT_MERGE_DOES_NOT_UNSEAL_TEST=true
+CONTRACT_MERGE_DOES_NOT_SOURCE_002_ROW_LEVEL_READ=true
+FORBIDDEN_WRITE_SELECT_FROM_JOIN_WHERE_IN_CONTRACT=true
+FORBIDDEN_WRITE_DSN_OR_CONNECTION_STRINGS=true
+FORBIDDEN_NEW_ALEMBIC=true
+~~~
+
+## 5. Frozen Python blob audit (byte-identical at contract merge)
+
+~~~text
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=b0dc923ae4a4c06e3f6ccafd38e175d8ac16d3f7
+S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_PY_BLOB=ae3381d2c0b0744a49519370e67005c479120665
+FORECAST_ARTIFACT_PY_BLOB=73e65fbe6774ef555f825efc74c9c8eb5f003575
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=0cc05fff3deff00d279070aa246f241ff3754e89
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=f11e5c3bb34fb070c89e1b01fb62d81d2eb06218
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+REGISTRY_PY_BLOB=ca16d518ab18136059cd08bcf4b247774d750bb5
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_S2_IDENTITY_ALIGNMENT_PY_BLOB=9c653823ebca79fdb12d61325fdb4b18e17d0cef
+TEST_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=c81c3ebfe565095f17cfa8794d115ea9fab0ca73
+TEST_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_PY_BLOB=9fdd22ccadd6990fa2522c8b23a287dc4e87f173
+TEST_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_PY_BLOB=929b9fc8a89c1a0b31154cd89b2bd6d4c7cb4a4a
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY_BLOB=cf34f76c734388129b7dbf8d4f585bde584fceac
+TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY_BLOB=10ac671d603b842ece5cb3ae449b1580715ed2b0
+TEST_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_PY_BLOB=97b072ca484ce50be6796b88c28b8999d9bde353
+TEST_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_PY_BLOB=8db60cba335dd87ac72f7b86469168e15b7efe97
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_ANY_PYTHON=true
+~~~
+
+## 6. Forbidden inputs and substitutions
+
+~~~text
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+FORBIDDEN_INVENT_CONNECTION_STRINGS=true
+FORBIDDEN_INVENT_DSN_OR_DATABASE_NAMES=true
+FORBIDDEN_INVENT_CUTOFF_LISTS=true
+FORBIDDEN_INVENT_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_INVENT_DISTINCT_ENTRY_COUNTS=true
+FORBIDDEN_INVENT_TONNES_OR_KG=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_BIND_KG_TABLES_AS_REPLAY_AUTHORITY=true
+FORBIDDEN_BIND_ROLLING_BACKTEST_BINDING_ROW=true
+FORBIDDEN_BIND_CORE_FORECAST_DAILY_ROW=true
+~~~
+
+## 7. TEST seal and exclusion policy
+
+~~~text
+TEST_REMAINS_SEALED=true
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+FORBIDDEN_TEST_CUTOFF_OR_HORIZON_INTERSECTION=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+~~~
+
+## 8. LLM and deterministic service boundary
+
+LLM agents organize explanation and invoke tools. Table-name authority, SQL, DSN,
+connection strings, cutoff lists, identity hashes, and tonnes must come from
+deterministic service logic and coordinator-reviewed artifacts only. LLM must not
+invent tonnes, SQL, table names, DSNs, connection strings, cutoff lists, or identity
+hashes.
+
+## 9. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_CONTRACT_AUTHORIZED=false → true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false (companion introduced; not flipped)
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live block and pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md` §18 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md` §21 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §24 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §27 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §30 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §33 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §42 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §58 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §41 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §46 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §47 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §50 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §35 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-harvest-source-contract.md` §12 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-producer-adapter-wiring-contract.md` §15 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false
+DETERMINISTIC_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+~~~

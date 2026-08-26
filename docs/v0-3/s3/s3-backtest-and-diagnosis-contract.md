@@ -882,6 +882,18 @@ in-memory obtain seam and producer fallback; default `harvest_rows=()` and defau
 `AVAILABLE` / `VERIFIED` or read SOURCE_002 row-level harvest. Historical grant and contract
 pointer snapshots may remain `false`.
 
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-sql-table-authority-contract.md`
+(`EVIDENCE_JSON_SHA256=99e4bb4853b6020404a86221c470936fce27f26bb6373fbe81167ffaeac6e260`).
+Incumbent forecast V0.2/S3 SQL table-name authority contract freezes a read-only
+Alembic audit at `2cfc2c0`: zero `MATCH` table names for replay grain
+`DISTINCT(forecast_cutoff_at, model_id, forecast_quantile)`; default obtain remains
+fail-closed `()`. It does not implement live postgres read, invent SQL or table names,
+or flip `NO_VERSIONED` / `NO_LIVE_S2` / `AVAILABLE` / `VERIFIED`.
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remains `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
