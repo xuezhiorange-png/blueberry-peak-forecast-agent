@@ -36,7 +36,7 @@
   },
   "implementation": {
     "grain_row_presence_module_path": "backend/app/s3_daily_rowset/incumbent_forecast_v0_2_replay_identity_grain_row_presence.py",
-    "incumbent_forecast_v0_2_replay_identity_grain_row_presence_py_blob": "12fa51e80b0afc56e17f2f936872e9ba6c176cf3",
+    "incumbent_forecast_v0_2_replay_identity_grain_row_presence_py_blob": "5e8fe47036766424d1f47308c27f719129cf9c5f",
     "frozen_grain_row_presence_table_name": "s3_incumbent_forecast_replay_identity",
     "alembic_revision": "e8b2c4d6f1a3",
     "alembic_migration_blob": "1e0864ebef1d947d4c9466d71efaa759d44c7ad7",
@@ -90,5 +90,5 @@
   },
   "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-row-presence-r1.md",
   "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-row-presence-r1.json",
-  "evidence_json_sha256": "1ff0c3944035ccd626709948302fd962bd0442dd57684bf83c43bb889cd874d3"
+  "evidence_json_sha256": "43771f68f87d550f48b1e0aa9bcaa42304676436fc08df31365c6c5fc0763511"
 }

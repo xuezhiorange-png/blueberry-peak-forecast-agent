@@ -105,8 +105,7 @@ def _insert_reviewed_grain_rows(
     if not all(name in column_names for name in GRAIN_COLUMNS):
         return 0
     if any(
-        any(forbidden in name for forbidden in FORBIDDEN_COLUMN_SUBSTRINGS)
-        for name in column_names
+        any(forbidden in name for forbidden in FORBIDDEN_COLUMN_SUBSTRINGS) for name in column_names
     ):
         return 0
 
