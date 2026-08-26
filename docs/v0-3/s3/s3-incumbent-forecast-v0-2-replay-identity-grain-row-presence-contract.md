@@ -1,0 +1,358 @@
+# V0.3-S3-A2 Incumbent Forecast V0.2 Replay-Identity Grain Row Presence Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-incumbent-forecast-v0-2-replay-identity-grain-row-presence-contract-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=c50e902e02333e91160697c65d282056f4512e18
+BASE_MAIN_TREE_SHA=f5e9fec58da51822b9131206f41903d7b8f10996
+BASE_REF=origin/main
+PARENT_LIVE_POSTGRES_READ_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-live-postgres-read-contract.md
+PARENT_LIVE_POSTGRES_READ_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=2a5225f1a7b1fde3abb7c353fa5be3a9e545a61c
+LIVE_POSTGRES_READ_CONTRACT_EVIDENCE_JSON_SHA256=3009c0ed24d35dadcb717d31e62767662ed36a6f7b238d36e2360854ab51b58d
+LIVE_POSTGRES_READ_GRANT_EVIDENCE_JSON_SHA256=ba791a1c2292d36b075cc6bc717d788df9d1efd063193ed5d2290783f4bfbeec
+LIVE_POSTGRES_READ_R1_EVIDENCE_JSON_SHA256=8b56f82fe1dd9871dfb7f02ef3b9f768f265020f7f62b4078fb9b7feb1187763
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+~~~
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTATION_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_CONTRACT_AUTHORIZED=true
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=false
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+MATCH_TABLE_NAMES=()
+MATCH_TABLE_COUNT=0
+AUDIT_TABLE_COUNT=106
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+FROZEN_REPLAY_IDENTITY_TABLE_NAME=s3_incumbent_forecast_replay_identity
+FROZEN_BINDABLE_OBJECT_EXISTS_IN_ALEMBIC=true
+OBJECT_ROW_COUNT_AT_REVIEW=0
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes coordinator-reviewed **grain row presence** authority for the frozen
+replay-identity table `s3_incumbent_forecast_replay_identity` after live-read R1. Live-read
+R1 is landed; the table still has 0 rows at review. This contract defines how grain rows
+**may later exist** in that table — not how they are inserted today.
+
+This is **not** an implementation grant, **not** row INSERT, **not** identity-set invention,
+**not** versioned forecast artifact creation, **not** catalog closeout, **not** catalog
+default session wiring, and **not** evidence that S3 is complete.
+
+Honest boundary: grain row presence contract ≠ grant ≠ R1 ≠ INSERT ≠ identity-set invention
+≠ versioned artifact ≠ catalog closeout. The repository today has **no** coordinator-reviewed
+grain identity-set. This contract must not invent, enumerate, or exemplify any
+`forecast_cutoff_at` / `model_id` / `forecast_quantile` values. Empty table still has 0 rows.
+Default `obtain()` without injected session remains `()`. Session read of empty table still
+yields `()`. `IncumbentForecastArtifactContentProducer` on empty obtain returns `None`.
+Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract does
+not close S3. Jumping to row-population implementation now is forbidden.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+CONTRACT_MERGE_DOES_NOT_POPULATE_ROWS=true
+CONTRACT_MERGE_DOES_NOT_INVENT_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_INVENT_CUTOFF_MODEL_QUANTILE_LISTS=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_WIRE_SESSION_INTO_CATALOG_DEFAULT=true
+CONTRACT_MERGE_DOES_NOT_ADD_TO_MATCH_TABLE_NAMES=true
+CONTRACT_MERGE_DOES_NOT_ADD_ALEMBIC=true
+CONTRACT_MERGE_DOES_NOT_TOUCH_PYTHON=true
+FORBIDDEN_WRITE_DSN_OR_CONNECTION_STRINGS=true
+FORBIDDEN_SOURCE_002_ROW_LEVEL_READ=true
+FORBIDDEN_H7_FIXTURE=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 Parent live postgres read contract, grant, and R1
+
+~~~text
+PARENT_LIVE_POSTGRES_READ_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-live-postgres-read-contract.md
+PARENT_LIVE_POSTGRES_READ_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=2a5225f1a7b1fde3abb7c353fa5be3a9e545a61c
+LIVE_POSTGRES_READ_CONTRACT_EVIDENCE_JSON_SHA256=3009c0ed24d35dadcb717d31e62767662ed36a6f7b238d36e2360854ab51b58d
+LIVE_POSTGRES_READ_GRANT_EVIDENCE_JSON_SHA256=ba791a1c2292d36b075cc6bc717d788df9d1efd063193ed5d2290783f4bfbeec
+LIVE_POSTGRES_READ_R1_EVIDENCE_JSON_SHA256=8b56f82fe1dd9871dfb7f02ef3b9f768f265020f7f62b4078fb9b7feb1187763
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=true
+INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_PY_BLOB=6ab7bc81f513b76f7d412d6b0c44b4f1ce9d21dc
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=fb12e03ba7770518b16efa7495dce0a2f1f68f18
+INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_PY_BLOB=ac840d2e46836427baaec3e46b0d111eda4adf74
+~~~
+
+Parent live-read contract §§1–9 remain authoritative. Live-read R1 wired session-bound read
+of frozen table `s3_incumbent_forecast_replay_identity`; empty table still yields `obtain=()`.
+
+### 1.2 Frozen table and Alembic state
+
+~~~text
+FROZEN_REPLAY_IDENTITY_TABLE_NAME=s3_incumbent_forecast_replay_identity
+ALEMBIC_REVISION=e8b2c4d6f1a3
+ALEMBIC_DOWN_REVISION=a7c3e9f1b2d4
+LANE_C_E4B_MIGRATION_REVISION=a7c3e9f1b2d4
+ALEMBIC_MIGRATION_PATH=backend/alembic/versions/e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py
+ALEMBIC_MIGRATION_BLOB=1e0864ebef1d947d4c9466d71efaa759d44c7ad7
+UNIQUE_ALEMBIC_HEAD=e8b2c4d6f1a3
+OBJECT_ROW_COUNT_AT_REVIEW=0
+AUDIT_TABLE_COUNT=106
+MATCH_TABLE_COUNT=0
+MATCH_TABLE_NAMES=()
+PEP_420_NAMESPACE=true
+PRODUCTION_INIT_PY_FORBIDDEN=true
+~~~
+
+The 106-row Alembic audit (snapshot at `2cfc2c0`) remains authoritative. Grain row presence
+must not add `s3_incumbent_forecast_replay_identity` to `MATCH_TABLE_NAMES` or reclassify any
+audited table.
+
+### 1.3 Inherited S2 binding
+
+~~~text
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+TRAIN_ROW_COUNT=16224
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+VALIDATION_ROW_COUNT=8006
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+DEFAULT_MONTH_SCOPE=1-4
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+ALIGNMENT_PROJECTION_VERSION=v0-3-s3-a2-s2-identity-alignment-projection-v1
+ACCEPTED_S2_IDENTITY_EVIDENCE_IDENTITY_VERSION=v0-3-s3-a2-accepted-s2-identity-alignment-evidence-identity-v1
+REPLAY_SOURCE_GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REPLAY_SOURCE_CARRIES_NO_KG_OR_TONNES=true
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 2. Why this contract is the unique remaining gap
+
+1. Live-read R1 is landed: `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=true`.
+2. Frozen table `s3_incumbent_forecast_replay_identity` still has `OBJECT_ROW_COUNT_AT_REVIEW=0`.
+3. Default without injected session: `obtain()` remains `()`. With session, read of empty table
+   still yields `()`.
+4. `IncumbentForecastArtifactContentProducer` on empty obtain returns `None`; catalog first
+   blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+5. `EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true` is already fact, but **how grain rows may later
+   exist** in the frozen table is not yet frozen as an independent contract.
+6. The repository has **no** coordinator-reviewed grain identity-set. This contract must not
+   invent cutoff / model_id / forecast_quantile lists.
+7. `SOURCE_002_ROW_LEVEL_READ=false`; identity-set must not be derived from source-002 row-level
+   reads.
+8. This gap is **not**: catalog default session injection (later slice); **not** MATCH
+   reclassification; **not** new Alembic; **not** `NO_VERSIONED` flip.
+
+Do not treat live-read implementation as row presence or versioned artifact fact.
+
+## 3. Frozen grain row presence authority
+
+### 3.1 Authorized table and grain
+
+~~~text
+FROZEN_GRAIN_ROW_PRESENCE_TABLE_NAME=s3_incumbent_forecast_replay_identity
+FROZEN_GRAIN_ROW_PRESENCE_OBJECT_KIND=TABLE
+FROZEN_GRAIN_ROW_PRESENCE_OBJECT_EXISTS_IN_ALEMBIC=true
+FROZEN_GRAIN_ROW_PRESENCE_OBJECT_IS_NOT_ONE_OF_THE_106=true
+FROZEN_GRAIN_ROW_PRESENCE_OBJECT_IS_NOT_ADDED_TO_MATCH_TABLE_NAMES=true
+THIS_IS_NOT_RECLASSIFYING_THE_106=true
+COORDINATOR_REVIEWED_GRAIN_ROW_PRESENCE_AFTER_LIVE_READ_R1=true
+OBJECT_ROW_COUNT_AT_REVIEW=0
+GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REQUIRED_GRAIN_COLUMNS=forecast_cutoff_at,model_id,forecast_quantile
+FORBIDDEN_PROJECTION_FAMILIES=kg,tonnes,weight,quantity,forecast_value,daily_curve,harvest_business_date,catalog_cell,alignment_identity
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+~~~
+
+Grain row presence authority is bound **only** to the coordinator-reviewed frozen table name
+already live-read-capable. Only the three grain column semantics may enter row presence;
+no weight, curve, harvest, catalog, or alignment identity columns.
+
+### 3.2 Obtain and catalog honesty (fail-closed today)
+
+~~~text
+DEFAULT_OBTAIN_WITHOUT_SESSION_REMAINS_EMPTY=true
+SESSION_READ_OF_EMPTY_TABLE_REMAINS_EMPTY=true
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+CONTENT_PRODUCER_ON_EMPTY_OBTAIN_RETURNS_NONE=true
+LATER_GRAIN_ROWS_DO_NOT_AUTO_FLIP_NO_VERSIONED=true
+LATER_GRAIN_ROWS_DO_NOT_EQUAL_CATALOG_CLOSEOUT=true
+~~~
+
+### 3.3 What a later grant/R1 may do (not authorized here)
+
+A later grain row presence implementation R1 (separate contract on main, separate grant,
+separate 「可以实施」) may:
+
+1. INSERT grain rows into frozen table `s3_incumbent_forecast_replay_identity` **only** when a
+   separately coordinator-reviewed grain identity-set exists (not invented in this contract).
+2. Populate **only** grain columns `forecast_cutoff_at`, `model_id`, `forecast_quantile`.
+3. If no independently reviewed identity-set exists at R1 time, fail-closed: remain 0 rows.
+4. Flip `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED`
+   to `true` in the §4.4 live block.
+
+A later R1 must **not**:
+
+- Invent or enumerate identity-set values in contract, grant, or R1 docs
+- Derive identity-set from source-002 row-level reads
+- Add the name to `MATCH_TABLE_NAMES` or reopen the 106
+- Flip `NO_VERSIONED` while obtain/catalog semantics remain empty-blocked
+- Wire session into catalog default obtain path
+- Unseal TEST or enable SOURCE_002 row-level read
+- Rewrite alignment contract §6
+- Touch `test_catalog_artifact.py` (`BOUND_FIXTURE` injection path must remain)
+- Treat H7 fixture as live evidence or content identity
+- Claim versioned forecast artifact while catalog blocker remains `NO_VERSIONED`
+
+This contract does not issue an implementation grant and does not authorize that R1.
+
+## 4. Explicit non-scope (not authorized by this contract)
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+CONTRACT_MERGE_DOES_NOT_POPULATE_ROWS=true
+CONTRACT_MERGE_DOES_NOT_INVENT_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_INVENT_CUTOFF_MODEL_QUANTILE_LISTS=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_WIRE_SESSION_INTO_CATALOG_DEFAULT=true
+CONTRACT_MERGE_DOES_NOT_FLIP_LIVE_POSTGRES_READ_IMPLEMENTED=true
+CONTRACT_MERGE_DOES_NOT_FLIP_AVAILABLE_OR_VERIFIED=true
+CONTRACT_MERGE_DOES_NOT_UNSEAL_TEST=true
+CONTRACT_MERGE_DOES_NOT_CLOSE_S3=true
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+FORBIDDEN_INVENT_CONNECTION_STRINGS=true
+FORBIDDEN_INVENT_TONNES_OR_KG=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6_AUDIT=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+~~~
+
+## 5. Frozen Python blob audit (byte-identical at contract merge)
+
+~~~text
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_PY_BLOB=6ab7bc81f513b76f7d412d6b0c44b4f1ce9d21dc
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=fb12e03ba7770518b16efa7495dce0a2f1f68f18
+INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_PY_BLOB=ac840d2e46836427baaec3e46b0d111eda4adf74
+ALEMBIC_E8B2C4D6F1A3_BLOB=1e0864ebef1d947d4c9466d71efaa759d44c7ad7
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+~~~
+
+## 6. Forbidden inputs and substitutions
+
+~~~text
+FORBIDDEN_INVENT_GRAIN_IDENTITY_SET=true
+FORBIDDEN_INVENT_CUTOFF_MODEL_QUANTILE_EXAMPLES=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_USE_HARVEST_BUSINESS_DATE_AS_FORECAST_CUTOFF=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_WRITE_DSN_OR_CONNECTION_STRINGS=true
+~~~
+
+## 7. TEST seal and exclusion policy
+
+~~~text
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+TEST_REMAINS_SEALED=true
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 8. LLM and deterministic service boundary
+
+LLM agents organize explanation and invoke tools. Grain row presence binding, table names,
+identity-set membership, row content, and tonnes must come from deterministic service logic
+and coordinator-reviewed artifacts only. LLM must not invent tonnes, table names beyond this
+freeze, identity-set values, cutoff lists, model identifiers, quantile literals, or row payloads.
+
+## 9. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_CONTRACT_AUTHORIZED=false → true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTATION_AUTHORIZED=false (companion introduced; not flipped)
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED=false (companion exists; not flipped)
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block and pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-live-postgres-read-contract.md` §12 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-identity-bindable-name-contract.md` §15 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-identity-persistence-schema-contract.md` §18 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-sql-table-authority-contract.md` §21 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-harvest-source-contract.md` §24 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-producer-adapter-wiring-contract.md` §27 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md` §30 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md` §33 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §36 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §39 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §42 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §45 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §47 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §53 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §54 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §58 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §59 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §62 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §70 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=true
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+OBJECT_ROW_COUNT_AT_REVIEW=0
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+~~~
