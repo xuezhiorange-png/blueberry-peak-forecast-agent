@@ -86,3 +86,37 @@ DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=true
 THIS_DRAFT_IS_NOT_READY=true
 AWAITING_COORDINATOR_REVIEW=true
 ~~~
+
+## 4. CI isolation note (out of slice; not a quality fix)
+
+At commit `f0739a0f2514aca68292a105b766bea1bebe19bf`, GitHub Actions run
+[32945730546](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/32945730546)
+(`conclusion=failure`) had a single failing job: `postgres-concurrency` (job `98105914506`).
+
+Failed node:
+
+`backend/tests/forecast_quality/test_idempotency.py::test_round_c_v2_natural_manifest_vs_child_race_is_serialized`
+
+Exception: `TimeoutError` (~17s) on `asyncpg INSERT INTO model_baseline_comparison (...)`, cancelled
+while locking tuple in `quality_evaluation_run` via PL/pgSQL
+`quality_evaluation_child_insert_guard()`.
+
+Isolation facts recorded here (not used as a quality-fix excuse):
+
+- The `postgres-concurrency` pytest shard collects only
+  `backend/tests/test_concurrency_isolation_helpers.py`,
+  `backend/tests/test_concurrency_isolation_helpers_live.py`,
+  `backend/tests/rolling_backtest/test_historical_backtest_concurrency.py`, and
+  `backend/tests/forecast_quality/test_idempotency.py` under marker `-m postgres_concurrency`.
+  It does **not** collect `backend/tests/s3_daily_rowset/**`.
+- This PR (27 files, +1696 / −3) does not modify `forecast_quality/**`, `rolling_backtest/**`,
+  Alembic, or `quality_evaluation_*` / `model_baseline_comparison` triggers.
+- Live-read tests use `sqlite:///:memory:` with autouse
+  `clear_v0_2_live_postgres_session_provider()` teardown; no DSN, no `get_settings`, no
+  `create_engine` in production paths for default obtain.
+- The failing node builds its own temporary database; it shares no session with S3 empty-table
+  live-read.
+
+This slice does **not** fix that Round C v2 natural-lock race flake. A rerun may pass without
+changing live-read semantics. If the same nodeid fails again, stop and report — do not expand scope
+into `forecast_quality`.
