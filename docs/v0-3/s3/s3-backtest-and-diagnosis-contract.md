@@ -983,6 +983,22 @@ Live `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTED
 not `LIVE_POSTGRES_READ`. Historical grant and contract pointer snapshots may remain
 `NO_BINDABLE_V0_2=true`.
 
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-live-postgres-read-contract.md`
+(`EVIDENCE_JSON_SHA256=3009c0ed24d35dadcb717d31e62767662ed36a6f7b238d36e2360854ab51b58d`). After bindable-name R1 encoded frozen name
+`s3_incumbent_forecast_replay_identity`, `bindable_table_names()` is non-empty yet
+`_empty_v0_2_postgres_obtain` still returns `()`. This contract freezes live-read authority for
+that encoded name only. Live-read contract ≠ live-read grant ≠ live-read R1 ≠ versioned forecast
+artifact. Empty table + encoded bindable name + unused live-read contract still yields
+`obtain()=()`. Later live-read of the empty table still yields `()`. Catalog first blocker
+remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract does not implement live-read,
+populate rows, flip `NO_VERSIONED`, or close S3.
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remains `false`.
+Historical grant/contract pointer snapshots may remain `NO_BINDABLE_V0_2=true`.
+Jumping to live-read implementation now is forbidden.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
