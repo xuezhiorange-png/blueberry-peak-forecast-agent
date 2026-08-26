@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
+from typing import TYPE_CHECKING
 
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow
@@ -21,6 +22,20 @@ from backend.app.s3_daily_rowset.schemas import (
     DatasetIdentity,
 )
 from backend.app.s3_daily_rowset.window import DEFAULT_IN_SEASON_MONTHS
+
+if TYPE_CHECKING:
+    from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
+        S2IdentityAlignmentHarvestSource,
+    )
+
+
+def _default_harvest_source() -> S2IdentityAlignmentHarvestSource:
+    from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
+        S2IdentityAlignmentHarvestSource,
+    )
+
+    return S2IdentityAlignmentHarvestSource()
+
 
 ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IDENTITY_VERSION = (
     "v0-3-s3-a2-accepted-s2-identity-alignment-evidence-identity-v1"
@@ -159,13 +174,19 @@ def compute_content_identity_sha256(
 class AcceptedS2IdentityAlignmentEvidenceProducer:
     dataset_identity: DatasetIdentity
     harvest_rows: tuple[MaterializableRow, ...] = ()
+    harvest_source: S2IdentityAlignmentHarvestSource = field(
+        default_factory=_default_harvest_source
+    )
 
     def produce(self) -> VersionedAcceptedS2IdentityAlignmentEvidence | None:
-        if not self.harvest_rows:
+        source_rows = self.harvest_rows
+        if not source_rows:
+            source_rows = self.harvest_source.obtain()
+        if not source_rows:
             return None
 
         _validate_dataset_binding(self.dataset_identity)
-        rows = project_accepted_s2_identity_evidence_rows(self.harvest_rows)
+        rows = project_accepted_s2_identity_evidence_rows(source_rows)
         if not rows:
             return None
 
