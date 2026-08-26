@@ -164,9 +164,9 @@ def test_default_catalog_produce_first_blocker_is_no_versioned_forecast() -> Non
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
 
-def test_match_table_names_remain_empty_and_table_not_bindable() -> None:
+def test_match_table_names_remain_empty_and_bindable_name_is_separate() -> None:
     assert MATCH_TABLE_NAMES == ()
-    assert is_bindable("s3_incumbent_forecast_replay_identity") is False
+    assert is_bindable("s3_incumbent_forecast_replay_identity") is True
     assert is_bindable("core_forecast_daily_row") is False
 
 
