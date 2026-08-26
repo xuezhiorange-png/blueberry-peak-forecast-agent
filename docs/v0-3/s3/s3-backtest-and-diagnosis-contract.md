@@ -1092,6 +1092,12 @@ or close S3. `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTI
 Historical grant/contract pointer snapshots may remain `GRAIN_IDENTITY_SET_IMPLEMENTATION_AUTHORIZED=false`
 or `GRAIN_ROW_PRESENCE_IMPLEMENTED=false`. Jumping to identity-set loader R1 now is forbidden.
 
+
+Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-r1.md`
+(`EVIDENCE_JSON_SHA256=a09d0b4398abd6feace3157519bac3164ddfef654b738bbb26c4cdf3addb5f4b`). Loader R1 wires fail-closed provider that returns empty without a coordinator-reviewed identity-set artifact. Loader R1 ≠ landing members ≠ INSERT ≠ versioned forecast artifact. No coordinator-reviewed identity-set artifact exists in repository; table still has 0 rows; `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Default obtain() without session remains `()`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical grant/contract pointer snapshots may remain `GRAIN_IDENTITY_SET_IMPLEMENTED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
