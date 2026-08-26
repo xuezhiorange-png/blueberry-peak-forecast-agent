@@ -1,0 +1,103 @@
+{
+  "artifact_id": "V0_3_S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_R1",
+  "artifact_version": "s3-a2-incumbent-forecast-replay-identity-bindable-name-r1",
+  "task_id": "V03_S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTATION_ONLY",
+  "slice": "V0.3-S3",
+  "user_gate": "可以实施",
+  "recorded_at": "2026-08-26T05:52:42Z",
+  "no_step_implies_the_next": true,
+  "this_draft_is_not_ready": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "audited_repository_sha": "81f7e6245f4973e094478929186dace1e9bebb82",
+  "audited_repository_tree_sha": "405d571b57bb4bc04f3a6e7fe84bc6e1f8ab1fd1",
+  "authorization_evidence": {
+    "pr_number": null,
+    "auth_evidence_json_sha256": "b745ccdc0a5084368852041337d5409d0c8aad4c93183070a573a35167df604d",
+    "bindable_name_contract_evidence_json_sha256": "34827903ef67de35958cd0e967b1b008ccde1ed90803bc81a4c1fdc6d1467f14",
+    "schema_r1_evidence_json_sha256": "921df3fd317213eeaf44fe594e72650ac7dea84d8499ca915c5f627fe60e3599",
+    "sql_table_authority_r1_evidence_json_sha256": "aad30ef4b0f6b16cbdab8aab4571f231e46758b138ab636d7b20208c55a39218",
+    "s3_a2_incumbent_forecast_replay_identity_bindable_name_implementation_authorized": true
+  },
+  "s2_binding": {
+    "contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "test_partition_dates": "2026-03-10..2026-04-16",
+    "source_002_row_level_read": false
+  },
+  "bindable_name_contract": {
+    "contract_path": "docs/v0-3/s3/s3-incumbent-forecast-replay-identity-bindable-name-contract.md",
+    "contract_git_blob_sha_at_freeze": "402942dd80a14299db263227e60d4a590b786f76",
+    "current_contract_git_blob_sha": "f8c0d2dee81a1076070cc95e97e9df17399cdbfb"
+  },
+  "implementation": {
+    "authority_path": "backend/app/s3_daily_rowset/incumbent_forecast_v0_2_sql_table_authority.py",
+    "incumbent_forecast_v0_2_sql_table_authority_py_blob": "ac840d2e46836427baaec3e46b0d111eda4adf74",
+    "replay_source_path": "backend/app/s3_daily_rowset/incumbent_forecast_replay_source.py",
+    "incumbent_forecast_replay_source_py_blob_unchanged": "9ffb7bdf9beb1d897b8a1752f06de9250011cf15",
+    "frozen_bindable_replay_identity_table_name": "s3_incumbent_forecast_replay_identity",
+    "alembic_revision": "e8b2c4d6f1a3",
+    "alembic_migration_blob": "1e0864ebef1d947d4c9466d71efaa759d44c7ad7",
+    "object_row_count_at_review": 0,
+    "audit_table_count": 106,
+    "match_table_count": 0,
+    "match_table_names": [],
+    "no_bindable_v0_2_sql_table_name_in_repository": false,
+    "default_obtain_remains_fail_closed_empty": true,
+    "deterministic_incumbent_forecast_replay_identity_bindable_name_implemented": true,
+    "deterministic_incumbent_forecast_v0_2_live_postgres_read_implemented": false,
+    "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+    "forbidden_h7_fixture_as_live_evidence": true,
+    "horizon_h7_success_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18",
+    "catalog_artifact_py_blob_unchanged": "8196cb7dca33df8708f78789bd2eb9e8243b8354",
+    "test_catalog_artifact_py_blob_unchanged": "af59a9f1d291ab32eff23684aca477f0e4a852cd",
+    "pep_420_namespace": true,
+    "production_init_py_forbidden": true,
+    "test_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_bindable_name.py",
+    "test_incumbent_forecast_replay_identity_bindable_name_py_blob": "e50b387a416cca1db160cecfac872704399b76ed",
+    "sql_table_authority_test_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_sql_table_authority.py",
+    "test_incumbent_forecast_v0_2_sql_table_authority_py_blob": "44c80ce1e75f5f89c206090fdaf97502811d64ca"
+  },
+  "authorization": {
+    "deterministic_incumbent_forecast_replay_identity_bindable_name_implemented": true,
+    "deterministic_incumbent_forecast_v0_2_live_postgres_read_implemented": false,
+    "s3_a2_incumbent_forecast_replay_identity_bindable_name_implementation_authorized": true,
+    "s3_a2_incumbent_forecast_replay_identity_bindable_name_contract_authorized": true,
+    "no_bindable_v0_2_sql_table_name_in_repository": false,
+    "default_obtain_remains_fail_closed_empty": true,
+    "no_versioned_incumbent_forecast_artifact_in_repository": true,
+    "no_live_s2_identity_alignment_adapter_in_repository": true,
+    "no_bindable_catalog_in_repository": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "source_002_row_level_read": false,
+    "test_remains_sealed": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "unique_flip": {
+    "fields": [
+      {
+        "field": "DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTED",
+        "before": false,
+        "after": true
+      },
+      {
+        "field": "NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY",
+        "before": true,
+        "after": false
+      }
+    ],
+    "locations": [
+      "docs/v0-3/development-plan.md §4.4 live state block",
+      "docs/v0-3/s3/s3-incumbent-forecast-replay-identity-bindable-name-contract.md §11 pointer"
+    ]
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-bindable-name-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-replay-identity-bindable-name-r1.json",
+  "evidence_json_sha256": "121d677c6645f87162a0108649f73aec1e825f1901148170d55179f9aa17543d"
+}

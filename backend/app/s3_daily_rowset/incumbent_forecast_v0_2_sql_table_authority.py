@@ -10,12 +10,13 @@ PARENT_CONTRACT_PATH = "docs/v0-3/s3/s3-incumbent-forecast-v0-2-sql-table-author
 AUDIT_TABLE_COUNT = 106
 MATCH_TABLE_COUNT = 0
 MATCH_TABLE_NAMES: tuple[str, ...] = ()
-NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY = True
+FROZEN_BINDABLE_REPLAY_IDENTITY_TABLE_NAME = "s3_incumbent_forecast_replay_identity"
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY = False
 
 
 def bindable_table_names() -> tuple[str, ...]:
-    return MATCH_TABLE_NAMES
+    return (FROZEN_BINDABLE_REPLAY_IDENTITY_TABLE_NAME,)
 
 
 def is_bindable(name: str) -> bool:
-    return name in MATCH_TABLE_NAMES
+    return name in bindable_table_names()

@@ -972,6 +972,17 @@ names, populate rows, flip `NO_BINDABLE_V0_2`, flip `NO_VERSIONED`, or implement
 R1 flips only `BINDABLE_NAME_IMPLEMENTED` (and `NO_BINDABLE_V0_2`), not `LIVE_POSTGRES_READ`. Jumping to
 live-read now is forbidden.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTED` and
+`NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY` are maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-bindable-name-r1.md`
+(`EVIDENCE_JSON_SHA256=121d677c6645f87162a0108649f73aec1e825f1901148170d55179f9aa17543d`). Bindable-name R1 encodes frozen name
+`s3_incumbent_forecast_replay_identity` in deterministic authority code only. Encoding the name
+≠ live postgres read ≠ versioned forecast artifact. Empty table still has 0 rows. Default
+`obtain()` remains `()`. This R1 flips only `BINDABLE_NAME_IMPLEMENTED` and `NO_BINDABLE_V0_2`,
+not `LIVE_POSTGRES_READ`. Historical grant and contract pointer snapshots may remain
+`NO_BINDABLE_V0_2=true`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in

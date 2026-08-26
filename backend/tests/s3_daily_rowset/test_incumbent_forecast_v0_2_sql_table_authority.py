@@ -55,8 +55,8 @@ def test_bindable_table_set_is_empty() -> None:
     assert MATCH_TABLE_NAMES == ()
     assert MATCH_TABLE_COUNT == 0
     assert AUDIT_TABLE_COUNT == 106
-    assert NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY is True
-    assert bindable_table_names() == ()
+    assert NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY is False
+    assert bindable_table_names() == ("s3_incumbent_forecast_replay_identity",)
 
 
 def test_is_bindable_rejects_audit_not_match_names() -> None:
