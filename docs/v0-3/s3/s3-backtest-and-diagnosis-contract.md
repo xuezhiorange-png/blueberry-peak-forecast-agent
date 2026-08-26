@@ -940,7 +940,7 @@ R1 flips only `SCHEMA_IMPLEMENTED`, not `LIVE_POSTGRES_READ`.
 Live `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED` is maintained in
 `docs/v0-3/development-plan.md` §4.4 live state block and
 `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-persistence-schema-r1.md`
-(`EVIDENCE_JSON_SHA256=f6bc379548dcdfc161d62e157c4776fee51d9dbe55328bf4863a0c17fa86f499`). Schema R1 creates the frozen empty Alembic table
+(`EVIDENCE_JSON_SHA256=921df3fd317213eeaf44fe594e72650ac7dea84d8499ca915c5f627fe60e3599`). Schema R1 creates the frozen empty Alembic table
 `s3_incumbent_forecast_replay_identity` with 0 upgrade rows. Empty table ≠ versioned incumbent forecast artifact.
 Empty table ≠ bindable V0.2 SQL table name. Empty table ≠ live postgres read. Default `obtain()` remains `()`.
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remains `false`. This R1 flips only
