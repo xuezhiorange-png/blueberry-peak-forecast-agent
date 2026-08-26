@@ -947,6 +947,17 @@ Empty table ≠ bindable V0.2 SQL table name. Empty table ≠ live postgres read
 `SCHEMA_IMPLEMENTED`, not `LIVE_POSTGRES_READ`. Historical grant and contract pointer snapshots may remain `false`
 for `FROZEN_FUTURE_OBJECT_EXISTS_IN_ALEMBIC`.
 
+Live `S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-bindable-name-contract.md`
+(`EVIDENCE_JSON_SHA256=34827903ef67de35958cd0e967b1b008ccde1ed90803bc81a4c1fdc6d1467f14`). Incumbent forecast replay-identity bindable name contract freezes
+coordinator-reviewed bindable name `s3_incumbent_forecast_replay_identity` for the now-existing empty
+Alembic table (0 rows at review). Table existence ≠ bindable implementation. This contract does not
+implement live postgres read, populate rows, flip `NO_BINDABLE_V0_2`, flip `NO_VERSIONED`, or change
+default `obtain()`. `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTED` and
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`. A later
+bindable-name R1 flips only `BINDABLE_NAME_IMPLEMENTED` (and `NO_BINDABLE_V0_2`), not `LIVE_POSTGRES_READ`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
