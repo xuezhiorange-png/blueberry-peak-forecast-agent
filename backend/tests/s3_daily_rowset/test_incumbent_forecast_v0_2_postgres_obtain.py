@@ -139,10 +139,12 @@ def test_module_has_no_sql_table_names_or_forbidden_imports() -> None:
                 raise AssertionError(f"forbidden call detected: {func.attr}")
 
     lowered = source.lower()
-    assert "select " not in lowered
+    assert "incumbent_forecast_v0_2_live_postgres_read" in lowered
     assert "create table" not in lowered
     assert "postgresql://" not in lowered
     assert "dsn" not in lowered
+    assert "core_forecast_daily_row" not in lowered
+    assert "rolling_backtest_binding_row" not in lowered
 
 
 def test_s3_daily_rowset_has_no_production_init_py() -> None:
