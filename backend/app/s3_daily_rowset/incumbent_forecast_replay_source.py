@@ -14,6 +14,12 @@ HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF = True
 
 
 def _empty_v0_2_postgres_obtain() -> tuple[IncumbentForecastArtifactEntry, ...]:
+    from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_sql_table_authority import (
+        bindable_table_names,
+    )
+
+    if not bindable_table_names():
+        return ()
     return ()
 
 
