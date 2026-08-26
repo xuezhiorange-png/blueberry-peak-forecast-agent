@@ -958,6 +958,20 @@ default `obtain()`. `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_N
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`. A later
 bindable-name R1 flips only `BINDABLE_NAME_IMPLEMENTED` (and `NO_BINDABLE_V0_2`), not `LIVE_POSTGRES_READ`.
 
+Live `S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-bindable-name-authorization.md`
+(`EVIDENCE_JSON_SHA256=b745ccdc0a5084368852041337d5409d0c8aad4c93183070a573a35167df604d`). Incumbent forecast replay-identity bindable name implementation authorization
+records what a later deterministic bindable-name R1 may do when the user again says 「可以实施」: record
+frozen name `s3_incumbent_forecast_replay_identity` in deterministic code. Grant ≠ bindable-name encoding ≠
+live postgres read ≠ versioned forecast artifact. Empty table + reviewed name + unused grant still yields
+`obtain()=()`. Later live-read of the empty table still yields `()`. This grant does not encode bindable
+names, populate rows, flip `NO_BINDABLE_V0_2`, flip `NO_VERSIONED`, or implement live postgres read.
+`DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_BINDABLE_NAME_IMPLEMENTED` and
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`. A later bindable-name
+R1 flips only `BINDABLE_NAME_IMPLEMENTED` (and `NO_BINDABLE_V0_2`), not `LIVE_POSTGRES_READ`. Jumping to
+live-read now is forbidden.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
