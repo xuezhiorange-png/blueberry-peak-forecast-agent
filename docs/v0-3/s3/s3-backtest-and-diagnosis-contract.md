@@ -1121,6 +1121,18 @@ Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_L
 `docs/v0-3/development-plan.md` §4.4 live state block and
 `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-landing-r1.md`
 (`EVIDENCE_JSON_SHA256=49ffb1cd4cc664bd6603908e7435c1576d81a21014539e7d95dcaf58abd865ec`). Fail-closed landing R1: no independently reviewed members exist at R1 time; do not land artifact; do not flip `NO_REVIEWED`. Landing contract ≠ grant ≠ this fail-closed R1 ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. Loader R1 ≠ landing. `LANDING_IMPLEMENTED=true` after this R1 does NOT mean members landed. Production loader/provider remains empty without a reviewed artifact. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `LANDING_IMPLEMENTED=false`.
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_INDEPENDENT_REVIEW_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-independent-review-contract.md`
+(`EVIDENCE_JSON_SHA256=1789700197063e663fd507c6dd087a592da90e419d7175b03856b7577e18b9c9`). Landing R1 is on main and fail-closed; `LANDING_IMPLEMENTED=true` ≠ members landed
+≠ `NO_REVIEWED` flipped ≠ independent review performed. No independently reviewed candidate exists today; production provider
+empty; table still has 0 rows; `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Independent-review contract ≠ grant
+≠ independent-review R1 ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. This contract freezes
+independent-review provenance — not performing review today. `CONTRACT_MERGE_DOES_NOT_LAND_IDENTITY_SET_MEMBERS=true`.
+`CONTRACT_MERGE_DOES_NOT_INVENT_IDENTITY_SET=true`. `CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true`.
+`CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true`. Historical pointer snapshots may remain `LANDING_IMPLEMENTED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
