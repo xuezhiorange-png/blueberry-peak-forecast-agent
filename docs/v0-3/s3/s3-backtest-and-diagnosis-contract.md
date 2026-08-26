@@ -1058,7 +1058,7 @@ or `NO_BINDABLE_V0_2=true`. Jumping to grain-row-presence R1 / INSERT now is for
 Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED` is maintained in
 `docs/v0-3/development-plan.md` §4.4 live state block and
 `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-row-presence-r1.md`
-(`EVIDENCE_JSON_SHA256=1ff0c3944035ccd626709948302fd962bd0442dd57684bf83c43bb889cd874d3`). Grain-row-presence R1 wires fail-closed INSERT-if-reviewed-set-else-0-rows for frozen table `s3_incumbent_forecast_replay_identity`. No coordinator-reviewed grain identity-set exists in repository; table still has 0 rows. Grain-row-presence R1 ≠ identity-set invention ≠ versioned forecast artifact. Default obtain() without session remains `()`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical grant/contract pointer snapshots may remain `GRAIN_ROW_PRESENCE_IMPLEMENTED=false`.
+(`EVIDENCE_JSON_SHA256=43771f68f87d550f48b1e0aa9bcaa42304676436fc08df31365c6c5fc0763511`). Grain-row-presence R1 wires fail-closed INSERT-if-reviewed-set-else-0-rows for frozen table `s3_incumbent_forecast_replay_identity`. No coordinator-reviewed grain identity-set exists in repository; table still has 0 rows. Grain-row-presence R1 ≠ identity-set invention ≠ versioned forecast artifact. Default obtain() without session remains `()`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical grant/contract pointer snapshots may remain `GRAIN_ROW_PRESENCE_IMPLEMENTED=false`.
 
 ## 12. Phase-entry effect on development plan
 
