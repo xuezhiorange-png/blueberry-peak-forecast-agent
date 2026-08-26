@@ -862,6 +862,16 @@ authority for `MaterializableRow` tuples; it does not implement obtain, invent h
 rows or SQL, or flip `NO_LIVE_S2` / `NO_VERSIONED` / `AVAILABLE` / `VERIFIED`.
 `DETERMINISTIC_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_IMPLEMENTED` remains `false`.
 
+
+Live `S3_A2_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-s2-identity-alignment-harvest-source-authorization.md`
+(`EVIDENCE_JSON_SHA256=bad95719d0f2af0481093251707643ec6aa69fc299770d27e7a52e3703d24c64`).
+S2 identity alignment harvest source implementation authorization records what a later
+deterministic harvest source R1 may do when the user again says 「可以实施」; it does not
+implement obtain, invent harvest rows or SQL, or flip `NO_LIVE_S2` / `NO_VERSIONED` /
+`AVAILABLE` / `VERIFIED`. `DETERMINISTIC_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_IMPLEMENTED` remains `false` until a separate implementation R1.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
