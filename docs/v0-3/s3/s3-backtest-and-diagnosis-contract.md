@@ -1038,6 +1038,22 @@ This contract does not populate rows, flip `NO_VERSIONED`, or close S3.
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED` remains `false`.
 Historical pointer snapshots may remain `LIVE_POSTGRES_READ_IMPLEMENTED=false` or `NO_BINDABLE_V0_2=true`.
 
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-row-presence-authorization.md`
+(`EVIDENCE_JSON_SHA256=bbdc217b10d5b54081321a069b88929ba56973397f23487ee32bfdfd174533c1`). After live-read R1, frozen table
+`s3_incumbent_forecast_replay_identity` still has 0 rows. No coordinator-reviewed grain identity-set
+exists in repository. This grant records what a later deterministic grain-row-presence R1 may do when
+the user again says 「可以实施」. Grant ≠ grain-row-presence contract ≠ R1 ≠ INSERT ≠ identity-set invention
+≠ versioned artifact ≠ catalog closeout. This grant does not populate rows, invent identity-set values,
+or enumerate cutoff/model/quantile literals. Default `obtain()` without session remains `()`. Session
+read of empty table still yields `()`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+This grant does not implement grain row presence, flip `NO_VERSIONED`, or close S3.
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED` remains `false`.
+Historical grant/contract pointer snapshots may remain `GRAIN_ROW_PRESENCE_IMPLEMENTATION_AUTHORIZED=false`
+or `NO_BINDABLE_V0_2=true`. Jumping to grain-row-presence R1 / INSERT now is forbidden.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
