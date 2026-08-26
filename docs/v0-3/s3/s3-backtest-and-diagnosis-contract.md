@@ -1180,6 +1180,12 @@ obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSI
 remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This grant does not acquire a candidate, land members, flip `NO_REVIEWED`,
 or flip `CANDIDATE_SOURCE_IMPLEMENTED`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_IMPLEMENTATION_AUTHORIZED=false`.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-r1.md`
+(`EVIDENCE_JSON_SHA256=6cc3c4dd7276e3f82bd19957e806ac130e8538ef70168e0d2395b61252cb343f`). Fail-closed candidate-source R1: no lawful populated candidate source exists at R1 time;
+do not invent source/members; do not acquire a candidate; do not land members; do not flip `NO_REVIEWED`. Candidate-source contract ≠ grant ≠ this fail-closed R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `CANDIDATE_SOURCE_IMPLEMENTED=true` after this R1 does NOT mean a lawful populated candidate source exists. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_IMPLEMENTED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
