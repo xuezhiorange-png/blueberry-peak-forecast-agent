@@ -894,6 +894,18 @@ fail-closed `()`. It does not implement live postgres read, invent SQL or table 
 or flip `NO_VERSIONED` / `NO_LIVE_S2` / `AVAILABLE` / `VERIFIED`.
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remains `false`.
 
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-sql-table-authority-authorization.md`
+(`EVIDENCE_JSON_SHA256=8262b9350f59db13ecf67e87734ca6dc9caf58f8c4689c64a331a36b551f1cfd`).
+Incumbent forecast V0.2/S3 SQL table-name authority implementation authorization records what a
+later deterministic R1 may do when the user again says 「可以实施」: encode the frozen empty
+bindable-name set as in-memory authority while default obtain remains `()`. It does not implement
+live postgres read, invent SQL or table names, or flip `NO_VERSIONED` / `NO_LIVE_S2` / `AVAILABLE` /
+`VERIFIED`. `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_IMPLEMENTED` and
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false` until separate implementation R1.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
