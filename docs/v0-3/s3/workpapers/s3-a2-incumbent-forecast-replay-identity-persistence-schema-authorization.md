@@ -1,0 +1,333 @@
+# V0.3-S3-A2 Incumbent forecast replay-identity persistence schema implementation authorization
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTATION_AUTHORIZATION
+ARTIFACT_VERSION=s3-a2-incumbent-forecast-replay-identity-persistence-schema-authorization-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTATION_AUTHORIZATION_R1
+TASK_CLASS=DOCS_ONLY_AUTHORIZATION_ISSUANCE
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTATION_GRANT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA
+USER_GATE=可以实施
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02307-c032-7da6-8a02-00d9b3518794
+BASE_REF=origin/main
+BASE_MAIN_SHA=44ffcc6657fcf791291c6875c6040b0e94e342de
+BASE_MAIN_TREE_SHA=c00f3be8c9765357e01237cfe24b00a2b0fd989a
+PARENT_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-replay-identity-persistence-schema-contract.md
+PARENT_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=cb7dbac6c1f2c0e1a9c23a69f1ad6a684da40e75
+PARENT_CONTRACT_EVIDENCE_JSON_SHA256=b0c2553f3a561bf8c46b39f015a604f31f9c6a9c5d682a060ad5eff0dfbfb806
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-persistence-schema-authorization.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-replay-identity-persistence-schema-authorization.json
+GRANT_ONLY=true
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+THIS_PR_IS_NOT_R1=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_SCHEMA=true
+AUTHORIZATION_MERGE_DOES_NOT_ADD_ALEMBIC=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_LIVE_POSTGRES_READ=true
+AUTHORIZATION_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+AUTHORIZATION_MERGE_DOES_NOT_FLIP_NO_BINDABLE_V0_2_SQL_TABLE_NAME=true
+AUTHORIZATION_MERGE_DOES_NOT_FLIP_LIVE_POSTGRES_READ=true
+FORBIDDEN_WRITE_SELECT_FROM_JOIN_WHERE_IN_GRANT=true
+FORBIDDEN_WRITE_DSN_OR_CONNECTION_STRINGS=true
+FORBIDDEN_NEW_ALEMBIC=true
+FORBIDDEN_PRODUCTION_INIT_PY=true
+FORBIDDEN_TOUCH_ANY_PYTHON=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+The user authorized issuance of the S3-A2 **incumbent forecast replay-identity persistence
+schema** implementation grant after the persistence-schema contract freeze on main (#354).
+This document records what a **later** deterministic schema R1 may do when the user again
+says 「可以实施」. This PR does not add Alembic, create tables, populate rows, invent
+cutoff/model/quantile identity, open postgres connections, flip `NO_VERSIONED` /
+`NO_BINDABLE_V0_2` / `LIVE_POSTGRES_READ`, or authorize live postgres read.
+
+This is **persistence-schema** implementation authorization only. Parent persistence-schema
+contract §§1–9 and the frozen 106-row Alembic audit remain authoritative and are not
+reopened. Do not rewrite alignment contract §6 (`0e974ba4` S2 contract blob;
+`EmptyS2IdentityAlignmentPort` remains the historical production default).
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTATION_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_CONTRACT_AUTHORIZED=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+FROZEN_FUTURE_OBJECT_NAME=s3_incumbent_forecast_replay_identity
+FROZEN_FUTURE_OBJECT_EXISTS_IN_ALEMBIC=false
+AUDIT_TABLE_COUNT=106
+MATCH_TABLE_COUNT=0
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+~~~
+
+## 1. Upstream bindings (reference only)
+
+~~~text
+PARENT_PR=354
+PARENT_PERSISTENCE_SCHEMA_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-replay-identity-persistence-schema-contract.md
+PARENT_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=cb7dbac6c1f2c0e1a9c23a69f1ad6a684da40e75
+PARENT_CONTRACT_EVIDENCE_JSON_SHA256=b0c2553f3a561bf8c46b39f015a604f31f9c6a9c5d682a060ad5eff0dfbfb806
+PARENT_SQL_TABLE_AUTHORITY_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=97c15064445d0ff4776884234994f0a10f6537d5
+SQL_TABLE_AUTHORITY_CONTRACT_EVIDENCE_JSON_SHA256=99e4bb4853b6020404a86221c470936fce27f26bb6373fbe81167ffaeac6e260
+SQL_TABLE_AUTHORITY_R1_EVIDENCE_JSON_SHA256=aad30ef4b0f6b16cbdab8aab4571f231e46758b138ab636d7b20208c55a39218
+PARENT_POSTGRES_OBTAIN_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=c02ae702995c38f33ca73c3af26e8fdb33cc8e04
+V0_2_POSTGRES_OBTAIN_CONTRACT_EVIDENCE_JSON_SHA256=a6ff0d53db223d6ec1258b38378d62c6ecb8a37fe908458a5a734efe7e203b49
+POSTGRES_OBTAIN_R1_EVIDENCE_JSON_SHA256=66c992c6ef6a085f8856afdc0456fb727d1dc31d32152ca7006b4c33aaff6c10
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+AUDIT_TABLE_COUNT=106
+MATCH_TABLE_COUNT=0
+MATCH_TABLE_NAMES=()
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+~~~
+
+Evidence JSON self-hashes above are binding references, not whole-file `sha256sum`
+values. The parent contract 106-row Alembic audit is cited only; not rewritten by this
+authorization grant. Alembic `backend/alembic/versions/*.py` was independently
+re-confirmed at `44ffcc6`; `s3_incumbent_forecast_replay_identity` is not in Alembic;
+`MATCH_TABLE_COUNT` remains `0`.
+
+## 2. Inherited S2 and parent contract authority (not reopened)
+
+~~~text
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+DEFAULT_MONTH_SCOPE=1-4
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+REPLAY_SOURCE_GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REPLAY_SOURCE_CARRIES_NO_KG_OR_TONNES=true
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+UNIQUE_ALEMBIC_HEAD=a7c3e9f1b2d4
+PEP_420_NAMESPACE=true
+PRODUCTION_INIT_PY_FORBIDDEN=true
+SOURCE_002_ROW_LEVEL_READ=false
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+~~~
+
+## 3. What this authorization grants
+
+A later deterministic persistence-schema R1 may, under a separate user 「可以实施」 gate,
+add exactly one linear Alembic revision creating the frozen empty table
+`s3_incumbent_forecast_replay_identity` per parent contract §3.
+
+### 3.1 Allowed changes (future implementation only)
+
+~~~text
+NEW_ALEMBIC_REVISION_LINEAR_CHILD_OF_UNIQUE_HEAD=true
+UNIQUE_ALEMBIC_HEAD_AT_GRANT=a7c3e9f1b2d4
+CREATE_EXACTLY_ONE_TABLE=s3_incumbent_forecast_replay_identity
+TABLE_KIND=TABLE
+FORBIDDEN_PARALLEL_ALEMBIC_HEAD=true
+FORBIDDEN_POPULATE_ROWS=true
+FORBIDDEN_INVENT_CUTOFF_MODEL_QUANTILE=true
+OPTIONAL_NEW_TESTS_TABLE_EXISTS_EMPTY_GRAIN_UNIQUE_NO_KG=true
+PEP_420_NO_PRODUCTION_INIT_PY_UNDER_S3_DAILY_ROWSET=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_TOUCH_ANY_OTHER_FROZEN_PYTHON_BLOB=true
+~~~
+
+Future implementation may:
+
+1. Add exactly one Alembic revision as a linear child of the then-unique head (currently
+   `a7c3e9f1b2d4`). No parallel heads.
+2. Create only the frozen empty table `s3_incumbent_forecast_replay_identity` (KIND=TABLE,
+   not view).
+3. Match parent contract §3 column semantics:
+   - Required NOT NULL: `forecast_cutoff_at` (timezone-aware timestamp), `model_id`
+     (non-empty text), `forecast_quantile` (non-empty text)
+   - UNIQUE(`forecast_cutoff_at`, `model_id`, `forecast_quantile`)
+   - Optional surrogate primary key (integer or UUID); must not replace grain uniqueness;
+     must not enter replay grain
+   - Forbidden column families: kg, tonnes, weight, quantity, forecast_value, daily curve,
+     harvest_business_date, catalog cell, alignment identity, physical_alignment_status
+4. Leave zero rows after upgrade. No invented cutoff/model/quantile rows.
+5. Add tests: table exists, empty, grain unique, no kg columns, unique Alembic head
+   remains singular.
+6. Enforce PEP 420: no production `__init__.py` under `s3_daily_rowset`.
+
+The only implementation-status flip permitted by a future schema R1 is:
+
+~~~text
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED=false → true
+~~~
+
+That flip must be recorded in `docs/v0-3/development-plan.md` §4.4 live block, not only
+in an R1 pointer snapshot. A later schema R1 **does not** flip
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED`.
+
+### 3.2 What future schema R1 must keep false
+
+~~~text
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+MATCH_TABLE_NAMES=()
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+FROZEN_FUTURE_OBJECT_EXISTS_IN_ALEMBIC=true (after R1 only; false at grant merge)
+~~~
+
+Honesty: authorization merge does not close S3. Even after a future R1 creates the empty
+table, default `obtain()` remains `()` until separate bindable-name, live-read, and
+non-invented row paths are authorized.
+
+### 3.3 Forbidden in future implementation
+
+~~~text
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+FORBIDDEN_INVENT_CONNECTION_STRINGS=true
+FORBIDDEN_INVENT_DSN_OR_DATABASE_NAMES=true
+FORBIDDEN_INVENT_CUTOFF_LISTS=true
+FORBIDDEN_INVENT_CONTENT_IDENTITY_SHA256=true
+FORBIDDEN_INVENT_DISTINCT_ENTRY_COUNTS=true
+FORBIDDEN_INVENT_TONNES_OR_KG=true
+FORBIDDEN_RECLASSIFY_HARVEST_STATE_REPLAY_SOURCE_VISIBILITY_AUDIT=true
+FORBIDDEN_BIND_CORE_FORECAST_DAILY_ROW=true
+FORBIDDEN_BIND_ROLLING_BACKTEST_BINDING_ROW=true
+FORBIDDEN_CHANGE_MATCH_TABLE_COUNT_FROM_106_AUDIT=true
+FORBIDDEN_FLIP_LIVE_POSTGRES_READ=true
+FORBIDDEN_FLIP_NO_VERSIONED=true
+FORBIDDEN_FLIP_NO_BINDABLE_V0_2=true
+FORBIDDEN_FLIP_AVAILABLE_OR_VERIFIED=true
+FORBIDDEN_UNSEAL_TEST=true
+FORBIDDEN_PRODUCTION_INIT_PY=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6_AUDIT=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_REGISTRY_AVAILABLE=true
+IMPLEMENTATION_PR_MAY_NOT_FLIP_COMPLETENESS_VERIFIED=true
+IMPLEMENTATION_PR_MAY_NOT_WRITE_LIVE_FORECAST_ARTIFACT_TO_REPOSITORY=true
+IMPLEMENTATION_PR_MAY_NOT_PRODUCE_BINDABLE_CATALOG=true
+~~~
+
+## 4. Frozen Python blob audit (byte-identical; this grant does not touch)
+
+~~~text
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+S2_IDENTITY_ALIGNMENT_PY_BLOB=b899e52dbd8752b30395441389ad93fc98d9dbf7
+ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=b0dc923ae4a4c06e3f6ccafd38e175d8ac16d3f7
+S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_PY_BLOB=ae3381d2c0b0744a49519370e67005c479120665
+FORECAST_ARTIFACT_PY_BLOB=73e65fbe6774ef555f825efc74c9c8eb5f003575
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=0cc05fff3deff00d279070aa246f241ff3754e89
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=9ffb7bdf9beb1d897b8a1752f06de9250011cf15
+INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_PY_BLOB=96dfcdd079382f8009adba2c315e75691f3ea22d
+BINDING_PY_BLOB=0a335f682a923bcd73908b58cd70cd49c9ab0117
+REGISTRY_PY_BLOB=ca16d518ab18136059cd08bcf4b247774d750bb5
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+TEST_S2_IDENTITY_ALIGNMENT_PY_BLOB=9c653823ebca79fdb12d61325fdb4b18e17d0cef
+TEST_ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_PY_BLOB=c81c3ebfe565095f17cfa8794d115ea9fab0ca73
+TEST_S2_IDENTITY_ALIGNMENT_PRODUCER_ADAPTER_WIRING_PY_BLOB=9fdd22ccadd6990fa2522c8b23a287dc4e87f173
+TEST_S2_IDENTITY_ALIGNMENT_HARVEST_SOURCE_PY_BLOB=929b9fc8a89c1a0b31154cd89b2bd6d4c7cb4a4a
+TEST_FORECAST_ARTIFACT_PY_BLOB=2ae0036a46f6f0b2898a8fca3589041b9869c196
+TEST_INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=11e23e247d6f90e8c7528a073b6e90c709f4a5cc
+TEST_INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=14a2c27f97fa50a37902558c9819f07cd3d71411
+TEST_INCUMBENT_FORECAST_LIVE_ENVELOPE_PY_BLOB=cf34f76c734388129b7dbf8d4f585bde584fceac
+TEST_INCUMBENT_FORECAST_LIVE_SOURCE_KIND_PY_BLOB=10ac671d603b842ece5cb3ae449b1580715ed2b0
+TEST_INCUMBENT_FORECAST_FAIL_CLOSED_WIRING_PY_BLOB=97b072ca484ce50be6796b88c28b8999d9bde353
+TEST_INCUMBENT_FORECAST_V0_2_POSTGRES_OBTAIN_PY_BLOB=8db60cba335dd87ac72f7b86469168e15b7efe97
+TEST_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_PY_BLOB=8b71c85fb07ffded95c9d27c37145cfbc5d4488f
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+~~~
+
+## 5. What remains forbidden / not authorized
+
+~~~text
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+CURRENT_V0_3_S3_COMPLETE=false
+SOURCE_002_ROW_LEVEL_READ=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED=false
+FROZEN_FUTURE_OBJECT_EXISTS_IN_ALEMBIC=false
+AUTHORIZATION_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+~~~
+
+## 6. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTATION_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-identity-persistence-schema-contract.md` §10 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-sql-table-authority-contract.md` §13 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-harvest-source-contract.md` §16 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-producer-adapter-wiring-contract.md` §19 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md` §22 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md` §25 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §28 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §31 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §34 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §37 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §46 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §62 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §45 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §50 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §51 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §54 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §39 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_CONTRACT_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=false
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_IMPLEMENTED=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+~~~
+
+## 7. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_SCHEMA=true
+AUTHORIZATION_MERGE_DOES_NOT_ADD_ALEMBIC=true
+AUTHORIZATION_MERGE_DOES_NOT_IMPLEMENT_LIVE_POSTGRES_READ=true
+AUTHORIZATION_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
