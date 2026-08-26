@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -73,6 +74,15 @@ def test_migration_revision_metadata() -> None:
 
     assert module.revision == NEW_ALEMBIC_HEAD
     assert module.down_revision == PARENT_ALEMBIC_REVISION
+
+
+def test_migration_named_identifiers_within_postgres_limit() -> None:
+    migration_source = _MIGRATION_PATH.read_text(encoding="utf-8")
+    named_identifiers = re.findall(r'name="([^"]+)"', migration_source)
+
+    assert named_identifiers, "expected at least one named identifier in migration"
+    for identifier in named_identifiers:
+        assert len(identifier) <= 63, identifier
 
 
 def test_table_exists_with_zero_rows_after_upgrade() -> None:

@@ -36,11 +36,11 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "length(model_id) > 0",
-            name="ck_s3_incumbent_forecast_replay_identity_model_id_nonempty",
+            name="ck_s3_replay_identity_model_id_nonempty",
         ),
         sa.CheckConstraint(
             "length(forecast_quantile) > 0",
-            name="ck_s3_incumbent_forecast_replay_identity_forecast_quantile_nonempty",
+            name="ck_s3_replay_identity_quantile_nonempty",
         ),
     )
 
