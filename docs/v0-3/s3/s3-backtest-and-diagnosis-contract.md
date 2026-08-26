@@ -1158,6 +1158,17 @@ still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GR
 Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain
 `INDEPENDENT_REVIEW_IMPLEMENTED=false`.
 
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-contract.md`
+(`EVIDENCE_JSON_SHA256=7586088c647fbcd3bfb0d7158aa13ae2b56cf2a0a59d0fc3311971010e21cfb5`). Independent-review R1 is on main and fail-closed. No lawful populated candidate source
+exists today. Candidate-source contract ≠ grant ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members landed ≠
+INSERT ≠ versioned artifact ≠ catalog closeout. `INDEPENDENT_REVIEW_IMPLEMENTED=true` ≠ independent review performed.
+Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default
+obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker
+remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract freeze does not acquire a candidate, land members, or flip
+`NO_REVIEWED`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_CONTRACT_AUTHORIZED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
