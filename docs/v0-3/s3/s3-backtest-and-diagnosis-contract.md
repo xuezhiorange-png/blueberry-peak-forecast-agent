@@ -1146,6 +1146,18 @@ members, flip `NO_REVIEWED`, flip `INDEPENDENT_REVIEW_IMPLEMENTED`, or close S3.
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_INDEPENDENT_REVIEW_IMPLEMENTED` remains `false`.
 Historical pointer snapshots may remain `INDEPENDENT_REVIEW_IMPLEMENTATION_AUTHORIZED=false`.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_INDEPENDENT_REVIEW_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-independent-review-r1.md`
+(`EVIDENCE_JSON_SHA256=c34afe4056a67ac65b086ae213a9b2d1f6e0fcff4911fd8cc1daeb4a86b87ceb`). Fail-closed independent-review R1: no independently reviewed candidate exists at R1 time;
+do not invent review; do not land members; do not flip `NO_REVIEWED`. Independent-review contract ≠ grant ≠ this fail-closed
+R1 ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `LANDING_IMPLEMENTED=true` ≠ members landed.
+`INDEPENDENT_REVIEW_IMPLEMENTED=true` after this R1 does NOT mean independent review was performed and does NOT mean members
+landed. Production loader/provider remains empty without a reviewed artifact. Frozen table `s3_incumbent_forecast_replay_identity`
+still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`.
+Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain
+`INDEPENDENT_REVIEW_IMPLEMENTED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
