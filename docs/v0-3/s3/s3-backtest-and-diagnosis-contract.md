@@ -1015,6 +1015,15 @@ populate rows, flip `NO_VERSIONED`, or close S3.
 Historical grant/contract pointer snapshots may remain `NO_BINDABLE_V0_2=true`.
 Jumping to live-read R1 implementation now is forbidden.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-live-postgres-read-r1.md`
+(`EVIDENCE_JSON_SHA256=8b56f82fe1dd9871dfb7f02ef3b9f768f265020f7f62b4078fb9b7feb1187763`). Live-read R1 wires read of frozen table
+`s3_incumbent_forecast_replay_identity` via injected session only. Live-read R1 ≠ row population ≠
+versioned forecast artifact. Empty table still has 0 rows. Default obtain() without session remains
+`()`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical grant
+and contract pointer snapshots may remain `LIVE_POSTGRES_READ_IMPLEMENTED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
