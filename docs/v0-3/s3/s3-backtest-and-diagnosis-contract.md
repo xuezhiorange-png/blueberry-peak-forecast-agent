@@ -1098,6 +1098,17 @@ Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_I
 `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-r1.md`
 (`EVIDENCE_JSON_SHA256=a09d0b4398abd6feace3157519bac3164ddfef654b738bbb26c4cdf3addb5f4b`). Loader R1 wires fail-closed provider that returns empty without a coordinator-reviewed identity-set artifact. Loader R1 ≠ landing members ≠ INSERT ≠ versioned forecast artifact. No coordinator-reviewed identity-set artifact exists in repository; table still has 0 rows; `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Default obtain() without session remains `()`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical grant/contract pointer snapshots may remain `GRAIN_IDENTITY_SET_IMPLEMENTED=false`.
 
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_LANDING_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-landing-contract.md`
+(`EVIDENCE_JSON_SHA256=d1520b49ae108e81a9019f3d877f2746a8a198e9a639d5f4680ee5dcb67a7d7c`). Loader R1 landed fail-closed empty provider; no coordinator-reviewed
+identity-set artifact in repository; table still has 0 rows; `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains
+`true`. Landing contract ≠ grant ≠ landing R1 ≠ member landing today ≠ INSERT ≠ versioned artifact ≠ catalog closeout.
+Loader R1 ≠ landing. This contract freezes how reviewed artifact landing into repository works and when `NO_REVIEWED`
+may flip — not landing members today. `CONTRACT_MERGE_DOES_NOT_LAND_IDENTITY_SET_MEMBERS=true`.
+`CONTRACT_MERGE_DOES_NOT_INVENT_IDENTITY_SET=true`. `CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true`.
+`CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true`. Historical pointer snapshots may remain `GRAIN_IDENTITY_SET_IMPLEMENTED=false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
