@@ -47,6 +47,10 @@ MIGRATION_LANE_C_E4B_PATH = (
     _ALEMBIC_VERSIONS_DIR / "a7c3e9f1b2d4_s2_lane_c_idfl_label_side_winner.py"
 )
 MIGRATION_LANE_C_E4B_REVISION = "a7c3e9f1b2d4"
+MIGRATION_REPLAY_IDENTITY_SCHEMA_PATH = (
+    _ALEMBIC_VERSIONS_DIR / "e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py"
+)
+MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION = "e8b2c4d6f1a3"
 
 
 def _migration_module() -> ModuleType:
@@ -89,11 +93,12 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
     # 0022 remains the I7 lineage parent for finalized_at, 0023 remains the
-    # S2 historical binding extension, and Lane C E4b is the current unique head.
+    # S2 historical binding extension, Lane C E4b remains the E4b revision, and
+    # replay-identity schema R1 is the current unique head.
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_LANE_C_E4B_REVISION], (
-        f"alembic heads must be [{MIGRATION_LANE_C_E4B_REVISION!r}], got {heads!r}"
+    assert heads == [MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION], (
+        f"alembic heads must be [{MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION!r}], got {heads!r}"
     )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
@@ -194,6 +199,15 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     spec_lane_c_e4b.loader.exec_module(migration_lane_c_e4b)
     assert migration_lane_c_e4b.revision == MIGRATION_LANE_C_E4B_REVISION
     assert migration_lane_c_e4b.down_revision == MIGRATION_LANE_D_REVISION
+    spec_replay_identity = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_replay_identity_schema",
+        MIGRATION_REPLAY_IDENTITY_SCHEMA_PATH,
+    )
+    assert spec_replay_identity is not None and spec_replay_identity.loader is not None
+    migration_replay_identity = importlib.util.module_from_spec(spec_replay_identity)
+    spec_replay_identity.loader.exec_module(migration_replay_identity)
+    assert migration_replay_identity.revision == MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION
+    assert migration_replay_identity.down_revision == MIGRATION_LANE_C_E4B_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
