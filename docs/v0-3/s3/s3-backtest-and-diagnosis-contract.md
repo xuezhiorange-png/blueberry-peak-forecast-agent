@@ -937,6 +937,16 @@ Alembic revision. This grant does not add Alembic, write SQL, populate rows, or 
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`. A later schema
 R1 flips only `SCHEMA_IMPLEMENTED`, not `LIVE_POSTGRES_READ`.
 
+Live `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-persistence-schema-r1.md`
+(`EVIDENCE_JSON_SHA256=c9f6d7453dc1609f2bd1d517fb2c235155dab46fa917538e1f4191251c7d3690`). Schema R1 creates the frozen empty Alembic table
+`s3_incumbent_forecast_replay_identity` with 0 upgrade rows. Empty table ≠ versioned incumbent forecast artifact.
+Empty table ≠ bindable V0.2 SQL table name. Empty table ≠ live postgres read. Default `obtain()` remains `()`.
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remains `false`. This R1 flips only
+`SCHEMA_IMPLEMENTED`, not `LIVE_POSTGRES_READ`. Historical grant and contract pointer snapshots may remain `false`
+for `FROZEN_FUTURE_OBJECT_EXISTS_IN_ALEMBIC`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
