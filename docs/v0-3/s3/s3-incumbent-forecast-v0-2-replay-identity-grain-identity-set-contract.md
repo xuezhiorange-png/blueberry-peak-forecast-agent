@@ -1,0 +1,381 @@
+# V0.3-S3-A2 Incumbent Forecast V0.2 Replay-Identity Grain Identity-Set Contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-contract-v1
+TASK_ID=V03_S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=ddb054a8578fb2592609d25dd37c14cfb4ee1744
+BASE_MAIN_TREE_SHA=3566161370d2977a577b57969e043fde6f0c5359
+BASE_REF=origin/main
+PARENT_GRAIN_ROW_PRESENCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-replay-identity-grain-row-presence-contract.md
+PARENT_GRAIN_ROW_PRESENCE_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=636f2fa960dc8f8b5e58024ca7415a74d0f89a1d
+CURRENT_GRAIN_ROW_PRESENCE_CONTRACT_GIT_BLOB_SHA=5210ef2ebf5abb63e558a49653ab26e3b9a517d1
+GRAIN_ROW_PRESENCE_CONTRACT_EVIDENCE_JSON_SHA256=1e7204dc716dd1e65de4b0248ebe4de01638cb31628b0cb10db8e1fdf5aba833
+GRAIN_ROW_PRESENCE_GRANT_EVIDENCE_JSON_SHA256=bbdc217b10d5b54081321a069b88929ba56973397f23487ee32bfdfd174533c1
+GRAIN_ROW_PRESENCE_R1_EVIDENCE_JSON_SHA256=43771f68f87d550f48b1e0aa9bcaa42304676436fc08df31365c6c5fc0763511
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02a06-2694-7db3-bffe-cbcc33b2c1a2
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+~~~
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTATION_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_CONTRACT_AUTHORIZED=true
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=false
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+MATCH_TABLE_NAMES=()
+MATCH_TABLE_COUNT=0
+AUDIT_TABLE_COUNT=106
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+FROZEN_REPLAY_IDENTITY_TABLE_NAME=s3_incumbent_forecast_replay_identity
+FROZEN_BINDABLE_OBJECT_EXISTS_IN_ALEMBIC=true
+OBJECT_ROW_COUNT_AT_REVIEW=0
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+This document freezes coordinator-reviewed **grain identity-set** authority after grain-row-presence
+R1. Grain-row-presence R1 is landed; frozen table `s3_incumbent_forecast_replay_identity` still
+has 0 rows at review. The repository still has **no** coordinator-reviewed grain identity-set
+artifact. This contract defines what a reviewed identity-set **is**, how it is reviewed, and the
+default fail-closed behavior when none exists — not landing members into the repository today.
+
+This is **not** an implementation grant, **not** loader/provider R1, **not** row INSERT, **not**
+identity-set member landing, **not** versioned forecast artifact creation, **not** catalog
+closeout, **not** catalog default session wiring, and **not** evidence that S3 is complete.
+
+Honest boundary: grain identity-set contract ≠ grant ≠ R1 ≠ loader landing ≠ INSERT ≠ member
+landing ≠ versioned artifact ≠ catalog closeout. Grain-row-presence R1 ≠ identity-set. This
+contract must not invent, enumerate, or exemplify any `forecast_cutoff_at` / `model_id` /
+`forecast_quantile` values. Empty table still has 0 rows. Default `obtain()` without injected
+session remains `()`. Session read of empty table still yields `()`. Without a separately
+reviewed identity-set artifact, any future provider must treat the set as empty and grain-row-presence
+remains 0 rows. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This
+contract does not flip `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`. This contract does not
+close S3. Jumping to identity-set loader implementation now is forbidden.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+CONTRACT_MERGE_DOES_NOT_LAND_IDENTITY_SET_MEMBERS=true
+CONTRACT_MERGE_DOES_NOT_POPULATE_ROWS=true
+CONTRACT_MERGE_DOES_NOT_INVENT_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_INVENT_CUTOFF_MODEL_QUANTILE_LISTS=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_WIRE_SESSION_INTO_CATALOG_DEFAULT=true
+CONTRACT_MERGE_DOES_NOT_ADD_TO_MATCH_TABLE_NAMES=true
+CONTRACT_MERGE_DOES_NOT_ADD_ALEMBIC=true
+CONTRACT_MERGE_DOES_NOT_TOUCH_PYTHON=true
+FORBIDDEN_WRITE_DSN_OR_CONNECTION_STRINGS=true
+FORBIDDEN_SOURCE_002_ROW_LEVEL_READ=true
+FORBIDDEN_H7_FIXTURE=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+### 1.1 Parent grain row presence contract, grant, and R1
+
+~~~text
+PARENT_GRAIN_ROW_PRESENCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-replay-identity-grain-row-presence-contract.md
+PARENT_GRAIN_ROW_PRESENCE_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=636f2fa960dc8f8b5e58024ca7415a74d0f89a1d
+CURRENT_GRAIN_ROW_PRESENCE_CONTRACT_GIT_BLOB_SHA=5210ef2ebf5abb63e558a49653ab26e3b9a517d1
+GRAIN_ROW_PRESENCE_CONTRACT_EVIDENCE_JSON_SHA256=1e7204dc716dd1e65de4b0248ebe4de01638cb31628b0cb10db8e1fdf5aba833
+GRAIN_ROW_PRESENCE_GRANT_EVIDENCE_JSON_SHA256=bbdc217b10d5b54081321a069b88929ba56973397f23487ee32bfdfd174533c1
+GRAIN_ROW_PRESENCE_R1_EVIDENCE_JSON_SHA256=43771f68f87d550f48b1e0aa9bcaa42304676436fc08df31365c6c5fc0763511
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED=true
+INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_PY_BLOB=5e8fe47036766424d1f47308c27f719129cf9c5f
+INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_PY_BLOB=6ab7bc81f513b76f7d412d6b0c44b4f1ce9d21dc
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=fb12e03ba7770518b16efa7495dce0a2f1f68f18
+INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_PY_BLOB=ac840d2e46836427baaec3e46b0d111eda4adf74
+~~~
+
+Parent grain-row-presence contract §§1–9 remain authoritative. Grain-row-presence R1 wired
+fail-closed INSERT-if-reviewed-set-else-0-rows for frozen table `s3_incumbent_forecast_replay_identity`;
+without a reviewed identity-set the table remains 0 rows.
+
+### 1.2 Frozen table and Alembic state
+
+~~~text
+FROZEN_REPLAY_IDENTITY_TABLE_NAME=s3_incumbent_forecast_replay_identity
+ALEMBIC_REVISION=e8b2c4d6f1a3
+ALEMBIC_DOWN_REVISION=a7c3e9f1b2d4
+LANE_C_E4B_MIGRATION_REVISION=a7c3e9f1b2d4
+ALEMBIC_MIGRATION_PATH=backend/alembic/versions/e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py
+ALEMBIC_MIGRATION_BLOB=1e0864ebef1d947d4c9466d71efaa759d44c7ad7
+UNIQUE_ALEMBIC_HEAD=e8b2c4d6f1a3
+OBJECT_ROW_COUNT_AT_REVIEW=0
+AUDIT_TABLE_COUNT=106
+MATCH_TABLE_COUNT=0
+MATCH_TABLE_NAMES=()
+PEP_420_NAMESPACE=true
+PRODUCTION_INIT_PY_FORBIDDEN=true
+~~~
+
+The 106-row Alembic audit remains authoritative. Grain identity-set authority must not add
+`s3_incumbent_forecast_replay_identity` to `MATCH_TABLE_NAMES` or reclassify any audited table.
+
+### 1.3 Inherited S2 binding
+
+~~~text
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_PARTITION_DATES=2025-08-05..2026-01-30
+TRAIN_ROW_COUNT=16224
+VALIDATION_PARTITION_DATES=2026-01-31..2026-03-09
+VALIDATION_ROW_COUNT=8006
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+DEFAULT_MONTH_SCOPE=1-4
+FORBIDDEN_VARIETIES=普鲜,普青,普冻,废果
+FORBIDDEN_FACTORY_BASON=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+CONTENT_IDENTITY_VERSION=v0-3-s3-a2-incumbent-forecast-artifact-content-identity-v1
+ALIGNMENT_PROJECTION_VERSION=v0-3-s3-a2-s2-identity-alignment-projection-v1
+ACCEPTED_S2_IDENTITY_EVIDENCE_IDENTITY_VERSION=v0-3-s3-a2-accepted-s2-identity-alignment-evidence-identity-v1
+REPLAY_SOURCE_GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REPLAY_SOURCE_CARRIES_NO_KG_OR_TONNES=true
+SOURCE_002_ROW_LEVEL_READ=false
+ALIGNMENT_SECTION_6_SHA256=2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8
+~~~
+
+## 2. Why this contract is the unique remaining gap
+
+1. Grain-row-presence R1 is landed:
+   `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED=true`.
+2. Grain-row-presence R1 implemented fail-closed INSERT-if-reviewed-set-else-0-rows only.
+3. Frozen table `s3_incumbent_forecast_replay_identity` still has `OBJECT_ROW_COUNT_AT_REVIEW=0`.
+4. The repository has **no** coordinator-reviewed grain identity-set artifact.
+5. **What** a reviewed identity-set is, **how** it is coordinator-reviewed, and the default
+   fail-closed provider behavior when none exists are not yet frozen as an independent contract.
+6. Grain-row-presence R1 ≠ identity-set. R1 does not define or land identity-set members.
+7. Default without reviewed artifact: provider treats set as empty ⇒ grain-row-presence remains 0 rows.
+8. `SOURCE_002_ROW_LEVEL_READ=false`; identity-set members must not be derived from source-002
+   row-level reads.
+9. This gap is **not**: landing members into repository (later slice); **not** flipping
+   `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`; **not** catalog default session injection;
+   **not** MATCH reclassification; **not** new Alembic; **not** `NO_VERSIONED` flip.
+
+Do not treat grain-row-presence R1 as identity-set definition or member landing.
+
+## 3. Frozen grain identity-set authority
+
+### 3.1 Identity-set member shape
+
+~~~text
+GRAIN_IDENTITY_SET_MEMBER_SHAPE=forecast_cutoff_at,model_id,forecast_quantile
+GRAIN=DISTINCT(forecast_cutoff_at,model_id,forecast_quantile)
+REQUIRED_GRAIN_COLUMNS=forecast_cutoff_at,model_id,forecast_quantile
+FORBIDDEN_PROJECTION_FAMILIES=kg,tonnes,weight,quantity,forecast_value,daily_curve,harvest_business_date,catalog_cell,alignment_identity
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true
+~~~
+
+Identity-set members are **only** grain triples `(forecast_cutoff_at, model_id, forecast_quantile)`.
+No weight, curve, harvest, catalog, or alignment identity columns. This contract must not invent,
+enumerate, or exemplify any member literals.
+
+### 3.2 Review and artifact honesty (fail-closed today)
+
+~~~text
+COORDINATOR_REVIEWED_GRAIN_IDENTITY_SET_ARTIFACT_REQUIRED_FOR_NON_EMPTY_PROVIDER=true
+DEFAULT_WITHOUT_REVIEWED_ARTIFACT_PROVIDER_IS_EMPTY=true
+DEFAULT_WITHOUT_REVIEWED_ARTIFACT_GRAIN_ROW_PRESENCE_REMAINS_ZERO_ROWS=true
+DEFAULT_OBTAIN_WITHOUT_SESSION_REMAINS_EMPTY=true
+SESSION_READ_OF_EMPTY_TABLE_REMAINS_EMPTY=true
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+CONTENT_PRODUCER_ON_EMPTY_OBTAIN_RETURNS_NONE=true
+LATER_IDENTITY_SET_LANDING_DOES_NOT_AUTO_FLIP_NO_VERSIONED=true
+LATER_IDENTITY_SET_LANDING_DOES_NOT_EQUAL_CATALOG_CLOSEOUT=true
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002_ROW_LEVEL_READ=true
+FORBIDDEN_H7_FIXTURE_AS_IDENTITY_SET=true
+~~~
+
+### 3.3 What a later grant/R1 may do (not authorized here)
+
+A later grain identity-set implementation R1 (separate contract on main, separate grant,
+separate 「可以实施」) may:
+
+1. Implement a fail-closed loader/provider that returns a coordinator-reviewed identity-set **only**
+   when a separately reviewed artifact exists (not invented in this contract).
+2. Return **only** grain triple members `forecast_cutoff_at`, `model_id`, `forecast_quantile`.
+3. If no independently reviewed artifact exists at R1 time, fail-closed: provider returns empty set.
+4. Flip `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_IMPLEMENTED`
+   to `true` in the §4.4 live block.
+
+Loader R1 ≠ landing members into repository ≠ INSERT ≠ versioned artifact.
+
+A later R1 must **not**:
+
+- Invent or enumerate identity-set member values in contract, grant, or R1 docs
+- Derive members from source-002 row-level reads
+- Use H7 fixture as identity-set or live evidence
+- Land members into repository or flip `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`
+- Add the table name to `MATCH_TABLE_NAMES` or reopen the 106
+- Flip `NO_VERSIONED` while obtain/catalog semantics remain empty-blocked
+- Wire session into catalog default obtain path
+- Unseal TEST or enable SOURCE_002 row-level read
+- Rewrite alignment contract §6
+- Touch `test_catalog_artifact.py` (`BOUND_FIXTURE` injection path must remain)
+- Claim versioned forecast artifact while catalog blocker remains `NO_VERSIONED`
+
+Landing members, flipping `NO_REVIEWED`, flipping `NO_VERSIONED`, and catalog default session
+wiring are **later** slices beyond loader R1.
+
+This contract does not issue an implementation grant and does not authorize that R1.
+
+## 4. Explicit non-scope (not authorized by this contract)
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+CONTRACT_MERGE_DOES_NOT_LAND_IDENTITY_SET_MEMBERS=true
+CONTRACT_MERGE_DOES_NOT_POPULATE_ROWS=true
+CONTRACT_MERGE_DOES_NOT_INVENT_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_INVENT_CUTOFF_MODEL_QUANTILE_LISTS=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_WIRE_SESSION_INTO_CATALOG_DEFAULT=true
+CONTRACT_MERGE_DOES_NOT_FLIP_GRAIN_ROW_PRESENCE_IMPLEMENTED=true
+CONTRACT_MERGE_DOES_NOT_FLIP_AVAILABLE_OR_VERIFIED=true
+CONTRACT_MERGE_DOES_NOT_UNSEAL_TEST=true
+CONTRACT_MERGE_DOES_NOT_CLOSE_S3=true
+FORBIDDEN_INVENT_SQL_OR_TABLE_NAMES=true
+FORBIDDEN_INVENT_CONNECTION_STRINGS=true
+FORBIDDEN_INVENT_TONNES_OR_KG=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6_AUDIT=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+~~~
+
+## 5. Frozen Python blob audit (byte-identical at contract merge)
+
+~~~text
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_PY_BLOB=5e8fe47036766424d1f47308c27f719129cf9c5f
+INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_PY_BLOB=6ab7bc81f513b76f7d412d6b0c44b4f1ce9d21dc
+INCUMBENT_FORECAST_REPLAY_SOURCE_PY_BLOB=fb12e03ba7770518b16efa7495dce0a2f1f68f18
+INCUMBENT_FORECAST_V0_2_SQL_TABLE_AUTHORITY_PY_BLOB=ac840d2e46836427baaec3e46b0d111eda4adf74
+ALEMBIC_E8B2C4D6F1A3_BLOB=1e0864ebef1d947d4c9466d71efaa759d44c7ad7
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+BOUND_FIXTURE_TEST_INJECTION_PATH_MUST_REMAIN=true
+H7_SUCCESS_FIXTURE_HASH=8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18
+~~~
+
+## 6. Forbidden inputs and substitutions
+
+~~~text
+FORBIDDEN_INVENT_GRAIN_IDENTITY_SET_MEMBERS=true
+FORBIDDEN_INVENT_CUTOFF_MODEL_QUANTILE_EXAMPLES=true
+FORBIDDEN_REPOSITORY_SCAN_FOR_SUBSTITUTES=true
+FORBIDDEN_RAW_SOURCE_002_PRIMARY_READ=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+FORBIDDEN_H7_FIXTURE_AS_IDENTITY_SET=true
+FORBIDDEN_USE_HARVEST_BUSINESS_DATE_AS_FORECAST_CUTOFF=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_WRITE_DSN_OR_CONNECTION_STRINGS=true
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002=true
+~~~
+
+## 7. TEST seal and exclusion policy
+
+~~~text
+TEST_PARTITION_DATES=2026-03-10..2026-04-16
+TEST_ROW_COUNT=0
+TEST_BYTE_COUNT=240
+TEST_REMAINS_SEALED=true
+SOURCE_002_ROW_LEVEL_READ=false
+~~~
+
+## 8. LLM and deterministic service boundary
+
+LLM agents organize explanation and invoke tools. Grain identity-set membership, review
+artifact binding, provider behavior, and tonnes must come from deterministic service logic
+and coordinator-reviewed artifacts only. LLM must not invent tonnes, identity-set member
+values, cutoff lists, model identifiers, quantile literals, or row payloads.
+
+## 9. Registry flip manifest
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CONTRACT_AUTHORIZED=false → true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_IMPLEMENTATION_AUTHORIZED=false (companion introduced; not flipped)
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_IMPLEMENTED=false (companion exists; not flipped)
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block and pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-replay-identity-grain-row-presence-contract.md` §12 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-live-postgres-read-contract.md` §15 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-identity-bindable-name-contract.md` §18 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-identity-persistence-schema-contract.md` §21 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-sql-table-authority-contract.md` §24 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-harvest-source-contract.md` §27 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-producer-adapter-wiring-contract.md` §30 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-v0-2-postgres-obtain-contract.md` §33 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-fail-closed-wiring-contract.md` §36 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-envelope-contract.md` §39 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-live-source-kind-contract.md` §42 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-replay-source-contract.md` §45 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-content-contract.md` §48 pointer
+- `docs/v0-3/s3/s3-accepted-s2-identity-alignment-evidence-contract.md` §50 pointer
+- `docs/v0-3/s3/s3-s2-identity-alignment-contract.md` §56 pointer
+- `docs/v0-3/s3/s3-incumbent-forecast-artifact-contract.md` §57 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-artifact-contract.md` §61 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-catalog-binding-contract.md` §62 pointer
+- `docs/v0-3/s3/s3-evaluation-instance-registry-contract.md` §65 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §73 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live pointer paragraph
+
+Unchanged live flags retained:
+
+~~~text
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_ROW_PRESENCE_IMPLEMENTED=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+OBJECT_ROW_COUNT_AT_REVIEW=0
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+~~~
