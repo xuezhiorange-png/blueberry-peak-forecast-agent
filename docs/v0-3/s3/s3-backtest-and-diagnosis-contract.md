@@ -925,6 +925,18 @@ today. It does not add Alembic, implement live postgres read, populate rows, or 
 `DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED` and
 `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`.
 
+Live `S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTATION_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-persistence-schema-authorization.md`
+(`EVIDENCE_JSON_SHA256=f58fa58c9f3e815c2a987903d1ec4f2ef6818008cba966c57b1b9ccfafdf6e01`). Incumbent forecast replay-identity persistence schema implementation
+authorization records what a later deterministic schema R1 may do when the user again says
+「可以实施」: create the frozen empty table `s3_incumbent_forecast_replay_identity` via one linear
+Alembic revision. This grant does not add Alembic, write SQL, populate rows, or flip `NO_VERSIONED` /
+`NO_BINDABLE_V0_2` / `LIVE_POSTGRES_READ`. Authorization merge does not close S3.
+`DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED` and
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`. A later schema
+R1 flips only `SCHEMA_IMPLEMENTED`, not `LIVE_POSTGRES_READ`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
