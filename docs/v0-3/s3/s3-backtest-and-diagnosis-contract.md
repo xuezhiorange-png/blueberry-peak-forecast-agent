@@ -915,6 +915,16 @@ empty bindable-name set in memory; default `obtain()` remains `()` without postg
 not flip live postgres read or flip `NO_VERSIONED` / `NO_LIVE_S2` / `AVAILABLE` / `VERIFIED`.
 Historical grant and contract pointer snapshots may remain `false`.
 
+
+Live `S3_A2_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_CONTRACT_AUTHORIZED` is maintained in
+`docs/v0-3/development-plan.md` §4.4 live state block and
+`docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-replay-identity-persistence-schema-contract.md`
+(`EVIDENCE_JSON_SHA256=b0c2553f3a561bf8c46b39f015a604f31f9c6a9c5d682a060ad5eff0dfbfb806`). This contract
+freezes future object `s3_incumbent_forecast_replay_identity`; the object does not exist in Alembic
+today. It does not add Alembic, implement live postgres read, populate rows, or flip `NO_VERSIONED`.
+`DETERMINISTIC_INCUMBENT_FORECAST_REPLAY_IDENTITY_PERSISTENCE_SCHEMA_IMPLEMENTED` and
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_LIVE_POSTGRES_READ_IMPLEMENTED` remain `false`.
+
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
