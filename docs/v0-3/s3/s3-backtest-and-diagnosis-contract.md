@@ -1197,6 +1197,9 @@ contract ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members 
 remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract freeze does not acquire a candidate, land
 members, or flip `NO_REVIEWED`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_ACQUISITION_CONTRACT_AUTHORIZED=false`.
 
+
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTATION_AUTHORIZED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-acquisition-authorization.md` (`EVIDENCE_JSON_SHA256=31253fb3b4b18025728557b7060ca5ebb8363dc80bc274fe64dc3bab5ff43dea`). Acquisition contract is on main (#378). No lawful populated candidate source exists today. Candidate-source R1 evidence is not an acquisition package. Acquisition contract ≠ this grant ≠ acquisition R1 ≠ candidate-source WHERE contract ≠ candidate-source R1. `CANDIDATE_SOURCE_IMPLEMENTED=true` ≠ lawful populated source exists ≠ acquisition performed. This grant does not acquire a candidate, land members, or flip `NO_REVIEWED`. `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED` remains `false`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTATION_AUTHORIZED=false`.
 ## 12. Phase-entry effect on development plan
 
 P0 phase entry sets `V0_3_S3_IMPLEMENTATION_AUTHORIZED=true` in
