@@ -1,0 +1,226 @@
+# V0.3-S3-D error attribution execution R1
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_D_ATTRIBUTION_EXECUTION_R1
+ARTIFACT_VERSION=s3-d-error-attribution-execution-r1-v1
+TASK_ID=V03_S3_D_ATTRIBUTION_EXECUTION_R1
+TASK_CLASS=IMPLEMENTATION
+AUTHORIZATION_SCOPE=S3_D_ATTRIBUTION_EXECUTION_IMPLEMENTATION_ONLY
+PARALLEL_LANE=S3-D
+SLICE=V0.3-S3
+ENGLISH_ID=ERROR_ATTRIBUTION_MATRIX_EXECUTION
+USER_GATE=可以实施
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02307-c032-7da6-8a02-00d9b3518794
+BASE_REF=origin/main
+BASE_MAIN_SHA=65d4fb4e4d99e1bcab3b02030e078c70cb492b96
+BASE_MAIN_TREE_SHA=60f62637ff7ca692795af1188b3bde587f95b399
+PARENT_GRANT_PR=395
+PARENT_GRANT_MERGE=65d4fb4e4d99e1bcab3b02030e078c70cb492b96
+GRANT_WORKPAPER=docs/v0-3/s3/workpapers/s3-d-error-attribution-execution-authorization.md
+GRANT_WORKPAPER_GIT_BLOB_SHA=5403b6582e19c5a140720bf9e1cfcf24d276e398
+GRANT_EVIDENCE_JSON_SHA256=5076168044f30e20ffa7d74c07b3808d88d3036c350029d05068dbc6da7a7590
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-d-error-attribution-execution-r1.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-d-error-attribution-execution-r1.json
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+IMPLEMENTATION_R1=true
+EXECUTION_CLAIM_R1_IS_DOCS_ONLY=true
+CHECKLIST_EXECUTED=true
+~~~
+
+This workpaper records docs-only execution R1 per grant (#395) and frozen
+`docs/v0-3/s3/workpapers/s3-d-error-attribution-execution-authorization.md` §3.1
+(blob `5403b6582e19c5a140720bf9e1cfcf24d276e398`). Git blob bindings were
+re-traced on `origin/main` at base `65d4fb4`. This R1 does not implement an
+attribution runner, execute attribution, read SOURCE_002 row-level, unseal TEST,
+change model/parameters, rewrite C0 §5, or flip completeness / `NO_VERSIONED` /
+`ERROR_DIAGNOSIS` / `S3_D_AUTHORIZED` / S3-B coverage / C0 execution STATUS.
+
+~~~text
+S3_D_ERROR_ATTRIBUTION_CONTRACT_AUTHORIZED=true
+S3_D_ATTRIBUTION_EXECUTION_AUTHORIZED=true
+CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+S3_C0_PIT_BACKTEST_CONTRACT_AUTHORIZED=true
+S3_C_BACKTEST_EXECUTION_AUTHORIZED=true
+CURRENT_S3_C_BACKTEST_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+CURRENT_S3_A1_WINDOW_ANCHOR_CLAIM_STATUS=VERIFIED_FREEZE_STILL_BOUND
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_LEGAL_BACKTEST_PACKAGE=true
+NO_LEGAL_ATTRIBUTION_MATRIX_PACKAGE=true
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+~~~
+
+`S3_D_ATTRIBUTION_EXECUTION_AUTHORIZED=true` ≠ runner implemented.
+`CHECKLIST_EXECUTED=true` ≠ attribution executed.
+`CONTRACT_STILL_BOUND_BLOCKED` ≠ `EXECUTED` ≠ `PASS` ≠ `VERIFIED_TRUE` ≠ legal
+attribution matrix package produced. S3-D file fence `S3_D_ATTRIBUTION_EXECUTION_AUTHORIZED=false`
+remains historical freeze snapshot; live authority is development-plan §4.4. C0 §5
+`PENDING_NOT_MERGED` remains expected historical freeze snapshot (not rewritten).
+C0 `CURRENT_S3_C_BACKTEST_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED` is not
+flipped by this slice. This evidence JSON is not an attribution matrix package,
+backtest package, or versioned forecast artifact. Catalog first blocker remains
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
+## 1. Frozen §3.1 execution summary
+
+Authority: `docs/v0-3/s3/workpapers/s3-d-error-attribution-execution-authorization.md`
+§3.1.
+
+### Step 1 — Git blob re-bind on `origin/main` at `65d4fb4`
+
+~~~text
+docs/v0-3/development-plan.md=d065c2aaf3836e24f3661009cece829529563bbf
+docs/v0-3/s3/s3-daily-rowset-amendment.md=ab32bd0c1dc72452aa2717500018925bc0c58ba9
+docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md=0513d8892abd5876a4e456c33352590870d9d4bd
+docs/v0-3/s3/s3-error-attribution-contract.md=3f103b77a47959014721716938eb1ac8d24c7dae
+docs/v0-3/s3/s3-pit-backtest-execution-contract.md=e59f8a2d255df392116c65d535ae22ae3854ae98
+docs/v0-3/s3/s3-quantile-semantics-contract.md=43c07b3ca032e39b339281acdba4e9ad8219307b
+docs/v0-3/s3/workpapers/s3-d-error-attribution-execution-authorization.md=5403b6582e19c5a140720bf9e1cfcf24d276e398
+docs/v0-3/s3/evidence/s3-d-error-attribution-execution-authorization.json=cdbab3c899ef32679b82ba9200f1cc4aa0568e95
+docs/v0-3/s3/workpapers/s3-d-error-attribution-contract-live-authority.md=2a4533738aefede713fffa4f7920620aea252430
+docs/v0-3/s3/workpapers/s3-d-error-attribution-contract.md=e4d872c2efb398ec24a4c2c625232902c8ffec9d
+docs/v0-3/s3/evidence/s3-d-error-attribution-contract.json=a0767eb4dae982f0fbfc937b492c7d15ae0274e9
+docs/v0-3/s3/workpapers/s3-a1-window-anchor.md=3db9c30ccae9ac20805cb3021caa989ebbc7f5e2
+REBIND_COMPLETE=true
+~~~
+
+C0 contract recorded only; not edited (`FORBIDDEN_EDIT_C0_CONTRACT=true`).
+
+### Step 2 — S3-D freeze workpaper and evidence unchanged
+
+~~~text
+S3_D_FREEZE_WORKPAPER_GIT_BLOB_SHA=e4d872c2efb398ec24a4c2c625232902c8ffec9d
+S3_D_FREEZE_EVIDENCE_GIT_BLOB_SHA=a0767eb4dae982f0fbfc937b492c7d15ae0274e9
+S3_D_FREEZE_EVIDENCE_JSON_SHA256=1b9524cc80d1dfc5a5f6ef2fe174007c929f42ef6a7b313aa0f09d95eaad692a
+FREEZE_WORKPAPER_BYTE_IDENTICAL=true
+FREEZE_EVIDENCE_SHA256_UNCHANGED=true
+~~~
+
+### Step 3 — S3-D contract file top fence unchanged
+
+~~~text
+S3_D_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=2723772fe11e623f22acb3b3bd1c17259c7ef0aa
+CURRENT_S3_D_CONTRACT_GIT_BLOB_SHA=3f103b77a47959014721716938eb1ac8d24c7dae
+S3_D_ATTRIBUTION_EXECUTION_AUTHORIZED=false
+IDENTITY_BASE_MAIN_SHA=2b0ea55872542501fff246c9d87c6fda7ae8802f
+FIRST_40_LINES_BYTE_IDENTICAL_TO_FREEZE_BLOB_2723772f=true
+FENCE_NOT_REWRITTEN=true
+~~~
+
+### Step 4 — S3-D §12 / §13 historical pointers not refreshed
+
+~~~text
+S3_D_SECTION_12_CURRENT_S3_D_CONTRACT_GIT_BLOB_SHA=2723772fe11e623f22acb3b3bd1c17259c7ef0aa
+S3_D_SECTION_12_BASE_MAIN_SHA=6a6e8860f9cbddd570b3dcb51b1f4f2f89d599a0
+S3_D_SECTION_12_CURRENT_DEVELOPMENT_PLAN_GIT_BLOB_SHA_AT_BASE=bcaef5eaa3efd86858d90d4f0d8e53bccc72306b
+S3_D_SECTION_13_CURRENT_S3_D_CONTRACT_GIT_BLOB_SHA=a8a5196b30413e64879112b594e4dfff6c00623e
+S3_D_SECTION_13_BASE_MAIN_SHA=55508ec6cac1479b2d3979c6ca62927add8ce780
+S3_D_SECTION_13_CURRENT_DEVELOPMENT_PLAN_GIT_BLOB_SHA_AT_BASE=044ed71800b695c4fd8ee7ed09a0efbddaba455f
+S3_D_SECTION_13_STATUS_SNAPSHOT=NOT_PERFORMED
+HISTORICAL_POINTERS_NOT_REFRESHED=true
+~~~
+
+### Step 5 — Live §4.4 contract and execution authorization confirmed
+
+~~~text
+S3_D_ERROR_ATTRIBUTION_CONTRACT_AUTHORIZED=true
+S3_D_ATTRIBUTION_EXECUTION_AUTHORIZED=true
+LIVE_FLAGS_CONFIRMED_AT_BASE=true
+~~~
+
+### Step 6 — C0 §5 pending snapshot unchanged
+
+~~~text
+C0_SECTION_5_TITLE=Evaluation window anchor (S3-A1 pending)
+S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED
+S3_C0_MUST_NOT_INVENT_ALTERNATE_WINDOW_ANCHOR=true
+PENDING_NOT_MERGED_IS_EXPECTED_HISTORICAL_SNAPSHOT=true
+C0_CONTRACT_NOT_EDITED=true
+SECTION_5_NOT_REWRITTEN=true
+~~~
+
+### Step 7 — Blockers remain
+
+~~~text
+CURRENT_S3_C_BACKTEST_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+NO_LEGAL_BACKTEST_PACKAGE=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+CURRENT_P50_SEMANTICS_STATUS=VERIFICATION_FAILED
+CURRENT_P80_SEMANTICS_STATUS=VERIFICATION_FAILED
+CURRENT_P90_SEMANTICS_STATUS=VERIFICATION_FAILED
+QUANTILE_CALIBRATION_DIMENSION_COMPUTABLE=false
+S3_B_COVERAGE_EXECUTION_AUTHORIZED=false
+NO_LEGAL_ATTRIBUTION_MATRIX_PACKAGE=true
+BLOCKERS_REMAIN=true
+~~~
+
+### Step 8 — Forbidden actions not performed
+
+~~~text
+RUNNER_NOT_IMPLEMENTED=true
+ATTRIBUTION_NOT_EXECUTED=true
+SOURCE_002_ROW_LEVEL_NOT_READ=true
+TEST_NOT_UNSEALED=true
+MODEL_NOT_CHANGED=true
+PARAMETERS_NOT_CHANGED=true
+NO_VERSIONED_NOT_FLIPPED=true
+COMPLETENESS_NOT_FLIPPED=true
+ERROR_DIAGNOSIS_NOT_FLIPPED=true
+S3_D_AUTHORIZED_NOT_FLIPPED=true
+COVERAGE_NOT_FLIPPED=true
+C0_STATUS_NOT_FLIPPED=true
+C0_SECTION_5_NOT_REWRITTEN=true
+P0_3DAY_VS_7DAY_NOT_ADJUDICATED=true
+~~~
+
+### Step 9 — Live STATUS disposition
+
+~~~text
+CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+LEGAL_STATUS_VALUES_ONLY=true
+FORBIDDEN_STATUS_VALUES=EXECUTED,SUCCESS,PASS,VERIFIED_TRUE,ERROR_DIAGNOSIS=true
+DISPOSITION_REASON=freeze_still_bound_prerequisites_not_met_no_legal_backtest_package
+~~~
+
+## 2. Unique flip
+
+~~~text
+CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=NOT_PERFORMED → CONTRACT_STILL_BOUND_BLOCKED
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block
+- `docs/v0-3/development-plan.md` R1 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §102 pointer
+- `docs/v0-3/s3/s3-error-attribution-contract.md` §14 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live paragraph
+
+Historical grant pointer (#395) snapshots retain `CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=NOT_PERFORMED`.
+
+## 3. Evidence digest
+
+~~~text
+EVIDENCE_JSON_SHA256=7bc94666a5087cace5c6f6ff6c735b62fa552cb747d76f7d4b5d6e7dc6712119
+~~~
+
+## 4. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+IMPLEMENTATION_MERGE_DOES_NOT_IMPLEMENT_RUNNER=true
+IMPLEMENTATION_MERGE_DOES_NOT_EXECUTE_ATTRIBUTION=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
