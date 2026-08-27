@@ -1,0 +1,217 @@
+{
+  "artifact_id": "V0_3_S3_METRIC_EXECUTION_AUTHORIZATION",
+  "artifact_version": "s3-metric-execution-authorization-v1",
+  "task_id": "V03_S3_METRIC_EXECUTION_AUTHORIZATION_R1",
+  "task_class": "DOCS_ONLY_AUTHORIZATION_ISSUANCE",
+  "authorization_scope": "S3_METRIC_EXECUTION_GRANT_ONLY",
+  "parallel_lane": "S3-METRIC",
+  "slice": "V0.3-S3",
+  "english_id": "S3_METRIC_EXECUTION",
+  "user_gate": "可以实施",
+  "reviewer_role": "COORDINATOR",
+  "coordinator_run": "bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "recorded_at": "2026-08-27T14:13:39Z",
+  "no_step_implies_the_next": true,
+  "grant_only": true,
+  "this_pr_is_not_r1": true,
+  "this_pr_is_not_a_new_contract": true,
+  "this_draft_is_not_ready": true,
+  "execution_claim_r1_is_docs_only": true,
+  "authorization": {
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "s3_metric_execution_contract_authorized": true,
+    "s3_metric_execution_authorized": true,
+    "current_s3_metric_execution_status": "NOT_PERFORMED"
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-metric-execution-authorization.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-metric-execution-authorization.json",
+  "base_main_sha": "1a751e6a59c60b9c41c578f61773bdf236b63ca3",
+  "base_main_tree_sha": "d0c4a6eac2ee411695710e1a683e07789da8f786",
+  "audited_repository_sha": "1a751e6a59c60b9c41c578f61773bdf236b63ca3",
+  "audited_repository_tree_sha": "d0c4a6eac2ee411695710e1a683e07789da8f786",
+  "audited_ref": "origin/main",
+  "upstream_bindings": {
+    "parent_live_authority_pr": 398,
+    "parent_live_authority_merge": "1a751e6a59c60b9c41c578f61773bdf236b63ca3",
+    "live_authority_evidence_json_sha256": "d599906aef3560893ee56367d480bac4979b4de39c62ed4688604a7cc6eca5b0",
+    "live_authority_workpaper": "docs/v0-3/s3/workpapers/s3-metric-execution-contract-live-authority.md",
+    "live_authority_workpaper_git_blob_sha": "9aa92c3fed0e57395f8c7e27e2b4ff084320df7e",
+    "live_authority_evidence_git_blob_sha": "4755d67468cf1bb88b5d6afef403a0dba49e7f4b",
+    "parent_s3_metric_pr": 397,
+    "parent_s3_metric_merge": "29aba4886ba20bd7d38e52e57527754ba8b65081",
+    "s3_metric_contract_path": "docs/v0-3/s3/s3-metric-execution-contract.md",
+    "s3_metric_contract_git_blob_sha_at_freeze": "1197a32779dee76cb5f43ce86f761389501b501b",
+    "current_s3_metric_contract_git_blob_sha": "223d363f4b9113995747fb8a4e6c816ae1495b1a",
+    "s3_metric_freeze_workpaper": "docs/v0-3/s3/workpapers/s3-metric-execution-contract.md",
+    "s3_metric_freeze_workpaper_git_blob_sha": "e81f0456b964e677e58576eaf99d8d5f5dbad426",
+    "s3_metric_freeze_evidence_json": "docs/v0-3/s3/evidence/s3-metric-execution-contract.json",
+    "s3_metric_freeze_evidence_git_blob_sha": "7d8d13e4e139fd2130c53ec5699e9b3c67dc7452",
+    "s3_metric_freeze_evidence_json_sha256": "6c8f7f2ea43b7aee0a7531035e12370dc67ea05dacd79292b6ead775929be6db",
+    "s3_d_r1_evidence_json_sha256": "7bc94666a5087cace5c6f6ff6c735b62fa552cb747d76f7d4b5d6e7dc6712119",
+    "c0_r1_evidence_json_sha256": "632211d4c0afd3a4002dcf2bb2793fc7992663b5b0df51ef32b08e99ac70d7e2",
+    "current_s3_c0_contract_git_blob_sha": "e59f8a2d255df392116c65d535ae22ae3854ae98",
+    "current_s3_d_contract_git_blob_sha": "0819f429dcaf390a97a51a674ca96405eb8ebab7",
+    "current_s3_c_backtest_execution_status": "CONTRACT_STILL_BOUND_BLOCKED",
+    "current_s3_d_attribution_execution_status": "CONTRACT_STILL_BOUND_BLOCKED",
+    "a1_workpaper_git_blob_sha": "3db9c30ccae9ac20805cb3021caa989ebbc7f5e2",
+    "current_s3_a_amendment_git_blob_sha": "729e6c6ffdb1dac4ca8c03c16ac99675600b18bb",
+    "p0_contract_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+    "current_p0_contract_git_blob_sha": "26bd92650e701a8ae2c9b3b9c1d5086067b797f9",
+    "p0_evidence_json_sha256": "580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c",
+    "current_s3_b_contract_git_blob_sha": "43c07b3ca032e39b339281acdba4e9ad8219307b",
+    "metric_contract_authority_base_sha": "b873dd63fc0d5b6375f94674abbd24a94d915f3c",
+    "current_v0_2_metric_contract_git_blob_sha": "53d31029177a8d44bae58ec8e1786910f9af407f",
+    "current_development_plan_git_blob_sha_at_base": "9a98b80a905174b74500ea34336528187b7a1992",
+    "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
+  },
+  "frozen_metric_execution_procedure": {
+    "execution_not_authorized_in_this_grant": true,
+    "later_r1_requires_separate_user_gate_可以实施": true,
+    "unique_remaining_gap": "_frozen_metric_execution_checklist_not_yet_executed",
+    "steps": [
+      {
+        "step": 1,
+        "description": "Re-bind each referenced git blob SHA on then-current origin/main",
+        "result": "PASS"
+      },
+      {
+        "step": 2,
+        "description": "Confirm S3 metric freeze workpaper e81f0456… and evidence SHA256 6c8f7f2e…",
+        "result": "PASS"
+      },
+      {
+        "step": 3,
+        "description": "Confirm S3 metric contract file top fence still has S3_METRIC_EXECUTION_AUTHORIZED=false",
+        "result": "PASS"
+      },
+      {
+        "step": 4,
+        "description": "Confirm S3 metric top identity BASE_MAIN_SHA still e6f1fa41…; §12 historical pointer not refreshed",
+        "result": "PASS"
+      },
+      {
+        "step": 5,
+        "description": "Confirm live §4.4 S3_METRIC_EXECUTION_CONTRACT_AUTHORIZED=true and S3_METRIC_EXECUTION_AUTHORIZED=true",
+        "result": "PASS"
+      },
+      {
+        "step": 6,
+        "description": "Confirm C0 §5 PENDING_NOT_MERGED freeze snapshot unchanged",
+        "result": "PASS"
+      },
+      {
+        "step": 7,
+        "description": "Confirm blockers: C0/S3-D CONTRACT_STILL_BOUND_BLOCKED, no legal backtest package, completeness false, NO_VERSIONED true, TEST sealed, S3-B VERIFICATION_FAILED",
+        "result": "PASS"
+      },
+      {
+        "step": 8,
+        "description": "Must not implement runner, execute metrics, invent data, read SOURCE_002 row-level, unseal TEST, mutate V0.2 formulas, accept S1, flip STATUS",
+        "result": "PASS"
+      },
+      {
+        "step": 9,
+        "description": "Write CURRENT_S3_METRIC_EXECUTION_STATUS: CONTRACT_STILL_BOUND_BLOCKED | EXECUTION_FAILED | NOT_PERFORMED only",
+        "result": "PASS"
+      }
+    ],
+    "legal_status_values": [
+      "CONTRACT_STILL_BOUND_BLOCKED",
+      "EXECUTION_FAILED",
+      "NOT_PERFORMED"
+    ],
+    "forbidden_status_values": [
+      "EXECUTED",
+      "SUCCESS",
+      "PASS",
+      "VERIFIED_TRUE"
+    ],
+    "grant_leaves_status_not_performed": true
+  },
+  "grant_authority": {
+    "grant_merge_does_not_execute_checklist": true,
+    "grant_merge_does_not_execute_metrics": true,
+    "grant_merge_does_not_implement_runner": true,
+    "grant_merge_does_not_touch_python": true,
+    "grant_merge_does_not_accept_s1": true,
+    "grant_merge_does_not_mutate_v0_2_formulas": true,
+    "grant_merge_does_not_authorize_s4": true,
+    "grant_merge_does_not_flip_status_away_from_not_performed": true,
+    "forbidden_treat_this_evidence_as_metric_results_package": true,
+    "forbidden_treat_this_evidence_as_backtest_package": true,
+    "forbidden_treat_this_evidence_as_attribution_matrix_package": true,
+    "forbidden_rewrite_c0_section_5_pending_snapshot": true,
+    "forbidden_rewrite_metric_freeze_fence": true,
+    "forbidden_rewrite_historical_pointers": true,
+    "forbidden_edit_c0_contract": true
+  },
+  "flags": {
+    "s3_metric_execution_contract_authorized": true,
+    "s3_metric_execution_authorized": true,
+    "current_s3_metric_execution_status": "NOT_PERFORMED",
+    "s3_c0_pit_backtest_contract_authorized": true,
+    "s3_c_backtest_execution_authorized": true,
+    "current_s3_c_backtest_execution_status": "CONTRACT_STILL_BOUND_BLOCKED",
+    "s3_d_error_attribution_contract_authorized": true,
+    "s3_d_attribution_execution_authorized": true,
+    "current_s3_d_attribution_execution_status": "CONTRACT_STILL_BOUND_BLOCKED",
+    "s3_a1_window_anchor_contract_authorized": true,
+    "s3_a1_window_anchor_claim_authorized": true,
+    "current_s3_a1_window_anchor_claim_status": "VERIFIED_FREEZE_STILL_BOUND",
+    "current_s3_daily_rowset_completeness_verified": false,
+    "no_versioned_incumbent_forecast_artifact_in_repository": true,
+    "no_legal_backtest_package": true,
+    "s3_b_coverage_execution_authorized": false,
+    "current_p50_semantics_status": "VERIFICATION_FAILED",
+    "current_p80_semantics_status": "VERIFICATION_FAILED",
+    "current_p90_semantics_status": "VERIFICATION_FAILED",
+    "quantile_calibration_metrics_computable": false,
+    "v0_3_metric_contract_status": "PENDING_S1_ACCEPTANCE",
+    "v0_3_s4_authorized": false,
+    "source_002_row_level_read": false,
+    "test_remains_sealed": true,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "s3_production_code_mutation_authorized": false,
+    "s3_test_code_mutation_authorized": false
+  },
+  "honesty": {
+    "s3_metric_execution_authorized_true_does_not_mean_runner_implemented": true,
+    "s3_metric_execution_authorized_true_does_not_mean_metrics_computed": true,
+    "s3_metric_execution_authorized_true_does_not_mean_executed": true,
+    "s3_metric_execution_authorized_true_does_not_mean_completeness_verified": true,
+    "s3_metric_execution_authorized_true_does_not_mean_no_versioned_flipped": true,
+    "s3_metric_execution_authorized_true_does_not_mean_s3_b_coverage_authorized": true,
+    "s3_metric_execution_authorized_true_does_not_mean_s1_accepted": true,
+    "s3_metric_execution_authorized_true_does_not_mean_formula_changed": true,
+    "s3_metric_execution_authorized_true_does_not_mean_3_vs_7_resolved": true,
+    "s3_metric_execution_authorized_true_does_not_mean_test_unsealed": true,
+    "s3_metric_execution_authorized_true_does_not_mean_s4_authorized": true,
+    "s3_metric_execution_authorized_true_does_not_flip_c0_status": true,
+    "s3_metric_execution_authorized_true_does_not_flip_s3_d_status": true,
+    "s3_metric_freeze_fence_execution_false_remains_historical_snapshot": true,
+    "live_authority_is_development_plan_section_4_4": true,
+    "current_s3_metric_execution_status_not_performed_not_checklist_executed": true,
+    "forbidden_treat_this_evidence_as_metric_results_package": true,
+    "forbidden_treat_this_evidence_as_backtest_package": true,
+    "forbidden_treat_this_evidence_as_attribution_matrix": true,
+    "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+    "do_not_invent_hashes_or_tonnes": true
+  },
+  "unique_flip": {
+    "field": "S3_METRIC_EXECUTION_AUTHORIZED",
+    "before": "absent",
+    "after": true,
+    "companion_insert": "CURRENT_S3_METRIC_EXECUTION_STATUS=NOT_PERFORMED",
+    "locations": [
+      "docs/v0-3/development-plan.md §4.4 live state block",
+      "docs/v0-3/development-plan.md execution authorization pointer",
+      "docs/v0-3/s3/s3-daily-rowset-amendment.md §104 pointer",
+      "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md §11 live paragraph",
+      "docs/v0-3/s3/s3-metric-execution-contract.md §13 pointer"
+    ]
+  },
+  "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+  "evidence_json_sha256": "86114249be6418924b042f66a09623ef6aa2eb124238068ab6260c29a3c54f94"
+}
