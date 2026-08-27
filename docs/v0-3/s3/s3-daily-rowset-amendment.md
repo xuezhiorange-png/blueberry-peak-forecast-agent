@@ -3565,3 +3565,56 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 
 Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_IMPLEMENTED` authority follows `docs/v0-3/development-plan.md` §4.4 live state block; this pointer does not rewrite parent contract freeze bodies or historical pointer snapshots. Fail-closed candidate-source R1: no lawful populated candidate source exists at R1 time; do not invent source/members; do not acquire a candidate; do not land members; do not flip `NO_REVIEWED`. Candidate-source contract ≠ grant ≠ this fail-closed R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `CANDIDATE_SOURCE_IMPLEMENTED=true` after this R1 does NOT mean a lawful populated candidate source exists. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default `obtain()` without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_IMPLEMENTED=false`.
 
+
+## 85. Incumbent forecast V0.2 replay-identity grain identity-set candidate-source acquisition contract pointer
+
+~~~text
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-acquisition-contract.md
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_CONTRACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-acquisition.md
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_CONTRACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-acquisition.json
+EVIDENCE_JSON_SHA256=5b01beeb76a3d8735872a89147620bc19090793c9dea1867c721ad8ae1f74d27
+PARENT_CANDIDATE_SOURCE_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=202aeb5198e61e504cab053ad781437663b8ea06
+CANDIDATE_SOURCE_CONTRACT_EVIDENCE_JSON_SHA256=7586088c647fbcd3bfb0d7158aa13ae2b56cf2a0a59d0fc3311971010e21cfb5
+CANDIDATE_SOURCE_GRANT_EVIDENCE_JSON_SHA256=1e8ca33ea4a1502983311c360d0ac7fecdfa05f861d9346cecb5e39f17a58378
+CANDIDATE_SOURCE_R1_EVIDENCE_JSON_SHA256=6cc3c4dd7276e3f82bd19957e806ac130e8538ef70168e0d2395b61252cb343f
+INDEPENDENT_REVIEW_R1_EVIDENCE_JSON_SHA256=c34afe4056a67ac65b086ae213a9b2d1f6e0fcff4911fd8cc1daeb4a86b87ceb
+LANDING_R1_EVIDENCE_JSON_SHA256=49ffb1cd4cc664bd6603908e7435c1576d81a21014539e7d95dcaf58abd865ec
+CANDIDATE_SOURCE_ACQUISITION_CONTRACT_AUTHORIZED=true
+CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTATION_AUTHORIZED=false
+CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED=false
+CANDIDATE_SOURCE_CONTRACT_AUTHORIZED=true
+CANDIDATE_SOURCE_IMPLEMENTATION_AUTHORIZED=true
+CANDIDATE_SOURCE_IMPLEMENTED=true
+INDEPENDENT_REVIEW_IMPLEMENTED=true
+LANDING_IMPLEMENTED=true
+GRAIN_IDENTITY_SET_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_INDEPENDENT_REVIEW_IMPLEMENTED=true
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_LANDING_IMPLEMENTED=true
+NO_BINDABLE_V0_2_SQL_TABLE_NAME_IN_REPOSITORY=false
+DEFAULT_OBTAIN_REMAINS_FAIL_CLOSED_EMPTY=true
+FROZEN_REPLAY_IDENTITY_TABLE_NAME=s3_incumbent_forecast_replay_identity
+OBJECT_ROW_COUNT_AT_REVIEW=0
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+AUDIT_TABLE_COUNT=106
+MATCH_TABLE_COUNT=0
+MATCH_TABLE_NAMES=()
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
+FAIL_CLOSED_NO_LAWFUL_POPULATED_CANDIDATE_SOURCE_TODAY=true
+CANDIDATE_SOURCE_IMPLEMENTED_TRUE_DOES_NOT_MEAN_ACQUISITION_PERFORMED=true
+FORBIDDEN_TREAT_CANDIDATE_SOURCE_R1_AS_ACQUISITION=true
+FORBIDDEN_TREAT_CANDIDATE_SOURCE_R1_EVIDENCE_AS_POPULATED_SOURCE_PACKAGE=true
+CONTRACT_MERGE_DOES_NOT_ACQUIRE_CANDIDATE=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+~~~
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_CONTRACT_AUTHORIZED` authority follows `docs/v0-3/development-plan.md` §4.4 live state block; this pointer does not rewrite parent contract freeze bodies or historical pointer snapshots. Candidate-source R1 is on main and fail-closed. No lawful populated candidate source exists today. Candidate-source R1 evidence is not an acquisition package. Acquisition contract ≠ grant ≠ acquisition R1 ≠ candidate-source WHERE contract ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `CANDIDATE_SOURCE_IMPLEMENTED=true` ≠ lawful populated source exists ≠ acquisition performed. `INDEPENDENT_REVIEW_IMPLEMENTED=true` ≠ independent review performed. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default `obtain()` without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract does not acquire a candidate, land members, or flip `NO_REVIEWED`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_ACQUISITION_CONTRACT_AUTHORIZED=false`.
+
