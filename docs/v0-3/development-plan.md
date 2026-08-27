@@ -515,6 +515,9 @@ DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDA
 S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_CONTRACT_AUTHORIZED=true
 S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTATION_AUTHORIZED=true
 DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTED=false
 NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
 NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
 NO_BINDABLE_CATALOG_IN_REPOSITORY=true
@@ -3427,6 +3430,48 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ```
 
 Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-acquisition-r1.md` (`EVIDENCE_JSON_SHA256=2fa6a2b4568bb189d125095c29980a02579372b8eec8e17ae6470b0d708c0677`). No lawful populated candidate source exists at R1 time; this fail-closed R1 does not invent source/members, does not acquire a candidate, does not land members, and does not flip `NO_REVIEWED`. Acquisition contract ≠ grant ≠ this fail-closed R1 ≠ candidate-source WHERE contract ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `CANDIDATE_SOURCE_IMPLEMENTED=true` ≠ lawful populated source exists. Candidate-source R1 evidence is not an acquisition package. This R1 evidence JSON is not a populated-source acquisition package. `ACQUISITION_IMPLEMENTED=true` after this R1 does NOT mean acquisition performed, does NOT mean a lawful populated source exists, does NOT mean members landed, and does NOT mean `NO_REVIEWED` flipped. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED=false`.
+
+
+#### Incumbent forecast V0.2 replay-identity grain identity-set candidate-source populated-origin contract pointer
+
+```text
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin-contract.md
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin.md
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin.json
+EVIDENCE_JSON_SHA256=5610634d659790380881fa12adf6d955bd8d3f6c497879f0d70b32f32ee24e38
+PARENT_ACQUISITION_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-acquisition-contract.md
+PARENT_ACQUISITION_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=fbef3a7686f32bda7d9c24a90b7f65629bf81921
+CURRENT_ACQUISITION_CONTRACT_GIT_BLOB_SHA=33ea663bd786e89051f9afc44022e0f5293643da
+ACQUISITION_CONTRACT_EVIDENCE_JSON_SHA256=5b01beeb76a3d8735872a89147620bc19090793c9dea1867c721ad8ae1f74d27
+ACQUISITION_GRANT_EVIDENCE_JSON_SHA256=31253fb3b4b18025728557b7060ca5ebb8363dc80bc274fe64dc3bab5ff43dea
+ACQUISITION_R1_EVIDENCE_JSON_SHA256=2fa6a2b4568bb189d125095c29980a02579372b8eec8e17ae6470b0d708c0677
+CANDIDATE_SOURCE_CONTRACT_EVIDENCE_JSON_SHA256=7586088c647fbcd3bfb0d7158aa13ae2b56cf2a0a59d0fc3311971010e21cfb5
+CANDIDATE_SOURCE_GRANT_EVIDENCE_JSON_SHA256=1e8ca33ea4a1502983311c360d0ac7fecdfa05f861d9346cecb5e39f17a58378
+CANDIDATE_SOURCE_R1_EVIDENCE_JSON_SHA256=6cc3c4dd7276e3f82bd19957e806ac130e8538ef70168e0d2395b61252cb343f
+INDEPENDENT_REVIEW_R1_EVIDENCE_JSON_SHA256=c34afe4056a67ac65b086ae213a9b2d1f6e0fcff4911fd8cc1daeb4a86b87ceb
+LANDING_R1_EVIDENCE_JSON_SHA256=49ffb1cd4cc664bd6603908e7435c1576d81a21014539e7d95dcaf58abd865ec
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_AUTHORIZED=true
+S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTED=false
+DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_ACQUISITION_IMPLEMENTED=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+OBJECT_ROW_COUNT_AT_REVIEW=0
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY=true
+FAIL_CLOSED_NO_LAWFUL_POPULATED_CANDIDATE_SOURCE_TODAY=true
+ACQUISITION_IMPLEMENTED_TRUE_DOES_NOT_MEAN_POPULATED_ORIGIN_EXISTS=true
+CANDIDATE_SOURCE_IMPLEMENTED_TRUE_DOES_NOT_MEAN_POPULATED_ORIGIN_EXISTS=true
+FORBIDDEN_TREAT_ACQUISITION_R1_AS_POPULATED_ORIGIN=true
+FORBIDDEN_TREAT_ACQUISITION_R1_EVIDENCE_AS_POPULATED_ORIGIN_PACKAGE=true
+CONTRACT_MERGE_DOES_NOT_ACQUIRE_CANDIDATE=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED_GRAIN_IDENTITY_SET=true
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+```
+
+Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_AUTHORIZED` is maintained in this §4.4 live state block and the candidate-source populated-origin contract package above. Acquisition contract, grant, and fail-closed R1 are on main. No lawful populated origin exists today. Acquisition R1 evidence is not a populated-origin package. Populated-origin contract ≠ grant ≠ populated-origin R1 ≠ acquisition contract ≠ acquisition R1 ≠ candidate-source WHERE contract ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `ACQUISITION_IMPLEMENTED=true` ≠ lawful populated origin exists ≠ acquisition performed. `CANDIDATE_SOURCE_IMPLEMENTED=true` ≠ lawful populated origin exists. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. This contract does not attest a populated origin, acquire a candidate, land members, or flip `NO_REVIEWED`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_POPULATED_ORIGIN_CONTRACT_AUTHORIZED=false`.
+
 
 ### 4.5 V0.3 metric contract and threshold boundary
 
