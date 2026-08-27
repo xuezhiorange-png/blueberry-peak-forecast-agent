@@ -1,0 +1,265 @@
+# V0.3-S3-B Quantile semantics verified-claim authorization
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_B_QUANTILE_SEMANTICS_VERIFIED_CLAIM_AUTHORIZATION
+ARTIFACT_VERSION=s3-b-quantile-semantics-verified-claim-authorization-v1
+TASK_ID=V03_S3_B_QUANTILE_SEMANTICS_VERIFIED_CLAIM_AUTHORIZATION_R1
+TASK_CLASS=DOCS_ONLY_AUTHORIZATION_ISSUANCE
+AUTHORIZATION_SCOPE=S3_B_SEMANTICS_VERIFIED_CLAIM_GRANT_ONLY
+PARALLEL_LANE=S3-B
+SLICE=V0.3-S3
+ENGLISH_ID=QUANTILE_SEMANTICS_VERIFIED_CLAIM
+USER_GATE=可以实施
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02307-c032-7da6-8a02-00d9b3518794
+BASE_REF=origin/main
+BASE_MAIN_SHA=d92e9d11d3930a5f7a93d61402bb363327ffebec
+BASE_MAIN_TREE_SHA=19c7085c32ec41e627f645ee3092710521cb9169
+PARENT_LIVE_AUTHORITY_PR=384
+PARENT_LIVE_AUTHORITY_MERGE=d92e9d11d3930a5f7a93d61402bb363327ffebec
+LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=7d47de8c84dcd52d6feea8aff3ecdcd3ecf6d4e9f7879c32f076dafae559a9c9
+LIVE_AUTHORITY_WORKPAPER=docs/v0-3/s3/workpapers/s3-b-quantile-semantics-contract-live-authority.md
+PARENT_S3_B_PR=301
+PARENT_S3_B_MERGE=f9e7b221722d74789112142aebb77a5c69687ea3
+PARENT_S3_B_CONTRACT_PATH=docs/v0-3/s3/s3-quantile-semantics-contract.md
+PARENT_S3_B_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=8456c9b4412a68680033995605c82356d0a322e0
+S3_B_CONTRACT_CONTENT_SHA256_AT_FREEZE=28dfb92b96caf6cef9124c80abcd23feb3a569a01131cad94a56089cf30fa6f1
+S3_B_CONTRACT_EVIDENCE_JSON_SHA256=52dfe07eb6a17004704a1545c136a51c4646fbc7b7f7bca80b13f87a71e2d3e7
+S3_B_CONTRACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-b-quantile-semantics.md
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-b-quantile-semantics-verified-claim-authorization.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-b-quantile-semantics-verified-claim-authorization.json
+GRANT_ONLY=true
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+THIS_PR_IS_NOT_R1=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+GRANT_MERGE_DOES_NOT_EXECUTE_CHECKLIST=true
+GRANT_MERGE_DOES_NOT_FLIP_CURRENT_P_SEMANTICS_STATUS=true
+GRANT_MERGE_DOES_NOT_FLIP_COVERAGE_EXECUTION=true
+GRANT_MERGE_DOES_NOT_TOUCH_PYTHON=true
+FORBIDDEN_TREAT_THIS_EVIDENCE_AS_SEMANTICS_VERIFIED_CLAIM=true
+FORBIDDEN_TREAT_S3_B_CONTRACT_FREEZE_AS_VERIFIED_UPPER_QUANTILE=true
+FORBIDDEN_TREAT_301_PRELIMINARY_AS_R1_RESULT=true
+FORBIDDEN_CHANGE_MODEL_TO_FORCE_PASS=true
+~~~
+
+The user authorized issuance of the S3-B **quantile semantics verified-claim** grant after live contract
+authority merged on main (#384). This document records what a **later** docs-only verified-claim R1 may do
+when the user again says 「可以实施」. This PR does not execute the frozen §7 checklist, does not write
+`VERIFIED_TRUE_UPPER_QUANTILE` or `VERIFICATION_FAILED` to live status fields, does not flip
+`S3_B_COVERAGE_EXECUTION_AUTHORIZED`, does not authorize production or test code mutation, and does not
+authorize model or parameter changes.
+
+This is **quantile semantics verified-claim** authorization only. Parent S3-B procedure contract §§1–11
+(#301 freeze), live contract authority (#384), P0, S3-A amendment, S3-C0, and A2 identity-set family
+remain authoritative and are not reopened. Do not rewrite alignment contract §6 (`ALIGNMENT_SECTION_6_SHA256`
+must remain `2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8`).
+
+~~~text
+S3_B_QUANTILE_SEMANTICS_CONTRACT_AUTHORIZED=true
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=true
+S3_B_COVERAGE_EXECUTION_AUTHORIZED=false
+CURRENT_P50_SEMANTICS_VERIFIED=false
+CURRENT_P80_SEMANTICS_VERIFIED=false
+CURRENT_P90_SEMANTICS_VERIFIED=false
+CURRENT_P50_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P90_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_COVERAGE_COMPUTABLE=false
+CURRENT_P90_COVERAGE_COMPUTABLE=false
+CURRENT_QUANTILE_REASON_CODE=QUANTILE_SEMANTICS_NOT_VERIFIED
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+~~~
+
+`S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=true` ≠ checklist executed ≠ `CURRENT_P*_SEMANTICS_VERIFIED` ≠
+P50/P80/P90 are `VERIFIED_TRUE_UPPER_QUANTILE` ≠ coverage computable ≠ model change allowed. This evidence
+JSON is **not** a semantics-verified claim package. #301 preliminary conclusions (e.g. P80/P90 as
+P50+margin) remain `PENDING_COORDINATOR_EXECUTION`, not verification results. Catalog first blocker remains
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. A2 identity-set family remains fail-closed; this grant is not
+origin / members / artifact authority.
+
+## 1. Unique remaining gap (this grant does not fill it)
+
+~~~text
+PARENT_S3_B_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=8456c9b4412a68680033995605c82356d0a322e0
+CURRENT_S3_B_CONTRACT_GIT_BLOB_SHA=2eed2f1366080059e3f250e52f9dd1c64dfa6f2c
+S3_B_FREEZE_PREFIX_BYTES=17375
+UNIQUE_REMAINING_GAP=_frozen_section_7_checklist_not_yet_executed
+CURRENT_P50_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P90_SEMANTICS_STATUS=NOT_VERIFIED
+~~~
+
+S3-B procedure contract froze on main (#301). Live contract authority inserted on main (#384). The frozen §7
+verification checklist has not been executed. #301 preliminary code-read conclusions are not R1 verification
+results. This grant authorizes a **later** docs-only R1 to re-trace fields and execute the checklist — it
+does not perform that execution today.
+
+## 2. Upstream bindings
+
+~~~text
+PARENT_LIVE_AUTHORITY_PR=384
+PARENT_LIVE_AUTHORITY_MERGE=d92e9d11d3930a5f7a93d61402bb363327ffebec
+LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=7d47de8c84dcd52d6feea8aff3ecdcd3ecf6d4e9f7879c32f076dafae559a9c9
+LIVE_AUTHORITY_WORKPAPER=docs/v0-3/s3/workpapers/s3-b-quantile-semantics-contract-live-authority.md
+PARENT_S3_B_PR=301
+PARENT_S3_B_MERGE=f9e7b221722d74789112142aebb77a5c69687ea3
+PARENT_S3_B_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=8456c9b4412a68680033995605c82356d0a322e0
+S3_B_CONTRACT_CONTENT_SHA256_AT_FREEZE=28dfb92b96caf6cef9124c80abcd23feb3a569a01131cad94a56089cf30fa6f1
+CURRENT_S3_B_CONTRACT_GIT_BLOB_SHA=2eed2f1366080059e3f250e52f9dd1c64dfa6f2c
+S3_B_CONTRACT_EVIDENCE_JSON_SHA256=52dfe07eb6a17004704a1545c136a51c4646fbc7b7f7bca80b13f87a71e2d3e7
+PARENT_P0_CONTRACT_GIT_BLOB_SHA_AT_S3_B_FREEZE=45f900f4dfa1ef5da8ea898a39bdded4c8c11f08
+CURRENT_P0_CONTRACT_GIT_BLOB_SHA=247ad7c41dec35c7e299f73eb66c610aec5fbcf6
+P0_CONTRACT_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+P0_EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
+PARENT_S3_A_AMENDMENT_GIT_BLOB_SHA_AT_S3_B_FREEZE=1baf930287598f5df78ac28d49c159b4231c0fc6
+CURRENT_S3_A_AMENDMENT_GIT_BLOB_SHA=63bcee78e659663e568bafcc7fd70edabdb79105
+S3_A_AMENDMENT_PATH=docs/v0-3/s3/s3-daily-rowset-amendment.md
+S3_A_AMENDMENT_EVIDENCE_JSON_SHA256=b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a
+PARENT_S3_C0_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=3850b7cc85fa87d2cf7aa1b4fb23c3d756d6295b
+CURRENT_S3_C0_CONTRACT_GIT_BLOB_SHA=8728188f5468e8ec5c9adc958b547cf840e307ee
+S3_C0_CONTRACT_PATH=docs/v0-3/s3/s3-pit-backtest-execution-contract.md
+S3_C0_EVIDENCE_JSON_SHA256=12c40e013c60de9f9dbcfd7b5e7788281d9c7d6adcde641d6d436b3e65b5d7e1
+CURRENT_POPULATED_ORIGIN_CONTRACT_GIT_BLOB_SHA=29dd5d3183a9f9bd4c096d1e8724fd6582a47caa
+PARENT_POPULATED_ORIGIN_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=b9d3daad7eb8aa172b2ad241d7b78223d362c82b
+POPULATED_ORIGIN_R1_EVIDENCE_JSON_SHA256=f431cbceb91d830adfc332311dfbf052e74599080c22cd2736b1bc2f7e4c5ea4
+S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
+ALIGNMENT_SECTION_6_SHA256=2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+~~~
+
+Historical live-authority pointer snapshots (#384) retain their own `CURRENT_*` at insert time and must not
+be refreshed by this grant.
+
+## 3. Honest boundary
+
+S3-B contract freeze (#301) ≠ live contract authority (#384) ≠ this grant ≠ §7 checklist execution ≠
+semantics-verified claim attestation ≠ coverage computation ≠ backtest execution ≠ model change.
+`S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=true` does not set `CURRENT_P50_SEMANTICS_STATUS`,
+`CURRENT_P80_SEMANTICS_STATUS`, or `CURRENT_P90_SEMANTICS_STATUS` to `VERIFIED_TRUE_UPPER_QUANTILE`.
+Empirical coverage near 0.8 is not semantics verification. Field names P50/P80/P90 remain labels only until
+a separately authorized verification R1 records verified status per frozen §7.
+`GRANT_MERGE_DOES_NOT_EXECUTE_CHECKLIST=true`.
+`GRANT_MERGE_DOES_NOT_FLIP_CURRENT_P_SEMANTICS_STATUS=true`.
+`GRANT_MERGE_DOES_NOT_FLIP_COVERAGE_EXECUTION=true`.
+Historical pointer snapshots may remain `S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false`.
+
+## 4. What this authorization grants
+
+A later verified-claim R1 may, under a separate user 「可以实施」 gate, re-bind each referenced file's git
+blob SHA on then-current `origin/main` and execute the frozen §7 checklist (7.1 field trace through 7.5
+coordinator disposition). Verified-claim R1 is **docs-only**; no production or test code mutation is
+authorized by this grant.
+
+### 4.1 Allowed changes (future R1 only)
+
+~~~text
+VERIFIED_CLAIM_R1_IS_DOCS_ONLY=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+LATER_R1_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+Future R1 may:
+
+1. Re-trace each field in frozen §7 against then-current repository state.
+2. Write `CURRENT_P50_SEMANTICS_STATUS`, `CURRENT_P80_SEMANTICS_STATUS`, and `CURRENT_P90_SEMANTICS_STATUS`
+   in evidence JSON only, with legal values: `VERIFIED_TRUE_UPPER_QUANTILE`, `NOT_VERIFIED`, or
+   `VERIFICATION_FAILED`.
+3. If a field is not true upper quantile: record `VERIFICATION_FAILED` or keep `NOT_VERIFIED`. Must not
+   change model or parameters to force PASS.
+4. Must not treat #301 preliminary conclusions as R1 results; must re-trace.
+
+Future R1 must not flip `S3_B_COVERAGE_EXECUTION_AUTHORIZED`, `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY`,
+`NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`, unseal TEST, or enable source-002 row-level read.
+
+### 4.2 Forbidden in this grant and in future R1 without separate authority
+
+~~~text
+FORBIDDEN_EXECUTE_SECTION_7_IN_THIS_GRANT=true
+FORBIDDEN_WRITE_VERIFIED_TRUE_UPPER_QUANTILE_IN_THIS_GRANT=true
+FORBIDDEN_WRITE_VERIFICATION_FAILED_IN_THIS_GRANT=true
+FORBIDDEN_FLIP_S3_B_COVERAGE_EXECUTION_AUTHORIZED=true
+FORBIDDEN_FLIP_NO_VERSIONED=true
+FORBIDDEN_FLIP_NO_REVIEWED=true
+FORBIDDEN_UNSEAL_TEST=true
+FORBIDDEN_SOURCE_002_ROW_LEVEL_READ=true
+FORBIDDEN_CHANGE_MODEL_TO_FORCE_PASS=true
+FORBIDDEN_TREAT_301_PRELIMINARY_AS_R1_RESULT=true
+FORBIDDEN_REWRITE_S3_B_CONTRACT_FREEZE_PREFIX=true
+FORBIDDEN_REWRITE_HISTORICAL_LIVE_AUTHORITY_POINTERS=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6=true
+FORBIDDEN_TOUCH_PYTHON=true
+~~~
+
+## 5. Registry flip manifest
+
+~~~text
+S3_B_SEMANTICS_VERIFIED_CLAIM_AUTHORIZED=false → true
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block and verified-claim authorization pointer
+- `docs/v0-3/s3/s3-quantile-semantics-contract.md` §13 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live paragraph
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §92 pointer
+- `docs/v0-3/s3/s3-pit-backtest-execution-contract.md` §14 pointer
+
+Unchanged live flags retained:
+
+~~~text
+S3_B_QUANTILE_SEMANTICS_CONTRACT_AUTHORIZED=true
+S3_B_COVERAGE_EXECUTION_AUTHORIZED=false
+CURRENT_P50_SEMANTICS_VERIFIED=false
+CURRENT_P80_SEMANTICS_VERIFIED=false
+CURRENT_P90_SEMANTICS_VERIFIED=false
+CURRENT_P50_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P90_SEMANTICS_STATUS=NOT_VERIFIED
+CURRENT_P80_COVERAGE_COMPUTABLE=false
+CURRENT_P90_COVERAGE_COMPUTABLE=false
+CURRENT_QUANTILE_REASON_CODE=QUANTILE_SEMANTICS_NOT_VERIFIED
+S3_BACKTEST_EXECUTION_AUTHORIZED=false
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+MODEL_CHANGE_ALLOWED=false
+PARAMETER_CHANGE_ALLOWED=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+TEST_REMAINS_SEALED=true
+~~~
+
+## 6. Evidence digest
+
+~~~text
+EVIDENCE_JSON_SHA256=0697b9bac264f71f2465f057f1bf3f7df35ed33b5c69f94ca8a44e2ec3ec7413
+~~~
+
+## 7. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+GRANT_MERGE_DOES_NOT_EXECUTE_CHECKLIST=true
+GRANT_MERGE_DOES_NOT_FLIP_CURRENT_P_SEMANTICS_STATUS=true
+GRANT_MERGE_DOES_NOT_FLIP_COVERAGE_EXECUTION=true
+GRANT_MERGE_DOES_NOT_TOUCH_PYTHON=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
