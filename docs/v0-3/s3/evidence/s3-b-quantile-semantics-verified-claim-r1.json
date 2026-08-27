@@ -1,0 +1,345 @@
+{
+  "artifact_id": "V0_3_S3_B_QUANTILE_SEMANTICS_VERIFIED_CLAIM_R1",
+  "artifact_version": "s3-b-quantile-semantics-verified-claim-r1-v1",
+  "task_id": "V03_S3_B_QUANTILE_SEMANTICS_VERIFIED_CLAIM_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_B_SEMANTICS_VERIFIED_CLAIM_IMPLEMENTATION_ONLY",
+  "parallel_lane": "S3-B",
+  "slice": "V0.3-S3",
+  "english_id": "QUANTILE_SEMANTICS_VERIFIED_CLAIM",
+  "user_gate": "可以实施",
+  "reviewer_role": "COORDINATOR",
+  "coordinator_run": "bc-01a02307-c032-7da6-8a02-00d9b3518794",
+  "recorded_at": "2026-08-27T05:40:36Z",
+  "no_step_implies_the_next": true,
+  "implementation_r1": true,
+  "verified_claim_r1_is_docs_only": true,
+  "this_pr_is_not_a_grant": true,
+  "this_pr_is_not_a_new_contract": true,
+  "this_draft_is_not_ready": true,
+  "checklist_executed": true,
+  "authorization": {
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "s3_b_quantile_semantics_contract_authorized": true,
+    "s3_b_semantics_verified_claim_authorized": true,
+    "s3_b_coverage_execution_authorized": false
+  },
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-b-quantile-semantics-verified-claim-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-b-quantile-semantics-verified-claim-r1.json",
+  "base_main_sha": "37f6fa7acfb4c6e516e2021c083002fed7001da0",
+  "base_main_tree_sha": "c95635c95490245072eeaece78aa83e280cfb341",
+  "audited_repository_sha": "37f6fa7acfb4c6e516e2021c083002fed7001da0",
+  "audited_repository_tree_sha": "c95635c95490245072eeaece78aa83e280cfb341",
+  "upstream_bindings": {
+    "parent_grant_pr": 385,
+    "parent_grant_merge": "37f6fa7acfb4c6e516e2021c083002fed7001da0",
+    "grant_evidence_json_sha256": "0697b9bac264f71f2465f057f1bf3f7df35ed33b5c69f94ca8a44e2ec3ec7413",
+    "grant_workpaper": "docs/v0-3/s3/workpapers/s3-b-quantile-semantics-verified-claim-authorization.md",
+    "parent_live_authority_pr": 384,
+    "parent_live_authority_merge": "d92e9d11d3930a5f7a93d61402bb363327ffebec",
+    "live_authority_evidence_json_sha256": "7d47de8c84dcd52d6feea8aff3ecdcd3ecf6d4e9f7879c32f076dafae559a9c9",
+    "parent_s3_b_pr": 301,
+    "parent_s3_b_merge": "f9e7b221722d74789112142aebb77a5c69687ea3",
+    "parent_s3_b_contract_path": "docs/v0-3/s3/s3-quantile-semantics-contract.md",
+    "parent_s3_b_contract_git_blob_sha_at_freeze": "8456c9b4412a68680033995605c82356d0a322e0",
+    "s3_b_contract_content_sha256_at_freeze": "28dfb92b96caf6cef9124c80abcd23feb3a569a01131cad94a56089cf30fa6f1",
+    "current_s3_b_contract_git_blob_sha": "c2037e2d98ee220f1f80dd10966d4cddf8fd76e0",
+    "s3_b_contract_evidence_json_sha256": "52dfe07eb6a17004704a1545c136a51c4646fbc7b7f7bca80b13f87a71e2d3e7",
+    "parent_p0_contract_git_blob_sha_at_s3_b_freeze": "45f900f4dfa1ef5da8ea898a39bdded4c8c11f08",
+    "current_p0_contract_git_blob_sha": "ac2ded608fa2e206575492da44f6e7eb8acd1d5b",
+    "p0_contract_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+    "p0_evidence_json_sha256": "580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c",
+    "parent_s3_a_amendment_git_blob_sha_at_s3_b_freeze": "1baf930287598f5df78ac28d49c159b4231c0fc6",
+    "current_s3_a_amendment_git_blob_sha": "cd3fa544c5e34d31092a062c7db012e10c5284b8",
+    "s3_a_amendment_path": "docs/v0-3/s3/s3-daily-rowset-amendment.md",
+    "s3_a_amendment_evidence_json_sha256": "b50948c9529dd7f87b844e61e48fbb3b89d6eae31211f43d6fc5189360553e0a",
+    "parent_s3_c0_contract_git_blob_sha_at_freeze": "3850b7cc85fa87d2cf7aa1b4fb23c3d756d6295b",
+    "current_s3_c0_contract_git_blob_sha": "fbd283c31c4ef98c12adfca75ac962e9d8b5c4ae",
+    "s3_c0_contract_path": "docs/v0-3/s3/s3-pit-backtest-execution-contract.md",
+    "s3_c0_evidence_json_sha256": "12c40e013c60de9f9dbcfd7b5e7788281d9c7d6adcde641d6d436b3e65b5d7e1",
+    "current_populated_origin_contract_git_blob_sha": "29dd5d3183a9f9bd4c096d1e8724fd6582a47caa",
+    "parent_populated_origin_contract_git_blob_sha_at_freeze": "b9d3daad7eb8aa172b2ad241d7b78223d362c82b",
+    "populated_origin_r1_evidence_json_sha256": "f431cbceb91d830adfc332311dfbf052e74599080c22cd2736b1bc2f7e4c5ea4",
+    "s2_contract_git_blob_sha": "0e974ba408122bc2f8b0ee4108fb1af136ec1099",
+    "alignment_section_6_sha256": "2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8"
+  },
+  "frozen_section_7": {
+    "authority_path": "docs/v0-3/s3/s3-quantile-semantics-contract.md",
+    "section": "§7.1–§7.5",
+    "step_7_1_field_trace": {
+      "P50": {
+        "persisted_output_label": "forecast_quantile=P50 / p50_kg",
+        "trace_layers": [
+          {
+            "layer": "task8_maturity",
+            "path": "backend/app/maturity/service.py",
+            "git_blob_sha": "80632f330973baa844ae1fbe62684b9beeb687bd",
+            "symbol": "reconcile_p50_mass + daily prediction loop",
+            "formula": "p50_values = reconcile_p50_mass(expected_total_kg=effective_total, density=normalized_slice); daily p50_kg from normalized maturity density × effective_total (point mass allocation)",
+            "derivation_kind": "point_mass_allocation",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "task9_harvest_state",
+            "path": "backend/app/harvest_state/service.py",
+            "git_blob_sha": "049dff1b93db15b681b352fb99b40c4b86bc598d",
+            "symbol": "separate simulation rows per forecast_quantile",
+            "formula": "P50 rows carry p50_kg from Task 8 authority",
+            "derivation_kind": "labeled_curve_persistence",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "residual_correction",
+            "path": "backend/app/residual_model/projection.py",
+            "git_blob_sha": "4ce69012d4596f396d4d963c96c02f5d20a7e5c3",
+            "symbol": "project_corrected_quantiles",
+            "formula": "raw_p50 = structural_arrival_p50_kg + predicted_residual_p50_kg; projected_p50 = max(0, raw_p50) with optional monotonic enforcement on upper tails",
+            "derivation_kind": "p50_anchor_plus_residual_quantile_regression",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "core_forecast",
+            "path": "backend/app/core_forecast/service.py",
+            "git_blob_sha": "71fa1780b1737c2e525b0649c799447b5a3c8b1b",
+            "symbol": "_task8_supply",
+            "formula": "reconciles Task 8 p50_kg to Task 9 member natural_maturity_supply_kg per P50 quantile row",
+            "derivation_kind": "supply_reconciliation",
+            "fitted_as_quantile": false
+          }
+        ]
+      },
+      "P80": {
+        "persisted_output_label": "forecast_quantile=P80 / p80_kg",
+        "trace_layers": [
+          {
+            "layer": "task8_maturity",
+            "path": "backend/app/maturity/service.py",
+            "git_blob_sha": "80632f330973baa844ae1fbe62684b9beeb687bd",
+            "symbol": "daily prediction loop",
+            "formula": "p80 = p50 + (effective_total * p80_margin_share * widening); margin_share from calibration empirical_quantile on residual shares",
+            "derivation_kind": "symmetric_margin_on_p50",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "task8_calibration",
+            "path": "backend/app/maturity/calibration.py",
+            "git_blob_sha": "05dfbef10fca8ea4ccd190cad4d331f3cec15a20",
+            "symbol": "empirical_quantile",
+            "formula": "p80_margin_share from held-out curve error empirical quantile; interval_semantics=pointwise_marginal",
+            "derivation_kind": "calibrated_margin_share",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "residual_correction",
+            "path": "backend/app/residual_model/model.py",
+            "git_blob_sha": "c4c6d2907cf3a0b67787606b9b538edc1e1277c6",
+            "symbol": "train_quantile_estimators / predict_quantiles",
+            "formula": "HistGradientBoostingRegressor(loss=quantile, quantile=0.8) on residual label",
+            "derivation_kind": "quantile_regression_on_residual_label",
+            "fitted_as_quantile": true
+          },
+          {
+            "layer": "residual_projection",
+            "path": "backend/app/residual_model/projection.py",
+            "git_blob_sha": "4ce69012d4596f396d4d963c96c02f5d20a7e5c3",
+            "symbol": "project_corrected_quantiles",
+            "formula": "raw_p80 = structural_arrival_p50_kg + predicted_residual_p80_kg; projected_p80 = max(projected_p50, clamped_p80)",
+            "derivation_kind": "p50_structural_anchor_plus_monotonic_projection",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "core_forecast",
+            "path": "backend/app/core_forecast/service.py",
+            "git_blob_sha": "71fa1780b1737c2e525b0649c799447b5a3c8b1b",
+            "symbol": "_task8_supply + QUANTILE_RANK ordering",
+            "formula": "P80 supply row persisted with QUANTILE_RANK enforcing P50 < P80 < P90 ordering in output",
+            "derivation_kind": "labeled_curve_persistence",
+            "fitted_as_quantile": false
+          }
+        ]
+      },
+      "P90": {
+        "persisted_output_label": "forecast_quantile=P90 / p90_kg",
+        "trace_layers": [
+          {
+            "layer": "task8_maturity",
+            "path": "backend/app/maturity/service.py",
+            "git_blob_sha": "80632f330973baa844ae1fbe62684b9beeb687bd",
+            "symbol": "daily prediction loop",
+            "formula": "p90 = p50 + (effective_total * p90_margin_share * widening)",
+            "derivation_kind": "symmetric_margin_on_p50",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "task8_calibration",
+            "path": "backend/app/maturity/calibration.py",
+            "git_blob_sha": "05dfbef10fca8ea4ccd190cad4d331f3cec15a20",
+            "symbol": "empirical_quantile",
+            "formula": "p90_margin_share from held-out curve error empirical quantile",
+            "derivation_kind": "calibrated_margin_share",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "residual_correction",
+            "path": "backend/app/residual_model/model.py",
+            "git_blob_sha": "c4c6d2907cf3a0b67787606b9b538edc1e1277c6",
+            "symbol": "train_quantile_estimators / predict_quantiles",
+            "formula": "HistGradientBoostingRegressor(loss=quantile, quantile=0.9) on residual label",
+            "derivation_kind": "quantile_regression_on_residual_label",
+            "fitted_as_quantile": true
+          },
+          {
+            "layer": "residual_projection",
+            "path": "backend/app/residual_model/projection.py",
+            "git_blob_sha": "4ce69012d4596f396d4d963c96c02f5d20a7e5c3",
+            "symbol": "project_corrected_quantiles",
+            "formula": "raw_p90 = structural_arrival_p50_kg + predicted_residual_p90_kg; projected_p90 = max(projected_p80, clamped_p90)",
+            "derivation_kind": "p50_structural_anchor_plus_monotonic_projection",
+            "fitted_as_quantile": false
+          },
+          {
+            "layer": "core_forecast",
+            "path": "backend/app/core_forecast/service.py",
+            "git_blob_sha": "71fa1780b1737c2e525b0649c799447b5a3c8b1b",
+            "symbol": "_task8_supply + QUANTILE_RANK ordering",
+            "formula": "P90 supply row persisted with monotonic ordering relative to P50/P80",
+            "derivation_kind": "labeled_curve_persistence",
+            "fitted_as_quantile": false
+          }
+        ]
+      }
+    },
+    "step_7_2_classification": {
+      "P50": {
+        "primary_classification": "POINT_ESTIMATE",
+        "secondary_classification": "MONOTONIC_PROJECTION_ARTIFACT",
+        "true_upper_quantile_candidate": false,
+        "rationale": "Task 8 P50 is normalized density point-mass allocation, not a fitted harvest-outcome quantile; residual composition remains P50-anchored without verified upper-quantile semantics."
+      },
+      "P80": {
+        "primary_classification": "SYMMETRIC_MARGIN",
+        "secondary_classification": "MONOTONIC_PROJECTION_ARTIFACT",
+        "true_upper_quantile_candidate": false,
+        "rationale": "Task 8 P80 is explicit P50 plus symmetric margin share; residual layer uses quantile regression on residual but final published value is P50-anchored with monotonic projection, not an independent upper quantile of harvest outcome."
+      },
+      "P90": {
+        "primary_classification": "SYMMETRIC_MARGIN",
+        "secondary_classification": "MONOTONIC_PROJECTION_ARTIFACT",
+        "true_upper_quantile_candidate": false,
+        "rationale": "Task 8 P90 is explicit P50 plus symmetric margin share; final pipeline applies P50 structural anchor and monotonic projection identical in structure to P80."
+      }
+    },
+    "step_7_3_pairing_validity": {
+      "authority": "docs/v0-3/s3/s3-quantile-semantics-contract.md §3 and V0.2 §11.2–§11.3",
+      "mask_rules_confirmed": true,
+      "masks": {
+        "P50_COVERAGE_MASK": "S2_STATUS_COMPARABLE AND FORECAST_QUANTILE_P50 AND EXACT_ACTUAL_PAIRED",
+        "P80_COVERAGE_MASK": "S2_STATUS_COMPARABLE AND FORECAST_QUANTILE_P80 AND EXACT_ACTUAL_PAIRED",
+        "P90_COVERAGE_MASK": "S2_STATUS_COMPARABLE AND FORECAST_QUANTILE_P90 AND EXACT_ACTUAL_PAIRED"
+      },
+      "pairing_validity": "RULES_CONFIRMED_DEFINITION_ONLY",
+      "coverage_publication_status": "NOT_COMPUTABLE",
+      "reason_code": "QUANTILE_SEMANTICS_NOT_VERIFIED",
+      "coverage_ratios_published": false,
+      "complete_daily_rowset_required_for_this_step": false
+    },
+    "step_7_4_pinball_branch_audit": {
+      "authority": "docs/v0-3/s3/s3-quantile-semantics-contract.md §5 (V0.2 §10.1)",
+      "implementation_path": "backend/app/residual_model/metrics.py",
+      "git_blob_sha": "1a68d9d367982ac5829e5099c938a52cdf4fb8de",
+      "symbol": "pinball_loss",
+      "formula": "mean(max(q*(actual-forecast_q),(q-1)*(actual-forecast_q))) with error=actual-predicted",
+      "under_prediction_branch": "actual>=forecast_q uses q*(actual-forecast_q)",
+      "over_prediction_branch": "actual<forecast_q uses (q-1)*(actual-forecast_q)",
+      "branch_assignment_correct": true,
+      "branch_reversal_detected": false,
+      "pinball_scores_published": false,
+      "pinball_verification_failed": false
+    },
+    "step_7_5_disposition": {
+      "P50": {
+        "current_p50_semantics_status": "VERIFICATION_FAILED",
+        "current_p50_semantics_verified": false,
+        "failure_basis": "classification POINT_ESTIMATE / MONOTONIC_PROJECTION_ARTIFACT; not TRUE_UPPER_QUANTILE_CANDIDATE"
+      },
+      "P80": {
+        "current_p80_semantics_status": "VERIFICATION_FAILED",
+        "current_p80_semantics_verified": false,
+        "failure_basis": "classification SYMMETRIC_MARGIN / MONOTONIC_PROJECTION_ARTIFACT; not TRUE_UPPER_QUANTILE_CANDIDATE"
+      },
+      "P90": {
+        "current_p90_semantics_status": "VERIFICATION_FAILED",
+        "current_p90_semantics_verified": false,
+        "failure_basis": "classification SYMMETRIC_MARGIN / MONOTONIC_PROJECTION_ARTIFACT; not TRUE_UPPER_QUANTILE_CANDIDATE"
+      },
+      "current_quantile_reason_code": "QUANTILE_SEMANTICS_NOT_VERIFIED",
+      "any_verified_true_upper_quantile": false,
+      "is_semantics_verified_true_upper_quantile_package": false
+    }
+  },
+  "cited_file_git_blob_sha": {
+    "backend/app/maturity/service.py": "80632f330973baa844ae1fbe62684b9beeb687bd",
+    "backend/app/maturity/calibration.py": "05dfbef10fca8ea4ccd190cad4d331f3cec15a20",
+    "backend/app/residual_model/model.py": "c4c6d2907cf3a0b67787606b9b538edc1e1277c6",
+    "backend/app/residual_model/projection.py": "4ce69012d4596f396d4d963c96c02f5d20a7e5c3",
+    "backend/app/harvest_state/service.py": "049dff1b93db15b681b352fb99b40c4b86bc598d",
+    "backend/app/core_forecast/service.py": "71fa1780b1737c2e525b0649c799447b5a3c8b1b",
+    "backend/app/residual_model/metrics.py": "1a68d9d367982ac5829e5099c938a52cdf4fb8de"
+  },
+  "flags": {
+    "s3_b_quantile_semantics_contract_authorized": true,
+    "s3_b_semantics_verified_claim_authorized": true,
+    "s3_b_coverage_execution_authorized": false,
+    "current_p50_semantics_verified": false,
+    "current_p80_semantics_verified": false,
+    "current_p90_semantics_verified": false,
+    "current_p50_semantics_status": "VERIFICATION_FAILED",
+    "current_p80_semantics_status": "VERIFICATION_FAILED",
+    "current_p90_semantics_status": "VERIFICATION_FAILED",
+    "current_p80_coverage_computable": false,
+    "current_p90_coverage_computable": false,
+    "current_quantile_reason_code": "QUANTILE_SEMANTICS_NOT_VERIFIED",
+    "s3_backtest_execution_authorized": false,
+    "s3_production_code_mutation_authorized": false,
+    "s3_test_code_mutation_authorized": false,
+    "model_change_allowed": false,
+    "parameter_change_allowed": false,
+    "no_versioned_incumbent_forecast_artifact_in_repository": true,
+    "no_reviewed_grain_identity_set_in_repository": true,
+    "no_live_s2_identity_alignment_adapter_in_repository": true,
+    "no_bindable_catalog_in_repository": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "source_002_row_level_read": false,
+    "test_remains_sealed": true
+  },
+  "honesty": {
+    "checklist_executed_true_does_not_mean_verified_true_upper_quantile": true,
+    "verification_failed_not_pass": true,
+    "verification_failed_not_coverage_computable": true,
+    "verification_failed_not_model_change_allowed": true,
+    "verification_failed_not_no_versioned_flip": true,
+    "forbidden_treat_301_preliminary_as_r1_result": true,
+    "forbidden_change_model_to_force_pass": true,
+    "forbidden_treat_failed_claim_as_verified_true_upper_quantile": true,
+    "forbidden_publish_coverage_ratios": true,
+    "forbidden_treat_this_evidence_as_coverage_package": true,
+    "forbidden_treat_this_evidence_as_versioned_forecast_artifact": true,
+    "is_semantics_verified_true_upper_quantile_package": false,
+    "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+    "implementation_merge_does_not_flip_coverage_execution": true,
+    "implementation_merge_does_not_touch_python": true,
+    "do_not_invent_hashes_or_tonnes": true
+  },
+  "unique_update": {
+    "live_status_fields_updated": [
+      "CURRENT_P50_SEMANTICS_STATUS",
+      "CURRENT_P80_SEMANTICS_STATUS",
+      "CURRENT_P90_SEMANTICS_STATUS"
+    ],
+    "live_verified_booleans_remain_false": true,
+    "grant_does_not_execute_checklist_historical_snapshot_preserved": true
+  },
+  "evidence_json_sha256": "9500d7efce83102797655b5bf0fb0e7c6896a64a9449ea5007269bdd2bd7f723"
+}
