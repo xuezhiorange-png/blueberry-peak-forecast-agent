@@ -1,0 +1,211 @@
+# V0.3-S3-A completeness dataset-claim R1
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A_COMPLETENESS_DATASET_CLAIM_R1
+ARTIFACT_VERSION=s3-a-completeness-dataset-claim-r1-v1
+TASK_ID=V03_S3_A_COMPLETENESS_DATASET_CLAIM_R1
+TASK_CLASS=IMPLEMENTATION
+AUTHORIZATION_SCOPE=S3_A_COMPLETENESS_DATASET_CLAIM_IMPLEMENTATION_ONLY
+PARALLEL_LANE=S3-A-COMPLETENESS
+SLICE=V0.3-S3
+ENGLISH_ID=S3_A_COMPLETENESS_DATASET_CLAIM
+USER_GATE=可以实施
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02307-c032-7da6-8a02-00d9b3518794
+BASE_REF=origin/main
+BASE_MAIN_SHA=ca5ce8089fd238beec2aee4ed03835ab0dff9765
+BASE_MAIN_TREE_SHA=b3bf4d40374415fbb5683347b05df8c74ae426c3
+PARENT_GRANT_PR=306
+PARENT_GRANT_MERGE=a4d94f345ea8f4ae9296013a16c1e4277dec6c5f
+GRANT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md
+GRANT_WORKPAPER_GIT_BLOB_SHA=a15b171e7fb54d92c91429f663efc767021dbb62
+GRANT_EVIDENCE_JSON_SHA256=783bfac0259393f052996de7f8cb43c74512d7062d2725083c9dcade0253ffdc
+PARENT_VERIFIER_PR=307
+PARENT_VERIFIER_MERGE=f05f6ed71b82188bea4dbbf7b892e5c99dc380af
+VERIFIER_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-completeness-verifier-r1.md
+VERIFIER_WORKPAPER_GIT_BLOB_SHA=f95dbc3ad8b8120a3a574742d92e4658ce11b735
+VERIFIER_EVIDENCE_JSON_SHA256=78912e668dfd72ae08b94c86851a3dd812479527c6881659f0c5d630c4134358
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a-completeness-dataset-claim-r1.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a-completeness-dataset-claim-r1.json
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+THIS_PR_IS_NOT_PYTHON=true
+IMPLEMENTATION_R1=true
+DATASET_CLAIM_R1_IS_DOCS_ONLY=true
+CHECKLIST_EXECUTED=true
+~~~
+
+This workpaper records docs-only dataset-claim R1 after grant (#306) and
+verifier service R1 (#307). Git blob bindings were re-traced on `origin/main`
+at base `ca5ce80`. This R1 does not re-implement the verifier, flip
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED`, read SOURCE_002 row-level,
+unseal TEST, authorize S3-B coverage or S4, edit C0 contract, mutate V0.2
+formulas, or emit `NO_COMPLETE_NDAY_WINDOW`.
+
+~~~text
+S3_A_COMPLETENESS_VERIFICATION_AUTHORIZED=true
+DETERMINISTIC_COMPLETENESS_VERIFICATION_SERVICE_IMPLEMENTED=true
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+~~~
+
+`CHECKLIST_EXECUTED=true` ≠ dataset complete ≠ `VERIFIED=true` ≠ daily rowset
+obtained from S2 binding ≠ legal completeness closeout package ≠ backtest package
+≠ catalog artifact. `CONTRACT_STILL_BOUND_BLOCKED` ≠ `PASS`. #307 single-window
+verifier ≠ dataset claim. H7 fixture hash
+`8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18` must not be
+treated as live evidence, content identity, or identity-set. While
+`CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false`, only rowset blocker
+reason `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING` is legal; emitting
+`NO_COMPLETE_NDAY_WINDOW` is forbidden.
+
+## 1. Frozen grant checklist execution summary
+
+Authority: `docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md`
+§3 (five predicates = amendment §8.1) and §4 (fail-closed conditions).
+
+### Step 1 — Git blob re-bind on `origin/main` at `ca5ce80`
+
+~~~text
+docs/v0-3/development-plan.md=c5ee0a029d940f1244b9680bde01b5aac1ceee81
+docs/v0-3/s3/s3-daily-rowset-amendment.md=8e08ca5fa5dafac5cbe678e4246e96cc4defab52
+docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md=18ebcd3252d042f08be7bab6bb1e0c831373fb6c
+docs/v0-3/s3/workpapers/s3-a-completeness-verification-authorization.md=a15b171e7fb54d92c91429f663efc767021dbb62
+docs/v0-3/s3/evidence/s3-a-completeness-verification-authorization.json=66f902c2beaf0b9846cfe0feafb79496e701941a
+docs/v0-3/s3/workpapers/s3-a-completeness-verifier-r1.md=f95dbc3ad8b8120a3a574742d92e4658ce11b735
+docs/v0-3/s3/evidence/s3-a-completeness-verifier-r1.json=6ae65a90f94bf3138c186999c07b9cc97a7a72c2
+docs/v0-3/s3/s3-pit-backtest-execution-contract.md=e59f8a2d255df392116c65d535ae22ae3854ae98
+docs/v0-3/s3/s3-error-attribution-contract.md=0819f429dcaf390a97a51a674ca96405eb8ebab7
+docs/v0-3/s3/s3-quantile-semantics-contract.md=43c07b3ca032e39b339281acdba4e9ad8219307b
+docs/v0-3/s3/s3-metric-execution-contract.md=04ce7bac640f272bb3035bf5af755944f20bb5ce
+docs/forecast-quality/s3-quality-metrics-contract.md=53d31029177a8d44bae58ec8e1786910f9af407f
+docs/v0-3/s1/metric-coverage-and-quality-contract.md=c651aa72d7238793ef63c32c83f8e102ceadb852
+docs/v0-3/s3/workpapers/s3-a1-window-anchor.md=3db9c30ccae9ac20805cb3021caa989ebbc7f5e2
+REBIND_COMPLETE=true
+~~~
+
+C0, S3-D, and metric contracts recorded only; not edited.
+
+### Step 2 — Grant §3 five predicates unchanged (amendment §8.1)
+
+~~~text
+COMPLETENESS_PREDICATE_1=FULL_CALENDAR_DAY_COVERAGE_IN_WINDOW
+COMPLETENESS_PREDICATE_2=NO_SILENT_MISSING_DAYS
+COMPLETENESS_PREDICATE_3=NO_ZERO_FILL_FOR_UNKNOWN
+COMPLETENESS_PREDICATE_4=OBSERVED_KG_TRACEABLE_TO_SOURCE_002_GRAIN
+COMPLETENESS_PREDICATE_5=FORECAST_DAILY_CURVE_VISIBLE_AT_CUTOFF
+AMENDMENT_SECTION_8_1_NOT_REWRITTEN=true
+~~~
+
+### Step 3 — Grant §4 fail-closed conditions apply at dataset granularity
+
+~~~text
+TEST_PARTITION_DATES_SEALED=true
+COMPLETE_SEASON_REJECTED_FOR_TEST_INTERSECTION=true
+UNKNOWN_EXCLUDED_FORECAST_UNAVAILABLE_FAIL_CLOSED=true
+SPARSE_BINDING_INTERPOLATION_FORBIDDEN=true
+PEAK_OVER_OBSERVED_DAYS_ONLY_FORBIDDEN=true
+P0_3DAY_VS_7DAY_NOT_ADJUDICATED=true
+RAW_SOURCE_002_PRIMARY_FORBIDDEN=true
+SINGLE_H7_FIXTURE_SUCCESS_DOES_NOT_EQUAL_DATASET_COMPLETE=true
+DATASET_FAIL_CLOSED_REMAINS=true
+~~~
+
+### Step 4 — Verifier #307 exists; single-window ≠ dataset claim
+
+~~~text
+DETERMINISTIC_COMPLETENESS_VERIFICATION_SERVICE_IMPLEMENTED=true
+VERIFIER_R1_PERSISTENCE=IN_MEMORY_SERVICE_ONLY
+SINGLE_WINDOW_VERIFIER_NOT_DATASET_CLAIM=true
+H7_FIXTURE_HASH_NOT_LIVE_EVIDENCE_IDENTITY=true
+~~~
+
+### Step 5 — Live blockers remain
+
+~~~text
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+CURRENT_S3_C_BACKTEST_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+CURRENT_S3_METRIC_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+CURRENT_S3_A1_WINDOW_ANCHOR_CLAIM_STATUS=VERIFIED_FREEZE_STILL_BOUND
+S3_B_COVERAGE_EXECUTION_AUTHORIZED=false
+CURRENT_P50_SEMANTICS_STATUS=VERIFICATION_FAILED
+CURRENT_P80_SEMANTICS_STATUS=VERIFICATION_FAILED
+CURRENT_P90_SEMANTICS_STATUS=VERIFICATION_FAILED
+BLOCKERS_REMAIN=true
+~~~
+
+### Step 6 — Forbidden actions not performed
+
+~~~text
+COMPLETENESS_VERIFIED_NOT_FLIPPED=true
+NO_COMPLETE_NDAY_WINDOW_NOT_EMITTED=true
+H7_FIXTURE_NOT_TREATED_AS_DATASET_COMPLETE=true
+SOURCE_002_ROW_LEVEL_NOT_READ=true
+TEST_NOT_UNSEALED=true
+S3_B_COVERAGE_NOT_AUTHORIZED=true
+S4_NOT_AUTHORIZED=true
+C0_CONTRACT_NOT_EDITED=true
+C0_SECTION_5_NOT_REWRITTEN=true
+V0_2_FORMULAS_NOT_MUTATED=true
+NO_VERSIONED_NOT_FLIPPED=true
+VERIFIER_CODE_NOT_REIMPLEMENTED=true
+~~~
+
+### Step 7 — Live STATUS disposition
+
+~~~text
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+LEGAL_STATUS_VALUES_ONLY=true
+FORBIDDEN_STATUS_VALUES=VERIFIED,PASS,SUCCESS,COMPLETE,EXECUTED,VERIFIED_TRUE
+DISPOSITION_REASON=freeze_still_bound_prerequisites_not_met_no_complete_daily_row_set_from_s2_binding_no_versioned_incumbent_forecast_artifact
+~~~
+
+## 2. Unique flip
+
+~~~text
+COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED → CONTRACT_STILL_BOUND_BLOCKED
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` §4.4 live state block
+- `docs/v0-3/development-plan.md` dataset-claim R1 pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §106 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §11 live paragraph
+
+Historical grant pointer (#306) and amendment §8.1 freeze retain
+`COMPLETENESS_VERIFICATION_STATUS=NOT_PERFORMED`.
+
+## 3. Evidence digest
+
+~~~text
+EVIDENCE_JSON_SHA256=c22e897c1dad6340cd00cbaced43964252505f01815ea0754257c336e627682e
+~~~
+
+## 4. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+DATASET_CLAIM_MERGE_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
+DATASET_CLAIM_MERGE_DOES_NOT_REIMPLEMENT_VERIFIER=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
