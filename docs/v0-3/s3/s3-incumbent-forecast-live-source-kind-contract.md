@@ -3077,7 +3077,7 @@ Live `S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE
 ~~~text
 S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin-r1.md
 S3_A2_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin-r1.json
-EVIDENCE_JSON_SHA256=61f1d8cdbcdde17460359f1495a4bfefc4b59d63aadb82faa02bcfb7c0f844a2
+EVIDENCE_JSON_SHA256=f431cbceb91d830adfc332311dfbf052e74599080c22cd2736b1bc2f7e4c5ea4
 POPULATED_ORIGIN_GRANT_EVIDENCE_JSON_SHA256=b149e1d00d93a28696040557ca555864e0bc3f2c65707fa78d9a6b65940de1eb
 PARENT_GRANT_PR=382
 PARENT_CONTRACT_PR=381
@@ -3139,8 +3139,8 @@ MATCH_TABLE_NAMES=()
 NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
 DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 EMPTY_TABLE_IS_NOT_VERSIONED_ARTIFACT=true
-POPULATED_ORIGIN_IMPLEMENTED_TRUE_DOES_NOT_MEAN_POPULATED_ORIGIN_ATTESTED=true
-POPULATED_ORIGIN_IMPLEMENTED_TRUE_DOES_NOT_MEAN_LAWFUL_POPULATED_ORIGIN_EXISTS=true
+POPULATED_ORIGIN_IMPLEMENTED_TRUE_DOES_NOT_MEAN_ATTESTATION_PERFORMED=true
+POPULATED_ORIGIN_IMPLEMENTED_TRUE_DOES_NOT_MEAN_POPULATED_ORIGIN_EXISTS=true
 POPULATED_ORIGIN_IMPLEMENTED_TRUE_DOES_NOT_MEAN_MEMBERS_LANDED=true
 FORBIDDEN_TREAT_THIS_R1_EVIDENCE_AS_POPULATED_ORIGIN_PACKAGE=true
 FORBIDDEN_TREAT_CANDIDATE_SOURCE_R1_AS_POPULATED_ORIGIN=true
@@ -3156,5 +3156,5 @@ FORBIDDEN_TREAT_ACQUISITION_R1_EVIDENCE_AS_POPULATED_ORIGIN_PACKAGE=true
 LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ~~~
 
-Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin-r1.md` (`EVIDENCE_JSON_SHA256=61f1d8cdbcdde17460359f1495a4bfefc4b59d63aadb82faa02bcfb7c0f844a2`). No lawful populated origin exists at R1 time; this fail-closed R1 does not invent source/members, does not attest a populated origin, does not acquire a candidate, does not land members, and does not flip `NO_REVIEWED`. Populated-origin contract ≠ grant ≠ this fail-closed R1 ≠ candidate-source WHERE contract ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `CANDIDATE_SOURCE_IMPLEMENTED=true` ≠ lawful populated origin exists. Candidate-source R1 evidence is not a populated-origin package. This R1 evidence JSON is not a populated-origin attestation package. `POPULATED_ORIGIN_IMPLEMENTED=true` after this R1 does NOT mean populated origin attested, does NOT mean a lawful populated origin exists, does NOT mean members landed, and does NOT mean `NO_REVIEWED` flipped. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTED=false`.
+Live `DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-candidate-source-populated-origin-r1.md` (`EVIDENCE_JSON_SHA256=f431cbceb91d830adfc332311dfbf052e74599080c22cd2736b1bc2f7e4c5ea4`). No lawful populated origin exists at R1 time; this fail-closed R1 does not invent source/members, does not attest a populated origin, does not acquire a candidate, does not land members, and does not flip `NO_REVIEWED`. Populated-origin contract ≠ grant ≠ this fail-closed R1 ≠ candidate-source WHERE contract ≠ candidate-source R1 ≠ independent-review ≠ landing ≠ members landed ≠ INSERT ≠ versioned artifact ≠ catalog closeout. `CANDIDATE_SOURCE_IMPLEMENTED=true` ≠ lawful populated origin exists. Candidate-source R1 evidence is not a populated-origin package. This R1 evidence JSON is not a populated-origin attestation package. `POPULATED_ORIGIN_IMPLEMENTED=true` after this R1 does NOT mean populated origin attested, does NOT mean a lawful populated origin exists, does NOT mean members landed, and does NOT mean `NO_REVIEWED` flipped. Production loader/provider remains empty. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Default obtain() without session remains `()`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `CANDIDATE_SOURCE_POPULATED_ORIGIN_IMPLEMENTED=false`.
 
