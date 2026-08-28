@@ -11,6 +11,7 @@ from __future__ import annotations
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import Engine
 from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.orm import Session
 
@@ -87,7 +88,7 @@ def _obtain_from_session(session: Session) -> AcceptedS2TrainValLiveConnectionEn
         bind = session.get_bind()
     except Exception:
         return _fail(LiveConnectionReasonCode.FAIL_CLOSED_NO_BIND)
-    if bind is None:
+    if bind is None or not isinstance(bind, Engine):
         return _fail(LiveConnectionReasonCode.FAIL_CLOSED_NO_BIND)
     connection = None
     try:
