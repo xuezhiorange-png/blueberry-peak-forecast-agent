@@ -1,0 +1,380 @@
+# V0.3-S3-A2 Accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read live-connection R1
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_R1
+ARTIFACT_VERSION=s3-accepted-s2-train-val-source-002-row-level-read-live-connection-r1-v1
+TASK_ID=V03_S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_R1
+TASK_CLASS=IMPLEMENTATION
+AUTHORIZATION_SCOPE=S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_ONLY
+PARALLEL_LANE=S3-A2-ACCEPTED-S2-SOURCE-002-ROW-LEVEL-READ-LIVE-CONNECTION
+SLICE=V0.3-S3
+ENGLISH_ID=ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION
+USER_GATE=可以实施
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a02307-c032-7da6-8a02-00d9b3518794
+BASE_REF=origin/main
+BASE_MAIN_SHA=90c79d0c00a8f276adf1f293ef84891e1eed4934
+BASE_MAIN_TREE_SHA=55a3db4c6edf419c8313a7eeb746e08a1f5cc317
+PARENT_GRANT_PR=428
+PARENT_GRANT_MERGE=90c79d0c00a8f276adf1f293ef84891e1eed4934
+GRANT_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-authorization.md
+GRANT_WORKPAPER_GIT_BLOB_SHA=8d775609f844a2baf94a1200aea7c7c3ad358a25
+GRANT_EVIDENCE_JSON_SHA256=c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6
+PARENT_LIVE_AUTHORITY_PR=427
+PARENT_LIVE_AUTHORITY_MERGE=a13e0d3922db4a82ace218afa9312e6e2d931e3d
+LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec
+PARENT_CONTRACT_PR=426
+PARENT_CONTRACT_MERGE=52461091d0695a44a512213f35a7afc1dcb34e6f
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-r1.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-r1.json
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_DRAFT_IS_NOT_READY=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+IMPLEMENTATION_R1=true
+EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false
+THIS_FAMILY_IS_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true
+THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_QUERYABLE_SLICE=true
+THIS_FAMILY_IS_NOT_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true
+THIS_FAMILY_IS_NOT_THE_LIVE_SESSION_WIRING_SLICE=true
+THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true
+THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true
+PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true
+THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true
+THIS_FAMILY_MUST_NOT_CLOSE_LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=true
+THIS_R1_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_A_SYNC_CONNECTION_FROM_BIND=true
+LIVE_SESSION_PROVIDER_BOUND=true
+DEFAULT_SESSION_PROVIDER_UNSET=false
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=false
+SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false
+SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_CONNECTION=true
+LIVE_CONNECTION_THROUGH_BOUND_SESSION_BIND_REASON_CODE=FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND
+FORBIDDEN_REWRITE_LIVE_CONNECTION_FREEZE_IDENTITY=true
+FORBIDDEN_REWRITE_LIVE_CONNECTION_FREEZE_FENCE=true
+FORBIDDEN_REWRITE_LIVE_SESSION_QUERY_FREEZE_IDENTITY=true
+FORBIDDEN_REWRITE_LIVE_SESSION_QUERY_FREEZE_FENCE=true
+FORBIDDEN_REWRITE_LIVE_SESSION_FREEZE_IDENTITY=true
+FORBIDDEN_REWRITE_LIVE_OBTAIN_FREEZE_IDENTITY=true
+FORBIDDEN_AUTHORIZE_S3_B_COVERAGE=true
+FORBIDDEN_AUTHORIZE_S4=true
+~~~
+
+This workpaper records implementation R1 per grant (#428) and frozen
+`docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-authorization.md`
+§3.1 (blob `8d775609f844a2baf94a1200aea7c7c3ad358a25`). Git blob bindings were
+re-traced on `origin/main` at base `90c79d0`. This R1 lands a deterministic
+connection probe that obtains a synchronous connection from the already-bound
+live session's bind via `bind.connect()` (not `session.connection()`). No
+connection string was invented. A sync connection was not obtained from bind in
+this environment
+(`FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`). Synthetic unit CONNECTED
+path is not official live connection. This R1 does not flip
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED`,
+does not flip live-session-query `IMPLEMENTED`, does not flip live-obtain
+`IMPLEMENTED`, does not flip parent `IMPLEMENTED`, does not flip
+`SOURCE_002_ROW_LEVEL_READ`, does not obtain TRAIN/VAL `content_bytes`, does
+not attest official hashes from a live read, does not land identity-set
+members, produce versioned forecast artifacts, bind catalogs, verify
+completeness, execute backtest/attribution/metrics, authorize S3-B coverage or
+S4, unseal TEST, rewrite populated-origin freeze, rewrite C0 §5, write
+`SELECT`/`FROM`/`JOIN`/`WHERE` or connection strings in docs, or treat H7
+fixture `8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18` as
+live evidence.
+
+~~~text
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_CONTRACT_AUTHORIZED=true
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false
+SOURCE_002_ROW_LEVEL_READ=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED=false
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+TEST_REMAINS_SEALED=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+LIVE_SESSION_PROVIDER_BOUND=true
+DEFAULT_SESSION_PROVIDER_UNSET=false
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=false
+SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false
+BOUND_LIVE_SESSION_IS_SYNCHRONOUSLY_QUERYABLE=false
+SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_CONNECTION=true
+LIVE_CONNECTION_THROUGH_BOUND_SESSION_BIND_REASON_CODE=FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND
+LIVE_SESSION_QUERY_THROUGH_BOUND_SESSION_REASON_CODE=FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE
+ACCEPTED_S2_TRAIN_VAL_CONTENT_BYTES_OBTAINED_FROM_BOUND_LIVE_SESSION=false
+LIVE_OBTAIN_THROUGH_BOUND_SESSION_REASON_CODE=FAIL_CLOSED_SESSION_UNREADABLE
+PARENT_UNIQUE_REMAINING_GAP=_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read
+LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=_bound_live_session_is_not_synchronously_queryable
+LIVE_OBTAIN_UNIQUE_REMAINING_GAP=_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session
+UNIQUE_REMAINING_GAP=_sync_connection_not_obtained_from_the_bound_live_session_bind
+~~~
+
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false`
+≠ sync connection from bind ≠ bound session synchronously queryable ≠
+`SOURCE_002_ROW_LEVEL_READ` ≠ parent
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED`
+≠ live-session-query
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED`
+≠ live-obtain
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED`.
+`#426` / `#427` / `#428` historical pointer snapshots retain
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false`
+where frozen; live authority is `docs/v0-3/development-plan.md` §4.4.
+A sync connection from bind later is not a queryable Session, is not
+content_bytes obtained, and is not `SOURCE_002_ROW_LEVEL_READ`. Binding a
+session that then fail-closes is not `SOURCE_002_ROW_LEVEL_READ`. This evidence
+JSON is not a versioned forecast artifact. Catalog first blocker remains
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
+## 1. Frozen §3.1 execution summary
+
+Authority: `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-authorization.md`
+§3.1.
+
+### Step 1 — Git blob re-bind on `origin/main` at `90c79d0`
+
+~~~text
+docs/v0-3/development-plan.md=15ddbf6d918f8910aed3bd4045687ba5b2857a1a
+docs/v0-3/s3/s3-daily-rowset-amendment.md=64e6efd4e5941b2438d79b6369d84e341f0cedd2
+docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md=1925179e73704fcde61cd138b5ac59ebc0545a87
+docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-contract.md=435052126b70a78bf0c6df7c03b33b3975e4d1cd
+docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-authorization.md=8d775609f844a2baf94a1200aea7c7c3ad358a25
+docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-authorization.json=6ac021704b65ed780b2d5cb65dd7066614048129
+docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-contract.md=e834bcf4fbc0f1ab902b06f4205a68b942c8712c
+docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-contract.json=63911a0e3cd8d556b5cca005ddc5f467b5e27bf7
+backend/tests/s3_daily_rowset/test_catalog_artifact.py=af59a9f1d291ab32eff23684aca477f0e4a852cd
+REBIND_COMPLETE=true
+C0_AND_S3_D_RECORDED_NOT_EDITED=true
+RESULT=PASS
+~~~
+
+### Step 2 — Freeze workpaper and authority evidence unchanged
+
+~~~text
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_FREEZE_WORKPAPER_GIT_BLOB_SHA=e834bcf4fbc0f1ab902b06f4205a68b942c8712c
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_FREEZE_EVIDENCE_JSON_SHA256=720cc266f2215cd25a4d5fa380f5e4770e988e669a7460eb6e473ad6247b98e7
+LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec
+GRANT_EVIDENCE_JSON_SHA256=c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6
+RESULT=PASS
+~~~
+
+### Step 3 — Contract file top fence unchanged
+
+~~~text
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=false
+IDENTITY_BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4
+FENCE_NOT_REWRITTEN=true
+RESULT=PASS
+~~~
+
+### Step 4 — Historical pointers not refreshed
+
+~~~text
+CONTRACT_TOP_IDENTITY_BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4
+GRANT_TIME_CURRENT_CONTRACT_GIT_BLOB_SHA=0ad438771b0a3d3fef9075d7f3d68e3259fa9a34
+R1_BASE_CURRENT_CONTRACT_GIT_BLOB_SHA=435052126b70a78bf0c6df7c03b33b3975e4d1cd
+HISTORICAL_POINTERS_NOT_REFRESHED=true
+RESULT=PASS
+~~~
+
+### Step 5 — Live §4.4 contract and implementation authorization confirmed
+
+~~~text
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_CONTRACT_AUTHORIZED=true
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false
+SOURCE_002_ROW_LEVEL_READ=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED=false
+LIVE_FLAGS_CONFIRMED_AT_BASE_IMPLEMENTED_LEFT_FALSE=true
+RESULT=PASS
+~~~
+
+### Step 6 — Copied official hashes match S2 acceptance (reference only); TEST sealed; bound session in place
+
+~~~text
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN.row_count=16224
+TRAIN.byte_count=9087071
+TRAIN.content_sha256=be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2
+VALIDATION.row_count=8006
+VALIDATION.byte_count=4484905
+VALIDATION.content_sha256=4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06
+TEST.row_count=0
+TEST.byte_count=240
+TEST.content_sha256=bd3d846a300c70a638bc169a095c3b02cb9e20c2c2aa6a96af0990d85a1fb1bd
+REFERENCE_ONLY_NO_RECOMPUTE=true
+TEST_REMAINS_SEALED=true
+LIVE_SESSION_PROVIDER_BOUND=true
+DEFAULT_SESSION_PROVIDER_UNSET=false
+THIS_R1_MAY_OBTAIN_SYNC_CONNECTION_FROM_BIND_AND_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true
+RESULT=PASS
+~~~
+
+### Step 7 — Populated-origin freeze, C0 §5, parent SOURCE_002 freeze, live-session freeze, live-obtain freeze, and live-session-query freeze unchanged
+
+~~~text
+POPULATED_ORIGIN_FREEZE=FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY
+POPULATED_ORIGIN_CONTRACT_NOT_EDITED=true
+C0_SECTION_5_TITLE=Evaluation window anchor (S3-A1 pending)
+S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED
+C0_CONTRACT_NOT_EDITED=true
+PARENT_SOURCE_002_FREEZE_NOT_REWRITTEN=true
+LIVE_SESSION_FREEZE_IDENTITY_NOT_REWRITTEN=true
+LIVE_SESSION_FREEZE_FENCE_NOT_REWRITTEN=true
+LIVE_OBTAIN_FREEZE_IDENTITY_NOT_REWRITTEN=true
+LIVE_OBTAIN_FREEZE_FENCE_NOT_REWRITTEN=true
+LIVE_SESSION_QUERY_FREEZE_IDENTITY_NOT_REWRITTEN=true
+LIVE_SESSION_QUERY_FREEZE_FENCE_NOT_REWRITTEN=true
+LIVE_CONNECTION_FREEZE_IDENTITY_NOT_REWRITTEN=true
+LIVE_CONNECTION_FREEZE_FENCE_NOT_REWRITTEN=true
+RESULT=PASS
+~~~
+
+### Step 8 — Forbidden actions not performed
+
+~~~text
+MEMBERS_NOT_ENUMERATED=true
+HASHES_TONNES_FARMS_DATES_NOT_INVENTED=true
+TEST_NOT_UNSEALED=true
+NO_VERSIONED_NOT_FLIPPED=true
+NO_REVIEWED_NOT_FLIPPED=true
+COMPLETENESS_NOT_FLIPPED=true
+S3_B_COVERAGE_NOT_AUTHORIZED=true
+S4_NOT_AUTHORIZED=true
+H7_FIXTURE_NOT_TREATED_AS_LIVE_EVIDENCE=true
+SELECT_FROM_JOIN_WHERE_NOT_WRITTEN_IN_CONTRACT=true
+CONNECTION_STRING_NOT_INVENTED=true
+CREATE_ENGINE_NOT_CALLED=true
+SESSION_CONNECTION_NOT_USED_AS_UNIQUE_PATH=true
+PARENT_IMPLEMENTED_NOT_FLIPPED=true
+LIVE_OBTAIN_IMPLEMENTED_NOT_FLIPPED=true
+LIVE_SESSION_QUERY_IMPLEMENTED_NOT_FLIPPED=true
+SOURCE_002_ROW_LEVEL_READ_NOT_FLIPPED=true
+RESULT=PASS
+~~~
+
+### Step 9 — Connection probe landed; unique remaining gap of this family remains open
+
+~~~text
+LIVE_CONNECTION_SERVICE_LANDED=true
+SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false
+LIVE_CONNECTION_THROUGH_BOUND_SESSION_BIND_REASON_CODE=FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND
+SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_CONNECTION=true
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false (unchanged)
+SOURCE_002_ROW_LEVEL_READ=false (unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false (parent unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED=false (live-obtain unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED=false (live-session-query unchanged)
+ACCEPTED_S2_TRAIN_VAL_CONTENT_BYTES_OBTAINED_FROM_BOUND_LIVE_SESSION=false
+OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=false
+SYNC_CONNECTION_FROM_BIND_IS_NOT_SOURCE_002_ROW_LEVEL_READ=true
+BOUND_LIVE_SESSION_IS_SYNCHRONOUSLY_QUERYABLE=false
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=false
+PARENT_UNIQUE_REMAINING_GAP=_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read
+LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=_bound_live_session_is_not_synchronously_queryable
+LIVE_OBTAIN_UNIQUE_REMAINING_GAP=_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session
+UNIQUE_REMAINING_GAP=_sync_connection_not_obtained_from_the_bound_live_session_bind
+SEMANTICS=connection_probe_uses_bound_live_session_bind_connect_and_fail_closes_when_session_absent_or_sync_connection_not_obtained_from_bind
+RESULT=PASS
+~~~
+
+A docs-only `IMPLEMENTED=true` flip is forbidden as a substitute for a sync
+connection from bind. This R1 actually lands the connection probe. Probing
+through the bound live session's bind fail-closed. That fail-closed probe is not
+`SOURCE_002_ROW_LEVEL_READ`.
+
+## 2. Implementation delivered
+
+- `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_connection.py`
+  (blob `864610c98a4c4e3e225db066c16c7b14bb4a746f`)
+- `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_connection.py`
+  (blob `2ebc0fa5ae9359f965964a8a70f2c5d65e7929e3`; 15 passed)
+- Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
+- Parent reader tests unchanged blob `bca600a15ebf3daa292050ab52ebcebfd953540a` (21 passed)
+- Live-session module unchanged blob `28513a5b86659bed784e64d2060c53088149dc96`
+- Live-session tests unchanged blob `c1ba24a1b87269d998b243002c231d654b08eb5a` (8 passed)
+- Live-obtain module unchanged blob `bf6e50cccf172f00c9be224d3d42bd2b1ef1bf8c`
+- Live-obtain tests unchanged blob `0f54d1db37374bba4f5fcadc726baf0dff3c22b0` (17 passed)
+- Live-session-query module unchanged blob `d6a082dcabd7fbd1db324fd8ba6153ea2240fe39`
+- Live-session-query tests unchanged blob `00aabd3376c3f1a1fa41349627a7a7faa0352b69` (13 passed)
+- S2 Python `SOURCE_002_ROW_LEVEL_READ` constant remains `False`
+- No invented connection string; no `create_engine`; no `session.connection(` unique path; no production `__init__.py`;
+  `test_catalog_artifact.py` blob unchanged
+  `af59a9f1d291ab32eff23684aca477f0e4a852cd`
+
+## 3. Six-file docs manifest
+
+| # | path |
+|---|------|
+| 1 | `docs/v0-3/development-plan.md` |
+| 2 | `docs/v0-3/s3/s3-daily-rowset-amendment.md` |
+| 3 | `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` |
+| 4 | `docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-contract.md` |
+| 5 | `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-r1.md` |
+| 6 | `docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-r1.json` |
+
+Python/tests are additional implementation files, not a seventh docs file. No
+Alembic. No edits to C0, S3-D, metric, S3-B, populated-origin, origin contract,
+kg-read contract, parent SOURCE_002 row-level-read contract, live-session
+contract, live-obtain contract, or live-session-query contract. Family contract
+top identity block from #426 remains unchanged; only §15 appended.
+
+## 4. Unique flip
+
+~~~text
+UNIQUE_FLIP=none_on_live_flags
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false (unchanged)
+SOURCE_002_ROW_LEVEL_READ=false (unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false (parent unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED=false (live-obtain unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED=false (live-session-query unchanged)
+LIVE_CONNECTION_SERVICE_LANDED=true
+SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false
+BOUND_LIVE_SESSION_IS_SYNCHRONOUSLY_QUERYABLE=false
+ACCEPTED_S2_TRAIN_VAL_CONTENT_BYTES_OBTAINED_FROM_BOUND_LIVE_SESSION=false
+OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=false
+~~~
+
+Locations:
+
+- `docs/v0-3/development-plan.md` R1 pointer (live §4.4 flags unchanged)
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §127 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` Live paragraph immediately before ## 12
+- `docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-connection-contract.md` §15 pointer
+- live-connection module and tests
+
+Historical grant pointer (#428) snapshots retain
+`DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false`.
+
+## 5. Evidence digest
+
+~~~text
+EVIDENCE_JSON_SHA256=d7cf2b25ecbb604731c4c162ac421c219f9bda84b12cea2eb3128f69f03ba8a0
+~~~
+
+## 6. Status
+
+~~~text
+THIS_DRAFT_IS_NOT_READY=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_IMPLEMENTED=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_PARENT_IMPLEMENTED=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true
+IMPLEMENTATION_MERGE_DOES_NOT_FLIP_SOURCE_002_ROW_LEVEL_READ=true
+IMPLEMENTATION_MERGE_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_BIND_ON_OFFICIAL_LIVE_PATH=true
+IMPLEMENTATION_MERGE_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true
+IMPLEMENTATION_MERGE_DOES_NOT_OBTAIN_CONTENT_BYTES=true
+IMPLEMENTATION_MERGE_DOES_NOT_ATTEST_OFFICIAL_HASHES_FROM_A_LIVE_READ=true
+AWAITING_COORDINATOR_REVIEW=true
+~~~
