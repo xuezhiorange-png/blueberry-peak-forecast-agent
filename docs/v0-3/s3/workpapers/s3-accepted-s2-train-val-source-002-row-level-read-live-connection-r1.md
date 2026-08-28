@@ -297,7 +297,7 @@ through the bound live session's bind fail-closed. That fail-closed probe is not
 ## 2. Implementation delivered
 
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_connection.py`
-  (blob `864610c98a4c4e3e225db066c16c7b14bb4a746f`)
+  (blob `f87bdf8b8add435298056f61614ee1d91c9dbbf0`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_connection.py`
   (blob `2ebc0fa5ae9359f965964a8a70f2c5d65e7929e3`; 15 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
@@ -360,7 +360,7 @@ Historical grant pointer (#428) snapshots retain
 ## 5. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=d7cf2b25ecbb604731c4c162ac421c219f9bda84b12cea2eb3128f69f03ba8a0
+EVIDENCE_JSON_SHA256=c77feb55f416eee59a304ea88238c9db5e068f8516e6417a0964077e2b658747
 ~~~
 
 ## 6. Status
