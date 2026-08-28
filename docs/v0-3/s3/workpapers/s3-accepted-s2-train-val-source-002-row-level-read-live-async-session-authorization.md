@@ -407,7 +407,7 @@ Locations:
 ## 6. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=39aba6a14be85225ca2ad6bfdfb9c6775bc7068462c1d24867a7aebb4b897240
+EVIDENCE_JSON_SHA256=26d19bc7ee3e51e663220f7a80ca37c06abee59e09ef6bc45d1de4f7d06b7245
 ~~~
 
 ## 7. Status

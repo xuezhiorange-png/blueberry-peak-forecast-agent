@@ -411,7 +411,7 @@
     "forbidden_write_dsn_or_connection_strings": true,
     "forbidden_treat_this_evidence_as_versioned_forecast_artifact": true,
     "this_family_is_the_live_async_session_slice": true,
-    "this_family_is_not_the_live_async_engine_connection_slice": false,
+    "this_family_is_not_the_live_async_engine_connection_slice": true,
     "this_family_must_not_close_live_async_connection_unique_remaining_gap": true,
     "this_family_must_not_flip_live_async_connection_implemented": true,
     "grant_merge_does_not_flip_live_async_connection_implemented": true,
@@ -486,7 +486,7 @@
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
   "this_family_is_the_live_async_session_slice": true,
-  "this_family_is_not_the_live_async_engine_connection_slice": false,
+  "this_family_is_not_the_live_async_engine_connection_slice": true,
   "this_family_must_not_close_live_async_connection_unique_remaining_gap": true,
   "this_family_must_not_flip_live_async_connection_implemented": true,
   "this_grant_does_not_obtain_an_async_session_from_the_already_configured_live_async_session_maker": true,
@@ -501,5 +501,5 @@
   "async_session_from_sessionmaker_is_not_async_connection_from_engine": true,
   "async_session_from_sessionmaker_is_not_content_bytes_obtained": true,
   "async_session_from_sessionmaker_is_not_source_002_row_level_read": true,
-  "evidence_json_sha256": "39aba6a14be85225ca2ad6bfdfb9c6775bc7068462c1d24867a7aebb4b897240"
+  "evidence_json_sha256": "26d19bc7ee3e51e663220f7a80ca37c06abee59e09ef6bc45d1de4f7d06b7245"
 }
