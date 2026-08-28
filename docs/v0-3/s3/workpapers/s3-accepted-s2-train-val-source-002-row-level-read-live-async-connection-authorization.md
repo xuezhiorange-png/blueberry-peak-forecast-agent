@@ -39,7 +39,6 @@ GRANT_MERGE_DOES_NOT_FLIP_PARENT_IMPLEMENTED=true
 GRANT_MERGE_DOES_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true
 GRANT_MERGE_DOES_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true
 GRANT_MERGE_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true
-GRANT_MERGE_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true
 GRANT_MERGE_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true
 GRANT_MERGE_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true
 GRANT_MERGE_DOES_NOT_OBTAIN_CONTENT_BYTES=true
@@ -55,9 +54,6 @@ THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_QUERYABLE_SLICE=true
 THIS_FAMILY_IS_NOT_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true
 THIS_FAMILY_IS_NOT_THE_LIVE_SESSION_WIRING_SLICE=true
 THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true
-THIS_FAMILY_MUST_NOT_CLOSE_LIVE_CONNECTION_UNIQUE_REMAINING_GAP=true
-THIS_FAMILY_MUST_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true
-LIVE_CONNECTION_FAMILY_IS_NOT_CLOSED=true
 THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true
 PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true
 THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true
@@ -113,6 +109,9 @@ family, and A2 identity-set family remain authoritative and are not reopened.
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTATION_AUTHORIZED=true
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTED=false
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_CONTRACT_AUTHORIZED=true
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=true
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTATION_AUTHORIZED=true
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED=false
@@ -172,7 +171,7 @@ QUERYABLE_BOUND_SESSION_IS_NOT_CONTENT_BYTES_OBTAINED=true
 
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTATION_AUTHORIZED=true` ≠
 `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTED` ≠
-a asynchronous connection from the already-configured live AsyncEngine ≠
+an asynchronous connection from the already-configured live AsyncEngine ≠
 bound session synchronously queryable ≠ TRAIN/VAL `content_bytes` obtained ≠
 `SOURCE_002_ROW_LEVEL_READ` ≠ parent
 `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` ≠
@@ -183,7 +182,7 @@ live-session-query `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_REA
 remains historical freeze snapshot; live authority is
 `docs/v0-3/development-plan.md` §4.4.
 This grant does not authorize a docs-only `IMPLEMENTED` flip as a substitute
-for a async connection from bind. Unique live flip of `SOURCE_002_ROW_LEVEL_READ`
+for an async connection from the already-configured live AsyncEngine. Unique live flip of `SOURCE_002_ROW_LEVEL_READ`
 remains reserved for the parent SOURCE_002 family (#410–#413). Catalog first
 blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
 
@@ -194,7 +193,9 @@ UNIQUE_REMAINING_GAP=_async_connection_not_obtained_from_the_already_configured_
 PARENT_UNIQUE_REMAINING_GAP=_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read
 LIVE_OBTAIN_UNIQUE_REMAINING_GAP=_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session
 LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=_bound_live_session_is_not_synchronously_queryable
+LIVE_CONNECTION_UNIQUE_REMAINING_GAP=_sync_connection_not_obtained_from_the_bound_live_session_bind
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED=false
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED=false
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false
@@ -212,10 +213,13 @@ ACCEPTED_S2_TRAIN_VAL_CONTENT_BYTES_OBTAINED_FROM_BOUND_LIVE_SESSION=false
 Live-async-connection freeze (#430) and live contract authority (#431) are on main.
 The live-session family unique remaining gap is closed. Live-obtain unique
 remaining gap stays open. Live-session-query unique remaining gap stays open.
-A asynchronous connection has not been obtained from the already-bound live
-session's bind. This grant authorizes a **later** implementation R1 of this
-family to obtain that async connection from the already-configured live AsyncEngine — it does not perform that work
-today.
+Live-connection unique remaining gap
+`_sync_connection_not_obtained_from_the_bound_live_session_bind` stays open; this
+grant must not close it. An asynchronous connection has not been obtained from
+the already-configured live AsyncEngine. This grant authorizes a **later**
+implementation R1 of this family to obtain that async connection from the
+already-configured live AsyncEngine — it does not perform that work today and
+does not obtain a sync connection from bind.
 
 ## 2. Upstream bindings
 
@@ -228,6 +232,21 @@ LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=2a5ca8c443d996a2bca598a8f3e86c5a03302224fd3b
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=7e6409c9dd4617702ae37cd9871ba08d58773154
 CURRENT_S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_CONTRACT_GIT_BLOB_SHA=4acce648b8b230e2a3445b4656c5b528342ca1dc
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_FREEZE_EVIDENCE_JSON_SHA256=1f6bd1d7a9b219949007a136cca44ddea6f600e19cb7e33471a38357c2081a4e
+LIVE_CONNECTION_CONTRACT_PR=426
+LIVE_CONNECTION_CONTRACT_MERGE=52461091d0695a44a512213f35a7afc1dcb34e6f
+LIVE_CONNECTION_LIVE_AUTH_PR=427
+LIVE_CONNECTION_LIVE_AUTH_MERGE=a13e0d3922db4a82ace218afa9312e6e2d931e3d
+LIVE_CONNECTION_LIVE_AUTH_EVIDENCE_JSON_SHA256=312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec
+LIVE_CONNECTION_GRANT_PR=428
+LIVE_CONNECTION_GRANT_MERGE=90c79d0c00a8f276adf1f293ef84891e1eed4934
+LIVE_CONNECTION_GRANT_EVIDENCE_JSON_SHA256=c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6
+LIVE_CONNECTION_R1_PR=429
+LIVE_CONNECTION_R1_MERGE=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52
+LIVE_CONNECTION_R1_EVIDENCE_JSON_SHA256=c77feb55f416eee59a304ea88238c9db5e068f8516e6417a0964077e2b658747
+CURRENT_S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_CONTRACT_GIT_BLOB_SHA=e26511a663601f9054c6ede0611d276eecaa563f
+FREEZE_IDENTITY_LIVE_CONNECTION_BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4
+FREEZE_IDENTITY_LIVE_CONNECTION_BASE_MAIN_TREE_SHA=c48c66f1f3a3f259a28b5b005099718fa3841fb3
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_FREEZE_EVIDENCE_JSON_SHA256=720cc266f2215cd25a4d5fa380f5e4770e988e669a7460eb6e473ad6247b98e7
 CURRENT_S3_A_AMENDMENT_GIT_BLOB_SHA=cbaf736ee198bf68750a7d27f15d73def06c3869
 CURRENT_P0_CONTRACT_GIT_BLOB_SHA=a41cb305a99a1161f98a8a67afd2fee902cc1cca
 CURRENT_DEVELOPMENT_PLAN_GIT_BLOB_SHA_AT_BASE=7b85b88842a0a83249cbc85e2d9f920e83c05ec0
@@ -262,43 +281,54 @@ implementation R1 pass of this family. This grant does not execute it.
    and
    `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTATION_AUTHORIZED=true`.
 6. Confirm copied official hashes still match S2 acceptance package (reference
-   only, do not recompute); TEST remains sealed. Bound live session is already
-   in place (`LIVE_SESSION_PROVIDER_BOUND=true`). A asynchronous connection has
-   not been obtained from that session's bind. The bound session is not
-   synchronously queryable. This grant does not obtain a async connection from
-   bind.
+   only, do not recompute); TEST remains sealed. Already-configured live
+   AsyncEngine is in place (`LANDED_ASYNC_ENGINE_MODULE=backend/app/db/session.py`,
+   blob `49845a077d252af2a7a246fa25616d7595535037`). An asynchronous connection
+   has not been obtained from that engine. Bound live session is already in place
+   (`LIVE_SESSION_PROVIDER_BOUND=true`). The bound session is not synchronously
+   queryable. A sync connection has not been obtained from that session's bind
+   (live-connection unique remaining gap stays open). This grant does not obtain
+   an async connection from engine.
 7. Confirm populated-origin freeze `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY`
    is not rewritten; C0 §5 `PENDING_NOT_MERGED` is not rewritten; parent SOURCE_002
    freeze is not rewritten; live-session freeze identity `e9f0fbb8…`,
    live-obtain freeze identity `915b6255…`, and live-session-query freeze
-   identity `c572e695…` are not rewritten.
+   identity `c572e695…`, and live-connection freeze identity `7a1047b2…`
+   are not rewritten.
 8. Must not invent hashes/tonnes/DSN or call create_engine, unseal TEST,
    uniquely flip `SOURCE_002_ROW_LEVEL_READ` / parent `IMPLEMENTED` /
    live-obtain `IMPLEMENTED` / live-session-query `IMPLEMENTED` /
-   `NO_VERSIONED`, touch Python in this grant, or treat H7 fixture
+   live-connection `IMPLEMENTED` / `NO_VERSIONED`, touch Python in this grant,
+   or treat H7 fixture
    `8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18`
    as live evidence.
-9. Later R1 of **this** family may obtain a asynchronous connection from the
-   already-bound live session's bind without inventing a DSN or calling
-   create_engine. A connection from bind is not a queryable Session, is not
-   content_bytes obtained, and is not `SOURCE_002_ROW_LEVEL_READ`. Unique
-   live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for the parent
-   SOURCE_002 family (#410–#413). This grant does not execute that R1. A later
-   docs-only R1, if issued, must not claim a async connection was obtained from
-   bind and must not uniquely flip `SOURCE_002_ROW_LEVEL_READ`. This grant
-   leaves
+9. Later R1 of **this** family may obtain an asynchronous connection from the
+   already-configured live AsyncEngine without inventing a DSN or calling
+   create_engine. Direct `session.connection()` and direct sync
+   `Engine.connect()` / bind.connect() are already claimed slices (query family /
+   live-connection family). Later R1 must not close live-connection, query, or
+   obtain unique remaining gaps and must not flip those `IMPLEMENTED` flags. An
+   async connection from engine is not a sync connection from bind, is not a
+   queryable Session, is not content_bytes obtained, and is not
+   `SOURCE_002_ROW_LEVEL_READ`. Unique live flip of `SOURCE_002_ROW_LEVEL_READ`
+   remains reserved for the parent SOURCE_002 family (#410–#413). This grant
+   does not execute that R1. A later docs-only R1, if issued, must not claim an
+   async connection was obtained from the engine and must not uniquely flip
+   `SOURCE_002_ROW_LEVEL_READ`. This grant leaves
    `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTED=false`,
-   live-session-query `IMPLEMENTED=false`, live-obtain `IMPLEMENTED=false`,
-   parent `IMPLEMENTED=false`, and `SOURCE_002_ROW_LEVEL_READ=false`.
+   live-connection `IMPLEMENTED=false`, live-session-query `IMPLEMENTED=false`,
+   live-obtain `IMPLEMENTED=false`, parent `IMPLEMENTED=false`, and
+   `SOURCE_002_ROW_LEVEL_READ=false`.
 
 ### 3.2 Honest boundary
 
-Live-connection freeze (#430) ≠ live-authority (#431) ≠ this grant ≠
-sync-connection-from-bind R1 ≠ queryable Session ≠ content_bytes obtained ≠
+Live-async-connection freeze (#430) ≠ live-authority (#431) ≠ this grant ≠
+async-connection-from-engine R1 ≠ sync-connection-from-bind (live-connection
+family) ≠ queryable Session ≠ content_bytes obtained ≠
 `SOURCE_002_ROW_LEVEL_READ`.
 `GRANT_MERGE_DOES_NOT_FLIP_IMPLEMENTED=true`.
-`GRANT_MERGE_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true
-GRANT_MERGE_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true`.
+`GRANT_MERGE_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true`.
+`GRANT_MERGE_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true`.
 `GRANT_MERGE_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true`.
 `THIS_FAMILY_IS_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`.
 `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true`.
@@ -308,8 +338,8 @@ GRANT_MERGE_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=t
 `THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true`.
 `THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`.
 `THIS_FAMILY_MUST_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`.
-`THIS_GRANT_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true
-THIS_GRANT_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_A_SYNC_CONNECTION_FROM_BIND=true`.
+`THIS_GRANT_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true`.
+`THIS_GRANT_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_A_SYNC_CONNECTION_FROM_BIND=true`.
 
 ## 4. Six-file manifest
 
@@ -334,6 +364,7 @@ appended.
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTATION_AUTHORIZED=false → true
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTED=false (companion unchanged)
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false (live-connection unchanged)
 SOURCE_002_ROW_LEVEL_READ=false (unchanged)
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false (parent unchanged)
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED=false (live-obtain unchanged)
@@ -358,7 +389,6 @@ EVIDENCE_JSON_SHA256=ea045afabbd98abfa5527de7e996affe0345c549514e6abeafce47fb2ee
 ~~~text
 THIS_DRAFT_IS_NOT_READY=true
 GRANT_MERGE_DOES_NOT_FLIP_IMPLEMENTED=true
-GRANT_MERGE_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true
 GRANT_MERGE_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true
 GRANT_MERGE_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true
 GRANT_MERGE_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true
