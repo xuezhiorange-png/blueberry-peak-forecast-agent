@@ -66,7 +66,7 @@
     "merge_authorized": false,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_contract_authorized": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_implementation_authorized": true,
-    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_implemented": false,
+    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_implemented": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_connection_contract_authorized": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_connection_implementation_authorized": true,
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_connection_implemented": false,
@@ -116,9 +116,9 @@
     "forbidden_rewrite_live_async_session_freeze_identity": true,
     "forbidden_rewrite_live_async_session_freeze_fence": true,
     "live_async_connection_r1_pr": 433,
-    "live_async_connection_r1_merge": "384e92b87be161409b005fed3559d92aed3aa7df",
+    "live_async_connection_r1_merge": "cee1111da505cf6969c1c2b9b29410da7dbc779b",
     "live_async_connection_r1_evidence_json_sha256": "26d1c8a1d5f4d6fefdb5ebccd3256ea4abc1549508b28d95e7f9ae0d0f121b56",
-    "current_s3_accepted_s2_train_val_source_002_row_level_read_live_async_connection_contract_git_blob_sha": "d0d3305f7c8b6dfbd7c34719a8fdceed631fb1df",
+    "current_s3_accepted_s2_train_val_source_002_row_level_read_live_async_connection_contract_git_blob_sha": "e53990f25a2da5dce770a0c67356b8beeebeeadb",
     "freeze_identity_live_async_connection_base_main_sha": "7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52",
     "forbidden_rewrite_live_async_connection_freeze_identity": true,
     "live_async_connection_family_is_not_closed": true,
@@ -172,7 +172,6 @@
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_test_py_blob": "1e56e51f94f986de9686a34df9be80d1f741ddb4",
     "landed_async_session_maker_module_git_blob_sha": "49845a077d252af2a7a246fa25616d7595535037",
     "parent_unique_remaining_gap": "_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read",
-    "unique_remaining_gap": "_async_session_not_obtained_from_the_already_configured_live_async_sessionmaker",
     "this_family_unique_remaining_gap_closed": true,
     "s2_python_contracts_py_blob": "95504c2271fd7ba9ebf022e291931d4758cbd9b0",
     "s2_python_source_002_row_level_read_constant": false,
@@ -260,10 +259,9 @@
     "live_session_query_implemented": false,
     "live_connection_implemented": false,
     "live_async_connection_implemented": false,
-    "this_family_implemented": false
+    "this_family_implemented": true
   },
   "grant_authority": {
-    "implementation_merge_does_not_flip_implemented": true,
     "implementation_merge_does_not_flip_parent_implemented": true,
     "implementation_merge_does_not_flip_live_obtain_implemented": true,
     "implementation_merge_does_not_flip_live_session_query_implemented": true,
@@ -313,7 +311,7 @@
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_session_query_implemented": false,
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_connection_implemented": false,
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_connection_implemented": false,
-    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_implemented": false,
+    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_implemented": true,
     "live_session_provider_bound": true,
     "official_hashes_attested_from_a_live_read": false,
     "async_session_obtained_from_the_already_configured_live_async_session_maker": true,
@@ -329,22 +327,11 @@
     "live_obtain_through_bound_session_reason_code": "FAIL_CLOSED_SESSION_UNREADABLE"
   },
   "unique_flip": {
-    "field": "none_on_live_flags",
-    "before": null,
-    "after": null,
-    "companion_unchanged": "DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED=false",
-    "source_002_row_level_read_unchanged": false,
-    "live_obtain_implemented_unchanged": false,
-    "live_session_query_implemented_unchanged": false,
-    "live_connection_implemented_unchanged": false,
-    "live_async_connection_implemented_unchanged": false,
-    "live_async_session_service_landed": true,
-    "async_session_obtained_from_the_already_configured_live_async_session_maker": true,
-    "accepted_s2_train_val_content_bytes_obtained_from_bound_live_session": false,
-    "official_hashes_attested_from_a_live_read": false,
+    "field": "DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED",
+    "before": false,
+    "after": true,
     "locations": [
-      "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session.py",
-      "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session.py",
+      "docs/v0-3/development-plan.md §4.4 live state block",
       "docs/v0-3/development-plan.md R1 pointer",
       "docs/v0-3/s3/s3-daily-rowset-amendment.md §133 pointer",
       "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md Live paragraph immediately before ## 12",
@@ -354,5 +341,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "018051958ca217e4799030daa2871293def6a69a5533c89798fab6f7f9a94318"
+  "evidence_json_sha256": "7d7d59268a01ba611df9a10dcb8b77fdc126bb438a44ce77b187c8bae8eccd51"
 }
