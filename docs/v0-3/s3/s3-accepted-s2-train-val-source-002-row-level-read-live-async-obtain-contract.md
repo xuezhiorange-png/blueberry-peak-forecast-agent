@@ -1267,3 +1267,77 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 
 Live `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTATION_AUTHORIZED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-authorization.md` (`EVIDENCE_JSON_SHA256=b68bf69bb9122146a611bd0a4630a591bf6094ac037fd8d1972f3d718a0f8f80`). Accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read live-async-obtain contract froze on main (#438); live contract authority is on main (#439). This grant authorizes a **later** implementation R1 of this live-async-obtain family to actually obtain TRAIN/VAL `content_bytes` through the already-obtained live AsyncSession without inventing a DSN or calling create_engine when the user again says 「可以实施」. `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTATION_AUTHORIZED=true` ≠ `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTED` ≠ TRAIN/VAL content_bytes obtained through the already-obtained live AsyncSession ≠ bound session synchronously queryable ≠ TRAIN/VAL `content_bytes` obtained from the bound live session ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ parent `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` ≠ live-session `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_IMPLEMENTED` ≠ live-obtain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED` ≠ live-session-query `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED` ≠ live-connection `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED` ≠ live-async-connection `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTED` ≠ live-async-session `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED` ≠ kg row-level read performed ≠ members landed ≠ `NO_REVIEWED` flipped ≠ versioned forecast artifact produced ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness verified ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed ≠ populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY` rewritten ≠ C0 §5 `PENDING_NOT_MERGED` rewritten. `#438` / `#439` contract-file fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTATION_AUTHORIZED=false` remains historical freeze snapshot; live authority is development-plan §4.4. This grant does not execute R1, does not flip `IMPLEMENTED`, does not obtain TRAIN/VAL `content_bytes` through the already-obtained live AsyncSession, does not obtain a sync connection from bind, does not make the bound session queryable, does not flip parent `IMPLEMENTED`, does not flip live-obtain `IMPLEMENTED`, does not flip live-session-query `IMPLEMENTED`, does not flip live-connection `IMPLEMENTED`, does not flip live-async-connection `IMPLEMENTED`, does not flip live-async-session `IMPLEMENTED`, does not reopen the live-async-session unique remaining gap, and does not attest official hashes from a live read. `THIS_FAMILY_IS_THE_LIVE_ASYNC_OBTAIN_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_SESSION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`. `THIS_FAMILY_MUST_NOT_REOPEN_LIVE_ASYNC_SESSION_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true`. `ASYNC_SESSION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true`. `LIVE_ASYNC_SESSION_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_CONNECTION_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_CONNECTION_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true`. `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_QUERYABLE_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_SESSION_WIRING_SLICE=true`. `THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true`. `PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=true`. `LIVE_SESSION_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `LIVE_OBTAIN_FAMILY_IS_NOT_CLOSED=true`. `LIVE_SESSION_QUERY_FAMILY_IS_NOT_CLOSED=true`. `LIVE_CONNECTION_FAMILY_IS_NOT_CLOSED=true`. `LIVE_ASYNC_CONNECTION_FAMILY_IS_NOT_CLOSED=true`. `LIVE_ASYNC_OBTAIN_SERVICE_LANDED=false`. `THIS_GRANT_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_CONTENT_BYTES_FROM_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION=true`. Already-obtained live AsyncSession ≠ TRAIN/VAL `content_bytes` obtained through that session ≠ sync connection from bind ≠ queryable bound session ≠ `content_bytes` obtained from bound live session ≠ `SOURCE_002_ROW_LEVEL_READ`. `FAIL_CLOSED_ASYNC_SESSION_UNREADABLE` is distinct from live-obtain `FAIL_CLOSED_SESSION_UNREADABLE` and is not `SOURCE_002_ROW_LEVEL_READ`. Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for the parent SOURCE_002 family (#410–#413) — not this grant and not a later R1 of this family. Unique remaining gap of this family remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session`. Live-obtain unique remaining gap remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. Live-async-connection unique remaining gap remains `_async_connection_not_obtained_from_the_already_configured_live_async_engine`. Live-connection unique remaining gap remains `_sync_connection_not_obtained_from_the_bound_live_session_bind`. Live-session-query unique remaining gap remains `_bound_live_session_is_not_synchronously_queryable`. Parent unique remaining gap remains `_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read`. This evidence JSON is not a versioned forecast artifact, completeness verified package, backtest package, metric results package, or attribution matrix. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Historical pointer snapshots may remain `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTATION_AUTHORIZED=false`.
 
+## 15. S3-A2 accepted S2 TRAIN/VAL SOURCE_002 row-level-read live-async-obtain R1 pointer
+
+~~~
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-r1.md
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-r1.json
+EVIDENCE_JSON_SHA256=ac4b203fe772f5d560127691bf3fce174b8ea457f01ab0ddd2cb91e210b6ec37
+PARENT_GRANT_PR=440
+PARENT_GRANT_MERGE=3b3e59ba05f05125dfcc22111849a62e501cb2fd
+GRANT_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-authorization.md
+GRANT_WORKPAPER_GIT_BLOB_SHA=ccb50c639da1178a8b397ea80690b43c2bcf154d
+GRANT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-authorization.json
+GRANT_EVIDENCE_GIT_BLOB_SHA=286cc3340176dd3e3482ca93c32be12da637c876
+GRANT_EVIDENCE_JSON_SHA256=b68bf69bb9122146a611bd0a4630a591bf6094ac037fd8d1972f3d718a0f8f80
+PARENT_LIVE_AUTHORITY_PR=439
+PARENT_LIVE_AUTHORITY_MERGE=4e576c37816b31ff73de9ad398ca5f5d822dbcae
+LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=1528c97699005595acbcd96996d85ecf107938e346a6930dbd74e261e0ec8aa3
+PARENT_CONTRACT_PR=438
+PARENT_CONTRACT_MERGE=aa7c7fd3e7ef0df33bcd3f395777c71b796d3d57
+FREEZE_EVIDENCE_JSON_SHA256=6d08f1ab5a12694fd1dba2e13d244b1ff5faf87a1a5db598397b4c4439cdd547
+FREEZE_IDENTITY_BASE_MAIN_SHA=30ee96a018ea12ebc80ec38fc15d664bb341bdac
+LIVE_ASYNC_SESSION_R1_MERGE=30ee96a018ea12ebc80ec38fc15d664bb341bdac
+LIVE_ASYNC_SESSION_R1_EVIDENCE_JSON_SHA256=8ac5b297157a4e2dfa8cd88695bee6e972c386f261e3c6624c3f545de15f3616
+LIVE_ASYNC_CONNECTION_R1_MERGE=cee1111da505cf6969c1c2b9b29410da7dbc779b
+LIVE_CONNECTION_R1_MERGE=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52
+LIVE_SESSION_QUERY_R1_MERGE=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4
+LIVE_OBTAIN_R1_MERGE=c572e69569b6e170d60b5f1949f903b846332cac
+LANDED_ASYNC_SESSION_MAKER=AsyncSessionMaker
+LANDED_ASYNC_SESSION_MAKER_MODULE=backend/app/db/session.py
+LANDED_ASYNC_SESSION_MAKER_MODULE_GIT_BLOB_SHA=49845a077d252af2a7a246fa25616d7595535037
+ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_PY_BLOB=01f0e6e75f527514c5a08208f91eaec99a0154d1
+ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_TEST_PY_BLOB=b40cba70f8947954d95557523f9573cf5bc6d357
+ASYNC_SESSION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true
+LIVE_ASYNC_SESSION_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true
+LIVE_ASYNC_OBTAIN_SERVICE_LANDED=true
+ACCEPTED_S2_TRAIN_VAL_CONTENT_BYTES_OBTAINED_FROM_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION=false
+LIVE_ASYNC_OBTAIN_THROUGH_ALREADY_OBTAINED_ASYNC_SESSION_REASON_CODE=FAIL_CLOSED_ASYNC_SESSION_UNREADABLE
+SYNTHETIC_OBTAINED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_ASYNC_OBTAIN=true
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTED=false
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=false
+UNIQUE_REMAINING_GAP=_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session
+OFFICIAL_PATH_OBTAINED=false
+OFFICIAL_PATH_REASON_CODE=FAIL_CLOSED_ASYNC_SESSION_UNREADABLE
+TESTS_PASSED=13
+BASE_REF=origin/main
+BASE_MAIN_SHA=3b3e59ba05f05125dfcc22111849a62e501cb2fd
+BASE_MAIN_TREE_SHA=3971d84cfb9bb2ffe9df0427d0e5aaaa9cb5e4f6
+COORDINATOR_RUN=bc-01a02307-c032-7da6-8a02-00d9b3518794
+USER_GATE=可以实施
+STANDING_OVERRIDE_NO_FURTHER_USER_GATES=true
+TASK_CLASS=IMPLEMENTATION
+PARALLEL_LANE=S3-A2-ACCEPTED-S2-SOURCE-002-ROW-LEVEL-READ-LIVE-ASYNC-OBTAIN
+ENGLISH_ID=ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN
+THIS_PR_IS_NOT_R1=false
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false
+THIS_FAMILY_IS_THE_LIVE_ASYNC_OBTAIN_SLICE=true
+THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_SESSION_SLICE=true
+THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true
+THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true
+THIS_FAMILY_MUST_NOT_REOPEN_LIVE_ASYNC_SESSION_UNIQUE_REMAINING_GAP=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true
+THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true
+THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true
+PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true
+THIS_R1_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_CONTENT_BYTES_FROM_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION=true
+SOURCE_002_ROW_LEVEL_READ=false
+TEST_REMAINS_SEALED=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+~~~
+
+Live `LIVE_ASYNC_OBTAIN_SERVICE_LANDED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-r1.md` (`EVIDENCE_JSON_SHA256=ac4b203fe772f5d560127691bf3fce174b8ea457f01ab0ddd2cb91e210b6ec37`). Implementation R1 after grant (#440) landed a deterministic async-obtain probe that obtains TRAIN/VAL `content_bytes` through the already-obtained live AsyncSession from the already-configured AsyncSessionMaker in `backend/app/db/session.py` via `async with AsyncSessionMaker() as session` (not through the bound live session, not `engine.connect()`, not `session.connection()`, not `bind.connect()`, not `get_bind()`). No connection string was invented. `EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false`. `LIVE_ASYNC_OBTAIN_THROUGH_ALREADY_OBTAINED_ASYNC_SESSION_REASON_CODE=FAIL_CLOSED_ASYNC_SESSION_UNREADABLE`. `SYNTHETIC_OBTAINED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_ASYNC_OBTAIN=true`. `ASYNC_SESSION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true`. `LIVE_ASYNC_SESSION_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTED=false` remains unchanged because the official live path did not OBTAIN TRAIN/VAL `content_bytes` through the already-obtained live AsyncSession. `LIVE_ASYNC_OBTAIN_SERVICE_LANDED=true` ≠ TRAIN/VAL `content_bytes` obtained through the already-obtained live AsyncSession ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ parent `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` ≠ live-obtain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED` ≠ live-async-session `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED` ≠ official hashes attested from a live read. This R1 does not flip `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTED`, does not flip parent `IMPLEMENTED`, does not flip live-obtain `IMPLEMENTED`, does not flip live-async-session `IMPLEMENTED`, does not reopen the live-async-session unique remaining gap, and does not flip `SOURCE_002_ROW_LEVEL_READ`. `THIS_FAMILY_IS_THE_LIVE_ASYNC_OBTAIN_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_SESSION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`. `THIS_FAMILY_MUST_NOT_REOPEN_LIVE_ASYNC_SESSION_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true`. `PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true`. `THIS_R1_DOES_NOT_AUTHORIZE_A_DOCS_ONLY_IMPLEMENTED_FLIP_AS_SUBSTITUTE_FOR_CONTENT_BYTES_FROM_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION=true`. Unique remaining gap of this family remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session`. Live-obtain unique remaining gap remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. `FAIL_CLOSED_ASYNC_SESSION_UNREADABLE` is distinct from live-obtain `FAIL_CLOSED_SESSION_UNREADABLE` and is not `SOURCE_002_ROW_LEVEL_READ`. Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for the parent SOURCE_002 family (#410–#413). This evidence JSON is not a versioned forecast artifact, completeness verified package, backtest package, metric results package, or attribution matrix. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
