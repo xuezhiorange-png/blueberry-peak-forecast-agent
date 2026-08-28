@@ -515,7 +515,7 @@
     "this_family_is_not_the_bound_live_session_bind_connection_slice": true,
     "this_family_must_not_close_live_connection_unique_remaining_gap": true,
     "this_family_must_not_flip_live_connection_implemented": true,
-    "live_async_connection_service_landed": false,
+    "live_async_connection_service_landed": true,
     "async_connection_obtained_from_the_already_configured_live_async_engine": false,
     "this_family_is_not_the_bound_live_session_queryable_slice": true,
     "this_family_is_not_the_deterministic_reader_attestation_slice": true,
@@ -690,5 +690,5 @@
   "landed_async_session_maker": "AsyncSessionMaker",
   "landed_async_session_maker_module": "backend/app/db/session.py",
   "landed_async_session_maker_module_git_blob_sha": "49845a077d252af2a7a246fa25616d7595535037",
-  "evidence_json_sha256": "8ae3e966a7d0db7dfffda2104fd19cc530295196bf51aede0eaef734b2903613"
+  "evidence_json_sha256": "457fef6d8aa096cf29dc84b5bbd7226ec39dcdf905d5b0be687d694615195135"
 }
