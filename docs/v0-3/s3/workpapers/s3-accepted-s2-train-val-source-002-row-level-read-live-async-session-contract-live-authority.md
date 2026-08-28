@@ -20,11 +20,11 @@ BASE_MAIN_SHA=ce378d0039cb405774dbd372222edf6749aadb5b
 BASE_MAIN_TREE_SHA=1489c61e6939ba0ad5943e8c0d62769cdbbc0c74
 PARENT_CONTRACT_PR=434
 PARENT_CONTRACT_MERGE=ce378d0039cb405774dbd372222edf6749aadb5b
-S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_PATH=docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_PATH=docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=acaa3f6ce7d25e63e7b51c2575e6aead4a887d6a
-S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_WORKPAPER_GIT_BLOB_SHA=119a363901239a9392edd1d46fbe852eb9606ff1
-S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.json
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.json
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_GIT_BLOB_SHA=5f3120b4094d3dd1f33b32c915fe5abec61fc771
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_JSON_SHA256=6399e123c7534a05e4ad04a3925745adcce623d98572231559ea4550dea2f4bc
 FREEZE_IDENTITY_BASE_MAIN_SHA=cee1111da505cf6969c1c2b9b29410da7dbc779b
@@ -79,12 +79,12 @@ OBTAINED_CONTENT_BYTES_ARE_NOT_SOURCE_002_ROW_LEVEL_READ=true
 
 Accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read live-async-session contract froze on
 main in #434
-(`docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md`,
-`docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md`). That merge added workpaper, evidence JSON, and the contract file whose authorization
+(`docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md`,
+`docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md`). That merge added workpaper, evidence JSON, and the contract file whose authorization
 fence already contains
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED=true`. It did **not** insert live authority into `docs/v0-3/development-plan.md` §4.4 (`DEVELOPMENT_PLAN_UNCHANGED=true` at freeze). This workpaper records the unique remaining gap closure: live registry acknowledgment that the frozen live-async-session
 contract is authorized — not authorizing implementation, not obtaining an async connection
-from the already-configured live AsyncEngine, not obtaining a sync connection from the
+from the already-configured live AsyncSessionMaker, not obtaining an async connection from the already-configured live AsyncEngine, not obtaining a sync connection from the
 bound live session bind, not making the bound session
 synchronously queryable, not obtaining TRAIN/VAL `content_bytes`, not attesting official hashes from a live read, not flipping `SOURCE_002_ROW_LEVEL_READ`, not flipping parent `IMPLEMENTED`, not flipping live-obtain `IMPLEMENTED`, not flipping live-session-query `IMPLEMENTED`, not flipping live-connection `IMPLEMENTED`, and not rewriting kg-read / origin / parent SOURCE_002 / live-session / live-obtain / live-session-query / live-connection / populated-origin freeze.
 
@@ -217,7 +217,11 @@ S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRAC
 
 Locations:
 
-- `docs/v0-3/development-plan.md` §4.4 live state block and live-authority pointer - `docs/v0-3/s3/s3-daily-rowset-amendment.md` §128 pointer - `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` Live paragraph immediately before ## 12 - `docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md` §13 pointer 
+- `docs/v0-3/development-plan.md` §4.4 live state block and live-authority pointer
+- `docs/v0-3/s3/s3-daily-rowset-amendment.md` §131 pointer
+- `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` Live paragraph immediately before ## 12
+- `docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md` §13 pointer
+
 Companions introduced as `false` in live §4.4:
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTATION_AUTHORIZED`,
 `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED`. 
@@ -227,10 +231,12 @@ are restated, not flipped.
 
 ## 5. Honest boundary（中文）
 
-- #434 file fence `AUTHORIZED=true` ≠ live §4.4，直到本插入 - 本 live `CONTRACT_AUTHORIZED=true` ≠ `IMPLEMENTATION_AUTHORIZED` ≠ `IMPLEMENTED` ≠   已从已配置 live AsyncEngine 取得 async connection ≠ bound session 可同步查询 ≠
+- #434 file fence `AUTHORIZED=true` ≠ live §4.4，直到本插入
+- 本 live `CONTRACT_AUTHORIZED=true` ≠ `IMPLEMENTATION_AUTHORIZED` ≠ `IMPLEMENTED` ≠
+  已从已配置 live AsyncSessionMaker 取得 async session ≠ 已从已配置 live AsyncEngine 取得 async connection ≠ bound session 可同步查询 ≠
   TRAIN/VAL `content_bytes` 已取得 ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ parent `IMPLEMENTED`
-  ≠ live-obtain `IMPLEMENTED` ≠ live-session-query `IMPLEMENTED` ≠ live-connection `IMPLEMENTED`
-- live session 已绑定 ≠ 从已配置 live AsyncEngine 取得 async connection ≠ bound session 可同步查询 ≠
+  ≠ live-obtain `IMPLEMENTED` ≠ live-session-query `IMPLEMENTED` ≠ live-connection `IMPLEMENTED` ≠ live-async-connection `IMPLEMENTED`
+- live session 已绑定 ≠ 从已配置 live AsyncSessionMaker 取得 async session ≠ 从已配置 live AsyncEngine 取得 async connection ≠ bound session 可同步查询 ≠
   TRAIN/VAL `content_bytes` 已取得 ≠ `SOURCE_002_ROW_LEVEL_READ`
 - live-obtain 服务已落地 ≠ content bytes 已取得 ≠ `SOURCE_002_ROW_LEVEL_READ`
 - live-session-query 探针已落地 ≠ bound session 可同步查询 ≠ `SOURCE_002_ROW_LEVEL_READ`
@@ -238,8 +244,12 @@ are restated, not flipped.
 - `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE` ≠ `SOURCE_002_ROW_LEVEL_READ`
 - parent reader 已落地 ≠ 官方 hash 已 attestation ≠ `SOURCE_002_ROW_LEVEL_READ`
 - kg-read `IMPLEMENTED=true` ≠ 公斤已读 ≠ `SOURCE_002_ROW_LEVEL_READ`
-- 从已配置 live AsyncEngine 取得的 async connection ≠ 可查询 Session ≠ 已取得 `content_bytes` ≠   `SOURCE_002_ROW_LEVEL_READ`
-- `THIS_FAMILY_IS_THE_LIVE_ASYNC_SESSION_SLICE=true THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`
+- 从已配置 live AsyncSessionMaker 取得的 async session ≠ 从已配置 live AsyncEngine 取得的 async connection ≠ 可查询 Session ≠ 已取得 `content_bytes` ≠
+  `SOURCE_002_ROW_LEVEL_READ`
+- `THIS_FAMILY_IS_THE_LIVE_ASYNC_SESSION_SLICE=true`
+- `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`
+- `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`
+- `LIVE_ASYNC_CONNECTION_FAMILY_IS_NOT_CLOSED=true`
 - `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true`
 - `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_CONNECTION_UNIQUE_REMAINING_GAP=true`
 - `THIS_FAMILY_MUST_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true`
@@ -285,7 +295,7 @@ LIVE_INSERT_DOES_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`
 ## 6. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=27bed500134ab1437c00400b75dc3847909c4b027e47c5a8ee994b086fd217c5
+EVIDENCE_JSON_SHA256=d8268a4410bf52112cac28d81bec082c9d8e0b1e3d4c8f8f8bba74482b4fa477
 ~~~
 
 ## 7. Status

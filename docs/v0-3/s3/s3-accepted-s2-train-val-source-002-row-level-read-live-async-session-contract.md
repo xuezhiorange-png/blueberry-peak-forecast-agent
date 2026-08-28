@@ -406,39 +406,57 @@ FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE_IS_NOT_SOURCE_002_ROW_LEVEL_READ
 
 This document freezes **accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read
 live async session** authority for a dedicated **already-configured live AsyncSessionMaker async
-session** slice. The user authorized a **new family** with `USER_GATE=授权`. The parent SOURCE_002 row-level-read family (#410–#413) remains **not closed**:
+session** slice. The user authorized a **new family** with `USER_GATE=授权`.
+The parent SOURCE_002 row-level-read family (#410–#413) remains **not closed**:
 official TRAIN+VAL content hashes have not been attested from a live read.
-Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for that parent family.
+Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for that parent
+family.
 
 The live-session family (#414–#417) already bound the default live session
 provider. That family's unique remaining gap is **closed**. Binding a live
-session is not `SOURCE_002_ROW_LEVEL_READ`. 
+session is not `SOURCE_002_ROW_LEVEL_READ`.
+
 The live-obtain family (#418–#421) already landed a deterministic obtain service.
-That family is **not closed**: TRAIN/VAL `content_bytes` were not obtained through the bound live session. Bound obtain in this environment fail-closed
-`FAIL_CLOSED_SESSION_UNREADABLE`. Synthetic unit OBTAINED path is not official live obtain. Live-obtain unique remaining gap remains
-`_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. This family must not close that gap and must not flip live-obtain
-`IMPLEMENTED`. 
+That family is **not closed**: TRAIN/VAL `content_bytes` were not obtained
+through the bound live session. Bound obtain in this environment fail-closed
+`FAIL_CLOSED_SESSION_UNREADABLE`. Synthetic unit OBTAINED path is not official
+live obtain. Live-obtain unique remaining gap remains
+`_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`.
+This family must not close that gap and must not flip live-obtain
+`IMPLEMENTED`.
+
 The live-session-query family (#422–#425) already landed a deterministic query
 probe. That family is **not closed**: the bound live session is not
 synchronously queryable. Bound probe in this environment fail-closed
-`FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE`. Synthetic unit QUERYABLE path is not official live queryable. Live-session-query unique remaining gap remains
-`_bound_live_session_is_not_synchronously_queryable`. This family must not close that gap and must not flip live-session-query `IMPLEMENTED`. 
-At base `cee1111`, an asynchronous session has **not** been obtained from the already-configured live AsyncSessionMaker. This contract authorizes a **future**
+`FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE`. Synthetic unit QUERYABLE path
+is not official live queryable. Live-session-query unique remaining gap remains
+`_bound_live_session_is_not_synchronously_queryable`. This family must not close
+that gap and must not flip live-session-query `IMPLEMENTED`.
+
+At base `cee1111`, an asynchronous session has **not** been obtained from the
+already-configured live AsyncSessionMaker. This contract authorizes a **future**
 deterministic service to obtain that asynchronous session from the already-
 configured live AsyncSessionMaker without inventing a DSN and without calling
 create_engine / create_async_engine — without executing that work today, without rewriting
 live-session / live-obtain / live-session-query / live-connection freeze, without
 inserting live §4.4, issuing a grant, or running R1, and without flipping live
-`SOURCE_002_ROW_LEVEL_READ`, parent `IMPLEMENTED`, live-obtain `IMPLEMENTED`, live-session-query `IMPLEMENTED`, live-connection `IMPLEMENTED`, or live-async-connection
-`IMPLEMENTED`. An AsyncSession from that maker is not an async connection from engine, is not a sync connection from bind, is not a queryable Session, is not TRAIN/VAL
-`content_bytes` obtained, and is not `SOURCE_002_ROW_LEVEL_READ`. 
+`SOURCE_002_ROW_LEVEL_READ`, parent `IMPLEMENTED`, live-obtain `IMPLEMENTED`,
+live-session-query `IMPLEMENTED`, live-connection `IMPLEMENTED`, or live-async-connection
+`IMPLEMENTED`. An AsyncSession from that maker is not an async connection from engine,
+is not a sync connection from bind, is not a queryable Session, is not TRAIN/VAL
+`content_bytes` obtained, and is not `SOURCE_002_ROW_LEVEL_READ`.
+
 Merging this contract ≠ implementation authorized ≠ implemented ≠ async session
 obtained from the already-configured live AsyncSessionMaker ≠ sync connection from bind ≠ session queryable ≠ content bytes obtained ≠
-`SOURCE_002_ROW_LEVEL_READ` ≠ kg actually read ≠ identity-set member enumeration ≠ versioned forecast artifact exists ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness `VERIFIED=true` ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed.
+`SOURCE_002_ROW_LEVEL_READ` ≠ kg actually read ≠ identity-set member
+enumeration ≠ versioned forecast artifact exists ≠ `NO_VERSIONED` flipped ≠
+catalog bindable ≠ completeness `VERIFIED=true` ≠ backtest/attribution/metrics
+computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed.
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED=true`
 (file fence) ≠ live §4.4 authority.
 
-Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. 
+Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
 ## 1. Inherited authority (not reopened)
 
 ### 1.1 P0 actuals and forecasts authority
@@ -464,19 +482,25 @@ SLICE_S2_COMPLETE=PASS
 ### 1.3 Origin family (#402–#405)
 
 The origin family froze dataset-identity-layer lawful origin naming. At this
-freeze's base `cee1111`, `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_LAWFUL_ORIGIN_IMPLEMENTED=true` in live §4.4. Origin naming ≠ kg row-level read ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ content bytes obtained ≠ queryable bound session ≠ connection from bind. This
+freeze's base `cee1111`, `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_LAWFUL_ORIGIN_IMPLEMENTED=true` in
+live §4.4. Origin naming ≠ kg row-level read ≠ `SOURCE_002_ROW_LEVEL_READ` ≠
+content bytes obtained ≠ queryable bound session ≠ connection from bind. This
 family does not reopen origin freeze, live-authority, grant, or R1 evidence.
 
 ### 1.4 Kg-read family (#406–#409, closed parent)
 
 The kg-read family froze WHAT/HOW for a future deterministic kilogram row-level
-read and recorded docs-only `IMPLEMENTED=true`. Kg-read `IMPLEMENTED=true` ≠ kg actually read ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ content bytes obtained ≠ queryable bound session ≠ connection from bind. This family does not supersede kg-read
-and must not copy that docs-only `IMPLEMENTED` pattern as a substitute for a sync connection from bind, for a queryable session, for obtaining content bytes,
+read and recorded docs-only `IMPLEMENTED=true`. Kg-read `IMPLEMENTED=true` ≠ kg
+actually read ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ content bytes obtained ≠ queryable
+bound session ≠ connection from bind. This family does not supersede kg-read
+and must not copy that docs-only `IMPLEMENTED` pattern as a substitute for a
+sync connection from bind, for a queryable session, for obtaining content bytes,
 or for the parent-family read.
 
 ### 1.5 Parent SOURCE_002 row-level-read family (#410–#413, not closed)
 
-At base `cee1111` live §4.4 holds: 
+At base `cee1111` live §4.4 holds:
+
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTATION_AUTHORIZED=true
@@ -486,13 +510,17 @@ SOURCE_002_ROW_LEVEL_READ=false
 
 Parent R1 (#413) landed the deterministic reader. Official hashes were not
 attested from a live read. Parent unique remaining gap remains
-`_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read`. Legal unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for that parent family. This family does not rewrite parent freeze fence
+`_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read`.
+Legal unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for that
+parent family. This family does not rewrite parent freeze fence
 (`IMPLEMENTATION_AUTHORIZED=false` at contract top / identity
-`BASE_MAIN_SHA=7a1f825fa537066437859cf5e87b61b88b55542b`), live-authority, grant, or R1 evidence.
+`BASE_MAIN_SHA=7a1f825fa537066437859cf5e87b61b88b55542b`), live-authority, grant,
+or R1 evidence.
 
 ### 1.6 Live-session family (#414–#417, unique remaining gap closed)
 
-At base `cee1111` live §4.4 holds: 
+At base `cee1111` live §4.4 holds:
+
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_IMPLEMENTATION_AUTHORIZED=true
@@ -514,7 +542,8 @@ does not reopen or "fix" that closed wiring slice.
 
 ### 1.7 Live-obtain family (#418–#421, not closed)
 
-At base `cee1111` live §4.4 holds: 
+At base `cee1111` live §4.4 holds:
+
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTATION_AUTHORIZED=true
@@ -531,10 +560,12 @@ Live-obtain R1 (#421) landed the obtain service. Bound obtain fail-closed
 and freeze fence
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTATION_AUTHORIZED=false`
 remain historical snapshots. This family does not rewrite them, does not flip
-live-obtain `IMPLEMENTED`, and does not close that unique remaining gap. 
+live-obtain `IMPLEMENTED`, and does not close that unique remaining gap.
+
 ### 1.8 Live-session-query family (#422–#425, not closed)
 
-At base `cee1111` live §4.4 holds: 
+At base `cee1111` live §4.4 holds:
+
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTATION_AUTHORIZED=true
@@ -545,17 +576,20 @@ SYNTHETIC_QUERYABLE_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_QUERYABLE=true
 ~~~
 
 Live-session-query R1 (#425) landed the query probe. Bound probe fail-closed
-`FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE`. Live-session-query unique remaining gap remains `_bound_live_session_is_not_synchronously_queryable`.
+`FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE`. Live-session-query unique
+remaining gap remains `_bound_live_session_is_not_synchronously_queryable`.
 `#422` freeze identity `BASE_MAIN_SHA=c572e69569b6e170d60b5f1949f903b846332cac`
 and freeze fence
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTATION_AUTHORIZED=false`
 remain historical snapshots. This family does not rewrite them, does not flip
-live-session-query `IMPLEMENTED`, and does not close that unique remaining gap. Obtaining a sync connection from the already-bound live session's bind is not
+live-session-query `IMPLEMENTED`, and does not close that unique remaining gap.
+Obtaining a sync connection from the already-bound live session's bind is not
 making that Session synchronously queryable.
 
 ### 1.9 Live-connection family (#426–#429, not closed)
 
-At base `cee1111` live §4.4 holds: 
+At base `cee1111` live §4.4 holds:
+
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=true
@@ -566,20 +600,26 @@ SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_CONNECTION=true
 ~~~
 
 Live-connection R1 (#429) landed the bind-connection service at merge
-`7f2011cb` (historical R1 that landed that honest fail-closed, not this freeze's base). At this freeze's base `cee1111` (live-async-connection R1 #433 merge), the landed live-connection production module still does not obtain a live
+`7f2011cb` (historical R1 that landed that honest fail-closed, not this freeze's
+base). At this freeze's base `cee1111` (live-async-connection R1 #433 merge), the
+landed live-connection production module still does not obtain a live
 `Connection` from the bound live session's `.bind`
-(`FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`). Live-connection unique remaining gap remains
+(`FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`). Live-connection unique
+remaining gap remains
 `_sync_connection_not_obtained_from_the_bound_live_session_bind`.
-`#426` freeze identity `BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4` and freeze fence
+`#426` freeze identity `BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4` and
+freeze fence
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=false`
 remain historical snapshots. This family does not rewrite them, does not flip
-live-connection `IMPLEMENTED`, and does not close that unique remaining gap. Obtaining an async session from the already-configured live AsyncSessionMaker is not
+live-connection `IMPLEMENTED`, and does not close that unique remaining gap.
+Obtaining an async session from the already-configured live AsyncSessionMaker is not
 obtaining a sync connection from the bound live session's bind.
 
 
 ### 1.10 Live-async-connection family (#430–#433, not closed)
 
-At base `cee1111` live §4.4 holds: 
+At base `cee1111` live §4.4 holds:
+
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTATION_AUTHORIZED=true
@@ -591,23 +631,28 @@ SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_ASYNC_CONNECTION=true
 
 Live-async-connection R1 (#433) landed the async-connection service. Official live
 fail-closed `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_ENGINE`.
-`ASYNC_CONNECTION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=false`. Live-async-connection unique remaining gap remains
+`ASYNC_CONNECTION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=false`.
+Live-async-connection unique remaining gap remains
 `_async_connection_not_obtained_from_the_already_configured_live_async_engine`.
-`#430` freeze identity `BASE_MAIN_SHA=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52` and freeze fence
+`#430` freeze identity `BASE_MAIN_SHA=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52` and
+freeze fence
 `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_IMPLEMENTATION_AUTHORIZED=false`
 remain historical snapshots. This family does not rewrite them, does not flip
-live-async-connection `IMPLEMENTED`, and does not close that unique remaining gap. Obtaining an AsyncSession from the already-configured live AsyncSessionMaker is not
+live-async-connection `IMPLEMENTED`, and does not close that unique remaining gap.
+Obtaining an AsyncSession from the already-configured live AsyncSessionMaker is not
 obtaining an async connection from the already-configured live AsyncEngine.
 
 ### 1.11 Populated-origin closed family
 
-Historical `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY=true` remains on the populated-origin contract freeze. This file does not rewrite populated-origin
+Historical `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY=true` remains on the
+populated-origin contract freeze. This file does not rewrite populated-origin
 §§1–9 or flip that snapshot.
 
 ### 1.12 C0 §5 and P0 §11 (historical snapshots only)
 
 C0 §5 title remains "Evaluation window anchor (S3-A1 pending)" with
-`S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED`. P0 §11 retains five subtasks (S3-P0 / S3-A / S3-B / S3-C / S3-D). This family is not a sixth P0 §11
+`S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED`. P0 §11 retains five
+subtasks (S3-P0 / S3-A / S3-B / S3-C / S3-D). This family is not a sixth P0 §11
 row.
 
 ## 2. Why this is the remaining contract gap
@@ -615,12 +660,19 @@ row.
 1. Parent SOURCE_002 row-level-read R1 landed the deterministic reader; official
    hashes not attested from a live read.
 2. Live-session unique remaining gap is **closed** (provider bound).
-3. Live-obtain not closed: fail-closed `FAIL_CLOSED_SESSION_UNREADABLE`. 4. Live-session-query not closed: fail-closed
-   `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE`. 5. Live-connection R1 landed the bind-connection service. Official live
-   fail-closed `FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`.    `SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false`.    `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false`.    Unique remaining gap of **that** family remains open and is **not** this
+3. Live-obtain not closed: fail-closed `FAIL_CLOSED_SESSION_UNREADABLE`.
+4. Live-session-query not closed: fail-closed
+   `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE`.
+5. Live-connection R1 landed the bind-connection service. Official live
+   fail-closed `FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`.
+   `SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false`.
+   `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTED=false`.
+   Unique remaining gap of **that** family remains open and is **not** this
    family's gap.
 6. Live-async-connection R1 landed the async-connection service. Official live
-   fail-closed `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_ENGINE`.    `ASYNC_CONNECTION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=false`.    Unique remaining gap of **that** family remains open and is **not** this
+   fail-closed `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_ENGINE`.
+   `ASYNC_CONNECTION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=false`.
+   Unique remaining gap of **that** family remains open and is **not** this
    family's gap.
 7. An asynchronous session has not been obtained from the already-configured
    live AsyncSessionMaker.
@@ -630,8 +682,10 @@ row.
 
 Merging this contract ≠ implementation authorized ≠ implemented ≠ async session
 obtained from the already-configured live AsyncSessionMaker ≠ sync connection from bind ≠
-session queryable ≠ content bytes obtained ≠ `SOURCE_002_ROW_LEVEL_READ`. 
-File fence `AUTHORIZED=true` ≠ live §4.4. 
+session queryable ≠ content bytes obtained ≠ `SOURCE_002_ROW_LEVEL_READ`.
+
+File fence `AUTHORIZED=true` ≠ live §4.4.
+
 
 ## 3. Frozen live-async-session target (not the kg read itself)
 
@@ -757,8 +811,12 @@ call create_async_engine or async_sessionmaker, must not claim the Session itsel
 rewrite live-session / live-obtain / live-session-query freeze identity or
 freeze fence, must not rematerialize from xls / Sheets / S1 JSON / PIT /
 old-winner / raw primary, must not unseal TEST, and must not treat H7 fixture
-`8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18` as live evidence. A later docs-only `IMPLEMENTED=true` flip is forbidden as a substitute for actually obtaining that async session from the already-configured live AsyncSessionMaker. A connection from bind
-is not live-session-query `IMPLEMENTED`, is not live-obtain `IMPLEMENTED`, is not parent `IMPLEMENTED`, and is not `SOURCE_002_ROW_LEVEL_READ`. 
+`8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18` as live
+evidence. A later docs-only `IMPLEMENTED=true` flip is forbidden as a substitute
+for actually obtaining that async session from the already-configured live AsyncSessionMaker. A connection from bind
+is not live-session-query `IMPLEMENTED`, is not live-obtain `IMPLEMENTED`, is not
+parent `IMPLEMENTED`, and is not `SOURCE_002_ROW_LEVEL_READ`.
+
 ## 4. Relationship to parent, live-session, live-obtain, live-session-query, live-connection, live-async-connection, origin, and kg-read families
 
 - Parent reader landed ≠ official hashes attested ≠ `SOURCE_002_ROW_LEVEL_READ`
@@ -774,11 +832,14 @@ is not live-session-query `IMPLEMENTED`, is not live-obtain `IMPLEMENTED`, is no
 - AsyncSession from the already-configured live AsyncSessionMaker ≠ async connection
   from the already-configured live AsyncEngine ≠ sync connection from bind ≠
   queryable bound session ≠ content bytes obtained ≠ `SOURCE_002_ROW_LEVEL_READ`
-- Origin `IMPLEMENTED=true` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ connection from bind - Kg-read `IMPLEMENTED=true` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ kg read performed - This family does not supersede parent attestation, live-session wiring,
+- Origin `IMPLEMENTED=true` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ connection from bind
+- Kg-read `IMPLEMENTED=true` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ kg read performed
+- This family does not supersede parent attestation, live-session wiring,
   live-obtain obtain, live-session-query queryable-session, live-connection
   bind-connection, live-async-connection async-connection, origin naming, or
   kg-read target freeze
-- Unique live flip of `SOURCE_002_ROW_LEVEL_READ` stays with the parent family - Live-obtain unique remaining gap stays with the live-obtain family
+- Unique live flip of `SOURCE_002_ROW_LEVEL_READ` stays with the parent family
+- Live-obtain unique remaining gap stays with the live-obtain family
 - Live-session-query unique remaining gap stays with the live-session-query
   family
 - Live-connection unique remaining gap stays with the live-connection
@@ -788,20 +849,25 @@ is not live-session-query `IMPLEMENTED`, is not live-obtain `IMPLEMENTED`, is no
 - This family's later unique legal flip, if any, is
   `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED`
   after an async session is actually obtained from the already-configured live
-  AsyncSessionMaker — not `SOURCE_002_ROW_LEVEL_READ`, not live-async-connection   `IMPLEMENTED`, not live-connection `IMPLEMENTED`, not live-obtain `IMPLEMENTED`, and not   live-session-query `IMPLEMENTED`
+  AsyncSessionMaker — not `SOURCE_002_ROW_LEVEL_READ`, not live-async-connection
+  `IMPLEMENTED`, not live-connection `IMPLEMENTED`, not live-obtain `IMPLEMENTED`, and not
+  live-session-query `IMPLEMENTED`
 
 ## 5. Forecast-side and replay-identity table (not harvest read target)
 
 - `FROZEN_REPLAY_IDENTITY_TABLE_NAME=s3_incumbent_forecast_replay_identity`
-- `OBJECT_ROW_COUNT_AT_REVIEW=0` — forecast replay table, not harvest kg source - Empty-table DISTINCT / empty replay-table read / zero-row live read are not
-  kg read evidence, not `SOURCE_002_ROW_LEVEL_READ` evidence, not live-obtain   evidence, not live-session-query evidence, and not this family's async-session evidence
+- `OBJECT_ROW_COUNT_AT_REVIEW=0` — forecast replay table, not harvest kg source
+- Empty-table DISTINCT / empty replay-table read / zero-row live read are not
+  kg read evidence, not `SOURCE_002_ROW_LEVEL_READ` evidence, not live-obtain
+  evidence, not live-session-query evidence, and not this family's async-session evidence
 - H7 fixture hash `8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18`
   must not be treated as live evidence, content identity, or this connection
   target
 
 ## 6. Frozen-time honest blockers (not flipped)
 
-Live §4.4 facts at base `cee1111`: 
+Live §4.4 facts at base `cee1111`:
+
 ~~~text
 CURRENT_S3_C_BACKTEST_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
 CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
@@ -946,7 +1012,11 @@ FORBIDDEN_DOCS_ONLY_IMPLEMENTED_AS_SUBSTITUTE_FOR_AN_ASYNC_CONNECTION_FROM_THE_A
 | Make bound session queryable | forbidden |
 | Obtain TRAIN/VAL content bytes | forbidden |
 | Official-hash attestation from a live read | forbidden |
-| Unique live flip of `SOURCE_002_ROW_LEVEL_READ` | forbidden (reserved for parent family) | | Flip live-obtain `IMPLEMENTED` | forbidden (reserved for live-obtain family) | | Flip live-session-query `IMPLEMENTED` | forbidden (reserved for live-session-query family) | | Flip live-connection `IMPLEMENTED` | forbidden (reserved for live-connection family) | | Artifact production | forbidden |
+| Unique live flip of `SOURCE_002_ROW_LEVEL_READ` | forbidden (reserved for parent family) |
+| Flip live-obtain `IMPLEMENTED` | forbidden (reserved for live-obtain family) |
+| Flip live-session-query `IMPLEMENTED` | forbidden (reserved for live-session-query family) |
+| Flip live-connection `IMPLEMENTED` | forbidden (reserved for live-connection family) |
+| Artifact production | forbidden |
 | S3-B coverage | forbidden |
 | S4 | forbidden |
 
@@ -954,11 +1024,16 @@ Future live-authority insert (separate 「可以下一步」) may authorize this
 live §4.4. Future grant (separate 「可以实施」 after live authority) may authorize
 implementation. Future implementation R1 of **this** family may obtain an
 async session from the already-configured live AsyncSessionMaker. That R1
-still must not uniquely flip `SOURCE_002_ROW_LEVEL_READ`, must not flip live-obtain `IMPLEMENTED`, must not flip live-session-query `IMPLEMENTED`, and must not claim the Session itself is queryable. The unique live flip of
-`SOURCE_002_ROW_LEVEL_READ` requires a later implementation of the **parent** family that actually attests TRAIN+VAL official content hashes from a live read.
-Docs-only PRs of this family must not flip `SOURCE_002_ROW_LEVEL_READ`, must not enumerate member literals, must not unseal TEST, must not invent
+still must not uniquely flip `SOURCE_002_ROW_LEVEL_READ`, must not flip
+live-obtain `IMPLEMENTED`, must not flip live-session-query `IMPLEMENTED`, and
+must not claim the Session itself is queryable. The unique live flip of
+`SOURCE_002_ROW_LEVEL_READ` requires a later implementation of the **parent**
+family that actually attests TRAIN+VAL official content hashes from a live read.
+Docs-only PRs of this family must not flip `SOURCE_002_ROW_LEVEL_READ`,
+must not enumerate member literals, must not unseal TEST, must not invent
 SQL/DSN/member/hash/tonnes, must not call create_async_engine or async_sessionmaker, and must not flip
-`NO_VERSIONED`. 
+`NO_VERSIONED`.
+
 ## 9. Honest boundary（中文）
 
 - S2 已验收 ≠ S3 已读公斤
@@ -974,10 +1049,17 @@ SQL/DSN/member/hash/tonnes, must not call create_async_engine or async_sessionma
 - live-connection 服务已落地 ≠ 已从 bind 取得同步 connection ≠
   `SOURCE_002_ROW_LEVEL_READ`
 - `FAIL_CLOSED_SESSION_UNREADABLE` ≠ `SOURCE_002_ROW_LEVEL_READ`
-- `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE` ≠   `SOURCE_002_ROW_LEVEL_READ`
-- 本 file fence `AUTHORIZED=true` ≠ live §4.4 ≠ `IMPLEMENTATION_AUTHORIZED` ≠   `IMPLEMENTED` ≠ connection 已从 bind 取得 ≠ session 可查询 ≠ content bytes   已取得 ≠ `SOURCE_002_ROW_LEVEL_READ`
-- 本 freeze ≠ completeness `VERIFIED=true`（reason 仍是   `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`） - 本 freeze ≠ catalog 可绑定；`DEFAULT_CATALOG_FIRST_BLOCKER` 仍是   `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`
-- 本 freeze ≠ 翻 `NO_VERSIONED` / `NO_REVIEWED` / 解封 TEST / S3-B / S4 - 本 freeze ≠ 改写 populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY`
+- `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE` ≠
+  `SOURCE_002_ROW_LEVEL_READ`
+- 本 file fence `AUTHORIZED=true` ≠ live §4.4 ≠ `IMPLEMENTATION_AUTHORIZED` ≠
+  `IMPLEMENTED` ≠ connection 已从 bind 取得 ≠ session 可查询 ≠ content bytes
+  已取得 ≠ `SOURCE_002_ROW_LEVEL_READ`
+- 本 freeze ≠ completeness `VERIFIED=true`（reason 仍是
+  `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`）
+- 本 freeze ≠ catalog 可绑定；`DEFAULT_CATALOG_FIRST_BLOCKER` 仍是
+  `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`
+- 本 freeze ≠ 翻 `NO_VERSIONED` / `NO_REVIEWED` / 解封 TEST / S3-B / S4
+- 本 freeze ≠ 改写 populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY`
 - 本 freeze ≠ 改写 C0 §5 `PENDING_NOT_MERGED`
 - 本 freeze ≠ 改写 origin / kg-read / parent SOURCE_002 / live-session /
   live-obtain / live-session-query freeze 历史快照
@@ -986,7 +1068,8 @@ SQL/DSN/member/hash/tonnes, must not call create_async_engine or async_sessionma
 - 本家族是【从已配置的 live AsyncSessionMaker 取得 AsyncSession】的独立 slice；
   本 freeze 仍不执行该工作
 - async session ≠ async connection from engine ≠ sync connection from bind
-- `SOURCE_002_ROW_LEVEL_READ` 的唯一 live 翻转仍留给父家族后续【确定性 reader 实际   读取并 attestation 官方 content hash】
+- `SOURCE_002_ROW_LEVEL_READ` 的唯一 live 翻转仍留给父家族后续【确定性 reader 实际
+  读取并 attestation 官方 content hash】
 - live-obtain unique remaining gap 仍留给 live-obtain 家族
 - live-session-query unique remaining gap 仍留给 live-session-query 家族
 - live-async-connection unique remaining gap 仍留给 live-async-connection 家族
@@ -1000,7 +1083,8 @@ SQL/DSN/member/hash/tonnes, must not call create_async_engine or async_sessionma
 LLM agents organize explanations and call tools only. Tonnes, intervals, member
 values, and hashes must come from deterministic services or accepted evidence
 packages. LLM must not invent tonnes, members, hashes, or DSN strings. Official
-TRAIN and VALIDATION `content_sha256` values in this freeze are copied from accepted S2 evidence, not recomputed.
+TRAIN and VALIDATION `content_sha256` values in this freeze are copied from
+accepted S2 evidence, not recomputed.
 
 ## 11. Contract merge effect
 
@@ -1047,7 +1131,7 @@ EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row
 ~~~
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_LIVE_AUTHORITY_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract-live-authority.md
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_LIVE_AUTHORITY_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract-live-authority.json
-EVIDENCE_JSON_SHA256=27bed500134ab1437c00400b75dc3847909c4b027e47c5a8ee994b086fd217c5
+EVIDENCE_JSON_SHA256=d8268a4410bf52112cac28d81bec082c9d8e0b1e3d4c8f8f8bba74482b4fa477
 PARENT_CONTRACT_PR=434
 PARENT_CONTRACT_MERGE=ce378d0039cb405774dbd372222edf6749aadb5b
 LIVE_ASYNC_CONNECTION_CONTRACT_PR=430
@@ -1088,16 +1172,18 @@ DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IM
 LANDED_ASYNC_SESSION_MAKER=AsyncSessionMaker
 LANDED_ASYNC_SESSION_MAKER_MODULE=backend/app/db/session.py
 LANDED_ASYNC_SESSION_MAKER_MODULE_GIT_BLOB_SHA=49845a077d252af2a7a246fa25616d7595535037
-LIVE_ASYNC_CONNECTION_SERVICE_LANDED=false
-ASYNC_CONNECTION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=false
+LIVE_ASYNC_SESSION_SERVICE_LANDED=false
+ASYNC_SESSION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=false
+THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_CONNECTION_IMPLEMENTED=true
 THIS_FAMILY_MUST_NOT_CLOSE_LIVE_CONNECTION_UNIQUE_REMAINING_GAP=true
 THIS_FAMILY_MUST_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true
-S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_PATH=docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_PATH=docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=acaa3f6ce7d25e63e7b51c2575e6aead4a887d6a
 CURRENT_S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_GIT_BLOB_SHA=acaa3f6ce7d25e63e7b51c2575e6aead4a887d6a
-S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.md
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.md
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_WORKPAPER_GIT_BLOB_SHA=119a363901239a9392edd1d46fbe852eb9606ff1
-S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-connection-contract.json
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract.json
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_GIT_BLOB_SHA=5f3120b4094d3dd1f33b32c915fe5abec61fc771
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_FREEZE_EVIDENCE_JSON_SHA256=6399e123c7534a05e4ad04a3925745adcce623d98572231559ea4550dea2f4bc
 FREEZE_IDENTITY_BASE_MAIN_SHA=cee1111da505cf6969c1c2b9b29410da7dbc779b
@@ -1420,4 +1506,4 @@ FORBIDDEN_TREAT_ASYNC_CONNECTION_FROM_ENGINE_AS_SOURCE_002_ROW_LEVEL_READ=true
 LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ~~~
 
-Live `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED=true` ≠ `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTATION_AUTHORIZED` ≠ `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED` ≠ an async session obtained from the already-configured live AsyncSessionMaker ≠ bound session synchronously queryable ≠ TRAIN/VAL `content_bytes` obtained ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ parent `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` ≠ live-session `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_IMPLEMENTED` ≠ live-obtain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED` ≠ live-session-query `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED` ≠ kg row-level read performed ≠ members landed ≠ `NO_REVIEWED` flipped ≠ versioned forecast artifact produced ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness verified ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed ≠ populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY` rewritten ≠ C0 §5 `PENDING_NOT_MERGED` rewritten. Parent reader landed ≠ official hashes attested from a live read ≠ `SOURCE_002_ROW_LEVEL_READ`. Kg-read `IMPLEMENTED=true` ≠ kg actually read ≠ `SOURCE_002_ROW_LEVEL_READ`. Live-session unique remaining gap is closed. Live-obtain unique remaining gap remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. Live-session-query unique remaining gap remains `_bound_live_session_is_not_synchronously_queryable`. Live-connection unique remaining gap remains `_sync_connection_not_obtained_from_the_bound_live_session_bind`. `FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND` is not `SOURCE_002_ROW_LEVEL_READ`. Already-configured live AsyncSessionMaker ≠ an async session from the already-configured live AsyncSessionMaker ≠ queryable bound session ≠ TRAIN/VAL `content_bytes` obtained ≠ `SOURCE_002_ROW_LEVEL_READ`. Binding a session that then fail-closes is not `SOURCE_002_ROW_LEVEL_READ`. `FAIL_CLOSED_SESSION_UNREADABLE` is not `SOURCE_002_ROW_LEVEL_READ`. `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE` is not `SOURCE_002_ROW_LEVEL_READ`. A later async session from the already-configured live AsyncSessionMaker is not a sync connection from bind, is not a queryable Session, is not content_bytes obtained, and is not `SOURCE_002_ROW_LEVEL_READ`. `THIS_FAMILY_IS_THE_LIVE_ASYNC_SESSION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`. `LIVE_ASYNC_CONNECTION_FAMILY_IS_NOT_CLOSED=true`. `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_CONNECTION_UNIQUE_REMAINING_GAP=true`. `LIVE_CONNECTION_FAMILY_IS_NOT_CLOSED=true`. `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_QUERYABLE_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_SESSION_WIRING_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true`. `THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true`. `PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=true`. `LIVE_SESSION_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `LIVE_OBTAIN_FAMILY_IS_NOT_CLOSED=true`. `LIVE_SESSION_QUERY_FAMILY_IS_NOT_CLOSED=true`. `LIVE_INSERT_DOES_NOT_AUTHORIZE_IMPLEMENTATION=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_SESSION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true`. `LIVE_INSERT_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_CONTENT_BYTES=true`. `LIVE_INSERT_DOES_NOT_BIND_A_LIVE_SESSION=true`. `LIVE_INSERT_DOES_NOT_FLIP_SOURCE_002_ROW_LEVEL_READ=true`. `LIVE_INSERT_DOES_NOT_FLIP_PARENT_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_ASYNC_CONNECTION_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true`. `LIVE_INSERT_DOES_NOT_ATTEST_OFFICIAL_HASHES_FROM_A_LIVE_READ=true`. `ASYNC_SESSION_IS_NOT_SYNC_CONNECTION_FROM_BIND=true`. `ASYNC_SESSION_IS_NOT_ASYNC_CONNECTION_FROM_ENGINE=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_QUERYABLE_SESSION=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_ASYNC_CONNECTION_FROM_ENGINE=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_CONTENT_BYTES_OBTAINED=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_SOURCE_002_ROW_LEVEL_READ=true`. `QUERYABLE_BOUND_SESSION_IS_NOT_SOURCE_002_ROW_LEVEL_READ=true`. `QUERYABLE_BOUND_SESSION_IS_NOT_CONTENT_BYTES_OBTAINED=true`. Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for the parent SOURCE_002 family (#410–#413). Unique remaining gap of this family remains `_async_session_not_obtained_from_the_already_configured_live_async_sessionmaker`. Live-async-connection unique remaining gap remains `_async_connection_not_obtained_from_the_already_configured_live_async_engine`. Parent unique remaining gap remains `_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read`. Live-obtain unique remaining gap remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. Live-session-query unique remaining gap remains `_bound_live_session_is_not_synchronously_queryable`. `V0_3_METRIC_CONTRACT_STATUS=PENDING_S1_ACCEPTANCE` remains §4.5 fact. This evidence JSON is not a versioned forecast artifact, completeness verified package, or backtest package. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. `COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED` and `CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING` unchanged. Historical pointer snapshots may remain without `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED` live. #434 freeze identity `BASE_MAIN_SHA=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #426 freeze identity `BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #422 freeze identity `BASE_MAIN_SHA=c572e69569b6e170d60b5f1949f903b846332cac` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #418 freeze identity `BASE_MAIN_SHA=915b625548e5fe3f509e695d115eb51d6f3c8675` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #414 freeze identity `BASE_MAIN_SHA=e9f0fbb87c660e154fffd47f85b5122b9a281d2b` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen.
+Live `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-contract-live-authority.md` (`EVIDENCE_JSON_SHA256=d8268a4410bf52112cac28d81bec082c9d8e0b1e3d4c8f8f8bba74482b4fa477`). Accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read live-async-session contract froze on main (#434) with file fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED=true` and `DEVELOPMENT_PLAN_UNCHANGED=true`. This live-authority insert records that the frozen live-async-session contract is authorized in the development-plan live registry. `#434` file fence ≠ live §4.4 authority until this insert. Live `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED=true` ≠ `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTATION_AUTHORIZED` ≠ `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED` ≠ an async session obtained from the already-configured live AsyncSessionMaker ≠ bound session synchronously queryable ≠ TRAIN/VAL `content_bytes` obtained ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ parent `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` ≠ live-session `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_IMPLEMENTED` ≠ live-obtain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTED` ≠ live-session-query `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTED` ≠ kg row-level read performed ≠ members landed ≠ `NO_REVIEWED` flipped ≠ versioned forecast artifact produced ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness verified ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed ≠ populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY` rewritten ≠ C0 §5 `PENDING_NOT_MERGED` rewritten. Parent reader landed ≠ official hashes attested from a live read ≠ `SOURCE_002_ROW_LEVEL_READ`. Kg-read `IMPLEMENTED=true` ≠ kg actually read ≠ `SOURCE_002_ROW_LEVEL_READ`. Live-session unique remaining gap is closed. Live-obtain unique remaining gap remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. Live-session-query unique remaining gap remains `_bound_live_session_is_not_synchronously_queryable`. Live-connection unique remaining gap remains `_sync_connection_not_obtained_from_the_bound_live_session_bind`. `FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND` is not `SOURCE_002_ROW_LEVEL_READ`. Already-configured live AsyncSessionMaker ≠ an async session from the already-configured live AsyncSessionMaker ≠ queryable bound session ≠ TRAIN/VAL `content_bytes` obtained ≠ `SOURCE_002_ROW_LEVEL_READ`. Binding a session that then fail-closes is not `SOURCE_002_ROW_LEVEL_READ`. `FAIL_CLOSED_SESSION_UNREADABLE` is not `SOURCE_002_ROW_LEVEL_READ`. `FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE` is not `SOURCE_002_ROW_LEVEL_READ`. A later async session from the already-configured live AsyncSessionMaker is not a sync connection from bind, is not a queryable Session, is not content_bytes obtained, and is not `SOURCE_002_ROW_LEVEL_READ`. `THIS_FAMILY_IS_THE_LIVE_ASYNC_SESSION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`. `LIVE_ASYNC_CONNECTION_FAMILY_IS_NOT_CLOSED=true`. `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_CONNECTION_UNIQUE_REMAINING_GAP=true`. `LIVE_CONNECTION_FAMILY_IS_NOT_CLOSED=true`. `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_QUERYABLE_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_SESSION_WIRING_SLICE=true`. `THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true`. `THIS_FAMILY_MUST_NOT_UNIQUELY_FLIP_SOURCE_002_ROW_LEVEL_READ=true`. `PARENT_FAMILY_HOLDS_UNIQUE_LIVE_FLIP_OF_SOURCE_002_ROW_LEVEL_READ=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true`. `THIS_FAMILY_MUST_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`. `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_SESSION_QUERY_UNIQUE_REMAINING_GAP=true`. `LIVE_SESSION_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `LIVE_OBTAIN_FAMILY_IS_NOT_CLOSED=true`. `LIVE_SESSION_QUERY_FAMILY_IS_NOT_CLOSED=true`. `LIVE_INSERT_DOES_NOT_AUTHORIZE_IMPLEMENTATION=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_SESSION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true`. `LIVE_INSERT_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_CONTENT_BYTES=true`. `LIVE_INSERT_DOES_NOT_BIND_A_LIVE_SESSION=true`. `LIVE_INSERT_DOES_NOT_FLIP_SOURCE_002_ROW_LEVEL_READ=true`. `LIVE_INSERT_DOES_NOT_FLIP_PARENT_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_FLIP_LIVE_ASYNC_CONNECTION_IMPLEMENTED=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true`. `LIVE_INSERT_DOES_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`. `LIVE_INSERT_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true`. `LIVE_INSERT_DOES_NOT_ATTEST_OFFICIAL_HASHES_FROM_A_LIVE_READ=true`. `ASYNC_SESSION_IS_NOT_SYNC_CONNECTION_FROM_BIND=true`. `ASYNC_SESSION_IS_NOT_ASYNC_CONNECTION_FROM_ENGINE=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_QUERYABLE_SESSION=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_ASYNC_CONNECTION_FROM_ENGINE=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_CONTENT_BYTES_OBTAINED=true`. `ASYNC_SESSION_FROM_SESSIONMAKER_IS_NOT_SOURCE_002_ROW_LEVEL_READ=true`. `QUERYABLE_BOUND_SESSION_IS_NOT_SOURCE_002_ROW_LEVEL_READ=true`. `QUERYABLE_BOUND_SESSION_IS_NOT_CONTENT_BYTES_OBTAINED=true`. Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for the parent SOURCE_002 family (#410–#413). Unique remaining gap of this family remains `_async_session_not_obtained_from_the_already_configured_live_async_sessionmaker`. Live-async-connection unique remaining gap remains `_async_connection_not_obtained_from_the_already_configured_live_async_engine`. Parent unique remaining gap remains `_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read`. Live-obtain unique remaining gap remains `_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session`. Live-session-query unique remaining gap remains `_bound_live_session_is_not_synchronously_queryable`. `V0_3_METRIC_CONTRACT_STATUS=PENDING_S1_ACCEPTANCE` remains §4.5 fact. This evidence JSON is not a versioned forecast artifact, completeness verified package, or backtest package. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. `COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED` and `CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING` unchanged. Historical pointer snapshots may remain without `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONTRACT_AUTHORIZED` live. #434 freeze identity `BASE_MAIN_SHA=cee1111da505cf6969c1c2b9b29410da7dbc779b` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #426 freeze identity `BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #422 freeze identity `BASE_MAIN_SHA=c572e69569b6e170d60b5f1949f903b846332cac` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #418 freeze identity `BASE_MAIN_SHA=915b625548e5fe3f509e695d115eb51d6f3c8675` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen. #414 freeze identity `BASE_MAIN_SHA=e9f0fbb87c660e154fffd47f85b5122b9a281d2b` and freeze fence `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_IMPLEMENTATION_AUTHORIZED=false` remain historical snapshots where frozen.
