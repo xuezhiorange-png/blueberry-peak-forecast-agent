@@ -81,15 +81,14 @@ OBTAINED_CONTENT_BYTES_ARE_NOT_SOURCE_002_ROW_LEVEL_READ=true
 ~~~
 
 Accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read live-async-obtain contract froze on
-main in #434
+main in #438
 (`docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-contract.md`,
 `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-obtain-contract.md`). That merge added workpaper, evidence JSON, and the contract file whose authorization
 fence already contains
-`S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_CONTRACT_AUTHORIZED=true`. It did **not** insert live authority into `docs/v0-3/development-plan.md` §4.4 (`DEVELOPMENT_PLAN_UNCHANGED=true` at freeze). This workpaper records the unique remaining gap closure: live registry acknowledgment that the frozen live-async-obtain
-contract is authorized — not authorizing implementation, not obtaining an async connection
-from the already-configured live AsyncSessionMaker, not obtaining an async connection from the already-configured live AsyncEngine, not obtaining a sync connection from the
+`S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_CONTRACT_AUTHORIZED=true`. It did **not** insert live authority into `docs/v0-3/development-plan.md` §4.4 (`DEVELOPMENT_PLAN_UNCHANGED=true` at freeze). This workpaper records live registry acknowledgment that the frozen live-async-obtain
+contract is authorized — not authorizing implementation, not obtaining TRAIN/VAL `content_bytes` from the already-obtained live AsyncSession, not flipping THIS family `IMPLEMENTED`, not reopening live-async-session unique remaining gap, not flipping live-async-session `IMPLEMENTED`, not obtaining a sync connection from the
 bound live session bind, not making the bound session
-synchronously queryable, not obtaining TRAIN/VAL `content_bytes`, not attesting official hashes from a live read, not flipping `SOURCE_002_ROW_LEVEL_READ`, not flipping parent `IMPLEMENTED`, not flipping live-obtain `IMPLEMENTED`, not flipping live-session-query `IMPLEMENTED`, not flipping live-connection `IMPLEMENTED`, and not rewriting kg-read / origin / parent SOURCE_002 / live-session / live-obtain / live-session-query / live-connection / populated-origin freeze.
+synchronously queryable, not attesting official hashes from a live read, not flipping `SOURCE_002_ROW_LEVEL_READ`, not flipping parent `IMPLEMENTED`, not flipping live-obtain `IMPLEMENTED`, not flipping live-session-query `IMPLEMENTED`, not flipping live-connection `IMPLEMENTED`, and not rewriting kg-read / origin / parent SOURCE_002 / live-session / live-obtain / live-session-query / live-connection / populated-origin freeze. This family's unique remaining gap `_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session` remains open.
 
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_CONTRACT_AUTHORIZED=true
@@ -176,11 +175,10 @@ only §13 appended.
 ## 2. Unique gap (after #438 live-async-obtain contract freeze)
 
 1. Live-async-session contract frozen on main (#434) with file fence authorized.
-2. `development-plan.md` §4.4 live state block had no    `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_CONTRACT_AUTHORIZED`. 3. C0 §5 remains freeze snapshot `S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED`. 4. Without this insert, coordinators could treat #434 file fence as live registry authority.
-5. This merge does not authorize implementation, does not obtain an async connection
-   from the already-configured live AsyncEngine, does not obtain a sync connection from
+2. `development-plan.md` §4.4 live state block had no    `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_CONTRACT_AUTHORIZED`. 3. C0 §5 remains freeze snapshot `S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED`. 4. Without this insert, coordinators could treat #438 file fence as live registry authority.
+5. This merge does not authorize implementation, does not obtain TRAIN/VAL `content_bytes` from the already-obtained live AsyncSession, does not flip THIS family `IMPLEMENTED`, does not reopen live-async-session unique remaining gap, does not flip live-async-session `IMPLEMENTED`, does not obtain a sync connection from
    the bound live session bind, does not make the bound session
-   queryable, does not obtain TRAIN/VAL `content_bytes`, does not flip    `SOURCE_002_ROW_LEVEL_READ`, does not flip parent `IMPLEMENTED`, does not flip    live-obtain `IMPLEMENTED`, does not flip live-session-query `IMPLEMENTED`, does not flip    live-connection `IMPLEMENTED`, and does not close live-connection unique remaining gap    `_sync_connection_not_obtained_from_the_bound_live_session_bind`. 
+   queryable, does not flip    `SOURCE_002_ROW_LEVEL_READ`, does not flip parent `IMPLEMENTED`, does not flip    live-obtain `IMPLEMENTED`, does not flip live-session-query `IMPLEMENTED`, does not flip    live-connection `IMPLEMENTED`, and does not close live-connection unique remaining gap    `_sync_connection_not_obtained_from_the_bound_live_session_bind`. 
 ## 3. Upstream bindings
 
 ~~~text
@@ -192,6 +190,8 @@ LIVE_ASYNC_CONNECTION_GRANT_EVIDENCE_JSON_SHA256=ea045afabbd98abfa5527de7e996aff
 LIVE_ASYNC_CONNECTION_R1_EVIDENCE_JSON_SHA256=26d1c8a1d5f4d6fefdb5ebccd3256ea4abc1549508b28d95e7f9ae0d0f121b56
 LIVE_ASYNC_CONNECTION_R1_MERGE=cee1111da505cf6969c1c2b9b29410da7dbc779b
 LIVE_CONNECTION_R1_MERGE=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52
+LIVE_ASYNC_SESSION_R1_MERGE=30ee96a018ea12ebc80ec38fc15d664bb341bdac
+LIVE_ASYNC_SESSION_R1_EVIDENCE_JSON_SHA256=8ac5b297157a4e2dfa8cd88695bee6e972c386f261e3c6624c3f545de15f3616
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_FREEZE_EVIDENCE_JSON_SHA256=6d08f1ab5a12694fd1dba2e13d244b1ff5faf87a1a5db598397b4c4439cdd547
 LIVE_CONNECTION_LIVE_AUTH_EVIDENCE_JSON_SHA256=312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec
 LIVE_CONNECTION_GRANT_EVIDENCE_JSON_SHA256=c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6
@@ -259,11 +259,14 @@ Parent SOURCE_002 three live keys, live-async-session three live keys (with `DET
 - kg-read `IMPLEMENTED=true` ≠ 公斤已读 ≠ `SOURCE_002_ROW_LEVEL_READ`
 - 从已配置 live AsyncSessionMaker 取得的 async session ≠ 从已配置 live AsyncEngine 取得的 async connection ≠ 可查询 Session ≠ 已取得 `content_bytes` ≠
   `SOURCE_002_ROW_LEVEL_READ`
-- `THIS_FAMILY_IS_THE_LIVE_ASYNC_OBTAIN_SLICE=true
-THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_SESSION_SLICE=true
-THIS_FAMILY_MUST_NOT_REOPEN_LIVE_ASYNC_SESSION_UNIQUE_REMAINING_GAP=true
-THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true`
+- `THIS_FAMILY_IS_THE_LIVE_ASYNC_OBTAIN_SLICE=true`
+- `THIS_FAMILY_IS_NOT_THE_LIVE_OBTAIN_SLICE_FOR_TRAIN_VAL_CONTENT_BYTES=true`
+- `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_SESSION_SLICE=true`
 - `THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true`
+- `THIS_FAMILY_MUST_NOT_REOPEN_LIVE_ASYNC_SESSION_UNIQUE_REMAINING_GAP=true`
+- `THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true`
+- `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_OBTAIN_UNIQUE_REMAINING_GAP=true`
+- `THIS_FAMILY_MUST_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`
 - `THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`
 - `LIVE_ASYNC_CONNECTION_FAMILY_IS_NOT_CLOSED=true`
 - `THIS_FAMILY_IS_NOT_THE_BOUND_LIVE_SESSION_BIND_CONNECTION_SLICE=true`
@@ -284,7 +287,9 @@ THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true`
 - `LIVE_OBTAIN_FAMILY_IS_NOT_CLOSED=true`
 - `LIVE_SESSION_QUERY_FAMILY_IS_NOT_CLOSED=true`
 - `LIVE_INSERT_DOES_NOT_AUTHORIZE_IMPLEMENTATION=true`
-- `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_SESSION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true`
+- `LIVE_INSERT_DOES_NOT_OBTAIN_CONTENT_BYTES_FROM_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION=true`
+- `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_SESSION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_SESSION_MAKER=true`
+- `LIVE_INSERT_DOES_NOT_OBTAIN_AN_ASYNC_CONNECTION_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=true`
 - `LIVE_INSERT_DOES_NOT_MAKE_THE_BOUND_SESSION_QUERYABLE=true`
 - `LIVE_INSERT_DOES_NOT_OBTAIN_CONTENT_BYTES=true`
 - `LIVE_INSERT_DOES_NOT_BIND_A_LIVE_SESSION=true`
@@ -292,10 +297,12 @@ THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_IMPLEMENTED=true`
 - `LIVE_INSERT_DOES_NOT_FLIP_PARENT_IMPLEMENTED=true`
 - `LIVE_INSERT_DOES_NOT_FLIP_LIVE_OBTAIN_IMPLEMENTED=true`
 - `LIVE_INSERT_DOES_NOT_FLIP_LIVE_SESSION_QUERY_IMPLEMENTED=true`
-- `LIVE_INSERT_DOES_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true LIVE_INSERT_DOES_NOT_FLIP_LIVE_ASYNC_CONNECTION_IMPLEMENTED=true
-LIVE_INSERT_DOES_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`
+- `LIVE_INSERT_DOES_NOT_FLIP_LIVE_CONNECTION_IMPLEMENTED=true`
+- `LIVE_INSERT_DOES_NOT_FLIP_LIVE_ASYNC_CONNECTION_IMPLEMENTED=true`
+- `LIVE_INSERT_DOES_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`
 - `LIVE_INSERT_DOES_NOT_OBTAIN_A_SYNC_CONNECTION_FROM_THE_BOUND_LIVE_SESSION_BIND=true`
-- `ASYNC_SESSION_IS_NOT_SYNC_CONNECTION_FROM_BIND=true ASYNC_SESSION_IS_NOT_ASYNC_CONNECTION_FROM_ENGINE=true`
+- `ASYNC_SESSION_IS_NOT_SYNC_CONNECTION_FROM_BIND=true`
+- `ASYNC_SESSION_IS_NOT_ASYNC_CONNECTION_FROM_ENGINE=true`
 - `LIVE_INSERT_DOES_NOT_ATTEST_OFFICIAL_HASHES_FROM_A_LIVE_READ=true`
 - Catalog first blocker 仍是 `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`
 - completeness 仍 `CONTRACT_STILL_BOUND_BLOCKED` /   `COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2_BINDING`
@@ -311,7 +318,7 @@ LIVE_INSERT_DOES_NOT_CLOSE_LIVE_ASYNC_CONNECTION_UNIQUE_REMAINING_GAP=true`
 ## 6. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=198af264ba2f366765490ce86ce43c8198205870b49cc4b64eddbd7fd24249d7
+EVIDENCE_JSON_SHA256=1528c97699005595acbcd96996d85ecf107938e346a6930dbd74e261e0ec8aa3
 ~~~
 
 ## 7. Status

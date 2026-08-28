@@ -129,7 +129,7 @@
     "live_session_query_grant_workpaper_git_blob_sha": "57df10aab871ea0f881e4c59a3642517a1b816f5",
     "live_session_query_grant_evidence_git_blob_sha": "49a2ab4e6c7d4cc676307c3d7391b723344826d0",
     "live_session_query_r1_pr": 425,
-    "live_session_query_r1_merge": "7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52",
+    "live_session_query_r1_merge": "7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4",
     "live_session_query_r1_evidence_json_sha256": "7f8283ed0848cf336424021c1d52711b715efd4e344c4515987749c4ef446c2a",
     "live_session_query_r1_workpaper_git_blob_sha": "2c0f4c1f264af30e58f3d12128663ed1155624b8",
     "live_session_query_r1_evidence_git_blob_sha": "8aeed40ce05dacc314e206c0358ce169b11db177",
@@ -294,7 +294,9 @@
     "live_connection_live_auth_evidence_json_sha256": "312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec",
     "live_connection_grant_evidence_json_sha256": "c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6",
     "live_connection_r1_evidence_json_sha256": "c77feb55f416eee59a304ea88238c9db5e068f8516e6417a0964077e2b658747",
-    "live_connection_freeze_evidence_json_sha256": "720cc266f2215cd25a4d5fa380f5e4770e988e669a7460eb6e473ad6247b98e7"
+    "live_connection_freeze_evidence_json_sha256": "720cc266f2215cd25a4d5fa380f5e4770e988e669a7460eb6e473ad6247b98e7",
+    "live_async_session_r1_merge": "30ee96a018ea12ebc80ec38fc15d664bb341bdac",
+    "live_async_session_r1_evidence_json_sha256": "8ac5b297157a4e2dfa8cd88695bee6e972c386f261e3c6624c3f545de15f3616"
   },
   "live_facts_at_insert": {
     "current_s3_c_backtest_execution_status": "CONTRACT_STILL_BOUND_BLOCKED",
@@ -636,9 +638,6 @@
   "this_family_must_not_flip_live_async_connection_implemented": true,
   "live_async_connection_family_is_not_closed": true,
   "live_async_obtain_service_landed": false,
-  "async_session_obtained_from_the_already_configured_live_async_obtain_maker": false,
-  "this_pr_does_not_obtain_an_async_session_from_the_already_configured_live_async_obtain_maker": true,
-  "live_insert_does_not_obtain_an_async_session_from_the_already_configured_live_async_obtain_maker": true,
   "live_insert_does_not_obtain_an_async_connection_from_the_already_configured_live_async_engine": true,
   "landed_async_session_maker": "AsyncSessionMaker",
   "landed_async_session_maker_module": "backend/app/db/session.py",
@@ -652,5 +651,6 @@
   "accepted_s2_train_val_content_bytes_obtained_from_the_already_obtained_live_async_session": false,
   "live_async_obtain_through_already_obtained_async_session_reason_code": "FAIL_CLOSED_ASYNC_SESSION_UNREADABLE",
   "unique_remaining_gap": "_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session",
-  "evidence_json_sha256": "198af264ba2f366765490ce86ce43c8198205870b49cc4b64eddbd7fd24249d7"
+  "live_insert_does_not_obtain_content_bytes_from_the_already_obtained_live_async_session": true,
+  "evidence_json_sha256": "1528c97699005595acbcd96996d85ecf107938e346a6930dbd74e261e0ec8aa3"
 }
