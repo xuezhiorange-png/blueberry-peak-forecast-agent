@@ -11,7 +11,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app.s2_materialized_dataset.shared.contracts import SOURCE_002_ROW_LEVEL_READ
@@ -154,7 +153,10 @@ def test_missing_async_session_maker_fail_closes_no_async_session_maker() -> Non
         envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_queryability()
 
     assert envelope.queryable is False
-    assert envelope.reason_code is LiveAsyncSessionQueryReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
+    assert (
+        envelope.reason_code
+        is LiveAsyncSessionQueryReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
+    )
     _assert_not_source_002(envelope)
 
 
