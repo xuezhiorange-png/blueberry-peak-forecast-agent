@@ -29,6 +29,13 @@
   "this_family_must_not_close_live_obtain_unique_remaining_gap": true,
   "this_family_must_not_flip_live_session_query_implemented": true,
   "this_family_must_not_close_live_session_query_unique_remaining_gap": true,
+  "this_family_is_the_live_async_engine_connection_slice": true,
+  "this_family_is_not_the_bound_live_session_bind_connection_slice": true,
+  "this_family_must_not_close_live_connection_unique_remaining_gap": true,
+  "this_family_must_not_flip_live_connection_implemented": true,
+  "this_pr_does_not_obtain_an_async_connection_from_the_already_configured_live_async_engine": true,
+  "this_pr_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+  "live_connection_family_is_not_closed": true,
   "live_session_family_unique_remaining_gap_closed": true,
   "live_obtain_family_is_not_closed": true,
   "live_session_query_family_is_not_closed": true,
@@ -680,11 +687,6 @@
   "live_session_query_unique_remaining_gap": "_bound_live_session_is_not_synchronously_queryable",
   "live_obtain_unique_remaining_gap": "_accepted_s2_train_val_content_bytes_not_obtained_from_the_bound_live_session",
   "parent_unique_remaining_gap": "_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read",
-  "this_family_is_the_live_async_engine_connection_slice": true,
-  "this_family_is_not_the_bound_live_session_bind_connection_slice": true,
-  "this_family_must_not_close_live_connection_unique_remaining_gap": true,
-  "this_family_must_not_flip_live_connection_implemented": true,
-  "this_pr_does_not_obtain_an_async_connection_from_the_already_configured_live_async_engine": true,
   "live_connection_unique_remaining_gap": "_sync_connection_not_obtained_from_the_bound_live_session_bind",
-  "evidence_json_sha256": "2ef82952ff14655c9cb8ee2e6268d6b55c5e8fed79be91913ed83d4b7281903f"
+  "evidence_json_sha256": "1f6bd1d7a9b219949007a136cca44ddea6f600e19cb7e33471a38357c2081a4e"
 }

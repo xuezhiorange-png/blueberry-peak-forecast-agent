@@ -9,7 +9,7 @@ TASK_ID=V03_S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CON
 TASK_CLASS=CONTRACT_DEFINITION_ONLY
 AUTHORIZATION_SCOPE=S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_CONTRACT_ONLY
 SLICE=V0.3-S3
-PARALLEL_LANE=S3-A2-ACCEPTED-S2-SOURCE-002-ROW-LEVEL-READ-LIVE-CONNECTION
+PARALLEL_LANE=S3-A2-ACCEPTED-S2-SOURCE-002-ROW-LEVEL-READ-LIVE-ASYNC-CONNECTION
 ENGLISH_ID=ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION
 USER_GATE=授权
 NEW_FAMILY_AUTHORIZATION=true
@@ -394,16 +394,18 @@ is not official live queryable. Live-session-query unique remaining gap remains
 `_bound_live_session_is_not_synchronously_queryable`. This family must not close
 that gap and must not flip live-session-query `IMPLEMENTED`.
 
-At base `7a1047b`, a synchronous connection has **not** been obtained from the
-already-bound live session's bind. This contract authorizes a **future**
-deterministic service to obtain that synchronous connection from the already-
-bound live session's bind without inventing a DSN and without calling
+At base `7f2011cb`, an asynchronous connection has **not** been obtained from the
+already-configured live AsyncEngine. This contract authorizes a **future**
+deterministic service to obtain that asynchronous connection from the already-
+configured live AsyncEngine without inventing a DSN and without calling
 create_engine — without executing that work today, without rewriting
-live-session or live-session-query freeze, without inserting live §4.4, issuing
-a grant, or running R1, and without flipping live `SOURCE_002_ROW_LEVEL_READ`,
-parent `IMPLEMENTED`, live-obtain `IMPLEMENTED`, or live-session-query
-`IMPLEMENTED`. A connection obtained from that bind is not a queryable Session,
-is not TRAIN/VAL `content_bytes` obtained, and is not `SOURCE_002_ROW_LEVEL_READ`.
+live-session / live-obtain / live-session-query / live-connection freeze, without
+inserting live §4.4, issuing a grant, or running R1, and without flipping live
+`SOURCE_002_ROW_LEVEL_READ`, parent `IMPLEMENTED`, live-obtain `IMPLEMENTED`,
+live-session-query `IMPLEMENTED`, or live-connection `IMPLEMENTED`. An async
+connection from that engine is not a sync connection from bind, is not a
+queryable Session, is not TRAIN/VAL `content_bytes` obtained, and is not
+`SOURCE_002_ROW_LEVEL_READ`.
 
 Merging this contract ≠ implementation authorized ≠ implemented ≠ async connection
 obtained from the already-configured live AsyncEngine ≠ sync connection from bind ≠ session queryable ≠ content bytes obtained ≠
@@ -441,7 +443,7 @@ SLICE_S2_COMPLETE=PASS
 ### 1.3 Origin family (#402–#405)
 
 The origin family froze dataset-identity-layer lawful origin naming. At base
-`7a1047b`, `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_LAWFUL_ORIGIN_IMPLEMENTED=true` in
+`7f2011cb`, `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_LAWFUL_ORIGIN_IMPLEMENTED=true` in
 live §4.4. Origin naming ≠ kg row-level read ≠ `SOURCE_002_ROW_LEVEL_READ` ≠
 content bytes obtained ≠ queryable bound session ≠ connection from bind. This
 family does not reopen origin freeze, live-authority, grant, or R1 evidence.
@@ -458,7 +460,7 @@ or for the parent-family read.
 
 ### 1.5 Parent SOURCE_002 row-level-read family (#410–#413, not closed)
 
-At base `7a1047b` live §4.4 holds:
+At base `7f2011cb` live §4.4 holds:
 
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_CONTRACT_AUTHORIZED=true
@@ -478,7 +480,7 @@ or R1 evidence.
 
 ### 1.6 Live-session family (#414–#417, unique remaining gap closed)
 
-At base `7a1047b` live §4.4 holds:
+At base `7f2011cb` live §4.4 holds:
 
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_CONTRACT_AUTHORIZED=true
@@ -501,7 +503,7 @@ does not reopen or "fix" that closed wiring slice.
 
 ### 1.7 Live-obtain family (#418–#421, not closed)
 
-At base `7a1047b` live §4.4 holds:
+At base `7f2011cb` live §4.4 holds:
 
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_OBTAIN_CONTRACT_AUTHORIZED=true
@@ -523,7 +525,7 @@ live-obtain `IMPLEMENTED`, and does not close that unique remaining gap.
 
 ### 1.8 Live-session-query family (#422–#425, not closed)
 
-At base `7a1047b` live §4.4 holds:
+At base `7f2011cb` live §4.4 holds:
 
 ~~~text
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_SESSION_QUERY_CONTRACT_AUTHORIZED=true
@@ -657,10 +659,19 @@ LIVE_OBTAIN_THROUGH_BOUND_SESSION_REASON_CODE=FAIL_CLOSED_SESSION_UNREADABLE
 LIVE_SESSION_QUERY_THROUGH_BOUND_SESSION_REASON_CODE=FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE
 SYNTHETIC_OBTAINED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_OBTAIN=true
 SYNTHETIC_QUERYABLE_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_QUERYABLE=true
+LIVE_CONNECTION_MODULE=backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_connection.py
+ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_CONNECTION_PY_BLOB=f87bdf8b8add435298056f61614ee1d91c9dbbf0
+LIVE_CONNECTION_SERVICE_LANDED=true
+LIVE_CONNECTION_THROUGH_BOUND_SESSION_BIND_REASON_CODE=FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND
+SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_CONNECTION=true
+LANDED_ASYNC_ENGINE_MODULE=backend/app/db/session.py
+LANDED_ASYNC_ENGINE_MODULE_GIT_BLOB_SHA=49845a077d252af2a7a246fa25616d7595535037
+LIVE_ASYNC_CONNECTION_SERVICE_LANDED=false
+ASYNC_CONNECTION_OBTAINED_FROM_THE_ALREADY_CONFIGURED_LIVE_ASYNC_ENGINE=false
 SYNC_CONNECTION_OBTAINED_FROM_BOUND_LIVE_SESSION_BIND=false
 ~~~
 
-Live-connection rules:
+Live-async-connection rules:
 
 ~~~text
 THIS_FAMILY_IS_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true
@@ -770,7 +781,7 @@ parent `IMPLEMENTED`, and is not `SOURCE_002_ROW_LEVEL_READ`.
 
 ## 6. Frozen-time honest blockers (not flipped)
 
-Live §4.4 facts at base `7a1047b`:
+Live §4.4 facts at base `7f2011cb`:
 
 ~~~text
 CURRENT_S3_C_BACKTEST_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
