@@ -38,9 +38,7 @@ AcceptedS2TrainValLiveAsyncConnectionEnvelope = (
     _async_connection.AcceptedS2TrainValLiveAsyncConnectionEnvelope
 )
 LiveAsyncConnectionReasonCode = _async_connection.LiveAsyncConnectionReasonCode
-obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine = (
-    _async_connection.obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine
-)
+obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine = _async_connection.obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine  # noqa: E501
 bind_default_source_002_row_level_read_live_session_provider = (
     _live_session.bind_default_source_002_row_level_read_live_session_provider
 )
@@ -106,9 +104,7 @@ def _assert_not_source_002(envelope: Any) -> None:
 
 
 def test_official_live_async_engine_path_fail_closed_or_connected() -> None:
-    envelope = (
-        obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()
-    )
+    envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()  # noqa: E501
 
     if envelope.connected:
         assert envelope.reason_code is LiveAsyncConnectionReasonCode.CONNECTED
@@ -121,9 +117,7 @@ def test_synthetic_sqlite_aiosqlite_connected_is_not_official_live_async_connect
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
 
     with patch("backend.app.db.session.engine", engine):
-        envelope = (
-            obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()
-        )
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()  # noqa: E501
 
     assert envelope.connected is True
     assert envelope.reason_code is LiveAsyncConnectionReasonCode.CONNECTED
@@ -132,9 +126,7 @@ def test_synthetic_sqlite_aiosqlite_connected_is_not_official_live_async_connect
 
 def test_missing_async_engine_fail_closes_no_async_engine() -> None:
     with patch("backend.app.db.session.engine", None):
-        envelope = (
-            obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()
-        )
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()  # noqa: E501
 
     assert envelope.connected is False
     assert envelope.reason_code is LiveAsyncConnectionReasonCode.FAIL_CLOSED_NO_ASYNC_ENGINE
@@ -146,9 +138,7 @@ def test_engine_connect_that_raises_fail_closes_not_obtained() -> None:
     failing_engine.connect = AsyncMock(side_effect=RuntimeError("connection refused"))
 
     with patch("backend.app.db.session.engine", failing_engine):
-        envelope = (
-            obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()
-        )
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()  # noqa: E501
 
     assert envelope.connected is False
     assert (
