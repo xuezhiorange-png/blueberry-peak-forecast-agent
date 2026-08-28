@@ -105,7 +105,7 @@
     "current_s3_a_amendment_git_blob_sha": "2a388192f8475a7413af0d8e0a1dec47374de7e9",
     "current_p0_contract_git_blob_sha": "7bbb4d41dc557aaccfef0b2388e1015c6986d646",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_query_py_blob": "4d946c02acff3a257817e714ad824f9b311d42ec",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_session_query_test_py_blob": "b23482564863e9b5dbfca1f223bb4c962f5353cc",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_session_query_test_py_blob": "f1045649d9a38203e892656da8883753fa9ba9f7",
     "official_path_queryable": false,
     "official_path_reason_code": "FAIL_CLOSED_ASYNC_SESSION_NOT_ASYNCHRONOUSLY_QUERYABLE",
     "tests_passed": 13
@@ -138,5 +138,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "f01d4870855431bf7f0d34b23fbc1223243baef6108fc601a89dfcdac5b97890"
+  "evidence_json_sha256": "02c19c607255182ce6eeca59324bbfef0c9d22a65950e17d9b671870d880b2de"
 }
