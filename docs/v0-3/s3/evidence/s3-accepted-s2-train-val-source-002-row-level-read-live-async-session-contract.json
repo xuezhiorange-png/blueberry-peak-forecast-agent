@@ -248,7 +248,7 @@
     "grant_workpaper_git_blob_sha": "8d775609f844a2baf94a1200aea7c7c3ad358a25",
     "grant_evidence_git_blob_sha": "6ac021704b65ed780b2d5cb65dd7066614048129",
     "r1_pr": 429,
-    "r1_merge": "cee1111da505cf6969c1c2b9b29410da7dbc779b",
+    "r1_merge": "7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52",
     "r1_evidence_json_sha256": "c77feb55f416eee59a304ea88238c9db5e068f8516e6417a0964077e2b658747",
     "r1_workpaper_git_blob_sha": "e3ab6c3a3fbfeb0edbc01276f670548bf0e38338",
     "r1_evidence_git_blob_sha": "a8ff9f1e4c892f2ddb2a38d2ac682ac479fb6ddf",
@@ -755,5 +755,5 @@
   "this_family_must_not_flip_live_async_connection_implemented": true,
   "this_pr_does_not_obtain_an_async_session_from_the_already_configured_live_async_session_maker": true,
   "live_async_connection_unique_remaining_gap": "_async_connection_not_obtained_from_the_already_configured_live_async_engine",
-  "evidence_json_sha256": "3b5aa93e56ebfe9ce86d56b250114a4cf55010e3d1e34964ad6a3bb58a5002e0"
+  "evidence_json_sha256": "6399e123c7534a05e4ad04a3925745adcce623d98572231559ea4550dea2f4bc"
 }

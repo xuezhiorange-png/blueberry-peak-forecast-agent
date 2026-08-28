@@ -204,7 +204,8 @@ LIVE_CONNECTION_GRANT_EVIDENCE_JSON_SHA256=c279d3dd64d7e9e7f9cb5eb5ae838cd320b15
 LIVE_CONNECTION_GRANT_WORKPAPER_GIT_BLOB_SHA=8d775609f844a2baf94a1200aea7c7c3ad358a25
 LIVE_CONNECTION_GRANT_EVIDENCE_GIT_BLOB_SHA=6ac021704b65ed780b2d5cb65dd7066614048129
 LIVE_CONNECTION_R1_PR=429
-LIVE_CONNECTION_R1_MERGE=cee1111da505cf6969c1c2b9b29410da7dbc779b
+LIVE_CONNECTION_R1_MERGE=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52
+LIVE_ASYNC_CONNECTION_R1_MERGE=cee1111da505cf6969c1c2b9b29410da7dbc779b
 LIVE_CONNECTION_R1_EVIDENCE_JSON_SHA256=c77feb55f416eee59a304ea88238c9db5e068f8516e6417a0964077e2b658747
 LIVE_CONNECTION_R1_WORKPAPER_GIT_BLOB_SHA=e3ab6c3a3fbfeb0edbc01276f670548bf0e38338
 LIVE_CONNECTION_R1_EVIDENCE_GIT_BLOB_SHA=a8ff9f1e4c892f2ddb2a38d2ac682ac479fb6ddf
@@ -458,8 +459,8 @@ SLICE_S2_COMPLETE=PASS
 
 ### 1.3 Origin family (#402–#405)
 
-The origin family froze dataset-identity-layer lawful origin naming. At base
-`7f2011cb`, `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_LAWFUL_ORIGIN_IMPLEMENTED=true` in
+The origin family froze dataset-identity-layer lawful origin naming. At this
+freeze's base `cee1111`, `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_LAWFUL_ORIGIN_IMPLEMENTED=true` in
 live §4.4. Origin naming ≠ kg row-level read ≠ `SOURCE_002_ROW_LEVEL_READ` ≠
 content bytes obtained ≠ queryable bound session ≠ connection from bind. This
 family does not reopen origin freeze, live-authority, grant, or R1 evidence.
@@ -576,9 +577,13 @@ LIVE_CONNECTION_THROUGH_BOUND_SESSION_BIND_REASON_CODE=FAIL_CLOSED_SYNC_CONNECTI
 SYNTHETIC_CONNECTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_CONNECTION=true
 ~~~
 
-Live-connection R1 (#429) landed the bind-connection service. Bound connection
-fail-closed `FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`. Live-connection
-unique remaining gap remains
+Live-connection R1 (#429) landed the bind-connection service at merge
+`7f2011cb` (historical R1 that landed that honest fail-closed, not this freeze's
+base). At this freeze's base `cee1111` (live-async-connection R1 #433 merge), the
+landed live-connection production module still does not obtain a live
+`Connection` from the bound live session's `.bind`
+(`FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND`). Live-connection unique
+remaining gap remains
 `_sync_connection_not_obtained_from_the_bound_live_session_bind`.
 `#426` freeze identity `BASE_MAIN_SHA=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4` and
 freeze fence
