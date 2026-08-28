@@ -699,5 +699,4 @@ DEVELOPMENT_PLAN_UNCHANGED=true
 ~~~text
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-query-contract.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-query-contract.json
-EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
 ~~~
