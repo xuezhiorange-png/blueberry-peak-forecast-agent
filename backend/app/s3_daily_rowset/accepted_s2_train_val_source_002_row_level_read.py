@@ -3,7 +3,7 @@
 Hashes persisted TRAIN/VALIDATION `content_bytes` against the copied S2
 acceptance-package official hashes. Does not trust the stored `content_sha256`
 column. Does not return kilogram values, member rows, or partition bytes.
-Default session provider is unset and fail-closed.
+Default live session provider is bound by the live-session wiring module.
 
 Official hash constants are a reference copy of the S2 acceptance package.
 They are not recomputed here as new official values.
@@ -94,6 +94,10 @@ def set_source_002_row_level_read_session_provider(
 
 def clear_source_002_row_level_read_session_provider() -> None:
     set_source_002_row_level_read_session_provider(None)
+
+
+def bound_source_002_row_level_read_session_provider() -> SessionProvider | None:
+    return _session_provider
 
 
 def attest_accepted_s2_train_val_source_002_row_level_read() -> (
@@ -344,3 +348,14 @@ def _attest_from_session(
         validation_content_sha256=hashed_validation,
         test_row_count=test_row_count,
     )
+
+
+def _bind_default_live_session_provider() -> None:
+    module = __import__(
+        "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_session",
+        fromlist=("bind_default_source_002_row_level_read_live_session_provider",),
+    )
+    module.bind_default_source_002_row_level_read_live_session_provider()
+
+
+_bind_default_live_session_provider()
