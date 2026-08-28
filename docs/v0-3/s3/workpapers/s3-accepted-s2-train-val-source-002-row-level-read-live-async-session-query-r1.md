@@ -182,7 +182,7 @@ is not `SOURCE_002_ROW_LEVEL_READ`.
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_query.py`
   (blob `4d946c02acff3a257817e714ad824f9b311d42ec`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_query.py`
-  (blob `b23482564863e9b5dbfca1f223bb4c962f5353cc`; 13 passed)
+  (blob `f1045649d9a38203e892656da8883753fa9ba9f7`; 13 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
 - Live-async-obtain module unchanged blob `01f0e6e75f527514c5a08208f91eaec99a0154d1`
 - Live-async-session module unchanged blob `40afc94dacb2208accd4903b12ae46152a750b41`
@@ -202,4 +202,4 @@ UNIQUE_FLIP=none_on_live_flags
 ## 4. Evidence
 
 `docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-query-r1.json`
-(`EVIDENCE_JSON_SHA256=f01d4870855431bf7f0d34b23fbc1223243baef6108fc601a89dfcdac5b97890`).
+(`EVIDENCE_JSON_SHA256=02c19c607255182ce6eeca59324bbfef0c9d22a65950e17d9b671870d880b2de`).

@@ -36,12 +36,8 @@ AcceptedS2TrainValLiveAsyncSessionQueryEnvelope = (
     _async_session_query.AcceptedS2TrainValLiveAsyncSessionQueryEnvelope
 )
 LiveAsyncSessionQueryReasonCode = _async_session_query.LiveAsyncSessionQueryReasonCode
-probe_accepted_s2_train_val_already_obtained_live_async_session_queryability = (
-    _async_session_query.probe_accepted_s2_train_val_already_obtained_live_async_session_queryability
-)
-obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session = (
-    _async_obtain.obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session
-)
+probe_accepted_s2_train_val_already_obtained_live_async_session_queryability = _async_session_query.probe_accepted_s2_train_val_already_obtained_live_async_session_queryability  # noqa: E501
+obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session = _async_obtain.obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session  # noqa: E501
 LiveAsyncObtainReasonCode = _async_obtain.LiveAsyncObtainReasonCode
 probe_accepted_s2_train_val_bound_live_session_queryability = (
     _session_query.probe_accepted_s2_train_val_bound_live_session_queryability
@@ -154,8 +150,7 @@ def test_missing_async_session_maker_fail_closes_no_async_session_maker() -> Non
 
     assert envelope.queryable is False
     assert (
-        envelope.reason_code
-        is LiveAsyncSessionQueryReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
+        envelope.reason_code is LiveAsyncSessionQueryReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
     )
     _assert_not_source_002(envelope)
 
