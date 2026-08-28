@@ -613,7 +613,7 @@ three live keys, origin three live keys.
 - 本 file fence `AUTHORIZED=true` ≠ live §4.4 ≠ `IMPLEMENTATION_AUTHORIZED` ≠
   `IMPLEMENTED` ≠ connection 已从 bind 取得 ≠ session 可查询 ≠ content bytes
   已取得 ≠ `SOURCE_002_ROW_LEVEL_READ`
-- 从已配置 live AsyncEngine 取得的 async session ≠ 从 bind 取得的 sync connection ≠ 可查询的 bound session ≠ 已取得
+- 从已配置 live AsyncSessionMaker 取得的 AsyncSession ≠ 从已配置 live AsyncEngine 取得的 async connection ≠ 从 bind 取得的 sync connection ≠ 可查询的 bound session ≠ 已取得
   `content_bytes` ≠ `SOURCE_002_ROW_LEVEL_READ`
 - 本家族不得抢走父家族对 `SOURCE_002_ROW_LEVEL_READ` 的唯一 live 翻转
 - 本家族不得抢走 live-obtain 家族的 unique remaining gap

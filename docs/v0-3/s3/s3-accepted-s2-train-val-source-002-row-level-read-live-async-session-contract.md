@@ -817,7 +817,7 @@ for actually obtaining that async session from the already-configured live Async
 is not live-session-query `IMPLEMENTED`, is not live-obtain `IMPLEMENTED`, is not
 parent `IMPLEMENTED`, and is not `SOURCE_002_ROW_LEVEL_READ`.
 
-## 4. Relationship to parent, live-session, live-obtain, live-session-query, live-connection, origin, and kg-read families
+## 4. Relationship to parent, live-session, live-obtain, live-session-query, live-connection, live-async-connection, origin, and kg-read families
 
 - Parent reader landed ≠ official hashes attested ≠ `SOURCE_002_ROW_LEVEL_READ`
 - Live session bound ≠ queryable bound session ≠ connection from bind ≠
@@ -827,13 +827,16 @@ parent `IMPLEMENTED`, and is not `SOURCE_002_ROW_LEVEL_READ`.
   `SOURCE_002_ROW_LEVEL_READ`
 - Live-connection service landed ≠ sync connection from bind ≠
   `SOURCE_002_ROW_LEVEL_READ`
-- Async connection from the already-configured live AsyncSessionMaker ≠ sync connection
-  from bind ≠ queryable bound session ≠ content bytes obtained ≠
+- Live-async-connection service landed ≠ async connection from the already-configured live AsyncEngine ≠
   `SOURCE_002_ROW_LEVEL_READ`
+- AsyncSession from the already-configured live AsyncSessionMaker ≠ async connection
+  from the already-configured live AsyncEngine ≠ sync connection from bind ≠
+  queryable bound session ≠ content bytes obtained ≠ `SOURCE_002_ROW_LEVEL_READ`
 - Origin `IMPLEMENTED=true` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ connection from bind
 - Kg-read `IMPLEMENTED=true` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ kg read performed
 - This family does not supersede parent attestation, live-session wiring,
-  live-obtain obtain, live-session-query queryable-session, origin naming, or
+  live-obtain obtain, live-session-query queryable-session, live-connection
+  bind-connection, live-async-connection async-connection, origin naming, or
   kg-read target freeze
 - Unique live flip of `SOURCE_002_ROW_LEVEL_READ` stays with the parent family
 - Live-obtain unique remaining gap stays with the live-obtain family
@@ -841,10 +844,13 @@ parent `IMPLEMENTED`, and is not `SOURCE_002_ROW_LEVEL_READ`.
   family
 - Live-connection unique remaining gap stays with the live-connection
   family
+- Live-async-connection unique remaining gap stays with the live-async-connection
+  family
 - This family's later unique legal flip, if any, is
   `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_IMPLEMENTED`
   after an async session is actually obtained from the already-configured live
-  AsyncEngine — not `SOURCE_002_ROW_LEVEL_READ`, not live-connection `IMPLEMENTED`, not live-obtain `IMPLEMENTED`, and not
+  AsyncSessionMaker — not `SOURCE_002_ROW_LEVEL_READ`, not live-async-connection
+  `IMPLEMENTED`, not live-connection `IMPLEMENTED`, not live-obtain `IMPLEMENTED`, and not
   live-session-query `IMPLEMENTED`
 
 ## 5. Forecast-side and replay-identity table (not harvest read target)
@@ -1059,7 +1065,7 @@ SQL/DSN/member/hash/tonnes, must not call create_async_engine or async_sessionma
   live-obtain / live-session-query freeze 历史快照
 - 从 bind 取得的同步 connection ≠ 可查询的 bound session ≠ 已取得
   `content_bytes` ≠ `SOURCE_002_ROW_LEVEL_READ`
-- 本家族是【从已配置的 live AsyncEngine 取得异步 connection】的独立 slice；
+- 本家族是【从已配置的 live AsyncSessionMaker 取得 AsyncSession】的独立 slice；
   本 freeze 仍不执行该工作
 - async session ≠ async connection from engine ≠ sync connection from bind
 - `SOURCE_002_ROW_LEVEL_READ` 的唯一 live 翻转仍留给父家族后续【确定性 reader 实际
