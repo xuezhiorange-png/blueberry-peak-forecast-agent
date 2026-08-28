@@ -192,7 +192,7 @@ RESULT=PASS
 ## 2. Implementation delivered
 
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session.py`
-  (blob `dc74bc13e075f8f5c8c9e3957b16b78b13cb8023`)
+  (blob `40afc94dacb2208accd4903b12ae46152a750b41`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session.py`
   (blob `1e56e51f94f986de9686a34df9be80d1f741ddb4`; 12 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
@@ -236,7 +236,7 @@ Historical grant pointer (#436) snapshots retain
 ## 5. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=7d7d59268a01ba611df9a10dcb8b77fdc126bb438a44ce77b187c8bae8eccd51
+EVIDENCE_JSON_SHA256=8ac5b297157a4e2dfa8cd88695bee6e972c386f261e3c6624c3f545de15f3616
 ~~~
 
 ## 6. Status

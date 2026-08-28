@@ -13,6 +13,7 @@ import asyncio
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
 
@@ -77,7 +78,9 @@ def _fail(reason: LiveAsyncSessionReasonCode) -> AcceptedS2TrainValLiveAsyncSess
     return _envelope(obtained=False, reason=reason)
 
 
-async def _obtain_from_session_maker(live_async_session_maker: _AsyncSessionMakerCls) -> None:
+async def _obtain_from_session_maker(
+    live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
+) -> None:
     async with live_async_session_maker() as session:
         if session is None:
             raise RuntimeError("async session not obtained")
