@@ -148,7 +148,7 @@
     "accepted_s2_train_val_source_002_row_level_read_live_obtain_test_py_blob": "0f54d1db37374bba4f5fcadc726baf0dff3c22b0",
     "accepted_s2_train_val_source_002_row_level_read_live_session_query_test_py_blob": "00aabd3376c3f1a1fa41349627a7a7faa0352b69",
     "accepted_s2_train_val_source_002_row_level_read_live_connection_test_py_blob": "2ebc0fa5ae9359f965964a8a70f2c5d65e7929e3",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_connection_test_py_blob": "54938e6f53164e6ec4c1d18779b5f1d8aee877d6",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_connection_test_py_blob": "542e5c86812a20824f32f2085186e8a422db71d7",
     "landed_async_engine_module_git_blob_sha": "49845a077d252af2a7a246fa25616d7595535037",
     "parent_unique_remaining_gap": "_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read",
     "unique_remaining_gap": "_async_connection_not_obtained_from_the_already_configured_live_async_engine",
@@ -187,7 +187,7 @@
     "live_async_connection_module": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_connection.py",
     "accepted_s2_train_val_source_002_row_level_read_live_async_connection_py_blob": "51672d5a159d0889a159d9c03e8191e7f8a6b344",
     "live_async_connection_tests": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_connection.py",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_connection_test_py_blob": "54938e6f53164e6ec4c1d18779b5f1d8aee877d6",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_connection_test_py_blob": "542e5c86812a20824f32f2085186e8a422db71d7",
     "landed_reader_module": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read.py",
     "accepted_s2_train_val_source_002_row_level_read_py_blob": "2a9232064179da89484d52dcf203c95a0fa71a68",
     "live_session_module": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_session.py",
@@ -314,5 +314,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "33b0c378ab5dac36c4db021873ba23dc52c74cc661c4fab5043671f24f36107e"
+  "evidence_json_sha256": "26d1c8a1d5f4d6fefdb5ebccd3256ea4abc1549508b28d95e7f9ae0d0f121b56"
 }

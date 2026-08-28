@@ -331,7 +331,7 @@ AsyncEngine fail-closed. That fail-closed probe is not `SOURCE_002_ROW_LEVEL_REA
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_connection.py`
   (blob `51672d5a159d0889a159d9c03e8191e7f8a6b344`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_connection.py`
-  (blob `54938e6f53164e6ec4c1d18779b5f1d8aee877d6`; 12 passed)
+  (blob `542e5c86812a20824f32f2085186e8a422db71d7`; 12 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
 - Live-session module unchanged blob `28513a5b86659bed784e64d2060c53088149dc96`
 - Live-obtain module unchanged blob `bf6e50cccf172f00c9be224d3d42bd2b1ef1bf8c`
@@ -395,7 +395,7 @@ Historical grant pointer (#432) snapshots retain
 ## 5. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=33b0c378ab5dac36c4db021873ba23dc52c74cc661c4fab5043671f24f36107e
+EVIDENCE_JSON_SHA256=26d1c8a1d5f4d6fefdb5ebccd3256ea4abc1549508b28d95e7f9ae0d0f121b56
 ~~~
 
 ## 6. Status
