@@ -277,7 +277,11 @@
     "h7_fixture_hash": "8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18",
     "current_development_plan_git_blob_sha_at_base": "323c3b77b5e1f1d30630338a6c26bda0207414e4",
     "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-    "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_connection_implementation_authorized": true
+    "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_connection_implementation_authorized": true,
+    "live_connection_live_auth_evidence_json_sha256": "312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec",
+    "live_connection_grant_evidence_json_sha256": "c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6",
+    "live_connection_r1_evidence_json_sha256": "c77feb55f416eee59a304ea88238c9db5e068f8516e6417a0964077e2b658747",
+    "live_connection_freeze_evidence_json_sha256": "720cc266f2215cd25a4d5fa380f5e4770e988e669a7460eb6e473ad6247b98e7"
   },
   "live_facts_at_insert": {
     "current_s3_c_backtest_execution_status": "CONTRACT_STILL_BOUND_BLOCKED",
@@ -391,7 +395,14 @@
     "forbidden_rewrite_historical_pointers": true,
     "forbidden_edit_c0_contract": true,
     "forbidden_rewrite_c0_section_5_pending_snapshot": true,
-    "forbidden_add_p0_section_11_sixth_row": true
+    "forbidden_add_p0_section_11_sixth_row": true,
+    "live_connection_family_is_not_closed": true,
+    "this_pr_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+    "live_insert_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+    "async_connection_is_not_sync_connection_from_bind": true,
+    "live_connection_service_landed": true,
+    "sync_connection_obtained_from_bound_live_session_bind": false,
+    "live_connection_through_bound_session_bind_reason_code": "FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND"
   },
   "honesty": {
     "file_fence_contract_authorized_true_is_not_live_authority_until_insert": true,
@@ -454,7 +465,17 @@
     "this_evidence_is_not_completeness_verified_package": true,
     "this_evidence_is_not_backtest_package": true,
     "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-    "do_not_invent_hashes_or_tonnes": true
+    "do_not_invent_hashes_or_tonnes": true,
+    "live_connection_family_is_not_closed": true,
+    "this_pr_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+    "live_insert_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+    "async_connection_is_not_sync_connection_from_bind": true,
+    "live_connection_service_landed": true,
+    "sync_connection_obtained_from_bound_live_session_bind": false,
+    "live_connection_through_bound_session_bind_reason_code": "FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND",
+    "live_insert_true_does_not_mean_live_connection_implemented": true,
+    "live_insert_true_does_not_mean_sync_connection_from_bind_obtained": true,
+    "later_r1_must_not_flip_live_connection_implemented": true
   },
   "flags": {
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_connection_contract_authorized": true,
@@ -542,7 +563,14 @@
     "live_insert_does_not_bind_a_live_session": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_connection_contract_authorized": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_connection_implementation_authorized": false,
-    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_connection_implemented": false
+    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_connection_implemented": false,
+    "live_connection_family_is_not_closed": true,
+    "this_pr_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+    "live_insert_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+    "async_connection_is_not_sync_connection_from_bind": true,
+    "live_connection_service_landed": true,
+    "sync_connection_obtained_from_bound_live_session_bind": false,
+    "live_connection_through_bound_session_bind_reason_code": "FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND"
   },
   "unique_flip": {
     "field": "S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_CONNECTION_CONTRACT_AUTHORIZED",
@@ -559,5 +587,12 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "27e2dce13fe1cf981c18fe6325f8fe560aeddc21b8d6df9555c759e091df8e99"
+  "live_connection_family_is_not_closed": true,
+  "this_pr_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+  "live_insert_does_not_obtain_a_sync_connection_from_the_bound_live_session_bind": true,
+  "async_connection_is_not_sync_connection_from_bind": true,
+  "live_connection_service_landed": true,
+  "sync_connection_obtained_from_bound_live_session_bind": false,
+  "live_connection_through_bound_session_bind_reason_code": "FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND",
+  "evidence_json_sha256": "2a5ca8c443d996a2bca598a8f3e86c5a03302224fd3b262600874f6680454a40"
 }
