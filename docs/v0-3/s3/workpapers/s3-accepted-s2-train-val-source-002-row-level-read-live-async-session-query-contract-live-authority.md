@@ -178,7 +178,7 @@ only §13 appended.
 
 ## 2. Unique gap (after #442 live-async-session-query contract freeze)
 
-1. Live-async-session contract frozen on main (#442) with file fence authorized.
+1. Live-async-session-query contract frozen on main (#442) with file fence authorized.
 2. `development-plan.md` §4.4 live state block had no    `S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_QUERY_CONTRACT_AUTHORIZED`. 3. C0 §5 remains freeze snapshot `S3_A1_EVALUATION_WINDOW_ANCHOR_STATUS=PENDING_NOT_MERGED`. 4. Without this insert, coordinators could treat #442 file fence as live registry authority.
 5. This merge does not authorize implementation, does not make the already-obtained live AsyncSession asynchronously queryable, does not flip THIS family `IMPLEMENTED`, does not reopen live-async-session unique remaining gap, does not flip live-async-session `IMPLEMENTED`, does not obtain a sync connection from
    the bound live session bind, does not make the bound session
@@ -196,6 +196,10 @@ LIVE_ASYNC_CONNECTION_R1_MERGE=cee1111da505cf6969c1c2b9b29410da7dbc779b
 LIVE_CONNECTION_R1_MERGE=7f2011cb8c6b8ff2bcf6a41c3591426698ba9b52
 LIVE_ASYNC_SESSION_R1_MERGE=30ee96a018ea12ebc80ec38fc15d664bb341bdac
 LIVE_ASYNC_SESSION_R1_EVIDENCE_JSON_SHA256=8ac5b297157a4e2dfa8cd88695bee6e972c386f261e3c6624c3f545de15f3616
+LIVE_ASYNC_OBTAIN_R1_MERGE=f844204efe32868540050c2e31ff252c32ac41c4
+LIVE_ASYNC_OBTAIN_R1_EVIDENCE_JSON_SHA256=ac4b203fe772f5d560127691bf3fce174b8ea457f01ab0ddd2cb91e210b6ec37
+LIVE_SESSION_QUERY_R1_PR=425
+LIVE_SESSION_QUERY_R1_MERGE=7a1047b2f9ea2d8ad9f6fc46e79cb2bf2f7768a4
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_QUERY_FREEZE_EVIDENCE_JSON_SHA256=e5f3cf3217afb3f26b0d210470c5052bcc9cda5a2876d9804fa1aa2cc7c5d592
 LIVE_CONNECTION_LIVE_AUTH_EVIDENCE_JSON_SHA256=312d1e9a1f8f5a4715f71951abf67e4929ba71161a1663fd13e861bf0b9bc1ec
 LIVE_CONNECTION_GRANT_EVIDENCE_JSON_SHA256=c279d3dd64d7e9e7f9cb5eb5ae838cd320b153428a262dc7e293a0aa88c8eae6
@@ -320,7 +324,7 @@ Parent SOURCE_002 three live keys, live-async-session three live keys (with `DET
 ## 6. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=8ae3e966a7d0db7dfffda2104fd19cc530295196bf51aede0eaef734b2903613
+EVIDENCE_JSON_SHA256=457fef6d8aa096cf29dc84b5bbd7226ec39dcdf905d5b0be687d694615195135
 ~~~
 
 ## 7. Status
