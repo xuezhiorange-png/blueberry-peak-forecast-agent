@@ -12024,7 +12024,7 @@ Live `LIVE_ASYNC_SESSION_QUERY_SERVICE_LANDED` is maintained in `docs/v0-3/devel
 ~~~
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_CONTRACT_LIVE_AUTHORITY_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-bind-contract-live-authority.md
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_CONTRACT_LIVE_AUTHORITY_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-bind-contract-live-authority.json
-EVIDENCE_JSON_SHA256=23c2f36d6fd1f6277018e569360d2f4b40b8ea0e364da6be9f41b1382da2a9c3
+EVIDENCE_JSON_SHA256=8cdce175e457d87f2416cf087aa7aff9ac45230811818ab564d345d251503c72
 PARENT_CONTRACT_PR=446
 PARENT_CONTRACT_MERGE=a07c41795622e14862b431fe4f713f2864d27adb
 S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_CONTRACT_PATH=docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-bind-contract.md
