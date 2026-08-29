@@ -214,7 +214,7 @@ def test_official_live_async_session_run_sync_query_path_fail_closed_or_queryabl
     _assert_not_source_002(envelope)
 
 
-def test_synthetic_sqlite_aiosqlite_queryable_is_not_official_live_async_session_run_sync_query() -> (
+def test_synthetic_sqlite_aiosqlite_queryable_is_not_official_live_async_session_run_sync_query() -> (  # noqa: E501
     None
 ):
     session_maker = _session_maker_sqlite()
