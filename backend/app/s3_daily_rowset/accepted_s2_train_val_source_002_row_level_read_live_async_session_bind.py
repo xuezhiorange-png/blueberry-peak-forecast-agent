@@ -111,12 +111,14 @@ async def _obtain_from_async_session(
     session: AsyncSession,
 ) -> AcceptedS2TrainValLiveAsyncSessionBindEnvelope:
     try:
-        bind = session.get_bind()
+        retrieved = session.get_bind()
     except Exception:
         return _fail(LiveAsyncSessionBindReasonCode.FAIL_CLOSED_NO_BIND)
-    if bind is None or not isinstance(bind, AsyncEngine):
-        bind = session.bind
-    if bind is None or not isinstance(bind, AsyncEngine):
+    bind: AsyncEngine | None = retrieved if isinstance(retrieved, AsyncEngine) else None
+    if bind is None:
+        attached = session.bind
+        bind = attached if isinstance(attached, AsyncEngine) else None
+    if bind is None:
         return _fail(LiveAsyncSessionBindReasonCode.FAIL_CLOSED_NO_BIND)
     connection: AsyncConnection | None = None
     try:
