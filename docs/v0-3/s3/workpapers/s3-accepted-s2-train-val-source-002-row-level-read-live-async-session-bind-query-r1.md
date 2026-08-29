@@ -259,9 +259,9 @@ That fail-closed query is not `SOURCE_002_ROW_LEVEL_READ`.
 ## 2. Implementation delivered
 
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query.py`
-  (blob `7cfc39dde53056cc6e239d0246bcbe45fad29ba2`)
+  (blob `c95efcbdc7b4ef2f95eb1a90550b9aff3500bf22`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query.py`
-  (blob `d8b5f7ec6182292675f66ffb5d051cf5af415da3`; 15 passed)
+  (blob `77416b057c6bd6d7529966d3af04c5e1549d9fcb`; 15 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
 - Live-async-session-connection-obtain module unchanged blob `726d934415952ea5705d53c5b2b4311888e7c4c0`
 - Live-async-session-connection-query module unchanged blob `90415c54ce07a82ce4567084f01aaea75a7b7a9c`
@@ -286,4 +286,4 @@ UNIQUE_FLIP=none_on_live_flags
 ## 4. Evidence
 
 `docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-bind-query-r1.json`
-(`EVIDENCE_JSON_SHA256=694516c8088cd6198da7eeef5a49ba0e625015b3eeae67fd620ecd1f41c82748`).
+(`EVIDENCE_JSON_SHA256=c1b4832792510765b68884398dba7f4c3f2b55df2b26dac85da57366802a5474`).

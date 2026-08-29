@@ -50,8 +50,7 @@ _connection_obtain = importlib.import_module(
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain"
 )
 _async_obtain = importlib.import_module(
-    "backend.app.s3_daily_rowset."
-    "accepted_s2_train_val_source_002_row_level_read_live_async_obtain"
+    "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_async_obtain"
 )
 AcceptedS2TrainValLiveAsyncSessionBindQueryEnvelope = (
     _bind_query.AcceptedS2TrainValLiveAsyncSessionBindQueryEnvelope
@@ -184,9 +183,7 @@ def _assert_not_source_002(envelope: Any) -> None:
 
 
 def test_official_live_async_session_bind_query_path_fail_closed_or_queryable() -> None:
-    envelope = (
-        probe_accepted_s2_train_val_already_obtained_live_async_session_bind_connection_queryability()
-    )
+    envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_bind_connection_queryability()  # noqa: E501
 
     if envelope.queryable:
         assert envelope.reason_code is LiveAsyncSessionBindQueryReasonCode.QUERYABLE
@@ -327,9 +324,7 @@ def test_sibling_probes_still_not_source_002() -> None:
     connection_envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_connection()  # noqa: E501
     query_envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_queryability()
     bind_envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
-    connection_obtain_envelope = (
-        obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session_connection()
-    )
+    connection_obtain_envelope = obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session_connection()  # noqa: E501
     async_obtain_envelope = (
         obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session()
     )
