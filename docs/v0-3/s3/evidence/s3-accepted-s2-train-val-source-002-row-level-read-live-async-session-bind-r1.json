@@ -120,7 +120,7 @@
     "current_s3_a_amendment_git_blob_sha": "5bfe4d20749e3efe0e2a34fb768379d0c08a2b95",
     "current_p0_contract_git_blob_sha": "400e6f5365f42d753e91cfb121f69993e79f8c22",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_py_blob": "179f4bb521d885df4d1d8eb992c30f2db27350c2",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_test_py_blob": "c430107b630fa3f052501d69c05ee6a2a16c2649",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_test_py_blob": "db5fce3c1db0f6ce7bc4155ba47ec412295963ea",
     "official_path_connected": false,
     "official_path_reason_code": "FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_BIND",
     "tests_passed": 14
@@ -153,5 +153,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "5e9943ef121d6fac188b92240086df83bc1d53e3a9013955df28b877d1dd9e2d"
+  "evidence_json_sha256": "d43b201b194d7b3d1e81a3f13a83e16dc4c2d0aeadd6c13990e422e04c8033af"
 }
