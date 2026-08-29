@@ -476,9 +476,9 @@ def test_s2_source_002_row_level_read_constant_remains_false() -> None:
     assert SOURCE_002_ROW_LEVEL_READ is False
 
 
-def test_async_session_connection_obtain_module_contains_session_connection_not_session_scalar() -> (
+def test_async_session_connection_obtain_module_contains_session_connection_not_session_scalar() -> (  # noqa: E501
     None
-):  # noqa: E501
+):
     source = CONNECTION_OBTAIN_MODULE.read_text(encoding="utf-8").lower()
     assert "session.connection(" in source
     assert "session.scalar(" not in source

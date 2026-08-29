@@ -151,7 +151,7 @@
     "current_s3_c0_contract_git_blob_sha": "e59f8a2d255df392116c65d535ae22ae3854ae98",
     "current_s3_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_contract_git_blob_sha": "1a086f3c908bf9100afaf6fa1c5a48b28e7d7722",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_py_blob": "0793e0fcbddb17200c480f88a88404105e72ac04",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_test_py_blob": "bd2688bdce30dfe0762b054ce5db843b87d1d5f0",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_test_py_blob": "4e47870b083c8077ea06dd75fadbb4819569e4fe",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query_py_blob": "90415c54ce07a82ce4567084f01aaea75a7b7a9c",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query_test_py_blob": "15f5b018ab19e41942885a06dc74b0259934ce0b",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_py_blob": "222166655ad4822a6ae943e132c0abcd3aa33dde",
@@ -188,5 +188,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "f5ca49596e0df012ad1974309597e94b1408fef459eea8e4b86b8feb0c8ae279"
+  "evidence_json_sha256": "80d9802fa5bb11658b7e90c1cfdbda1dacc9a53e24ba3681f03a00ce943b0c2d"
 }
