@@ -251,4 +251,4 @@ UNIQUE_FLIP=none_on_live_flags
 ## 4. Evidence
 
 `docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-connection-query-r1.json`
-(`EVIDENCE_JSON_SHA256=748320a5c3dea0a481c44998227658ff0520b650eb6a2ad84e1e0f361046f49f`).
+(`EVIDENCE_JSON_SHA256=5a2c77bdc8cb00578ca12aaf64217381502987d4f581a9db4647939d0d8113e6`).
