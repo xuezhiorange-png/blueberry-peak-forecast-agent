@@ -220,7 +220,7 @@ That fail-closed connection is not `SOURCE_002_ROW_LEVEL_READ`.
 ## 2. Implementation delivered
 
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection.py`
-  (blob `00426ba93f5d10d50d8cc6f125b291d2683d1052`)
+  (blob `222166655ad4822a6ae943e132c0abcd3aa33dde`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection.py`
   (blob `f29c83c45ec8846386d01a2342397bf1cab539ea`; 15 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
@@ -243,4 +243,4 @@ UNIQUE_FLIP=none_on_live_flags
 ## 4. Evidence
 
 `docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-connection-r1.json`
-(`EVIDENCE_JSON_SHA256=533925dc9e1f8aa471f3751fb17e82fb630868a83b4d99a4e5b28e8a3c1b9cd1`).
+(`EVIDENCE_JSON_SHA256=ce63ebf901b16e9e36fd8a9a3fcd756e4ff4a98df58ec304dd19b8ccf73e8f92`).
