@@ -927,7 +927,7 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ~~~
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_OBTAIN_AUTHORIZATION_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-bind-obtain-authorization.md
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_OBTAIN_AUTHORIZATION_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-bind-obtain-authorization.json
-EVIDENCE_JSON_SHA256=dd92cfb46c197ac5912e2eb5ba7afab03eed7b770492e27422be46be81e44e77
+EVIDENCE_JSON_SHA256=ab5aaba7c7f4febcd27409144dd2ff676553a5b7de66a8e42a563581b999d219
 PARENT_CONTRACT_PR=466
 PARENT_CONTRACT_MERGE=c013da1af7a69e8cd897d82fd01e30fdb293a06b
 PARENT_CONTRACT_HEAD=b27033062287d6253577f56c8ba016fa85baede3
