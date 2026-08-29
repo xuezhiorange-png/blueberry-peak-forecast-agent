@@ -97,7 +97,8 @@ received live authority (#467), grant (#468), and R1 (#469,
 `LIVE_ASYNC_SESSION_BIND_OBTAIN_R1_MERGE=5f3e6868a4db1c0a13512df1b7b41758ddc80f37`).
 That family is **not closed**: TRAIN/VAL `content_bytes` were not obtained
 through the already-obtained live AsyncSession bind connection. Official path
-fail-closed `FAIL_CLOSED_ASYNC_SESSION_BIND_CONNECTION_UNREADABLE`.
+fail-closed `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_BIND`.
+Named fail-closed remains `FAIL_CLOSED_ASYNC_SESSION_BIND_CONNECTION_UNREADABLE`.
 Bind-obtain unique remaining gap remains
 `_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session_bind_connection`.
 This **run-sync-query** family is distinct and freezes **after** bind-obtain R1
