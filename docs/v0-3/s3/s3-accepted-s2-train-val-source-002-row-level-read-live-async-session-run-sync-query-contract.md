@@ -174,7 +174,7 @@ CURRENT_CONNECTION_QUERY_FAMILY_CONTRACT_GIT_BLOB_SHA_AT_BASE=913a16f8df32e0917d
 LIVE_ASYNC_SESSION_CONNECTION_QUERY_SERVICE_LANDED=true
 LIVE_ASYNC_SESSION_CONNECTION_QUERY_FAMILY_IS_NOT_CLOSED=true
 LIVE_ASYNC_SESSION_CONNECTION_QUERY_UNIQUE_REMAINING_GAP=_already_obtained_live_async_session_connection_is_not_asynchronously_queryable
-DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_RUN_SYNC_QUERY_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_QUERY_IMPLEMENTED=false
 ALREADY_OBTAINED_LIVE_ASYNC_SESSION_CONNECTION_IS_ASYNCHRONOUSLY_QUERYABLE=false
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_QUERY_CONTRACT_AUTHORIZED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_QUERY_IMPLEMENTATION_AUTHORIZED=true
@@ -380,7 +380,7 @@ S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECT
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_IMPLEMENTED=false
 LIVE_ASYNC_SESSION_CONNECTION_QUERY_SERVICE_LANDED=true
 S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_QUERY_IMPLEMENTATION_AUTHORIZED=true
-DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_RUN_SYNC_QUERY_IMPLEMENTED=false
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_QUERY_IMPLEMENTED=false
 ALREADY_OBTAINED_LIVE_ASYNC_SESSION_CONNECTION_IS_ASYNCHRONOUSLY_QUERYABLE=false
 LIVE_ASYNC_SESSION_RUN_SYNC_QUERY_SERVICE_LANDED=false
 ALREADY_OBTAINED_LIVE_ASYNC_SESSION_BIND_CONNECTION_IS_ASYNCHRONOUSLY_QUERYABLE=false
@@ -391,7 +391,7 @@ S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_RUN_SYN
 
 This document freezes **accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read
 live async session run sync query** authority for a dedicated **already-obtained live
-AsyncSession bind connection queryable** slice. The user authorized a **new family** with
+AsyncSession run_sync queryable** slice. The user authorized a **new family** with
 `USER_GATE=授权`. The parent SOURCE_002 row-level-read family (#410–#413) remains
 **not closed**: official TRAIN+VAL content hashes have not been attested from a
 live read. Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for
@@ -400,7 +400,7 @@ that parent family.
 The live-async-session-bind family (#446–#449) already landed a deterministic
 bind connection obtain service. That family is **not closed**: async connection
 was not obtained from the already-obtained live AsyncSession bind via
-`session.run_sync(...)`. Official path fail-closed
+`get_bind()` / `bind.connect()`. Official path fail-closed
 `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_BIND`. Bind unique
 remaining gap remains
 `_async_connection_not_obtained_from_the_already_obtained_live_async_session_bind`.
@@ -612,7 +612,7 @@ row.
    already-configured live AsyncSessionMaker. That family's unique remaining gap
    is closed.
 3. Live-async-session-bind R1 (#449) already landed the bind connection obtain
-   probe via `session.run_sync(...)`. Official path fail-closed
+   probe via `get_bind()` / `bind.connect()`. Official path fail-closed
    `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_BIND`. That family's
    bind **object** unique remaining gap is **not** this family's unique remaining
    gap and is **not** closed by this freeze.
@@ -621,14 +621,14 @@ row.
    gap and is **not** closed by this freeze.
 6. Live-async-session-connection-obtain R1 (#461) already landed. That family's
    unique remaining gap is **not** this family's unique remaining gap.
-7. The already-obtained live AsyncSession bind connection from `get_bind()` /
-   `bind.connect()` has not been probed for asynchronous queryability.
+7. The already-obtained live AsyncSession has not been probed for synchronous
+   queryability via `session.run_sync(...)`.
 8. The user authorized a **new family** to freeze WHAT/HOW for probing whether
-   that AsyncConnection is asynchronously queryable. This slice must not uniquely
-   flip `SOURCE_002_ROW_LEVEL_READ` and must not flip connection, live-async-session-query,
+   that AsyncSession is synchronously queryable via `run_sync`. This slice must not uniquely
+   flip `SOURCE_002_ROW_LEVEL_READ` and must not flip bind-obtain, bind-query, connection, live-async-session-query,
    or live-async-obtain `IMPLEMENTED`.
-9. The gap is **contract boundary for queryability of the AsyncConnection from
-   the already-obtained live AsyncSession bind via session.run_sync(...)**, not
+9. The gap is **contract boundary for queryability via run_sync of the
+   already-obtained live AsyncSession**, not
    executing that work today, not obtaining content bytes, not attesting official
    hashes, and not producing forecast artifact files.
 
@@ -768,7 +768,7 @@ FORBIDDEN_CONSTRUCT_NEW_ASYNC_SESSION_MAKER=true
 ALLOWED_FUTURE_PATH=async_session_maker_context_enter_inside_asyncio_run_then_session_run_sync_on_already_obtained_live_async_session_then_probe_synchronous_queryability=true
 ENVELOPE_QUERYABLE_FIELD_IS_NOT_CONNECTED=true
 ENVELOPE_QUERYABLE_FIELD_IS_NOT_OBTAINED=true
-REASON_CODES=QUERYABLE,FAIL_CLOSED_NO_ASYNC_SESSION_MAKER,FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED_FROM_SESSION_MAKER,FAIL_CLOSED_NO_BIND,FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_BIND,FAIL_CLOSED_ASYNC_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE_VIA_RUN_SYNC
+REASON_CODES=QUERYABLE,FAIL_CLOSED_NO_ASYNC_SESSION_MAKER,FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED_FROM_SESSION_MAKER,FAIL_CLOSED_ASYNC_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE_VIA_RUN_SYNC
 ALREADY_OBTAINED_LIVE_ASYNC_SESSION_CONNECTION_IS_ASYNCHRONOUSLY_QUERYABLE=false
 ALREADY_OBTAINED_LIVE_ASYNC_SESSION_BIND_CONNECTION_IS_ASYNCHRONOUSLY_QUERYABLE=false
 FORBIDDEN_WRITE_CONNECTION_STRINGS=true
@@ -777,15 +777,16 @@ QUERYABLE_VIA_RUN_SYNC_IS_NOT_SOURCE_002_ROW_LEVEL_READ=true
 QUERYABLE_VIA_RUN_SYNC_IS_NOT_CONTENT_BYTES_OBTAINED=true
 ~~~
 
-Future implementation of **this** family may probe whether the AsyncConnection from
-`session.run_sync(...)` through the already-obtained live AsyncSession from
-`AsyncSessionMaker` inside `asyncio.run` with context enter is asynchronously
-queryable. It must not invent connection parameters, must not use
+Future implementation of **this** family may probe whether the already-obtained live
+AsyncSession from `AsyncSessionMaker` inside `asyncio.run` with context enter is
+synchronously queryable via `session.run_sync(...)`. It must not invent connection
+parameters, must not use
 `bound_source_002_row_level_read_session_provider`, must not use
-`session.connection()` or `engine.connect()`, must not unseal TEST, and must not treat H7 fixture
+`session.connection()`, `engine.connect()`, `get_bind()`, `bind.connect()`, or
+`session.scalar()`, must not unseal TEST, and must not treat H7 fixture
 `8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18` as live
 evidence. Envelope field is `queryable: bool` (not `connected`, not `obtained`).
-A queryable AsyncConnection from session bind is not TRAIN/VAL
+A run_sync-queryable AsyncSession is not TRAIN/VAL
 `content_bytes` obtained and is not `SOURCE_002_ROW_LEVEL_READ`.
 
 ## 4. Relationship to parent, connection, live-async-session-query, live-async-obtain, and live-async-session families
@@ -805,8 +806,8 @@ A queryable AsyncConnection from session bind is not TRAIN/VAL
 - Live-async-obtain unique remaining gap stays with the live-async-obtain family
 - This family's later unique legal flip, if any, is
   `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_RUN_SYNC_QUERY_IMPLEMENTED`
-  after the already-obtained live AsyncSession bind connection is actually asynchronously
-  queryable — not `SOURCE_002_ROW_LEVEL_READ` and not bind `IMPLEMENTED`
+  after the already-obtained live AsyncSession is actually synchronously
+  queryable via `run_sync` — not `SOURCE_002_ROW_LEVEL_READ` and not bind-obtain or bind-query `IMPLEMENTED`
 
 ## 5. Forecast-side and replay-identity table (not harvest read target)
 
@@ -947,9 +948,9 @@ FORBIDDEN_DOCS_ONLY_IMPLEMENTED_AS_SUBSTITUTE_FOR_A_QUERYABLE_VIA_RUN_SYNC=true
 Future live-authority insert (separate 「可以下一步」) may authorize this contract in
 live §4.4. Future grant (separate 「可以实施」 after live authority) may authorize
 implementation. Future implementation R1 of **this** family may probe whether the
-already-obtained live AsyncSession bind connection is asynchronously queryable. That R1
+already-obtained live AsyncSession is synchronously queryable via `run_sync`. That R1
 still must not uniquely flip `SOURCE_002_ROW_LEVEL_READ` and must not flip
-connection, live-async-session-query, or live-async-obtain `IMPLEMENTED`.
+bind-obtain, bind-query, connection, live-async-session-query, or live-async-obtain `IMPLEMENTED`.
 
 ## 9. Honest boundary（中文）
 
@@ -961,7 +962,7 @@ connection, live-async-session-query, or live-async-obtain `IMPLEMENTED`.
 - live-async-session-query 探针已落地 ≠ AsyncSession 可查询 ≠ AsyncConnection
   可查询 ≠ `IMPLEMENTED=false`
 - 本 file fence `AUTHORIZED=true` ≠ live §4.4 ≠ `IMPLEMENTATION_AUTHORIZED` ≠
-  `IMPLEMENTED` ≠ bind connection queryable ≠ content bytes 已取得 ≠
+  `IMPLEMENTED` ≠ run_sync queryable ≠ content bytes 已取得 ≠
   `SOURCE_002_ROW_LEVEL_READ`
 - 本家族不得抢走 connection / live-async-session-query / live-async-obtain 家族的
   unique remaining gap
