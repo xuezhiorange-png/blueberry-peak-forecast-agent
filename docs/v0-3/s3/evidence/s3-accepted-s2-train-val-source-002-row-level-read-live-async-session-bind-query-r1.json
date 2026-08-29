@@ -163,8 +163,8 @@
     "current_p0_contract_git_blob_sha": "eb506e377d3d6048eeb937a18ff7b723917c4a4a",
     "current_s3_c0_contract_git_blob_sha": "e59f8a2d255df392116c65d535ae22ae3854ae98",
     "current_s3_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_contract_git_blob_sha": "1a43285aea1f48d8b497f597babee9ede18b67f5",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_py_blob": "7cfc39dde53056cc6e239d0246bcbe45fad29ba2",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_test_py_blob": "d8b5f7ec6182292675f66ffb5d051cf5af415da3",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_py_blob": "c95efcbdc7b4ef2f95eb1a90550b9aff3500bf22",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_test_py_blob": "77416b057c6bd6d7529966d3af04c5e1549d9fcb",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_py_blob": "726d934415952ea5705d53c5b2b4311888e7c4c0",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query_py_blob": "90415c54ce07a82ce4567084f01aaea75a7b7a9c",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_py_blob": "a955a2de32209e8cd0fa7a8609029336c7a6d4fc",
@@ -200,5 +200,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "694516c8088cd6198da7eeef5a49ba0e625015b3eeae67fd620ecd1f41c82748"
+  "evidence_json_sha256": "c1b4832792510765b68884398dba7f4c3f2b55df2b26dac85da57366802a5474"
 }
