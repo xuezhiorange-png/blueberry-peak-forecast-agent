@@ -205,7 +205,9 @@ def _assert_not_source_002(envelope: Any) -> None:
 
 
 def test_official_live_async_session_run_sync_query_path_fail_closed_or_queryable() -> None:
-    envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()  # noqa: E501
+    envelope = (
+        probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()
+    )  # noqa: E501
 
     if envelope.queryable:
         assert envelope.reason_code is LiveAsyncSessionRunSyncQueryReasonCode.QUERYABLE
@@ -220,7 +222,9 @@ def test_synthetic_sqlite_aiosqlite_queryable_is_not_official_live_async_session
     session_maker = _session_maker_sqlite()
 
     with patch("backend.app.db.session.AsyncSessionMaker", session_maker):
-        envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()  # noqa: E501
+        envelope = (
+            probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()
+        )  # noqa: E501
 
     assert envelope.queryable is True
     assert envelope.reason_code is LiveAsyncSessionRunSyncQueryReasonCode.QUERYABLE
@@ -229,7 +233,9 @@ def test_synthetic_sqlite_aiosqlite_queryable_is_not_official_live_async_session
 
 def test_missing_async_session_maker_fail_closes_no_async_session_maker() -> None:
     with patch("backend.app.db.session.AsyncSessionMaker", None):
-        envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()  # noqa: E501
+        envelope = (
+            probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()
+        )  # noqa: E501
 
     assert envelope.queryable is False
     assert (
@@ -247,7 +253,9 @@ def test_session_maker_that_raises_on_enter_fail_closes_not_obtained() -> None:
     failing_maker.__class__ = async_sessionmaker
 
     with patch("backend.app.db.session.AsyncSessionMaker", failing_maker):
-        envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()  # noqa: E501
+        envelope = (
+            probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()
+        )  # noqa: E501
 
     assert envelope.queryable is False
     assert envelope.reason_code is (
@@ -266,7 +274,9 @@ def test_session_run_sync_raises_fail_closes_not_synchronously_queryable_via_run
     readable_maker.__class__ = async_sessionmaker
 
     with patch("backend.app.db.session.AsyncSessionMaker", readable_maker):
-        envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()  # noqa: E501
+        envelope = (
+            probe_accepted_s2_train_val_already_obtained_live_async_session_run_sync_queryability()
+        )  # noqa: E501
 
     assert envelope.queryable is False
     assert envelope.reason_code is (
@@ -299,9 +309,7 @@ def test_parent_attestation_model_still_does_not_expose_content_bytes() -> None:
 
 
 def test_sibling_probes_still_not_source_002() -> None:
-    bind_query_envelope = (
-        probe_accepted_s2_train_val_already_obtained_live_async_session_bind_connection_queryability()
-    )
+    bind_query_envelope = probe_accepted_s2_train_val_already_obtained_live_async_session_bind_connection_queryability()  # noqa: E501
     bind_obtain_envelope = obtain_accepted_s2_train_val_content_bytes_from_the_already_obtained_live_async_session_bind_connection()  # noqa: E501
     connection_query_envelope = (
         probe_accepted_s2_train_val_already_obtained_live_async_session_connection_queryability()

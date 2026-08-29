@@ -184,7 +184,7 @@
     "current_s3_c0_contract_git_blob_sha": "e59f8a2d255df392116c65d535ae22ae3854ae98",
     "current_s3_accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query_contract_git_blob_sha": "6b7cc09c469928cf5e49e6d5bfb77f8666df20d2",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query_py_blob": "ca7027893a122b6ecdf805bd9cd1e3e64b638262",
-    "accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query_test_py_blob": "591adcc4ab7a5a251a01e41c659b9d4fb9392e1d",
+    "accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query_test_py_blob": "38aee25b7200b90090949f50396d09078e7ae8f1",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_obtain_py_blob": "5b8a343ae3889111c5032cb22083beb19de20e7a",
     "accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_py_blob": "c95efcbdc7b4ef2f95eb1a90550b9aff3500bf22",
     "official_path_queryable": false,
@@ -219,5 +219,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "a3a91e8716d5635c54dd21b7977bf79da412d868174acde5c84d545e2e047b7f"
+  "evidence_json_sha256": "a74669fcabf26715ee33b274db7631deb914bdfdd1e6343e86dc4a9ba9286188"
 }
