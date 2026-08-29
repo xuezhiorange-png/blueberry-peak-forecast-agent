@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
+from sqlalchemy.orm import Session
 
 
 class LiveAsyncSessionRunSyncQueryReasonCode(StrEnum):
@@ -105,9 +106,12 @@ async def _probe_with_session_maker(
         await session_cm.__aexit__(None, None, None)
 
 
-def _probe_sync_query(sync_session) -> int | None:
+def _probe_sync_query(sync_session: Session) -> int | None:
     result = sync_session.execute(select(1))
-    return result.scalar()
+    scalar_value = result.scalar()
+    if isinstance(scalar_value, int):
+        return scalar_value
+    return None
 
 
 async def _probe_from_async_session(
