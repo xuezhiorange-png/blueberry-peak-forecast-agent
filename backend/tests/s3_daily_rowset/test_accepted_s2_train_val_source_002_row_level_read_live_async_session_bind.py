@@ -123,7 +123,7 @@ def _assert_not_source_002(envelope: Any) -> None:
 
 
 def test_official_live_async_session_bind_path_fail_closed_or_connected() -> None:
-    envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()
+    envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
 
     if envelope.connected:
         assert envelope.reason_code is LiveAsyncSessionBindReasonCode.CONNECTED
@@ -136,7 +136,7 @@ def test_synthetic_sqlite_aiosqlite_connected_is_not_official_live_async_session
     session_maker = _session_maker_sqlite()
 
     with patch("backend.app.db.session.AsyncSessionMaker", session_maker):
-        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
 
     assert envelope.connected is True
     assert envelope.reason_code is LiveAsyncSessionBindReasonCode.CONNECTED
@@ -145,7 +145,7 @@ def test_synthetic_sqlite_aiosqlite_connected_is_not_official_live_async_session
 
 def test_missing_async_session_maker_fail_closes_no_async_session_maker() -> None:
     with patch("backend.app.db.session.AsyncSessionMaker", None):
-        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
 
     assert envelope.connected is False
     assert envelope.reason_code is LiveAsyncSessionBindReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
@@ -160,7 +160,7 @@ def test_session_maker_that_raises_on_enter_fail_closes_not_obtained() -> None:
     failing_maker.__class__ = async_sessionmaker
 
     with patch("backend.app.db.session.AsyncSessionMaker", failing_maker):
-        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
 
     assert envelope.connected is False
     assert (
@@ -181,7 +181,7 @@ def test_session_with_no_bind_fail_closes_no_bind() -> None:
     readable_maker.__class__ = async_sessionmaker
 
     with patch("backend.app.db.session.AsyncSessionMaker", readable_maker):
-        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
 
     assert envelope.connected is False
     assert envelope.reason_code is LiveAsyncSessionBindReasonCode.FAIL_CLOSED_NO_BIND
@@ -200,7 +200,7 @@ def test_bind_connect_raises_fail_closes_not_obtained_from_session_bind() -> Non
     readable_maker.__class__ = async_sessionmaker
 
     with patch("backend.app.db.session.AsyncSessionMaker", readable_maker):
-        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()
+        envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_obtained_live_async_session_bind()  # noqa: E501
 
     assert envelope.connected is False
     assert envelope.reason_code is (
