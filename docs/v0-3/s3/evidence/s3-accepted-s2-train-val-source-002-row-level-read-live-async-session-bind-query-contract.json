@@ -19,7 +19,6 @@
   "development_plan_unchanged": true,
   "live_section_4_4_insert_not_in_this_pr": true,
   "no_step_implies_the_next": true,
-  "this_family_is_the_already_obtained_live_async_session_connection_queryable_slice": true,
   "this_family_is_not_the_already_obtained_live_async_session_connection_slice": true,
   "this_family_is_not_the_already_obtained_live_async_session_queryable_slice": true,
   "this_family_is_not_the_already_obtained_live_async_session_bind_connection_slice": true,
@@ -346,7 +345,6 @@
     "source_002_row_level_read": false,
     "development_plan_unchanged": true,
     "forbidden_touch_python": true,
-    "this_family_is_the_already_obtained_live_async_session_connection_queryable_slice": true,
     "this_family_is_not_the_live_async_engine_connection_slice": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_contract_authorized": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_implementation_authorized": false,
@@ -356,7 +354,8 @@
     "live_async_session_connection_obtain_service_landed": true,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_implementation_authorized": true,
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_implemented": false,
-    "this_family_is_the_already_obtained_live_async_session_bind_connection_queryable_slice": true
+    "this_family_is_the_already_obtained_live_async_session_bind_connection_queryable_slice": true,
+    "this_family_is_not_the_already_obtained_live_async_session_connection_queryable_slice": true
   },
   "unique_flip": {
     "field": "S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_QUERY_CONTRACT_AUTHORIZED",
@@ -375,7 +374,6 @@
   "live_async_session_query_unique_remaining_gap": "_already_obtained_live_async_session_is_not_asynchronously_queryable",
   "live_async_obtain_unique_remaining_gap": "_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session",
   "parent_unique_remaining_gap": "_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read",
-  "evidence_json_sha256": "625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91",
   "this_family_is_the_already_obtained_live_async_session_bind_connection_queryable_slice": true,
   "this_family_is_not_the_already_obtained_live_async_session_connection_queryable_slice": true,
   "this_family_is_not_the_already_obtained_live_async_session_connection_obtain_slice": true,
@@ -470,5 +468,6 @@
   "this_family_must_not_close_live_async_session_connection_obtain_unique_remaining_gap": true,
   "this_family_must_not_flip_live_async_session_connection_obtain_implemented": true,
   "this_family_must_not_close_live_async_session_connection_query_unique_remaining_gap": true,
-  "this_family_must_not_flip_live_async_session_connection_query_implemented": true
+  "this_family_must_not_flip_live_async_session_connection_query_implemented": true,
+  "evidence_json_sha256": "875c341bc48d2b3564b4bb7dc3569febabe88480aa092ecc16adfcf35889a0ce"
 }

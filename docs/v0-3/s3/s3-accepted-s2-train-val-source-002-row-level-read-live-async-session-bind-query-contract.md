@@ -355,8 +355,8 @@ already-obtained live AsyncSession is not asynchronously queryable via
 unique remaining gap remains
 `_already_obtained_live_async_session_is_not_asynchronously_queryable`. This
 **bind-query** family is distinct: future R1 probes whether the
-**AsyncConnection** from `await session.connection()` is asynchronously queryable —
-not `session.scalar` on the AsyncSession.
+**AsyncConnection** from `get_bind()` / `bind.connect()` is asynchronously queryable —
+not `session.scalar` on the AsyncSession, not `session.connection()`.
 
 The live-async-obtain family (#438–#441) already landed a deterministic obtain
 service. That family is **not closed**: TRAIN/VAL `content_bytes` were not
@@ -513,8 +513,9 @@ fail-closed `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`.
 from session.connection() ≠ `SOURCE_002_ROW_LEVEL_READ`. Connection unique
 remaining gap remains
 `_async_connection_not_obtained_from_the_already_obtained_live_async_session_connection`.
-This **bind-query** family freezes **after** connection R1 **#453** on main
-`239c3b4` and probes queryability of the AsyncConnection — not connection obtain.
+This **bind-query** family freezes **after** connection-obtain R1 **#461** on
+main `7fc5e88` and probes queryability of the bind AsyncConnection — not
+`session.connection()`, not connection-obtain, not bind object obtain.
 
 ~~~text
 LIVE_ASYNC_SESSION_CONNECTION_R1_PR=453
@@ -674,11 +675,11 @@ QUERYABLE_ASYNC_CONNECTION_FROM_SESSION_BIND_CONNECTION_IS_NOT_CONTENT_BYTES_OBT
 ~~~
 
 Future implementation of **this** family may probe whether the AsyncConnection from
-`await session.connection()` through the already-obtained live AsyncSession from
+`get_bind()` / `bind.connect()` through the already-obtained live AsyncSession from
 `AsyncSessionMaker` inside `asyncio.run` with context enter is asynchronously
 queryable. It must not invent connection parameters, must not use
-`bound_source_002_row_level_read_session_provider`, must not use engine or
-connection escape hatches, must not unseal TEST, and must not treat H7 fixture
+`bound_source_002_row_level_read_session_provider`, must not use
+`session.connection()` or `engine.connect()`, must not unseal TEST, and must not treat H7 fixture
 `8e74d6be6bcadc087b2dd7a72dfcb588e849305db598aac5c02a954660f30c18` as live
 evidence. Envelope field is `queryable: bool` (not `connected`, not `obtained`).
 A queryable AsyncConnection from session bind is not TRAIN/VAL
@@ -701,8 +702,8 @@ A queryable AsyncConnection from session bind is not TRAIN/VAL
 - Live-async-obtain unique remaining gap stays with the live-async-obtain family
 - This family's later unique legal flip, if any, is
   `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_BIND_QUERY_IMPLEMENTED`
-  after the already-obtained live AsyncSession connection is actually asynchronously
-  queryable — not `SOURCE_002_ROW_LEVEL_READ` and not connection `IMPLEMENTED`
+  after the already-obtained live AsyncSession bind connection is actually asynchronously
+  queryable — not `SOURCE_002_ROW_LEVEL_READ` and not bind `IMPLEMENTED`
 
 ## 5. Forecast-side and replay-identity table (not harvest read target)
 

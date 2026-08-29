@@ -31,10 +31,16 @@ THIS_DRAFT_IS_NOT_READY=true
 DEVELOPMENT_PLAN_UNCHANGED=true
 LIVE_SECTION_4_4_INSERT_NOT_IN_THIS_PR=true
 THIS_FAMILY_IS_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION_BIND_CONNECTION_QUERYABLE_SLICE=true
+THIS_FAMILY_IS_NOT_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_SLICE=true
+THIS_FAMILY_IS_NOT_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION_CONNECTION_QUERYABLE_SLICE=true
 THIS_FAMILY_IS_NOT_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION_CONNECTION_SLICE=true
 THIS_FAMILY_IS_NOT_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION_QUERYABLE_SLICE=true
 THIS_FAMILY_IS_NOT_THE_ALREADY_OBTAINED_LIVE_ASYNC_SESSION_BIND_CONNECTION_SLICE=true
 THIS_FAMILY_IS_NOT_THE_LIVE_ASYNC_ENGINE_CONNECTION_SLICE=true
+THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_UNIQUE_REMAINING_GAP=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_IMPLEMENTED=true
+THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_SESSION_CONNECTION_QUERY_UNIQUE_REMAINING_GAP=true
+THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_CONNECTION_QUERY_IMPLEMENTED=true
 THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_SESSION_CONNECTION_UNIQUE_REMAINING_GAP=true
 THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_CONNECTION_IMPLEMENTED=true
 THIS_FAMILY_MUST_NOT_CLOSE_LIVE_ASYNC_SESSION_BIND_UNIQUE_REMAINING_GAP=true
@@ -78,23 +84,33 @@ main. That parent is **not closed**: official TRAIN+VAL content hashes have not
 been attested from a live read, and unique live flip of `SOURCE_002_ROW_LEVEL_READ`
 remains reserved for that parent family.
 
-The live-async-session-connection family (#450–#453) already landed at base
-`239c3b4`. Connection froze on PR **#450**
-(`LIVE_ASYNC_SESSION_CONNECTION_FREEZE_MERGE=c159f7c9130fa3e5e73fcd4da50d6a224aadcb80`),
-received live authority (#451), grant (#452), and R1 (#453,
-`LIVE_ASYNC_SESSION_CONNECTION_R1_MERGE=239c3b459e245a400c7297bb115ad58ce27b6b71`).
-That family is **not closed**: async connection was not obtained from the
-already-obtained live AsyncSession via `get_bind()` / `bind.connect()`. Official path
+The live-async-session-connection-obtain family (#458–#461) already landed at
+base `7fc5e88`. Connection-obtain froze on PR **#458**
+(`LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_FREEZE_MERGE=ad98a1d371bdddebb0d839c6d3e902ceb00ad70a`),
+received live authority (#459), grant (#460), and R1 (#461,
+`LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_R1_MERGE=7fc5e884e438a24b5010a168b851e628e1e5cc71`).
+That family is **not closed**: TRAIN/VAL `content_bytes` were not obtained
+through the already-obtained live AsyncSession connection. Official path
 fail-closed `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`.
-`LIVE_ASYNC_SESSION_CONNECTION_SERVICE_LANDED=true` ≠ async connection obtained.
-Connection unique remaining gap remains
+Connection-obtain unique remaining gap remains
+`_accepted_s2_train_val_content_bytes_not_obtained_from_the_already_obtained_live_async_session_connection`.
+This **bind-query** family is distinct and freezes **after** connection-obtain R1
+**#461** on main `7fc5e88` — not on #450/#454/#458.
+
+The live-async-session-bind family (#446–#449) already landed the bind
+connection object probe. That family is **not closed**: async connection was
+not obtained from the already-obtained live AsyncSession bind (`get_bind()` /
+`bind.connect()`). Official path fail-closed
+`FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_BIND`. Bind unique
+remaining gap remains
+`_async_connection_not_obtained_from_the_already_obtained_live_async_session_bind`.
+
+The live-async-session-connection family (#450–#453) already landed. That family
+is **not closed**: async connection was not obtained from the already-obtained
+live AsyncSession via `await session.connection()`. Official path fail-closed
+`FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`. Connection
+unique remaining gap remains
 `_async_connection_not_obtained_from_the_already_obtained_live_async_session_connection`.
-The live-async-session-connection-obtain family (#458–#461) froze on PR **#458**,
-received live authority (#459), grant (#460), and R1 (#461). That family is
-**not closed**. This **bind-query** family freezes **after** connection-obtain R1
-**#461** on main `7fc5e88` — not on #450/#454. The live-async-session-connection
-family (#450–#453) froze earlier. This **bind-query** family is distinct and freezes **after** connection R1
-**#453** on main `7fc5e88` — not on #450.
 
 The live-async-session-query family (#442–#445) already landed a deterministic
 query probe on the **AsyncSession**. That family is **not closed**: the
@@ -103,8 +119,9 @@ already-obtained live AsyncSession is not asynchronously queryable via
 `FAIL_CLOSED_ASYNC_SESSION_NOT_ASYNCHRONOUSLY_QUERYABLE`. Live-async-session-query
 unique remaining gap remains
 `_already_obtained_live_async_session_is_not_asynchronously_queryable`. This
-**connection-query** family probes queryability of the **AsyncConnection** from
-`get_bind()` / `bind.connect()` — not the AsyncSession itself.
+**bind-query** family probes queryability of the **AsyncConnection** from
+`get_bind()` / `bind.connect()` — not the AsyncSession itself, not
+`session.connection()`.
 
 The live-async-obtain family (#438–#441) already landed a deterministic obtain
 service. That family is **not closed**: TRAIN/VAL `content_bytes` were not
@@ -192,6 +209,9 @@ DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION
 LIVE_ASYNC_CONNECTION_SERVICE_LANDED=true
 LIVE_ASYNC_SESSION_QUERY_SERVICE_LANDED=true
 LIVE_ASYNC_SESSION_CONNECTION_QUERY_SERVICE_LANDED=true
+LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_SERVICE_LANDED=true
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_QUERY_IMPLEMENTATION_AUTHORIZED=true
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECTION_OBTAIN_IMPLEMENTATION_AUTHORIZED=true
 DETERMINISTIC_READER_LANDED=true
 OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=false
 ~~~
@@ -219,7 +239,7 @@ P0, C0, sibling contracts.
 ~~~text
 PARENT_P0_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
 CURRENT_P0_CONTRACT_GIT_BLOB_SHA=8e0536791af0aeb33f279f033da9a1a533e2a329
-P0_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+P0_EVIDENCE_JSON_SHA256=580f09e306e4e32db0e72d65158d455bd9fea57b4279497909ff0d54cb91259c
 FORBIDDEN_ADD_P0_SECTION_11_SIXTH_ROW=true
 ~~~
 
@@ -228,12 +248,12 @@ FORBIDDEN_ADD_P0_SECTION_11_SIXTH_ROW=true
 ~~~text
 S2_CONTRACT_PATH=docs/v0-3/s2/s2-materialized-dataset-contract.md
 S2_CONTRACT_GIT_BLOB_SHA=0e974ba408122bc2f8b0ee4108fb1af136ec1099
-S2_ACCEPTANCE_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
-OFFICIAL_HASH_PACKAGE_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+S2_ACCEPTANCE_EVIDENCE_JSON_SHA256=f7856e99ded3cf4c56f1d6e4b283ccd903e35302cb06db606c6446419d76e02f
+OFFICIAL_HASH_PACKAGE_EVIDENCE_JSON_SHA256=63bc6e23ce4ffec8de268e7b11d99fab007a168007b24c6498489ef6d0cc9b52
 SLICE_S2_COMPLETE=PASS
 ~~~
 
-### 2.3 Live-async-session-connection family (#450–#453, immediately preceding, not closed)
+### 2.3 Live-async-session-connection family (#450–#453, not closed)
 
 ~~~text
 LIVE_ASYNC_SESSION_CONNECTION_FREEZE_PR=450
@@ -245,10 +265,10 @@ LIVE_ASYNC_SESSION_CONNECTION_GRANT_MERGE=1fbd0887fb0822b301ae0f001edf45e9ddac3a
 LIVE_ASYNC_SESSION_CONNECTION_R1_PR=453
 LIVE_ASYNC_SESSION_CONNECTION_R1_MERGE=239c3b459e245a400c7297bb115ad58ce27b6b71
 LIVE_ASYNC_SESSION_CONNECTION_R1_HEAD=04ecac0a48159e1d4fcad2e96053af5083560dde
-LIVE_ASYNC_SESSION_CONNECTION_R1_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+LIVE_ASYNC_SESSION_CONNECTION_R1_EVIDENCE_JSON_SHA256=ce63ebf901b16e9e36fd8a9a3fcd756e4ff4a98df58ec304dd19b8ccf73e8f92
 LIVE_ASYNC_SESSION_CONNECTION_PY_BLOB=222166655ad4822a6ae943e132c0abcd3aa33dde
 LIVE_ASYNC_SESSION_CONNECTION_TEST_PY_BLOB=f29c83c45ec8846386d01a2342397bf1cab539ea
-LIVE_ASYNC_SESSION_CONNECTION_FREEZE_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+LIVE_ASYNC_SESSION_CONNECTION_FREEZE_EVIDENCE_JSON_SHA256=82528c835cd2418c545537485204445509774fb0cf49749776c0718931340fe1
 CURRENT_CONNECTION_FAMILY_CONTRACT_GIT_BLOB_SHA_AT_BASE=db710dceedfffe3fc05a6a0a6e24435964f85a46
 LIVE_ASYNC_SESSION_CONNECTION_SERVICE_LANDED=true
 LIVE_ASYNC_SESSION_CONNECTION_FAMILY_IS_NOT_CLOSED=true
@@ -260,16 +280,16 @@ THIS_FAMILY_MUST_NOT_FLIP_LIVE_ASYNC_SESSION_CONNECTION_IMPLEMENTED=true
 FORBIDDEN_REWRITE_LIVE_ASYNC_SESSION_CONNECTION_FREEZE_IDENTITY=true
 ~~~
 
-Connection R1 merged on PR **#453** at `239c3b4`. This connection-query family
-freezes **after** connection R1 on main `7fc5e88`. Connection uses
-`get_bind()` / `bind.connect()` obtain probe; this family uses queryability probe on
-the resulting AsyncConnection.
+Connection R1 merged on PR **#453**. This **bind-query** family freezes
+**after** connection-obtain R1 **#461** on main `7fc5e88`. Connection uses
+`await session.connection()`; this family uses `get_bind()` / `bind.connect()`
+then a queryability probe on that bind connection.
 
 ### 2.4 Live-async-session-query family (#442–#445, not closed)
 
 ~~~text
 LIVE_ASYNC_SESSION_QUERY_R1_MERGE=05bf5eaa8dfaa327eef0a10c7147067b992856f9
-LIVE_ASYNC_SESSION_QUERY_R1_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+LIVE_ASYNC_SESSION_QUERY_R1_EVIDENCE_JSON_SHA256=02c19c607255182ce6eeca59324bbfef0c9d22a65950e17d9b671870d880b2de
 LIVE_ASYNC_SESSION_QUERY_PY_BLOB=4d946c02acff3a257817e714ad824f9b311d42ec
 LIVE_ASYNC_SESSION_QUERY_TEST_PY_BLOB=f1045649d9a38203e892656da8883753fa9ba9f7
 LIVE_ASYNC_SESSION_QUERY_SERVICE_LANDED=true
@@ -285,7 +305,7 @@ FORBIDDEN_REWRITE_LIVE_ASYNC_SESSION_QUERY_FREEZE_IDENTITY=true
 
 ~~~text
 LIVE_ASYNC_OBTAIN_R1_MERGE=f844204efe32868540050c2e31ff252c32ac41c4
-LIVE_ASYNC_OBTAIN_R1_EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+LIVE_ASYNC_OBTAIN_R1_EVIDENCE_JSON_SHA256=ac4b203fe772f5d560127691bf3fce174b8ea457f01ab0ddd2cb91e210b6ec37
 LIVE_ASYNC_OBTAIN_PY_BLOB=01f0e6e75f527514c5a08208f91eaec99a0154d1
 LIVE_ASYNC_OBTAIN_SERVICE_LANDED=true
 DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_OBTAIN_IMPLEMENTED=false
@@ -374,18 +394,20 @@ Not flipped: `SOURCE_002_ROW_LEVEL_READ`, parent `IMPLEMENTED`, connection
 
 ## 6. Honest boundary（中文）
 
-- live-async-session-connection 服务已落地 ≠ async connection 已取得 ≠ connection
+- live-async-session-bind 服务已落地 ≠ bind connection 已取得 ≠ bind connection
   可查询 ≠ `IMPLEMENTED`
-- live-async-session-query 探针已落地 ≠ AsyncSession 可查询 ≠ AsyncConnection
-  可查询 ≠ `IMPLEMENTED=false`
-- AsyncSession 已取得 ≠ AsyncConnection 可异步查询 ≠ content bytes 已取得 ≠
+- live-async-session-connection 服务已落地 ≠ async connection 已取得 ≠
+  `session.connection()` 可查询 ≠ `IMPLEMENTED`
+- live-async-session-query 探针已落地 ≠ AsyncSession 可查询 ≠ bind connection
+  可查询 ≠ `IMPLEMENTED`
+- AsyncSession 已取得 ≠ bind connection 可异步查询 ≠ content bytes 已取得 ≠
   `SOURCE_002_ROW_LEVEL_READ`
 - 本 file fence `AUTHORIZED=true` ≠ `IMPLEMENTATION_AUTHORIZED` ≠ `IMPLEMENTED`
-- 本家族不得抢走 connection / live-async-session-query / live-async-obtain 家族的
-  unique remaining gap
+- 本家族不得抢走 bind object / connection / connection-query / connection-obtain /
+  live-async-session-query / live-async-obtain 家族的 unique remaining gap
 
 ## 7. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=625deafe1cbb57fa4e635ceba169ecac0fc31c1b71c592abfab8f1a7a38f0b91
+EVIDENCE_JSON_SHA256=875c341bc48d2b3564b4bb7dc3569febabe88480aa092ecc16adfcf35889a0ce
 ~~~
