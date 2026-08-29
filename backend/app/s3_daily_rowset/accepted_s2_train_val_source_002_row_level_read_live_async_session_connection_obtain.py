@@ -15,6 +15,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
@@ -314,7 +315,7 @@ async def _obtain_from_async_connection(
                 ),
             )
 
-        def _one_partition_row(name: str) -> dict[str, object] | None:
+        def _one_partition_row(name: str) -> RowMapping | None:
             matches = [
                 partition for partition in partition_rows if partition["partition_name"] == name
             ]

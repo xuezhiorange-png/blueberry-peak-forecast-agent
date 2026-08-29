@@ -247,7 +247,7 @@ That fail-closed obtain is not `SOURCE_002_ROW_LEVEL_READ`.
 ## 2. Implementation delivered
 
 - `backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain.py`
-  (blob `0793e0fcbddb17200c480f88a88404105e72ac04`)
+  (blob `726d934415952ea5705d53c5b2b4311888e7c4c0`)
 - `backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain.py`
   (blob `4e47870b083c8077ea06dd75fadbb4819569e4fe`; 16 passed)
 - Parent reader unchanged blob `2a9232064179da89484d52dcf203c95a0fa71a68`
@@ -273,4 +273,4 @@ UNIQUE_FLIP=none_on_live_flags
 ## 4. Evidence
 
 `docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-connection-obtain-r1.json`
-(`EVIDENCE_JSON_SHA256=80d9802fa5bb11658b7e90c1cfdbda1dacc9a53e24ba3681f03a00ce943b0c2d`).
+(`EVIDENCE_JSON_SHA256=6c55a4eef706c96f5a50f0454502d9740e9f4068c57f6623eb6bb4f31495ee9e`).
