@@ -168,7 +168,7 @@
     "live_async_session_connection_family_is_not_closed": true,
     "live_async_session_connection_unique_remaining_gap": "_async_connection_not_obtained_from_the_already_obtained_live_async_session_connection",
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_implemented": false,
-    "async_bind_obtained_from_the_already_obtained_live_async_session_connection": false
+    "async_connection_obtained_from_the_already_obtained_live_async_session_connection": false
   },
   "live_async_connection_family_binding": {
     "r1_merge": "cee1111da505cf6969c1c2b9b29410da7dbc779b",
@@ -227,7 +227,8 @@
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_implementation_authorized": true,
     "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query_implemented": false,
     "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_contract_authorized": true,
-    "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_implementation_authorized": true
+    "s3_a2_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_implementation_authorized": true,
+    "deterministic_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain_implemented": false
   },
   "live_facts_at_freeze": {
     "source_002_row_level_read": false,
@@ -243,10 +244,12 @@
     "live_async_obtain_service_landed": true,
     "live_async_session_query_service_landed": true,
     "live_async_session_connection_service_landed": true,
+    "live_async_session_bind_query_service_landed": true,
+    "live_async_session_connection_obtain_service_landed": true,
     "live_async_session_bind_obtain_service_landed": false,
     "already_obtained_live_async_session_is_asynchronously_queryable": false,
     "already_obtained_live_async_session_connection_is_asynchronously_queryable": false,
-    "async_bind_obtained_from_the_already_obtained_live_async_session_connection": false,
+    "async_connection_obtained_from_the_already_obtained_live_async_session_connection": false,
     "live_async_session_connection_through_already_obtained_session_connection_reason_code": "FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION",
     "accepted_s2_train_val_content_bytes_obtained_from_the_already_obtained_live_async_session": false,
     "official_hashes_attested_from_a_live_read": false,
@@ -263,7 +266,6 @@
     "accepted_s2_train_val_content_bytes_obtained_from_the_already_obtained_live_async_session_connection": false,
     "live_async_obtain_through_already_obtained_async_session_reason_code": "FAIL_CLOSED_ASYNC_SESSION_UNREADABLE",
     "live_async_session_connection_query_unique_remaining_gap": "_already_obtained_live_async_session_connection_is_not_asynchronously_queryable",
-    "live_async_session_bind_query_service_landed": true,
     "accepted_s2_train_val_content_bytes_obtained_from_the_already_obtained_live_async_session_bind_connection": false,
     "already_obtained_live_async_session_bind_connection_is_asynchronously_queryable": false,
     "live_async_session_bind_query_unique_remaining_gap": "_already_obtained_live_async_session_bind_connection_is_not_asynchronously_queryable",
@@ -325,7 +327,7 @@
     "this_family_is_not_the_already_obtained_live_async_session_queryable_slice": true,
     "this_family_is_not_the_live_async_engine_connection_slice": true,
     "live_async_session_connection_query_service_landed_not_implemented": true,
-    "live_async_session_connection_service_landed_not_bind_obtained": true,
+    "live_async_session_connection_service_landed_not_connection_obtained": true,
     "contract_authorized_true_is_file_fence_not_live_authority": true,
     "contract_authorized_true_does_not_mean_implementation_authorized": true,
     "contract_authorized_true_does_not_mean_implemented": true,
@@ -422,7 +424,6 @@
   "this_family_is_not_the_already_obtained_live_async_session_connection_queryable_slice": true,
   "this_family_must_not_close_live_async_session_connection_query_unique_remaining_gap": true,
   "this_family_must_not_flip_live_async_session_connection_query_implemented": true,
-  "this_pr_does_not_obtain_content_bytes_from_already_obtained_live_async_session_connection": true,
   "live_async_session_connection_query_family_binding": {
     "contract_path": "docs/v0-3/s3/s3-accepted-s2-train-val-source-002-row-level-read-live-async-session-connection-query-contract.md",
     "freeze_pr": 454,
@@ -485,5 +486,5 @@
     "already_obtained_live_async_session_bind_connection_is_asynchronously_queryable": false,
     "forbidden_rewrite_live_async_session_bind_query_freeze_identity": true
   },
-  "evidence_json_sha256": "de8780462b91c104c78cd8b070ad19bb06eeed458ea1267214031805d33ef0ba"
+  "evidence_json_sha256": "4c561866e77ced6f363719ccd9c6fc7f68b92634c528d63949af73710c2d4773"
 }
