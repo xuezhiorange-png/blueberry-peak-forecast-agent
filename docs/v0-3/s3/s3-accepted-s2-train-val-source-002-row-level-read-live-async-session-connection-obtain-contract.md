@@ -259,8 +259,8 @@ S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ASYNC_SESSION_CONNECT
 ~~~
 
 This document freezes **accepted S2 TRAIN/VALIDATION SOURCE_002 row-level-read
-live async session connection obtain** authority for a dedicated **already-obtained live
-AsyncSession connection obtainable** slice. The user authorized a **new family** with
+live async session connection obtain** authority for a dedicated **content_bytes obtain
+through the already-obtained live AsyncSession connection** slice. The user authorized a **new family** with
 `USER_GATE=授权`. The parent SOURCE_002 row-level-read family (#410–#413) remains
 **not closed**: official TRAIN+VAL content hashes have not been attested from a
 live read. Unique live flip of `SOURCE_002_ROW_LEVEL_READ` remains reserved for
@@ -270,7 +270,7 @@ The live-async-session-connection-query family (#454–#457) already landed a de
 connection query probe at base `b633103`. That family is **not closed**:
 the already-obtained live AsyncSession connection is not asynchronously queryable.
 Official path fail-closed
-`FAIL_CLOSED_ASYNC_CONNECTION_NOT_ASYNCHRONOUSLY_QUERYABLE`. Probe landed ≠
+`FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`. Probe landed ≠
 `IMPLEMENTED`. Live-async-session-connection-query unique remaining gap remains
 `_already_obtained_live_async_session_connection_is_not_asynchronously_queryable`.
 This **connection-obtain** family must not close that gap and must not flip
@@ -311,7 +311,7 @@ flipping live `SOURCE_002_ROW_LEVEL_READ`, parent `IMPLEMENTED`, connection
 `IMPLEMENTED`. TRAIN/VAL `content_bytes` obtained through session.connection() AsyncConnection is not
 `SOURCE_002_ROW_LEVEL_READ` until parent attestation.
 
-Merging this contract ≠ implementation authorized ≠ implemented ≠ connection obtainable ≠
+Merging this contract ≠ implementation authorized ≠ implemented ≠ content_bytes obtained through the connection ≠
 content bytes obtained ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ kg actually read ≠ identity-set
 member enumeration ≠ versioned forecast artifact exists ≠ `NO_VERSIONED` flipped ≠
 catalog bindable ≠ completeness `VERIFIED=true` ≠ backtest/attribution/metrics
@@ -425,7 +425,7 @@ received live authority (#455), grant (#456), and R1 (#457,
 `LIVE_ASYNC_SESSION_CONNECTION_QUERY_R1_MERGE=b6331034a90e5f71e13bf6d7e1571d37061343b9`).
 That family is **not closed**: the already-obtained live AsyncSession connection is not
 asynchronously queryable. Official path fail-closed
-`FAIL_CLOSED_ASYNC_CONNECTION_NOT_ASYNCHRONOUSLY_QUERYABLE`.
+`FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`.
 `LIVE_ASYNC_SESSION_CONNECTION_QUERY_SERVICE_LANDED=true` ≠ connection queryable ≠
 `SOURCE_002_ROW_LEVEL_READ`. Connection-query unique remaining gap remains
 `_already_obtained_live_async_session_connection_is_not_asynchronously_queryable`.
@@ -464,7 +464,7 @@ row.
    is closed.
 3. Live-async-session-connection-query R1 (#457) already landed the connection query
    probe on the AsyncConnection from `await session.connection()`. Official path fail-closed
-   `FAIL_CLOSED_ASYNC_CONNECTION_NOT_ASYNCHRONOUSLY_QUERYABLE`. That
+   `FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`. That
    family's unique remaining gap is **not** this family's unique remaining gap
    and is **not** closed by this freeze.
 4. Live-async-obtain R1 already landed the AsyncSession obtain probe.
@@ -595,10 +595,10 @@ TRAIN/VAL `content_bytes` obtained through session.connection() AsyncConnection 
 - Live AsyncSession obtained ≠ AsyncConnection from session.connection() ≠ queryable
   AsyncConnection ≠ content bytes obtained ≠ `SOURCE_002_ROW_LEVEL_READ`
 - Live-async-session-connection service landed ≠ async connection obtained ≠
-  connection obtainable ≠ `SOURCE_002_ROW_LEVEL_READ`
+  content_bytes obtained through the connection ≠ `SOURCE_002_ROW_LEVEL_READ`
 - Live-async-session-query service landed ≠ AsyncSession queryable ≠ AsyncConnection
   queryable ≠ `SOURCE_002_ROW_LEVEL_READ`
-- Live-async-obtain service landed ≠ content bytes obtained ≠ connection obtainable ≠
+- Live-async-obtain service landed ≠ content bytes obtained ≠ content_bytes obtained through the connection ≠
   `SOURCE_002_ROW_LEVEL_READ`
 - Unique live flip of `SOURCE_002_ROW_LEVEL_READ` stays with the parent family
 - Live-async-session-connection-query unique remaining gap stays with the connection-query family
@@ -731,7 +731,7 @@ connection-query, connection, or live-async-obtain `IMPLEMENTED`.
 - live-async-session-connection 服务已落地 ≠ async connection 已取得 ≠
   通过 connection 取得 content bytes ≠ `IMPLEMENTED`
 - 本 file fence `AUTHORIZED=true` ≠ live §4.4 ≠ `IMPLEMENTATION_AUTHORIZED` ≠
-  `IMPLEMENTED` ≠ connection obtainable ≠ content bytes 已取得 ≠
+  `IMPLEMENTED` ≠ 通过 connection 取得 content_bytes ≠ content bytes 已取得 ≠
   `SOURCE_002_ROW_LEVEL_READ`
 - 本家族不得抢走 connection-query / connection / live-async-obtain 家族的
   unique remaining gap

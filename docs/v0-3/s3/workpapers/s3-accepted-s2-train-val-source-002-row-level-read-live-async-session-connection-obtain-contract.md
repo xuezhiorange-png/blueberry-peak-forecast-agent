@@ -89,7 +89,7 @@ received live authority (#455), grant (#456), and R1 (#457,
 `LIVE_ASYNC_SESSION_CONNECTION_QUERY_R1_MERGE=b6331034a90e5f71e13bf6d7e1571d37061343b9`).
 That family is **not closed**: the already-obtained live AsyncSession connection is not
 asynchronously queryable. Official path fail-closed
-`FAIL_CLOSED_ASYNC_CONNECTION_NOT_ASYNCHRONOUSLY_QUERYABLE`.
+`FAIL_CLOSED_ASYNC_CONNECTION_NOT_OBTAINED_FROM_SESSION_CONNECTION`.
 `LIVE_ASYNC_SESSION_CONNECTION_QUERY_SERVICE_LANDED=true` ≠ connection queryable.
 Connection-query unique remaining gap remains
 `_already_obtained_live_async_session_connection_is_not_asynchronously_queryable`.
