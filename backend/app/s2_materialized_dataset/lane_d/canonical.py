@@ -139,9 +139,7 @@ def parse_partition_bytes(content: bytes) -> tuple[MaterializableRow, ...]:
         try:
             payload = json.loads(line)
         except json.JSONDecodeError as exc:
-            raise MalformedPartitionBytesError(
-                f"malformed NDJSON at line {line_number}"
-            ) from exc
+            raise MalformedPartitionBytesError(f"malformed NDJSON at line {line_number}") from exc
         rows.append(_parse_row_payload(payload))
     return tuple(sorted(rows, key=row_sort_key))
 
