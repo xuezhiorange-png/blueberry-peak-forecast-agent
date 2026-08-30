@@ -14621,3 +14621,44 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 
 Live `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` and `SOURCE_002_ROW_LEVEL_READ` are maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-attestation-r1.md` (`EVIDENCE_JSON_SHA256=b8f0f0196bf517eb74bbed97d6a710fad9e3a16d64d7ecc33e955320b1f1c076`). Implementation R1 of the parent SOURCE_002 row-level-read deterministic-reader-attestation family after grant (#412) and parent R1 (#413) attested official TRAIN+VAL content hashes from a live read via already-configured `AsyncSessionMaker.run_sync` feeding `_attest_from_session` in a dedicated process against live ACCEPTED `source-002/e5-live-v1`. Coordinator run `bc-01a05131-6262-7c86-9895-dde762dda347` independently observed ATTESTED. No `content_bytes` were recorded. `EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false`. `OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=true`. `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=true`. `SOURCE_002_ROW_LEVEL_READ=true`. `THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `UNIQUE_REMAINING_GAP=_none`. `SYNTHETIC_ATTESTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_ATTESTATION=true`. `THIS_FAMILY_IS_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true`. Default bound live-session provider may still fail-close; that is not this unique remaining gap. Using already-configured `AsyncSessionMaker.run_sync` to feed `_attest_from_session` is parent-family live attestation, not landing run-sync-obtain (#474 freeze only). Child SQLAlchemy families must not uniquely flip `SOURCE_002_ROW_LEVEL_READ` or their own `*_IMPLEMENTED` flags. `OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=true` ≠ members landed ≠ `NO_REVIEWED` flipped ≠ versioned forecast artifact produced ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness verified ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed ≠ populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY` rewritten ≠ C0 §5 `PENDING_NOT_MERGED` rewritten. `#410` / `#411` / `#412` / `#413` historical pointer snapshots retain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false` and `SOURCE_002_ROW_LEVEL_READ=false` where frozen; live authority is development-plan §4.4. This evidence JSON is not a versioned forecast artifact, completeness verified package, backtest package, metric results package, or attribution matrix. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
 
+## 162. S3-A live accepted S2 TRAIN/VAL actuals binding R1 pointer
+
+~~~
+S3_A_LIVE_TRAIN_VAL_ACTUALS_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-live-train-val-actuals-r1.md
+S3_A_LIVE_TRAIN_VAL_ACTUALS_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a-live-train-val-actuals-r1.json
+EVIDENCE_JSON_SHA256=06ba994644be39db28498a5b26df04cd7425ca641272f242071732939913480b
+GRANT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a-rowset-materialization-authorization.md
+GRANT_WORKPAPER_GIT_BLOB_SHA=dbd0291b93e707eb2208494d32fa889eca3551a1
+GRANT_EVIDENCE_JSON_SHA256=df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239
+MATERIALIZER_R1_EVIDENCE_JSON_SHA256=4eefdfbaee5be91c594d5f0203270ce52a42ec71538659c5484d436a3eb7e65c
+PARENT_LIVE_ATTESTATION_PR=475
+PARENT_LIVE_ATTESTATION_BRANCH=cursor/s3-a2-source-002-live-attestation-a347
+PARENT_LIVE_ATTESTATION_HEAD_SHA=3a3d85f4f27cfaaf32d9ae83ef4c94870e0a81f6
+PARENT_LIVE_ATTESTATION_EVIDENCE_JSON_SHA256=b8f0f0196bf517eb74bbed97d6a710fad9e3a16d64d7ecc33e955320b1f1c076
+BASE_MAIN_SHA=2e2a554d252b31a91f98e2db33a6266f8d41cf17
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+USER_GATE=可以实施
+TASK_CLASS=IMPLEMENTATION
+IMPLEMENTATION_R1=true
+EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false
+LIVE_ACCEPTED_S2_TRAIN_VAL_ACTUALS_SOURCE_BOUND=true
+DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED=true
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true
+UNIQUE_REMAINING_GAP=_none
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+TEST_REMAINS_SEALED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+BINDING_VIA=AsyncSessionMaker.run_sync(_bind_from_sync_session)
+CONTENT_BYTES_NOT_RECORDED=true
+SYNTHETIC_SQLITE_BIND_IS_NOT_OFFICIAL_LIVE_BINDING=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+~~~
+
+Live `LIVE_ACCEPTED_S2_TRAIN_VAL_ACTUALS_SOURCE_BOUND` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-a-live-train-val-actuals-r1.md` (`EVIDENCE_JSON_SHA256=06ba994644be39db28498a5b26df04cd7425ca641272f242071732939913480b`). Implementation R1 after grant (`s3-a-rowset-materialization-authorization.md`) and parent live attestation (#475) binds accepted TRAIN+VAL NDJSON bytes from a live read into `InMemoryS2ActualsSource` via already-configured `AsyncSessionMaker.run_sync` feeding `_bind_from_sync_session`. `parse_partition_bytes` is the inverse of `build_partition_bytes`. `EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false`. `LIVE_ACCEPTED_S2_TRAIN_VAL_ACTUALS_SOURCE_BOUND=true`. `THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `UNIQUE_REMAINING_GAP=_none`. `DETERMINISTIC_DAILY_ROWSET_SERVICE_IMPLEMENTED` remains `true` and is not re-claimed as this unique flip. `CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED` remains `false`. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains `true`. `NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY` remains `true`. Parsed partition grains are not a coordinator-reviewed identity set. Official live materialization without reviewed grain or versioned forecast may fail-closed `FORECAST_UNAVAILABLE` or `WINDOW_REJECTED_UNKNOWN_OR_EXCLUDED_DAY`; that is honest. Using already-configured `AsyncSessionMaker.run_sync` here is S3-A actuals binding, not landing run-sync-obtain (#474 freeze only). This R1 does not flip `SOURCE_002_ROW_LEVEL_READ`, does not flip completeness, and does not authorize backtest/metrics. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
