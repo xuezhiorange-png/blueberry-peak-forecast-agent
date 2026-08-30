@@ -35,7 +35,8 @@ LIVE_ATTESTATION_EVIDENCE_JSON_SHA256=b8f0f0196bf517eb74bbed97d6a710fad9e3a16d64
 LIVE_ACTUALS_EVIDENCE_JSON_SHA256=06ba994644be39db28498a5b26df04cd7425ca641272f242071732939913480b
 S3_A_MATERIALIZATION_GRANT_EVIDENCE_JSON_SHA256=df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239
 MATERIALIZER_R1_EVIDENCE_JSON_SHA256=4eefdfbaee5be91c594d5f0203270ce52a42ec71538659c5484d436a3eb7e65c
-FREEZE_WORKPAPER_EVIDENCE_JSON_SHA256=996999f95867d6af2711fc5913835bddad57fad1
+FREEZE_WORKPAPER_GIT_BLOB_SHA=996999f95867d6af2711fc5913835bddad57fad1
+FREEZE_EVIDENCE_JSON_SHA256=dabd3f2fe0970ddcfb9411ade5f70f6dda33cfbe84d622510fe88b1363f19b2b
 LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=1eddce85dfd6c49c4fbea674fb65b9a545d67ea2bba947b45eed11f46ea15f42
 PARENT_R1_EVIDENCE_JSON_SHA256=daf78099cc5389b2d80d278862168a20d681a1fb8b2e6f9b50ec9d8f1afb8770
 ALIGNMENT_SECTION_6_SHA256=2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8
@@ -114,8 +115,10 @@ MERGE_AUTHORIZED=false
 
 Reviewed-set grant §4.1 item 2 requires fail-closed behavior when no lawful populated origin exists at R1 time.
 **TODAY** there is still no lawful populated origin of member-shape triples in the repository. Therefore this R1
-records implementation closure of the reviewed-set **process** without landing members, without inventing members,
-and without flipping grant-permitted implementation-status fields.
+records that the user-gated reviewed-set R1 was **executed fail-closed** without flipping
+`DETERMINISTIC_INCUMBENT_FORECAST_V0_2_REPLAY_IDENTITY_GRAIN_IDENTITY_SET_REVIEWED_SET_IMPLEMENTED`, without flipping
+`NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`, without landing members, without inventing members, and without
+closing the parent unique remaining gap `_no_coordinator_reviewed_grain_identity_set_artifact_in_repository`.
 
 ~~~text
 REVIEWED_SET_R1_FAIL_CLOSED=true
@@ -166,5 +169,5 @@ NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
 FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY=true
 THIS_DRAFT_IS_NOT_READY=true
 AWAITING_COORDINATOR_REVIEW=true
-EVIDENCE_JSON_SHA256=8561458b5d3b8a957c4d43a918dff1c82c031a809d2063eee8df08e553ef2ee8
+EVIDENCE_JSON_SHA256=e25817dd910c24b14221f40e9b8ce6055830e28103074d97e1d9b8536b483337
 ~~~

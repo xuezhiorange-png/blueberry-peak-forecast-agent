@@ -39,7 +39,8 @@
     "live_actuals_evidence_json_sha256": "06ba994644be39db28498a5b26df04cd7425ca641272f242071732939913480b",
     "s3_a_materialization_grant_evidence_json_sha256": "df66d59383d3bdf76e7db6fdc32b21b2f41237ef3072f8a1ac76205ddc4d6239",
     "materializer_r1_evidence_json_sha256": "4eefdfbaee5be91c594d5f0203270ce52a42ec71538659c5484d436a3eb7e65c",
-    "freeze_workpaper_evidence_json_sha256": "996999f95867d6af2711fc5913835bddad57fad1",
+    "freeze_workpaper_git_blob_sha": "996999f95867d6af2711fc5913835bddad57fad1",
+    "freeze_evidence_json_sha256": "dabd3f2fe0970ddcfb9411ade5f70f6dda33cfbe84d622510fe88b1363f19b2b",
     "live_authority_evidence_json_sha256": "1eddce85dfd6c49c4fbea674fb65b9a545d67ea2bba947b45eed11f46ea15f42",
     "parent_r1_evidence_json_sha256": "daf78099cc5389b2d80d278862168a20d681a1fb8b2e6f9b50ec9d8f1afb8770",
     "s3_a2_incumbent_forecast_v0_2_replay_identity_grain_identity_set_reviewed_set_implementation_authorized": true
@@ -166,5 +167,5 @@
   },
   "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-reviewed-set-r1.md",
   "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-v0-2-replay-identity-grain-identity-set-reviewed-set-r1.json",
-  "evidence_json_sha256": "8561458b5d3b8a957c4d43a918dff1c82c031a809d2063eee8df08e553ef2ee8"
+  "evidence_json_sha256": "e25817dd910c24b14221f40e9b8ce6055830e28103074d97e1d9b8536b483337"
 }
