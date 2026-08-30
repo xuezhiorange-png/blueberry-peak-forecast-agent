@@ -14,8 +14,8 @@ from backend.app.s2_materialized_dataset.shared.contracts import (
 from backend.tests.s2_materialized_dataset.lane_d.conftest import complete_upstream
 
 
-def test_source_002_row_level_read_is_false() -> None:
-    assert SOURCE_002_ROW_LEVEL_READ is False
+def test_source_002_row_level_read_is_true_parent_family_live_attestation() -> None:
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_test_materialization_does_not_expose_real_test_rows() -> None:

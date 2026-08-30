@@ -916,3 +916,63 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ~~~
 
 Live `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` remains false in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-r1.md` (`EVIDENCE_JSON_SHA256=daf78099cc5389b2d80d278862168a20d681a1fb8b2e6f9b50ec9d8f1afb8770`). Implementation R1 after grant (#412) landed a deterministic reader that hashes persisted accepted TRAIN/VALIDATION `content_bytes` against copied S2 official hashes and fail-closes without a session or when official bytes are absent. `EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false`. `OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=false`. `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false` ≠ `SOURCE_002_ROW_LEVEL_READ` ≠ kg row-level read performed ≠ members landed ≠ `NO_REVIEWED` flipped ≠ versioned forecast artifact produced ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness verified ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed ≠ populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY` rewritten ≠ C0 §5 `PENDING_NOT_MERGED` rewritten. `#410` / `#411` / `#412` historical pointer snapshots retain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false` and `SOURCE_002_ROW_LEVEL_READ=false` where frozen; live authority is development-plan §4.4. This R1 does not flip `IMPLEMENTED` and does not flip `SOURCE_002_ROW_LEVEL_READ`. A docs-only `IMPLEMENTED` flip is forbidden as a substitute for official hash attestation. Synthetic unit ATTESTED path is not official live attestation. Unique remaining gap remains `_deterministic_reader_has_not_attested_train_val_official_content_hashes_from_a_live_read`. `THIS_FAMILY_IS_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true`. This evidence JSON is not a versioned forecast artifact, completeness verified package, backtest package, metric results package, or attribution matrix. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.
+
+## 16. S3-A2 accepted S2 TRAIN/VAL SOURCE_002 row-level-read live-attestation R1 pointer
+
+~~~
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ATTESTATION_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-attestation-r1.md
+S3_A2_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_LIVE_ATTESTATION_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-accepted-s2-train-val-source-002-row-level-read-live-attestation-r1.json
+EVIDENCE_JSON_SHA256=b8f0f0196bf517eb74bbed97d6a710fad9e3a16d64d7ecc33e955320b1f1c076
+PARENT_R1_PR=413
+PARENT_R1_MERGE=e9f0fbb87c660e154fffd47f85b5122b9a281d2b
+PARENT_R1_EVIDENCE_JSON_SHA256=daf78099cc5389b2d80d278862168a20d681a1fb8b2e6f9b50ec9d8f1afb8770
+PARENT_GRANT_PR=412
+PARENT_GRANT_MERGE=a3da64ae962435c3b19c3e49b94fd176af7c4445
+GRANT_WORKPAPER=docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-authorization.md
+GRANT_WORKPAPER_GIT_BLOB_SHA=11e694a8699cf281c13f5f6fdb97ae5fd0a99c02
+GRANT_EVIDENCE_JSON_SHA256=8ca597ad22b651f369e2d7b4c5667fb2f40c70bce7ac03780b13dbe9d3f1e8ca
+PARENT_LIVE_AUTHORITY_PR=411
+PARENT_LIVE_AUTHORITY_MERGE=17bff5d09c11c0a245f9b16d37d7a3bb30802dd5
+LIVE_AUTHORITY_EVIDENCE_JSON_SHA256=1eddce85dfd6c49c4fbea674fb65b9a545d67ea2bba947b45eed11f46ea15f42
+PARENT_CONTRACT_PR=410
+PARENT_CONTRACT_MERGE=0ca99dec9a538fcfdc1d2ebe0bf6919d6b66d05b
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_FREEZE_WORKPAPER_GIT_BLOB_SHA=996999f95867d6af2711fc5913835bddad57fad1
+S3_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_FREEZE_EVIDENCE_JSON_SHA256=dabd3f2fe0970ddcfb9411ade5f70f6dda33cfbe84d622510fe88b1363f19b2b
+LANDED_ASYNC_SESSION_MAKER_MODULE=backend/app/db/session.py
+LANDED_ASYNC_SESSION_MAKER_MODULE_GIT_BLOB_SHA=49845a077d252af2a7a246fa25616d7595535037
+DETERMINISTIC_READER_LANDED=true
+OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=true
+ATTESTATION_VIA=AsyncSessionMaker.run_sync(_attest_from_session)
+CONTENT_BYTES_NOT_RECORDED=true
+DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=true
+SOURCE_002_ROW_LEVEL_READ=true
+THIS_FAMILY_IS_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true
+UNIQUE_REMAINING_GAP=_none
+SYNTHETIC_ATTESTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_ATTESTATION=true
+CHILD_FAMILY_IMPLEMENTED_FLAGS_NOT_FLIPPED=true
+DEFAULT_BOUND_LIVE_SESSION_PROVIDER_MAY_STILL_FAIL_CLOSE=true
+ASYNC_SESSION_MAKER_RUN_SYNC_ATTESTATION_IS_PARENT_FAMILY_NOT_RUN_SYNC_OBTAIN=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+TEST_REMAINS_SEALED=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+BASE_REF=origin/main
+BASE_MAIN_SHA=2e2a554d252b31a91f98e2db33a6266f8d41cf17
+BASE_MAIN_TREE_SHA=2e70c7744d9eae288b7078ec47ca7152c2844a19
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+USER_GATE=可以实施
+TASK_CLASS=IMPLEMENTATION
+PARALLEL_LANE=S3-A2-ACCEPTED-S2-SOURCE-002-ROW-LEVEL-READ
+ENGLISH_ID=ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ
+IMPLEMENTATION_R1=true
+EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+~~~
+
+Live `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED` and `SOURCE_002_ROW_LEVEL_READ` are maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-accepted-s2-train-val-source-002-row-level-read-live-attestation-r1.md` (`EVIDENCE_JSON_SHA256=b8f0f0196bf517eb74bbed97d6a710fad9e3a16d64d7ecc33e955320b1f1c076`). Implementation R1 of the parent SOURCE_002 row-level-read deterministic-reader-attestation family after grant (#412) and parent R1 (#413) attested official TRAIN+VAL content hashes from a live read via already-configured `AsyncSessionMaker.run_sync` feeding `_attest_from_session` in a dedicated process against live ACCEPTED `source-002/e5-live-v1`. Coordinator run `bc-01a05131-6262-7c86-9895-dde762dda347` independently observed ATTESTED. No `content_bytes` were recorded. `EXECUTION_CLAIM_R1_IS_DOCS_ONLY=false`. `OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=true`. `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=true`. `SOURCE_002_ROW_LEVEL_READ=true`. `THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`. `UNIQUE_REMAINING_GAP=_none`. `SYNTHETIC_ATTESTED_UNIT_PATH_IS_NOT_OFFICIAL_LIVE_ATTESTATION=true`. `THIS_FAMILY_IS_THE_DETERMINISTIC_READER_ATTESTATION_SLICE=true`. Default bound live-session provider may still fail-close; that is not this unique remaining gap. Using already-configured `AsyncSessionMaker.run_sync` to feed `_attest_from_session` is parent-family live attestation, not landing run-sync-obtain (#474 freeze only). Child SQLAlchemy families must not uniquely flip `SOURCE_002_ROW_LEVEL_READ` or their own `*_IMPLEMENTED` flags. `OFFICIAL_HASHES_ATTESTED_FROM_A_LIVE_READ=true` ≠ members landed ≠ `NO_REVIEWED` flipped ≠ versioned forecast artifact produced ≠ `NO_VERSIONED` flipped ≠ catalog bindable ≠ completeness verified ≠ backtest/attribution/metrics computed ≠ S3-B coverage ≠ S4 ≠ TEST unsealed ≠ populated-origin `FAIL_CLOSED_NO_LAWFUL_POPULATED_ORIGIN_TODAY` rewritten ≠ C0 §5 `PENDING_NOT_MERGED` rewritten. `#410` / `#411` / `#412` / `#413` historical pointer snapshots retain `DETERMINISTIC_ACCEPTED_S2_TRAIN_VAL_SOURCE_002_ROW_LEVEL_READ_IMPLEMENTED=false` and `SOURCE_002_ROW_LEVEL_READ=false` where frozen; live authority is development-plan §4.4. This evidence JSON is not a versioned forecast artifact, completeness verified package, backtest package, metric results package, or attribution matrix. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`.

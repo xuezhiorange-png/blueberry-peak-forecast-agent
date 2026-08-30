@@ -234,8 +234,8 @@ def test_official_hash_constants_are_s2_acceptance_package_copy() -> None:
     assert len(_sealed_test_bytes()) == SEALED_TEST_BYTE_COUNT
 
 
-def test_s2_source_002_row_level_read_constant_remains_false() -> None:
-    assert SOURCE_002_ROW_LEVEL_READ is False
+def test_s2_source_002_row_level_read_constant_is_true_after_parent_live_attestation() -> None:
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_default_without_session_fail_closes() -> None:
@@ -280,7 +280,7 @@ def test_empty_tables_fail_closed_no_accepted_dataset() -> None:
     assert result.reason_code is Source002RowLevelReadReasonCode.FAIL_CLOSED_NO_ACCEPTED_DATASET
     assert result.attested is False
     assert result.source_002_row_level_read is False
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_rejected_quality_gate_is_not_accepted_dataset() -> None:
@@ -373,7 +373,7 @@ def test_stored_official_hash_with_different_bytes_is_hash_mismatch() -> None:
     assert result.train_content_sha256 != OFFICIAL_TRAIN_CONTENT_SHA256
     assert result.validation_content_sha256 == content_sha256(SYNTHETIC_VAL_BYTES)
     assert result.validation_content_sha256 != OFFICIAL_VALIDATION_CONTENT_SHA256
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_synthetic_persist_against_official_hashes_is_hash_mismatch() -> None:
@@ -441,7 +441,7 @@ def test_count_mismatch_after_hash_match_is_not_official_attestation(
     assert result.attested is False
     assert result.source_002_row_level_read is False
     assert result.official_hashes_attested_from_a_live_read is False
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_monkeypatched_constants_attested_path_is_not_official_live_attestation(
@@ -488,7 +488,7 @@ def test_monkeypatched_constants_attested_path_is_not_official_live_attestation(
     assert result.source_002_row_level_read is True
     assert result.official_hashes_attested_from_a_live_read is True
     assert result.test_remains_sealed is True
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
     assert OFFICIAL_TRAIN_CONTENT_SHA256 == (
         "be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2"
     )
