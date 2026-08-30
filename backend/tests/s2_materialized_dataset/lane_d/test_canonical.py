@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from backend.app.s2_materialized_dataset.lane_d.canonical import (
+    MalformedPartitionBytesError,
     build_partition_bytes,
     build_test_synthetic_bytes,
+    parse_partition_bytes,
     row_sort_key,
 )
 from backend.tests.s2_materialized_dataset.lane_d.conftest import make_row
@@ -47,6 +51,32 @@ def test_partition_bytes_are_order_invariant() -> None:
     left = build_partition_bytes((row_b, row_a))
     right = build_partition_bytes((row_a, row_b))
     assert left == right
+
+
+def test_parse_partition_bytes_round_trips_canonical_order() -> None:
+    row_a = make_row(
+        harvest_business_date=date(2025, 9, 1),
+        source_row_identity="source-row-a",
+        cleaned_row_identity="cleaned-row-a",
+    )
+    row_b = make_row(
+        harvest_business_date=date(2025, 10, 1),
+        source_row_identity="source-row-b",
+        cleaned_row_identity="cleaned-row-b",
+    )
+    ordered = tuple(sorted((row_b, row_a), key=row_sort_key))
+    assert parse_partition_bytes(build_partition_bytes((row_b, row_a))) == ordered
+
+
+def test_parse_partition_bytes_empty_partition() -> None:
+    assert parse_partition_bytes(b"") == ()
+
+
+def test_parse_partition_bytes_rejects_malformed_ndjson() -> None:
+    with pytest.raises(MalformedPartitionBytesError):
+        parse_partition_bytes(b"not-json\n")
+    with pytest.raises(MalformedPartitionBytesError):
+        parse_partition_bytes(b'{"farm":"a"}\n')
 
 
 def test_test_synthetic_bytes_are_deterministic() -> None:
