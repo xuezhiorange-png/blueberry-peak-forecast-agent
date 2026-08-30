@@ -336,8 +336,8 @@ def test_api_init_exports_materialized_datasets_router() -> None:
     assert any(route.path for route in materialized_datasets_router.routes)
 
 
-def test_source_002_row_level_read_remains_false() -> None:
-    assert SOURCE_002_ROW_LEVEL_READ is False
+def test_source_002_row_level_read_is_true_parent_family_live_attestation() -> None:
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_pit_visibility_not_applicable_identity_is_stable() -> None:

@@ -28,7 +28,7 @@ from backend.tests.s2_materialized_dataset.lane_d.conftest import (
 
 def test_source_002_controlled_sql_flag_enabled() -> None:
     assert SOURCE_002_CONTROLLED_SQL_MATERIALIZATION_ENABLED is True
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
     assert SOURCE_002_EXPECTED_IDFL_SQL_ROW_COUNT == 233171
     assert SOURCE_002_EXPECTED_NON_EXCLUDED_GRAIN_COUNT == 33894
 

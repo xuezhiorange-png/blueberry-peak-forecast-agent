@@ -201,7 +201,7 @@ def _assert_not_source_002(envelope: Any) -> None:
     assert envelope.source_002_row_level_read is False
     assert envelope.official_hashes_attested_from_a_live_read is False
     assert envelope.accepted_s2_train_val_content_bytes_obtained_from_bound_live_session is False
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_official_live_async_session_run_sync_query_path_fail_closed_or_queryable() -> None:
@@ -376,8 +376,8 @@ def test_sibling_probes_still_not_source_002() -> None:
     _assert_not_source_002(async_obtain_envelope)
 
 
-def test_s2_source_002_row_level_read_constant_remains_false() -> None:
-    assert SOURCE_002_ROW_LEVEL_READ is False
+def test_s2_source_002_row_level_read_constant_is_true_parent_family_live_attestation() -> None:
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_async_session_run_sync_query_module_contains_required_and_forbidden_patterns() -> None:

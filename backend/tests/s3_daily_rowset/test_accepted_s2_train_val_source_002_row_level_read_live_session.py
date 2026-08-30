@@ -61,7 +61,7 @@ def test_bound_live_session_then_fail_closed_is_not_source_002_row_level_read() 
     assert result.source_002_row_level_read is False
     assert result.official_hashes_attested_from_a_live_read is False
     assert result.reason_code is not Source002RowLevelReadReasonCode.ATTESTED
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_explicit_override_still_wins_over_default_live_provider() -> None:
@@ -74,8 +74,8 @@ def test_explicit_override_still_wins_over_default_live_provider() -> None:
     assert result.source_002_row_level_read is False
 
 
-def test_s2_source_002_row_level_read_constant_remains_false() -> None:
-    assert SOURCE_002_ROW_LEVEL_READ is False
+def test_s2_source_002_row_level_read_constant_is_true_parent_family_live_attestation() -> None:
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_reader_and_live_session_modules_contain_no_connection_string() -> None:
