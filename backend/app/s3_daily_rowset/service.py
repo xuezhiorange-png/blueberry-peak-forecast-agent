@@ -15,6 +15,9 @@ from backend.app.s3_daily_rowset.forecast_port import (
     IncumbentDailyCurveProvider,
 )
 from backend.app.s3_daily_rowset.identity import compute_rowset_identity_sha256
+from backend.app.s3_daily_rowset.live_accepted_s2_train_val_actuals_source import (
+    LiveAcceptedS2TrainValActualsBindingEnvelope,
+)
 from backend.app.s3_daily_rowset.schemas import (
     EXPECTED_DATASET_ID,
     EXPECTED_DATASET_VERSION,
@@ -37,6 +40,42 @@ from backend.app.s3_daily_rowset.window import (
     horizon_window_dates,
     window_within_default_month_scope,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class DailyRowsetMaterializerWithLiveActualsOutcome:
+    materializer: DailyRowsetMaterializerService | None
+    binding_envelope: LiveAcceptedS2TrainValActualsBindingEnvelope
+
+
+def build_daily_rowset_materializer_with_live_actuals(
+    forecast_provider: IncumbentDailyCurveProvider,
+    *,
+    dataset_identity: DatasetIdentity | None = None,
+) -> DailyRowsetMaterializerWithLiveActualsOutcome:
+    from backend.app.s3_daily_rowset.live_accepted_s2_train_val_actuals_source import (
+        bind_live_accepted_s2_train_val_actuals_source,
+    )
+
+    bind_outcome = bind_live_accepted_s2_train_val_actuals_source()
+    if not bind_outcome.envelope.bound or bind_outcome.actuals_source is None:
+        return DailyRowsetMaterializerWithLiveActualsOutcome(
+            materializer=None,
+            binding_envelope=bind_outcome.envelope,
+        )
+    identity = dataset_identity or DatasetIdentity(
+        dataset_id=EXPECTED_DATASET_ID,
+        dataset_version=EXPECTED_DATASET_VERSION,
+        materialized_dataset_identity_sha256=EXPECTED_MATERIALIZED_DATASET_IDENTITY_SHA256,
+    )
+    return DailyRowsetMaterializerWithLiveActualsOutcome(
+        materializer=DailyRowsetMaterializerService(
+            dataset_identity=identity,
+            actuals_source=bind_outcome.actuals_source,
+            forecast_provider=forecast_provider,
+        ),
+        binding_envelope=bind_outcome.envelope,
+    )
 
 
 @dataclass
