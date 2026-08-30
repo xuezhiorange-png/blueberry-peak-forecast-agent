@@ -52,8 +52,8 @@ bind_default_source_002_row_level_read_live_session_provider = (
 )
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
-PARENT_READER_TEST_PY_BLOB = "bca600a15ebf3daa292050ab52ebcebfd953540a"
-LIVE_SESSION_TEST_PY_BLOB = "c1ba24a1b87269d998b243002c231d654b08eb5a"
+PARENT_READER_TEST_PY_BLOB = "0e21ccc316eb828e52353f9b01adc7cc7743141d"
+LIVE_SESSION_TEST_PY_BLOB = "94c54c117ad92a191e2aac00e8314f398e971125"
 PARENT_READER_PY_BLOB = "2a9232064179da89484d52dcf203c95a0fa71a68"
 LIVE_SESSION_PY_BLOB = "28513a5b86659bed784e64d2060c53088149dc96"
 READER_MODULE = Path(
@@ -215,7 +215,7 @@ def _restore_session_provider() -> Iterator[None]:
 def _assert_not_source_002(envelope: Any) -> None:
     assert envelope.source_002_row_level_read is False
     assert envelope.official_hashes_attested_from_a_live_read is False
-    assert SOURCE_002_ROW_LEVEL_READ is False
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_no_session_fail_closes_without_bytes() -> None:
@@ -389,8 +389,8 @@ def test_bound_live_session_obtain_fail_closed_is_not_source_002_row_level_read(
     _assert_not_source_002(envelope)
 
 
-def test_s2_source_002_row_level_read_constant_remains_false() -> None:
-    assert SOURCE_002_ROW_LEVEL_READ is False
+def test_s2_source_002_row_level_read_constant_is_true_parent_family_live_attestation() -> None:
+    assert SOURCE_002_ROW_LEVEL_READ is True
 
 
 def test_obtain_and_parent_modules_contain_no_connection_string() -> None:
