@@ -170,10 +170,41 @@ def _envelope(
 
 def _fail(
     reason: LiveAcceptedS2TrainValActualsSourceReasonCode,
-    **kwargs: object,
+    *,
+    test_remains_sealed: bool = True,
+    dataset_id: str | None = None,
+    dataset_version: str | None = None,
+    materialized_dataset_identity_sha256: str | None = None,
+    train_row_count: int | None = None,
+    train_byte_count: int | None = None,
+    train_content_sha256: str | None = None,
+    validation_row_count: int | None = None,
+    validation_byte_count: int | None = None,
+    validation_content_sha256: str | None = None,
+    parsed_train_row_count: int | None = None,
+    parsed_validation_row_count: int | None = None,
+    parsed_total_row_count: int | None = None,
+    test_row_count: int | None = None,
 ) -> LiveAcceptedS2TrainValActualsBindOutcome:
     return LiveAcceptedS2TrainValActualsBindOutcome(
-        envelope=_envelope(bound=False, reason=reason, **kwargs),
+        envelope=_envelope(
+            bound=False,
+            reason=reason,
+            test_remains_sealed=test_remains_sealed,
+            dataset_id=dataset_id,
+            dataset_version=dataset_version,
+            materialized_dataset_identity_sha256=materialized_dataset_identity_sha256,
+            train_row_count=train_row_count,
+            train_byte_count=train_byte_count,
+            train_content_sha256=train_content_sha256,
+            validation_row_count=validation_row_count,
+            validation_byte_count=validation_byte_count,
+            validation_content_sha256=validation_content_sha256,
+            parsed_train_row_count=parsed_train_row_count,
+            parsed_validation_row_count=parsed_validation_row_count,
+            parsed_total_row_count=parsed_total_row_count,
+            test_row_count=test_row_count,
+        ),
         actuals_source=None,
     )
 

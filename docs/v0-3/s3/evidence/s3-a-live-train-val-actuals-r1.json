@@ -59,9 +59,9 @@
   },
   "implementation": {
     "parse_partition_bytes_module": "backend/app/s2_materialized_dataset/lane_d/canonical.py",
-    "parse_partition_bytes_py_blob": "4c633a739c018311781eeb5cf49a63177104fa7e",
+    "parse_partition_bytes_py_blob": "63e435ba6dbf7039705760f36d72b26b1129d078",
     "live_actuals_source_module": "backend/app/s3_daily_rowset/live_accepted_s2_train_val_actuals_source.py",
-    "live_actuals_source_py_blob": "f3e4d955c2be1bee03e49197b6283107011106a7",
+    "live_actuals_source_py_blob": "7633615d5cd7a1ea8cb40cf4b4a66fc6753b4807",
     "materializer_wiring_module": "backend/app/s3_daily_rowset/service.py",
     "materializer_service_py_blob": "dc486bc07691127f6f4c278efd9fd07ae1d4c438",
     "test_canonical_py_blob": "5c45c5b6fc93c62c3a6bccb3e02bca8bad8b8497",
@@ -117,5 +117,5 @@
     ]
   },
   "default_catalog_first_blocker": "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
-  "evidence_json_sha256": "ce8a6c52cf1ae1eef9fe63c457ecee613ba5943329d4b36efb166fed4e178b6a"
+  "evidence_json_sha256": "26f694db2137625e7054517a26c41d83bb50b4386efc972b0ebc0e160a582ec2"
 }
