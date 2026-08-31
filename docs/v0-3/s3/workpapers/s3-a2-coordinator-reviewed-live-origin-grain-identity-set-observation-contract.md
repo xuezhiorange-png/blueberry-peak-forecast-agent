@@ -1,0 +1,78 @@
+# V0.3-S3-A2 Coordinator-reviewed live-origin grain identity-set observation contract
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_CONTRACT
+ARTIFACT_VERSION=v0-3-s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-contract-v1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+USER_GATE=可以继续
+CONTRACT_GATE_ACCEPTED_AS=可以下一步
+USER_UTTERANCE=可以继续  天气和种植计划 放到下个版本
+CONTRACT_ONLY=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+BASE_MAIN_SHA=1a788e614e58989ed6b777c2c0a4392931dab4fa
+BASE_MAIN_TREE_SHA=a80be7c7a746f151808d998699d29b8d610e5c97
+PARENT_IDENTITY_SET_R1_PR=503
+PARENT_IDENTITY_SET_R1_COMMIT=2a678dcaf02a766c8eb3158090d1e411d77d620b
+PARENT_IDENTITY_SET_R1_MERGE=1a788e614e58989ed6b777c2c0a4392931dab4fa
+PARENT_IDENTITY_SET_R1_EVIDENCE_JSON_SHA256=ac5fe6cd2ca3e108bf46d3c7bb7572f50407ae3f641c1936fc846314d6001df3
+CONTRACT_PATH=docs/v0-3/s3/s3-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.md
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.json
+EVIDENCE_JSON_SHA256=a063ff025af7dcc61ed8bcc9ec37e0273df6f2c3c3ed38285a02ef7916a5d777
+~~~
+
+#503 is on main. The three-grain coordinator-reviewed live-origin identity-set
+artifact exists. Live compact `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` is
+false only because that artifact exists. The default global reviewed-set loader
+remains empty. Frozen reviewed-set closeout still reports `no_reviewed=True`.
+Frozen completeness PASS closeout still reports PASS unauthorized.
+
+「可以继续」 freezes this observation family. Weather and planting plans are
+deferred to the next product version. This workpaper is not observation
+implementation, not a rewrite of frozen closeout bytes, not completeness PASS,
+and not weather or plan fabrication.
+
+Review pins of the already-landed artifact:
+
+~~~text
+REVIEW_CUTOFF_BUSINESS_DATE=2026-02-16
+REVIEW_CUTOFF_AT=2026-02-16T00:00:00+08:00
+REVIEW_MODEL_ID=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF
+REVIEW_QUANTILES=P50,P80,P90
+REVIEW_MEMBER_COUNT=3
+REVIEWED_GRAIN_IDENTITY_SET_IDENTITY_SHA256=76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3
+~~~
+
+Weather and plans must not block this non-curve freeze. They still block the
+actual completeness PASS. Members must not be derived from SOURCE_002.
+
+~~~text
+S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_CONTRACT_AUTHORIZED=true
+S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED=false
+DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_IMPLEMENTED=true
+DEFAULT_GLOBAL_REVIEWED_SET_LOADER_REMAINS_EMPTY=true
+FROZEN_REVIEWED_SET_CLOSEOUT_STILL_REPORTS_NO_REVIEWED=true
+FROZEN_COMPLETENESS_PASS_CLOSEOUT_STILL_UNAUTHORIZED=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002=true
+FORBIDDEN_INVENT_ADDITIONAL_MEMBERS=true
+LATER_R1_MAY_OBSERVE_THE_ALREADY_LANDED_THREE_GRAIN_ARTIFACT=true
+WEATHER_UNAVAILABLE=true
+PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DEFERRED_TO_NEXT_VERSION=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+WEATHER_AND_PLANS_BLOCK_COMPLETENESS_PASS=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_NEW_SQLALCHEMY_API_FAMILY=true
+~~~
