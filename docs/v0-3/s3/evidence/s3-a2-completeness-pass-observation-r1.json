@@ -6,7 +6,7 @@
   "authorization_scope": "S3_A2_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTATION_ONLY",
   "slice": "V0.3-S3",
   "english_id": "COMPLETENESS_PASS_OBSERVATION",
-  "user_gate": "\u53ef\u4ee5\u5b9e\u65bd",
+  "user_gate": "可以实施",
   "reviewer_role": "COORDINATOR",
   "coordinator_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
   "implementer_run": "bc-01a05131-6262-7c86-9895-dde762dda347",

@@ -187,6 +187,9 @@ def test_production_module_does_not_land_or_embed_connection_strings() -> None:
     assert "content_bytes" not in source
     assert "sqlalchemy" not in lowered
     assert "dsn" not in lowered
+    assert "CompletenessPassCloseoutClassifier" not in source
+    assert "ReviewedGrainIdentitySetCloseoutClassifier" not in source
+    assert "s3_a2_completeness_pass_closeout" not in source
 
 
 def test_frozen_blobs_unchanged() -> None:
@@ -242,7 +245,7 @@ def test_classify_observes_three_grains_then_loader_empty() -> None:
     assert result.default_global_reviewed_set_loader_remains_empty is True
     assert result.frozen_reviewed_set_closeout_still_reports_no_reviewed is True
     assert result.frozen_completeness_pass_closeout_still_unauthorized is True
-    assert result.no_reviewed_grain_identity_set_in_repository is True
+    assert result.no_reviewed_grain_identity_set_in_repository is False
     assert result.no_bindable_catalog_in_repository is True
     assert result.evaluation_instance_registry_available is False
     assert result.current_s3_daily_rowset_completeness_verified is False

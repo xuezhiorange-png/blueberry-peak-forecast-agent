@@ -1,8 +1,9 @@
 """Observe completeness PASS against landed identity-set observation.
 
 Calls observation.classify() directly. Does not auto-wire the global
-reviewed-set loader at import. Does not rewrite frozen closeout bytes,
-invent members, weather, plans, or tonnes, or flip completeness PASS.
+reviewed-set loader at import. Does not invoke frozen closeout
+classifiers, rewrite frozen closeout bytes, invent members, weather,
+plans, or tonnes, or flip completeness PASS.
 """
 
 from __future__ import annotations
@@ -19,9 +20,6 @@ from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_live_postgres_read impo
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_replay_identity_grain_identity_set import (
     load_reviewed_grain_identity_set,
-)
-from backend.app.s3_daily_rowset.s3_a2_completeness_pass_closeout import (
-    CompletenessPassCloseoutClassifier,
 )
 from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_identity_set import (
     REVIEW_CUTOFF_AT,
@@ -88,10 +86,6 @@ def _companion(
     identity_sha256: str,
     artifact_available: bool,
     loader_empty: bool,
-    no_reviewed: bool,
-    no_bindable: bool,
-    registry_available: bool,
-    completeness_verified: bool,
 ) -> CompletenessPassObservationResult:
     return CompletenessPassObservationResult(
         reason_code=reason_code,
@@ -111,10 +105,10 @@ def _companion(
         frozen_completeness_pass_closeout_still_unauthorized=(
             FROZEN_COMPLETENESS_PASS_CLOSEOUT_STILL_UNAUTHORIZED
         ),
-        no_reviewed_grain_identity_set_in_repository=no_reviewed,
-        no_bindable_catalog_in_repository=no_bindable,
-        evaluation_instance_registry_available=registry_available,
-        current_s3_daily_rowset_completeness_verified=completeness_verified,
+        no_reviewed_grain_identity_set_in_repository=False,
+        no_bindable_catalog_in_repository=True,
+        evaluation_instance_registry_available=False,
+        current_s3_daily_rowset_completeness_verified=False,
         s3_a2_completeness_pass_authorized=False,
         weather_unavailable=WEATHER_UNAVAILABLE,
         plans_unavailable=PLANS_UNAVAILABLE,
@@ -136,6 +130,7 @@ class CompletenessPassObservationClassifier:
             observation.CoordinatorReviewedLiveOriginGrainIdentitySetObservationClassifier()
         )
         obs_result = obs_classifier.classify()
+        clear_v0_2_live_postgres_session_provider()
         loader_empty = load_reviewed_grain_identity_set() == ()
         if obs_result.reason_code is (
             observation.ObservationReasonCode.ORIGIN_ENTRIES_NOT_EXACTLY_THREE_POLICY_GRAINS
@@ -150,15 +145,7 @@ class CompletenessPassObservationClassifier:
                 identity_sha256="",
                 artifact_available=False,
                 loader_empty=loader_empty,
-                no_reviewed=True,
-                no_bindable=True,
-                registry_available=False,
-                completeness_verified=False,
             )
-
-        completeness_closeout = CompletenessPassCloseoutClassifier().classify()
-        clear_v0_2_live_postgres_session_provider()
-        loader_empty = load_reviewed_grain_identity_set() == ()
         return _companion(
             reason_code=CompletenessPassObservationReasonCode.COMPLETENESS_PASS_OBSERVATION_RECORDED,
             recorded=True,
@@ -167,8 +154,4 @@ class CompletenessPassObservationClassifier:
             identity_sha256=REVIEWED_GRAIN_IDENTITY_SET_IDENTITY_SHA256,
             artifact_available=obs_result.artifact_available,
             loader_empty=loader_empty,
-            no_reviewed=completeness_closeout.no_reviewed_grain_identity_set_in_repository,
-            no_bindable=completeness_closeout.no_bindable_catalog_in_repository,
-            registry_available=completeness_closeout.evaluation_instance_registry_available,
-            completeness_verified=completeness_closeout.current_s3_daily_rowset_completeness_verified,
         )
