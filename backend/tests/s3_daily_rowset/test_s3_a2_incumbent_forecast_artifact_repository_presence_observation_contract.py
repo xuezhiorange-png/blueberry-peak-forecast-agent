@@ -14,9 +14,6 @@ from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s3_daily_rowset import (
     s3_a2_completeness_pass_observation as completeness_pass_observation,
 )
-from backend.app.s3_daily_rowset import (
-    s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation as observation,
-)
 from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
     IncumbentForecastReplaySource,
 )
@@ -48,9 +45,6 @@ CompletenessPassObservationClassifier = (
 )
 CompletenessPassObservationReasonCode = (
     completeness_pass_observation.CompletenessPassObservationReasonCode
-)
-ObservationClassifier = (
-    observation.CoordinatorReviewedLiveOriginGrainIdentitySetObservationClassifier
 )
 
 CONTRACT_PATH = Path(
