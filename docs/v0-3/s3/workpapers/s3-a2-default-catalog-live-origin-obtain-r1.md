@@ -45,7 +45,9 @@ flip completeness.
 
 Bare `EvaluationInstanceCatalogArtifactProductionService` construction remains
 `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Default harvest obtain remains empty.
-Default session provider is cleared after obtain. Weather and plans remain unavailable.
+Default session provider is cleared after obtain. Weather and plans remain unavailable
+and must not be invented. Coordinator instruction: missing weather/plans must **not**
+block this obtain implementation. Completeness PASS remains unauthorized.
 
 ~~~text
 S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_AUTHORIZED=true
@@ -67,9 +69,13 @@ CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
 WEATHER_UNAVAILABLE=true
 PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
 TEST_REMAINS_SEALED=true
 NO_NEW_SQLALCHEMY_API_FAMILY=true
-FORBIDDEN_INVENT_TONNES=true
 LLM_MUST_NOT_INVENT_TONNES=true
 ~~~
 
@@ -108,5 +114,5 @@ ALIGNMENT_SECTION_6_SHA256=2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d6032
 ## 4. Evidence digest
 
 ~~~text
-EVIDENCE_JSON_SHA256=c336a3a8e956f1870fb321531c159ea8f015060582150c6e3240d925b3189284
+EVIDENCE_JSON_SHA256=46875227cc687708602dea79fc6c5a85db1a09d115acc80e4f48efc1655b3e8f
 ~~~

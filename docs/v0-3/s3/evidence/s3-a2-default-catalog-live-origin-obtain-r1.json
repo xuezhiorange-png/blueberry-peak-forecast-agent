@@ -50,7 +50,9 @@
     "forbidden_invent_plans": true,
     "forbidden_invent_maturity": true,
     "forbidden_invent_residual": true,
-    "forbidden_invent_tonnes": true
+    "forbidden_invent_tonnes": true,
+    "weather_and_plans_do_not_block_non_curve_implementation": true,
+    "s3_a2_completeness_pass_authorized": false
   },
   "live_obtain": {
     "obtain_reason_code": "ARTIFACT_PRODUCED",
@@ -104,7 +106,10 @@
     "S3_A2_COMPLETENESS_PASS_AUTHORIZED": false,
     "WEATHER_UNAVAILABLE": true,
     "PLANS_UNAVAILABLE": true,
+    "FORBIDDEN_INVENT_WEATHER": true,
+    "FORBIDDEN_INVENT_PLANS": true,
     "LLM_MUST_NOT_INVENT_TONNES": true,
+    "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION": true,
     "CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED": false,
     "COMPLETENESS_VERIFICATION_STATUS": "CONTRACT_STILL_BOUND_BLOCKED",
     "NO_NEW_SQLALCHEMY_API_FAMILY": true,
@@ -117,5 +122,5 @@
     "CATALOG_ARTIFACT_PY_MUST_REMAIN_FROZEN": true,
     "FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6": true
   },
-  "evidence_json_sha256": "c336a3a8e956f1870fb321531c159ea8f015060582150c6e3240d925b3189284"
+  "evidence_json_sha256": "46875227cc687708602dea79fc6c5a85db1a09d115acc80e4f48efc1655b3e8f"
 }
