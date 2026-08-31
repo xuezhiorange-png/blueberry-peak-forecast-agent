@@ -50,10 +50,12 @@ and grant merge #508. The new classifier calls `observation.classify()`
 directly, records `completeness_pass_observation_recorded`, member_count=3,
 and identity
 `76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3`, then
-reads frozen completeness PASS closeout without rewriting its bytes. It does
-not auto-wire at import, rewrite frozen observation/closeout/binding/grain-
-loader/landing bytes, invent weather, plans, or tonnes, derive members from
-SOURCE_002, or flip `S3_A2_COMPLETENESS_PASS_AUTHORIZED`.
+records frozen closeout companion flags without invoking those classifiers
+or rewriting their bytes. It does not auto-wire at import, rewrite frozen
+observation/closeout/binding/grain-loader/landing bytes, invent weather,
+plans, or tonnes, derive members from SOURCE_002, re-flip
+`NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`, or flip
+`S3_A2_COMPLETENESS_PASS_AUTHORIZED`.
 
 The §194 grant snapshot is isolated: it still records
 `DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=false` because the
@@ -114,8 +116,10 @@ frozen catalog production, binding, completeness, grain identity-set loader,
 bindable-repository, AVAILABLE-closeout, reviewed-set closeout, completeness
 PASS closeout, observation, or identity-set landing bytes.
 `COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true` means the landed three-grain
-artifact is observed through a new classifier that consumes observation.
-Frozen reviewed-set closeout still reports `no_reviewed=True`. Frozen
+artifact is observed through a new classifier that consumes observation
+without invoking frozen closeout classifiers. Live
+`NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains false and is not
+re-flipped. Frozen reviewed-set closeout still reports `no_reviewed=True`. Frozen
 completeness PASS closeout still reports PASS unauthorized. Weather and plans
 remain unavailable, stay deferred to the next product version, and still block
 the actual PASS.

@@ -16134,7 +16134,7 @@ EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
 LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ```
 
-Live `DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED` is maintained in this §4.4 live state block and the R1 package above. Grant merge is #508. The completeness PASS observation classifier consumes `observation.classify()` without auto-wiring the global reviewed-set locator at import. Completeness PASS stays unauthorized. Weather and planting plans are deferred to the next product version; they must not be invented and must not block this non-curve R1, but they still block the actual completeness PASS. The §194 grant snapshot is isolated: it still records `DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=false` because the grant did not land the classifier.
+Live `DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED` is maintained in this §4.4 live state block and the R1 package above. Grant merge is #508. The completeness PASS observation classifier consumes `observation.classify()` without auto-wiring the global reviewed-set locator at import and without invoking frozen closeout classifiers. Completeness PASS stays unauthorized. `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY` remains false and is not re-flipped. Weather and planting plans are deferred to the next product version; they must not be invented and must not block this non-curve R1, but they still block the actual completeness PASS. The §194 grant snapshot is isolated: it still records `DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=false` because the grant did not land the classifier.
 
 ### 4.5 V0.3 metric contract and threshold boundary
 
