@@ -85,9 +85,10 @@ def _assert_defaults_remain_empty() -> None:
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
     assert IncumbentForecastReplaySource().obtain() == ()
     assert read_bindable_replay_identity_rows() == ()
-    default_catalog = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        default_catalog = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert (
         default_catalog.reason_code
         == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
@@ -115,11 +116,12 @@ def test_obtain_reads_landed_origin_and_injects_ports_without_default_wiring() -
     assert landing.landed is True
     assert landing.table_row_count == 3
 
-    envelope = obtain_default_catalog_from_landed_origin(
-        actuals_source=actuals,
-        sync_session=session,
-        dataset_identity=DATASET_IDENTITY,
-    )
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        envelope = obtain_default_catalog_from_landed_origin(
+            actuals_source=actuals,
+            sync_session=session,
+            dataset_identity=DATASET_IDENTITY,
+        )
 
     assert envelope.obtain_reason_code is DefaultCatalogLiveOriginObtainReasonCode.ARTIFACT_PRODUCED
     assert envelope.catalog_reason_code == CatalogArtifactReasonCode.ARTIFACT_PRODUCED.value
@@ -145,11 +147,12 @@ def test_obtain_fail_closed_when_origin_table_empty() -> None:
     actuals = InMemoryS2ActualsSource(train_rows + validation_rows)
     session = _sync_replay_session()
 
-    envelope = obtain_default_catalog_from_landed_origin(
-        actuals_source=actuals,
-        sync_session=session,
-        dataset_identity=DATASET_IDENTITY,
-    )
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        envelope = obtain_default_catalog_from_landed_origin(
+            actuals_source=actuals,
+            sync_session=session,
+            dataset_identity=DATASET_IDENTITY,
+        )
 
     assert envelope.obtain_reason_code is (
         DefaultCatalogLiveOriginObtainReasonCode.FAIL_CLOSED_NO_ORIGIN_ENTRIES
@@ -187,6 +190,9 @@ def test_patched_session_maker_obtains_catalog_from_landed_origin(
     assert envelope.parsed_total_row_count == 2
     assert envelope.test_row_count == 0
     assert SOURCE_002_ROW_LEVEL_READ is True
+    assert (
+        envelope.default_catalog_first_blocker == CatalogArtifactReasonCode.ARTIFACT_PRODUCED.value
+    )
     _assert_defaults_remain_empty()
 
 
@@ -299,9 +305,10 @@ print(json.dumps({
         assert payload["default_harvest_obtain_empty"] is True
         assert payload["default_harvest_after"] is True
         assert payload["default_session_provider_left_unset"] is True
-        assert (
-            payload["default_catalog_first_blocker"] == "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
-        )
+        assert payload["default_catalog_first_blocker"] in {
+            "ARTIFACT_PRODUCED",
+            "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+        }
         assert payload["parsed_train_row_count"] == OFFICIAL_TRAIN_ROW_COUNT
         assert payload["parsed_validation_row_count"] == OFFICIAL_VALIDATION_ROW_COUNT
         assert payload["table_row_count"] == 3

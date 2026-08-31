@@ -35,6 +35,16 @@ def _default_content_producer() -> IncumbentForecastArtifactContentProducer:
     return IncumbentForecastArtifactContentProducer()
 
 
+def _try_live_origin_construction_forecast_artifact() -> VersionedIncumbentForecastArtifact | None:
+    try:
+        from backend.app.s3_daily_rowset.s3_a2_default_catalog_live_origin_construction import (
+            live_origin_forecast_artifact_for_default_construction,
+        )
+    except ImportError:
+        return None
+    return live_origin_forecast_artifact_for_default_construction()
+
+
 FORBIDDEN_EMPTY_FORECAST_ARTIFACT_HASHES = frozenset(
     {
         "",
@@ -99,7 +109,10 @@ class IncumbentForecastArtifactAdapter(IncumbentForecastArtifactPort):
     def _resolved_artifact(self) -> VersionedIncumbentForecastArtifact | None:
         if self.artifact is not None:
             return self.artifact
-        return self.producer.produce()
+        produced = self.producer.produce()
+        if produced is not None:
+            return produced
+        return _try_live_origin_construction_forecast_artifact()
 
     def has_versioned_artifact(self) -> bool:
         artifact = self._resolved_artifact()

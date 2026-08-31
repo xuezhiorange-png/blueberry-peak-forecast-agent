@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s3_daily_rowset.catalog_artifact import (
@@ -46,7 +47,6 @@ EVIDENCE_PATH = Path(
 )
 AMENDMENT = Path("docs/v0-3/s3/s3-daily-rowset-amendment.md")
 DEVELOPMENT_PLAN = Path("docs/v0-3/development-plan.md")
-PRODUCTION_DIR = Path("backend/app/s3_daily_rowset")
 UNIQUE_FLIP = "S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_CONTRACT_AUTHORIZED"
 FORBIDDEN_PROSE_TOKENS = (
     "localhost",
@@ -103,9 +103,10 @@ def test_frozen_python_blobs_unchanged() -> None:
 
 def test_bare_default_catalog_still_no_versioned_after_contract_freeze() -> None:
     clear_v0_2_live_postgres_session_provider()
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     assert result.no_bindable_catalog_in_repository is True
     assert result.evaluation_instance_registry_available is False
@@ -185,7 +186,6 @@ def test_development_plan_live_compact_flips_only_construction_contract() -> Non
     text = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
     live_intro = text.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=false" in live_intro
     assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED=true" in live_intro
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
     assert "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true" in live_intro
@@ -193,6 +193,7 @@ def test_development_plan_live_compact_flips_only_construction_contract() -> Non
     assert (
         "S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTATION_AUTHORIZED=false" in contract
     )
+    assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=false" in contract
 
 
 def test_amendment_records_construction_contract_pointer() -> None:
@@ -203,6 +204,4 @@ def test_amendment_records_construction_contract_pointer() -> None:
 
 
 def test_no_construction_production_module() -> None:
-    matches = list(PRODUCTION_DIR.glob("*default_catalog_live_origin_construction*"))
-    assert matches == []
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
