@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s3_daily_rowset.catalog_artifact import (
@@ -54,9 +55,10 @@ def test_frozen_python_blobs_unchanged() -> None:
 
 
 def test_default_catalog_still_no_versioned_after_contract_freeze() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
 
