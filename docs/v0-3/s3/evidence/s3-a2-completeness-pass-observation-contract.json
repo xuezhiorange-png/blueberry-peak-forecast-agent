@@ -1,0 +1,113 @@
+{
+  "artifact_id": "V0_3_S3_A2_COMPLETENESS_PASS_OBSERVATION_CONTRACT",
+  "artifact_version": "v0-3-s3-a2-completeness-pass-observation-contract-v1",
+  "task_id": "V03_S3_A2_COMPLETENESS_PASS_OBSERVATION_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_A2_COMPLETENESS_PASS_OBSERVATION_CONTRACT_ONLY",
+  "slice": "V0.3-S3",
+  "english_id": "COMPLETENESS_PASS_OBSERVATION",
+  "user_gate": "可以下一步",
+  "contract_gate_accepted_as": "可以继续",
+  "user_utterance": "可以下一步",
+  "reviewer_role": "COORDINATOR",
+  "coordinator_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
+  "implementer_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
+  "recorded_at": "2026-08-31T16:20:00Z",
+  "no_step_implies_the_next": true,
+  "contract_only": true,
+  "this_pr_is_not_a_grant": true,
+  "this_pr_is_not_r1": true,
+  "this_draft_is_not_ready": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "base_main_sha": "de0e54250bd34943537cbe1338a8d50069cef778",
+  "base_main_tree_sha": "c131940859b664f5d0095d4a496698795fc14c15",
+  "parent_observation_r1": {
+    "parent_observation_r1_pr": 506,
+    "parent_observation_r1_commit": "cce345530e402d93902ae8d17a9cefd2576c6206",
+    "parent_observation_r1_merge": "de0e54250bd34943537cbe1338a8d50069cef778",
+    "parent_observation_r1_evidence_json_sha256": "6cdaeb69f319490c0f9925c81ff9bdc8ca4765dce5821f1b78070e7d6ced1efa",
+    "deterministic_coordinator_reviewed_live_origin_grain_identity_set_observation_implemented": true,
+    "no_reviewed_grain_identity_set_in_repository": false
+  },
+  "parent_observation_grant": {
+    "parent_observation_grant_pr": 505,
+    "parent_observation_grant_commit": "fc73cd5613d77c6e5b4f739c6af6b485481eddc1",
+    "parent_observation_grant_merge": "c801c2004222082d33064b2f23bf93861b586a42",
+    "parent_observation_grant_evidence_json_sha256": "5f8600f11581d9290440b07a1660e2ee3dd2a9eda8c0da31135d20e567817ade",
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_implementation_authorized": true
+  },
+  "parent_observation_contract": {
+    "parent_observation_contract_pr": 504,
+    "parent_observation_contract_commit": "9672221f3874bd9d4a2759fd3c232fa3542bcf01",
+    "parent_observation_contract_merge": "b4d9563de530356b2faa7e6b692f11fe3c1dc546",
+    "parent_observation_contract_evidence_json_sha256": "a063ff025af7dcc61ed8bcc9ec37e0273df6f2c3c3ed38285a02ef7916a5d777",
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract_authorized": true
+  },
+  "s2_binding": {
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": true,
+    "forbidden_derive_members_from_source_002": true,
+    "harvest_business_date_is_not_forecast_cutoff": true
+  },
+  "weather_and_plans": {
+    "weather_unavailable": true,
+    "plans_unavailable": true,
+    "forbidden_invent_weather": true,
+    "forbidden_invent_plans": true,
+    "forbidden_invent_tonnes": true,
+    "weather_and_plans_deferred_to_next_version": true,
+    "weather_and_plans_do_not_block_non_curve_implementation": true,
+    "weather_and_plans_block_completeness_pass": true,
+    "s3_a2_completeness_pass_authorized": false
+  },
+  "reviewed_artifact": {
+    "review_member_count": 3,
+    "review_cutoff_business_date": "2026-02-16",
+    "review_cutoff_at": "2026-02-16T00:00:00+08:00",
+    "review_model_id": "V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF",
+    "review_quantiles": [
+      "P50",
+      "P80",
+      "P90"
+    ],
+    "identity_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3",
+    "coordinator_reviewed_candidate_is_live_origin_policy_grains": true,
+    "later_r1_may_consume_observation_without_rewriting_frozen_pass_closeout": true,
+    "later_r1_must_not_auto_wire_at_import": true,
+    "later_r1_must_not_rewrite_frozen_closeout_bytes": true,
+    "later_r1_must_not_flip_completeness_pass_authorized": true,
+    "forbidden_invent_additional_members": true
+  },
+  "authorization": {
+    "s3_a2_completeness_pass_observation_contract_authorized": true,
+    "s3_a2_completeness_pass_observation_implementation_authorized": false,
+    "deterministic_completeness_pass_observation_implemented": false,
+    "deterministic_coordinator_reviewed_live_origin_grain_identity_set_observation_implemented": true,
+    "s3_a2_completeness_pass_authorized": false,
+    "no_reviewed_grain_identity_set_in_repository": false,
+    "default_global_reviewed_set_loader_remains_empty": true,
+    "frozen_reviewed_set_closeout_still_reports_no_reviewed": true,
+    "frozen_completeness_pass_closeout_still_unauthorized": true,
+    "no_bindable_catalog_in_repository": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false
+  },
+  "unique_flip": {
+    "field": "S3_A2_COMPLETENESS_PASS_OBSERVATION_CONTRACT_AUTHORIZED",
+    "before": false,
+    "after": true,
+    "companion_completeness_pass_observation_implementation_authorized": false,
+    "companion_completeness_pass_observation_implemented": false,
+    "this_family_unique_remaining_gap": "_no_completeness_pass_observation_contract",
+    "this_family_unique_remaining_gap_closed": true,
+    "parent_unique_remaining_gap": "_no_completeness_pass_observation_implementation",
+    "parent_unique_remaining_gap_closed": false
+  },
+  "evidence_json_sha256": "a9c6c536b896f86b9b3ac9d25070ba170dcb2e07585f18b54c43b8f681f089bd"
+}
