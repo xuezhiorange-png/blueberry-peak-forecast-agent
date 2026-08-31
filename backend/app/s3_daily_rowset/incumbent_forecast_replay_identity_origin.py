@@ -269,13 +269,17 @@ def _insert_do_nothing(
     dialect_name: str,
     values: list[dict[str, object]],
 ) -> sa.Insert:
+    index_elements = list(GRAIN_COLUMNS)
     if dialect_name == "sqlite":
-        from sqlalchemy.dialects.sqlite import insert as dialect_insert
-    else:
-        from sqlalchemy.dialects.postgresql import insert as dialect_insert
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        return (
+            sqlite_insert(table)
+            .values(values)
+            .on_conflict_do_nothing(index_elements=index_elements)
+        )
+    from sqlalchemy.dialects.postgresql import insert as postgres_insert
 
     return (
-        dialect_insert(table)
-        .values(values)
-        .on_conflict_do_nothing(index_elements=list(GRAIN_COLUMNS))
+        postgres_insert(table).values(values).on_conflict_do_nothing(index_elements=index_elements)
     )
