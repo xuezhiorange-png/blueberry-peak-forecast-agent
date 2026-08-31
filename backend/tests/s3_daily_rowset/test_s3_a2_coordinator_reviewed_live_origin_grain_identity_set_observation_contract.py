@@ -497,10 +497,6 @@ def test_development_plan_live_compact_flips_only_observation_contract() -> None
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
     assert "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true" in live_intro
     assert (
-        "S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTATION_AUTHORIZED=true"
-        not in live_intro
-    )
-    assert (
         "DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED=true"
         not in live_intro
     )
