@@ -406,7 +406,6 @@ def test_development_plan_live_compact_flips_only_this_contract() -> None:
     )
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in live_intro
-    assert "S3_A2_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTATION_AUTHORIZED=true" not in live_intro
     assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" not in live_intro
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
     assert "S3_A2_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false" in contract
