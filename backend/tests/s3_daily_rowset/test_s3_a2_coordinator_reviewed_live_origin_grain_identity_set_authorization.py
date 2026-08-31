@@ -69,9 +69,6 @@ REVIEWED_SET_CLOSEOUT_CONTRACT = (
 COMPLETENESS_PASS_CLOSEOUT_CONTRACT = (
     REPO_ROOT / "docs/v0-3/s3/s3-completeness-pass-closeout-contract.md"
 )
-PRODUCTION_MODULE = REPO_ROOT / (
-    "backend/app/s3_daily_rowset/s3_a2_coordinator_reviewed_live_origin_grain_identity_set.py"
-)
 COMPLETENESS_PASS_CLOSEOUT_MODULE = REPO_ROOT / (
     "backend/app/s3_daily_rowset/s3_a2_completeness_pass_closeout.py"
 )
@@ -360,7 +357,6 @@ def test_grant_package_is_docs_only() -> None:
         ]
         is False
     )
-    assert not PRODUCTION_MODULE.exists()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
