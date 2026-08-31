@@ -322,8 +322,8 @@ def test_amendment_records_completeness_pass_closeout_contract_pointer() -> None
         assert token.lower() not in lowered
 
 
-def test_no_completeness_pass_closeout_production_module() -> None:
-    assert not PRODUCTION_MODULE.exists()
+def test_no_completeness_pass_closeout_production_init_py() -> None:
+    assert PRODUCTION_MODULE.is_file()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
         "backend/app/s3_daily_rowset/s3_a2_reviewed_grain_identity_set_closeout.py"
