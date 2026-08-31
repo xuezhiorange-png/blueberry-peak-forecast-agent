@@ -1,0 +1,525 @@
+"""S3-A2 incumbent forecast artifact repository-presence observation contract tests."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+from collections.abc import Iterator
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+
+from backend.app.rolling_backtest.canonical import sha256_payload
+from backend.app.s3_daily_rowset import (
+    s3_a2_completeness_pass_observation as completeness_pass_observation,
+)
+from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
+    IncumbentForecastReplaySource,
+)
+from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_live_postgres_read import (
+    clear_v0_2_live_postgres_session_provider,
+    read_bindable_replay_identity_rows,
+)
+from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_replay_identity_grain_identity_set import (
+    load_reviewed_grain_identity_set,
+    reviewed_grain_identity_set_artifact_available,
+)
+from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
+    S2IdentityAlignmentHarvestSource,
+)
+from backend.app.s3_daily_rowset.s3_a2_completeness_pass_closeout import (
+    CompletenessPassCloseoutClassifier,
+)
+from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_identity_set import (
+    REVIEW_MEMBER_COUNT,
+    REVIEWED_GRAIN_IDENTITY_SET_IDENTITY_SHA256,
+    uninstall_from_reviewed_set_loader,
+)
+from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout import (
+    ReviewedGrainIdentitySetCloseoutClassifier,
+)
+
+CompletenessPassObservationClassifier = (
+    completeness_pass_observation.CompletenessPassObservationClassifier
+)
+CompletenessPassObservationReasonCode = (
+    completeness_pass_observation.CompletenessPassObservationReasonCode
+)
+
+CONTRACT_PATH = Path(
+    "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-observation-contract.md"
+)
+WORKPAPER_PATH = Path(
+    "docs/v0-3/s3/workpapers/"
+    "s3-a2-incumbent-forecast-artifact-repository-presence-observation-contract.md"
+)
+EVIDENCE_PATH = Path(
+    "docs/v0-3/s3/evidence/"
+    "s3-a2-incumbent-forecast-artifact-repository-presence-observation-contract.json"
+)
+PRODUCTION_MODULE = Path(
+    "backend/app/s3_daily_rowset/"
+    "s3_a2_incumbent_forecast_artifact_repository_presence_observation.py"
+)
+PASS_OBSERVATION_MODULE = Path("backend/app/s3_daily_rowset/s3_a2_completeness_pass_observation.py")
+OBSERVATION_MODULE = Path(
+    "backend/app/s3_daily_rowset/"
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation.py"
+)
+LANDING_MODULE = Path(
+    "backend/app/s3_daily_rowset/s3_a2_coordinator_reviewed_live_origin_grain_identity_set.py"
+)
+COMPLETENESS_PASS_CLOSEOUT_MODULE = Path(
+    "backend/app/s3_daily_rowset/s3_a2_completeness_pass_closeout.py"
+)
+REVIEWED_MODULE = Path("backend/app/s3_daily_rowset/s3_a2_reviewed_grain_identity_set_closeout.py")
+AMENDMENT = Path("docs/v0-3/s3/s3-daily-rowset-amendment.md")
+DEVELOPMENT_PLAN = Path("docs/v0-3/development-plan.md")
+PASS_OBSERVATION_R1_WORKPAPER = Path(
+    "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-observation-r1.md"
+)
+PASS_OBSERVATION_R1_EVIDENCE = Path(
+    "docs/v0-3/s3/evidence/s3-a2-completeness-pass-observation-r1.json"
+)
+PASS_OBSERVATION_CONTRACT = Path("docs/v0-3/s3/s3-completeness-pass-observation-contract.md")
+PASS_OBSERVATION_CONTRACT_WORKPAPER = Path(
+    "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-observation-contract.md"
+)
+PASS_OBSERVATION_CONTRACT_EVIDENCE = Path(
+    "docs/v0-3/s3/evidence/s3-a2-completeness-pass-observation-contract.json"
+)
+PASS_OBSERVATION_GRANT_WORKPAPER = Path(
+    "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-observation-authorization.md"
+)
+PASS_OBSERVATION_GRANT_EVIDENCE = Path(
+    "docs/v0-3/s3/evidence/s3-a2-completeness-pass-observation-authorization.json"
+)
+PRESENCE_R1_WORKPAPER = Path(
+    "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-repository-presence-r1.md"
+)
+PRESENCE_R1_EVIDENCE = Path(
+    "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-r1.json"
+)
+PRESENCE_CONTRACT = Path(
+    "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-contract.md"
+)
+
+TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
+CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
+GRAIN_IDENTITY_SET_PY_BLOB = "eed2ecbcacc2a8173003cba55853a6ef5b5f89c5"
+CONTENT_PRODUCER_PY_BLOB = "0cc05fff3deff00d279070aa246f241ff3754e89"
+ALEMBIC_BLOB = "1e0864ebef1d947d4c9466d71efaa759d44c7ad7"
+OBTAIN_MODULE_BLOB = "97be63307d002d6878649cd241ff94f5149e0f8a"
+CONSTRUCTION_MODULE_BLOB = "39b3a06bc768b728e5b283c1720a8f38ed5ff71a"
+BINDABLE_REPOSITORY_PY_BLOB = "98948a405e4865a573f1b2332d128af3aaaccfd3"
+AVAILABLE_CLOSEOUT_PY_BLOB = "cafca50d5c4ff4e416747644f7446a7ea24caee9"
+REVIEWED_SET_CLOSEOUT_PY_BLOB = "ab9e2edf2e157b80dca5e230129374f5ac97810c"
+COMPLETENESS_PY_BLOB = "06b778b75710a0de30035569d15c8e3d87b095d4"
+COMPLETENESS_PASS_CLOSEOUT_PY_BLOB = "d1a6654b7f584c6e944628ecc63265ab8f9a1e7e"
+BINDING_PY_BLOB = "0a335f682a923bcd73908b58cd70cd49c9ab0117"
+FORECAST_ARTIFACT_PY_BLOB = "84576cf7d1ea7b4ab5f8bdef217483883ba638b8"
+ALIGNMENT_EVIDENCE_PY_BLOB = "df000544dc0e0b4844b0a5a7c342f6abce957e86"
+IDENTITY_SET_LANDING_PY_BLOB = "2ce94233f153f8e5297e4b978243323ca917dcf8"
+OBSERVATION_MODULE_BLOB = "b9e047b4946fbdf658ad4911f2a94bb67628accd"
+COMPLETENESS_PASS_OBSERVATION_PY_BLOB = "93badaacdd19f5a80a8306b7beeffa3c391711fc"
+BASE_MAIN_SHA = "2c36b67fc32ef06ace4efcaf3ed5d7b96ae2cd20"
+BASE_MAIN_TREE_SHA = "3a6e681dc0794398e3fd823ac6c93f882ba76ac0"
+PARENT_PASS_OBSERVATION_R1_PR = 509
+PARENT_PASS_OBSERVATION_R1_COMMIT = "7e7b322c00cdce9637c7aa1990fb900ea0edd303"
+PARENT_PASS_OBSERVATION_R1_MERGE = "2c36b67fc32ef06ace4efcaf3ed5d7b96ae2cd20"
+PARENT_PASS_OBSERVATION_R1_EVIDENCE_JSON_SHA256 = (
+    "50b7dc42e55d020e077887fdeb9b87a06c31db266e85968e8887c57dd71e5fbd"
+)
+PARENT_PASS_OBSERVATION_R1_WORKPAPER_BLOB = "199b64f56d2d882b8456184a6ae2375d8d88bc50"
+PARENT_PASS_OBSERVATION_R1_EVIDENCE_BLOB = "a070c2a35ddbf9d667c4ef1d2e60693d5c3f6be8"
+PARENT_PASS_OBSERVATION_GRANT_PR = 508
+PARENT_PASS_OBSERVATION_GRANT_COMMIT = "87b356d95bf42f2af9ec7ef1b7a5911c5bf6a028"
+PARENT_PASS_OBSERVATION_GRANT_MERGE = "0bdbda329a792f0f498dd041474f079b9d1482ab"
+PARENT_PASS_OBSERVATION_GRANT_EVIDENCE_JSON_SHA256 = (
+    "33e30991084d6e9fa66072bb062d35983df48d274305b2263566d6472ebd5367"
+)
+PARENT_PASS_OBSERVATION_GRANT_WORKPAPER_BLOB = "a7fd9b34b25223c1ee2c867c941102ba9d950b5d"
+PARENT_PASS_OBSERVATION_GRANT_EVIDENCE_BLOB = "b3787e5f6f9194fa26392dc58c412badb33caeb6"
+PARENT_PASS_OBSERVATION_CONTRACT_PR = 507
+PARENT_PASS_OBSERVATION_CONTRACT_COMMIT = "458684ec2d0633185a276a4b484c344341839c78"
+PARENT_PASS_OBSERVATION_CONTRACT_MERGE = "bba39dce867c26841b2e9377a255bfbe5a1e1b45"
+PARENT_PASS_OBSERVATION_CONTRACT_EVIDENCE_JSON_SHA256 = (
+    "a9c6c536b896f86b9b3ac9d25070ba170dcb2e07585f18b54c43b8f681f089bd"
+)
+PARENT_PASS_OBSERVATION_CONTRACT_DOC_BLOB = "9cba09373b1cc5c4b3945ddc1389fd1fd4b04f65"
+PARENT_PASS_OBSERVATION_CONTRACT_WORKPAPER_BLOB = "041dc88ff3b2bb39d78c9a2a842e0b6db9fd7d32"
+PARENT_PASS_OBSERVATION_CONTRACT_EVIDENCE_BLOB = "d89e9b5bdbfd022c9b8205148d07ca6cafab9943"
+PARENT_PRESENCE_R1_PR = 481
+PARENT_PRESENCE_R1_COMMIT = "bffd2bfc9c0d9f8cbbbd6db7c37898b16b5808a1"
+PARENT_PRESENCE_R1_MERGE = "fde7acec586e83eafd99b755f3049d9e3e4a074c"
+PARENT_PRESENCE_R1_EVIDENCE_JSON_SHA256 = (
+    "4422928e91f49807bf9fa4d6678bde06efcf2cc38a134611424aad9888243782"
+)
+PARENT_PRESENCE_R1_WORKPAPER_BLOB = "316b117812c1461acc4eba1c42ad9dea5822c465"
+PARENT_PRESENCE_R1_EVIDENCE_BLOB = "13628db068c3ed950925bc96ed5c1e152d1c35b1"
+PARENT_PRESENCE_CONTRACT_GIT_BLOB = "899aeafbbe9737703aaade44e07953df22e642c1"
+REVIEWED_SET_IDENTITY_SHA256 = "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3"
+UNIQUE_FLIP = (
+    "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_CONTRACT_AUTHORIZED"
+)
+FORBIDDEN_PROSE_TOKENS = (
+    "localhost",
+    "5432",
+    "psycopg",
+    "content_bytes",
+    "postgresql://",
+    "greenlet",
+    "MissingGreenlet",
+    "OSError",
+)
+
+
+def _git_blob(path: Path) -> str:
+    return subprocess.check_output(["git", "hash-object", str(path)], text=True).strip()
+
+
+@pytest.fixture(autouse=True)
+def _uninstall_reviewed_set_hooks() -> Iterator[None]:
+    uninstall_from_reviewed_set_loader()
+    yield
+    uninstall_from_reviewed_set_loader()
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_frozen_blobs_and_parent_packages_unchanged() -> None:
+    assert _git_blob(Path("backend/tests/s3_daily_rowset/test_catalog_artifact.py")) == (
+        TEST_CATALOG_ARTIFACT_PY_BLOB
+    )
+    assert _git_blob(Path("backend/app/s3_daily_rowset/catalog_artifact.py")) == (
+        CATALOG_ARTIFACT_PY_BLOB
+    )
+    assert (
+        _git_blob(
+            Path(
+                "backend/app/s3_daily_rowset/"
+                "incumbent_forecast_v0_2_replay_identity_grain_identity_set.py"
+            )
+        )
+        == GRAIN_IDENTITY_SET_PY_BLOB
+    )
+    assert _git_blob(
+        Path("backend/app/s3_daily_rowset/incumbent_forecast_artifact_content.py")
+    ) == (CONTENT_PRODUCER_PY_BLOB)
+    assert (
+        _git_blob(
+            Path("backend/alembic/versions/e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py")
+        )
+        == ALEMBIC_BLOB
+    )
+    assert (
+        _git_blob(Path("backend/app/s3_daily_rowset/s3_a2_default_catalog_live_origin_obtain.py"))
+        == OBTAIN_MODULE_BLOB
+    )
+    assert (
+        _git_blob(
+            Path("backend/app/s3_daily_rowset/s3_a2_default_catalog_live_origin_construction.py")
+        )
+        == CONSTRUCTION_MODULE_BLOB
+    )
+    assert _git_blob(Path("backend/app/s3_daily_rowset/binding.py")) == BINDING_PY_BLOB
+    assert (
+        _git_blob(Path("backend/app/s3_daily_rowset/s3_a2_default_catalog_bindable_repository.py"))
+        == BINDABLE_REPOSITORY_PY_BLOB
+    )
+    assert (
+        _git_blob(
+            Path(
+                "backend/app/s3_daily_rowset/s3_a2_evaluation_instance_registry_available_closeout.py"
+            )
+        )
+        == AVAILABLE_CLOSEOUT_PY_BLOB
+    )
+    assert _git_blob(REVIEWED_MODULE) == REVIEWED_SET_CLOSEOUT_PY_BLOB
+    assert _git_blob(Path("backend/app/s3_daily_rowset/completeness.py")) == COMPLETENESS_PY_BLOB
+    assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
+    assert _git_blob(Path("backend/app/s3_daily_rowset/forecast_artifact.py")) == (
+        FORECAST_ARTIFACT_PY_BLOB
+    )
+    assert (
+        _git_blob(Path("backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py"))
+        == ALIGNMENT_EVIDENCE_PY_BLOB
+    )
+    assert _git_blob(LANDING_MODULE) == IDENTITY_SET_LANDING_PY_BLOB
+    assert _git_blob(OBSERVATION_MODULE) == OBSERVATION_MODULE_BLOB
+    assert _git_blob(PASS_OBSERVATION_MODULE) == COMPLETENESS_PASS_OBSERVATION_PY_BLOB
+    assert _git_blob(PASS_OBSERVATION_R1_WORKPAPER) == PARENT_PASS_OBSERVATION_R1_WORKPAPER_BLOB
+    assert _git_blob(PASS_OBSERVATION_R1_EVIDENCE) == PARENT_PASS_OBSERVATION_R1_EVIDENCE_BLOB
+    assert _git_blob(PASS_OBSERVATION_CONTRACT) == PARENT_PASS_OBSERVATION_CONTRACT_DOC_BLOB
+    assert (
+        _git_blob(PASS_OBSERVATION_CONTRACT_WORKPAPER)
+        == PARENT_PASS_OBSERVATION_CONTRACT_WORKPAPER_BLOB
+    )
+    assert (
+        _git_blob(PASS_OBSERVATION_CONTRACT_EVIDENCE)
+        == PARENT_PASS_OBSERVATION_CONTRACT_EVIDENCE_BLOB
+    )
+    assert (
+        _git_blob(PASS_OBSERVATION_GRANT_WORKPAPER) == PARENT_PASS_OBSERVATION_GRANT_WORKPAPER_BLOB
+    )
+    assert _git_blob(PASS_OBSERVATION_GRANT_EVIDENCE) == PARENT_PASS_OBSERVATION_GRANT_EVIDENCE_BLOB
+    assert _git_blob(PRESENCE_R1_WORKPAPER) == PARENT_PRESENCE_R1_WORKPAPER_BLOB
+    assert _git_blob(PRESENCE_R1_EVIDENCE) == PARENT_PRESENCE_R1_EVIDENCE_BLOB
+    assert _git_blob(PRESENCE_CONTRACT) == PARENT_PRESENCE_CONTRACT_GIT_BLOB
+
+
+def test_pass_observation_exists_and_presence_observation_module_is_not_created() -> None:
+    assert PASS_OBSERVATION_MODULE.is_file()
+    assert OBSERVATION_MODULE.is_file()
+    assert LANDING_MODULE.is_file()
+    assert not PRODUCTION_MODULE.exists()
+    contract = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "THIS_PR_IS_NOT_R1=true" in contract
+    assert "CONTRACT_MERGE_DOES_NOT_IMPLEMENT_REPOSITORY_PRESENCE_OBSERVATION=true" in contract
+    assert (
+        "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTED=false"
+        in contract
+    )
+    assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
+
+
+def test_pass_observation_sees_three_grains_and_default_loader_stays_empty() -> None:
+    result = CompletenessPassObservationClassifier().classify()
+    assert result.reason_code is (
+        CompletenessPassObservationReasonCode.COMPLETENESS_PASS_OBSERVATION_RECORDED
+    )
+    assert result.coordinator_reviewed_identity_set_exists is True
+    assert result.reviewed_identity_set_member_count == REVIEW_MEMBER_COUNT
+    assert result.reviewed_grain_identity_set_identity_sha256 == REVIEWED_SET_IDENTITY_SHA256
+    assert result.reviewed_grain_identity_set_identity_sha256 == (
+        REVIEWED_GRAIN_IDENTITY_SET_IDENTITY_SHA256
+    )
+    assert result.s3_a2_completeness_pass_authorized is False
+    assert result.default_global_reviewed_set_loader_remains_empty is True
+    assert reviewed_grain_identity_set_artifact_available() is False
+    assert load_reviewed_grain_identity_set() == ()
+    clear_v0_2_live_postgres_session_provider()
+    assert S2IdentityAlignmentHarvestSource().obtain() == ()
+    assert IncumbentForecastReplaySource().obtain() == ()
+    assert read_bindable_replay_identity_rows() == ()
+
+
+def test_frozen_closeouts_still_unauthorized_after_pass_observation() -> None:
+    CompletenessPassObservationClassifier().classify()
+    assert load_reviewed_grain_identity_set() == ()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        reviewed = ReviewedGrainIdentitySetCloseoutClassifier().classify()
+        completeness = CompletenessPassCloseoutClassifier().classify()
+    assert reviewed.no_reviewed_grain_identity_set_in_repository is True
+    assert reviewed.coordinator_reviewed_identity_set_exists is False
+    assert completeness.s3_a2_completeness_pass_authorized is False
+    assert completeness.no_reviewed_grain_identity_set_in_repository is True
+    assert completeness.weather_and_plans_block_completeness_pass is True
+    assert completeness.no_bindable_catalog_in_repository is True
+    assert completeness.evaluation_instance_registry_available is False
+
+
+def test_contract_is_authorized_and_not_an_implementation_grant() -> None:
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert f"{UNIQUE_FLIP}=true" in text
+    assert (
+        "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false"
+        in text
+    )
+    assert (
+        "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTED=false"
+        in text
+    )
+    assert "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_IMPLEMENTED=true" in text
+    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" in text
+    assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in text
+    assert "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true" in text
+    assert "DEFAULT_GLOBAL_REVIEWED_SET_LOADER_REMAINS_EMPTY=true" in text
+    assert "FROZEN_REVIEWED_SET_CLOSEOUT_STILL_REPORTS_NO_REVIEWED=true" in text
+    assert "FROZEN_COMPLETENESS_PASS_CLOSEOUT_STILL_UNAUTHORIZED=true" in text
+    assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in text
+    assert "DEFAULT_CATALOG_FIRST_BLOCKER=ARTIFACT_PRODUCED" in text
+    assert "THIS_PR_IS_NOT_A_GRANT=true" in text
+    assert "THIS_PR_IS_NOT_R1=true" in text
+    assert "CONTRACT_ONLY=true" in text
+    assert "USER_GATE=可以下一步" in text
+    assert "CONTRACT_GATE_ACCEPTED_AS=可以继续" in text
+    assert "USER_UTTERANCE=可以下一步" in text
+    assert "CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true" in text
+    assert "CONTRACT_MERGE_DOES_NOT_IMPLEMENT_REPOSITORY_PRESENCE_OBSERVATION=true" in text
+    assert "CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true" in text
+    assert "CONTRACT_MERGE_DOES_NOT_REWRITE_FROZEN_PRESENCE_R1=true" in text
+    assert "CONTRACT_MERGE_DOES_NOT_REWRITE_FROZEN_COMPLETENESS_PASS_OBSERVATION=true" in text
+    assert "NO_VERSIONED_FLIP_PRECONDITION_1_HOLDS=true" in text
+    assert "NO_VERSIONED_FLIP_PRECONDITION_2_HOLDS=true" in text
+    assert "NO_VERSIONED_FLIP_PRECONDITION_3_HOLDS=false" in text
+    assert "NO_VERSIONED_FLIP_PRECONDITION_4_HOLDS=false" in text
+    assert "IN_MEMORY_CATALOG_ARTIFACT_PRODUCED_IS_NOT_VERSIONED_REPOSITORY_ARTIFACT=true" in text
+    assert "CONTENT_PRODUCER_ON_EMPTY_OBTAIN_RETURNS_NONE=true" in text
+    assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in text
+    assert "EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false" in text
+    assert "NO_NEW_SQLALCHEMY_API_FAMILY=true" in text
+    assert f"PARENT_PASS_OBSERVATION_R1_PR={PARENT_PASS_OBSERVATION_R1_PR}" in text
+    assert f"PARENT_PASS_OBSERVATION_R1_COMMIT={PARENT_PASS_OBSERVATION_R1_COMMIT}" in text
+    assert f"PARENT_PASS_OBSERVATION_R1_MERGE={PARENT_PASS_OBSERVATION_R1_MERGE}" in text
+    assert f"PARENT_PRESENCE_R1_PR={PARENT_PRESENCE_R1_PR}" in text
+    assert f"BASE_MAIN_SHA={BASE_MAIN_SHA}" in text
+    assert f"BASE_MAIN_TREE_SHA={BASE_MAIN_TREE_SHA}" in text
+    assert f"REVIEWED_SET_IDENTITY_SHA256={REVIEWED_SET_IDENTITY_SHA256}" in text
+    lowered = text.lower()
+    for token in FORBIDDEN_PROSE_TOKENS:
+        assert token.lower() not in lowered
+
+
+def test_evidence_json_sha256_matches_payload_without_self_key() -> None:
+    payload = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+    digest = payload["evidence_json_sha256"]
+    assert len(digest) == 64
+    stripped = {key: value for key, value in payload.items() if key != "evidence_json_sha256"}
+    assert sha256_payload(stripped) == digest
+    assert payload["authorization"][
+        "s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract_authorized"
+    ]
+    assert not payload["authorization"][
+        "s3_a2_incumbent_forecast_artifact_repository_presence_observation_implementation_authorized"
+    ]
+    assert not payload["authorization"][
+        "deterministic_incumbent_forecast_artifact_repository_presence_observation_implemented"
+    ]
+    assert payload["authorization"]["deterministic_completeness_pass_observation_implemented"]
+    assert payload["authorization"][
+        "deterministic_incumbent_forecast_artifact_repository_presence_implemented"
+    ]
+    assert (
+        payload["authorization"]["no_versioned_incumbent_forecast_artifact_in_repository"] is True
+    )
+    assert payload["authorization"]["no_reviewed_grain_identity_set_in_repository"] is False
+    assert payload["authorization"]["default_global_reviewed_set_loader_remains_empty"] is True
+    assert payload["authorization"]["s3_a2_completeness_pass_authorized"] is False
+    assert payload["reviewed_artifact"]["review_member_count"] == 3
+    assert payload["reviewed_artifact"]["identity_sha256"] == REVIEWED_SET_IDENTITY_SHA256
+    assert payload["unique_flip"]["field"] == UNIQUE_FLIP
+    assert payload["unique_flip"]["before"] is False
+    assert payload["unique_flip"]["after"] is True
+    assert payload["parent_pass_observation_r1"]["parent_pass_observation_r1_pr"] == (
+        PARENT_PASS_OBSERVATION_R1_PR
+    )
+    assert payload["parent_pass_observation_r1"]["parent_pass_observation_r1_commit"] == (
+        PARENT_PASS_OBSERVATION_R1_COMMIT
+    )
+    assert payload["parent_pass_observation_r1"]["parent_pass_observation_r1_merge"] == (
+        PARENT_PASS_OBSERVATION_R1_MERGE
+    )
+    assert payload["parent_pass_observation_r1"][
+        "parent_pass_observation_r1_evidence_json_sha256"
+    ] == (PARENT_PASS_OBSERVATION_R1_EVIDENCE_JSON_SHA256)
+    assert payload["parent_pass_observation_grant"]["parent_pass_observation_grant_pr"] == (
+        PARENT_PASS_OBSERVATION_GRANT_PR
+    )
+    assert payload["parent_pass_observation_contract"]["parent_pass_observation_contract_pr"] == (
+        PARENT_PASS_OBSERVATION_CONTRACT_PR
+    )
+    assert payload["parent_presence_r1"]["parent_presence_r1_pr"] == PARENT_PRESENCE_R1_PR
+    assert payload["base_main_sha"] == BASE_MAIN_SHA
+    assert payload["base_main_tree_sha"] == BASE_MAIN_TREE_SHA
+    assert payload["user_gate"] == "可以下一步"
+
+
+def test_workpaper_exists_and_is_contract_only() -> None:
+    text = WORKPAPER_PATH.read_text(encoding="utf-8")
+    assert "USER_GATE=可以下一步" in text
+    assert "CONTRACT_ONLY=true" in text
+    assert "REVIEW_CUTOFF_BUSINESS_DATE=2026-02-16" in text
+    assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in text
+    assert "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true" in text
+    assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in text
+    assert f"{UNIQUE_FLIP}=true" in text
+    assert (
+        "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false"
+        in text
+    )
+    assert (
+        "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTED=false"
+        in text
+    )
+    assert f"BASE_MAIN_SHA={BASE_MAIN_SHA}" in text
+    assert f"PARENT_PASS_OBSERVATION_R1_PR={PARENT_PASS_OBSERVATION_R1_PR}" in text
+    assert f"PARENT_PRESENCE_R1_PR={PARENT_PRESENCE_R1_PR}" in text
+    lowered = text.lower()
+    for token in FORBIDDEN_PROSE_TOKENS:
+        assert token.lower() not in lowered
+
+
+def test_development_plan_live_compact_flips_only_this_contract() -> None:
+    text = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
+    live_intro = text.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
+    assert f"{UNIQUE_FLIP}=true" in live_intro
+    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" in live_intro
+    assert "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_IMPLEMENTED=true" in (
+        live_intro
+    )
+    assert (
+        "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTED=false"
+        not in live_intro
+    )
+    assert (
+        "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false"
+        not in live_intro
+    )
+    assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
+    assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in live_intro
+    assert "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true" in live_intro
+    contract = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert (
+        "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false"
+        in contract
+    )
+    r1_pointer = text.split("#### Completeness PASS observation R1 pointer", 1)[1]
+    if "#### Incumbent forecast artifact repository-presence observation contract pointer" in (
+        r1_pointer
+    ):
+        r1_pointer = r1_pointer.split(
+            "#### Incumbent forecast artifact repository-presence observation contract pointer",
+            1,
+        )[0]
+    assert UNIQUE_FLIP not in r1_pointer
+    assert "s3-a2-completeness-pass-observation-r1.md" in r1_pointer
+    assert (
+        "s3-incumbent-forecast-artifact-repository-presence-observation-contract.md"
+        in text.split("### 4.5", maxsplit=1)[0]
+    )
+
+
+def test_amendment_records_pointer_and_isolates_section_195() -> None:
+    text = AMENDMENT.read_text(encoding="utf-8")
+    assert "## 195. Completeness PASS observation R1 pointer" in text
+    assert (
+        "## 196. Incumbent forecast artifact repository-presence observation contract pointer"
+        in text
+    )
+    assert f"{UNIQUE_FLIP}=true" in text
+    section_195 = text.split("## 195.", 1)[1]
+    if "## 196." in section_195:
+        section_195 = section_195.split("## 196.", 1)[0]
+    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" in section_195
+    assert UNIQUE_FLIP not in section_195
+    assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in section_195
+    section_196 = text.split("## 196.", 1)[1]
+    assert f"{UNIQUE_FLIP}=true" in section_196
+    assert (
+        "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false"
+        in section_196
+    )
+    assert (
+        "DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_IMPLEMENTED=false"
+        in section_196
+    )
+    assert "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true" in section_196
+    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" in section_196
+    assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in section_196
+    assert PARENT_PASS_OBSERVATION_R1_EVIDENCE_JSON_SHA256 in section_196
+    assert PARENT_PASS_OBSERVATION_R1_COMMIT in section_196
+    assert f"BASE_MAIN_SHA={BASE_MAIN_SHA}" in section_196
+    lowered = section_196.lower()
+    for token in FORBIDDEN_PROSE_TOKENS:
+        assert token.lower() not in lowered

@@ -1,0 +1,132 @@
+{
+  "artifact_id": "V0_3_S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_CONTRACT",
+  "artifact_version": "v0-3-s3-a2-incumbent-forecast-artifact-repository-presence-observation-contract-v1",
+  "task_id": "V03_S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_CONTRACT_ONLY",
+  "slice": "V0.3-S3",
+  "english_id": "INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION",
+  "user_gate": "可以下一步",
+  "contract_gate_accepted_as": "可以继续",
+  "user_utterance": "可以下一步",
+  "reviewer_role": "COORDINATOR",
+  "coordinator_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
+  "implementer_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
+  "recorded_at": "2026-08-31T22:55:00Z",
+  "no_step_implies_the_next": true,
+  "contract_only": true,
+  "this_pr_is_not_a_grant": true,
+  "this_pr_is_not_r1": true,
+  "this_draft_is_not_ready": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "base_main_sha": "2c36b67fc32ef06ace4efcaf3ed5d7b96ae2cd20",
+  "base_main_tree_sha": "3a6e681dc0794398e3fd823ac6c93f882ba76ac0",
+  "parent_pass_observation_r1": {
+    "parent_pass_observation_r1_pr": 509,
+    "parent_pass_observation_r1_commit": "7e7b322c00cdce9637c7aa1990fb900ea0edd303",
+    "parent_pass_observation_r1_merge": "2c36b67fc32ef06ace4efcaf3ed5d7b96ae2cd20",
+    "parent_pass_observation_r1_evidence_json_sha256": "50b7dc42e55d020e077887fdeb9b87a06c31db266e85968e8887c57dd71e5fbd",
+    "deterministic_completeness_pass_observation_implemented": true,
+    "no_reviewed_grain_identity_set_in_repository": false
+  },
+  "parent_pass_observation_grant": {
+    "parent_pass_observation_grant_pr": 508,
+    "parent_pass_observation_grant_commit": "87b356d95bf42f2af9ec7ef1b7a5911c5bf6a028",
+    "parent_pass_observation_grant_merge": "0bdbda329a792f0f498dd041474f079b9d1482ab",
+    "parent_pass_observation_grant_evidence_json_sha256": "33e30991084d6e9fa66072bb062d35983df48d274305b2263566d6472ebd5367",
+    "s3_a2_completeness_pass_observation_implementation_authorized": true
+  },
+  "parent_pass_observation_contract": {
+    "parent_pass_observation_contract_pr": 507,
+    "parent_pass_observation_contract_commit": "458684ec2d0633185a276a4b484c344341839c78",
+    "parent_pass_observation_contract_merge": "bba39dce867c26841b2e9377a255bfbe5a1e1b45",
+    "parent_pass_observation_contract_evidence_json_sha256": "a9c6c536b896f86b9b3ac9d25070ba170dcb2e07585f18b54c43b8f681f089bd",
+    "s3_a2_completeness_pass_observation_contract_authorized": true
+  },
+  "parent_presence_r1": {
+    "parent_presence_r1_pr": 481,
+    "parent_presence_r1_commit": "bffd2bfc9c0d9f8cbbbd6db7c37898b16b5808a1",
+    "parent_presence_r1_merge": "fde7acec586e83eafd99b755f3049d9e3e4a074c",
+    "parent_presence_r1_evidence_json_sha256": "4422928e91f49807bf9fa4d6678bde06efcf2cc38a134611424aad9888243782",
+    "deterministic_incumbent_forecast_artifact_repository_presence_implemented": true,
+    "frozen_presence_r1_still_reports_fail_closed_no_reviewed_set": true
+  },
+  "s2_binding": {
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": true,
+    "forbidden_derive_members_from_source_002": true,
+    "harvest_business_date_is_not_forecast_cutoff": true
+  },
+  "weather_and_plans": {
+    "weather_unavailable": true,
+    "plans_unavailable": true,
+    "forbidden_invent_weather": true,
+    "forbidden_invent_plans": true,
+    "forbidden_invent_tonnes": true,
+    "weather_and_plans_deferred_to_next_version": true,
+    "weather_and_plans_do_not_block_non_curve_implementation": true,
+    "weather_and_plans_block_completeness_pass": true,
+    "s3_a2_completeness_pass_authorized": false
+  },
+  "reviewed_artifact": {
+    "review_member_count": 3,
+    "review_cutoff_business_date": "2026-02-16",
+    "review_cutoff_at": "2026-02-16T00:00:00+08:00",
+    "review_model_id": "V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF",
+    "review_quantiles": [
+      "P50",
+      "P80",
+      "P90"
+    ],
+    "identity_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3",
+    "coordinator_reviewed_candidate_is_live_origin_policy_grains": true,
+    "later_r1_may_consume_pass_observation_without_rewriting_frozen_presence_r1": true,
+    "later_r1_must_not_auto_wire_at_import": true,
+    "later_r1_must_not_rewrite_frozen_presence_r1_bytes": true,
+    "later_r1_must_not_flip_no_versioned": true,
+    "forbidden_invent_additional_members": true,
+    "in_memory_catalog_artifact_produced_is_not_versioned_repository_artifact": true,
+    "content_producer_on_empty_obtain_returns_none": true
+  },
+  "no_versioned_flip_preconditions": {
+    "no_versioned_flip_precondition_1_holds": true,
+    "no_versioned_flip_precondition_2_holds": true,
+    "no_versioned_flip_precondition_3_holds": false,
+    "no_versioned_flip_precondition_4_holds": false
+  },
+  "authorization": {
+    "s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract_authorized": true,
+    "s3_a2_incumbent_forecast_artifact_repository_presence_observation_implementation_authorized": false,
+    "deterministic_incumbent_forecast_artifact_repository_presence_observation_implemented": false,
+    "deterministic_incumbent_forecast_artifact_repository_presence_implemented": true,
+    "deterministic_completeness_pass_observation_implemented": true,
+    "s3_a2_completeness_pass_authorized": false,
+    "no_reviewed_grain_identity_set_in_repository": false,
+    "no_versioned_incumbent_forecast_artifact_in_repository": true,
+    "default_global_reviewed_set_loader_remains_empty": true,
+    "frozen_reviewed_set_closeout_still_reports_no_reviewed": true,
+    "frozen_completeness_pass_closeout_still_unauthorized": true,
+    "no_bindable_catalog_in_repository": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false,
+    "default_catalog_first_blocker": "ARTIFACT_PRODUCED"
+  },
+  "unique_flip": {
+    "field": "S3_A2_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_OBSERVATION_CONTRACT_AUTHORIZED",
+    "before": false,
+    "after": true,
+    "companion_repository_presence_observation_implementation_authorized": false,
+    "companion_repository_presence_observation_implemented": false,
+    "this_family_unique_remaining_gap": "_no_incumbent_forecast_artifact_repository_presence_observation_contract",
+    "this_family_unique_remaining_gap_closed": true,
+    "parent_unique_remaining_gap": "_no_incumbent_forecast_artifact_repository_presence_observation_implementation",
+    "parent_unique_remaining_gap_closed": false
+  },
+  "evidence_json_sha256": "ffe62428872d7c82055d3dc24b59d9d780d07ebf0e70ae7867600529532ce4f6"
+}
