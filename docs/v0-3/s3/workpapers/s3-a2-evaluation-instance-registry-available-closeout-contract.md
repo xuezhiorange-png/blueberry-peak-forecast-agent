@@ -1,0 +1,52 @@
+# V0.3-S3-A2 Evaluation instance registry AVAILABLE closeout contract
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_EVALUATION_INSTANCE_REGISTRY_AVAILABLE_CLOSEOUT_CONTRACT
+ARTIFACT_VERSION=v0-3-s3-a2-evaluation-instance-registry-available-closeout-contract-v1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+BASE_MAIN_SHA=f29a5d455a3757b75993ba925e8b70f8265d4800
+BASE_MAIN_TREE_SHA=f670c9047cf12fb5ed2ab32a02cae01ebb90ceb4
+PARENT_BINDABLE_REPOSITORY_R1_PR=491
+PARENT_BINDABLE_REPOSITORY_R1_MERGE=f29a5d455a3757b75993ba925e8b70f8265d4800
+CONTRACT_PATH=docs/v0-3/s3/s3-evaluation-instance-registry-available-closeout-contract.md
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-evaluation-instance-registry-available-closeout-contract.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-evaluation-instance-registry-available-closeout-contract.json
+EVIDENCE_JSON_SHA256=1bc4360a1c96ae17676296d708633b326c0cea9d3b9b510d3cff347da5c91282
+~~~
+
+#491 is on main. Bindable-repository classification is `NOT_BINDABLE`. Frozen
+catalog production still records `no_bindable_catalog_in_repository` on success.
+Frozen binding still requires `AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP`. This
+workpaper records the contract freeze for a later registry AVAILABLE closeout
+classification — not the closeout itself.
+
+User declared weather and plans temporarily unavailable. This family does not invent
+them and does not claim peak tonnes or completeness PASS. Missing weather and plans
+must not block this non-curve AVAILABLE-closeout freeze.
+
+~~~text
+S3_A2_EVALUATION_INSTANCE_REGISTRY_AVAILABLE_CLOSEOUT_CONTRACT_AUTHORIZED=true
+S3_A2_EVALUATION_INSTANCE_REGISTRY_AVAILABLE_CLOSEOUT_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_EVALUATION_INSTANCE_REGISTRY_AVAILABLE_CLOSEOUT_IMPLEMENTED=false
+DETERMINISTIC_DEFAULT_CATALOG_BINDABLE_REPOSITORY_IMPLEMENTED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=ARTIFACT_PRODUCED
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+WEATHER_UNAVAILABLE=true
+PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_NEW_SQLALCHEMY_API_FAMILY=true
+~~~
