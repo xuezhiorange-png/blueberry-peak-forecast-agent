@@ -1,0 +1,61 @@
+# V0.3-S3-A2 Completeness PASS closeout contract
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_COMPLETENESS_PASS_CLOSEOUT_CONTRACT
+ARTIFACT_VERSION=v0-3-s3-a2-completeness-pass-closeout-contract-v1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+USER_GATE=可以继续
+CONTRACT_GATE_ACCEPTED_AS=可以下一步
+USER_UTTERANCE=可以继续
+CONTRACT_ONLY=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+BASE_MAIN_SHA=492a45a00da45c2399521aad3d7630b21c078546
+BASE_MAIN_TREE_SHA=929f8bcdfe38a1bc4b74ff7668a3fe43f92db37b
+PARENT_REVIEWED_SET_CLOSEOUT_R1_PR=497
+PARENT_REVIEWED_SET_CLOSEOUT_R1_MERGE=492a45a00da45c2399521aad3d7630b21c078546
+CONTRACT_PATH=docs/v0-3/s3/s3-completeness-pass-closeout-contract.md
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-completeness-pass-closeout-contract.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-completeness-pass-closeout-contract.json
+EVIDENCE_JSON_SHA256=d0f9f7dd7531950b1547a6d3f245f2605adb4ee6993b5bb8fde2268b1db201b0
+~~~
+
+#497 is on main. Reviewed-set closeout classification is
+`REVIEWED_SET_CLOSEOUT_PRECONDITIONS_NOT_MET`. AVAILABLE-closeout classification is
+`AVAILABLE_CLOSEOUT_PRECONDITIONS_NOT_MET`. Bindable-repository classification is
+`NOT_BINDABLE`. Three live-origin policy grains are not a coordinator-reviewed
+identity set. This workpaper records the contract freeze for a later completeness
+PASS closeout classification — not the closeout itself, and not completeness PASS.
+
+User declared weather and plans temporarily unavailable. Weather and plans **block
+completeness PASS**. This family does not invent them, does not invent identity-set
+members from SOURCE_002, and does not claim peak tonnes or flip
+`S3_A2_COMPLETENESS_PASS_AUTHORIZED`. Missing weather and plans must not block this
+docs-only non-curve closeout freeze.
+
+~~~text
+S3_A2_COMPLETENESS_PASS_CLOSEOUT_CONTRACT_AUTHORIZED=true
+S3_A2_COMPLETENESS_PASS_CLOSEOUT_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_COMPLETENESS_PASS_CLOSEOUT_IMPLEMENTED=false
+DETERMINISTIC_REVIEWED_GRAIN_IDENTITY_SET_CLOSEOUT_IMPLEMENTED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=ARTIFACT_PRODUCED
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+FORBIDDEN_TREAT_LIVE_ORIGIN_GRAINS_AS_REVIEWED_SET=true
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002=true
+WEATHER_UNAVAILABLE=true
+PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+WEATHER_AND_PLANS_BLOCK_COMPLETENESS_PASS=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_NEW_SQLALCHEMY_API_FAMILY=true
+~~~
