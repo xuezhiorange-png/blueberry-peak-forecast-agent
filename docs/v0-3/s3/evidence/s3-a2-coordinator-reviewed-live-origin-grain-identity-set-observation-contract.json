@@ -1,0 +1,112 @@
+{
+  "artifact_id": "V0_3_S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_CONTRACT",
+  "artifact_version": "v0-3-s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-contract-v1",
+  "task_id": "V03_S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_CONTRACT_ONLY",
+  "slice": "V0.3-S3",
+  "english_id": "COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION",
+  "user_gate": "可以继续",
+  "contract_gate_accepted_as": "可以下一步",
+  "user_utterance": "可以继续  天气和种植计划 放到下个版本",
+  "reviewer_role": "COORDINATOR",
+  "coordinator_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
+  "implementer_run": "bc-01a05131-6262-7c86-9895-dde762dda347",
+  "recorded_at": "2026-08-31T13:56:00Z",
+  "no_step_implies_the_next": true,
+  "contract_only": true,
+  "this_pr_is_not_a_grant": true,
+  "this_pr_is_not_r1": true,
+  "this_draft_is_not_ready": true,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "base_main_sha": "1a788e614e58989ed6b777c2c0a4392931dab4fa",
+  "base_main_tree_sha": "a80be7c7a746f151808d998699d29b8d610e5c97",
+  "parent_identity_set_r1": {
+    "parent_identity_set_r1_pr": 503,
+    "parent_identity_set_r1_commit": "2a678dcaf02a766c8eb3158090d1e411d77d620b",
+    "parent_identity_set_r1_merge": "1a788e614e58989ed6b777c2c0a4392931dab4fa",
+    "parent_identity_set_r1_evidence_json_sha256": "ac5fe6cd2ca3e108bf46d3c7bb7572f50407ae3f641c1936fc846314d6001df3",
+    "deterministic_coordinator_reviewed_live_origin_grain_identity_set_implemented": true,
+    "no_reviewed_grain_identity_set_in_repository": false
+  },
+  "parent_identity_set_grant": {
+    "parent_identity_set_grant_pr": 502,
+    "parent_identity_set_grant_commit": "71c2186b6cfeb1cf844c739ba7a24494521ffe42",
+    "parent_identity_set_grant_merge": "eb239e0dfd3cb123742ad163157815fe123ef099",
+    "parent_identity_set_grant_evidence_json_sha256": "c6562788955093db383036dbf2f784888969c5e593d195e68f21a68cee868f93",
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_implementation_authorized": true
+  },
+  "parent_identity_set_contract": {
+    "parent_identity_set_contract_pr": 500,
+    "parent_identity_set_contract_commit": "7b0fad18d8daa52dc912883b2dc8e2bb50185d48",
+    "parent_identity_set_contract_merge": "7b32e0a97d2428c9621de312d24d6fc3be8a93fa",
+    "parent_identity_set_contract_evidence_json_sha256": "df08ff6b70c079c3bc36f9841ecb8c9cb3eaeed7fdf4064990f8354994126dc2",
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract_authorized": true
+  },
+  "s2_binding": {
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_remains_sealed": true,
+    "source_002_row_level_read": true,
+    "forbidden_derive_members_from_source_002": true,
+    "harvest_business_date_is_not_forecast_cutoff": true
+  },
+  "weather_and_plans": {
+    "weather_unavailable": true,
+    "plans_unavailable": true,
+    "forbidden_invent_weather": true,
+    "forbidden_invent_plans": true,
+    "forbidden_invent_tonnes": true,
+    "weather_and_plans_deferred_to_next_version": true,
+    "weather_and_plans_do_not_block_non_curve_implementation": true,
+    "weather_and_plans_block_completeness_pass": true,
+    "s3_a2_completeness_pass_authorized": false
+  },
+  "reviewed_artifact": {
+    "review_member_count": 3,
+    "review_cutoff_business_date": "2026-02-16",
+    "review_cutoff_at": "2026-02-16T00:00:00+08:00",
+    "review_model_id": "V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF",
+    "review_quantiles": [
+      "P50",
+      "P80",
+      "P90"
+    ],
+    "identity_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3",
+    "coordinator_reviewed_candidate_is_live_origin_policy_grains": true,
+    "later_r1_may_observe_the_already_landed_three_grain_artifact": true,
+    "later_r1_must_not_auto_wire_at_import": true,
+    "later_r1_must_not_rewrite_frozen_closeout_bytes": true,
+    "forbidden_invent_additional_members": true
+  },
+  "authorization": {
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract_authorized": true,
+    "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_implementation_authorized": false,
+    "deterministic_coordinator_reviewed_live_origin_grain_identity_set_observation_implemented": false,
+    "deterministic_coordinator_reviewed_live_origin_grain_identity_set_implemented": true,
+    "s3_a2_completeness_pass_authorized": false,
+    "no_reviewed_grain_identity_set_in_repository": false,
+    "default_global_reviewed_set_loader_remains_empty": true,
+    "frozen_reviewed_set_closeout_still_reports_no_reviewed": true,
+    "frozen_completeness_pass_closeout_still_unauthorized": true,
+    "no_bindable_catalog_in_repository": true,
+    "evaluation_instance_registry_available": false,
+    "current_s3_daily_rowset_completeness_verified": false
+  },
+  "unique_flip": {
+    "field": "S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_CONTRACT_AUTHORIZED",
+    "before": false,
+    "after": true,
+    "companion_observation_implementation_authorized": false,
+    "companion_observation_implemented": false,
+    "this_family_unique_remaining_gap": "_no_coordinator_reviewed_live_origin_grain_identity_set_observation_contract",
+    "this_family_unique_remaining_gap_closed": true,
+    "parent_unique_remaining_gap": "_no_coordinator_reviewed_live_origin_grain_identity_set_observation_implementation",
+    "parent_unique_remaining_gap_closed": false
+  },
+  "evidence_json_sha256": "a063ff025af7dcc61ed8bcc9ec37e0273df6f2c3c3ed38285a02ef7916a5d777"
+}
