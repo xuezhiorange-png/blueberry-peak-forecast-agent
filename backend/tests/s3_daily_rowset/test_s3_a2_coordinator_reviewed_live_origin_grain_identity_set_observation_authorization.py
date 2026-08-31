@@ -363,9 +363,25 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
         live_intro
     )
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in live_intro
+    grant_pointer = plan.split(
+        "#### Coordinator-reviewed live-origin grain identity-set observation "
+        "implementation authorization pointer",
+        1,
+    )[1]
+    if "#### Coordinator-reviewed live-origin grain identity-set observation R1 pointer" in (
+        grant_pointer
+    ):
+        grant_pointer = grant_pointer.split(
+            "#### Coordinator-reviewed live-origin grain identity-set observation R1 pointer",
+            1,
+        )[0]
     assert (
         "DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED=true"
-        not in live_intro
+        not in grant_pointer
+    )
+    assert (
+        "DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED=false"
+        in grant_pointer
     )
     assert (
         "s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-authorization.md"
@@ -413,9 +429,17 @@ def test_grant_package_is_docs_only() -> None:
     payload = json.loads(GRANT_EVIDENCE.read_text(encoding="utf-8"))
     assert payload["grant_only"] is True
     assert payload["this_pr_is_not_r1"] is True
-    assert not PRODUCTION_MODULE.exists()
+    assert (
+        payload["flags"][
+            "DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED"
+        ]
+        is False
+    )
     assert LANDING_MODULE.is_file()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
+    assert PRODUCTION_MODULE.name == (
+        "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation.py"
+    )
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
