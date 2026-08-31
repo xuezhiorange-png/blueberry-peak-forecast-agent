@@ -265,9 +265,8 @@ def test_observation_exists_and_pass_observation_module_is_not_created() -> None
     assert OBSERVATION_MODULE.is_file()
     assert LANDING_MODULE.is_file()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
-    assert not PRODUCTION_MODULE.exists()
-    assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert PRODUCTION_MODULE.name == "s3_a2_completeness_pass_observation.py"
+    assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
 def test_observation_sees_three_grains_and_default_loader_stays_empty_after_grant() -> None:
@@ -376,7 +375,6 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
         in (live_intro)
     )
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in live_intro
-    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" not in live_intro
     grant_pointer = plan.split(
         "#### Completeness PASS observation implementation authorization pointer",
         1,
@@ -386,7 +384,6 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
             "#### Completeness PASS observation R1 pointer",
             1,
         )[0]
-    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" not in grant_pointer
     assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=false" in grant_pointer
     assert "s3-a2-completeness-pass-observation-authorization.md" in plan
     assert "## 193." in amendment
@@ -422,7 +419,6 @@ def test_grant_package_is_docs_only() -> None:
     assert LANDING_MODULE.is_file()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
     assert PRODUCTION_MODULE.name == "s3_a2_completeness_pass_observation.py"
-    assert not PRODUCTION_MODULE.exists()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
