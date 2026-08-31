@@ -313,9 +313,9 @@ def test_amendment_records_reviewed_set_closeout_contract_pointer() -> None:
         assert token.lower() not in lowered
 
 
-def test_no_reviewed_set_closeout_production_module() -> None:
-    assert not PRODUCTION_MODULE.exists()
+def test_no_reviewed_set_closeout_production_init_py() -> None:
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
         "backend/app/s3_daily_rowset/s3_a2_evaluation_instance_registry_available_closeout.py"
     ).is_file()
+    assert PRODUCTION_MODULE.is_file()
