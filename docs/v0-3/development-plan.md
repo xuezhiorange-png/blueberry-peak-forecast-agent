@@ -654,6 +654,11 @@ S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTATION_AUTHORIZED=true
 DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED=true
 WEATHER_UNAVAILABLE=true
 PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
 ```
 
 The future S3 acceptance gates are prerequisites, not current completion
@@ -15094,7 +15099,7 @@ Live `S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTATION_AUTHORIZED` is mai
 ```text
 S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-origin-obtain-r1.md
 S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-default-catalog-live-origin-obtain-r1.json
-EVIDENCE_JSON_SHA256=c336a3a8e956f1870fb321531c159ea8f015060582150c6e3240d925b3189284
+EVIDENCE_JSON_SHA256=46875227cc687708602dea79fc6c5a85db1a09d115acc80e4f48efc1655b3e8f
 PARENT_GRANT_PR=484
 PARENT_GRANT_MERGE=632d0692375d6f15d7892990a1733cfaf9e08a49
 PARENT_GRANT_EVIDENCE_JSON_SHA256=2e7c66ad27f5d1d0d95857913a0ce76101a9e5dc09da94c2fc2d6b98122dfd53
@@ -15110,13 +15115,17 @@ DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED=true
 DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 WEATHER_UNAVAILABLE=true
 PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
 FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
 CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
 NO_NEW_SQLALCHEMY_API_FAMILY=true
 LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ```
 
-Live `DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED` is maintained in this §4.4 live state block and the R1 package above. Grant merge is #484. Obtain reads already-landed replay-identity grains and bound SOURCE_002 TRAIN/VAL actuals, then injects ports. Bare default catalog construction remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Weather and plans are unavailable. Completeness stays blocked.
+Live `DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED` is maintained in this §4.4 live state block and the R1 package above. Grant merge is #484. Obtain reads already-landed replay-identity grains and bound SOURCE_002 TRAIN/VAL actuals, then injects ports. Bare default catalog construction remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Weather and plans are unavailable and must not be invented; they do not block this obtain implementation. Completeness PASS stays unauthorized.
 
 ### 4.5 V0.3 metric contract and threshold boundary
 

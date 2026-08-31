@@ -220,6 +220,10 @@ def test_parent_grant_pins_remain() -> None:
     assert r1["flags"]["CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED"] is False
     assert r1["flags"]["WEATHER_UNAVAILABLE"] is True
     assert r1["flags"]["PLANS_UNAVAILABLE"] is True
+    assert r1["flags"]["FORBIDDEN_INVENT_WEATHER"] is True
+    assert r1["flags"]["FORBIDDEN_INVENT_PLANS"] is True
+    assert r1["flags"]["WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION"] is True
+    assert r1["flags"]["S3_A2_COMPLETENESS_PASS_AUTHORIZED"] is False
     assert r1["flags"]["NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY"] is True
     assert GRANT_WORKPAPER.is_file()
     assert R1_WORKPAPER.is_file()
@@ -244,6 +248,8 @@ def test_r1_pointers_are_appended_not_rewritten() -> None:
     assert "## 170." in amendment
     assert "## 169." in amendment
     assert UNIQUE_FLIP + "=true" in amendment
+    assert "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true" in plan
+    assert "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true" in amendment
 
 
 def test_official_live_default_catalog_obtain_fail_closed_or_produced() -> None:
