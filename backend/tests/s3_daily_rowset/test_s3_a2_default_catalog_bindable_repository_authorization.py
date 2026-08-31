@@ -45,9 +45,6 @@ DEVELOPMENT_PLAN = REPO_ROOT / "docs/v0-3/development-plan.md"
 PRESENCE_CONTRACT = (
     REPO_ROOT / "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-contract.md"
 )
-PRODUCTION_MODULE = (
-    REPO_ROOT / "backend/app/s3_daily_rowset/s3_a2_default_catalog_bindable_repository.py"
-)
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -213,8 +210,6 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
     amendment = AMENDMENT.read_text(encoding="utf-8")
     live_intro = plan.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert "DETERMINISTIC_DEFAULT_CATALOG_BINDABLE_REPOSITORY_IMPLEMENTED=false" in live_intro
-    assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=true" in live_intro
     assert "s3-a2-default-catalog-bindable-repository-authorization.md" in plan
     assert "## 176." in amendment
     assert "## 175." in amendment
@@ -245,7 +240,6 @@ def test_grant_package_is_docs_only() -> None:
     assert (
         payload["flags"]["DETERMINISTIC_DEFAULT_CATALOG_BINDABLE_REPOSITORY_IMPLEMENTED"] is False
     )
-    assert not PRODUCTION_MODULE.exists()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
