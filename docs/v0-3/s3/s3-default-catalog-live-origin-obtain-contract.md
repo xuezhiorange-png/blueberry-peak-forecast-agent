@@ -1,0 +1,189 @@
+# V0.3-S3-A2 Default catalog live-origin obtain contract
+
+## Contract identity and phase boundary
+
+~~~text
+CONTRACT_ID=V0_3_S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT
+CONTRACT_VERSION=v0-3-s3-a2-default-catalog-live-origin-obtain-contract-v1
+TASK_ID=V03_S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_R1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+AUTHORIZATION_SCOPE=S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_ONLY
+SLICE=V0.3-S3
+ENGLISH_ID=DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN
+USER_GATE=可以下一步
+CONTRACT_ONLY=true
+BASE_MAIN_SHA=3fd69ccc292848e13f091bf731fc9241eb6bd4ec
+BASE_MAIN_TREE_SHA=9c4128d590f146223f414c7060578e0130deafdd
+BASE_REF=origin/main
+PARENT_LIVE_CATALOG_ORIGIN_PR=482
+PARENT_LIVE_CATALOG_ORIGIN_MERGE=3fd69ccc292848e13f091bf731fc9241eb6bd4ec
+PARENT_LIVE_CATALOG_ORIGIN_EVIDENCE_JSON_SHA256=36a64657db1e437e90999d0d9446368942faf9c07e68da52f2890ba297e1fcea
+PARENT_PRESENCE_CONTRACT_PATH=docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-contract.md
+PARENT_PRESENCE_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=899aeafbbe9737703aaade44e07953df22e642c1
+REVIEWER_ROLE=COORDINATOR
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+NO_STEP_IMPLIES_THE_NEXT=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+~~~
+
+~~~text
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_AUTHORIZED=true
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED=false
+LIVE_CATALOG_ORIGIN_EXECUTED=true
+LIVE_CATALOG_INJECTED_PORTS_REASON_CODE=ARTIFACT_PRODUCED
+LIVE_POLICY_ORIGIN_GRAIN_COUNT=3
+REPLAY_IDENTITY_TABLE_ROW_COUNT=3
+DEFAULT_HARVEST_OBTAIN_EMPTY=true
+DEFAULT_SESSION_PROVIDER_LEFT_UNSET=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_LIVE_S2_IDENTITY_ALIGNMENT_ADAPTER_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+SOURCE_002_ROW_LEVEL_READ=true
+LIVE_ACCEPTED_S2_TRAIN_VAL_ACTUALS_SOURCE_BOUND=true
+TEST_REMAINS_SEALED=true
+WEATHER_UNAVAILABLE=true
+PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_MATURITY=true
+FORBIDDEN_INVENT_RESIDUAL=true
+FORBIDDEN_INVENT_TONNES=true
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002=true
+HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF=true
+NO_NEW_SQLALCHEMY_API_FAMILY=true
+S3_PRODUCTION_CODE_MUTATION_AUTHORIZED=false
+S3_TEST_CODE_MUTATION_AUTHORIZED=false
+S3_B_COVERAGE_EXECUTION_AUTHORIZED=false
+DO_NOT_INVENT_HASHES_OR_TONNES=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+#482 merged to main. Injected-port catalog production is `ARTIFACT_PRODUCED`. Default
+`EvaluationInstanceCatalogArtifactProductionService` construction still returns
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT` because default forecast obtain is empty and
+default harvest obtain is empty. This contract freezes **what a later default catalog
+live-origin obtain R1 may do** — not doing it today.
+
+This is not a grant, not R1, not completeness PASS, not peak tonnes, not weather or plan
+fabrication, and not a rewrite of frozen `catalog_artifact.py`.
+
+User declared weather and plans temporarily unavailable. Later obtain R1 still must not
+invent weather, plans, maturity, residual, or tonnes. Completeness stays blocked.
+
+~~~text
+CONTRACT_MERGE_DOES_NOT_ISSUE_IMPLEMENTATION_GRANT=true
+CONTRACT_MERGE_DOES_NOT_IMPLEMENT_DEFAULT_OBTAIN=true
+CONTRACT_MERGE_DOES_NOT_CHANGE_DEFAULT_OBTAIN_FROM_EMPTY=true
+CONTRACT_MERGE_DOES_NOT_WIRE_SESSION_INTO_FROZEN_CATALOG_ARTIFACT=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_VERSIONED=true
+CONTRACT_MERGE_DOES_NOT_FLIP_NO_REVIEWED=true
+CONTRACT_MERGE_DOES_NOT_FLIP_COMPLETENESS_VERIFIED=true
+CONTRACT_MERGE_DOES_NOT_INVENT_TONNES=true
+CONTRACT_MERGE_DOES_NOT_INVENT_WEATHER=true
+CONTRACT_MERGE_DOES_NOT_INVENT_PLANS=true
+CONTRACT_MERGE_DOES_NOT_ADD_ALEMBIC=true
+CONTRACT_MERGE_DOES_NOT_ADD_NEW_SQLALCHEMY_API_FAMILY=true
+FORBIDDEN_REWRITE_ALIGNMENT_CONTRACT_SECTION_6=true
+FORBIDDEN_TOUCH_TEST_CATALOG_ARTIFACT_PY=true
+FORBIDDEN_H7_FIXTURE_AS_LIVE_EVIDENCE_OR_CONTENT_IDENTITY=true
+IMPLEMENTATION_REQUIRES_SEPARATE_USER_GATE_可以实施=true
+PRODUCTION_IMPLEMENTATION_NOT_AUTHORIZED_BY_THIS_CONTRACT=true
+~~~
+
+## 1. Inherited authority (not reopened)
+
+~~~text
+PARENT_LIVE_CATALOG_ORIGIN_MERGE=3fd69ccc292848e13f091bf731fc9241eb6bd4ec
+PARENT_LIVE_CATALOG_ORIGIN_EVIDENCE_JSON_SHA256=36a64657db1e437e90999d0d9446368942faf9c07e68da52f2890ba297e1fcea
+PARENT_PRESENCE_CONTRACT_GIT_BLOB_SHA_AT_FREEZE=899aeafbbe9737703aaade44e07953df22e642c1
+PRESENCE_R1_EVIDENCE_JSON_SHA256=4422928e91f49807bf9fa4d6678bde06efcf2cc38a134611424aad9888243782
+LIVE_ACTUALS_EVIDENCE_JSON_SHA256=06ba994644be39db28498a5b26df04cd7425ca641272f242071732939913480b
+ALIGNMENT_SECTION_6_SHA256=2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+GRAIN_IDENTITY_SET_PY_BLOB=eed2ecbcacc2a8173003cba55853a6ef5b5f89c5
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=0cc05fff3deff00d279070aa246f241ff3754e89
+ALEMBIC_E8B2C4D6F1A3_BLOB=1e0864ebef1d947d4c9466d71efaa759d44c7ad7
+DATASET_ID=source-002
+DATASET_VERSION=e5-live-v1
+MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+VALIDATION_ROW_COUNT=8006
+TEST_REMAINS_SEALED=true
+~~~
+
+#482 live origin, presence contract/R1, live actuals bind, alignment §6, and frozen Python
+blobs remain authoritative. Harvest business date is not forecast cutoff. Policy origin
+grains are not SOURCE_002 harvest grains.
+
+## 2. Unique remaining gap
+
+Injected-port catalog is produced. Default catalog construction is not. Default harvest
+obtain remains empty. Default session provider remains unset. Completeness remains
+blocked because forecast daily curve at cutoff requires weather and plans, which the
+user declared unavailable.
+
+This contract's unique remaining gap is `_no_default_catalog_live_origin_obtain_contract`.
+This freeze closes that process gap only. Implementation remains unauthorized.
+
+Parent unique remaining gap after this freeze:
+`_no_default_catalog_live_origin_obtain_implementation`.
+
+Peak-tonne / completeness PASS is **out of scope** until weather and plans exist.
+
+## 3. What a later grant and R1 may do
+
+A later grant (user 「授权」) plus R1 (user 「可以实施」) may:
+
+1. Obtain forecast identity grains from the already-landed replay-identity origin using
+   the existing postgres read and the existing `#476` `run_sync` family only.
+2. Obtain S2 TRAIN/VALIDATION alignment from the already-bound SOURCE_002 actuals using
+   the existing live actuals bind. Cutoffs must not be derived from harvest dates.
+3. Inject those ports into catalog production **without rewriting** frozen
+   `catalog_artifact.py`.
+4. Keep TEST sealed. Keep default empty obtain until that R1 actually lands.
+
+A later R1 may not:
+
+- invent weather, plans, maturity, residual, or tonnes
+- add a new SQLAlchemy API family
+- unseal TEST
+- flip completeness verified
+- treat templates as live weather or plans
+- mutate frozen blobs listed in §1
+
+## 4. Frozen blobs this contract must not touch
+
+~~~text
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+GRAIN_IDENTITY_SET_PY_BLOB=eed2ecbcacc2a8173003cba55853a6ef5b5f89c5
+INCUMBENT_FORECAST_ARTIFACT_CONTENT_PY_BLOB=0cc05fff3deff00d279070aa246f241ff3754e89
+ALEMBIC_E8B2C4D6F1A3_BLOB=1e0864ebef1d947d4c9466d71efaa759d44c7ad7
+ALIGNMENT_SECTION_6_SHA256=2eaf3719b1cb2e7097c6ded457098a0563b46c0965eabf38d60327b1a6b2a7a8
+~~~
+
+## 5. Unique flip
+
+~~~text
+UNIQUE_FLIP_FIELD=S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_AUTHORIZED
+UNIQUE_FLIP_BEFORE=false
+UNIQUE_FLIP_AFTER=true
+COMPANION_IMPLEMENTATION_AUTHORIZED=false
+COMPANION_IMPLEMENTED=false
+COMPANION_NO_VERSIONED=true
+COMPANION_COMPLETENESS_VERIFIED=false
+THIS_FAMILY_UNIQUE_REMAINING_GAP=_no_default_catalog_live_origin_obtain_contract
+THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true
+PARENT_UNIQUE_REMAINING_GAP=_no_default_catalog_live_origin_obtain_implementation
+PARENT_UNIQUE_REMAINING_GAP_CLOSED=false
+~~~
