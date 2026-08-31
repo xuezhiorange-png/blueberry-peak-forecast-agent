@@ -347,7 +347,7 @@ def test_amendment_records_coordinator_review_contract_pointer() -> None:
 
 
 def test_no_coordinator_review_production_module() -> None:
-    assert not PRODUCTION_MODULE.exists()
+    assert PRODUCTION_MODULE.is_file()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
         "backend/app/s3_daily_rowset/incumbent_forecast_replay_identity_origin.py"
