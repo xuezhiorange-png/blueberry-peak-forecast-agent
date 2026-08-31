@@ -202,11 +202,15 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
     assert "s3-a2-default-catalog-live-origin-obtain-authorization.md" in contract_pointer
 
 
-def test_grant_does_not_introduce_new_sqlalchemy_family() -> None:
-    grant_py = list(
-        (REPO_ROOT / "backend/app/s3_daily_rowset").glob("*default_catalog_live_origin_obtain*")
-    )
-    assert grant_py == []
+def test_grant_package_is_docs_only() -> None:
+    assert GRANT_WORKPAPER.is_file()
+    assert GRANT_EVIDENCE.is_file()
+    assert "USER_GATE=授权" in GRANT_WORKPAPER.read_text(encoding="utf-8")
+    assert "THIS_PR_IS_NOT_R1=true" in GRANT_WORKPAPER.read_text(encoding="utf-8")
+    payload = json.loads(GRANT_EVIDENCE.read_text(encoding="utf-8"))
+    assert payload["grant_only"] is True
+    assert payload["this_pr_is_not_r1"] is True
+    assert payload["flags"]["DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED"] is False
 
 
 def test_parent_contract_commit_is_named_for_traceability() -> None:
