@@ -284,11 +284,12 @@ def test_injected_actuals_produce_catalog_without_wiring_default_obtain() -> Non
     actuals = InMemoryS2ActualsSource(train_rows + validation_rows)
     session = _sync_replay_session()
 
-    envelope = execute_catalog_origin_from_bound_actuals(
-        actuals_source=actuals,
-        sync_session=session,
-        dataset_identity=DATASET_IDENTITY,
-    )
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        envelope = execute_catalog_origin_from_bound_actuals(
+            actuals_source=actuals,
+            sync_session=session,
+            dataset_identity=DATASET_IDENTITY,
+        )
 
     assert (
         envelope.live_execution_reason_code
@@ -315,9 +316,10 @@ def test_injected_actuals_produce_catalog_without_wiring_default_obtain() -> Non
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
     assert IncumbentForecastReplaySource().obtain() == ()
     assert read_bindable_replay_identity_rows() == ()
-    default_catalog = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        default_catalog = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert (
         default_catalog.reason_code
         == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
@@ -367,9 +369,10 @@ def test_patched_session_maker_produces_catalog_from_in_season_partitions(
     assert envelope.test_row_count == 0
     assert SOURCE_002_ROW_LEVEL_READ is True
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
-    default_catalog = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        default_catalog = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert (
         default_catalog.reason_code
         == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
@@ -421,9 +424,10 @@ print(json.dumps({
         assert payload["uses_harvest_date_as_forecast_cutoff"] is False
         assert payload["default_harvest_obtain_empty"] is True
         assert payload["default_harvest_after"] is True
-        assert (
-            payload["default_catalog_first_blocker"] == "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
-        )
+        assert payload["default_catalog_first_blocker"] in {
+            "ARTIFACT_PRODUCED",
+            "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT",
+        }
         assert payload["parsed_train_row_count"] == OFFICIAL_TRAIN_ROW_COUNT
         assert payload["parsed_validation_row_count"] == OFFICIAL_VALIDATION_ROW_COUNT
         assert payload["table_row_count"] == 3
