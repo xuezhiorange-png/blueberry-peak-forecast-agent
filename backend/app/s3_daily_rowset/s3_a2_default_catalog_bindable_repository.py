@@ -62,6 +62,12 @@ class DefaultCatalogBindableRepositoryClassifier:
             ).produce()
         finally:
             clear_v0_2_live_postgres_session_provider()
+            from backend.app.s3_daily_rowset import (
+                s3_a2_default_catalog_live_origin_construction as construction,
+            )
+
+            construction._cached_maker_id = construction._CACHE_MISS
+            construction._cached_bundle = None
 
         binding = produced.binding_result
         catalog_produced = produced.reason_code is CatalogArtifactReasonCode.ARTIFACT_PRODUCED
