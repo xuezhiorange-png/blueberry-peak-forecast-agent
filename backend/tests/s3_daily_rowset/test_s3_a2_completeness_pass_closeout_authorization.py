@@ -128,9 +128,7 @@ def test_parent_contract_blobs_and_evidence_remain() -> None:
     parent = json.loads(CONTRACT_EVIDENCE.read_text(encoding="utf-8"))
     assert parent["evidence_json_sha256"] == PARENT_CONTRACT_EVIDENCE_JSON_SHA256
     assert parent["authorization"]["s3_a2_completeness_pass_closeout_contract_authorized"]
-    assert not parent["authorization"][
-        "s3_a2_completeness_pass_closeout_implementation_authorized"
-    ]
+    assert not parent["authorization"]["s3_a2_completeness_pass_closeout_implementation_authorized"]
     assert not parent["authorization"]["deterministic_completeness_pass_closeout_implemented"]
     assert parent["authorization"]["s3_a2_completeness_pass_authorized"] is False
 
@@ -286,9 +284,7 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
     assert UNIQUE_FLIP + "=true" in grant_snapshot
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in grant_snapshot
     contract_snapshot = amendment.split("## 184.", 1)[1].split("## 185.", 1)[0]
-    assert "S3_A2_COMPLETENESS_PASS_CLOSEOUT_IMPLEMENTATION_AUTHORIZED=false" in (
-        contract_snapshot
-    )
+    assert "S3_A2_COMPLETENESS_PASS_CLOSEOUT_IMPLEMENTATION_AUTHORIZED=false" in (contract_snapshot)
     contract_pointer = plan.split("### 4.5", maxsplit=1)[0]
     assert "s3-a2-completeness-pass-closeout-authorization.md" in contract_pointer
     payload = json.loads(GRANT_EVIDENCE.read_text(encoding="utf-8"))
