@@ -15154,3 +15154,35 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 
 Live injected-port catalog production ran against bound SOURCE_002 TRAIN/VAL actuals under user gate 「那你搞啊」. Policy origin lands 3 replay-identity grains. Default harvest obtain remains empty; default catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Completeness stays blocked. No tonnes invented. Historical pointer snapshots may remain `LIVE_CATALOG_ORIGIN_EXECUTED` unset.
 
+## 169. Default catalog live-origin obtain contract pointer
+
+~~~
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_PATH=docs/v0-3/s3/s3-default-catalog-live-origin-obtain-contract.md
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-origin-obtain-contract.md
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-default-catalog-live-origin-obtain-contract.json
+EVIDENCE_JSON_SHA256=f3f13966dafe41cf13f840eb36aa22ad1910f1b0270508a06d105143ba61b6ae
+PARENT_LIVE_CATALOG_ORIGIN_PR=482
+PARENT_LIVE_CATALOG_ORIGIN_MERGE=3fd69ccc292848e13f091bf731fc9241eb6bd4ec
+PARENT_LIVE_CATALOG_ORIGIN_EVIDENCE_JSON_SHA256=36a64657db1e437e90999d0d9446368942faf9c07e68da52f2890ba297e1fcea
+USER_GATE=可以下一步
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+TEST_CATALOG_ARTIFACT_PY_BLOB=af59a9f1d291ab32eff23684aca477f0e4a852cd
+CATALOG_ARTIFACT_PY_BLOB=8196cb7dca33df8708f78789bd2eb9e8243b8354
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_AUTHORIZED=true
+S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED=false
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+WEATHER_UNAVAILABLE=true
+PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_NEW_SQLALCHEMY_API_FAMILY=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+~~~
+
+#482 is on main. Injected-port catalog is produced; default catalog construction remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Weather and plans are unavailable. This contract freeze does not implement default obtain, does not invent tonnes, and does not flip completeness. Historical pointer snapshots may remain `DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_CONTRACT_AUTHORIZED=false`.
+
