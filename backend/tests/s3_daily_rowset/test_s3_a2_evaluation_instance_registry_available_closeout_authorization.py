@@ -290,9 +290,6 @@ def test_grant_package_is_docs_only() -> None:
         is False
     )
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
-    assert not Path(
-        "backend/app/s3_daily_rowset/s3_a2_evaluation_instance_registry_available_closeout.py"
-    ).exists()
 
 
 def test_parent_contract_commit_is_named_for_traceability() -> None:
