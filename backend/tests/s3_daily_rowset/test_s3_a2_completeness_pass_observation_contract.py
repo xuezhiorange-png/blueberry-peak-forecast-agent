@@ -233,9 +233,12 @@ def test_observation_exists_and_pass_observation_module_is_not_created() -> None
     assert OBSERVATION_MODULE.is_file()
     assert LANDING_MODULE.is_file()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
-    assert not PRODUCTION_MODULE.exists()
-    assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert PRODUCTION_MODULE.name == "s3_a2_completeness_pass_observation.py"
+    contract = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "THIS_PR_IS_NOT_R1=true" in contract
+    assert "CONTRACT_MERGE_DOES_NOT_IMPLEMENT_COMPLETENESS_PASS_OBSERVATION=true" in contract
+    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=false" in contract
+    assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
 def test_observation_sees_three_grains_and_default_loader_stays_empty() -> None:
@@ -406,7 +409,6 @@ def test_development_plan_live_compact_flips_only_this_contract() -> None:
     )
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in live_intro
-    assert "DETERMINISTIC_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTED=true" not in live_intro
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
     assert "S3_A2_COMPLETENESS_PASS_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false" in contract
     pointer = text.split("### 4.5", maxsplit=1)[0]
