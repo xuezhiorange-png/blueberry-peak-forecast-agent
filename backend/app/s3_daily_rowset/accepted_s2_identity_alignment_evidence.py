@@ -37,6 +37,16 @@ def _default_harvest_source() -> S2IdentityAlignmentHarvestSource:
     return S2IdentityAlignmentHarvestSource()
 
 
+def _try_live_origin_construction_harvest_rows() -> tuple[MaterializableRow, ...]:
+    try:
+        from backend.app.s3_daily_rowset.s3_a2_default_catalog_live_origin_construction import (
+            live_origin_harvest_rows_for_default_construction,
+        )
+    except ImportError:
+        return ()
+    return live_origin_harvest_rows_for_default_construction()
+
+
 ACCEPTED_S2_IDENTITY_ALIGNMENT_EVIDENCE_IDENTITY_VERSION = (
     "v0-3-s3-a2-accepted-s2-identity-alignment-evidence-identity-v1"
 )
@@ -182,6 +192,8 @@ class AcceptedS2IdentityAlignmentEvidenceProducer:
         source_rows = self.harvest_rows
         if not source_rows:
             source_rows = self.harvest_source.obtain()
+        if not source_rows:
+            source_rows = _try_live_origin_construction_harvest_rows()
         if not source_rows:
             return None
 

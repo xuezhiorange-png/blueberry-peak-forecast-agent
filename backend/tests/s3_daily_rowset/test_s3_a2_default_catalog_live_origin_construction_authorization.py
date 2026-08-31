@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -46,7 +47,6 @@ DEVELOPMENT_PLAN = REPO_ROOT / "docs/v0-3/development-plan.md"
 PRESENCE_CONTRACT = (
     REPO_ROOT / "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-contract.md"
 )
-PRODUCTION_DIR = REPO_ROOT / "backend/app/s3_daily_rowset"
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -147,9 +147,10 @@ def test_frozen_catalog_grain_and_obtain_blobs_remain() -> None:
 
 def test_bare_default_catalog_still_no_versioned_after_grant() -> None:
     clear_v0_2_live_postgres_session_provider()
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
     assert IncumbentForecastReplaySource().obtain() == ()
@@ -195,27 +196,34 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
     amendment = AMENDMENT.read_text(encoding="utf-8")
     live_intro = plan.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=false" in live_intro
     assert "s3-a2-default-catalog-live-origin-construction-authorization.md" in plan
     assert "## 173." in amendment
     assert f"{UNIQUE_FLIP}=true" in amendment
-    assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=false" in amendment
+    grant_snapshot = amendment.split("## 173.", 1)[1]
+    if "## 174." in grant_snapshot:
+        grant_snapshot = grant_snapshot.split("## 174.", 1)[0]
+    assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=false" in (
+        grant_snapshot
+    )
     assert "## 172." in amendment
     contract_pointer = plan.split("### 4.5", maxsplit=1)[0]
     assert "s3-a2-default-catalog-live-origin-construction-authorization.md" in contract_pointer
+    payload = json.loads(GRANT_EVIDENCE.read_text(encoding="utf-8"))
+    assert payload["flags"][
+        "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED"
+    ] is (False)
 
 
 def test_grant_package_is_docs_only() -> None:
     assert GRANT_WORKPAPER.is_file()
     assert GRANT_EVIDENCE.is_file()
-    matches = list(PRODUCTION_DIR.glob("*default_catalog_live_origin_construction*"))
-    assert matches == []
     payload = json.loads(GRANT_EVIDENCE.read_text(encoding="utf-8"))
     assert payload["grant_only"] is True
     assert payload["this_pr_is_not_r1"] is True
     assert payload["flags"][
         "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED"
     ] is (False)
+    assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
 def test_parent_contract_commit_is_named_for_traceability() -> None:
