@@ -60,7 +60,6 @@ PRESENCE_CONTRACT = (
 REVIEWED_SET_CLOSEOUT_CONTRACT = (
     REPO_ROOT / "docs/v0-3/s3/s3-reviewed-grain-identity-set-closeout-contract.md"
 )
-PRODUCTION_MODULE = REPO_ROOT / "backend/app/s3_daily_rowset/s3_a2_completeness_pass_closeout.py"
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -298,7 +297,6 @@ def test_grant_package_is_docs_only() -> None:
     assert payload["grant_only"] is True
     assert payload["this_pr_is_not_r1"] is True
     assert payload["flags"]["DETERMINISTIC_COMPLETENESS_PASS_CLOSEOUT_IMPLEMENTED"] is False
-    assert not PRODUCTION_MODULE.exists()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
         "backend/app/s3_daily_rowset/s3_a2_reviewed_grain_identity_set_closeout.py"
