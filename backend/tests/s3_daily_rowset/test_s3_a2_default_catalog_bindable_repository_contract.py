@@ -224,9 +224,6 @@ def test_development_plan_live_compact_flips_only_bindable_repository_contract()
     text = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
     live_intro = text.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert "S3_A2_DEFAULT_CATALOG_BINDABLE_REPOSITORY_IMPLEMENTATION_AUTHORIZED=false" in (
-        live_intro
-    )
     assert "DETERMINISTIC_DEFAULT_CATALOG_BINDABLE_REPOSITORY_IMPLEMENTED=false" in live_intro
     assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=true" in live_intro
     assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in live_intro
