@@ -641,6 +641,14 @@ CURRENT_S3_DAILY_ROWSET_REASON_CODE=COMPLETE_DAILY_ROW_SET_NOT_AVAILABLE_FROM_S2
 CURRENT_QUANTILE_REASON_CODE=QUANTILE_SEMANTICS_NOT_VERIFIED
 CURRENT_BASELINE_QUANTILE_REASON_CODE=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
 SOURCE_002_ROW_LEVEL_READ=true
+LIVE_CATALOG_ORIGIN_EXECUTED=true
+LIVE_CATALOG_INJECTED_PORTS_REASON_CODE=ARTIFACT_PRODUCED
+LIVE_POLICY_ORIGIN_GRAIN_COUNT=3
+REPLAY_IDENTITY_TABLE_ROW_COUNT=3
+LIVE_ALIGNED_IDENTITY_COUNT=809
+LIVE_CATALOG_ENTRY_COUNT=2427
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+DEFAULT_HARVEST_OBTAIN_EMPTY=true
 ```
 
 The future S3 acceptance gates are prerequisites, not current completion
@@ -14976,6 +14984,43 @@ LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ```
 
 Live `DETERMINISTIC_INCUMBENT_FORECAST_ARTIFACT_REPOSITORY_PRESENCE_IMPLEMENTED` is maintained in `docs/v0-3/development-plan.md` §4.4 live state block and `docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-repository-presence-r1.md` (`EVIDENCE_JSON_SHA256=4422928e91f49807bf9fa4d6678bde06efcf2cc38a134611424aad9888243782`). Fail-closed repository-presence R1 after grant (#480) under user gate 「可以实施」. All §3.2 preconditions for flipping `NO_VERSIONED` fail today: no coordinator-reviewed grain identity-set, no lawful versioned incumbent forecast artifact content, no independent coordinator review of a presence package. This R1 records implementation closure of the repository-presence **process** only; does not write a live forecast artifact; does not flip `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY`; does not flip `NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY`; does not flip `REVIEWED_SET_IMPLEMENTED`. `REPOSITORY_PRESENCE_IMPLEMENTED=true` after this fail-closed R1 does **NOT** mean a versioned artifact exists in the repository. This R1 evidence JSON is **not** a repository-presence attestation package. Repository-presence contract ≠ grant ≠ this fail-closed R1 ≠ content producer R1 ≠ adapter R1 ≠ reviewed-set R1 ≠ live actuals ≠ SOURCE_002 harvest grains. Default content producer `produce()=None` on empty obtain. Frozen table `s3_incumbent_forecast_replay_identity` still has 0 rows. Catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Parent unique remaining gap `_no_coordinator_reviewed_grain_identity_set_artifact_in_repository` remains open (`PARENT_UNIQUE_REMAINING_GAP_CLOSED=false`). This family unique remaining gap `_no_versioned_incumbent_forecast_artifact_repository_presence_r1` is closed (`THIS_FAMILY_UNIQUE_REMAINING_GAP_CLOSED=true`). Historical pointer snapshots may remain `REPOSITORY_PRESENCE_IMPLEMENTED=false`.
+
+#### Live catalog origin execution pointer
+
+```text
+S3_A2_LIVE_CATALOG_ORIGIN_EXECUTION_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-live-catalog-origin-execution.md
+S3_A2_LIVE_CATALOG_ORIGIN_EXECUTION_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-live-catalog-origin-execution.json
+EVIDENCE_JSON_SHA256=36a64657db1e437e90999d0d9446368942faf9c07e68da52f2890ba297e1fcea
+PARENT_PRESENCE_R1_PR=481
+PARENT_PRESENCE_R1_MERGE=fde7acec586e83eafd99b755f3049d9e3e4a074c
+USER_GATE=那你搞啊
+TASK_CLASS=IMPLEMENTATION
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_A_NEW_CONTRACT=true
+LIVE_CATALOG_ORIGIN_EXECUTED=true
+LIVE_CATALOG_INJECTED_PORTS_REASON_CODE=ARTIFACT_PRODUCED
+LIVE_POLICY_ORIGIN_GRAIN_COUNT=3
+REPLAY_IDENTITY_TABLE_ROW_COUNT=3
+LIVE_ALIGNED_IDENTITY_COUNT=809
+LIVE_CATALOG_ENTRY_COUNT=2427
+TEST_REMAINS_SEALED=true
+USES_HARVEST_DATE_AS_FORECAST_CUTOFF=false
+DEFAULT_HARVEST_OBTAIN_EMPTY=true
+DEFAULT_CATALOG_FIRST_BLOCKER=NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+DEFAULT_SESSION_PROVIDER_LEFT_UNSET=true
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+COMPLETENESS_VERIFICATION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+NO_TONNES_INVENTED=true
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002=true
+LIVE_ACCEPTED_S2_TRAIN_VAL_ACTUALS_SOURCE_BOUND=true
+SOURCE_002_ROW_LEVEL_READ=true
+LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
+```
+
+Live injected-port catalog production ran against bound SOURCE_002 TRAIN/VAL actuals. Policy origin lands 3 replay-identity grains. Default harvest obtain remains empty; default catalog first blocker remains `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT`. Completeness stays blocked. No tonnes invented. Historical pointer snapshots may remain `LIVE_CATALOG_ORIGIN_EXECUTED` unset.
 
 ### 4.5 V0.3 metric contract and threshold boundary
 

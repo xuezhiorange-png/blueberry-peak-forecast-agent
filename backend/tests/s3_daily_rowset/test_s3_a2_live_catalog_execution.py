@@ -27,6 +27,7 @@ from backend.app.s2_materialized_dataset.lane_d.service import (
 from backend.app.s2_materialized_dataset.shared.contracts import (
     SOURCE_002_ROW_LEVEL_READ,
     SPLIT_POLICY_VERSION,
+    MaterializableRow,
 )
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
     OFFICIAL_DATASET_ID,
@@ -125,8 +126,8 @@ def _placeholder_sha(label: str) -> str:
 async def _persist_accepted_dataset_async(
     session: AsyncSession,
     *,
-    train_rows: tuple,
-    validation_rows: tuple,
+    train_rows: tuple[MaterializableRow, ...],
+    validation_rows: tuple[MaterializableRow, ...],
 ) -> None:
     train_bytes = build_partition_bytes(train_rows)
     validation_bytes = build_partition_bytes(validation_rows)
@@ -193,7 +194,7 @@ async def _persist_accepted_dataset_async(
     await session.commit()
 
 
-def _in_season_rows() -> tuple[tuple, tuple]:
+def _in_season_rows() -> tuple[tuple[MaterializableRow, ...], tuple[MaterializableRow, ...]]:
     train_row = make_row(harvest_business_date=date(2026, 1, 15), quantity="12.5")
     validation_row = make_row(harvest_business_date=date(2026, 2, 1), quantity="3.0")
     return (train_row,), (validation_row,)
@@ -202,8 +203,8 @@ def _in_season_rows() -> tuple[tuple, tuple]:
 def _patch_official_counts(
     monkeypatch: pytest.MonkeyPatch,
     *,
-    train_rows: tuple,
-    validation_rows: tuple,
+    train_rows: tuple[MaterializableRow, ...],
+    validation_rows: tuple[MaterializableRow, ...],
 ) -> None:
     train_bytes = build_partition_bytes(train_rows)
     validation_bytes = build_partition_bytes(validation_rows)
@@ -234,8 +235,8 @@ def _patch_official_counts(
 
 
 async def _async_session_maker_with_rows(
-    train_rows: tuple,
-    validation_rows: tuple,
+    train_rows: tuple[MaterializableRow, ...],
+    validation_rows: tuple[MaterializableRow, ...],
 ) -> async_sessionmaker[AsyncSession]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as conn:
@@ -256,8 +257,8 @@ async def _async_session_maker_with_rows(
 
 
 def _session_maker_with_rows(
-    train_rows: tuple,
-    validation_rows: tuple,
+    train_rows: tuple[MaterializableRow, ...],
+    validation_rows: tuple[MaterializableRow, ...],
 ) -> async_sessionmaker[AsyncSession]:
     return asyncio.run(_async_session_maker_with_rows(train_rows, validation_rows))
 
