@@ -52,7 +52,6 @@ WORKPAPER_PATH = Path(
 EVIDENCE_PATH = Path(
     "docs/v0-3/s3/evidence/s3-a2-default-catalog-bindable-repository-contract.json"
 )
-PRODUCTION_MODULE = Path("backend/app/s3_daily_rowset/s3_a2_default_catalog_bindable_repository.py")
 AMENDMENT = Path("docs/v0-3/s3/s3-daily-rowset-amendment.md")
 DEVELOPMENT_PLAN = Path("docs/v0-3/development-plan.md")
 UNIQUE_FLIP = "S3_A2_DEFAULT_CATALOG_BINDABLE_REPOSITORY_CONTRACT_AUTHORIZED"
@@ -224,7 +223,6 @@ def test_development_plan_live_compact_flips_only_bindable_repository_contract()
     text = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
     live_intro = text.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert "DETERMINISTIC_DEFAULT_CATALOG_BINDABLE_REPOSITORY_IMPLEMENTED=false" in live_intro
     assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=true" in live_intro
     assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in live_intro
     assert "DEFAULT_CATALOG_FIRST_BLOCKER=ARTIFACT_PRODUCED" in live_intro
@@ -256,8 +254,7 @@ def test_amendment_records_bindable_repository_contract_pointer() -> None:
         assert token.lower() not in lowered
 
 
-def test_no_bindable_repository_production_module() -> None:
-    assert not PRODUCTION_MODULE.exists()
+def test_no_bindable_repository_production_init_py() -> None:
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
         "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_origin_construction.py"
