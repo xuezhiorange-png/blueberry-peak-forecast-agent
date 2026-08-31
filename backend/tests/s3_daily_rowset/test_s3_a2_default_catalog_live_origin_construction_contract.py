@@ -185,14 +185,14 @@ def test_development_plan_live_compact_flips_only_construction_contract() -> Non
     text = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
     live_intro = text.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert (
-        "S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTATION_AUTHORIZED=false"
-        in live_intro
-    )
     assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTED=false" in live_intro
     assert "DETERMINISTIC_DEFAULT_CATALOG_LIVE_ORIGIN_OBTAIN_IMPLEMENTED=true" in live_intro
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
     assert "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true" in live_intro
+    contract = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert (
+        "S3_A2_DEFAULT_CATALOG_LIVE_ORIGIN_CONSTRUCTION_IMPLEMENTATION_AUTHORIZED=false" in contract
+    )
 
 
 def test_amendment_records_construction_contract_pointer() -> None:
