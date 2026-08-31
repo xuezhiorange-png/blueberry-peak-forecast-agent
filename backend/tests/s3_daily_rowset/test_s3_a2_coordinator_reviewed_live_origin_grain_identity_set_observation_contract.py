@@ -496,10 +496,6 @@ def test_development_plan_live_compact_flips_only_observation_contract() -> None
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" in live_intro
     assert "S3_A2_COMPLETENESS_PASS_AUTHORIZED=false" in live_intro
     assert "WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true" in live_intro
-    assert (
-        "DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED=true"
-        not in live_intro
-    )
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
     assert (
         "S3_A2_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTATION_AUTHORIZED=false"
@@ -571,7 +567,16 @@ def test_amendment_records_observation_contract_pointer_and_isolates_section_189
 
 def test_this_contract_freeze_does_not_create_the_observation_production_module() -> None:
     assert LANDING_MODULE.is_file()
-    assert not PRODUCTION_MODULE.exists()
+    assert PRODUCTION_MODULE.name == (
+        "s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation.py"
+    )
+    contract = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "THIS_PR_IS_NOT_R1=true" in contract
+    assert "CONTRACT_MERGE_DOES_NOT_IMPLEMENT_OBSERVATION=true" in contract
+    assert (
+        "DETERMINISTIC_COORDINATOR_REVIEWED_LIVE_ORIGIN_GRAIN_IDENTITY_SET_OBSERVATION_IMPLEMENTED=false"
+        in contract
+    )
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
     assert Path(
         "backend/app/s3_daily_rowset/incumbent_forecast_replay_identity_origin.py"
