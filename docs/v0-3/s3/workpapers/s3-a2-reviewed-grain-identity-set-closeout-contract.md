@@ -1,0 +1,58 @@
+# V0.3-S3-A2 Reviewed grain identity-set closeout contract
+
+## Artifact identity
+
+~~~text
+ARTIFACT_ID=V0_3_S3_A2_REVIEWED_GRAIN_IDENTITY_SET_CLOSEOUT_CONTRACT
+ARTIFACT_VERSION=v0-3-s3-a2-reviewed-grain-identity-set-closeout-contract-v1
+TASK_CLASS=CONTRACT_DEFINITION_ONLY
+USER_GATE=可以继续
+CONTRACT_GATE_ACCEPTED_AS=可以下一步
+USER_UTTERANCE=可以继续
+CONTRACT_ONLY=true
+THIS_PR_IS_NOT_A_GRANT=true
+THIS_PR_IS_NOT_R1=true
+COORDINATOR_RUN=bc-01a05131-6262-7c86-9895-dde762dda347
+BASE_MAIN_SHA=cf1c61fc31108211c06c8c8926cb81ef6962df51
+BASE_MAIN_TREE_SHA=39ac60383fac800515ecbec366d39e4b51edd690
+PARENT_AVAILABLE_CLOSEOUT_R1_PR=494
+PARENT_AVAILABLE_CLOSEOUT_R1_MERGE=cf1c61fc31108211c06c8c8926cb81ef6962df51
+CONTRACT_PATH=docs/v0-3/s3/s3-reviewed-grain-identity-set-closeout-contract.md
+WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-reviewed-grain-identity-set-closeout-contract.md
+EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-reviewed-grain-identity-set-closeout-contract.json
+EVIDENCE_JSON_SHA256=0191067600e5419547d18e8c8b8768e46ccf955da1d968f9a355f953265f3cb2
+~~~
+
+#494 is on main. AVAILABLE-closeout classification is
+`AVAILABLE_CLOSEOUT_PRECONDITIONS_NOT_MET`. Bindable-repository classification is
+`NOT_BINDABLE`. Three live-origin policy grains are not a coordinator-reviewed
+identity set. This workpaper records the contract freeze for a later reviewed
+grain identity-set closeout classification — not the closeout itself.
+
+User declared weather and plans temporarily unavailable. This family does not
+invent them, does not invent identity-set members from SOURCE_002, and does not
+claim peak tonnes or completeness PASS. Missing weather and plans must not block
+this non-curve reviewed-set closeout freeze.
+
+~~~text
+S3_A2_REVIEWED_GRAIN_IDENTITY_SET_CLOSEOUT_CONTRACT_AUTHORIZED=true
+S3_A2_REVIEWED_GRAIN_IDENTITY_SET_CLOSEOUT_IMPLEMENTATION_AUTHORIZED=false
+DETERMINISTIC_REVIEWED_GRAIN_IDENTITY_SET_CLOSEOUT_IMPLEMENTED=false
+DETERMINISTIC_EVALUATION_INSTANCE_REGISTRY_AVAILABLE_CLOSEOUT_IMPLEMENTED=true
+DEFAULT_CATALOG_FIRST_BLOCKER=ARTIFACT_PRODUCED
+NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=true
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false
+AVAILABLE_CLOSEOUT_REQUIRED_FOR_LIVE_FLIP=true
+FORBIDDEN_TREAT_LIVE_ORIGIN_GRAINS_AS_REVIEWED_SET=true
+FORBIDDEN_DERIVE_MEMBERS_FROM_SOURCE_002=true
+WEATHER_UNAVAILABLE=true
+PLANS_UNAVAILABLE=true
+FORBIDDEN_INVENT_WEATHER=true
+FORBIDDEN_INVENT_PLANS=true
+FORBIDDEN_INVENT_TONNES=true
+WEATHER_AND_PLANS_DO_NOT_BLOCK_NON_CURVE_IMPLEMENTATION=true
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+NO_NEW_SQLALCHEMY_API_FAMILY=true
+~~~
