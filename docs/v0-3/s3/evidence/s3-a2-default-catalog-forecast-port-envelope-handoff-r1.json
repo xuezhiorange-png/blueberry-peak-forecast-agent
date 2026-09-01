@@ -9,6 +9,17 @@
   "user_gate": "\u53ef\u4ee5\u5b9e\u65bd",
   "reviewer_role": "COORDINATOR",
   "recorded_at": "2026-09-01T14:00:00Z",
+  "correction_recorded_at": "2026-09-01T14:25:00Z",
+  "authorization_chronology": {
+    "draft_pr": 527,
+    "r1_draft_existed_before_explicit_implementation_gate": true,
+    "explicit_implementation_gate_received_after_draft_creation": true,
+    "explicit_implementation_gate_applies_prospectively_to_r1_correction_and_validation": true,
+    "no_retroactive_authorization_claim": true,
+    "user_gate_received_during_draft_review_correction": true,
+    "original_draft_preceded_explicit_gate": true,
+    "current_correction_and_validation_authorized": true
+  },
   "this_pr_is_not_a_grant": true,
   "this_pr_is_not_a_new_contract": true,
   "this_draft_is_not_ready": true,
@@ -118,7 +129,10 @@
     "THIS_R1_DOES_NOT_AUTHORIZE_COMPLETENESS_PASS": true,
     "WEATHER_UNAVAILABLE": true,
     "PLANS_UNAVAILABLE": true,
-    "FORBIDDEN_INVENT_TONNES": true
+    "FORBIDDEN_INVENT_TONNES": true,
+    "R1_DRAFT_EXISTED_BEFORE_EXPLICIT_IMPLEMENTATION_GATE": true,
+    "NO_RETROACTIVE_AUTHORIZATION_CLAIM": true,
+    "CURRENT_CORRECTION_AND_VALIDATION_AUTHORIZED": true
   },
-  "evidence_json_sha256": "c10c4bcc43ce6a3a490e4ea14f62fe90e83850fe8829fd75cf72b7c7d55cd818"
+  "evidence_json_sha256": "cda891151d044668e09b2992f9dbe67aabf8da562300f834c097dd0f46f40814"
 }

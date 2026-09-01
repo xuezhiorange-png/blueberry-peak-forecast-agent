@@ -17775,7 +17775,7 @@ because the contract did not land this grant.
 ```text
 S3_A2_DEFAULT_CATALOG_FORECAST_PORT_ENVELOPE_HANDOFF_R1_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-default-catalog-forecast-port-envelope-handoff-r1.md
 S3_A2_DEFAULT_CATALOG_FORECAST_PORT_ENVELOPE_HANDOFF_R1_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-default-catalog-forecast-port-envelope-handoff-r1.json
-EVIDENCE_JSON_SHA256=c10c4bcc43ce6a3a490e4ea14f62fe90e83850fe8829fd75cf72b7c7d55cd818
+EVIDENCE_JSON_SHA256=cda891151d044668e09b2992f9dbe67aabf8da562300f834c097dd0f46f40814
 PARENT_GRANT_PR=526
 PARENT_GRANT_COMMIT=85cdc59d75c2123689fa9c1a94fc3954eeebc19d
 PARENT_GRANT_MERGE=916725cd2f2bd6992acf94829d9c9c293866db6f
@@ -17834,7 +17834,10 @@ NO_NEW_SQLALCHEMY_API_FAMILY=true
 LIVE_FLAG_AUTHORITY=docs/v0-3/development-plan.md §4.4 live state block
 ```
 
-Grant merge #526 is on main. User said 「可以实施」. This R1 lands canonical
+Grant merge #526 is on main. Draft PR #527 preceded the explicit implementation
+gate. During draft review correction the coordinator supplied 「可以实施」, which
+authorizes R1 correction and validation prospectively only; it does not
+retroactively authorize the original pre-gate draft commit. This R1 lands canonical
 deterministic envelope handoff into bare default forecast-port resolution. Bare
 default catalog `produce()` succeeds with `ARTIFACT_PRODUCED` without forecast port
 injection, without global loader install, and without session provider install.
