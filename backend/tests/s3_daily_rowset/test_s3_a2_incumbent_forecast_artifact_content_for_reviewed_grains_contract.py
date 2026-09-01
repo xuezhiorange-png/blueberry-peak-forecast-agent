@@ -62,8 +62,7 @@ EVIDENCE_PATH = Path(
     "s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-contract.json"
 )
 PRODUCTION_MODULE = Path(
-    "backend/app/s3_daily_rowset/"
-    "s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains.py"
+    "backend/app/s3_daily_rowset/s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains.py"
 )
 PRESENCE_OBSERVATION_MODULE = Path(
     "backend/app/s3_daily_rowset/"
@@ -173,9 +172,7 @@ REVIEWED_SET_IDENTITY_SHA256 = "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b
 IN_MEMORY_CATALOG_IDENTITY_SHA256 = (
     "00f6bc532dfd97f2d625fc1347bf2a7663299fda206bd472df4c2c32c54ab5af"
 )
-UNIQUE_FLIP = (
-    "S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_FOR_REVIEWED_GRAINS_CONTRACT_AUTHORIZED"
-)
+UNIQUE_FLIP = "S3_A2_INCUMBENT_FORECAST_ARTIFACT_CONTENT_FOR_REVIEWED_GRAINS_CONTRACT_AUTHORIZED"
 FORBIDDEN_PROSE_TOKENS = (
     "localhost",
     "5432",
@@ -267,8 +264,7 @@ def test_frozen_blobs_and_parent_packages_unchanged() -> None:
         == PARENT_PRESENCE_OBSERVATION_R1_WORKPAPER_BLOB
     )
     assert (
-        _git_blob(PRESENCE_OBSERVATION_R1_EVIDENCE)
-        == PARENT_PRESENCE_OBSERVATION_R1_EVIDENCE_BLOB
+        _git_blob(PRESENCE_OBSERVATION_R1_EVIDENCE) == PARENT_PRESENCE_OBSERVATION_R1_EVIDENCE_BLOB
     )
     assert _git_blob(PRESENCE_OBSERVATION_CONTRACT) == PARENT_PRESENCE_OBSERVATION_CONTRACT_DOC_BLOB
     assert (
@@ -537,13 +533,15 @@ def test_development_plan_live_compact_flips_only_this_contract() -> None:
 
 def test_amendment_records_pointer_and_isolates_section_198() -> None:
     text = AMENDMENT.read_text(encoding="utf-8")
+    assert "## 198. Incumbent forecast artifact repository-presence observation R1 pointer" in text
     assert (
-        "## 198. Incumbent forecast artifact repository-presence observation R1 pointer"
-        in text
+        "## 199. Incumbent forecast artifact content for reviewed grains contract pointer" in text
     )
     assert (
-        "## 199. Incumbent forecast artifact content for reviewed grains contract pointer"
-        in text
+        text.count(
+            "## 199. Incumbent forecast artifact content for reviewed grains contract pointer"
+        )
+        == 1
     )
     assert f"{UNIQUE_FLIP}=true" in text
     section_198 = text.split("## 198.", 1)[1]
