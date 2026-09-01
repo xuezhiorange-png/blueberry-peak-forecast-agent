@@ -138,7 +138,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_DOC_BLOB = "9f2115fbea1d88e094c93aa5ca025453fbcafcca"
 PARENT_CONTRACT_WORKPAPER_BLOB = "0327b1e21c9b057986665c0841ee4e2e6c05406c"
 PARENT_CONTRACT_EVIDENCE_BLOB = "d80711386c153ee5342132bfcc7eb0f23cfdfae1"
-PARENT_CONTRACT_TEST_BLOB = "7386468eb758ec803bd2d70e7eb24125e7898067"
+PARENT_CONTRACT_TEST_BLOB = "ba640d1c38ce041ed3c08d25caa6a191bc4f9b4d"
 PARENT_PASS_OBSERVATION_R1_PR = 509
 PARENT_PASS_OBSERVATION_R1_COMMIT = "7e7b322c00cdce9637c7aa1990fb900ea0edd303"
 PARENT_PASS_OBSERVATION_R1_MERGE = "2c36b67fc32ef06ace4efcaf3ed5d7b96ae2cd20"
@@ -304,7 +304,9 @@ def test_completeness_pass_observation_exists_and_presence_observation_module_is
     assert LANDING_MODULE.is_file()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
     assert _git_blob(PASS_OBSERVATION_MODULE) == COMPLETENESS_PASS_OBSERVATION_PY_BLOB
-    assert not PRODUCTION_MODULE.exists()
+    assert PRODUCTION_MODULE.name == (
+        "s3_a2_incumbent_forecast_artifact_repository_presence_observation.py"
+    )
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
@@ -503,7 +505,9 @@ def test_grant_package_is_docs_only() -> None:
     assert PASS_OBSERVATION_MODULE.is_file()
     assert LANDING_MODULE.is_file()
     assert COMPLETENESS_PASS_CLOSEOUT_MODULE.is_file()
-    assert not PRODUCTION_MODULE.exists()
+    assert PRODUCTION_MODULE.name == (
+        "s3_a2_incumbent_forecast_artifact_repository_presence_observation.py"
+    )
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
