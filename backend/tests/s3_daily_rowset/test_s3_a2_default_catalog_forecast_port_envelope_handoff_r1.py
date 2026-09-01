@@ -12,7 +12,6 @@ from unittest.mock import patch
 import pytest
 
 from backend.app.rolling_backtest.canonical import sha256_payload
-
 from backend.app.s3_daily_rowset.catalog_artifact import (
     CatalogArtifactReasonCode,
     EvaluationInstanceCatalogArtifactProductionService,
@@ -116,9 +115,7 @@ SECTION_212_HEADING = (
     "## 212. Default catalog forecast-port envelope handoff implementation authorization pointer"
 )
 SECTION_213_HEADING = "## 213. Default catalog forecast-port envelope handoff R1 pointer"
-REVIEW_EVIDENCE_DIGEST_SHA256 = (
-    "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64"
-)
+REVIEW_EVIDENCE_DIGEST_SHA256 = "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64"
 PARENT_GRANT_PR = 526
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
 FORECAST_ARTIFACT_PY_BLOB = "49938d7107728987439a0a751a1273b73e0022e7"
@@ -388,6 +385,10 @@ def test_r1_docs_avoid_forbidden_tokens() -> None:
         assert token.lower() not in lowered, token
     workpaper = R1_WORKPAPER.read_text(encoding="utf-8")
     assert "USER_GATE=可以实施" in workpaper
+    assert "USER_GATE_RECEIVED_DURING_DRAFT_REVIEW_CORRECTION=true" in workpaper
+    assert "ORIGINAL_DRAFT_PRECEDED_EXPLICIT_GATE=true" in workpaper
+    assert "NO_RETROACTIVE_AUTHORIZATION_CLAIM=true" in workpaper
+    assert "User said 「可以实施」" not in workpaper
     assert "IMPLEMENTATION_R1=true" in workpaper
     assert "THIS_PR_IS_NOT_A_GRANT=true" in workpaper
     assert UNIQUE_FLIP + "=true" in workpaper
@@ -414,6 +415,8 @@ def test_parent_grant_pins_remain() -> None:
     assert r1["flags"]["THIS_R1_DOES_NOT_FLIP_NO_VERSIONED"] is True
     assert r1["flags"]["UNIQUE_REMAINING_GAP_CLOSED"] is True
     assert r1["flags"]["BARE_DEFAULT_CATALOG_REASON"] == "ARTIFACT_PRODUCED"
+    assert r1["authorization_chronology"]["no_retroactive_authorization_claim"] is True
+    assert r1["authorization_chronology"]["current_correction_and_validation_authorized"] is True
     assert r1["review"]["content_identity_sha256"] == CONTENT_IDENTITY_SHA256
     assert r1["review"]["review_evidence_digest_sha256"] == REVIEW_EVIDENCE_DIGEST_SHA256
     assert r1["review"]["in_memory_catalog_identity_sha256"] == IN_MEMORY_CATALOG_IDENTITY_SHA256

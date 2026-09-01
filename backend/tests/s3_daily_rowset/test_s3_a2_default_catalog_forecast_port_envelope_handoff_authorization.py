@@ -108,17 +108,24 @@ def _git_blob_at(ref: str, path: Path) -> str:
     content = subprocess.check_output(
         ["git", "show", f"{ref}:{path.as_posix()}"],
     )
-    return subprocess.check_output(
-        ["git", "hash-object", "--stdin"],
-        input=content,
-    ).decode().strip()
+    return (
+        subprocess.check_output(
+            ["git", "hash-object", "--stdin"],
+            input=content,
+        )
+        .decode()
+        .strip()
+    )
 
 
 def _path_missing_at(ref: str, path: Path) -> bool:
-    return subprocess.run(
-        ["git", "cat-file", "-e", f"{ref}:{path.as_posix()}"],
-        capture_output=True,
-    ).returncode != 0
+    return (
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{ref}:{path.as_posix()}"],
+            capture_output=True,
+        ).returncode
+        != 0
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -166,7 +173,9 @@ def test_frozen_python_blobs_remain_byte_identical() -> None:
         CONTENT_FOR_REVIEWED_GRAINS_PY_BLOB
     )
     assert _git_blob_at(GRANT_FROZEN_REF, COORDINATOR_PY) == COORDINATOR_REVIEWED_SET_PY_BLOB
-    assert _git_blob_at(GRANT_FROZEN_REF, CATALOG_CLOSEOUT_PY) == CATALOG_NO_VERSIONED_CLOSEOUT_PY_BLOB
+    assert _git_blob_at(GRANT_FROZEN_REF, CATALOG_CLOSEOUT_PY) == (
+        CATALOG_NO_VERSIONED_CLOSEOUT_PY_BLOB
+    )
     assert _git_blob_at(GRANT_FROZEN_REF, TEST_CATALOG_PY) == TEST_CATALOG_ARTIFACT_PY_BLOB
 
 
