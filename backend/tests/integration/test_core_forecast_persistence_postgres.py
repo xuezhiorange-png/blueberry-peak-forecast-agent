@@ -1548,6 +1548,11 @@ async def test_postgres_trial_forecast_evidence_readback_is_stable_after_plan_ch
 async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     transactional_pg_session: AsyncSession,
 ) -> None:
+    from unittest.mock import patch
+
+    from backend.app.s3_daily_rowset import (
+        s3_a2_coordinator_reviewed_live_origin_grain_identity_set as coord_identity_set,
+    )
     from backend.app.s3_daily_rowset.catalog_artifact import (
         CatalogArtifactReasonCode,
         EvaluationInstanceCatalogArtifactProductionService,
@@ -1556,30 +1561,30 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_live_postgres_read import (
         clear_v0_2_live_postgres_session_provider,
     )
-    from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_identity_set import (
-        uninstall_from_reviewed_set_loader,
-    )
     from backend.tests.integration.s3_a2_pg_official_dataset_seed import (
+        ReuseAsyncSessionMaker,
         seed_official_source_002_materialized_dataset,
     )
     from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
 
-    uninstall_from_reviewed_set_loader()
+    coord_identity_set.uninstall_from_reviewed_set_loader()
     clear_v0_2_live_postgres_session_provider()
     await seed_official_source_002_materialized_dataset(transactional_pg_session)
 
-    adapter = IncumbentForecastArtifactAdapter()
-    assert adapter.has_versioned_artifact() is True
-    resolved = adapter._resolved_artifact()
-    assert resolved is not None
-    assert resolved.content_identity_sha256 == (
-        "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5"
-    )
-    assert len(resolved.rows) == 3
+    session_maker = ReuseAsyncSessionMaker(transactional_pg_session)
+    with patch("backend.app.db.session.AsyncSessionMaker", session_maker):
+        adapter = IncumbentForecastArtifactAdapter()
+        assert adapter.has_versioned_artifact() is True
+        resolved = adapter._resolved_artifact()
+        assert resolved is not None
+        assert resolved.content_identity_sha256 == (
+            "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5"
+        )
+        assert len(resolved.rows) == 3
 
-    produced = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+        produced = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert produced.reason_code is CatalogArtifactReasonCode.ARTIFACT_PRODUCED
     assert produced.catalog_identity_sha256 == (
         "00f6bc532dfd97f2d625fc1347bf2a7663299fda206bd472df4c2c32c54ab5af"
@@ -1587,5 +1592,5 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     assert produced.catalog is not None
     assert len(produced.catalog.entries()) == 2427
 
-    uninstall_from_reviewed_set_loader()
+    coord_identity_set.uninstall_from_reviewed_set_loader()
     clear_v0_2_live_postgres_session_provider()

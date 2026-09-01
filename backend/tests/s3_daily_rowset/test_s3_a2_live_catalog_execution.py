@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 import asyncio
 import json
 import subprocess

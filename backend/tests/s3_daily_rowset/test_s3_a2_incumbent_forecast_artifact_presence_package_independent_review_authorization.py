@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 import json
 import subprocess
 from collections.abc import Iterator
@@ -45,6 +44,9 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
 )
 from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout import (
     ReviewedGrainIdentitySetCloseoutClassifier,
+)
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
 )
 
 IncumbentForecastArtifactContentForReviewedGrainsClassifier = (
@@ -176,7 +178,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_DOC_BLOB = "1e519510b3b7f1d5deb1e3fd9415bcf0f411a280"
 PARENT_CONTRACT_WORKPAPER_BLOB = "37a72dc7b6876f709aa5f8c5e1005dc18193b7bc"
 PARENT_CONTRACT_EVIDENCE_BLOB = "348e13ea2c5914760d8c8af5a47d41f5c154f372"
-PARENT_CONTRACT_TEST_BLOB = "83ba0dd23678de73016eb28d4b8abf9b5ebb8561"
+PARENT_CONTRACT_TEST_BLOB = "abcb53ae56de8d163abf57db46e288b012acfaf5"
 PARENT_CONTRACT_STYLE_FOLLOWUP_COMMIT = "670dccdca5ede0aeffea7b46e756d2e7ac2b94b5"
 PARENT_CONTENT_R1_PR = 515
 PARENT_CONTENT_R1_COMMIT = "ec1b9014115319651d6d1cfb96daada032775bf1"

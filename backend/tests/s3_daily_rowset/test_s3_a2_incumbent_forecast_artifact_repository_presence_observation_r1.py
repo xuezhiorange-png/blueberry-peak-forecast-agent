@@ -58,8 +58,9 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 IncumbentForecastArtifactRepositoryPresenceObservationClassifier = (
     repo_presence_obs.IncumbentForecastArtifactRepositoryPresenceObservationClassifier
@@ -161,7 +162,7 @@ ALIGNMENT_EVIDENCE_PY_BLOB = "df000544dc0e0b4844b0a5a7c342f6abce957e86"
 IDENTITY_SET_LANDING_PY_BLOB = "2ce94233f153f8e5297e4b978243323ca917dcf8"
 OBSERVATION_MODULE_BLOB = "b9e047b4946fbdf658ad4911f2a94bb67628accd"
 COMPLETENESS_PASS_OBSERVATION_PY_BLOB = "93badaacdd19f5a80a8306b7beeffa3c391711fc"
-COMPLETENESS_PASS_OBSERVATION_TEST_BLOB = "994d84cf979024c927860f3d093a8c453572a63e"
+COMPLETENESS_PASS_OBSERVATION_TEST_BLOB = "7b108973384f6a5dcff5bfc17126107f0c9f88b2"
 PARENT_GRANT_PR = 511
 PARENT_GRANT_MERGE = "432d682f6bdd259b7fee9294a89c509e0aaf2f47"
 PARENT_GRANT_COMMIT = "28755c0cd94428411db7c5f27d784585dbeb7cfc"

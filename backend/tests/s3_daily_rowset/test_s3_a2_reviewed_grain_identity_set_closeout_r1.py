@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 import json
 import subprocess
 import sys
@@ -39,6 +38,9 @@ from backend.app.s3_daily_rowset.s3_a2_evaluation_instance_registry_available_cl
 from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout import (
     ReviewedGrainIdentitySetCloseoutClassifier,
     ReviewedSetCloseoutReasonCode,
+)
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
 )
 from backend.tests.s3_daily_rowset.test_s3_a2_live_catalog_execution import (
     TEST_CATALOG_ARTIFACT_PY_BLOB,

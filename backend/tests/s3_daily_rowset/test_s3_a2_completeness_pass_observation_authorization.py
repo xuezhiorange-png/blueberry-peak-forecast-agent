@@ -54,8 +54,9 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedSetCloseoutReasonCode,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 ObservationClassifier = (
     observation.CoordinatorReviewedLiveOriginGrainIdentitySetObservationClassifier

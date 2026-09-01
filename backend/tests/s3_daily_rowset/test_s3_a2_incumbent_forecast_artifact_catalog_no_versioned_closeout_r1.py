@@ -64,8 +64,10 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 IncumbentForecastArtifactCatalogNoVersionedCloseoutClassifier = (
     catalog_closeout.IncumbentForecastArtifactCatalogNoVersionedCloseoutClassifier
@@ -199,11 +201,11 @@ INDEPENDENT_REVIEW_PY_BLOB = "8e75e3e1048db57c6f5cdb09bf32e0ca61218caa"
 NO_VERSIONED_FLIP_PY_BLOB = "02c4bb0690b351fdd2c67df9a09c301fc0d11fe7"
 PARENT_GRANT_WORKPAPER_BLOB = "699b5a05d4068b4413103bdd7d7a7327a287e5fc"
 PARENT_GRANT_EVIDENCE_BLOB = "ff05306aea8974bad1e67f2d4be8db9940b1848d"
-PARENT_GRANT_TEST_BLOB = "3b87d461c494078796324000e59101bdc47813cc"
+PARENT_GRANT_TEST_BLOB = "bc1d0c252812a33424d0082ca53a34c9a6866476"
 PARENT_CONTRACT_DOC_BLOB = "2b268fd7da00219f9a73441201468386dd7c2fcd"
 PARENT_CONTRACT_WORKPAPER_BLOB = "04f276768b08cae608823f199d7ea4ad43c75794"
 PARENT_CONTRACT_EVIDENCE_BLOB = "3f2525db89f56b5e5175788204724b3d51fb79d5"
-PARENT_CONTRACT_TEST_BLOB = "ce1e8bc7a505a1c5f451a3f6ec31d2463869c6f7"
+PARENT_CONTRACT_TEST_BLOB = "2638c4c414ca48b64c437d303b67cb455f05533f"
 PARENT_NO_VERSIONED_FLIP_R1_WORKPAPER_BLOB = "9b3baab60d424e44b719275f28222eec825c7e91"
 PARENT_NO_VERSIONED_FLIP_R1_EVIDENCE_BLOB = "8ab48f3f17db039004438e0d8e5a7372e2ee68b9"
 PARENT_INDEPENDENT_REVIEW_R1_WORKPAPER_BLOB = "4c48d14fc6321313809f43505cd40812dc3ea320"

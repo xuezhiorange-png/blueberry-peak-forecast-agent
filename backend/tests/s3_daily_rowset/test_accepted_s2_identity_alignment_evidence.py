@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 import ast
 from datetime import date
 from pathlib import Path
@@ -32,6 +31,7 @@ from backend.app.s3_daily_rowset.s2_identity_alignment import (
 )
 from backend.app.s3_daily_rowset.schemas import DatasetIdentity
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY, make_row
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 
 def _forecast_artifact() -> VersionedIncumbentForecastArtifact:

@@ -29,8 +29,9 @@ from backend.app.s3_daily_rowset.s3_a2_default_catalog_bindable_repository impor
     DefaultCatalogBindableRepositoryClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_DOC = (

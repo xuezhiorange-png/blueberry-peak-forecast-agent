@@ -131,3 +131,24 @@ async def seed_official_source_002_materialized_dataset(session: AsyncSession) -
     await session.flush()
     await session.run_sync(land_replay_identity_origin_into_sync_session)
     await session.flush()
+
+
+class _ReuseAsyncSession:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def __aenter__(self) -> AsyncSession:
+        return self._session
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        return None
+
+
+class ReuseAsyncSessionMaker:
+    """Bind AsyncSessionMaker to an existing transactional test session."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    def __call__(self) -> _ReuseAsyncSession:
+        return _ReuseAsyncSession(self._session)

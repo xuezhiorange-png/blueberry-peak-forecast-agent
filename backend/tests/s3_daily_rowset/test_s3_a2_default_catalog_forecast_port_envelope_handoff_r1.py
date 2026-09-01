@@ -55,7 +55,6 @@ from backend.app.s3_daily_rowset.s3_a2_default_catalog_forecast_port_envelope_ha
     deterministic_coordinator_reviewed_grains_forecast_artifact,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 HANDOFF_MODULE = Path(
     "backend/app/s3_daily_rowset/s3_a2_default_catalog_forecast_port_envelope_handoff.py"
@@ -219,8 +218,7 @@ def test_bare_default_catalog_produce_progresses_past_no_versioned_without_injec
         first.reason_code is not CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     )
     assert (
-        second.reason_code
-        is not CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        second.reason_code is not CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     )
     assert first.reason_code is CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert second.reason_code is CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
@@ -461,7 +459,12 @@ def test_parent_grant_pins_remain() -> None:
     assert r1["flags"]["UNIQUE_REMAINING_GAP_CLOSED"] is True
     assert r1["flags"]["BARE_DEFAULT_CATALOG_REASON"] == "ARTIFACT_PRODUCED"
     assert r1["authorization_chronology"]["no_retroactive_authorization_claim"] is True
-    assert r1["authorization_chronology"]["explicit_implementation_gate_received_after_read_only_remediation_analysis"] is True
+    assert (
+        r1["authorization_chronology"][
+            "explicit_implementation_gate_received_after_read_only_remediation_analysis"
+        ]
+        is True
+    )
     assert r1["authorization_chronology"]["current_correction_and_validation_authorized"] is True
     assert r1["review"]["content_identity_sha256"] == CONTENT_IDENTITY_SHA256
     assert r1["review"]["review_evidence_digest_sha256"] == REVIEW_EVIDENCE_DIGEST_SHA256

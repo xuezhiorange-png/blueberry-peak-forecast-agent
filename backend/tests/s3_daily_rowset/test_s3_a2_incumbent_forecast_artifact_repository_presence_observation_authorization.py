@@ -55,8 +55,9 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedSetCloseoutReasonCode,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 CONTRACT_DOC = Path(
     "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-observation-contract.md"
@@ -140,7 +141,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_DOC_BLOB = "9f2115fbea1d88e094c93aa5ca025453fbcafcca"
 PARENT_CONTRACT_WORKPAPER_BLOB = "0327b1e21c9b057986665c0841ee4e2e6c05406c"
 PARENT_CONTRACT_EVIDENCE_BLOB = "d80711386c153ee5342132bfcc7eb0f23cfdfae1"
-PARENT_CONTRACT_TEST_BLOB = "face415cc2181851cf0046421a23f7be3593e09e"
+PARENT_CONTRACT_TEST_BLOB = "a7a4cd0e4937c284b01cdedc76bc4bddbab38e7a"
 PARENT_PASS_OBSERVATION_R1_PR = 509
 PARENT_PASS_OBSERVATION_R1_COMMIT = "7e7b322c00cdce9637c7aa1990fb900ea0edd303"
 PARENT_PASS_OBSERVATION_R1_MERGE = "2c36b67fc32ef06ace4efcaf3ed5d7b96ae2cd20"
