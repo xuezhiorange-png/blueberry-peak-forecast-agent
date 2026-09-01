@@ -22,6 +22,7 @@ from backend.app.s3_daily_rowset.registry import (
     CatalogSourceKind,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 
 def _replay_entry(
@@ -46,7 +47,8 @@ def test_default_produce_returns_none() -> None:
 
 
 def test_default_catalog_produce_is_fail_closed() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
 

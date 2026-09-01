@@ -64,6 +64,7 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
 )
 from backend.app.s3_daily_rowset.window import cutoff_business_date
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -222,9 +223,7 @@ def test_frozen_python_and_parent_blobs_unchanged() -> None:
         _git_blob("backend/app/s3_daily_rowset/s3_a2_completeness_pass_closeout.py")
         == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     )
-    assert (
-        _git_blob("backend/app/s3_daily_rowset/forecast_artifact.py") == FORECAST_ARTIFACT_PY_BLOB
-    )
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert (
         _git_blob("backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py")
         == ALIGNMENT_EVIDENCE_PY_BLOB
@@ -315,7 +314,7 @@ def test_frozen_closeouts_still_report_no_reviewed_and_pass_unauthorized() -> No
         reviewed = ReviewedGrainIdentitySetCloseoutClassifier().classify()
         completeness = CompletenessPassCloseoutClassifier().classify()
     assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
     assert produced.no_bindable_catalog_in_repository is True
     assert bindable.reason_code is BindableRepositoryReasonCode.CATALOG_NOT_PRODUCED

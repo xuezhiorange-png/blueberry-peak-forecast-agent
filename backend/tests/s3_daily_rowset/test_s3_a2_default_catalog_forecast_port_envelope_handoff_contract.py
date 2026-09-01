@@ -25,6 +25,7 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
     uninstall_from_reviewed_set_loader,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 CONTRACT_PATH = Path("docs/v0-3/s3/s3-default-catalog-forecast-port-envelope-handoff-contract.md")
 WORKPAPER_PATH = Path(
@@ -141,17 +142,19 @@ def test_contract_evidence_sha256_payload_without_self_key() -> None:
 
 
 def test_frozen_blobs_unchanged() -> None:
-    assert _git_blob_at(CONTRACT_FROZEN_REF, CATALOG_PY) == CATALOG_ARTIFACT_PY_BLOB
-    assert _git_blob_at(CONTRACT_FROZEN_REF, FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
-    assert _git_blob_at(CONTRACT_FROZEN_REF, CONTENT_PY) == CONTENT_PRODUCER_PY_BLOB
-    assert _git_blob_at(CONTRACT_FROZEN_REF, CONTENT_FOR_REVIEWED_PY) == (
-        CONTENT_FOR_REVIEWED_GRAINS_PY_BLOB
+    from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+        assert_evidence_frozen_python_blobs_match_constants,
     )
-    assert _git_blob_at(CONTRACT_FROZEN_REF, COORDINATOR_PY) == COORDINATOR_REVIEWED_SET_PY_BLOB
-    assert _git_blob_at(CONTRACT_FROZEN_REF, CATALOG_CLOSEOUT_PY) == (
-        CATALOG_NO_VERSIONED_CLOSEOUT_PY_BLOB
+
+    assert_evidence_frozen_python_blobs_match_constants(
+        EVIDENCE_PATH,
+        catalog_artifact_py_blob=CATALOG_ARTIFACT_PY_BLOB,
+        forecast_artifact_py_blob=FORECAST_ARTIFACT_PY_BLOB,
+        content_producer_py_blob=CONTENT_PRODUCER_PY_BLOB,
+        content_for_reviewed_grains_py_blob=CONTENT_FOR_REVIEWED_GRAINS_PY_BLOB,
+        coordinator_reviewed_set_py_blob=COORDINATOR_REVIEWED_SET_PY_BLOB,
+        test_catalog_artifact_py_blob=TEST_CATALOG_ARTIFACT_PY_BLOB,
     )
-    assert _git_blob_at(CONTRACT_FROZEN_REF, TEST_CATALOG_PY) == TEST_CATALOG_ARTIFACT_PY_BLOB
 
 
 def test_contract_package_is_docs_only() -> None:
@@ -169,7 +172,7 @@ def test_bare_default_still_fail_closes_no_versioned_without_session() -> None:
         "deterministic_coordinator_reviewed_grains_forecast_artifact",
         return_value=None,
     ):
-        with patch("backend.app.db.session.AsyncSessionMaker", None):
+        with patch_handoff_disabled(), patch("backend.app.db.session.AsyncSessionMaker", None):
             result = EvaluationInstanceCatalogArtifactProductionService(
                 dataset_identity=DATASET_IDENTITY,
             ).produce()

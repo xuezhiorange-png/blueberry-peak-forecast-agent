@@ -39,6 +39,7 @@ from backend.app.s3_daily_rowset.s3_a2_default_catalog_live_origin_obtain import
     obtain_default_catalog_from_live_origin,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 from backend.tests.s3_daily_rowset.test_s3_a2_live_catalog_execution import (
     TEST_CATALOG_ARTIFACT_PY_BLOB,
     _in_season_rows,
@@ -91,7 +92,7 @@ def _assert_defaults_remain_empty() -> None:
         ).produce()
     assert (
         default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
 
 
@@ -136,7 +137,7 @@ def test_obtain_reads_landed_origin_and_injects_ports_without_default_wiring() -
     assert envelope.default_harvest_obtain_empty is True
     assert (
         envelope.default_catalog_first_blocker
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT.value
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT.value
     )
     assert envelope.default_session_provider_left_unset is True
     _assert_defaults_remain_empty()

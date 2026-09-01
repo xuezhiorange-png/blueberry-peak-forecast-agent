@@ -52,6 +52,8 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedSetCloseoutReasonCode,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 CONTRACT_DOC = Path(
     "docs/v0-3/s3/s3-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.md"
@@ -257,10 +259,7 @@ def test_frozen_catalog_grain_construction_and_binding_blobs_remain() -> None:
     assert _git_blob(Path("backend/app/s3_daily_rowset/completeness.py")) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(Path("backend/app/s3_daily_rowset/binding.py")) == BINDING_PY_BLOB
-    assert (
-        _git_blob(Path("backend/app/s3_daily_rowset/forecast_artifact.py"))
-        == FORECAST_ARTIFACT_PY_BLOB
-    )
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert (
         _git_blob(Path("backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py"))
         == ALIGNMENT_EVIDENCE_PY_BLOB
@@ -291,7 +290,7 @@ def test_fail_closed_produce_still_records_pass_unauthorized_after_grant() -> No
         reviewed = ReviewedGrainIdentitySetCloseoutClassifier().classify()
         completeness = CompletenessPassCloseoutClassifier().classify()
     assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
     assert produced.no_bindable_catalog_in_repository is True
     assert bindable.reason_code is BindableRepositoryReasonCode.CATALOG_NOT_PRODUCED

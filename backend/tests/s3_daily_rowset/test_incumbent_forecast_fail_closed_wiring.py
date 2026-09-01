@@ -23,6 +23,7 @@ from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
 )
 from backend.app.s3_daily_rowset.registry import CatalogSourceKind
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 LIVE_ENVELOPE_KIND = CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
 
@@ -43,22 +44,24 @@ def _replay_entry(
 
 
 def test_default_catalog_produce_remains_no_versioned() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
 
 def test_default_producer_and_adapter_do_not_claim_live_kind() -> None:
     producer = IncumbentForecastArtifactContentProducer()
-    adapter = IncumbentForecastArtifactAdapter()
+    with patch_handoff_disabled():
+        adapter = IncumbentForecastArtifactAdapter()
 
-    assert producer.produce() is None
-    assert producer.declared_catalog_source_kind == CatalogSourceKind.BOUND_FIXTURE
-    assert adapter.has_versioned_artifact() is False
-    assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
-    assert adapter.catalog_source_kind() != LIVE_ENVELOPE_KIND
+        assert producer.produce() is None
+        assert producer.declared_catalog_source_kind == CatalogSourceKind.BOUND_FIXTURE
+        assert adapter.has_versioned_artifact() is False
+        assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
+        assert adapter.catalog_source_kind() != LIVE_ENVELOPE_KIND
 
 
 def test_injected_adapter_artifact_wins_over_producer_replay_rows_and_obtain() -> None:
@@ -84,12 +87,13 @@ def test_adapter_without_injection_uses_producer_replay_rows_with_bound_fixture(
     producer = IncumbentForecastArtifactContentProducer(
         replay_rows=(_replay_entry(model_id="producer-model"),),
     )
-    adapter = IncumbentForecastArtifactAdapter(producer=producer)
+    with patch_handoff_disabled():
+        adapter = IncumbentForecastArtifactAdapter(producer=producer)
 
-    assert adapter.has_versioned_artifact() is True
-    assert adapter.entries()[0].model_id == "producer-model"
-    assert adapter.catalog_source_kind() == CatalogSourceKind.BOUND_FIXTURE
-    assert adapter.catalog_source_kind() != LIVE_ENVELOPE_KIND
+        assert adapter.has_versioned_artifact() is True
+        assert adapter.entries()[0].model_id == "producer-model"
+        assert adapter.catalog_source_kind() == CatalogSourceKind.BOUND_FIXTURE
+        assert adapter.catalog_source_kind() != LIVE_ENVELOPE_KIND
 
 
 def test_producer_uses_obtain_when_replay_rows_empty() -> None:
@@ -123,11 +127,12 @@ def test_empty_obtain_yields_none_produce_and_unbound_adapter() -> None:
     producer = IncumbentForecastArtifactContentProducer(
         replay_source=IncumbentForecastReplaySource(),
     )
-    adapter = IncumbentForecastArtifactAdapter(producer=producer)
+    with patch_handoff_disabled():
+        adapter = IncumbentForecastArtifactAdapter(producer=producer)
 
-    assert producer.produce() is None
-    assert adapter.has_versioned_artifact() is False
-    assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
+        assert producer.produce() is None
+        assert adapter.has_versioned_artifact() is False
+        assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
 
 
 def test_harvest_as_cutoff_returns_none_without_calling_obtain() -> None:
@@ -138,12 +143,13 @@ def test_harvest_as_cutoff_returns_none_without_calling_obtain() -> None:
         ),
         uses_harvest_date_as_forecast_cutoff=True,
     )
-    adapter = IncumbentForecastArtifactAdapter(producer=producer)
+    with patch_handoff_disabled():
+        adapter = IncumbentForecastArtifactAdapter(producer=producer)
 
-    assert producer.produce() is None
-    assert adapter.has_versioned_artifact() is False
-    assert adapter.entries() == ()
-    assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
+        assert producer.produce() is None
+        assert adapter.has_versioned_artifact() is False
+        assert adapter.entries() == ()
+        assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
 
 
 def test_obtain_with_live_declaration_assigns_live_envelope_not_by_default() -> None:

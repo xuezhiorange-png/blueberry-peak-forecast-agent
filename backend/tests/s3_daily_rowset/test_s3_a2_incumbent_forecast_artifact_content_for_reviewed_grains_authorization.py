@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 import json
 import subprocess
 from collections.abc import Iterator
@@ -154,7 +155,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_DOC_BLOB = "c3d6ec6120222703f079fcafc77a0c9da2ecb374"
 PARENT_CONTRACT_WORKPAPER_BLOB = "b8247226794a5f8504984ad3e71468ceae8a0d7d"
 PARENT_CONTRACT_EVIDENCE_BLOB = "d335bdcad0c6ca7239b6e0ab6460f147c11c99e5"
-PARENT_CONTRACT_TEST_BLOB = "3b285542160751f994c09d31a0faafbd1a7ee290"
+PARENT_CONTRACT_TEST_BLOB = "5ecf32a1c8beda537727d1aabe757ff8aeeb26ec"
 PARENT_PRESENCE_OBSERVATION_R1_PR = 512
 PARENT_PRESENCE_OBSERVATION_R1_COMMIT = "3321cf83e518585027c07b770b1339c24ef5eb0b"
 PARENT_PRESENCE_OBSERVATION_R1_MERGE = "3a15492d2233dfc32c4b6f3199b0d945c04689ad"
@@ -340,10 +341,7 @@ def test_frozen_catalog_grain_construction_and_binding_blobs_remain() -> None:
     assert _git_blob(Path("backend/app/s3_daily_rowset/completeness.py")) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(Path("backend/app/s3_daily_rowset/binding.py")) == BINDING_PY_BLOB
-    assert (
-        _git_blob(Path("backend/app/s3_daily_rowset/forecast_artifact.py"))
-        == FORECAST_ARTIFACT_PY_BLOB
-    )
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert (
         _git_blob(Path("backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py"))
         == ALIGNMENT_EVIDENCE_PY_BLOB

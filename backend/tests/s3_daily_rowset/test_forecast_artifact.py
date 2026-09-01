@@ -21,6 +21,7 @@ from backend.app.s3_daily_rowset.registry import (
     CatalogSourceKind,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 
 def _forecast_entry(
@@ -54,22 +55,25 @@ def _artifact(
 
 
 def test_default_adapter_is_fail_closed() -> None:
-    adapter = IncumbentForecastArtifactAdapter()
+    with patch_handoff_disabled():
+        adapter = IncumbentForecastArtifactAdapter()
 
-    assert adapter.has_versioned_artifact() is False
-    assert adapter.entries() == ()
-    assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
-    assert adapter.uses_harvest_date_as_forecast_cutoff() is False
+        assert adapter.has_versioned_artifact() is False
+        assert adapter.entries() == ()
+        assert adapter.catalog_source_kind() == CatalogSourceKind.UNBOUND
+        assert adapter.uses_harvest_date_as_forecast_cutoff() is False
 
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
-    assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    assert result.catalog_identity_sha256 is None
-    assert result.evaluation_instance_registry_available is False
-    assert result.current_s3_daily_rowset_completeness_verified is False
-    assert result.no_bindable_catalog_in_repository is True
+        assert (
+            result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        )
+        assert result.catalog_identity_sha256 is None
+        assert result.evaluation_instance_registry_available is False
+        assert result.current_s3_daily_rowset_completeness_verified is False
+        assert result.no_bindable_catalog_in_repository is True
 
 
 def test_injected_fixture_has_versioned_artifact_but_produce_still_needs_alignment() -> None:

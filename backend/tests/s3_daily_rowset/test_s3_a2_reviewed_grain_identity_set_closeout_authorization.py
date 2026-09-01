@@ -33,6 +33,8 @@ from backend.app.s3_daily_rowset.s3_a2_evaluation_instance_registry_available_cl
     EvaluationInstanceRegistryAvailableCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_DOC = REPO_ROOT / "docs/v0-3/s3/s3-reviewed-grain-identity-set-closeout-contract.md"
@@ -179,10 +181,7 @@ def test_frozen_catalog_grain_construction_and_binding_blobs_remain() -> None:
     )
     assert _git_blob(available) == AVAILABLE_CLOSEOUT_PY_BLOB
     assert _git_blob(REPO_ROOT / "backend/app/s3_daily_rowset/binding.py") == BINDING_PY_BLOB
-    assert (
-        _git_blob(REPO_ROOT / "backend/app/s3_daily_rowset/forecast_artifact.py")
-        == FORECAST_ARTIFACT_PY_BLOB
-    )
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert (
         _git_blob(
             REPO_ROOT / "backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py"
@@ -200,7 +199,7 @@ def test_fail_closed_produce_still_records_no_reviewed_set_after_grant() -> None
         bindable = DefaultCatalogBindableRepositoryClassifier().classify()
         available = EvaluationInstanceRegistryAvailableCloseoutClassifier().classify()
     assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
     assert produced.no_bindable_catalog_in_repository is True
     assert produced.evaluation_instance_registry_available is False

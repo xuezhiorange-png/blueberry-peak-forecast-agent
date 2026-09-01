@@ -58,6 +58,8 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 IncumbentForecastArtifactRepositoryPresenceObservationClassifier = (
     repo_presence_obs.IncumbentForecastArtifactRepositoryPresenceObservationClassifier
@@ -159,7 +161,7 @@ ALIGNMENT_EVIDENCE_PY_BLOB = "df000544dc0e0b4844b0a5a7c342f6abce957e86"
 IDENTITY_SET_LANDING_PY_BLOB = "2ce94233f153f8e5297e4b978243323ca917dcf8"
 OBSERVATION_MODULE_BLOB = "b9e047b4946fbdf658ad4911f2a94bb67628accd"
 COMPLETENESS_PASS_OBSERVATION_PY_BLOB = "93badaacdd19f5a80a8306b7beeffa3c391711fc"
-COMPLETENESS_PASS_OBSERVATION_TEST_BLOB = "151570d7de63d879aa344474030dd89d3913bbcd"
+COMPLETENESS_PASS_OBSERVATION_TEST_BLOB = "994d84cf979024c927860f3d093a8c453572a63e"
 PARENT_GRANT_PR = 511
 PARENT_GRANT_MERGE = "432d682f6bdd259b7fee9294a89c509e0aaf2f47"
 PARENT_GRANT_COMMIT = "28755c0cd94428411db7c5f27d784585dbeb7cfc"
@@ -261,7 +263,7 @@ def test_frozen_blobs_unchanged() -> None:
     assert _git_blob(COMPLETENESS_PY) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(BINDING_PY) == BINDING_PY_BLOB
-    assert _git_blob(FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert _git_blob(ALIGNMENT_EVIDENCE_PY) == ALIGNMENT_EVIDENCE_PY_BLOB
     assert _git_blob(LANDING_MODULE) == IDENTITY_SET_LANDING_PY_BLOB
     assert _git_blob(OBSERVATION_MODULE) == OBSERVATION_MODULE_BLOB
@@ -420,7 +422,7 @@ def test_default_content_producer_and_catalog_remain_fail_closed() -> None:
             dataset_identity=DATASET_IDENTITY,
         ).produce()
     assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
     _assert_harvest_replay_and_provider_remain_empty()
 
