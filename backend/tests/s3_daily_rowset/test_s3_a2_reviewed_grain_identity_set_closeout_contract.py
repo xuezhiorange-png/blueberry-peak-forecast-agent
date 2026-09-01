@@ -31,7 +31,9 @@ from backend.app.s3_daily_rowset.s3_a2_evaluation_instance_registry_available_cl
     EvaluationInstanceRegistryAvailableCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"

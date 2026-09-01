@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 import json
 import subprocess
 import sys
@@ -33,6 +32,9 @@ from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
 from backend.app.s3_daily_rowset.s3_a2_default_catalog_bindable_repository import (
     BindableRepositoryReasonCode,
     DefaultCatalogBindableRepositoryClassifier,
+)
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
 )
 from backend.tests.s3_daily_rowset.test_s3_a2_live_catalog_execution import (
     TEST_CATALOG_ARTIFACT_PY_BLOB,

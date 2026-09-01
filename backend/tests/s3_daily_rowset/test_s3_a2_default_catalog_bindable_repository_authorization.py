@@ -25,7 +25,6 @@ from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
     S2IdentityAlignmentHarvestSource,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
-from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_DOC = REPO_ROOT / "docs/v0-3/s3/s3-default-catalog-bindable-repository-contract.md"

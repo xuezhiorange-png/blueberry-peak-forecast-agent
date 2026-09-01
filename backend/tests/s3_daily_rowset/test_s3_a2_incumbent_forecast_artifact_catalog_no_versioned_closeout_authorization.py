@@ -55,8 +55,10 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
-from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 IncumbentForecastArtifactNoVersionedFlipClassifier = (
     no_versioned_flip.IncumbentForecastArtifactNoVersionedFlipClassifier
@@ -201,7 +203,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_DOC_BLOB = "2b268fd7da00219f9a73441201468386dd7c2fcd"
 PARENT_CONTRACT_WORKPAPER_BLOB = "04f276768b08cae608823f199d7ea4ad43c75794"
 PARENT_CONTRACT_EVIDENCE_BLOB = "3f2525db89f56b5e5175788204724b3d51fb79d5"
-PARENT_CONTRACT_TEST_BLOB = "ce1e8bc7a505a1c5f451a3f6ec31d2463869c6f7"
+PARENT_CONTRACT_TEST_BLOB = "2638c4c414ca48b64c437d303b67cb455f05533f"
 PARENT_NO_VERSIONED_FLIP_R1_PR = 521
 PARENT_NO_VERSIONED_FLIP_R1_COMMIT = "98ebd8d2497930614f4591d689e5fb33d8484195"
 PARENT_NO_VERSIONED_FLIP_R1_MERGE = "184b3536d7b792f92e944f1d60195156c7289e84"
