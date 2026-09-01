@@ -55,6 +55,7 @@ from backend.app.s3_daily_rowset.s3_a2_default_catalog_forecast_port_envelope_ha
     deterministic_coordinator_reviewed_grains_forecast_artifact,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 HANDOFF_MODULE = Path(
     "backend/app/s3_daily_rowset/s3_a2_default_catalog_forecast_port_envelope_handoff.py"
@@ -189,19 +190,42 @@ def test_handoff_produces_expected_content_identity() -> None:
     assert produced.uses_harvest_date_as_forecast_cutoff is False
 
 
-def test_bare_default_catalog_produce_succeeds_without_forecast_port_injection() -> None:
+def test_bare_default_forecast_handoff_resolves_without_injection() -> None:
     _assert_harvest_replay_and_provider_remain_empty()
-    first = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
-    second = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
-    assert first.reason_code is CatalogArtifactReasonCode.ARTIFACT_PRODUCED
-    assert second.reason_code is CatalogArtifactReasonCode.ARTIFACT_PRODUCED
-    assert first.catalog_identity_sha256 == second.catalog_identity_sha256
-    assert first.catalog_identity_sha256 == IN_MEMORY_CATALOG_IDENTITY_SHA256
-    assert len(first.catalog.entries()) == IN_MEMORY_CATALOG_ENTRY_COUNT
+    adapter = IncumbentForecastArtifactAdapter()
+    handoff = deterministic_coordinator_reviewed_grains_forecast_artifact()
+    assert adapter.has_versioned_artifact() is True
+    assert handoff is not None
+    assert handoff.content_identity_sha256 == CONTENT_IDENTITY_SHA256
+    assert len(handoff.rows) == 3
+    assert (
+        adapter.catalog_source_kind()
+        == CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+    )
+    _assert_harvest_replay_and_provider_remain_empty()
+    assert load_reviewed_grain_identity_set() == ()
+
+
+def test_bare_default_catalog_produce_progresses_past_no_versioned_without_injection() -> None:
+    _assert_harvest_replay_and_provider_remain_empty()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        first = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
+        second = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
+    assert (
+        first.reason_code is not CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+    )
+    assert (
+        second.reason_code
+        is not CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+    )
+    assert first.reason_code is CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
+    assert second.reason_code is CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
+    assert first.catalog_identity_sha256 is None
+    assert second.catalog_identity_sha256 is None
     _assert_harvest_replay_and_provider_remain_empty()
     assert load_reviewed_grain_identity_set() == ()
 
@@ -213,6 +237,25 @@ def test_handoff_forecast_artifact_content_determinism() -> None:
     assert second is not None
     assert first.content_identity_sha256 == second.content_identity_sha256
     assert first.content_identity_sha256 == CONTENT_IDENTITY_SHA256
+
+
+def test_handoff_wins_over_configured_producer() -> None:
+    producer = IncumbentForecastArtifactContentProducer(
+        replay_rows=(
+            IncumbentForecastArtifactEntry(
+                model_id="producer-should-not-win",
+                forecast_cutoff_at=load_coordinator_reviewed_live_origin_grain_identity_set()
+                .members[0]
+                .forecast_cutoff_at,
+                forecast_quantile="P50",
+            ),
+        ),
+    )
+    adapter = IncumbentForecastArtifactAdapter(producer=producer)
+    resolved = adapter._resolved_artifact()
+    assert resolved is not None
+    assert resolved.content_identity_sha256 == CONTENT_IDENTITY_SHA256
+    assert adapter.entries()[0].model_id == REVIEW_MODEL_ID
 
 
 def test_explicit_artifact_injection_precedence_preserved() -> None:
@@ -385,8 +428,10 @@ def test_r1_docs_avoid_forbidden_tokens() -> None:
         assert token.lower() not in lowered, token
     workpaper = R1_WORKPAPER.read_text(encoding="utf-8")
     assert "USER_GATE=可以实施" in workpaper
-    assert "USER_GATE_RECEIVED_DURING_DRAFT_REVIEW_CORRECTION=true" in workpaper
+    assert "EXPLICIT_IMPLEMENTATION_REMEDIATION_GATE_RECEIVED=true" in workpaper
     assert "ORIGINAL_DRAFT_PRECEDED_EXPLICIT_GATE=true" in workpaper
+    assert "EXPLICIT_GATE_RECEIVED_AFTER_READ_ONLY_REMEDIATION_ANALYSIS=true" in workpaper
+    assert "CURRENT_REMEDIATION_AND_VALIDATION_AUTHORIZED=true" in workpaper
     assert "NO_RETROACTIVE_AUTHORIZATION_CLAIM=true" in workpaper
     assert "User said 「可以实施」" not in workpaper
     assert "IMPLEMENTATION_R1=true" in workpaper
@@ -416,6 +461,7 @@ def test_parent_grant_pins_remain() -> None:
     assert r1["flags"]["UNIQUE_REMAINING_GAP_CLOSED"] is True
     assert r1["flags"]["BARE_DEFAULT_CATALOG_REASON"] == "ARTIFACT_PRODUCED"
     assert r1["authorization_chronology"]["no_retroactive_authorization_claim"] is True
+    assert r1["authorization_chronology"]["explicit_implementation_gate_received_after_read_only_remediation_analysis"] is True
     assert r1["authorization_chronology"]["current_correction_and_validation_authorized"] is True
     assert r1["review"]["content_identity_sha256"] == CONTENT_IDENTITY_SHA256
     assert r1["review"]["review_evidence_digest_sha256"] == REVIEW_EVIDENCE_DIGEST_SHA256

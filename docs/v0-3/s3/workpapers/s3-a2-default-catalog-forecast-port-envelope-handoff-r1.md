@@ -11,13 +11,13 @@ AUTHORIZATION_SCOPE=S3_A2_DEFAULT_CATALOG_FORECAST_PORT_ENVELOPE_HANDOFF_IMPLEME
 SLICE=V0.3-S3
 ENGLISH_ID=DEFAULT_CATALOG_FORECAST_PORT_ENVELOPE_HANDOFF
 USER_GATE=可以实施
-USER_GATE_RECEIVED_DURING_DRAFT_REVIEW_CORRECTION=true
+EXPLICIT_IMPLEMENTATION_REMEDIATION_GATE_RECEIVED=true
 ORIGINAL_DRAFT_PRECEDED_EXPLICIT_GATE=true
-CURRENT_CORRECTION_AND_VALIDATION_AUTHORIZED=true
-R1_DRAFT_EXISTED_BEFORE_EXPLICIT_IMPLEMENTATION_GATE=true
-EXPLICIT_IMPLEMENTATION_GATE_RECEIVED_AFTER_DRAFT_CREATION=true
-EXPLICIT_IMPLEMENTATION_GATE_APPLIES_PROSPECTIVELY_TO_R1_CORRECTION_AND_VALIDATION=true
+EXPLICIT_GATE_RECEIVED_AFTER_DRAFT_CREATION=true
+EXPLICIT_GATE_RECEIVED_AFTER_READ_ONLY_REMEDIATION_ANALYSIS=true
+AUTHORIZATION_APPLIES_PROSPECTIVELY_TO_REMEDIATION_AND_VALIDATION=true
 NO_RETROACTIVE_AUTHORIZATION_CLAIM=true
+CURRENT_REMEDIATION_AND_VALIDATION_AUTHORIZED=true
 REVIEWER_ROLE=COORDINATOR
 BASE_REF=origin/main
 BASE_MAIN_SHA=916725cd2f2bd6992acf94829d9c9c293866db6f
@@ -34,7 +34,7 @@ HANDOFF_PY_BLOB=a057802f598aada08e26aed35fb4ad76b4f8c4ce
 FORECAST_ARTIFACT_PY_BLOB=49938d7107728987439a0a751a1273b73e0022e7
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-default-catalog-forecast-port-envelope-handoff-r1.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-default-catalog-forecast-port-envelope-handoff-r1.json
-EVIDENCE_JSON_SHA256=cda891151d044668e09b2992f9dbe67aabf8da562300f834c097dd0f46f40814
+EVIDENCE_JSON_SHA256=2dd029a946817e0272a2dc352a4181ad9d0cc64a6d96f5ffad3326450b03b94c
 NO_STEP_IMPLIES_THE_NEXT=true
 THIS_DRAFT_IS_NOT_READY=true
 THIS_PR_IS_NOT_A_GRANT=true
@@ -42,10 +42,11 @@ THIS_PR_IS_NOT_A_NEW_CONTRACT=true
 IMPLEMENTATION_R1=true
 ~~~
 
-Grant merge #526 is on main. Draft PR #527 preceded the explicit implementation
-gate. During draft review correction the coordinator supplied 「可以实施」, which
-authorizes R1 correction and validation prospectively only; it does not
-retroactively authorize the original pre-gate draft commit. This R1 lands one canonical
+During draft review correction the coordinator supplied 「可以实施」 after the
+original Draft PR #527, after correction commit 07c2a379, after R1 review BLOCKED,
+and after read-only remediation analysis. That gate authorizes R1 remediation
+implementation and validation prospectively only; it does not retroactively
+authorize the original pre-gate draft commit. This R1 lands one canonical
 deterministic handoff from the coordinator-reviewed three-member identity set
 into bare `IncumbentForecastArtifactAdapter._resolved_artifact()` before replay
 obtain and session-backed live-origin fallback. Bare

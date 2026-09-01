@@ -23,6 +23,7 @@ from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
     S2IdentityAlignmentHarvestSource,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -119,7 +120,7 @@ def test_fail_closed_produce_still_records_no_bindable_catalog() -> None:
         result = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+    assert result.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert result.no_bindable_catalog_in_repository is True
     assert result.evaluation_instance_registry_available is False
     assert result.current_s3_daily_rowset_completeness_verified is False

@@ -50,6 +50,7 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 IncumbentForecastArtifactContentForReviewedGrainsClassifier = (
     content_for_reviewed.IncumbentForecastArtifactContentForReviewedGrainsClassifier
@@ -180,7 +181,7 @@ PARENT_CONTENT_R1_EVIDENCE_JSON_SHA256 = (
 )
 PARENT_CONTENT_R1_WORKPAPER_BLOB = "3994a27c6ad0f7b523e4449eab8da78187b15991"
 PARENT_CONTENT_R1_EVIDENCE_BLOB = "56f72e9dd9827a8c0d0d59d2bd5aec8dcd59191f"
-PARENT_CONTENT_R1_TEST_BLOB = "d3e9b86f250e9101f3cec0c86a7896d290c4cb33"
+PARENT_CONTENT_R1_TEST_BLOB = "adfa26767de3f7b796bdceaab6e33cadb9e28d16"
 PARENT_CONTENT_GRANT_PR = 514
 PARENT_CONTENT_GRANT_COMMIT = "9d3b2b7a08f5f658b69059a982268793cc2de7f3"
 PARENT_CONTENT_GRANT_MERGE = "60e83b82632bdf73649634abb62e40d4854d5e82"
@@ -189,14 +190,14 @@ PARENT_CONTENT_GRANT_EVIDENCE_JSON_SHA256 = (
 )
 PARENT_CONTENT_GRANT_WORKPAPER_BLOB = "234af626036d56c078ed98f27e8609cd384c57f5"
 PARENT_CONTENT_GRANT_EVIDENCE_BLOB = "49e8f93814904f0bd37d1fb4972e4207206536ce"
-PARENT_CONTENT_GRANT_TEST_BLOB = "357ae09fcc359638349cc5dec65cdcd470b8dfc1"
+PARENT_CONTENT_GRANT_TEST_BLOB = "e7d0b185bae047e52354533a8effd01e7129e8a6"
 PARENT_CONTENT_CONTRACT_PR = 513
 PARENT_CONTENT_CONTRACT_COMMIT = "b6d262bca7654566523f88030281a038c261f5b5"
 PARENT_CONTENT_CONTRACT_MERGE = "41c09ab148390cfd8ee97eff7b051a7e241f19af"
 PARENT_CONTENT_CONTRACT_DOC_BLOB = "c3d6ec6120222703f079fcafc77a0c9da2ecb374"
 PARENT_CONTENT_CONTRACT_WORKPAPER_BLOB = "b8247226794a5f8504984ad3e71468ceae8a0d7d"
 PARENT_CONTENT_CONTRACT_EVIDENCE_BLOB = "d335bdcad0c6ca7239b6e0ab6460f147c11c99e5"
-PARENT_CONTENT_CONTRACT_TEST_BLOB = "3b285542160751f994c09d31a0faafbd1a7ee290"
+PARENT_CONTENT_CONTRACT_TEST_BLOB = "5ecf32a1c8beda537727d1aabe757ff8aeeb26ec"
 PARENT_CONTENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
     "911514b072a0f938e9c3aa382cd117220f8e18acf77d1c2b3ee516807390856b"
 )
@@ -317,9 +318,7 @@ def test_frozen_blobs_and_parent_packages_unchanged() -> None:
     assert _git_blob(REVIEWED_MODULE) == REVIEWED_SET_CLOSEOUT_PY_BLOB
     assert _git_blob(Path("backend/app/s3_daily_rowset/completeness.py")) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
-    assert _git_blob(Path("backend/app/s3_daily_rowset/forecast_artifact.py")) == (
-        FORECAST_ARTIFACT_PY_BLOB
-    )
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert (
         _git_blob(Path("backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py"))
         == ALIGNMENT_EVIDENCE_PY_BLOB
@@ -427,7 +426,7 @@ def test_default_catalog_remain_fail_closed_after_classify() -> None:
             dataset_identity=DATASET_IDENTITY,
         ).produce()
     assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
 
 

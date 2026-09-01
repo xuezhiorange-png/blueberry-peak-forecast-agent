@@ -64,6 +64,8 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 IncumbentForecastArtifactCatalogNoVersionedCloseoutClassifier = (
     catalog_closeout.IncumbentForecastArtifactCatalogNoVersionedCloseoutClassifier
@@ -197,11 +199,11 @@ INDEPENDENT_REVIEW_PY_BLOB = "8e75e3e1048db57c6f5cdb09bf32e0ca61218caa"
 NO_VERSIONED_FLIP_PY_BLOB = "02c4bb0690b351fdd2c67df9a09c301fc0d11fe7"
 PARENT_GRANT_WORKPAPER_BLOB = "699b5a05d4068b4413103bdd7d7a7327a287e5fc"
 PARENT_GRANT_EVIDENCE_BLOB = "ff05306aea8974bad1e67f2d4be8db9940b1848d"
-PARENT_GRANT_TEST_BLOB = "a3398eb823a2ae4f8537eddf91f3a670145fb12c"
+PARENT_GRANT_TEST_BLOB = "3b87d461c494078796324000e59101bdc47813cc"
 PARENT_CONTRACT_DOC_BLOB = "2b268fd7da00219f9a73441201468386dd7c2fcd"
 PARENT_CONTRACT_WORKPAPER_BLOB = "04f276768b08cae608823f199d7ea4ad43c75794"
 PARENT_CONTRACT_EVIDENCE_BLOB = "3f2525db89f56b5e5175788204724b3d51fb79d5"
-PARENT_CONTRACT_TEST_BLOB = "961e023ec9edb2bde97c24c65e2a64c1396d26f9"
+PARENT_CONTRACT_TEST_BLOB = "ce1e8bc7a505a1c5f451a3f6ec31d2463869c6f7"
 PARENT_NO_VERSIONED_FLIP_R1_WORKPAPER_BLOB = "9b3baab60d424e44b719275f28222eec825c7e91"
 PARENT_NO_VERSIONED_FLIP_R1_EVIDENCE_BLOB = "8ab48f3f17db039004438e0d8e5a7372e2ee68b9"
 PARENT_INDEPENDENT_REVIEW_R1_WORKPAPER_BLOB = "4c48d14fc6321313809f43505cd40812dc3ea320"
@@ -318,7 +320,7 @@ def test_frozen_blobs_unchanged() -> None:
     assert _git_blob(COMPLETENESS_PY) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(BINDING_PY) == BINDING_PY_BLOB
-    assert _git_blob(FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert _git_blob(ALIGNMENT_EVIDENCE_PY) == ALIGNMENT_EVIDENCE_PY_BLOB
     assert _git_blob(LANDING_MODULE) == IDENTITY_SET_LANDING_PY_BLOB
     assert _git_blob(OBSERVATION_MODULE) == OBSERVATION_MODULE_BLOB
@@ -368,7 +370,7 @@ def test_classify_records_catalog_no_versioned_closeout_on_parent_success() -> N
     _assert_harvest_replay_and_provider_remain_empty()
     parent_flip = IncumbentForecastArtifactNoVersionedFlipClassifier().classify()
     assert parent_flip.no_versioned_incumbent_forecast_artifact_in_repository is False
-    with patch("backend.app.db.session.AsyncSessionMaker", None):
+    with patch_handoff_disabled(), patch("backend.app.db.session.AsyncSessionMaker", None):
         result = IncumbentForecastArtifactCatalogNoVersionedCloseoutClassifier().classify()
     assert result.reason_code is (
         IncumbentForecastArtifactCatalogNoVersionedCloseoutReasonCode.CATALOG_NO_VERSIONED_CLOSEOUT_RECORDED
@@ -531,13 +533,14 @@ def test_frozen_independent_review_still_reports_no_versioned_true_after_closeou
 
 
 def test_catalog_produce_still_fail_closes_no_versioned_after_closeout() -> None:
-    with patch("backend.app.db.session.AsyncSessionMaker", None):
+    with patch_handoff_disabled(), patch("backend.app.db.session.AsyncSessionMaker", None):
         IncumbentForecastArtifactCatalogNoVersionedCloseoutClassifier().classify()
         produced = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
     assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        produced.reason_code
+        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     )
 
 

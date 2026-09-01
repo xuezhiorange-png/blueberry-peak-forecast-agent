@@ -53,6 +53,8 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import assert_forecast_artifact_py_historical_blob_pinned
 
 IncumbentForecastArtifactPresencePackageIndependentReviewClassifier = (
     independent_review.IncumbentForecastArtifactPresencePackageIndependentReviewClassifier
@@ -183,7 +185,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_DOC_BLOB = "a8f4b023aac34bd71db97df1b52de70ad8ac7229"
 PARENT_CONTRACT_WORKPAPER_BLOB = "b326226037fedab3a9620b456a88482178163c6e"
 PARENT_CONTRACT_EVIDENCE_BLOB = "c3d359e0472e7f5260cd10ba1f2da3ac7a0bc58d"
-PARENT_CONTRACT_TEST_BLOB = "8b268a07c8ade004d19571326dff41797a3ae301"
+PARENT_CONTRACT_TEST_BLOB = "feb33e9712fae0d6f6b29558dae7ee5f65822179"
 PARENT_INDEPENDENT_REVIEW_R1_PR = 518
 PARENT_INDEPENDENT_REVIEW_R1_COMMIT = "906ec9f0763d71e4a0c51e030c1b770915764477"
 PARENT_INDEPENDENT_REVIEW_R1_MERGE = "89b79325a791bcb301dd185048076bda9ce58bcb"
@@ -413,10 +415,7 @@ def test_frozen_catalog_grain_construction_and_binding_blobs_remain() -> None:
     assert _git_blob(Path("backend/app/s3_daily_rowset/completeness.py")) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(Path("backend/app/s3_daily_rowset/binding.py")) == BINDING_PY_BLOB
-    assert (
-        _git_blob(Path("backend/app/s3_daily_rowset/forecast_artifact.py"))
-        == FORECAST_ARTIFACT_PY_BLOB
-    )
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert (
         _git_blob(Path("backend/app/s3_daily_rowset/accepted_s2_identity_alignment_evidence.py"))
         == ALIGNMENT_EVIDENCE_PY_BLOB
@@ -511,7 +510,7 @@ def test_frozen_closeouts_still_unauthorized_after_grant() -> None:
 
 def test_catalog_produce_still_fail_closes_no_versioned_after_grant() -> None:
     IncumbentForecastArtifactPresencePackageIndependentReviewClassifier().classify()
-    with patch("backend.app.db.session.AsyncSessionMaker", None):
+    with patch_handoff_disabled(), patch("backend.app.db.session.AsyncSessionMaker", None):
         produced = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()

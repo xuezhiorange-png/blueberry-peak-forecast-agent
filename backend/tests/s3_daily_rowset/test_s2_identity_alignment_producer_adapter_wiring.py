@@ -23,6 +23,7 @@ from backend.app.s3_daily_rowset.registry import (
 )
 from backend.app.s3_daily_rowset.s2_identity_alignment import S2IdentityAlignmentAdapter
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 
 def _forecast_entry(
@@ -139,7 +140,8 @@ def test_default_wiring_produces_adapter_with_none_evidence() -> None:
 
 
 def test_default_catalog_produce_first_blocker_remains_no_versioned() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
 

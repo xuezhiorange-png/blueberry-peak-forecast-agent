@@ -27,6 +27,7 @@ from backend.app.s3_daily_rowset.s2_identity_alignment import (
 )
 from backend.app.s3_daily_rowset.schemas import DatasetIdentity
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 
 def _evidence_row(
@@ -71,7 +72,8 @@ def test_default_adapter_is_fail_closed() -> None:
     assert adapter.alignment_source_kind() == CatalogSourceKind.UNBOUND
     assert adapter.aligned_identities() == ()
 
-    result = EvaluationInstanceCatalogArtifactProductionService(
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
 

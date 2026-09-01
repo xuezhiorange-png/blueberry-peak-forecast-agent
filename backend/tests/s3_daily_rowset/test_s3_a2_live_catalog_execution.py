@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 import asyncio
 import json
 import subprocess
@@ -310,7 +311,7 @@ def test_injected_actuals_produce_catalog_without_wiring_default_obtain() -> Non
     assert envelope.default_harvest_obtain_empty is True
     assert (
         envelope.default_catalog_first_blocker
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT.value
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT.value
     )
     assert envelope.default_session_provider_left_unset is True
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
@@ -322,7 +323,7 @@ def test_injected_actuals_produce_catalog_without_wiring_default_obtain() -> Non
         ).produce()
     assert (
         default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
     clear_v0_2_live_postgres_session_provider()
 
@@ -375,7 +376,7 @@ def test_patched_session_maker_produces_catalog_from_in_season_partitions(
         ).produce()
     assert (
         default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
 
 

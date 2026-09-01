@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 import ast
 import subprocess
 from datetime import date
@@ -63,7 +64,8 @@ def test_default_producer_produce_returns_none() -> None:
 
 
 def test_default_catalog_produce_first_blocker_is_no_versioned_forecast() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
 
@@ -152,7 +154,7 @@ def test_synthetic_injection_does_not_claim_live_repository_facts() -> None:
     ).produce()
     assert (
         catalog_result.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     )
 
 
