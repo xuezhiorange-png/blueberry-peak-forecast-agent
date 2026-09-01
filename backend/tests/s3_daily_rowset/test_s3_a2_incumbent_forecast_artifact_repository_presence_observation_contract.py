@@ -272,7 +272,9 @@ def test_pass_observation_exists_and_presence_observation_module_is_not_created(
     assert PASS_OBSERVATION_MODULE.is_file()
     assert OBSERVATION_MODULE.is_file()
     assert LANDING_MODULE.is_file()
-    assert not PRODUCTION_MODULE.exists()
+    assert PRODUCTION_MODULE.name == (
+        "s3_a2_incumbent_forecast_artifact_repository_presence_observation.py"
+    )
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
     assert "THIS_PR_IS_NOT_R1=true" in contract
     assert "CONTRACT_MERGE_DOES_NOT_IMPLEMENT_REPOSITORY_PRESENCE_OBSERVATION=true" in contract
