@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -89,6 +90,35 @@ def horizon_dates(
         dates.append(current)
         current = current.fromordinal(current.toordinal() + 1)
     return tuple(dates)
+
+
+@pytest.fixture(autouse=True)
+def _reset_default_catalog_live_origin_construction_cache() -> Iterator[None]:
+    """Drop the id()-keyed live-origin construction cache between tests.
+
+    Default catalog construction remembers the last successful bundle by
+    ``id(AsyncSessionMaker)``. CPython reuses those ids after GC, so a later
+    fail-closed produce() can see a previous test's landed origin and report
+    ARTIFACT_PRODUCED instead of NO_VERSIONED.
+    """
+    from backend.app.s3_daily_rowset import (
+        s3_a2_default_catalog_live_origin_construction as construction,
+    )
+    from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_live_postgres_read import (
+        clear_v0_2_live_postgres_session_provider,
+    )
+
+    construction._cached_maker_id = construction._CACHE_MISS
+    construction._cached_bundle = None
+    construction._nested_load = False
+    construction._nested_bundle = None
+    clear_v0_2_live_postgres_session_provider()
+    yield
+    construction._cached_maker_id = construction._CACHE_MISS
+    construction._cached_bundle = None
+    construction._nested_load = False
+    construction._nested_bundle = None
+    clear_v0_2_live_postgres_session_provider()
 
 
 @pytest.fixture
