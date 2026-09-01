@@ -402,19 +402,23 @@ def test_frozen_closeouts_still_report_unauthorized_after_observation() -> None:
 def test_frozen_presence_r1_still_reports_fail_closed_no_reviewed_set() -> None:
     IncumbentForecastArtifactRepositoryPresenceObservationClassifier().classify()
     presence_r1_workpaper = PRESENCE_R1_WORKPAPER.read_text(encoding="utf-8")
-    presence_r1_evidence = PRESENCE_R1_EVIDENCE.read_text(encoding="utf-8")
+    presence_r1_payload = json.loads(PRESENCE_R1_EVIDENCE.read_text(encoding="utf-8"))
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true" in presence_r1_workpaper
-    assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=true" in presence_r1_evidence
+    implementation = presence_r1_payload["implementation"]
+    authorization = presence_r1_payload["authorization"]
+    assert implementation["no_reviewed_grain_identity_set_in_repository"] is True
+    assert authorization["no_reviewed_grain_identity_set_in_repository"] is True
     assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" not in presence_r1_workpaper
-    assert "NO_REVIEWED_GRAIN_IDENTITY_SET_IN_REPOSITORY=false" not in presence_r1_evidence
 
 
 def test_default_content_producer_and_catalog_remain_fail_closed() -> None:
     IncumbentForecastArtifactRepositoryPresenceObservationClassifier().classify()
+    clear_v0_2_live_postgres_session_provider()
     assert IncumbentForecastArtifactContentProducer().produce() is None
-    produced = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch("backend.app.db.session.AsyncSessionMaker", None):
+        produced = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
     assert (
         produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     )
