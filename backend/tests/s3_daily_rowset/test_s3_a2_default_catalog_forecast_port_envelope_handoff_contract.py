@@ -26,9 +26,7 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
 
-CONTRACT_PATH = Path(
-    "docs/v0-3/s3/s3-default-catalog-forecast-port-envelope-handoff-contract.md"
-)
+CONTRACT_PATH = Path("docs/v0-3/s3/s3-default-catalog-forecast-port-envelope-handoff-contract.md")
 WORKPAPER_PATH = Path(
     "docs/v0-3/s3/workpapers/s3-a2-default-catalog-forecast-port-envelope-handoff-contract.md"
 )
@@ -131,9 +129,7 @@ def test_contract_package_is_docs_only() -> None:
     assert CONTRACT_PATH.is_file()
     assert WORKPAPER_PATH.is_file()
     assert EVIDENCE_PATH.is_file()
-    assert (
-        PRODUCTION_MODULE.name == "s3_a2_default_catalog_forecast_port_envelope_handoff.py"
-    )
+    assert PRODUCTION_MODULE.name == "s3_a2_default_catalog_forecast_port_envelope_handoff.py"
     assert not PRODUCTION_MODULE.exists()
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
@@ -216,8 +212,7 @@ def test_parent_catalog_closeout_r1_pins() -> None:
     payload = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
     parent = payload["parent_catalog_no_versioned_closeout_r1"]
     assert (
-        parent["parent_catalog_no_versioned_closeout_r1_merge"]
-        == PARENT_CATALOG_CLOSEOUT_R1_MERGE
+        parent["parent_catalog_no_versioned_closeout_r1_merge"] == PARENT_CATALOG_CLOSEOUT_R1_MERGE
     )
     assert (
         parent["parent_catalog_no_versioned_closeout_r1_commit"]
