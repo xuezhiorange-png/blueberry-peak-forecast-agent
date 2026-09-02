@@ -11,6 +11,20 @@ from backend.app.rolling_backtest.canonical import sha256_payload
 CONTRACT_PATH = Path(
     "docs/v0-3/s3/s3-default-catalog-live-bindability-and-registry-availability-contract.md"
 )
+PARENT_CONTRACT_PATH = CONTRACT_PATH
+PARENT_CONTRACT_WORKPAPER_PATH = Path(
+    "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-contract.md"
+)
+PARENT_CONTRACT_EVIDENCE_PATH = Path(
+    "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-bindability-and-registry-availability-contract.json"
+)
+PARENT_CONTRACT_TEST_PATH = Path(
+    "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_bindability_and_registry_availability_contract.py"
+)
+PARENT_CONTRACT_DOC_BLOB = "5984b1cd5284127c7ae66269ddc32f04183daa49"
+PARENT_CONTRACT_WORKPAPER_BLOB = "87c7431a07515d76f8efc73c2996448b0774751e"
+PARENT_CONTRACT_EVIDENCE_BLOB = "f6279a1b9b17c796bd53c29b9e9735ebd6fc9aa3"
+PARENT_CONTRACT_TEST_BLOB = "f8f3548a6db2e01dacdeb850eee8e59a10aeccd4"
 GRANT_WORKPAPER = Path(
     "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-authorization.md"
 )
@@ -236,16 +250,15 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
 
 
 def test_parent_contract_exists_on_audited_base() -> None:
-    payload = json.loads(
-        Path(
-            "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-bindability-and-registry-availability-contract.json"
-        ).read_text(encoding="utf-8")
-    )
+    assert PARENT_CONTRACT_PATH.is_file()
+    assert PARENT_CONTRACT_WORKPAPER_PATH.is_file()
+    assert PARENT_CONTRACT_EVIDENCE_PATH.is_file()
+    assert PARENT_CONTRACT_TEST_PATH.is_file()
+    assert _git_blob(PARENT_CONTRACT_PATH) == PARENT_CONTRACT_DOC_BLOB
+    assert _git_blob(PARENT_CONTRACT_WORKPAPER_PATH) == PARENT_CONTRACT_WORKPAPER_BLOB
+    assert _git_blob(PARENT_CONTRACT_EVIDENCE_PATH) == PARENT_CONTRACT_EVIDENCE_BLOB
+    assert _git_blob(PARENT_CONTRACT_TEST_PATH) == PARENT_CONTRACT_TEST_BLOB
+    payload = json.loads(PARENT_CONTRACT_EVIDENCE_PATH.read_text(encoding="utf-8"))
     assert payload["evidence_json_sha256"] == PARENT_CONTRACT_EVIDENCE_JSON_SHA256
-    assert (
-        subprocess.run(
-            ["git", "cat-file", "-e", f"{PARENT_CONTRACT_MERGE}:{CONTRACT_PATH.as_posix()}"],
-            capture_output=True,
-        ).returncode
-        == 0
-    )
+    stripped = {key: value for key, value in payload.items() if key != "evidence_json_sha256"}
+    assert sha256_payload(stripped) == PARENT_CONTRACT_EVIDENCE_JSON_SHA256
