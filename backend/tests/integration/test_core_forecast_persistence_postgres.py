@@ -1553,6 +1553,9 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     from backend.app.s3_daily_rowset import (
         s3_a2_coordinator_reviewed_live_origin_grain_identity_set as coord_identity_set,
     )
+    from backend.app.s3_daily_rowset import (
+        s3_a2_default_catalog_live_origin_construction as construction_module,
+    )
     from backend.app.s3_daily_rowset.catalog_artifact import (
         CatalogArtifactReasonCode,
         EvaluationInstanceCatalogArtifactProductionService,
@@ -1563,6 +1566,7 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     )
     from backend.tests.integration.s3_a2_pg_official_dataset_seed import (
         async_sessionmaker_for_transactional_session,
+        run_asyncio_coro_isolated,
         seed_official_source_002_materialized_dataset,
     )
     from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
@@ -1571,10 +1575,16 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     clear_v0_2_live_postgres_session_provider()
     await seed_official_source_002_materialized_dataset(transactional_pg_session)
 
+    construction_module._cached_maker_id = construction_module._CACHE_MISS
+    construction_module._cached_bundle = None
+
     session_maker = await async_sessionmaker_for_transactional_session(
         transactional_pg_session,
     )
-    with patch("backend.app.db.session.AsyncSessionMaker", session_maker):
+    with (
+        patch("backend.app.db.session.AsyncSessionMaker", session_maker),
+        patch.object(construction_module.asyncio, "run", run_asyncio_coro_isolated),
+    ):
         adapter = IncumbentForecastArtifactAdapter()
         assert adapter.has_versioned_artifact() is True
         resolved = adapter._resolved_artifact()
