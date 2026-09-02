@@ -57,6 +57,12 @@ AuthorityReasonCode = authority_mod.AuthorityReasonCode
 DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier = (
     authority_mod.DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier
 )
+compute_auth_package_evidence_digest_sha256 = (
+    authority_mod.compute_default_catalog_live_bindable_authority_package_evidence_digest_sha256
+)
+compute_closeout_package_evidence_digest_sha256 = (
+    authority_mod.compute_default_catalog_registry_available_closeout_package_evidence_digest_sha256
+)
 
 AUTHORITY_MODULE = Path(
     "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py"
@@ -561,10 +567,7 @@ def test_live_authority_valid_closeout_invalid_stage_two() -> None:
 
 
 def test_authority_package_evidence_digest_is_deterministic() -> None:
-    compute_auth_digest = (
-        authority_mod.compute_default_catalog_live_bindable_authority_package_evidence_digest_sha256
-    )
-    digest = compute_auth_digest(
+    digest = compute_auth_package_evidence_digest_sha256(
         artifact_or_package_version=authority_mod.LIVE_BINDABLE_AUTHORITY_PACKAGE_VERSION,
         catalog_identity_sha256=PINNED_CATALOG_IDENTITY_SHA256,
         catalog_entry_count=PINNED_CATALOG_ENTRY_COUNT,
@@ -589,10 +592,7 @@ def test_authority_package_evidence_digest_is_deterministic() -> None:
 
 
 def test_closeout_package_evidence_digest_is_deterministic() -> None:
-    compute_closeout_digest = (
-        authority_mod.compute_default_catalog_registry_available_closeout_package_evidence_digest_sha256
-    )
-    digest = compute_closeout_digest(
+    digest = compute_closeout_package_evidence_digest_sha256(
         artifact_or_package_version=authority_mod.REGISTRY_AVAILABLE_CLOSEOUT_PACKAGE_VERSION,
         catalog_identity_sha256=PINNED_CATALOG_IDENTITY_SHA256,
         catalog_entry_count=PINNED_CATALOG_ENTRY_COUNT,
