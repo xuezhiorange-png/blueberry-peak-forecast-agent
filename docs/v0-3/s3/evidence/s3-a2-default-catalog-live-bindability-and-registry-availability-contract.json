@@ -6,10 +6,19 @@
   "authorization_scope": "DEFAULT_CATALOG_LIVE_BINDABLE_AUTHORITY_AND_REGISTRY_AVAILABLE_TRANSITION_ONLY",
   "slice": "V0.3-S3",
   "english_id": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY",
-  "user_gate": "CONTRACT_AUTHORING_ONLY",
+  "user_gate": "可以",
+  "interpreted_gate": "CONTRACT_AUTHORING_ONLY",
   "contract_authoring_authorized": true,
+  "user_gate_audit_corrected": true,
   "reviewer_role": "COORDINATOR",
   "recorded_at": "2026-09-02T05:15:00Z",
+  "correction_recorded_at": "2026-09-02T05:40:00Z",
+  "contract_review_id": "5085953181",
+  "contract_review_blockers_resolved": {
+    "contract_does_not_select_canonical_live_bindability_authority_path": true,
+    "option_b_contradicts_frozen_binding_classifies_live_bindable_closeout_requirement": true,
+    "recorded_user_gate_does_not_match_actual_user_gate": true
+  },
   "no_step_implies_the_next": true,
   "contract_only": true,
   "contract_authored_only": true,
@@ -41,9 +50,22 @@
   },
   "parent_families_not_duplicated": {
     "old_bindable_repository_family_is_not_the_new_implementation_target": true,
+    "old_bindable_repository_family_remains_frozen": true,
+    "old_available_closeout_family_remains_historical_input": true,
     "do_not_duplicate_old_family": true,
     "parent_bindable_repository_contract_path": "docs/v0-3/s3/s3-default-catalog-bindable-repository-contract.md",
     "parent_registry_available_closeout_contract_path": "docs/v0-3/s3/s3-evaluation-instance-registry-available-closeout-contract.md"
+  },
+  "canonical_authority_path": {
+    "canonical_live_bindability_authority_path": "SEPARATE_DETERMINISTIC_AUTHORITY_CLASSIFIER",
+    "canonical_option": "SEPARATE_AUTHORITY_CLASSIFIER",
+    "binding_py_remains_frozen": true,
+    "registry_core_remains_frozen_at_contract_stage": true,
+    "direct_binding_py_live_bindable_extension_is_not_canonical": true,
+    "frozen_binding_must_not_be_renamed_live_bindable": true,
+    "future_authority_module": "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py",
+    "future_authority_classifier": "DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier",
+    "future_authority_module_created_in_contract_pr": false
   },
   "unique_gap": {
     "unique_gap_scope": "DEFAULT_CATALOG_LIVE_BINDABLE_AUTHORITY_AND_REGISTRY_AVAILABLE_TRANSITION_ONLY",
@@ -68,17 +90,27 @@
     "declared_catalog_source_kind": "V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF",
     "in_memory_structural_acceptance": true
   },
+  "frozen_binding": {
+    "frozen_binding_classification": "NOT_BINDABLE",
+    "frozen_binding_reason_code": "NOT_BINDABLE",
+    "frozen_binding_in_memory_structural_acceptance": true,
+    "frozen_binding_classifies_live_bindable": false
+  },
+  "authority_layer": {
+    "authorized_live_bindable_classification_required": true,
+    "future_authority_classification_success": "LIVE_BINDABLE",
+    "future_authority_reason_code_success": "LIVE_BINDABLE_CATALOG",
+    "future_registry_source_status": "BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF",
+    "forbidden_future_predicate": "FROZEN_BINDING_CLASSIFIES_LIVE_BINDABLE=true",
+    "required_future_predicate": "AUTHORIZED_LIVE_BINDABLE_CLASSIFICATION=true"
+  },
   "binding_and_registry": {
     "binding_classification": "NOT_BINDABLE",
     "binding_reason_code": "NOT_BINDABLE",
     "bindable_repository_reason_code": "NOT_BINDABLE",
     "registry_source_status": "NOT_MATERIALIZED_OR_NOT_BOUND",
     "coordinator_reviewed_available_closeout_exists": false,
-    "frozen_binding_classifies_live_bindable": false,
-    "available_closeout_preconditions_not_met": true,
-    "future_binding_classification_success": "LIVE_BINDABLE",
-    "future_binding_reason_code_success": "LIVE_BINDABLE_CATALOG",
-    "future_registry_source_status_bound": "BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF"
+    "available_closeout_preconditions_not_met": true
   },
   "authorities": {
     "actuals_authority": "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION",
@@ -94,6 +126,8 @@
     "in_memory_catalog_artifact_produced_is_not_versioned_repository_artifact": true,
     "live_bindability_requires_versioned_catalog_artifact_in_repository": false,
     "live_bindability_requires_versioned_binding_authority_package": true,
+    "bindable_catalog_repository_presence_may_be_satisfied_by_versioned_binding_authority_package_referencing_pinned_catalog": true,
+    "duplicate_serialized_catalog_artifact_not_required": true,
     "authority_package_token": "DEFAULT_CATALOG_LIVE_BINDABLE_AUTHORITY_PACKAGE",
     "available_closeout_package_token": "DEFAULT_CATALOG_REGISTRY_AVAILABLE_CLOSEOUT_PACKAGE"
   },
@@ -103,8 +137,8 @@
     "acceptance_3": "catalog_entry_count_remains_2427",
     "acceptance_4": "in_memory_structural_acceptance_remains_true",
     "acceptance_5": "live_bindable_authority_is_explicit_and_versioned",
-    "acceptance_6": "binding_classification_has_a_legally_defined_live_bindable_success_state",
-    "acceptance_7": "binding_reason_code_has_a_legally_defined_success_semantics",
+    "acceptance_6": "authority_classification_has_a_legally_defined_live_bindable_success_state",
+    "acceptance_7": "authority_reason_code_has_a_legally_defined_success_semantics",
     "acceptance_8": "no_bindable_catalog_in_repository_can_flip_only_after_the_required_authority_exists",
     "acceptance_9": "registry_source_status_changes_only_after_live_binding_authority_is_proven",
     "acceptance_10": "evaluation_instance_registry_available_can_flip_to_true_only_after_all_registry_available_closeout_preconditions_pass",
@@ -164,5 +198,5 @@
       "docs/v0-3/s3/s3-daily-rowset-amendment.md §214"
     ]
   },
-  "evidence_json_sha256": "b7d0df409e0094594bf817f5fd048a2764defeb539a1679082643eed51c14bfc"
+  "evidence_json_sha256": "d81f0d3f8b4f9fb42496ac0186f91dac6e1164c3b08b765bf445393dd10a8c2c"
 }
