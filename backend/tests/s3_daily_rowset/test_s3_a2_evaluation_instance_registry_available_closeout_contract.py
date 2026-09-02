@@ -142,9 +142,7 @@ def test_fail_closed_produce_and_classify_still_record_registry_unavailable() ->
             dataset_identity=DATASET_IDENTITY,
         ).produce()
         classified = DefaultCatalogBindableRepositoryClassifier().classify()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert produced.no_bindable_catalog_in_repository is True
     assert produced.evaluation_instance_registry_available is False
     assert produced.current_s3_daily_rowset_completeness_verified is False

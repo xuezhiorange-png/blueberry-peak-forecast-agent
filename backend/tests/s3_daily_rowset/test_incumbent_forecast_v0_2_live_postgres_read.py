@@ -133,8 +133,8 @@ def test_default_obtain_without_session_returns_empty_tuple() -> None:
 def test_default_catalog_produce_remains_no_versioned_without_session() -> None:
     with patch_handoff_disabled():
         result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
@@ -153,8 +153,8 @@ def test_injected_session_with_empty_table_catalog_remains_no_versioned() -> Non
 
     with patch_handoff_disabled():
         result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 

@@ -199,9 +199,7 @@ def test_fail_closed_produce_still_records_no_reviewed_set_after_grant() -> None
         ).produce()
         bindable = DefaultCatalogBindableRepositoryClassifier().classify()
         available = EvaluationInstanceRegistryAvailableCloseoutClassifier().classify()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert produced.no_bindable_catalog_in_repository is True
     assert produced.evaluation_instance_registry_available is False
     assert bindable.reason_code is BindableRepositoryReasonCode.CATALOG_NOT_PRODUCED

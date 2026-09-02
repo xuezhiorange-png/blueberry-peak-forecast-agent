@@ -66,8 +66,8 @@ def test_default_producer_produce_returns_none() -> None:
 def test_default_catalog_produce_first_blocker_is_no_versioned_forecast() -> None:
     with patch_handoff_disabled():
         result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
@@ -152,10 +152,7 @@ def test_synthetic_injection_does_not_claim_live_repository_facts() -> None:
     catalog_result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
-    assert (
-        catalog_result.reason_code
-        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert catalog_result.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_catalog_source_kind_comes_from_forecast_not_harvest_source() -> None:

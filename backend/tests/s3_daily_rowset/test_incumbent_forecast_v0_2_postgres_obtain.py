@@ -49,8 +49,8 @@ def test_default_obtain_returns_empty_tuple() -> None:
 def test_default_catalog_produce_remains_no_versioned() -> None:
     with patch_handoff_disabled():
         result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 

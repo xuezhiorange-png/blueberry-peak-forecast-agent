@@ -130,8 +130,8 @@ def test_live_artifact_injected_into_adapter_exposes_live_catalog_source_kind() 
 def test_default_catalog_produce_is_fail_closed() -> None:
     with patch_handoff_disabled():
         result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 

@@ -183,7 +183,7 @@ PARENT_CONTENT_R1_EVIDENCE_JSON_SHA256 = (
 )
 PARENT_CONTENT_R1_WORKPAPER_BLOB = "3994a27c6ad0f7b523e4449eab8da78187b15991"
 PARENT_CONTENT_R1_EVIDENCE_BLOB = "56f72e9dd9827a8c0d0d59d2bd5aec8dcd59191f"
-PARENT_CONTENT_R1_TEST_BLOB = "8c00fba1402d75a8a39dade816eaba263ebcc8ef"
+PARENT_CONTENT_R1_TEST_BLOB = "11c88c6c9831bbefb1ed902bd9c06cc68266e76d"
 PARENT_CONTENT_GRANT_PR = 514
 PARENT_CONTENT_GRANT_COMMIT = "9d3b2b7a08f5f658b69059a982268793cc2de7f3"
 PARENT_CONTENT_GRANT_MERGE = "60e83b82632bdf73649634abb62e40d4854d5e82"
@@ -427,9 +427,7 @@ def test_default_catalog_remain_fail_closed_after_classify() -> None:
         produced = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_contract_is_authorized_and_not_an_implementation_grant() -> None:

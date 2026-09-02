@@ -209,9 +209,7 @@ def test_fail_closed_produce_still_records_no_completeness_pass_after_grant() ->
         bindable = DefaultCatalogBindableRepositoryClassifier().classify()
         available = EvaluationInstanceRegistryAvailableCloseoutClassifier().classify()
         reviewed = ReviewedGrainIdentitySetCloseoutClassifier().classify()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert produced.no_bindable_catalog_in_repository is True
     assert produced.evaluation_instance_registry_available is False
     assert produced.current_s3_daily_rowset_completeness_verified is False

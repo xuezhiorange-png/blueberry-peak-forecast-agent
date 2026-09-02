@@ -1562,7 +1562,7 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
         clear_v0_2_live_postgres_session_provider,
     )
     from backend.tests.integration.s3_a2_pg_official_dataset_seed import (
-        ReuseAsyncSessionMaker,
+        async_sessionmaker_for_transactional_session,
         seed_official_source_002_materialized_dataset,
     )
     from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
@@ -1571,7 +1571,9 @@ async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
     clear_v0_2_live_postgres_session_provider()
     await seed_official_source_002_materialized_dataset(transactional_pg_session)
 
-    session_maker = ReuseAsyncSessionMaker(transactional_pg_session)
+    session_maker = await async_sessionmaker_for_transactional_session(
+        transactional_pg_session,
+    )
     with patch("backend.app.db.session.AsyncSessionMaker", session_maker):
         adapter = IncumbentForecastArtifactAdapter()
         assert adapter.has_versioned_artifact() is True

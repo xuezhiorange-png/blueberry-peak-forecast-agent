@@ -142,8 +142,8 @@ def test_default_wiring_produces_adapter_with_none_evidence() -> None:
 def test_default_catalog_produce_first_blocker_remains_no_versioned() -> None:
     with patch_handoff_disabled():
         result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 

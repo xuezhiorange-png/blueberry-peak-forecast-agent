@@ -6,7 +6,7 @@ import gzip
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.s2_materialized_dataset.lane_d.partitions import TEST_END, TEST_START
 from backend.app.s2_materialized_dataset.lane_d.service import (
@@ -133,22 +133,14 @@ async def seed_official_source_002_materialized_dataset(session: AsyncSession) -
     await session.flush()
 
 
-class _ReuseAsyncSession:
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def __aenter__(self) -> AsyncSession:
-        return self._session
-
-    async def __aexit__(self, *exc_info: object) -> None:
-        return None
-
-
-class ReuseAsyncSessionMaker:
-    """Bind AsyncSessionMaker to an existing transactional test session."""
-
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    def __call__(self) -> _ReuseAsyncSession:
-        return _ReuseAsyncSession(self._session)
+async def async_sessionmaker_for_transactional_session(
+    session: AsyncSession,
+) -> async_sessionmaker[AsyncSession]:
+    """Return a real async_sessionmaker bound to the transactional test connection."""
+    connection = await session.connection()
+    return async_sessionmaker(
+        bind=connection,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+    )
