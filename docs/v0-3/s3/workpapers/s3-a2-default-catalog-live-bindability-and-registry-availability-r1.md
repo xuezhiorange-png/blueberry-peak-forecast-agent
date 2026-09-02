@@ -21,7 +21,7 @@ PARENT_GRANT_EVIDENCE_JSON_SHA256=5e3a5413a8d29663cd6688237d0accac802235723902fa
 PARENT_CONTRACT_PR=528
 PARENT_CONTRACT_EVIDENCE_JSON_SHA256=d81f0d3f8b4f9fb42496ac0186f91dac6e1164c3b08b765bf445393dd10a8c2c
 AUTHORITY_MODULE=backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py
-AUTHORITY_MODULE_PY_BLOB=f9e6c5c508bb040dc64d27d2d5fd12d90f45933e
+AUTHORITY_MODULE_PY_BLOB=fb4fdf3e4f25e0f3e56135889dae17a1b6b9de11
 WORKPAPER_PATH=docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-r1.md
 EVIDENCE_JSON_PATH=docs/v0-3/s3/evidence/s3-a2-default-catalog-live-bindability-and-registry-availability-r1.json
 NO_STEP_IMPLIES_THE_NEXT=true
@@ -86,4 +86,4 @@ does not authorize completeness PASS, S4, or flip `NO_VERSIONED`.
 
 ## Evidence digest
 
-EVIDENCE_JSON_SHA256=1ae94633119dd7f029a12baa6e6c9c30cc2307a88f1e27af26a17ab64b7c9a98
+EVIDENCE_JSON_SHA256=82dda71b0d2fa63b28aea51a99aa13b78ac5f5e644eaccfe7728ddff2b2d0382
