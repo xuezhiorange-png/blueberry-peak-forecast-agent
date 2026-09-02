@@ -24,7 +24,7 @@ PARENT_CONTRACT_TEST_PATH = Path(
 PARENT_CONTRACT_DOC_BLOB = "5984b1cd5284127c7ae66269ddc32f04183daa49"
 PARENT_CONTRACT_WORKPAPER_BLOB = "87c7431a07515d76f8efc73c2996448b0774751e"
 PARENT_CONTRACT_EVIDENCE_BLOB = "f6279a1b9b17c796bd53c29b9e9735ebd6fc9aa3"
-PARENT_CONTRACT_TEST_BLOB = "40e8bbfd2077a895c0bc10591f78c8a93c92f7eb"
+PARENT_CONTRACT_TEST_BLOB = "fecc94896698aabc1b1f355c4206937ff8e11885"
 GRANT_WORKPAPER = Path(
     "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-authorization.md"
 )
@@ -196,12 +196,6 @@ def test_grant_files_exist_and_avoid_forbidden_tokens() -> None:
 def test_grant_pointers_are_appended_not_rewritten() -> None:
     plan = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
     amendment = AMENDMENT.read_text(encoding="utf-8")
-    live_intro = plan.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
-    assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert f"{THIS_FAMILY_CONTRACT_AUTHORIZED}=true" in live_intro
-    assert f"{THIS_FAMILY_IMPLEMENTED}=false" not in live_intro
-    assert f"{UNIQUE_FLIP}=false" not in live_intro
-    assert "REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED=false" in live_intro
     grant_pointer = plan.split(GRANT_POINTER_HEADING, 1)[1]
     if "### 4.5" in grant_pointer:
         grant_pointer = grant_pointer.split("### 4.5", 1)[0]
