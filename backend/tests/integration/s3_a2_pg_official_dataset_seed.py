@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import gzip
-from collections.abc import Coroutine
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -36,13 +32,6 @@ from backend.app.s3_daily_rowset.incumbent_forecast_replay_identity_origin impor
 )
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[1] / "fixtures" / "s3_a2_official_s2_partitions"
-
-
-def run_asyncio_coro_isolated[T](coro: Coroutine[Any, Any, T]) -> T:
-    """Run a coroutine from pytest-asyncio when the test thread already has a loop."""
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(asyncio.run, coro).result()
-
 
 OFFICIAL_PARTITION_META = {
     "TRAIN": {
