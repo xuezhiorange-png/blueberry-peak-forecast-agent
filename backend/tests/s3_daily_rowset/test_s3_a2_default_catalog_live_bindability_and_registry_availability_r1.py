@@ -589,9 +589,7 @@ def test_authority_package_evidence_digest_is_deterministic() -> None:
 
 
 def test_closeout_package_evidence_digest_is_deterministic() -> None:
-    compute_closeout_digest = (
-        authority_mod.compute_default_catalog_registry_available_closeout_package_evidence_digest_sha256
-    )
+    compute_closeout_digest = authority_mod.compute_default_catalog_registry_available_closeout_package_evidence_digest_sha256
     digest = compute_closeout_digest(
         artifact_or_package_version=authority_mod.REGISTRY_AVAILABLE_CLOSEOUT_PACKAGE_VERSION,
         catalog_identity_sha256=PINNED_CATALOG_IDENTITY_SHA256,
