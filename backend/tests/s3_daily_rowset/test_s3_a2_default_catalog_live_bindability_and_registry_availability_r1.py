@@ -100,9 +100,7 @@ PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
 )
 R1_EVIDENCE_JSON_SHA256 = "da73ada25845803cfb8adda0ef7450a5a85fe8df8bfe57a34dcd7ab8a7f3e951"
 CONTENT_IDENTITY_SHA256 = "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5"
-UNIQUE_FLIP = (
-    "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED"
-)
+UNIQUE_FLIP = "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED"
 IMPLEMENTATION_AUTHORIZED = (
     "S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED"
 )
@@ -110,9 +108,7 @@ GRANT_POINTER_HEADING = (
     "#### Default catalog live-bindability and registry availability implementation "
     "authorization pointer"
 )
-R1_POINTER_HEADING = (
-    "#### Default catalog live-bindability and registry availability R1 pointer"
-)
+R1_POINTER_HEADING = "#### Default catalog live-bindability and registry availability R1 pointer"
 SECTION_215_HEADING = (
     "## 215. Default catalog live-bindability and registry availability implementation "
     "authorization pointer"
