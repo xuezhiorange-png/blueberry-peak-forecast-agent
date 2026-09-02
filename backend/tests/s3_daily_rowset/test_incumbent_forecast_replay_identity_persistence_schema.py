@@ -29,6 +29,7 @@ from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_sql_table_authority imp
     is_bindable,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _MIGRATION_PATH = (
@@ -157,9 +158,10 @@ def test_default_replay_source_obtain_returns_empty_tuple() -> None:
 
 
 def test_default_catalog_produce_first_blocker_is_no_versioned_forecast() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 

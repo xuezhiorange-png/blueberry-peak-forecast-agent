@@ -103,10 +103,7 @@ def _assert_fail_closed_when_session_maker_unavailable() -> None:
         default_catalog = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert default_catalog.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert default_catalog.no_bindable_catalog_in_repository is True
     assert default_catalog.evaluation_instance_registry_available is False
     assert default_catalog.current_s3_daily_rowset_completeness_verified is False
@@ -173,7 +170,7 @@ def test_construction_fail_closed_when_origin_table_empty(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
 
-    assert result.reason_code is CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+    assert result.reason_code is CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert result.catalog_identity_sha256 is None
     assert result.no_bindable_catalog_in_repository is True
     _assert_fail_closed_when_session_maker_unavailable()
@@ -267,6 +264,7 @@ from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
     S2IdentityAlignmentHarvestSource,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 result = EvaluationInstanceCatalogArtifactProductionService(
     dataset_identity=DATASET_IDENTITY,
 ).produce()
@@ -304,7 +302,7 @@ print(json.dumps({
         assert OFFICIAL_TRAIN_ROW_COUNT == 16224
         assert OFFICIAL_VALIDATION_ROW_COUNT == 8006
     else:
-        assert payload["reason_code"] == "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
+        assert payload["reason_code"] == "NO_S2_IDENTITY_ALIGNMENT"
         assert payload["completeness_verified"] is False
         assert payload["catalog_identity_sha256"] is None
 

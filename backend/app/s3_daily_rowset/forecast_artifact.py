@@ -45,6 +45,14 @@ def _try_live_origin_construction_forecast_artifact() -> VersionedIncumbentForec
     return live_origin_forecast_artifact_for_default_construction()
 
 
+def _try_reviewed_grains_envelope_handoff() -> VersionedIncumbentForecastArtifact | None:
+    from backend.app.s3_daily_rowset.s3_a2_default_catalog_forecast_port_envelope_handoff import (
+        deterministic_coordinator_reviewed_grains_forecast_artifact,
+    )
+
+    return deterministic_coordinator_reviewed_grains_forecast_artifact()
+
+
 FORBIDDEN_EMPTY_FORECAST_ARTIFACT_HASHES = frozenset(
     {
         "",
@@ -109,6 +117,9 @@ class IncumbentForecastArtifactAdapter(IncumbentForecastArtifactPort):
     def _resolved_artifact(self) -> VersionedIncumbentForecastArtifact | None:
         if self.artifact is not None:
             return self.artifact
+        handoff = _try_reviewed_grains_envelope_handoff()
+        if handoff is not None:
+            return handoff
         produced = self.producer.produce()
         if produced is not None:
             return produced

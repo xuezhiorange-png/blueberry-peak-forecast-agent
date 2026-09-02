@@ -89,10 +89,7 @@ def _assert_defaults_remain_empty() -> None:
         default_catalog = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert default_catalog.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_envelope_does_not_expose_content_bytes_kg_or_farms() -> None:
@@ -136,7 +133,7 @@ def test_obtain_reads_landed_origin_and_injects_ports_without_default_wiring() -
     assert envelope.default_harvest_obtain_empty is True
     assert (
         envelope.default_catalog_first_blocker
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT.value
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT.value
     )
     assert envelope.default_session_provider_left_unset is True
     _assert_defaults_remain_empty()

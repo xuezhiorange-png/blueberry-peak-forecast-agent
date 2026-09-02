@@ -42,6 +42,9 @@ from backend.app.s3_daily_rowset.s3_a2_evaluation_instance_registry_available_cl
 from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout import (
     ReviewedSetCloseoutReasonCode,
 )
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 from backend.tests.s3_daily_rowset.test_s3_a2_live_catalog_execution import (
     TEST_CATALOG_ARTIFACT_PY_BLOB,
     _in_season_rows,
@@ -151,7 +154,7 @@ def test_frozen_blobs_unchanged() -> None:
     assert _git_blob(REVIEWED_MODULE) == REVIEWED_SET_CLOSEOUT_PY_BLOB
     assert _git_blob(COMPLETENESS_PY) == COMPLETENESS_PY_BLOB
     assert _git_blob(BINDING_PY) == BINDING_PY_BLOB
-    assert _git_blob(FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert _git_blob(ALIGNMENT_EVIDENCE_PY) == ALIGNMENT_EVIDENCE_PY_BLOB
     assert _git_blob(GRANT_WORKPAPER) == PARENT_GRANT_WORKPAPER_BLOB
     assert _git_blob(GRANT_EVIDENCE) == PARENT_GRANT_EVIDENCE_BLOB

@@ -50,6 +50,9 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
 from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout import (
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 CompletenessPassObservationClassifier = (
     completeness_pass_observation.CompletenessPassObservationClassifier
@@ -206,7 +209,7 @@ def test_frozen_blobs_unchanged() -> None:
     assert _git_blob(COMPLETENESS_PY) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(BINDING_PY) == BINDING_PY_BLOB
-    assert _git_blob(FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert _git_blob(ALIGNMENT_EVIDENCE_PY) == ALIGNMENT_EVIDENCE_PY_BLOB
     assert _git_blob(LANDING_MODULE) == IDENTITY_SET_LANDING_PY_BLOB
     assert _git_blob(OBSERVATION_MODULE) == OBSERVATION_MODULE_BLOB

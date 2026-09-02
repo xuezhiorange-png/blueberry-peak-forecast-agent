@@ -1543,3 +1543,72 @@ async def test_postgres_trial_forecast_evidence_readback_is_stable_after_plan_ch
     assert row.plan_row_hash == "b" * 64
     assert row.forecast_evidence_hash == created.forecast_evidence_hash
     assert await _related_row_counts(transactional_pg_session, request_hash) == (1, 1, 1)
+
+
+async def test_postgres_bare_default_catalog_produces_after_forecast_handoff(
+    transactional_pg_session: AsyncSession,
+) -> None:
+    from unittest.mock import patch
+
+    from backend.app.s3_daily_rowset import (
+        s3_a2_coordinator_reviewed_live_origin_grain_identity_set as coord_identity_set,
+    )
+    from backend.app.s3_daily_rowset.catalog_artifact import (
+        CatalogArtifactReasonCode,
+        EvaluationInstanceCatalogArtifactProductionService,
+    )
+    from backend.app.s3_daily_rowset.forecast_artifact import IncumbentForecastArtifactAdapter
+    from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_live_postgres_read import (
+        clear_v0_2_live_postgres_session_provider,
+    )
+    from backend.app.s3_daily_rowset.s3_a2_default_catalog_live_origin_obtain import (
+        _bind_and_read_with_session_maker,
+    )
+    from backend.tests.integration.s3_a2_pg_official_dataset_seed import (
+        async_sessionmaker_for_transactional_session,
+        seed_official_source_002_materialized_dataset,
+    )
+    from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+
+    coord_identity_set.uninstall_from_reviewed_set_loader()
+    clear_v0_2_live_postgres_session_provider()
+    await seed_official_source_002_materialized_dataset(transactional_pg_session)
+
+    session_maker = await async_sessionmaker_for_transactional_session(
+        transactional_pg_session,
+    )
+    bind_outcome = await _bind_and_read_with_session_maker(session_maker)
+    assert bind_outcome.bind.envelope.bound is True
+    assert bind_outcome.bind.actuals_source is not None
+    harvest_rows = bind_outcome.bind.actuals_source.rows
+    assert harvest_rows
+
+    with (
+        patch("backend.app.db.session.AsyncSessionMaker", session_maker),
+        patch(
+            "backend.app.s3_daily_rowset.s3_a2_default_catalog_live_origin_construction."
+            "live_origin_harvest_rows_for_default_construction",
+            return_value=harvest_rows,
+        ),
+    ):
+        adapter = IncumbentForecastArtifactAdapter()
+        assert adapter.has_versioned_artifact() is True
+        resolved = adapter._resolved_artifact()
+        assert resolved is not None
+        assert resolved.content_identity_sha256 == (
+            "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5"
+        )
+        assert len(resolved.rows) == 3
+
+        produced = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
+    assert produced.reason_code is CatalogArtifactReasonCode.ARTIFACT_PRODUCED
+    assert produced.catalog_identity_sha256 == (
+        "00f6bc532dfd97f2d625fc1347bf2a7663299fda206bd472df4c2c32c54ab5af"
+    )
+    assert produced.catalog is not None
+    assert len(produced.catalog.entries()) == 2427
+
+    coord_identity_set.uninstall_from_reviewed_set_loader()
+    clear_v0_2_live_postgres_session_provider()
