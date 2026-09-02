@@ -2,7 +2,7 @@
   "artifact_id": "V0_3_S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_R1",
   "artifact_version": "s3-a2-default-catalog-live-bindability-and-registry-availability-r1",
   "task_id": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_R1",
-  "task_class": "IMPLEMENTATION",
+  "task_class": "IMPLEMENTATION_R1",
   "authorization_scope": "S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_ONLY",
   "slice": "V0.3-S3",
   "english_id": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY",
@@ -48,7 +48,7 @@
     "bindable_repository_py_blob": "98948a405e4865a573f1b2332d128af3aaaccfd3",
     "available_closeout_py_blob": "cafca50d5c4ff4e416747644f7446a7ea24caee9",
     "handoff_py_blob": "a057802f598aada08e26aed35fb4ad76b4f8c4ce",
-    "authority_module_py_blob": "b5c4b99f57f9c7fe437ded7f68370da8ed28b48e"
+    "authority_module_py_blob": "506c024ee5a43c21d5605b594d1daf4b023af43d"
   },
   "unique_flip": {
     "field": "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED",
@@ -74,7 +74,18 @@
     "CURRENT_V0_3_S3_COMPLETE": false,
     "V0_3_S4_AUTHORIZED": false,
     "THIS_R1_DOES_NOT_FLIP_NO_VERSIONED": true,
-    "THIS_R1_DOES_NOT_AUTHORIZE_COMPLETENESS_PASS": true
+    "THIS_R1_DOES_NOT_AUTHORIZE_COMPLETENESS_PASS": true,
+    "LIVE_BINDABILITY_IMPLEMENTED": true,
+    "REGISTRY_AVAILABILITY_IMPLEMENTED": true,
+    "IMPLEMENTATION_R1_AUTHORIZED": true
   },
-  "evidence_json_sha256": "da73ada25845803cfb8adda0ef7450a5a85fe8df8bfe57a34dcd7ab8a7f3e951"
+  "implementation_r1_authorized": true,
+  "authority_packages": {
+    "authority_package_version": "s3-a2-default-catalog-live-bindable-authority-package-v1",
+    "authority_package_evidence_digest_sha256": "fff20a66d77629889b1abfdd82e1461eb745964f7b79e8c67398491fe1e882c6",
+    "registry_available_closeout_package_version": "s3-a2-default-catalog-registry-available-closeout-package-v1",
+    "registry_available_closeout_evidence_digest_sha256": "3863a16a08d126d95d66992810038526660fcb7668da52d43ed2c7ad2191d228",
+    "coordinator_review_evidence_digest_sha256": "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64"
+  },
+  "evidence_json_sha256": "716db96cd226d86a2827a821dab25c0c70fad7925dc154c9cf613389a1cf1dc0"
 }
