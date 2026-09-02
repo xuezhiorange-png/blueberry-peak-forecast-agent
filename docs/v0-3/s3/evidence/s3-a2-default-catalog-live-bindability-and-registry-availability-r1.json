@@ -6,7 +6,7 @@
   "authorization_scope": "S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_ONLY",
   "slice": "V0.3-S3",
   "english_id": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY",
-  "user_gate": "可以实施",
+  "user_gate": "\u53ef\u4ee5\u5b9e\u65bd",
   "reviewer_role": "COORDINATOR",
   "recorded_at": "2026-09-02T10:20:00Z",
   "this_pr_is_not_a_grant": true,
@@ -31,7 +31,8 @@
     "authority_classifier": "DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier",
     "binding_py_remains_frozen": true,
     "registry_core_remains_frozen": true,
-    "frozen_companion_classifiers_remain_historical": true
+    "frozen_companion_classifiers_remain_historical": true,
+    "versioned_authority_packages_consumed_from_committed_artifacts": true
   },
   "catalog_pins": {
     "bare_default_catalog_reason": "ARTIFACT_PRODUCED",
@@ -48,7 +49,7 @@
     "bindable_repository_py_blob": "98948a405e4865a573f1b2332d128af3aaaccfd3",
     "available_closeout_py_blob": "cafca50d5c4ff4e416747644f7446a7ea24caee9",
     "handoff_py_blob": "a057802f598aada08e26aed35fb4ad76b4f8c4ce",
-    "authority_module_py_blob": "8cad01d3785fdad99c0ed4945d2029cac4abb7a5"
+    "authority_module_py_blob": "f9e6c5c508bb040dc64d27d2d5fd12d90f45933e"
   },
   "unique_flip": {
     "field": "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED",
@@ -81,11 +82,16 @@
   },
   "implementation_r1_authorized": true,
   "authority_packages": {
+    "authority_package_artifact_path": "backend/app/s3_daily_rowset/authority_packages/default_catalog_live_bindable_authority_package_v1.json",
+    "authority_package_artifact_sha256": "3117a0e9f24f139614002b994ce697ab02cca3c50d2ec08932e74e2ea19045e2",
     "authority_package_version": "s3-a2-default-catalog-live-bindable-authority-package-v1",
-    "authority_package_evidence_digest_sha256": "fff20a66d77629889b1abfdd82e1461eb745964f7b79e8c67398491fe1e882c6",
+    "authority_package_evidence_digest_sha256": "c566439fa7007057cb327fbc3a4a5c81e0b9c3c03d0f3ece18b981ba7310446f",
+    "registry_available_closeout_package_artifact_path": "backend/app/s3_daily_rowset/authority_packages/default_catalog_registry_available_closeout_package_v1.json",
+    "registry_available_closeout_package_artifact_sha256": "0b4989e764686c4ace21392baa6fc0b4a006640cf72d46c01aa48060c80ab446",
     "registry_available_closeout_package_version": "s3-a2-default-catalog-registry-available-closeout-package-v1",
-    "registry_available_closeout_evidence_digest_sha256": "3863a16a08d126d95d66992810038526660fcb7668da52d43ed2c7ad2191d228",
-    "coordinator_review_evidence_digest_sha256": "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64"
+    "registry_available_closeout_evidence_digest_sha256": "acedb761baf7c6e33197ac6abc432f92da4ff1acb248ce16901c7d11eca4dff5",
+    "coordinator_review_evidence_digest_sha256": "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64",
+    "reviewed_grain_identity_set_identity_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3"
   },
-  "evidence_json_sha256": "591e236080a5ef1d101cee1010edc11ca7da1b42c06ddc97542f57ba286181ca"
+  "evidence_json_sha256": "1ae94633119dd7f029a12baa6e6c9c30cc2307a88f1e27af26a17ab64b7c9a98"
 }
