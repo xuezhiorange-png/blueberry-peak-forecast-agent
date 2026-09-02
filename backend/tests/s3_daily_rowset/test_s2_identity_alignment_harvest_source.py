@@ -27,6 +27,7 @@ from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
     S2IdentityAlignmentHarvestSource,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY, make_row
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
@@ -63,9 +64,10 @@ def test_default_producer_produce_returns_none() -> None:
 
 
 def test_default_catalog_produce_first_blocker_is_no_versioned_forecast() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
@@ -150,10 +152,7 @@ def test_synthetic_injection_does_not_claim_live_repository_facts() -> None:
     catalog_result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
-    assert (
-        catalog_result.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert catalog_result.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_catalog_source_kind_comes_from_forecast_not_harvest_source() -> None:

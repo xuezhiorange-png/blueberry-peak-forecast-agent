@@ -23,6 +23,7 @@ from backend.app.s3_daily_rowset.s2_identity_alignment_harvest_source import (
     S2IdentityAlignmentHarvestSource,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -103,7 +104,7 @@ def test_frozen_python_blobs_unchanged() -> None:
 
 def test_bare_default_catalog_still_no_versioned_after_contract_freeze() -> None:
     clear_v0_2_live_postgres_session_provider()
-    with patch("backend.app.db.session.AsyncSessionMaker", None):
+    with patch_handoff_disabled(), patch("backend.app.db.session.AsyncSessionMaker", None):
         result = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()

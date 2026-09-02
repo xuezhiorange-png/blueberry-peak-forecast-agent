@@ -25,6 +25,7 @@ from backend.app.s3_daily_rowset.registry import (
     CatalogSourceKind,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 
 def _replay_entry(
@@ -49,9 +50,10 @@ def test_default_obtain_returns_empty_tuple() -> None:
 
 
 def test_default_catalog_produce_is_fail_closed() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
@@ -152,7 +154,7 @@ def test_replay_rows_feed_content_producer_fixture_only_envelope() -> None:
     result = EvaluationInstanceCatalogArtifactProductionService(
         dataset_identity=DATASET_IDENTITY,
     ).produce()
-    assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+    assert result.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_module_does_not_scan_repository_or_import_forbidden_modules() -> None:

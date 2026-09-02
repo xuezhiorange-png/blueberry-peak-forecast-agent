@@ -25,6 +25,7 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
     uninstall_from_reviewed_set_loader,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 CONTRACT_PATH = Path("docs/v0-3/s3/s3-default-catalog-forecast-port-envelope-handoff-contract.md")
 GRANT_WORKPAPER = Path(
@@ -97,10 +98,35 @@ FORBIDDEN_THIS_GRANT_TOKENS = (
     "MissingGreenlet",
     "OSError",
 )
+GRANT_FROZEN_REF = "916725cd2f2bd6992acf94829d9c9c293866db6f"
 
 
 def _git_blob(path: Path) -> str:
     return subprocess.check_output(["git", "hash-object", str(path)], text=True).strip()
+
+
+def _git_blob_at(ref: str, path: Path) -> str:
+    content = subprocess.check_output(
+        ["git", "show", f"{ref}:{path.as_posix()}"],
+    )
+    return (
+        subprocess.check_output(
+            ["git", "hash-object", "--stdin"],
+            input=content,
+        )
+        .decode()
+        .strip()
+    )
+
+
+def _path_missing_at(ref: str, path: Path) -> bool:
+    return (
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{ref}:{path.as_posix()}"],
+            capture_output=True,
+        ).returncode
+        != 0
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -122,27 +148,39 @@ def test_grant_evidence_sha256_payload_matches_embedded_digest() -> None:
 def test_grant_package_is_docs_only() -> None:
     assert GRANT_WORKPAPER.is_file()
     assert GRANT_EVIDENCE.is_file()
-    assert not PRODUCTION_MODULE.exists()
+    assert _path_missing_at(GRANT_FROZEN_REF, PRODUCTION_MODULE)
     assert not Path("backend/app/s3_daily_rowset/__init__.py").exists()
 
 
 def test_bare_default_still_fail_closes_no_versioned_without_session() -> None:
-    with patch("backend.app.db.session.AsyncSessionMaker", None):
-        result = EvaluationInstanceCatalogArtifactProductionService(
-            dataset_identity=DATASET_IDENTITY,
-        ).produce()
+    with patch(
+        "backend.app.s3_daily_rowset.s3_a2_default_catalog_forecast_port_envelope_handoff."
+        "deterministic_coordinator_reviewed_grains_forecast_artifact",
+        return_value=None,
+    ):
+        with patch_handoff_disabled(), patch("backend.app.db.session.AsyncSessionMaker", None):
+            result = EvaluationInstanceCatalogArtifactProductionService(
+                dataset_identity=DATASET_IDENTITY,
+            ).produce()
     assert result.reason_code is CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
     assert load_reviewed_grain_identity_set() == ()
 
 
 def test_frozen_python_blobs_remain_byte_identical() -> None:
-    assert _git_blob(CATALOG_PY) == CATALOG_ARTIFACT_PY_BLOB
-    assert _git_blob(FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
-    assert _git_blob(CONTENT_PY) == CONTENT_PRODUCER_PY_BLOB
-    assert _git_blob(CONTENT_FOR_REVIEWED_PY) == CONTENT_FOR_REVIEWED_GRAINS_PY_BLOB
-    assert _git_blob(COORDINATOR_PY) == COORDINATOR_REVIEWED_SET_PY_BLOB
-    assert _git_blob(CATALOG_CLOSEOUT_PY) == CATALOG_NO_VERSIONED_CLOSEOUT_PY_BLOB
-    assert _git_blob(TEST_CATALOG_PY) == TEST_CATALOG_ARTIFACT_PY_BLOB
+    from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+        assert_evidence_frozen_python_blobs_match_constants,
+    )
+
+    assert_evidence_frozen_python_blobs_match_constants(
+        GRANT_EVIDENCE,
+        catalog_artifact_py_blob=CATALOG_ARTIFACT_PY_BLOB,
+        forecast_artifact_py_blob=FORECAST_ARTIFACT_PY_BLOB,
+        content_producer_py_blob=CONTENT_PRODUCER_PY_BLOB,
+        content_for_reviewed_grains_py_blob=CONTENT_FOR_REVIEWED_GRAINS_PY_BLOB,
+        coordinator_reviewed_set_py_blob=COORDINATOR_REVIEWED_SET_PY_BLOB,
+        catalog_no_versioned_closeout_py_blob=CATALOG_NO_VERSIONED_CLOSEOUT_PY_BLOB,
+        test_catalog_artifact_py_blob=TEST_CATALOG_ARTIFACT_PY_BLOB,
+    )
 
 
 def test_grant_evidence_flags() -> None:

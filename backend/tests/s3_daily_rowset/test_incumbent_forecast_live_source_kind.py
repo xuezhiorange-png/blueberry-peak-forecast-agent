@@ -25,6 +25,7 @@ from backend.app.s3_daily_rowset.registry import (
     CatalogSourceKind,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 LIVE_FORECAST_CATALOG_SOURCE_KIND = CatalogSourceKind.V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
 
@@ -92,9 +93,10 @@ def test_only_live_kind_is_live_forecast_catalog_source_kind() -> None:
 
 
 def test_default_catalog_produce_is_fail_closed() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 

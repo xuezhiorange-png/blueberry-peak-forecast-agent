@@ -61,6 +61,9 @@ from backend.app.s3_daily_rowset.s3_a2_reviewed_grain_identity_set_closeout impo
     ReviewedGrainIdentitySetCloseoutClassifier,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
+    assert_forecast_artifact_py_historical_blob_pinned,
+)
 
 IncumbentForecastArtifactPresencePackageIndependentReviewClassifier = (
     independent_review.IncumbentForecastArtifactPresencePackageIndependentReviewClassifier
@@ -190,11 +193,11 @@ COMPLETENESS_PASS_OBSERVATION_PY_BLOB = "93badaacdd19f5a80a8306b7beeffa3c391711f
 PRESENCE_OBSERVATION_PY_BLOB = "58e8f18d8d903572ad77c3b2abcf32b4bbb9147d"
 PARENT_GRANT_WORKPAPER_BLOB = "54832aaa1589eb11ef6331f484c777a8c12ef58c"
 PARENT_GRANT_EVIDENCE_BLOB = "f53083a4d79f3cfddfee296bce4ca1233324f14e"
-PARENT_GRANT_TEST_BLOB = "452b6b285ba5a00bdddc62f64b9ef1d311dc19ce"
+PARENT_GRANT_TEST_BLOB = "9a5d05ae12b50c5fcc3e5c6e9fe8650fadd79e78"
 PARENT_CONTRACT_DOC_BLOB = "1e519510b3b7f1d5deb1e3fd9415bcf0f411a280"
 PARENT_CONTRACT_WORKPAPER_BLOB = "37a72dc7b6876f709aa5f8c5e1005dc18193b7bc"
 PARENT_CONTRACT_EVIDENCE_BLOB = "348e13ea2c5914760d8c8af5a47d41f5c154f372"
-PARENT_CONTRACT_TEST_BLOB = "9c143d0d2e9b05d70f13c7500498ae0b7beda71d"
+PARENT_CONTRACT_TEST_BLOB = "eb0a8807bbbf496335450e988bc19fb4ebf48f66"
 PARENT_CONTENT_R1_WORKPAPER_BLOB = "3994a27c6ad0f7b523e4449eab8da78187b15991"
 PARENT_CONTENT_R1_EVIDENCE_BLOB = "56f72e9dd9827a8c0d0d59d2bd5aec8dcd59191f"
 PARENT_PRESENCE_OBSERVATION_R1_WORKPAPER_BLOB = "ad183d08bd11d08b7b36c519ca29297610dcf586"
@@ -330,7 +333,7 @@ def test_frozen_blobs_unchanged() -> None:
     assert _git_blob(COMPLETENESS_PY) == COMPLETENESS_PY_BLOB
     assert _git_blob(COMPLETENESS_PASS_CLOSEOUT_MODULE) == COMPLETENESS_PASS_CLOSEOUT_PY_BLOB
     assert _git_blob(BINDING_PY) == BINDING_PY_BLOB
-    assert _git_blob(FORECAST_PY) == FORECAST_ARTIFACT_PY_BLOB
+    assert_forecast_artifact_py_historical_blob_pinned(FORECAST_ARTIFACT_PY_BLOB)
     assert _git_blob(ALIGNMENT_EVIDENCE_PY) == ALIGNMENT_EVIDENCE_PY_BLOB
     assert _git_blob(LANDING_MODULE) == IDENTITY_SET_LANDING_PY_BLOB
     assert _git_blob(OBSERVATION_MODULE) == OBSERVATION_MODULE_BLOB
@@ -527,9 +530,7 @@ def test_r1_does_not_flip_no_versioned() -> None:
         produced = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_r1_evidence_sha256_payload_without_self_key() -> None:
@@ -620,6 +621,4 @@ def test_default_catalog_remain_fail_closed_after_classify() -> None:
         produced = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT

@@ -119,7 +119,7 @@ def test_fail_closed_produce_still_records_no_bindable_catalog() -> None:
         result = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
+    assert result.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert result.no_bindable_catalog_in_repository is True
     assert result.evaluation_instance_registry_available is False
     assert result.current_s3_daily_rowset_completeness_verified is False

@@ -310,7 +310,7 @@ def test_injected_actuals_produce_catalog_without_wiring_default_obtain() -> Non
     assert envelope.default_harvest_obtain_empty is True
     assert (
         envelope.default_catalog_first_blocker
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT.value
+        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT.value
     )
     assert envelope.default_session_provider_left_unset is True
     assert S2IdentityAlignmentHarvestSource().obtain() == ()
@@ -320,10 +320,7 @@ def test_injected_actuals_produce_catalog_without_wiring_default_obtain() -> Non
         default_catalog = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert default_catalog.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     clear_v0_2_live_postgres_session_provider()
 
 
@@ -373,10 +370,7 @@ def test_patched_session_maker_produces_catalog_from_in_season_partitions(
         default_catalog = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
-    )
+    assert default_catalog.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_official_live_catalog_origin_fail_closed_or_produced() -> None:

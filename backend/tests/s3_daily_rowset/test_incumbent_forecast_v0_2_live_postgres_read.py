@@ -32,6 +32,7 @@ from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_sql_table_authority imp
     is_bindable,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
+from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
 TABLE_NAME = "s3_incumbent_forecast_replay_identity"
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
@@ -130,9 +131,10 @@ def test_default_obtain_without_session_returns_empty_tuple() -> None:
 
 
 def test_default_catalog_produce_remains_no_versioned_without_session() -> None:
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
@@ -149,9 +151,10 @@ def test_injected_session_with_empty_table_catalog_remains_no_versioned() -> Non
     session = _session_with_rows()
     set_v0_2_live_postgres_session_provider(lambda: session)
 
-    result = EvaluationInstanceCatalogArtifactProductionService(
-        dataset_identity=DATASET_IDENTITY,
-    ).produce()
+    with patch_handoff_disabled():
+        result = EvaluationInstanceCatalogArtifactProductionService(
+            dataset_identity=DATASET_IDENTITY,
+        ).produce()
 
     assert result.reason_code == CatalogArtifactReasonCode.NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT
 
