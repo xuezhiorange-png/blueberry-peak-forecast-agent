@@ -315,9 +315,7 @@ def test_frozen_closeouts_still_report_no_reviewed_and_pass_unauthorized() -> No
         available = EvaluationInstanceRegistryAvailableCloseoutClassifier().classify()
         reviewed = ReviewedGrainIdentitySetCloseoutClassifier().classify()
         completeness = CompletenessPassCloseoutClassifier().classify()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert produced.no_bindable_catalog_in_repository is True
     assert bindable.reason_code is BindableRepositoryReasonCode.CATALOG_NOT_PRODUCED
     assert available.reason_code is AvailableCloseoutReasonCode.CATALOG_NOT_PRODUCED

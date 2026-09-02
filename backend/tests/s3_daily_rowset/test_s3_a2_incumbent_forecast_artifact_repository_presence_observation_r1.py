@@ -422,9 +422,7 @@ def test_default_content_producer_and_catalog_remain_fail_closed() -> None:
         produced = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert produced.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     _assert_harvest_replay_and_provider_remain_empty()
 
 

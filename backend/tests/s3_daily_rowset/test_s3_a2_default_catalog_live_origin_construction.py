@@ -103,10 +103,7 @@ def _assert_fail_closed_when_session_maker_unavailable() -> None:
         default_catalog = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert default_catalog.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
     assert default_catalog.no_bindable_catalog_in_repository is True
     assert default_catalog.evaluation_instance_registry_available is False
     assert default_catalog.current_s3_daily_rowset_completeness_verified is False

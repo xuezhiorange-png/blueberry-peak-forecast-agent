@@ -89,10 +89,7 @@ def _assert_defaults_remain_empty() -> None:
         default_catalog = EvaluationInstanceCatalogArtifactProductionService(
             dataset_identity=DATASET_IDENTITY,
         ).produce()
-    assert (
-        default_catalog.reason_code
-        == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
-    )
+    assert default_catalog.reason_code == CatalogArtifactReasonCode.NO_S2_IDENTITY_ALIGNMENT
 
 
 def test_envelope_does_not_expose_content_bytes_kg_or_farms() -> None:
