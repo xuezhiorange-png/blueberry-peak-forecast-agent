@@ -312,24 +312,25 @@ def test_evidence_json_sha256_matches_payload_without_self_key() -> None:
 def test_pointer_isolation_and_amendment_section_214() -> None:
     plan = DEVELOPMENT_PLAN.read_text(encoding="utf-8")
     amendment = AMENDMENT.read_text(encoding="utf-8")
-    live_intro = plan.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
-    assert f"{UNIQUE_FLIP}=true" in live_intro
-    assert "LIVE_BINDABILITY_IMPLEMENTATION_AUTHORIZED=false" in live_intro
-    assert "REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED=false" in live_intro
-    assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in live_intro
-    assert "EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false" in live_intro
     assert plan.count(POINTER_HEADING) == 1
     pointer = plan.split(POINTER_HEADING, 1)[1]
     if "### 4.5" in pointer:
         pointer = pointer.split("### 4.5", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in pointer
     assert THIS_CONTRACT_EVIDENCE_JSON_SHA256 in pointer
+    assert "LIVE_BINDABILITY_IMPLEMENTATION_AUTHORIZED=false" in pointer
+    assert "REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED=false" in pointer
+    assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in pointer
+    assert "EVALUATION_INSTANCE_REGISTRY_AVAILABLE=false" in pointer
     assert amendment.count(SECTION_214_HEADING) == 1
     section_214 = amendment.split(SECTION_214_HEADING, 1)[1]
     if "\n## " in section_214:
         section_214 = section_214.split("\n## ", 1)[0]
+    if "## 215." in section_214:
+        section_214 = section_214.split("## 215.", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in section_214
     assert "UNIQUE_REMAINING_GAP_CLOSED=false" in section_214
+    assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in section_214
 
 
 def test_workpaper_avoids_forbidden_tokens() -> None:
@@ -343,7 +344,7 @@ def test_workpaper_avoids_forbidden_tokens() -> None:
         assert token.lower() not in lowered
 
 
-def test_future_authority_module_not_created_in_contract_pr() -> None:
-    assert not Path(
-        "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py"
-    ).exists()
+def test_contract_records_future_authority_module_not_created_in_contract_pr() -> None:
+    payload = json.loads(EVIDENCE_PATH.read_text(encoding="utf-8"))
+    canonical = payload["canonical_authority_path"]
+    assert canonical["future_authority_module_created_in_contract_pr"] is False
