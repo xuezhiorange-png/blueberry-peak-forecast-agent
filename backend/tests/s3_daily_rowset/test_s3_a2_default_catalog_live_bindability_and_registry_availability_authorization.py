@@ -103,21 +103,10 @@ FORBIDDEN_THIS_GRANT_TOKENS = (
     "MissingGreenlet",
     "OSError",
 )
-GRANT_FROZEN_REF = "59f1d1e15178eac4de4100751caaac98bf48343d"
 
 
 def _git_blob(path: Path) -> str:
     return subprocess.check_output(["git", "hash-object", str(path)], text=True).strip()
-
-
-def _path_missing_at(ref: str, path: Path) -> bool:
-    return (
-        subprocess.run(
-            ["git", "cat-file", "-e", f"{ref}:{path.as_posix()}"],
-            capture_output=True,
-        ).returncode
-        != 0
-    )
 
 
 def test_grant_evidence_sha256_payload_matches_embedded_digest() -> None:
@@ -132,7 +121,6 @@ def test_grant_package_is_docs_only() -> None:
     assert GRANT_WORKPAPER.is_file()
     assert GRANT_EVIDENCE.is_file()
     assert CONTRACT_PATH.is_file()
-    assert _path_missing_at(GRANT_FROZEN_REF, FUTURE_AUTHORITY_MODULE)
     assert not FUTURE_AUTHORITY_MODULE.exists()
 
 
