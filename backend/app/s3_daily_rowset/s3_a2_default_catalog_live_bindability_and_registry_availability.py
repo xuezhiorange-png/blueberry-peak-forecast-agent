@@ -281,7 +281,7 @@ def _parse_authority_package(
         package_kind=str(payload["package_kind"]),
         artifact_or_package_version=str(payload["artifact_or_package_version"]),
         catalog_identity_sha256=str(payload["catalog_identity_sha256"]),
-        catalog_entry_count=int(payload["catalog_entry_count"]),
+        catalog_entry_count=int(str(payload["catalog_entry_count"])),
         dataset_identity=dataset_identity,
         actuals_authority=str(payload["actuals_authority"]),
         forecasts_authority=str(payload["forecasts_authority"]),
@@ -312,7 +312,7 @@ def _parse_closeout_package(
         package_kind=str(payload["package_kind"]),
         artifact_or_package_version=str(payload["artifact_or_package_version"]),
         catalog_identity_sha256=str(payload["catalog_identity_sha256"]),
-        catalog_entry_count=int(payload["catalog_entry_count"]),
+        catalog_entry_count=int(str(payload["catalog_entry_count"])),
         registry_snapshot_identity_sha256=str(payload["registry_snapshot_identity_sha256"]),
         authority_evidence_digest_sha256=str(payload["authority_evidence_digest_sha256"]),
         authorized_live_bindable_classification_required=bool(
@@ -750,7 +750,7 @@ class DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier:
                 registry_snapshot_identity_sha256=registry_snapshot_identity,
             )
         )
-        if not closeout_valid:
+        if not closeout_valid or closeout_package is None:
             return _stage_two_fail_result(
                 reason_code=AuthorityReasonCode.AVAILABLE_CLOSEOUT_PACKAGE_NOT_VALID,
                 catalog_identity_sha256=catalog_identity,
