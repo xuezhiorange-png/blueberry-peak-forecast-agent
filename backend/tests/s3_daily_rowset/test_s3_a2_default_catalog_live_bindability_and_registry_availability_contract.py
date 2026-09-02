@@ -343,7 +343,7 @@ def test_workpaper_avoids_forbidden_tokens() -> None:
         assert token.lower() not in lowered
 
 
-def test_future_authority_module_not_created_in_contract_pr() -> None:
-    assert not Path(
+def test_future_authority_module_exists_after_r1_implementation() -> None:
+    assert Path(
         "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py"
     ).exists()

@@ -24,15 +24,12 @@ PARENT_CONTRACT_TEST_PATH = Path(
 PARENT_CONTRACT_DOC_BLOB = "5984b1cd5284127c7ae66269ddc32f04183daa49"
 PARENT_CONTRACT_WORKPAPER_BLOB = "87c7431a07515d76f8efc73c2996448b0774751e"
 PARENT_CONTRACT_EVIDENCE_BLOB = "f6279a1b9b17c796bd53c29b9e9735ebd6fc9aa3"
-PARENT_CONTRACT_TEST_BLOB = "f8f3548a6db2e01dacdeb850eee8e59a10aeccd4"
+PARENT_CONTRACT_TEST_BLOB = "40e8bbfd2077a895c0bc10591f78c8a93c92f7eb"
 GRANT_WORKPAPER = Path(
     "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-authorization.md"
 )
 GRANT_EVIDENCE = Path(
     "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-bindability-and-registry-availability-authorization.json"
-)
-FUTURE_AUTHORITY_MODULE = Path(
-    "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py"
 )
 BINDING_PY = Path("backend/app/s3_daily_rowset/binding.py")
 REGISTRY_PY = Path("backend/app/s3_daily_rowset/registry.py")
@@ -121,7 +118,6 @@ def test_grant_package_is_docs_only() -> None:
     assert GRANT_WORKPAPER.is_file()
     assert GRANT_EVIDENCE.is_file()
     assert CONTRACT_PATH.is_file()
-    assert not FUTURE_AUTHORITY_MODULE.exists()
 
 
 def test_frozen_python_blobs_remain_byte_identical() -> None:
@@ -203,8 +199,8 @@ def test_grant_pointers_are_appended_not_rewritten() -> None:
     live_intro = plan.split("### 4.4", 1)[1].split("The future S3 acceptance", 1)[0]
     assert f"{UNIQUE_FLIP}=true" in live_intro
     assert f"{THIS_FAMILY_CONTRACT_AUTHORIZED}=true" in live_intro
-    assert f"{THIS_FAMILY_IMPLEMENTED}=false" in live_intro
-    assert "LIVE_BINDABILITY_IMPLEMENTATION_AUTHORIZED=false" in live_intro
+    assert f"{THIS_FAMILY_IMPLEMENTED}=false" not in live_intro
+    assert f"{UNIQUE_FLIP}=false" not in live_intro
     assert "REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED=false" in live_intro
     grant_pointer = plan.split(GRANT_POINTER_HEADING, 1)[1]
     if "### 4.5" in grant_pointer:

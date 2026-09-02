@@ -1,0 +1,80 @@
+{
+  "artifact_id": "V0_3_S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_R1",
+  "artifact_version": "s3-a2-default-catalog-live-bindability-and-registry-availability-r1",
+  "task_id": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_R1",
+  "task_class": "IMPLEMENTATION",
+  "authorization_scope": "S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_ONLY",
+  "slice": "V0.3-S3",
+  "english_id": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY",
+  "user_gate": "可以实施",
+  "reviewer_role": "COORDINATOR",
+  "recorded_at": "2026-09-02T10:20:00Z",
+  "this_pr_is_not_a_grant": true,
+  "this_pr_is_not_a_new_contract": true,
+  "this_draft_is_not_ready": true,
+  "no_step_implies_the_next": true,
+  "implementation_r1": true,
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-bindability-and-registry-availability-r1.json",
+  "base_main_sha": "abcaf67b2690d976cdfdd60df407f0a55f4f20d4",
+  "parent_grant_pr": 529,
+  "parent_grant_merge": "abcaf67b2690d976cdfdd60df407f0a55f4f20d4",
+  "parent_grant_commit": "46af703ea1cd3101e45b581850f45f3c1e15cdd7",
+  "parent_grant_evidence_json_sha256": "5e3a5413a8d29663cd6688237d0accac802235723902fa9b4caed4b3153ac6eb",
+  "parent_contract": {
+    "parent_contract_pr": 528,
+    "parent_contract_evidence_json_sha256": "d81f0d3f8b4f9fb42496ac0186f91dac6e1164c3b08b765bf445393dd10a8c2c"
+  },
+  "authority_scope": {
+    "canonical_option": "SEPARATE_AUTHORITY_CLASSIFIER",
+    "authority_module": "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py",
+    "authority_classifier": "DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier",
+    "binding_py_remains_frozen": true,
+    "registry_core_remains_frozen": true,
+    "frozen_companion_classifiers_remain_historical": true
+  },
+  "catalog_pins": {
+    "bare_default_catalog_reason": "ARTIFACT_PRODUCED",
+    "content_identity_sha256": "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5",
+    "catalog_identity_sha256": "00f6bc532dfd97f2d625fc1347bf2a7663299fda206bd472df4c2c32c54ab5af",
+    "catalog_entry_count": 2427,
+    "review_evidence_digest_sha256": "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64"
+  },
+  "frozen_python_blobs": {
+    "catalog_artifact_py_blob": "8196cb7dca33df8708f78789bd2eb9e8243b8354",
+    "forecast_artifact_py_blob": "49938d7107728987439a0a751a1273b73e0022e7",
+    "binding_py_blob": "0a335f682a923bcd73908b58cd70cd49c9ab0117",
+    "registry_py_blob": "ca16d518ab18136059cd08bcf4b247774d750bb5",
+    "bindable_repository_py_blob": "98948a405e4865a573f1b2332d128af3aaaccfd3",
+    "available_closeout_py_blob": "cafca50d5c4ff4e416747644f7446a7ea24caee9",
+    "handoff_py_blob": "a057802f598aada08e26aed35fb4ad76b4f8c4ce",
+    "authority_module_py_blob": "b5c4b99f57f9c7fe437ded7f68370da8ed28b48e"
+  },
+  "unique_flip": {
+    "field": "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED",
+    "before": false,
+    "after": true,
+    "unique_remaining_gap_closed": true
+  },
+  "flags": {
+    "LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_CONTRACT_AUTHORIZED": true,
+    "S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED": true,
+    "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED": true,
+    "AUTHORIZED_LIVE_BINDABLE_CLASSIFICATION": true,
+    "FROZEN_BINDING_CLASSIFICATION": "NOT_BINDABLE",
+    "FROZEN_BINDING_CLASSIFIES_LIVE_BINDABLE": false,
+    "NO_BINDABLE_CATALOG_IN_REPOSITORY": false,
+    "EVALUATION_INSTANCE_REGISTRY_AVAILABLE": true,
+    "REGISTRY_SOURCE_STATUS": "BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF",
+    "COORDINATOR_REVIEWED_AVAILABLE_CLOSEOUT_EXISTS": true,
+    "UNIQUE_REMAINING_GAP_CLOSED": true,
+    "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY": true,
+    "CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED": false,
+    "S3_A2_COMPLETENESS_PASS_AUTHORIZED": false,
+    "CURRENT_V0_3_S3_COMPLETE": false,
+    "V0_3_S4_AUTHORIZED": false,
+    "THIS_R1_DOES_NOT_FLIP_NO_VERSIONED": true,
+    "THIS_R1_DOES_NOT_AUTHORIZE_COMPLETENESS_PASS": true
+  },
+  "evidence_json_sha256": "da73ada25845803cfb8adda0ef7450a5a85fe8df8bfe57a34dcd7ab8a7f3e951"
+}
