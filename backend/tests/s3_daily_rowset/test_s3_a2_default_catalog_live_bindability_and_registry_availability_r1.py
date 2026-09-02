@@ -12,6 +12,8 @@ from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s3_daily_rowset import (
     s3_a2_default_catalog_live_bindability_and_registry_availability as authority_mod,
@@ -114,7 +116,7 @@ PARENT_GRANT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
     "d81f0d3f8b4f9fb42496ac0186f91dac6e1164c3b08b765bf445393dd10a8c2c"
 )
-R1_EVIDENCE_JSON_SHA256 = "82dda71b0d2fa63b28aea51a99aa13b78ac5f5e644eaccfe7728ddff2b2d0382"
+R1_EVIDENCE_JSON_SHA256 = "e155daf986fca3f7dedab1b1ad486f6e4663fb58e0d66bdca19ce2b57a0f368c"
 CONTENT_IDENTITY_SHA256 = "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5"
 UNIQUE_FLIP = "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED"
 IMPLEMENTATION_AUTHORIZED = (
@@ -151,7 +153,7 @@ AUTHORITY_PACKAGE_ARTIFACT_SHA256 = (
 REGISTRY_AVAILABLE_CLOSEOUT_PACKAGE_ARTIFACT_SHA256 = (
     "0b4989e764686c4ace21392baa6fc0b4a006640cf72d46c01aa48060c80ab446"
 )
-AUTHORITY_MODULE_PY_BLOB = "fb4fdf3e4f25e0f3e56135889dae17a1b6b9de11"
+AUTHORITY_MODULE_PY_BLOB = "aa2a43002f20229dda6639ead80982ee61991233"
 REGISTRY_SOURCE_STATUS_UNBOUND = "NOT_MATERIALIZED_OR_NOT_BOUND"
 FORBIDDEN_PROSE_TOKENS = (
     "localhost",
@@ -523,6 +525,151 @@ def test_authority_package_malformed_json_fail_closed() -> None:
         result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
     assert result.reason_code is AuthorityReasonCode.AUTHORITY_PACKAGE_NOT_VALID
     clear_v0_2_live_postgres_session_provider()
+
+
+def test_authority_package_string_integer_loader_and_stage_one_fail_closed() -> None:
+    payload = _authority_package_payload(catalog_entry_count="2427")
+    path = _write_temp_json(payload)
+    real_loader = authority_mod.load_versioned_default_catalog_live_bindable_authority_package
+    assert real_loader(artifact_path=path) is None
+
+    production = _pinned_catalog_production_result()
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_versioned_default_catalog_live_bindable_authority_package",
+            lambda **kwargs: real_loader(artifact_path=path),
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AUTHORITY_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is False
+    assert result.authority_classification is AuthorityClassification.NOT_CLASSIFIED
+    assert result.no_bindable_catalog_in_repository is True
+    assert result.registry_source_status == REGISTRY_SOURCE_STATUS_UNBOUND
+    assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_authority_package_bool_integer_loader_and_stage_one_fail_closed() -> None:
+    payload = _authority_package_payload(catalog_entry_count=True)
+    path = _write_temp_json(payload)
+    real_loader = authority_mod.load_versioned_default_catalog_live_bindable_authority_package
+    assert real_loader(artifact_path=path) is None
+
+    production = _pinned_catalog_production_result()
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_versioned_default_catalog_live_bindable_authority_package",
+            lambda **kwargs: real_loader(artifact_path=path),
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AUTHORITY_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is False
+    assert result.no_bindable_catalog_in_repository is True
+    assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_closeout_package_string_integer_loader_and_stage_two_fail_closed() -> None:
+    payload = _closeout_package_payload(catalog_entry_count="2427")
+    path = _write_temp_json(payload)
+    real_loader = authority_mod.load_versioned_default_catalog_registry_available_closeout_package
+    assert real_loader(artifact_path=path) is None
+
+    production = _pinned_catalog_production_result()
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_versioned_default_catalog_registry_available_closeout_package",
+            lambda **kwargs: real_loader(artifact_path=path),
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AVAILABLE_CLOSEOUT_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is True
+    assert result.authority_classification is AuthorityClassification.LIVE_BINDABLE
+    assert result.no_bindable_catalog_in_repository is False
+    assert (
+        result.registry_source_status
+        == REGISTRY_SOURCE_STATUS_BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
+    )
+    assert result.coordinator_reviewed_available_closeout_exists is False
+    assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_closeout_package_bool_integer_loader_and_stage_two_fail_closed() -> None:
+    payload = _closeout_package_payload(catalog_entry_count=True)
+    path = _write_temp_json(payload)
+    real_loader = authority_mod.load_versioned_default_catalog_registry_available_closeout_package
+    assert real_loader(artifact_path=path) is None
+
+    production = _pinned_catalog_production_result()
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_versioned_default_catalog_registry_available_closeout_package",
+            lambda **kwargs: real_loader(artifact_path=path),
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AVAILABLE_CLOSEOUT_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is True
+    assert result.authority_classification is AuthorityClassification.LIVE_BINDABLE
+    assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_authority_package_float_integer_rejected_at_parse() -> None:
+    payload = json.loads(AUTHORITY_PACKAGE_ARTIFACT.read_text(encoding="utf-8"))
+    payload["catalog_entry_count"] = 2427.0
+    with pytest.raises(ValueError, match="catalog_entry_count must be a JSON integer"):
+        authority_mod._parse_authority_package(payload)
+
+
+def test_authority_package_null_integer_loader_returns_none() -> None:
+    payload = _authority_package_payload(catalog_entry_count=None)
+    path = _write_temp_json(payload)
+    real_loader = authority_mod.load_versioned_default_catalog_live_bindable_authority_package
+    assert real_loader(artifact_path=path) is None
+
+
+def test_authority_package_missing_integer_loader_returns_none() -> None:
+    payload = _authority_package_payload()
+    del payload["catalog_entry_count"]
+    payload["authority_evidence_digest_sha256"] = compute_auth_package_evidence_digest_sha256(
+        payload
+    )
+    path = _write_temp_json(payload)
+    real_loader = authority_mod.load_versioned_default_catalog_live_bindable_authority_package
+    assert real_loader(artifact_path=path) is None
 
 
 def test_test_partition_entry_fail_closed() -> None:

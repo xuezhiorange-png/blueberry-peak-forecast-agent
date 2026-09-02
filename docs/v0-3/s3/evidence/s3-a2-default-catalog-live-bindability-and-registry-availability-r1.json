@@ -49,7 +49,7 @@
     "bindable_repository_py_blob": "98948a405e4865a573f1b2332d128af3aaaccfd3",
     "available_closeout_py_blob": "cafca50d5c4ff4e416747644f7446a7ea24caee9",
     "handoff_py_blob": "a057802f598aada08e26aed35fb4ad76b4f8c4ce",
-    "authority_module_py_blob": "fb4fdf3e4f25e0f3e56135889dae17a1b6b9de11"
+    "authority_module_py_blob": "aa2a43002f20229dda6639ead80982ee61991233"
   },
   "unique_flip": {
     "field": "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED",
@@ -93,5 +93,5 @@
     "coordinator_review_evidence_digest_sha256": "40e03141b52188cafe9e9cb6842d14f2ebd6caa3abe1fd80142ad71162781f64",
     "reviewed_grain_identity_set_identity_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3"
   },
-  "evidence_json_sha256": "82dda71b0d2fa63b28aea51a99aa13b78ac5f5e644eaccfe7728ddff2b2d0382"
+  "evidence_json_sha256": "e155daf986fca3f7dedab1b1ad486f6e4663fb58e0d66bdca19ce2b57a0f368c"
 }

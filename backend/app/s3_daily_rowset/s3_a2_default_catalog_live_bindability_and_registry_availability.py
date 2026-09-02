@@ -173,6 +173,13 @@ class LiveBindabilityAndRegistryAvailabilityClassificationResult:
     unique_remaining_gap_closed: bool
 
 
+def _require_json_int(payload: dict[str, object], key: str) -> int:
+    value = payload.get(key)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{key} must be a JSON integer")
+    return value
+
+
 def hashable_versioned_authority_package_payload(payload: dict[str, object]) -> dict[str, object]:
     return {
         key: value for key, value in payload.items() if key != "authority_evidence_digest_sha256"
@@ -281,7 +288,7 @@ def _parse_authority_package(
         package_kind=str(payload["package_kind"]),
         artifact_or_package_version=str(payload["artifact_or_package_version"]),
         catalog_identity_sha256=str(payload["catalog_identity_sha256"]),
-        catalog_entry_count=int(str(payload["catalog_entry_count"])),
+        catalog_entry_count=_require_json_int(payload, "catalog_entry_count"),
         dataset_identity=dataset_identity,
         actuals_authority=str(payload["actuals_authority"]),
         forecasts_authority=str(payload["forecasts_authority"]),
@@ -312,7 +319,7 @@ def _parse_closeout_package(
         package_kind=str(payload["package_kind"]),
         artifact_or_package_version=str(payload["artifact_or_package_version"]),
         catalog_identity_sha256=str(payload["catalog_identity_sha256"]),
-        catalog_entry_count=int(str(payload["catalog_entry_count"])),
+        catalog_entry_count=_require_json_int(payload, "catalog_entry_count"),
         registry_snapshot_identity_sha256=str(payload["registry_snapshot_identity_sha256"]),
         authority_evidence_digest_sha256=str(payload["authority_evidence_digest_sha256"]),
         authorized_live_bindable_classification_required=bool(
@@ -347,7 +354,10 @@ def load_versioned_default_catalog_live_bindable_authority_package(
     digest = compute_versioned_authority_package_evidence_digest_sha256(payload)
     if digest != payload.get("authority_evidence_digest_sha256"):
         return None
-    return _parse_authority_package(payload)
+    try:
+        return _parse_authority_package(payload)
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def load_versioned_default_catalog_registry_available_closeout_package(
@@ -365,7 +375,10 @@ def load_versioned_default_catalog_registry_available_closeout_package(
     digest = compute_versioned_closeout_package_evidence_digest_sha256(payload)
     if digest != payload.get("registry_available_closeout_evidence_digest_sha256"):
         return None
-    return _parse_closeout_package(payload)
+    try:
+        return _parse_closeout_package(payload)
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def _dataset_identity_matches(dataset_identity: DatasetIdentity) -> bool:
