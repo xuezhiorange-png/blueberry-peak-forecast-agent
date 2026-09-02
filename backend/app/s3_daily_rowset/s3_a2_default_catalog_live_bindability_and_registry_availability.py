@@ -387,7 +387,7 @@ def load_default_catalog_live_bindable_authority_package(
     catalog_identity_sha256: str,
     catalog_entry_count: int,
     dataset_identity: DatasetIdentity,
-) -> DefaultCatalogLiveBindableAuthorityPackage:
+) -> DefaultCatalogLiveBindableAuthorityPackage | None:
     reviewed_set = load_coordinator_reviewed_live_origin_grain_identity_set()
     handoff = deterministic_coordinator_reviewed_grains_forecast_artifact()
     coordinator_digest = _coordinator_review_evidence_digest_sha256()
@@ -445,7 +445,7 @@ def load_default_catalog_registry_available_closeout_package(
     registry_snapshot_identity_sha256: str | None,
     registry_snapshot_identity_matches_bound_catalog_identity: bool,
     authority_evidence_digest_sha256: str,
-) -> DefaultCatalogRegistryAvailableCloseoutPackage:
+) -> DefaultCatalogRegistryAvailableCloseoutPackage | None:
     closeout_digest = (
         compute_default_catalog_registry_available_closeout_package_evidence_digest_sha256(
             artifact_or_package_version=REGISTRY_AVAILABLE_CLOSEOUT_PACKAGE_VERSION,
@@ -727,9 +727,20 @@ class DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier:
             catalog_entry_count=entry_count,
             dataset_identity=self.dataset_identity,
         )
+        if authority_package is None:
+            return _fail_result(
+                reason_code=AuthorityReasonCode.AUTHORITY_PACKAGE_NOT_VALID,
+                catalog_produced=True,
+                catalog_identity_sha256=catalog_identity,
+                catalog_entry_count=entry_count,
+                catalog_source_kind=catalog_source_kind,
+                binding=binding,
+            )
         authority_valid = (
             authority_package.artifact_available
             and authority_package_self_digest_valid(authority_package)
+            and authority_package.artifact_or_package_version
+            == LIVE_BINDABLE_AUTHORITY_PACKAGE_VERSION
             and authority_package.actuals_authority == ACTUALS_AUTHORITY
             and authority_package.forecasts_authority == FORECASTS_AUTHORITY
             and authority_package.catalog_source_kind == DECLARED_CATALOG_SOURCE_KIND
@@ -786,9 +797,23 @@ class DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier:
             registry_snapshot_identity_matches_bound_catalog_identity=identity_matches,
             authority_evidence_digest_sha256=authority_package.authority_evidence_digest_sha256,
         )
+        if closeout_package is None:
+            return _stage_two_fail_result(
+                reason_code=AuthorityReasonCode.AVAILABLE_CLOSEOUT_PACKAGE_NOT_VALID,
+                catalog_identity_sha256=catalog_identity,
+                catalog_entry_count=entry_count,
+                catalog_source_kind=catalog_source_kind,
+                binding=binding,
+                authority_package=authority_package,
+                registry_source_status=registry_source_status,
+                registry_snapshot_identity_sha256=registry_snapshot_identity,
+                registry_snapshot_identity_matches_bound_catalog_identity=identity_matches,
+            )
         closeout_valid = (
             closeout_package.artifact_available
             and closeout_package_self_digest_valid(closeout_package)
+            and closeout_package.artifact_or_package_version
+            == REGISTRY_AVAILABLE_CLOSEOUT_PACKAGE_VERSION
             and closeout_package.authority_evidence_digest_sha256
             == authority_package.authority_evidence_digest_sha256
         )

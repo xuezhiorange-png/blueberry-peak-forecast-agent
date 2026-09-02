@@ -6,6 +6,7 @@ import importlib
 import json
 import subprocess
 import sys
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -105,7 +106,7 @@ PARENT_GRANT_EVIDENCE_JSON_SHA256 = (
 PARENT_CONTRACT_EVIDENCE_JSON_SHA256 = (
     "d81f0d3f8b4f9fb42496ac0186f91dac6e1164c3b08b765bf445393dd10a8c2c"
 )
-R1_EVIDENCE_JSON_SHA256 = "716db96cd226d86a2827a821dab25c0c70fad7925dc154c9cf613389a1cf1dc0"
+R1_EVIDENCE_JSON_SHA256 = "591e236080a5ef1d101cee1010edc11ca7da1b42c06ddc97542f57ba286181ca"
 CONTENT_IDENTITY_SHA256 = "06f45beb0c42be0ecf2750dede6783ca5f9a1e363d85ef3e26b0faccf14353f5"
 UNIQUE_FLIP = "DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED"
 IMPLEMENTATION_AUTHORIZED = (
@@ -196,6 +197,61 @@ def _classify_with_production(
         return_value=production,
     ):
         return DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+
+
+def _authority_package_with_version(
+    package: authority_mod.DefaultCatalogLiveBindableAuthorityPackage,
+    version: str,
+) -> authority_mod.DefaultCatalogLiveBindableAuthorityPackage:
+    return replace(
+        package,
+        artifact_or_package_version=version,
+        authority_evidence_digest_sha256=(
+            authority_mod.compute_default_catalog_live_bindable_authority_package_evidence_digest_sha256(
+                artifact_or_package_version=version,
+                catalog_identity_sha256=package.catalog_identity_sha256,
+                catalog_entry_count=package.catalog_entry_count,
+                dataset_identity=package.dataset_identity,
+                actuals_authority=package.actuals_authority,
+                forecasts_authority=package.forecasts_authority,
+                catalog_source_kind=package.catalog_source_kind,
+                reviewer_role=package.reviewer_role,
+                train_and_validation_only_rule=package.train_and_validation_only_rule,
+                test_sealed_rule=package.test_sealed_rule,
+                harvest_date_not_forecast_cutoff_rule=(
+                    package.harvest_date_not_forecast_cutoff_rule
+                ),
+            )
+        ),
+    )
+
+
+def _closeout_package_with_version(
+    package: authority_mod.DefaultCatalogRegistryAvailableCloseoutPackage,
+    version: str,
+) -> authority_mod.DefaultCatalogRegistryAvailableCloseoutPackage:
+    return replace(
+        package,
+        artifact_or_package_version=version,
+        registry_available_closeout_evidence_digest_sha256=(
+            authority_mod.compute_default_catalog_registry_available_closeout_package_evidence_digest_sha256(
+                artifact_or_package_version=version,
+                catalog_identity_sha256=package.catalog_identity_sha256,
+                catalog_entry_count=package.catalog_entry_count,
+                registry_snapshot_identity_sha256=package.registry_snapshot_identity_sha256,
+                authority_evidence_digest_sha256=package.authority_evidence_digest_sha256,
+                authorized_live_bindable_classification_required=(
+                    package.authorized_live_bindable_classification_required
+                ),
+                authority_classification_success=package.authority_classification_success,
+                authority_reason_code_success=package.authority_reason_code_success,
+                registry_source_status_success=package.registry_source_status_success,
+                reviewer_role=package.reviewer_role,
+                train_and_validation_only_rule=package.train_and_validation_only_rule,
+                test_sealed_rule=package.test_sealed_rule,
+            )
+        ),
+    )
 
 
 def _binding_for_catalog(
@@ -444,6 +500,57 @@ def test_authority_package_digest_mismatch_fail_closed() -> None:
     clear_v0_2_live_postgres_session_provider()
 
 
+def test_authority_package_wrong_version_with_valid_digest_fail_closed() -> None:
+    production = _pinned_catalog_production_result()
+    package = authority_mod.load_default_catalog_live_bindable_authority_package(
+        catalog_identity_sha256=PINNED_CATALOG_IDENTITY_SHA256,
+        catalog_entry_count=PINNED_CATALOG_ENTRY_COUNT,
+        dataset_identity=DATASET_IDENTITY,
+    )
+    bad_package = _authority_package_with_version(package, "wrong-authority-package-v9")
+    assert authority_mod.authority_package_self_digest_valid(bad_package)
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_default_catalog_live_bindable_authority_package",
+            return_value=bad_package,
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AUTHORITY_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is False
+    assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_authority_package_missing_fail_closed_without_exception() -> None:
+    production = _pinned_catalog_production_result()
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_default_catalog_live_bindable_authority_package",
+            return_value=None,
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AUTHORITY_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is False
+    assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
 def test_authority_package_wrong_actuals_authority_fail_closed() -> None:
     production = _pinned_catalog_production_result()
     package = authority_mod.load_default_catalog_live_bindable_authority_package(
@@ -562,6 +669,67 @@ def test_live_authority_valid_closeout_invalid_stage_two() -> None:
         == REGISTRY_SOURCE_STATUS_BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF
     )
     assert result.evaluation_instance_registry_available is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_closeout_package_wrong_version_with_valid_digest_fail_closed() -> None:
+    production = _pinned_catalog_production_result()
+    closeout = authority_mod.load_default_catalog_registry_available_closeout_package(
+        authorized_live_bindable_classification=True,
+        authority_classification=AuthorityClassification.LIVE_BINDABLE,
+        authority_reason_code=AuthorityReasonCode.LIVE_BINDABLE_CATALOG,
+        catalog_identity_sha256=PINNED_CATALOG_IDENTITY_SHA256,
+        catalog_entry_count=PINNED_CATALOG_ENTRY_COUNT,
+        registry_source_status=REGISTRY_SOURCE_STATUS_BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF,
+        registry_snapshot_identity_sha256=PINNED_CATALOG_IDENTITY_SHA256,
+        registry_snapshot_identity_matches_bound_catalog_identity=True,
+        authority_evidence_digest_sha256=AUTHORITY_PACKAGE_EVIDENCE_DIGEST_SHA256,
+    )
+    bad_closeout = _closeout_package_with_version(closeout, "wrong-closeout-package-v9")
+    assert authority_mod.closeout_package_self_digest_valid(bad_closeout)
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_default_catalog_registry_available_closeout_package",
+            return_value=bad_closeout,
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AVAILABLE_CLOSEOUT_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is True
+    assert result.live_bindability_implemented is True
+    assert result.evaluation_instance_registry_available is False
+    assert result.registry_availability_implemented is False
+    assert result.unique_remaining_gap_closed is False
+    clear_v0_2_live_postgres_session_provider()
+
+
+def test_closeout_package_missing_fail_closed_without_exception() -> None:
+    production = _pinned_catalog_production_result()
+    with (
+        patch.object(
+            EvaluationInstanceCatalogArtifactProductionService,
+            "produce",
+            return_value=production,
+        ),
+        patch.object(
+            authority_mod,
+            "load_default_catalog_registry_available_closeout_package",
+            return_value=None,
+        ),
+    ):
+        result = DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier().classify()
+    assert result.reason_code is AuthorityReasonCode.AVAILABLE_CLOSEOUT_PACKAGE_NOT_VALID
+    assert result.authorized_live_bindable_classification is True
+    assert result.live_bindability_implemented is True
+    assert result.evaluation_instance_registry_available is False
+    assert result.registry_availability_implemented is False
     assert result.unique_remaining_gap_closed is False
     clear_v0_2_live_postgres_session_provider()
 
