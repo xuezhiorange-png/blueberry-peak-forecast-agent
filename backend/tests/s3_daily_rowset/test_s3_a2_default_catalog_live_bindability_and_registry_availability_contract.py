@@ -59,7 +59,7 @@ DEVELOPMENT_PLAN = Path("docs/v0-3/development-plan.md")
 BASE_MAIN_SHA = "f5809d30e08be6214852143784b7577d1b0bbcc5"
 BASE_MAIN_TREE_SHA = "6415af5372bf8af4d1575f5a6f24283418871efb"
 THIS_CONTRACT_EVIDENCE_JSON_SHA256 = (
-    "b7d0df409e0094594bf817f5fd048a2764defeb539a1679082643eed51c14bfc"
+    "d81f0d3f8b4f9fb42496ac0186f91dac6e1164c3b08b765bf445393dd10a8c2c"
 )
 PARENT_HANDOFF_R1_PR = 527
 PARENT_HANDOFF_R1_MERGE = "f5809d30e08be6214852143784b7577d1b0bbcc5"
@@ -200,9 +200,28 @@ def test_patched_session_still_classifies_not_bindable_with_structural_acceptanc
     clear_v0_2_live_postgres_session_provider()
 
 
+FORBIDDEN_AMBIGUOUS_OPTION_PROSE = (
+    "does not choose Option A or B",
+    "does not choose option a or b",
+    "either option must satisfy",
+)
+
+
+def test_contract_rejects_ambiguous_dual_option_prose() -> None:
+    text = (
+        CONTRACT_PATH.read_text(encoding="utf-8") + WORKPAPER_PATH.read_text(encoding="utf-8")
+    ).lower()
+    for phrase in FORBIDDEN_AMBIGUOUS_OPTION_PROSE:
+        assert phrase not in text
+
+
 def test_contract_is_authorized_and_not_implementation_grant() -> None:
     text = CONTRACT_PATH.read_text(encoding="utf-8")
     assert f"{UNIQUE_FLIP}=true" in text
+    assert "USER_GATE=可以" in text
+    assert "INTERPRETED_GATE=CONTRACT_AUTHORING_ONLY" in text
+    assert "USER_GATE_AUDIT_CORRECTED=true" in text
+    assert "USER_GATE=CONTRACT_AUTHORING_ONLY" not in text
     assert "LIVE_BINDABILITY_IMPLEMENTATION_AUTHORIZED=false" in text
     assert "REGISTRY_AVAILABILITY_IMPLEMENTATION_AUTHORIZED=false" in text
     assert "CONTRACT_AUTHORED_ONLY=true" in text
@@ -218,11 +237,19 @@ def test_contract_is_authorized_and_not_implementation_grant() -> None:
         in text
     )
     assert "DO_NOT_DUPLICATE_OLD_FAMILY=true" in text
-    assert "CONTRACT_MERGE_DOES_NOT_FLIP_NO_BINDABLE=true" in text
-    assert "CONTRACT_MERGE_DOES_NOT_FLIP_REGISTRY_AVAILABLE=true" in text
-    assert "FORBIDDEN_RENAME_NOT_BINDABLE_TO_BINDABLE_WITHOUT_AUTHORITY=true" in text
-    assert "FUTURE_BINDING_CLASSIFICATION_SUCCESS=LIVE_BINDABLE" in text
-    assert "FUTURE_BINDING_REASON_CODE_SUCCESS=LIVE_BINDABLE_CATALOG" in text
+    assert "CANONICAL_OPTION=SEPARATE_AUTHORITY_CLASSIFIER" in text
+    assert "BINDING_PY_REMAINS_FROZEN=true" in text
+    assert "DIRECT_BINDING_PY_LIVE_BINDABLE_EXTENSION_IS_NOT_CANONICAL=true" in text
+    assert "FROZEN_BINDING_CLASSIFICATION=NOT_BINDABLE" in text
+    assert "FROZEN_BINDING_REASON_CODE=NOT_BINDABLE" in text
+    assert "FROZEN_BINDING_CLASSIFIES_LIVE_BINDABLE=false" in text
+    assert "AUTHORIZED_LIVE_BINDABLE_CLASSIFICATION_REQUIRED=true" in text
+    assert "FUTURE_AUTHORITY_CLASSIFICATION_SUCCESS=LIVE_BINDABLE" in text
+    assert "FUTURE_AUTHORITY_REASON_CODE_SUCCESS=LIVE_BINDABLE_CATALOG" in text
+    assert "FORBIDDEN_FUTURE_PREDICATE=FROZEN_BINDING_CLASSIFIES_LIVE_BINDABLE=true" in text
+    assert "REQUIRED_FUTURE_PREDICATE=AUTHORIZED_LIVE_BINDABLE_CLASSIFICATION=true" in text
+    assert "DefaultCatalogLiveBindabilityAndRegistryAvailabilityClassifier" in text
+    assert "s3_a2_default_catalog_live_bindability_and_registry_availability.py" in text
     assert "BOUND_V0_2_CURRENT_INCUMBENT_AT_HISTORICAL_CUTOFF" in text
     assert "NO_VERSIONED_IS_NOT_LIVE_BINDABILITY_PREREQUISITE=true" in text
     assert "NO_BINDABLE_CATALOG_IN_REPOSITORY=true" in text
@@ -252,6 +279,20 @@ def test_evidence_json_sha256_matches_payload_without_self_key() -> None:
     assert payload["flags"][
         "DETERMINISTIC_DEFAULT_CATALOG_FORECAST_PORT_ENVELOPE_HANDOFF_IMPLEMENTED"
     ]
+    assert payload["user_gate"] == "可以"
+    assert payload["interpreted_gate"] == "CONTRACT_AUTHORING_ONLY"
+    assert payload["contract_authoring_authorized"] is True
+    assert payload["user_gate_audit_corrected"] is True
+    canonical = payload["canonical_authority_path"]
+    assert canonical["canonical_option"] == "SEPARATE_AUTHORITY_CLASSIFIER"
+    assert canonical["binding_py_remains_frozen"] is True
+    assert payload["frozen_binding"]["frozen_binding_classifies_live_bindable"] is False
+    assert payload["authority_layer"]["future_authority_classification_success"] == (
+        "LIVE_BINDABLE"
+    )
+    assert payload["authority_layer"]["required_future_predicate"] == (
+        "AUTHORIZED_LIVE_BINDABLE_CLASSIFICATION=true"
+    )
     assert payload["unique_gap"]["unique_gap_scope"] == UNIQUE_GAP_SCOPE
     assert payload["unique_gap"]["unique_remaining_gap"] == UNIQUE_REMAINING_GAP
     assert payload["unique_gap"]["unique_remaining_gap_closed"] is False
@@ -294,6 +335,15 @@ def test_pointer_isolation_and_amendment_section_214() -> None:
 def test_workpaper_avoids_forbidden_tokens() -> None:
     text = WORKPAPER_PATH.read_text(encoding="utf-8")
     assert f"EVIDENCE_JSON_SHA256={THIS_CONTRACT_EVIDENCE_JSON_SHA256}" in text
+    assert "USER_GATE=可以" in text
+    assert "INTERPRETED_GATE=CONTRACT_AUTHORING_ONLY" in text
+    assert "CANONICAL_OPTION=SEPARATE_AUTHORITY_CLASSIFIER" in text
     lowered = text.lower()
     for token in FORBIDDEN_PROSE_TOKENS:
         assert token.lower() not in lowered
+
+
+def test_future_authority_module_not_created_in_contract_pr() -> None:
+    assert not Path(
+        "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_bindability_and_registry_availability.py"
+    ).exists()
