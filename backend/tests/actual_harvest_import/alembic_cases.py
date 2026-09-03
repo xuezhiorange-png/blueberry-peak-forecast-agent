@@ -52,8 +52,7 @@ MIGRATION_REPLAY_IDENTITY_SCHEMA_PATH = (
 )
 MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION = "e8b2c4d6f1a3"
 MIGRATION_FINAL_TARGET_LANE_PATH = (
-    _ALEMBIC_VERSIONS_DIR
-    / "f3a9b2c8d1e4_s3_b_final_target_quantile_prediction_lane.py"
+    _ALEMBIC_VERSIONS_DIR / "f3a9b2c8d1e4_s3_b_final_target_quantile_prediction_lane.py"
 )
 MIGRATION_FINAL_TARGET_LANE_REVISION = "f3a9b2c8d1e4"
 
