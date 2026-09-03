@@ -48,6 +48,7 @@ from backend.tests.residual_model.support import residual_model_config_path
 
 BASE_ENUMS_BLOB = "736df29dc8c128333ccc3c944ba4b7669124ab45"
 BASE_MANIFEST_BLOB = "2f94ec0a5daa2db7843ad07175590d97dfae4ac3"
+BASE_CANONICAL_BLOB = "1550da6e887d48a54ef355af1b976bad4f2c54b8"
 LINEAGE_HASH = "a" * 64
 
 
@@ -146,8 +147,13 @@ def test_grant_allowlist_unauthorized_files_remain_at_base_blob() -> None:
         ["git", "hash-object", "backend/app/residual_model/manifest.py"],
         text=True,
     ).strip()
+    canonical_blob = subprocess.check_output(
+        ["git", "hash-object", "backend/app/residual_model/canonical.py"],
+        text=True,
+    ).strip()
     assert enums_blob == BASE_ENUMS_BLOB
     assert manifest_blob == BASE_MANIFEST_BLOB
+    assert canonical_blob == BASE_CANONICAL_BLOB
 
 
 def test_legacy_and_final_target_model_families_are_distinct() -> None:

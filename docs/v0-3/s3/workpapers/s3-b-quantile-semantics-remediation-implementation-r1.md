@@ -6,25 +6,24 @@
 ARTIFACT_ID=V0_3_S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1
 ARTIFACT_VERSION=s3-b-quantile-semantics-remediation-implementation-r1-v1
 TASK_ID=V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1
-TASK_CLASS=AUTHORIZED_PRODUCTION_IMPLEMENTATION_R1_CORRECTION
+TASK_CLASS=AUTHORIZED_PRODUCTION_IMPLEMENTATION_R1_CORRECTION_2
 USER_GATE=可以实施
-INTERPRETED_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1_CORRECTION
+INTERPRETED_GATE=V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1_CORRECTION_2
 BASE_MAIN_SHA=c74cd2c541fe48b78b5a84de87ef10c16eee976e
 PARENT_GRANT_PR=536
 PARENT_GRANT_MERGE=c74cd2c541fe48b78b5a84de87ef10c16eee976e
-EVIDENCE_JSON_SHA256=02773b7a99c5b5c7c0f5f2e8ca54849499fca60df9da46a851b8e183dcbafdfa
+EVIDENCE_JSON_SHA256=82eaf19425c7f0c3e8d5824dff5bcf850a496f61a1bd5b760da74efc7ed22f0c
 UNAUTHORIZED_PRODUCTION_FILES_CHANGED=NONE
-FINAL_TARGET_MODEL_FAMILY=hist_gradient_boosting_final_target_quantile
-LEGACY_MODEL_FAMILY=hist_gradient_boosting_quantile
+CANONICAL_PY_DIFF_FROM_BASE=false
+CANONICAL_PY_BASE_BLOB=1550da6e887d48a54ef355af1b976bad4f2c54b8
+CANONICAL_PY_FINAL_BLOB=1550da6e887d48a54ef355af1b976bad4f2c54b8
 IMPLEMENTATION_REVIEW_READY=false
 NEXT_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1_REVIEW
 ```
 
-Correction R1 restores Grant allowlist compliance (`enums.py` / `manifest.py`
-unchanged at base), relocates final-target helpers into authorized modules,
-uses distinct final-target model family token, `min_grains` eligibility,
-`execute_final_target_prediction`, authority-bound core-forecast binding, and
-persisted prediction run identity without DB IDs in row content hashes.
+Correction 2 restores `canonical.py` to grant base; `final_target_prediction_row_content_payload`
+lives in authorized `persistence.py`. Row content hashes exclude DB run IDs; persisted
+authority still requires real `model_run_id` / `prediction_run_id` after reload.
 
 Dual-lane implementation: `LEGACY_RESIDUAL_CORRECTION` preserved; new
 `FINAL_TARGET_QUANTILE` lane trains direct q=0.50/0.80/0.90 on

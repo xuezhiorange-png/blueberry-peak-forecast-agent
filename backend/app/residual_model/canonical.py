@@ -22,16 +22,6 @@ def canonical_payload_hash(payload: object) -> str:
     return sha256_hex(payload)
 
 
-def final_target_prediction_row_content_payload(row_payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Content hash for final-target rows excludes provisional DB run identifiers."""
-
-    content = dict(row_payload)
-    content.pop("prediction_hash", None)
-    content.pop("model_run_id", None)
-    content.pop("prediction_run_id", None)
-    return cast(dict[str, Any], canonical_json_value(content))
-
-
 def canonical_iso_date(value: date) -> str:
     return value.isoformat()
 

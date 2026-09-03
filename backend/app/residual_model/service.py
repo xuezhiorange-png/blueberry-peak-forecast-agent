@@ -10,10 +10,14 @@ from typing import Any, cast
 from backend.app.residual_model.canonical import (
     canonical_json_value,
     canonical_payload_hash,
-    final_target_prediction_row_content_payload,
     prediction_input_signature_hash,
 )
-from backend.app.residual_model.config import ResidualModelConfig, is_final_target_quantile_config
+from backend.app.residual_model.config import (
+    FINAL_TARGET_MODEL_FAMILY,
+    PredictionTargetKind,
+    ResidualModelConfig,
+    is_final_target_quantile_config,
+)
 from backend.app.residual_model.dataset import (
     build_final_target_training_matrix,
     build_prediction_matrix,
@@ -23,17 +27,12 @@ from backend.app.residual_model.dataset import (
     summarize_manifest,
     training_signature,
 )
-from backend.app.residual_model.config import (
-    FINAL_TARGET_MODEL_FAMILY,
-    PredictionTargetKind,
-)
 from backend.app.residual_model.enums import (
     ResidualPredictionMode,
     ResidualSplit,
 )
 from backend.app.residual_model.feature_registry import feature_definition_map
 from backend.app.residual_model.manifest import manifest_hash
-from backend.app.residual_model.training_manifest import final_target_manifest_hash
 from backend.app.residual_model.metrics import (
     empirical_coverage,
     pinball_loss,
@@ -49,6 +48,7 @@ from backend.app.residual_model.model import (
     train_quantile_estimators,
     validate_artifact_target_kind,
 )
+from backend.app.residual_model.persistence import final_target_prediction_row_content_payload
 from backend.app.residual_model.projection import (
     project_corrected_quantiles,
     project_final_target_quantiles,
@@ -67,6 +67,7 @@ from backend.app.residual_model.schemas import (
     ResidualTrainingExecutionResult,
     ResidualTrainingManifestRow,
 )
+from backend.app.residual_model.training_manifest import final_target_manifest_hash
 
 
 @dataclass(frozen=True)
@@ -569,7 +570,9 @@ def run_final_target_quantile_prediction(
     """Execute direct final-target quantile prediction with artifact target-kind validation."""
 
     if not is_final_target_quantile_config(config):
-        raise ValueError("run_final_target_quantile_prediction requires FINAL_TARGET_QUANTILE config")
+        raise ValueError(
+            "run_final_target_quantile_prediction requires FINAL_TARGET_QUANTILE config"
+        )
     if config.rules.model_family != FINAL_TARGET_MODEL_FAMILY:
         raise ValueError("final-target prediction requires final-target model_family")
     for artifact in artifacts:
