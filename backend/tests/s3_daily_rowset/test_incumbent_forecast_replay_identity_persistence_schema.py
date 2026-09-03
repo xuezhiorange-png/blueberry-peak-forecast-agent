@@ -35,7 +35,8 @@ _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _MIGRATION_PATH = (
     _BACKEND_ROOT / "alembic" / "versions" / "e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py"
 )
-NEW_ALEMBIC_HEAD = "e8b2c4d6f1a3"
+NEW_ALEMBIC_HEAD = "f3a9b2c8d1e4"
+INCUMBENT_REPLAY_IDENTITY_REVISION = "e8b2c4d6f1a3"
 PARENT_ALEMBIC_REVISION = "a7c3e9f1b2d4"
 TABLE_NAME = "s3_incumbent_forecast_replay_identity"
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
@@ -73,7 +74,7 @@ def test_alembic_has_single_head_at_new_revision() -> None:
 def test_migration_revision_metadata() -> None:
     module = _migration_module()
 
-    assert module.revision == NEW_ALEMBIC_HEAD
+    assert module.revision == INCUMBENT_REPLAY_IDENTITY_REVISION
     assert module.down_revision == PARENT_ALEMBIC_REVISION
 
 
