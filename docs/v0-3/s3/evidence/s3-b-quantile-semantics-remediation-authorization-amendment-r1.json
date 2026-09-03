@@ -174,11 +174,16 @@
   "current_s3_daily_rowset_completeness_verified": false,
   "current_v0_3_s3_complete": false,
   "v0_3_s4_authorized": false,
-  "grant_amendment_review_ready": false,
+  "grant_amendment_review_ready": true,
   "production_changed_files": "NONE",
   "migration_changed_files": "NONE",
   "test_changed_files": [
     "backend/tests/residual_model/test_s3_b_quantile_semantics_remediation_authorization_amendment.py"
   ],
-  "evidence_json_sha256": "e55b6cc597a5751749dd3c69b7846771285ce564b69471d660e0b32f57331c4c"
+  "evidence_json_sha256": "d54b56b91fe1897b5dc92bd59b60f1684fa595e76ecc8e0a7ccbcfd9d68a7a04",
+  "authoring_head": "2006f0578f538e17561bf15c98f7baa2ac8a64fd",
+  "ci_run_id": 33772478301,
+  "ci_run_number": 2070,
+  "ci_status": "completed",
+  "ci_conclusion": "success"
 }
