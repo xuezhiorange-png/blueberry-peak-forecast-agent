@@ -179,7 +179,7 @@ for the S3 quantile verification lane. It is the incumbent residual-manifest
 factory-receipt label and is explicitly **not** the frozen S1/S2 forecast
 target.
 
-### 3.2 Frozen final target Y
+### 3.2 Frozen final target Y and actual label authority
 
 ~~~text
 FINAL_TARGET_AUTHORITY_PATH=docs/v0-3/s1/target-decision-and-quantity-contract.md
@@ -187,10 +187,14 @@ FINAL_TARGET_AUTHORITY_SECTION=CURRENT_FORECAST_TARGET / Existing forecast vocab
 FINAL_TARGET_Y=model_harvested_marketable_quantity_kg
 FINAL_TARGET_GRAIN=SEASON×FARM×SUBFARM×VARIETY×TARGET_DATE×FORECAST_CUTOFF×MODEL_IDENTITY×FORECAST_QUANTILE
 FINAL_TARGET_PHYSICAL_LABEL_GRAIN=FARM×SUBFARM×VARIETY×HARVEST_BUSINESS_DATE
-FINAL_TARGET_ACTUALS_AUTHORITY=actual_harvest_quantity_kg
-FINAL_TARGET_ACTUALS_AUTHORITY_PATH=docs/v0-3/s1/target-decision-and-quantity-contract.md
-FINAL_TARGET_ACTUALS_AUTHORITY_SECTION=CURRENT_ACTUAL_LABEL
+FINAL_TARGET_ACTUAL_LABEL=actual_harvest_quantity_kg
+FINAL_TARGET_ACTUAL_LABEL_PATH=docs/v0-3/s1/target-decision-and-quantity-contract.md
+FINAL_TARGET_ACTUAL_LABEL_SECTION=CURRENT_ACTUAL_LABEL
+FINAL_TARGET_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+FINAL_TARGET_ACTUALS_AUTHORITY_PATH=docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md
+FINAL_TARGET_ACTUALS_AUTHORITY_SECTION=§2 / §2.1 actuals authority
 FINAL_TARGET_PAIRING_RULE=V0.2 §11.1–§11.3 EXACT_ACTUAL_PAIRED; one actual physical row reused across P50/P80/P90 forecast rows at the same physical grain
+ACTUAL_LABEL_AUTHORITY_SEPARATED=true
 ~~~
 
 Supporting repository bindings (not reopened):
@@ -201,7 +205,7 @@ Supporting repository bindings (not reopened):
 | S1 actual label | same | `CURRENT_ACTUAL_LABEL=actual_harvest_quantity_kg` |
 | S2 materialized target | `docs/v0-3/s2/s2-materialized-dataset-contract.md` | `FORECAST_TARGET=model_harvested_marketable_quantity_kg` |
 | S3 backtest forecasts | `docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md` §2 | `V0_3_S3_FORECASTS_AUTHORITY=V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF` |
-| S3 backtest actuals | same §2.1 | `V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION` |
+| S3 backtest actuals dataset | same §2.1 | `V0_3_S3_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION` |
 | Incumbent binding forecast field | `backend/app/rolling_backtest/orchestration.py` | `forecast_value_kg=core_row.model_harvested_marketable_quantity_kg` |
 | S3-B verification objective | `docs/v0-3/s3/s3-quantile-semantics-contract.md` §2 | `P(actual ≤ forecast_q) ≈ q` under valid pairing |
 | Calculation grain | `docs/forecast-quality/s3-quality-metrics-contract.md` §11 | `CALCULATION_BASE_GRAIN=SEASON_X_FARM_X_SUBFARM_X_VARIETY_X_TARGET_DATE_X_FORECAST_CUTOFF_X_MODEL_IDENTITY_X_FORECAST_QUANTILE` |
@@ -272,12 +276,13 @@ classification:
 
 | Path | `CHANGE_REQUIRED` | Reason |
 | --- | --- | --- |
-| `backend/app/residual_model/training_manifest.py` | true | must build lawful `model_harvested_marketable_quantity_kg` labels at member/farm grain instead of factory `observed_effective_receipt_kg` / `residual_label_kg` |
-| `backend/app/residual_model/schemas.py` | true | manifest row and artifact metadata types for `prediction_target_kind` and final-Y label fields |
-| `backend/app/residual_model/persistence.py` | true | fail-closed load/serialize of `prediction_target_kind` in artifact metadata |
-| `backend/app/residual_model/application.py` | true | publish final-target kg predictions without residual composition semantics |
-| `backend/app/models/residual_model.py` | false | existing JSON metadata columns suffice when `MIGRATION_REQUIRED=false` |
-| `backend/app/api/rolling_backtest_replay_trained.py` | false | S2 binding already reads `model_harvested_marketable_quantity_kg`; remediation aligns production semantics to that field |
+| `backend/app/residual_model/training_manifest.py` | true | build lawful `model_harvested_marketable_quantity_kg` manifest rows at member/farm grain for `manifest_snapshot` JSON |
+| `backend/app/residual_model/schemas.py` | true | final-target manifest row and artifact metadata types including `prediction_target_kind` |
+| `backend/app/residual_model/persistence.py` | true | snapshot-only save/load/replay for `FINAL_TARGET_QUANTILE` without legacy child rows |
+| `backend/app/residual_model/replay_training_authority.py` | true | dataset identity and label rows must use final Y / harvest label, not `observed_effective_receipt_kg` |
+| `backend/app/residual_model/application.py` | true | replay authority gate and publication from snapshot rows without residual composition |
+| `backend/app/models/residual_model.py` | false | `manifest_snapshot` JSON column already exists; `residual_model_manifest_row` remains legacy-lane-only without schema mutation |
+| `backend/app/api/rolling_backtest_replay_trained.py` | false | S2 binding already consumes `model_harvested_marketable_quantity_kg` from core forecast orchestration |
 | `backend/app/core_forecast/service.py` | true | wire remediated final-target quantiles into `model_harvested_marketable_quantity_kg` publication consumed by S3 binding |
 | `backend/app/harvest_state/service.py` | false | structural/feature source only; not final quantile authority |
 
@@ -366,24 +371,82 @@ STRUCTURAL_ONLY_FALLBACK_PRETENDS_VERIFIED_QUANTILES=false
 Structural-only fallback may not silently publish structural P50/P80/P90 under
 verified-quantile semantics.
 
-## 12. Migration decision
+## 12. Migration and manifest persistence decision
+
+### 12.1 Repository inspection (base `323c5e7`)
+
+Incumbent persistence mechanics (`backend/app/residual_model/persistence.py`):
+
+- `save_residual_training_run(...)` writes `ResidualModelTrainingRun.manifest_snapshot`
+  JSON `{rows, summary}` and duplicates each row into `residual_model_manifest_row`
+  child records with factory-receipt columns (`destination_factory_id`,
+  `observed_effective_receipt_kg`, `residual_label_kg`, …).
+- `load_residual_training_run_by_id(...)` **requires** child rows:
+  `len(manifest_rows) == run.manifest_row_count`, rebuilds from normalized DB
+  columns, and verifies rebuilt payloads against `manifest_snapshot`.
+- `application.py` replay-trained authority loads child rows via
+  `list_residual_manifest_rows` and rejects replay when counts diverge.
+- `manifest_hash` is already reproducible from in-memory row payloads via
+  `backend/app/residual_model/manifest.py::manifest_hash` independent of child-row
+  column layout.
+
+`ResidualModelManifestRow` schema is factory-receipt residual-lane only
+(`destination_factory_id` NOT NULL FK, receipt/residual kg columns). It cannot
+lawfully store farm-harvest final-target rows without forbidden placeholders.
+
+### 12.2 Canonical manifest persistence policy
+
+~~~text
+FINAL_TARGET_MANIFEST_PERSISTENCE_POLICY=TRAINING_RUN_MANIFEST_SNAPSHOT_JSON
+LEGACY_RESIDUAL_MANIFEST_ROW_POLICY=LEGACY_RECEIPT_RESIDUAL_LANE_ONLY
+FINAL_TARGET_ROWS_WRITE_LEGACY_RESIDUAL_MODEL_MANIFEST_ROW=false
+PLACEHOLDER_LEGACY_RECEIPT_FIELDS_FORBIDDEN=true
+FAKE_DESTINATION_FACTORY_FORBIDDEN=true
+FAKE_RECEIPT_QUANTITY_FORBIDDEN=true
+FAKE_RESIDUAL_LABEL_FORBIDDEN=true
+FINAL_TARGET_MANIFEST_PERSISTENCE_POLICY_RESOLVED=true
+NO_PLACEHOLDER_LEGACY_FIELDS=true
+~~~
+
+For `prediction_target_kind=FINAL_TARGET_QUANTILE` training runs:
+
+1. **Canonical row identity** lives in `ResidualModelTrainingRun.manifest_snapshot`
+   JSON `rows[]` using a final-target payload schema (farm × subfarm × variety ×
+   harvest business date, `final_target_label_kg` for
+   `model_harvested_marketable_quantity_kg`, feature vector, split, inclusion).
+2. **No child rows**: `manifest_row_count=0`; do not insert
+   `residual_model_manifest_row` records.
+3. **Reproducible `manifest_hash`**: hash `manifest_hash(deserialized_rows)` from
+   snapshot payloads using the same `manifest_row_payload` canonicalization as
+   incumbent runs.
+4. **Load / replay**: when `prediction_target_kind=FINAL_TARGET_QUANTILE`, rebuild
+   training manifest rows from `manifest_snapshot.rows` only; do not require
+   legacy child rows; recompute hash and summary from deserialized rows.
+5. **Lane separation**: artifact loader fail-closed on
+   `prediction_target_kind`; legacy residual-lane artifacts cannot load as
+   final-target artifacts. Legacy child-table rows remain historical factory-receipt
+   lane evidence only.
+
+### 12.3 Migration required?
 
 ~~~text
 MIGRATION_REQUIRED=false
+MIGRATION_DECISION_PROVEN=true
 ~~~
 
-Rationale: truthful target-kind separation does not require Alembic schema
-mutation. Incumbent `residual_model_artifact` metadata is JSON; incumbent
-`residual_model_manifest_row` historical columns (`observed_effective_receipt_kg`,
-`structural_p*_kg`, `residual_label_kg`) remain append-only historical record of
-the factory-receipt residual lane. Future remediation binds identity through:
+Alembic schema mutation is **not** required. `ResidualModelTrainingRun.manifest_snapshot`
+already stores authoritative row JSON; truthful final-target separation is achieved
+by:
 
-- new `model_family` / `model_version` / `artifact_schema_version`;
-- new `prediction_target_kind=FINAL_TARGET_QUANTILE` in artifact metadata;
-- `training_signature` and loader fail-closed checks that reject incumbent
-  residual-target artifacts.
+- new `model_family` / `artifact_schema_version` / `model_version`;
+- `prediction_target_kind=FINAL_TARGET_QUANTILE` in artifact metadata and training
+  signature;
+- snapshot-only persistence path with `manifest_row_count=0` for final-target runs;
+- persistence/load/replay code changes (authorized only after Grant).
 
-No migration is authored in this Contract PR.
+Historical `residual_model_manifest_row` columns and incumbent child rows remain
+append-only legacy factory-receipt lane record. No migration is authored in this
+Contract PR.
 
 ## 13. Future test obligations
 
@@ -473,6 +536,14 @@ docs/v0-3/s3/evidence/s3-b-quantile-semantics-verified-claim-r1.json
 
 ## 18. Acceptance criteria
 
-Contract review `PASS` requires all §2–§17 fields explicit and
-`CONTRACT_REVIEW_READY=true` in evidence JSON. Grant and implementation remain
+Contract review `PASS` requires all §2–§17 fields explicit plus:
+
+~~~text
+ACTUAL_LABEL_AUTHORITY_SEPARATED=true
+FINAL_TARGET_MANIFEST_PERSISTENCE_POLICY_RESOLVED=true
+MIGRATION_DECISION_PROVEN=true
+NO_PLACEHOLDER_LEGACY_FIELDS=true
+~~~
+
+and `CONTRACT_REVIEW_READY=true` in evidence JSON. Grant and implementation remain
 separately authorized.

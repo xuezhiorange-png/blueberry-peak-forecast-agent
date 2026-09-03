@@ -18095,7 +18095,7 @@ completeness PASS, and does not flip `CURRENT_V0_3_S3_COMPLETE`.
 ```text
 S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_WORKPAPER=docs/v0-3/s3/workpapers/s3-b-quantile-semantics-remediation-contract-r1.md
 S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-b-quantile-semantics-remediation-contract-r1.json
-EVIDENCE_JSON_SHA256=08eb0ff2530e7b971f2d617556aba88fdd8774e6ad5f66a12b5ebf62510f1ad0
+EVIDENCE_JSON_SHA256=1553f0def25480671416ecd0f5756cdc3c66378e95a4ce0cf7acc0081c57dbad
 REMEDIATION_CONTRACT_PATH=docs/v0-3/s3/s3-quantile-semantics-remediation-contract.md
 PARENT_CLOSEOUT_PR=534
 PARENT_CLOSEOUT_MERGE=323c5e7b886b594e6f1cb76dd7d621d03f00a461
@@ -18118,7 +18118,14 @@ THIS_PR_IS_NOT_R1_IMPLEMENTATION=true
 CANONICAL_OPTION=FINAL_TARGET_DIRECT_QUANTILE_MODEL
 FINAL_TARGET_AUTHORITY_STATUS=RESOLVED
 FINAL_TARGET_Y=model_harvested_marketable_quantity_kg
-FINAL_TARGET_ACTUALS_AUTHORITY=actual_harvest_quantity_kg
+FINAL_TARGET_ACTUAL_LABEL=actual_harvest_quantity_kg
+FINAL_TARGET_ACTUALS_AUTHORITY=V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION
+FINAL_TARGET_MANIFEST_PERSISTENCE_POLICY=TRAINING_RUN_MANIFEST_SNAPSHOT_JSON
+FINAL_TARGET_ROWS_WRITE_LEGACY_RESIDUAL_MODEL_MANIFEST_ROW=false
+ACTUAL_LABEL_AUTHORITY_SEPARATED=true
+FINAL_TARGET_MANIFEST_PERSISTENCE_POLICY_RESOLVED=true
+MIGRATION_DECISION_PROVEN=true
+NO_PLACEHOLDER_LEGACY_FIELDS=true
 QUANTILE_CROSSING_POLICY=DETERMINISTIC_REARRANGEMENT_WITH_FINAL_OUTPUT_VERIFICATION
 FALLBACK_QUANTILE_SEMANTICS_POLICY=FAIL_CLOSED_NO_VERIFIED_QUANTILE_OUTPUT
 MIGRATION_REQUIRED=false
@@ -18144,9 +18151,11 @@ Parent Observation R0 reviewed `PASS` recommending
 `FINAL_TARGET_DIRECT_QUANTILE_MODEL`. Failed verification R1 #386 remains
 `VERIFICATION_FAILED` for all three quantiles. This remediation Contract freezes
 architecture only: direct `q=0.50/0.80/0.90` objectives on frozen final target
-`model_harvested_marketable_quantity_kg` paired with
-`actual_harvest_quantity_kg` under V0.2 §11 — not factory
-`observed_effective_receipt_kg`. `CONTRACT_AUTHORING_AUTHORIZED=true` ≠ Grant ≠
+`model_harvested_marketable_quantity_kg`; actual label
+`actual_harvest_quantity_kg` paired with actuals authority
+`V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION`; final-target manifest rows
+live in `manifest_snapshot` JSON only (`manifest_row_count=0`, no legacy child
+rows) — not factory `observed_effective_receipt_kg`. `CONTRACT_AUTHORING_AUTHORIZED=true` ≠ Grant ≠
 implementation ≠ semantics verification ≠ coverage execution. Grant is still
 required before implementation.
 
