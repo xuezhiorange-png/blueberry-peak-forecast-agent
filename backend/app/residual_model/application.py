@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -49,6 +49,9 @@ from backend.app.residual_model.replay_training_authority import (
     actual_input_rows,
     actual_manifest_payload,
     dataset_identity,
+    final_target_actual_input_rows,
+    final_target_dataset_identity,
+    final_target_manifest_payload,
     manifest_row_from_model,
 )
 from backend.app.residual_model.schemas import (
@@ -391,41 +394,80 @@ async def _require_persisted_replay_authority(
         )
 
     try:
-        persisted_manifest_rows = await list_residual_manifest_rows(
-            session,
-            training_run_id=training_run.id,
-        )
-        if len(persisted_manifest_rows) != training_run.manifest_row_count:
-            raise ValueError("persisted manifest row count does not match the training run")
-        manifest_rows = [manifest_row_from_model(row) for row in persisted_manifest_rows]
+        if training_run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE":
+            from backend.app.residual_model.manifest import (
+                final_target_manifest_hash,
+                final_target_manifest_row_from_payload,
+            )
+
+            snapshot_payloads = cast(
+                list[dict[str, Any]],
+                training_run.manifest_snapshot.get("rows", []),
+            )
+            final_rows = [
+                final_target_manifest_row_from_payload(payload) for payload in snapshot_payloads
+            ]
+            if training_run.manifest_row_count != 0:
+                raise ValueError("final-target training run must have zero legacy child rows")
+            if final_target_manifest_hash(final_rows) != training_run.manifest_hash:
+                raise ValueError("final-target manifest snapshot hash mismatch")
+            for final_manifest_row in final_rows:
+                if final_manifest_row.forecast_cutoff_at > forecast_cutoff_at:
+                    raise ResidualReplayTrainedAuthorityError(
+                        "final-target forecast cutoff precedes feature visibility"
+                    )
+            persisted_manifest_payload = final_target_manifest_payload(final_rows)
+            persisted_training_rows, persisted_label_rows = final_target_actual_input_rows(
+                final_rows
+            )
+            recomputed_dataset_hash = final_target_dataset_identity(
+                training_rows=persisted_training_rows,
+                label_rows=persisted_label_rows,
+                manifest_rows=persisted_manifest_payload,
+                prediction_target_kind="FINAL_TARGET_QUANTILE",
+                s2_authority_identity=cast(
+                    str,
+                    training_run.input_snapshot.get("s2_authority_identity", ""),
+                ),
+            )
+        else:
+            persisted_manifest_rows = await list_residual_manifest_rows(
+                session,
+                training_run_id=training_run.id,
+            )
+            if len(persisted_manifest_rows) != training_run.manifest_row_count:
+                raise ValueError("persisted manifest row count does not match the training run")
+            legacy_manifest_rows = [manifest_row_from_model(row) for row in persisted_manifest_rows]
+            training_cutoff_date = training_cutoff_at.date()
+            for legacy_manifest_row in legacy_manifest_rows:
+                if legacy_manifest_row.as_of_date > training_cutoff_date:
+                    raise ResidualReplayTrainedAuthorityError(
+                        "persisted Task 12 training observation is after the training cutoff"
+                    )
+                if legacy_manifest_row.label_actual_snapshot.source_cutoff.date() > training_cutoff_date:
+                    raise ResidualReplayTrainedAuthorityError(
+                        "persisted Task 12 label availability is after the training cutoff"
+                    )
+
+            recomputed_manifest_hash = manifest_hash(legacy_manifest_rows)
+            if recomputed_manifest_hash != training_run.manifest_hash:
+                raise ResidualReplayTrainedAuthorityError(
+                    "persisted Task 12 manifest rows do not match the training manifest hash"
+                )
+            persisted_manifest_payload = actual_manifest_payload(legacy_manifest_rows)
+            persisted_training_rows, persisted_label_rows = actual_input_rows(legacy_manifest_rows)
+            recomputed_dataset_hash = dataset_identity(
+                training_rows=persisted_training_rows,
+                label_rows=persisted_label_rows,
+                manifest_rows=persisted_manifest_payload,
+            )
+    except ResidualReplayTrainedAuthorityError:
+        raise
     except Exception as exc:
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 manifest rows could not be reconstructed"
         ) from exc
 
-    training_cutoff_date = training_cutoff_at.date()
-    for row in manifest_rows:
-        if row.as_of_date > training_cutoff_date:
-            raise ResidualReplayTrainedAuthorityError(
-                "persisted Task 12 training observation is after the training cutoff"
-            )
-        if row.label_actual_snapshot.source_cutoff.date() > training_cutoff_date:
-            raise ResidualReplayTrainedAuthorityError(
-                "persisted Task 12 label availability is after the training cutoff"
-            )
-
-    recomputed_manifest_hash = manifest_hash(manifest_rows)
-    if recomputed_manifest_hash != training_run.manifest_hash:
-        raise ResidualReplayTrainedAuthorityError(
-            "persisted Task 12 manifest rows do not match the training manifest hash"
-        )
-    persisted_manifest_payload = actual_manifest_payload(manifest_rows)
-    persisted_training_rows, persisted_label_rows = actual_input_rows(manifest_rows)
-    recomputed_dataset_hash = dataset_identity(
-        training_rows=persisted_training_rows,
-        label_rows=persisted_label_rows,
-        manifest_rows=persisted_manifest_payload,
-    )
     if context.get("training_dataset_hash") != recomputed_dataset_hash:
         raise ResidualReplayTrainedAuthorityError(
             "persisted Task 12 dataset hash does not match the persisted manifest rows"

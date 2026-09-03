@@ -56,6 +56,7 @@ from backend.app.residual_model.manifest import (
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
+    FinalTargetPredictionRow,
     FinalTargetTrainingManifestRow,
     PersistableResidualArtifact,
     ResidualArtifactMetadata,
@@ -230,6 +231,23 @@ def _validate_training_result(result: ResidualTrainingExecutionResult) -> None:
             raise ResidualModelPersistenceError("artifact binary_sha256 must be canonical SHA-256")
 
 
+def _is_final_target_prediction_result(result: ResidualPredictionExecutionResult) -> bool:
+    return result.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+
+
+def _validate_final_target_prediction_rows(
+    rows: tuple[FinalTargetPredictionRow, ...],
+) -> None:
+    for row in rows:
+        if row.prediction_target_kind.value != "FINAL_TARGET_QUANTILE":
+            raise ResidualModelPersistenceError(
+                "final-target prediction row must declare FINAL_TARGET_QUANTILE"
+            )
+        row_payload = row.model_dump(mode="python", exclude={"prediction_hash"})
+        if canonical_payload_hash(row_payload) != row.prediction_hash:
+            raise ResidualModelPersistenceError("final-target prediction row hash mismatch")
+
+
 def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> None:
     if not is_sha256_hex(result.config_hash):
         raise ResidualModelPersistenceError("prediction config_hash must be canonical SHA-256")
@@ -237,6 +255,30 @@ def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> No
         raise ResidualModelPersistenceError("prediction_input_signature must be canonical SHA-256")
     if not is_sha256_hex(result.prediction_hash):
         raise ResidualModelPersistenceError("prediction_hash must be canonical SHA-256")
+    is_final_target = _is_final_target_prediction_result(result)
+    if is_final_target:
+        if result.rows:
+            raise ResidualModelPersistenceError(
+                "final-target prediction must not contain legacy receipt rows"
+            )
+        if result.execution_status == "blocked" and result.final_target_rows:
+            raise ResidualModelPersistenceError(
+                "blocked final-target prediction must not contain rows"
+            )
+        if result.execution_status == "failed" and result.final_target_rows:
+            raise ResidualModelPersistenceError(
+                "failed final-target prediction must not contain rows"
+            )
+        if result.execution_status == "completed" and not result.final_target_rows:
+            raise ResidualModelPersistenceError(
+                "completed final-target prediction must contain final_target_rows"
+            )
+        _validate_final_target_prediction_rows(result.final_target_rows)
+        return
+    if result.final_target_rows:
+        raise ResidualModelPersistenceError(
+            "legacy prediction must not contain final_target_rows"
+        )
     if result.execution_status == "blocked" and result.rows:
         raise ResidualModelPersistenceError("blocked prediction run must not contain rows")
     if result.execution_status == "failed" and result.rows:
@@ -518,10 +560,16 @@ def _prediction_rows_payload(
     return [row.model_dump(mode="json") for row in rows]
 
 
-def _prediction_hash_from_result(result: ResidualPredictionExecutionResult) -> str:
+def _prediction_result_hash_payload(result: ResidualPredictionExecutionResult) -> dict[str, Any]:
     payload = _canonical_dump(result)
     payload["prediction_hash"] = None
-    return canonical_payload_hash(payload)
+    if not result.final_target_rows:
+        payload.pop("final_target_rows", None)
+    return payload
+
+
+def _prediction_hash_from_result(result: ResidualPredictionExecutionResult) -> str:
+    return canonical_payload_hash(_prediction_result_hash_payload(result))
 
 
 def training_parent_payload_from_columns(
@@ -966,6 +1014,13 @@ async def load_residual_training_run_by_id(
             raise ResidualModelPersistenceIntegrityError(
                 "distinct_grain_count mismatch from independent derivation"
             )
+        normalized_manifest_rows = [
+            cast(dict[str, Any], canonical_json_value(final_target_manifest_row_payload(row)))
+            for row in rebuilt_final_rows
+        ]
+        rebuilt_summary = cast(dict[str, Any], run.manifest_snapshot.get("summary", {}))
+        recomputed_row_count = 0
+        recomputed_factory_count = recomputed_grain_count
     else:
         legacy_train_rows = [
             row for row in rebuilt_manifest_rows if row.include and row.split.value == "train"
@@ -1284,6 +1339,7 @@ async def save_residual_prediction_run(
         prediction_input_signature=prediction_input_signature,
     )
     payload_hash = _prediction_payload_hash(result)
+    is_final_target_prediction = _is_final_target_prediction_result(result)
     if existing is not None:
         loaded_existing = await load_residual_prediction_run_by_id(session, run_id=existing.id)
         if loaded_existing is None:
@@ -1317,7 +1373,7 @@ async def save_residual_prediction_run(
         warnings=cast(list[str], canonical_json_value(list(result.warnings))),
         blockers=cast(list[str], canonical_json_value(list(result.blockers))),
         fallback_reason=result.fallback_reason,
-        expected_prediction_row_count=len(result.rows),
+        expected_prediction_row_count=0 if is_final_target_prediction else len(result.rows),
         input_snapshot=cast(dict[str, Any], canonical_json_value(result.input_snapshot)),
         canonical_output=cast(dict[str, Any], canonical_json_value(result.model_dump(mode="json"))),
         canonical_payload_hash=payload_hash,
@@ -1330,43 +1386,44 @@ async def save_residual_prediction_run(
     session.add(run)
     try:
         await session.flush()
-        session.add_all(
-            [
-                ResidualModelPredictionRow(
-                    prediction_run_id=run.id,
-                    model_run_id=row.model_run_id,
-                    task9_run_id=row.task9_run_id,
-                    task9_result_hash=row.task9_result_hash,
-                    destination_factory_id=row.destination_factory_id,
-                    arrival_local_date=row.arrival_local_date,
-                    forecast_horizon_days=row.forecast_horizon_days,
-                    structural_p50_kg=row.structural_p50_kg,
-                    structural_p80_kg=row.structural_p80_kg,
-                    structural_p90_kg=row.structural_p90_kg,
-                    raw_residual_p50_kg=row.raw_residual_p50_kg,
-                    raw_residual_p80_kg=row.raw_residual_p80_kg,
-                    raw_residual_p90_kg=row.raw_residual_p90_kg,
-                    corrected_raw_p50_kg=row.corrected_raw_p50_kg,
-                    corrected_raw_p80_kg=row.corrected_raw_p80_kg,
-                    corrected_raw_p90_kg=row.corrected_raw_p90_kg,
-                    corrected_p50_kg=row.corrected_p50_kg,
-                    corrected_p80_kg=row.corrected_p80_kg,
-                    corrected_p90_kg=row.corrected_p90_kg,
-                    nonnegative_projection_applied=row.nonnegative_projection_applied,
-                    quantile_projection_applied=row.quantile_projection_applied,
-                    projection_reasons=cast(
-                        list[str],
-                        canonical_json_value(row.projection_reasons),
-                    ),
-                    feature_vector_hash=row.feature_vector_hash,
-                    feature_audit_hash=row.feature_audit_hash,
-                    prediction_row_hash=row.prediction_hash,
-                    mode=row.mode,
-                    fallback_reason=row.fallback_reason,
-                )
-                for row in result.rows
-            ]
-        )
+        if not is_final_target_prediction:
+            session.add_all(
+                [
+                    ResidualModelPredictionRow(
+                        prediction_run_id=run.id,
+                        model_run_id=row.model_run_id,
+                        task9_run_id=row.task9_run_id,
+                        task9_result_hash=row.task9_result_hash,
+                        destination_factory_id=row.destination_factory_id,
+                        arrival_local_date=row.arrival_local_date,
+                        forecast_horizon_days=row.forecast_horizon_days,
+                        structural_p50_kg=row.structural_p50_kg,
+                        structural_p80_kg=row.structural_p80_kg,
+                        structural_p90_kg=row.structural_p90_kg,
+                        raw_residual_p50_kg=row.raw_residual_p50_kg,
+                        raw_residual_p80_kg=row.raw_residual_p80_kg,
+                        raw_residual_p90_kg=row.raw_residual_p90_kg,
+                        corrected_raw_p50_kg=row.corrected_raw_p50_kg,
+                        corrected_raw_p80_kg=row.corrected_raw_p80_kg,
+                        corrected_raw_p90_kg=row.corrected_raw_p90_kg,
+                        corrected_p50_kg=row.corrected_p50_kg,
+                        corrected_p80_kg=row.corrected_p80_kg,
+                        corrected_p90_kg=row.corrected_p90_kg,
+                        nonnegative_projection_applied=row.nonnegative_projection_applied,
+                        quantile_projection_applied=row.quantile_projection_applied,
+                        projection_reasons=cast(
+                            list[str],
+                            canonical_json_value(row.projection_reasons),
+                        ),
+                        feature_vector_hash=row.feature_vector_hash,
+                        feature_audit_hash=row.feature_audit_hash,
+                        prediction_row_hash=row.prediction_hash,
+                        mode=row.mode,
+                        fallback_reason=row.fallback_reason,
+                    )
+                    for row in result.rows
+                ]
+            )
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
@@ -1399,6 +1456,54 @@ async def load_residual_prediction_run_by_id(
     run = await get_residual_prediction_run(session, run_id=run_id)
     if run is None:
         return None
+
+    is_final_target_prediction = (
+        run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+    )
+    if is_final_target_prediction:
+        child_rows = await list_residual_prediction_rows(session, prediction_run_id=run_id)
+        if child_rows:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target prediction must not contain legacy child rows"
+            )
+        if run.expected_prediction_row_count != 0:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target prediction expected_prediction_row_count must be zero"
+            )
+        loaded = ResidualPredictionExecutionResult.model_validate(run.canonical_output)
+        if not _is_final_target_prediction_result(loaded):
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target canonical output missing prediction_target_kind"
+            )
+        if loaded.rows:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target canonical output must not contain legacy rows"
+            )
+        _validate_final_target_prediction_rows(loaded.final_target_rows)
+        logical_row_count = cast(
+            int,
+            run.input_snapshot.get(
+                "final_target_prediction_row_count",
+                len(loaded.final_target_rows),
+            ),
+        )
+        if logical_row_count != len(loaded.final_target_rows):
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target logical prediction row count mismatch"
+            )
+        if _prediction_hash_from_result(loaded) != run.prediction_hash:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target prediction hash mismatch from independent derivation"
+            )
+        if not _prediction_payload_hash_matches_stored(loaded, run.canonical_payload_hash):
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target prediction canonical payload hash mismatch"
+            )
+        if _prediction_input_signature(loaded) != run.prediction_input_signature:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target prediction input signature mismatch"
+            )
+        return loaded
 
     # SECTION 8.1: Rebuild expected_prediction_row_count from child rows, compare
     rows = await list_residual_prediction_rows(session, prediction_run_id=run_id)

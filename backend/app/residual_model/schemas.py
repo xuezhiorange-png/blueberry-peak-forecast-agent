@@ -287,6 +287,7 @@ class ResidualPredictionExecutionResult(_BaseModel):
     blockers: tuple[str, ...]
     fallback_reason: str | None = None
     rows: tuple[ResidualPredictionRow, ...]
+    final_target_rows: tuple[FinalTargetPredictionRow, ...] = ()
     input_snapshot: dict[str, Any]
 
 

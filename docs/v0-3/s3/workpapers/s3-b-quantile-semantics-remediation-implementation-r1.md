@@ -12,12 +12,13 @@ INTERPRETED_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1
 BASE_MAIN_SHA=c74cd2c541fe48b78b5a84de87ef10c16eee976e
 PARENT_GRANT_PR=536
 PARENT_GRANT_MERGE=c74cd2c541fe48b78b5a84de87ef10c16eee976e
-EVIDENCE_JSON_SHA256=9f42571b9d6dcb848b56d8276ef648f49e3376aee812f09a898fe254f8777526
+EVIDENCE_JSON_SHA256=29222e34afc70cbe55a200349342fcf5a1959ac3a0f4ceced690e84178c4ca77
 ```
 
 Dual-lane implementation: `LEGACY_RESIDUAL_CORRECTION` preserved; new
 `FINAL_TARGET_QUANTILE` lane trains direct q=0.50/0.80/0.90 on
 `actual_harvest_quantity_kg`, snapshot-only manifest (`manifest_row_count=0`),
+canonical JSON snapshot-only prediction persistence (`expected_prediction_row_count=0`),
 explicit model identity `final-target-quantile-v1`, and core-forecast binding
 via `apply_final_target_quantile_to_marketable_curve_rows`.
 
