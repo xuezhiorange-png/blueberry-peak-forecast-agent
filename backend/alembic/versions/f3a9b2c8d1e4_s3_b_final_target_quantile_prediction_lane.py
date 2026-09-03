@@ -138,9 +138,7 @@ def downgrade() -> None:
         )
     ).scalar_one()
     if final_target_count > 0:
-        raise RuntimeError(
-            "Downgrade forbidden: FINAL_TARGET_QUANTILE prediction rows exist"
-        )
+        raise RuntimeError("Downgrade forbidden: FINAL_TARGET_QUANTILE prediction rows exist")
 
     op.drop_constraint(LANE_CONSTRAINT, PREDICTION_RUN_TABLE, type_="check")
 

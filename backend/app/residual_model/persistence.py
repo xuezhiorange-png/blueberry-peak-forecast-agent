@@ -1436,9 +1436,7 @@ async def save_residual_prediction_run(
         task9_run_id=None if is_final_target_prediction else result.task9_run_id,
         task9_result_hash=None if is_final_target_prediction else result.task9_result_hash,
         prediction_target_kind=(
-            "FINAL_TARGET_QUANTILE"
-            if is_final_target_prediction
-            else "LEGACY_RESIDUAL_CORRECTION"
+            "FINAL_TARGET_QUANTILE" if is_final_target_prediction else "LEGACY_RESIDUAL_CORRECTION"
         ),
         execution_status=result.execution_status,
         mode=result.mode,
