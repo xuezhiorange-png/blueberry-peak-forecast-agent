@@ -448,8 +448,6 @@ def finalize_prediction_result(
     )
 
 
-FINAL_TARGET_PREDICTION_TASK9_RUN_ID = 0
-FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH = "0" * 64
 FINAL_TARGET_PREDICTION_FALLBACK_POLICY = "fail_closed_no_verified_quantile_output"
 
 
@@ -498,8 +496,8 @@ def finalize_final_target_prediction_result(
     prediction_input_signature = prediction_input_signature_hash(
         model_run_id=model_run_id,
         training_signature=training_signature,
-        task9_run_id=FINAL_TARGET_PREDICTION_TASK9_RUN_ID,
-        task9_result_hash=FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH,
+        task9_run_id=None,  # type: ignore[arg-type]
+        task9_result_hash=None,  # type: ignore[arg-type]
         feature_analytics_build_run_id=None,
         feature_actual_snapshot=None,
         supplemental_feature_values=[],
@@ -517,10 +515,10 @@ def finalize_final_target_prediction_result(
     )
     result_payload = {
         "execution_status": "completed",
-        "mode": ResidualPredictionMode.RESIDUAL_CORRECTED.value,
+        "mode": ResidualPredictionMode.FINAL_TARGET_QUANTILE.value,
         "model_run_id": model_run_id,
-        "task9_run_id": FINAL_TARGET_PREDICTION_TASK9_RUN_ID,
-        "task9_result_hash": FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH,
+        "task9_run_id": None,
+        "task9_result_hash": None,
         "config_hash": config.config_hash,
         "prediction_input_signature": prediction_input_signature,
         "prediction_hash": None,
@@ -537,10 +535,10 @@ def finalize_final_target_prediction_result(
     prediction_hash = canonical_payload_hash(result_payload)
     return ResidualPredictionExecutionResult(
         execution_status="completed",
-        mode=ResidualPredictionMode.RESIDUAL_CORRECTED,
+        mode=ResidualPredictionMode.FINAL_TARGET_QUANTILE,
         model_run_id=model_run_id,
-        task9_run_id=FINAL_TARGET_PREDICTION_TASK9_RUN_ID,
-        task9_result_hash=FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH,
+        task9_run_id=None,
+        task9_result_hash=None,
         config_hash=config.config_hash,
         prediction_input_signature=prediction_input_signature,
         prediction_hash=prediction_hash,
@@ -1723,7 +1721,8 @@ def train_final_target_model_from_manifest(
             manifest_hash=manifest_digest,
             sample_count=sample_count,
             distinct_season_count=distinct_season_count,
-            distinct_factory_count=distinct_grain_count,
+            distinct_factory_count=0,
+            distinct_grain_count=distinct_grain_count,
             warnings=(),
             blockers=tuple(blockers),
             feature_audit_summary=_aggregate_feature_audit_final_target(rows),
@@ -1745,7 +1744,8 @@ def train_final_target_model_from_manifest(
             manifest_hash=manifest_digest,
             sample_count=sample_count,
             distinct_season_count=distinct_season_count,
-            distinct_factory_count=distinct_grain_count,
+            distinct_factory_count=0,
+            distinct_grain_count=distinct_grain_count,
             warnings=(),
             blockers=(),
             feature_audit_summary=_aggregate_feature_audit_final_target(rows),
@@ -1800,7 +1800,8 @@ def train_final_target_model_from_manifest(
         manifest_hash=manifest_digest,
         sample_count=sample_count,
         distinct_season_count=distinct_season_count,
-        distinct_factory_count=distinct_grain_count,
+        distinct_factory_count=0,
+        distinct_grain_count=distinct_grain_count,
         warnings=(),
         blockers=(),
         feature_audit_summary=_aggregate_feature_audit_final_target(rows),

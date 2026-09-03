@@ -384,6 +384,7 @@ class ResidualTrainingExecutionResult(_BaseModel):
     sample_count: int
     distinct_season_count: int
     distinct_factory_count: int
+    distinct_grain_count: int = 0
     warnings: tuple[str, ...]
     blockers: tuple[str, ...]
     feature_audit_summary: dict[str, Any]

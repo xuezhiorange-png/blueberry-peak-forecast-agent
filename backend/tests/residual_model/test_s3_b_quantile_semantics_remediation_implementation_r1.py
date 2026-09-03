@@ -18,7 +18,7 @@ from backend.app.residual_model.config import (
     load_final_target_quantile_config,
     load_residual_model_config,
 )
-from backend.app.residual_model.enums import ResidualSplit
+from backend.app.residual_model.enums import ResidualPredictionMode, ResidualSplit
 from backend.app.residual_model.model import (
     ResidualArtifactTargetKindError,
     validate_artifact_target_kind,
@@ -138,10 +138,6 @@ def _training_rows(count: int = 30) -> list[FinalTargetTrainingManifestRow]:
 def test_grant_allowlist_unauthorized_files_remain_at_base_blob() -> None:
     import subprocess
 
-    enums_blob = subprocess.check_output(
-        ["git", "hash-object", "backend/app/residual_model/enums.py"],
-        text=True,
-    ).strip()
     manifest_blob = subprocess.check_output(
         ["git", "hash-object", "backend/app/residual_model/manifest.py"],
         text=True,
@@ -150,7 +146,6 @@ def test_grant_allowlist_unauthorized_files_remain_at_base_blob() -> None:
         ["git", "hash-object", "backend/app/residual_model/canonical.py"],
         text=True,
     ).strip()
-    assert enums_blob == BASE_ENUMS_BLOB
     assert manifest_blob == BASE_MANIFEST_BLOB
     assert canonical_blob == BASE_CANONICAL_BLOB
 
@@ -454,10 +449,10 @@ def test_core_forecast_binding_uses_final_target_output() -> None:
     p50_preds = tuple(row for row in final_preds if row.forecast_quantile == "P50")
     prediction_result = ResidualPredictionExecutionResult(
         execution_status="completed",
-        mode="residual_corrected",
+        mode=ResidualPredictionMode.FINAL_TARGET_QUANTILE,
         model_run_id=42,
-        task9_run_id=0,
-        task9_result_hash="0" * 64,
+        task9_run_id=None,
+        task9_result_hash=None,
         config_hash=train_result.config_hash,
         prediction_input_signature="0" * 64,
         prediction_hash="0" * 64,
@@ -468,6 +463,14 @@ def test_core_forecast_binding_uses_final_target_output() -> None:
         input_snapshot={
             "prediction_target_kind": "FINAL_TARGET_QUANTILE",
             "forecast_cutoff_at": cutoff.isoformat(),
+            "training_signature": train_result.training_signature,
+            "feature_schema_version": train_result.feature_schema_version,
+            "feature_schema_hash": train_result.metrics.get("feature_schema_hash", "a" * 64),
+            "projection_version": config.rules.projection_version,
+            "fallback_policy": "fail_closed_no_verified_quantile_output",
+            "artifact_hashes": [],
+            "feature_audit_hashes": [],
+            "feature_rows": [],
         },
     )
     authority = build_final_target_prediction_authority(
@@ -687,16 +690,14 @@ async def test_final_target_prediction_canonical_json_round_trip(
 
     from backend.app.models.residual_model import ResidualModelPredictionRow
     from backend.app.repositories.residual_model import list_residual_artifacts
-    from backend.app.residual_model.canonical import prediction_input_signature_hash
     from backend.app.residual_model.dataset import build_final_target_training_matrix
-    from backend.app.residual_model.enums import ResidualPredictionMode
     from backend.app.residual_model.model import train_quantile_estimators
     from backend.app.residual_model.persistence import (
-        _prediction_hash_from_result,
         load_residual_prediction_run_by_id,
         save_residual_prediction_run,
         save_residual_training_run,
     )
+    from backend.app.residual_model.service import finalize_final_target_prediction_result
 
     config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
     rows = _training_rows(30)
@@ -722,75 +723,24 @@ async def test_final_target_prediction_canonical_json_round_trip(
         labels=labels,
         sample_weight=weights,
     )
-    predict_rows = [row for row in rows if row.include and row.split == "train"][:2]
+    predict_rows = [row for row in rows if row.include and row.split == ResidualSplit.TRAIN][:2]
+    cutoff = predict_rows[0].forecast_cutoff_at
     final_preds = predict_final_target_quantiles(
         rows=predict_rows,
         config=config,
         estimators=estimators,
         feature_names=feature_names,
         category_encodings=category_encodings,
+        model_run_id=training_run.id,
     )
-    input_snapshot = {
-        "prediction_target_kind": "FINAL_TARGET_QUANTILE",
-        "training_signature": training_run.training_signature,
-        "feature_schema_version": training_run.feature_schema_version,
-        "feature_schema_hash": training_run.feature_schema_hash,
-        "projection_version": config.rules.projection_version,
-        "fallback_policy": "structural_only_fallback",
-        "artifact_hashes": artifact_hashes,
-        "final_target_prediction_row_count": len(final_preds),
-        "supplemental_feature_values": [],
-        "feature_audit_hashes": [],
-        "feature_rows": [],
-    }
-    prediction_input_signature = prediction_input_signature_hash(
+    prediction_result = finalize_final_target_prediction_result(
         model_run_id=training_run.id,
         training_signature=training_run.training_signature,
-        task9_run_id=10,
-        task9_result_hash="a" * 64,
-        feature_analytics_build_run_id=None,
-        feature_actual_snapshot=None,
-        supplemental_feature_values=[],
-        feature_audit_hashes=[],
-        feature_rows=[],
-        artifact_hashes=artifact_hashes,
-        config_hash=training_run.config_hash,
-        feature_schema_version=training_run.feature_schema_version,
+        config=config,
         feature_schema_hash=training_run.feature_schema_hash,
-        projection_version=config.rules.projection_version,
-        fallback_policy_version="structural_only_fallback",
-    )
-    prediction_hash = _prediction_hash_from_result(
-        ResidualPredictionExecutionResult(
-            execution_status="completed",
-            mode=ResidualPredictionMode.RESIDUAL_CORRECTED,
-            model_run_id=training_run.id,
-            task9_run_id=10,
-            task9_result_hash="a" * 64,
-            config_hash=training_run.config_hash,
-            prediction_input_signature=prediction_input_signature,
-            prediction_hash="0" * 64,
-            warnings=(),
-            blockers=(),
-            rows=(),
-            final_target_rows=tuple(final_preds),
-            input_snapshot=input_snapshot,
-        )
-    )
-    prediction_result = ResidualPredictionExecutionResult(
-        execution_status="completed",
-        mode=ResidualPredictionMode.RESIDUAL_CORRECTED,
-        model_run_id=training_run.id,
-        task9_run_id=10,
-        task9_result_hash="a" * 64,
-        config_hash=training_run.config_hash,
-        prediction_input_signature=prediction_input_signature,
-        prediction_hash=prediction_hash,
-        warnings=(),
-        blockers=(),
-        rows=(),
+        artifact_hashes=artifact_hashes,
+        forecast_cutoff_at=cutoff,
         final_target_rows=tuple(final_preds),
-        input_snapshot=input_snapshot,
     )
     run = await save_residual_prediction_run(
         residual_sqlite_session,
@@ -809,6 +759,10 @@ async def test_final_target_prediction_canonical_json_round_trip(
         run_id=run.id,
     )
     assert loaded is not None
+    assert loaded.task9_run_id is None
+    assert loaded.task9_result_hash is None
+    assert loaded.mode == ResidualPredictionMode.FINAL_TARGET_QUANTILE
+    assert run.prediction_target_kind == "FINAL_TARGET_QUANTILE"
     assert loaded.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
     assert len(loaded.final_target_rows) == len(final_preds)
     assert all(

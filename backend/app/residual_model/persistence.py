@@ -46,6 +46,7 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
     prediction_input_signature_hash,
 )
+from backend.app.residual_model.enums import ResidualPredictionMode
 from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
 from backend.app.residual_model.schemas import (
     FeatureValue,
@@ -179,11 +180,16 @@ def prediction_results_business_compatible(
 
 def _prediction_input_signature(result: ResidualPredictionExecutionResult) -> str:
     snapshot = result.input_snapshot
+    task9_run_id = result.task9_run_id
+    task9_result_hash = result.task9_result_hash
+    if _is_final_target_prediction_result(result):
+        task9_run_id = None
+        task9_result_hash = None
     return prediction_input_signature_hash(
         model_run_id=result.model_run_id,
         training_signature=cast(str, snapshot["training_signature"]),
-        task9_run_id=cast(int, result.task9_run_id),
-        task9_result_hash=cast(str, result.task9_result_hash),
+        task9_run_id=task9_run_id,  # type: ignore[arg-type]
+        task9_result_hash=task9_result_hash,  # type: ignore[arg-type]
         feature_analytics_build_run_id=cast(
             int | None,
             snapshot.get("feature_analytics_build_run_id"),
@@ -331,6 +337,14 @@ def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> No
         if result.execution_status == "completed" and not result.final_target_rows:
             raise ResidualModelPersistenceError(
                 "completed final-target prediction must contain final_target_rows"
+            )
+        if result.task9_run_id is not None or result.task9_result_hash is not None:
+            raise ResidualModelPersistenceError(
+                "final-target prediction must not bind Task9 authority"
+            )
+        if result.mode != ResidualPredictionMode.FINAL_TARGET_QUANTILE:
+            raise ResidualModelPersistenceError(
+                "final-target prediction must use final_target_quantile mode"
             )
         _validate_final_target_prediction_rows(result.final_target_rows)
         return
@@ -647,6 +661,7 @@ def training_parent_payload_from_columns(
                 "sample_count": run.sample_count,
                 "distinct_season_count": run.distinct_season_count,
                 "distinct_factory_count": run.distinct_factory_count,
+                "distinct_grain_count": run.distinct_grain_count,
                 "manifest_row_count": run.manifest_row_count,
                 "expected_artifact_count": run.expected_artifact_count,
                 "warnings": run.warnings,
@@ -679,6 +694,7 @@ def prediction_parent_payload_from_columns(
                 "model_run_id": run.training_run_id,
                 "task9_run_id": run.task9_run_id,
                 "task9_result_hash": run.task9_result_hash,
+                "prediction_target_kind": run.prediction_target_kind,
                 "config_hash": run.config_hash,
                 "feature_schema_version": run.feature_schema_version,
                 "feature_schema_hash": run.feature_schema_hash,
@@ -813,6 +829,7 @@ async def save_residual_training_run(
         sample_count=result.sample_count,
         distinct_season_count=result.distinct_season_count,
         distinct_factory_count=result.distinct_factory_count,
+        distinct_grain_count=result.distinct_grain_count,
         manifest_row_count=persisted_manifest_row_count,
         expected_artifact_count=len(result.artifacts),
         python_version=result.artifacts[0].metadata.python_version if result.artifacts else "n/a",
@@ -1063,9 +1080,13 @@ async def load_residual_training_run_by_id(
         recomputed_grain_count = len(
             {(row.farm_id, row.subfarm_id, row.variety_id) for row in final_train_rows}
         )
-        if recomputed_grain_count != run.distinct_factory_count:
+        if recomputed_grain_count != run.distinct_grain_count:
             raise ResidualModelPersistenceIntegrityError(
                 "distinct_grain_count mismatch from independent derivation"
+            )
+        if run.distinct_factory_count != 0:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target training distinct_factory_count must be zero"
             )
         normalized_manifest_rows = [
             cast(dict[str, Any], canonical_json_value(final_target_manifest_row_payload(row)))
@@ -1073,7 +1094,8 @@ async def load_residual_training_run_by_id(
         ]
         rebuilt_summary = cast(dict[str, Any], run.manifest_snapshot.get("summary", {}))
         recomputed_row_count = 0
-        recomputed_factory_count = recomputed_grain_count
+        recomputed_factory_count = 0
+        recomputed_grain_count_for_parent = recomputed_grain_count
     else:
         legacy_train_rows = [
             row for row in rebuilt_manifest_rows if row.include and row.split.value == "train"
@@ -1098,6 +1120,11 @@ async def load_residual_training_run_by_id(
             raise ResidualModelPersistenceIntegrityError(
                 "distinct_factory_count mismatch from independent derivation"
             )
+        if run.distinct_grain_count != 0:
+            raise ResidualModelPersistenceIntegrityError(
+                "legacy training distinct_grain_count must be zero"
+            )
+        recomputed_grain_count_for_parent = 0
 
     payload = dict(run.canonical_output)
     payload["artifacts"] = [
@@ -1195,6 +1222,7 @@ async def load_residual_training_run_by_id(
                 "sample_count": recomputed_sample_count,
                 "distinct_season_count": recomputed_season_count,
                 "distinct_factory_count": recomputed_factory_count,
+                "distinct_grain_count": recomputed_grain_count_for_parent,
                 "manifest_row_count": recomputed_row_count,
                 "expected_artifact_count": len(artifacts),
                 "warnings": list(loaded.warnings),
@@ -1299,13 +1327,7 @@ async def save_residual_prediction_run(
 
     # 7.3: Verify Task 9 identity via the full Task 9 authority loader.
     is_final_target_lane = _is_final_target_prediction_result(result)
-    task9_authority_bound = cast(
-        bool,
-        result.input_snapshot.get("task9_authority_bound", True),
-    )
-    if result.task9_run_id is not None and not (
-        is_final_target_lane and result.task9_run_id == 0 and not task9_authority_bound
-    ):
+    if result.task9_run_id is not None and not is_final_target_lane:
         task9_output = await load_harvest_state_output_by_id(session, run_id=result.task9_run_id)
         if task9_output is None:
             raise ResidualModelPersistenceError(f"Task 9 run {result.task9_run_id} was not found")
@@ -1343,8 +1365,8 @@ async def save_residual_prediction_run(
     recomputed = prediction_input_signature_hash(
         model_run_id=result.model_run_id,
         training_signature=cast(str, result.input_snapshot.get("training_signature")),
-        task9_run_id=cast(int, result.task9_run_id),
-        task9_result_hash=cast(str, result.task9_result_hash),
+        task9_run_id=None if is_final_target_lane else cast(int, result.task9_run_id),  # type: ignore[arg-type]
+        task9_result_hash=None if is_final_target_lane else cast(str, result.task9_result_hash),  # type: ignore[arg-type]
         feature_analytics_build_run_id=cast(
             int | None,
             result.input_snapshot.get("feature_analytics_build_run_id"),
@@ -1411,8 +1433,13 @@ async def save_residual_prediction_run(
         return verified
     run = ResidualModelPredictionRun(
         training_run_id=result.model_run_id,
-        task9_run_id=cast(int, result.task9_run_id),
-        task9_result_hash=cast(str, result.task9_result_hash),
+        task9_run_id=None if is_final_target_prediction else result.task9_run_id,
+        task9_result_hash=None if is_final_target_prediction else result.task9_result_hash,
+        prediction_target_kind=(
+            "FINAL_TARGET_QUANTILE"
+            if is_final_target_prediction
+            else "LEGACY_RESIDUAL_CORRECTION"
+        ),
         execution_status=result.execution_status,
         mode=result.mode,
         config_hash=result.config_hash,
@@ -1673,15 +1700,10 @@ async def load_residual_prediction_run_by_id(
     # canonical-output validation + child row count reconciliation
     # always run.
     is_final_target_lane = (
-        run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+        run.prediction_target_kind == "FINAL_TARGET_QUANTILE"
+        or run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
     )
-    task9_authority_bound = cast(
-        bool,
-        run.input_snapshot.get("task9_authority_bound", True),
-    )
-    if run.task9_run_id is not None and not (
-        is_final_target_lane and run.task9_run_id == 0 and not task9_authority_bound
-    ):
+    if run.task9_run_id is not None and not is_final_target_lane:
         task9_output = await load_harvest_state_output_by_id(session, run_id=run.task9_run_id)
         if task9_output is None:
             raise ResidualModelPersistenceIntegrityError(
@@ -1700,8 +1722,8 @@ async def load_residual_prediction_run_by_id(
     column_prediction_input_signature = prediction_input_signature_hash(
         model_run_id=run.training_run_id,
         training_signature=cast(str, run.input_snapshot["training_signature"]),
-        task9_run_id=run.task9_run_id,
-        task9_result_hash=run.task9_result_hash,
+        task9_run_id=None if is_final_target_lane else run.task9_run_id,  # type: ignore[arg-type]
+        task9_result_hash=None if is_final_target_lane else run.task9_result_hash,  # type: ignore[arg-type]
         feature_analytics_build_run_id=cast(
             int | None,
             run.input_snapshot.get("feature_analytics_build_run_id"),

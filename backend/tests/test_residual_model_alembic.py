@@ -176,7 +176,9 @@ def test_residual_model_prediction_run_check_constraints() -> None:
         table,
         [
             "execution_status in ('completed', 'blocked', 'failed')",
-            "mode in ('residual_corrected', 'structural_only', 'blocked')",
+            "mode in ('residual_corrected', 'structural_only', 'blocked', 'final_target_quantile')",
+            "prediction_target_kind in ('LEGACY_RESIDUAL_CORRECTION', 'FINAL_TARGET_QUANTILE')",
+            "ck_residual_model_prediction_run_lane_consistency",
             "expected_prediction_row_count >= 0",
             "execution_status != 'blocked' OR expected_prediction_row_count = 0",
             "execution_status != 'failed' OR expected_prediction_row_count = 0",
