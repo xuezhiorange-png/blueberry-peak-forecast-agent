@@ -1794,6 +1794,7 @@ async def load_residual_prediction_run_by_id(
                 "model_run_id": loaded.model_run_id,
                 "task9_run_id": loaded.task9_run_id,
                 "task9_result_hash": loaded.task9_result_hash,
+                "prediction_target_kind": run.prediction_target_kind,
                 "config_hash": loaded.config_hash,
                 "feature_schema_version": rebuilt_fsv,
                 "feature_schema_hash": rebuilt_fsh,
