@@ -81,12 +81,12 @@
     "dataset_py": "2406ebe0f9527f3b559189d07e9f23444e817a03",
     "model_py": "72ca18538c7258912fa393b15977cadd7b8dbc22",
     "projection_py": "4b215c751c38149211a51578998f68f5c174f463",
-    "service_py": "5ee9208513e6d65639149ce8d0bbab2e4807b30b",
+    "service_py": "45116af3e5711a034bbec4a0f47a49778021d0ae",
     "training_manifest_py": "716563cd858b60c971705a4902592d58b3269e0c",
-    "persistence_py": "06843a715f65337272d112efde5b42e5eacabc4e",
+    "persistence_py": "fefe03753e292b30c8d7cacafc644608a04e149f",
     "replay_training_authority_py": "b3a836a17dd58de76a96f6a0360462327d063ce3",
-    "application_py": "22cb851715d880df9739c792b7fbf8f1b14efa8e",
+    "application_py": "06a2e0a26e4ac386c380edf866f267d762086f85",
     "core_forecast_service_py": "678d324bd2d380e310d2c84b97fa8021849d9b47"
   },
-  "evidence_json_sha256": "29222e34afc70cbe55a200349342fcf5a1959ac3a0f4ceced690e84178c4ca77"
+  "evidence_json_sha256": "d6f3bbe6e54e6f7f43fef4502c03c9bf9716c813b93cf37542a1d53b213a9300"
 }
