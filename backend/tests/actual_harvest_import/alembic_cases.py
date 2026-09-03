@@ -51,6 +51,11 @@ MIGRATION_REPLAY_IDENTITY_SCHEMA_PATH = (
     _ALEMBIC_VERSIONS_DIR / "e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py"
 )
 MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION = "e8b2c4d6f1a3"
+MIGRATION_FINAL_TARGET_LANE_PATH = (
+    _ALEMBIC_VERSIONS_DIR
+    / "f3a9b2c8d1e4_s3_b_final_target_quantile_prediction_lane.py"
+)
+MIGRATION_FINAL_TARGET_LANE_REVISION = "f3a9b2c8d1e4"
 
 
 def _migration_module() -> ModuleType:
@@ -94,11 +99,11 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     script = ScriptDirectory.from_config(config)
     # 0022 remains the I7 lineage parent for finalized_at, 0023 remains the
     # S2 historical binding extension, Lane C E4b remains the E4b revision, and
-    # replay-identity schema R1 is the current unique head.
+    # replay-identity schema R1 and S3-B final-target lane migration share a single head chain.
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION], (
-        f"alembic heads must be [{MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION!r}], got {heads!r}"
+    assert heads == [MIGRATION_FINAL_TARGET_LANE_REVISION], (
+        f"alembic heads must be [{MIGRATION_FINAL_TARGET_LANE_REVISION!r}], got {heads!r}"
     )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
