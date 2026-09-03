@@ -138,9 +138,10 @@
     "criterion_16_registry_available_stage_two": "PASS",
     "criterion_17_completeness_remains_false": "PASS",
     "criterion_18_quantile_semantics_verification_failed": "PASS",
-    "criterion_19_s4_remains_unauthorized": "PASS",
-    "criterion_20_production_test_files_unchanged": "PASS",
-    "criterion_21_old_closeout_531_not_authoritative": "PASS",
+    "criterion_19_current_v0_3_s3_remains_incomplete": "PASS",
+    "criterion_20_s4_remains_unauthorized": "PASS",
+    "criterion_21_production_test_files_unchanged": "PASS",
+    "criterion_22_old_closeout_531_not_authoritative": "PASS",
     "all_criteria_pass": true
   },
   "this_family_closeout": {
@@ -155,5 +156,5 @@
     "forbidden_rewrite_r1_history": true,
     "forbidden_retroactive_authorization": true
   },
-  "evidence_json_sha256": "e203b6fd9a3eba5db85ff2a13142c7d62a235a1661be5cbb83724d6efda93463"
+  "evidence_json_sha256": "46a8c845d3d289b268be299ca01224ec20f44fbef3ae9e1825da11b302fd4cd4"
 }
