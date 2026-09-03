@@ -592,13 +592,35 @@ async def compose_complete_daily_marketable_curve(
 def apply_final_target_quantile_to_marketable_curve_rows(
     rows: tuple[CompleteDailyMarketableCurveRow, ...],
     *,
-    predictions_by_key: dict[tuple[int, int, int, date, str], str],
-    prediction_target_kind: str = "FINAL_TARGET_QUANTILE",
+    authority: object,
 ) -> tuple[CompleteDailyMarketableCurveRow, ...]:
     """Bind direct final-target quantile kg into model_harvested_marketable_quantity_kg."""
 
-    if prediction_target_kind != "FINAL_TARGET_QUANTILE":
+    from decimal import Decimal
+
+    from backend.app.core_forecast.schemas import OUTPUT_QUANTUM
+    from backend.app.residual_model.config import FINAL_TARGET_MODEL_FAMILY, PredictionTargetKind
+    from backend.app.residual_model.schemas import FinalTargetPredictionAuthority
+
+    if not isinstance(authority, FinalTargetPredictionAuthority):
+        raise ValueError("final-target binding requires FinalTargetPredictionAuthority")
+    if authority.prediction_target_kind != PredictionTargetKind.FINAL_TARGET_QUANTILE:
         raise ValueError("prediction_target_kind must be FINAL_TARGET_QUANTILE")
+    if authority.model_family != FINAL_TARGET_MODEL_FAMILY:
+        raise ValueError("final-target binding rejects legacy model_family authority")
+    predictions_by_key = authority.predictions_by_business_key()
+    expected_keys = {
+        (
+            row.farm_id,
+            row.subfarm_id,
+            row.variety_id,
+            row.date,
+            row.forecast_quantile,
+        )
+        for row in rows
+    }
+    if set(predictions_by_key.keys()) != expected_keys:
+        raise ValueError("final-target authority business keys must match curve rows exactly")
     updated: list[CompleteDailyMarketableCurveRow] = []
     for row in rows:
         key = (
@@ -608,9 +630,12 @@ def apply_final_target_quantile_to_marketable_curve_rows(
             row.date,
             row.forecast_quantile,
         )
-        marketable = predictions_by_key.get(key)
-        if marketable is None:
-            raise ValueError(f"missing final-target prediction for business key {key}")
+        marketable_raw = predictions_by_key[key]
+        quantized_marketable = Decimal(marketable_raw).quantize(
+            OUTPUT_QUANTUM,
+            rounding=ROUND_HALF_EVEN,
+        )
+        marketable = f"{quantized_marketable:.6f}"
         payload = {
             "date": row.date,
             "forecast_quantile": row.forecast_quantile,

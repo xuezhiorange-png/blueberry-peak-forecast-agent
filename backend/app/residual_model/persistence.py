@@ -44,14 +44,14 @@ from backend.app.residual_model.artifact import (
 )
 from backend.app.residual_model.canonical import (
     canonical_payload_hash,
+    final_target_prediction_row_content_payload,
     prediction_input_signature_hash,
 )
-from backend.app.residual_model.manifest import (
+from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
+from backend.app.residual_model.training_manifest import (
     final_target_manifest_hash,
     final_target_manifest_row_from_payload,
     final_target_manifest_row_payload,
-    manifest_hash,
-    manifest_row_payload,
 )
 from backend.app.residual_model.schemas import (
     FeatureValue,
@@ -120,6 +120,8 @@ def _training_payload_hash(result: ResidualTrainingExecutionResult) -> str:
 
 
 def _prediction_payload_hash(result: ResidualPredictionExecutionResult) -> str:
+    if _is_final_target_prediction_result(result):
+        return canonical_payload_hash(_final_target_prediction_hash_payload(result))
     return canonical_payload_hash(_canonical_dump(result))
 
 
@@ -152,6 +154,11 @@ def prediction_results_business_compatible(
         if isinstance(input_snapshot, dict):
             input_snapshot.pop("model_artifact_visibility", None)
         payload["prediction_hash"] = None
+        if payload.get("input_snapshot", {}).get("prediction_target_kind") == "FINAL_TARGET_QUANTILE":
+            payload["final_target_rows"] = [
+                final_target_prediction_row_content_payload(row)
+                for row in cast(list[dict[str, Any]], payload.get("final_target_rows", []))
+            ]
     return left_payload == right_payload
 
 
@@ -237,15 +244,54 @@ def _is_final_target_prediction_result(result: ResidualPredictionExecutionResult
 
 def _validate_final_target_prediction_rows(
     rows: tuple[FinalTargetPredictionRow, ...],
+    *,
+    require_persisted_run_identity: bool = False,
 ) -> None:
     for row in rows:
         if row.prediction_target_kind.value != "FINAL_TARGET_QUANTILE":
             raise ResidualModelPersistenceError(
                 "final-target prediction row must declare FINAL_TARGET_QUANTILE"
             )
-        row_payload = row.model_dump(mode="python", exclude={"prediction_hash"})
-        if canonical_payload_hash(row_payload) != row.prediction_hash:
+        if require_persisted_run_identity:
+            if row.model_run_id <= 0 or row.prediction_run_id <= 0:
+                raise ResidualModelPersistenceError(
+                    "final-target prediction row must expose persisted run identity"
+                )
+        row_content = final_target_prediction_row_content_payload(
+            row.model_dump(mode="python")
+        )
+        if canonical_payload_hash(row_content) != row.prediction_hash:
             raise ResidualModelPersistenceError("final-target prediction row hash mismatch")
+
+
+def _stamp_final_target_prediction_result(
+    result: ResidualPredictionExecutionResult,
+    *,
+    model_run_id: int,
+    prediction_run_id: int,
+) -> ResidualPredictionExecutionResult:
+    stamped_rows = tuple(
+        row.model_copy(
+            update={
+                "model_run_id": model_run_id,
+                "prediction_run_id": prediction_run_id,
+            }
+        )
+        for row in result.final_target_rows
+    )
+    return result.model_copy(update={"final_target_rows": stamped_rows})
+
+
+def _final_target_prediction_hash_payload(
+    result: ResidualPredictionExecutionResult,
+) -> dict[str, Any]:
+    payload = _canonical_dump(result)
+    payload["prediction_hash"] = None
+    payload["final_target_rows"] = [
+        final_target_prediction_row_content_payload(row.model_dump(mode="python"))
+        for row in result.final_target_rows
+    ]
+    return payload
 
 
 def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> None:
@@ -559,6 +605,8 @@ def _prediction_rows_payload(
 
 
 def _prediction_hash_from_result(result: ResidualPredictionExecutionResult) -> str:
+    if _is_final_target_prediction_result(result):
+        return canonical_payload_hash(_final_target_prediction_hash_payload(result))
     payload = _canonical_dump(result)
     payload["prediction_hash"] = None
     return canonical_payload_hash(payload)
@@ -1237,12 +1285,19 @@ async def save_residual_prediction_run(
                 )
 
     # 7.3: Verify Task 9 identity via the full Task 9 authority loader.
-    # ``load_harvest_state_output_by_id`` enforces the canonical-output
-    # validation + child row count reconciliation that the prediction
-    # authority check relies on; we MUST NOT replace it with a
-    # status/result_hash-only query (that path was removed for the B1
-    # fixup because it de-rated the production authority binding).
-    if result.task9_run_id is not None:
+    is_final_target_lane = _is_final_target_prediction_result(result)
+    task9_authority_bound = cast(
+        bool,
+        result.input_snapshot.get("task9_authority_bound", True),
+    )
+    if (
+        result.task9_run_id is not None
+        and not (
+            is_final_target_lane
+            and result.task9_run_id == 0
+            and not task9_authority_bound
+        )
+    ):
         task9_output = await load_harvest_state_output_by_id(session, run_id=result.task9_run_id)
         if task9_output is None:
             raise ResidualModelPersistenceError(f"Task 9 run {result.task9_run_id} was not found")
@@ -1378,6 +1433,16 @@ async def save_residual_prediction_run(
     session.add(run)
     try:
         await session.flush()
+        if is_final_target_prediction:
+            stamped_result = _stamp_final_target_prediction_result(
+                result,
+                model_run_id=cast(int, result.model_run_id),
+                prediction_run_id=run.id,
+            )
+            run.canonical_output = cast(
+                dict[str, Any],
+                canonical_json_value(stamped_result.model_dump(mode="json")),
+            )
         if not is_final_target_prediction:
             session.add_all(
                 [
@@ -1471,7 +1536,10 @@ async def load_residual_prediction_run_by_id(
             raise ResidualModelPersistenceIntegrityError(
                 "final-target canonical output must not contain legacy rows"
             )
-        _validate_final_target_prediction_rows(loaded.final_target_rows)
+        _validate_final_target_prediction_rows(
+            loaded.final_target_rows,
+            require_persisted_run_identity=True,
+        )
         logical_row_count = cast(
             int,
             run.input_snapshot.get(
@@ -1596,7 +1664,19 @@ async def load_residual_prediction_run_by_id(
     # MUST go through ``load_harvest_state_output_by_id`` here so the
     # canonical-output validation + child row count reconciliation
     # always run.
-    if run.task9_run_id is not None:
+    is_final_target_lane = run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+    task9_authority_bound = cast(
+        bool,
+        run.input_snapshot.get("task9_authority_bound", True),
+    )
+    if (
+        run.task9_run_id is not None
+        and not (
+            is_final_target_lane
+            and run.task9_run_id == 0
+            and not task9_authority_bound
+        )
+    ):
         task9_output = await load_harvest_state_output_by_id(session, run_id=run.task9_run_id)
         if task9_output is None:
             raise ResidualModelPersistenceIntegrityError(

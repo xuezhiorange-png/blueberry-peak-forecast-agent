@@ -10,6 +10,7 @@ from typing import Any, cast
 from backend.app.residual_model.canonical import (
     canonical_json_value,
     canonical_payload_hash,
+    final_target_prediction_row_content_payload,
     prediction_input_signature_hash,
 )
 from backend.app.residual_model.config import ResidualModelConfig, is_final_target_quantile_config
@@ -22,13 +23,17 @@ from backend.app.residual_model.dataset import (
     summarize_manifest,
     training_signature,
 )
-from backend.app.residual_model.enums import (
+from backend.app.residual_model.config import (
+    FINAL_TARGET_MODEL_FAMILY,
     PredictionTargetKind,
+)
+from backend.app.residual_model.enums import (
     ResidualPredictionMode,
     ResidualSplit,
 )
 from backend.app.residual_model.feature_registry import feature_definition_map
-from backend.app.residual_model.manifest import final_target_manifest_hash, manifest_hash
+from backend.app.residual_model.manifest import manifest_hash
+from backend.app.residual_model.training_manifest import final_target_manifest_hash
 from backend.app.residual_model.metrics import (
     empirical_coverage,
     pinball_loss,
@@ -37,10 +42,12 @@ from backend.app.residual_model.metrics import (
     wmape,
 )
 from backend.app.residual_model.model import (
+    ResidualArtifactTargetKindError,
     TrainedResidualEstimators,
     predict_quantiles,
     serialize_quantile_artifacts,
     train_quantile_estimators,
+    validate_artifact_target_kind,
 )
 from backend.app.residual_model.projection import (
     project_corrected_quantiles,
@@ -53,6 +60,7 @@ from backend.app.residual_model.schemas import (
     FeatureVisibilityAudit,
     FinalTargetPredictionRow,
     FinalTargetTrainingManifestRow,
+    PersistableResidualArtifact,
     ProjectionResult,
     ResidualPredictionExecutionResult,
     ResidualPredictionRow,
@@ -436,6 +444,161 @@ def finalize_prediction_result(
         fallback_reason=fallback_reason,
         rows=tuple(rows),
         input_snapshot=normalized_input_snapshot,
+    )
+
+
+FINAL_TARGET_PREDICTION_TASK9_RUN_ID = 0
+FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH = "0" * 64
+FINAL_TARGET_PREDICTION_FALLBACK_POLICY = "fail_closed_no_verified_quantile_output"
+
+
+def finalize_final_target_prediction_result(
+    *,
+    model_run_id: int,
+    training_signature: str,
+    config: ResidualModelConfig,
+    feature_schema_hash: str,
+    artifact_hashes: list[str],
+    forecast_cutoff_at: datetime,
+    final_target_rows: Sequence[FinalTargetPredictionRow],
+    prediction_manifest_rows: Sequence[FinalTargetTrainingManifestRow] = (),
+    warnings: Sequence[str] = (),
+    blockers: Sequence[str] = (),
+) -> ResidualPredictionExecutionResult:
+    """Build an authoritative final-target prediction result without legacy lanes."""
+
+    normalized_input_snapshot = cast(
+        dict[str, object],
+        canonical_json_value(
+            {
+                "prediction_target_kind": PredictionTargetKind.FINAL_TARGET_QUANTILE.value,
+                "training_signature": training_signature,
+                "feature_schema_version": config.rules.feature_schema_version,
+                "feature_schema_hash": feature_schema_hash,
+                "projection_version": config.rules.projection_version,
+                "fallback_policy": FINAL_TARGET_PREDICTION_FALLBACK_POLICY,
+                "artifact_hashes": artifact_hashes,
+                "forecast_cutoff_at": forecast_cutoff_at.isoformat(),
+                "final_target_prediction_row_count": len(final_target_rows),
+                "task9_authority_bound": False,
+                "feature_analytics_build_run_id": None,
+                "feature_actual_snapshot": None,
+                "supplemental_feature_values": [],
+                "feature_audit_hashes": sorted(
+                    {row.feature_audit_hash for row in final_target_rows}
+                ),
+                "feature_rows": [
+                    [item.model_dump(mode="json") for item in row.feature_values]
+                    for row in prediction_manifest_rows
+                ],
+            }
+        ),
+    )
+    prediction_input_signature = prediction_input_signature_hash(
+        model_run_id=model_run_id,
+        training_signature=training_signature,
+        task9_run_id=FINAL_TARGET_PREDICTION_TASK9_RUN_ID,
+        task9_result_hash=FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH,
+        feature_analytics_build_run_id=None,
+        feature_actual_snapshot=None,
+        supplemental_feature_values=[],
+        feature_audit_hashes=cast(
+            list[str],
+            normalized_input_snapshot.get("feature_audit_hashes", []),
+        ),
+        feature_rows=cast(list[object], normalized_input_snapshot.get("feature_rows", [])),
+        artifact_hashes=artifact_hashes,
+        config_hash=config.config_hash,
+        feature_schema_version=config.rules.feature_schema_version,
+        feature_schema_hash=feature_schema_hash,
+        projection_version=config.rules.projection_version,
+        fallback_policy_version=FINAL_TARGET_PREDICTION_FALLBACK_POLICY,
+    )
+    result_payload = {
+        "execution_status": "completed",
+        "mode": ResidualPredictionMode.RESIDUAL_CORRECTED.value,
+        "model_run_id": model_run_id,
+        "task9_run_id": FINAL_TARGET_PREDICTION_TASK9_RUN_ID,
+        "task9_result_hash": FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH,
+        "config_hash": config.config_hash,
+        "prediction_input_signature": prediction_input_signature,
+        "prediction_hash": None,
+        "warnings": sorted(set(warnings)),
+        "blockers": sorted(set(blockers)),
+        "fallback_reason": None,
+        "rows": [],
+        "final_target_rows": [
+            final_target_prediction_row_content_payload(row.model_dump(mode="python"))
+            for row in final_target_rows
+        ],
+        "input_snapshot": normalized_input_snapshot,
+    }
+    prediction_hash = canonical_payload_hash(result_payload)
+    return ResidualPredictionExecutionResult(
+        execution_status="completed",
+        mode=ResidualPredictionMode.RESIDUAL_CORRECTED,
+        model_run_id=model_run_id,
+        task9_run_id=FINAL_TARGET_PREDICTION_TASK9_RUN_ID,
+        task9_result_hash=FINAL_TARGET_PREDICTION_TASK9_RESULT_HASH,
+        config_hash=config.config_hash,
+        prediction_input_signature=prediction_input_signature,
+        prediction_hash=prediction_hash,
+        warnings=tuple(cast(list[str], result_payload["warnings"])),
+        blockers=tuple(cast(list[str], result_payload["blockers"])),
+        fallback_reason=None,
+        rows=(),
+        final_target_rows=tuple(final_target_rows),
+        input_snapshot=normalized_input_snapshot,
+    )
+
+
+def run_final_target_quantile_prediction(
+    *,
+    model_run_id: int,
+    training_signature: str,
+    manifest_hash_value: str,
+    config: ResidualModelConfig,
+    feature_names: list[str],
+    category_encodings: list[CategoryEncoding],
+    artifact_hashes: list[str],
+    forecast_cutoff_at: datetime,
+    prediction_rows: Sequence[FinalTargetTrainingManifestRow],
+    estimators: TrainedResidualEstimators,
+    artifacts: Sequence[PersistableResidualArtifact],
+) -> ResidualPredictionExecutionResult:
+    """Execute direct final-target quantile prediction with artifact target-kind validation."""
+
+    if not is_final_target_quantile_config(config):
+        raise ValueError("run_final_target_quantile_prediction requires FINAL_TARGET_QUANTILE config")
+    if config.rules.model_family != FINAL_TARGET_MODEL_FAMILY:
+        raise ValueError("final-target prediction requires final-target model_family")
+    for artifact in artifacts:
+        validate_artifact_target_kind(
+            artifact.metadata,
+            required=PredictionTargetKind.FINAL_TARGET_QUANTILE,
+        )
+        if artifact.metadata.model_family != FINAL_TARGET_MODEL_FAMILY:
+            raise ResidualArtifactTargetKindError(
+                "legacy artifact model_family rejected by final-target prediction lane"
+            )
+    provisional_rows = predict_final_target_quantiles(
+        rows=list(prediction_rows),
+        config=config,
+        estimators=estimators,
+        feature_names=feature_names,
+        category_encodings=category_encodings,
+        model_run_id=model_run_id,
+    )
+    feature_schema_hash = _feature_schema_hash(feature_names)
+    return finalize_final_target_prediction_result(
+        model_run_id=model_run_id,
+        training_signature=training_signature,
+        config=config,
+        feature_schema_hash=feature_schema_hash,
+        artifact_hashes=artifact_hashes,
+        forecast_cutoff_at=forecast_cutoff_at,
+        final_target_rows=provisional_rows,
+        prediction_manifest_rows=prediction_rows,
     )
 
 
@@ -1506,7 +1669,8 @@ def train_final_target_model_from_manifest(
         eligibility_reasons.append("insufficient_training_rows")
     if distinct_season_count < config.rules.eligibility.min_seasons:
         eligibility_reasons.append("insufficient_training_seasons")
-    if distinct_grain_count < config.rules.eligibility.min_factories:
+    min_grains = config.rules.eligibility.min_grains
+    if min_grains is not None and distinct_grain_count < min_grains:
         eligibility_reasons.append("insufficient_training_grains")
     if config.rules.split_strategy == "leave_one_season_out":
         if not validation_rows or not validation_seasons:
@@ -1673,6 +1837,8 @@ def predict_final_target_quantiles(
     estimators: TrainedResidualEstimators,
     feature_names: list[str],
     category_encodings: list[CategoryEncoding],
+    model_run_id: int = 0,
+    prediction_run_id: int = 0,
 ) -> list[FinalTargetPredictionRow]:
     predictions: list[FinalTargetPredictionRow] = []
     matrix = build_prediction_matrix(
@@ -1693,8 +1859,8 @@ def predict_final_target_quantiles(
             ("P90", projection.corrected_p90_kg),
         ):
             row_payload = {
-                "model_run_id": 0,
-                "prediction_run_id": 0,
+                "model_run_id": model_run_id,
+                "prediction_run_id": prediction_run_id,
                 "season_id": row.season_id,
                 "farm_id": row.farm_id,
                 "subfarm_id": row.subfarm_id,
@@ -1722,10 +1888,11 @@ def predict_final_target_quantiles(
             provisional = FinalTargetPredictionRow.model_validate(
                 {**row_payload, "prediction_hash": "0" * 64}
             )
-            row_hash = canonical_payload_hash(
-                provisional.model_dump(mode="python", exclude={"prediction_hash"})
+            row_hash = final_target_prediction_row_content_payload(
+                provisional.model_dump(mode="python")
             )
-            predictions.append(provisional.model_copy(update={"prediction_hash": row_hash}))
+            row_hash_digest = canonical_payload_hash(row_hash)
+            predictions.append(provisional.model_copy(update={"prediction_hash": row_hash_digest}))
     return predictions
 
 

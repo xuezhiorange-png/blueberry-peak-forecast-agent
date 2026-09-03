@@ -13,11 +13,13 @@ from backend.app.residual_model.config import (
     FINAL_TARGET_ARTIFACT_SCHEMA_VERSION,
     FINAL_TARGET_MODEL_FAMILY,
     FINAL_TARGET_MODEL_VERSION,
+    LEGACY_MODEL_FAMILY,
+    PredictionTargetKind,
     load_final_target_quantile_config,
     load_residual_model_config,
 )
-from backend.app.residual_model.enums import PredictionTargetKind, ResidualSplit
-from backend.app.residual_model.manifest import (
+from backend.app.residual_model.enums import ResidualSplit
+from backend.app.residual_model.training_manifest import (
     final_target_manifest_hash,
     final_target_manifest_row_from_payload,
     final_target_manifest_row_payload,
@@ -30,8 +32,12 @@ from backend.app.residual_model.projection import project_final_target_quantiles
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FinalTargetActualsAuthoritySnapshot,
+    FinalTargetPredictionAuthority,
+    FinalTargetPredictionRequest,
     FinalTargetTrainingManifestRow,
+    GovernedGrainIdentityBinding,
     ResidualPredictionExecutionResult,
+    build_final_target_prediction_authority,
 )
 from backend.app.residual_model.service import (
     predict_final_target_quantiles,
@@ -40,6 +46,8 @@ from backend.app.residual_model.service import (
 )
 from backend.tests.residual_model.support import residual_model_config_path
 
+BASE_ENUMS_BLOB = "736df29dc8c128333ccc3c944ba4b7669124ab45"
+BASE_MANIFEST_BLOB = "2f94ec0a5daa2db7843ad07175590d97dfae4ac3"
 LINEAGE_HASH = "a" * 64
 
 
@@ -127,6 +135,100 @@ def _training_rows(count: int = 30) -> list[FinalTargetTrainingManifestRow]:
     return rows
 
 
+def test_grant_allowlist_unauthorized_files_remain_at_base_blob() -> None:
+    import subprocess
+
+    enums_blob = subprocess.check_output(
+        ["git", "hash-object", "backend/app/residual_model/enums.py"],
+        text=True,
+    ).strip()
+    manifest_blob = subprocess.check_output(
+        ["git", "hash-object", "backend/app/residual_model/manifest.py"],
+        text=True,
+    ).strip()
+    assert enums_blob == BASE_ENUMS_BLOB
+    assert manifest_blob == BASE_MANIFEST_BLOB
+
+
+def test_legacy_and_final_target_model_families_are_distinct() -> None:
+    legacy = load_residual_model_config(residual_model_config_path())
+    final_config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    assert legacy.rules.model_family == LEGACY_MODEL_FAMILY
+    assert final_config.rules.model_family == FINAL_TARGET_MODEL_FAMILY
+    assert LEGACY_MODEL_FAMILY != FINAL_TARGET_MODEL_FAMILY
+    unchanged_legacy = load_residual_model_config(residual_model_config_path())
+    assert unchanged_legacy.config_hash == legacy.config_hash
+
+
+def test_final_target_eligibility_uses_min_grains_not_min_factories() -> None:
+    config = load_final_target_quantile_config(
+        min_training_rows=1,
+        min_seasons=1,
+        min_grains=3,
+    )
+    assert config.rules.eligibility.min_grains == 3
+    rows = _training_rows(10)
+    result = train_final_target_model_from_manifest(rows=rows, config=config)
+    assert result.eligibility_status == "ineligible"
+    assert "insufficient_training_grains" in result.eligibility_reasons
+
+
+def test_source_row_grain_mismatch_rejected() -> None:
+    from backend.app.residual_model.training_manifest import (
+        build_final_target_manifest_from_materializable_rows,
+        ResidualManifestBuildError,
+    )
+    from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow, PartitionName
+
+    cutoff = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+    binding = GovernedGrainIdentityBinding(
+        season_id=1,
+        season="2025~2026",
+        farm_id=1,
+        farm="farm-a",
+        subfarm_id=1,
+        subfarm="subfarm-1",
+        variety_id=1,
+        variety="variety-x",
+    )
+    row_a = MaterializableRow(
+        season="2025~2026",
+        farm="farm-a",
+        subfarm="subfarm-1",
+        variety="variety-x",
+        harvest_business_date=date(2026, 3, 2),
+        actual_harvest_quantity_kg=Decimal("80"),
+        source_row_identity="src-a",
+        cleaned_row_identity="cln-a",
+        pit_visibility_identity="pit-a",
+        revision_winner_identity="rev-a",
+    )
+    row_b = MaterializableRow(
+        season="2025~2026",
+        farm="farm-b",
+        subfarm="subfarm-1",
+        variety="variety-x",
+        harvest_business_date=date(2026, 3, 3),
+        actual_harvest_quantity_kg=Decimal("70"),
+        source_row_identity="src-b",
+        cleaned_row_identity="cln-b",
+        pit_visibility_identity="pit-b",
+        revision_winner_identity="rev-b",
+    )
+    try:
+        build_final_target_manifest_from_materializable_rows(
+            (row_a, row_b),
+            grain_identity=binding,
+            partition=PartitionName.TRAIN,
+            forecast_cutoff_at=cutoff,
+            partition_identity="TRAIN",
+            lineage_hash=LINEAGE_HASH,
+        )
+        raise AssertionError("expected ResidualManifestBuildError")
+    except ResidualManifestBuildError as exc:
+        assert "source_row_grain_mismatch" in str(exc)
+
+
 def test_final_target_config_identity_and_legacy_yaml_unchanged() -> None:
     legacy = load_residual_model_config(residual_model_config_path())
     assert legacy.rules.prediction_target_kind == PredictionTargetKind.LEGACY_RESIDUAL_CORRECTION
@@ -156,7 +258,7 @@ def test_legacy_training_rejects_final_target_config() -> None:
         train_residual_model_from_manifest(rows=[row], config=config)
         raise AssertionError("expected ValueError")
     except ValueError as exc:
-        assert "train_final_target_model_from_manifest" in str(exc)
+        assert "FINAL_TARGET_QUANTILE config requires train_final_target_model_from_manifest" in str(exc)
 
 
 def test_final_target_training_uses_actual_harvest_label_not_residual() -> None:
@@ -307,6 +409,58 @@ def test_core_forecast_binding_uses_final_target_output() -> None:
         apply_final_target_quantile_to_marketable_curve_rows,
     )
 
+    cutoff = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+    config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    rows = _training_rows(30)
+    train_result = train_final_target_model_from_manifest(rows=rows, config=config)
+    from backend.app.residual_model.dataset import build_final_target_training_matrix
+    from backend.app.residual_model.model import train_quantile_estimators
+
+    matrix, labels, weights, feature_names, category_encodings = build_final_target_training_matrix(
+        rows,
+        config=config,
+    )
+    estimators = train_quantile_estimators(
+        config=config,
+        features=matrix,
+        labels=labels,
+        sample_weight=weights,
+    )
+    predict_rows = [row for row in rows if row.include and row.split == ResidualSplit.TRAIN][:1]
+    final_preds = predict_final_target_quantiles(
+        rows=predict_rows,
+        config=config,
+        estimators=estimators,
+        feature_names=list(feature_names),
+        category_encodings=category_encodings,
+        model_run_id=42,
+        prediction_run_id=99,
+    )
+    p50_preds = tuple(row for row in final_preds if row.forecast_quantile == "P50")
+    prediction_result = ResidualPredictionExecutionResult(
+        execution_status="completed",
+        mode="residual_corrected",
+        model_run_id=42,
+        task9_run_id=0,
+        task9_result_hash="0" * 64,
+        config_hash=train_result.config_hash,
+        prediction_input_signature="0" * 64,
+        prediction_hash="0" * 64,
+        warnings=(),
+        blockers=(),
+        rows=(),
+        final_target_rows=p50_preds,
+        input_snapshot={
+            "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+            "forecast_cutoff_at": cutoff.isoformat(),
+        },
+    )
+    authority = build_final_target_prediction_authority(
+        training_result=train_result,
+        prediction_result=prediction_result,
+        prediction_run_id=99,
+    )
+
     base_row = CompleteDailyMarketableCurveRow.model_validate(
         {
             "date": date(2026, 3, 2),
@@ -338,10 +492,57 @@ def test_core_forecast_binding_uses_final_target_output() -> None:
     )
     updated = apply_final_target_quantile_to_marketable_curve_rows(
         (base_row,),
-        predictions_by_key={(1, 1, 1, date(2026, 3, 2), "P50"): "42.500000"},
+        authority=authority,
     )
-    assert updated[0].model_harvested_marketable_quantity_kg == "42.500000"
+    from backend.app.core_forecast.schemas import OUTPUT_QUANTUM
+
+    assert updated[0].model_harvested_marketable_quantity_kg == f"{Decimal(p50_preds[0].model_harvested_marketable_quantity_kg).quantize(OUTPUT_QUANTUM):.6f}"
     assert updated[0].forecast_quantile == "P50"
+
+
+def test_core_forecast_rejects_naked_prediction_dict() -> None:
+    from backend.app.core_forecast.schemas import CompleteDailyMarketableCurveRow
+    from backend.app.core_forecast.service import (
+        apply_final_target_quantile_to_marketable_curve_rows,
+    )
+
+    base_row = CompleteDailyMarketableCurveRow.model_validate(
+        {
+            "date": date(2026, 3, 2),
+            "forecast_quantile": "P50",
+            "farm_id": 1,
+            "subfarm_id": 1,
+            "variety_id": 1,
+            "destination_factory_id": 1,
+            "natural_maturity_supply_kg": "1.000000",
+            "opening_mature_inventory_kg": "1.000000",
+            "available_mature_quantity_kg": "1.000000",
+            "mature_inventory_loss_quantity_kg": "0.000000",
+            "harvestable_mature_quantity_kg": "1.000000",
+            "effective_harvest_capacity_kg": "1.000000",
+            "model_harvested_marketable_quantity_kg": "99.000000",
+            "closing_mature_inventory_kg": "0.000000",
+            "unharvested_backlog_kg": "0.000000",
+            "sorting_retention_rate": "1.000000",
+            "postharvest_retention_rate": "1.000000",
+            "effective_marketable_quantity_kg": "1.000000",
+            "task8_forecast_run_id": 1,
+            "task9_harvest_state_run_id": 1,
+            "task8_artifact_hash": "a" * 64,
+            "task9_result_hash": "b" * 64,
+            "marketable_policy_version": "v1",
+            "marketable_policy_hash": "c" * 64,
+            "row_hash": "d" * 64,
+        }
+    )
+    try:
+        apply_final_target_quantile_to_marketable_curve_rows(
+            (base_row,),
+            authority={"predictions_by_key": {(1, 1, 1, date(2026, 3, 2), "P50"): "1"}},
+        )
+        raise AssertionError("expected ValueError")
+    except (ValueError, TypeError):
+        pass
 
 
 def test_post_cutoff_feature_leakage_blocked() -> None:
@@ -597,3 +798,41 @@ async def test_final_target_prediction_canonical_json_round_trip(
         row.prediction_target_kind.value == "FINAL_TARGET_QUANTILE"
         for row in loaded.final_target_rows
     )
+    assert all(row.model_run_id == training_run.id for row in loaded.final_target_rows)
+    assert all(row.prediction_run_id == run.id for row in loaded.final_target_rows)
+
+
+@pytest.mark.asyncio
+async def test_execute_final_target_prediction_application_end_to_end(
+    residual_sqlite_session: AsyncSession,
+) -> None:
+    from backend.app.residual_model.application import (
+        execute_final_target_prediction,
+        execute_final_target_training,
+    )
+
+    config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    rows = _training_rows(30)
+    _, model_run_id = await execute_final_target_training(
+        residual_sqlite_session,
+        final_target_rows=rows,
+        config=config,
+    )
+    cutoff = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+    predict_rows = tuple(
+        row for row in rows if row.include and row.split == ResidualSplit.TRAIN
+    )[:2]
+    request = FinalTargetPredictionRequest(
+        model_run_id=model_run_id,
+        forecast_cutoff_at=cutoff,
+        prediction_rows=predict_rows,
+    )
+    loaded, prediction_run_id = await execute_final_target_prediction(
+        residual_sqlite_session,
+        request=request,
+    )
+    assert prediction_run_id > 0
+    assert loaded.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+    assert len(loaded.final_target_rows) == len(predict_rows) * 3
+    assert all(row.model_run_id == model_run_id for row in loaded.final_target_rows)
+    assert all(row.prediction_run_id == prediction_run_id for row in loaded.final_target_rows)

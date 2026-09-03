@@ -25,14 +25,16 @@ from backend.app.residual_model.artifact import (
     load_trusted_quantile_estimator,
 )
 from backend.app.residual_model.config import (
+    FINAL_TARGET_MODEL_FAMILY,
     ResidualModelConfig,
+    is_final_target_quantile_config,
     load_residual_model_config_from_snapshot,
 )
 from backend.app.residual_model.forecast_cutoff import (
     ForecastCutoffResolutionError,
     resolve_forecast_cutoff_at,
 )
-from backend.app.residual_model.manifest import manifest_hash
+from backend.app.residual_model.manifest import manifest_hash as legacy_manifest_hash
 from backend.app.residual_model.model import TrainedResidualEstimators
 from backend.app.residual_model.persistence import (
     ResidualArtifactIntegrityError,
@@ -57,6 +59,7 @@ from backend.app.residual_model.replay_training_authority import (
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
+    FinalTargetPredictionRequest,
     FinalTargetTrainingManifestRow,
     ResidualPredictionExecutionResult,
     ResidualPredictionRequest,
@@ -65,10 +68,15 @@ from backend.app.residual_model.schemas import (
 )
 from backend.app.residual_model.service import (
     predict_residual_correction,
+    run_final_target_quantile_prediction,
     structural_only_prediction,
     train_residual_model_from_manifest,
 )
-from backend.app.residual_model.training_manifest import build_residual_training_manifest
+from backend.app.residual_model.training_manifest import (
+    build_residual_training_manifest,
+    final_target_manifest_hash,
+    final_target_manifest_row_from_payload,
+)
 
 
 class ResidualTrainingApplicationIntegrityError(RuntimeError):
@@ -395,11 +403,6 @@ async def _require_persisted_replay_authority(
 
     try:
         if training_run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE":
-            from backend.app.residual_model.manifest import (
-                final_target_manifest_hash,
-                final_target_manifest_row_from_payload,
-            )
-
             snapshot_payloads = cast(
                 list[dict[str, Any]],
                 training_run.manifest_snapshot.get("rows", []),
@@ -450,7 +453,7 @@ async def _require_persisted_replay_authority(
                         "persisted Task 12 label availability is after the training cutoff"
                     )
 
-            recomputed_manifest_hash = manifest_hash(legacy_manifest_rows)
+            recomputed_manifest_hash = legacy_manifest_hash(legacy_manifest_rows)
             if recomputed_manifest_hash != training_run.manifest_hash:
                 raise ResidualReplayTrainedAuthorityError(
                     "persisted Task 12 manifest rows do not match the training manifest hash"
@@ -787,6 +790,205 @@ async def execute_final_target_training(
             exc=exc,
         )
         raise _raise_training_error(exc) from exc
+
+
+async def execute_final_target_prediction(
+    session: AsyncSession,
+    *,
+    request: FinalTargetPredictionRequest,
+    execution_context: dict[str, Any] | None = None,
+    typed_attempt: dict[str, Any] | None = None,
+) -> tuple[ResidualPredictionExecutionResult, int]:
+    """Execute a governed final-target quantile prediction lane end-to-end."""
+
+    attempt_id: int | None = await _create_attempt(
+        session=session,
+        attempt_type="prediction",
+        current_stage="training_load",
+        requested_inputs={
+            "model_run_id": request.model_run_id,
+            "forecast_cutoff_at": request.forecast_cutoff_at.isoformat(),
+            "prediction_row_count": len(request.prediction_rows),
+            "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+            "execution_context": execution_context or {},
+        },
+        config_identity={
+            "model_run_id": request.model_run_id,
+            "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+        },
+        upstream_requested_ids={"model_run_id": request.model_run_id},
+    )
+    current_stage = "training_load"
+    try:
+        training_run_row = await get_residual_training_run(session, run_id=request.model_run_id)
+        if training_run_row is None:
+            raise ResidualPredictionApplicationIntegrityError("Final-target training run was not found")
+        if training_run_row.input_snapshot.get("prediction_target_kind") != "FINAL_TARGET_QUANTILE":
+            raise ResidualPredictionApplicationIntegrityError(
+                "training run is not a FINAL_TARGET_QUANTILE lane"
+            )
+        if training_run_row.model_family != FINAL_TARGET_MODEL_FAMILY:
+            raise ResidualPredictionApplicationIntegrityError(
+                "legacy model_family rejected by final-target prediction lane"
+            )
+        if training_run_row.execution_status != "completed":
+            raise ResidualPredictionApplicationIntegrityError(
+                f"final-target training run must be completed, got {training_run_row.execution_status}"
+            )
+        if training_run_row.eligibility_status != "eligible":
+            raise ResidualPredictionApplicationIntegrityError(
+                "final-target prediction requires an eligible training run"
+            )
+        model_run = await load_residual_training_run_by_id(session, run_id=request.model_run_id)
+        if model_run is None:
+            raise ResidualPredictionApplicationIntegrityError(
+                "Final-target training run could not be loaded with artifacts"
+            )
+        config = load_residual_model_config_from_snapshot(
+            model_run.input_snapshot["config_snapshot"]
+        )
+        if not is_final_target_quantile_config(config):
+            raise ResidualPredictionApplicationIntegrityError(
+                "final-target config snapshot does not match FINAL_TARGET_QUANTILE lane"
+            )
+        current_stage = "artifact_identity_load"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        artifact_rows = await list_residual_artifacts(
+            session,
+            training_run_id=training_run_row.id,
+        )
+        artifact_hashes = [item.artifact_sha256 for item in artifact_rows]
+        artifacts = await load_residual_training_artifacts(
+            session,
+            run_id=training_run_row.id,
+            artifacts_rows=tuple(artifact_rows),
+        )
+        estimators = TrainedResidualEstimators(
+            p50=load_trusted_quantile_estimator(
+                artifact=next(item for item in artifacts if item.quantile_label == "P50"),
+                expected_model_family=training_run_row.model_family,
+                expected_model_version=training_run_row.model_version,
+                expected_artifact_schema_version=training_run_row.artifact_schema_version,
+                expected_feature_schema_version=training_run_row.feature_schema_version,
+                expected_feature_schema_hash=training_run_row.feature_schema_hash,
+                expected_config_hash=training_run_row.config_hash,
+                expected_training_signature=model_run.training_signature,
+                expected_manifest_hash=model_run.manifest_hash,
+                expected_quantile_label="P50",
+            ),
+            p80=load_trusted_quantile_estimator(
+                artifact=next(item for item in artifacts if item.quantile_label == "P80"),
+                expected_model_family=training_run_row.model_family,
+                expected_model_version=training_run_row.model_version,
+                expected_artifact_schema_version=training_run_row.artifact_schema_version,
+                expected_feature_schema_version=training_run_row.feature_schema_version,
+                expected_feature_schema_hash=training_run_row.feature_schema_hash,
+                expected_config_hash=training_run_row.config_hash,
+                expected_training_signature=model_run.training_signature,
+                expected_manifest_hash=model_run.manifest_hash,
+                expected_quantile_label="P80",
+            ),
+            p90=load_trusted_quantile_estimator(
+                artifact=next(item for item in artifacts if item.quantile_label == "P90"),
+                expected_model_family=training_run_row.model_family,
+                expected_model_version=training_run_row.model_version,
+                expected_artifact_schema_version=training_run_row.artifact_schema_version,
+                expected_feature_schema_version=training_run_row.feature_schema_version,
+                expected_feature_schema_hash=training_run_row.feature_schema_hash,
+                expected_config_hash=training_run_row.config_hash,
+                expected_training_signature=model_run.training_signature,
+                expected_manifest_hash=model_run.manifest_hash,
+                expected_quantile_label="P90",
+            ),
+        )
+        feature_names = list(model_run.metrics.get("feature_names", []))
+        prediction_rows = list(request.prediction_rows)
+        for row in prediction_rows:
+            if row.forecast_cutoff_at != request.forecast_cutoff_at:
+                raise ResidualPredictionApplicationIntegrityError(
+                    "prediction row forecast_cutoff_at must match request forecast_cutoff_at"
+                )
+        current_stage = "prediction"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        result = run_final_target_quantile_prediction(
+            model_run_id=training_run_row.id,
+            training_signature=training_run_row.training_signature,
+            manifest_hash_value=training_run_row.manifest_hash,
+            config=config,
+            feature_names=feature_names,
+            category_encodings=artifacts[0].metadata.category_encodings,
+            artifact_hashes=artifact_hashes,
+            forecast_cutoff_at=request.forecast_cutoff_at,
+            prediction_rows=prediction_rows,
+            estimators=estimators,
+            artifacts=artifacts,
+        )
+        if execution_context:
+            result = result.model_copy(
+                update={
+                    "input_snapshot": {
+                        **result.input_snapshot,
+                        **execution_context,
+                    }
+                }
+            )
+        current_stage = "persistence"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        run = await save_residual_prediction_run(
+            session,
+            result=result,
+            feature_schema_version=training_run_row.feature_schema_version,
+            feature_schema_hash=training_run_row.feature_schema_hash,
+            artifact_hashes=artifact_hashes,
+            typed_attempt=typed_attempt,
+        )
+        current_stage = "reload_integrity"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        loaded = await load_residual_prediction_run_by_id(session, run_id=run.id)
+        if loaded is None:
+            raise ResidualPredictionApplicationIntegrityError(
+                "Final-target prediction run was saved but could not be reloaded"
+            )
+        if not prediction_results_business_compatible(loaded, result):
+            raise ResidualPredictionApplicationIntegrityError(
+                "Reloaded final-target prediction run failed parity checks"
+            )
+        for row in loaded.final_target_rows:
+            if row.model_run_id != training_run_row.id or row.prediction_run_id != run.id:
+                raise ResidualPredictionApplicationIntegrityError(
+                    "Reloaded final-target prediction rows lack persisted run identity"
+                )
+        await _complete_attempt(
+            session=session,
+            attempt_id=attempt_id,
+            linked_prediction_run_id=run.id,
+        )
+        return loaded, run.id
+    except Exception as exc:
+        await session.rollback()
+        await _fail_attempt(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+            exc=exc,
+        )
+        raise _raise_prediction_error(exc) from exc
 
 
 async def execute_residual_prediction(

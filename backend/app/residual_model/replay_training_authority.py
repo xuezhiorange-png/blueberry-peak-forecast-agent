@@ -222,7 +222,7 @@ def final_target_actual_input_rows(
 def final_target_manifest_payload(
     rows: Sequence[FinalTargetTrainingManifestRow],
 ) -> list[dict[str, object]]:
-    from backend.app.residual_model.manifest import final_target_manifest_row_payload
+    from backend.app.residual_model.training_manifest import final_target_manifest_row_payload
 
     return [
         cast(
