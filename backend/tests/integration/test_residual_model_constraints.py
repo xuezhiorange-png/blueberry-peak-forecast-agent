@@ -127,7 +127,8 @@ async def _seed_training_run(
                         input_snapshot, canonical_output, canonical_payload_hash,
                         python_version, numpy_version, sklearn_version,
                         sample_count, distinct_season_count,
-                        distinct_factory_count, manifest_row_count,
+                        distinct_factory_count, distinct_grain_count,
+                        manifest_row_count,
                         expected_artifact_count
                     ) VALUES (
                         :execution_status, :eligibility_status,
@@ -142,7 +143,7 @@ async def _seed_training_run(
                         '{}'::jsonb, '{}'::jsonb, :hash,
                         '3.12', '1.26', '1.6',
                         :sample_count, :distinct_season_count,
-                        :distinct_factory_count, :manifest_row_count,
+                        :distinct_factory_count, 0, :manifest_row_count,
                         :expected_artifact_count
                     )
                     RETURNING id
@@ -243,6 +244,7 @@ async def _seed_prediction_run(
                     """
                     INSERT INTO residual_model_prediction_run (
                         task9_run_id, task9_result_hash,
+                        prediction_target_kind,
                         execution_status, mode,
                         config_hash, feature_schema_version,
                         feature_schema_hash, artifact_hashes,
@@ -254,6 +256,7 @@ async def _seed_prediction_run(
                         fallback_reason
                     ) VALUES (
                         :task9_run_id, :hash,
+                        'LEGACY_RESIDUAL_CORRECTION',
                         :execution_status, :mode,
                         :hash, '1',
                         :hash, '[]'::jsonb,
