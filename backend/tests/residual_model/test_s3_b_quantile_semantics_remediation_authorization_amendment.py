@@ -168,9 +168,10 @@ def test_single_authorized_migration_path() -> None:
     assert payload["authorized_new_migration_path"] == AUTHORIZED_NEW_MIGRATION_PATH
     assert payload["authorized_migration_down_revision"] == AUTHORIZED_MIGRATION_DOWN_REVISION
     assert payload["other_migration_files_authorized"] is False
-    assert payload["effective_future_production_change_allowlist"].count(
-        AUTHORIZED_NEW_MIGRATION_PATH
-    ) == 1
+    assert (
+        payload["effective_future_production_change_allowlist"].count(AUTHORIZED_NEW_MIGRATION_PATH)
+        == 1
+    )
 
 
 def test_effective_allowlist_includes_models_and_enums() -> None:
@@ -286,6 +287,4 @@ def test_grant_amendment_pointer_appended_to_development_plan() -> None:
     assert "MIGRATION_IMPLEMENTATION_AUTHORIZED=false" in snapshot
     assert "READY_AUTHORIZED=false" in snapshot
     assert "MERGE_AUTHORIZED=false" in snapshot
-    assert (
-        "NEXT_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_GRANT_AMENDMENT_REVIEW" in snapshot
-    )
+    assert "NEXT_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_GRANT_AMENDMENT_REVIEW" in snapshot
