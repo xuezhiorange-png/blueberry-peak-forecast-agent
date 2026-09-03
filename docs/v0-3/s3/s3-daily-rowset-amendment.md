@@ -18269,3 +18269,48 @@ Grant merge #529 and user gate 「可以实施」 authorized this R1. The author
 classifier promotes the pinned default catalog to live-bindable authority and
 registry AVAILABLE on the authority layer without modifying frozen binding.py
 or registry.py.
+
+## 217. Default catalog live-bindability and registry availability closeout pointer
+
+~~~
+S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_CLOSEOUT_WORKPAPER=docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-bindability-and-registry-availability-closeout.md
+S3_A2_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_CLOSEOUT_EVIDENCE_JSON=docs/v0-3/s3/evidence/s3-a2-default-catalog-live-bindability-and-registry-availability-closeout.json
+EVIDENCE_JSON_SHA256=46a8c845d3d289b268be299ca01224ec20f44fbef3ae9e1825da11b302fd4cd4
+AUTHORITATIVE_R1_PR=533
+AUTHORITATIVE_R1_HEAD=43300ab28fabfb90e2a70f0431d78a914c62b6a9
+AUTHORITATIVE_R1_MERGE=51ac525338dab9a16a6c6e3af6407e71a9d6a4db
+AUTHORITATIVE_R1_TREE=515b8f7ccb6b673e3f2fcfdabb3722cacff09454
+ORIGINAL_R1_PR=530
+ORIGINAL_R1_MERGE=80976d7d206138e1742718a70ac6b87e4e07154d
+RECOVERY_PR=532
+RECOVERY_MERGE=d0d2dc5a0f938f689fa9260a1a41e4ef3e94fef1
+R1_RELAND_EXACT_HEAD_CI_RUN_ID=33659423139
+R1_RELAND_EXACT_HEAD_CI_CONCLUSION=success
+EXACT_TREE_EQUIVALENCE=true
+HISTORY_REWRITTEN=false
+OLD_CLOSEOUT_PR=531
+OLD_CLOSEOUT_SUPERSEDED=true
+BASE_MAIN_SHA=51ac525338dab9a16a6c6e3af6407e71a9d6a4db
+USER_GATE=可以
+INTERPRETED_GATE=NEW_CLOSEOUT_AUTHORING_ONLY
+TASK_CLASS=DOCS_ONLY_POST_RELAND_CLOSEOUT
+THIS_FAMILY_CLOSEOUT_RECORDED=true
+AUTHORITATIVE_R1_MERGED=true
+AUTHORITATIVE_R1_CI_PASS=true
+CLOSEOUT_REVIEW_READY=true
+DETERMINISTIC_DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY_IMPLEMENTED=true
+NO_BINDABLE_CATALOG_IN_REPOSITORY=false
+EVALUATION_INSTANCE_REGISTRY_AVAILABLE=true
+UNIQUE_REMAINING_GAP_CLOSED=true
+CURRENT_S3_DAILY_ROWSET_COMPLETENESS_VERIFIED=false
+S3_A2_COMPLETENESS_PASS_AUTHORIZED=false
+CURRENT_V0_3_S3_COMPLETE=false
+V0_3_S4_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+~~~
+
+Authoritative R1 re-land PR #533 at `51ac5253…` documents the landed family
+state after recovery PR #532. Stale closeout draft #531 was closed without merge
+and is superseded. Historical §214 contract and §215 grant snapshots remain
+authoritative for their phases and are not rewritten here.
