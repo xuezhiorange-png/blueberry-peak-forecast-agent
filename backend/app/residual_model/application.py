@@ -822,7 +822,9 @@ async def execute_final_target_prediction(
     try:
         training_run_row = await get_residual_training_run(session, run_id=request.model_run_id)
         if training_run_row is None:
-            raise ResidualPredictionApplicationIntegrityError("Final-target training run was not found")
+            raise ResidualPredictionApplicationIntegrityError(
+                "Final-target training run was not found"
+            )
         if training_run_row.input_snapshot.get("prediction_target_kind") != "FINAL_TARGET_QUANTILE":
             raise ResidualPredictionApplicationIntegrityError(
                 "training run is not a FINAL_TARGET_QUANTILE lane"
@@ -833,7 +835,8 @@ async def execute_final_target_prediction(
             )
         if training_run_row.execution_status != "completed":
             raise ResidualPredictionApplicationIntegrityError(
-                f"final-target training run must be completed, got {training_run_row.execution_status}"
+                "final-target training run must be completed, "
+                f"got {training_run_row.execution_status}"
             )
         if training_run_row.eligibility_status != "eligible":
             raise ResidualPredictionApplicationIntegrityError(
@@ -969,8 +972,11 @@ async def execute_final_target_prediction(
             raise ResidualPredictionApplicationIntegrityError(
                 "Reloaded final-target prediction run failed parity checks"
             )
-        for row in loaded.final_target_rows:
-            if row.model_run_id != training_run_row.id or row.prediction_run_id != run.id:
+        for final_target_row in loaded.final_target_rows:
+            if (
+                final_target_row.model_run_id != training_run_row.id
+                or final_target_row.prediction_run_id != run.id
+            ):
                 raise ResidualPredictionApplicationIntegrityError(
                     "Reloaded final-target prediction rows lack persisted run identity"
                 )

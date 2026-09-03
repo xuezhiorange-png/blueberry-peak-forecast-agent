@@ -19,9 +19,14 @@ from backend.app.models.analytics import (
 )
 from backend.app.models.master_data import Season
 from backend.app.residual_model.analytics_authority import bind_analytics_feature_authority
-from backend.app.residual_model.canonical import canonical_payload_hash
+from backend.app.residual_model.canonical import (
+    canonical_json_value,
+    canonical_payload_hash,
+    sha256_hex,
+)
 from backend.app.residual_model.feature_registry import build_feature_registry
 from backend.app.residual_model.forecast_cutoff import resolve_forecast_cutoff_at
+from backend.app.residual_model.manifest import sort_feature_values
 from backend.app.residual_model.planning_authority import bind_planning_feature_authority
 from backend.app.residual_model.projection import calculate_residual_label
 from backend.app.residual_model.schemas import (
@@ -34,8 +39,6 @@ from backend.app.residual_model.schemas import (
     ResidualTrainingManifestRow,
     ResidualTrainingSampleSpec,
 )
-from backend.app.residual_model.manifest import sort_feature_values
-from backend.app.residual_model.canonical import canonical_json_value, sha256_hex
 from backend.app.residual_model.structural import aggregate_structural_arrivals
 from backend.app.residual_model.task9_mixed_authority import (
     bind_task9_feature_provenance,

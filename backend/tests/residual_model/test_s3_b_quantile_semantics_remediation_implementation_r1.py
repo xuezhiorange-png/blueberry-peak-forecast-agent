@@ -836,9 +836,9 @@ async def test_execute_final_target_prediction_application_end_to_end(
         config=config,
     )
     cutoff = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
-    predict_rows = tuple(
-        row for row in rows if row.include and row.split == ResidualSplit.TRAIN
-    )[:2]
+    predict_rows = tuple(row for row in rows if row.include and row.split == ResidualSplit.TRAIN)[
+        :2
+    ]
     request = FinalTargetPredictionRequest(
         model_run_id=model_run_id,
         forecast_cutoff_at=cutoff,

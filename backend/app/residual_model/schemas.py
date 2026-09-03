@@ -14,6 +14,7 @@ from backend.app.residual_model.enums import (
     FeatureDType,
     FeatureSourceDomain,
     LeakageBlockerCode,
+    MissingPolicy,
     ProjectionReason,
     ResidualEligibilityStatus,
     ResidualExecutionStatus,
