@@ -587,3 +587,56 @@ async def compose_complete_daily_marketable_curve(
             "DAILY_CURVE_STATE_INVARIANT_FAILED",
             "validated composition failed closed",
         )
+
+
+def apply_final_target_quantile_to_marketable_curve_rows(
+    rows: tuple[CompleteDailyMarketableCurveRow, ...],
+    *,
+    predictions_by_key: dict[tuple[int, int, int, date, str], str],
+    prediction_target_kind: str = "FINAL_TARGET_QUANTILE",
+) -> tuple[CompleteDailyMarketableCurveRow, ...]:
+    """Bind direct final-target quantile kg into model_harvested_marketable_quantity_kg."""
+
+    if prediction_target_kind != "FINAL_TARGET_QUANTILE":
+        raise ValueError("prediction_target_kind must be FINAL_TARGET_QUANTILE")
+    updated: list[CompleteDailyMarketableCurveRow] = []
+    for row in rows:
+        key = (
+            row.farm_id,
+            row.subfarm_id,
+            row.variety_id,
+            row.date,
+            row.forecast_quantile,
+        )
+        marketable = predictions_by_key.get(key)
+        if marketable is None:
+            raise ValueError(f"missing final-target prediction for business key {key}")
+        payload = {
+            "date": row.date,
+            "forecast_quantile": row.forecast_quantile,
+            "farm_id": row.farm_id,
+            "subfarm_id": row.subfarm_id,
+            "variety_id": row.variety_id,
+            "destination_factory_id": row.destination_factory_id,
+            "natural_maturity_supply_kg": row.natural_maturity_supply_kg,
+            "opening_mature_inventory_kg": row.opening_mature_inventory_kg,
+            "available_mature_quantity_kg": row.available_mature_quantity_kg,
+            "mature_inventory_loss_quantity_kg": row.mature_inventory_loss_quantity_kg,
+            "harvestable_mature_quantity_kg": row.harvestable_mature_quantity_kg,
+            "effective_harvest_capacity_kg": row.effective_harvest_capacity_kg,
+            "model_harvested_marketable_quantity_kg": marketable,
+            "closing_mature_inventory_kg": row.closing_mature_inventory_kg,
+            "unharvested_backlog_kg": row.unharvested_backlog_kg,
+            "sorting_retention_rate": row.sorting_retention_rate,
+            "postharvest_retention_rate": row.postharvest_retention_rate,
+            "effective_marketable_quantity_kg": row.effective_marketable_quantity_kg,
+            "task8_forecast_run_id": row.task8_forecast_run_id,
+            "task9_harvest_state_run_id": row.task9_harvest_state_run_id,
+            "task8_artifact_hash": row.task8_artifact_hash,
+            "task9_result_hash": row.task9_result_hash,
+            "marketable_policy_version": row.marketable_policy_version,
+            "marketable_policy_hash": row.marketable_policy_hash,
+        }
+        row_hash = hashlib.sha256(canonical_json_dumps(payload).encode("utf-8")).hexdigest()
+        updated.append(CompleteDailyMarketableCurveRow(**payload, row_hash=row_hash))
+    return tuple(updated)

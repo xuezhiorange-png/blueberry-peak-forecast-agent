@@ -27,6 +27,8 @@ from backend.app.residual_model.projection import calculate_residual_label
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
     FeatureValue,
+    FinalTargetActualsAuthoritySnapshot,
+    FinalTargetTrainingManifestRow,
     ResidualTrainingManifestRow,
     ResidualTrainingSampleSpec,
 )
@@ -37,6 +39,11 @@ from backend.app.residual_model.task9_mixed_authority import (
 )
 from backend.app.residual_model.visibility import audit_feature_visibility
 from backend.app.residual_model.weather_authority import bind_weather_feature_authority
+from backend.app.s2_materialized_dataset.shared.contracts import (
+    ACTUAL_LABEL,
+    MaterializableRow,
+    PartitionName,
+)
 
 
 class ResidualManifestBuildError(RuntimeError):
@@ -921,3 +928,75 @@ async def build_residual_training_manifest(
             row.split.value,
         ),
     )
+
+
+def build_final_target_manifest_from_materializable_rows(
+    materializable_rows: Sequence[MaterializableRow],
+    *,
+    season_id: int,
+    farm_id: int,
+    subfarm_id: int,
+    variety_id: int,
+    partition: PartitionName,
+    forecast_cutoff_at: datetime,
+    partition_identity: str,
+    lineage_hash: str,
+    authority: str = "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION",
+) -> list[FinalTargetTrainingManifestRow]:
+    """Build lawful final-target manifest rows from governed S2 materializable rows."""
+
+    if partition == PartitionName.TEST:
+        raise ResidualManifestBuildError("TEST partition rows are sealed for final-target training")
+    from backend.app.residual_model.enums import ResidualSplit
+
+    split = ResidualSplit.TRAIN if partition == PartitionName.TRAIN else ResidualSplit.VALIDATION
+    rows: list[FinalTargetTrainingManifestRow] = []
+    for materialized in materializable_rows:
+        horizon_days = max(
+            (materialized.harvest_business_date - forecast_cutoff_at.date()).days,
+            0,
+        )
+        feature = FeatureValue.model_validate(
+            {
+                "feature_name": "forecast_horizon_days",
+                "value": horizon_days,
+                "known_at": forecast_cutoff_at,
+                "source_ref": {"materialized_row": materialized.source_row_identity},
+                "source_version": "s2-materialized-v1",
+                "source_available_at": forecast_cutoff_at,
+            }
+        )
+        feature_values = (feature,)
+        feature_vector_hash = canonical_payload_hash(
+            [item.model_dump(mode="json") for item in feature_values]
+        )
+        rows.append(
+            FinalTargetTrainingManifestRow(
+                season_id=season_id,
+                farm_id=farm_id,
+                subfarm_id=subfarm_id,
+                variety_id=variety_id,
+                harvest_business_date=materialized.harvest_business_date,
+                forecast_cutoff_at=forecast_cutoff_at,
+                forecast_horizon_days=horizon_days,
+                actual_harvest_quantity_kg=materialized.actual_harvest_quantity_kg,
+                actuals_authority=FinalTargetActualsAuthoritySnapshot(
+                    authority=authority,
+                    partition_identity=partition_identity,
+                    source_row_identity=materialized.source_row_identity,
+                    lineage_hash=lineage_hash,
+                ),
+                feature_values=feature_values,
+                feature_vector_hash=feature_vector_hash,
+                feature_visibility_audit_hash=canonical_payload_hash([]),
+                split=split,
+                include=True,
+                sample_weight=Decimal("1"),
+                source_refs=(
+                    authority,
+                    ACTUAL_LABEL,
+                    materialized.source_row_identity,
+                ),
+            )
+        )
+    return rows

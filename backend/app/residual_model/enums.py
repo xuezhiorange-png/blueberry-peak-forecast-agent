@@ -82,3 +82,10 @@ class LeakageBlockerCode(StrEnum):
 class ProjectionReason(StrEnum):
     NONNEGATIVE_CLAMP = "nonnegative_clamp"
     QUANTILE_MONOTONIC = "quantile_monotonic"
+
+
+class PredictionTargetKind(StrEnum):
+    """Semantic discriminator for residual-model training and prediction lanes."""
+
+    LEGACY_RESIDUAL_CORRECTION = "LEGACY_RESIDUAL_CORRECTION"
+    FINAL_TARGET_QUANTILE = "FINAL_TARGET_QUANTILE"

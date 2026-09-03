@@ -12,16 +12,23 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
     prediction_input_signature_hash,
 )
-from backend.app.residual_model.config import ResidualModelConfig
+from backend.app.residual_model.config import ResidualModelConfig, is_final_target_quantile_config
 from backend.app.residual_model.dataset import (
+    build_final_target_training_matrix,
     build_prediction_matrix,
     build_training_matrix,
+    final_target_training_signature,
+    summarize_final_target_manifest,
     summarize_manifest,
     training_signature,
 )
-from backend.app.residual_model.enums import ResidualPredictionMode, ResidualSplit
+from backend.app.residual_model.enums import (
+    PredictionTargetKind,
+    ResidualPredictionMode,
+    ResidualSplit,
+)
 from backend.app.residual_model.feature_registry import feature_definition_map
-from backend.app.residual_model.manifest import manifest_hash
+from backend.app.residual_model.manifest import final_target_manifest_hash, manifest_hash
 from backend.app.residual_model.metrics import (
     empirical_coverage,
     pinball_loss,
@@ -35,12 +42,17 @@ from backend.app.residual_model.model import (
     serialize_quantile_artifacts,
     train_quantile_estimators,
 )
-from backend.app.residual_model.projection import project_corrected_quantiles
+from backend.app.residual_model.projection import (
+    project_corrected_quantiles,
+    project_final_target_quantiles,
+)
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
     CategoryEncoding,
     FeatureValue,
     FeatureVisibilityAudit,
+    FinalTargetPredictionRow,
+    FinalTargetTrainingManifestRow,
     ProjectionResult,
     ResidualPredictionExecutionResult,
     ResidualPredictionRow,
@@ -451,6 +463,10 @@ def train_residual_model_from_manifest(
     rows: list[ResidualTrainingManifestRow],
     config: ResidualModelConfig,
 ) -> ResidualTrainingExecutionResult:
+    if is_final_target_quantile_config(config):
+        raise ValueError(
+            "FINAL_TARGET_QUANTILE config requires train_final_target_model_from_manifest"
+        )
     summary = summarize_manifest(rows)
     manifest_digest = manifest_hash(rows)
     signature = training_signature(
@@ -1432,6 +1448,283 @@ def predict_residual_model_from_contract_payload(
             ),
         ),
     )
+
+
+def _split_final_target_rows(
+    rows: list[FinalTargetTrainingManifestRow],
+    split: str,
+) -> list[FinalTargetTrainingManifestRow]:
+    return [row for row in rows if row.include and row.split.value == split]
+
+
+def _final_target_s2_authority_identity(rows: list[FinalTargetTrainingManifestRow]) -> str:
+    if not rows:
+        return canonical_payload_hash({"authority": "empty"})
+    sample = rows[0].actuals_authority
+    return canonical_payload_hash(
+        {
+            "authority": sample.authority,
+            "partition_identity": sample.partition_identity,
+            "lineage_hash": sample.lineage_hash,
+        }
+    )
+
+
+def train_final_target_model_from_manifest(
+    *,
+    rows: list[FinalTargetTrainingManifestRow],
+    config: ResidualModelConfig,
+) -> ResidualTrainingExecutionResult:
+    if not is_final_target_quantile_config(config):
+        raise ValueError(
+            "train_final_target_model_from_manifest requires FINAL_TARGET_QUANTILE config"
+        )
+
+    summary = summarize_final_target_manifest(rows)
+    manifest_digest = final_target_manifest_hash(rows)
+    s2_identity = _final_target_s2_authority_identity(rows)
+    signature = final_target_training_signature(
+        config_hash=config.config_hash,
+        rows=rows,
+        s2_authority_identity=s2_identity,
+    )
+    blockers: list[str] = []
+    eligibility_reasons: list[str] = []
+    train_rows = _split_final_target_rows(rows, "train")
+    validation_rows = _split_final_target_rows(rows, "validation")
+    test_rows = _split_final_target_rows(rows, "test")
+    sample_count = len(train_rows)
+    distinct_season_count = len({row.season_id for row in train_rows})
+    distinct_grain_count = len(
+        {(row.farm_id, row.subfarm_id, row.variety_id) for row in train_rows}
+    )
+    train_seasons = {row.season_id for row in train_rows}
+    validation_seasons = {row.season_id for row in validation_rows}
+    test_seasons = {row.season_id for row in test_rows}
+    if sample_count < config.rules.eligibility.min_training_rows:
+        eligibility_reasons.append("insufficient_training_rows")
+    if distinct_season_count < config.rules.eligibility.min_seasons:
+        eligibility_reasons.append("insufficient_training_seasons")
+    if distinct_grain_count < config.rules.eligibility.min_factories:
+        eligibility_reasons.append("insufficient_training_grains")
+    if config.rules.split_strategy == "leave_one_season_out":
+        if not validation_rows or not validation_seasons:
+            eligibility_reasons.append("missing_validation_season")
+        if train_seasons.intersection(validation_seasons):
+            eligibility_reasons.append("train_validation_season_overlap")
+        if train_seasons.intersection(test_seasons):
+            eligibility_reasons.append("train_test_season_overlap")
+        if validation_rows and not validation_seasons.isdisjoint(test_seasons):
+            eligibility_reasons.append("validation_test_season_overlap")
+    if test_rows:
+        blockers.append("test_split_rows_forbidden")
+    if sample_count == 0:
+        blockers.append("no_included_training_rows")
+    for row in rows:
+        if not row.include:
+            continue
+        audit = row.feature_visibility_audit
+        if audit is not None and audit.status == "blocked":
+            blockers.append("feature_visibility_audit_blocked")
+            break
+        for feature in row.feature_values:
+            if feature.known_at > row.forecast_cutoff_at:
+                blockers.append("post_cutoff_feature_leakage")
+                break
+        if blockers:
+            break
+
+    input_snapshot = {
+        "prediction_target_kind": PredictionTargetKind.FINAL_TARGET_QUANTILE.value,
+        "manifest_summary": summary,
+        "manifest_hash": manifest_digest,
+        "training_signature": signature,
+        "s2_authority_identity": s2_identity,
+        "config_snapshot": config.snapshot,
+    }
+    if blockers:
+        return ResidualTrainingExecutionResult(
+            execution_status="blocked",
+            eligibility_status="not_evaluated",
+            model_family=config.rules.model_family,
+            model_version=config.rules.model_version,
+            feature_schema_version=config.rules.feature_schema_version,
+            artifact_schema_version=config.rules.artifact_schema_version,
+            training_signature=signature,
+            config_hash=config.config_hash,
+            manifest_hash=manifest_digest,
+            sample_count=sample_count,
+            distinct_season_count=distinct_season_count,
+            distinct_factory_count=distinct_grain_count,
+            warnings=(),
+            blockers=tuple(blockers),
+            feature_audit_summary=_aggregate_feature_audit_final_target(rows),
+            metrics={},
+            eligibility_reasons=tuple(eligibility_reasons),
+            input_snapshot=input_snapshot,
+            artifacts=(),
+        )
+    if eligibility_reasons:
+        return ResidualTrainingExecutionResult(
+            execution_status="completed",
+            eligibility_status="ineligible",
+            model_family=config.rules.model_family,
+            model_version=config.rules.model_version,
+            feature_schema_version=config.rules.feature_schema_version,
+            artifact_schema_version=config.rules.artifact_schema_version,
+            training_signature=signature,
+            config_hash=config.config_hash,
+            manifest_hash=manifest_digest,
+            sample_count=sample_count,
+            distinct_season_count=distinct_season_count,
+            distinct_factory_count=distinct_grain_count,
+            warnings=(),
+            blockers=(),
+            feature_audit_summary=_aggregate_feature_audit_final_target(rows),
+            metrics={},
+            eligibility_reasons=tuple(eligibility_reasons),
+            input_snapshot=input_snapshot,
+            artifacts=(),
+        )
+
+    features, labels, weights, feature_names, category_encodings = (
+        build_final_target_training_matrix(
+            rows,
+            config=config,
+        )
+    )
+    estimators = train_quantile_estimators(
+        config=config,
+        features=features,
+        labels=labels,
+        sample_weight=weights,
+    )
+    feature_schema_hash = _feature_schema_hash(feature_names)
+    artifacts = serialize_quantile_artifacts(
+        estimators=estimators,
+        config=config,
+        training_signature=signature,
+        manifest_hash=manifest_digest,
+        feature_schema_hash=feature_schema_hash,
+        category_encodings=category_encodings,
+    )
+    metrics: dict[str, object] = {
+        "prediction_target_kind": PredictionTargetKind.FINAL_TARGET_QUANTILE.value,
+        "feature_names": feature_names,
+        "feature_schema_hash": feature_schema_hash,
+        "split_counts": {
+            "train": len(train_rows),
+            "validation": len(validation_rows),
+            "test": len(test_rows),
+        },
+        "quantile_levels": [0.5, 0.8, 0.9],
+        "label_field": "actual_harvest_quantity_kg",
+    }
+    return ResidualTrainingExecutionResult(
+        execution_status="completed",
+        eligibility_status="eligible",
+        model_family=config.rules.model_family,
+        model_version=config.rules.model_version,
+        feature_schema_version=config.rules.feature_schema_version,
+        artifact_schema_version=config.rules.artifact_schema_version,
+        training_signature=signature,
+        config_hash=config.config_hash,
+        manifest_hash=manifest_digest,
+        sample_count=sample_count,
+        distinct_season_count=distinct_season_count,
+        distinct_factory_count=distinct_grain_count,
+        warnings=(),
+        blockers=(),
+        feature_audit_summary=_aggregate_feature_audit_final_target(rows),
+        metrics=metrics,
+        eligibility_reasons=(),
+        input_snapshot=input_snapshot,
+        artifacts=artifacts,
+    )
+
+
+def _aggregate_feature_audit_final_target(
+    rows: list[FinalTargetTrainingManifestRow],
+) -> dict[str, object]:
+    status_counts: Counter[str] = Counter()
+    blockers: Counter[str] = Counter()
+    for row in rows:
+        if row.feature_visibility_audit is not None:
+            status_counts[f"audit_status::{row.feature_visibility_audit.status.value}"] += 1
+            for issue in row.feature_visibility_audit.blockers:
+                blockers[issue.code.value] += 1
+        for feature in row.feature_values:
+            status_counts["feature_values"] += 1
+            if feature.value is None:
+                status_counts["missing_values"] += 1
+    return {
+        "row_count": len(rows),
+        "feature_value_count": status_counts["feature_values"],
+        "missing_value_count": status_counts["missing_values"],
+        "blocker_counts": dict(sorted(blockers.items())),
+    }
+
+
+def predict_final_target_quantiles(
+    *,
+    rows: list[FinalTargetTrainingManifestRow],
+    config: ResidualModelConfig,
+    estimators: TrainedResidualEstimators,
+    feature_names: list[str],
+    category_encodings: list[CategoryEncoding],
+) -> list[FinalTargetPredictionRow]:
+    predictions: list[FinalTargetPredictionRow] = []
+    matrix = build_prediction_matrix(
+        feature_rows=[row.feature_values for row in rows],
+        feature_names=feature_names,
+        category_encodings=category_encodings,
+    )
+    pred_p50, pred_p80, pred_p90 = predict_quantiles(estimators=estimators, features=matrix)
+    for index, row in enumerate(rows):
+        projection = project_final_target_quantiles(
+            predicted_p50_kg=Decimal(str(pred_p50[index])),
+            predicted_p80_kg=Decimal(str(pred_p80[index])),
+            predicted_p90_kg=Decimal(str(pred_p90[index])),
+        )
+        for quantile_label, marketable_kg in (
+            ("P50", projection.corrected_p50_kg),
+            ("P80", projection.corrected_p80_kg),
+            ("P90", projection.corrected_p90_kg),
+        ):
+            row_payload = {
+                "model_run_id": 0,
+                "prediction_run_id": 0,
+                "season_id": row.season_id,
+                "farm_id": row.farm_id,
+                "subfarm_id": row.subfarm_id,
+                "variety_id": row.variety_id,
+                "harvest_business_date": row.harvest_business_date,
+                "forecast_cutoff_at": row.forecast_cutoff_at,
+                "forecast_horizon_days": row.forecast_horizon_days,
+                "forecast_quantile": quantile_label,
+                "prediction_target_kind": PredictionTargetKind.FINAL_TARGET_QUANTILE,
+                "raw_p50_kg": projection.raw_p50_kg,
+                "raw_p80_kg": projection.raw_p80_kg,
+                "raw_p90_kg": projection.raw_p90_kg,
+                "corrected_p50_kg": projection.corrected_p50_kg,
+                "corrected_p80_kg": projection.corrected_p80_kg,
+                "corrected_p90_kg": projection.corrected_p90_kg,
+                "model_harvested_marketable_quantity_kg": marketable_kg,
+                "nonnegative_projection_applied": projection.nonnegative_projection_applied,
+                "quantile_projection_applied": projection.quantile_projection_applied,
+                "projection_reasons": projection.projection_reasons,
+                "raw_crossing_count": projection.raw_crossing_count,
+                "final_crossing_count": projection.final_crossing_count,
+                "feature_vector_hash": row.feature_vector_hash,
+                "feature_audit_hash": row.feature_visibility_audit_hash,
+            }
+            row_hash = canonical_payload_hash(row_payload)
+            predictions.append(
+                FinalTargetPredictionRow.model_validate(
+                    {**row_payload, "prediction_hash": row_hash}
+                )
+            )
+    return predictions
 
 
 # Re-export note:
