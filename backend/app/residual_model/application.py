@@ -444,7 +444,8 @@ async def _require_persisted_replay_authority(
                     raise ResidualReplayTrainedAuthorityError(
                         "persisted Task 12 training observation is after the training cutoff"
                     )
-                if legacy_manifest_row.label_actual_snapshot.source_cutoff.date() > training_cutoff_date:
+                label_cutoff_date = legacy_manifest_row.label_actual_snapshot.source_cutoff.date()
+                if label_cutoff_date > training_cutoff_date:
                     raise ResidualReplayTrainedAuthorityError(
                         "persisted Task 12 label availability is after the training cutoff"
                     )

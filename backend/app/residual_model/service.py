@@ -418,6 +418,7 @@ def finalize_prediction_result(
             cast(dict[str, object], canonical_json_value(row.model_dump(mode="python")))
             for row in rows
         ],
+        "final_target_rows": [],
         "input_snapshot": normalized_input_snapshot,
     }
     prediction_hash = canonical_payload_hash(result_payload)

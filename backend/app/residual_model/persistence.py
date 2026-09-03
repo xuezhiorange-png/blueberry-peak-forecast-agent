@@ -276,9 +276,7 @@ def _validate_prediction_result(result: ResidualPredictionExecutionResult) -> No
         _validate_final_target_prediction_rows(result.final_target_rows)
         return
     if result.final_target_rows:
-        raise ResidualModelPersistenceError(
-            "legacy prediction must not contain final_target_rows"
-        )
+        raise ResidualModelPersistenceError("legacy prediction must not contain final_target_rows")
     if result.execution_status == "blocked" and result.rows:
         raise ResidualModelPersistenceError("blocked prediction run must not contain rows")
     if result.execution_status == "failed" and result.rows:
@@ -560,16 +558,10 @@ def _prediction_rows_payload(
     return [row.model_dump(mode="json") for row in rows]
 
 
-def _prediction_result_hash_payload(result: ResidualPredictionExecutionResult) -> dict[str, Any]:
+def _prediction_hash_from_result(result: ResidualPredictionExecutionResult) -> str:
     payload = _canonical_dump(result)
     payload["prediction_hash"] = None
-    if not result.final_target_rows:
-        payload.pop("final_target_rows", None)
-    return payload
-
-
-def _prediction_hash_from_result(result: ResidualPredictionExecutionResult) -> str:
-    return canonical_payload_hash(_prediction_result_hash_payload(result))
+    return canonical_payload_hash(payload)
 
 
 def training_parent_payload_from_columns(
