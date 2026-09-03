@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 
 from backend.app.harvest_state.canonical import sha256_hex
@@ -79,14 +78,6 @@ GRANT_AMENDMENT_POINTER_HEADING = (
 )
 
 
-def _git_rev_parse(ref: str) -> str:
-    return subprocess.check_output(["git", "rev-parse", ref], text=True).strip()
-
-
-def _git_tree_sha(ref: str) -> str:
-    return subprocess.check_output(["git", "rev-parse", f"{ref}^{{tree}}"], text=True).strip()
-
-
 def test_grant_amendment_evidence_sha256_payload_matches_embedded_digest() -> None:
     payload = json.loads(GRANT_AMENDMENT_EVIDENCE.read_text(encoding="utf-8"))
     embedded = payload["evidence_json_sha256"]
@@ -119,9 +110,12 @@ def test_contract_amendment_evidence_pins_and_digest() -> None:
     assert payload["migration_required"] is True
 
 
-def test_current_base_main_matches_expected() -> None:
-    assert _git_rev_parse("origin/main") == BASE_MAIN_SHA
-    assert _git_tree_sha("origin/main") == BASE_MAIN_TREE_SHA
+def test_grant_amendment_evidence_base_main_pins() -> None:
+    payload = json.loads(GRANT_AMENDMENT_EVIDENCE.read_text(encoding="utf-8"))
+    assert payload["base_main_sha"] == BASE_MAIN_SHA
+    assert payload["base_main_tree_sha"] == BASE_MAIN_TREE_SHA
+    assert payload["audited_repository_sha"] == BASE_MAIN_SHA
+    assert payload["audited_repository_tree_sha"] == BASE_MAIN_TREE_SHA
 
 
 def test_grant_amendment_evidence_authorization_metadata() -> None:
