@@ -2,6 +2,9 @@
   "artifact_id": "V0_3_S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_R1",
   "artifact_version": "s3-b-quantile-semantics-remediation-contract-r1-v1",
   "task_id": "V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_R1",
+  "correction_task_id": "V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_R1_CORRECTION",
+  "correction_pr": 535,
+  "correction_scope": "DOCS_ONLY",
   "task_class": "CONTRACT_DEFINITION_ONLY",
   "authorization_scope": "S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_ONLY",
   "parallel_lane": "S3-B",
@@ -10,7 +13,7 @@
   "user_gate": "授权",
   "interpreted_gate": "S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_AUTHORING_ONLY",
   "reviewer_role": "COORDINATOR",
-  "recorded_at": "2026-09-03T08:15:00Z",
+  "recorded_at": "2026-09-03T09:45:00Z",
   "no_step_implies_the_next": true,
   "contract_only": true,
   "this_pr_is_not_a_grant": true,
@@ -51,12 +54,35 @@
   "final_target_y": "model_harvested_marketable_quantity_kg",
   "final_target_grain": "SEASON×FARM×SUBFARM×VARIETY×TARGET_DATE×FORECAST_CUTOFF×MODEL_IDENTITY×FORECAST_QUANTILE",
   "final_target_physical_label_grain": "FARM×SUBFARM×VARIETY×HARVEST_BUSINESS_DATE",
-  "final_target_actuals_authority": "actual_harvest_quantity_kg",
-  "final_target_actuals_authority_path": "docs/v0-3/s1/target-decision-and-quantity-contract.md",
-  "final_target_actuals_authority_section": "CURRENT_ACTUAL_LABEL",
+  "final_target_actual_label": "actual_harvest_quantity_kg",
+  "final_target_actual_label_path": "docs/v0-3/s1/target-decision-and-quantity-contract.md",
+  "final_target_actual_label_section": "CURRENT_ACTUAL_LABEL",
+  "final_target_actuals_authority": "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION",
+  "final_target_actuals_authority_path": "docs/v0-3/s3/s3-backtest-and-diagnosis-contract.md",
+  "final_target_actuals_authority_section": "§2 / §2.1 actuals authority",
   "final_target_pairing_rule": "V0.2 §11.1–§11.3 EXACT_ACTUAL_PAIRED; one actual physical row reused across P50/P80/P90 forecast rows at the same physical grain",
+  "actual_label_authority_separated": true,
   "observed_effective_receipt_kg_is_not_final_target_y": true,
   "current_residual_target_is_not_final_target_y": true,
+  "final_target_manifest_persistence_policy": "TRAINING_RUN_MANIFEST_SNAPSHOT_JSON",
+  "legacy_residual_manifest_row_policy": "LEGACY_RECEIPT_RESIDUAL_LANE_ONLY",
+  "final_target_rows_write_legacy_residual_model_manifest_row": false,
+  "placeholder_legacy_receipt_fields_forbidden": true,
+  "fake_destination_factory_forbidden": true,
+  "fake_receipt_quantity_forbidden": true,
+  "fake_residual_label_forbidden": true,
+  "final_target_manifest_persistence_policy_resolved": true,
+  "no_placeholder_legacy_fields": true,
+  "persistence_inspection": {
+    "save_path": "backend/app/residual_model/persistence.py::save_residual_training_run",
+    "load_path": "backend/app/residual_model/persistence.py::load_residual_training_run_by_id",
+    "replay_path": "backend/app/residual_model/application.py::_validate_persisted_replay_training_authority",
+    "manifest_snapshot_field": "ResidualModelTrainingRun.manifest_snapshot",
+    "legacy_child_table": "residual_model_manifest_row",
+    "incumbent_child_rows_required_today": true,
+    "final_target_child_rows_required": false,
+    "manifest_hash_source": "backend/app/residual_model/manifest.py::manifest_hash"
+  },
   "mandatory_change_surface": [
     {
       "path": "backend/app/residual_model/dataset.py",
@@ -98,27 +124,32 @@
     {
       "path": "backend/app/residual_model/training_manifest.py",
       "change_required": true,
-      "reason": "build lawful model_harvested_marketable_quantity_kg labels at member/farm grain instead of factory receipt residual_label_kg"
+      "reason": "build farm-harvest manifest row payloads for manifest_snapshot JSON"
     },
     {
       "path": "backend/app/residual_model/schemas.py",
       "change_required": true,
-      "reason": "manifest row and artifact metadata types for prediction_target_kind and final-Y labels"
+      "reason": "final-target snapshot row schema and prediction_target_kind types"
     },
     {
       "path": "backend/app/residual_model/persistence.py",
       "change_required": true,
-      "reason": "fail-closed serialize/load of prediction_target_kind in artifact metadata"
+      "reason": "snapshot-only save/load/replay for FINAL_TARGET_QUANTILE with manifest_row_count=0"
+    },
+    {
+      "path": "backend/app/residual_model/replay_training_authority.py",
+      "change_required": true,
+      "reason": "dataset identity and label rows must use final Y label, not observed_effective_receipt_kg"
     },
     {
       "path": "backend/app/residual_model/application.py",
       "change_required": true,
-      "reason": "publish final-target kg without residual composition semantics"
+      "reason": "replay authority gate from manifest_snapshot rows without legacy child-row requirement"
     },
     {
       "path": "backend/app/models/residual_model.py",
       "change_required": false,
-      "reason": "existing JSON metadata columns suffice when migration_required=false"
+      "reason": "manifest_snapshot JSON column exists; residual_model_manifest_row remains legacy-lane-only without Alembic mutation"
     },
     {
       "path": "backend/app/api/rolling_backtest_replay_trained.py",
@@ -154,7 +185,8 @@
   "quantile_crossing_policy": "DETERMINISTIC_REARRANGEMENT_WITH_FINAL_OUTPUT_VERIFICATION",
   "fallback_quantile_semantics_policy": "FAIL_CLOSED_NO_VERIFIED_QUANTILE_OUTPUT",
   "migration_required": false,
-  "migration_rationale": "truthful target-kind separation via new model_family, artifact_schema_version, model_version, and prediction_target_kind in existing artifact JSON metadata with fail-closed loader; historical manifest columns remain append-only factory-receipt lane record",
+  "migration_decision_proven": true,
+  "migration_rationale": "ResidualModelTrainingRun.manifest_snapshot JSON is authoritative for final-target rows; manifest_row_count=0 without child inserts; load/replay from snapshot when prediction_target_kind=FINAL_TARGET_QUANTILE; artifact identity via model_family/artifact_schema_version/prediction_target_kind; no Alembic mutation required",
   "new_model_semantic_version_required": true,
   "in_place_incumbent_artifact_overwrite_forbidden": true,
   "incumbent_model_history_preserved": true,
@@ -172,6 +204,12 @@
     "backend/tests/maturity/test_model.py",
     "backend/tests/maturity/test_maturity_golden.py"
   ],
+  "acceptance_evidence": {
+    "actual_label_authority_separated": true,
+    "final_target_manifest_persistence_policy_resolved": true,
+    "migration_decision_proven": true,
+    "no_placeholder_legacy_fields": true
+  },
   "current_p50_semantics_status": "VERIFICATION_FAILED",
   "current_p80_semantics_status": "VERIFICATION_FAILED",
   "current_p90_semantics_status": "VERIFICATION_FAILED",
@@ -188,13 +226,15 @@
   "migration_changed_files": "NONE",
   "workflow_changed_files": "NONE",
   "contract_review_ready": true,
-  "evidence_json_sha256": "08eb0ff2530e7b971f2d617556aba88fdd8774e6ad5f66a12b5ebf62510f1ad0",
+  "evidence_json_sha256": "1553f0def25480671416ecd0f5756cdc3c66378e95a4ce0cf7acc0081c57dbad",
   "honesty": {
     "contract_only_not_implementation": true,
     "grant_still_required": true,
     "implementation_success_is_not_semantics_verification": true,
     "does_not_flip_current_p_star_semantics_status": true,
     "does_not_authorize_coverage_execution": true,
-    "observed_effective_receipt_kg_not_promoted_as_final_target_y": true
+    "observed_effective_receipt_kg_not_promoted_as_final_target_y": true,
+    "actual_label_separated_from_actuals_dataset_authority": true,
+    "final_target_manifest_snapshot_without_legacy_child_rows": true
   }
 }
