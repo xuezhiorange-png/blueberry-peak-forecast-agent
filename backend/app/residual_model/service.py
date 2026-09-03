@@ -1718,12 +1718,13 @@ def predict_final_target_quantiles(
                 "feature_vector_hash": row.feature_vector_hash,
                 "feature_audit_hash": row.feature_visibility_audit_hash,
             }
-            row_hash = canonical_payload_hash(row_payload)
-            predictions.append(
-                FinalTargetPredictionRow.model_validate(
-                    {**row_payload, "prediction_hash": row_hash}
-                )
+            provisional = FinalTargetPredictionRow.model_validate(
+                {**row_payload, "prediction_hash": "0" * 64}
             )
+            row_hash = canonical_payload_hash(
+                provisional.model_dump(mode="python", exclude={"prediction_hash"})
+            )
+            predictions.append(provisional.model_copy(update={"prediction_hash": row_hash}))
     return predictions
 
 

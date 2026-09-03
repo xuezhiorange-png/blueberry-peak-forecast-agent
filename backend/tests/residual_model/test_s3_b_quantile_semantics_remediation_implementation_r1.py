@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import (
     FINAL_TARGET_ARTIFACT_SCHEMA_VERSION,
@@ -28,6 +31,7 @@ from backend.app.residual_model.schemas import (
     FeatureValue,
     FinalTargetActualsAuthoritySnapshot,
     FinalTargetTrainingManifestRow,
+    ResidualPredictionExecutionResult,
 )
 from backend.app.residual_model.service import (
     predict_final_target_quantiles,
@@ -338,3 +342,258 @@ def test_core_forecast_binding_uses_final_target_output() -> None:
     )
     assert updated[0].model_harvested_marketable_quantity_kg == "42.500000"
     assert updated[0].forecast_quantile == "P50"
+
+
+def test_post_cutoff_feature_leakage_blocked() -> None:
+    config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    cutoff = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+    late_known = datetime(2026, 3, 2, 8, 0, tzinfo=UTC)
+    row = _final_target_row(
+        season_id=1,
+        farm_id=1,
+        subfarm_id=1,
+        variety_id=1,
+        harvest_date=date(2026, 3, 2),
+        actual_kg="80",
+        forecast_cutoff_at=cutoff,
+    )
+    leaked_features = (
+        FeatureValue.model_validate(
+            {
+                "feature_name": "weather_7d_rainfall",
+                "value": "9",
+                "known_at": late_known,
+                "source_ref": {"weather": "9"},
+                "source_version": "v1",
+                "source_available_at": late_known,
+                "observation_date": date(2026, 2, 28),
+            }
+        ),
+    )
+    leaked_row = row.model_copy(update={"feature_values": leaked_features})
+    result = train_final_target_model_from_manifest(rows=[leaked_row], config=config)
+    assert result.execution_status == "blocked"
+    assert "post_cutoff_feature_leakage" in result.blockers
+
+
+@pytest.fixture
+async def residual_sqlite_session() -> AsyncSession:
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from backend.app.models.residual_model import (
+        ResidualModelArtifact,
+        ResidualModelExecutionAttempt,
+        ResidualModelManifestRow,
+        ResidualModelPredictionRow,
+        ResidualModelPredictionRun,
+        ResidualModelTrainingRun,
+    )
+
+    tables = [
+        ResidualModelTrainingRun.__table__,
+        ResidualModelManifestRow.__table__,
+        ResidualModelArtifact.__table__,
+        ResidualModelPredictionRun.__table__,
+        ResidualModelPredictionRow.__table__,
+        ResidualModelExecutionAttempt.__table__,
+    ]
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: ResidualModelTrainingRun.metadata.create_all(
+                sync_conn,
+                tables=tables,
+            )
+        )
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    async with sessionmaker() as session:
+        yield session
+    await engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def stub_task9_authority(monkeypatch: pytest.MonkeyPatch) -> None:
+    from types import SimpleNamespace
+
+    async def _fake_load_harvest_state_output_by_id(
+        session: AsyncSession,
+        *,
+        run_id: int,
+    ) -> object | None:
+        return SimpleNamespace(status="completed", result_hash="a" * 64)
+
+    monkeypatch.setattr(
+        "backend.app.residual_model.persistence.load_harvest_state_output_by_id",
+        _fake_load_harvest_state_output_by_id,
+    )
+
+
+@pytest.mark.asyncio
+async def test_final_target_training_persistence_zero_legacy_child_rows(
+    residual_sqlite_session: AsyncSession,
+) -> None:
+    from sqlalchemy import func, select
+
+    from backend.app.models.residual_model import ResidualModelManifestRow
+    from backend.app.residual_model.persistence import (
+        load_residual_training_run_by_id,
+        save_residual_training_run,
+    )
+
+    config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    rows = _training_rows(30)
+    result = train_final_target_model_from_manifest(rows=rows, config=config)
+    run = await save_residual_training_run(
+        residual_sqlite_session,
+        result=result,
+        final_target_manifest_rows=rows,
+    )
+    assert run.manifest_row_count == 0
+    child_count = await residual_sqlite_session.scalar(
+        select(func.count()).select_from(ResidualModelManifestRow)
+    )
+    assert child_count == 0
+    loaded = await load_residual_training_run_by_id(
+        residual_sqlite_session,
+        run_id=run.id,
+    )
+    assert loaded is not None
+    assert loaded.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+
+
+@pytest.mark.asyncio
+async def test_final_target_prediction_canonical_json_round_trip(
+    residual_sqlite_session: AsyncSession,
+) -> None:
+    from sqlalchemy import func, select
+
+    from backend.app.models.residual_model import ResidualModelPredictionRow
+    from backend.app.repositories.residual_model import list_residual_artifacts
+    from backend.app.residual_model.canonical import prediction_input_signature_hash
+    from backend.app.residual_model.dataset import build_final_target_training_matrix
+    from backend.app.residual_model.enums import ResidualPredictionMode
+    from backend.app.residual_model.model import train_quantile_estimators
+    from backend.app.residual_model.persistence import (
+        _prediction_hash_from_result,
+        load_residual_prediction_run_by_id,
+        save_residual_prediction_run,
+        save_residual_training_run,
+    )
+
+    config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    rows = _training_rows(30)
+    train_result = train_final_target_model_from_manifest(rows=rows, config=config)
+    training_run = await save_residual_training_run(
+        residual_sqlite_session,
+        result=train_result,
+        final_target_manifest_rows=rows,
+    )
+    artifacts = await list_residual_artifacts(
+        residual_sqlite_session,
+        training_run_id=training_run.id,
+    )
+    artifact_hashes = [artifact.artifact_sha256 for artifact in artifacts]
+    feature_names = list(train_result.metrics["feature_names"])
+    matrix, labels, weights, _, category_encodings = build_final_target_training_matrix(
+        rows,
+        config=config,
+    )
+    estimators = train_quantile_estimators(
+        config=config,
+        features=matrix,
+        labels=labels,
+        sample_weight=weights,
+    )
+    predict_rows = [row for row in rows if row.include and row.split == "train"][:2]
+    final_preds = predict_final_target_quantiles(
+        rows=predict_rows,
+        config=config,
+        estimators=estimators,
+        feature_names=feature_names,
+        category_encodings=category_encodings,
+    )
+    input_snapshot = {
+        "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+        "training_signature": training_run.training_signature,
+        "feature_schema_version": training_run.feature_schema_version,
+        "feature_schema_hash": training_run.feature_schema_hash,
+        "projection_version": config.rules.projection_version,
+        "fallback_policy": "structural_only_fallback",
+        "artifact_hashes": artifact_hashes,
+        "final_target_prediction_row_count": len(final_preds),
+        "supplemental_feature_values": [],
+        "feature_audit_hashes": [],
+        "feature_rows": [],
+    }
+    prediction_input_signature = prediction_input_signature_hash(
+        model_run_id=training_run.id,
+        training_signature=training_run.training_signature,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        feature_analytics_build_run_id=None,
+        feature_actual_snapshot=None,
+        supplemental_feature_values=[],
+        feature_audit_hashes=[],
+        feature_rows=[],
+        artifact_hashes=artifact_hashes,
+        config_hash=training_run.config_hash,
+        feature_schema_version=training_run.feature_schema_version,
+        feature_schema_hash=training_run.feature_schema_hash,
+        projection_version=config.rules.projection_version,
+        fallback_policy_version="structural_only_fallback",
+    )
+    prediction_hash = _prediction_hash_from_result(
+        ResidualPredictionExecutionResult(
+            execution_status="completed",
+            mode=ResidualPredictionMode.RESIDUAL_CORRECTED,
+            model_run_id=training_run.id,
+            task9_run_id=10,
+            task9_result_hash="a" * 64,
+            config_hash=training_run.config_hash,
+            prediction_input_signature=prediction_input_signature,
+            prediction_hash="0" * 64,
+            warnings=(),
+            blockers=(),
+            rows=(),
+            final_target_rows=tuple(final_preds),
+            input_snapshot=input_snapshot,
+        )
+    )
+    prediction_result = ResidualPredictionExecutionResult(
+        execution_status="completed",
+        mode=ResidualPredictionMode.RESIDUAL_CORRECTED,
+        model_run_id=training_run.id,
+        task9_run_id=10,
+        task9_result_hash="a" * 64,
+        config_hash=training_run.config_hash,
+        prediction_input_signature=prediction_input_signature,
+        prediction_hash=prediction_hash,
+        warnings=(),
+        blockers=(),
+        rows=(),
+        final_target_rows=tuple(final_preds),
+        input_snapshot=input_snapshot,
+    )
+    run = await save_residual_prediction_run(
+        residual_sqlite_session,
+        result=prediction_result,
+        feature_schema_version=training_run.feature_schema_version,
+        feature_schema_hash=training_run.feature_schema_hash,
+        artifact_hashes=artifact_hashes,
+    )
+    child_count = await residual_sqlite_session.scalar(
+        select(func.count()).select_from(ResidualModelPredictionRow)
+    )
+    assert child_count == 0
+    assert run.expected_prediction_row_count == 0
+    loaded = await load_residual_prediction_run_by_id(
+        residual_sqlite_session,
+        run_id=run.id,
+    )
+    assert loaded is not None
+    assert loaded.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+    assert len(loaded.final_target_rows) == len(final_preds)
+    assert all(
+        row.prediction_target_kind.value == "FINAL_TARGET_QUANTILE"
+        for row in loaded.final_target_rows
+    )

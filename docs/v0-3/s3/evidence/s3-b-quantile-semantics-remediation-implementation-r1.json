@@ -29,7 +29,11 @@
   "final_target_model_family": "hist_gradient_boosting_quantile",
   "final_target_model_version": "final-target-quantile-v1",
   "final_target_artifact_schema_version": "final-target-artifact-v1",
-  "quantile_levels": ["0.50", "0.80", "0.90"],
+  "quantile_levels": [
+    "0.50",
+    "0.80",
+    "0.90"
+  ],
   "quantile_crossing_policy": "DETERMINISTIC_REARRANGEMENT_WITH_FINAL_OUTPUT_VERIFICATION",
   "fallback_quantile_semantics_policy": "FAIL_CLOSED_NO_VERIFIED_QUANTILE_OUTPUT",
   "final_target_manifest_persistence_policy": "TRAINING_RUN_MANIFEST_SNAPSHOT_JSON",
@@ -46,9 +50,11 @@
     "backend/app/residual_model/service.py",
     "backend/app/residual_model/training_manifest.py",
     "backend/app/residual_model/persistence.py",
+    "backend/app/residual_model/replay_training_authority.py",
     "backend/app/residual_model/application.py",
     "backend/app/core_forecast/service.py"
   ],
+  "authorized_production_files_unchanged": [],
   "forbidden_production_files_verified_unchanged": true,
   "logical_manifest_row_count": "manifest_snapshot.rows",
   "legacy_manifest_child_row_count": 0,
@@ -66,20 +72,21 @@
   "current_s3_daily_rowset_completeness_verified": false,
   "current_v0_3_s3_complete": false,
   "v0_3_s4_authorized": false,
-  "implementation_review_ready": true,
+  "implementation_review_ready": false,
   "production_blob_evidence": {
     "enums_py": "c454b8dc62b6ccaee6c35c8c0be6d4b0b01de514",
     "config_py": "e7df3d60f8f7cbabf27b87c29ad2cca19b851318",
-    "schemas_py": "756c55296ac9d2d6f56a2cbcfac53628c038bf3f",
+    "schemas_py": "227dfd5f069685678320152c805a30aca7938458",
     "manifest_py": "cd99d3db20d4649862a1ca439d326678f526ada4",
     "dataset_py": "2406ebe0f9527f3b559189d07e9f23444e817a03",
     "model_py": "72ca18538c7258912fa393b15977cadd7b8dbc22",
     "projection_py": "4b215c751c38149211a51578998f68f5c174f463",
-    "service_py": "7500a19ee3a09f9821b36c468ba03fb6a9a67805",
+    "service_py": "5ee9208513e6d65639149ce8d0bbab2e4807b30b",
     "training_manifest_py": "716563cd858b60c971705a4902592d58b3269e0c",
-    "persistence_py": "84623732fbbc597e9bf86e0c2bd8952624bc1101",
-    "application_py": "75c9095c3702d1568bfa136e9673c4f0205a9ebc",
+    "persistence_py": "06843a715f65337272d112efde5b42e5eacabc4e",
+    "replay_training_authority_py": "b3a836a17dd58de76a96f6a0360462327d063ce3",
+    "application_py": "22cb851715d880df9739c792b7fbf8f1b14efa8e",
     "core_forecast_service_py": "678d324bd2d380e310d2c84b97fa8021849d9b47"
   },
-  "evidence_json_sha256": "9f42571b9d6dcb848b56d8276ef648f49e3376aee812f09a898fe254f8777526"
+  "evidence_json_sha256": "29222e34afc70cbe55a200349342fcf5a1959ac3a0f4ceced690e84178c4ca77"
 }
