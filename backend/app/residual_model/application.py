@@ -54,6 +54,7 @@ from backend.app.residual_model.replay_training_authority import (
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
+    FinalTargetTrainingManifestRow,
     ResidualPredictionExecutionResult,
     ResidualPredictionRequest,
     ResidualTrainingExecutionResult,
@@ -635,6 +636,98 @@ async def execute_residual_training(
         ):
             raise ResidualModelPersistenceIntegrityError(
                 "Eligible residual training run reloaded without three quantile artifacts"
+            )
+        await _complete_attempt(
+            session=session,
+            attempt_id=attempt_id,
+            linked_training_run_id=run.id,
+        )
+        return loaded, run.id
+    except Exception as exc:
+        await session.rollback()
+        await _fail_attempt(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+            exc=exc,
+        )
+        raise _raise_training_error(exc) from exc
+
+
+async def execute_final_target_training(
+    session: AsyncSession,
+    *,
+    final_target_rows: list[FinalTargetTrainingManifestRow],
+    config: ResidualModelConfig,
+    execution_context: dict[str, Any] | None = None,
+    typed_attempt: dict[str, Any] | None = None,
+) -> tuple[ResidualTrainingExecutionResult, int]:
+    from backend.app.residual_model.config import is_final_target_quantile_config
+    from backend.app.residual_model.service import train_final_target_model_from_manifest
+
+    if not is_final_target_quantile_config(config):
+        raise ResidualTrainingApplicationIntegrityError(
+            "execute_final_target_training requires FINAL_TARGET_QUANTILE config"
+        )
+    attempt_id: int | None = await _create_attempt(
+        session=session,
+        attempt_type="training",
+        current_stage="model_training",
+        requested_inputs={
+            "row_count": len(final_target_rows),
+            "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+            "execution_context": execution_context or {},
+        },
+        config_identity={
+            "model_family": config.rules.model_family,
+            "model_version": config.rules.model_version,
+            "config_hash": config.config_hash,
+            "prediction_target_kind": config.rules.prediction_target_kind.value,
+        },
+        upstream_requested_ids={},
+    )
+    current_stage = "model_training"
+    try:
+        result = train_final_target_model_from_manifest(rows=final_target_rows, config=config)
+        if execution_context:
+            result = result.model_copy(
+                update={
+                    "input_snapshot": {
+                        **result.input_snapshot,
+                        **execution_context,
+                    }
+                }
+            )
+        current_stage = "persistence"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        run = await save_residual_training_run(
+            session,
+            result=result,
+            final_target_manifest_rows=final_target_rows,
+            typed_attempt=typed_attempt,
+        )
+        current_stage = "reload_integrity"
+        await _update_attempt_stage(
+            session=session,
+            attempt_id=attempt_id,
+            current_stage=current_stage,
+        )
+        loaded = await load_residual_training_run_by_id(session, run_id=run.id)
+        if loaded is None:
+            raise ResidualTrainingApplicationIntegrityError(
+                "Final-target training run was saved but could not be reloaded"
+            )
+        if loaded.training_signature != result.training_signature:
+            raise ResidualTrainingApplicationIntegrityError(
+                "Reloaded final-target training run does not match the saved training signature"
+            )
+        if loaded.manifest_hash != result.manifest_hash or loaded.config_hash != result.config_hash:
+            raise ResidualTrainingApplicationIntegrityError(
+                "Reloaded final-target training run failed manifest/config parity checks"
             )
         await _complete_attempt(
             session=session,

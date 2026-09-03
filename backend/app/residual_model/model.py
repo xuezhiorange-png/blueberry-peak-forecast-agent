@@ -14,6 +14,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import ResidualModelConfig
+from backend.app.residual_model.enums import PredictionTargetKind
 from backend.app.residual_model.schemas import (
     CategoryEncoding,
     PersistableResidualArtifact,
@@ -82,6 +83,22 @@ def serialize_estimator(estimator: HistGradientBoostingRegressor) -> bytes:
     return buffer.getvalue()
 
 
+class ResidualArtifactTargetKindError(ValueError):
+    """Raised when artifact target kind does not match the requested lane."""
+
+
+def validate_artifact_target_kind(
+    metadata: ResidualArtifactMetadata,
+    *,
+    required: PredictionTargetKind,
+) -> None:
+    if metadata.prediction_target_kind != required:
+        raise ResidualArtifactTargetKindError(
+            f"artifact prediction_target_kind={metadata.prediction_target_kind} "
+            f"does not match required={required}"
+        )
+
+
 def build_artifact_metadata(
     *,
     quantile_label: str,
@@ -130,6 +147,7 @@ def build_artifact_metadata(
         "binary_sha256": binary_sha256,
         "estimator_parameters": estimator_parameters,
         "category_encodings": [item.model_dump(mode="json") for item in category_encodings],
+        "prediction_target_kind": config.rules.prediction_target_kind.value,
     }
     metadata_sha256 = canonical_payload_hash(metadata_payload)
     return ResidualArtifactMetadata(

@@ -46,10 +46,17 @@ from backend.app.residual_model.canonical import (
     canonical_payload_hash,
     prediction_input_signature_hash,
 )
-from backend.app.residual_model.manifest import manifest_hash, manifest_row_payload
+from backend.app.residual_model.manifest import (
+    final_target_manifest_hash,
+    final_target_manifest_row_from_payload,
+    final_target_manifest_row_payload,
+    manifest_hash,
+    manifest_row_payload,
+)
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
+    FinalTargetTrainingManifestRow,
     PersistableResidualArtifact,
     ResidualArtifactMetadata,
     ResidualPredictionExecutionResult,
@@ -588,14 +595,42 @@ def prediction_parent_payload_from_columns(
     )
 
 
+def _is_final_target_training_result(result: ResidualTrainingExecutionResult) -> bool:
+    return result.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+
+
 async def save_residual_training_run(
     session: AsyncSession,
     *,
     result: ResidualTrainingExecutionResult,
-    manifest_rows: list[ResidualTrainingManifestRow],
+    manifest_rows: list[ResidualTrainingManifestRow] | None = None,
+    final_target_manifest_rows: list[FinalTargetTrainingManifestRow] | None = None,
     typed_attempt: dict[str, Any] | None = None,
 ) -> ResidualModelTrainingRun:
     _validate_training_result(result)
+    is_final_target = _is_final_target_training_result(result)
+    if is_final_target:
+        if final_target_manifest_rows is None:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target training requires final_target_manifest_rows"
+            )
+        if manifest_rows:
+            raise ResidualModelPersistenceIntegrityError(
+                "legacy manifest_rows forbidden for final-target training"
+            )
+        snapshot_rows = [
+            final_target_manifest_row_payload(row) for row in final_target_manifest_rows
+        ]
+        persisted_manifest_row_count = 0
+    else:
+        if manifest_rows is None:
+            raise ResidualModelPersistenceIntegrityError("legacy training requires manifest_rows")
+        if final_target_manifest_rows:
+            raise ResidualModelPersistenceIntegrityError(
+                "final_target_manifest_rows forbidden for legacy training"
+            )
+        snapshot_rows = [manifest_row_payload(row) for row in manifest_rows]
+        persisted_manifest_row_count = len(manifest_rows)
     existing = await get_residual_training_run_by_signature(
         session,
         training_signature=result.training_signature,
@@ -638,7 +673,7 @@ async def save_residual_training_run(
             dict[str, Any],
             canonical_json_value(
                 {
-                    "rows": [manifest_row_payload(row) for row in manifest_rows],
+                    "rows": snapshot_rows,
                     "summary": result.input_snapshot["manifest_summary"],
                 }
             ),
@@ -677,7 +712,7 @@ async def save_residual_training_run(
         sample_count=result.sample_count,
         distinct_season_count=result.distinct_season_count,
         distinct_factory_count=result.distinct_factory_count,
-        manifest_row_count=len(manifest_rows),
+        manifest_row_count=persisted_manifest_row_count,
         expected_artifact_count=len(result.artifacts),
         python_version=result.artifacts[0].metadata.python_version if result.artifacts else "n/a",
         numpy_version=result.artifacts[0].metadata.numpy_version if result.artifacts else "n/a",
@@ -691,48 +726,49 @@ async def save_residual_training_run(
     session.add(run)
     try:
         await session.flush()
-        session.add_all(
-            [
-                ResidualModelManifestRow(
-                    training_run_id=run.id,
-                    row_index=index,
-                    split=row.split.value,
-                    include=row.include,
-                    season_id=row.season_id,
-                    destination_factory_id=row.destination_factory_id,
-                    task9_run_id=row.task9_run_id,
-                    task9_result_hash=row.task9_result_hash,
-                    as_of_date=row.as_of_date,
-                    target_arrival_local_date=row.target_arrival_local_date,
-                    forecast_horizon_days=row.forecast_horizon_days,
-                    label_analytics_build_run_id=row.label_actual_snapshot.build_run_id,
-                    label_actual_source_max_raw_id=row.label_actual_snapshot.source_max_raw_id,
-                    label_actual_aggregation_version=row.label_actual_snapshot.aggregation_version,
-                    label_actual_config_hash=row.label_actual_snapshot.config_hash,
-                    label_actual_source_cutoff=row.label_actual_snapshot.source_cutoff,
-                    feature_analytics_build_run_id=row.feature_actual_snapshot.build_run_id,
-                    feature_actual_source_max_raw_id=row.feature_actual_snapshot.source_max_raw_id,
-                    feature_actual_aggregation_version=row.feature_actual_snapshot.aggregation_version,
-                    feature_actual_config_hash=row.feature_actual_snapshot.config_hash,
-                    feature_actual_source_cutoff=row.feature_actual_snapshot.source_cutoff,
-                    observed_effective_receipt_kg=row.observed_effective_receipt_kg,
-                    structural_p50_kg=row.structural_p50_kg,
-                    structural_p80_kg=row.structural_p80_kg,
-                    structural_p90_kg=row.structural_p90_kg,
-                    residual_label_kg=row.residual_label_kg,
-                    sample_weight=row.sample_weight,
-                    feature_vector_hash=row.feature_vector_hash,
-                    feature_visibility_audit_hash=row.feature_visibility_audit_hash,
-                    exclusion_reason=row.exclusion_reason,
-                    source_refs=cast(list[str], canonical_json_value(list(row.source_refs))),
-                    row_payload=cast(
-                        dict[str, Any],
-                        canonical_json_value(manifest_row_payload(row)),
-                    ),
-                )
-                for index, row in enumerate(manifest_rows, start=1)
-            ]
-        )
+        if not is_final_target and manifest_rows is not None:
+            session.add_all(
+                [
+                    ResidualModelManifestRow(
+                        training_run_id=run.id,
+                        row_index=index,
+                        split=row.split.value,
+                        include=row.include,
+                        season_id=row.season_id,
+                        destination_factory_id=row.destination_factory_id,
+                        task9_run_id=row.task9_run_id,
+                        task9_result_hash=row.task9_result_hash,
+                        as_of_date=row.as_of_date,
+                        target_arrival_local_date=row.target_arrival_local_date,
+                        forecast_horizon_days=row.forecast_horizon_days,
+                        label_analytics_build_run_id=row.label_actual_snapshot.build_run_id,
+                        label_actual_source_max_raw_id=row.label_actual_snapshot.source_max_raw_id,
+                        label_actual_aggregation_version=row.label_actual_snapshot.aggregation_version,
+                        label_actual_config_hash=row.label_actual_snapshot.config_hash,
+                        label_actual_source_cutoff=row.label_actual_snapshot.source_cutoff,
+                        feature_analytics_build_run_id=row.feature_actual_snapshot.build_run_id,
+                        feature_actual_source_max_raw_id=row.feature_actual_snapshot.source_max_raw_id,
+                        feature_actual_aggregation_version=row.feature_actual_snapshot.aggregation_version,
+                        feature_actual_config_hash=row.feature_actual_snapshot.config_hash,
+                        feature_actual_source_cutoff=row.feature_actual_snapshot.source_cutoff,
+                        observed_effective_receipt_kg=row.observed_effective_receipt_kg,
+                        structural_p50_kg=row.structural_p50_kg,
+                        structural_p80_kg=row.structural_p80_kg,
+                        structural_p90_kg=row.structural_p90_kg,
+                        residual_label_kg=row.residual_label_kg,
+                        sample_weight=row.sample_weight,
+                        feature_vector_hash=row.feature_vector_hash,
+                        feature_visibility_audit_hash=row.feature_visibility_audit_hash,
+                        exclusion_reason=row.exclusion_reason,
+                        source_refs=cast(list[str], canonical_json_value(list(row.source_refs))),
+                        row_payload=cast(
+                            dict[str, Any],
+                            canonical_json_value(manifest_row_payload(row)),
+                        ),
+                    )
+                    for index, row in enumerate(manifest_rows, start=1)
+                ]
+            )
         session.add_all(
             [
                 _artifact_model(
@@ -809,8 +845,40 @@ async def load_residual_training_run_by_id(
     if run is None:
         return None
     manifest_rows = await list_residual_manifest_rows(session, training_run_id=run_id)
-    if len(manifest_rows) != run.manifest_row_count:
-        raise ResidualModelPersistenceIntegrityError("manifest row count mismatch")
+    is_final_target = (
+        run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+        or run.manifest_row_count == 0
+        and run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE"
+    )
+    if run.input_snapshot.get("prediction_target_kind") == "FINAL_TARGET_QUANTILE":
+        is_final_target = True
+    if is_final_target:
+        if run.manifest_row_count != 0:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target training run must have manifest_row_count=0"
+            )
+        if manifest_rows:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target training run must not have legacy manifest child rows"
+            )
+        snapshot_payloads = cast(list[dict[str, Any]], run.manifest_snapshot.get("rows", []))
+        rebuilt_final_rows = [
+            final_target_manifest_row_from_payload(payload) for payload in snapshot_payloads
+        ]
+        rebuilt_manifest_hash = final_target_manifest_hash(rebuilt_final_rows)
+        if rebuilt_manifest_hash != run.manifest_hash:
+            raise ResidualModelPersistenceIntegrityError("final-target manifest hash mismatch")
+        normalized_snapshot_rows = [
+            cast(dict[str, Any], canonical_json_value(final_target_manifest_row_payload(row)))
+            for row in rebuilt_final_rows
+        ]
+        if normalized_snapshot_rows != snapshot_payloads:
+            raise ResidualModelPersistenceIntegrityError(
+                "final-target manifest row payload mismatch"
+            )
+    else:
+        if len(manifest_rows) != run.manifest_row_count:
+            raise ResidualModelPersistenceIntegrityError("manifest row count mismatch")
 
     # Use unified trust gate for eligible runs (Section 6)
     artifacts: tuple[PersistableResidualArtifact, ...]
@@ -828,69 +896,100 @@ async def load_residual_training_run_by_id(
     if len(artifacts) != run.expected_artifact_count:
         raise ResidualModelPersistenceIntegrityError("artifact count mismatch")
 
-    # SECTION 8: Rebuild manifest rows from normalized DB columns, recompute hash
-    rebuilt_manifest_rows = [_manifest_row_from_model(row) for row in manifest_rows]
-    normalized_manifest_rows = [
-        cast(dict[str, Any], canonical_json_value(manifest_row_payload(row)))
-        for row in rebuilt_manifest_rows
-    ]
-    for rebuilt_row, stored_row in zip(rebuilt_manifest_rows, manifest_rows, strict=True):
-        if (
-            cast(dict[str, Any], canonical_json_value(manifest_row_payload(rebuilt_row)))
-            != stored_row.row_payload
-        ):
+    if not is_final_target:
+        # SECTION 8: Rebuild manifest rows from normalized DB columns, recompute hash
+        rebuilt_manifest_rows = [_manifest_row_from_model(row) for row in manifest_rows]
+        normalized_manifest_rows = [
+            cast(dict[str, Any], canonical_json_value(manifest_row_payload(row)))
+            for row in rebuilt_manifest_rows
+        ]
+        for rebuilt_row, stored_row in zip(rebuilt_manifest_rows, manifest_rows, strict=True):
+            if (
+                cast(dict[str, Any], canonical_json_value(manifest_row_payload(rebuilt_row)))
+                != stored_row.row_payload
+            ):
+                raise ResidualModelPersistenceIntegrityError("manifest row payload mismatch")
+        expected_manifest_rows = run.manifest_snapshot.get("rows")
+        if normalized_manifest_rows != expected_manifest_rows:
             raise ResidualModelPersistenceIntegrityError("manifest row payload mismatch")
-    expected_manifest_rows = run.manifest_snapshot.get("rows")
-    if normalized_manifest_rows != expected_manifest_rows:
-        raise ResidualModelPersistenceIntegrityError("manifest row payload mismatch")
-    rebuilt_manifest_hash = manifest_hash(rebuilt_manifest_rows)
-    if rebuilt_manifest_hash != run.manifest_hash:
-        raise ResidualModelPersistenceIntegrityError("manifest hash mismatch")
+        rebuilt_manifest_hash = manifest_hash(rebuilt_manifest_rows)
+        if rebuilt_manifest_hash != run.manifest_hash:
+            raise ResidualModelPersistenceIntegrityError("manifest hash mismatch")
 
-    # SECTION 8.2: Rebuild summary from normalized manifest rows, compare
-    included_rows = [r for r in rebuilt_manifest_rows if r.include]
-    split_counts: dict[str, int] = {}
-    for row in rebuilt_manifest_rows:
-        split_counts[row.split.value] = split_counts.get(row.split.value, 0) + 1
-    rebuilt_summary = {
-        "row_count": len(rebuilt_manifest_rows),
-        "included_row_count": len(included_rows),
-        "excluded_row_count": len(rebuilt_manifest_rows) - len(included_rows),
-        "distinct_season_count": len({r.season_id for r in included_rows}),
-        "distinct_factory_count": len({r.destination_factory_id for r in included_rows}),
-        "split_counts": dict(sorted(split_counts.items())),
-        "feature_names": sorted(
-            {feature.feature_name for row in included_rows for feature in row.feature_values}
-        ),
-    }
-    stored_summary = run.manifest_snapshot.get("summary", {})
-    if rebuilt_summary != stored_summary:
-        raise ResidualModelPersistenceIntegrityError(
-            "manifest summary mismatch from independent derivation"
-        )
+        # SECTION 8.2: Rebuild summary from normalized manifest rows, compare
+        included_rows = [r for r in rebuilt_manifest_rows if r.include]
+        split_counts: dict[str, int] = {}
+        for row in rebuilt_manifest_rows:
+            split_counts[row.split.value] = split_counts.get(row.split.value, 0) + 1
+        rebuilt_summary = {
+            "row_count": len(rebuilt_manifest_rows),
+            "included_row_count": len(included_rows),
+            "excluded_row_count": len(rebuilt_manifest_rows) - len(included_rows),
+            "distinct_season_count": len({r.season_id for r in included_rows}),
+            "distinct_factory_count": len({r.destination_factory_id for r in included_rows}),
+            "split_counts": dict(sorted(split_counts.items())),
+            "feature_names": sorted(
+                {feature.feature_name for row in included_rows for feature in row.feature_values}
+            ),
+        }
+        stored_summary = run.manifest_snapshot.get("summary", {})
+        if rebuilt_summary != stored_summary:
+            raise ResidualModelPersistenceIntegrityError(
+                "manifest summary mismatch from independent derivation"
+            )
 
     # SECTION 8.3: Recompute counts from manifest rows (train split only, matching service.py)
-    train_rows = [r for r in rebuilt_manifest_rows if r.include and r.split.value == "train"]
-    recomputed_row_count = len(manifest_rows)
-    if recomputed_row_count != run.manifest_row_count:
-        raise ResidualModelPersistenceIntegrityError(
-            "manifest_row_count mismatch from independent derivation"
+    if is_final_target:
+        snapshot_payloads = cast(list[dict[str, Any]], run.manifest_snapshot.get("rows", []))
+        rebuilt_final_rows = [
+            final_target_manifest_row_from_payload(payload) for payload in snapshot_payloads
+        ]
+        final_train_rows = [
+            row for row in rebuilt_final_rows if row.include and row.split.value == "train"
+        ]
+        if len(snapshot_payloads) != len(rebuilt_final_rows):
+            raise ResidualModelPersistenceIntegrityError("final-target row count mismatch")
+        recomputed_sample_count = len(final_train_rows)
+        if recomputed_sample_count != run.sample_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "sample_count mismatch from independent derivation"
+            )
+        recomputed_season_count = len({row.season_id for row in final_train_rows})
+        if recomputed_season_count != run.distinct_season_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "distinct_season_count mismatch from independent derivation"
+            )
+        recomputed_grain_count = len(
+            {(row.farm_id, row.subfarm_id, row.variety_id) for row in final_train_rows}
         )
-    recomputed_sample_count = len(train_rows)
-    if recomputed_sample_count != run.sample_count:
-        raise ResidualModelPersistenceIntegrityError(
-            "sample_count mismatch from independent derivation"
-        )
-    recomputed_season_count = len({r.season_id for r in train_rows})
-    if recomputed_season_count != run.distinct_season_count:
-        raise ResidualModelPersistenceIntegrityError(
-            "distinct_season_count mismatch from independent derivation"
-        )
-    recomputed_factory_count = len({r.destination_factory_id for r in train_rows})
-    if recomputed_factory_count != run.distinct_factory_count:
-        raise ResidualModelPersistenceIntegrityError(
-            "distinct_factory_count mismatch from independent derivation"
-        )
+        if recomputed_grain_count != run.distinct_factory_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "distinct_grain_count mismatch from independent derivation"
+            )
+    else:
+        legacy_train_rows = [
+            row for row in rebuilt_manifest_rows if row.include and row.split.value == "train"
+        ]
+        recomputed_row_count = len(manifest_rows)
+        if recomputed_row_count != run.manifest_row_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "manifest_row_count mismatch from independent derivation"
+            )
+        recomputed_sample_count = len(legacy_train_rows)
+        if recomputed_sample_count != run.sample_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "sample_count mismatch from independent derivation"
+            )
+        recomputed_season_count = len({r.season_id for r in legacy_train_rows})
+        if recomputed_season_count != run.distinct_season_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "distinct_season_count mismatch from independent derivation"
+            )
+        recomputed_factory_count = len({r.destination_factory_id for r in legacy_train_rows})
+        if recomputed_factory_count != run.distinct_factory_count:
+            raise ResidualModelPersistenceIntegrityError(
+                "distinct_factory_count mismatch from independent derivation"
+            )
 
     payload = dict(run.canonical_output)
     payload["artifacts"] = [

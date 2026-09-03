@@ -14,6 +14,7 @@ from backend.app.residual_model.enums import (
     FeatureSourceDomain,
     LeakageBlockerCode,
     MissingPolicy,
+    PredictionTargetKind,
     ProjectionReason,
     ResidualEligibilityStatus,
     ResidualExecutionStatus,
@@ -84,6 +85,9 @@ class ProjectionResult(_BaseModel):
     nonnegative_projection_applied: bool
     quantile_projection_applied: bool
     projection_reasons: list[ProjectionReason]
+    raw_crossing_count: int = 0
+    final_crossing_count: int = 0
+    nonnegative_projection_count: int = 0
 
 
 class AnalyticsActualSnapshot(_BaseModel):
@@ -118,6 +122,66 @@ class ResidualTrainingManifestRow(_BaseModel):
     sample_weight: NonNegativeBusinessDecimal
     exclusion_reason: str | None = None
     source_refs: tuple[str, ...]
+
+
+class FinalTargetActualsAuthoritySnapshot(_BaseModel):
+    authority: str = Field(min_length=1)
+    partition_identity: str = Field(min_length=1)
+    source_row_identity: str = Field(min_length=1)
+    lineage_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class FinalTargetTrainingManifestRow(_BaseModel):
+    """Farm-harvest grain training row for direct final-target quantile modeling."""
+
+    season_id: int
+    farm_id: int
+    subfarm_id: int
+    variety_id: int
+    harvest_business_date: date
+    forecast_cutoff_at: datetime
+    forecast_horizon_days: int
+    actual_harvest_quantity_kg: NonNegativeBusinessDecimal
+    actuals_authority: FinalTargetActualsAuthoritySnapshot
+    feature_values: tuple[FeatureValue, ...]
+    feature_visibility_audit: FeatureVisibilityAudit | None = None
+    feature_vector_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    feature_visibility_audit_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    split: ResidualSplit
+    include: bool
+    sample_weight: NonNegativeBusinessDecimal
+    exclusion_reason: str | None = None
+    source_refs: tuple[str, ...]
+
+
+class FinalTargetPredictionRow(_BaseModel):
+    model_run_id: int
+    prediction_run_id: int
+    season_id: int
+    farm_id: int
+    subfarm_id: int
+    variety_id: int
+    harvest_business_date: date
+    forecast_cutoff_at: datetime
+    forecast_horizon_days: int
+    forecast_quantile: str = Field(pattern=r"^P(50|80|90)$")
+    prediction_target_kind: PredictionTargetKind
+    raw_p50_kg: BusinessDecimal
+    raw_p80_kg: BusinessDecimal
+    raw_p90_kg: BusinessDecimal
+    corrected_p50_kg: NonNegativeBusinessDecimal
+    corrected_p80_kg: NonNegativeBusinessDecimal
+    corrected_p90_kg: NonNegativeBusinessDecimal
+    model_harvested_marketable_quantity_kg: NonNegativeBusinessDecimal
+    nonnegative_projection_applied: bool
+    quantile_projection_applied: bool
+    projection_reasons: list[ProjectionReason]
+    raw_crossing_count: int = 0
+    final_crossing_count: int = 0
+    feature_vector_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    feature_audit_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prediction_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    fallback_reason: str | None = None
 
 
 class ResidualTrainingSampleSpec(_BaseModel):
@@ -170,6 +234,7 @@ class ResidualArtifactMetadata(_BaseModel):
     training_signature: str = Field(pattern=r"^[0-9a-f]{64}$")
     manifest_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     quantiles: list[float]
+    prediction_target_kind: PredictionTargetKind = PredictionTargetKind.LEGACY_RESIDUAL_CORRECTION
     python_version: str = Field(min_length=1)
     numpy_version: str = Field(min_length=1)
     sklearn_version: str = Field(min_length=1)
