@@ -1,39 +1,45 @@
-# V0.3-S3-B Quantile semantics remediation implementation R1
+# V0.3-S3-B Quantile semantics remediation implementation R1 (amended)
 
 ## Artifact identity
 
 ```text
 ARTIFACT_ID=V0_3_S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1
 ARTIFACT_VERSION=s3-b-quantile-semantics-remediation-implementation-r1-v1
-TASK_ID=V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1
-TASK_CLASS=AUTHORIZED_PRODUCTION_IMPLEMENTATION_R1_CORRECTION_2
+TASK_ID=V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_AMENDED_IMPLEMENTATION_R1
+TASK_CLASS=AUTHORIZED_AMENDED_IMPLEMENTATION_R1
 USER_GATE=可以实施
-INTERPRETED_GATE=V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1_CORRECTION_2
-BASE_MAIN_SHA=c74cd2c541fe48b78b5a84de87ef10c16eee976e
-PARENT_GRANT_PR=536
-PARENT_GRANT_MERGE=c74cd2c541fe48b78b5a84de87ef10c16eee976e
-EVIDENCE_JSON_SHA256=128dc9a0c90a29c89354a07bb2637c9a3e869abe344d12a77f5aa4c154a8ce35
+INTERPRETED_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_AMENDED_IMPLEMENTATION_R1
+BASE_MAIN_SHA=4f515bd3261bdb3e07ac95650a09508ea56b8b64
+PARENT_GRANT_AMENDMENT_PR=539
+PARENT_GRANT_AMENDMENT_MERGE=4f515bd3261bdb3e07ac95650a09508ea56b8b64
+PARENT_GRANT_AMENDMENT_EVIDENCE_JSON_SHA256=d54b56b91fe1897b5dc92bd59b60f1684fa595e76ecc8e0a7ccbcfd9d68a7a04
+PARENT_CONTRACT_AMENDMENT_PR=538
+PRE_REBASE_HEAD=43dbe2a3aec80086cba0c3d96b33795c906619de
+POST_REBASE_HEAD=0933158e53daf1f847ab8a1112f7f14ae229a55d
+MIGRATION_REVISION=f3a9b2c8d1e4
+MIGRATION_DOWN_REVISION=e8b2c4d6f1a3
+FAKE_TASK9_SENTINEL_REMOVED=true
+FINAL_TARGET_PREDICTION_MODE=final_target_quantile
+EVIDENCE_JSON_SHA256=0a14996c592e80bf3e482a7f070e8ead4f1b55b81b0a407acaeea7aad7ab1554
 UNAUTHORIZED_PRODUCTION_FILES_CHANGED=NONE
-CANONICAL_PY_DIFF_FROM_BASE=false
-CANONICAL_PY_BASE_BLOB=1550da6e887d48a54ef355af1b976bad4f2c54b8
-CANONICAL_PY_FINAL_BLOB=1550da6e887d48a54ef355af1b976bad4f2c54b8
-CORRECTED_HEAD=bc60442fde35d21d4554696537d5260cd51f2484
-CI_RUN_NUMBER=2061
-CI_STATUS=completed
-CI_CONCLUSION=success
-IMPLEMENTATION_REVIEW_READY=true
-NEXT_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_IMPLEMENTATION_R1_REVIEW
+IMPLEMENTATION_REVIEW_READY=false
+NEXT_GATE=S3_B_QUANTILE_SEMANTICS_REMEDIATION_AMENDED_IMPLEMENTATION_R1_REVIEW
 ```
 
-Correction 2 restores `canonical.py` to grant base; `final_target_prediction_row_content_payload`
-lives in authorized `persistence.py`. Row content hashes exclude DB run IDs; persisted
-authority still requires real `model_run_id` / `prediction_run_id` after reload.
+Amended implementation R1 on PR #537 after Grant Amendment #539 merge resolves the
+`FINAL_TARGET_PREDICTION_PERSISTENCE_SCHEMA_CONTRACT_MISMATCH` blocker from Contract
+Amendment #538.
 
-Dual-lane implementation: `LEGACY_RESIDUAL_CORRECTION` preserved; new
-`FINAL_TARGET_QUANTILE` lane trains direct q=0.50/0.80/0.90 on
-`actual_harvest_quantity_kg`, snapshot-only manifest (`manifest_row_count=0`),
-canonical JSON snapshot-only prediction persistence (`expected_prediction_row_count=0`),
-explicit model identity `final-target-quantile-v1`, and core-forecast binding
-via `FinalTargetPredictionAuthority` + `apply_final_target_quantile_to_marketable_curve_rows`.
+Migration `f3a9b2c8d1e4` adds `prediction_target_kind`, nullable Task9 columns for the
+final-target lane only, `final_target_quantile` mode, `distinct_grain_count`, and a
+PostgreSQL lane-consistency CHECK. Final-target prediction runs persist with lawful
+`task9_run_id=NULL`, `task9_result_hash=NULL`, and `mode=final_target_quantile` — no
+fake Task9 sentinels (`task9_run_id=0`, all-zero hash).
 
-Semantics remain `VERIFICATION_FAILED`; S3-B coverage unauthorized.
+Final-target training stores `distinct_factory_count=0` and `distinct_grain_count` as
+the distinct `(farm_id, subfarm_id, variety_id)` TRAIN grain count. Legacy lane
+preserves non-null Task9 authority and `distinct_grain_count=0`.
+
+Direct q=0.50/0.80/0.90 on `actual_harvest_quantity_kg` remains unchanged. Canonical
+JSON snapshot-only prediction persistence and authority-bound core forecast binding
+remain in place. Semantics remain `VERIFICATION_FAILED`; S3-B coverage unauthorized.
