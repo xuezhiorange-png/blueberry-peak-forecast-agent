@@ -1,0 +1,200 @@
+{
+  "artifact_id": "V0_3_S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_R1",
+  "artifact_version": "s3-b-quantile-semantics-remediation-contract-r1-v1",
+  "task_id": "V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_R1",
+  "task_class": "CONTRACT_DEFINITION_ONLY",
+  "authorization_scope": "S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_ONLY",
+  "parallel_lane": "S3-B",
+  "slice": "V0.3-S3",
+  "english_id": "QUANTILE_SEMANTICS_REMEDIATION_ARCHITECTURE",
+  "user_gate": "授权",
+  "interpreted_gate": "S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_AUTHORING_ONLY",
+  "reviewer_role": "COORDINATOR",
+  "recorded_at": "2026-09-03T08:15:00Z",
+  "no_step_implies_the_next": true,
+  "contract_only": true,
+  "this_pr_is_not_a_grant": true,
+  "this_pr_is_not_r1_implementation": true,
+  "contract_authoring_authorized": true,
+  "grant_authorized": false,
+  "implementation_authorized": false,
+  "model_change_authorized": false,
+  "parameter_change_authorized": false,
+  "training_authorized": false,
+  "backtest_authorized": false,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "next_task_authorized": false,
+  "stop_after_contract_authoring": true,
+  "next_gate": "S3_B_QUANTILE_SEMANTICS_REMEDIATION_CONTRACT_REVIEW",
+  "workpaper_path": "docs/v0-3/s3/workpapers/s3-b-quantile-semantics-remediation-contract-r1.md",
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-b-quantile-semantics-remediation-contract-r1.json",
+  "contract_path": "docs/v0-3/s3/s3-quantile-semantics-remediation-contract.md",
+  "base_main_sha": "323c5e7b886b594e6f1cb76dd7d621d03f00a461",
+  "base_main_tree_sha": "9ccface3c206687fb2ba8a838a058c34fdeea04d",
+  "parent_closeout_pr": 534,
+  "parent_closeout_merge": "323c5e7b886b594e6f1cb76dd7d621d03f00a461",
+  "parent_completed_family": "DEFAULT_CATALOG_LIVE_BINDABILITY_AND_REGISTRY_AVAILABILITY",
+  "parent_observation_task_id": "V03_S3_B_QUANTILE_SEMANTICS_REMEDIATION_OBSERVATION_R0",
+  "parent_observation_review_status": "PASS",
+  "original_s3_b_contract_pr": 301,
+  "original_s3_b_contract_merge": "f9e7b221722d74789112142aebb77a5c69687ea3",
+  "original_s3_b_grant_pr": 385,
+  "original_s3_b_grant_merge": "37f6fa7acfb4c6e516e2021c083002fed7001da0",
+  "failed_verification_r1_pr": 386,
+  "failed_verification_r1_merge": "3463336d1539332cb9bb81117ff52cf70e9120e6",
+  "failed_verification_r1_evidence_json_sha256": "9500d7efce83102797655b5bf0fb0e7c6896a64a9449ea5007269bdd2bd7f723",
+  "canonical_option": "FINAL_TARGET_DIRECT_QUANTILE_MODEL",
+  "final_target_authority_status": "RESOLVED",
+  "final_target_authority_path": "docs/v0-3/s1/target-decision-and-quantity-contract.md",
+  "final_target_authority_section": "CURRENT_FORECAST_TARGET / Existing forecast vocabulary",
+  "final_target_y": "model_harvested_marketable_quantity_kg",
+  "final_target_grain": "SEASON×FARM×SUBFARM×VARIETY×TARGET_DATE×FORECAST_CUTOFF×MODEL_IDENTITY×FORECAST_QUANTILE",
+  "final_target_physical_label_grain": "FARM×SUBFARM×VARIETY×HARVEST_BUSINESS_DATE",
+  "final_target_actuals_authority": "actual_harvest_quantity_kg",
+  "final_target_actuals_authority_path": "docs/v0-3/s1/target-decision-and-quantity-contract.md",
+  "final_target_actuals_authority_section": "CURRENT_ACTUAL_LABEL",
+  "final_target_pairing_rule": "V0.2 §11.1–§11.3 EXACT_ACTUAL_PAIRED; one actual physical row reused across P50/P80/P90 forecast rows at the same physical grain",
+  "observed_effective_receipt_kg_is_not_final_target_y": true,
+  "current_residual_target_is_not_final_target_y": true,
+  "mandatory_change_surface": [
+    {
+      "path": "backend/app/residual_model/dataset.py",
+      "symbols": ["build_training_matrix"],
+      "reason": "training label must be final target Y, not residual_label_kg"
+    },
+    {
+      "path": "backend/app/residual_model/model.py",
+      "symbols": [
+        "train_quantile_estimators",
+        "predict_quantiles",
+        "build_artifact_metadata",
+        "serialize_quantile_artifacts"
+      ],
+      "reason": "direct q=0.50/0.80/0.90 estimators on final Y with target-kind artifact metadata"
+    },
+    {
+      "path": "backend/app/residual_model/service.py",
+      "symbols": [
+        "training execution",
+        "prediction execution",
+        "metrics inputs",
+        "projection/finalization"
+      ],
+      "reason": "publish final-target kg and fail-closed fallback semantics"
+    },
+    {
+      "path": "backend/app/residual_model/projection.py",
+      "symbols": ["project_corrected_quantiles", "calculate_residual_label"],
+      "reason": "remove structural_p50 + residual_q as final semantics composition"
+    },
+    {
+      "path": "backend/app/residual_model/config.py",
+      "symbols": ["ResidualModelRules", "prediction_target_kind discriminator"],
+      "reason": "bind target semantics into config and training signature"
+    }
+  ],
+  "potential_change_surface": [
+    {
+      "path": "backend/app/residual_model/training_manifest.py",
+      "change_required": true,
+      "reason": "build lawful model_harvested_marketable_quantity_kg labels at member/farm grain instead of factory receipt residual_label_kg"
+    },
+    {
+      "path": "backend/app/residual_model/schemas.py",
+      "change_required": true,
+      "reason": "manifest row and artifact metadata types for prediction_target_kind and final-Y labels"
+    },
+    {
+      "path": "backend/app/residual_model/persistence.py",
+      "change_required": true,
+      "reason": "fail-closed serialize/load of prediction_target_kind in artifact metadata"
+    },
+    {
+      "path": "backend/app/residual_model/application.py",
+      "change_required": true,
+      "reason": "publish final-target kg without residual composition semantics"
+    },
+    {
+      "path": "backend/app/models/residual_model.py",
+      "change_required": false,
+      "reason": "existing JSON metadata columns suffice when migration_required=false"
+    },
+    {
+      "path": "backend/app/api/rolling_backtest_replay_trained.py",
+      "change_required": false,
+      "reason": "S2 binding already consumes model_harvested_marketable_quantity_kg from core forecast orchestration"
+    },
+    {
+      "path": "backend/app/core_forecast/service.py",
+      "change_required": true,
+      "reason": "wire remediated final-target quantiles into model_harvested_marketable_quantity_kg publication for S3 binding"
+    },
+    {
+      "path": "backend/app/harvest_state/service.py",
+      "change_required": false,
+      "reason": "structural/feature source only; not final quantile authority"
+    }
+  ],
+  "read_only_upstream_dependencies": [
+    "backend/app/maturity/model.py",
+    "backend/app/maturity/service.py",
+    "backend/app/maturity/calibration.py"
+  ],
+  "downstream_semantic_consumers": [
+    "backend/app/rolling_backtest/orchestration.py",
+    "backend/app/forecast_quality/calculator_daily.py",
+    "backend/app/forecast_quality/comparison.py",
+    "backend/app/trial.py",
+    "docs/forecast-quality/s3-quality-metrics-contract.md"
+  ],
+  "forecast_quantile_enum_change_required": false,
+  "core_forecast_schema_label_change_required": false,
+  "harvest_state_quantile_label_change_required": false,
+  "quantile_crossing_policy": "DETERMINISTIC_REARRANGEMENT_WITH_FINAL_OUTPUT_VERIFICATION",
+  "fallback_quantile_semantics_policy": "FAIL_CLOSED_NO_VERIFIED_QUANTILE_OUTPUT",
+  "migration_required": false,
+  "migration_rationale": "truthful target-kind separation via new model_family, artifact_schema_version, model_version, and prediction_target_kind in existing artifact JSON metadata with fail-closed loader; historical manifest columns remain append-only factory-receipt lane record",
+  "new_model_semantic_version_required": true,
+  "in_place_incumbent_artifact_overwrite_forbidden": true,
+  "incumbent_model_history_preserved": true,
+  "remediation_model_target_kind": "FINAL_TARGET_QUANTILE",
+  "train_and_validation_only": true,
+  "test_remains_sealed": true,
+  "test_evaluation_authorized": false,
+  "source_002_row_level_read": false,
+  "mandatory_test_change_surface": [
+    "backend/tests/residual_model/test_projection.py",
+    "backend/tests/residual_model/test_service.py",
+    "core forecast / Task8 / Task9 integration acceptance touching model_harvested_marketable_quantity_kg publication"
+  ],
+  "conditional_test_change_surface": [
+    "backend/tests/maturity/test_model.py",
+    "backend/tests/maturity/test_maturity_golden.py"
+  ],
+  "current_p50_semantics_status": "VERIFICATION_FAILED",
+  "current_p80_semantics_status": "VERIFICATION_FAILED",
+  "current_p90_semantics_status": "VERIFICATION_FAILED",
+  "current_p50_semantics_verified": false,
+  "current_p80_semantics_verified": false,
+  "current_p90_semantics_verified": false,
+  "s3_b_coverage_execution_authorized": false,
+  "current_s3_daily_rowset_completeness_verified": false,
+  "s3_a2_completeness_pass_authorized": false,
+  "current_v0_3_s3_complete": false,
+  "v0_3_s4_authorized": false,
+  "production_changed_files": "NONE",
+  "test_changed_files": "NONE",
+  "migration_changed_files": "NONE",
+  "workflow_changed_files": "NONE",
+  "contract_review_ready": true,
+  "evidence_json_sha256": "08eb0ff2530e7b971f2d617556aba88fdd8774e6ad5f66a12b5ebf62510f1ad0",
+  "honesty": {
+    "contract_only_not_implementation": true,
+    "grant_still_required": true,
+    "implementation_success_is_not_semantics_verification": true,
+    "does_not_flip_current_p_star_semantics_status": true,
+    "does_not_authorize_coverage_execution": true,
+    "observed_effective_receipt_kg_not_promoted_as_final_target_y": true
+  }
+}
