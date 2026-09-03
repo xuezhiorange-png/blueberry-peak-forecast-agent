@@ -14,7 +14,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 
 from backend.app.residual_model.canonical import canonical_payload_hash
 from backend.app.residual_model.config import ResidualModelConfig
-from backend.app.residual_model.enums import PredictionTargetKind
+from backend.app.residual_model.config import PredictionTargetKind
 from backend.app.residual_model.schemas import (
     CategoryEncoding,
     PersistableResidualArtifact,

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import cast
+from typing import Any, cast
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,11 +27,15 @@ from backend.app.residual_model.projection import calculate_residual_label
 from backend.app.residual_model.schemas import (
     AnalyticsActualSnapshot,
     FeatureValue,
+    FeatureVisibilityAudit,
     FinalTargetActualsAuthoritySnapshot,
     FinalTargetTrainingManifestRow,
+    GovernedGrainIdentityBinding,
     ResidualTrainingManifestRow,
     ResidualTrainingSampleSpec,
 )
+from backend.app.residual_model.manifest import sort_feature_values
+from backend.app.residual_model.canonical import canonical_json_value, sha256_hex
 from backend.app.residual_model.structural import aggregate_structural_arrivals
 from backend.app.residual_model.task9_mixed_authority import (
     bind_task9_feature_provenance,
@@ -933,10 +937,7 @@ async def build_residual_training_manifest(
 def build_final_target_manifest_from_materializable_rows(
     materializable_rows: Sequence[MaterializableRow],
     *,
-    season_id: int,
-    farm_id: int,
-    subfarm_id: int,
-    variety_id: int,
+    grain_identity: GovernedGrainIdentityBinding,
     partition: PartitionName,
     forecast_cutoff_at: datetime,
     partition_identity: str,
@@ -952,6 +953,14 @@ def build_final_target_manifest_from_materializable_rows(
     split = ResidualSplit.TRAIN if partition == PartitionName.TRAIN else ResidualSplit.VALIDATION
     rows: list[FinalTargetTrainingManifestRow] = []
     for materialized in materializable_rows:
+        if not grain_identity.matches_materializable_row(materialized):
+            raise ResidualManifestBuildError(
+                "source_row_grain_mismatch: materialized row does not match governed identity"
+            )
+        season_id = grain_identity.season_id
+        farm_id = grain_identity.farm_id
+        subfarm_id = grain_identity.subfarm_id
+        variety_id = grain_identity.variety_id
         horizon_days = max(
             (materialized.harvest_business_date - forecast_cutoff_at.date()).days,
             0,
@@ -1000,3 +1009,89 @@ def build_final_target_manifest_from_materializable_rows(
             )
         )
     return rows
+
+
+def final_target_manifest_row_payload(row: FinalTargetTrainingManifestRow) -> dict[str, Any]:
+    return {
+        "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+        "season_id": row.season_id,
+        "farm_id": row.farm_id,
+        "subfarm_id": row.subfarm_id,
+        "variety_id": row.variety_id,
+        "harvest_business_date": row.harvest_business_date,
+        "forecast_cutoff_at": row.forecast_cutoff_at,
+        "forecast_horizon_days": row.forecast_horizon_days,
+        "actual_harvest_quantity_kg": row.actual_harvest_quantity_kg,
+        "actuals_authority": row.actuals_authority.model_dump(mode="json"),
+        "feature_values": [
+            item.model_dump(mode="json") for item in sort_feature_values(row.feature_values)
+        ],
+        "feature_visibility_audit": (
+            row.feature_visibility_audit.model_dump(mode="json")
+            if row.feature_visibility_audit is not None
+            else None
+        ),
+        "feature_vector_hash": row.feature_vector_hash,
+        "feature_visibility_audit_hash": row.feature_visibility_audit_hash,
+        "split": row.split.value,
+        "include": row.include,
+        "sample_weight": row.sample_weight,
+        "exclusion_reason": row.exclusion_reason,
+        "source_refs": sorted(row.source_refs),
+    }
+
+
+def final_target_manifest_row_sort_key(row: FinalTargetTrainingManifestRow) -> tuple[object, ...]:
+    return (
+        row.harvest_business_date,
+        row.forecast_cutoff_at,
+        row.farm_id,
+        row.subfarm_id,
+        row.variety_id,
+        row.season_id,
+        row.feature_vector_hash,
+    )
+
+
+def final_target_manifest_hash(rows: Iterable[FinalTargetTrainingManifestRow]) -> str:
+    payload = [
+        final_target_manifest_row_payload(row)
+        for row in sorted(rows, key=final_target_manifest_row_sort_key)
+    ]
+    return sha256_hex(canonical_json_value(payload))
+
+
+def final_target_manifest_row_from_payload(
+    payload: dict[str, Any],
+) -> FinalTargetTrainingManifestRow:
+    from backend.app.residual_model.enums import ResidualSplit
+
+    feature_values = tuple(
+        FeatureValue.model_validate(item) for item in payload.get("feature_values", [])
+    )
+    raw_audit = payload.get("feature_visibility_audit")
+    feature_visibility_audit = (
+        FeatureVisibilityAudit.model_validate(raw_audit) if raw_audit is not None else None
+    )
+    return FinalTargetTrainingManifestRow(
+        season_id=payload["season_id"],
+        farm_id=payload["farm_id"],
+        subfarm_id=payload["subfarm_id"],
+        variety_id=payload["variety_id"],
+        harvest_business_date=payload["harvest_business_date"],
+        forecast_cutoff_at=payload["forecast_cutoff_at"],
+        forecast_horizon_days=payload["forecast_horizon_days"],
+        actual_harvest_quantity_kg=payload["actual_harvest_quantity_kg"],
+        actuals_authority=FinalTargetActualsAuthoritySnapshot.model_validate(
+            payload["actuals_authority"]
+        ),
+        feature_values=feature_values,
+        feature_visibility_audit=feature_visibility_audit,
+        feature_vector_hash=payload["feature_vector_hash"],
+        feature_visibility_audit_hash=payload["feature_visibility_audit_hash"],
+        split=ResidualSplit(payload["split"]),
+        include=payload["include"],
+        sample_weight=payload["sample_weight"],
+        exclusion_reason=payload.get("exclusion_reason"),
+        source_refs=tuple(payload.get("source_refs", [])),
+    )

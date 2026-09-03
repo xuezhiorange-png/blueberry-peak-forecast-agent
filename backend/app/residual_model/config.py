@@ -3,13 +3,23 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
-from backend.app.residual_model.enums import PredictionTargetKind
+
+class PredictionTargetKind(StrEnum):
+    """Semantic discriminator for residual-model training and prediction lanes."""
+
+    LEGACY_RESIDUAL_CORRECTION = "LEGACY_RESIDUAL_CORRECTION"
+    FINAL_TARGET_QUANTILE = "FINAL_TARGET_QUANTILE"
+
+
+LEGACY_MODEL_FAMILY = "hist_gradient_boosting_quantile"
+FINAL_TARGET_MODEL_FAMILY = "hist_gradient_boosting_final_target_quantile"
 
 
 @dataclass(frozen=True)
@@ -31,6 +41,7 @@ class ResidualEligibilityConfig:
     min_training_rows: int
     min_seasons: int
     min_factories: int
+    min_grains: int | None
     max_validation_wmape: float
     require_improvement_over_structural: bool
     max_fallback_rate: float
@@ -38,7 +49,7 @@ class ResidualEligibilityConfig:
 
 @dataclass(frozen=True)
 class ResidualModelRules:
-    model_family: Literal["hist_gradient_boosting_quantile"]
+    model_family: str
     model_version: str
     feature_schema_version: str
     artifact_schema_version: str
@@ -112,16 +123,24 @@ class _EligibilityFile(BaseModel):
 
     min_training_rows: int
     min_seasons: int
-    min_factories: int
+    min_factories: int | None = None
+    min_grains: int | None = None
     max_validation_wmape: float
     require_improvement_over_structural: bool
     max_fallback_rate: float
+
+    @field_validator("min_factories", "min_grains")
+    @classmethod
+    def _validate_grain_thresholds(cls, value: int | None) -> int | None:
+        if value is not None and value < 0:
+            raise ValueError("grain thresholds must be non-negative")
+        return value
 
 
 class _ConfigFile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    model_family: Literal["hist_gradient_boosting_quantile"]
+    model_family: str
     model_version: str
     feature_schema_version: str
     artifact_schema_version: str
@@ -167,6 +186,16 @@ def _parse_config_snapshot(snapshot: dict[str, Any]) -> ResidualModelConfig:
     prediction_target_kind = parsed.prediction_target_kind or (
         PredictionTargetKind.LEGACY_RESIDUAL_CORRECTION
     )
+    if prediction_target_kind == PredictionTargetKind.LEGACY_RESIDUAL_CORRECTION:
+        if parsed.eligibility.min_factories is None:
+            raise ValueError("legacy config requires eligibility.min_factories")
+        if parsed.model_family != LEGACY_MODEL_FAMILY:
+            raise ValueError("legacy config requires legacy model_family")
+    if prediction_target_kind == PredictionTargetKind.FINAL_TARGET_QUANTILE:
+        if parsed.eligibility.min_grains is None:
+            raise ValueError("final-target config requires eligibility.min_grains")
+        if parsed.model_family != FINAL_TARGET_MODEL_FAMILY:
+            raise ValueError("final-target config requires final-target model_family")
     return ResidualModelConfig(
         rules=ResidualModelRules(
             model_family=parsed.model_family,
@@ -185,7 +214,15 @@ def _parse_config_snapshot(snapshot: dict[str, Any]) -> ResidualModelConfig:
             projection_nonnegative=parsed.projection.nonnegative,
             projection_quantile_monotonic=parsed.projection.quantile_monotonic,
             projection_version=parsed.projection.version,
-            eligibility=ResidualEligibilityConfig(**parsed.eligibility.model_dump()),
+            eligibility=ResidualEligibilityConfig(
+                min_training_rows=parsed.eligibility.min_training_rows,
+                min_seasons=parsed.eligibility.min_seasons,
+                min_factories=parsed.eligibility.min_factories or 0,
+                min_grains=parsed.eligibility.min_grains,
+                max_validation_wmape=parsed.eligibility.max_validation_wmape,
+                require_improvement_over_structural=parsed.eligibility.require_improvement_over_structural,
+                max_fallback_rate=parsed.eligibility.max_fallback_rate,
+            ),
         ),
         config_hash=_config_hash(snapshot),
         snapshot=snapshot,
@@ -201,11 +238,11 @@ def load_residual_model_config_from_snapshot(snapshot: dict[str, Any]) -> Residu
     return _parse_config_snapshot(snapshot)
 
 
-FINAL_TARGET_MODEL_FAMILY = "hist_gradient_boosting_quantile"
 FINAL_TARGET_MODEL_VERSION = "final-target-quantile-v1"
 FINAL_TARGET_FEATURE_SCHEMA_VERSION = "final-target-features-v1"
 FINAL_TARGET_ARTIFACT_SCHEMA_VERSION = "final-target-artifact-v1"
 FINAL_TARGET_ACTUALS_AUTHORITY = "V0_3_S2_SOURCE_002_E5_LIVE_V1_TRAIN_AND_VALIDATION"
+FINAL_TARGET_MIN_GRAINS_DEFAULT = 2
 
 
 def build_final_target_quantile_config_snapshot(
@@ -254,7 +291,7 @@ def build_final_target_quantile_config_snapshot(
         "eligibility": {
             "min_training_rows": min_training_rows,
             "min_seasons": min_seasons,
-            "min_factories": min_grains,
+            "min_grains": min_grains,
             "max_validation_wmape": 0.35,
             "require_improvement_over_structural": False,
             "max_fallback_rate": 0.2,
