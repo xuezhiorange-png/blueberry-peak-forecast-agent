@@ -19,11 +19,6 @@ from backend.app.residual_model.config import (
     load_residual_model_config,
 )
 from backend.app.residual_model.enums import ResidualSplit
-from backend.app.residual_model.training_manifest import (
-    final_target_manifest_hash,
-    final_target_manifest_row_from_payload,
-    final_target_manifest_row_payload,
-)
 from backend.app.residual_model.model import (
     ResidualArtifactTargetKindError,
     validate_artifact_target_kind,
@@ -32,7 +27,6 @@ from backend.app.residual_model.projection import project_final_target_quantiles
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FinalTargetActualsAuthoritySnapshot,
-    FinalTargetPredictionAuthority,
     FinalTargetPredictionRequest,
     FinalTargetTrainingManifestRow,
     GovernedGrainIdentityBinding,
@@ -43,6 +37,11 @@ from backend.app.residual_model.service import (
     predict_final_target_quantiles,
     train_final_target_model_from_manifest,
     train_residual_model_from_manifest,
+)
+from backend.app.residual_model.training_manifest import (
+    final_target_manifest_hash,
+    final_target_manifest_row_from_payload,
+    final_target_manifest_row_payload,
 )
 from backend.tests.residual_model.support import residual_model_config_path
 
@@ -158,7 +157,11 @@ def test_grant_allowlist_unauthorized_files_remain_at_base_blob() -> None:
 
 def test_legacy_and_final_target_model_families_are_distinct() -> None:
     legacy = load_residual_model_config(residual_model_config_path())
-    final_config = load_final_target_quantile_config(min_training_rows=1, min_seasons=1, min_grains=1)
+    final_config = load_final_target_quantile_config(
+        min_training_rows=1,
+        min_seasons=1,
+        min_grains=1,
+    )
     assert legacy.rules.model_family == LEGACY_MODEL_FAMILY
     assert final_config.rules.model_family == FINAL_TARGET_MODEL_FAMILY
     assert LEGACY_MODEL_FAMILY != FINAL_TARGET_MODEL_FAMILY
@@ -181,10 +184,13 @@ def test_final_target_eligibility_uses_min_grains_not_min_factories() -> None:
 
 def test_source_row_grain_mismatch_rejected() -> None:
     from backend.app.residual_model.training_manifest import (
-        build_final_target_manifest_from_materializable_rows,
         ResidualManifestBuildError,
+        build_final_target_manifest_from_materializable_rows,
     )
-    from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow, PartitionName
+    from backend.app.s2_materialized_dataset.shared.contracts import (
+        MaterializableRow,
+        PartitionName,
+    )
 
     cutoff = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
     binding = GovernedGrainIdentityBinding(
@@ -264,7 +270,10 @@ def test_legacy_training_rejects_final_target_config() -> None:
         train_residual_model_from_manifest(rows=[row], config=config)
         raise AssertionError("expected ValueError")
     except ValueError as exc:
-        assert "FINAL_TARGET_QUANTILE config requires train_final_target_model_from_manifest" in str(exc)
+        assert (
+            "FINAL_TARGET_QUANTILE config requires train_final_target_model_from_manifest"
+            in str(exc)
+        )
 
 
 def test_final_target_training_uses_actual_harvest_label_not_residual() -> None:
@@ -502,7 +511,9 @@ def test_core_forecast_binding_uses_final_target_output() -> None:
     )
     from backend.app.core_forecast.schemas import OUTPUT_QUANTUM
 
-    assert updated[0].model_harvested_marketable_quantity_kg == f"{Decimal(p50_preds[0].model_harvested_marketable_quantity_kg).quantize(OUTPUT_QUANTUM):.6f}"
+    p50_marketable_kg = p50_preds[0].model_harvested_marketable_quantity_kg
+    expected_marketable = f"{Decimal(p50_marketable_kg).quantize(OUTPUT_QUANTUM):.6f}"
+    assert updated[0].model_harvested_marketable_quantity_kg == expected_marketable
     assert updated[0].forecast_quantile == "P50"
 
 
