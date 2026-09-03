@@ -149,7 +149,9 @@ def test_grant_amendment_evidence_authorization_metadata() -> None:
     )
     assert payload["blocked_implementation_pr"] == BLOCKED_IMPLEMENTATION_PR
     assert payload["blocked_implementation_head"] == BLOCKED_IMPLEMENTATION_HEAD
-    assert payload["pr_537_blocker"] == "FINAL_TARGET_PREDICTION_PERSISTENCE_SCHEMA_CONTRACT_MISMATCH"
+    assert payload["pr_537_blocker"] == (
+        "FINAL_TARGET_PREDICTION_PERSISTENCE_SCHEMA_CONTRACT_MISMATCH"
+    )
     assert payload["ci_success_does_not_override_contract_blocker"] is True
 
 
