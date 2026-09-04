@@ -66,11 +66,14 @@ class PitVisibleIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
         cell: EvaluationInstanceCell,
         *,
         business_date: date,
+        horizon_days: int,
     ) -> S2ForecastAuthorityBundle | None:
         matched = self._cell_for(cell, business_date=business_date)
         if matched is None:
             return None
-        authority = matched.forecast_binding_authority
-        if authority.daily_row_identity_hash != matched.daily_row_identity_hash:
+        authority = matched.binding_authorities.get(horizon_days)
+        if authority is None:
+            return None
+        if authority.daily_row_identity_hash != matched.core_daily_row_identity_hash:
             return None
         return authority

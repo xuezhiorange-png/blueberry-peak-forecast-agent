@@ -17,7 +17,10 @@ from backend.app.forecast_quality.train_val_pairing_materialization import (
     _materialization_grains_from_partitions,
     materialize_train_validation_pairing_inputs_live,
 )
+from backend.app.models.core_forecast import CoreForecastDailyRowModel, CoreForecastRunModel
+from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel
 from backend.app.models.maturity import MaturityDailyPredictionModel
+from backend.app.models.residual_model import ResidualModelPredictionRow
 from backend.app.rolling_backtest.resolution import task8_daily_prediction_payload_hash
 from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
@@ -39,13 +42,32 @@ from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider impo
     PitVisibleIncumbentDailyCurveProvider,
 )
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
+    _resolve_exact_core_daily_row,
+    _resolve_exact_task9_member,
+    _resolve_exact_task10_prediction,
     is_synthetic_forecast_authority,
+    load_persisted_forecast_binding_authority,
 )
 from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_identity_set import (
     REVIEW_CUTOFF_AT,
     REVIEW_MODEL_ID,
 )
 from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
+from backend.tests.forecast_quality.authority_loader_fixture import (
+    CUTOFF_AT,
+    FACTORY_ID,
+    FARM_ID,
+    SUBFARM_ID,
+    TASK8_RUN_ID,
+    VARIETY_ID,
+    _fixture_hash,
+    _prediction_row,
+    _task9_member,
+    build_canonical_bundle_for_binding,
+    seed_canonical_authority_fixture,
+)
+
+pytest_plugins = ["backend.tests.forecast_quality.authority_loader_fixture"]
 
 _live_session = importlib.import_module(
     "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_session"
@@ -140,15 +162,19 @@ def _pit_cell(
     *,
     authority: S2ForecastAuthorityBundle,
     task8_run_id: int = 401,
+    horizon_days: int = 7,
+    core_row_hash: str | None = None,
 ) -> PitVisibleDailyForecastCell:
-    daily_hash = task8_daily_prediction_payload_hash(daily, forecast_source_signature="b" * 64)
+    task8_hash = task8_daily_prediction_payload_hash(daily, forecast_source_signature="b" * 64)
+    core_hash = core_row_hash or authority.daily_row_identity_hash
     return PitVisibleDailyForecastCell(
         forecast_kg=daily.p50_kg,
         task8_forecast_run_id=task8_run_id,
         task8_daily_row_id=daily.id,
-        daily_row_identity_hash=daily_hash,
+        task8_daily_prediction_payload_hash=task8_hash,
+        core_daily_row_identity_hash=core_hash,
         forecast_run_identity_hash="b" * 64,
-        forecast_binding_authority=authority,
+        binding_authorities={horizon_days: authority},
     )
 
 
@@ -185,11 +211,12 @@ def test_pit_visible_provider_reads_p50_p80_p90_kg() -> None:
                     forecast_kg=daily.p80_kg,
                     task8_forecast_run_id=401,
                     task8_daily_row_id=1,
-                    daily_row_identity_hash=task8_daily_prediction_payload_hash(
+                    task8_daily_prediction_payload_hash=task8_daily_prediction_payload_hash(
                         daily, forecast_source_signature="b" * 64
                     ),
+                    core_daily_row_identity_hash=authority.daily_row_identity_hash,
                     forecast_run_identity_hash="b" * 64,
-                    forecast_binding_authority=authority,
+                    binding_authorities={7: authority},
                 ),
                 (
                     "2025~2026",
@@ -202,11 +229,12 @@ def test_pit_visible_provider_reads_p50_p80_p90_kg() -> None:
                     forecast_kg=daily.p90_kg,
                     task8_forecast_run_id=401,
                     task8_daily_row_id=1,
-                    daily_row_identity_hash=task8_daily_prediction_payload_hash(
+                    task8_daily_prediction_payload_hash=task8_daily_prediction_payload_hash(
                         daily, forecast_source_signature="b" * 64
                     ),
+                    core_daily_row_identity_hash=authority.daily_row_identity_hash,
                     forecast_run_identity_hash="b" * 64,
-                    forecast_binding_authority=authority,
+                    binding_authorities={7: authority},
                 ),
             },
             grain_forecast_run_count={("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x"): 1},
@@ -374,13 +402,11 @@ def test_ambiguous_forecast_run_count_recorded() -> None:
 def test_multi_grain_provider_returns_per_row_authority() -> None:
     daily_a = _daily_row(prediction_date=date(2026, 2, 20), created_at=_REVIEWED_CUTOFF, row_id=1)
     daily_b = _daily_row(prediction_date=date(2026, 2, 21), created_at=_REVIEWED_CUTOFF, row_id=2)
-    hash_a = task8_daily_prediction_payload_hash(daily_a, forecast_source_signature="b" * 64)
-    hash_b = task8_daily_prediction_payload_hash(daily_b, forecast_source_signature="c" * 64)
     authority_a = _test_forecast_binding_authority(
-        forecast_run_hash="a" * 64, daily_row_hash=hash_a
+        forecast_run_hash="a" * 64, daily_row_hash="2" * 64
     )
     authority_b = _test_forecast_binding_authority(
-        forecast_run_hash="b" * 64, daily_row_hash=hash_b
+        forecast_run_hash="b" * 64, daily_row_hash="3" * 64
     )
     provider = PitVisibleIncumbentDailyCurveProvider(
         index=PitVisibleIncumbentDailyCurveIndex(
@@ -393,14 +419,7 @@ def test_multi_grain_provider_returns_per_row_authority() -> None:
                     "variety-x",
                     "P50",
                     date(2026, 2, 20),
-                ): PitVisibleDailyForecastCell(
-                    forecast_kg=daily_a.p50_kg,
-                    task8_forecast_run_id=401,
-                    task8_daily_row_id=1,
-                    daily_row_identity_hash=hash_a,
-                    forecast_run_identity_hash="b" * 64,
-                    forecast_binding_authority=authority_a,
-                ),
+                ): _pit_cell(daily_a, authority=authority_a, core_row_hash="2" * 64),
                 (
                     "2025~2026",
                     "farm-b",
@@ -408,13 +427,11 @@ def test_multi_grain_provider_returns_per_row_authority() -> None:
                     "variety-y",
                     "P50",
                     date(2026, 2, 21),
-                ): PitVisibleDailyForecastCell(
-                    forecast_kg=daily_b.p50_kg,
-                    task8_forecast_run_id=402,
-                    task8_daily_row_id=2,
-                    daily_row_identity_hash=hash_b,
-                    forecast_run_identity_hash="c" * 64,
-                    forecast_binding_authority=authority_b,
+                ): _pit_cell(
+                    daily_b,
+                    authority=authority_b,
+                    task8_run_id=402,
+                    core_row_hash="3" * 64,
                 ),
             },
             grain_forecast_run_count={
@@ -428,17 +445,21 @@ def test_multi_grain_provider_returns_per_row_authority() -> None:
             season="2025~2026", farm="farm-a", subfarm="farm-a/subfarm-1", variety="variety-x"
         ),
         business_date=date(2026, 2, 20),
+        horizon_days=7,
     )
     auth_b = provider.forecast_authority_for(
         _forecast_cell(
             season="2025~2026", farm="farm-b", subfarm="farm-b/subfarm-2", variety="variety-y"
         ),
         business_date=date(2026, 2, 21),
+        horizon_days=7,
     )
     assert auth_a is not None
     assert auth_b is not None
     assert auth_a.forecast_run_identity_hash == "a" * 64
     assert auth_b.forecast_run_identity_hash == "b" * 64
+    assert auth_a.daily_row_identity_hash == "2" * 64
+    assert auth_b.daily_row_identity_hash == "3" * 64
     assert auth_a.daily_row_identity_hash != auth_b.daily_row_identity_hash
 
 
@@ -460,18 +481,22 @@ def test_daily_row_authority_mismatch_rejected() -> None:
                     forecast_kg=daily.p50_kg,
                     task8_forecast_run_id=401,
                     task8_daily_row_id=1,
-                    daily_row_identity_hash=task8_daily_prediction_payload_hash(
+                    task8_daily_prediction_payload_hash=task8_daily_prediction_payload_hash(
                         daily, forecast_source_signature="b" * 64
                     ),
+                    core_daily_row_identity_hash="2" * 64,
                     forecast_run_identity_hash="b" * 64,
-                    forecast_binding_authority=mismatched_authority,
+                    binding_authorities={7: mismatched_authority},
                 ),
             },
             grain_forecast_run_count={("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x"): 1},
         )
     )
     assert (
-        provider.forecast_authority_for(_forecast_cell(), business_date=date(2026, 2, 20)) is None
+        provider.forecast_authority_for(
+            _forecast_cell(), business_date=date(2026, 2, 20), horizon_days=7
+        )
+        is None
     )
 
 
@@ -628,3 +653,266 @@ def test_materialization_grains_union_train_and_validation() -> None:
     )
     grains = _materialization_grains_from_partitions(official)
     assert grains == frozenset({("s1", "f1", "sf1", "v1"), ("s2", "f2", "sf2", "v2")})
+
+
+def test_canonical_daily_row_identity_restored(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    core_row = fixture["core_row_p50_a"]
+    assert isinstance(core_row, CoreForecastDailyRowModel)
+    authority = load_persisted_forecast_binding_authority(
+        authority_loader_session,
+        forecast_cutoff_at=CUTOFF_AT,
+        task8_forecast_run_id=TASK8_RUN_ID,
+        target_date=core_row.date,
+        forecast_quantile="P50",
+        horizon_days=7,
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    assert authority is not None
+    assert authority.daily_row_identity_hash == core_row.row_hash
+
+
+def test_task8_hash_is_not_s2_daily_row_identity(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    core_row = fixture["core_row_p50_a"]
+    assert isinstance(core_row, CoreForecastDailyRowModel)
+    authority = load_persisted_forecast_binding_authority(
+        authority_loader_session,
+        forecast_cutoff_at=CUTOFF_AT,
+        task8_forecast_run_id=TASK8_RUN_ID,
+        target_date=core_row.date,
+        forecast_quantile="P50",
+        horizon_days=7,
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    assert authority is not None
+    assert authority.daily_row_identity_hash == core_row.row_hash
+    assert authority.daily_row_identity_hash != ("0" * 64)
+
+
+def test_exact_core_row_selection_not_first_row(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    core_run = authority_loader_session.get(
+        CoreForecastRunModel, fixture["core_row_p50_a"].core_forecast_run_id
+    )
+    assert core_run is not None
+    selected = _resolve_exact_core_daily_row(
+        authority_loader_session,
+        core_run=core_run,
+        target_date=fixture["core_row_p80_a"].date,
+        forecast_quantile="P80",
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    assert selected is not None
+    assert selected.id == fixture["core_row_p80_a"].id
+
+
+def test_exact_task9_member_selection(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    member = _resolve_exact_task9_member(
+        authority_loader_session,
+        task9_run_id=fixture["member_p80_a"].harvest_state_run_id,
+        target_date=fixture["member_p80_a"].state_date,
+        forecast_quantile="P80",
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+        destination_factory_id=FACTORY_ID,
+    )
+    assert member is not None
+    assert member.id == fixture["member_p80_a"].id
+
+
+def test_task9_ambiguity_fails_closed(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    duplicate = _task9_member(
+        member_id=3999,
+        target_date=fixture["member_p50_a"].state_date,
+        forecast_quantile="P50",
+    )
+    authority_loader_session.add(duplicate)
+    authority_loader_session.commit()
+    assert (
+        _resolve_exact_task9_member(
+            authority_loader_session,
+            task9_run_id=fixture["member_p50_a"].harvest_state_run_id,
+            target_date=fixture["member_p50_a"].state_date,
+            forecast_quantile="P50",
+            farm_id=FARM_ID,
+            subfarm_id=SUBFARM_ID,
+            variety_id=VARIETY_ID,
+            destination_factory_id=FACTORY_ID,
+        )
+        is None
+    )
+    authority_loader_session.delete(duplicate)
+    authority_loader_session.commit()
+    assert (
+        _resolve_exact_task9_member(
+            authority_loader_session,
+            task9_run_id=fixture["member_p50_a"].harvest_state_run_id,
+            target_date=date(2099, 1, 1),
+            forecast_quantile="P50",
+            farm_id=FARM_ID,
+            subfarm_id=SUBFARM_ID,
+            variety_id=VARIETY_ID,
+            destination_factory_id=FACTORY_ID,
+        )
+        is None
+    )
+
+
+def test_exact_task10_prediction_row_selection(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    match = _resolve_exact_task10_prediction(
+        authority_loader_session,
+        task9_run_id=fixture["pred_row_h14_b"].task9_run_id,
+        forecast_cutoff_at=CUTOFF_AT,
+        target_date=fixture["pred_row_h14_b"].arrival_local_date,
+        horizon_days=14,
+        destination_factory_id=FACTORY_ID,
+    )
+    assert match is not None
+    _, prediction_row, _ = match
+    assert prediction_row.id == fixture["pred_row_h14_b"].id
+
+
+def test_task10_ambiguity_fails_closed(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    second_run_prediction = _prediction_row(
+        row_id=4999,
+        prediction_run_id=9999,
+        target_date=fixture["pred_row_h7_a"].arrival_local_date,
+        horizon_days=7,
+        row_hash=_fixture_hash("prediction-row-duplicate"),
+    )
+    from backend.app.models.residual_model import ResidualModelPredictionRun
+
+    duplicate_run = ResidualModelPredictionRun(
+        id=9999,
+        training_run_id=301,
+        task9_run_id=fixture["pred_row_h7_a"].task9_run_id,
+        task9_result_hash=fixture["pred_row_h7_a"].task9_result_hash,
+        prediction_target_kind="LEGACY_RESIDUAL_CORRECTION",
+        execution_status="completed",
+        mode="structural_only",
+        config_hash=_fixture_hash("duplicate-prediction-run-config"),
+        feature_schema_version="task10-features-v1",
+        feature_schema_hash=_fixture_hash("duplicate-prediction-run-feature-schema"),
+        artifact_hashes=[],
+        prediction_input_signature=_fixture_hash("duplicate-prediction-run-input"),
+        prediction_hash=_fixture_hash("duplicate-prediction-run-hash"),
+        feature_audit={},
+        warnings=[],
+        blockers=[],
+        fallback_reason="fixture-duplicate-structural-only",
+        expected_prediction_row_count=1,
+        input_snapshot={"training_signature": _fixture_hash("authority-fixture-0")},
+        canonical_output={},
+        canonical_payload_hash=_fixture_hash("duplicate-prediction-run-payload"),
+        completed_at=CUTOFF_AT,
+    )
+    authority_loader_session.add_all([duplicate_run, second_run_prediction])
+    authority_loader_session.commit()
+    assert (
+        _resolve_exact_task10_prediction(
+            authority_loader_session,
+            task9_run_id=fixture["pred_row_h7_a"].task9_run_id,
+            forecast_cutoff_at=CUTOFF_AT,
+            target_date=fixture["pred_row_h7_a"].arrival_local_date,
+            horizon_days=7,
+            destination_factory_id=FACTORY_ID,
+        )
+        is None
+    )
+    authority_loader_session.delete(second_run_prediction)
+    authority_loader_session.delete(duplicate_run)
+    authority_loader_session.commit()
+
+
+def test_multi_day_multi_quantile_authority(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    auth_p50_a = load_persisted_forecast_binding_authority(
+        authority_loader_session,
+        forecast_cutoff_at=CUTOFF_AT,
+        task8_forecast_run_id=TASK8_RUN_ID,
+        target_date=fixture["core_row_p50_a"].date,
+        forecast_quantile="P50",
+        horizon_days=7,
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    auth_p80_a = load_persisted_forecast_binding_authority(
+        authority_loader_session,
+        forecast_cutoff_at=CUTOFF_AT,
+        task8_forecast_run_id=TASK8_RUN_ID,
+        target_date=fixture["core_row_p80_a"].date,
+        forecast_quantile="P80",
+        horizon_days=7,
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    auth_p50_b = load_persisted_forecast_binding_authority(
+        authority_loader_session,
+        forecast_cutoff_at=CUTOFF_AT,
+        task8_forecast_run_id=TASK8_RUN_ID,
+        target_date=fixture["core_row_p50_b"].date,
+        forecast_quantile="P50",
+        horizon_days=14,
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    assert auth_p50_a is not None
+    assert auth_p80_a is not None
+    assert auth_p50_b is not None
+    assert auth_p50_a.daily_row_identity_hash == fixture["core_row_p50_a"].row_hash
+    assert auth_p80_a.daily_row_identity_hash == fixture["core_row_p80_a"].row_hash
+    assert auth_p50_b.daily_row_identity_hash == fixture["core_row_p50_b"].row_hash
+    assert auth_p50_a.task9_member_identity_hash != auth_p80_a.task9_member_identity_hash
+    assert (
+        auth_p50_a.task10_prediction_row_identity_hash
+        != auth_p50_b.task10_prediction_row_identity_hash
+    )
+
+
+def test_canonical_authority_equivalence(authority_loader_session) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    core_row = fixture["core_row_p50_a"]
+    member = fixture["member_p50_a"]
+    prediction_row = fixture["pred_row_h7_a"]
+    assert isinstance(core_row, CoreForecastDailyRowModel)
+    assert isinstance(member, HarvestStateDailyMemberRowModel)
+    assert isinstance(prediction_row, ResidualModelPredictionRow)
+    expected = build_canonical_bundle_for_binding(
+        fixture,
+        core_row=core_row,
+        member=member,
+        prediction_row=prediction_row,
+    )
+    authority = load_persisted_forecast_binding_authority(
+        authority_loader_session,
+        forecast_cutoff_at=CUTOFF_AT,
+        task8_forecast_run_id=TASK8_RUN_ID,
+        target_date=core_row.date,
+        forecast_quantile="P50",
+        horizon_days=7,
+        farm_id=FARM_ID,
+        subfarm_id=SUBFARM_ID,
+        variety_id=VARIETY_ID,
+    )
+    assert authority is not None
+    assert authority.daily_row_identity_hash == expected["daily_row_identity_hash"]
+    assert authority.task9_member_identity_hash == expected["task9_member_identity_hash"]
+    assert (
+        authority.task10_prediction_row_identity_hash
+        == expected["task10_prediction_row_identity_hash"]
+    )
