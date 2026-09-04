@@ -61,6 +61,20 @@ class FakeIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
 
 
 @dataclass
+class UnavailableIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
+    """Fail-closed provider when no lawful PIT-visible daily curve is bound."""
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        del cell, business_date
+        return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
+
+
+@dataclass
 class SparseHorizonBindingForecastProvider(IncumbentDailyCurveProvider):
     """Test double mimicking sparse 7/14/21 binding rows only. Not for production."""
 
