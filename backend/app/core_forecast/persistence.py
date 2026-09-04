@@ -52,6 +52,9 @@ from backend.app.models.core_forecast import (
 )
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
+from backend.app.rolling_backtest.persisted_task10_authority_binding import (
+    register_persisted_task10_authority_binding,
+)
 
 _FIXED_6_RE = re.compile(r"^(?:0|[1-9]\d*)\.\d{6}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -370,6 +373,20 @@ class CoreForecastRunRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def _maybe_register_task10_authority_binding(
+        self,
+        *,
+        request: ExecuteCoreForecastRunRequest,
+        core_forecast_run_id: int,
+    ) -> None:
+        if request.authorized_task10_prediction_run_id is None:
+            return
+        await register_persisted_task10_authority_binding(
+            self._session,
+            core_forecast_run_id=core_forecast_run_id,
+            task10_prediction_run_id=request.authorized_task10_prediction_run_id,
+        )
+
     async def register_code_authority(
         self,
         registration: RegisterCoreForecastCodeAuthority,
@@ -493,6 +510,10 @@ class CoreForecastRunRepository:
                 rerun_of_run_id=rerun_of_run_id,
                 code_authority=code_authority,
             ):
+                await self._maybe_register_task10_authority_binding(
+                    request=request,
+                    core_forecast_run_id=existing.run.run_id,
+                )
                 return existing
             raise CoreForecastPersistenceConflictError(
                 "request hash already exists with different canonical content"
@@ -579,6 +600,10 @@ class CoreForecastRunRepository:
                 rerun_of_run_id=rerun_of_run_id,
                 code_authority=code_authority,
             ):
+                await self._maybe_register_task10_authority_binding(
+                    request=request,
+                    core_forecast_run_id=existing.run.run_id,
+                )
                 return existing
             raise CoreForecastPersistenceConflictError(
                 "canonical persistence identity conflict"
@@ -591,6 +616,10 @@ class CoreForecastRunRepository:
         persisted = await self.load_complete_run(run_id)
         if persisted is None:
             raise CoreForecastPersistenceIntegrityError("saved run could not be reloaded")
+        await self._maybe_register_task10_authority_binding(
+            request=request,
+            core_forecast_run_id=persisted.run.run_id,
+        )
         return persisted
 
     @staticmethod

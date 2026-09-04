@@ -129,6 +129,9 @@ def _task8_daily_prediction_payload_hash(
     )
 
 
+task8_daily_prediction_payload_hash = _task8_daily_prediction_payload_hash
+
+
 def _build_identity_payload(identity: ResolvedUpstreamSemanticIdentity) -> dict[str, object]:
     """Build the canonical identity payload from stable fields only.
 
