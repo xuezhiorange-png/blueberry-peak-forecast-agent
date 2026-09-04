@@ -42,7 +42,6 @@ from backend.app.s3_daily_rowset.forecast_port import (
     FakeIncumbentDailyCurveProvider,
     ForecastAvailability,
     IncumbentDailyCurveProvider,
-    UnavailableIncumbentDailyCurveProvider,
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
     IncumbentForecastReplaySource,
@@ -121,8 +120,15 @@ def _forecast_provider(
     *,
     forecasts: dict[date, Decimal] | None = None,
     unavailable: bool = False,
+    default_authority: S2ForecastAuthorityBundle | None = None,
+    authorities: dict[tuple[date, int], S2ForecastAuthorityBundle] | None = None,
 ) -> IncumbentDailyCurveProvider:
-    return FakeIncumbentDailyCurveProvider(forecasts=forecasts, unavailable=unavailable)
+    return FakeIncumbentDailyCurveProvider(
+        forecasts=forecasts,
+        unavailable=unavailable,
+        default_authority=default_authority or _test_forecast_binding_authority(),
+        authorities=authorities,
+    )
 
 
 def _target_dates() -> tuple[date, date, date]:
@@ -173,7 +179,6 @@ def _materialize_deps(
         official_partitions=official or _small_official_partitions(),
         forecast_replay_entries=entries,
         forecast_provider=provider,
-        forecast_binding_authority=_test_forecast_binding_authority(),
         forecast_cutoff_authority_identity=reviewed_grain_identity_set_identity_sha256(),
         forecast_content_identity_sha256="f" * 64,
     )
@@ -210,7 +215,12 @@ def test_incumbent_replay_source_empty_obtain_blocks() -> None:
 
 def test_unavailable_forecast_provider_blocks_before_package() -> None:
     result = materialize_train_validation_pairing_inputs(
-        _materialize_deps(forecast_provider=UnavailableIncumbentDailyCurveProvider())
+        _materialize_deps(
+            forecast_provider=FakeIncumbentDailyCurveProvider(
+                unavailable=True,
+                default_authority=_test_forecast_binding_authority(),
+            )
+        )
     )
     assert not result.completed
     assert (
@@ -315,11 +325,13 @@ def test_native_float_rejected() -> None:
                 forecast_harvest_quantity_kg=1.5,  # type: ignore[arg-type]
             )
 
+        def forecast_authority_for(self, cell, *, business_date: date, horizon_days: int):
+            return _test_forecast_binding_authority()
+
     deps = TrainValidationPairingMaterializationDeps(
         official_partitions=_small_official_partitions(),
         forecast_replay_entries=_reviewed_forecast_entries(),
         forecast_provider=_FloatProvider(),
-        forecast_binding_authority=_test_forecast_binding_authority(),
         forecast_cutoff_authority_identity=reviewed_grain_identity_set_identity_sha256(),
         forecast_content_identity_sha256="a" * 64,
     )
@@ -427,6 +439,7 @@ def test_materialized_row_forecast_business_key_uses_s2_binding_key_hash() -> No
         aligned,
         forecast_cutoff_at=_REVIEWED_CUTOFF,
     )
+    authority = _test_forecast_binding_authority()
     expected = compute_canonical_forecast_binding_key_hash(
         request,
         season_business_key=comparable.season_business_key,
@@ -436,7 +449,7 @@ def test_materialized_row_forecast_business_key_uses_s2_binding_key_hash() -> No
         forecast_quantile=comparable.forecast_quantile.value,
         horizon_days=comparable.forecast_horizon_days,
         target_date=comparable.forecast_target_date,
-        forecast_authority=_test_forecast_binding_authority(),
+        forecast_authority=authority,
     )
     assert comparable.forecast_business_key == expected
 
