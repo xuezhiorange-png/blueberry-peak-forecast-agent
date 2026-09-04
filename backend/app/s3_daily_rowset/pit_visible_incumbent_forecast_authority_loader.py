@@ -61,9 +61,7 @@ def load_persisted_forecast_binding_authority(
         ).all()
     )
     if task8_forecast_run_id is not None:
-        core_runs = [
-            run for run in core_runs if run.task8_forecast_run_id == task8_forecast_run_id
-        ]
+        core_runs = [run for run in core_runs if run.task8_forecast_run_id == task8_forecast_run_id]
     if len(core_runs) != 1:
         return None
     core_run = core_runs[0]
