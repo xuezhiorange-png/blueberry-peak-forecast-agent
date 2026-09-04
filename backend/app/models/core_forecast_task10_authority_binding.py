@@ -59,7 +59,7 @@ class CoreForecastTask10AuthorityBindingModel(Base):
             name="ck_core_forecast_task10_binding_task10",
         ),
         Index(
-            "ix_core_forecast_task10_authority_binding_task10_prediction_run_id",
+            "ix_cf_task10_auth_binding_task10_run_id",
             "task10_prediction_run_id",
         ),
     )
