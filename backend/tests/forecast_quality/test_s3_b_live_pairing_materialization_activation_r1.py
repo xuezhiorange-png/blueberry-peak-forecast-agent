@@ -29,12 +29,11 @@ from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider impo
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
     is_synthetic_forecast_authority,
 )
-from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
-
 from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_identity_set import (
     REVIEW_CUTOFF_AT,
     REVIEW_MODEL_ID,
 )
+from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
 
 _REVIEWED_CUTOFF = datetime.fromisoformat(REVIEW_CUTOFF_AT)
 
