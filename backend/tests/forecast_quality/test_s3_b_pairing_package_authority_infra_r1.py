@@ -429,7 +429,7 @@ def test_accepted_authorities_bound_in_candidate() -> None:
 
 
 def test_exact_actual_pairing_policy_version_not_invented_on_main() -> None:
-    assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS == "NOT_ISSUED"
+    assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS == "ISSUED"
     assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED == ""
     assert FROZEN_EXACT_ACTUAL_PAIRING_RULE == "EXACT_ACTUAL_PAIRED"
     package = _candidate_package()
@@ -583,5 +583,7 @@ def test_forged_validation_partition_identity_sha256_rejected() -> None:
         validate_pairing_package_candidate_invariants(forged)
 
 
-def test_production_exact_actual_pairing_policy_versions_empty() -> None:
-    assert ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS == frozenset()
+def test_production_exact_actual_pairing_policy_versions_issued() -> None:
+    assert ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS == frozenset(
+        {EXACT_ACTUAL_PAIRING_POLICY_V1}
+    )
