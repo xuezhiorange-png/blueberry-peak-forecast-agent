@@ -16,6 +16,11 @@ from .canonical import canonical_json_bytes, compute_metric_input_mask_hash
 from .enums import FrozenVersion, MetricStatus, ReasonCode, SupportedQuantile
 from .exceptions import S3ContractInvariantViolationError
 from .schemas import BreakdownSpec, MetricValueCell, S3BindingRow, S3EvaluationInput
+from .train_val_trusted_registry import (
+    PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY,
+    PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY,
+    verify_train_validation_coverage_authority,
+)
 
 _KNOWN_S2_STATUSES = frozenset({"COMPARABLE", "EXCLUDED", "NOT_COMPARABLE", "NOT_COMPUTABLE"})
 _COVERAGE_METRIC_NAMES: dict[SupportedQuantile, str] = {
@@ -32,13 +37,14 @@ _ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS: frozenset[str] = frozenset()
 
 @dataclass(frozen=True)
 class TrainValidationCoveragePartitionAuthority:
-    """Typed partition authority bound to a lawful TRAIN/VALIDATION pairing package.
+    """Typed partition authority carrier bound to an issued authority record.
 
-    Instances are accepted only when ``schema_version`` is issued by a future
-    coverage-execution grant and all binding fields match the supplied
-    ``S3EvaluationInput``. Caller-supplied labels alone are never sufficient.
+    Caller-constructed instances are never sufficient. Production execution
+    requires registry-backed verification of ``authority_record_identity``,
+    the published pairing package, and issued pairing policy version.
     """
 
+    authority_record_identity: str
     schema_version: str
     pairing_package_identity: str
     s2_binding_row_set_hash: str
@@ -68,11 +74,14 @@ def _train_validation_execution_blocker(
         return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
     if (
         not partition_authority.schema_version.strip()
+        or not partition_authority.authority_record_identity.strip()
         or not partition_authority.pairing_package_identity.strip()
         or not partition_authority.s2_binding_row_set_hash.strip()
         or not partition_authority.permitted_partitions
     ):
         return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
+    if not _is_sha256(partition_authority.authority_record_identity):
+        return "TRAIN_VALIDATION_AUTHORITY_RECORD_IDENTITY_MISSING"
     if not _is_sha256(partition_authority.pairing_package_identity):
         return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
     if not _is_sha256(partition_authority.s2_binding_row_set_hash):
@@ -84,9 +93,13 @@ def _train_validation_execution_blocker(
         return "TEST_PARTITION_AUTHORITY_FORBIDDEN"
     if not partitions <= _TRAIN_VAL_SPLITS:
         return "NON_TRAIN_VALIDATION_SPLIT_PRESENT"
-    if partition_authority.schema_version not in _ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS:
-        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_NOT_ISSUED"
-    return None
+    return verify_train_validation_coverage_authority(
+        evaluation_input,
+        partition_authority,
+        published_registry=PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY,
+        issued_registry=PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY,
+        issued_schema_versions=_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS,
+    )
 
 
 _NON_TRAIN_VAL_ONLY_BLOCKERS = frozenset(
@@ -285,8 +298,8 @@ def assess_train_validation_coverage_execution(
     """Attempt lawful TRAIN/VALIDATION coverage execution when authority exists.
 
     Execution is fail-closed: a typed ``TrainValidationCoveragePartitionAuthority``
-    bound to the pairing package and evaluation row-set hash is required. Main
-    currently issues no partition authorities, so execution remains blocked.
+    carrier referencing an issued authority record and published pairing package
+    is required. Production registries and schema issuance remain empty on main.
     """
 
     blocker = _train_validation_execution_blocker(
