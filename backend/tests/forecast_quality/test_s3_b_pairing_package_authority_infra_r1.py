@@ -32,7 +32,6 @@ from backend.app.forecast_quality.train_val_pairing import (
     compute_pairing_package_identity_hashes,
     validate_pairing_package_candidate_invariants,
     validate_pairing_package_invariants,
-    validate_published_pairing_package_invariants,
     verify_pairing_package_hash_replay,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
