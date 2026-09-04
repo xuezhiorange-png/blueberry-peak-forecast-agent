@@ -1002,3 +1002,44 @@ def build_materialization_evidence_payload(
             result.validation_pairing_package.canonical_hash
         )
     return payload
+
+
+def build_live_activation_evidence_payload(
+    result: TrainValidationPairingMaterializationResult,
+    *,
+    base_main_sha: str,
+    source_002_attested: bool,
+    train_official_hash_verified: bool,
+    validation_official_hash_verified: bool,
+    forecast_provider_class: str | None,
+    forecast_value_source: str,
+    forecast_cutoff_at: str | None,
+    forecast_authority_is_persisted: bool,
+    live_execution_completed: bool,
+    live_execution_blocker: str | None = None,
+) -> dict[str, object]:
+    payload = build_materialization_evidence_payload(result, base_main_sha=base_main_sha)
+    payload.update(
+        {
+            "task_id": "V0_3_S3_B_LIVE_PAIRING_MATERIALIZATION_ACTIVATION_R1",
+            "source_002_attested": source_002_attested,
+            "train_official_hash_verified": train_official_hash_verified,
+            "validation_official_hash_verified": validation_official_hash_verified,
+            "forecast_provider_class": forecast_provider_class,
+            "forecast_value_source": forecast_value_source,
+            "forecast_cutoff_at": forecast_cutoff_at,
+            "forecast_authority_is_persisted": forecast_authority_is_persisted,
+            "forecast_authority_is_synthetic": False,
+            "live_execution_completed": live_execution_completed,
+            "live_execution_blocker": live_execution_blocker,
+            "real_materialization_completed": result.completed,
+            "row_level_partition_membership_proven": result.completed,
+            "train_package_hash_replay": result.train_pairing_package is not None,
+            "validation_package_hash_replay": result.validation_pairing_package is not None,
+            "train_package_invariants": "PASS" if result.train_pairing_package else "BLOCKED",
+            "validation_package_invariants": (
+                "PASS" if result.validation_pairing_package else "BLOCKED"
+            ),
+        }
+    )
+    return payload

@@ -100,7 +100,7 @@ def _is_sha256_hex(value: str) -> bool:
     return len(value) == 64 and all(c in "0123456789abcdef" for c in value)
 
 
-def _task8_daily_prediction_payload_hash(
+def task8_daily_prediction_payload_hash(
     daily: MaturityDailyPredictionModel,
     *,
     forecast_source_signature: str,
@@ -126,6 +126,17 @@ def _task8_daily_prediction_payload_hash(
             "confidence_level": daily.confidence_level,
             "quality_flags": sorted(daily.quality_flags),
         }
+    )
+
+
+def _task8_daily_prediction_payload_hash(
+    daily: MaturityDailyPredictionModel,
+    *,
+    forecast_source_signature: str,
+) -> str:
+    return task8_daily_prediction_payload_hash(
+        daily,
+        forecast_source_signature=forecast_source_signature,
     )
 
 
