@@ -90,6 +90,11 @@ from backend.app.rolling_backtest.orchestration import (
     _build_frozen_dag,
     _sanitize_diagnostics,
 )
+from backend.app.rolling_backtest.persisted_task10_authority_binding import (
+    PersistedTask10AuthorityBindingWriteOutcome,
+    PersistedTask10AuthorityBindingWriteResult,
+    write_persisted_task10_authority_binding_from_pinned_lineage,
+)
 from backend.app.rolling_backtest.persistence import (
     _finalize_attempt_status_in_session,
     _resolved_input_canonical_payload,
@@ -2059,6 +2064,56 @@ async def _execute_task10_prediction_reuse(
             )
 
 
+async def _write_persisted_task10_authority_binding_after_reuse(
+    session: AsyncSession,
+    ctx: _StageContext,
+    node: RollingNodeDefinition,
+) -> PersistedTask10AuthorityBindingWriteResult:
+    """Persist Task 10 authority binding after Stage 7 integrity validation."""
+    if ctx.task10_authority is None:
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.TASK10_AUTHORITY_NOT_PINNED,
+        )
+    prediction_reference = ctx.task10_authority.prediction_reference
+    if (
+        prediction_reference is None
+        or prediction_reference.reference_type != "database_run_id"
+        or not isinstance(prediction_reference.reference_value, int)
+    ):
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.TASK10_AUTHORITY_NOT_PINNED,
+        )
+    if ctx.task9_authority is None or ctx.task9_authority.run_reference is None:
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.TASK9_AUTHORITY_NOT_PINNED,
+            task10_prediction_run_id=prediction_reference.reference_value,
+        )
+    task9_reference = ctx.task9_authority.run_reference
+    if (
+        task9_reference.reference_type != "database_run_id"
+        or not isinstance(task9_reference.reference_value, int)
+        or ctx.task9_authority.result_hash is None
+    ):
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.TASK9_AUTHORITY_NOT_PINNED,
+            task10_prediction_run_id=prediction_reference.reference_value,
+        )
+    task9_run = await session.get(HarvestStateRun, task9_reference.reference_value)
+    if task9_run is None or task9_run.maturity_forecast_run_id is None:
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.TASK8_LINEAGE_NOT_FOUND,
+            task10_prediction_run_id=prediction_reference.reference_value,
+        )
+    return await write_persisted_task10_authority_binding_from_pinned_lineage(
+        session,
+        task10_prediction_run_id=prediction_reference.reference_value,
+        task8_forecast_run_id=task9_run.maturity_forecast_run_id,
+        task9_harvest_state_run_id=task9_reference.reference_value,
+        task9_result_hash=ctx.task9_authority.result_hash,
+        forecast_effective_cutoff_at=node.forecast_cutoff_at,
+    )
+
+
 # ── Snapshot builder ────────────────────────────────────────────────────────
 
 
@@ -3253,6 +3308,7 @@ async def _stage_execute_task10_prediction(  # noqa: ARG001
     For historical_observed: reuse persisted prediction only.
     """
     await _execute_task10_prediction_reuse(session, ctx, config, node)
+    await _write_persisted_task10_authority_binding_after_reuse(session, ctx, node)
     return ctx
 
 
