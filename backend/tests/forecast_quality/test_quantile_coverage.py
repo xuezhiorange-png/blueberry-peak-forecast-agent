@@ -231,6 +231,8 @@ def test_train_validation_execution_rejects_test_partition_authority() -> None:
 
     assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
     assert assessment.blocker_reason == "TEST_PARTITION_AUTHORITY_FORBIDDEN"
+    assert assessment.train_validation_only is False
+    assert assessment.test_remains_sealed is True
     assert assessment.results == ()
 
 
@@ -243,6 +245,9 @@ def test_train_validation_execution_rejects_non_train_validation_partitions() ->
 
     assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
     assert assessment.blocker_reason == "NON_TRAIN_VALIDATION_SPLIT_PRESENT"
+    assert assessment.train_validation_only is False
+    assert assessment.test_remains_sealed is True
+    assert assessment.results == ()
 
 
 def test_rejects_native_float_values() -> None:
