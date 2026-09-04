@@ -34,6 +34,10 @@ from backend.app.forecast_quality.train_val_pairing import (
     validate_pairing_package_invariants,
     verify_pairing_package_hash_replay,
 )
+from backend.app.forecast_quality.train_val_pairing_policy_registry import (
+    TrustedIssuedPairingPolicyRegistry,
+    build_candidate_policy_record,
+)
 from backend.app.forecast_quality.train_val_trusted_registry import (
     PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY,
     PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY,
@@ -129,6 +133,29 @@ def _rehash_package(package: object, **changes: object) -> object:
     )
 
 
+def _test_policy_registry(
+    *,
+    general_version: str = TRAIN_VAL_PAIRING_POLICY_V1,
+    exact_version: str = _TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION,
+) -> TrustedIssuedPairingPolicyRegistry:
+    general = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=general_version,
+        issuer_identity_or_version="test-issuer-v1",
+    )
+    exact = build_candidate_policy_record(
+        policy_kind="EXACT_ACTUAL_PAIRING",
+        policy_version=exact_version,
+        issuer_identity_or_version="test-issuer-v1",
+    )
+    return TrustedIssuedPairingPolicyRegistry(
+        {
+            general.policy_record_identity: general,
+            exact.policy_record_identity: exact,
+        }
+    )
+
+
 def _full_verifier_blocker(
     package: object,
     *,
@@ -162,6 +189,7 @@ def _full_verifier_blocker(
         issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
         issued_exact_actual_pairing_policy_versions=issued_exact
         or frozenset({exact_policy_version}),
+        issued_policy_registry=_test_policy_registry(exact_version=exact_policy_version),
     )
 
 
