@@ -30,6 +30,7 @@ from backend.app.rolling_backtest.enums import (
 )
 from backend.app.rolling_backtest.persisted_forecast_authority import (
     PersistedForecastAuthorityRefs,
+    task9_member_identity_hash as _task9_member_identity_hash,
     validate_persisted_forecast_authority_chain,
 )
 from backend.app.rolling_backtest.persistence import (
