@@ -80,7 +80,7 @@ def upgrade() -> None:
         ),
     )
     op.create_index(
-        "ix_core_forecast_task10_authority_binding_task10_prediction_run_id",
+        "ix_cf_task10_auth_binding_task10_run_id",
         TABLE,
         ["task10_prediction_run_id"],
     )
@@ -88,7 +88,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        "ix_core_forecast_task10_authority_binding_task10_prediction_run_id",
+        "ix_cf_task10_auth_binding_task10_run_id",
         table_name=TABLE,
     )
     op.drop_table(TABLE)
