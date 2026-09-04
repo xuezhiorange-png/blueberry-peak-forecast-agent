@@ -15,6 +15,7 @@ from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
+from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.forecast_port import IncumbentDailyCurveProvider
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
     build_pit_visible_incumbent_daily_curve_index,
@@ -48,6 +49,7 @@ class LiveIncumbentForecastDailyCurveObtainResult:
     obtained: bool
     provider: IncumbentDailyCurveProvider | None = None
     forecast_cutoff_at: datetime | None = None
+    forecast_binding_authority: S2ForecastAuthorityBundle | None = None
     ambiguous_grain_count: int = 0
     unavailable_grain_count: int = 0
 
@@ -138,10 +140,11 @@ async def _obtain_with_async_session_maker(
 
 
 def obtain_live_incumbent_forecast_daily_curve_provider(
-    *,
-    materialization_grains: frozenset[tuple[str, str, str, str]],
+    materialization_grains: frozenset[tuple[str, str, str, str]] | None = None,
 ) -> LiveIncumbentForecastDailyCurveObtainResult:
     """Return a lawful PIT-visible daily curve provider when production DB is bound."""
+    if materialization_grains is None:
+        return LiveIncumbentForecastDailyCurveObtainResult(obtained=False, provider=None)
     global _obtained_provider, _obtained_cutoff, _obtained_grains
     if (
         _obtained_provider is not None
