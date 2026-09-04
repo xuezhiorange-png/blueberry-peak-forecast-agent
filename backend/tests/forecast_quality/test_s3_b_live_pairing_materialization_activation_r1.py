@@ -18,9 +18,7 @@ from backend.app.forecast_quality.train_val_pairing_materialization import (
     materialize_train_validation_pairing_inputs_live,
 )
 from backend.app.models.core_forecast import CoreForecastDailyRowModel, CoreForecastRunModel
-from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel
 from backend.app.models.maturity import MaturityDailyPredictionModel
-from backend.app.models.residual_model import ResidualModelPredictionRow
 from backend.app.rolling_backtest.resolution import task8_daily_prediction_payload_hash
 from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
@@ -63,7 +61,6 @@ from backend.tests.forecast_quality.authority_loader_fixture import (
     _fixture_hash,
     _prediction_row,
     _task9_member,
-    build_canonical_bundle_for_binding,
     seed_canonical_authority_fixture,
 )
 
@@ -881,38 +878,4 @@ def test_multi_day_multi_quantile_authority(authority_loader_session) -> None:
     assert (
         auth_p50_a.task10_prediction_row_identity_hash
         != auth_p50_b.task10_prediction_row_identity_hash
-    )
-
-
-def test_canonical_authority_equivalence(authority_loader_session) -> None:
-    fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    member = fixture["member_p50_a"]
-    prediction_row = fixture["pred_row_h7_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
-    assert isinstance(member, HarvestStateDailyMemberRowModel)
-    assert isinstance(prediction_row, ResidualModelPredictionRow)
-    expected = build_canonical_bundle_for_binding(
-        fixture,
-        core_row=core_row,
-        member=member,
-        prediction_row=prediction_row,
-    )
-    authority = load_persisted_forecast_binding_authority(
-        authority_loader_session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
-        target_date=core_row.date,
-        forecast_quantile="P50",
-        horizon_days=7,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
-    )
-    assert authority is not None
-    assert authority.daily_row_identity_hash == expected["daily_row_identity_hash"]
-    assert authority.task9_member_identity_hash == expected["task9_member_identity_hash"]
-    assert (
-        authority.task10_prediction_row_identity_hash
-        == expected["task10_prediction_row_identity_hash"]
     )

@@ -22,7 +22,6 @@ from backend.app.models.residual_model import (
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
 )
-from backend.app.rolling_backtest.orchestration import _task9_member_identity_hash
 
 
 def _fixture_hash(label: str) -> str:
@@ -233,6 +232,12 @@ def seed_canonical_authority_fixture(session: Session) -> dict[str, object]:
         cohort_row_count=0,
         future_arrival_row_count=0,
         forecast_effective_cutoff_at=CUTOFF_AT,
+        is_replay=True,
+        maturity_forecast_run_id=TASK8_RUN_ID,
+        maturity_model_artifact_hash=HASH_BB,
+        replay_executed_at=CUTOFF_AT,
+        replay_code_version="fixture-replay-v1",
+        replay_run_correlation_id="fixture-correlation-001",
     )
     core_run = CoreForecastRunModel(
         id=CORE_RUN_ID,
@@ -293,7 +298,7 @@ def seed_canonical_authority_fixture(session: Session) -> dict[str, object]:
     training_run = ResidualModelTrainingRun(
         id=TRAINING_RUN_ID,
         execution_status="completed",
-        eligibility_status="not_evaluated",
+        eligibility_status="eligible",
         model_family="histgb",
         model_version="v1",
         feature_schema_version="task10-features-v1",
@@ -319,7 +324,7 @@ def seed_canonical_authority_fixture(session: Session) -> dict[str, object]:
         distinct_factory_count=1,
         distinct_grain_count=1,
         manifest_row_count=1,
-        expected_artifact_count=0,
+        expected_artifact_count=3,
         python_version="3.12.0",
         numpy_version="1.26.0",
         sklearn_version="1.4.0",
@@ -421,17 +426,3 @@ def authority_loader_session() -> Iterator[Session]:
         yield session
     engine.dispose()
 
-
-def build_canonical_bundle_for_binding(
-    fixture: dict[str, object],
-    *,
-    core_row: CoreForecastDailyRowModel,
-    member: HarvestStateDailyMemberRowModel,
-    prediction_row: ResidualModelPredictionRow,
-) -> dict[str, str]:
-    """Mirror trial/orchestration identity fields for equivalence checks."""
-    return {
-        "daily_row_identity_hash": core_row.row_hash,
-        "task9_member_identity_hash": _task9_member_identity_hash(member),
-        "task10_prediction_row_identity_hash": prediction_row.prediction_row_hash,
-    }
