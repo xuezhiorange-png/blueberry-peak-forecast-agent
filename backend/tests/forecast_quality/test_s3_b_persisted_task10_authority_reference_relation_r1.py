@@ -116,15 +116,7 @@ def test_no_task10_discovery_in_binding_writer() -> None:
         repo_root / "backend/app/rolling_backtest/persisted_task10_authority_binding.py",
         repo_root / "backend/app/core_forecast/persistence.py",
     ]
-    forbidden_tokens = (
-        "ResidualModelPredictionRun",
-        "select(",
-        "latest",
-        "max(",
-        "min(",
-        "order_by",
-        "discovery",
-    )
+    forbidden_scan_patterns = ("order_by", "discovery", "latest")
     for source in writer_sources:
         text = source.read_text(encoding="utf-8")
         if source.name == "persistence.py":
@@ -139,7 +131,8 @@ def test_no_task10_discovery_in_binding_writer() -> None:
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 assert node.func.id not in {"max", "min"}
         lowered = text.lower()
-        assert "discovery" not in lowered
+        for pattern in forbidden_scan_patterns:
+            assert pattern not in lowered
         if source.name == "persisted_task10_authority_binding.py":
             assert "ResidualModelPredictionRun" in text
             assert "await session.get(ResidualModelPredictionRun" in text
