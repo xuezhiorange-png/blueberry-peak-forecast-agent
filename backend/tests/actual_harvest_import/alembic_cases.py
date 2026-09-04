@@ -55,6 +55,11 @@ MIGRATION_FINAL_TARGET_LANE_PATH = (
     _ALEMBIC_VERSIONS_DIR / "f3a9b2c8d1e4_s3_b_final_target_quantile_prediction_lane.py"
 )
 MIGRATION_FINAL_TARGET_LANE_REVISION = "f3a9b2c8d1e4"
+MIGRATION_TASK10_AUTHORITY_BINDING_PATH = (
+    _ALEMBIC_VERSIONS_DIR / "c1d4e8f2a9b3_core_forecast_task10_authority_binding.py"
+)
+MIGRATION_TASK10_AUTHORITY_BINDING_REVISION = "c1d4e8f2a9b3"
+MIGRATION_CURRENT_HEAD_REVISION = MIGRATION_TASK10_AUTHORITY_BINDING_REVISION
 
 
 def _migration_module() -> ModuleType:
@@ -101,8 +106,8 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     # replay-identity schema R1 and S3-B final-target lane migration share a single head chain.
     heads = script.get_heads()
     assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_FINAL_TARGET_LANE_REVISION], (
-        f"alembic heads must be [{MIGRATION_FINAL_TARGET_LANE_REVISION!r}], got {heads!r}"
+    assert heads == [MIGRATION_CURRENT_HEAD_REVISION], (
+        f"alembic heads must be [{MIGRATION_CURRENT_HEAD_REVISION!r}], got {heads!r}"
     )
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
@@ -212,6 +217,24 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     spec_replay_identity.loader.exec_module(migration_replay_identity)
     assert migration_replay_identity.revision == MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION
     assert migration_replay_identity.down_revision == MIGRATION_LANE_C_E4B_REVISION
+    spec_final_target = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_final_target_lane",
+        MIGRATION_FINAL_TARGET_LANE_PATH,
+    )
+    assert spec_final_target is not None and spec_final_target.loader is not None
+    migration_final_target = importlib.util.module_from_spec(spec_final_target)
+    spec_final_target.loader.exec_module(migration_final_target)
+    assert migration_final_target.revision == MIGRATION_FINAL_TARGET_LANE_REVISION
+    assert migration_final_target.down_revision == MIGRATION_REPLAY_IDENTITY_SCHEMA_REVISION
+    spec_task10_binding = importlib.util.spec_from_file_location(
+        "actual_harvest_migration_task10_authority_binding",
+        MIGRATION_TASK10_AUTHORITY_BINDING_PATH,
+    )
+    assert spec_task10_binding is not None and spec_task10_binding.loader is not None
+    migration_task10_binding = importlib.util.module_from_spec(spec_task10_binding)
+    spec_task10_binding.loader.exec_module(migration_task10_binding)
+    assert migration_task10_binding.revision == MIGRATION_TASK10_AUTHORITY_BINDING_REVISION
+    assert migration_task10_binding.down_revision == MIGRATION_FINAL_TARGET_LANE_REVISION
 
 
 def assert_actual_harvest_sqlite_upgrade_downgrade_upgrade() -> None:
