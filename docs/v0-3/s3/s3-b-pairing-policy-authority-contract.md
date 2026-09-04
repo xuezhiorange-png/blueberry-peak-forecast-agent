@@ -370,18 +370,79 @@ Evidence (current main):
 - `backend/app/trial.py` builds `S3EvaluationInput` but is not partition-scoped
   V0.3 lawful origin
 
-```text
-REMAINING_MATERIALIZATION_PREREQUISITES=
-  1. Policy issuance (both general + exact-actual) — not yet authorized
-  2. V0.3 partition-scoped S3 binding row producer — not on main
-  3. Row-level partition membership proof — NOT_PROVEN
-  4. Trusted published pairing-package registry population — not authorized
-  5. Partition authority record issuance — not authorized
-  6. Schema version registration — not authorized
-```
-
 Envelope `partition` label does **not** prove row-level partition membership.
 Membership must be demonstrated by a future partition-scoped producer.
+
+### 8.1 Package materialization prerequisites (pre-materialization only)
+
+```text
+REAL_PAIRING_PACKAGE_MATERIALIZATION_PREREQUISITES=
+
+1. GENERAL_PAIRING_POLICY_ISSUED
+2. EXACT_ACTUAL_PAIRING_POLICY_ISSUED
+3. V0_3_PARTITION_SCOPED_S3_BINDING_ROW_PRODUCER_AVAILABLE
+4. ROW_LEVEL_PARTITION_MEMBERSHIP_PROVEN
+5. lawful source-002/e5-live-v1 actuals authority available
+6. lawful incumbent forecast + cutoff authority available
+7. TEST_REMAINS_SEALED
+```
+
+The following are **not** materialization prerequisites (they occur after
+materialization per §7):
+
+```text
+PACKAGE_PUBLICATION_IS_MATERIALIZATION_PREREQUISITE=false
+AUTHORITY_ISSUANCE_IS_MATERIALIZATION_PREREQUISITE=false
+SCHEMA_REGISTRATION_IS_MATERIALIZATION_PREREQUISITE=false
+COVERAGE_EXECUTION_IS_MATERIALIZATION_PREREQUISITE=false
+```
+
+```text
+MATERIALIZATION_PREREQUISITES != FULL_COVERAGE_CHAIN_PREREQUISITES
+```
+
+### 8.2 Materialization eligibility (current main)
+
+```text
+REAL_PAIRING_PACKAGE_MATERIALIZATION_ELIGIBLE=false
+```
+
+Eligibility is blocked only by **pre-materialization** gaps:
+
+```text
+PAIRING_POLICY_NOT_ISSUED
+EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED
+NO_PARTITION_SCOPED_PRODUCER
+ROW_LEVEL_PARTITION_MEMBERSHIP_NOT_PROVEN
+```
+
+Do **not** use post-materialization states to explain why materialization is
+not yet eligible:
+
+```text
+PACKAGE_NOT_PUBLISHED — not a materialization blocker
+AUTHORITY_NOT_ISSUED — not a materialization blocker
+SCHEMA_NOT_REGISTERED — not a materialization blocker
+```
+
+### 8.3 Full downstream Coverage-chain remaining prerequisites
+
+```text
+REMAINING_COVERAGE_EXECUTION_CHAIN=
+
+policy issuance
+partition-scoped producer
+row-level membership proof
+real package materialization
+package verification
+package publication
+partition authority issuance
+schema registration
+Coverage execution authorization
+```
+
+This chain includes steps that occur **after** materialization. It must not be
+conflated with `REAL_PAIRING_PACKAGE_MATERIALIZATION_PREREQUISITES` (§8.1).
 
 ## 9. Relationship to pairing package contract
 

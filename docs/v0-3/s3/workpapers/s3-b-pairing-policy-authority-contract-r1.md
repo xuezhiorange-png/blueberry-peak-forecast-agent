@@ -21,7 +21,7 @@ CONTRACT_PATH=docs/v0-3/s3/s3-b-pairing-policy-authority-contract.md
 PRODUCTION_CHANGED_FILES=NONE
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
-FINAL_STOP_GATE=COORDINATOR_PAIRING_POLICY_AUTHORITY_CONTRACT_REVIEW
+FINAL_STOP_GATE=COORDINATOR_PAIRING_POLICY_AUTHORITY_CONTRACT_RE_REVIEW
 ```
 
 ## Preflight
@@ -98,6 +98,35 @@ CALLER_DEFINED_VERSION_STRING_IS_NOT_AUTHORITY=true
 V0_3_PARTITION_SCOPED_S3_BINDING_ROW_PRODUCER_AVAILABLE=false
 ROW_LEVEL_PARTITION_MEMBERSHIP_PROVEN=false
 REAL_PAIRING_PACKAGE_MATERIALIZATION_ELIGIBLE=false
+```
+
+### Materialization prerequisites (pre-materialization only)
+
+```text
+REAL_PAIRING_PACKAGE_MATERIALIZATION_PREREQUISITES=
+  GENERAL_PAIRING_POLICY_ISSUED
+  EXACT_ACTUAL_PAIRING_POLICY_ISSUED
+  V0_3_PARTITION_SCOPED_S3_BINDING_ROW_PRODUCER_AVAILABLE
+  ROW_LEVEL_PARTITION_MEMBERSHIP_PROVEN
+  lawful source-002/e5-live-v1 actuals authority available
+  lawful incumbent forecast + cutoff authority available
+  TEST_REMAINS_SEALED
+```
+
+Post-materialization steps (publication, authority issuance, schema registration)
+are **not** materialization prerequisites.
+
+### Full Coverage-chain remaining prerequisites
+
+```text
+REMAINING_COVERAGE_EXECUTION_CHAIN=
+  policy issuance → partition-scoped producer → row-level membership proof
+  → real package materialization → package verification → package publication
+  → partition authority issuance → schema registration → Coverage execution authorization
+```
+
+```text
+MATERIALIZATION_PREREQUISITES != FULL_COVERAGE_CHAIN_PREREQUISITES
 ```
 
 ## Issuance order
