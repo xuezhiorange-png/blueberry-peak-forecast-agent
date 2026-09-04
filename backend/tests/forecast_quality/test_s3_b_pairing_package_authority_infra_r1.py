@@ -18,7 +18,9 @@ from backend.app.forecast_quality.quantile_coverage import (
 )
 from backend.app.forecast_quality.schemas import BreakdownSpec, S3BindingRow, S3EvaluationInput
 from backend.app.forecast_quality.train_val_pairing import (
-    EXACT_ACTUAL_PAIRING_POLICY_V1,
+    EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED,
+    EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS,
+    FROZEN_EXACT_ACTUAL_PAIRING_RULE,
     TRAIN_VAL_PAIRING_POLICY_V1,
     PartitionIdentity,
     TrainValPairingPackageInvariantError,
@@ -29,6 +31,8 @@ from backend.app.forecast_quality.train_val_pairing import (
     verify_pairing_package_hash_replay,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
+    PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY,
+    PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY,
     TrustedIssuedAuthorityRegistry,
     TrustedPublishedPairingPackageRegistry,
     build_candidate_authority_record,
@@ -106,7 +110,7 @@ def _candidate_package(
         partition_identity=partition_identity,
         evaluation_input=evaluation or _evaluation(),
         forecast_cutoff_authority_identity=_FORECAST_CUTOFF_AUTHORITY,
-        exact_actual_pairing_policy_version=EXACT_ACTUAL_PAIRING_POLICY_V1,
+        exact_actual_pairing_policy_version=EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED,
         pairing_policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
     )
 
@@ -376,3 +380,66 @@ def test_accepted_authorities_bound_in_candidate() -> None:
     package = _candidate_package()
     assert package.actuals_authority_identity == V0_3_S3_ACTUALS_AUTHORITY
     assert package.forecast_authority_identity == V0_3_S3_FORECASTS_AUTHORITY
+
+
+def test_exact_actual_pairing_policy_version_not_invented_on_main() -> None:
+    assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS == "NOT_ISSUED"
+    assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED == ""
+    assert FROZEN_EXACT_ACTUAL_PAIRING_RULE == "EXACT_ACTUAL_PAIRED"
+    package = _candidate_package()
+    assert package.exact_actual_pairing_policy_version == ""
+
+
+def test_registry_source_mapping_mutation_does_not_change_snapshot() -> None:
+    package = _candidate_package()
+    source: dict[str, object] = {package.pairing_package_identity: package}
+    registry = TrustedPublishedPairingPackageRegistry(source)
+    assert registry.count() == 1
+    source["f" * 64] = package
+    assert registry.count() == 1
+
+
+def test_registry_direct_backing_mutation_rejected() -> None:
+    package = _candidate_package()
+    registry = TrustedPublishedPairingPackageRegistry({package.pairing_package_identity: package})
+    with pytest.raises(TypeError):
+        registry._records[package.pairing_package_identity] = package  # type: ignore[index]
+
+
+def test_production_registries_remain_empty() -> None:
+    assert PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY.count() == 0
+    assert PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY.count() == 0
+
+
+def test_published_package_invariants_reverified_at_execution_gate() -> None:
+    package = _candidate_package()
+    forged = dataclasses.replace(package, actuals_authority_identity="forged-authority")
+    identity, canonical = compute_pairing_package_identity_hashes(forged)
+    forged = dataclasses.replace(
+        forged,
+        pairing_package_identity=identity,
+        canonical_hash=canonical,
+    )
+    assert verify_pairing_package_hash_replay(forged)
+    record = build_candidate_authority_record(
+        schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+        pairing_package_identity=forged.pairing_package_identity,
+        s2_binding_row_set_hash=forged.s2_binding_row_set_hash,
+        permitted_partitions=("TRAIN",),
+        issuer_identity_or_version="issuer-v1",
+    )
+    authority = _partition_authority(
+        forged,
+        authority_record_identity=record.authority_record_identity,
+    )
+    blocker = verify_train_validation_coverage_authority(
+        forged.evaluation_input,
+        authority,
+        published_registry=TrustedPublishedPairingPackageRegistry(
+            {forged.pairing_package_identity: forged}
+        ),
+        issued_registry=TrustedIssuedAuthorityRegistry({record.authority_record_identity: record}),
+        issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
+        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+    )
+    assert blocker == "TRAIN_VALIDATION_PAIRING_PACKAGE_INVARIANT_VIOLATION"

@@ -5,15 +5,17 @@ Production registries are empty. Verification is fail-closed and registry-backed
 
 from __future__ import annotations
 
-import dataclasses
 from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from .train_val_pairing import (
     TRAIN_VAL_PAIRING_POLICY_V1,
     TrainValidationS3BindingPairingPackage,
+    TrainValPairingPackageInvariantError,
     compute_two_stage_identity_hashes,
+    validate_pairing_package_invariants,
     verify_pairing_package_hash_replay,
     verify_two_stage_identity_excluded_from_preimage,
 )
@@ -89,13 +91,23 @@ def verify_authority_record_hash_replay(
     )
 
 
+def _immutable_record_snapshot(records: Mapping[str, object]) -> Mapping[str, object]:
+    """Defensive copy wrapped in a read-only mapping proxy."""
+
+    return MappingProxyType(dict(records))
+
+
 @dataclass(frozen=True)
 class TrustedPublishedPairingPackageRegistry:
     """Immutable lookup registry for published pairing packages."""
 
-    _records: Mapping[str, TrainValidationS3BindingPairingPackage] = dataclasses.field(
-        default_factory=dict
-    )
+    _records: Mapping[str, TrainValidationS3BindingPairingPackage]
+
+    def __init__(
+        self,
+        records: Mapping[str, TrainValidationS3BindingPairingPackage] | None = None,
+    ) -> None:
+        object.__setattr__(self, "_records", _immutable_record_snapshot(records or {}))
 
     def lookup(
         self, pairing_package_identity: str
@@ -110,9 +122,13 @@ class TrustedPublishedPairingPackageRegistry:
 class TrustedIssuedAuthorityRegistry:
     """Immutable lookup registry for issued authority records."""
 
-    _records: Mapping[str, IssuedTrainValidationCoverageAuthorityRecord] = dataclasses.field(
-        default_factory=dict
-    )
+    _records: Mapping[str, IssuedTrainValidationCoverageAuthorityRecord]
+
+    def __init__(
+        self,
+        records: Mapping[str, IssuedTrainValidationCoverageAuthorityRecord] | None = None,
+    ) -> None:
+        object.__setattr__(self, "_records", _immutable_record_snapshot(records or {}))
 
     def lookup(
         self, authority_record_identity: str
@@ -178,6 +194,11 @@ def verify_train_validation_coverage_authority(
 
     if not verify_pairing_package_hash_replay(published_package):
         return "TRAIN_VALIDATION_PAIRING_PACKAGE_HASH_MISMATCH"
+
+    try:
+        validate_pairing_package_invariants(published_package)
+    except TrainValPairingPackageInvariantError:
+        return "TRAIN_VALIDATION_PAIRING_PACKAGE_INVARIANT_VIOLATION"
 
     if published_package.pairing_package_identity != issued_record.pairing_package_identity:
         return "TRAIN_VALIDATION_PAIRING_PACKAGE_HASH_MISMATCH"

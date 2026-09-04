@@ -28,7 +28,10 @@ from .schemas import S3BindingRow, S3EvaluationInput
 
 TRAIN_VAL_PAIRING_PACKAGE_SCHEMA_V1 = "v0-3-s3-b-train-val-binding-pairing-package-v1"
 TRAIN_VAL_PAIRING_POLICY_V1 = "v0-3-s3-b-train-val-binding-pairing-policy-v1"
-EXACT_ACTUAL_PAIRING_POLICY_V1 = "v0-2-exact-actual-paired-v1"
+FROZEN_EXACT_ACTUAL_PAIRING_RULE = "EXACT_ACTUAL_PAIRED"
+EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS = "NOT_ISSUED"
+EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED = ""
+_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS: frozenset[str] = frozenset()
 
 _TRAIN_VAL_PARTITIONS = frozenset({"TRAIN", "VALIDATION"})
 _PAIRING_PACKAGE_IDENTITY_FIELD = "pairing_package_identity"
@@ -245,6 +248,14 @@ def validate_pairing_package_invariants(
         raise TrainValPairingPackageInvariantError("forecast cutoff authority missing")
     if not _is_sha256(package.forecast_cutoff_authority_identity):
         raise TrainValPairingPackageInvariantError("forecast cutoff authority invalid")
+    if package.exact_actual_pairing_policy_version:
+        if (
+            package.exact_actual_pairing_policy_version
+            not in _ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
+        ):
+            raise TrainValPairingPackageInvariantError(
+                "exact actual pairing policy version not issued"
+            )
     for field_name, expected in (
         ("s2_run_identity", package.evaluation_input.s2_run_identity),
         ("s2_manifest_identity", package.evaluation_input.s2_manifest_identity),
@@ -262,7 +273,7 @@ def build_candidate_train_validation_pairing_package(
     partition_identity: PartitionIdentity,
     evaluation_input: S3EvaluationInput,
     forecast_cutoff_authority_identity: str,
-    exact_actual_pairing_policy_version: str = EXACT_ACTUAL_PAIRING_POLICY_V1,
+    exact_actual_pairing_policy_version: str = EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED,
     pairing_policy_version: str = TRAIN_VAL_PAIRING_POLICY_V1,
     schema_version: str = TRAIN_VAL_PAIRING_PACKAGE_SCHEMA_V1,
     source_dataset_identity: SourceDatasetIdentity = ACCEPTED_SOURCE_DATASET_IDENTITY,
@@ -315,7 +326,9 @@ def build_candidate_train_validation_pairing_package(
 
 __all__ = [
     "ACCEPTED_SOURCE_DATASET_IDENTITY",
-    "EXACT_ACTUAL_PAIRING_POLICY_V1",
+    "EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED",
+    "EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS",
+    "FROZEN_EXACT_ACTUAL_PAIRING_RULE",
     "PartitionIdentity",
     "SourceDatasetIdentity",
     "TRAIN_VAL_PAIRING_PACKAGE_SCHEMA_V1",
