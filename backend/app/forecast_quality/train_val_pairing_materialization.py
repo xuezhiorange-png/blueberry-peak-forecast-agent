@@ -486,13 +486,14 @@ def _forecast_authority_for_binding(
     cell: EvaluationInstanceCell,
     *,
     business_date: date,
+    horizon_days: int,
     fallback_authority: S2ForecastAuthorityBundle | None,
 ) -> S2ForecastAuthorityBundle | TrainValidationPairingMaterializationBlocker:
     authority_for = getattr(forecast_provider, "forecast_authority_for", None)
     if authority_for is not None:
         authority = cast(
             S2ForecastAuthorityBundle | None,
-            authority_for(cell, business_date=business_date),
+            authority_for(cell, business_date=business_date, horizon_days=horizon_days),
         )
         if authority is None:
             return TrainValidationPairingMaterializationBlocker.FORECAST_AUTHORITY_MISMATCH
@@ -547,6 +548,7 @@ def _build_partition_binding_rows(
                     forecast_provider,
                     cell,
                     business_date=target_date,
+                    horizon_days=horizon_days,
                     fallback_authority=forecast_binding_authority,
                 )
                 if isinstance(row_authority, TrainValidationPairingMaterializationBlocker):

@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,11 +15,12 @@ from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.rolling_backtest.resolution import task8_daily_prediction_payload_hash
 from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
+    ForecastQuantile,
     is_synthetic_forecast_authority,
     load_persisted_forecast_binding_authority,
 )
-
-ForecastQuantile = Literal["P50", "P80", "P90"]
+from backend.app.s3_daily_rowset.schemas import HORIZON_DAYS
+from backend.app.s3_daily_rowset.window import expected_forecast_target_date
 
 _QUANTILE_TO_FIELD: dict[ForecastQuantile, str] = {
     "P50": "p50_kg",
@@ -34,9 +34,10 @@ class PitVisibleDailyForecastCell:
     forecast_kg: Decimal
     task8_forecast_run_id: int
     task8_daily_row_id: int
-    daily_row_identity_hash: str
+    task8_daily_prediction_payload_hash: str
+    core_daily_row_identity_hash: str
     forecast_run_identity_hash: str
-    forecast_binding_authority: S2ForecastAuthorityBundle
+    binding_authorities: dict[int, S2ForecastAuthorityBundle]
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +64,7 @@ def _resolve_business_grain(
     farm_business_key: str,
     subfarm_business_key: str,
     variety_business_key: str,
-) -> tuple[int, int, int | None, int] | None:
+) -> tuple[int, int, int, int] | None:
     season = session.scalar(select(Season).where(Season.code == season_business_key))
     farm = session.scalar(select(Farm).where(Farm.name == farm_business_key))
     variety = session.scalar(select(Variety).where(Variety.code == variety_business_key))
@@ -165,21 +166,53 @@ def _append_daily_cells(
     variety: str,
     forecast_run: MaturityForecastRun,
     daily: MaturityDailyPredictionModel,
-    forecast_binding_authority: S2ForecastAuthorityBundle,
+    farm_id: int,
+    subfarm_id: int,
+    variety_id: int,
+    session: Session,
+    forecast_cutoff_at: datetime,
 ) -> None:
-    daily_hash = task8_daily_prediction_payload_hash(
+    task8_hash = task8_daily_prediction_payload_hash(
         daily,
         forecast_source_signature=forecast_run.source_signature,
     )
     for quantile in ("P50", "P80", "P90"):
+        binding_authorities: dict[int, S2ForecastAuthorityBundle] = {}
+        core_daily_row_identity_hash: str | None = None
+        for horizon_days in sorted(HORIZON_DAYS):
+            expected_target = expected_forecast_target_date(forecast_cutoff_at, horizon_days)
+            if expected_target != daily.prediction_date:
+                continue
+            authority = load_persisted_forecast_binding_authority(
+                session,
+                forecast_cutoff_at=forecast_cutoff_at,
+                task8_forecast_run_id=forecast_run.id,
+                target_date=daily.prediction_date,
+                forecast_quantile=quantile,
+                horizon_days=horizon_days,
+                farm_id=farm_id,
+                subfarm_id=subfarm_id,
+                variety_id=variety_id,
+            )
+            if authority is None or is_synthetic_forecast_authority(authority):
+                continue
+            binding_authorities[horizon_days] = authority
+            if core_daily_row_identity_hash is None:
+                core_daily_row_identity_hash = authority.daily_row_identity_hash
+            elif core_daily_row_identity_hash != authority.daily_row_identity_hash:
+                binding_authorities.clear()
+                break
+        if core_daily_row_identity_hash is None or not binding_authorities:
+            continue
         lookup_key = (season, farm, subfarm, variety, quantile, daily.prediction_date)
         cells[lookup_key] = PitVisibleDailyForecastCell(
             forecast_kg=_forecast_kg_for_quantile(daily, quantile),
             task8_forecast_run_id=forecast_run.id,
             task8_daily_row_id=daily.id,
-            daily_row_identity_hash=daily_hash,
+            task8_daily_prediction_payload_hash=task8_hash,
+            core_daily_row_identity_hash=core_daily_row_identity_hash,
             forecast_run_identity_hash=forecast_run.source_signature,
-            forecast_binding_authority=forecast_binding_authority,
+            binding_authorities=binding_authorities,
         )
 
 
@@ -234,14 +267,6 @@ def build_pit_visible_incumbent_daily_curve_index(
             )
         ).all()
         for daily in daily_rows:
-            authority = load_persisted_forecast_binding_authority(
-                session,
-                forecast_cutoff_at=forecast_cutoff_at,
-                task8_forecast_run_id=forecast_run.id,
-                task8_daily_row_id=daily.id,
-            )
-            if authority is None or is_synthetic_forecast_authority(authority):
-                continue
             _append_daily_cells(
                 cells,
                 season=season,
@@ -250,7 +275,11 @@ def build_pit_visible_incumbent_daily_curve_index(
                 variety=variety,
                 forecast_run=forecast_run,
                 daily=daily,
-                forecast_binding_authority=authority,
+                farm_id=farm_id,
+                subfarm_id=subfarm_id,
+                variety_id=variety_id,
+                session=session,
+                forecast_cutoff_at=forecast_cutoff_at,
             )
     return PitVisibleIncumbentDailyCurveIndex(
         forecast_cutoff_at=forecast_cutoff_at,
