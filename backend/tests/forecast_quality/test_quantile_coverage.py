@@ -14,6 +14,8 @@ from backend.app.forecast_quality.enums import (
     SupportedQuantile,
 )
 from backend.app.forecast_quality.quantile_coverage import (
+    TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+    TrainValidationCoveragePartitionAuthority,
     assess_train_validation_coverage_execution,
     compute_upper_quantile_coverage,
     compute_upper_quantile_coverage_bundle,
@@ -168,6 +170,21 @@ def test_h_no_cross_contamination_with_s1_coverage_ratio() -> None:
     assert coverage.metric_name == "p50_upper_coverage"
 
 
+def _authority(
+    *,
+    partitions: tuple[str, ...] = ("TRAIN",),
+    row_set_hash: str = "a" * 64,
+    pairing_package_identity: str = "b" * 64,
+    schema_version: str = TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+) -> TrainValidationCoveragePartitionAuthority:
+    return TrainValidationCoveragePartitionAuthority(
+        schema_version=schema_version,
+        pairing_package_identity=pairing_package_identity,
+        s2_binding_row_set_hash=row_set_hash,
+        permitted_partitions=partitions,
+    )
+
+
 def test_train_validation_execution_blocked_without_legal_pairing_package() -> None:
     assessment = assess_train_validation_coverage_execution(None)
 
@@ -178,24 +195,50 @@ def test_train_validation_execution_blocked_without_legal_pairing_package() -> N
     assert assessment.results == ()
 
 
-def test_train_validation_execution_runs_on_supplied_package() -> None:
+def test_train_validation_execution_blocked_with_empty_partition_authority() -> None:
     rows = [_row(0, forecast="10", actual="9")]
     assessment = assess_train_validation_coverage_execution(
         _evaluation(rows),
         breakdown_specs=(_SPEC,),
-        split_labels=("TRAIN",),
+        partition_authority=None,
     )
 
-    assert assessment.execution_status == "EXECUTED"
-    assert len(assessment.results) == 3
-    assert assessment.results[0].metric_name == "p50_upper_coverage"
+    assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
+    assert assessment.blocker_reason == "TRAIN_VALIDATION_PARTITION_AUTHORITY_MISSING"
+    assert assessment.results == ()
 
 
-def test_train_validation_execution_rejects_non_train_validation_splits() -> None:
+def test_train_validation_execution_rejects_unbound_caller_constructed_authority() -> None:
+    rows = [_row(0, forecast="10", actual="9")]
+    evaluation = _evaluation(rows)
+    assessment = assess_train_validation_coverage_execution(
+        evaluation,
+        breakdown_specs=(_SPEC,),
+        partition_authority=_authority(partitions=("TRAIN",)),
+    )
+
+    assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
+    assert assessment.blocker_reason == "TRAIN_VALIDATION_PARTITION_AUTHORITY_NOT_ISSUED"
+    assert assessment.results == ()
+
+
+def test_train_validation_execution_rejects_test_partition_authority() -> None:
     assessment = assess_train_validation_coverage_execution(
         _evaluation([_row(0)]),
         breakdown_specs=(_SPEC,),
-        split_labels=("TEST",),
+        partition_authority=_authority(partitions=("TEST",)),
+    )
+
+    assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
+    assert assessment.blocker_reason == "TEST_PARTITION_AUTHORITY_FORBIDDEN"
+    assert assessment.results == ()
+
+
+def test_train_validation_execution_rejects_non_train_validation_partitions() -> None:
+    assessment = assess_train_validation_coverage_execution(
+        _evaluation([_row(0)]),
+        breakdown_specs=(_SPEC,),
+        partition_authority=_authority(partitions=("HOLDOUT",)),
     )
 
     assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
