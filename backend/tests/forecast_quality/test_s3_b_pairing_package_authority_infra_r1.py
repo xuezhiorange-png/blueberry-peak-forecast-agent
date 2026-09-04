@@ -157,9 +157,7 @@ def _full_verifier_blocker(
         published_registry=TrustedPublishedPairingPackageRegistry(
             {published_package.pairing_package_identity: published_package}
         ),
-        issued_registry=TrustedIssuedAuthorityRegistry(
-            {record.authority_record_identity: record}
-        ),
+        issued_registry=TrustedIssuedAuthorityRegistry({record.authority_record_identity: record}),
         issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
         issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
         issued_exact_actual_pairing_policy_versions=issued_exact
@@ -484,9 +482,7 @@ def test_empty_exact_policy_blocks_published_execution() -> None:
         published_registry=TrustedPublishedPairingPackageRegistry(
             {package.pairing_package_identity: package}
         ),
-        issued_registry=TrustedIssuedAuthorityRegistry(
-            {record.authority_record_identity: record}
-        ),
+        issued_registry=TrustedIssuedAuthorityRegistry({record.authority_record_identity: record}),
         issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
         issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
         issued_exact_actual_pairing_policy_versions=frozenset(
