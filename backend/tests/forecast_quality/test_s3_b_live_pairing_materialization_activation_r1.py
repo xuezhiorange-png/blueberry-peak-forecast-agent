@@ -117,36 +117,42 @@ def test_pit_visible_provider_reads_p50_p80_p90_kg() -> None:
     )
     provider = PitVisibleIncumbentDailyCurveProvider(index=index)
     daily = _daily_row(prediction_date=date(2026, 2, 20), created_at=_REVIEWED_CUTOFF)
-    provider.index.cells[("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x", "P50", date(2026, 2, 20))] = (
-        SimpleNamespace(
-            forecast_kg=daily.p50_kg,
-            task8_forecast_run_id=401,
-            task8_daily_row_id=1,
-            daily_row_identity_hash="a" * 64,
-            forecast_run_identity_hash="b" * 64,
-        )
+    provider.index.cells[
+        ("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x", "P50", date(2026, 2, 20))
+    ] = SimpleNamespace(
+        forecast_kg=daily.p50_kg,
+        task8_forecast_run_id=401,
+        task8_daily_row_id=1,
+        daily_row_identity_hash="a" * 64,
+        forecast_run_identity_hash="b" * 64,
     )
-    provider.index.cells[("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x", "P80", date(2026, 2, 20))] = (
-        SimpleNamespace(
-            forecast_kg=daily.p80_kg,
-            task8_forecast_run_id=401,
-            task8_daily_row_id=1,
-            daily_row_identity_hash="a" * 64,
-            forecast_run_identity_hash="b" * 64,
-        )
+    provider.index.cells[
+        ("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x", "P80", date(2026, 2, 20))
+    ] = SimpleNamespace(
+        forecast_kg=daily.p80_kg,
+        task8_forecast_run_id=401,
+        task8_daily_row_id=1,
+        daily_row_identity_hash="a" * 64,
+        forecast_run_identity_hash="b" * 64,
     )
-    provider.index.cells[("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x", "P90", date(2026, 2, 20))] = (
-        SimpleNamespace(
-            forecast_kg=daily.p90_kg,
-            task8_forecast_run_id=401,
-            task8_daily_row_id=1,
-            daily_row_identity_hash="a" * 64,
-            forecast_run_identity_hash="b" * 64,
-        )
+    provider.index.cells[
+        ("2025~2026", "farm-a", "farm-a/subfarm-1", "variety-x", "P90", date(2026, 2, 20))
+    ] = SimpleNamespace(
+        forecast_kg=daily.p90_kg,
+        task8_forecast_run_id=401,
+        task8_daily_row_id=1,
+        daily_row_identity_hash="a" * 64,
+        forecast_run_identity_hash="b" * 64,
     )
-    assert provider.forecast_kg_for_day(_evaluation_cell("P50"), business_date=date(2026, 2, 20)).forecast_harvest_quantity_kg == Decimal("10.0")
-    assert provider.forecast_kg_for_day(_evaluation_cell("P80"), business_date=date(2026, 2, 20)).forecast_harvest_quantity_kg == Decimal("12.0")
-    assert provider.forecast_kg_for_day(_evaluation_cell("P90"), business_date=date(2026, 2, 20)).forecast_harvest_quantity_kg == Decimal("14.0")
+    assert provider.forecast_kg_for_day(
+        _evaluation_cell("P50"), business_date=date(2026, 2, 20)
+    ).forecast_harvest_quantity_kg == Decimal("10.0")
+    assert provider.forecast_kg_for_day(
+        _evaluation_cell("P80"), business_date=date(2026, 2, 20)
+    ).forecast_harvest_quantity_kg == Decimal("12.0")
+    assert provider.forecast_kg_for_day(
+        _evaluation_cell("P90"), business_date=date(2026, 2, 20)
+    ).forecast_harvest_quantity_kg == Decimal("14.0")
 
 
 def test_forecast_after_cutoff_rejected() -> None:
