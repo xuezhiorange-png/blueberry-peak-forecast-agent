@@ -1,8 +1,8 @@
 """Live obtain for PIT-visible incumbent daily forecast curve providers.
 
 Binds the production Task 8 maturity daily prediction adapter when a lawful
-SOURCE-002 session is available. Fail-closed when no session, no unique PIT
-forecast authority, or synthetic placeholder authority is detected.
+SOURCE-002 session is available. Fail-closed when no session, ambiguous PIT
+forecast runs per grain, or synthetic placeholder authority is detected.
 """
 
 from __future__ import annotations
@@ -16,17 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 from sqlalchemy.orm import Session
 
-from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.forecast_port import IncumbentDailyCurveProvider
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
     build_pit_visible_incumbent_daily_curve_index,
 )
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider import (
     PitVisibleIncumbentDailyCurveProvider,
-)
-from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
-    is_synthetic_forecast_authority,
-    load_persisted_forecast_binding_authority,
 )
 from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_identity_set import (
     REVIEW_CUTOFF_AT,
@@ -45,55 +40,88 @@ SOURCE_002_LIVE_SESSION_BINDING_PATH = (
 FORECAST_SELECTION_MODE = "historical_observed_pit_visible_unique_grain_forecast_run"
 
 _obtained_provider: IncumbentDailyCurveProvider | None = None
-_obtained_authority: S2ForecastAuthorityBundle | None = None
 _obtained_cutoff: datetime | None = None
+_obtained_grains: frozenset[tuple[str, str, str, str]] | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class LiveIncumbentForecastDailyCurveObtainResult:
     obtained: bool
     provider: IncumbentDailyCurveProvider | None = None
-    forecast_binding_authority: S2ForecastAuthorityBundle | None = None
     forecast_cutoff_at: datetime | None = None
+    ambiguous_grain_count: int = 0
+    unavailable_grain_count: int = 0
 
 
 class _AsyncSessionNotObtained(RuntimeError):
     pass
 
 
-def _obtain_from_sync_session(sync_session: Session) -> LiveIncumbentForecastDailyCurveObtainResult:
+def _grain_has_ambiguous_forecast_run(
+    index_grain_counts: dict[tuple[str, str, str, str], int],
+    grains: frozenset[tuple[str, str, str, str]],
+) -> bool:
+    return any(index_grain_counts.get(grain, 0) > 1 for grain in grains)
+
+
+def _grain_has_unavailable_forecast_run(
+    index_grain_counts: dict[tuple[str, str, str, str], int],
+    grains: frozenset[tuple[str, str, str, str]],
+) -> bool:
+    return any(index_grain_counts.get(grain, 0) != 1 for grain in grains)
+
+
+def _obtain_from_sync_session(
+    sync_session: Session,
+    *,
+    materialization_grains: frozenset[tuple[str, str, str, str]],
+) -> LiveIncumbentForecastDailyCurveObtainResult:
     forecast_cutoff_at = datetime.fromisoformat(REVIEW_CUTOFF_AT)
-    authority = load_persisted_forecast_binding_authority(
-        sync_session,
-        forecast_cutoff_at=forecast_cutoff_at,
-    )
-    if authority is None or is_synthetic_forecast_authority(authority):
-        return LiveIncumbentForecastDailyCurveObtainResult(
-            obtained=False,
-            provider=None,
-            forecast_cutoff_at=forecast_cutoff_at,
-        )
     index = build_pit_visible_incumbent_daily_curve_index(
         sync_session,
         forecast_cutoff_at=forecast_cutoff_at,
+        grains=materialization_grains,
     )
-    if not index.cells:
+    ambiguous = sum(
+        1
+        for grain in materialization_grains
+        if index.grain_forecast_run_count.get(grain, 0) > 1
+    )
+    unavailable = sum(
+        1 for grain in materialization_grains if index.grain_forecast_run_count.get(grain, 0) != 1
+    )
+    if _grain_has_ambiguous_forecast_run(index.grain_forecast_run_count, materialization_grains):
         return LiveIncumbentForecastDailyCurveObtainResult(
             obtained=False,
             provider=None,
             forecast_cutoff_at=forecast_cutoff_at,
+            ambiguous_grain_count=ambiguous,
+            unavailable_grain_count=unavailable,
+        )
+    if not index.cells or _grain_has_unavailable_forecast_run(
+        index.grain_forecast_run_count, materialization_grains
+    ):
+        return LiveIncumbentForecastDailyCurveObtainResult(
+            obtained=False,
+            provider=None,
+            forecast_cutoff_at=forecast_cutoff_at,
+            ambiguous_grain_count=ambiguous,
+            unavailable_grain_count=unavailable,
         )
     provider = PitVisibleIncumbentDailyCurveProvider(index=index)
     return LiveIncumbentForecastDailyCurveObtainResult(
         obtained=True,
         provider=provider,
-        forecast_binding_authority=authority,
         forecast_cutoff_at=forecast_cutoff_at,
+        ambiguous_grain_count=0,
+        unavailable_grain_count=0,
     )
 
 
 async def _obtain_with_async_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
+    *,
+    materialization_grains: frozenset[tuple[str, str, str, str]],
 ) -> LiveIncumbentForecastDailyCurveObtainResult:
     session_cm = live_async_session_maker()
     try:
@@ -103,21 +131,32 @@ async def _obtain_with_async_session_maker(
     try:
         if session is None:
             raise _AsyncSessionNotObtained()
-        return await session.run_sync(_obtain_from_sync_session)
+
+        def _callback(sync_session: Session) -> LiveIncumbentForecastDailyCurveObtainResult:
+            return _obtain_from_sync_session(
+                sync_session,
+                materialization_grains=materialization_grains,
+            )
+
+        return await session.run_sync(_callback)
     finally:
         await session_cm.__aexit__(None, None, None)
 
 
-def obtain_live_incumbent_forecast_daily_curve_provider() -> (
-    LiveIncumbentForecastDailyCurveObtainResult
-):
+def obtain_live_incumbent_forecast_daily_curve_provider(
+    *,
+    materialization_grains: frozenset[tuple[str, str, str, str]],
+) -> LiveIncumbentForecastDailyCurveObtainResult:
     """Return a lawful PIT-visible daily curve provider when production DB is bound."""
-    global _obtained_provider, _obtained_authority, _obtained_cutoff
-    if _obtained_provider is not None and _obtained_authority is not None:
+    global _obtained_provider, _obtained_cutoff, _obtained_grains
+    if (
+        _obtained_provider is not None
+        and _obtained_grains == materialization_grains
+        and _obtained_cutoff is not None
+    ):
         return LiveIncumbentForecastDailyCurveObtainResult(
             obtained=True,
             provider=_obtained_provider,
-            forecast_binding_authority=_obtained_authority,
             forecast_cutoff_at=_obtained_cutoff,
         )
     try:
@@ -129,11 +168,16 @@ def obtain_live_incumbent_forecast_daily_curve_provider() -> (
     ):
         return LiveIncumbentForecastDailyCurveObtainResult(obtained=False, provider=None)
     try:
-        result = asyncio.run(_obtain_with_async_session_maker(live_async_session_maker))
+        result = asyncio.run(
+            _obtain_with_async_session_maker(
+                live_async_session_maker,
+                materialization_grains=materialization_grains,
+            )
+        )
     except (_AsyncSessionNotObtained, MissingGreenlet, Exception):
         return LiveIncumbentForecastDailyCurveObtainResult(obtained=False, provider=None)
-    if result.obtained and result.provider is not None and result.forecast_binding_authority:
+    if result.obtained and result.provider is not None:
         _obtained_provider = result.provider
-        _obtained_authority = result.forecast_binding_authority
         _obtained_cutoff = result.forecast_cutoff_at
+        _obtained_grains = materialization_grains
     return result

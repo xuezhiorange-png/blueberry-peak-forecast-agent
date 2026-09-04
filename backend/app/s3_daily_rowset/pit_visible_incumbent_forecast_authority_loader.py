@@ -49,19 +49,21 @@ def load_persisted_forecast_binding_authority(
     *,
     forecast_cutoff_at: datetime,
     task8_forecast_run_id: int | None = None,
+    task8_daily_row_id: int | None = None,
 ) -> S2ForecastAuthorityBundle | None:
     """Load a persisted S2ForecastAuthorityBundle visible at ``forecast_cutoff_at``."""
+    if task8_forecast_run_id is None:
+        return None
     core_runs = list(
         session.scalars(
             select(CoreForecastRunModel).where(
                 CoreForecastRunModel.status == "completed",
                 CoreForecastRunModel.forecast_effective_cutoff_at == forecast_cutoff_at,
                 CoreForecastRunModel.completed_at <= forecast_cutoff_at,
+                CoreForecastRunModel.task8_forecast_run_id == task8_forecast_run_id,
             )
         ).all()
     )
-    if task8_forecast_run_id is not None:
-        core_runs = [run for run in core_runs if run.task8_forecast_run_id == task8_forecast_run_id]
     if len(core_runs) != 1:
         return None
     core_run = core_runs[0]
@@ -129,16 +131,27 @@ def load_persisted_forecast_binding_authority(
         return None
 
     task8_run = session.get(MaturityForecastRun, core_run.task8_forecast_run_id)
-    task8_daily = session.scalar(
-        select(MaturityDailyPredictionModel)
-        .where(
-            MaturityDailyPredictionModel.forecast_run_id == core_run.task8_forecast_run_id,
-            MaturityDailyPredictionModel.created_at <= forecast_cutoff_at,
+    if task8_run is None:
+        return None
+    if task8_daily_row_id is not None:
+        task8_daily = session.get(MaturityDailyPredictionModel, task8_daily_row_id)
+        if (
+            task8_daily is None
+            or task8_daily.forecast_run_id != core_run.task8_forecast_run_id
+            or task8_daily.created_at > forecast_cutoff_at
+        ):
+            return None
+    else:
+        task8_daily = session.scalar(
+            select(MaturityDailyPredictionModel)
+            .where(
+                MaturityDailyPredictionModel.forecast_run_id == core_run.task8_forecast_run_id,
+                MaturityDailyPredictionModel.created_at <= forecast_cutoff_at,
+            )
+            .order_by(MaturityDailyPredictionModel.prediction_date.asc())
+            .limit(1)
         )
-        .order_by(MaturityDailyPredictionModel.prediction_date.asc())
-        .limit(1)
-    )
-    if task8_run is None or task8_daily is None:
+    if task8_daily is None:
         return None
 
     daily_row_identity_hash = task8_daily_prediction_payload_hash(

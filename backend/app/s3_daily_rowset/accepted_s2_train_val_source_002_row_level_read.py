@@ -105,6 +105,13 @@ def attest_accepted_s2_train_val_source_002_row_level_read() -> (
 ):
     if _session_provider is None:
         return _fail(Source002RowLevelReadReasonCode.FAIL_CLOSED_NO_SESSION)
+    from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_session import (  # noqa: E501
+        attest_source_002_via_async_session_run_sync,
+        is_live_async_session_run_sync_provider,
+    )
+
+    if is_live_async_session_run_sync_provider(_session_provider):
+        return attest_source_002_via_async_session_run_sync()
     try:
         session = _session_provider()
     except Exception:
