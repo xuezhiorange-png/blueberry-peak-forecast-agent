@@ -27,6 +27,14 @@ class ForecastDayResult:
 class IncumbentDailyCurveProvider:
     """Read-only incumbent replay port; production adapters must be PIT-visible."""
 
+    @property
+    def is_lawful_production_provider(self) -> bool:
+        return False
+
+    @property
+    def is_placeholder_provider(self) -> bool:
+        return False
+
     def forecast_kg_for_day(
         self,
         cell: EvaluationInstanceCell,
@@ -61,8 +69,30 @@ class FakeIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
 
 
 @dataclass
+class UnavailableIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
+    """Fail-closed provider when no lawful PIT-visible daily curve is bound."""
+
+    @property
+    def is_placeholder_provider(self) -> bool:
+        return True
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        del cell, business_date
+        return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
+
+
+@dataclass
 class SparseHorizonBindingForecastProvider(IncumbentDailyCurveProvider):
     """Test double mimicking sparse 7/14/21 binding rows only. Not for production."""
+
+    @property
+    def is_placeholder_provider(self) -> bool:
+        return True
 
     sparse_horizon_days: tuple[int, ...] = (7, 14, 21)
     forecast_kg: Decimal = Decimal("1.0")
