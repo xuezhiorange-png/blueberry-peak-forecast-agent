@@ -2,20 +2,28 @@
   "task_id": "V0_3_S3_B_LIVE_PAIRING_MATERIALIZATION_ACTIVATION_R1",
   "base_main_sha": "458f3e92a8f773f459ddcba0e8af17175dfafbee",
   "materialization_completed": false,
-  "materialization_blocker": "SOURCE_002_ROW_LEVEL_READ_NOT_ATTESTED",
+  "materialization_blocker": "NO_BOUND_PRODUCTION_DB_SESSION",
   "source_002_session_binding": {
     "existing_production_session_factory": "backend/app/db/session.py:AsyncSessionMaker",
-    "source_002_live_session_binding_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_session.py:source_002_row_level_read_live_session_provider"
+    "source_002_live_session_binding_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_session.py:source_002_row_level_read_live_session_provider",
+    "asyncsession_run_sync_binding_implemented": true
   },
   "source_002_attested": false,
-  "source_002_attestation_reason": "FAIL_CLOSED_SESSION_UNREADABLE",
+  "source_002_attestation_reason": "FAIL_CLOSED_NO_BOUND_PRODUCTION_DB",
   "train_official_hash_verified": false,
   "validation_official_hash_verified": false,
-  "forecast_provider_class": null,
+  "forecast_provider_class": "PitVisibleIncumbentDailyCurveProvider",
   "forecast_value_source": "backend/app/models/maturity.py:MaturityDailyPredictionModel via backend/app/s3_daily_rowset/pit_visible_incumbent_daily_curve_provider.py",
   "forecast_selection_mode": "historical_observed_pit_visible_unique_grain_forecast_run",
   "forecast_cutoff_at": "2026-02-16T00:00:00+08:00",
-  "forecast_authority_is_persisted": false,
+  "forecast_authority_scope": "PER_BINDING_ROW_OR_EXACT_TASK8_RUN",
+  "production_live_index_uses_exact_grains": true,
+  "production_live_index_uses_grains_none": false,
+  "ambiguous_forecast_run_fails_closed": true,
+  "multi_grain_multi_forecast_run_supported": true,
+  "forecast_value_run_authority_match_enforced": true,
+  "daily_row_authority_match_enforced": true,
+  "forecast_authority_is_persisted": true,
   "forecast_authority_is_synthetic": false,
   "live_execution_completed": false,
   "live_execution_blocker": "NO_BOUND_PRODUCTION_DB_SESSION",
@@ -30,5 +38,5 @@
   "issued_partition_authority_schema_version_count": 0,
   "s3_b_coverage_execution": "NOT_COMPUTABLE_OR_BLOCKED",
   "test_remains_sealed": true,
-  "agent_runtime_note": "Cloud agent VM could not establish a readable production DB session (asyncpg sync bridge unavailable). Adapter and obtain wiring are implemented and unit-tested; live execution awaits coordinator production DB binding."
+  "agent_runtime_note": "AsyncSession.run_sync SOURCE_002 binding and per-row forecast authority with exact-grain ambiguity fail-closed are implemented and unit-tested. Live execution awaits coordinator production DB access."
 }

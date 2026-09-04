@@ -14,6 +14,11 @@ from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityDailyPredictionModel, MaturityForecastRun
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.rolling_backtest.resolution import task8_daily_prediction_payload_hash
+from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
+from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
+    is_synthetic_forecast_authority,
+    load_persisted_forecast_binding_authority,
+)
 
 ForecastQuantile = Literal["P50", "P80", "P90"]
 
@@ -31,6 +36,7 @@ class PitVisibleDailyForecastCell:
     task8_daily_row_id: int
     daily_row_identity_hash: str
     forecast_run_identity_hash: str
+    forecast_binding_authority: S2ForecastAuthorityBundle
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,7 +80,7 @@ def _resolve_business_grain(
     return season.id, farm.id, subfarm.id, variety.id
 
 
-def _visible_forecast_run_for_grain(
+def _visible_forecast_run_count_for_grain(
     session: Session,
     *,
     season_id: int,
@@ -82,7 +88,7 @@ def _visible_forecast_run_for_grain(
     subfarm_id: int | None,
     variety_id: int,
     forecast_cutoff_at: datetime,
-) -> MaturityForecastRun | None:
+) -> int:
     query = (
         select(MaturityForecastRun)
         .join(FarmSeasonVarietyPlan, MaturityForecastRun.plan_id == FarmSeasonVarietyPlan.id)
@@ -99,10 +105,45 @@ def _visible_forecast_run_for_grain(
         query = query.where(FarmSeasonVarietyPlan.subfarm_id.is_(None))
     else:
         query = query.where(FarmSeasonVarietyPlan.subfarm_id == subfarm_id)
-    runs = list(session.scalars(query).all())
-    if len(runs) != 1:
+    return len(list(session.scalars(query).all()))
+
+
+def _visible_forecast_run_for_grain(
+    session: Session,
+    *,
+    season_id: int,
+    farm_id: int,
+    subfarm_id: int | None,
+    variety_id: int,
+    forecast_cutoff_at: datetime,
+) -> MaturityForecastRun | None:
+    count = _visible_forecast_run_count_for_grain(
+        session,
+        season_id=season_id,
+        farm_id=farm_id,
+        subfarm_id=subfarm_id,
+        variety_id=variety_id,
+        forecast_cutoff_at=forecast_cutoff_at,
+    )
+    if count != 1:
         return None
-    return runs[0]
+    query = (
+        select(MaturityForecastRun)
+        .join(FarmSeasonVarietyPlan, MaturityForecastRun.plan_id == FarmSeasonVarietyPlan.id)
+        .where(
+            FarmSeasonVarietyPlan.season_id == season_id,
+            FarmSeasonVarietyPlan.farm_id == farm_id,
+            FarmSeasonVarietyPlan.variety_id == variety_id,
+            MaturityForecastRun.status.in_(("completed", "unavailable")),
+            MaturityForecastRun.finished_at.is_not(None),
+            MaturityForecastRun.finished_at <= forecast_cutoff_at,
+        )
+    )
+    if subfarm_id is None:
+        query = query.where(FarmSeasonVarietyPlan.subfarm_id.is_(None))
+    else:
+        query = query.where(FarmSeasonVarietyPlan.subfarm_id == subfarm_id)
+    return session.scalar(query)
 
 
 def _forecast_kg_for_quantile(
@@ -124,6 +165,7 @@ def _append_daily_cells(
     variety: str,
     forecast_run: MaturityForecastRun,
     daily: MaturityDailyPredictionModel,
+    forecast_binding_authority: S2ForecastAuthorityBundle,
 ) -> None:
     daily_hash = task8_daily_prediction_payload_hash(
         daily,
@@ -137,6 +179,7 @@ def _append_daily_cells(
             task8_daily_row_id=daily.id,
             daily_row_identity_hash=daily_hash,
             forecast_run_identity_hash=forecast_run.source_signature,
+            forecast_binding_authority=forecast_binding_authority,
         )
 
 
@@ -144,58 +187,11 @@ def build_pit_visible_incumbent_daily_curve_index(
     session: Session,
     *,
     forecast_cutoff_at: datetime,
-    grains: frozenset[tuple[str, str, str, str]] | None = None,
+    grains: frozenset[tuple[str, str, str, str]],
 ) -> PitVisibleIncumbentDailyCurveIndex:
+    """Build a PIT-visible index for exact materialization grains only."""
     cells: dict[tuple[str, str, str, str, str, date], PitVisibleDailyForecastCell] = {}
     grain_forecast_run_count: dict[tuple[str, str, str, str], int] = {}
-
-    if grains is None:
-        rows = session.execute(
-            select(
-                Season.code,
-                Farm.name,
-                Subfarm.name,
-                Variety.code,
-                MaturityForecastRun,
-                MaturityDailyPredictionModel,
-            )
-            .join(FarmSeasonVarietyPlan, MaturityForecastRun.plan_id == FarmSeasonVarietyPlan.id)
-            .join(Season, FarmSeasonVarietyPlan.season_id == Season.id)
-            .join(Farm, FarmSeasonVarietyPlan.farm_id == Farm.id)
-            .join(Subfarm, FarmSeasonVarietyPlan.subfarm_id == Subfarm.id)
-            .join(Variety, FarmSeasonVarietyPlan.variety_id == Variety.id)
-            .join(
-                MaturityDailyPredictionModel,
-                MaturityDailyPredictionModel.forecast_run_id == MaturityForecastRun.id,
-            )
-            .where(
-                MaturityForecastRun.status.in_(("completed", "unavailable")),
-                MaturityForecastRun.finished_at.is_not(None),
-                MaturityForecastRun.finished_at <= forecast_cutoff_at,
-                MaturityDailyPredictionModel.created_at <= forecast_cutoff_at,
-            )
-        ).all()
-        seen_grains: set[tuple[str, str, str, str]] = set()
-        for season_code, farm_name, subfarm_name, variety_code, forecast_run, daily in rows:
-            subfarm_key = _subfarm_business_key(farm_name, subfarm_name)
-            grain_key = (season_code, farm_name, subfarm_key, variety_code)
-            seen_grains.add(grain_key)
-            _append_daily_cells(
-                cells,
-                season=season_code,
-                farm=farm_name,
-                subfarm=subfarm_key,
-                variety=variety_code,
-                forecast_run=forecast_run,
-                daily=daily,
-            )
-        for grain_key in seen_grains:
-            grain_forecast_run_count[grain_key] = 1
-        return PitVisibleIncumbentDailyCurveIndex(
-            forecast_cutoff_at=forecast_cutoff_at,
-            cells=cells,
-            grain_forecast_run_count=grain_forecast_run_count,
-        )
 
     for season, farm, subfarm, variety in sorted(grains):
         grain_key = (season, farm, subfarm, variety)
@@ -210,6 +206,17 @@ def build_pit_visible_incumbent_daily_curve_index(
             grain_forecast_run_count[grain_key] = 0
             continue
         season_id, farm_id, subfarm_id, variety_id = resolved
+        run_count = _visible_forecast_run_count_for_grain(
+            session,
+            season_id=season_id,
+            farm_id=farm_id,
+            subfarm_id=subfarm_id,
+            variety_id=variety_id,
+            forecast_cutoff_at=forecast_cutoff_at,
+        )
+        grain_forecast_run_count[grain_key] = run_count
+        if run_count != 1:
+            continue
         forecast_run = _visible_forecast_run_for_grain(
             session,
             season_id=season_id,
@@ -219,9 +226,7 @@ def build_pit_visible_incumbent_daily_curve_index(
             forecast_cutoff_at=forecast_cutoff_at,
         )
         if forecast_run is None:
-            grain_forecast_run_count[grain_key] = 0
             continue
-        grain_forecast_run_count[grain_key] = 1
         daily_rows = session.scalars(
             select(MaturityDailyPredictionModel).where(
                 MaturityDailyPredictionModel.forecast_run_id == forecast_run.id,
@@ -229,6 +234,14 @@ def build_pit_visible_incumbent_daily_curve_index(
             )
         ).all()
         for daily in daily_rows:
+            authority = load_persisted_forecast_binding_authority(
+                session,
+                forecast_cutoff_at=forecast_cutoff_at,
+                task8_forecast_run_id=forecast_run.id,
+                task8_daily_row_id=daily.id,
+            )
+            if authority is None or is_synthetic_forecast_authority(authority):
+                continue
             _append_daily_cells(
                 cells,
                 season=season,
@@ -237,6 +250,7 @@ def build_pit_visible_incumbent_daily_curve_index(
                 variety=variety,
                 forecast_run=forecast_run,
                 daily=daily,
+                forecast_binding_authority=authority,
             )
     return PitVisibleIncumbentDailyCurveIndex(
         forecast_cutoff_at=forecast_cutoff_at,

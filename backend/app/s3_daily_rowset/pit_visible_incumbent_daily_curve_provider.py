@@ -5,12 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.forecast_port import (
     ForecastAvailability,
     ForecastDayResult,
     IncumbentDailyCurveProvider,
 )
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
+    PitVisibleDailyForecastCell,
     PitVisibleIncumbentDailyCurveIndex,
 )
 from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
@@ -24,14 +26,14 @@ class PitVisibleIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
     def is_lawful_production_provider(self) -> bool:
         return True
 
-    def forecast_kg_for_day(
+    def _cell_for(
         self,
         cell: EvaluationInstanceCell,
         *,
         business_date: date,
-    ) -> ForecastDayResult:
+    ) -> PitVisibleDailyForecastCell | None:
         if cell.forecast_cutoff_at != self.index.forecast_cutoff_at:
-            return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
+            return None
         lookup_key = (
             cell.season,
             cell.farm,
@@ -40,7 +42,15 @@ class PitVisibleIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
             cell.forecast_quantile,
             business_date,
         )
-        matched = self.index.cells.get(lookup_key)
+        return self.index.cells.get(lookup_key)
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        matched = self._cell_for(cell, business_date=business_date)
         if matched is None:
             return ForecastDayResult(availability=ForecastAvailability.UNAVAILABLE)
         forecast_kg = matched.forecast_kg
@@ -50,3 +60,17 @@ class PitVisibleIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
             availability=ForecastAvailability.AVAILABLE,
             forecast_harvest_quantity_kg=forecast_kg,
         )
+
+    def forecast_authority_for(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> S2ForecastAuthorityBundle | None:
+        matched = self._cell_for(cell, business_date=business_date)
+        if matched is None:
+            return None
+        authority = matched.forecast_binding_authority
+        if authority.daily_row_identity_hash != matched.daily_row_identity_hash:
+            return None
+        return authority
