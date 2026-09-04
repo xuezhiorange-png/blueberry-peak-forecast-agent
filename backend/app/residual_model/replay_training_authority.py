@@ -21,6 +21,7 @@ from backend.app.residual_model.manifest import sort_feature_values
 from backend.app.residual_model.schemas import (
     FeatureValue,
     FeatureVisibilityAudit,
+    FinalTargetTrainingManifestRow,
     ResidualTrainingManifestRow,
 )
 
@@ -190,6 +191,60 @@ def dataset_identity(
 ) -> str:
     return canonical_payload_hash(
         {
+            "training_rows": list(training_rows),
+            "label_rows": list(label_rows),
+            "manifest_rows": list(manifest_rows),
+        }
+    )
+
+
+def final_target_actual_input_rows(
+    rows: Sequence[FinalTargetTrainingManifestRow],
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    training_rows = [
+        {
+            "harvest_business_date": row.harvest_business_date.isoformat(),
+            "value": normalized_numeric(row.actual_harvest_quantity_kg),
+        }
+        for row in rows
+    ]
+    label_rows = [
+        {
+            "harvest_business_date": row.harvest_business_date.isoformat(),
+            "label_availability_date": row.forecast_cutoff_at.date().isoformat(),
+            "value": normalized_numeric(row.actual_harvest_quantity_kg),
+        }
+        for row in rows
+    ]
+    return training_rows, label_rows
+
+
+def final_target_manifest_payload(
+    rows: Sequence[FinalTargetTrainingManifestRow],
+) -> list[dict[str, object]]:
+    from backend.app.residual_model.training_manifest import final_target_manifest_row_payload
+
+    return [
+        cast(
+            dict[str, object],
+            _json_safe(final_target_manifest_row_payload(row)),
+        )
+        for row in rows
+    ]
+
+
+def final_target_dataset_identity(
+    *,
+    training_rows: Sequence[Mapping[str, object]],
+    label_rows: Sequence[Mapping[str, object]],
+    manifest_rows: Sequence[Mapping[str, object]],
+    prediction_target_kind: str,
+    s2_authority_identity: str,
+) -> str:
+    return canonical_payload_hash(
+        {
+            "prediction_target_kind": prediction_target_kind,
+            "s2_authority_identity": s2_authority_identity,
             "training_rows": list(training_rows),
             "label_rows": list(label_rows),
             "manifest_rows": list(manifest_rows),

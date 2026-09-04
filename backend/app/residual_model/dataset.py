@@ -13,6 +13,7 @@ from backend.app.residual_model.feature_registry import feature_definition_map
 from backend.app.residual_model.schemas import (
     CategoryEncoding,
     FeatureValue,
+    FinalTargetTrainingManifestRow,
     ResidualTrainingManifestRow,
 )
 
@@ -214,6 +215,146 @@ def summarize_manifest(rows: list[ResidualTrainingManifestRow]) -> dict[str, Any
         "excluded_row_count": len(rows) - len(included),
         "distinct_season_count": len({row.season_id for row in included}),
         "distinct_factory_count": len({row.destination_factory_id for row in included}),
+        "split_counts": dict(sorted(split_counts.items())),
+        "feature_names": sorted(
+            {feature.feature_name for row in included for feature in row.feature_values}
+        ),
+    }
+
+
+def final_target_training_signature(
+    *,
+    config_hash: str,
+    rows: list[FinalTargetTrainingManifestRow],
+    s2_authority_identity: str,
+) -> str:
+    payload = {
+        "config_hash": config_hash,
+        "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+        "s2_authority_identity": s2_authority_identity,
+        "season_ids": sorted({row.season_id for row in rows}),
+        "farm_ids": sorted({row.farm_id for row in rows}),
+        "subfarm_ids": sorted({row.subfarm_id for row in rows}),
+        "variety_ids": sorted({row.variety_id for row in rows}),
+        "harvest_business_dates": sorted({row.harvest_business_date for row in rows}),
+        "forecast_cutoffs": sorted({row.forecast_cutoff_at.isoformat() for row in rows}),
+    }
+    return canonical_payload_hash(payload)
+
+
+def _string_feature_names_final_target(
+    rows: list[FinalTargetTrainingManifestRow],
+) -> tuple[str, ...]:
+    definitions = feature_definition_map()
+    names: set[str] = set()
+    for row in rows:
+        for feature in row.feature_values:
+            definition = definitions.get(feature.feature_name)
+            if definition is not None and definition.dtype.value == "string":
+                names.add(feature.feature_name)
+    return tuple(sorted(names))
+
+
+def build_final_target_category_encodings(
+    rows: list[FinalTargetTrainingManifestRow],
+    *,
+    config: ResidualModelConfig,
+) -> list[CategoryEncoding]:
+    encodings: list[CategoryEncoding] = []
+    for feature_name in _string_feature_names_final_target(rows):
+        values = []
+        for row in rows:
+            matching = next(
+                (item for item in row.feature_values if item.feature_name == feature_name),
+                None,
+            )
+            value = matching.value if matching is not None else None
+            values.append(value if isinstance(value, str) else None)
+        encodings.append(
+            build_category_encoding(
+                feature_name=feature_name,
+                categories=values,
+                encoding_version=config.rules.categorical_encoding_version,
+            )
+        )
+    return encodings
+
+
+def build_final_target_training_matrix(
+    rows: list[FinalTargetTrainingManifestRow],
+    *,
+    config: ResidualModelConfig,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], list[CategoryEncoding]]:
+    included_rows = [row for row in rows if row.include and row.split.value == "train"]
+    feature_names = sorted(
+        {feature.feature_name for row in included_rows for feature in row.feature_values}
+    )
+    encodings = {
+        item.feature_name: item
+        for item in build_final_target_category_encodings(included_rows, config=config)
+    }
+    matrix: list[list[float]] = []
+    labels: list[float] = []
+    weights: list[float] = []
+
+    for row in included_rows:
+        feature_map = {item.feature_name: item.value for item in row.feature_values}
+        vector: list[float] = []
+        for feature_name in feature_names:
+            value = feature_map.get(feature_name)
+            if feature_name in encodings:
+                encoded = encode_category(
+                    value if isinstance(value, str) else None,
+                    encoding=encodings[feature_name],
+                )
+                vector.append(float(encoded))
+            elif isinstance(value, bool):
+                vector.append(1.0 if value else 0.0)
+            elif isinstance(value, int):
+                vector.append(float(value))
+            elif isinstance(value, Decimal):
+                vector.append(float(value))
+            elif isinstance(value, str):
+                try:
+                    vector.append(float(Decimal(value)))
+                except InvalidOperation as exc:
+                    raise TypeError(
+                        f"Unsupported string feature value for {feature_name}: {value!r}"
+                    ) from exc
+            elif value is None:
+                vector.append(np.nan)
+            else:
+                raise TypeError(
+                    f"Unsupported feature value type for {feature_name}: {type(value).__name__}"
+                )
+        matrix.append(vector)
+        labels.append(float(row.actual_harvest_quantity_kg))
+        weights.append(float(row.sample_weight))
+
+    ordered_encodings = [encodings[name] for name in sorted(encodings)]
+    return (
+        np.array(matrix, dtype=float),
+        np.array(labels, dtype=float),
+        np.array(weights, dtype=float),
+        feature_names,
+        ordered_encodings,
+    )
+
+
+def summarize_final_target_manifest(rows: list[FinalTargetTrainingManifestRow]) -> dict[str, Any]:
+    included = [row for row in rows if row.include]
+    split_counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        split_counts[row.split.value] += 1
+    return {
+        "prediction_target_kind": "FINAL_TARGET_QUANTILE",
+        "row_count": len(rows),
+        "included_row_count": len(included),
+        "excluded_row_count": len(rows) - len(included),
+        "distinct_season_count": len({row.season_id for row in included}),
+        "distinct_grain_count": len(
+            {(row.farm_id, row.subfarm_id, row.variety_id) for row in included}
+        ),
         "split_counts": dict(sorted(split_counts.items())),
         "feature_names": sorted(
             {feature.feature_name for row in included for feature in row.feature_values}
