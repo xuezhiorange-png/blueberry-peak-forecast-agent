@@ -17,7 +17,6 @@ from backend.app.rolling_backtest.resolution import task8_daily_prediction_paylo
 from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
     is_synthetic_forecast_authority,
-    load_persisted_forecast_binding_authority,
 )
 from backend.app.s3_daily_rowset.schemas import HORIZON_DAYS
 from backend.app.s3_daily_rowset.window import expected_forecast_target_date
@@ -183,17 +182,8 @@ def _append_daily_cells(
             expected_target = expected_forecast_target_date(forecast_cutoff_at, horizon_days)
             if expected_target != daily.prediction_date:
                 continue
-            authority = load_persisted_forecast_binding_authority(
-                session,
-                forecast_cutoff_at=forecast_cutoff_at,
-                task8_forecast_run_id=forecast_run.id,
-                target_date=daily.prediction_date,
-                forecast_quantile=quantile,
-                horizon_days=horizon_days,
-                farm_id=farm_id,
-                subfarm_id=subfarm_id,
-                variety_id=variety_id,
-            )
+            # S3-B live path has no lawful persisted task10_prediction_run_id reference.
+            authority = None
             if authority is None or is_synthetic_forecast_authority(authority):
                 continue
             binding_authorities[horizon_days] = authority

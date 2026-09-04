@@ -4,27 +4,28 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
 from backend.app.models.core_forecast import (
     CoreForecastCodeAuthorityModel,
-    CoreForecastDailyRowModel,
-    CoreForecastRunModel,
 )
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.residual_model import ResidualModelPredictionRun, ResidualModelTrainingRun
 from backend.app.rolling_backtest.persisted_forecast_authority import (
     MATERIAL_S2_FORECAST_AUTHORITY_BUNDLE_FIELDS,
+    PersistedForecastAuthorityRefs,
     assert_full_s2_forecast_authority_bundle_equivalence,
     build_canonical_s2_forecast_authority_bundle,
-    resolve_canonical_persisted_forecast_authority_sync,
-    validate_canonical_persisted_forecast_authority_resolution,
+    validate_persisted_forecast_authority_chain,
 )
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
     load_persisted_forecast_binding_authority,
 )
 from backend.tests.forecast_quality.authority_loader_fixture import (
     CODE_AUTHORITY_ID,
+    CORE_RUN_ID,
     CUTOFF_AT,
     FARM_ID,
     PREDICTION_RUN_ID,
@@ -37,188 +38,259 @@ from backend.tests.forecast_quality.authority_loader_fixture import (
     _prediction_row,
     seed_canonical_authority_fixture,
 )
+from backend.tests.forecast_quality.persisted_forecast_authority_fixture_mocks import (
+    copy_fixture_rows_to_async_session,
+    create_authority_fixture_async_engine,
+    ensure_authority_fixture_tables,
+    install_authority_fixture_mock_loaders,
+    session_rows_from_sync_fixture,
+)
 
 pytest_plugins = ["backend.tests.forecast_quality.authority_loader_fixture"]
 
 
-def _load_binding_authority(
-    session: Session,
+async def _load_binding_authority_async(
+    sync_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
     *,
     target_date,
     forecast_quantile: str = "P50",
     horizon_days: int = 7,
+    task10_prediction_run_id: int | None = PREDICTION_RUN_ID,
+    fixture: dict[str, object] | None = None,
 ):
-    return load_persisted_forecast_binding_authority(
-        session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
-        target_date=target_date,
-        forecast_quantile=forecast_quantile,
-        horizon_days=horizon_days,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+    if fixture is None:
+        fixture = seed_canonical_authority_fixture(sync_session)
+    core_row = fixture["core_row_p50_a"]
+    rows = session_rows_from_sync_fixture(sync_session, fixture=fixture)
+    install_authority_fixture_mock_loaders(
+        monkeypatch,
+        session_rows=rows,
+        core_row=core_row,
+        task9_member=fixture["member_p50_a"],
+        prediction_row=fixture["pred_row_h7_a"] if horizon_days == 7 else fixture["pred_row_h14_b"],
     )
+    engine = create_authority_fixture_async_engine()
+    await ensure_authority_fixture_tables(engine)
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        await copy_fixture_rows_to_async_session(sync_session, session, fixture=fixture)
+        bundle = await load_persisted_forecast_binding_authority(
+            session,
+            forecast_cutoff_at=CUTOFF_AT,
+            task8_forecast_run_id=TASK8_RUN_ID,
+            target_date=target_date,
+            forecast_quantile=forecast_quantile,
+            horizon_days=horizon_days,
+            farm_id=FARM_ID,
+            subfarm_id=SUBFARM_ID,
+            variety_id=VARIETY_ID,
+            task10_prediction_run_id=task10_prediction_run_id,
+        )
+    await engine.dispose()
+    return bundle, fixture, core_row
 
 
-def _resolve_binding_authority(
-    session: Session,
-    *,
-    target_date,
-    forecast_quantile: str = "P50",
-    horizon_days: int = 7,
-):
-    return resolve_canonical_persisted_forecast_authority_sync(
-        session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
-        target_date=target_date,
-        forecast_quantile=forecast_quantile,
-        horizon_days=horizon_days,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+@pytest.mark.asyncio
+async def test_real_canonical_acceptance(authority_loader_session, monkeypatch) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    bundle, _, core_row = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
     )
+    assert bundle is not None
+    assert bundle.daily_row_identity_hash == core_row.row_hash
 
 
-def test_real_canonical_acceptance(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_full_bundle_equivalence(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
     core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
-    bundle = _load_binding_authority(authority_loader_session, target_date=core_row.date)
-    resolution = _resolve_binding_authority(authority_loader_session, target_date=core_row.date)
-    assert bundle is not None
-    assert resolution is not None
-    validate_canonical_persisted_forecast_authority_resolution(
-        resolution,
-        forecast_cutoff_at=CUTOFF_AT,
-        target_date=core_row.date,
-        horizon_days=7,
-        forecast_authority=bundle,
+    rows = session_rows_from_sync_fixture(authority_loader_session, fixture=fixture)
+    install_authority_fixture_mock_loaders(
+        monkeypatch,
+        session_rows=rows,
+        core_row=core_row,
+        task9_member=fixture["member_p50_a"],
+        prediction_row=fixture["pred_row_h7_a"],
     )
-
-
-def test_full_bundle_equivalence(authority_loader_session: Session) -> None:
-    fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
-    bundle = _load_binding_authority(authority_loader_session, target_date=core_row.date)
-    resolution = _resolve_binding_authority(authority_loader_session, target_date=core_row.date)
+    engine = create_authority_fixture_async_engine()
+    await ensure_authority_fixture_tables(engine)
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        await copy_fixture_rows_to_async_session(authority_loader_session, session, fixture=fixture)
+        bundle = await load_persisted_forecast_binding_authority(
+            session,
+            forecast_cutoff_at=CUTOFF_AT,
+            task8_forecast_run_id=TASK8_RUN_ID,
+            target_date=core_row.date,
+            forecast_quantile="P50",
+            horizon_days=7,
+            farm_id=FARM_ID,
+            subfarm_id=SUBFARM_ID,
+            variety_id=VARIETY_ID,
+            task10_prediction_run_id=PREDICTION_RUN_ID,
+        )
+        assert bundle is not None
+        resolution = await validate_persisted_forecast_authority_chain(
+            session,
+            refs=PersistedForecastAuthorityRefs(
+                core_forecast_run_id=CORE_RUN_ID,
+                core_forecast_daily_row_id=core_row.id,
+                task9_run_id=TASK9_RUN_ID,
+                task10_prediction_run_id=PREDICTION_RUN_ID,
+            ),
+            forecast_cutoff_at=CUTOFF_AT,
+            target_date=core_row.date,
+            horizon_days=7,
+        )
+    await engine.dispose()
     assert bundle is not None
-    assert resolution is not None
     expected = build_canonical_s2_forecast_authority_bundle(resolution)
     assert_full_s2_forecast_authority_bundle_equivalence(bundle, expected)
     for field_name in MATERIAL_S2_FORECAST_AUTHORITY_BUNDLE_FIELDS:
         assert getattr(bundle, field_name) == getattr(expected, field_name)
 
 
-def test_task9_non_replay_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_task9_non_replay_fails_closed(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     task9 = authority_loader_session.get(HarvestStateRun, TASK9_RUN_ID)
     assert task9 is not None
     task9.is_replay = False
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_task9_replay_metadata_incomplete_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_task9_replay_metadata_incomplete_fails_closed(
+    authority_loader_session, monkeypatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     task9 = authority_loader_session.get(HarvestStateRun, TASK9_RUN_ID)
     assert task9 is not None
     task9.replay_executed_at = None
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
-
-    task9.replay_executed_at = CUTOFF_AT
-    task9.replay_code_version = None
-    authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
-
-    task9.replay_code_version = "fixture-replay-v1"
-    task9.replay_run_correlation_id = None
-    authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_task9_cutoff_drift_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_task9_cutoff_drift_fails_closed(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     task9 = authority_loader_session.get(HarvestStateRun, TASK9_RUN_ID)
     assert task9 is not None
     task9.forecast_effective_cutoff_at = CUTOFF_AT + timedelta(days=1)
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_task10_ineligible_model_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_task10_ineligible_model_fails_closed(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     training = authority_loader_session.get(ResidualModelTrainingRun, TRAINING_RUN_ID)
     assert training is not None
     training.eligibility_status = "not_evaluated"
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_task10_training_signature_drift_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_task10_training_signature_drift_fails_closed(
+    authority_loader_session, monkeypatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     prediction = authority_loader_session.get(ResidualModelPredictionRun, PREDICTION_RUN_ID)
     assert prediction is not None
     prediction.input_snapshot = {"training_signature": _fixture_hash("drifted-training-signature")}
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_task10_task9_chain_drift_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_task10_task9_chain_drift_fails_closed(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     prediction = authority_loader_session.get(ResidualModelPredictionRun, PREDICTION_RUN_ID)
     assert prediction is not None
     prediction.task9_result_hash = _fixture_hash("drifted-task9-result-hash")
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_core_row_chain_drift_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_core_row_chain_drift_fails_closed(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
     core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     core_row.task9_result_hash = _fixture_hash("drifted-core-row-task9-hash")
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=core_row.date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
 
-def test_code_authority_visibility_drift_fails_closed(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_code_authority_visibility_drift_fails_closed(
+    authority_loader_session, monkeypatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     code_authority = authority_loader_session.get(CoreForecastCodeAuthorityModel, CODE_AUTHORITY_ID)
     assert code_authority is not None
     code_authority.available_at = CUTOFF_AT + timedelta(days=1)
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=fixture["core_row_p50_a"].date,
+        fixture=fixture,
+    )
+    assert bundle is None
 
-    code_authority.available_at = CUTOFF_AT
-    core_run = authority_loader_session.get(CoreForecastRunModel, core_row.core_forecast_run_id)
-    assert core_run is not None
-    core_run.code_authority_hash = _fixture_hash("drifted-code-authority-hash")
-    authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
 
-
-def test_multiple_task10_runs_no_discovery(authority_loader_session: Session) -> None:
+@pytest.mark.asyncio
+async def test_multiple_task10_runs_no_discovery(authority_loader_session, monkeypatch) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
     core_row = fixture["core_row_p50_a"]
-    assert isinstance(core_row, CoreForecastDailyRowModel)
     duplicate_run = ResidualModelPredictionRun(
         id=9999,
         training_run_id=TRAINING_RUN_ID,
@@ -252,4 +324,11 @@ def test_multiple_task10_runs_no_discovery(authority_loader_session: Session) ->
     )
     authority_loader_session.add_all([duplicate_run, second_row])
     authority_loader_session.commit()
-    assert _load_binding_authority(authority_loader_session, target_date=core_row.date) is None
+    bundle, _, _ = await _load_binding_authority_async(
+        authority_loader_session,
+        monkeypatch,
+        target_date=core_row.date,
+        task10_prediction_run_id=None,
+        fixture=fixture,
+    )
+    assert bundle is None

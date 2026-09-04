@@ -5,21 +5,17 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from backend.app.models.core_forecast import CoreForecastDailyRowModel, CoreForecastRunModel
 from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel
-from backend.app.models.residual_model import (
-    ResidualModelPredictionRow,
-    ResidualModelPredictionRun,
-    ResidualModelTrainingRun,
-)
 from backend.app.rolling_backtest.persisted_forecast_authority import (
     ForecastQuantile,
     _resolve_exact_core_daily_row_sync,
     build_canonical_s2_forecast_authority_bundle,
-    resolve_canonical_persisted_forecast_authority_sync,
-    resolve_exact_task10_prediction_sync,
+    resolve_persisted_forecast_binding_refs,
+    validate_persisted_forecast_authority_chain,
 )
 from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 
@@ -94,27 +90,8 @@ def _resolve_exact_task9_member(
     return matching_members[0]
 
 
-def _resolve_exact_task10_prediction(
-    session: Session,
-    *,
-    task9_run_id: int,
-    forecast_cutoff_at: datetime,
-    target_date: date,
-    horizon_days: int,
-    destination_factory_id: int,
-) -> tuple[ResidualModelPredictionRun, ResidualModelPredictionRow, ResidualModelTrainingRun] | None:
-    return resolve_exact_task10_prediction_sync(
-        session,
-        task9_run_id=task9_run_id,
-        forecast_cutoff_at=forecast_cutoff_at,
-        target_date=target_date,
-        horizon_days=horizon_days,
-        destination_factory_id=destination_factory_id,
-    )
-
-
-def load_persisted_forecast_binding_authority(
-    session: Session,
+async def load_persisted_forecast_binding_authority(
+    session: AsyncSession,
     *,
     forecast_cutoff_at: datetime,
     task8_forecast_run_id: int,
@@ -124,9 +101,12 @@ def load_persisted_forecast_binding_authority(
     farm_id: int,
     subfarm_id: int,
     variety_id: int,
+    task10_prediction_run_id: int | None,
 ) -> S2ForecastAuthorityBundle | None:
-    """Load the exact persisted S2ForecastAuthorityBundle for one binding row."""
-    resolution = resolve_canonical_persisted_forecast_authority_sync(
+    """Load one exact persisted authority bundle using the shared canonical validator."""
+    if task10_prediction_run_id is None:
+        return None
+    refs = await resolve_persisted_forecast_binding_refs(
         session,
         forecast_cutoff_at=forecast_cutoff_at,
         task8_forecast_run_id=task8_forecast_run_id,
@@ -136,8 +116,19 @@ def load_persisted_forecast_binding_authority(
         farm_id=farm_id,
         subfarm_id=subfarm_id,
         variety_id=variety_id,
+        task10_prediction_run_id=task10_prediction_run_id,
     )
-    if resolution is None:
+    if refs is None:
+        return None
+    try:
+        resolution = await validate_persisted_forecast_authority_chain(
+            session,
+            refs=refs,
+            forecast_cutoff_at=forecast_cutoff_at,
+            target_date=target_date,
+            horizon_days=horizon_days,
+        )
+    except ValueError:
         return None
     bundle = build_canonical_s2_forecast_authority_bundle(resolution)
     if is_synthetic_forecast_authority(bundle):
