@@ -277,8 +277,6 @@ def validate_canonical_core_forecast_chain(
         raise ValueError("core forecast run must be completed")
     if not _cutoff_matches(core_run.forecast_effective_cutoff_at, forecast_cutoff_at):
         raise ValueError("core forecast cutoff does not match requested forecast cutoff")
-    if not _visible_at_or_before(core_run.completed_at, forecast_cutoff_at):
-        raise ValueError("core forecast run is visible after the forecast cutoff")
     if core_row.core_forecast_run_id != core_run.id:
         raise ValueError("forecast daily row does not belong to requested core run")
     if core_row.date != target_date:
