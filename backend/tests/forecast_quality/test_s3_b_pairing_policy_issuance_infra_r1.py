@@ -19,6 +19,8 @@ from backend.app.forecast_quality.train_val_pairing import (
 from backend.app.forecast_quality.train_val_pairing_policy_registry import (
     GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID,
     GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE,
+    GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION,
+    PAIRING_POLICY_AUTHORITY_CONTRACT_VERSION,
     PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
     IssuedPairingPolicyRecord,
     TrustedIssuedPairingPolicyRegistry,
@@ -78,6 +80,7 @@ def test_c_tamper_detection() -> None:
         ("policy_kind", "EXACT_ACTUAL_PAIRING"),
         ("policy_version", "tampered-version-v1"),
         ("semantic_rule_or_authority", "WRONG_SEMANTIC"),
+        ("semantic_authority_version", "forged-contract-v2"),
         ("issuer_identity_or_version", "forged-issuer"),
         ("permitted_partitions", ("TEST",)),
     ]
@@ -147,6 +150,7 @@ def test_j_semantic_authority_mismatch_rejected() -> None:
         policy_kind="EXACT_ACTUAL_PAIRING",
         policy_version=EXACT_ACTUAL_PAIRING_POLICY_V1,
         semantic_rule_or_authority="WRONG_SEMANTIC",
+        semantic_authority_version=None,
         issuer_identity_or_version="test-issuer-v1",
         permitted_partitions=_CANONICAL_PARTITIONS,
         canonical_hash="",
@@ -182,14 +186,64 @@ def test_k_production_seal() -> None:
 def test_contract_grounded_semantic_authority() -> None:
     exact = _exact_record()
     assert exact.semantic_rule_or_authority == FROZEN_EXACT_ACTUAL_PAIRING_RULE
+    assert exact.semantic_authority_version is None
     general = _general_record()
     assert general.semantic_rule_or_authority == GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID
+    assert general.semantic_authority_version == GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION
     assert (
         GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE
         == "docs/v0-3/s3/s3-b-pairing-policy-authority-contract.md"
     )
     assert general.permitted_partitions == _CANONICAL_PARTITIONS
     assert exact.permitted_partitions == _CANONICAL_PARTITIONS
+
+
+def test_general_policy_contract_version_bound_in_record_hash() -> None:
+    general = _general_record()
+    assert general.semantic_authority_version == PAIRING_POLICY_AUTHORITY_CONTRACT_VERSION
+    tampered = dataclasses.replace(
+        general,
+        semantic_authority_version="forged-contract-v2",
+    )
+    assert not verify_policy_record_hash_replay(tampered)
+
+
+def test_wrong_semantic_authority_version_blocked_in_registry() -> None:
+    candidate = IssuedPairingPolicyRecord(
+        policy_record_identity="",
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        semantic_rule_or_authority=GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID,
+        semantic_authority_version="forged-contract-v2",
+        issuer_identity_or_version="test-issuer-v1",
+        permitted_partitions=_CANONICAL_PARTITIONS,
+        canonical_hash="",
+    )
+    identity, canonical = compute_policy_record_identity_hashes(candidate)
+    forged = dataclasses.replace(
+        candidate,
+        policy_record_identity=identity,
+        canonical_hash=canonical,
+    )
+    assert verify_policy_record_hash_replay(forged)
+    registry = TrustedIssuedPairingPolicyRegistry({identity: forged})
+    blocker = verify_issued_pairing_policy(
+        TRAIN_VAL_PAIRING_POLICY_V1,
+        "TRAIN_VAL_BINDING_PAIRING",
+        registry=registry,
+    )
+    assert blocker == "TRAIN_VALIDATION_PAIRING_POLICY_SEMANTIC_MISMATCH"
+
+
+def test_contract_version_drift_changes_policy_record_identity() -> None:
+    baseline = _general_record()
+    drifted = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version="test-issuer-v1",
+        semantic_authority_version="forged-contract-v2",
+    )
+    assert drifted.policy_record_identity != baseline.policy_record_identity
 
 
 def test_registry_wrong_mapping_key_rejected() -> None:
@@ -263,6 +317,16 @@ def test_candidate_empty_semantic_not_silently_defaulted() -> None:
         semantic_rule_or_authority="",
     )
     assert record.semantic_rule_or_authority == ""
+
+
+def test_candidate_empty_semantic_authority_version_not_silently_defaulted() -> None:
+    record = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version="test-issuer-v1",
+        semantic_authority_version="",
+    )
+    assert record.semantic_authority_version == ""
 
 
 def test_candidate_empty_partitions_not_silently_defaulted() -> None:
