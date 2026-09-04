@@ -304,9 +304,7 @@ def test_k_package_present_binding_mismatch() -> None:
         permitted_partitions=("TRAIN",),
         issuer_identity_or_version="issuer-v1",
     )
-    published = TrustedPublishedPairingPackageRegistry(
-        {package.pairing_package_identity: package}
-    )
+    published = TrustedPublishedPairingPackageRegistry({package.pairing_package_identity: package})
     issued = TrustedIssuedAuthorityRegistry({record.authority_record_identity: record})
     authority = _partition_authority(
         package,
