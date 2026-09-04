@@ -35,6 +35,9 @@ from backend.app.models.core_forecast import (
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.core_forecast_task10_authority_binding import (
+    CoreForecastTask10AuthorityBindingModel,
+)
 from backend.app.models.forecast_quality import (
     ModelBaselineComparisonModel,
     NaiveBaselineRunModel,
@@ -137,6 +140,7 @@ __all__ = [
     "BaselineBacktestResult",
     "ClimateZoneImportRun",
     "BaselineBacktestRun",
+    "CoreForecastTask10AuthorityBindingModel",
     "CoreForecastDailyRowModel",
     "CoreForecastMarketablePolicyEntryModel",
     "CoreForecastMarketablePolicyModel",
