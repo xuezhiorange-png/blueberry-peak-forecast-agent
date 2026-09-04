@@ -427,9 +427,12 @@ async def test_existing_rows_without_binding_remain_compatible_and_fail_closed(
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         await copy_fixture_rows_to_async_session(authority_loader_session, session, fixture=fixture)
-        core_run = await session.get(__import__(
-            "backend.app.models.core_forecast", fromlist=["CoreForecastRunModel"]
-        ).CoreForecastRunModel, CORE_RUN_ID)
+        core_run = await session.get(
+            __import__(
+                "backend.app.models.core_forecast", fromlist=["CoreForecastRunModel"]
+            ).CoreForecastRunModel,
+            CORE_RUN_ID,
+        )
         assert core_run is not None
         bundle = await load_persisted_forecast_binding_authority(
             session,
