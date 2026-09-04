@@ -20,6 +20,7 @@ from backend.app.forecast_quality.schemas import BreakdownSpec, S3BindingRow, S3
 from backend.app.forecast_quality.train_val_pairing import (
     ACCEPTED_TRAIN_PARTITION_IDENTITY,
     ACCEPTED_VALIDATION_PARTITION_IDENTITY,
+    EXACT_ACTUAL_PAIRING_POLICY_V1,
     EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED,
     EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS,
     FROZEN_EXACT_ACTUAL_PAIRING_RULE,
@@ -136,7 +137,7 @@ def _rehash_package(package: object, **changes: object) -> object:
 def _test_policy_registry(
     *,
     general_version: str = TRAIN_VAL_PAIRING_POLICY_V1,
-    exact_version: str = _TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION,
+    exact_version: str = EXACT_ACTUAL_PAIRING_POLICY_V1,
 ) -> TrustedIssuedPairingPolicyRegistry:
     general = build_candidate_policy_record(
         policy_kind="TRAIN_VAL_BINDING_PAIRING",
@@ -160,7 +161,7 @@ def _full_verifier_blocker(
     package: object,
     *,
     evaluation_input: S3EvaluationInput | None = None,
-    exact_policy_version: str = _TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION,
+    exact_policy_version: str = EXACT_ACTUAL_PAIRING_POLICY_V1,
     issued_exact: frozenset[str] | None = None,
 ) -> str | None:
     published_package = _rehash_package(
@@ -513,9 +514,7 @@ def test_empty_exact_policy_blocks_published_execution() -> None:
         issued_registry=TrustedIssuedAuthorityRegistry({record.authority_record_identity: record}),
         issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
         issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
-        issued_exact_actual_pairing_policy_versions=frozenset(
-            {_TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION}
-        ),
+        issued_exact_actual_pairing_policy_versions=frozenset({EXACT_ACTUAL_PAIRING_POLICY_V1}),
     )
     assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
 
@@ -525,7 +524,7 @@ def test_unissued_non_empty_exact_policy_blocks_published_execution() -> None:
     blocker = _full_verifier_blocker(
         package,
         exact_policy_version="unissued-exact-policy-v1",
-        issued_exact=frozenset({_TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION}),
+        issued_exact=frozenset({EXACT_ACTUAL_PAIRING_POLICY_V1}),
     )
     assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
 
