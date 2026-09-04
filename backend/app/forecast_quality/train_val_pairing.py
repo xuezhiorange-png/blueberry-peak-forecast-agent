@@ -32,6 +32,7 @@ FROZEN_EXACT_ACTUAL_PAIRING_RULE = "EXACT_ACTUAL_PAIRED"
 EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS = "NOT_ISSUED"
 EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED = ""
 _ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS: frozenset[str] = frozenset()
+ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS = _ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
 
 _TRAIN_VAL_PARTITIONS = frozenset({"TRAIN", "VALIDATION"})
 _PAIRING_PACKAGE_IDENTITY_FIELD = "pairing_package_identity"
@@ -115,6 +116,27 @@ ACCEPTED_SOURCE_DATASET_IDENTITY = SourceDatasetIdentity(
     dataset_version=EXPECTED_DATASET_VERSION,
     materialized_dataset_identity_sha256=EXPECTED_MATERIALIZED_DATASET_IDENTITY_SHA256,
 )
+
+ACCEPTED_TRAIN_PARTITION_IDENTITY = PartitionIdentity(
+    partition_name="TRAIN",
+    partition_identity_sha256="55d8e97e73568def2cd368bcf76deeb13de5089361f70b08c8101ea8f745097b",
+    content_sha256="be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2",
+    partition_start_date=date(2025, 8, 5),
+    partition_end_date=date(2026, 1, 30),
+)
+
+ACCEPTED_VALIDATION_PARTITION_IDENTITY = PartitionIdentity(
+    partition_name="VALIDATION",
+    partition_identity_sha256="006c80ff6bc88ecf7112fd082ab7e27e71655ebd2f00ff105d6110a8473244ba",
+    content_sha256="4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06",
+    partition_start_date=date(2026, 1, 31),
+    partition_end_date=date(2026, 3, 9),
+)
+
+_CANONICAL_PARTITION_IDENTITIES: dict[str, PartitionIdentity] = {
+    "TRAIN": ACCEPTED_TRAIN_PARTITION_IDENTITY,
+    "VALIDATION": ACCEPTED_VALIDATION_PARTITION_IDENTITY,
+}
 
 
 @dataclass(frozen=True)
@@ -229,15 +251,22 @@ def _assert_no_native_float_in_rows(rows: tuple[S3BindingRow, ...] | list[S3Bind
                 raise S3DecimalAssertionError("native float is not a business value")
 
 
-def validate_pairing_package_invariants(
+def _validate_canonical_partition_identity(package: TrainValidationS3BindingPairingPackage) -> None:
+    canonical = _CANONICAL_PARTITION_IDENTITIES.get(package.partition)
+    if canonical is None or package.partition_identity != canonical:
+        raise TrainValPairingPackageInvariantError("partition identity not bound to lawful origin")
+
+
+def _validate_pairing_package_core_invariants(
     package: TrainValidationS3BindingPairingPackage,
 ) -> None:
-    """Fail-closed invariant checks for a candidate or published package."""
+    """Shared structural invariants for candidate and published packages."""
 
     if package.partition not in _TRAIN_VAL_PARTITIONS:
         raise TrainValPairingPackageInvariantError("TEST or unknown partition forbidden")
     if package.partition_identity.partition_name != package.partition:
         raise TrainValPairingPackageInvariantError("partition identity name mismatch")
+    _validate_canonical_partition_identity(package)
     if package.source_dataset_identity != ACCEPTED_SOURCE_DATASET_IDENTITY:
         raise TrainValPairingPackageInvariantError("source dataset identity mismatch")
     if package.actuals_authority_identity != V0_3_S3_ACTUALS_AUTHORITY:
@@ -248,14 +277,6 @@ def validate_pairing_package_invariants(
         raise TrainValPairingPackageInvariantError("forecast cutoff authority missing")
     if not _is_sha256(package.forecast_cutoff_authority_identity):
         raise TrainValPairingPackageInvariantError("forecast cutoff authority invalid")
-    if package.exact_actual_pairing_policy_version:
-        if (
-            package.exact_actual_pairing_policy_version
-            not in _ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
-        ):
-            raise TrainValPairingPackageInvariantError(
-                "exact actual pairing policy version not issued"
-            )
     for field_name, expected in (
         ("s2_run_identity", package.evaluation_input.s2_run_identity),
         ("s2_manifest_identity", package.evaluation_input.s2_manifest_identity),
@@ -265,6 +286,37 @@ def validate_pairing_package_invariants(
         if package_value != expected:
             raise TrainValPairingPackageInvariantError(f"{field_name} binding mismatch")
     _assert_no_native_float_in_rows(tuple(package.evaluation_input.rows))
+
+
+def validate_pairing_package_candidate_invariants(
+    package: TrainValidationS3BindingPairingPackage,
+) -> None:
+    """Candidate checks; empty exact-actual policy is allowed."""
+
+    _validate_pairing_package_core_invariants(package)
+
+
+def validate_published_pairing_package_invariants(
+    package: TrainValidationS3BindingPairingPackage,
+) -> None:
+    """Published/execution checks; exact-actual policy must be issued."""
+
+    _validate_pairing_package_core_invariants(package)
+    if not package.exact_actual_pairing_policy_version.strip():
+        raise TrainValPairingPackageInvariantError("exact actual pairing policy version not issued")
+    if (
+        package.exact_actual_pairing_policy_version
+        not in _ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
+    ):
+        raise TrainValPairingPackageInvariantError("exact actual pairing policy version not issued")
+
+
+def validate_pairing_package_invariants(
+    package: TrainValidationS3BindingPairingPackage,
+) -> None:
+    """Alias for candidate structural validation."""
+
+    validate_pairing_package_candidate_invariants(package)
 
 
 def build_candidate_train_validation_pairing_package(
@@ -303,7 +355,7 @@ def build_candidate_train_validation_pairing_package(
         evaluation_input=evaluation_input,
         canonical_hash="",
     )
-    validate_pairing_package_invariants(candidate)
+    validate_pairing_package_candidate_invariants(candidate)
     pairing_package_identity, canonical_hash = compute_pairing_package_identity_hashes(candidate)
     return TrainValidationS3BindingPairingPackage(
         schema_version=candidate.schema_version,
@@ -326,9 +378,12 @@ def build_candidate_train_validation_pairing_package(
 
 __all__ = [
     "ACCEPTED_SOURCE_DATASET_IDENTITY",
+    "ACCEPTED_TRAIN_PARTITION_IDENTITY",
+    "ACCEPTED_VALIDATION_PARTITION_IDENTITY",
     "EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED",
     "EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS",
     "FROZEN_EXACT_ACTUAL_PAIRING_RULE",
+    "ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS",
     "PartitionIdentity",
     "SourceDatasetIdentity",
     "TRAIN_VAL_PAIRING_PACKAGE_SCHEMA_V1",
@@ -339,7 +394,9 @@ __all__ = [
     "build_pairing_package_semantic_payload",
     "compute_pairing_package_identity_hashes",
     "compute_two_stage_identity_hashes",
+    "validate_pairing_package_candidate_invariants",
     "validate_pairing_package_invariants",
+    "validate_published_pairing_package_invariants",
     "verify_pairing_package_hash_replay",
     "verify_two_stage_identity_excluded_from_preimage",
 ]

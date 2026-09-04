@@ -11,11 +11,12 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from .train_val_pairing import (
+    ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS,
     TRAIN_VAL_PAIRING_POLICY_V1,
     TrainValidationS3BindingPairingPackage,
     TrainValPairingPackageInvariantError,
+    _validate_pairing_package_core_invariants,
     compute_two_stage_identity_hashes,
-    validate_pairing_package_invariants,
     verify_pairing_package_hash_replay,
     verify_two_stage_identity_excluded_from_preimage,
 )
@@ -159,6 +160,9 @@ def verify_train_validation_coverage_authority(
     issued_registry: TrustedIssuedAuthorityRegistry,
     issued_schema_versions: frozenset[str],
     issued_pairing_policy_versions: frozenset[str] = _ISSUED_PAIRING_POLICY_VERSIONS,
+    issued_exact_actual_pairing_policy_versions: frozenset[str] = (
+        ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
+    ),
 ) -> str | None:
     """Return a blocker reason or None when the full authority chain is proven."""
 
@@ -196,9 +200,15 @@ def verify_train_validation_coverage_authority(
         return "TRAIN_VALIDATION_PAIRING_PACKAGE_HASH_MISMATCH"
 
     try:
-        validate_pairing_package_invariants(published_package)
+        _validate_pairing_package_core_invariants(published_package)
     except TrainValPairingPackageInvariantError:
         return "TRAIN_VALIDATION_PAIRING_PACKAGE_INVARIANT_VIOLATION"
+
+    exact_policy_version = published_package.exact_actual_pairing_policy_version.strip()
+    if not exact_policy_version:
+        return "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
+    if exact_policy_version not in issued_exact_actual_pairing_policy_versions:
+        return "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
 
     if published_package.pairing_package_identity != issued_record.pairing_package_identity:
         return "TRAIN_VALIDATION_PAIRING_PACKAGE_HASH_MISMATCH"
