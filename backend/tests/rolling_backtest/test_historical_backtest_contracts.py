@@ -30,10 +30,12 @@ from backend.app.actual_harvest_labels.persistence import (
 from backend.app.core_forecast.repository import Task9AuthoritySource, Task9MemberSource
 from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
 from backend.app.rolling_backtest.orchestration import (
-    _task9_member_identity_hash,
     build_s2_binding_rows,
     resolve_s2_persisted_authorities,
     run_s2_historical_binding,
+)
+from backend.app.rolling_backtest.persisted_forecast_authority import (
+    task9_member_identity_hash as _task9_member_identity_hash,
 )
 from backend.app.rolling_backtest.schemas import (
     S2ActualLabelAuthority,
