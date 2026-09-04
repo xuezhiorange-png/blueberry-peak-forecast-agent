@@ -879,8 +879,7 @@ async def validate_persisted_forecast_authority_chain(
             or expected_forecast_authority.forecast_code_identity != code_authority.authority_hash
             or expected_forecast_authority.historical_code_identity
             != code_authority.source_commit_sha
-            or expected_forecast_authority.build_artifact_hash
-            != code_authority.build_artifact_hash
+            or expected_forecast_authority.build_artifact_hash != code_authority.build_artifact_hash
             or expected_forecast_authority.config_bundle_hash != code_authority.config_bundle_hash
             or expected_forecast_authority.model_identity != core_run.task8_artifact_hash
             or expected_forecast_authority.parameter_identity != core_row.marketable_policy_hash
