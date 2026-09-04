@@ -490,7 +490,10 @@ def _forecast_authority_for_binding(
 ) -> S2ForecastAuthorityBundle | TrainValidationPairingMaterializationBlocker:
     authority_for = getattr(forecast_provider, "forecast_authority_for", None)
     if authority_for is not None:
-        authority = authority_for(cell, business_date=business_date)
+        authority = cast(
+            S2ForecastAuthorityBundle | None,
+            authority_for(cell, business_date=business_date),
+        )
         if authority is None:
             return TrainValidationPairingMaterializationBlocker.FORECAST_AUTHORITY_MISMATCH
         return authority
