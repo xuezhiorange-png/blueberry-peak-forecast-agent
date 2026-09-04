@@ -148,4 +148,4 @@ No formal P50/P80/P90 coverage numerators produced in this task.
 ## Evidence
 
 - `docs/v0-3/s3/evidence/s3-b-train-val-pairing-package-contract-r1.json`
-- SHA256: see committed evidence file (recomputed after amendment)
+- SHA256: `94478f00863b4b81867d2a5a5a86108322e95a2a46c609f5091fb6cc89cd83b0`
