@@ -562,9 +562,7 @@ def _build_partition_binding_rows(
                     status = "NOT_COMPUTABLE"
                     not_computable += 1
                 elif forecast_authority is None:
-                    return (
-                        TrainValidationPairingMaterializationBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY
-                    )
+                    return TrainValidationPairingMaterializationBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY
                 else:
                     forecast_kg = forecast_lookup.forecast_harvest_quantity_kg
                     actual_kg = actual_row.actual_harvest_quantity_kg
@@ -579,9 +577,7 @@ def _build_partition_binding_rows(
                     exact_paired += 1
 
                 if forecast_authority is None:
-                    return (
-                        TrainValidationPairingMaterializationBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY
-                    )
+                    return TrainValidationPairingMaterializationBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY
                 forecast_key = compute_canonical_forecast_binding_key_hash(
                     s2_binding_request,
                     season_business_key=season,

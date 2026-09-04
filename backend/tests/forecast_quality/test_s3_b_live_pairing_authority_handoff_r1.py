@@ -166,9 +166,7 @@ def test_live_materialization_passes_exact_union_grains() -> None:
                     {
                         "obtained": True,
                         "train_content_bytes": build_partition_bytes(official.train_rows),
-                        "validation_content_bytes": build_partition_bytes(
-                            official.validation_rows
-                        ),
+                        "validation_content_bytes": build_partition_bytes(official.validation_rows),
                     },
                 )()
                 with patch(
@@ -189,9 +187,9 @@ def test_live_materialization_passes_exact_union_grains() -> None:
 
 def test_no_argument_provider_call_removed() -> None:
     """B: NO_ARGUMENT_PROVIDER_CALL_REMOVED."""
-    source = (
-        _APP_ROOT / "forecast_quality" / "train_val_pairing_materialization.py"
-    ).read_text(encoding="utf-8")
+    source = (_APP_ROOT / "forecast_quality" / "train_val_pairing_materialization.py").read_text(
+        encoding="utf-8"
+    )
     live_start = source.index("def materialize_train_validation_pairing_inputs_live")
     live_end = source.index("def build_materialization_evidence_payload", live_start)
     live_source = live_start and source[live_start:live_end]
@@ -203,9 +201,9 @@ def test_no_argument_provider_call_removed() -> None:
         if isinstance(func, ast.Name) and func.id == (
             "obtain_live_incumbent_forecast_daily_curve_provider"
         ):
-            assert any(
-                kw.arg == "materialization_grains" for kw in node.keywords
-            ), "live obtain must pass materialization_grains"
+            assert any(kw.arg == "materialization_grains" for kw in node.keywords), (
+                "live obtain must pass materialization_grains"
+            )
         if (
             isinstance(func, ast.Attribute)
             and func.attr == "obtain_live_incumbent_forecast_daily_curve_provider"
@@ -221,12 +219,18 @@ def test_global_forecast_binding_authority_removed() -> None:
     obtain_source = (
         _APP_ROOT / "s3_daily_rowset" / "incumbent_forecast_daily_curve_live_obtain.py"
     ).read_text(encoding="utf-8")
-    assert "forecast_binding_authority:" not in materialization_source.split(
-        "class TrainValidationPairingMaterializationDeps", 1
-    )[1].split("class ", 1)[0]
-    assert "forecast_binding_authority:" not in obtain_source.split(
-        "class LiveIncumbentForecastDailyCurveObtainResult", 1
-    )[1].split("\n\n", 1)[0]
+    assert (
+        "forecast_binding_authority:"
+        not in materialization_source.split("class TrainValidationPairingMaterializationDeps", 1)[
+            1
+        ].split("class ", 1)[0]
+    )
+    assert (
+        "forecast_binding_authority:"
+        not in obtain_source.split("class LiveIncumbentForecastDailyCurveObtainResult", 1)[1].split(
+            "\n\n", 1
+        )[0]
+    )
 
 
 def test_per_cell_authority_used_for_binding_key() -> None:
@@ -338,7 +342,7 @@ def test_per_horizon_authority_used() -> None:
         partition="TRAIN",
         membership_index=train_index,
         aligned_grains=aligned,
-        forecast_entries=( _reviewed_forecast_entries()[0],),
+        forecast_entries=(_reviewed_forecast_entries()[0],),
         forecast_provider=provider,
         s2_binding_request=request,
     )
@@ -508,9 +512,7 @@ def test_cache_grain_set_isolation() -> None:
                 forecast_cutoff_at=_REVIEWED_CUTOFF,
             ),
         ]
-        first = obtain_live_incumbent_forecast_daily_curve_provider(
-            materialization_grains=grains_a
-        )
+        first = obtain_live_incumbent_forecast_daily_curve_provider(materialization_grains=grains_a)
         second = obtain_live_incumbent_forecast_daily_curve_provider(
             materialization_grains=grains_b
         )
