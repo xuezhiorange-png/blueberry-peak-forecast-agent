@@ -11,6 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.core_forecast.persistence import CoreForecastRunRepository
+from backend.app.core_forecast.schemas import ExecuteCoreForecastRunRequest
+from backend.app.models.core_forecast import CoreForecastRunModel
 from backend.app.models.core_forecast_task10_authority_binding import (
     CoreForecastTask10AuthorityBindingModel,
 )
@@ -48,34 +50,42 @@ from backend.tests.forecast_quality.persisted_forecast_authority_fixture_mocks i
 pytest_plugins = ["backend.tests.forecast_quality.authority_loader_fixture"]
 
 _BINDING_TABLE = CoreForecastTask10AuthorityBindingModel.__table__
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_APP_ROOT = _REPO_ROOT / "backend" / "app"
 
 
 def _ensure_binding_table(sync_connection) -> None:
     _BINDING_TABLE.create(sync_connection, checkfirst=True)
 
 
-async def _seed_binding_fixture(
-    authority_loader_session,
-    *,
-    task10_prediction_run_id: int = PREDICTION_RUN_ID,
-) -> dict[str, object]:
-    fixture = seed_canonical_authority_fixture(authority_loader_session)
-    engine = create_authority_fixture_async_engine()
-    await ensure_authority_fixture_tables(engine)
-    async with engine.begin() as conn:
-        await conn.run_sync(_ensure_binding_table)
-    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with async_session() as session:
-        await copy_fixture_rows_to_async_session(authority_loader_session, session, fixture=fixture)
-        binding = await register_persisted_task10_authority_binding(
-            session,
-            core_forecast_run_id=CORE_RUN_ID,
-            task10_prediction_run_id=task10_prediction_run_id,
-        )
-        await session.commit()
-        binding_id = binding.id
-    await engine.dispose()
-    return {**fixture, "binding_id": binding_id, "engine": engine}
+def _production_python_sources() -> list[Path]:
+    return sorted(path for path in _APP_ROOT.rglob("*.py") if path.is_file())
+
+
+def _production_register_callers() -> list[str]:
+    callers: list[str] = []
+    for source in _production_python_sources():
+        if source.name == "persisted_task10_authority_binding.py":
+            continue
+        text = source.read_text(encoding="utf-8")
+        if "register_persisted_task10_authority_binding" not in text:
+            continue
+        tree = ast.parse(text)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if (
+                isinstance(func, ast.Name)
+                and func.id == "register_persisted_task10_authority_binding"
+            ):
+                callers.append(str(source.relative_to(_REPO_ROOT)))
+            elif (
+                isinstance(func, ast.Attribute)
+                and func.attr == "register_persisted_task10_authority_binding"
+            ):
+                callers.append(str(source.relative_to(_REPO_ROOT)))
+    return sorted(set(callers))
 
 
 @pytest.mark.asyncio
@@ -110,32 +120,78 @@ async def test_exact_reference_persisted_from_already_selected_task10_run(
     assert len(stored.binding_identity_hash) == 64
 
 
+def test_core_forecast_request_snapshot_unchanged_by_task10_binding() -> None:
+    assert "authorized_task10_prediction_run_id" not in ExecuteCoreForecastRunRequest.model_fields
+    request_fields = tuple(ExecuteCoreForecastRunRequest.model_fields)
+    assert request_fields == (
+        "curve_request",
+        "retention_policy",
+        "rerun_of_run_id",
+        "code_authority_id",
+        "resolved_identity",
+        "forecast_effective_cutoff_at",
+    )
+
+
 def test_no_task10_discovery_in_binding_writer() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
-    writer_sources = [
-        repo_root / "backend/app/rolling_backtest/persisted_task10_authority_binding.py",
-        repo_root / "backend/app/core_forecast/persistence.py",
-    ]
-    forbidden_scan_patterns = ("order_by", "discovery", "latest")
-    for source in writer_sources:
-        text = source.read_text(encoding="utf-8")
-        if source.name == "persistence.py":
-            start = text.index("async def _maybe_register_task10_authority_binding")
-            end = text.index("async def register_code_authority", start)
-            text = text[start:end]
-        assert "register_persisted_task10_authority_binding" in text or source.name.endswith(
-            "persisted_task10_authority_binding.py"
+    source = (_APP_ROOT / "rolling_backtest" / "persisted_task10_authority_binding.py").read_text(
+        encoding="utf-8"
+    )
+    start = source.index("async def register_persisted_task10_authority_binding")
+    end = source.index("\n\ndef lookup_task10_prediction_run_id_sync", start)
+    register_source = source[start:end]
+    forbidden_scan_patterns = ("order_by", "discovery", "latest", ".scalars(")
+    tree = ast.parse(register_source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            assert node.func.id not in {"max", "min"}
+    lowered = register_source.lower()
+    for pattern in forbidden_scan_patterns:
+        assert pattern not in lowered
+    assert "await session.get(ResidualModelPredictionRun" in register_source
+
+
+def test_production_writer_with_both_exact_ids_not_found() -> None:
+    assert _production_register_callers() == []
+
+
+def test_no_production_writer_in_core_forecast_persistence() -> None:
+    persistence_source = (_APP_ROOT / "core_forecast" / "persistence.py").read_text(
+        encoding="utf-8"
+    )
+    assert "register_persisted_task10_authority_binding" not in persistence_source
+    assert not hasattr(CoreForecastRunRepository, "_maybe_register_task10_authority_binding")
+
+
+@pytest.mark.asyncio
+async def test_existing_core_run_receives_external_binding_without_request_hash_change(
+    authority_loader_session,
+) -> None:
+    fixture = seed_canonical_authority_fixture(authority_loader_session)
+    engine = create_authority_fixture_async_engine()
+    await ensure_authority_fixture_tables(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(_ensure_binding_table)
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        await copy_fixture_rows_to_async_session(authority_loader_session, session, fixture=fixture)
+        before = await session.get(CoreForecastRunModel, CORE_RUN_ID)
+        assert before is not None
+        original_request_hash = before.request_hash
+        original_request_snapshot = dict(before.request_snapshot)
+        original_result_hash = before.result_hash
+        await register_persisted_task10_authority_binding(
+            session,
+            core_forecast_run_id=CORE_RUN_ID,
+            task10_prediction_run_id=PREDICTION_RUN_ID,
         )
-        tree = ast.parse(text)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                assert node.func.id not in {"max", "min"}
-        lowered = text.lower()
-        for pattern in forbidden_scan_patterns:
-            assert pattern not in lowered
-        if source.name == "persisted_task10_authority_binding.py":
-            assert "ResidualModelPredictionRun" in text
-            assert "await session.get(ResidualModelPredictionRun" in text
+        await session.commit()
+        after = await session.get(CoreForecastRunModel, CORE_RUN_ID)
+    await engine.dispose()
+    assert after is not None
+    assert after.request_hash == original_request_hash
+    assert after.request_snapshot == original_request_snapshot
+    assert after.result_hash == original_result_hash
 
 
 @pytest.mark.asyncio
@@ -286,9 +342,8 @@ async def test_s3_b_consumes_persisted_reference(
 
 
 def test_s3_b_does_not_scan_task10_runs() -> None:
-    repo_root = Path(__file__).resolve().parents[3]
     source = (
-        repo_root / "backend/app/s3_daily_rowset/pit_visible_incumbent_daily_curve_loader.py"
+        _APP_ROOT / "s3_daily_rowset" / "pit_visible_incumbent_daily_curve_loader.py"
     ).read_text(encoding="utf-8")
     assert "lookup_task10_prediction_run_id" in source
     assert "load_persisted_forecast_binding_authority" in source
@@ -427,12 +482,7 @@ async def test_existing_rows_without_binding_remain_compatible_and_fail_closed(
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with async_session() as session:
         await copy_fixture_rows_to_async_session(authority_loader_session, session, fixture=fixture)
-        core_run = await session.get(
-            __import__(
-                "backend.app.models.core_forecast", fromlist=["CoreForecastRunModel"]
-            ).CoreForecastRunModel,
-            CORE_RUN_ID,
-        )
+        core_run = await session.get(CoreForecastRunModel, CORE_RUN_ID)
         assert core_run is not None
         bundle = await load_persisted_forecast_binding_authority(
             session,
@@ -461,4 +511,4 @@ def test_r1_r2_r3_r4_regression() -> None:
 
     assert inspect.iscoroutinefunction(validate_persisted_forecast_authority_chain)
     assert inspect.iscoroutinefunction(load_persisted_forecast_binding_authority)
-    assert hasattr(CoreForecastRunRepository, "_maybe_register_task10_authority_binding")
+    assert _production_register_callers() == []
