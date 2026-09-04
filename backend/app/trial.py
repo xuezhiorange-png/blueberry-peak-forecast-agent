@@ -183,10 +183,8 @@ from backend.app.residual_model.schemas import (
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
 from backend.app.rolling_backtest.errors import RollingBacktestCanonicalParityError
-from backend.app.rolling_backtest.orchestration import (
-    _task9_member_identity_hash,
-    run_s2_historical_binding,
-)
+from backend.app.rolling_backtest.orchestration import run_s2_historical_binding
+from backend.app.rolling_backtest.persisted_forecast_authority import task9_member_identity_hash
 from backend.app.rolling_backtest.persistence import (
     load_s2_historical_binding_by_instance_hash,
 )
@@ -1847,7 +1845,7 @@ async def _build_quality_s2_candidates(
                     status_code=503,
                 )
             task9_member = matching_members[0]
-            task9_member_hash = _task9_member_identity_hash(task9_member)
+            task9_member_hash = task9_member_identity_hash(task9_member)
             matching_predictions: list[
                 tuple[
                     ResidualModelPredictionRun,
