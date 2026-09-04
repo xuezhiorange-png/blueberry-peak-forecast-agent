@@ -1167,7 +1167,10 @@ def test_historical_code_identity_drift_rejected(
             )
         }
     )
-    with pytest.raises(ValueError, match="forecast authority bundle field mismatch: forecast_code_identity"):
+    with pytest.raises(
+        ValueError,
+        match="forecast authority bundle field mismatch: forecast_code_identity",
+    ):
         asyncio.run(
             resolve_s2_persisted_authorities(
                 session,
