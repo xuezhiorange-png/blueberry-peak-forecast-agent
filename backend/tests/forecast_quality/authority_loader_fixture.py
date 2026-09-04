@@ -425,4 +425,3 @@ def authority_loader_session() -> Iterator[Session]:
     with maker() as session:
         yield session
     engine.dispose()
-
