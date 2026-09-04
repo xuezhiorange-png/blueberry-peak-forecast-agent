@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime
+from decimal import Decimal
+
+from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.quantile_coverage import (
+    TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+    TrainValidationCoveragePartitionAuthority,
     assess_train_validation_coverage_execution,
 )
+from backend.app.forecast_quality.schemas import S3BindingRow, S3EvaluationInput
 from backend.app.forecast_quality.train_val_pairing import (
+    ACCEPTED_TRAIN_PARTITION_IDENTITY,
     EXACT_ACTUAL_PAIRING_POLICY_V1,
     EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS,
     FROZEN_EXACT_ACTUAL_PAIRING_RULE,
     ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS,
     TRAIN_VAL_PAIRING_POLICY_V1,
+    build_candidate_train_validation_pairing_package,
 )
 from backend.app.forecast_quality.train_val_pairing_policy_registry import (
     EXACT_ACTUAL_PAIRING_POLICY_ISSUANCE_GRANT_ID,
@@ -29,9 +38,123 @@ from backend.app.forecast_quality.train_val_trusted_registry import (
     _ISSUED_PAIRING_POLICY_VERSIONS,
     PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY,
     PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY,
+    TrustedIssuedAuthorityRegistry,
+    TrustedPublishedPairingPackageRegistry,
+    build_candidate_authority_record,
+    verify_train_validation_coverage_authority,
 )
 
 _CANONICAL_PARTITIONS = ("TRAIN", "VALIDATION")
+_FORECAST_CUTOFF_AUTHORITY = "d" * 64
+
+
+def _row(index: int = 0) -> S3BindingRow:
+    return S3BindingRow(
+        f"forecast-{index}",
+        f"physical-{index}",
+        f"actual-{index}",
+        Decimal("10"),
+        Decimal("9"),
+        SupportedQuantile.P50,
+        7,
+        date(2025, 2, 10),
+        datetime(2025, 2, 1, tzinfo=UTC),
+        "COMPARABLE",
+        "season-2025",
+        "farm-a",
+        "subfarm-a",
+        "variety-a",
+        "model-a",
+        datetime(2025, 2, 1, tzinfo=UTC),
+    )
+
+
+def _evaluation(row_set_hash: str = "a" * 64) -> S3EvaluationInput:
+    return S3EvaluationInput(
+        [_row()],
+        "s2-run-a",
+        "s2-manifest-a",
+        row_set_hash,
+        FrozenVersion.METRIC_INPUT_MASK_V1,
+        FrozenVersion.NAIVE_BASELINE_POLICY_V1,
+    )
+
+
+def _candidate_package() -> object:
+    return build_candidate_train_validation_pairing_package(
+        partition="TRAIN",
+        partition_identity=ACCEPTED_TRAIN_PARTITION_IDENTITY,
+        evaluation_input=_evaluation(),
+        forecast_cutoff_authority_identity=_FORECAST_CUTOFF_AUTHORITY,
+        exact_actual_pairing_policy_version=EXACT_ACTUAL_PAIRING_POLICY_V1,
+        pairing_policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+    )
+
+
+def _partition_authority(
+    package: object,
+    *,
+    authority_record_identity: str,
+) -> TrainValidationCoveragePartitionAuthority:
+    return TrainValidationCoveragePartitionAuthority(
+        authority_record_identity=authority_record_identity,
+        schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+        pairing_package_identity=package.pairing_package_identity,
+        s2_binding_row_set_hash=package.s2_binding_row_set_hash,
+        permitted_partitions=(package.partition,),
+    )
+
+
+def _full_verifier_blocker(
+    *,
+    issued_pairing_policy_versions: frozenset[str],
+    issued_exact_actual_pairing_policy_versions: frozenset[str],
+    issued_policy_registry: TrustedIssuedPairingPolicyRegistry,
+) -> str | None:
+    package = _candidate_package()
+    record = build_candidate_authority_record(
+        schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+        pairing_package_identity=package.pairing_package_identity,
+        s2_binding_row_set_hash=package.s2_binding_row_set_hash,
+        permitted_partitions=(package.partition,),
+        issuer_identity_or_version="issuer-v1",
+    )
+    authority = _partition_authority(
+        package,
+        authority_record_identity=record.authority_record_identity,
+    )
+    return verify_train_validation_coverage_authority(
+        package.evaluation_input,
+        authority,
+        published_registry=TrustedPublishedPairingPackageRegistry(
+            {package.pairing_package_identity: package}
+        ),
+        issued_registry=TrustedIssuedAuthorityRegistry({record.authority_record_identity: record}),
+        issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
+        issued_pairing_policy_versions=issued_pairing_policy_versions,
+        issued_exact_actual_pairing_policy_versions=issued_exact_actual_pairing_policy_versions,
+        issued_policy_registry=issued_policy_registry,
+    )
+
+
+def _registry_with_general_only() -> TrustedIssuedPairingPolicyRegistry:
+    return TrustedIssuedPairingPolicyRegistry(
+        {
+            PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD.policy_record_identity: (
+                PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD
+            ),
+        }
+    )
+
+
+def _registry_with_exact_only() -> TrustedIssuedPairingPolicyRegistry:
+    return TrustedIssuedPairingPolicyRegistry(
+        {
+            PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD.policy_record_identity: (
+                PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD
+            ),
+        }
+    )
 
 
 def test_a_exact_version_status_issued() -> None:
@@ -72,48 +195,39 @@ def test_f_exact_allowlist_populated() -> None:
 
 
 def test_g_dual_gate_registry_only_insufficient_for_general() -> None:
-    assert (
-        verify_issued_pairing_policy(
-            TRAIN_VAL_PAIRING_POLICY_V1,
-            "TRAIN_VAL_BINDING_PAIRING",
-            registry=PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
-        )
-        is None
+    blocker = _full_verifier_blocker(
+        issued_pairing_policy_versions=frozenset(),
+        issued_exact_actual_pairing_policy_versions=frozenset({EXACT_ACTUAL_PAIRING_POLICY_V1}),
+        issued_policy_registry=PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
     )
-    assert TRAIN_VAL_PAIRING_POLICY_V1 not in frozenset()
+    assert blocker == "TRAIN_VALIDATION_PAIRING_POLICY_NOT_ISSUED"
 
 
 def test_h_dual_gate_allowlist_only_insufficient_for_general() -> None:
-    assert TRAIN_VAL_PAIRING_POLICY_V1 in _ISSUED_PAIRING_POLICY_VERSIONS
-    blocker = verify_issued_pairing_policy(
-        TRAIN_VAL_PAIRING_POLICY_V1,
-        "TRAIN_VAL_BINDING_PAIRING",
-        registry=TrustedIssuedPairingPolicyRegistry(),
+    blocker = _full_verifier_blocker(
+        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+        issued_exact_actual_pairing_policy_versions=frozenset({EXACT_ACTUAL_PAIRING_POLICY_V1}),
+        issued_policy_registry=_registry_with_exact_only(),
     )
     assert blocker == "TRAIN_VALIDATION_PAIRING_POLICY_NOT_ISSUED"
 
 
 def test_i_dual_gate_registry_only_insufficient_for_exact() -> None:
-    assert (
-        verify_issued_pairing_policy(
-            EXACT_ACTUAL_PAIRING_POLICY_V1,
-            "EXACT_ACTUAL_PAIRING",
-            registry=PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
-        )
-        is None
+    blocker = _full_verifier_blocker(
+        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+        issued_exact_actual_pairing_policy_versions=frozenset(),
+        issued_policy_registry=PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
     )
-    assert EXACT_ACTUAL_PAIRING_POLICY_V1 not in frozenset()
+    assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
 
 
 def test_j_dual_gate_allowlist_only_insufficient_for_exact() -> None:
-    registry = TrustedIssuedPairingPolicyRegistry()
-    blocker = verify_issued_pairing_policy(
-        EXACT_ACTUAL_PAIRING_POLICY_V1,
-        "EXACT_ACTUAL_PAIRING",
-        registry=registry,
+    blocker = _full_verifier_blocker(
+        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+        issued_exact_actual_pairing_policy_versions=frozenset({EXACT_ACTUAL_PAIRING_POLICY_V1}),
+        issued_policy_registry=_registry_with_general_only(),
     )
     assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
-    assert EXACT_ACTUAL_PAIRING_POLICY_V1 in ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
 
 
 def test_k_production_seal_coverage_still_blocked() -> None:
