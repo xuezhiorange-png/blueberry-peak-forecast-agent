@@ -17,7 +17,7 @@ PARENT_PR=547
 PARENT_MERGE_COMMIT=624dab0642f17acc78a7e74c7cbd9707db8dfe45
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
-FINAL_STOP_GATE=COORDINATOR_TRAIN_VAL_PAIRING_MATERIALIZATION_REVIEW
+FINAL_STOP_GATE=COORDINATOR_TRAIN_VAL_PAIRING_MATERIALIZATION_RE_REVIEW
 ```
 
 ## Preflight
@@ -43,7 +43,8 @@ official SOURCE-002 TRAIN/VALIDATION content_bytes
   → partition membership index + proofs
 IncumbentForecastReplaySource.obtain()
   → reviewed P50/P80/P90 grains
-  → IncumbentDailyCurveProvider (injected; live uses fail-closed unavailable port)
+  → IncumbentDailyCurveProvider via obtain_live_incumbent_forecast_daily_curve_provider()
+  → s2_binding_key_hash forecast_business_key per row
   → S3BindingRow[] per partition
   → S3EvaluationInput (deterministic run/manifest/hash)
   → build_candidate_train_validation_pairing_package (issued policies)
@@ -59,7 +60,8 @@ IncumbentForecastReplaySource.obtain()
 | Forecast replay grains | `IncumbentForecastReplaySource.obtain()` |
 | Reviewed grains | `s3_a2_coordinator_reviewed_live_origin_grain_identity_set` |
 | Pairing package builder | `train_val_pairing.build_candidate_train_validation_pairing_package` |
-| Pairing key | `rolling_backtest/signatures.py:s2_binding_key_payload` grain |
+| Forecast binding key | `rolling_backtest/signatures.py:s2_binding_key_hash` |
+| Actual partition lookup | `(season,farm,subfarm,variety,target_date)` from official content |
 
 ### Partition membership proof
 
@@ -74,6 +76,30 @@ source_row_identity
 
 Membership is derived from official partition content index lookup, not date-range
 alone. Cross-partition `source_row_identity` overlap fails closed.
+
+## Blocker remediation (re-review)
+
+### Blocker 1 — live forecast value path
+
+```text
+LAWFUL_PIT_VISIBLE_INCUMBENT_DAILY_FORECAST_VALUE_SOURCE=NONE
+ZERO_REAL_FORECAST_VALUES_CAN_COMPLETE_MATERIALIZATION=false
+UNAVAILABLE_LIVE_PROVIDER_CAN_PRODUCE_PACKAGE=false
+```
+
+`obtain_live_incumbent_forecast_daily_curve_provider()` fail-closes until a production
+PIT-visible adapter exists. Placeholder providers and zero comparable rows block with
+`NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER` before package materialization.
+
+### Blocker 2 — canonical S2 binding key
+
+```text
+ACTUAL_PARTITION_LOOKUP_KEY=(season,farm,subfarm,variety,target_date)
+FORECAST_BINDING_KEY_AUTHORITY_SOURCE=backend/app/rolling_backtest/signatures.py:s2_binding_key_hash
+```
+
+Materialized `forecast_business_key` uses canonical `s2_binding_key_hash`, not a custom
+pairing key shape.
 
 ## Live materialization attempt
 
