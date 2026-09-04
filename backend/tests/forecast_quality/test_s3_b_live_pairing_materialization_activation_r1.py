@@ -523,6 +523,7 @@ def test_live_materialization_blocks_on_ambiguous_forecast_run(
     from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
         AcceptedS2TrainValSource002RowLevelReadAttestation,
     )
+
     AcceptedS2TrainValLiveObtainEnvelope = _live_obtain.AcceptedS2TrainValLiveObtainEnvelope
     LiveObtainReasonCode = _live_obtain.LiveObtainReasonCode
 

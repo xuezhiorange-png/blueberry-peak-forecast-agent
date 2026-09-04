@@ -83,9 +83,7 @@ def _obtain_from_sync_session(
         grains=materialization_grains,
     )
     ambiguous = sum(
-        1
-        for grain in materialization_grains
-        if index.grain_forecast_run_count.get(grain, 0) > 1
+        1 for grain in materialization_grains if index.grain_forecast_run_count.get(grain, 0) > 1
     )
     unavailable = sum(
         1 for grain in materialization_grains if index.grain_forecast_run_count.get(grain, 0) != 1
