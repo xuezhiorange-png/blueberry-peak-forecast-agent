@@ -119,7 +119,7 @@
   "test_code_changed_files": "NONE",
   "migration_changed_files": "NONE",
   "workflow_changed_files": "NONE",
-  "closeout_review_ready": false,
+  "closeout_review_ready": true,
   "ready_authorized": false,
   "merge_authorized": false,
   "next_gate": "S3_B_QUANTILE_SEMANTICS_REMEDIATION_AMENDED_IMPLEMENTATION_R1_CLOSEOUT_REVIEW",
@@ -127,5 +127,10 @@
   "s3_c_authorized": false,
   "s3_d_authorized": false,
   "s3_acceptance_authorized": false,
-  "evidence_json_sha256": "a1d2352af6ae6d727209c5bd7d738a20ef57d5580fbe8d5b6610fa6ad8d25052"
+  "evidence_json_sha256": "fec0d241a4b1929e2c510fb31f2bb274f928f801ff2c8b27381c42a7ce74f763",
+  "closeout_head": "a58f2853aed7145a6f143ba19badfb495063df6b",
+  "ci_run_id": 33820430986,
+  "ci_run_number": 2083,
+  "ci_status": "completed",
+  "ci_conclusion": "success"
 }
