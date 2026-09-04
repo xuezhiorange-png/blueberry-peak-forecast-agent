@@ -20,6 +20,7 @@ class ResidualPredictionMode(StrEnum):
     RESIDUAL_CORRECTED = "residual_corrected"
     STRUCTURAL_ONLY = "structural_only"
     BLOCKED = "blocked"
+    FINAL_TARGET_QUANTILE = "final_target_quantile"
 
 
 class ResidualSplit(StrEnum):

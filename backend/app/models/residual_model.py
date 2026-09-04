@@ -38,6 +38,31 @@ def _sha256_check_sql(column_name: str) -> str:
     )
 
 
+def _nullable_task9_hash_check_sql(column_name: str) -> str:
+    return f"(task9_result_hash IS NULL OR ({_sha256_check_sql(column_name)}))"
+
+
+def _prediction_run_lane_consistency_sql() -> str:
+    return (
+        "("
+        "prediction_target_kind = 'LEGACY_RESIDUAL_CORRECTION' AND "
+        "task9_run_id IS NOT NULL AND "
+        "task9_result_hash IS NOT NULL AND "
+        "mode IN ('residual_corrected', 'structural_only', 'blocked')"
+        ") OR ("
+        "prediction_target_kind = 'FINAL_TARGET_QUANTILE' AND "
+        "task9_run_id IS NULL AND "
+        "task9_result_hash IS NULL AND "
+        "training_run_id IS NOT NULL AND "
+        "expected_prediction_row_count = 0 AND "
+        "("
+        "(execution_status = 'completed' AND mode = 'final_target_quantile') OR "
+        "(execution_status IN ('blocked', 'failed') AND mode = 'blocked')"
+        ")"
+        ")"
+    )
+
+
 class ResidualModelTrainingRun(Base):
     __tablename__ = "residual_model_training_run"
     __table_args__ = (
@@ -80,6 +105,10 @@ class ResidualModelTrainingRun(Base):
         CheckConstraint(
             "distinct_factory_count >= 0",
             name="ck_residual_model_training_run_factory_count",
+        ),
+        CheckConstraint(
+            "distinct_grain_count >= 0",
+            name="ck_residual_model_training_run_grain_count",
         ),
         CheckConstraint(
             "manifest_row_count >= 0",
@@ -152,6 +181,11 @@ class ResidualModelTrainingRun(Base):
         server_default="0",
     )
     distinct_factory_count: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        nullable=False,
+        server_default="0",
+    )
+    distinct_grain_count: Mapped[int] = mapped_column(
         _BIGINT_VARIANT,
         nullable=False,
         server_default="0",
@@ -421,12 +455,20 @@ class ResidualModelPredictionRun(Base):
             name="ck_residual_model_prediction_run_execution_status",
         ),
         CheckConstraint(
-            "mode in ('residual_corrected', 'structural_only', 'blocked')",
+            "mode in ('residual_corrected', 'structural_only', 'blocked', 'final_target_quantile')",
             name="ck_residual_model_prediction_run_mode",
         ),
         CheckConstraint(
-            _sha256_check_sql("task9_result_hash"),
+            "prediction_target_kind in ('LEGACY_RESIDUAL_CORRECTION', 'FINAL_TARGET_QUANTILE')",
+            name="ck_residual_model_prediction_run_target_kind",
+        ),
+        CheckConstraint(
+            _nullable_task9_hash_check_sql("task9_result_hash"),
             name="ck_residual_model_prediction_run_task9_hash",
+        ),
+        CheckConstraint(
+            _prediction_run_lane_consistency_sql(),
+            name="ck_residual_model_prediction_run_lane_consistency",
         ),
         CheckConstraint(
             _sha256_check_sql("config_hash"),
@@ -484,16 +526,21 @@ class ResidualModelPredictionRun(Base):
         ),
         nullable=True,
     )
-    task9_run_id: Mapped[int] = mapped_column(
+    task9_run_id: Mapped[int | None] = mapped_column(
         _BIGINT_VARIANT,
         ForeignKey(
             "harvest_state_run.id",
             name="fk_residual_model_prediction_run_task9_run_id",
             ondelete="RESTRICT",
         ),
-        nullable=False,
+        nullable=True,
     )
-    task9_result_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    task9_result_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prediction_target_kind: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        server_default="LEGACY_RESIDUAL_CORRECTION",
+    )
     execution_status: Mapped[str] = mapped_column(Text, nullable=False)
     mode: Mapped[str] = mapped_column(Text, nullable=False)
     config_hash: Mapped[str] = mapped_column(Text, nullable=False)
