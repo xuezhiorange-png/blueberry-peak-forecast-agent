@@ -146,8 +146,7 @@ def lookup_task10_prediction_run_id_sync(
     rows = list(
         session.scalars(
             select(CoreForecastTask10AuthorityBindingModel.task10_prediction_run_id).where(
-                CoreForecastTask10AuthorityBindingModel.core_forecast_run_id
-                == core_forecast_run_id
+                CoreForecastTask10AuthorityBindingModel.core_forecast_run_id == core_forecast_run_id
             )
         ).all()
     )
@@ -168,8 +167,7 @@ async def lookup_task10_prediction_run_id(
     rows = list(
         await session.scalars(
             select(CoreForecastTask10AuthorityBindingModel.task10_prediction_run_id).where(
-                CoreForecastTask10AuthorityBindingModel.core_forecast_run_id
-                == core_forecast_run_id
+                CoreForecastTask10AuthorityBindingModel.core_forecast_run_id == core_forecast_run_id
             )
         )
     )
