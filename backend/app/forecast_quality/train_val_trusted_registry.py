@@ -20,6 +20,11 @@ from .train_val_pairing import (
     verify_pairing_package_hash_replay,
     verify_two_stage_identity_excluded_from_preimage,
 )
+from .train_val_pairing_policy_registry import (
+    PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
+    TrustedIssuedPairingPolicyRegistry,
+    verify_issued_pairing_policy,
+)
 
 if TYPE_CHECKING:
     from .quantile_coverage import TrainValidationCoveragePartitionAuthority
@@ -163,6 +168,9 @@ def verify_train_validation_coverage_authority(
     issued_exact_actual_pairing_policy_versions: frozenset[str] = (
         ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS
     ),
+    issued_policy_registry: TrustedIssuedPairingPolicyRegistry = (
+        PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY
+    ),
 ) -> str | None:
     """Return a blocker reason or None when the full authority chain is proven."""
 
@@ -205,6 +213,13 @@ def verify_train_validation_coverage_authority(
         return "TRAIN_VALIDATION_PAIRING_PACKAGE_INVARIANT_VIOLATION"
 
     exact_policy_version = published_package.exact_actual_pairing_policy_version.strip()
+    exact_policy_blocker = verify_issued_pairing_policy(
+        exact_policy_version,
+        "EXACT_ACTUAL_PAIRING",
+        registry=issued_policy_registry,
+    )
+    if exact_policy_blocker is not None:
+        return exact_policy_blocker
     if not exact_policy_version:
         return "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
     if exact_policy_version not in issued_exact_actual_pairing_policy_versions:
@@ -218,6 +233,14 @@ def verify_train_validation_coverage_authority(
 
     if published_package.pairing_policy_version != issued_record.pairing_policy_version:
         return "TRAIN_VALIDATION_PAIRING_POLICY_MISMATCH"
+
+    general_policy_blocker = verify_issued_pairing_policy(
+        published_package.pairing_policy_version,
+        "TRAIN_VAL_BINDING_PAIRING",
+        registry=issued_policy_registry,
+    )
+    if general_policy_blocker is not None:
+        return general_policy_blocker
 
     if published_package.pairing_policy_version not in issued_pairing_policy_versions:
         return "TRAIN_VALIDATION_PAIRING_POLICY_NOT_ISSUED"
