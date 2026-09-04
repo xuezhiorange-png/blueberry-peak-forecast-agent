@@ -138,7 +138,7 @@ def test_no_task10_discovery_in_binding_writer() -> None:
         encoding="utf-8"
     )
     start = source.index("async def register_persisted_task10_authority_binding")
-    end = source.index("\n\ndef lookup_task10_prediction_run_id_sync", start)
+    end = source.index("\n\nasync def resolve_exact_core_forecast_run_ids", start)
     register_source = source[start:end]
     forbidden_scan_patterns = ("order_by", "discovery", "latest", ".scalars(")
     tree = ast.parse(register_source)
@@ -151,8 +151,12 @@ def test_no_task10_discovery_in_binding_writer() -> None:
     assert "await session.get(ResidualModelPredictionRun" in register_source
 
 
-def test_production_writer_with_both_exact_ids_not_found() -> None:
-    assert _production_register_callers() == []
+def test_production_writer_with_both_exact_ids_found() -> None:
+    node_source = (_APP_ROOT / "rolling_backtest" / "node_orchestration.py").read_text(
+        encoding="utf-8"
+    )
+    assert "_write_persisted_task10_authority_binding_after_reuse" in node_source
+    assert "write_persisted_task10_authority_binding_from_pinned_lineage" in node_source
 
 
 def test_no_production_writer_in_core_forecast_persistence() -> None:

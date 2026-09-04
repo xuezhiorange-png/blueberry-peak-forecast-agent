@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime
+from enum import StrEnum
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +29,25 @@ class PersistedTask10AuthorityBindingLineageError(PersistedTask10AuthorityBindin
 
 class PersistedTask10AuthorityBindingConflictError(PersistedTask10AuthorityBindingError):
     """Raised when a Core forecast run already has a different Task 10 binding."""
+
+
+class PersistedTask10AuthorityBindingWriteOutcome(StrEnum):
+    """Typed result for rolling-node Task 10 authority relation population."""
+
+    BOUND = "BOUND"
+    CORE_AUTHORITY_NOT_FOUND = "CORE_AUTHORITY_NOT_FOUND"
+    CORE_AUTHORITY_AMBIGUOUS = "CORE_AUTHORITY_AMBIGUOUS"
+    TASK10_AUTHORITY_NOT_PINNED = "TASK10_AUTHORITY_NOT_PINNED"
+    TASK9_AUTHORITY_NOT_PINNED = "TASK9_AUTHORITY_NOT_PINNED"
+    TASK8_LINEAGE_NOT_FOUND = "TASK8_LINEAGE_NOT_FOUND"
+
+
+@dataclass(frozen=True, slots=True)
+class PersistedTask10AuthorityBindingWriteResult:
+    outcome: PersistedTask10AuthorityBindingWriteOutcome
+    core_forecast_run_id: int | None = None
+    task10_prediction_run_id: int | None = None
+    binding_id: int | None = None
 
 
 def compute_binding_identity_hash(
@@ -135,6 +158,72 @@ async def register_persisted_task10_authority_binding(
             "core forecast run already has a conflicting Task 10 authority binding"
         ) from error
     return row
+
+
+async def resolve_exact_core_forecast_run_ids(
+    session: AsyncSession,
+    *,
+    task8_forecast_run_id: int,
+    task9_harvest_state_run_id: int,
+    task9_result_hash: str,
+    forecast_effective_cutoff_at: datetime,
+) -> list[int]:
+    """Resolve authority-bound Core forecast runs by exact lineage identity only."""
+    rows = list(
+        await session.scalars(
+            select(CoreForecastRunModel.id).where(
+                CoreForecastRunModel.status == "completed",
+                CoreForecastRunModel.task8_forecast_run_id == task8_forecast_run_id,
+                CoreForecastRunModel.task9_harvest_state_run_id == task9_harvest_state_run_id,
+                CoreForecastRunModel.task9_result_hash == task9_result_hash,
+                CoreForecastRunModel.forecast_effective_cutoff_at == forecast_effective_cutoff_at,
+                CoreForecastRunModel.code_authority_id.is_not(None),
+                CoreForecastRunModel.code_authority_hash.is_not(None),
+            )
+        )
+    )
+    return [int(row) for row in rows]
+
+
+async def write_persisted_task10_authority_binding_from_pinned_lineage(
+    session: AsyncSession,
+    *,
+    task10_prediction_run_id: int,
+    task8_forecast_run_id: int,
+    task9_harvest_state_run_id: int,
+    task9_result_hash: str,
+    forecast_effective_cutoff_at: datetime,
+) -> PersistedTask10AuthorityBindingWriteResult:
+    """Persist one Task 10 authority binding after exact Core lineage resolution."""
+    core_ids = await resolve_exact_core_forecast_run_ids(
+        session,
+        task8_forecast_run_id=task8_forecast_run_id,
+        task9_harvest_state_run_id=task9_harvest_state_run_id,
+        task9_result_hash=task9_result_hash,
+        forecast_effective_cutoff_at=forecast_effective_cutoff_at,
+    )
+    if not core_ids:
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.CORE_AUTHORITY_NOT_FOUND,
+            task10_prediction_run_id=task10_prediction_run_id,
+        )
+    if len(core_ids) > 1:
+        return PersistedTask10AuthorityBindingWriteResult(
+            outcome=PersistedTask10AuthorityBindingWriteOutcome.CORE_AUTHORITY_AMBIGUOUS,
+            task10_prediction_run_id=task10_prediction_run_id,
+        )
+    core_forecast_run_id = core_ids[0]
+    binding = await register_persisted_task10_authority_binding(
+        session,
+        core_forecast_run_id=core_forecast_run_id,
+        task10_prediction_run_id=task10_prediction_run_id,
+    )
+    return PersistedTask10AuthorityBindingWriteResult(
+        outcome=PersistedTask10AuthorityBindingWriteOutcome.BOUND,
+        core_forecast_run_id=core_forecast_run_id,
+        task10_prediction_run_id=task10_prediction_run_id,
+        binding_id=binding.id,
+    )
 
 
 def lookup_task10_prediction_run_id_sync(
