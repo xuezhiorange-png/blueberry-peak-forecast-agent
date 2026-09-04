@@ -17,12 +17,12 @@ from backend.app.forecast_quality.train_val_pairing import (
     TRAIN_VAL_PAIRING_POLICY_V1,
 )
 from backend.app.forecast_quality.train_val_pairing_policy_registry import (
-    EXACT_ACTUAL_PAIRING_SCOPE,
+    GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID,
+    GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE,
     PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
-    TRAIN_VAL_BINDING_PAIRING_SCOPE,
-    TRAIN_VAL_BINDING_PAIRING_SEMANTIC_RULE,
     IssuedPairingPolicyRecord,
     TrustedIssuedPairingPolicyRegistry,
+    TrustedPairingPolicyRegistryConstructionError,
     build_candidate_policy_record,
     compute_policy_record_identity_hashes,
     verify_issued_pairing_policy,
@@ -31,6 +31,8 @@ from backend.app.forecast_quality.train_val_pairing_policy_registry import (
 from backend.app.forecast_quality.train_val_trusted_registry import (
     _ISSUED_PAIRING_POLICY_VERSIONS,
 )
+
+_CANONICAL_PARTITIONS = ("TRAIN", "VALIDATION")
 
 
 def _general_record(
@@ -77,7 +79,7 @@ def test_c_tamper_detection() -> None:
         ("policy_version", "tampered-version-v1"),
         ("semantic_rule_or_authority", "WRONG_SEMANTIC"),
         ("issuer_identity_or_version", "forged-issuer"),
-        ("scope", "FORGED_SCOPE"),
+        ("permitted_partitions", ("TEST",)),
     ]
     for field_name, tampered_value in tamper_fields:
         tampered = dataclasses.replace(record, **{field_name: tampered_value})
@@ -85,7 +87,8 @@ def test_c_tamper_detection() -> None:
 
 
 def test_d_registry_defensive_copy() -> None:
-    source = {_general_record().policy_record_identity: _general_record()}
+    record = _general_record()
+    source = {record.policy_record_identity: record}
     registry = TrustedIssuedPairingPolicyRegistry(source)
     assert registry.count() == 1
     source.clear()
@@ -145,7 +148,7 @@ def test_j_semantic_authority_mismatch_rejected() -> None:
         policy_version=EXACT_ACTUAL_PAIRING_POLICY_V1,
         semantic_rule_or_authority="WRONG_SEMANTIC",
         issuer_identity_or_version="test-issuer-v1",
-        scope=EXACT_ACTUAL_PAIRING_SCOPE,
+        permitted_partitions=_CANONICAL_PARTITIONS,
         canonical_hash="",
     )
     identity, canonical = compute_policy_record_identity_hashes(candidate)
@@ -176,10 +179,97 @@ def test_k_production_seal() -> None:
     assert assessment.execution_status == "NOT_COMPUTABLE_OR_BLOCKED"
 
 
-def test_frozen_semantic_constants() -> None:
+def test_contract_grounded_semantic_authority() -> None:
     exact = _exact_record()
     assert exact.semantic_rule_or_authority == FROZEN_EXACT_ACTUAL_PAIRING_RULE
     general = _general_record()
-    assert general.semantic_rule_or_authority == TRAIN_VAL_BINDING_PAIRING_SEMANTIC_RULE
-    assert general.scope == TRAIN_VAL_BINDING_PAIRING_SCOPE
-    assert exact.scope == EXACT_ACTUAL_PAIRING_SCOPE
+    assert general.semantic_rule_or_authority == GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID
+    assert (
+        GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE
+        == "docs/v0-3/s3/s3-b-pairing-policy-authority-contract.md"
+    )
+    assert general.permitted_partitions == _CANONICAL_PARTITIONS
+    assert exact.permitted_partitions == _CANONICAL_PARTITIONS
+
+
+def test_registry_wrong_mapping_key_rejected() -> None:
+    record = _general_record()
+    with pytest.raises(TrustedPairingPolicyRegistryConstructionError):
+        TrustedIssuedPairingPolicyRegistry({"wrong-key": record})
+
+
+def test_registry_duplicate_version_kind_rejected() -> None:
+    first = _general_record()
+    second = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version="other-issuer-v1",
+    )
+    with pytest.raises(TrustedPairingPolicyRegistryConstructionError):
+        TrustedIssuedPairingPolicyRegistry(
+            {
+                first.policy_record_identity: first,
+                second.policy_record_identity: second,
+            }
+        )
+
+
+def test_registry_lookup_by_version_requires_identity_membership() -> None:
+    record = _general_record()
+    registry = TrustedIssuedPairingPolicyRegistry({record.policy_record_identity: record})
+    looked_up = registry.lookup_by_policy_version(
+        TRAIN_VAL_PAIRING_POLICY_V1,
+        "TRAIN_VAL_BINDING_PAIRING",
+    )
+    assert looked_up == record
+    assert registry.lookup(record.policy_record_identity) == record
+
+
+def test_arbitrary_general_policy_version_not_issued_even_in_registry() -> None:
+    invented = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version="caller-invented-v99",
+        issuer_identity_or_version="test-issuer-v1",
+    )
+    registry = TrustedIssuedPairingPolicyRegistry({invented.policy_record_identity: invented})
+    blocker = verify_issued_pairing_policy(
+        "caller-invented-v99",
+        "TRAIN_VAL_BINDING_PAIRING",
+        registry=registry,
+    )
+    assert blocker == "TRAIN_VALIDATION_PAIRING_POLICY_NOT_ISSUED"
+
+
+def test_arbitrary_exact_policy_version_not_issued_even_in_registry() -> None:
+    invented = build_candidate_policy_record(
+        policy_kind="EXACT_ACTUAL_PAIRING",
+        policy_version="caller-invented-exact-v99",
+        issuer_identity_or_version="test-issuer-v1",
+    )
+    registry = TrustedIssuedPairingPolicyRegistry({invented.policy_record_identity: invented})
+    blocker = verify_issued_pairing_policy(
+        "caller-invented-exact-v99",
+        "EXACT_ACTUAL_PAIRING",
+        registry=registry,
+    )
+    assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
+
+
+def test_candidate_empty_semantic_not_silently_defaulted() -> None:
+    record = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version="test-issuer-v1",
+        semantic_rule_or_authority="",
+    )
+    assert record.semantic_rule_or_authority == ""
+
+
+def test_candidate_empty_partitions_not_silently_defaulted() -> None:
+    record = build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version="test-issuer-v1",
+        permitted_partitions=(),
+    )
+    assert record.permitted_partitions == ()
