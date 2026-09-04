@@ -150,7 +150,7 @@ async def _visible_forecast_run_for_grain(
         query = query.where(FarmSeasonVarietyPlan.subfarm_id.is_(None))
     else:
         query = query.where(FarmSeasonVarietyPlan.subfarm_id == subfarm_id)
-    return await session.scalar(query)
+    return await session.scalar(query)  # type: ignore[no-any-return]
 
 
 def _forecast_kg_for_quantile(
