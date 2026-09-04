@@ -715,12 +715,12 @@ async def validate_canonical_persisted_forecast_authority_for_candidate(
         ResolvedInputOutcome,
         _PinnedTask10PredictionInput,
     )
-    from backend.app.rolling_backtest.schemas import PersistentUpstreamReference
     from backend.app.rolling_backtest.replay_pipeline import ReplayPipelineOutcome
     from backend.app.rolling_backtest.replay_task10_binding import (
         build_replay_task9_binding_context,
         evaluate_replay_task10_binding,
     )
+    from backend.app.rolling_backtest.schemas import PersistentUpstreamReference
 
     core_run = await session.get(CoreForecastRunModel, core_forecast_run_id)
     core_row = await session.get(CoreForecastDailyRowModel, core_forecast_daily_row_id)
