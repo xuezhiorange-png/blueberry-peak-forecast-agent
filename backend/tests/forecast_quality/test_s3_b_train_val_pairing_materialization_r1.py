@@ -13,19 +13,23 @@ from backend.app.forecast_quality.train_val_pairing import (
     verify_pairing_package_hash_replay,
 )
 from backend.app.forecast_quality.train_val_pairing_materialization import (
-    CANONICAL_FORECAST_ACTUAL_PAIRING_KEY,
+    ACTUAL_PARTITION_LOOKUP_KEY,
     EXISTING_CANONICAL_SOURCE_002_PARTITION_ROW_PARSER,
-    PAIRING_KEY_AUTHORITY_SOURCE,
+    FORECAST_BINDING_KEY,
+    FORECAST_BINDING_KEY_AUTHORITY_SOURCE,
     OfficialPartitionRows,
     TrainValidationPairingMaterializationBlocker,
     TrainValidationPairingMaterializationDeps,
-    compute_forecast_business_key,
+    _build_partition_s2_binding_request,
+    compute_canonical_forecast_binding_key_hash,
     load_official_partition_rows_from_content_bytes,
     materialize_train_validation_pairing_inputs,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
     PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY,
 )
+from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
+from backend.app.rolling_backtest.signatures import s2_binding_key_hash
 from backend.app.s2_materialized_dataset.lane_d.canonical import build_partition_bytes
 from backend.app.s2_materialized_dataset.lane_d.hashing import content_sha256
 from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow
@@ -38,6 +42,7 @@ from backend.app.s3_daily_rowset.forecast_port import (
     FakeIncumbentDailyCurveProvider,
     ForecastAvailability,
     IncumbentDailyCurveProvider,
+    UnavailableIncumbentDailyCurveProvider,
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
     IncumbentForecastReplaySource,
@@ -50,6 +55,30 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 _REVIEWED_CUTOFF = datetime.fromisoformat(REVIEW_CUTOFF_AT)
+
+
+def _test_forecast_binding_authority() -> S2ForecastAuthorityBundle:
+    return S2ForecastAuthorityBundle(
+        forecast_run_identity_hash="1" * 64,
+        daily_row_identity_hash="2" * 64,
+        task9_authority_identity_hash="c" * 64,
+        task9_member_identity_hash="5" * 64,
+        task10_authority_identity_hash="d" * 64,
+        task10_model_identity_hash="6" * 64,
+        task10_replay_identity_hash="7" * 64,
+        task10_prediction_row_identity_hash="8" * 64,
+        historical_code_authority_id=901,
+        forecast_code_identity="9" * 64,
+        historical_code_identity="a" * 40,
+        build_artifact_hash="b" * 64,
+        config_bundle_hash="e" * 64,
+        model_identity=REVIEW_MODEL_ID,
+        parameter_identity="parameter-v1",
+        data_identity="data-v1",
+        available_at=_REVIEWED_CUTOFF,
+        task10_model_available_at=_REVIEWED_CUTOFF,
+        historical_code_available_at=_REVIEWED_CUTOFF,
+    )
 
 
 def _materializable_row(
@@ -130,18 +159,21 @@ def _materialize_deps(
     forecasts: dict[date, Decimal] | None = None,
     replay_entries: tuple[IncumbentForecastArtifactEntry, ...] | None = None,
     forecast_unavailable: bool = False,
+    forecast_provider: IncumbentDailyCurveProvider | None = None,
 ) -> TrainValidationPairingMaterializationDeps:
     t7, t14, t21 = _target_dates()
     if forecasts is None:
         forecasts = {t7: Decimal("5.0"), t14: Decimal("6.0"), t21: Decimal("7.0")}
     entries = _reviewed_forecast_entries() if replay_entries is None else replay_entries
+    provider = forecast_provider or _forecast_provider(
+        forecasts=forecasts,
+        unavailable=forecast_unavailable,
+    )
     return TrainValidationPairingMaterializationDeps(
         official_partitions=official or _small_official_partitions(),
         forecast_replay_entries=entries,
-        forecast_provider=_forecast_provider(
-            forecasts=forecasts,
-            unavailable=forecast_unavailable,
-        ),
+        forecast_provider=provider,
+        forecast_binding_authority=_test_forecast_binding_authority(),
         forecast_cutoff_authority_identity=reviewed_grain_identity_set_identity_sha256(),
         forecast_content_identity_sha256="f" * 64,
     )
@@ -149,8 +181,9 @@ def _materialize_deps(
 
 def test_canonical_discovery_constants() -> None:
     assert EXISTING_CANONICAL_SOURCE_002_PARTITION_ROW_PARSER.endswith("parse_partition_bytes")
-    assert PAIRING_KEY_AUTHORITY_SOURCE.endswith("s2_binding_key_payload")
-    assert "season_business_key" in CANONICAL_FORECAST_ACTUAL_PAIRING_KEY
+    assert FORECAST_BINDING_KEY_AUTHORITY_SOURCE.endswith("s2_binding_key_hash")
+    assert "target_date" in ACTUAL_PARTITION_LOOKUP_KEY
+    assert "forecast_run_identity" in FORECAST_BINDING_KEY
 
 
 def test_official_hash_mismatch_fail_closed() -> None:
@@ -173,6 +206,19 @@ def test_forecast_replay_empty_blocks_materialization() -> None:
 def test_incumbent_replay_source_empty_obtain_blocks() -> None:
     source = IncumbentForecastReplaySource(replay_rows=())
     assert source.obtain() == ()
+
+
+def test_unavailable_forecast_provider_blocks_before_package() -> None:
+    result = materialize_train_validation_pairing_inputs(
+        _materialize_deps(forecast_provider=UnavailableIncumbentDailyCurveProvider())
+    )
+    assert not result.completed
+    assert (
+        result.blocker
+        == TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER
+    )
+    assert result.train_pairing_package is None
+    assert result.validation_pairing_package is None
 
 
 def test_partition_isolation_train_and_validation_packages() -> None:
@@ -246,14 +292,17 @@ def test_exact_pairing_comparable_when_forecast_and_actual_present() -> None:
     assert isinstance(row.actual_value_kg, Decimal)
 
 
-def test_forecast_unavailable_yields_not_computable_not_comparable() -> None:
+def test_forecast_unavailable_blocks_materialization_without_packages() -> None:
     result = materialize_train_validation_pairing_inputs(
         _materialize_deps(forecast_unavailable=True)
     )
-    assert result.completed
-    assert result.train_stats is not None
-    assert result.train_stats.exact_paired_row_count == 0
-    assert result.train_stats.not_computable_row_count > 0
+    assert not result.completed
+    assert (
+        result.blocker
+        == TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER
+    )
+    assert result.train_pairing_package is None
+    assert result.validation_pairing_package is None
 
 
 def test_native_float_rejected() -> None:
@@ -270,6 +319,7 @@ def test_native_float_rejected() -> None:
         official_partitions=_small_official_partitions(),
         forecast_replay_entries=_reviewed_forecast_entries(),
         forecast_provider=_FloatProvider(),
+        forecast_binding_authority=_test_forecast_binding_authority(),
         forecast_cutoff_authority_identity=reviewed_grain_identity_set_identity_sha256(),
         forecast_content_identity_sha256="a" * 64,
     )
@@ -323,20 +373,72 @@ def test_membership_proof_requires_official_partition_content() -> None:
     assert proof.source_row_identity
 
 
-def test_forecast_business_key_matches_canonical_fields() -> None:
+def test_forecast_binding_key_matches_canonical_s2_authority() -> None:
     t7, _, _ = _target_dates()
-    key = compute_forecast_business_key(
+    official = _small_official_partitions()
+    aligned = frozenset(
+        {(row.season, row.farm, row.subfarm, row.variety) for row in official.train_rows}
+    )
+    request = _build_partition_s2_binding_request(
+        aligned,
+        forecast_cutoff_at=_REVIEWED_CUTOFF,
+    )
+    authority = _test_forecast_binding_authority()
+    key = compute_canonical_forecast_binding_key_hash(
+        request,
         season_business_key="2025~2026",
         farm_business_key="farm-a",
         subfarm_business_key="subfarm-1",
         variety_business_key="variety-x",
         forecast_quantile="P50",
-        forecast_horizon_days=7,
-        forecast_target_date=t7,
-        model_identity=REVIEW_MODEL_ID,
+        horizon_days=7,
+        target_date=t7,
+        forecast_authority=authority,
+    )
+    from backend.app.forecast_quality.train_val_pairing_materialization import (
+        _provisional_s2_binding_row_for_key_hash,
+    )
+
+    provisional = _provisional_s2_binding_row_for_key_hash(
+        request,
+        season_business_key="2025~2026",
+        farm_business_key="farm-a",
+        subfarm_business_key="subfarm-1",
+        variety_business_key="variety-x",
+        forecast_quantile="P50",
+        horizon_days=7,
+        target_date=t7,
+        forecast_authority=authority,
+    )
+    assert key == s2_binding_key_hash(request, provisional)
+    assert len(key) == 64
+
+
+def test_materialized_row_forecast_business_key_uses_s2_binding_key_hash() -> None:
+    result = materialize_train_validation_pairing_inputs(_materialize_deps())
+    comparable = next(
+        row for row in result.train_evaluation_input.rows if row.s2_status == "COMPARABLE"
+    )
+    official = _small_official_partitions()
+    aligned = frozenset(
+        {(row.season, row.farm, row.subfarm, row.variety) for row in official.train_rows}
+    )
+    request = _build_partition_s2_binding_request(
+        aligned,
         forecast_cutoff_at=_REVIEWED_CUTOFF,
     )
-    assert len(key) == 64
+    expected = compute_canonical_forecast_binding_key_hash(
+        request,
+        season_business_key=comparable.season_business_key,
+        farm_business_key=comparable.farm_business_key,
+        subfarm_business_key=comparable.subfarm_business_key,
+        variety_business_key=comparable.variety_business_key,
+        forecast_quantile=comparable.forecast_quantile.value,
+        horizon_days=comparable.forecast_horizon_days,
+        target_date=comparable.forecast_target_date,
+        forecast_authority=_test_forecast_binding_authority(),
+    )
+    assert comparable.forecast_business_key == expected
 
 
 def test_official_hash_constants_match_module() -> None:

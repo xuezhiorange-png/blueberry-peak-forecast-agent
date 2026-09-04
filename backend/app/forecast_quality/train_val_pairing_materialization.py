@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, cast
 
 from backend.app.forecast_quality.enums import FrozenVersion, SupportedQuantile
 from backend.app.forecast_quality.schemas import S3BindingRow, S3EvaluationInput
@@ -29,6 +29,12 @@ from backend.app.forecast_quality.train_val_pairing import (
     verify_pairing_package_hash_replay,
 )
 from backend.app.rolling_backtest.canonical import sha256_payload
+from backend.app.rolling_backtest.schemas import (
+    S2ForecastAuthorityBundle,
+    S2HistoricalBacktestRequest,
+    S2HistoricalBindingRow,
+)
+from backend.app.rolling_backtest.signatures import s2_binding_key_hash
 from backend.app.s2_materialized_dataset.lane_d.canonical import (
     MalformedPartitionBytesError,
     parse_partition_bytes,
@@ -54,6 +60,10 @@ from backend.app.s3_daily_rowset.forecast_port import (
 from backend.app.s3_daily_rowset.incumbent_forecast_artifact_content import (
     compute_content_identity_sha256,
     project_incumbent_forecast_artifact_entries,
+)
+from backend.app.s3_daily_rowset.incumbent_forecast_daily_curve_live_obtain import (
+    LAWFUL_PIT_VISIBLE_INCUMBENT_DAILY_FORECAST_VALUE_SOURCE,
+    obtain_live_incumbent_forecast_daily_curve_provider,
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
     HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF,
@@ -81,17 +91,27 @@ TRAIN_VAL_PAIRING_MATERIALIZATION_PRODUCER_V1 = (
 EXISTING_CANONICAL_SOURCE_002_PARTITION_ROW_PARSER = (
     "backend/app/s2_materialized_dataset/lane_d/canonical.py:parse_partition_bytes"
 )
-PAIRING_KEY_AUTHORITY_SOURCE = "backend/app/rolling_backtest/signatures.py:s2_binding_key_payload"
-CANONICAL_FORECAST_ACTUAL_PAIRING_KEY: tuple[str, ...] = (
+ACTUAL_PARTITION_LOOKUP_KEY: tuple[str, ...] = (
+    "season_business_key",
+    "farm_business_key",
+    "subfarm_business_key",
+    "variety_business_key",
+    "target_date",
+)
+FORECAST_BINDING_KEY: tuple[str, ...] = (
+    "request_hash",
+    "node_identity_hash",
     "season_business_key",
     "farm_business_key",
     "subfarm_business_key",
     "variety_business_key",
     "forecast_quantile",
-    "forecast_horizon_days",
-    "forecast_target_date",
-    "model_identity",
-    "forecast_cutoff_at",
+    "horizon_days",
+    "target_date",
+    "forecast_run_identity",
+)
+FORECAST_BINDING_KEY_AUTHORITY_SOURCE = (
+    "backend/app/rolling_backtest/signatures.py:s2_binding_key_hash"
 )
 FORECAST_SOURCE_KIND = "IncumbentForecastReplaySource"
 
@@ -104,6 +124,7 @@ class TrainValidationPairingMaterializationBlocker(StrEnum):
     OFFICIAL_COUNT_MISMATCH = "OFFICIAL_COUNT_MISMATCH"
     MALFORMED_PARTITION_BYTES = "MALFORMED_PARTITION_BYTES"
     NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS = "NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS"
+    NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER = "NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER"
     REVIEWED_FORECAST_GRAIN_MISMATCH = "REVIEWED_FORECAST_GRAIN_MISMATCH"
     CROSS_PARTITION_SOURCE_ROW_IDENTITY = "CROSS_PARTITION_SOURCE_ROW_IDENTITY"
     DUPLICATE_ACTUAL_GRAIN_IN_PARTITION = "DUPLICATE_ACTUAL_GRAIN_IN_PARTITION"
@@ -165,6 +186,7 @@ class TrainValidationPairingMaterializationDeps:
     official_partitions: OfficialPartitionRows
     forecast_replay_entries: tuple[IncumbentForecastArtifactEntry, ...]
     forecast_provider: IncumbentDailyCurveProvider
+    forecast_binding_authority: S2ForecastAuthorityBundle
     forecast_cutoff_authority_identity: str
     forecast_content_identity_sha256: str
 
@@ -230,31 +252,101 @@ def load_official_partition_rows_from_content_bytes(
     )
 
 
-def compute_forecast_business_key(
+def _build_partition_s2_binding_request(
+    aligned_grains: frozenset[tuple[str, str, str, str]],
+    *,
+    forecast_cutoff_at: datetime,
+) -> S2HistoricalBacktestRequest:
+    return S2HistoricalBacktestRequest(
+        season_business_keys=tuple(sorted({grain[0] for grain in aligned_grains})),
+        farm_business_keys=tuple(sorted({grain[1] for grain in aligned_grains})),
+        subfarm_business_keys=tuple(sorted({grain[2] for grain in aligned_grains})),
+        variety_business_keys=tuple(sorted({grain[3] for grain in aligned_grains})),
+        master_identity_resolver_version="v0-3-s3-source-002-partition-materialization-v1",
+        mapping_policy_version="v0-3-s3-source-002-partition-materialization-v1",
+        resolved_identity_snapshot_hash=(
+            ACCEPTED_SOURCE_DATASET_IDENTITY.materialized_dataset_identity_sha256
+        ),
+        authority_selection_policy_version=TRAIN_VAL_PAIRING_MATERIALIZATION_PRODUCER_V1,
+        forecast_cutoff_at=forecast_cutoff_at,
+        label_observation_cutoff_at=forecast_cutoff_at,
+        label_visibility_mode="AS_OF_EVALUATION",
+        requested_horizons_days=tuple(sorted(HORIZON_DAYS)),
+    )
+
+
+def _provisional_s2_binding_row_for_key_hash(
+    request: S2HistoricalBacktestRequest,
     *,
     season_business_key: str,
     farm_business_key: str,
     subfarm_business_key: str,
     variety_business_key: str,
-    forecast_quantile: str,
-    forecast_horizon_days: int,
-    forecast_target_date: date,
-    model_identity: str,
-    forecast_cutoff_at: datetime,
+    forecast_quantile: Literal["P50", "P80", "P90"],
+    horizon_days: int,
+    target_date: date,
+    forecast_authority: S2ForecastAuthorityBundle,
+) -> S2HistoricalBindingRow:
+    return S2HistoricalBindingRow(
+        season_id=1,
+        season_business_key=season_business_key,
+        farm_business_key=farm_business_key,
+        subfarm_business_key=subfarm_business_key,
+        variety_business_key=variety_business_key,
+        forecast_quantile=forecast_quantile,
+        horizon_days=horizon_days,
+        target_date=target_date,
+        forecast_cutoff_at=request.forecast_cutoff_at,
+        label_observation_cutoff_at=request.label_observation_cutoff_at,
+        label_visibility_mode=request.label_visibility_mode,
+        forecast_value_kg=Decimal("0"),
+        actual_value_kg=None,
+        forecast_authority=forecast_authority,
+        actual_label=None,
+        physical_alignment_status="UNVERIFIED",
+        row_status="EXCLUDED",
+        reason_code="MATERIALIZATION_BINDING_KEY_PROJECTION",
+        authority_verification="SYNTHETIC_ENGINEERING",
+        binding_key_hash="0" * 64,
+        row_hash="0" * 64,
+    )
+
+
+def compute_canonical_forecast_binding_key_hash(
+    request: S2HistoricalBacktestRequest,
+    *,
+    season_business_key: str,
+    farm_business_key: str,
+    subfarm_business_key: str,
+    variety_business_key: str,
+    forecast_quantile: Literal["P50", "P80", "P90"],
+    horizon_days: int,
+    target_date: date,
+    forecast_authority: S2ForecastAuthorityBundle,
 ) -> str:
-    payload = {
-        "pairing_key_version": "v0-3-s3-b-forecast-actual-pairing-key-v1",
-        "season_business_key": season_business_key,
-        "farm_business_key": farm_business_key,
-        "subfarm_business_key": subfarm_business_key,
-        "variety_business_key": variety_business_key,
-        "forecast_quantile": forecast_quantile,
-        "forecast_horizon_days": forecast_horizon_days,
-        "forecast_target_date": forecast_target_date,
-        "model_identity": model_identity,
-        "forecast_cutoff_at": forecast_cutoff_at,
-    }
-    return sha256_payload(payload)
+    provisional = _provisional_s2_binding_row_for_key_hash(
+        request,
+        season_business_key=season_business_key,
+        farm_business_key=farm_business_key,
+        subfarm_business_key=subfarm_business_key,
+        variety_business_key=variety_business_key,
+        forecast_quantile=forecast_quantile,
+        horizon_days=horizon_days,
+        target_date=target_date,
+        forecast_authority=forecast_authority,
+    )
+    return s2_binding_key_hash(request, provisional)
+
+
+def _forecast_provider_blocks_materialization(provider: IncumbentDailyCurveProvider) -> bool:
+    return provider.is_placeholder_provider
+
+
+def _zero_comparable_pairings(
+    train_stats: PartitionBindingMaterializationStats,
+    validation_stats: PartitionBindingMaterializationStats,
+) -> bool:
+    return (train_stats.exact_paired_row_count + validation_stats.exact_paired_row_count) == 0
 
 
 def compute_s3_binding_row_hash(row: S3BindingRow) -> str:
@@ -382,6 +474,8 @@ def _build_partition_binding_rows(
     aligned_grains: frozenset[tuple[str, str, str, str]],
     forecast_entries: tuple[IncumbentForecastArtifactEntry, ...],
     forecast_provider: IncumbentDailyCurveProvider,
+    s2_binding_request: S2HistoricalBacktestRequest,
+    forecast_binding_authority: S2ForecastAuthorityBundle,
 ) -> tuple[tuple[S3BindingRow, ...], PartitionBindingMaterializationStats] | (
     TrainValidationPairingMaterializationBlocker
 ):
@@ -414,16 +508,19 @@ def _build_partition_binding_rows(
                     cell,
                     business_date=target_date,
                 )
-                forecast_key = compute_forecast_business_key(
+                forecast_key = compute_canonical_forecast_binding_key_hash(
+                    s2_binding_request,
                     season_business_key=season,
                     farm_business_key=farm,
                     subfarm_business_key=subfarm,
                     variety_business_key=variety,
-                    forecast_quantile=forecast_entry.forecast_quantile,
-                    forecast_horizon_days=horizon_days,
-                    forecast_target_date=target_date,
-                    model_identity=forecast_entry.model_id,
-                    forecast_cutoff_at=forecast_entry.forecast_cutoff_at,
+                    forecast_quantile=cast(
+                        Literal["P50", "P80", "P90"],
+                        forecast_entry.forecast_quantile,
+                    ),
+                    horizon_days=horizon_days,
+                    target_date=target_date,
+                    forecast_authority=forecast_binding_authority,
                 )
                 if forecast_key in seen_forecast_keys:
                     return (
@@ -602,6 +699,15 @@ def materialize_train_validation_pairing_inputs(
             cross_partition_row_count=cross_partition,
         )
 
+    if _forecast_provider_blocks_materialization(deps.forecast_provider):
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
+            official_partitions=deps.official_partitions,
+            forecast_row_count=len(reviewed_entries),
+            cross_partition_row_count=cross_partition,
+        )
+
     train_index_result = _build_membership_index(
         partition="TRAIN",
         partition_identity=train_identity,
@@ -643,12 +749,26 @@ def materialize_train_validation_pairing_inputs(
             cross_partition_row_count=cross_partition,
         )
 
+    train_aligned_grains = _aligned_grains(train_index)
+    validation_aligned_grains = _aligned_grains(validation_index)
+    reviewed_cutoff = _parse_reviewed_cutoff()
+    train_s2_request = _build_partition_s2_binding_request(
+        train_aligned_grains,
+        forecast_cutoff_at=reviewed_cutoff,
+    )
+    validation_s2_request = _build_partition_s2_binding_request(
+        validation_aligned_grains,
+        forecast_cutoff_at=reviewed_cutoff,
+    )
+
     train_rows_result = _build_partition_binding_rows(
         partition="TRAIN",
         membership_index=train_index,
-        aligned_grains=_aligned_grains(train_index),
+        aligned_grains=train_aligned_grains,
         forecast_entries=reviewed_entries,
         forecast_provider=deps.forecast_provider,
+        s2_binding_request=train_s2_request,
+        forecast_binding_authority=deps.forecast_binding_authority,
     )
     if isinstance(train_rows_result, TrainValidationPairingMaterializationBlocker):
         return TrainValidationPairingMaterializationResult(
@@ -664,9 +784,11 @@ def materialize_train_validation_pairing_inputs(
     validation_rows_result = _build_partition_binding_rows(
         partition="VALIDATION",
         membership_index=validation_index,
-        aligned_grains=_aligned_grains(validation_index),
+        aligned_grains=validation_aligned_grains,
         forecast_entries=reviewed_entries,
         forecast_provider=deps.forecast_provider,
+        s2_binding_request=validation_s2_request,
+        forecast_binding_authority=deps.forecast_binding_authority,
     )
     if isinstance(validation_rows_result, TrainValidationPairingMaterializationBlocker):
         return TrainValidationPairingMaterializationResult(
@@ -678,6 +800,18 @@ def materialize_train_validation_pairing_inputs(
             validation_membership_proofs=validation_proofs,
         )
     validation_binding_rows, validation_stats = validation_rows_result
+
+    if _zero_comparable_pairings(train_stats, validation_stats):
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
+            official_partitions=deps.official_partitions,
+            forecast_row_count=len(reviewed_entries),
+            train_membership_proofs=train_proofs,
+            validation_membership_proofs=validation_proofs,
+            train_stats=train_stats,
+            validation_stats=validation_stats,
+        )
 
     train_eval, train_package, train_stats = _finalize_partition_materialization(
         partition="TRAIN",
@@ -771,13 +905,24 @@ def materialize_train_validation_pairing_inputs_live() -> (
     forecast_content_identity = compute_content_identity_sha256(rows=reviewed_entries)
     forecast_cutoff_authority = reviewed_grain_identity_set_identity_sha256()
 
-    from backend.app.s3_daily_rowset.forecast_port import UnavailableIncumbentDailyCurveProvider
+    curve_obtain = obtain_live_incumbent_forecast_daily_curve_provider()
+    if (
+        not curve_obtain.obtained
+        or curve_obtain.provider is None
+        or curve_obtain.forecast_binding_authority is None
+    ):
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
+            official_partitions=official,
+            forecast_row_count=len(reviewed_entries),
+        )
 
-    provider = UnavailableIncumbentDailyCurveProvider()
     deps = TrainValidationPairingMaterializationDeps(
         official_partitions=official,
         forecast_replay_entries=replay_entries,
-        forecast_provider=provider,
+        forecast_provider=curve_obtain.provider,
+        forecast_binding_authority=curve_obtain.forecast_binding_authority,
         forecast_cutoff_authority_identity=forecast_cutoff_authority,
         forecast_content_identity_sha256=forecast_content_identity,
     )
@@ -801,8 +946,12 @@ def build_materialization_evidence_payload(
         "harvest_business_date_is_not_forecast_cutoff": (
             HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF
         ),
-        "canonical_forecast_actual_pairing_key": list(CANONICAL_FORECAST_ACTUAL_PAIRING_KEY),
-        "pairing_key_authority_source": PAIRING_KEY_AUTHORITY_SOURCE,
+        "lawful_pit_visible_incumbent_daily_forecast_value_source": (
+            LAWFUL_PIT_VISIBLE_INCUMBENT_DAILY_FORECAST_VALUE_SOURCE
+        ),
+        "actual_partition_lookup_key": list(ACTUAL_PARTITION_LOOKUP_KEY),
+        "forecast_binding_key": list(FORECAST_BINDING_KEY),
+        "forecast_binding_key_authority_source": FORECAST_BINDING_KEY_AUTHORITY_SOURCE,
         "existing_canonical_source_002_partition_row_parser": (
             EXISTING_CANONICAL_SOURCE_002_PARTITION_ROW_PARSER
         ),
