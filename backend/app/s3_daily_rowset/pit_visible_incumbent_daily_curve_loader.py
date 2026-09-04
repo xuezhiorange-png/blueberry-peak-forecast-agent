@@ -12,10 +12,10 @@ from sqlalchemy.orm import Session
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import MaturityDailyPredictionModel, MaturityForecastRun
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
+from backend.app.rolling_backtest.persisted_forecast_authority import ForecastQuantile
 from backend.app.rolling_backtest.resolution import task8_daily_prediction_payload_hash
 from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
-    ForecastQuantile,
     is_synthetic_forecast_authority,
     load_persisted_forecast_binding_authority,
 )
