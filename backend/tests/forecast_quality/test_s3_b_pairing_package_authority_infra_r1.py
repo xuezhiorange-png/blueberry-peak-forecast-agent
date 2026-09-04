@@ -18,16 +18,21 @@ from backend.app.forecast_quality.quantile_coverage import (
 )
 from backend.app.forecast_quality.schemas import BreakdownSpec, S3BindingRow, S3EvaluationInput
 from backend.app.forecast_quality.train_val_pairing import (
+    ACCEPTED_TRAIN_PARTITION_IDENTITY,
+    ACCEPTED_VALIDATION_PARTITION_IDENTITY,
     EXACT_ACTUAL_PAIRING_POLICY_VERSION_NOT_ISSUED,
     EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS,
     FROZEN_EXACT_ACTUAL_PAIRING_RULE,
+    ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS,
     TRAIN_VAL_PAIRING_POLICY_V1,
     PartitionIdentity,
     TrainValPairingPackageInvariantError,
     build_candidate_train_validation_pairing_package,
     build_pairing_package_semantic_payload,
     compute_pairing_package_identity_hashes,
+    validate_pairing_package_candidate_invariants,
     validate_pairing_package_invariants,
+    validate_published_pairing_package_invariants,
     verify_pairing_package_hash_replay,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
@@ -46,22 +51,7 @@ from backend.app.s3_daily_rowset.registry import (
 
 _SPEC = BreakdownSpec(7, "farm-a", "subfarm-a", "variety-a", "season-2025", "model-a")
 _FORECAST_CUTOFF_AUTHORITY = "d" * 64
-
-_TRAIN_PARTITION = PartitionIdentity(
-    partition_name="TRAIN",
-    partition_identity_sha256="55d8e97e73568def2cd368bcf76deeb13de5089361f70b08c8101ea8f745097b",
-    content_sha256="be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2",
-    partition_start_date=date(2025, 8, 5),
-    partition_end_date=date(2026, 1, 30),
-)
-
-_VALIDATION_PARTITION = PartitionIdentity(
-    partition_name="VALIDATION",
-    partition_identity_sha256="006c80ff6bc88ecf7112fd082ab7e27e71655ebd2f00ff105d6110a8473244ba",
-    content_sha256="4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06",
-    partition_start_date=date(2026, 1, 31),
-    partition_end_date=date(2026, 3, 9),
-)
+_TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION = "test-exact-actual-policy-v1"
 
 
 def _row(index: int = 0) -> S3BindingRow:
@@ -102,7 +92,7 @@ def _evaluation(
 def _candidate_package(
     *,
     partition: str = "TRAIN",
-    partition_identity: PartitionIdentity = _TRAIN_PARTITION,
+    partition_identity: PartitionIdentity = ACCEPTED_TRAIN_PARTITION_IDENTITY,
     evaluation: S3EvaluationInput | None = None,
 ) -> object:
     return build_candidate_train_validation_pairing_package(
@@ -127,6 +117,54 @@ def _partition_authority(
         pairing_package_identity=package.pairing_package_identity,
         s2_binding_row_set_hash=package.s2_binding_row_set_hash,
         permitted_partitions=(package.partition,),
+    )
+
+
+def _rehash_package(package: object, **changes: object) -> object:
+    updated = dataclasses.replace(package, **changes)
+    identity, canonical = compute_pairing_package_identity_hashes(updated)
+    return dataclasses.replace(
+        updated,
+        pairing_package_identity=identity,
+        canonical_hash=canonical,
+    )
+
+
+def _full_verifier_blocker(
+    package: object,
+    *,
+    evaluation_input: S3EvaluationInput | None = None,
+    exact_policy_version: str = _TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION,
+    issued_exact: frozenset[str] | None = None,
+) -> str | None:
+    published_package = _rehash_package(
+        package,
+        exact_actual_pairing_policy_version=exact_policy_version,
+    )
+    record = build_candidate_authority_record(
+        schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+        pairing_package_identity=published_package.pairing_package_identity,
+        s2_binding_row_set_hash=published_package.s2_binding_row_set_hash,
+        permitted_partitions=(published_package.partition,),
+        issuer_identity_or_version="issuer-v1",
+    )
+    authority = _partition_authority(
+        published_package,
+        authority_record_identity=record.authority_record_identity,
+    )
+    return verify_train_validation_coverage_authority(
+        evaluation_input or published_package.evaluation_input,
+        authority,
+        published_registry=TrustedPublishedPairingPackageRegistry(
+            {published_package.pairing_package_identity: published_package}
+        ),
+        issued_registry=TrustedIssuedAuthorityRegistry(
+            {record.authority_record_identity: record}
+        ),
+        issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
+        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+        issued_exact_actual_pairing_policy_versions=issued_exact
+        or frozenset({exact_policy_version}),
     )
 
 
@@ -168,7 +206,7 @@ def test_c_package_tamper_detection() -> None:
             "source_dataset_identity",
             dataclasses.replace(package.source_dataset_identity, dataset_id="other"),
         ),
-        ("partition_identity", _VALIDATION_PARTITION),
+        ("partition_identity", ACCEPTED_VALIDATION_PARTITION_IDENTITY),
         ("actuals_authority_identity", "wrong"),
         ("forecast_authority_identity", "wrong"),
         ("forecast_cutoff_authority_identity", "e" * 64),
@@ -191,7 +229,7 @@ def test_d_test_partition_rejected() -> None:
     with pytest.raises(TrainValPairingPackageInvariantError):
         build_candidate_train_validation_pairing_package(
             partition="TEST",  # type: ignore[arg-type]
-            partition_identity=_TRAIN_PARTITION,
+            partition_identity=ACCEPTED_TRAIN_PARTITION_IDENTITY,
             evaluation_input=_evaluation(),
             forecast_cutoff_authority_identity=_FORECAST_CUTOFF_AUTHORITY,
         )
@@ -209,7 +247,7 @@ def test_f_native_float_rejected() -> None:
     with pytest.raises(S3DecimalAssertionError):
         build_candidate_train_validation_pairing_package(
             partition="TRAIN",
-            partition_identity=_TRAIN_PARTITION,
+            partition_identity=ACCEPTED_TRAIN_PARTITION_IDENTITY,
             evaluation_input=_evaluation([bad_row]),
             forecast_cutoff_authority_identity=_FORECAST_CUTOFF_AUTHORITY,
         )
@@ -301,30 +339,13 @@ def test_j_authority_record_present_package_missing() -> None:
 
 def test_k_package_present_binding_mismatch() -> None:
     package = _candidate_package()
-    record = build_candidate_authority_record(
-        schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
-        pairing_package_identity=package.pairing_package_identity,
-        s2_binding_row_set_hash=package.s2_binding_row_set_hash,
-        permitted_partitions=("TRAIN",),
-        issuer_identity_or_version="issuer-v1",
-    )
-    published = TrustedPublishedPairingPackageRegistry({package.pairing_package_identity: package})
-    issued = TrustedIssuedAuthorityRegistry({record.authority_record_identity: record})
-    authority = _partition_authority(
-        package,
-        authority_record_identity=record.authority_record_identity,
-    )
     mismatched_evaluation = dataclasses.replace(
         package.evaluation_input,
         s2_binding_row_set_hash="f" * 64,
     )
-    blocker = verify_train_validation_coverage_authority(
-        mismatched_evaluation,
-        authority,
-        published_registry=published,
-        issued_registry=issued,
-        issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
-        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+    blocker = _full_verifier_blocker(
+        package,
+        evaluation_input=mismatched_evaluation,
     )
     assert blocker == "TRAIN_VALIDATION_PARTITION_AUTHORITY_BINDING_MISMATCH"
 
@@ -443,3 +464,103 @@ def test_published_package_invariants_reverified_at_execution_gate() -> None:
         issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
     )
     assert blocker == "TRAIN_VALIDATION_PAIRING_PACKAGE_INVARIANT_VIOLATION"
+
+
+def test_empty_exact_policy_blocks_published_execution() -> None:
+    package = _candidate_package()
+    record = build_candidate_authority_record(
+        schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
+        pairing_package_identity=package.pairing_package_identity,
+        s2_binding_row_set_hash=package.s2_binding_row_set_hash,
+        permitted_partitions=("TRAIN",),
+        issuer_identity_or_version="issuer-v1",
+    )
+    authority = _partition_authority(
+        package,
+        authority_record_identity=record.authority_record_identity,
+    )
+    blocker = verify_train_validation_coverage_authority(
+        package.evaluation_input,
+        authority,
+        published_registry=TrustedPublishedPairingPackageRegistry(
+            {package.pairing_package_identity: package}
+        ),
+        issued_registry=TrustedIssuedAuthorityRegistry(
+            {record.authority_record_identity: record}
+        ),
+        issued_schema_versions=frozenset({TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1}),
+        issued_pairing_policy_versions=frozenset({TRAIN_VAL_PAIRING_POLICY_V1}),
+        issued_exact_actual_pairing_policy_versions=frozenset(
+            {_TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION}
+        ),
+    )
+    assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
+
+
+def test_unissued_non_empty_exact_policy_blocks_published_execution() -> None:
+    package = _candidate_package()
+    blocker = _full_verifier_blocker(
+        package,
+        exact_policy_version="unissued-exact-policy-v1",
+        issued_exact=frozenset({_TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION}),
+    )
+    assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
+
+
+def test_forged_train_partition_identity_sha256_rejected() -> None:
+    package = _candidate_package()
+    forged = dataclasses.replace(
+        package,
+        partition_identity=dataclasses.replace(
+            package.partition_identity,
+            partition_identity_sha256="f" * 64,
+        ),
+    )
+    with pytest.raises(TrainValPairingPackageInvariantError):
+        validate_pairing_package_candidate_invariants(forged)
+
+
+def test_forged_train_content_sha256_rejected() -> None:
+    package = _candidate_package()
+    forged = dataclasses.replace(
+        package,
+        partition_identity=dataclasses.replace(
+            package.partition_identity,
+            content_sha256="f" * 64,
+        ),
+    )
+    with pytest.raises(TrainValPairingPackageInvariantError):
+        validate_pairing_package_candidate_invariants(forged)
+
+
+def test_forged_train_date_range_rejected() -> None:
+    package = _candidate_package()
+    forged = dataclasses.replace(
+        package,
+        partition_identity=dataclasses.replace(
+            package.partition_identity,
+            partition_end_date=date(2026, 2, 1),
+        ),
+    )
+    with pytest.raises(TrainValPairingPackageInvariantError):
+        validate_pairing_package_candidate_invariants(forged)
+
+
+def test_forged_validation_partition_identity_sha256_rejected() -> None:
+    package = _candidate_package(
+        partition="VALIDATION",
+        partition_identity=ACCEPTED_VALIDATION_PARTITION_IDENTITY,
+    )
+    forged = dataclasses.replace(
+        package,
+        partition_identity=dataclasses.replace(
+            package.partition_identity,
+            partition_identity_sha256="f" * 64,
+        ),
+    )
+    with pytest.raises(TrainValPairingPackageInvariantError):
+        validate_pairing_package_candidate_invariants(forged)
+
+
+def test_production_exact_actual_pairing_policy_versions_empty() -> None:
+    assert ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS == frozenset()
