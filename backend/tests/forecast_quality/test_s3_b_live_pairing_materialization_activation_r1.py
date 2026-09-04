@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app.forecast_quality.train_val_pairing_materialization import (
     OfficialPartitionRows,
@@ -42,7 +42,6 @@ from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider impo
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
     _resolve_exact_core_daily_row,
     _resolve_exact_task9_member,
-    _resolve_exact_task10_prediction,
     is_synthetic_forecast_authority,
     load_persisted_forecast_binding_authority,
 )
@@ -55,13 +54,19 @@ from backend.tests.forecast_quality.authority_loader_fixture import (
     CUTOFF_AT,
     FACTORY_ID,
     FARM_ID,
+    PREDICTION_RUN_ID,
     SUBFARM_ID,
     TASK8_RUN_ID,
     VARIETY_ID,
-    _fixture_hash,
-    _prediction_row,
     _task9_member,
     seed_canonical_authority_fixture,
+)
+from backend.tests.forecast_quality.persisted_forecast_authority_fixture_mocks import (
+    copy_fixture_rows_to_async_session,
+    create_authority_fixture_async_engine,
+    ensure_authority_fixture_tables,
+    install_authority_fixture_mock_loaders,
+    session_rows_from_sync_fixture,
 )
 
 pytest_plugins = ["backend.tests.forecast_quality.authority_loader_fixture"]
@@ -652,39 +657,80 @@ def test_materialization_grains_union_train_and_validation() -> None:
     assert grains == frozenset({("s1", "f1", "sf1", "v1"), ("s2", "f2", "sf2", "v2")})
 
 
-def test_canonical_daily_row_identity_restored(authority_loader_session) -> None:
+async def _load_binding_authority_with_fixture(
+    sync_session,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    target_date,
+    forecast_quantile: str = "P50",
+    horizon_days: int = 7,
+    task10_prediction_run_id: int | None = PREDICTION_RUN_ID,
+    prediction_row_key: str = "pred_row_h7_a",
+    member_key: str = "member_p50_a",
+    core_row_key: str = "core_row_p50_a",
+    fixture: dict[str, object] | None = None,
+):
+    if fixture is None:
+        fixture = seed_canonical_authority_fixture(sync_session)
+    core_row = fixture[core_row_key]
+    rows = session_rows_from_sync_fixture(sync_session, fixture=fixture)
+    install_authority_fixture_mock_loaders(
+        monkeypatch,
+        session_rows=rows,
+        core_row=core_row,
+        task9_member=fixture[member_key],
+        prediction_row=fixture[prediction_row_key],
+    )
+    engine = create_authority_fixture_async_engine()
+    await ensure_authority_fixture_tables(engine)
+    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        await copy_fixture_rows_to_async_session(sync_session, session, fixture=fixture)
+        authority = await load_persisted_forecast_binding_authority(
+            session,
+            forecast_cutoff_at=CUTOFF_AT,
+            task8_forecast_run_id=TASK8_RUN_ID,
+            target_date=target_date,
+            forecast_quantile=forecast_quantile,
+            horizon_days=horizon_days,
+            farm_id=FARM_ID,
+            subfarm_id=SUBFARM_ID,
+            variety_id=VARIETY_ID,
+            task10_prediction_run_id=task10_prediction_run_id,
+        )
+    await engine.dispose()
+    return authority, fixture, core_row
+
+
+@pytest.mark.asyncio
+async def test_canonical_daily_row_identity_restored(
+    authority_loader_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
     core_row = fixture["core_row_p50_a"]
     assert isinstance(core_row, CoreForecastDailyRowModel)
-    authority = load_persisted_forecast_binding_authority(
+    authority, _, _ = await _load_binding_authority_with_fixture(
         authority_loader_session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
+        monkeypatch,
         target_date=core_row.date,
-        forecast_quantile="P50",
-        horizon_days=7,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+        fixture=fixture,
     )
     assert authority is not None
     assert authority.daily_row_identity_hash == core_row.row_hash
 
 
-def test_task8_hash_is_not_s2_daily_row_identity(authority_loader_session) -> None:
+@pytest.mark.asyncio
+async def test_task8_hash_is_not_s2_daily_row_identity(
+    authority_loader_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
     core_row = fixture["core_row_p50_a"]
     assert isinstance(core_row, CoreForecastDailyRowModel)
-    authority = load_persisted_forecast_binding_authority(
+    authority, _, _ = await _load_binding_authority_with_fixture(
         authority_loader_session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
+        monkeypatch,
         target_date=core_row.date,
-        forecast_quantile="P50",
-        horizon_days=7,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+        fixture=fixture,
     )
     assert authority is not None
     assert authority.daily_row_identity_hash == core_row.row_hash
@@ -765,108 +811,57 @@ def test_task9_ambiguity_fails_closed(authority_loader_session) -> None:
     )
 
 
-def test_exact_task10_prediction_row_selection(authority_loader_session) -> None:
+@pytest.mark.asyncio
+async def test_task10_reference_required_fails_closed_without_pinned_run(
+    authority_loader_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    match = _resolve_exact_task10_prediction(
+    core_row = fixture["core_row_p50_a"]
+    authority, _, _ = await _load_binding_authority_with_fixture(
         authority_loader_session,
-        task9_run_id=fixture["pred_row_h14_b"].task9_run_id,
-        forecast_cutoff_at=CUTOFF_AT,
-        target_date=fixture["pred_row_h14_b"].arrival_local_date,
-        horizon_days=14,
-        destination_factory_id=FACTORY_ID,
+        monkeypatch,
+        target_date=core_row.date,
+        task10_prediction_run_id=None,
+        fixture=fixture,
     )
-    assert match is not None
-    _, prediction_row, _ = match
-    assert prediction_row.id == fixture["pred_row_h14_b"].id
+    assert authority is None
 
 
-def test_task10_ambiguity_fails_closed(authority_loader_session) -> None:
+@pytest.mark.asyncio
+async def test_multi_day_multi_quantile_authority(
+    authority_loader_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     fixture = seed_canonical_authority_fixture(authority_loader_session)
-    second_run_prediction = _prediction_row(
-        row_id=4999,
-        prediction_run_id=9999,
-        target_date=fixture["pred_row_h7_a"].arrival_local_date,
-        horizon_days=7,
-        row_hash=_fixture_hash("prediction-row-duplicate"),
-    )
-    from backend.app.models.residual_model import ResidualModelPredictionRun
-
-    duplicate_run = ResidualModelPredictionRun(
-        id=9999,
-        training_run_id=301,
-        task9_run_id=fixture["pred_row_h7_a"].task9_run_id,
-        task9_result_hash=fixture["pred_row_h7_a"].task9_result_hash,
-        prediction_target_kind="LEGACY_RESIDUAL_CORRECTION",
-        execution_status="completed",
-        mode="structural_only",
-        config_hash=_fixture_hash("duplicate-prediction-run-config"),
-        feature_schema_version="task10-features-v1",
-        feature_schema_hash=_fixture_hash("duplicate-prediction-run-feature-schema"),
-        artifact_hashes=[],
-        prediction_input_signature=_fixture_hash("duplicate-prediction-run-input"),
-        prediction_hash=_fixture_hash("duplicate-prediction-run-hash"),
-        feature_audit={},
-        warnings=[],
-        blockers=[],
-        fallback_reason="fixture-duplicate-structural-only",
-        expected_prediction_row_count=1,
-        input_snapshot={"training_signature": _fixture_hash("authority-fixture-0")},
-        canonical_output={},
-        canonical_payload_hash=_fixture_hash("duplicate-prediction-run-payload"),
-        completed_at=CUTOFF_AT,
-    )
-    authority_loader_session.add_all([duplicate_run, second_run_prediction])
-    authority_loader_session.commit()
-    assert (
-        _resolve_exact_task10_prediction(
-            authority_loader_session,
-            task9_run_id=fixture["pred_row_h7_a"].task9_run_id,
-            forecast_cutoff_at=CUTOFF_AT,
-            target_date=fixture["pred_row_h7_a"].arrival_local_date,
-            horizon_days=7,
-            destination_factory_id=FACTORY_ID,
-        )
-        is None
-    )
-    authority_loader_session.delete(second_run_prediction)
-    authority_loader_session.delete(duplicate_run)
-    authority_loader_session.commit()
-
-
-def test_multi_day_multi_quantile_authority(authority_loader_session) -> None:
-    fixture = seed_canonical_authority_fixture(authority_loader_session)
-    auth_p50_a = load_persisted_forecast_binding_authority(
+    auth_p50_a, _, _ = await _load_binding_authority_with_fixture(
         authority_loader_session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
+        monkeypatch,
         target_date=fixture["core_row_p50_a"].date,
-        forecast_quantile="P50",
+        core_row_key="core_row_p50_a",
+        member_key="member_p50_a",
+        prediction_row_key="pred_row_h7_a",
         horizon_days=7,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+        fixture=fixture,
     )
-    auth_p80_a = load_persisted_forecast_binding_authority(
+    auth_p80_a, _, _ = await _load_binding_authority_with_fixture(
         authority_loader_session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
+        monkeypatch,
         target_date=fixture["core_row_p80_a"].date,
         forecast_quantile="P80",
+        core_row_key="core_row_p80_a",
+        member_key="member_p80_a",
+        prediction_row_key="pred_row_h7_a",
         horizon_days=7,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+        fixture=fixture,
     )
-    auth_p50_b = load_persisted_forecast_binding_authority(
+    auth_p50_b, _, _ = await _load_binding_authority_with_fixture(
         authority_loader_session,
-        forecast_cutoff_at=CUTOFF_AT,
-        task8_forecast_run_id=TASK8_RUN_ID,
+        monkeypatch,
         target_date=fixture["core_row_p50_b"].date,
-        forecast_quantile="P50",
+        core_row_key="core_row_p50_b",
+        member_key="member_p50_b",
+        prediction_row_key="pred_row_h14_b",
         horizon_days=14,
-        farm_id=FARM_ID,
-        subfarm_id=SUBFARM_ID,
-        variety_id=VARIETY_ID,
+        fixture=fixture,
     )
     assert auth_p50_a is not None
     assert auth_p80_a is not None

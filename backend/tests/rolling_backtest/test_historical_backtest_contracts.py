@@ -550,8 +550,13 @@ def _install_persisted_authority_fixture(
         task9_result_hash=task9_result_hash,
         forecast_season_id=21,
         forecast_season_code="season:2026",
+        code_authority_id=901,
+        code_authority_hash="9" * 64,
+        forecast_effective_cutoff_at=task9_cutoff,
+        completed_at=_CUTOFF,
     )
     code_authority = SimpleNamespace(
+        id=901,
         authority_id=901,
         authority_hash="9" * 64,
         source_commit_sha="a" * 40,
@@ -603,6 +608,45 @@ def _install_persisted_authority_fixture(
         task9_result_hash=task9_result_hash,
         input_snapshot={"training_signature": "6" * 64},
         rows=(prediction_row,),
+    )
+    prediction_run = SimpleNamespace(
+        id=601,
+        training_run_id=701,
+        task9_run_id=301,
+        task9_result_hash=task9_result_hash,
+        execution_status="completed",
+        prediction_hash=task10.prediction_hash,
+        prediction_input_signature=task10.prediction_input_signature,
+        input_snapshot=task10.input_snapshot,
+    )
+    prediction_orm_row = SimpleNamespace(
+        id=801,
+        prediction_run_id=601,
+        arrival_local_date=target_date,
+        forecast_horizon_days=7,
+        destination_factory_id=14,
+        task9_run_id=301,
+        task9_result_hash=task9_result_hash,
+        prediction_row_hash=prediction_row.prediction_hash,
+    )
+    task9_member_row = SimpleNamespace(
+        id=901,
+        harvest_state_run_id=301,
+        state_date=target_date,
+        forecast_quantile="P50",
+        farm_id=11,
+        subfarm_id=12,
+        variety_id=13,
+        destination_factory_id=14,
+        natural_maturity_supply_kg=task9_member.natural_maturity_supply_kg,
+        opening_mature_inventory_kg=task9_member.opening_mature_inventory_kg,
+        available_mature_quantity_kg=task9_member.available_mature_quantity_kg,
+        mature_inventory_loss_quantity_kg=task9_member.mature_inventory_loss_quantity_kg,
+        harvestable_mature_quantity_kg=task9_member.harvestable_mature_quantity_kg,
+        allocated_harvest_capacity_kg=task9_member.allocated_harvest_capacity_kg,
+        harvested_quantity_kg=task9_member.harvested_quantity_kg,
+        closing_mature_inventory_kg=task9_member.closing_mature_inventory_kg,
+        unharvested_backlog_kg=task9_member.unharvested_backlog_kg,
     )
     winner_payload = {
         "source_system": "fixture",
@@ -747,6 +791,8 @@ def _install_persisted_authority_fixture(
         ("CoreForecastRunModel", 401): None if missing_core_run else core_run,
         ("CoreForecastDailyRowModel", 402): core_row,
         ("HarvestStateRun", 301): task9,
+        ("CoreForecastCodeAuthorityModel", 901): code_authority,
+        ("ResidualModelPredictionRun", 601): prediction_run,
         (
             "ResidualModelTrainingRun",
             701,
@@ -765,6 +811,14 @@ def _install_persisted_authority_fixture(
     class _Session:
         async def get(self, model: type[object], identity: int) -> object | None:
             return rows.get((model.__name__, identity))
+
+        async def scalars(self, _statement: object) -> list[object]:
+            statement = str(_statement).lower()
+            if "residual_model_prediction_row" in statement:
+                return [prediction_orm_row]
+            if "harvest_state_daily_member_row" in statement:
+                return [task9_member_row]
+            return []
 
     class _Repository:
         def __init__(self, _session: object) -> None:
@@ -1113,7 +1167,7 @@ def test_historical_code_identity_drift_rejected(
             )
         }
     )
-    with pytest.raises(ValueError, match="persisted forecast identity fields"):
+    with pytest.raises(ValueError, match="forecast authority bundle field mismatch: forecast_code_identity"):
         asyncio.run(
             resolve_s2_persisted_authorities(
                 session,

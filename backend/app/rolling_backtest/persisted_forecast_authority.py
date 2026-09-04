@@ -27,8 +27,11 @@ from backend.app.models.residual_model import (
     ResidualModelPredictionRun,
     ResidualModelTrainingRun,
 )
-from backend.app.rolling_backtest.orchestration import _task9_member_identity_hash
-from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
+from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_payload
+from backend.app.rolling_backtest.schemas import (
+    PersistentUpstreamReference,
+    S2ForecastAuthorityBundle,
+)
 
 ForecastQuantile = Literal["P50", "P80", "P90"]
 
@@ -69,6 +72,47 @@ def _code_authority_record_id(code_authority: Any) -> int:
     if authority_id is not None:
         return int(authority_id)
     return int(code_authority.id)
+
+
+@dataclass(frozen=True, slots=True)
+class PersistedForecastAuthorityRefs:
+    core_forecast_run_id: int
+    core_forecast_daily_row_id: int
+    task9_run_id: int
+    task10_prediction_run_id: int
+
+
+@dataclass(frozen=True, slots=True)
+class _PinnedTask10PredictionInput:
+    persistent_reference: PersistentUpstreamReference
+
+
+def task9_member_identity_hash(member: Any) -> str:
+    """Derive the exact Task 9 member identity from its canonical persisted projection."""
+    return sha256_payload(
+        canonical_json_value(
+            {
+                "state_date": member.state_date,
+                "forecast_quantile": member.forecast_quantile,
+                "farm_id": member.farm_id,
+                "subfarm_id": member.subfarm_id,
+                "variety_id": member.variety_id,
+                "destination_factory_id": member.destination_factory_id,
+                "natural_maturity_supply_kg": member.natural_maturity_supply_kg,
+                "opening_mature_inventory_kg": member.opening_mature_inventory_kg,
+                "available_mature_quantity_kg": member.available_mature_quantity_kg,
+                "mature_inventory_loss_quantity_kg": member.mature_inventory_loss_quantity_kg,
+                "harvestable_mature_quantity_kg": member.harvestable_mature_quantity_kg,
+                "allocated_harvest_capacity_kg": member.allocated_harvest_capacity_kg,
+                "harvested_quantity_kg": member.harvested_quantity_kg,
+                "closing_mature_inventory_kg": member.closing_mature_inventory_kg,
+                "unharvested_backlog_kg": member.unharvested_backlog_kg,
+            }
+        )
+    )
+
+
+_task9_member_identity_hash = task9_member_identity_hash
 
 
 @dataclass(frozen=True, slots=True)
@@ -481,8 +525,64 @@ def _resolve_exact_task9_member_row_sync(
     return matching_members[0]
 
 
-def resolve_canonical_persisted_forecast_authority_sync(
-    session: Session,
+async def _resolve_core_forecast_run_async(
+    session: AsyncSession,
+    *,
+    forecast_cutoff_at: datetime,
+    task8_forecast_run_id: int,
+) -> CoreForecastRunModel | None:
+    core_runs = list(
+        await session.scalars(
+            select(CoreForecastRunModel).where(
+                CoreForecastRunModel.status == "completed",
+                CoreForecastRunModel.task8_forecast_run_id == task8_forecast_run_id,
+            )
+        )
+    )
+    core_runs = [
+        run
+        for run in core_runs
+        if _cutoff_matches(run.forecast_effective_cutoff_at, forecast_cutoff_at)
+        and _visible_at_or_before(run.completed_at, forecast_cutoff_at)
+        and run.code_authority_id is not None
+        and run.code_authority_hash is not None
+        and run.forecast_effective_cutoff_at is not None
+    ]
+    if len(core_runs) != 1:
+        return None
+    return core_runs[0]
+
+
+async def _resolve_exact_core_daily_row_async(
+    session: AsyncSession,
+    *,
+    core_run: CoreForecastRunModel,
+    target_date: date,
+    forecast_quantile: ForecastQuantile,
+    farm_id: int,
+    subfarm_id: int,
+    variety_id: int,
+) -> CoreForecastDailyRowModel | None:
+    matching_rows = list(
+        await session.scalars(
+            select(CoreForecastDailyRowModel).where(
+                CoreForecastDailyRowModel.core_forecast_run_id == core_run.id,
+                CoreForecastDailyRowModel.date == target_date,
+                CoreForecastDailyRowModel.forecast_quantile == forecast_quantile,
+                CoreForecastDailyRowModel.farm_id == farm_id,
+                CoreForecastDailyRowModel.subfarm_id == subfarm_id,
+                CoreForecastDailyRowModel.variety_id == variety_id,
+                CoreForecastDailyRowModel.destination_factory_id == core_run.destination_factory_id,
+            )
+        )
+    )
+    if len(matching_rows) != 1:
+        return None
+    return matching_rows[0]
+
+
+async def resolve_persisted_forecast_binding_refs(
+    session: AsyncSession,
     *,
     forecast_cutoff_at: datetime,
     task8_forecast_run_id: int,
@@ -492,16 +592,19 @@ def resolve_canonical_persisted_forecast_authority_sync(
     farm_id: int,
     subfarm_id: int,
     variety_id: int,
-) -> CanonicalPersistedForecastAuthorityResolution | None:
-    """Resolve and validate one canonical persisted forecast authority binding."""
-    core_run = _resolve_core_forecast_run_sync(
+    task10_prediction_run_id: int | None,
+) -> PersistedForecastAuthorityRefs | None:
+    """Resolve exact persisted row ids for a binding when Task 10 run id is pinned."""
+    if task10_prediction_run_id is None:
+        return None
+    core_run = await _resolve_core_forecast_run_async(
         session,
         forecast_cutoff_at=forecast_cutoff_at,
         task8_forecast_run_id=task8_forecast_run_id,
     )
     if core_run is None:
         return None
-    core_row = _resolve_exact_core_daily_row_sync(
+    core_row = await _resolve_exact_core_daily_row_async(
         session,
         core_run=core_run,
         target_date=target_date,
@@ -512,197 +615,24 @@ def resolve_canonical_persisted_forecast_authority_sync(
     )
     if core_row is None:
         return None
-    code_authority = session.get(CoreForecastCodeAuthorityModel, core_run.code_authority_id)
-    task9_run = session.get(HarvestStateRun, core_run.task9_harvest_state_run_id)
-    if code_authority is None or task9_run is None:
-        return None
-    try:
-        validate_canonical_code_authority(
-            code_authority=code_authority,
-            core_run=core_run,
-            forecast_cutoff_at=forecast_cutoff_at,
-        )
-        validate_canonical_core_forecast_chain(
-            core_run=core_run,
-            core_row=core_row,
-            forecast_cutoff_at=forecast_cutoff_at,
-            target_date=target_date,
-        )
-        validate_canonical_task9_replay_run(
-            task9_run=task9_run,
-            core_run=core_run,
-            forecast_cutoff_at=forecast_cutoff_at,
-        )
-    except ValueError:
-        return None
-
-    task9_authority = load_task9_authority_sync(session, task9_run.id)
-    if task9_authority is None or task9_authority.status != "completed":
-        return None
-    try:
-        task9_member_source = resolve_exact_task9_member(task9_authority, core_row=core_row)
-    except ValueError:
-        return None
-    task9_member_row = _resolve_exact_task9_member_row_sync(
-        session,
-        task9_run_id=task9_run.id,
-        core_row=core_row,
-    )
-    if task9_member_row is None:
-        return None
-    task9_member_hash = _task9_member_identity_hash(task9_member_source)
-    if task9_member_hash != _task9_member_identity_hash(task9_member_row):
-        return None
-
-    prediction_runs = list(
-        session.scalars(
-            select(ResidualModelPredictionRun).where(
-                ResidualModelPredictionRun.task9_run_id == task9_run.id,
-                ResidualModelPredictionRun.execution_status == "completed",
-                ResidualModelPredictionRun.completed_at.is_not(None),
-                ResidualModelPredictionRun.completed_at <= forecast_cutoff_at,
-            )
-        ).all()
-    )
-    canonical_matches: list[
-        tuple[ResidualModelPredictionRun, ResidualModelPredictionRow, ResidualModelTrainingRun]
-    ] = []
-    for prediction_run in prediction_runs:
-        if prediction_run.training_run_id is None:
-            continue
-        training_run = session.get(ResidualModelTrainingRun, prediction_run.training_run_id)
-        if training_run is None:
-            continue
-        prediction_rows = list(
-            session.scalars(
-                select(ResidualModelPredictionRow).where(
-                    ResidualModelPredictionRow.prediction_run_id == prediction_run.id,
-                    ResidualModelPredictionRow.arrival_local_date == target_date,
-                    ResidualModelPredictionRow.forecast_horizon_days == horizon_days,
-                    ResidualModelPredictionRow.destination_factory_id
-                    == core_row.destination_factory_id,
-                )
-            ).all()
-        )
-        if len(prediction_rows) != 1:
-            continue
-        try:
-            task10_model_identity_hash = validate_canonical_task10_model_and_prediction(
-                prediction_run=prediction_run,
-                prediction_row=prediction_rows[0],
-                training_run=training_run,
-                task9_run=task9_run,
-                core_row=core_row,
-                forecast_cutoff_at=forecast_cutoff_at,
-                target_date=target_date,
-                horizon_days=horizon_days,
-            )
-        except ValueError:
-            continue
-        canonical_matches.append((prediction_run, prediction_rows[0], training_run))
-    if len(canonical_matches) != 1:
-        return None
-    prediction_run, prediction_row, training_run = canonical_matches[0]
-    task10_model_identity_hash = validate_canonical_task10_model_and_prediction(
-        prediction_run=prediction_run,
-        prediction_row=prediction_row,
-        training_run=training_run,
-        task9_run=task9_run,
-        core_row=core_row,
-        forecast_cutoff_at=forecast_cutoff_at,
-        target_date=target_date,
-        horizon_days=horizon_days,
-    )
-    return CanonicalPersistedForecastAuthorityResolution(
-        core_run=core_run,
-        core_row=core_row,
-        code_authority=code_authority,
-        task9_run=task9_run,
-        task9_member=task9_member_row,
-        task9_member_identity_hash=task9_member_hash,
-        prediction_run=prediction_run,
-        prediction_row=prediction_row,
-        training_run=training_run,
-        task10_model_identity_hash=task10_model_identity_hash,
+    return PersistedForecastAuthorityRefs(
+        core_forecast_run_id=core_run.id,
+        core_forecast_daily_row_id=core_row.id,
+        task9_run_id=core_run.task9_harvest_state_run_id,
+        task10_prediction_run_id=task10_prediction_run_id,
     )
 
 
-def resolve_exact_task10_prediction_sync(
-    session: Session,
-    *,
-    task9_run_id: int,
-    forecast_cutoff_at: datetime,
-    target_date: date,
-    horizon_days: int,
-    destination_factory_id: int,
-) -> tuple[ResidualModelPredictionRun, ResidualModelPredictionRow, ResidualModelTrainingRun] | None:
-    """Resolve exactly one canonical Task 10 prediction binding or fail closed."""
-    task9_run = session.get(HarvestStateRun, task9_run_id)
-    if task9_run is None:
-        return None
-    prediction_runs = list(
-        session.scalars(
-            select(ResidualModelPredictionRun).where(
-                ResidualModelPredictionRun.task9_run_id == task9_run_id,
-                ResidualModelPredictionRun.execution_status == "completed",
-                ResidualModelPredictionRun.completed_at.is_not(None),
-                ResidualModelPredictionRun.completed_at <= forecast_cutoff_at,
-            )
-        ).all()
-    )
-    canonical_matches: list[
-        tuple[ResidualModelPredictionRun, ResidualModelPredictionRow, ResidualModelTrainingRun]
-    ] = []
-    for prediction_run in prediction_runs:
-        if prediction_run.training_run_id is None:
-            continue
-        training_run = session.get(ResidualModelTrainingRun, prediction_run.training_run_id)
-        if training_run is None:
-            continue
-        prediction_rows = list(
-            session.scalars(
-                select(ResidualModelPredictionRow).where(
-                    ResidualModelPredictionRow.prediction_run_id == prediction_run.id,
-                    ResidualModelPredictionRow.arrival_local_date == target_date,
-                    ResidualModelPredictionRow.forecast_horizon_days == horizon_days,
-                    ResidualModelPredictionRow.destination_factory_id == destination_factory_id,
-                )
-            ).all()
-        )
-        if len(prediction_rows) != 1:
-            continue
-        try:
-            validate_canonical_task10_model_and_prediction(
-                prediction_run=prediction_run,
-                prediction_row=prediction_rows[0],
-                training_run=training_run,
-                task9_run=task9_run,
-                core_row=_Task10RowBinding(destination_factory_id=destination_factory_id),
-                forecast_cutoff_at=forecast_cutoff_at,
-                target_date=target_date,
-                horizon_days=horizon_days,
-            )
-        except ValueError:
-            continue
-        canonical_matches.append((prediction_run, prediction_rows[0], training_run))
-    if len(canonical_matches) != 1:
-        return None
-    return canonical_matches[0]
-
-
-async def validate_canonical_persisted_forecast_authority_for_candidate(
+async def validate_persisted_forecast_authority_chain(
     session: AsyncSession,
     *,
+    refs: PersistedForecastAuthorityRefs,
     forecast_cutoff_at: datetime,
     target_date: date,
     horizon_days: int,
-    forecast_authority: S2ForecastAuthorityBundle,
-    core_forecast_run_id: int,
-    core_forecast_daily_row_id: int,
-    task9_run_id: int,
-    task10_prediction_run_id: int,
+    expected_forecast_authority: S2ForecastAuthorityBundle | None = None,
 ) -> CanonicalPersistedForecastAuthorityResolution:
-    """Validate a candidate forecast authority against canonical persisted semantics."""
+    """Validate persisted forecast authority using production integrity loaders."""
     from backend.app.core_forecast.persistence import CoreForecastRunRepository
     from backend.app.core_forecast.repository import SqlAlchemyCoreForecastRepository
     from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
@@ -711,16 +641,17 @@ async def validate_canonical_persisted_forecast_authority_for_candidate(
         load_residual_training_run_by_id,
     )
     from backend.app.rolling_backtest.enums import Task10ModelPolicy
-    from backend.app.rolling_backtest.orchestration import (
-        ResolvedInputOutcome,
-        _PinnedTask10PredictionInput,
-    )
+    from backend.app.rolling_backtest.orchestration import ResolvedInputOutcome
     from backend.app.rolling_backtest.replay_pipeline import ReplayPipelineOutcome
     from backend.app.rolling_backtest.replay_task10_binding import (
         build_replay_task9_binding_context,
         evaluate_replay_task10_binding,
     )
-    from backend.app.rolling_backtest.schemas import PersistentUpstreamReference
+
+    core_forecast_run_id = refs.core_forecast_run_id
+    core_forecast_daily_row_id = refs.core_forecast_daily_row_id
+    task9_run_id = refs.task9_run_id
+    task10_prediction_run_id = refs.task10_prediction_run_id
 
     core_run = await session.get(CoreForecastRunModel, core_forecast_run_id)
     core_row = await session.get(CoreForecastDailyRowModel, core_forecast_daily_row_id)
@@ -800,8 +731,17 @@ async def validate_canonical_persisted_forecast_authority_for_candidate(
     task10_training_row = await session.get(ResidualModelTrainingRun, task10_output.model_run_id)
     if task10_training_output is None or task10_training_row is None:
         raise ValueError("required persisted Task 10 model authority is missing")
-    if task10_training_output.training_signature != task10_training_row.training_signature:
+    if (
+        task10_training_output.training_signature != task10_training_row.training_signature
+        or task10_training_output.training_signature
+        != task10_output.input_snapshot.get("training_signature")
+        or task10_training_row.execution_status != "completed"
+        or task10_training_row.eligibility_status != "eligible"
+        or task10_training_row.finished_at is None
+    ):
         raise ValueError("Task 10 model authority is incomplete or identity-drifted")
+    if not _visible_at_or_before(task10_training_row.finished_at, forecast_cutoff_at):
+        raise ValueError("Task 10 model authority is visible after the forecast cutoff")
 
     replay_outcome = ReplayPipelineOutcome(
         task9_run_id=task9.id,
@@ -831,6 +771,15 @@ async def validate_canonical_persisted_forecast_authority_for_candidate(
     )
     if task10_binding is None or task10_binding.prediction_run_id != task10_prediction_run_id:
         raise ValueError("Task 10 replay binding did not resolve the exact prediction run")
+
+    if (
+        core_run.status != "completed"
+        or task9_authority.status != "completed"
+        or task9_output.status != "completed"
+    ):
+        raise ValueError("forecast and Task 9 authorities must be completed")
+    if task10_output.execution_status != "completed" or task10_output.task9_run_id != task9.id:
+        raise ValueError("Task 10 authority is not exactly bound to Task 9")
 
     matching_predictions = tuple(
         row
@@ -874,6 +823,12 @@ async def validate_canonical_persisted_forecast_authority_for_candidate(
         target_date=target_date,
         horizon_days=horizon_days,
     )
+    if (
+        task10_output.task9_result_hash != task9.result_hash
+        or task10_prediction_row_output.task9_result_hash != task9.result_hash
+        or task10_prediction_row_output.task9_run_id != task9.id
+    ):
+        raise ValueError("persisted forecast authority chain is inconsistent")
 
     task9_member_rows = list(
         await session.scalars(
@@ -916,6 +871,66 @@ async def validate_canonical_persisted_forecast_authority_for_candidate(
         forecast_cutoff_at=forecast_cutoff_at,
         target_date=target_date,
         horizon_days=horizon_days,
-        forecast_authority=forecast_authority,
+        forecast_authority=expected_forecast_authority,
     )
+    if expected_forecast_authority is not None:
+        if (
+            expected_forecast_authority.historical_code_authority_id != code_authority.authority_id
+            or expected_forecast_authority.forecast_code_identity != code_authority.authority_hash
+            or expected_forecast_authority.historical_code_identity
+            != code_authority.source_commit_sha
+            or expected_forecast_authority.build_artifact_hash
+            != code_authority.build_artifact_hash
+            or expected_forecast_authority.config_bundle_hash != code_authority.config_bundle_hash
+            or expected_forecast_authority.model_identity != core_run.task8_artifact_hash
+            or expected_forecast_authority.parameter_identity != core_row.marketable_policy_hash
+            or expected_forecast_authority.data_identity != core_run.forecast_input_hash
+            or expected_forecast_authority.available_at != task9.forecast_effective_cutoff_at
+            or expected_forecast_authority.task10_model_available_at
+            != task10_training_row.finished_at
+            or expected_forecast_authority.historical_code_available_at
+            != code_authority.available_at
+        ):
+            raise ValueError("persisted forecast identity fields do not match request")
+        if (
+            core_run.result_hash != expected_forecast_authority.forecast_run_identity_hash
+            or core_row.row_hash != expected_forecast_authority.daily_row_identity_hash
+            or task9_output.result_hash != expected_forecast_authority.task9_authority_identity_hash
+            or task9_member_hash != expected_forecast_authority.task9_member_identity_hash
+            or task10_output.prediction_hash
+            != expected_forecast_authority.task10_authority_identity_hash
+            or task10_model_identity_hash != expected_forecast_authority.task10_model_identity_hash
+            or task10_output.prediction_input_signature
+            != expected_forecast_authority.task10_replay_identity_hash
+            or task10_prediction_row_output.prediction_hash
+            != expected_forecast_authority.task10_prediction_row_identity_hash
+        ):
+            raise ValueError("persisted forecast/Task 9/Task 10 identity does not match request")
     return resolution
+
+
+async def validate_canonical_persisted_forecast_authority_for_candidate(
+    session: AsyncSession,
+    *,
+    forecast_cutoff_at: datetime,
+    target_date: date,
+    horizon_days: int,
+    forecast_authority: S2ForecastAuthorityBundle,
+    core_forecast_run_id: int,
+    core_forecast_daily_row_id: int,
+    task9_run_id: int,
+    task10_prediction_run_id: int,
+) -> CanonicalPersistedForecastAuthorityResolution:
+    return await validate_persisted_forecast_authority_chain(
+        session,
+        refs=PersistedForecastAuthorityRefs(
+            core_forecast_run_id=core_forecast_run_id,
+            core_forecast_daily_row_id=core_forecast_daily_row_id,
+            task9_run_id=task9_run_id,
+            task10_prediction_run_id=task10_prediction_run_id,
+        ),
+        forecast_cutoff_at=forecast_cutoff_at,
+        target_date=target_date,
+        horizon_days=horizon_days,
+        expected_forecast_authority=forecast_authority,
+    )
