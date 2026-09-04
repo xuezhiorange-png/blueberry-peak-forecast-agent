@@ -35,8 +35,8 @@ _AUTHORITY_RECORD_CANONICAL_HASH_FIELD = "canonical_hash"
 
 _TRAIN_VAL_SPLITS = frozenset({"TRAIN", "VALIDATION"})
 
-# Production issuance controls remain empty until explicit grants.
-_ISSUED_PAIRING_POLICY_VERSIONS: frozenset[str] = frozenset()
+# General pairing policy allowlist populated by dual issuance grant R1.
+_ISSUED_PAIRING_POLICY_VERSIONS: frozenset[str] = frozenset({TRAIN_VAL_PAIRING_POLICY_V1})
 
 
 @dataclass(frozen=True)

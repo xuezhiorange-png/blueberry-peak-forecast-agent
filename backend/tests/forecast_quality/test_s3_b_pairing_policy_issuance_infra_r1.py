@@ -63,7 +63,7 @@ def _exact_record(
 
 def test_a_exact_version_constant() -> None:
     assert EXACT_ACTUAL_PAIRING_POLICY_V1 == "v0-3-s3-b-exact-actual-pairing-policy-v1"
-    assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS == "NOT_ISSUED"
+    assert EXACT_ACTUAL_PAIRING_POLICY_VERSION_STATUS == "ISSUED"
 
 
 def test_b_deterministic_record_replay() -> None:
@@ -105,22 +105,22 @@ def test_e_direct_registry_mutation_rejected() -> None:
         registry._records_by_identity["forged"] = _general_record()  # type: ignore[index]
 
 
-def test_f_general_policy_constant_not_issued_in_production() -> None:
+def test_f_general_policy_constant_issued_in_production() -> None:
     blocker = verify_issued_pairing_policy(
         TRAIN_VAL_PAIRING_POLICY_V1,
         "TRAIN_VAL_BINDING_PAIRING",
         registry=PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
     )
-    assert blocker == "TRAIN_VALIDATION_PAIRING_POLICY_NOT_ISSUED"
+    assert blocker is None
 
 
-def test_g_exact_policy_constant_not_issued_in_production() -> None:
+def test_g_exact_policy_constant_issued_in_production() -> None:
     blocker = verify_issued_pairing_policy(
         EXACT_ACTUAL_PAIRING_POLICY_V1,
         "EXACT_ACTUAL_PAIRING",
         registry=PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY,
     )
-    assert blocker == "TRAIN_VALIDATION_EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED"
+    assert blocker is None
 
 
 def test_h_caller_crafted_record_without_registry_membership() -> None:
@@ -172,9 +172,11 @@ def test_j_semantic_authority_mismatch_rejected() -> None:
 
 
 def test_k_production_seal() -> None:
-    assert PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY.count() == 0
-    assert _ISSUED_PAIRING_POLICY_VERSIONS == frozenset()
-    assert ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS == frozenset()
+    assert PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY.count() == 2
+    assert _ISSUED_PAIRING_POLICY_VERSIONS == frozenset({TRAIN_VAL_PAIRING_POLICY_V1})
+    assert ISSUED_EXACT_ACTUAL_PAIRING_POLICY_VERSIONS == frozenset(
+        {EXACT_ACTUAL_PAIRING_POLICY_V1}
+    )
     assessment = assess_train_validation_coverage_execution(
         None,
         breakdown_specs=(),
