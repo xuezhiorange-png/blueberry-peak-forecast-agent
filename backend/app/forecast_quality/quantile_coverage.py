@@ -24,6 +24,69 @@ _COVERAGE_METRIC_NAMES: dict[SupportedQuantile, str] = {
     SupportedQuantile.P90: "p90_upper_coverage",
 }
 _TRAIN_VAL_SPLITS = frozenset({"TRAIN", "VALIDATION"})
+TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1 = (
+    "v0.2-s3-train-val-coverage-partition-authority-v1"
+)
+_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True)
+class TrainValidationCoveragePartitionAuthority:
+    """Typed partition authority bound to a lawful TRAIN/VALIDATION pairing package.
+
+    Instances are accepted only when ``schema_version`` is issued by a future
+    coverage-execution grant and all binding fields match the supplied
+    ``S3EvaluationInput``. Caller-supplied labels alone are never sufficient.
+    """
+
+    schema_version: str
+    pairing_package_identity: str
+    s2_binding_row_set_hash: str
+    permitted_partitions: tuple[str, ...]
+
+
+def _is_sha256(value: str) -> bool:
+    return (
+        len(value) == 64
+        and value.lower() == value
+        and all(char in "0123456789abcdef" for char in value)
+    )
+
+
+def _train_validation_execution_blocker(
+    evaluation_input: S3EvaluationInput | None,
+    breakdown_specs: tuple[BreakdownSpec, ...],
+    partition_authority: TrainValidationCoveragePartitionAuthority | None,
+) -> str | None:
+    if evaluation_input is None or not evaluation_input.rows:
+        return "NO_LEGAL_TRAIN_VALIDATION_S3_BINDING_PAIRING_PACKAGE"
+    if not breakdown_specs:
+        return "NO_TRAIN_VALIDATION_BREAKDOWN_SPECS"
+    if partition_authority is None:
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_MISSING"
+    if not isinstance(partition_authority, TrainValidationCoveragePartitionAuthority):
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
+    if (
+        not partition_authority.schema_version.strip()
+        or not partition_authority.pairing_package_identity.strip()
+        or not partition_authority.s2_binding_row_set_hash.strip()
+        or not partition_authority.permitted_partitions
+    ):
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
+    if not _is_sha256(partition_authority.pairing_package_identity):
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
+    if not _is_sha256(partition_authority.s2_binding_row_set_hash):
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_UNBOUND"
+    if partition_authority.s2_binding_row_set_hash != evaluation_input.s2_binding_row_set_hash:
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_BINDING_MISMATCH"
+    partitions = frozenset(partition_authority.permitted_partitions)
+    if "TEST" in partitions:
+        return "TEST_PARTITION_AUTHORITY_FORBIDDEN"
+    if not partitions <= _TRAIN_VAL_SPLITS:
+        return "NON_TRAIN_VALIDATION_SPLIT_PRESENT"
+    if partition_authority.schema_version not in _ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS:
+        return "TRAIN_VALIDATION_PARTITION_AUTHORITY_NOT_ISSUED"
+    return None
 
 
 def _quantize(value: Decimal) -> Decimal:
@@ -205,42 +268,30 @@ def assess_train_validation_coverage_execution(
     evaluation_input: S3EvaluationInput | None,
     *,
     breakdown_specs: tuple[BreakdownSpec, ...] = (),
-    split_labels: tuple[str, ...] = (),
+    partition_authority: TrainValidationCoveragePartitionAuthority | None = None,
 ) -> TrainValCoverageExecutionAssessment:
-    """Attempt lawful TRAIN/VALIDATION coverage execution when inputs exist.
+    """Attempt lawful TRAIN/VALIDATION coverage execution when authority exists.
 
-    A legal pairing package must supply typed ``S3EvaluationInput`` rows that
-    are explicitly labeled TRAIN or VALIDATION only. Without that package the
-    implementation remains complete but execution is blocked.
+    Execution is fail-closed: a typed ``TrainValidationCoveragePartitionAuthority``
+    bound to the pairing package and evaluation row-set hash is required. Main
+    currently issues no partition authorities, so execution remains blocked.
     """
 
-    if evaluation_input is None or not evaluation_input.rows:
+    blocker = _train_validation_execution_blocker(
+        evaluation_input,
+        breakdown_specs,
+        partition_authority,
+    )
+    if blocker is not None:
         return TrainValCoverageExecutionAssessment(
             implementation_complete=True,
             execution_status="NOT_COMPUTABLE_OR_BLOCKED",
-            blocker_reason="NO_LEGAL_TRAIN_VALIDATION_S3_BINDING_PAIRING_PACKAGE",
-            train_validation_only=True,
+            blocker_reason=blocker,
+            train_validation_only=blocker != "NON_TRAIN_VALIDATION_SPLIT_PRESENT",
             test_remains_sealed=True,
             results=(),
         )
-    if split_labels and any(label not in _TRAIN_VAL_SPLITS for label in split_labels):
-        return TrainValCoverageExecutionAssessment(
-            implementation_complete=True,
-            execution_status="NOT_COMPUTABLE_OR_BLOCKED",
-            blocker_reason="NON_TRAIN_VALIDATION_SPLIT_PRESENT",
-            train_validation_only=False,
-            test_remains_sealed=True,
-            results=(),
-        )
-    if not breakdown_specs:
-        return TrainValCoverageExecutionAssessment(
-            implementation_complete=True,
-            execution_status="NOT_COMPUTABLE_OR_BLOCKED",
-            blocker_reason="NO_TRAIN_VALIDATION_BREAKDOWN_SPECS",
-            train_validation_only=True,
-            test_remains_sealed=True,
-            results=(),
-        )
+    assert evaluation_input is not None
     results = [
         compute_upper_quantile_coverage(evaluation_input, spec, quantile)
         for spec in breakdown_specs
@@ -259,6 +310,8 @@ def assess_train_validation_coverage_execution(
 __all__ = [
     "QuantileUpperCoverageResult",
     "TrainValCoverageExecutionAssessment",
+    "TrainValidationCoveragePartitionAuthority",
+    "TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1",
     "assess_train_validation_coverage_execution",
     "compute_upper_quantile_coverage",
     "compute_upper_quantile_coverage_bundle",
