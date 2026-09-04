@@ -56,10 +56,16 @@ LAWFUL_S3_EVALUATION_INPUT_PACKAGE_STATUS=PARTIALLY_AVAILABLE
 - Versioned TRAIN/VALIDATION `S3BindingRow` pairing package artifact
 - V0.3 producer that binds `source-002/e5-live-v1` actuals + incumbent
   forecasts into one partition-scoped `S3EvaluationInput`
-- Issued `TrainValidationCoveragePartitionAuthority`
-- Versioned incumbent forecast artifact in repository
-  (`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true` in
-  `docs/v0-3/development-plan.md` §4.4)
+- Issued `TrainValidationCoveragePartitionAuthority` **record** in a trusted
+  issued-authority registry (see §4)
+- Issued `pairing_policy_version`
+- Trusted published pairing-package registry (see §3.4)
+
+**Repository state (not a pairing-package blocker)**
+
+- `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true` on current main
+  (`docs/v0-3/development-plan.md` §4.4). Coverage pairing packages do **not**
+  require a versioned incumbent forecast artifact in repository; see §3.5.
 
 ### Q2 — Partition authority issuer
 
@@ -68,15 +74,26 @@ PARTITION_AUTHORITY_ISSUER_EXISTS=false
 ```
 
 `TrainValidationCoveragePartitionAuthority` is typed on main, but
-`_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS` remains empty. Caller-constructed
-dataclass instances are rejected with
+`_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS` remains empty and the gate performs
+**no** lookup of an issued authority record or published pairing package.
+Caller-constructed dataclass instances are rejected with
 `TRAIN_VALIDATION_PARTITION_AUTHORITY_NOT_ISSUED`.
+
+```text
+SCHEMA_VERSION_ALLOWLIST_IS_NECESSARY_BUT_NOT_SUFFICIENT=true
+CALLER_CONSTRUCTED_DATACLASS_IS_NEVER_SUFFICIENT=true
+REGISTER_SCHEMA_VERSION != NON_FORGEABLE_AUTHORITY_ISSUANCE
+```
+
+Future implementation must verify a concrete
+`IssuedTrainValidationCoverageAuthorityRecord` in a trusted registry (§4.2);
+schema-version allowlisting alone is insufficient.
 
 ### Q3 — `pairing_package_identity` binding authorities
 
-`pairing_package_identity` MUST be the lowercase SHA-256 of the package
-canonical payload (with `canonical_hash=""` in the preimage). The preimage MUST
-bind only authorities that exist on current main:
+`pairing_package_identity` is derived from a **non-self-referential identity
+preimage** (§3.2). The preimage MUST bind only authorities that exist on
+current main:
 
 | Field | Canonical authority source |
 | --- | --- |
@@ -164,14 +181,59 @@ canonical replay possible
 native float forbidden in evaluation_input rows
 ```
 
-### 3.2 Identity rule
+### 3.2 Identity and canonical hash rules (non-self-referential)
+
+Two distinct hashes are frozen. Neither hash field may appear in its own
+preimage.
 
 ```text
-pairing_package_identity = SHA256(canonical_json_bytes(payload_with_canonical_hash_blank))
+PAIRING_PACKAGE_IDENTITY_EXCLUDED_OR_BLANKED_FROM_ITS_OWN_PREIMAGE=true
+CANONICAL_HASH_EXCLUDED_OR_BLANKED_FROM_ITS_OWN_PREIMAGE=true
+HASH_REPLAY_DETERMINISTIC=true
+PAIRING_PACKAGE_IDENTITY_SELF_REFERENCE=false
 ```
 
-The preimage MUST include every authority field in §1 Q3. Any field drift
-produces a new `pairing_package_identity`.
+**Step 1 — identity preimage**
+
+Build `PAIRING_PACKAGE_IDENTITY_PREIMAGE` from the full semantic payload with
+both hash fields blanked:
+
+```text
+PAIRING_PACKAGE_IDENTITY_PREIMAGE = semantic_payload where:
+  pairing_package_identity = ""
+  canonical_hash = ""
+```
+
+The identity preimage MUST include every authority field in §1 Q3 (excluding
+only the two hash fields above).
+
+**Step 2 — `pairing_package_identity`**
+
+```text
+pairing_package_identity =
+  SHA256(canonical_json_bytes(PAIRING_PACKAGE_IDENTITY_PREIMAGE))
+```
+
+**Step 3 — final payload and `canonical_hash`**
+
+Insert the computed `pairing_package_identity` into the semantic payload.
+Build `CANONICAL_HASH_PREIMAGE` from the final semantic payload with only
+`canonical_hash` blanked:
+
+```text
+CANONICAL_HASH_PREIMAGE = final_semantic_payload where:
+  pairing_package_identity = <computed from Step 2>
+  canonical_hash = ""
+```
+
+```text
+canonical_hash =
+  SHA256(canonical_json_bytes(CANONICAL_HASH_PREIMAGE))
+```
+
+**Stored package** carries the final `pairing_package_identity` and
+`canonical_hash`. Replay MUST recompute both hashes in this order; any field
+drift produces a new identity.
 
 ### 3.3 Pairing policy (frozen, not yet issued)
 
@@ -183,68 +245,170 @@ PAIRING_POLICY_STATUS=NOT_ISSUED_ON_MAIN
 Until a future grant issues this policy version, no package may claim lawful
 status.
 
-## 4. Partition authority issuance contract (definition only)
+### 3.4 Published pairing-package registry (definition only)
 
-Future issuance produces `TrainValidationCoveragePartitionAuthority`
-(`backend/app/forecast_quality/quantile_coverage.py`) with:
+Lawful packages MUST be resolvable from a trusted, immutable/versioned
+published pairing-package registry. This contract does **not** create the
+registry.
 
 ```text
-schema_version=TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1
-pairing_package_identity
-s2_binding_row_set_hash
-permitted_partitions ⊆ {TRAIN, VALIDATION}
+PAIRING_PACKAGE_IDENTITY_MUST_RESOLVE_TO_PUBLISHED_PACKAGE=true
+TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY_NOT_PRESENT_ON_MAIN=true
 ```
 
-### 4.1 WHO_ISSUES_AUTHORITY
+**Resolution rule**
+
+1. `pairing_package_identity` MUST exist as a published record in
+   `TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY`
+2. Stored package bytes MUST replay `canonical_hash` per §3.2
+3. `evaluation_input.s2_binding_row_set_hash` MUST equal package
+   `s2_binding_row_set_hash`
+4. Package `partition` MUST be `TRAIN` or `VALIDATION` only
+
+### 3.5 Forecast-side provenance (not artifact-required)
+
+```text
+VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_FOR_COVERAGE_PAIRING=false
+NO_VERSIONED_FORECAST_CONTRADICTION_RESOLVED=true
+```
+
+Current main binds forecast side via PIT incumbent authority, not via a
+versioned in-repository artifact:
+
+| Requirement | Authority on main |
+| --- | --- |
+| `forecast_authority_identity` | `V0_2_CURRENT_INCUMBENT_MODEL_AT_HISTORICAL_CUTOFF` (`backend/app/s3_daily_rowset/registry.py`) |
+| `forecast_cutoff_authority_identity` | PIT-visible incumbent replay identity at historical cutoff (`s3_incumbent_forecast_replay_identity` contract family) |
+
+`NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY=true` is a repository
+state fact. It is **not** a missing pairing-package prerequisite. Packages MUST
+still bind both forecast authorities explicitly; issuance does not infer artifact
+presence.
+
+## 4. Partition authority issuance contract (definition only)
+
+Future issuance produces an immutable
+`IssuedTrainValidationCoverageAuthorityRecord` and registers it in
+`TRUSTED_ISSUED_AUTHORITY_REGISTRY`. The existing
+`TrainValidationCoveragePartitionAuthority` dataclass on main
+(`backend/app/forecast_quality/quantile_coverage.py`) is a **carrier/handle**
+only; it is never sufficient on its own.
+
+```text
+SCHEMA_VERSION_ALLOWLIST_IS_NECESSARY_BUT_NOT_SUFFICIENT=true
+CALLER_CONSTRUCTED_DATACLASS_IS_NEVER_SUFFICIENT=true
+AUTHORITY_RECORD_MUST_BIND_EXACT_PACKAGE_IDENTITY=true
+```
+
+### 4.1 Frozen issued authority record
+
+```text
+IssuedTrainValidationCoverageAuthorityRecord
+
+authority_record_identity          # lowercase SHA-256; see §4.1.1
+schema_version                     # e.g. v0.2-s3-train-val-coverage-partition-authority-v1
+pairing_package_identity           # MUST match published package
+s2_binding_row_set_hash            # MUST match package + evaluation_input
+permitted_partitions               # ⊆ {TRAIN, VALIDATION}; TEST forbidden
+pairing_policy_version             # MUST match published package
+issuer_identity_or_version         # authorized issuer identity
+canonical_hash                     # replay of full record bytes
+```
+
+#### 4.1.1 `authority_record_identity` rule
+
+Same two-stage non-self-referential rule as §3.2:
+
+```text
+AUTHORITY_RECORD_IDENTITY_PREIMAGE = record_semantic_payload where:
+  authority_record_identity = ""
+  canonical_hash = ""
+
+authority_record_identity =
+  SHA256(canonical_json_bytes(AUTHORITY_RECORD_IDENTITY_PREIMAGE))
+
+record_canonical_hash =
+  SHA256(canonical_json_bytes(final_record_with_canonical_hash_blank))
+```
+
+### 4.2 Trusted issued-authority registry
+
+```text
+TRUSTED_ISSUED_AUTHORITY_REGISTRY_NOT_PRESENT_ON_MAIN=true
+ISSUED_AUTHORITY_REGISTRY_RULE=
+  immutable/versioned append-only registry of IssuedTrainValidationCoverageAuthorityRecord
+  keyed by authority_record_identity
+  publication requires explicit main-merge-authorized grant
+  revocation/supersession by explicit deprecation grant only
+```
+
+**Execution verification rule (future implementation; not satisfied by #542
+gate alone)**
+
+```text
+1. schema_version recognized in _ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS
+2. authority_record ∈ TRUSTED_ISSUED_AUTHORITY_REGISTRY
+3. authority_record_identity replays from stored record bytes
+4. pairing_package_identity resolves to published lawful package (§3.4)
+5. published package canonical_hash replays (§3.2)
+6. package.s2_binding_row_set_hash == authority.s2_binding_row_set_hash
+7. evaluation_input.s2_binding_row_set_hash == package.s2_binding_row_set_hash
+8. package.partition ∈ authority.permitted_partitions
+9. TEST absent from package and authority
+```
+
+Steps 2–9 are mandatory. Step 1 alone is insufficient.
+
+### 4.3 WHO_ISSUES_AUTHORITY
 
 ```text
 WHO_ISSUES_AUTHORITY=FUTURE_S3_B_PAIRING_PACKAGE_IMPLEMENTATION_AND_PARTITION_AUTHORITY_GRANT
 CURRENT_ISSUER_EXISTS=false
 ```
 
-Only a future authorized implementation slice may register issued schema
-versions and emit authority records bound to a published pairing package.
+Only a future authorized implementation slice may publish pairing packages,
+register issued authority records, and (separately) register schema versions.
 Ordinary callers, trial adapters, and catalog classifiers are **not** issuers.
 
-### 4.2 ISSUANCE_PREREQUISITES
+### 4.4 ISSUANCE_PREREQUISITES
 
 1. Published `TrainValidationS3BindingPairingPackage` for one partition
-   (`TRAIN` or `VALIDATION`) with replay-verified `canonical_hash`
+   (`TRAIN` or `VALIDATION`) present in `TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY`
+   with replay-verified `canonical_hash` (§3.2)
 2. `SOURCE_002_ROW_LEVEL_READ=true` and
    `LIVE_ACCEPTED_S2_TRAIN_VAL_ACTUALS_SOURCE_BOUND=true` for the package's
    `source_dataset_identity`
 3. `evaluation_input.s2_binding_row_set_hash` matches package binding
-4. `NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_IN_REPOSITORY` may remain true;
-   forecast authority must still be explicitly bound via
-   `forecast_authority_identity` and cutoff authority — issuance does not infer
-   artifact presence
+4. `forecast_authority_identity` and `forecast_cutoff_authority_identity`
+   explicitly bound per §3.5 (`VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_FOR_COVERAGE_PAIRING=false`)
 5. `TEST_REMAINS_SEALED=true`; no TEST partition in package or authority
 6. Explicit grant authorizing partition authority issuance (not this contract)
 
-### 4.3 ISSUED_SCHEMA_REGISTRATION_RULE
+### 4.5 ISSUED_SCHEMA_REGISTRATION_RULE
 
 ```text
 ISSUED_SCHEMA_MAY_BE_REGISTERED_ONLY_BY_EXPLICIT_MAIN_MERGE_AUTHORIZED_GRANT
 FORBIDDEN_POPULATE_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS_IN_THIS_CONTRACT=true
+SCHEMA_ALLOWLIST_SUFFICIENT_FOR_ISSUANCE=false
 ```
 
-Registration means adding the schema version string to
-`_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS` in production code via a
-separate authorized implementation PR. This contract does **not** perform
-registration.
+Registration of `schema_version` in `_ISSUED_PARTITION_AUTHORITY_SCHEMA_VERSIONS`
+is **necessary but not sufficient**. A separate authorized implementation PR
+must also introduce (or bind to) `TRUSTED_ISSUED_AUTHORITY_REGISTRY` lookup.
+This contract does **not** perform registration or create the registry.
 
-### 4.4 REPLAY_VERIFICATION_RULE
+### 4.6 REPLAY_VERIFICATION_RULE
 
-1. Recompute package `canonical_hash` from stored payload → must match
-2. Recompute `pairing_package_identity` → must match
-3. Verify `evaluation_input.s2_binding_row_set_hash` matches authority and
-   package
-4. Verify every `S3BindingRow` satisfies coverage mask preconditions only after
+1. Recompute package `canonical_hash` and `pairing_package_identity` per §3.2
+2. Recompute `authority_record_identity` and record `canonical_hash` per §4.1.1
+3. Verify registry membership for both package and authority record
+4. Verify `evaluation_input.s2_binding_row_set_hash` matches authority and package
+5. Verify every `S3BindingRow` satisfies coverage mask preconditions only after
    partition filter is applied
-5. Verify `permitted_partitions` equals the package `partition` (single-partition
+6. Verify `permitted_partitions` equals the package `partition` (single-partition
    packages) or explicit declared union for multi-package bundles (future)
 
-### 4.5 REVOCATION_OR_VERSION_CHANGE_RULE
+### 4.7 REVOCATION_OR_VERSION_CHANGE_RULE
 
 A new `schema_version` or `pairing_policy_version` requires a new contract
 amendment and grant. Prior issued schema versions remain valid only for packages
@@ -284,13 +448,18 @@ is **not** a prerequisite for coverage under this contract.
 
 Minimal衔接 (no production change in this contract):
 
-1. Future pairing-package producer emits `TrainValidationS3BindingPairingPackage`
-2. Future authority issuer emits `TrainValidationCoveragePartitionAuthority`
-   bound to `pairing_package_identity` + `s2_binding_row_set_hash`
-3. Caller passes `evaluation_input` from the package envelope and the issued
-   authority into `assess_train_validation_coverage_execution()`
-4. Gate remains fail-closed until both package publication grant and authority
-   issuance grant land
+1. Future pairing-package producer publishes
+   `TrainValidationS3BindingPairingPackage` to
+   `TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY`
+2. Future authority issuer publishes
+   `IssuedTrainValidationCoverageAuthorityRecord` to
+   `TRUSTED_ISSUED_AUTHORITY_REGISTRY`, bound to the published
+   `pairing_package_identity` + `s2_binding_row_set_hash`
+3. Future gate amendment requires `authority_record_identity` lookup and package
+   resolution (§4.2 steps 1–9); caller-supplied
+   `TrainValidationCoveragePartitionAuthority` alone is never sufficient
+4. Gate remains fail-closed until package publication grant, authority registry
+   grant, and schema registration grant land
 
 Current execution blockers on main after PR #542:
 
