@@ -51,6 +51,12 @@ def obtain_accepted_s2_train_val_sync_connection_from_bound_live_session_bind() 
     provider = bound_source_002_row_level_read_session_provider()
     if provider is None:
         return _fail(LiveConnectionReasonCode.FAIL_CLOSED_NO_SESSION)
+    from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_session import (  # noqa: E501
+        is_live_async_session_run_sync_provider,
+    )
+
+    if is_live_async_session_run_sync_provider(provider):
+        return _fail(_NOT_OBTAINED_FROM_BIND)
     try:
         session = provider()
     except Exception:

@@ -125,6 +125,8 @@ class TrainValidationPairingMaterializationBlocker(StrEnum):
     MALFORMED_PARTITION_BYTES = "MALFORMED_PARTITION_BYTES"
     NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS = "NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS"
     NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER = "NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER"
+    AMBIGUOUS_FORECAST_RUN = "AMBIGUOUS_FORECAST_RUN"
+    FORECAST_AUTHORITY_MISMATCH = "FORECAST_AUTHORITY_MISMATCH"
     REVIEWED_FORECAST_GRAIN_MISMATCH = "REVIEWED_FORECAST_GRAIN_MISMATCH"
     CROSS_PARTITION_SOURCE_ROW_IDENTITY = "CROSS_PARTITION_SOURCE_ROW_IDENTITY"
     DUPLICATE_ACTUAL_GRAIN_IN_PARTITION = "DUPLICATE_ACTUAL_GRAIN_IN_PARTITION"
@@ -186,9 +188,9 @@ class TrainValidationPairingMaterializationDeps:
     official_partitions: OfficialPartitionRows
     forecast_replay_entries: tuple[IncumbentForecastArtifactEntry, ...]
     forecast_provider: IncumbentDailyCurveProvider
-    forecast_binding_authority: S2ForecastAuthorityBundle
     forecast_cutoff_authority_identity: str
     forecast_content_identity_sha256: str
+    forecast_binding_authority: S2ForecastAuthorityBundle | None = None
 
 
 GrainKey = tuple[str, str, str, str, date]
@@ -467,6 +469,40 @@ def _aligned_grains(
     return frozenset((key[0], key[1], key[2], key[3]) for key in index)
 
 
+def _materialization_grains_from_partitions(
+    official: OfficialPartitionRows,
+) -> frozenset[tuple[str, str, str, str]]:
+    train_grains = frozenset(
+        (row.season, row.farm, row.subfarm, row.variety) for row in official.train_rows
+    )
+    validation_grains = frozenset(
+        (row.season, row.farm, row.subfarm, row.variety) for row in official.validation_rows
+    )
+    return train_grains | validation_grains
+
+
+def _forecast_authority_for_binding(
+    forecast_provider: IncumbentDailyCurveProvider,
+    cell: EvaluationInstanceCell,
+    *,
+    business_date: date,
+    horizon_days: int,
+    fallback_authority: S2ForecastAuthorityBundle | None,
+) -> S2ForecastAuthorityBundle | TrainValidationPairingMaterializationBlocker:
+    authority_for = getattr(forecast_provider, "forecast_authority_for", None)
+    if authority_for is not None:
+        authority = cast(
+            S2ForecastAuthorityBundle | None,
+            authority_for(cell, business_date=business_date, horizon_days=horizon_days),
+        )
+        if authority is None:
+            return TrainValidationPairingMaterializationBlocker.FORECAST_AUTHORITY_MISMATCH
+        return authority
+    if fallback_authority is None:
+        return TrainValidationPairingMaterializationBlocker.FORECAST_AUTHORITY_MISMATCH
+    return fallback_authority
+
+
 def _build_partition_binding_rows(
     *,
     partition: Literal["TRAIN", "VALIDATION"],
@@ -475,7 +511,7 @@ def _build_partition_binding_rows(
     forecast_entries: tuple[IncumbentForecastArtifactEntry, ...],
     forecast_provider: IncumbentDailyCurveProvider,
     s2_binding_request: S2HistoricalBacktestRequest,
-    forecast_binding_authority: S2ForecastAuthorityBundle,
+    forecast_binding_authority: S2ForecastAuthorityBundle | None,
 ) -> tuple[tuple[S3BindingRow, ...], PartitionBindingMaterializationStats] | (
     TrainValidationPairingMaterializationBlocker
 ):
@@ -508,6 +544,15 @@ def _build_partition_binding_rows(
                     cell,
                     business_date=target_date,
                 )
+                row_authority = _forecast_authority_for_binding(
+                    forecast_provider,
+                    cell,
+                    business_date=target_date,
+                    horizon_days=horizon_days,
+                    fallback_authority=forecast_binding_authority,
+                )
+                if isinstance(row_authority, TrainValidationPairingMaterializationBlocker):
+                    return row_authority
                 forecast_key = compute_canonical_forecast_binding_key_hash(
                     s2_binding_request,
                     season_business_key=season,
@@ -520,7 +565,7 @@ def _build_partition_binding_rows(
                     ),
                     horizon_days=horizon_days,
                     target_date=target_date,
-                    forecast_authority=forecast_binding_authority,
+                    forecast_authority=row_authority,
                 )
                 if forecast_key in seen_forecast_keys:
                     return (
@@ -905,12 +950,17 @@ def materialize_train_validation_pairing_inputs_live() -> (
     forecast_content_identity = compute_content_identity_sha256(rows=reviewed_entries)
     forecast_cutoff_authority = reviewed_grain_identity_set_identity_sha256()
 
-    curve_obtain = obtain_live_incumbent_forecast_daily_curve_provider()
-    if (
-        not curve_obtain.obtained
-        or curve_obtain.provider is None
-        or curve_obtain.forecast_binding_authority is None
-    ):
+    curve_obtain = obtain_live_incumbent_forecast_daily_curve_provider(
+        materialization_grains=_materialization_grains_from_partitions(official),
+    )
+    if curve_obtain.ambiguous_grain_count > 0:
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.AMBIGUOUS_FORECAST_RUN,
+            official_partitions=official,
+            forecast_row_count=len(reviewed_entries),
+        )
+    if not curve_obtain.obtained or curve_obtain.provider is None:
         return TrainValidationPairingMaterializationResult(
             completed=False,
             blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
@@ -922,7 +972,6 @@ def materialize_train_validation_pairing_inputs_live() -> (
         official_partitions=official,
         forecast_replay_entries=replay_entries,
         forecast_provider=curve_obtain.provider,
-        forecast_binding_authority=curve_obtain.forecast_binding_authority,
         forecast_cutoff_authority_identity=forecast_cutoff_authority,
         forecast_content_identity_sha256=forecast_content_identity,
     )
@@ -1001,4 +1050,45 @@ def build_materialization_evidence_payload(
         payload["validation_pairing_package_canonical_hash"] = (
             result.validation_pairing_package.canonical_hash
         )
+    return payload
+
+
+def build_live_activation_evidence_payload(
+    result: TrainValidationPairingMaterializationResult,
+    *,
+    base_main_sha: str,
+    source_002_attested: bool,
+    train_official_hash_verified: bool,
+    validation_official_hash_verified: bool,
+    forecast_provider_class: str | None,
+    forecast_value_source: str,
+    forecast_cutoff_at: str | None,
+    forecast_authority_is_persisted: bool,
+    live_execution_completed: bool,
+    live_execution_blocker: str | None = None,
+) -> dict[str, object]:
+    payload = build_materialization_evidence_payload(result, base_main_sha=base_main_sha)
+    payload.update(
+        {
+            "task_id": "V0_3_S3_B_LIVE_PAIRING_MATERIALIZATION_ACTIVATION_R1",
+            "source_002_attested": source_002_attested,
+            "train_official_hash_verified": train_official_hash_verified,
+            "validation_official_hash_verified": validation_official_hash_verified,
+            "forecast_provider_class": forecast_provider_class,
+            "forecast_value_source": forecast_value_source,
+            "forecast_cutoff_at": forecast_cutoff_at,
+            "forecast_authority_is_persisted": forecast_authority_is_persisted,
+            "forecast_authority_is_synthetic": False,
+            "live_execution_completed": live_execution_completed,
+            "live_execution_blocker": live_execution_blocker,
+            "real_materialization_completed": result.completed,
+            "row_level_partition_membership_proven": result.completed,
+            "train_package_hash_replay": result.train_pairing_package is not None,
+            "validation_package_hash_replay": result.validation_pairing_package is not None,
+            "train_package_invariants": "PASS" if result.train_pairing_package else "BLOCKED",
+            "validation_package_invariants": (
+                "PASS" if result.validation_pairing_package else "BLOCKED"
+            ),
+        }
+    )
     return payload
