@@ -55,7 +55,6 @@ from backend.app.s3_daily_rowset.registry import (
 
 _SPEC = BreakdownSpec(7, "farm-a", "subfarm-a", "variety-a", "season-2025", "model-a")
 _FORECAST_CUTOFF_AUTHORITY = "d" * 64
-_TEST_EXACT_ACTUAL_PAIRING_POLICY_VERSION = "test-exact-actual-policy-v1"
 
 
 def _row(index: int = 0) -> S3BindingRow:

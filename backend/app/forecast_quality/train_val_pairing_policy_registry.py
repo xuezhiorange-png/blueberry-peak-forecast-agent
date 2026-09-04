@@ -31,12 +31,18 @@ PAIRING_POLICY_AUTHORITY_CONTRACT_PATH = "docs/v0-3/s3/s3-b-pairing-policy-autho
 
 GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE = PAIRING_POLICY_AUTHORITY_CONTRACT_PATH
 GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID = PAIRING_POLICY_AUTHORITY_CONTRACT_ID
+GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION = PAIRING_POLICY_AUTHORITY_CONTRACT_VERSION
 
 _CANONICAL_PERMITTED_PARTITIONS: tuple[str, ...] = ("TRAIN", "VALIDATION")
 
 _CANONICAL_SEMANTIC_BY_KIND: dict[PolicyKind, str] = {
     "TRAIN_VAL_BINDING_PAIRING": GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID,
     "EXACT_ACTUAL_PAIRING": FROZEN_EXACT_ACTUAL_PAIRING_RULE,
+}
+
+_CANONICAL_SEMANTIC_AUTHORITY_VERSION_BY_KIND: dict[PolicyKind, str | None] = {
+    "TRAIN_VAL_BINDING_PAIRING": GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION,
+    "EXACT_ACTUAL_PAIRING": None,
 }
 
 _CANONICAL_VERSION_BY_KIND: dict[PolicyKind, str] = {
@@ -55,6 +61,7 @@ class IssuedPairingPolicyRecord:
     policy_kind: PolicyKind
     policy_version: str
     semantic_rule_or_authority: str
+    semantic_authority_version: str | None
     issuer_identity_or_version: str
     permitted_partitions: tuple[str, ...]
     canonical_hash: str
@@ -71,6 +78,7 @@ def build_policy_record_semantic_payload(
         "policy_kind": record.policy_kind,
         "policy_version": record.policy_version,
         "semantic_rule_or_authority": record.semantic_rule_or_authority,
+        "semantic_authority_version": record.semantic_authority_version,
         "issuer_identity_or_version": record.issuer_identity_or_version,
         "permitted_partitions": list(record.permitted_partitions),
         "canonical_hash": canonical_hash,
@@ -103,7 +111,7 @@ def verify_policy_record_hash_replay(record: IssuedPairingPolicyRecord) -> bool:
     )
 
 
-def _immutable_record_snapshot(records: Mapping[str, object]) -> Mapping[str, object]:
+def _immutable_record_snapshot[K, V](records: Mapping[K, V]) -> Mapping[K, V]:
     return MappingProxyType(dict(records))
 
 
@@ -111,14 +119,22 @@ def _canonical_semantic_for_kind(policy_kind: PolicyKind) -> str:
     return _CANONICAL_SEMANTIC_BY_KIND[policy_kind]
 
 
+def _canonical_semantic_authority_version_for_kind(policy_kind: PolicyKind) -> str | None:
+    return _CANONICAL_SEMANTIC_AUTHORITY_VERSION_BY_KIND[policy_kind]
+
+
 def _canonical_permitted_partitions_for_kind(policy_kind: PolicyKind) -> tuple[str, ...]:
-    if policy_kind == "TRAIN_VAL_BINDING_PAIRING":
-        return _CANONICAL_PERMITTED_PARTITIONS
     return _CANONICAL_PERMITTED_PARTITIONS
 
 
 def _semantic_authority_matches(record: IssuedPairingPolicyRecord) -> bool:
     return record.semantic_rule_or_authority == _canonical_semantic_for_kind(record.policy_kind)
+
+
+def _semantic_authority_version_matches(record: IssuedPairingPolicyRecord) -> bool:
+    return record.semantic_authority_version == _canonical_semantic_authority_version_for_kind(
+        record.policy_kind
+    )
 
 
 def _permitted_partitions_match(record: IssuedPairingPolicyRecord) -> bool:
@@ -225,6 +241,9 @@ def verify_issued_pairing_policy(
     if not _semantic_authority_matches(record):
         return "TRAIN_VALIDATION_PAIRING_POLICY_SEMANTIC_MISMATCH"
 
+    if not _semantic_authority_version_matches(record):
+        return "TRAIN_VALIDATION_PAIRING_POLICY_SEMANTIC_MISMATCH"
+
     if not _permitted_partitions_match(record):
         return "TRAIN_VALIDATION_PAIRING_POLICY_SEMANTIC_MISMATCH"
 
@@ -237,6 +256,7 @@ def build_candidate_policy_record(
     policy_version: str,
     issuer_identity_or_version: str,
     semantic_rule_or_authority: str | None = None,
+    semantic_authority_version: str | None = None,
     permitted_partitions: tuple[str, ...] | None = None,
 ) -> IssuedPairingPolicyRecord:
     """Build a structurally valid candidate policy record without issuing it."""
@@ -246,6 +266,10 @@ def build_candidate_policy_record(
         if semantic_rule_or_authority is None
         else semantic_rule_or_authority
     )
+    if semantic_authority_version is None:
+        resolved_semantic_version = _canonical_semantic_authority_version_for_kind(policy_kind)
+    else:
+        resolved_semantic_version = semantic_authority_version
     resolved_partitions = (
         _canonical_permitted_partitions_for_kind(policy_kind)
         if permitted_partitions is None
@@ -256,6 +280,7 @@ def build_candidate_policy_record(
         policy_kind=policy_kind,
         policy_version=policy_version,
         semantic_rule_or_authority=resolved_semantic,
+        semantic_authority_version=resolved_semantic_version,
         issuer_identity_or_version=issuer_identity_or_version,
         permitted_partitions=resolved_partitions,
         canonical_hash="",
@@ -266,6 +291,7 @@ def build_candidate_policy_record(
         policy_kind=candidate.policy_kind,
         policy_version=candidate.policy_version,
         semantic_rule_or_authority=candidate.semantic_rule_or_authority,
+        semantic_authority_version=candidate.semantic_authority_version,
         issuer_identity_or_version=candidate.issuer_identity_or_version,
         permitted_partitions=candidate.permitted_partitions,
         canonical_hash=canonical_hash,
@@ -279,6 +305,7 @@ def canonical_policy_version_for_kind(policy_kind: PolicyKind) -> str:
 __all__ = [
     "GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID",
     "GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE",
+    "GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION",
     "IssuedPairingPolicyRecord",
     "PAIRING_POLICY_AUTHORITY_CONTRACT_ID",
     "PAIRING_POLICY_AUTHORITY_CONTRACT_PATH",
