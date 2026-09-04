@@ -1,7 +1,7 @@
 """Trusted issued pairing policy registry infrastructure (contract R1).
 
-Production registry is empty. Verification is fail-closed and registry-backed.
-Does not issue policies or populate production allowlists.
+Production registry holds dual-issued pairing policies (grant R1).
+Verification is fail-closed and registry-backed.
 """
 
 from __future__ import annotations
@@ -32,6 +32,11 @@ PAIRING_POLICY_AUTHORITY_CONTRACT_PATH = "docs/v0-3/s3/s3-b-pairing-policy-autho
 GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE = PAIRING_POLICY_AUTHORITY_CONTRACT_PATH
 GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID = PAIRING_POLICY_AUTHORITY_CONTRACT_ID
 GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION = PAIRING_POLICY_AUTHORITY_CONTRACT_VERSION
+
+GENERAL_PAIRING_POLICY_ISSUANCE_GRANT_ID = "V0_3_S3_B_GENERAL_PAIRING_POLICY_ISSUANCE_GRANT_R1"
+EXACT_ACTUAL_PAIRING_POLICY_ISSUANCE_GRANT_ID = (
+    "V0_3_S3_B_EXACT_ACTUAL_PAIRING_POLICY_ISSUANCE_GRANT_R1"
+)
 
 _CANONICAL_PERMITTED_PARTITIONS: tuple[str, ...] = ("TRAIN", "VALIDATION")
 
@@ -200,9 +205,6 @@ class TrustedIssuedPairingPolicyRegistry:
         return len(self._records_by_identity)
 
 
-PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY = TrustedIssuedPairingPolicyRegistry()
-
-
 def verify_issued_pairing_policy(
     policy_version: str,
     expected_kind: PolicyKind,
@@ -298,14 +300,56 @@ def build_candidate_policy_record(
     )
 
 
+def _build_production_issued_general_policy_record() -> IssuedPairingPolicyRecord:
+    return build_candidate_policy_record(
+        policy_kind="TRAIN_VAL_BINDING_PAIRING",
+        policy_version=TRAIN_VAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version=GENERAL_PAIRING_POLICY_ISSUANCE_GRANT_ID,
+    )
+
+
+def _build_production_issued_exact_actual_policy_record() -> IssuedPairingPolicyRecord:
+    return build_candidate_policy_record(
+        policy_kind="EXACT_ACTUAL_PAIRING",
+        policy_version=EXACT_ACTUAL_PAIRING_POLICY_V1,
+        issuer_identity_or_version=EXACT_ACTUAL_PAIRING_POLICY_ISSUANCE_GRANT_ID,
+    )
+
+
+_PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD = _build_production_issued_general_policy_record()
+_PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD = (
+    _build_production_issued_exact_actual_policy_record()
+)
+_PRODUCTION_ISSUED_POLICY_RECORDS = {
+    _PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD.policy_record_identity: (
+        _PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD
+    ),
+    _PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD.policy_record_identity: (
+        _PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD
+    ),
+}
+
+PRODUCTION_TRUSTED_ISSUED_PAIRING_POLICY_REGISTRY = TrustedIssuedPairingPolicyRegistry(
+    _PRODUCTION_ISSUED_POLICY_RECORDS
+)
+PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD = _PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD
+PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD = (
+    _PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD
+)
+
+
 def canonical_policy_version_for_kind(policy_kind: PolicyKind) -> str:
     return _CANONICAL_VERSION_BY_KIND[policy_kind]
 
 
 __all__ = [
+    "EXACT_ACTUAL_PAIRING_POLICY_ISSUANCE_GRANT_ID",
+    "GENERAL_PAIRING_POLICY_ISSUANCE_GRANT_ID",
     "GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_ID",
     "GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_SOURCE",
     "GENERAL_PAIRING_POLICY_SEMANTIC_AUTHORITY_VERSION",
+    "PRODUCTION_ISSUED_EXACT_ACTUAL_PAIRING_POLICY_RECORD",
+    "PRODUCTION_ISSUED_GENERAL_PAIRING_POLICY_RECORD",
     "IssuedPairingPolicyRecord",
     "PAIRING_POLICY_AUTHORITY_CONTRACT_ID",
     "PAIRING_POLICY_AUTHORITY_CONTRACT_PATH",
