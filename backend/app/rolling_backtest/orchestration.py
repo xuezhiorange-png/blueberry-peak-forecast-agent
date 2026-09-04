@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any, cast
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +28,10 @@ from backend.app.rolling_backtest.canonical import canonical_json_value, sha256_
 from backend.app.rolling_backtest.enums import (
     AvailabilitySourceType,
 )
+from backend.app.rolling_backtest.persisted_forecast_authority import (
+    PersistedForecastAuthorityRefs,
+    validate_persisted_forecast_authority_chain,
+)
 from backend.app.rolling_backtest.persistence import (
     DagPersistenceCommand,
 )
@@ -39,7 +43,6 @@ from backend.app.rolling_backtest.schemas import (
     PersistentUpstreamReference,
     ResolvedUpstreamSemanticIdentity,
     S2ActualLabelAuthority,
-    S2ForecastAuthorityBundle,
     S2HistoricalBacktestRequest,
     S2HistoricalBindingCandidate,
     S2HistoricalBindingRow,
@@ -354,32 +357,6 @@ def _sanitize_diagnostics(raw: dict[str, object]) -> dict[str, object]:
     return _sanitize_value(raw)  # type: ignore[return-value]
 
 
-def _task9_member_identity_hash(member: Any) -> str:
-    """Derive the exact Task 9 member identity from its canonical persisted projection."""
-
-    return sha256_payload(
-        canonical_json_value(
-            {
-                "state_date": member.state_date,
-                "forecast_quantile": member.forecast_quantile,
-                "farm_id": member.farm_id,
-                "subfarm_id": member.subfarm_id,
-                "variety_id": member.variety_id,
-                "destination_factory_id": member.destination_factory_id,
-                "natural_maturity_supply_kg": member.natural_maturity_supply_kg,
-                "opening_mature_inventory_kg": member.opening_mature_inventory_kg,
-                "available_mature_quantity_kg": member.available_mature_quantity_kg,
-                "mature_inventory_loss_quantity_kg": member.mature_inventory_loss_quantity_kg,
-                "harvestable_mature_quantity_kg": member.harvestable_mature_quantity_kg,
-                "allocated_harvest_capacity_kg": member.allocated_harvest_capacity_kg,
-                "harvested_quantity_kg": member.harvested_quantity_kg,
-                "closing_mature_inventory_kg": member.closing_mature_inventory_kg,
-                "unharvested_backlog_kg": member.unharvested_backlog_kg,
-            }
-        )
-    )
-
-
 def build_s2_binding_rows(
     request: S2HistoricalBacktestRequest,
     candidates: tuple[S2HistoricalBindingCandidate, ...],
@@ -616,23 +593,7 @@ async def resolve_s2_persisted_authorities(
         winner_row_hash_for,
         winner_to_value_object,
     )
-    from backend.app.core_forecast.persistence import CoreForecastRunRepository
-    from backend.app.core_forecast.repository import SqlAlchemyCoreForecastRepository
-    from backend.app.harvest_state.persistence import load_harvest_state_output_by_id
-    from backend.app.models.residual_model import ResidualModelTrainingRun
-    from backend.app.residual_model.persistence import (
-        load_residual_prediction_run_by_id,
-        load_residual_training_run_by_id,
-    )
-    from backend.app.rolling_backtest.enums import Task10ModelPolicy
-    from backend.app.rolling_backtest.replay_pipeline import ReplayPipelineOutcome
-    from backend.app.rolling_backtest.replay_task10_binding import (
-        build_replay_task9_binding_context,
-        evaluate_replay_task10_binding,
-    )
 
-    repository = SqlAlchemyCoreForecastRepository(session)
-    core_persistence = CoreForecastRunRepository(session)
     resolved: list[S2HistoricalBindingCandidate] = []
     exact_row_references: set[tuple[int, int, int | None]] = set()
     for candidate in candidates:
@@ -675,25 +636,6 @@ async def resolve_s2_persisted_authorities(
         assert task9 is not None
         assert snapshot is not None
 
-        persisted_core_run = await core_persistence.load_complete_run(refs.core_forecast_run_id)
-        if persisted_core_run is None:
-            raise ValueError("required persisted core forecast authority is missing")
-        code_authority = persisted_core_run.code_authority
-        if code_authority is None:
-            raise ValueError("legacy core forecast run has no persisted historical code authority")
-        if code_authority.available_at > request.forecast_cutoff_at:
-            raise ValueError("historical code authority is visible after the forecast cutoff")
-        matching_core_rows = tuple(
-            row for row in persisted_core_run.daily_curve.rows if row.row_hash == core_row.row_hash
-        )
-        if (
-            persisted_core_run.run.run_id != core_run.id
-            or persisted_core_run.run.result_hash != core_run.result_hash
-            or len(matching_core_rows) != 1
-        ):
-            raise ValueError(
-                "core forecast run/daily row failed canonical persisted-authority binding"
-            )
         if (
             candidate.season_id != core_run.forecast_season_id
             or candidate.season_business_key != core_run.forecast_season_code
@@ -701,189 +643,19 @@ async def resolve_s2_persisted_authorities(
         ):
             raise ValueError("candidate season/quantile does not match persisted core forecast")
 
-        task9_authority = await repository.load_task9_authority(refs.task9_run_id)
-        task9_output = await load_harvest_state_output_by_id(
+        await validate_persisted_forecast_authority_chain(
             session,
-            run_id=refs.task9_run_id,
-        )
-        if task9_authority is None or task9_output is None:
-            raise ValueError("required persisted Task 9 authority is missing")
-        matching_members = tuple(
-            member
-            for member in task9_authority.member_rows
-            if (
-                member.state_date == core_row.date
-                and member.forecast_quantile == core_row.forecast_quantile
-                and member.farm_id == core_row.farm_id
-                and member.subfarm_id == core_row.subfarm_id
-                and member.variety_id == core_row.variety_id
-                and member.destination_factory_id == core_row.destination_factory_id
-            )
-        )
-        if not matching_members:
-            raise ValueError("exact persisted Task 9 member authority is missing")
-        if len(matching_members) != 1:
-            raise ValueError("ambiguous persisted Task 9 member authority")
-        task9_member = matching_members[0]
-        matching_loaded_members = tuple(
-            member
-            for member in getattr(task9_output, "daily_member_state_rows", ())
-            if (
-                member.state_date == core_row.date
-                and member.forecast_quantile == core_row.forecast_quantile
-                and member.farm_id == core_row.farm_id
-                and member.subfarm_id == core_row.subfarm_id
-                and member.variety_id == core_row.variety_id
-                and member.destination_factory_id == core_row.destination_factory_id
-            )
-        )
-        if len(matching_loaded_members) != 1:
-            raise ValueError("dedicated Task 9 integrity loader did not resolve one exact member")
-        task9_member_hash = _task9_member_identity_hash(task9_member)
-        if task9_member_hash != _task9_member_identity_hash(matching_loaded_members[0]):
-            raise ValueError("Task 9 repository member does not match integrity-loaded member")
-
-        if (
-            task9.is_replay is not True
-            or task9.forecast_effective_cutoff_at != request.forecast_cutoff_at
-            or task9.replay_executed_at is None
-            or not task9.replay_code_version
-            or not task9.replay_run_correlation_id
-        ):
-            raise ValueError("Task 9 historical replay identity is incomplete or cutoff-drifted")
-        replay_outcome = ReplayPipelineOutcome(
-            task9_run_id=task9.id,
-            audit_row_count=task9.member_row_count,
-            replay_executed_at=task9.replay_executed_at,
-            replay_correlation_id=task9.replay_run_correlation_id,
-            code_version=task9.replay_code_version,
-        )
-        task9_binding = await build_replay_task9_binding_context(
-            session,
-            replay_outcome=replay_outcome,
-        )
-        task10_output = await load_residual_prediction_run_by_id(
-            session,
-            run_id=refs.task10_prediction_run_id,
-        )
-        if task10_output is None:
-            raise ValueError("required persisted Task 10 prediction authority is missing")
-        if task10_output.model_run_id is None:
-            raise ValueError("Task 10 prediction does not bind an exact persisted model")
-        task10_training_output = await load_residual_training_run_by_id(
-            session,
-            run_id=task10_output.model_run_id,
-        )
-        task10_training_row = await session.get(
-            ResidualModelTrainingRun,
-            task10_output.model_run_id,
-        )
-        if task10_training_output is None or task10_training_row is None:
-            raise ValueError("required persisted Task 10 model authority is missing")
-        if (
-            task10_training_output.training_signature != task10_training_row.training_signature
-            or task10_training_output.training_signature
-            != task10_output.input_snapshot.get("training_signature")
-            or task10_training_row.execution_status != "completed"
-            or task10_training_row.eligibility_status != "eligible"
-            or task10_training_row.finished_at is None
-        ):
-            raise ValueError("Task 10 model authority is incomplete or identity-drifted")
-        if task10_training_row.finished_at > request.forecast_cutoff_at:
-            raise ValueError("Task 10 model authority is visible after the forecast cutoff")
-        pinned_prediction = cast(
-            ResolvedInputOutcome,
-            _PinnedTask10PredictionInput(
-                persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_run_id",
-                    reference_value=refs.task10_prediction_run_id,
-                )
+            refs=PersistedForecastAuthorityRefs(
+                core_forecast_run_id=refs.core_forecast_run_id,
+                core_forecast_daily_row_id=refs.core_forecast_daily_row_id,
+                task9_run_id=refs.task9_run_id,
+                task10_prediction_run_id=refs.task10_prediction_run_id,
             ),
+            forecast_cutoff_at=request.forecast_cutoff_at,
+            target_date=candidate.target_date,
+            horizon_days=candidate.horizon_days,
+            expected_forecast_authority=candidate.forecast_authority,
         )
-        task10_binding = await evaluate_replay_task10_binding(
-            session,
-            binding_context=task9_binding,
-            prediction_input=pinned_prediction,
-            requested_policy=Task10ModelPolicy.HISTORICALLY_AVAILABLE_MODEL,
-        )
-        if (
-            task10_binding is None
-            or task10_binding.prediction_run_id != refs.task10_prediction_run_id
-        ):
-            raise ValueError("Task 10 replay binding did not resolve the exact prediction run")
-        matching_predictions = tuple(
-            row
-            for row in task10_output.rows
-            if (
-                row.arrival_local_date == candidate.target_date
-                and row.forecast_horizon_days == candidate.horizon_days
-                and row.destination_factory_id == core_row.destination_factory_id
-            )
-        )
-        if not matching_predictions:
-            raise ValueError("exact persisted Task 10 prediction row authority is missing")
-        if len(matching_predictions) != 1:
-            raise ValueError("ambiguous persisted Task 10 prediction row authority")
-        task10_prediction_row = matching_predictions[0]
-        task10_model_identity_hash = task10_training_output.training_signature
-
-        if core_row.core_forecast_run_id != core_run.id or core_row.date != candidate.target_date:
-            raise ValueError("forecast daily row does not belong to requested core run/date")
-        if (
-            core_run.result_hash != candidate.forecast_authority.forecast_run_identity_hash
-            or core_row.row_hash != candidate.forecast_authority.daily_row_identity_hash
-            or task9_output.result_hash
-            != candidate.forecast_authority.task9_authority_identity_hash
-            or task9_member_hash != candidate.forecast_authority.task9_member_identity_hash
-            or task10_output.prediction_hash
-            != candidate.forecast_authority.task10_authority_identity_hash
-            or task10_model_identity_hash != candidate.forecast_authority.task10_model_identity_hash
-            or task10_output.prediction_input_signature
-            != candidate.forecast_authority.task10_replay_identity_hash
-            or task10_prediction_row.prediction_hash
-            != candidate.forecast_authority.task10_prediction_row_identity_hash
-        ):
-            raise ValueError("persisted forecast/Task 9/Task 10 identity does not match request")
-        if (
-            candidate.forecast_authority.historical_code_authority_id != code_authority.authority_id
-            or candidate.forecast_authority.forecast_code_identity != code_authority.authority_hash
-            or candidate.forecast_authority.historical_code_identity
-            != code_authority.source_commit_sha
-            or candidate.forecast_authority.build_artifact_hash
-            != code_authority.build_artifact_hash
-            or candidate.forecast_authority.config_bundle_hash != code_authority.config_bundle_hash
-            or candidate.forecast_authority.model_identity != core_run.task8_artifact_hash
-            or candidate.forecast_authority.parameter_identity != core_row.marketable_policy_hash
-            or candidate.forecast_authority.data_identity != core_run.forecast_input_hash
-            or candidate.forecast_authority.available_at != task9.forecast_effective_cutoff_at
-            or candidate.forecast_authority.task10_model_available_at
-            != task10_training_row.finished_at
-            or candidate.forecast_authority.historical_code_available_at
-            != code_authority.available_at
-        ):
-            raise ValueError("persisted forecast identity fields do not match request")
-        if (
-            core_run.status != "completed"
-            or task9_authority.status != "completed"
-            or task9_output.status != "completed"
-        ):
-            raise ValueError("forecast and Task 9 authorities must be completed")
-        if task9.id != core_run.task9_harvest_state_run_id:
-            raise ValueError("Task 9 authority is not bound to the core forecast run")
-        if (
-            core_row.task8_forecast_run_id != core_run.task8_forecast_run_id
-            or core_row.task9_harvest_state_run_id != task9.id
-            or core_row.task9_result_hash != task9.result_hash
-            or core_run.task9_result_hash != task9.result_hash
-            or task10_output.task9_result_hash != task9.result_hash
-            or task10_prediction_row.task9_result_hash != task9.result_hash
-            or task10_prediction_row.task9_run_id != task9.id
-        ):
-            raise ValueError("persisted forecast authority chain is inconsistent")
-        if task10_output.execution_status != "completed" or task10_output.task9_run_id != task9.id:
-            raise ValueError("Task 10 authority is not exactly bound to Task 9")
-        if task9.forecast_effective_cutoff_at > request.forecast_cutoff_at:
-            raise ValueError("forecast authority is visible after the forecast cutoff")
 
         persisted_labels = await load_label_rows_for_snapshot(session, snapshot.id)
         persisted_winners = await load_winners_for_snapshot(session, snapshot.id)
@@ -1295,27 +1067,9 @@ async def resolve_s2_persisted_authorities(
             or candidate.actual_label.business_grain_hash != actual.business_grain_hash
         ):
             raise ValueError("persisted I7 identity does not match request")
-        forecast = S2ForecastAuthorityBundle(
-            forecast_run_identity_hash=core_run.result_hash,
-            daily_row_identity_hash=core_row.row_hash,
-            task9_authority_identity_hash=task9_output.result_hash,
-            task9_member_identity_hash=task9_member_hash,
-            task10_authority_identity_hash=task10_output.prediction_hash,
-            task10_model_identity_hash=task10_model_identity_hash,
-            task10_replay_identity_hash=task10_output.prediction_input_signature,
-            task10_prediction_row_identity_hash=task10_prediction_row.prediction_hash,
-            historical_code_authority_id=code_authority.authority_id,
-            forecast_code_identity=code_authority.authority_hash,
-            historical_code_identity=code_authority.source_commit_sha,
-            build_artifact_hash=code_authority.build_artifact_hash,
-            config_bundle_hash=code_authority.config_bundle_hash,
-            model_identity=core_run.task8_artifact_hash,
-            parameter_identity=core_row.marketable_policy_hash,
-            data_identity=core_run.forecast_input_hash,
-            available_at=task9.forecast_effective_cutoff_at,
-            task10_model_available_at=task10_training_row.finished_at,
-            historical_code_available_at=code_authority.available_at,
-        )
+        if candidate.forecast_authority is None:
+            raise ValueError("persisted forecast authority is required")
+        forecast = candidate.forecast_authority
         resolved.append(
             candidate.model_copy(
                 update={

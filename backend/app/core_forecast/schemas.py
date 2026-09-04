@@ -320,6 +320,8 @@ class ExecuteCoreForecastRunRequest(_FrozenModel):
     resolved_identity: ResolvedCoreForecastIdentity | None = None
     # Optional caller assertion; authority-bound execution derives this from Task 9.
     forecast_effective_cutoff_at: datetime | None = None
+    # Exact Task 10 prediction run already selected upstream; persisted as authority evidence.
+    authorized_task10_prediction_run_id: StrictPositiveInt | None = None
 
 
 def _timezone_aware(value: object) -> datetime:
