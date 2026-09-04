@@ -32,6 +32,9 @@ from backend.app.rolling_backtest.persisted_forecast_authority import (
     PersistedForecastAuthorityRefs,
     validate_persisted_forecast_authority_chain,
 )
+from backend.app.rolling_backtest.persisted_forecast_authority import (
+    task9_member_identity_hash as _task9_member_identity_hash,  # noqa: F401
+)
 from backend.app.rolling_backtest.persistence import (
     DagPersistenceCommand,
 )
@@ -197,6 +200,7 @@ __all__ = [
     "build_s2_binding_rows",
     "run_s2_historical_binding",
     "resolve_s2_persisted_authorities",
+    "_task9_member_identity_hash",
 ]
 
 
