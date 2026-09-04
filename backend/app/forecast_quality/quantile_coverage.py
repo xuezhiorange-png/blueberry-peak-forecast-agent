@@ -89,6 +89,18 @@ def _train_validation_execution_blocker(
     return None
 
 
+_NON_TRAIN_VAL_ONLY_BLOCKERS = frozenset(
+    {
+        "TEST_PARTITION_AUTHORITY_FORBIDDEN",
+        "NON_TRAIN_VALIDATION_SPLIT_PRESENT",
+    }
+)
+
+
+def _train_validation_only_for_blocker(blocker: str) -> bool:
+    return blocker not in _NON_TRAIN_VAL_ONLY_BLOCKERS
+
+
 def _quantize(value: Decimal) -> Decimal:
     from decimal import ROUND_HALF_EVEN
 
@@ -287,7 +299,7 @@ def assess_train_validation_coverage_execution(
             implementation_complete=True,
             execution_status="NOT_COMPUTABLE_OR_BLOCKED",
             blocker_reason=blocker,
-            train_validation_only=blocker != "NON_TRAIN_VALIDATION_SPLIT_PRESENT",
+            train_validation_only=_train_validation_only_for_blocker(blocker),
             test_remains_sealed=True,
             results=(),
         )
