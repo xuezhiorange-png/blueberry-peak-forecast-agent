@@ -110,13 +110,37 @@
   "v0_3_partition_scoped_s3_binding_row_producer_available": false,
   "row_level_partition_membership_proven": false,
   "real_pairing_package_materialization_eligible": false,
-  "remaining_materialization_prerequisites": [
-    "POLICY_ISSUANCE_BOTH_GENERAL_AND_EXACT_ACTUAL",
-    "V0_3_PARTITION_SCOPED_S3_BINDING_ROW_PRODUCER",
-    "ROW_LEVEL_PARTITION_MEMBERSHIP_PROOF",
-    "TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY_POPULATION",
-    "PARTITION_AUTHORITY_RECORD_ISSUANCE",
-    "SCHEMA_VERSION_REGISTRATION"
+  "real_pairing_package_materialization_prerequisites": [
+    "GENERAL_PAIRING_POLICY_ISSUED",
+    "EXACT_ACTUAL_PAIRING_POLICY_ISSUED",
+    "V0_3_PARTITION_SCOPED_S3_BINDING_ROW_PRODUCER_AVAILABLE",
+    "ROW_LEVEL_PARTITION_MEMBERSHIP_PROVEN",
+    "LAWFUL_SOURCE_002_E5_LIVE_V1_ACTUALS_AUTHORITY_AVAILABLE",
+    "LAWFUL_INCUMBENT_FORECAST_AND_CUTOFF_AUTHORITY_AVAILABLE",
+    "TEST_REMAINS_SEALED"
+  ],
+  "materialization_eligibility_blockers": [
+    "PAIRING_POLICY_NOT_ISSUED",
+    "EXACT_ACTUAL_PAIRING_POLICY_NOT_ISSUED",
+    "NO_PARTITION_SCOPED_PRODUCER",
+    "ROW_LEVEL_PARTITION_MEMBERSHIP_NOT_PROVEN"
+  ],
+  "package_publication_is_materialization_prerequisite": false,
+  "authority_issuance_is_materialization_prerequisite": false,
+  "schema_registration_is_materialization_prerequisite": false,
+  "coverage_execution_is_materialization_prerequisite": false,
+  "post_materialization_steps_removed_from_materialization_prerequisites": true,
+  "materialization_prerequisites_not_full_coverage_chain_prerequisites": true,
+  "remaining_coverage_execution_chain": [
+    "policy_issuance",
+    "partition_scoped_producer",
+    "row_level_membership_proof",
+    "real_package_materialization",
+    "package_verification",
+    "package_publication",
+    "partition_authority_issuance",
+    "schema_registration",
+    "coverage_execution_authorization"
   ],
   "s3_b_coverage_execution": "NOT_COMPUTABLE_OR_BLOCKED",
   "test_remains_sealed": true,
@@ -125,5 +149,5 @@
   "evidence_json_path": "docs/v0-3/s3/evidence/s3-b-pairing-policy-authority-contract-r1.json",
   "ready_authorized": false,
   "merge_authorized": false,
-  "final_stop_gate": "COORDINATOR_PAIRING_POLICY_AUTHORITY_CONTRACT_REVIEW"
+  "final_stop_gate": "COORDINATOR_PAIRING_POLICY_AUTHORITY_CONTRACT_RE_REVIEW"
 }
