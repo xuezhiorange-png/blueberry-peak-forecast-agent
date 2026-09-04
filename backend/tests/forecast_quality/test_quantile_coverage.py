@@ -175,9 +175,11 @@ def _authority(
     partitions: tuple[str, ...] = ("TRAIN",),
     row_set_hash: str = "a" * 64,
     pairing_package_identity: str = "b" * 64,
+    authority_record_identity: str = "c" * 64,
     schema_version: str = TRAIN_VAL_COVERAGE_PARTITION_AUTHORITY_SCHEMA_V1,
 ) -> TrainValidationCoveragePartitionAuthority:
     return TrainValidationCoveragePartitionAuthority(
+        authority_record_identity=authority_record_identity,
         schema_version=schema_version,
         pairing_package_identity=pairing_package_identity,
         s2_binding_row_set_hash=row_set_hash,
