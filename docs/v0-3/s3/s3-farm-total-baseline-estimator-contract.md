@@ -2,6 +2,7 @@
 
 > Scope: source-definition and owner-decision contract only
 > Task: `V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_CONTRACT_R0`
+> Authority correction: `V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_CONTRACT_R0_AUTHORITY_CORRECTION_R1`
 > Base: `5aa872fc327690420544ab43b51951efcd5338b7`
 > Companion data plane: `backend/app/forecast_quality/farm_total_*`
 > Historical separation: `docs/forecast-quality/s3-naive-baseline-decision.md`
@@ -17,7 +18,11 @@ V0_3_BASELINE_TARGET=FARM_TOTAL_HARVEST_QUANTITY
 BASELINE_ENTITY=BASELINE_FARM_GROUP
 
 TRAIN_USE=ESTIMATOR_DERIVATION_ALLOWED
-VALIDATION_USE=EVALUATION_ONLY
+GENERAL_VALIDATION_PURPOSE=CANDIDATE_SELECTION_AND_VALIDATION_ONLY
+FARM_TOTAL_BASELINE_VALIDATION_USE_POLICY=OWNER_DECISION_REQUIRED
+PROPOSED_FARM_TOTAL_BASELINE_VALIDATION_USE=EVALUATION_ONLY
+PROPOSAL_ONLY=true
+OWNER_ACCEPTANCE_REQUIRED=true
 TEST_USE=SEALED
 
 MODEL_CHANGE=false
@@ -92,11 +97,11 @@ The following assumptions are **forbidden** before owner authorization:
 | --- | --- |
 | Transplant `PRIOR_SEASON_ANALOG_DAY_ACTUAL` from V0.2 | Different target (`FARM_TOTAL_HARVEST_QUANTITY`) and entity (`BASELINE_FARM_GROUP`) |
 | Infer `BASELINE_ESTIMATOR_FAMILY` from code absence | Repository search found no frozen family |
-| Use VALIDATION to choose estimator family or parameters | Leakage; VALIDATION is evaluation-only |
+| Use VALIDATION to choose estimator family or parameters under a stricter baseline policy not yet owner-accepted | Proposed `EVALUATION_ONLY` restriction is not frozen; general S1 split permits candidate selection on VALIDATION |
 | Use TEST for fitting, selection, or inspection | TEST remains sealed |
 | Copy incumbent model output as baseline | Not authorized for Farm-total baseline |
 | Use post-target actuals unavailable at forecast time | Leakage |
-| Emit P80/P90 without distribution authority | Point-baseline only unless separately authorized |
+| Emit P80/P90 without distribution authority | Inherited quantile limitation exists; Farm-total output semantics remain unresolved |
 | Treat proposal options in Section 8 as frozen choices | All options are `PROPOSAL_ONLY` |
 
 ## 2. Historical separation from V0.2 naive baseline
@@ -225,22 +230,79 @@ forbidden pre-authorization behavior.
 
 | Attribute | Value |
 | --- | --- |
-| Status | `FROZEN_BY_THIS_CONTRACT` |
-| Frozen value | `EVALUATION_ONLY` |
-| Controls | Permitted uses of VALIDATION Farm-total dataset |
-| Admissible shape | Scoring/reporting only; no fitting, selection, or tuning |
-| Why it matters | Prevents leakage into baseline definition |
-| Forbidden | Any VALIDATION-driven estimator decision |
+| Status | `OWNER_DECISION_REQUIRED` |
+| Controls | Whether the Farm-total baseline estimator adopts a stricter VALIDATION-use rule than the general V0.3 split contract |
+| Why it matters | General split authority and baseline-specific restriction are separate layers; R0 does not narrow S1 authority by itself |
+
+#### Existing general split authority (`EXISTING_GENERAL_SPLIT_AUTHORITY`)
+
+```text
+GENERAL_SPLIT_VALIDATION_PURPOSE=CANDIDATE_SELECTION_AND_VALIDATION_ONLY
+```
+
+Source:
+
+- `docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md`
+- `docs/v0-3/s1/evidence/s1-split-policy-owner-decision-binding.json`
+
+The owner-approved V0.3 S1 split contract permits candidate selection and
+validation on the VALIDATION partition. R0 does **not** override or silently
+narrow that authority.
+
+#### Proposed Farm-total baseline restriction (`PROPOSED_FARM_TOTAL_BASELINE_RESTRICTION`)
+
+```text
+PROPOSED_FARM_TOTAL_BASELINE_VALIDATION_USE=EVALUATION_ONLY
+PROPOSAL_ONLY=true
+OWNER_ACCEPTANCE_REQUIRED=true
+IMPLEMENTATION_AUTHORIZED=false
+```
+
+This R0 **proposes**, but does not freeze, a stricter rule for the Farm-total
+baseline estimator: if owner-accepted, VALIDATION would be evaluation-only and
+would **not** select estimator family or tune estimator parameters.
+
+Until explicit owner acceptance:
+
+```text
+FARM_TOTAL_BASELINE_VALIDATION_USE_POLICY=OWNER_DECISION_REQUIRED
+```
+
+| Admissible shape | Owner accepts `EVALUATION_ONLY` for Farm-total baseline; or accepts a different explicitly named baseline-specific VALIDATION policy |
+| Forbidden before freeze | Treating `EVALUATION_ONLY` as frozen by this contract; claiming R0 overrides S1 split authority; implementing leakage prohibitions as if already accepted |
 
 ### 3.11 `OUTPUT_SEMANTICS`
 
 | Attribute | Value |
 | --- | --- |
-| Status | `OWNER_DECISION_REQUIRED` |
-| Controls | Units and interpretation of baseline output (kg per group per day, kg/mu, cumulative, etc.) |
-| Admissible shape | Point forecast field definition aligned with `V0_3_BASELINE_TARGET` |
-| Why it matters | Downstream metrics require unambiguous units |
-| Forbidden before freeze | Emitting unnamed or dual-unit outputs |
+| Status | `OWNER_DECISION_REQUIRED` (`UNRESOLVED_OUTPUT_SEMANTICS`) |
+| Controls | Units and interpretation of the Farm-total baseline point output |
+| Admissible shape | Owner must explicitly choose among authorized point-target transforms such as: daily harvest kg per `baseline_farm_group_key`; kg/mu intermediate projected to kg via authorized `area_mu`; cumulative value; or another explicitly authorized point-target transform aligned with `V0_3_BASELINE_TARGET` |
+| Why it matters | Downstream metrics require unambiguous units; different transforms are not interchangeable |
+| Forbidden before freeze | Cursor choosing daily kg vs kg/mu vs cumulative; emitting unnamed or dual-unit outputs; treating inherited quantile limitations as a substitute for resolving output semantics |
+
+#### Inherited baseline quantile limitation (`INHERITED_BASELINE_QUANTILE_LIMITATION`)
+
+Separate from unresolved `OUTPUT_SEMANTICS`, the repository already establishes
+that baseline P80/P90 are not computable without a quantile distribution:
+
+```text
+BASELINE_OUTPUT_DISTRIBUTION_AUTHORIZED=false
+BASELINE_P80_STATUS=NOT_COMPUTABLE
+BASELINE_P90_STATUS=NOT_COMPUTABLE
+BASELINE_P80_P90_REASON=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+INHERITED_CURRENT_LIMITATION=true
+```
+
+Sources:
+
+- `docs/v0-3/s3/s3-quantile-semantics-contract.md`
+- `docs/v0-3/s1/metric-coverage-and-quality-contract.md`
+- `docs/forecast-quality/s3-naive-baseline-decision.md`
+
+This inherited limitation is **not** `FROZEN_BY_THIS_CONTRACT`. R0 records it
+but does not manufacture a Farm-total quantile distribution. Resolving
+`OUTPUT_SEMANTICS` does not, by itself, authorize P80/P90 emission.
 
 ### 3.12 `OWNER_IDENTITY`
 
@@ -304,10 +366,39 @@ From `FarmTotalDatasetRow`:
 
 ### 4.3 Partition use rules
 
+#### General V0.3 split authority
+
+```text
+EXISTING_GENERAL_SPLIT_AUTHORITY=true
+GENERAL_SPLIT_VALIDATION_PURPOSE=CANDIDATE_SELECTION_AND_VALIDATION_ONLY
+```
+
+Source: `docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md`
+
+#### Farm-total baseline-specific proposal (not frozen)
+
+```text
+PROPOSED_FARM_TOTAL_BASELINE_VALIDATION_USE=EVALUATION_ONLY
+PROPOSAL_ONLY=true
+OWNER_ACCEPTANCE_REQUIRED=true
+FARM_TOTAL_BASELINE_VALIDATION_USE_POLICY=OWNER_DECISION_REQUIRED
+```
+
+If owner-accepted, the proposed stricter rule would mean:
+
 ```text
 TRAIN may be used for estimator derivation ONLY AFTER estimator semantics are owner-authorized.
-VALIDATION MUST NOT be used to fit, select, tune, or derive estimator parameters.
-VALIDATION is evaluation-only.
+VALIDATION MUST NOT be used to fit, select, tune, or derive Farm-total baseline estimator parameters.
+VALIDATION would be evaluation-only for this baseline scope.
+```
+
+Until owner acceptance, implementers MUST NOT assume the stricter rule is in
+force. The general S1 split authority remains binding for non-baseline scopes.
+
+#### TEST custody (frozen by S1 split authority)
+
+```text
+TEST_USE=SEALED
 TEST remains sealed and MUST NOT be read, scored, inspected, or used for selection.
 ```
 
@@ -316,10 +407,27 @@ Partition boundaries are enforced at data-plane materialization
 
 ## 5. Leakage contract
 
+### 5.1 Proposed Farm-total baseline restrictions (not frozen)
+
+If and only if the owner accepts
+`PROPOSED_FARM_TOTAL_BASELINE_VALIDATION_USE=EVALUATION_ONLY`, the following
+baseline-specific prohibitions would apply:
+
 ```text
+PROPOSAL_ONLY=true
+OWNER_ACCEPTANCE_REQUIRED=true
 BASELINE_USES_VALIDATION_TO_FIT=false
 BASELINE_USES_VALIDATION_TO_SELECT_FAMILY=false
 BASELINE_USES_VALIDATION_TO_SELECT_PARAMETERS=false
+```
+
+Until `FARM_TOTAL_BASELINE_VALIDATION_USE_POLICY` is owner-frozen, these flags
+describe a **proposal**, not current authority. They do not override the general
+S1 rule that VALIDATION may be used for candidate selection elsewhere.
+
+### 5.2 Unconditional prohibitions (independent of validation-use proposal)
+
+```text
 BASELINE_USES_TEST=false
 BASELINE_USES_INCUMBENT_MODEL_OUTPUT=false
 BASELINE_USES_POST_TARGET_ACTUALS=false
@@ -327,25 +435,62 @@ BASELINE_USES_POST_TARGET_ACTUALS=false
 
 Explicit prohibitions:
 
-- No estimator decision may be justified using VALIDATION performance.
-- No tuning loop may read VALIDATION rows during estimator definition.
-- No TEST partition access for any baseline purpose.
+- No TEST partition access for any Farm-total baseline purpose (`TEST_USE=SEALED`).
 - No borrowing incumbent forecast outputs as the Farm-total baseline.
 - No use of actuals that would not be available at the forecast issuance time
   for the target date.
 
-## 6. Point / quantile semantics
+If the proposed `EVALUATION_ONLY` restriction is owner-accepted:
 
-Unless a separate authority explicitly changes this limitation:
+- No Farm-total baseline estimator decision may be justified using VALIDATION
+  performance.
+- No Farm-total baseline tuning loop may read VALIDATION rows during estimator
+  definition.
+
+## 6. Output semantics and quantile boundary
+
+This section separates two distinct layers:
+
+```text
+UNRESOLVED_OUTPUT_SEMANTICS=true
+INHERITED_BASELINE_QUANTILE_LIMITATION=true
+```
+
+### 6.1 Unresolved Farm-total output semantics (`OUTPUT_SEMANTICS`)
+
+`OUTPUT_SEMANTICS` remains `OWNER_DECISION_REQUIRED`. The owner must still
+decide whether the Farm-total estimator emits semantics such as:
+
+- daily harvest kg per `baseline_farm_group_key`;
+- kg/mu intermediate projected to kg via authorized `area_mu`;
+- cumulative value;
+- another explicitly authorized point-target transform.
+
+No choice may be made by Cursor. R0 does not freeze any of these options.
+
+### 6.2 Inherited current quantile-distribution limitation (`INHERITED_BASELINE_QUANTILE_LIMITATION`)
+
+The repository already establishes, via separate authorities, that baseline
+P80/P90 are not computable without a quantile distribution:
 
 ```text
 BASELINE_OUTPUT_DISTRIBUTION_AUTHORIZED=false
 BASELINE_P80_STATUS=NOT_COMPUTABLE
 BASELINE_P90_STATUS=NOT_COMPUTABLE
 BASELINE_P80_P90_REASON=BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED
+INHERITED_CURRENT_LIMITATION=true
+NOT_FROZEN_BY_THIS_CONTRACT=true
 ```
 
-The Farm-total baseline contract MUST NOT create P80/P90 values by:
+Sources:
+
+- `docs/v0-3/s3/s3-quantile-semantics-contract.md`
+- `docs/v0-3/s1/metric-coverage-and-quality-contract.md`
+- `docs/forecast-quality/s3-naive-baseline-decision.md`
+
+R0 records this inherited limitation. It does **not** manufacture a Farm-total
+quantile distribution. The Farm-total baseline contract MUST NOT create P80/P90
+values by:
 
 - copying the point forecast;
 - copying incumbent P80/P90;
@@ -353,10 +498,9 @@ The Farm-total baseline contract MUST NOT create P80/P90 values by:
 - interpreting empirical residual spread as authority;
 - inventing a distribution.
 
-Until explicitly authorized, the Farm-total baseline is a **point-baseline
-decision problem only**. This aligns with the V0.2 point-only baseline stance
-in `docs/forecast-quality/s3-naive-baseline-decision.md`, but does **not**
-inherit the V0.2 formula.
+Resolving `OUTPUT_SEMANTICS` addresses the point-target transform only. It does
+not authorize `BASELINE_OUTPUT_DISTRIBUTION_AUTHORIZED=true` unless a separate
+owner authority explicitly grants distribution semantics.
 
 ## 7. Estimator decision boundary
 
@@ -505,28 +649,49 @@ added under Farm-total baseline estimator scope.
 | `UNSEEN_GROUP_POLICY` | `OWNER_DECISION_REQUIRED` | 31 eligible groups frozen | Sparse/empty group behavior undefined | Owner freeze + attestation |
 | `MISSING_DAY_POLICY` | `OWNER_DECISION_REQUIRED` | None | Gap behavior undefined | Owner freeze + attestation |
 | `COLD_START_POLICY` | `OWNER_DECISION_REQUIRED` | TRAIN start `2025-08-05` frozen | Early-season behavior undefined | Owner freeze + attestation |
-| `VALIDATION_USE_POLICY` | `FROZEN` (`EVALUATION_ONLY`) | This contract + data plane | N/A — already frozen | N/A |
-| `OUTPUT_SEMANTICS` | `OWNER_DECISION_REQUIRED` | `V0_3_BASELINE_TARGET` frozen | Output unit/path undefined | Owner freeze + attestation |
+| `VALIDATION_USE_POLICY` | `OWNER_DECISION_REQUIRED` | S1 split: `VALIDATION_PURPOSE=CANDIDATE_SELECTION_AND_VALIDATION_ONLY` (`docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md`); R0 proposes `EVALUATION_ONLY` only | Stricter baseline VALIDATION rule not accepted | Owner freeze + attestation accepting or rejecting proposed restriction |
+| `OUTPUT_SEMANTICS` | `OWNER_DECISION_REQUIRED` | `V0_3_BASELINE_TARGET` frozen in `farm_total_policy.py`; point transform unset | Output unit/path undefined | Owner freeze + attestation |
 | `OWNER_IDENTITY` | `UNRESOLVED` | None | No accountable owner | Owner record |
 | `OWNER_ATTESTATION` | `UNRESOLVED` | None | Gate closed | Signed attestation |
-| Point output only | `FROZEN` | This contract | P80/P90 blocked | Separate distribution authority if ever needed |
+| Inherited baseline P80/P90 limitation | `INHERITED_CURRENT_LIMITATION` | `docs/v0-3/s3/s3-quantile-semantics-contract.md`, `docs/v0-3/s1/metric-coverage-and-quality-contract.md` | P80/P90 not computable without distribution authority | Separate distribution authority if ever needed |
 | Data-plane binding | `FROZEN` | `farm_total_*` modules | Estimator must use bundle | Implementation review |
-| TEST sealed | `FROZEN` | Partition policy | TEST access forbidden | N/A |
+| TEST sealed | `FROZEN` | S1 split policy (`TEST_PURPOSE=SEALED_FINAL_EVALUATION_ONLY`) | TEST access forbidden | N/A |
 
 ## 12. References
 
-| Reference | Path |
-| --- | --- |
-| Farm-total policy constants | `backend/app/forecast_quality/farm_total_policy.py` |
-| Data plane orchestrator | `backend/app/forecast_quality/farm_total_data_plane.py` |
-| Dataset projection | `backend/app/forecast_quality/farm_total_dataset.py` |
-| Mapping authority | `backend/app/forecast_quality/farm_total_group_mapping.py` |
-| Area authority | `backend/app/forecast_quality/farm_total_area_authority.py` |
-| Authority binding | `backend/app/forecast_quality/farm_total_authority_binding.py` |
-| V0.2 naive baseline (historical, non-inherited) | `docs/forecast-quality/s3-naive-baseline-decision.md` |
+References are grouped by role. Not every reference is estimator-formula
+authority; some establish split custody, metric limitations, or data-plane facts
+only.
+
+### 12.1 Farm-total data-plane authority (binding for future estimator inputs)
+
+| Reference | Path | Role |
+| --- | --- | --- |
+| Farm-total policy constants | `backend/app/forecast_quality/farm_total_policy.py` | Frozen target, entity, season, area totals |
+| Data plane orchestrator | `backend/app/forecast_quality/farm_total_data_plane.py` | Authority bundle materialization |
+| Dataset projection | `backend/app/forecast_quality/farm_total_dataset.py` | TRAIN/VALIDATION row grain and fields |
+| Mapping authority | `backend/app/forecast_quality/farm_total_group_mapping.py` | `baseline_farm_group_key` mapping |
+| Area authority | `backend/app/forecast_quality/farm_total_area_authority.py` | `area_mu` authority package |
+| Authority binding | `backend/app/forecast_quality/farm_total_authority_binding.py` | Cross-package binding |
+
+### 12.2 General V0.3 split authority (not overridden by R0)
+
+| Reference | Path | Role |
+| --- | --- | --- |
+| S1 split policy owner binding | `docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md` | Owner-frozen `VALIDATION_PURPOSE=CANDIDATE_SELECTION_AND_VALIDATION_ONLY` |
+| S1 split policy evidence | `docs/v0-3/s1/evidence/s1-split-policy-owner-decision-binding.json` | Canonical acceptance record for split policy |
+
+### 12.3 Inherited quantile and metric limitations (not Farm-total formula authority)
+
+| Reference | Path | Role |
+| --- | --- | --- |
+| Quantile semantics contract | `docs/v0-3/s3/s3-quantile-semantics-contract.md` | `NOT_COMPUTABLE` baseline P80/P90 rules |
+| Metric coverage and quality | `docs/v0-3/s1/metric-coverage-and-quality-contract.md` | `CURRENT_BASELINE_P80_STATUS=NOT_COMPUTABLE` etc. |
+| V0.2 naive baseline (historical, non-inherited) | `docs/forecast-quality/s3-naive-baseline-decision.md` | Fine-grain point baseline; not Farm-total formula authority |
 
 ## 13. Change log
 
 | Version | Date | Change |
 | --- | --- | --- |
 | R0 | 2026-09-05 | Initial owner-decision contract; no estimator implementation |
+| R1 | 2026-09-05 | Authority correction: `VALIDATION_USE_POLICY` and `OUTPUT_SEMANTICS` no longer self-authorized by R0; distinguish general S1 split authority from proposed Farm-total baseline restriction; distinguish unresolved output semantics from inherited quantile limitation |
