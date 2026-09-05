@@ -68,6 +68,8 @@ def _require_prior_area_evidence_hash(
             "real package generation requires --prior-area-evidence-path "
             "pointing to the prior-area evidence workbook"
         )
+
+
 def _build_reviewed_area_source_row_ref(
     *,
     review_evidence_hash: str,
@@ -78,8 +80,7 @@ def _build_reviewed_area_source_row_ref(
     members = ",".join(sorted(area_member_names or []))
     evidence_part = prior_area_evidence_hash or "synthetic"
     return (
-        f"reviewed-r2-area-membership:{review_evidence_hash}:"
-        f"{evidence_part}:{group_key}:{members}"
+        f"reviewed-r2-area-membership:{review_evidence_hash}:{evidence_part}:{group_key}:{members}"
     )
 
 
@@ -191,9 +192,7 @@ def main() -> None:
             )
         )
 
-    source_hashes: list[tuple[str, str]] = [
-        ("reviewed_r2_mapping_table", review_evidence_hash)
-    ]
+    source_hashes: list[tuple[str, str]] = [("reviewed_r2_mapping_table", review_evidence_hash)]
     if prior_area_evidence_hash is not None:
         source_hashes.append((PRIOR_AREA_EVIDENCE_HASH_KEY, prior_area_evidence_hash))
 
