@@ -37,6 +37,11 @@ class FarmGroupMappingBlocker(StrEnum):
     NONE = "NONE"
     SCHEMA_VERSION_MISMATCH = "SCHEMA_VERSION_MISMATCH"
     POLICY_VERSION_MISMATCH = "POLICY_VERSION_MISMATCH"
+    MAPPING_POLICY_VERSION_MISMATCH = "MAPPING_POLICY_VERSION_MISMATCH"
+    MAPPING_TARGET_SEASON_MISMATCH = "MAPPING_TARGET_SEASON_MISMATCH"
+    MAPPING_SOURCE_DATASET_ID_MISMATCH = "MAPPING_SOURCE_DATASET_ID_MISMATCH"
+    MAPPING_SOURCE_DATASET_VERSION_MISMATCH = "MAPPING_SOURCE_DATASET_VERSION_MISMATCH"
+    MAPPING_MATERIALIZED_IDENTITY_MISMATCH = "MAPPING_MATERIALIZED_IDENTITY_MISMATCH"
     DUPLICATE_BASELINE_GROUP = "DUPLICATE_BASELINE_GROUP"
     DUPLICATE_SOURCE_FARM_KEY = "DUPLICATE_SOURCE_FARM_KEY"
     EMPTY_SOURCE_FARM_KEYS = "EMPTY_SOURCE_FARM_KEYS"
@@ -227,6 +232,24 @@ def validate_mapping_package_payload(
 
     if payload.get("policy_version") != FARM_TOTAL_AREA_POLICY_VERSION:
         return FarmGroupMappingBlocker.POLICY_VERSION_MISMATCH, None
+
+    if payload.get("mapping_policy_version") != FARM_TOTAL_MAPPING_POLICY_VERSION:
+        return FarmGroupMappingBlocker.MAPPING_POLICY_VERSION_MISMATCH, None
+
+    if payload.get("target_season") != FARM_TOTAL_TARGET_SEASON:
+        return FarmGroupMappingBlocker.MAPPING_TARGET_SEASON_MISMATCH, None
+
+    if payload.get("source_dataset_id") != EXPECTED_DATASET_ID:
+        return FarmGroupMappingBlocker.MAPPING_SOURCE_DATASET_ID_MISMATCH, None
+
+    if payload.get("source_dataset_version") != EXPECTED_DATASET_VERSION:
+        return FarmGroupMappingBlocker.MAPPING_SOURCE_DATASET_VERSION_MISMATCH, None
+
+    if (
+        payload.get("materialized_dataset_identity_sha256")
+        != EXPECTED_MATERIALIZED_DATASET_IDENTITY_SHA256
+    ):
+        return FarmGroupMappingBlocker.MAPPING_MATERIALIZED_IDENTITY_MISMATCH, None
 
     raw_rows = payload.get("rows")
     if not isinstance(raw_rows, list) or not raw_rows:

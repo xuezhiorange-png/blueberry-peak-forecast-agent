@@ -418,6 +418,5 @@ class TestFarmTotalDataPlaneIntegration:
             area_package=bundle.area_package,
             verify_official_hashes=False,
         )
-        assert blocker == FarmTotalDatasetBlocker.NONE
-        assert dataset is not None
-        assert len(dataset.rows) == 0
+        assert blocker == FarmTotalDatasetBlocker.TEST_PARTITION_FORBIDDEN
+        assert dataset is None

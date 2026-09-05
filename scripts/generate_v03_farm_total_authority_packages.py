@@ -49,8 +49,38 @@ def _extract_mapping_table(text: str) -> list[dict]:
     return json.loads(match.group(1))
 
 
+PRIOR_AREA_EVIDENCE_HASH_KEY = "prior_area_evidence_file"
+
+
 def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _require_prior_area_evidence_hash(
+    *,
+    prior_area_evidence_path: Path | None,
+    allow_synthetic: bool,
+) -> str | None:
+    if prior_area_evidence_path is None or not prior_area_evidence_path.exists():
+        if allow_synthetic:
+            return None
+        raise SystemExit(
+            "real package generation requires --prior-area-evidence-path "
+            "pointing to the prior-area evidence workbook"
+        )
+def _build_reviewed_area_source_row_ref(
+    *,
+    review_evidence_hash: str,
+    prior_area_evidence_hash: str | None,
+    group_key: str,
+    area_member_names: list[str] | None,
+) -> str:
+    members = ",".join(sorted(area_member_names or []))
+    evidence_part = prior_area_evidence_hash or "synthetic"
+    return (
+        f"reviewed-r2-area-membership:{review_evidence_hash}:"
+        f"{evidence_part}:{group_key}:{members}"
+    )
 
 
 def main() -> None:
@@ -71,11 +101,21 @@ def main() -> None:
         "--prior-area-evidence-path",
         type=Path,
         default=None,
-        help="Optional path used only for source_file_hashes (not read for values)",
+        help="Path to prior-area evidence workbook (required for real generation)",
+    )
+    parser.add_argument(
+        "--allow-synthetic-source-hashes",
+        action="store_true",
+        help="Allow generation without prior-area evidence workbook (tests only)",
     )
     args = parser.parse_args()
 
     review_text = args.review_output.read_text(encoding="utf-8")
+    review_evidence_hash = hashlib.sha256(review_text.encode()).hexdigest()
+    prior_area_evidence_hash = _require_prior_area_evidence_hash(
+        prior_area_evidence_path=args.prior_area_evidence_path,
+        allow_synthetic=args.allow_synthetic_source_hashes,
+    )
     mapping_table = _extract_mapping_table(review_text)
 
     mapping_rows = []
@@ -111,6 +151,12 @@ def main() -> None:
         area_source_hash = hashlib.sha256(
             f"{group_key}|{area_mu}|{args.prior_area_source_identity}".encode()
         ).hexdigest()
+        source_row_ref = _build_reviewed_area_source_row_ref(
+            review_evidence_hash=review_evidence_hash,
+            prior_area_evidence_hash=prior_area_evidence_hash,
+            group_key=group_key,
+            area_member_names=entry.get("area_member_names"),
+        )
         area_rows.append(
             build_area_authority_row(
                 baseline_farm_group_key=group_key,
@@ -122,7 +168,7 @@ def main() -> None:
                 area_source_hash=area_source_hash,
                 mapping_policy_version=FARM_TOTAL_MAPPING_POLICY_VERSION,
                 mapping_identity_hash="",
-                source_row_refs=(f"prior-area:{group_key}",),
+                source_row_refs=(source_row_ref,),
             )
         )
         eligible_area_total += area_mu
@@ -146,12 +192,10 @@ def main() -> None:
         )
 
     source_hashes: list[tuple[str, str]] = [
-        ("reviewed_r2_mapping_table", hashlib.sha256(review_text.encode()).hexdigest())
+        ("reviewed_r2_mapping_table", review_evidence_hash)
     ]
-    if args.prior_area_evidence_path and args.prior_area_evidence_path.exists():
-        source_hashes.append(
-            ("prior_area_evidence_file", _file_sha256(args.prior_area_evidence_path))
-        )
+    if prior_area_evidence_hash is not None:
+        source_hashes.append((PRIOR_AREA_EVIDENCE_HASH_KEY, prior_area_evidence_hash))
 
     area_package = build_area_authority_package(
         rows=tuple(area_rows_with_mapping_hash),

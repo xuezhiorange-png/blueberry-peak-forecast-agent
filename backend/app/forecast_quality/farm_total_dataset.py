@@ -33,6 +33,8 @@ from backend.app.s2_materialized_dataset.lane_d.canonical import (
 )
 from backend.app.s2_materialized_dataset.lane_d.hashing import content_sha256
 from backend.app.s2_materialized_dataset.lane_d.partitions import (
+    TEST_END,
+    TEST_START,
     TRAIN_END,
     TRAIN_START,
     VALIDATION_END,
@@ -52,6 +54,7 @@ PartitionLabel = Literal["TRAIN", "VALIDATION"]
 class FarmTotalDatasetBlocker(StrEnum):
     NONE = "NONE"
     TEST_PARTITION_FORBIDDEN = "TEST_PARTITION_FORBIDDEN"
+    PARTITION_MEMBERSHIP_MISMATCH = "PARTITION_MEMBERSHIP_MISMATCH"
     OFFICIAL_HASH_MISMATCH = "OFFICIAL_HASH_MISMATCH"
     OFFICIAL_COUNT_MISMATCH = "OFFICIAL_COUNT_MISMATCH"
     MALFORMED_PARTITION_BYTES = "MALFORMED_PARTITION_BYTES"
@@ -59,6 +62,12 @@ class FarmTotalDatasetBlocker(StrEnum):
     DUPLICATE_SOURCE_ROW = "DUPLICATE_SOURCE_ROW"
     AREA_NOT_BOUND = "AREA_NOT_BOUND"
     NON_POSITIVE_AREA = "NON_POSITIVE_AREA"
+    AREA_VALUE_CONFLICT = "AREA_VALUE_CONFLICT"
+    AUTHORITY_GROUP_SET_MISMATCH = "AUTHORITY_GROUP_SET_MISMATCH"
+    AUTHORITY_SOURCE_MEMBER_SET_MISMATCH = "AUTHORITY_SOURCE_MEMBER_SET_MISMATCH"
+    MAPPING_IDENTITY_HASH_MISMATCH = "MAPPING_IDENTITY_HASH_MISMATCH"
+    AUTHORITY_SEASON_MISMATCH = "AUTHORITY_SEASON_MISMATCH"
+    MAPPING_POLICY_VERSION_MISMATCH = "MAPPING_POLICY_VERSION_MISMATCH"
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +140,26 @@ def partition_for_harvest_date(harvest_business_date: date) -> PartitionLabel | 
         return "TRAIN"
     if VALIDATION_START <= harvest_business_date <= VALIDATION_END:
         return "VALIDATION"
+    return None
+
+
+def _is_test_partition_date(harvest_business_date: date) -> bool:
+    return TEST_START <= harvest_business_date <= TEST_END
+
+
+def validate_source_rows_partition_membership(
+    *,
+    partition: PartitionLabel,
+    source_rows: tuple[MaterializableRow, ...],
+) -> FarmTotalDatasetBlocker | None:
+    for row in source_rows:
+        if _is_test_partition_date(row.harvest_business_date):
+            return FarmTotalDatasetBlocker.TEST_PARTITION_FORBIDDEN
+        assigned = partition_for_harvest_date(row.harvest_business_date)
+        if assigned is None:
+            continue
+        if assigned != partition:
+            return FarmTotalDatasetBlocker.PARTITION_MEMBERSHIP_MISMATCH
     return None
 
 
@@ -241,9 +270,6 @@ def project_partition_to_farm_total_rows(
     source_actual_double_count = 0
 
     for row in source_rows:
-        assigned_partition = partition_for_harvest_date(row.harvest_business_date)
-        if assigned_partition != partition:
-            continue
         if row.source_row_identity in seen_source_rows:
             source_actual_double_count += 1
             raise S3StructuralDuplicateError(
@@ -338,32 +364,54 @@ def compute_partition_dataset_sha256(rows: tuple[FarmTotalDatasetRow, ...]) -> s
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
 
-def _percentile(sorted_values: list[Decimal], p: float) -> Decimal | None:
+def _percentile(sorted_values: list[Decimal], p: Decimal) -> Decimal | None:
     if not sorted_values:
         return None
     if len(sorted_values) == 1:
         return sorted_values[0]
-    k = (len(sorted_values) - 1) * p
+    n = Decimal(len(sorted_values) - 1)
+    k = n * p
     f = int(k)
     c = min(f + 1, len(sorted_values) - 1)
     if f == c:
         return sorted_values[f]
-    return sorted_values[f] + (sorted_values[c] - sorted_values[f]) * Decimal(str(k - f))
+    weight = k - Decimal(f)
+    return sorted_values[f] + (sorted_values[c] - sorted_values[f]) * weight
+
+
+def _sum_unique_group_area_mu(
+    rows: tuple[FarmTotalDatasetRow, ...],
+) -> tuple[Decimal, FarmTotalDatasetBlocker | None]:
+    group_area: dict[str, Decimal] = {}
+    group_hash: dict[str, str] = {}
+    for row in rows:
+        group_key = row.baseline_farm_group_key
+        if group_key in group_area:
+            area_conflict = group_area[group_key] != row.area_mu
+            hash_conflict = group_hash[group_key] != row.area_authority_row_hash
+            if area_conflict or hash_conflict:
+                return Decimal("0"), FarmTotalDatasetBlocker.AREA_VALUE_CONFLICT
+            continue
+        group_area[group_key] = row.area_mu
+        group_hash[group_key] = row.area_authority_row_hash
+    return sum(group_area.values(), Decimal("0")), None
 
 
 def compute_partition_diagnostics(
     *,
     partition: PartitionLabel | Literal["TRAIN_PLUS_VALIDATION_AUDIT"],
     rows: tuple[FarmTotalDatasetRow, ...],
-) -> FarmTotalDatasetDiagnostics:
+) -> FarmTotalDatasetDiagnostics | FarmTotalDatasetBlocker:
     groups = {row.baseline_farm_group_key for row in rows}
     dates = {row.harvest_business_date for row in rows}
-    total_area = sum((row.area_mu for row in rows), Decimal("0"))
+    total_area, area_blocker = _sum_unique_group_area_mu(rows)
+    if area_blocker is not None:
+        return area_blocker
     total_kg = sum((row.actual_harvest_quantity_kg for row in rows), Decimal("0"))
     kg_per_mu_values = sorted(row.actual_harvest_kg_per_mu for row in rows)
-    kg_per_mu_p25_val = _percentile(kg_per_mu_values, 0.25)
-    kg_per_mu_median_val = _percentile(kg_per_mu_values, 0.5)
-    kg_per_mu_p75_val = _percentile(kg_per_mu_values, 0.75)
+    kg_per_mu_p25_val = _percentile(kg_per_mu_values, Decimal("0.25"))
+    kg_per_mu_median_val = _percentile(kg_per_mu_values, Decimal("0.5"))
+    kg_per_mu_p75_val = _percentile(kg_per_mu_values, Decimal("0.75"))
     return FarmTotalDatasetDiagnostics(
         partition=partition,
         farm_group_count=len(groups),
@@ -405,6 +453,13 @@ def build_partition_dataset(
         source_rows = tuple(parse_partition_bytes(content_bytes))
     except MalformedPartitionBytesError:
         return FarmTotalDatasetBlocker.MALFORMED_PARTITION_BYTES, None
+
+    membership_blocker = validate_source_rows_partition_membership(
+        partition=partition,
+        source_rows=source_rows,
+    )
+    if membership_blocker is not None:
+        return membership_blocker, None
 
     rows, area_double_count, source_actual_double_count = project_partition_to_farm_total_rows(
         partition=partition,
@@ -452,11 +507,17 @@ def build_farm_total_data_plane(
         return val_blocker, None
 
     train_diag = compute_partition_diagnostics(partition="TRAIN", rows=train_partition.rows)
+    if isinstance(train_diag, FarmTotalDatasetBlocker):
+        return train_diag, None
     val_diag = compute_partition_diagnostics(partition="VALIDATION", rows=val_partition.rows)
+    if isinstance(val_diag, FarmTotalDatasetBlocker):
+        return val_diag, None
     audit_diag = compute_partition_diagnostics(
         partition="TRAIN_PLUS_VALIDATION_AUDIT",
         rows=train_partition.rows + val_partition.rows,
     )
+    if isinstance(audit_diag, FarmTotalDatasetBlocker):
+        return audit_diag, None
 
     return FarmTotalDatasetBlocker.NONE, FarmTotalDataPlaneResult(
         train_dataset=FarmTotalTrainingDataset(

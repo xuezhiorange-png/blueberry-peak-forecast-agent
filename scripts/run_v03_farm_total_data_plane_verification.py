@@ -28,12 +28,14 @@ from backend.app.s3_daily_rowset import (  # noqa: E402
 
 
 async def _load_partitions() -> tuple[bytes, bytes]:
-    async with AsyncSessionMaker() as session:
-        obtain = await session.run_sync(source_002_live._obtain_from_session)
-        if not obtain.obtained:
-            raise RuntimeError(f"SOURCE-002 obtain failed: {obtain.reason_code}")
-        return obtain.train_content_bytes, obtain.validation_content_bytes
-    await dispose_db_engine()
+    try:
+        async with AsyncSessionMaker() as session:
+            obtain = await session.run_sync(source_002_live._obtain_from_session)
+            if not obtain.obtained:
+                raise RuntimeError(f"SOURCE-002 obtain failed: {obtain.reason_code}")
+            return obtain.train_content_bytes, obtain.validation_content_bytes
+    finally:
+        await dispose_db_engine()
 
 
 def main() -> None:

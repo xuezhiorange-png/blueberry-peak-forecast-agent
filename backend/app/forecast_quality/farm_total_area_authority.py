@@ -35,6 +35,11 @@ class FarmTotalAreaAuthorityBlocker(StrEnum):
     NONE = "NONE"
     SCHEMA_VERSION_MISMATCH = "SCHEMA_VERSION_MISMATCH"
     POLICY_VERSION_MISMATCH = "POLICY_VERSION_MISMATCH"
+    AREA_MAPPING_POLICY_VERSION_MISMATCH = "AREA_MAPPING_POLICY_VERSION_MISMATCH"
+    AREA_SOURCE_SEASON_MISMATCH = "AREA_SOURCE_SEASON_MISMATCH"
+    AREA_TARGET_SEASON_MISMATCH = "AREA_TARGET_SEASON_MISMATCH"
+    AREA_ROW_MAPPING_POLICY_MISMATCH = "AREA_ROW_MAPPING_POLICY_MISMATCH"
+    AREA_MAPPING_IDENTITY_HASH_INCONSISTENT = "AREA_MAPPING_IDENTITY_HASH_INCONSISTENT"
     DUPLICATE_BASELINE_GROUP = "DUPLICATE_BASELINE_GROUP"
     NON_POSITIVE_AREA = "NON_POSITIVE_AREA"
     NATIVE_FLOAT_REJECTED = "NATIVE_FLOAT_REJECTED"
@@ -270,12 +275,22 @@ def validate_area_authority_package_payload(
     if payload.get("policy_version") != FARM_TOTAL_AREA_POLICY_VERSION:
         return FarmTotalAreaAuthorityBlocker.POLICY_VERSION_MISMATCH, None
 
+    if payload.get("mapping_policy_version") != FARM_TOTAL_MAPPING_POLICY_VERSION:
+        return FarmTotalAreaAuthorityBlocker.AREA_MAPPING_POLICY_VERSION_MISMATCH, None
+
+    if payload.get("source_season") != FARM_TOTAL_PRIOR_AREA_SOURCE_SEASON:
+        return FarmTotalAreaAuthorityBlocker.AREA_SOURCE_SEASON_MISMATCH, None
+
+    if payload.get("target_season") != FARM_TOTAL_TARGET_SEASON:
+        return FarmTotalAreaAuthorityBlocker.AREA_TARGET_SEASON_MISMATCH, None
+
     raw_rows = payload.get("rows")
     if not isinstance(raw_rows, list) or not raw_rows:
         return FarmTotalAreaAuthorityBlocker.DUPLICATE_BASELINE_GROUP, None
 
     rows: list[FarmTotalAreaAuthorityRow] = []
     seen_groups: set[str] = set()
+    mapping_identity_hashes: set[str] = set()
 
     for raw in raw_rows:
         if not isinstance(raw, dict):
@@ -302,6 +317,15 @@ def validate_area_authority_package_payload(
         if not isinstance(source_keys, list) or not source_keys:
             return FarmTotalAreaAuthorityBlocker.DUPLICATE_BASELINE_GROUP, None
 
+        row_mapping_policy = str(raw.get("mapping_policy_version", ""))
+        if row_mapping_policy != FARM_TOTAL_MAPPING_POLICY_VERSION:
+            return FarmTotalAreaAuthorityBlocker.AREA_ROW_MAPPING_POLICY_MISMATCH, None
+
+        row_mapping_hash = str(raw.get("mapping_identity_hash", ""))
+        if not row_mapping_hash:
+            return FarmTotalAreaAuthorityBlocker.AREA_MAPPING_IDENTITY_HASH_INCONSISTENT, None
+        mapping_identity_hashes.add(row_mapping_hash)
+
         row = FarmTotalAreaAuthorityRow(
             baseline_farm_group_key=group_key,
             source_farm_business_keys=tuple(sorted(str(k) for k in source_keys)),
@@ -310,8 +334,8 @@ def validate_area_authority_package_payload(
             area_source_season=str(raw.get("area_source_season", "")),
             area_source_identity=str(raw.get("area_source_identity", "")),
             area_source_hash=str(raw.get("area_source_hash", "")),
-            mapping_policy_version=str(raw.get("mapping_policy_version", "")),
-            mapping_identity_hash=str(raw.get("mapping_identity_hash", "")),
+            mapping_policy_version=row_mapping_policy,
+            mapping_identity_hash=row_mapping_hash,
             source_row_refs=tuple(sorted(str(r) for r in raw.get("source_row_refs", []))),
             row_hash=str(raw.get("row_hash", "")),
         )
@@ -319,6 +343,9 @@ def validate_area_authority_package_payload(
         if row.row_hash != expected_row_hash:
             return FarmTotalAreaAuthorityBlocker.ROW_HASH_MISMATCH, None
         rows.append(row)
+
+    if len(mapping_identity_hashes) != 1:
+        return FarmTotalAreaAuthorityBlocker.AREA_MAPPING_IDENTITY_HASH_INCONSISTENT, None
 
     ordered_rows = tuple(sorted(rows, key=lambda r: r.baseline_farm_group_key))
     authority_set_sha256 = compute_area_authority_set_sha256(ordered_rows)
@@ -333,10 +360,10 @@ def validate_area_authority_package_payload(
     package = build_area_authority_package(
         rows=ordered_rows,
         source_file_hashes=source_file_hashes,
-        mapping_policy_version=str(payload.get("mapping_policy_version", "")),
-        mapping_identity_hash=str(ordered_rows[0].mapping_identity_hash if ordered_rows else ""),
-        source_season=str(payload.get("source_season", "")),
-        target_season=str(payload.get("target_season", "")),
+        mapping_policy_version=FARM_TOTAL_MAPPING_POLICY_VERSION,
+        mapping_identity_hash=next(iter(mapping_identity_hashes)),
+        source_season=FARM_TOTAL_PRIOR_AREA_SOURCE_SEASON,
+        target_season=FARM_TOTAL_TARGET_SEASON,
     )
     if package.canonical_hash != str(payload.get("canonical_hash", "")):
         return FarmTotalAreaAuthorityBlocker.CANONICAL_HASH_MISMATCH, None
