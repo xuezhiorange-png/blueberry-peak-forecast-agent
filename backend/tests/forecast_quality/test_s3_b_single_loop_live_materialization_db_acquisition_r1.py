@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 from backend.app.forecast_quality.train_val_pairing_materialization import (
     OfficialPartitionRows,
     TrainValidationPairingMaterializationBlocker,
+    TrainValidationPairingMaterializationResult,
     materialize_train_validation_pairing_inputs_live,
 )
 from backend.app.s2_materialized_dataset.lane_d.canonical import build_partition_bytes
@@ -702,3 +703,166 @@ def test_failure_boundaries() -> None:
     assert result.blocker is (
         TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER
     )
+
+
+def _run_sync_raises_for(fn_name: str, *, official: OfficialPartitionRows | None = None) -> object:
+    async def _side_effect(fn: object) -> object:
+        if not callable(fn):
+            raise AssertionError("run_sync expected callable")
+        if fn.__name__ == fn_name:
+            raise RuntimeError(f"{fn_name}-db-failure")
+        if fn.__name__ == "_attest_from_session":
+            return _attested_envelope()
+        if fn.__name__ == "_obtain_from_session":
+            assert official is not None
+            return _official_obtain_envelope(official)
+        if fn.__name__ == "_read_replay_identity_from_held_session":
+            return _reviewed_forecast_entries()
+        raise AssertionError(f"unexpected run_sync fn: {fn.__name__}")
+
+    return _side_effect
+
+
+def test_attestation_run_sync_exception_fails_closed() -> None:
+    """A: ATTESTATION_RUN_SYNC_EXCEPTION_FAILS_CLOSED."""
+    maker = _mock_async_session_maker(
+        run_sync_side_effect=_run_sync_raises_for("_attest_from_session"),
+    )
+    with patch(
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "resolve_live_async_session_maker",
+        return_value=maker,
+    ):
+        result = materialize_train_validation_pairing_inputs_live()
+    assert isinstance(result, TrainValidationPairingMaterializationResult)
+    assert result.blocker is (
+        TrainValidationPairingMaterializationBlocker.SOURCE_002_ROW_LEVEL_READ_NOT_ATTESTED
+    )
+
+
+def test_content_obtain_run_sync_exception_fails_closed() -> None:
+    """B: CONTENT_OBTAIN_RUN_SYNC_EXCEPTION_FAILS_CLOSED."""
+    official = _small_official_partitions()
+    maker = _mock_async_session_maker(
+        run_sync_side_effect=_run_sync_raises_for("_obtain_from_session", official=official),
+    )
+    with patch(
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "resolve_live_async_session_maker",
+        return_value=maker,
+    ):
+        result = materialize_train_validation_pairing_inputs_live()
+    assert isinstance(result, TrainValidationPairingMaterializationResult)
+    assert result.blocker is (
+        TrainValidationPairingMaterializationBlocker.OFFICIAL_PARTITION_BYTES_NOT_OBTAINED
+    )
+
+
+def test_replay_run_sync_exception_fails_closed() -> None:
+    """C: REPLAY_RUN_SYNC_EXCEPTION_FAILS_CLOSED."""
+    official = _small_official_partitions()
+    maker = _mock_async_session_maker(
+        run_sync_side_effect=_run_sync_raises_for(
+            "_read_replay_identity_from_held_session",
+            official=official,
+        ),
+    )
+    with patch(
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "resolve_live_async_session_maker",
+        return_value=maker,
+    ):
+        with _patch_official_partitions(official):
+            result = materialize_train_validation_pairing_inputs_live()
+    assert isinstance(result, TrainValidationPairingMaterializationResult)
+    assert result.blocker is (
+        TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS
+    )
+
+
+def test_pit_async_db_exception_fails_closed() -> None:
+    """D: PIT_ASYNC_DB_EXCEPTION_FAILS_CLOSED."""
+    official = _small_official_partitions()
+
+    async def _run_sync_side_effect(fn: object) -> object:
+        if fn.__name__ == "_attest_from_session":
+            return _attested_envelope()
+        if fn.__name__ == "_obtain_from_session":
+            return _official_obtain_envelope(official)
+        if fn.__name__ == "_read_replay_identity_from_held_session":
+            return _reviewed_forecast_entries()
+        raise AssertionError(f"unexpected run_sync fn: {fn.__name__}")
+
+    maker = _mock_async_session_maker(run_sync_side_effect=_run_sync_side_effect)
+    with patch(
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "resolve_live_async_session_maker",
+        return_value=maker,
+    ):
+        with patch(
+            "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+            "_obtain_from_async_session",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("pit-db-execution-failure"),
+        ):
+            with _patch_official_partitions(official):
+                result = materialize_train_validation_pairing_inputs_live()
+    assert isinstance(result, TrainValidationPairingMaterializationResult)
+    assert result.blocker is (
+        TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER
+    )
+
+
+def test_no_exception_escapes_acquisition_phase() -> None:
+    """E: NO_EXCEPTION_ESCAPES_ACQUISITION_PHASE."""
+    official = _small_official_partitions()
+    cases = [
+        ("_attest_from_session", None),
+        ("_obtain_from_session", official),
+        ("_read_replay_identity_from_held_session", official),
+    ]
+    for fn_name, case_official in cases:
+        maker = _mock_async_session_maker(
+            run_sync_side_effect=_run_sync_raises_for(fn_name, official=case_official),
+        )
+        with patch(
+            "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+            "resolve_live_async_session_maker",
+            return_value=maker,
+        ):
+            patches = (
+                [_patch_official_partitions(official)]
+                if case_official is not None and fn_name != "_obtain_from_session"
+                else []
+            )
+            if patches:
+                with patches[0]:
+                    result = materialize_train_validation_pairing_inputs_live()
+            else:
+                result = materialize_train_validation_pairing_inputs_live()
+        assert isinstance(result, TrainValidationPairingMaterializationResult)
+
+    async def _run_sync_success(fn: object) -> object:
+        if fn.__name__ == "_attest_from_session":
+            return _attested_envelope()
+        if fn.__name__ == "_obtain_from_session":
+            return _official_obtain_envelope(official)
+        if fn.__name__ == "_read_replay_identity_from_held_session":
+            return _reviewed_forecast_entries()
+        raise AssertionError(f"unexpected run_sync fn: {fn.__name__}")
+
+    maker = _mock_async_session_maker(run_sync_side_effect=_run_sync_success)
+    with patch(
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "resolve_live_async_session_maker",
+        return_value=maker,
+    ):
+        with patch(
+            "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+            "_obtain_from_async_session",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("pit-db-execution-failure"),
+        ):
+            with _patch_official_partitions(official):
+                result = materialize_train_validation_pairing_inputs_live()
+    assert isinstance(result, TrainValidationPairingMaterializationResult)

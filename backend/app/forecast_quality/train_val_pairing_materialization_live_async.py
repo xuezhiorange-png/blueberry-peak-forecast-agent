@@ -88,7 +88,15 @@ async def _materialize_train_validation_pairing_inputs_live_async() -> (
 async def _materialize_with_held_async_session(
     session: AsyncSession,
 ) -> TrainValidationPairingMaterializationResult:
-    attestation = await session.run_sync(_attest_from_session)
+    try:
+        attestation = await session.run_sync(_attest_from_session)
+    except Exception:
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=(
+                TrainValidationPairingMaterializationBlocker.SOURCE_002_ROW_LEVEL_READ_NOT_ATTESTED
+            ),
+        )
     if not attestation.attested:
         return TrainValidationPairingMaterializationResult(
             completed=False,
@@ -97,7 +105,13 @@ async def _materialize_with_held_async_session(
             ),
         )
 
-    obtain = await session.run_sync(_obtain_from_session)
+    try:
+        obtain = await session.run_sync(_obtain_from_session)
+    except Exception:
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.OFFICIAL_PARTITION_BYTES_NOT_OBTAINED,
+        )
     if (
         not obtain.obtained
         or obtain.train_content_bytes is None
@@ -115,7 +129,15 @@ async def _materialize_with_held_async_session(
     if isinstance(official, TrainValidationPairingMaterializationBlocker):
         return TrainValidationPairingMaterializationResult(completed=False, blocker=official)
 
-    origin_entries = await session.run_sync(_read_replay_identity_from_held_session)
+    try:
+        origin_entries = await session.run_sync(_read_replay_identity_from_held_session)
+    except Exception:
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS,
+            official_partitions=official,
+            forecast_row_count=0,
+        )
     if not origin_entries:
         return TrainValidationPairingMaterializationResult(
             completed=False,
@@ -146,10 +168,18 @@ async def _materialize_with_held_async_session(
             forecast_row_count=len(reviewed_entries),
         )
 
-    curve_obtain = await _obtain_from_async_session(
-        session,
-        materialization_grains=materialization_grains,
-    )
+    try:
+        curve_obtain = await _obtain_from_async_session(
+            session,
+            materialization_grains=materialization_grains,
+        )
+    except Exception:
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
+            official_partitions=official,
+            forecast_row_count=len(reviewed_entries),
+        )
     if not curve_obtain.obtained or curve_obtain.provider is None:
         return TrainValidationPairingMaterializationResult(
             completed=False,
