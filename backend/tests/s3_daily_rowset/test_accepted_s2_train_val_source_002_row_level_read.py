@@ -238,13 +238,23 @@ def test_s2_source_002_row_level_read_constant_is_true_after_parent_live_attesta
     assert SOURCE_002_ROW_LEVEL_READ is True
 
 
-def test_default_without_session_fail_closes() -> None:
+def test_default_without_session_uses_async_session_maker_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_run_sync"
+        ".resolve_live_async_session_maker",
+        lambda: None,
+    )
+
     result = attest_accepted_s2_train_val_source_002_row_level_read()
 
     assert result.attested is False
     assert result.source_002_row_level_read is False
     assert result.official_hashes_attested_from_a_live_read is False
-    assert result.reason_code is Source002RowLevelReadReasonCode.FAIL_CLOSED_NO_SESSION
+    assert result.reason_code is (
+        Source002RowLevelReadReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
+    )
     assert result.test_remains_sealed is True
 
 
