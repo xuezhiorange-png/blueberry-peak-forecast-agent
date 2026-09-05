@@ -1,14 +1,16 @@
-"""Obtain accepted S2 TRAIN/VALIDATION content_bytes via the bound live session.
+"""Obtain accepted S2 TRAIN/VALIDATION content_bytes via the live production reader.
 
-Uses the already-bound SOURCE_002 row-level-read session provider. Does not
-invent a connection string or call create_engine. Obtaining content_bytes
-that then fail to match official hashes is not SOURCE_002_ROW_LEVEL_READ
-and is not parent IMPLEMENTED. TEST payload is never returned.
+Default production execution uses AsyncSessionMaker.run_sync(_obtain_from_session).
+Explicit sync-session injection remains supported for unit tests. Does not invent a
+connection string or call create_engine. Obtaining content_bytes that then fail to
+match official hashes is not SOURCE_002_ROW_LEVEL_READ and is not parent IMPLEMENTED.
+TEST payload is never returned.
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
@@ -31,6 +33,7 @@ from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read
     SEALED_TEST_CONTENT_SHA256,
     SEALED_TEST_ROW_COUNT,
     bound_source_002_row_level_read_session_provider,
+    uses_explicit_source_002_row_level_read_session_provider,
 )
 
 
@@ -38,6 +41,9 @@ class LiveObtainReasonCode(StrEnum):
     OBTAINED = "OBTAINED"
     FAIL_CLOSED_NO_SESSION = "FAIL_CLOSED_NO_SESSION"
     FAIL_CLOSED_SESSION_UNREADABLE = "FAIL_CLOSED_SESSION_UNREADABLE"
+    FAIL_CLOSED_NO_ASYNC_SESSION_MAKER = "FAIL_CLOSED_NO_ASYNC_SESSION_MAKER"
+    FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED = "FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED"
+    FAIL_CLOSED_ASYNC_SESSION_UNREADABLE = "FAIL_CLOSED_ASYNC_SESSION_UNREADABLE"
     FAIL_CLOSED_NO_ACCEPTED_DATASET = "FAIL_CLOSED_NO_ACCEPTED_DATASET"
     FAIL_CLOSED_DATASET_IDENTITY_MISMATCH = "FAIL_CLOSED_DATASET_IDENTITY_MISMATCH"
     FAIL_CLOSED_MISSING_TRAIN_OR_VALIDATION_BYTES = "FAIL_CLOSED_MISSING_TRAIN_OR_VALIDATION_BYTES"
@@ -64,9 +70,7 @@ class AcceptedS2TrainValLiveObtainEnvelope(BaseModel):
     test_remains_sealed: bool = True
 
 
-def obtain_accepted_s2_train_val_content_bytes_from_bound_live_session() -> (
-    AcceptedS2TrainValLiveObtainEnvelope
-):
+def _obtain_via_explicit_sync_session_provider() -> AcceptedS2TrainValLiveObtainEnvelope:
     provider = bound_source_002_row_level_read_session_provider()
     if provider is None:
         return _fail(LiveObtainReasonCode.FAIL_CLOSED_NO_SESSION)
@@ -80,6 +84,34 @@ def obtain_accepted_s2_train_val_content_bytes_from_bound_live_session() -> (
         return _obtain_from_session(session)
     except Exception:
         return _fail(LiveObtainReasonCode.FAIL_CLOSED_SESSION_UNREADABLE)
+
+
+def _obtain_via_live_async_session_run_sync() -> AcceptedS2TrainValLiveObtainEnvelope:
+    from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_run_sync import (  # noqa: E501
+        AsyncSessionNotObtained,
+        NoAsyncSessionMaker,
+        run_live_source_002_sync_reader,
+    )
+
+    try:
+        return cast(
+            AcceptedS2TrainValLiveObtainEnvelope,
+            run_live_source_002_sync_reader(_obtain_from_session),
+        )
+    except NoAsyncSessionMaker:
+        return _fail(LiveObtainReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER)
+    except AsyncSessionNotObtained:
+        return _fail(LiveObtainReasonCode.FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED)
+    except Exception:
+        return _fail(LiveObtainReasonCode.FAIL_CLOSED_ASYNC_SESSION_UNREADABLE)
+
+
+def obtain_accepted_s2_train_val_content_bytes_from_bound_live_session() -> (
+    AcceptedS2TrainValLiveObtainEnvelope
+):
+    if uses_explicit_source_002_row_level_read_session_provider():
+        return _obtain_via_explicit_sync_session_provider()
+    return _obtain_via_live_async_session_run_sync()
 
 
 def _envelope(

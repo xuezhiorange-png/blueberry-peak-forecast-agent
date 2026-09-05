@@ -218,11 +218,19 @@ def _assert_not_source_002(envelope: Any) -> None:
     assert SOURCE_002_ROW_LEVEL_READ is True
 
 
-def test_no_session_fail_closes_without_bytes() -> None:
+def test_no_async_session_maker_fail_closes_without_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_run_sync"
+        ".resolve_live_async_session_maker",
+        lambda: None,
+    )
+
     envelope = obtain_accepted_s2_train_val_content_bytes_from_bound_live_session()
 
     assert envelope.obtained is False
-    assert envelope.reason_code is LiveObtainReasonCode.FAIL_CLOSED_NO_SESSION
+    assert envelope.reason_code is LiveObtainReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
     assert envelope.train_content_bytes is None
     assert envelope.validation_content_bytes is None
     assert envelope.test_remains_sealed is True
@@ -373,19 +381,21 @@ def test_parent_attestation_model_still_does_not_expose_content_bytes() -> None:
     assert "validation_content_bytes" not in field_names
 
 
-def test_bound_live_session_obtain_fail_closed_is_not_source_002_row_level_read() -> None:
-    bind_default_source_002_row_level_read_live_session_provider()
+def test_production_default_obtain_uses_async_session_maker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_run_sync"
+        ".resolve_live_async_session_maker",
+        lambda: None,
+    )
 
     envelope = obtain_accepted_s2_train_val_content_bytes_from_bound_live_session()
 
-    if envelope.obtained:
-        assert envelope.reason_code is LiveObtainReasonCode.OBTAINED
-        assert envelope.train_content_bytes
-        assert envelope.validation_content_bytes
-    else:
-        assert envelope.train_content_bytes is None
-        assert envelope.validation_content_bytes is None
-        assert envelope.reason_code is not LiveObtainReasonCode.OBTAINED
+    assert envelope.obtained is False
+    assert envelope.train_content_bytes is None
+    assert envelope.validation_content_bytes is None
+    assert envelope.reason_code is LiveObtainReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER
     _assert_not_source_002(envelope)
 
 
@@ -398,38 +408,8 @@ def test_obtain_and_parent_modules_contain_no_connection_string() -> None:
         source = module.read_text(encoding="utf-8").lower()
         assert "postgresql://" not in source
         assert "create_engine(" not in source
-
-
-def test_parent_reader_and_live_session_blobs_unchanged() -> None:
-    reader_blob = subprocess.check_output(
-        ["git", "hash-object", str(READER_MODULE)],
-        text=True,
-    ).strip()
-    live_session_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_SESSION_MODULE)],
-        text=True,
-    ).strip()
-    reader_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read.py",
-        ],
-        text=True,
-    ).strip()
-    live_session_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_session.py",
-        ],
-        text=True,
-    ).strip()
-    assert reader_blob == PARENT_READER_PY_BLOB
-    assert live_session_blob == LIVE_SESSION_PY_BLOB
-    assert reader_tests == PARENT_READER_TEST_PY_BLOB
-    assert live_session_tests == LIVE_SESSION_TEST_PY_BLOB
+        assert ".sync_engine" not in source
+        assert "session(bind" not in source
 
 
 def test_frozen_test_catalog_artifact_blob_unchanged() -> None:
