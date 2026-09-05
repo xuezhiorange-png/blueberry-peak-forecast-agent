@@ -3,7 +3,8 @@
 Hashes persisted TRAIN/VALIDATION `content_bytes` against the copied S2
 acceptance-package official hashes. Does not trust the stored `content_sha256`
 column. Does not return kilogram values, member rows, or partition bytes.
-Default live session provider is bound by the live-session wiring module.
+Default production reads execute through AsyncSessionMaker.run_sync.
+Explicit sync-session injection remains supported for unit tests.
 
 Official hash constants are a reference copy of the S2 acceptance package.
 They are not recomputed here as new official values.
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import StrEnum
+from typing import cast
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
@@ -51,12 +53,16 @@ SEALED_TEST_CONTENT_SHA256 = "bd3d846a300c70a638bc169a095c3b02cb9e20c2c2aa6a96af
 SessionProvider = Callable[[], Session | None]
 
 _session_provider: SessionProvider | None = None
+_use_explicit_sync_session_provider: bool = False
 
 
 class Source002RowLevelReadReasonCode(StrEnum):
     ATTESTED = "ATTESTED"
     FAIL_CLOSED_NO_SESSION = "FAIL_CLOSED_NO_SESSION"
     FAIL_CLOSED_SESSION_UNREADABLE = "FAIL_CLOSED_SESSION_UNREADABLE"
+    FAIL_CLOSED_NO_ASYNC_SESSION_MAKER = "FAIL_CLOSED_NO_ASYNC_SESSION_MAKER"
+    FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED = "FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED"
+    FAIL_CLOSED_ASYNC_SESSION_UNREADABLE = "FAIL_CLOSED_ASYNC_SESSION_UNREADABLE"
     FAIL_CLOSED_NO_ACCEPTED_DATASET = "FAIL_CLOSED_NO_ACCEPTED_DATASET"
     FAIL_CLOSED_DATASET_IDENTITY_MISMATCH = "FAIL_CLOSED_DATASET_IDENTITY_MISMATCH"
     FAIL_CLOSED_MISSING_TRAIN_OR_VALIDATION_BYTES = "FAIL_CLOSED_MISSING_TRAIN_OR_VALIDATION_BYTES"
@@ -88,19 +94,26 @@ class AcceptedS2TrainValSource002RowLevelReadAttestation(BaseModel):
 def set_source_002_row_level_read_session_provider(
     provider: SessionProvider | None,
 ) -> None:
-    global _session_provider
+    global _session_provider, _use_explicit_sync_session_provider
     _session_provider = provider
+    _use_explicit_sync_session_provider = True
 
 
 def clear_source_002_row_level_read_session_provider() -> None:
-    set_source_002_row_level_read_session_provider(None)
+    global _session_provider, _use_explicit_sync_session_provider
+    _session_provider = None
+    _use_explicit_sync_session_provider = False
 
 
 def bound_source_002_row_level_read_session_provider() -> SessionProvider | None:
     return _session_provider
 
 
-def attest_accepted_s2_train_val_source_002_row_level_read() -> (
+def uses_explicit_source_002_row_level_read_session_provider() -> bool:
+    return _use_explicit_sync_session_provider
+
+
+def _attest_via_explicit_sync_session_provider() -> (
     AcceptedS2TrainValSource002RowLevelReadAttestation
 ):
     if _session_provider is None:
@@ -115,6 +128,34 @@ def attest_accepted_s2_train_val_source_002_row_level_read() -> (
         return _attest_from_session(session)
     except Exception:
         return _fail(Source002RowLevelReadReasonCode.FAIL_CLOSED_SESSION_UNREADABLE)
+
+
+def _attest_via_live_async_session_run_sync() -> AcceptedS2TrainValSource002RowLevelReadAttestation:
+    from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_run_sync import (  # noqa: E501
+        AsyncSessionNotObtained,
+        NoAsyncSessionMaker,
+        run_live_source_002_sync_reader,
+    )
+
+    try:
+        return cast(
+            AcceptedS2TrainValSource002RowLevelReadAttestation,
+            run_live_source_002_sync_reader(_attest_from_session),
+        )
+    except NoAsyncSessionMaker:
+        return _fail(Source002RowLevelReadReasonCode.FAIL_CLOSED_NO_ASYNC_SESSION_MAKER)
+    except AsyncSessionNotObtained:
+        return _fail(Source002RowLevelReadReasonCode.FAIL_CLOSED_ASYNC_SESSION_NOT_OBTAINED)
+    except Exception:
+        return _fail(Source002RowLevelReadReasonCode.FAIL_CLOSED_ASYNC_SESSION_UNREADABLE)
+
+
+def attest_accepted_s2_train_val_source_002_row_level_read() -> (
+    AcceptedS2TrainValSource002RowLevelReadAttestation
+):
+    if _use_explicit_sync_session_provider:
+        return _attest_via_explicit_sync_session_provider()
+    return _attest_via_live_async_session_run_sync()
 
 
 def _attestation(
@@ -348,14 +389,3 @@ def _attest_from_session(
         validation_content_sha256=hashed_validation,
         test_row_count=test_row_count,
     )
-
-
-def _bind_default_live_session_provider() -> None:
-    module = __import__(
-        "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_session",
-        fromlist=("bind_default_source_002_row_level_read_live_session_provider",),
-    )
-    module.bind_default_source_002_row_level_read_live_session_provider()
-
-
-_bind_default_live_session_provider()

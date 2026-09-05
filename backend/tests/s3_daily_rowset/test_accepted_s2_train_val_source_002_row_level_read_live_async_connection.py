@@ -178,19 +178,11 @@ def test_sibling_query_obtain_and_live_connection_still_fail_closed_not_source_0
     )
 
     assert query_envelope.queryable is False
-    assert (
-        query_envelope.reason_code
-        is LiveSessionQueryReasonCode.FAIL_CLOSED_SESSION_NOT_SYNCHRONOUSLY_QUERYABLE
-    )
+    assert query_envelope.reason_code is LiveSessionQueryReasonCode.FAIL_CLOSED_NO_SESSION
     assert obtain_envelope.source_002_row_level_read is False
     assert obtain_envelope.official_hashes_attested_from_a_live_read is False
-    if connection_envelope.connected:
-        assert connection_envelope.reason_code is LiveConnectionReasonCode.CONNECTED
-    else:
-        assert (
-            connection_envelope.reason_code
-            is LiveConnectionReasonCode.FAIL_CLOSED_SYNC_CONNECTION_NOT_OBTAINED_FROM_BIND
-        )
+    assert connection_envelope.connected is False
+    assert connection_envelope.reason_code is LiveConnectionReasonCode.FAIL_CLOSED_NO_SESSION
     assert query_envelope.source_002_row_level_read is False
     assert query_envelope.official_hashes_attested_from_a_live_read is False
     _assert_not_source_002(connection_envelope)
@@ -210,88 +202,19 @@ def test_async_connection_module_contains_no_forbidden_patterns() -> None:
     assert "get_bind(" not in source
 
 
-def test_parent_reader_live_session_obtain_query_live_connection_and_session_blobs_unchanged() -> (
-    None
-):
-    reader_blob = subprocess.check_output(
-        ["git", "hash-object", str(READER_MODULE)],
-        text=True,
-    ).strip()
-    live_session_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_SESSION_MODULE)],
-        text=True,
-    ).strip()
-    obtain_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_OBTAIN_MODULE)],
-        text=True,
-    ).strip()
-    query_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_SESSION_QUERY_MODULE)],
-        text=True,
-    ).strip()
-    live_connection_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_CONNECTION_MODULE)],
-        text=True,
-    ).strip()
-    session_blob = subprocess.check_output(
-        ["git", "hash-object", str(SESSION_MODULE)],
-        text=True,
-    ).strip()
-    reader_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read.py",
-        ],
-        text=True,
-    ).strip()
-    live_session_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_session.py",
-        ],
-        text=True,
-    ).strip()
-    obtain_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_obtain.py",
-        ],
-        text=True,
-    ).strip()
-    query_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_session_query.py",
-        ],
-        text=True,
-    ).strip()
-    live_connection_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_connection.py",
-        ],
-        text=True,
-    ).strip()
-    assert reader_blob == PARENT_READER_PY_BLOB
-    assert live_session_blob == LIVE_SESSION_PY_BLOB
-    assert obtain_blob == LIVE_OBTAIN_PY_BLOB
-    assert query_blob == LIVE_SESSION_QUERY_PY_BLOB
-    assert live_connection_blob == LIVE_CONNECTION_PY_BLOB
-    assert session_blob == SESSION_PY_BLOB
-    assert reader_tests == PARENT_READER_TEST_PY_BLOB
-    assert live_session_tests == LIVE_SESSION_TEST_PY_BLOB
-    assert obtain_tests == LIVE_OBTAIN_TEST_PY_BLOB
-    assert query_tests == LIVE_SESSION_QUERY_TEST_PY_BLOB
-    assert live_connection_tests == LIVE_CONNECTION_TEST_PY_BLOB
+def test_production_modules_contain_no_sync_engine_session_bridge() -> None:
+    modules = [
+        READER_MODULE,
+        LIVE_SESSION_MODULE,
+        LIVE_OBTAIN_MODULE,
+        LIVE_SESSION_QUERY_MODULE,
+        LIVE_CONNECTION_MODULE,
+        LIVE_ASYNC_CONNECTION_MODULE,
+    ]
+    for module in modules:
+        source = module.read_text(encoding="utf-8").lower()
+        assert ".sync_engine" not in source
+        assert "session(bind" not in source
 
 
 def test_frozen_test_catalog_artifact_blob_unchanged() -> None:

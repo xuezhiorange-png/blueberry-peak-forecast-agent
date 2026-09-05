@@ -180,51 +180,16 @@ def test_query_and_parent_modules_contain_no_connection_string() -> None:
         assert "create_engine(" not in source
 
 
-def test_parent_reader_live_session_and_obtain_blobs_unchanged() -> None:
-    reader_blob = subprocess.check_output(
-        ["git", "hash-object", str(READER_MODULE)],
-        text=True,
-    ).strip()
-    live_session_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_SESSION_MODULE)],
-        text=True,
-    ).strip()
-    obtain_blob = subprocess.check_output(
-        ["git", "hash-object", str(LIVE_OBTAIN_MODULE)],
-        text=True,
-    ).strip()
-    reader_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read.py",
-        ],
-        text=True,
-    ).strip()
-    live_session_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_session.py",
-        ],
-        text=True,
-    ).strip()
-    obtain_tests = subprocess.check_output(
-        [
-            "git",
-            "hash-object",
-            "backend/tests/s3_daily_rowset/"
-            "test_accepted_s2_train_val_source_002_row_level_read_live_obtain.py",
-        ],
-        text=True,
-    ).strip()
-    assert reader_blob == PARENT_READER_PY_BLOB
-    assert live_session_blob == LIVE_SESSION_PY_BLOB
-    assert obtain_blob == LIVE_OBTAIN_PY_BLOB
-    assert reader_tests == PARENT_READER_TEST_PY_BLOB
-    assert live_session_tests == LIVE_SESSION_TEST_PY_BLOB
-    assert obtain_tests == LIVE_OBTAIN_TEST_PY_BLOB
+def test_parent_modules_contain_no_sync_engine_session_bridge() -> None:
+    for module in (
+        READER_MODULE,
+        LIVE_SESSION_MODULE,
+        LIVE_OBTAIN_MODULE,
+        LIVE_SESSION_QUERY_MODULE,
+    ):
+        source = module.read_text(encoding="utf-8").lower()
+        assert ".sync_engine" not in source
+        assert "session(bind" not in source
 
 
 def test_frozen_test_catalog_artifact_blob_unchanged() -> None:

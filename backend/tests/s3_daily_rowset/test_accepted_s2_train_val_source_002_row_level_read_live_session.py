@@ -8,7 +8,6 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from sqlalchemy.orm import Session
 
 from backend.app.s2_materialized_dataset.shared.contracts import SOURCE_002_ROW_LEVEL_READ
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
@@ -25,7 +24,6 @@ _live_session = importlib.import_module(
 bind_default_live_session = (
     _live_session.bind_default_source_002_row_level_read_live_session_provider
 )
-live_session_provider = _live_session.source_002_row_level_read_live_session_provider
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 READER_MODULE = Path(
@@ -38,23 +36,25 @@ LIVE_SESSION_MODULE = Path(
 
 @pytest.fixture(autouse=True)
 def _restore_live_session_provider() -> Iterator[None]:
-    bind_default_live_session()
+    clear_source_002_row_level_read_session_provider()
     yield
     clear_source_002_row_level_read_session_provider()
 
 
-def test_default_bind_fills_unbound_provider_gap() -> None:
-    assert bound_source_002_row_level_read_session_provider() is live_session_provider
+def test_default_bind_does_not_install_sync_session_provider() -> None:
+    bind_default_live_session()
+    assert bound_source_002_row_level_read_session_provider() is None
 
 
-def test_live_session_provider_returns_session_or_none_without_inventing_url() -> None:
-    session = live_session_provider()
-    assert session is None or isinstance(session, Session)
-    if session is not None:
-        session.close()
+def test_production_default_uses_async_session_maker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_run_sync"
+        ".resolve_live_async_session_maker",
+        lambda: None,
+    )
 
-
-def test_bound_live_session_then_fail_closed_is_not_source_002_row_level_read() -> None:
     result = attest_accepted_s2_train_val_source_002_row_level_read()
 
     assert result.attested is False
@@ -64,7 +64,7 @@ def test_bound_live_session_then_fail_closed_is_not_source_002_row_level_read() 
     assert SOURCE_002_ROW_LEVEL_READ is True
 
 
-def test_explicit_override_still_wins_over_default_live_provider() -> None:
+def test_explicit_override_still_wins_over_production_default() -> None:
     set_source_002_row_level_read_session_provider(lambda: None)
 
     result = attest_accepted_s2_train_val_source_002_row_level_read()
@@ -84,6 +84,8 @@ def test_reader_and_live_session_modules_contain_no_connection_string() -> None:
     for source in (reader_source, live_source):
         assert "postgresql://" not in source
         assert "create_engine(" not in source
+        assert ".sync_engine" not in source
+        assert "session(bind" not in source
 
 
 def test_frozen_test_catalog_artifact_blob_unchanged() -> None:
