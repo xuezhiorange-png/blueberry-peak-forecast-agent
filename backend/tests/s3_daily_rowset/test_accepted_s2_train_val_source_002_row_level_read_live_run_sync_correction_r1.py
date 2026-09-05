@@ -484,8 +484,13 @@ def test_materialization_entrypoint_regression() -> None:
     materialization_source = (
         _APP_ROOT / "forecast_quality" / "train_val_pairing_materialization.py"
     ).read_text(encoding="utf-8")
-    live_start = materialization_source.index("def materialize_train_validation_pairing_inputs_live")
-    live_end = materialization_source.index("def build_materialization_evidence_payload", live_start)
+    live_start = materialization_source.index(
+        "def materialize_train_validation_pairing_inputs_live"
+    )
+    live_end = materialization_source.index(
+        "def build_materialization_evidence_payload",
+        live_start,
+    )
     live_source = materialization_source[live_start:live_end]
     tree = ast.parse(live_source)
     call_names: list[str] = []
