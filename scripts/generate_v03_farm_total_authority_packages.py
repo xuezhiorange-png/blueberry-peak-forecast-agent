@@ -68,6 +68,7 @@ def _require_prior_area_evidence_hash(
             "real package generation requires --prior-area-evidence-path "
             "pointing to the prior-area evidence workbook"
         )
+    return _file_sha256(prior_area_evidence_path)
 
 
 def _build_reviewed_area_source_row_ref(
