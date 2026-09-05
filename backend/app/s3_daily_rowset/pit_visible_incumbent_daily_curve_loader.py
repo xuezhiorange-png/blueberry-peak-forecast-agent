@@ -26,6 +26,9 @@ from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader
     load_persisted_forecast_binding_authority,
 )
 from backend.app.s3_daily_rowset.schemas import HORIZON_DAYS
+from backend.app.s3_daily_rowset.source_002_variety_master_identity import (
+    resolve_source_002_master_variety_identity,
+)
 from backend.app.s3_daily_rowset.window import expected_forecast_target_date
 
 _QUANTILE_TO_FIELD: dict[ForecastQuantile, str] = {
@@ -73,7 +76,15 @@ async def _resolve_business_grain(
 ) -> tuple[int, int, int, int] | None:
     season = await session.scalar(select(Season).where(Season.code == season_business_key))
     farm = await session.scalar(select(Farm).where(Farm.name == farm_business_key))
-    variety = await session.scalar(select(Variety).where(Variety.code == variety_business_key))
+    source_identity = resolve_source_002_master_variety_identity(variety_business_key)
+    if source_identity is None:
+        return None
+    variety = await session.scalar(
+        select(Variety).where(
+            Variety.code == source_identity.code,
+            Variety.name == source_identity.name,
+        )
+    )
     if season is None or farm is None or variety is None:
         return None
     subfarm = await session.scalar(
