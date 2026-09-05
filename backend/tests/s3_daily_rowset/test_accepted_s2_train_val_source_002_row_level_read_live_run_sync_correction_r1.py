@@ -481,12 +481,17 @@ def test_materialization_entrypoint_regression() -> None:
         materialize_train_validation_pairing_inputs_live,
     )
 
-    source = (_APP_ROOT / "forecast_quality" / "train_val_pairing_materialization.py").read_text(
-        encoding="utf-8"
+    materialization_source = (
+        _APP_ROOT / "forecast_quality" / "train_val_pairing_materialization.py"
+    ).read_text(encoding="utf-8")
+    live_start = materialization_source.index(
+        "def materialize_train_validation_pairing_inputs_live"
     )
-    live_start = source.index("def materialize_train_validation_pairing_inputs_live")
-    live_end = source.index("def build_materialization_evidence_payload", live_start)
-    live_source = source[live_start:live_end]
+    live_end = materialization_source.index(
+        "def build_materialization_evidence_payload",
+        live_start,
+    )
+    live_source = materialization_source[live_start:live_end]
     tree = ast.parse(live_source)
     call_names: list[str] = []
     for node in ast.walk(tree):
@@ -496,32 +501,32 @@ def test_materialization_entrypoint_regression() -> None:
                 call_names.append(func.id)
             elif isinstance(func, ast.Attribute):
                 call_names.append(func.attr)
-    assert "attest_accepted_s2_train_val_source_002_row_level_read" in call_names
-    assert "obtain_accepted_s2_train_val_content_bytes_from_bound_live_session" in call_names
-    assert "load_official_partition_rows_from_content_bytes" in call_names
-    assert "derive_materialization_grain_union" in call_names
-    assert "obtain_live_incumbent_forecast_daily_curve_provider" in call_names
+    assert "asyncio" in live_source
+    assert "_materialize_train_validation_pairing_inputs_live_async" in live_source
+    assert "attest_accepted_s2_train_val_source_002_row_level_read" not in live_source
+    assert "obtain_accepted_s2_train_val_content_bytes_from_bound_live_session" not in live_source
+    assert "obtain_live_incumbent_forecast_daily_curve_provider" not in live_source
 
-    with (
-        patch(
-            "backend.app.forecast_quality.train_val_pairing_materialization."
-            "attest_accepted_s2_train_val_source_002_row_level_read",
-            return_value=MagicMock(attested=False),
-        ) as attest,
-        patch(
-            "backend.app.forecast_quality.train_val_pairing_materialization."
-            "obtain_accepted_s2_train_val_content_bytes_from_bound_live_session",
-        ) as obtain,
-        patch(
-            "backend.app.forecast_quality.train_val_pairing_materialization."
-            "load_official_partition_rows_from_content_bytes",
-        ) as load_rows,
-    ):
-        materialize_train_validation_pairing_inputs_live()
+    with patch(
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "_materialize_with_held_async_session",
+        new_callable=AsyncMock,
+        return_value=MagicMock(
+            completed=False,
+            blocker=__import__(
+                "backend.app.forecast_quality.train_val_pairing_materialization",
+                fromlist=["TrainValidationPairingMaterializationBlocker"],
+            ).TrainValidationPairingMaterializationBlocker.SOURCE_002_ROW_LEVEL_READ_NOT_ATTESTED,
+        ),
+    ) as materialize_async:
+        with patch(
+            "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+            "resolve_live_async_session_maker",
+            return_value=MagicMock(),
+        ):
+            materialize_train_validation_pairing_inputs_live()
 
-    attest.assert_called_once()
-    obtain.assert_not_called()
-    load_rows.assert_not_called()
+    materialize_async.assert_awaited_once()
 
 
 def test_pr550_pr551_pr552_regression() -> None:
