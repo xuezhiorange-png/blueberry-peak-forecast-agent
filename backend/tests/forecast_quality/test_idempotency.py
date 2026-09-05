@@ -1654,17 +1654,23 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
         _trigger_disabled = True
         try:
             # Brief §8.5 — two independent asyncpg
-            # connections, two independent transactions, real
-            # barrier synchronization (no fixed sleeps as
-            # primary sync).
-            a_started = asyncio.Event()
+            # connections, two independent transactions,
+            # explicit event synchronization (no competing
+            # wall-clock timers deciding when A commits).
             a_inserted = asyncio.Event()
-            b_done = asyncio.Event()
+            b_lock_observation_complete = asyncio.Event()
+            observation_state: dict[str, object] = {}
+
+            def _signal_lock_observation(status: str, **details: object) -> None:
+                if observation_state.get("status") is not None:
+                    return
+                observation_state["status"] = status
+                observation_state.update(details)
+                b_lock_observation_complete.set()
 
             async def transaction_a() -> str:
                 conn_a = await asyncpg.connect(_temporary_database_url(db_name))
                 try:
-                    a_started.set()
                     tx_a = conn_a.transaction()
                     await tx_a.start()
                     try:
@@ -1698,12 +1704,17 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
                             manifest_hash,
                         )
                         a_inserted.set()
-                        # Wait for B to confirm it is in
-                        # lock-wait, OR timeout gracefully.
                         try:
-                            await asyncio.wait_for(b_done.wait(), timeout=60)
+                            await asyncio.wait_for(
+                                b_lock_observation_complete.wait(),
+                                timeout=60,
+                            )
                         except TimeoutError:
-                            pass
+                            await tx_a.rollback()
+                            return "observation_gate_timeout"
+                        if observation_state.get("status") != "lock_wait_observed":
+                            await tx_a.rollback()
+                            return f"observation_not_ready:{observation_state.get('status')!r}"
                         await tx_a.commit()
                         return "committed"
                     except BaseException:
@@ -1717,148 +1728,163 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
             # late child insert.  The child-after-seal
             # trigger should reject the insert.
             async def transaction_b() -> tuple[str, dict]:
-                await asyncio.wait_for(a_inserted.wait(), timeout=60)
-                conn_b = await asyncpg.connect(_temporary_database_url(db_name))
                 try:
-                    tx_b = conn_b.transaction()
-                    await tx_b.start()
-                    b_pid = None
+                    await asyncio.wait_for(a_inserted.wait(), timeout=60)
+                    conn_b = await asyncpg.connect(_temporary_database_url(db_name))
                     try:
-                        # Capture B's connection PID for the
-                        # observer.  asyncpg's
-                        # ``get_server_pid`` is only
-                        # available after the first
-                        # statement; we get the backend PID
-                        # via a quick SELECT pg_backend_pid().
-                        b_pid = await conn_b.fetchval("SELECT pg_backend_pid()")
-                        # Start the late child insert in a
-                        # background task so the observer can
-                        # see B in lock-wait.
-                        b_insert_task = asyncio.create_task(
-                            conn_b.execute(
-                                "INSERT INTO model_baseline_comparison ("
-                                "quality_evaluation_run_id, schema_version,"
-                                " comparison_policy_version, comparison_key_hash,"
-                                " comparison_name, comparison_availability,"
-                                " metric_status, reason_code, model_identity,"
-                                " baseline_member_identity_set, baseline_member_set_hash,"
-                                " normalized_breakdown_identity, forecast_horizon_days,"
-                                " model_value, baseline_value, delta_value,"
-                                " model_input_row_count, baseline_input_row_count,"
-                                " common_comparable_row_count, model_only_row_count,"
-                                " baseline_only_row_count, excluded_row_count,"
-                                " not_computable_row_count, external_blocker,"
-                                " frozen_limitation, canonical_payload, canonical_hash,"
-                                " created_at, completed_at) VALUES ("
-                                " $1, 'v0.2-s3-quality-persistence-v2',"
-                                " 'v0.2-s3-comparison-policy-v1', repeat('c',64),"
-                                " 'daily_mae_delta', 'AVAILABLE', 'NOT_COMPUTABLE',"
-                                " 'NO_S2_BINDING_ROWS', 'late-model',"
-                                ' \'[{"comparison_daily_key":{'
-                                '"current_target_date":"2026-03-01",'
-                                '"current_forecast_cutoff_at":"2026-02-01",'
-                                '"farm_business_key":"f",'
-                                '"subfarm_business_key":"sf",'
-                                '"variety_business_key":"v",'
-                                '"metric_policy_version":"m",'
-                                '"baseline_policy_version":"b"},'
-                                '"baseline_request_hash":"r",'
-                                '"baseline_result_hash":"h",'
-                                '"baseline_source_snapshot_identity":"s",'
-                                '"baseline_source_snapshot_hash":"x",'
-                                '"baseline_source_row_set_hash":"y",'
-                                '"visibility_manifest_hash":"v",'
-                                '"baseline_policy_version":"p"}]\'::jsonb,'
-                                " repeat('e',64),"
-                                ' \'{"model_identity":"late-model",'
-                                '"forecast_horizon_days":1}\'::jsonb, 1,'
-                                " NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0,"
-                                " NULL, NULL, '{}'::jsonb, repeat('d',64),"
-                                " now(), now())",
-                                run_id,
-                            )
-                        )
-                        # Observer: poll pg_stat_activity
-                        # until B appears in lock-wait
-                        # (state=active, wait_event_type
-                        # indicates a tuple/relation
-                        # lock).
-                        observer = await asyncpg.connect(_temporary_database_url(db_name))
+                        tx_b = conn_b.transaction()
+                        await tx_b.start()
+                        b_pid = None
                         try:
-                            observed = None
-                            deadline = asyncio.get_event_loop().time() + 30
-                            while asyncio.get_event_loop().time() < deadline:
-                                rows = await observer.fetch(
-                                    "SELECT pid, state, wait_event_type,"
-                                    " wait_event, query FROM pg_stat_activity"
-                                    " WHERE pid = $1",
-                                    b_pid,
+                            # Capture B's connection PID for the
+                            # observer.  asyncpg's
+                            # ``get_server_pid`` is only
+                            # available after the first
+                            # statement; we get the backend PID
+                            # via a quick SELECT pg_backend_pid().
+                            b_pid = await conn_b.fetchval("SELECT pg_backend_pid()")
+                            # Start the late child insert in a
+                            # background task so the observer can
+                            # see B in lock-wait.
+                            b_insert_task = asyncio.create_task(
+                                conn_b.execute(
+                                    "INSERT INTO model_baseline_comparison ("
+                                    "quality_evaluation_run_id, schema_version,"
+                                    " comparison_policy_version, comparison_key_hash,"
+                                    " comparison_name, comparison_availability,"
+                                    " metric_status, reason_code, model_identity,"
+                                    " baseline_member_identity_set, baseline_member_set_hash,"
+                                    " normalized_breakdown_identity, forecast_horizon_days,"
+                                    " model_value, baseline_value, delta_value,"
+                                    " model_input_row_count, baseline_input_row_count,"
+                                    " common_comparable_row_count, model_only_row_count,"
+                                    " baseline_only_row_count, excluded_row_count,"
+                                    " not_computable_row_count, external_blocker,"
+                                    " frozen_limitation, canonical_payload, canonical_hash,"
+                                    " created_at, completed_at) VALUES ("
+                                    " $1, 'v0.2-s3-quality-persistence-v2',"
+                                    " 'v0.2-s3-comparison-policy-v1', repeat('c',64),"
+                                    " 'daily_mae_delta', 'AVAILABLE', 'NOT_COMPUTABLE',"
+                                    " 'NO_S2_BINDING_ROWS', 'late-model',"
+                                    ' \'[{"comparison_daily_key":{'
+                                    '"current_target_date":"2026-03-01",'
+                                    '"current_forecast_cutoff_at":"2026-02-01",'
+                                    '"farm_business_key":"f",'
+                                    '"subfarm_business_key":"sf",'
+                                    '"variety_business_key":"v",'
+                                    '"metric_policy_version":"m",'
+                                    '"baseline_policy_version":"b"},'
+                                    '"baseline_request_hash":"r",'
+                                    '"baseline_result_hash":"h",'
+                                    '"baseline_source_snapshot_identity":"s",'
+                                    '"baseline_source_snapshot_hash":"x",'
+                                    '"baseline_source_row_set_hash":"y",'
+                                    '"visibility_manifest_hash":"v",'
+                                    '"baseline_policy_version":"p"}]\'::jsonb,'
+                                    " repeat('e',64),"
+                                    ' \'{"model_identity":"late-model",'
+                                    '"forecast_horizon_days":1}\'::jsonb, 1,'
+                                    " NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0,"
+                                    " NULL, NULL, '{}'::jsonb, repeat('d',64),"
+                                    " now(), now())",
+                                    run_id,
                                 )
-                                if rows and rows[0]["wait_event_type"]:
-                                    observed = dict(rows[0])
-                                    break
-                                await asyncio.sleep(0.05)
-                        finally:
-                            await observer.close()
-                        if observed is None:
-                            await tx_b.rollback()
-                            return (
-                                "B_NOT_IN_LOCK_WAIT",
-                                {
-                                    "b_pid": b_pid,
-                                    "wait_event_type": None,
-                                    "wait_event": None,
-                                },
                             )
-                        # Wait for A to commit (or timeout).
+                            # Observer: poll pg_stat_activity
+                            # until B appears in lock-wait
+                            # (state=active, wait_event_type
+                            # indicates a tuple/relation
+                            # lock).
+                            observer = await asyncpg.connect(_temporary_database_url(db_name))
+                            try:
+                                observed = None
+                                deadline = asyncio.get_event_loop().time() + 30
+                                while asyncio.get_event_loop().time() < deadline:
+                                    rows = await observer.fetch(
+                                        "SELECT pid, state, wait_event_type,"
+                                        " wait_event, query FROM pg_stat_activity"
+                                        " WHERE pid = $1",
+                                        b_pid,
+                                    )
+                                    if rows and rows[0]["wait_event_type"]:
+                                        observed = dict(rows[0])
+                                        break
+                                    await asyncio.sleep(0.05)
+                            finally:
+                                await observer.close()
+                            if observed is None:
+                                await tx_b.rollback()
+                                _signal_lock_observation(
+                                    "not_in_lock_wait",
+                                    b_pid=b_pid,
+                                )
+                                return (
+                                    "B_NOT_IN_LOCK_WAIT",
+                                    {
+                                        "b_pid": b_pid,
+                                        "wait_event_type": None,
+                                        "wait_event": None,
+                                    },
+                                )
+                            _signal_lock_observation(
+                                "lock_wait_observed",
+                                b_pid=b_pid,
+                                wait_event_type=observed["wait_event_type"],
+                                wait_event=observed["wait_event"],
+                            )
+                            # A commits after the explicit
+                            # observation signal; B's INSERT
+                            # should then resume and be rejected
+                            # by the child-after-seal trigger.
+                            try:
+                                await asyncio.wait_for(b_insert_task, timeout=60)
+                                # A committed and the child-after-seal
+                                # trigger DID NOT block.  This would
+                                # mean the trigger was bypassed.
+                                await tx_b.rollback()
+                                return (
+                                    "INSERT_UNEXPECTEDLY_SUCCEEDED",
+                                    {
+                                        "b_pid": b_pid,
+                                        "wait_event_type": observed["wait_event_type"],
+                                        "wait_event": observed["wait_event"],
+                                    },
+                                )
+                            except asyncpg.exceptions.RaiseError as exc:
+                                # Capture exact SQLSTATE + message.
+                                sqlstate = getattr(exc, "sqlstate", None)
+                                msg = str(exc)
+                                await tx_b.rollback()
+                                return (
+                                    "REJECTED",
+                                    {
+                                        "b_pid": b_pid,
+                                        "wait_event_type": observed["wait_event_type"],
+                                        "wait_event": observed["wait_event"],
+                                        "sqlstate": sqlstate,
+                                        "message": msg,
+                                    },
+                                )
+                        except BaseException:
+                            try:
+                                await tx_b.rollback()
+                            except Exception:
+                                pass
+                            raise
+                    finally:
                         try:
-                            await asyncio.wait_for(b_insert_task, timeout=60)
-                            # A committed and the child-after-seal
-                            # trigger DID NOT block.  This would
-                            # mean the trigger was bypassed.
-                            await tx_b.rollback()
-                            return (
-                                "INSERT_UNEXPECTEDLY_SUCCEEDED",
-                                {
-                                    "b_pid": b_pid,
-                                    "wait_event_type": observed["wait_event_type"],
-                                    "wait_event": observed["wait_event"],
-                                },
-                            )
-                        except asyncpg.exceptions.RaiseError as exc:
-                            # Capture exact SQLSTATE + message.
-                            sqlstate = getattr(exc, "sqlstate", None)
-                            msg = str(exc)
-                            await tx_b.rollback()
-                            return (
-                                "REJECTED",
-                                {
-                                    "b_pid": b_pid,
-                                    "wait_event_type": observed["wait_event_type"],
-                                    "wait_event": observed["wait_event"],
-                                    "sqlstate": sqlstate,
-                                    "message": msg,
-                                },
-                            )
-                    except BaseException:
-                        try:
-                            await tx_b.rollback()
+                            await conn_b.close()
                         except Exception:
                             pass
-                        raise
                 finally:
-                    b_done.set()
-                    try:
-                        await conn_b.close()
-                    except Exception:
-                        pass
+                    if not b_lock_observation_complete.is_set():
+                        _signal_lock_observation("b_exited_without_observation")
 
             # Run A and B concurrently.
             a_result, b_result = await asyncio.wait_for(
                 asyncio.gather(transaction_a(), transaction_b()),
                 timeout=120,
             )
-            b_done.set()  # unblock A's wait if still pending
 
             # Brief §8.6 — strict assertion on A and B outcomes.
             assert a_result == "committed", f"Transaction A must commit, got {a_result!r}"
