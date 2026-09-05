@@ -131,6 +131,7 @@ class TrainValidationPairingMaterializationBlocker(StrEnum):
     DUPLICATE_FORECAST_BINDING_KEY = "DUPLICATE_FORECAST_BINDING_KEY"
     NATIVE_FLOAT_IN_BINDING_ROW = "NATIVE_FLOAT_IN_BINDING_ROW"
     MEMBERSHIP_PROOF_VIOLATION = "MEMBERSHIP_PROOF_VIOLATION"
+    MISSING_EXACT_FORECAST_BINDING_AUTHORITY = "MISSING_EXACT_FORECAST_BINDING_AUTHORITY"
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,7 +187,6 @@ class TrainValidationPairingMaterializationDeps:
     official_partitions: OfficialPartitionRows
     forecast_replay_entries: tuple[IncumbentForecastArtifactEntry, ...]
     forecast_provider: IncumbentDailyCurveProvider
-    forecast_binding_authority: S2ForecastAuthorityBundle
     forecast_cutoff_authority_identity: str
     forecast_content_identity_sha256: str
 
@@ -467,6 +467,29 @@ def _aligned_grains(
     return frozenset((key[0], key[1], key[2], key[3]) for key in index)
 
 
+def derive_materialization_grain_union(
+    official_partitions: OfficialPartitionRows,
+) -> frozenset[tuple[str, str, str, str]] | TrainValidationPairingMaterializationBlocker:
+    """Derive TRAIN ∪ VALIDATION aligned grains using membership-index semantics."""
+    train_index_result = _build_membership_index(
+        partition="TRAIN",
+        partition_identity=ACCEPTED_TRAIN_PARTITION_IDENTITY,
+        rows=official_partitions.train_rows,
+    )
+    if isinstance(train_index_result, TrainValidationPairingMaterializationBlocker):
+        return train_index_result
+    train_index, _ = train_index_result
+    validation_index_result = _build_membership_index(
+        partition="VALIDATION",
+        partition_identity=ACCEPTED_VALIDATION_PARTITION_IDENTITY,
+        rows=official_partitions.validation_rows,
+    )
+    if isinstance(validation_index_result, TrainValidationPairingMaterializationBlocker):
+        return validation_index_result
+    validation_index, _ = validation_index_result
+    return _aligned_grains(train_index) | _aligned_grains(validation_index)
+
+
 def _build_partition_binding_rows(
     *,
     partition: Literal["TRAIN", "VALIDATION"],
@@ -475,7 +498,6 @@ def _build_partition_binding_rows(
     forecast_entries: tuple[IncumbentForecastArtifactEntry, ...],
     forecast_provider: IncumbentDailyCurveProvider,
     s2_binding_request: S2HistoricalBacktestRequest,
-    forecast_binding_authority: S2ForecastAuthorityBundle,
 ) -> tuple[tuple[S3BindingRow, ...], PartitionBindingMaterializationStats] | (
     TrainValidationPairingMaterializationBlocker
 ):
@@ -484,6 +506,9 @@ def _build_partition_binding_rows(
     exact_paired = 0
     not_computable = 0
     excluded = 0
+    missing_authority_blocker = (
+        TrainValidationPairingMaterializationBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY
+    )
 
     for season, farm, subfarm, variety in sorted(aligned_grains):
         for forecast_entry in forecast_entries:
@@ -508,25 +533,11 @@ def _build_partition_binding_rows(
                     cell,
                     business_date=target_date,
                 )
-                forecast_key = compute_canonical_forecast_binding_key_hash(
-                    s2_binding_request,
-                    season_business_key=season,
-                    farm_business_key=farm,
-                    subfarm_business_key=subfarm,
-                    variety_business_key=variety,
-                    forecast_quantile=cast(
-                        Literal["P50", "P80", "P90"],
-                        forecast_entry.forecast_quantile,
-                    ),
+                forecast_authority = forecast_provider.forecast_authority_for(
+                    cell,
+                    business_date=target_date,
                     horizon_days=horizon_days,
-                    target_date=target_date,
-                    forecast_authority=forecast_binding_authority,
                 )
-                if forecast_key in seen_forecast_keys:
-                    return (
-                        TrainValidationPairingMaterializationBlocker.DUPLICATE_FORECAST_BINDING_KEY
-                    )
-                seen_forecast_keys.add(forecast_key)
 
                 actual_row: MaterializableRow | None = None
                 proof: PartitionRowMembershipProof | None = None
@@ -553,6 +564,8 @@ def _build_partition_binding_rows(
                 ):
                     status = "NOT_COMPUTABLE"
                     not_computable += 1
+                elif forecast_authority is None:
+                    return missing_authority_blocker
                 else:
                     forecast_kg = forecast_lookup.forecast_harvest_quantity_kg
                     actual_kg = actual_row.actual_harvest_quantity_kg
@@ -565,6 +578,28 @@ def _build_partition_binding_rows(
                     visibility = forecast_entry.forecast_cutoff_at
                     status = "COMPARABLE"
                     exact_paired += 1
+
+                if forecast_authority is None:
+                    return missing_authority_blocker
+                forecast_key = compute_canonical_forecast_binding_key_hash(
+                    s2_binding_request,
+                    season_business_key=season,
+                    farm_business_key=farm,
+                    subfarm_business_key=subfarm,
+                    variety_business_key=variety,
+                    forecast_quantile=cast(
+                        Literal["P50", "P80", "P90"],
+                        forecast_entry.forecast_quantile,
+                    ),
+                    horizon_days=horizon_days,
+                    target_date=target_date,
+                    forecast_authority=forecast_authority,
+                )
+                if forecast_key in seen_forecast_keys:
+                    return (
+                        TrainValidationPairingMaterializationBlocker.DUPLICATE_FORECAST_BINDING_KEY
+                    )
+                seen_forecast_keys.add(forecast_key)
 
                 binding_rows.append(
                     S3BindingRow(
@@ -768,7 +803,6 @@ def materialize_train_validation_pairing_inputs(
         forecast_entries=reviewed_entries,
         forecast_provider=deps.forecast_provider,
         s2_binding_request=train_s2_request,
-        forecast_binding_authority=deps.forecast_binding_authority,
     )
     if isinstance(train_rows_result, TrainValidationPairingMaterializationBlocker):
         return TrainValidationPairingMaterializationResult(
@@ -788,7 +822,6 @@ def materialize_train_validation_pairing_inputs(
         forecast_entries=reviewed_entries,
         forecast_provider=deps.forecast_provider,
         s2_binding_request=validation_s2_request,
-        forecast_binding_authority=deps.forecast_binding_authority,
     )
     if isinstance(validation_rows_result, TrainValidationPairingMaterializationBlocker):
         return TrainValidationPairingMaterializationResult(
@@ -905,12 +938,19 @@ def materialize_train_validation_pairing_inputs_live() -> (
     forecast_content_identity = compute_content_identity_sha256(rows=reviewed_entries)
     forecast_cutoff_authority = reviewed_grain_identity_set_identity_sha256()
 
-    curve_obtain = obtain_live_incumbent_forecast_daily_curve_provider()
-    if (
-        not curve_obtain.obtained
-        or curve_obtain.provider is None
-        or curve_obtain.forecast_binding_authority is None
-    ):
+    materialization_grains = derive_materialization_grain_union(official)
+    if isinstance(materialization_grains, TrainValidationPairingMaterializationBlocker):
+        return TrainValidationPairingMaterializationResult(
+            completed=False,
+            blocker=materialization_grains,
+            official_partitions=official,
+            forecast_row_count=len(reviewed_entries),
+        )
+
+    curve_obtain = obtain_live_incumbent_forecast_daily_curve_provider(
+        materialization_grains=materialization_grains,
+    )
+    if not curve_obtain.obtained or curve_obtain.provider is None:
         return TrainValidationPairingMaterializationResult(
             completed=False,
             blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
@@ -922,7 +962,6 @@ def materialize_train_validation_pairing_inputs_live() -> (
         official_partitions=official,
         forecast_replay_entries=replay_entries,
         forecast_provider=curve_obtain.provider,
-        forecast_binding_authority=curve_obtain.forecast_binding_authority,
         forecast_cutoff_authority_identity=forecast_cutoff_authority,
         forecast_content_identity_sha256=forecast_content_identity,
     )

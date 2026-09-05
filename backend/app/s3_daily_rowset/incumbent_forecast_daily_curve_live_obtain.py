@@ -15,7 +15,6 @@ from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
-from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.forecast_port import IncumbentDailyCurveProvider
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
     build_pit_visible_incumbent_daily_curve_index,
@@ -49,7 +48,6 @@ class LiveIncumbentForecastDailyCurveObtainResult:
     obtained: bool
     provider: IncumbentDailyCurveProvider | None = None
     forecast_cutoff_at: datetime | None = None
-    forecast_binding_authority: S2ForecastAuthorityBundle | None = None
     ambiguous_grain_count: int = 0
     unavailable_grain_count: int = 0
 
@@ -178,3 +176,11 @@ def obtain_live_incumbent_forecast_daily_curve_provider(
         _obtained_cutoff = result.forecast_cutoff_at
         _obtained_grains = materialization_grains
     return result
+
+
+def reset_live_incumbent_forecast_daily_curve_provider_cache() -> None:
+    """Clear module-level provider cache (test isolation only)."""
+    global _obtained_provider, _obtained_cutoff, _obtained_grains
+    _obtained_provider = None
+    _obtained_cutoff = None
+    _obtained_grains = None
