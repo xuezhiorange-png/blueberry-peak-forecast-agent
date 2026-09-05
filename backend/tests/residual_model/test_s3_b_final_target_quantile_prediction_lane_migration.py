@@ -109,143 +109,192 @@ async def test_postgres_lane_constraints() -> None:
     except Exception:
         pytest.skip("PostgreSQL integration database is not available")
 
-    async with AsyncSessionMaker() as session:
-        training_id = (
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO residual_model_training_run (
-                        execution_status, eligibility_status,
-                        model_family, model_version,
-                        feature_schema_version, feature_schema_hash,
-                        artifact_schema_version,
-                        training_signature, config_hash,
-                        config_snapshot, manifest_hash, manifest_snapshot,
-                        feature_audit_summary, category_encoding_snapshot,
-                        training_metrics, validation_metrics,
-                        eligibility_reasons, warnings, blockers,
-                        input_snapshot, canonical_output, canonical_payload_hash,
-                        python_version, numpy_version, sklearn_version,
-                        distinct_grain_count, expected_artifact_count
-                    ) VALUES (
-                        'completed', 'eligible', 'test', '1', '1', :hash, '1',
-                        :hash, :hash, '{}'::jsonb, :hash, '{}'::jsonb,
-                        '{}'::jsonb, '[]'::jsonb,
-                        '{}'::jsonb, '{}'::jsonb,
-                        '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
-                        '{}'::jsonb, '{}'::jsonb, :hash,
-                        '3.12', '1.26', '1.6', 2, 3
-                    )
-                    RETURNING id
-                    """
-                ),
-                {"hash": _HASH},
-            )
-        ).scalar_one()
-        await session.commit()
-
-    async with AsyncSessionMaker() as session:
-        await session.execute(
-            text(
-                """
-                INSERT INTO residual_model_prediction_run (
-                    training_run_id, task9_run_id, task9_result_hash,
-                    prediction_target_kind, execution_status, mode,
-                    config_hash, feature_schema_version, feature_schema_hash,
-                    artifact_hashes, prediction_input_signature, prediction_hash,
-                    feature_audit, warnings, blockers, input_snapshot,
-                    canonical_output, canonical_payload_hash,
-                    expected_prediction_row_count
-                ) VALUES (
-                    :training_id, NULL, NULL, 'FINAL_TARGET_QUANTILE',
-                    'completed', 'final_target_quantile',
-                    :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
-                    '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
-                    '{}'::jsonb, '{}'::jsonb, :hash, 0
+    training_id: int | None = None
+    prediction_run_id: int | None = None
+    try:
+        async with AsyncSessionMaker() as session:
+            training_id = (
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO residual_model_training_run (
+                            execution_status, eligibility_status,
+                            model_family, model_version,
+                            feature_schema_version, feature_schema_hash,
+                            artifact_schema_version,
+                            training_signature, config_hash,
+                            config_snapshot, manifest_hash, manifest_snapshot,
+                            feature_audit_summary, category_encoding_snapshot,
+                            training_metrics, validation_metrics,
+                            eligibility_reasons, warnings, blockers,
+                            input_snapshot, canonical_output, canonical_payload_hash,
+                            python_version, numpy_version, sklearn_version,
+                            distinct_grain_count, expected_artifact_count
+                        ) VALUES (
+                            'completed', 'eligible', 'test', '1', '1', :hash, '1',
+                            :hash, :hash, '{}'::jsonb, :hash, '{}'::jsonb,
+                            '{}'::jsonb, '[]'::jsonb,
+                            '{}'::jsonb, '{}'::jsonb,
+                            '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                            '{}'::jsonb, '{}'::jsonb, :hash,
+                            '3.12', '1.26', '1.6', 2, 3
+                        )
+                        RETURNING id
+                        """
+                    ),
+                    {"hash": _HASH},
                 )
-                """
-            ),
-            {"training_id": training_id, "hash": _HASH},
-        )
-        await session.commit()
+            ).scalar_one()
+            await session.commit()
 
-    async with AsyncSessionMaker() as session:
-        with pytest.raises(IntegrityError):
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO residual_model_prediction_run (
-                        training_run_id, task9_run_id, task9_result_hash,
-                        prediction_target_kind, execution_status, mode,
-                        config_hash, feature_schema_version, feature_schema_hash,
-                        artifact_hashes, prediction_input_signature, prediction_hash,
-                        feature_audit, warnings, blockers, input_snapshot,
-                        canonical_output, canonical_payload_hash,
-                        expected_prediction_row_count
-                    ) VALUES (
-                        :training_id, NULL, NULL, 'FINAL_TARGET_QUANTILE',
-                        'completed', 'residual_corrected',
-                        :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
-                        '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
-                        '{}'::jsonb, '{}'::jsonb, :hash, 0
-                    )
-                    """
-                ),
-                {"training_id": training_id, "hash": _HASH},
-            )
-            await session.flush()
-        await session.rollback()
+        async with AsyncSessionMaker() as session:
+            prediction_run_id = (
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO residual_model_prediction_run (
+                            training_run_id, task9_run_id, task9_result_hash,
+                            prediction_target_kind, execution_status, mode,
+                            config_hash, feature_schema_version, feature_schema_hash,
+                            artifact_hashes, prediction_input_signature, prediction_hash,
+                            feature_audit, warnings, blockers, input_snapshot,
+                            canonical_output, canonical_payload_hash,
+                            expected_prediction_row_count
+                        ) VALUES (
+                            :training_id, NULL, NULL, 'FINAL_TARGET_QUANTILE',
+                            'completed', 'final_target_quantile',
+                            :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
+                            '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                            '{}'::jsonb, '{}'::jsonb, :hash, 0
+                        )
+                        RETURNING id
+                        """
+                    ),
+                    {"training_id": training_id, "hash": _HASH},
+                )
+            ).scalar_one()
+            await session.commit()
 
-    async with AsyncSessionMaker() as session:
-        with pytest.raises(IntegrityError):
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO residual_model_prediction_run (
-                        training_run_id, task9_run_id, task9_result_hash,
-                        prediction_target_kind, execution_status, mode,
-                        config_hash, feature_schema_version, feature_schema_hash,
-                        artifact_hashes, prediction_input_signature, prediction_hash,
-                        feature_audit, warnings, blockers, input_snapshot,
-                        canonical_output, canonical_payload_hash,
-                        expected_prediction_row_count
-                    ) VALUES (
-                        :training_id, 0, :hash, 'FINAL_TARGET_QUANTILE',
-                        'completed', 'final_target_quantile',
-                        :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
-                        '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
-                        '{}'::jsonb, '{}'::jsonb, :hash, 0
-                    )
-                    """
-                ),
-                {"training_id": training_id, "hash": _HASH},
-            )
-            await session.flush()
-        await session.rollback()
+        async with AsyncSessionMaker() as session:
+            with pytest.raises(IntegrityError):
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO residual_model_prediction_run (
+                            training_run_id, task9_run_id, task9_result_hash,
+                            prediction_target_kind, execution_status, mode,
+                            config_hash, feature_schema_version, feature_schema_hash,
+                            artifact_hashes, prediction_input_signature, prediction_hash,
+                            feature_audit, warnings, blockers, input_snapshot,
+                            canonical_output, canonical_payload_hash,
+                            expected_prediction_row_count
+                        ) VALUES (
+                            :training_id, NULL, NULL, 'FINAL_TARGET_QUANTILE',
+                            'completed', 'residual_corrected',
+                            :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
+                            '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                            '{}'::jsonb, '{}'::jsonb, :hash, 0
+                        )
+                        """
+                    ),
+                    {"training_id": training_id, "hash": _HASH},
+                )
+                await session.flush()
+            await session.rollback()
 
-    async with AsyncSessionMaker() as session:
-        with pytest.raises(IntegrityError):
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO residual_model_prediction_run (
-                        training_run_id, task9_run_id, task9_result_hash,
-                        prediction_target_kind, execution_status, mode,
-                        config_hash, feature_schema_version, feature_schema_hash,
-                        artifact_hashes, prediction_input_signature, prediction_hash,
-                        feature_audit, warnings, blockers, input_snapshot,
-                        canonical_output, canonical_payload_hash,
-                        expected_prediction_row_count
-                    ) VALUES (
-                        NULL, NULL, NULL, 'LEGACY_RESIDUAL_CORRECTION',
-                        'completed', 'residual_corrected',
-                        :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
-                        '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
-                        '{}'::jsonb, '{}'::jsonb, :hash, 0
+        async with AsyncSessionMaker() as session:
+            with pytest.raises(IntegrityError):
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO residual_model_prediction_run (
+                            training_run_id, task9_run_id, task9_result_hash,
+                            prediction_target_kind, execution_status, mode,
+                            config_hash, feature_schema_version, feature_schema_hash,
+                            artifact_hashes, prediction_input_signature, prediction_hash,
+                            feature_audit, warnings, blockers, input_snapshot,
+                            canonical_output, canonical_payload_hash,
+                            expected_prediction_row_count
+                        ) VALUES (
+                            :training_id, 0, :hash, 'FINAL_TARGET_QUANTILE',
+                            'completed', 'final_target_quantile',
+                            :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
+                            '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                            '{}'::jsonb, '{}'::jsonb, :hash, 0
+                        )
+                        """
+                    ),
+                    {"training_id": training_id, "hash": _HASH},
+                )
+                await session.flush()
+            await session.rollback()
+
+        async with AsyncSessionMaker() as session:
+            with pytest.raises(IntegrityError):
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO residual_model_prediction_run (
+                            training_run_id, task9_run_id, task9_result_hash,
+                            prediction_target_kind, execution_status, mode,
+                            config_hash, feature_schema_version, feature_schema_hash,
+                            artifact_hashes, prediction_input_signature, prediction_hash,
+                            feature_audit, warnings, blockers, input_snapshot,
+                            canonical_output, canonical_payload_hash,
+                            expected_prediction_row_count
+                        ) VALUES (
+                            NULL, NULL, NULL, 'LEGACY_RESIDUAL_CORRECTION',
+                            'completed', 'residual_corrected',
+                            :hash, '1', :hash, '[]'::jsonb, :hash, :hash,
+                            '{}'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                            '{}'::jsonb, '{}'::jsonb, :hash, 0
+                        )
+                        """
+                    ),
+                    {"hash": _HASH},
+                )
+                await session.flush()
+            await session.rollback()
+    finally:
+        async with AsyncSessionMaker() as session:
+            if prediction_run_id is not None:
+                await session.execute(
+                    text("DELETE FROM residual_model_prediction_run WHERE id = :prediction_run_id"),
+                    {"prediction_run_id": prediction_run_id},
+                )
+            if training_id is not None:
+                await session.execute(
+                    text("DELETE FROM residual_model_training_run WHERE id = :training_id"),
+                    {"training_id": training_id},
+                )
+            await session.commit()
+
+        if training_id is not None:
+            async with AsyncSessionMaker() as session:
+                remaining_prediction_rows = (
+                    await session.execute(
+                        text(
+                            """
+                            SELECT COUNT(*)
+                            FROM residual_model_prediction_run
+                            WHERE prediction_target_kind = 'FINAL_TARGET_QUANTILE'
+                              AND training_run_id = :training_id
+                            """
+                        ),
+                        {"training_id": training_id},
                     )
-                    """
-                ),
-                {"hash": _HASH},
-            )
-            await session.flush()
-        await session.rollback()
+                ).scalar_one()
+                assert remaining_prediction_rows == 0
+                remaining_training_rows = (
+                    await session.execute(
+                        text(
+                            """
+                            SELECT COUNT(*)
+                            FROM residual_model_training_run
+                            WHERE id = :training_id
+                            """
+                        ),
+                        {"training_id": training_id},
+                    )
+                ).scalar_one()
+                assert remaining_training_rows == 0
