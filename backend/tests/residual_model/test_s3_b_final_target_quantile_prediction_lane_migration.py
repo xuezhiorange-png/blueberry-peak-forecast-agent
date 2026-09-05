@@ -29,6 +29,28 @@ PARENT_REVISION = "e8b2c4d6f1a3"
 _HASH = "a" * 64
 
 
+def _alembic_script_directory() -> ScriptDirectory:
+    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
+    return ScriptDirectory.from_config(config)
+
+
+def _revision_lineage_from_head(script: ScriptDirectory, head: str) -> set[str]:
+    lineage: set[str] = set()
+    revision = script.get_revision(head)
+    while revision is not None:
+        lineage.add(revision.revision)
+        down_revision = revision.down_revision
+        if down_revision is None:
+            break
+        if isinstance(down_revision, tuple):
+            for parent in down_revision:
+                lineage |= _revision_lineage_from_head(script, parent)
+            break
+        revision = script.get_revision(down_revision)
+    return lineage
+
+
 def _migration_module() -> ModuleType:
     spec = importlib.util.spec_from_file_location(
         "s3_b_final_target_quantile_prediction_lane_migration",
@@ -40,11 +62,15 @@ def _migration_module() -> ModuleType:
     return module
 
 
-def test_alembic_single_head_is_new_revision() -> None:
-    config = Config(str(_BACKEND_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
-    heads = ScriptDirectory.from_config(config).get_heads()
-    assert heads == [NEW_HEAD]
+def test_alembic_final_target_revision_remains_in_active_lineage() -> None:
+    script = _alembic_script_directory()
+    heads = script.get_heads()
+    assert len(heads) == 1
+
+    current_head = heads[0]
+    assert script.get_revision(NEW_HEAD) is not None
+    lineage = _revision_lineage_from_head(script, current_head)
+    assert NEW_HEAD in lineage
 
 
 def test_migration_revision_metadata() -> None:
@@ -100,7 +126,7 @@ async def test_postgres_lane_constraints() -> None:
                         eligibility_reasons, warnings, blockers,
                         input_snapshot, canonical_output, canonical_payload_hash,
                         python_version, numpy_version, sklearn_version,
-                        distinct_grain_count
+                        distinct_grain_count, expected_artifact_count
                     ) VALUES (
                         'completed', 'eligible', 'test', '1', '1', :hash, '1',
                         :hash, :hash, '{}'::jsonb, :hash, '{}'::jsonb,
@@ -108,7 +134,7 @@ async def test_postgres_lane_constraints() -> None:
                         '{}'::jsonb, '{}'::jsonb,
                         '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
                         '{}'::jsonb, '{}'::jsonb, :hash,
-                        '3.12', '1.26', '1.6', 2
+                        '3.12', '1.26', '1.6', 2, 3
                     )
                     RETURNING id
                     """
