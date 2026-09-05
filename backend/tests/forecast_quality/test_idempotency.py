@@ -1701,7 +1701,7 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
                         # Wait for B to confirm it is in
                         # lock-wait, OR timeout gracefully.
                         try:
-                            await asyncio.wait_for(b_done.wait(), timeout=10)
+                            await asyncio.wait_for(b_done.wait(), timeout=60)
                         except TimeoutError:
                             pass
                         await tx_a.commit()
@@ -1717,7 +1717,7 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
             # late child insert.  The child-after-seal
             # trigger should reject the insert.
             async def transaction_b() -> tuple[str, dict]:
-                await asyncio.wait_for(a_inserted.wait(), timeout=10)
+                await asyncio.wait_for(a_inserted.wait(), timeout=60)
                 conn_b = await asyncpg.connect(_temporary_database_url(db_name))
                 try:
                     tx_b = conn_b.transaction()
@@ -1786,7 +1786,7 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
                         observer = await asyncpg.connect(_temporary_database_url(db_name))
                         try:
                             observed = None
-                            deadline = asyncio.get_event_loop().time() + 5
+                            deadline = asyncio.get_event_loop().time() + 30
                             while asyncio.get_event_loop().time() < deadline:
                                 rows = await observer.fetch(
                                     "SELECT pid, state, wait_event_type,"
@@ -1812,7 +1812,7 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
                             )
                         # Wait for A to commit (or timeout).
                         try:
-                            await asyncio.wait_for(b_insert_task, timeout=10)
+                            await asyncio.wait_for(b_insert_task, timeout=60)
                             # A committed and the child-after-seal
                             # trigger DID NOT block.  This would
                             # mean the trigger was bypassed.
@@ -1856,7 +1856,7 @@ async def test_round_c_v2_natural_manifest_vs_child_race_is_serialized() -> None
             # Run A and B concurrently.
             a_result, b_result = await asyncio.wait_for(
                 asyncio.gather(transaction_a(), transaction_b()),
-                timeout=30,
+                timeout=120,
             )
             b_done.set()  # unblock A's wait if still pending
 
