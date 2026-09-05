@@ -89,9 +89,7 @@ def _valid_train_val_bytes(bundle: FarmTotalAuthorityBundle) -> tuple[bytes, byt
             _row(farm="farm-beta-a", harvest_date=date(2025, 9, 2)),
         )
     )
-    val = build_partition_bytes(
-        (_row(farm="farm-beta-a", harvest_date=date(2026, 2, 1)),)
-    )
+    val = build_partition_bytes((_row(farm="farm-beta-a", harvest_date=date(2026, 2, 1)),))
     return train, val
 
 
