@@ -121,6 +121,13 @@ def emit_s3_decimal(value: Decimal) -> str:
         raise S3DecimalAssertionError("Decimal cannot be quantized") from exc
 
 
+def emit_s3_area_mu(value: Decimal) -> str:
+    """Serialize farm area without lossy kg-scale quantization."""
+    if not isinstance(value, Decimal) or not value.is_finite():
+        raise S3DecimalAssertionError("S3 area output requires a finite Decimal")
+    return format(value, "f")
+
+
 def compute_metric_input_mask_hash(mask: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical_json_bytes(mask)).hexdigest()
 
