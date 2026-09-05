@@ -6,8 +6,10 @@ import ast
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.forecast_quality.train_val_pairing import ACCEPTED_TRAIN_PARTITION_IDENTITY
 from backend.app.forecast_quality.train_val_pairing_materialization import (
@@ -142,72 +144,72 @@ def test_live_materialization_passes_exact_union_grains() -> None:
     official = _small_official_partitions()
     union = _union_grains(official)
     provider = _pit_visible_provider(grains=union)
+    held_session = MagicMock(spec=AsyncSession)
+
+    async def _run_sync_side_effect(fn: object) -> object:
+        if fn.__name__ == "_attest_from_session":
+            return type("Attestation", (), {"attested": True})()
+        if fn.__name__ == "_obtain_from_session":
+            return type(
+                "PartitionObtain",
+                (),
+                {
+                    "obtained": True,
+                    "train_content_bytes": build_partition_bytes(official.train_rows),
+                    "validation_content_bytes": build_partition_bytes(official.validation_rows),
+                },
+            )()
+        if fn.__name__ == "_read_replay_identity_from_held_session":
+            return _reviewed_forecast_entries()
+        raise AssertionError(f"unexpected run_sync fn: {fn.__name__}")
+
+    held_session.run_sync = AsyncMock(side_effect=_run_sync_side_effect)
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=held_session)
+    session_cm.__aexit__ = AsyncMock(return_value=None)
+    maker = MagicMock()
+    maker.return_value = session_cm
+
     with patch(
-        "backend.app.forecast_quality.train_val_pairing_materialization."
-        "obtain_live_incumbent_forecast_daily_curve_provider",
-    ) as obtain:
-        obtain.return_value = LiveIncumbentForecastDailyCurveObtainResult(
-            obtained=True,
-            provider=provider,
-            forecast_cutoff_at=_REVIEWED_CUTOFF,
-        )
+        "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+        "resolve_live_async_session_maker",
+        return_value=maker,
+    ):
         with patch(
-            "backend.app.forecast_quality.train_val_pairing_materialization."
-            "attest_accepted_s2_train_val_source_002_row_level_read",
-        ) as attest:
-            attest.return_value = type("Attestation", (), {"attested": True})()
+            "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+            "_obtain_from_async_session",
+            new_callable=AsyncMock,
+            return_value=LiveIncumbentForecastDailyCurveObtainResult(
+                obtained=True,
+                provider=provider,
+                forecast_cutoff_at=_REVIEWED_CUTOFF,
+            ),
+        ) as obtain_async:
             with patch(
-                "backend.app.forecast_quality.train_val_pairing_materialization."
-                "obtain_accepted_s2_train_val_content_bytes_from_bound_live_session",
-            ) as partition_obtain:
-                partition_obtain.return_value = type(
-                    "PartitionObtain",
-                    (),
-                    {
-                        "obtained": True,
-                        "train_content_bytes": build_partition_bytes(official.train_rows),
-                        "validation_content_bytes": build_partition_bytes(official.validation_rows),
-                    },
-                )()
-                with patch(
-                    "backend.app.forecast_quality.train_val_pairing_materialization."
-                    "IncumbentForecastReplaySource",
-                ) as replay_cls:
-                    replay_cls.return_value.uses_harvest_date_as_forecast_cutoff = False
-                    replay_cls.return_value.obtain.return_value = _reviewed_forecast_entries()
-                    with patch(
-                        "backend.app.forecast_quality.train_val_pairing_materialization."
-                        "load_official_partition_rows_from_content_bytes",
-                        return_value=official,
-                    ):
-                        materialize_train_validation_pairing_inputs_live()
-        obtain.assert_called_once()
-        assert obtain.call_args.kwargs["materialization_grains"] == union
+                "backend.app.forecast_quality.train_val_pairing_materialization_live_async."
+                "load_official_partition_rows_from_content_bytes",
+                return_value=official,
+            ):
+                materialize_train_validation_pairing_inputs_live()
+        obtain_async.assert_awaited_once()
+        assert obtain_async.await_args.kwargs["materialization_grains"] == union
 
 
 def test_no_argument_provider_call_removed() -> None:
     """B: NO_ARGUMENT_PROVIDER_CALL_REMOVED."""
-    source = (_APP_ROOT / "forecast_quality" / "train_val_pairing_materialization.py").read_text(
-        encoding="utf-8"
-    )
-    live_start = source.index("def materialize_train_validation_pairing_inputs_live")
-    live_end = source.index("def build_materialization_evidence_payload", live_start)
-    live_source = live_start and source[live_start:live_end]
-    tree = ast.parse(live_source)
+    live_async_source = (
+        _APP_ROOT / "forecast_quality" / "train_val_pairing_materialization_live_async.py"
+    ).read_text(encoding="utf-8")
+    tree = ast.parse(live_async_source)
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if isinstance(func, ast.Name) and func.id == (
-            "obtain_live_incumbent_forecast_daily_curve_provider"
-        ):
+        if isinstance(func, ast.Name) and func.id == "_obtain_from_async_session":
             assert any(kw.arg == "materialization_grains" for kw in node.keywords), (
                 "live obtain must pass materialization_grains"
             )
-        if (
-            isinstance(func, ast.Attribute)
-            and func.attr == "obtain_live_incumbent_forecast_daily_curve_provider"
-        ):
+        if isinstance(func, ast.Attribute) and func.attr == "_obtain_from_async_session":
             assert any(kw.arg == "materialization_grains" for kw in node.keywords)
 
 
