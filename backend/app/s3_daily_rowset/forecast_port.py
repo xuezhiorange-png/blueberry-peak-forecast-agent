@@ -8,6 +8,7 @@ from decimal import Decimal
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
+from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -43,6 +44,16 @@ class IncumbentDailyCurveProvider:
     ) -> ForecastDayResult:
         raise NotImplementedError
 
+    def forecast_authority_for(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+        horizon_days: int,
+    ) -> S2ForecastAuthorityBundle | None:
+        del cell, business_date, horizon_days
+        return None
+
 
 @dataclass
 class FakeIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
@@ -50,6 +61,8 @@ class FakeIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
 
     forecasts: dict[date, Decimal] | None = None
     unavailable: bool = False
+    default_authority: S2ForecastAuthorityBundle | None = None
+    authorities: dict[tuple[date, int], S2ForecastAuthorityBundle] | None = None
 
     def forecast_kg_for_day(
         self,
@@ -66,6 +79,18 @@ class FakeIncumbentDailyCurveProvider(IncumbentDailyCurveProvider):
             availability=ForecastAvailability.AVAILABLE,
             forecast_harvest_quantity_kg=self.forecasts[business_date],
         )
+
+    def forecast_authority_for(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+        horizon_days: int,
+    ) -> S2ForecastAuthorityBundle | None:
+        del cell
+        if self.authorities is not None and (business_date, horizon_days) in self.authorities:
+            return self.authorities[(business_date, horizon_days)]
+        return self.default_authority
 
 
 @dataclass
