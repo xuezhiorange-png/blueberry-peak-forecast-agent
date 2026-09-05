@@ -8,9 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from backend.app.forecast_quality.farm_total_area_authority import (
+    FarmTotalAreaAuthorityLoadError,
     FarmTotalAreaAuthorityPackage,
     area_authority_package_to_payload,
     load_area_authority_package,
+)
+from backend.app.forecast_quality.farm_total_authority_binding import (
+    FarmTotalAuthorityBindingBlocker,
+    validate_mapping_area_authority_binding,
 )
 from backend.app.forecast_quality.farm_total_dataset import (
     FarmTotalDataPlaneResult,
@@ -35,16 +40,36 @@ class FarmTotalAuthorityBundle:
     area_package: FarmTotalAreaAuthorityPackage
 
 
+def _binding_blocker_to_dataset_blocker(
+    blocker: FarmTotalAuthorityBindingBlocker,
+) -> FarmTotalDatasetBlocker:
+    return FarmTotalDatasetBlocker(blocker.value)
+
+
+def _validate_authority_bundle_binding(
+    bundle: FarmTotalAuthorityBundle,
+) -> FarmTotalDatasetBlocker | None:
+    binding_blocker = validate_mapping_area_authority_binding(
+        mapping_package=bundle.mapping_package,
+        area_package=bundle.area_package,
+    )
+    if binding_blocker != FarmTotalAuthorityBindingBlocker.NONE:
+        return _binding_blocker_to_dataset_blocker(binding_blocker)
+    return None
+
+
 def load_authority_bundle_from_paths(
     *,
     mapping_package_path: Path,
     area_authority_package_path: Path,
+    validate_binding: bool = True,
 ) -> FarmTotalAuthorityBundle:
     mapping_payload = json.loads(mapping_package_path.read_text(encoding="utf-8"))
     area_payload = json.loads(area_authority_package_path.read_text(encoding="utf-8"))
-    return FarmTotalAuthorityBundle(
-        mapping_package=load_mapping_package(mapping_payload),
-        area_package=load_area_authority_package(area_payload),
+    return load_authority_bundle_from_payloads(
+        mapping_payload=mapping_payload,
+        area_payload=area_payload,
+        validate_binding=validate_binding,
     )
 
 
@@ -52,11 +77,19 @@ def load_authority_bundle_from_payloads(
     *,
     mapping_payload: dict[str, Any],
     area_payload: dict[str, Any],
+    validate_binding: bool = True,
 ) -> FarmTotalAuthorityBundle:
-    return FarmTotalAuthorityBundle(
+    bundle = FarmTotalAuthorityBundle(
         mapping_package=load_mapping_package(mapping_payload),
         area_package=load_area_authority_package(area_payload),
     )
+    if validate_binding:
+        binding_blocker = _validate_authority_bundle_binding(bundle)
+        if binding_blocker is not None:
+            raise FarmTotalAreaAuthorityLoadError(
+                f"authority bundle binding invalid: {binding_blocker}"
+            )
+    return bundle
 
 
 def materialize_farm_total_baseline_data_plane(
@@ -67,6 +100,10 @@ def materialize_farm_total_baseline_data_plane(
     verify_official_hashes: bool = True,
 ) -> tuple[FarmTotalDatasetBlocker, FarmTotalDataPlaneResult | None]:
     """Build TRAIN and VALIDATION Farm-total datasets from accepted SOURCE-002 bytes."""
+
+    binding_blocker = _validate_authority_bundle_binding(authority_bundle)
+    if binding_blocker is not None:
+        return binding_blocker, None
 
     if authority_bundle.mapping_package.target_season != FARM_TOTAL_TARGET_SEASON:
         return FarmTotalDatasetBlocker.OFFICIAL_HASH_MISMATCH, None
