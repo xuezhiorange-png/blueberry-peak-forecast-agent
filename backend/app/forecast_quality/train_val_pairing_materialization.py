@@ -46,10 +46,6 @@ from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read
     OFFICIAL_TRAIN_ROW_COUNT,
     OFFICIAL_VALIDATION_CONTENT_SHA256,
     OFFICIAL_VALIDATION_ROW_COUNT,
-    attest_accepted_s2_train_val_source_002_row_level_read,
-)
-from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_obtain import (  # noqa: E501
-    obtain_accepted_s2_train_val_content_bytes_from_bound_live_session,
 )
 from backend.app.s3_daily_rowset.catalog_artifact import IncumbentForecastArtifactEntry
 from backend.app.s3_daily_rowset.exclusion import is_bason_factory, is_forbidden_variety
@@ -58,16 +54,13 @@ from backend.app.s3_daily_rowset.forecast_port import (
     IncumbentDailyCurveProvider,
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_artifact_content import (
-    compute_content_identity_sha256,
     project_incumbent_forecast_artifact_entries,
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_daily_curve_live_obtain import (
     LAWFUL_PIT_VISIBLE_INCUMBENT_DAILY_FORECAST_VALUE_SOURCE,
-    obtain_live_incumbent_forecast_daily_curve_provider,
 )
 from backend.app.s3_daily_rowset.incumbent_forecast_replay_source import (
     HARVEST_BUSINESS_DATE_IS_NOT_FORECAST_CUTOFF,
-    IncumbentForecastReplaySource,
 )
 from backend.app.s3_daily_rowset.registry import (
     V0_3_S3_ACTUALS_AUTHORITY,
@@ -77,7 +70,6 @@ from backend.app.s3_daily_rowset.s3_a2_coordinator_reviewed_live_origin_grain_id
     REVIEW_CUTOFF_AT,
     REVIEW_MODEL_ID,
     REVIEW_QUANTILES,
-    reviewed_grain_identity_set_identity_sha256,
 )
 from backend.app.s3_daily_rowset.schemas import HORIZON_DAYS, EvaluationInstanceCell
 from backend.app.s3_daily_rowset.window import (
@@ -885,87 +877,13 @@ def materialize_train_validation_pairing_inputs(
 def materialize_train_validation_pairing_inputs_live() -> (
     TrainValidationPairingMaterializationResult
 ):
-    attestation = attest_accepted_s2_train_val_source_002_row_level_read()
-    if not attestation.attested:
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=TrainValidationPairingMaterializationBlocker.SOURCE_002_ROW_LEVEL_READ_NOT_ATTESTED,
-        )
+    import asyncio
 
-    obtain = obtain_accepted_s2_train_val_content_bytes_from_bound_live_session()
-    if (
-        not obtain.obtained
-        or obtain.train_content_bytes is None
-        or obtain.validation_content_bytes is None
-    ):
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=TrainValidationPairingMaterializationBlocker.OFFICIAL_PARTITION_BYTES_NOT_OBTAINED,
-        )
-
-    official = load_official_partition_rows_from_content_bytes(
-        train_content_bytes=obtain.train_content_bytes,
-        validation_content_bytes=obtain.validation_content_bytes,
+    from backend.app.forecast_quality.train_val_pairing_materialization_live_async import (
+        _materialize_train_validation_pairing_inputs_live_async,
     )
-    if isinstance(official, TrainValidationPairingMaterializationBlocker):
-        return TrainValidationPairingMaterializationResult(completed=False, blocker=official)
 
-    replay_source = IncumbentForecastReplaySource()
-    if replay_source.uses_harvest_date_as_forecast_cutoff:
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS,
-            official_partitions=official,
-        )
-    replay_entries = replay_source.obtain()
-    if not replay_entries:
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_FORECAST_REPLAY_ROWS,
-            official_partitions=official,
-            forecast_row_count=0,
-        )
-
-    reviewed_entries = _reviewed_forecast_entries(replay_entries)
-    if not reviewed_entries:
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=TrainValidationPairingMaterializationBlocker.REVIEWED_FORECAST_GRAIN_MISMATCH,
-            official_partitions=official,
-            forecast_row_count=len(replay_entries),
-        )
-
-    forecast_content_identity = compute_content_identity_sha256(rows=reviewed_entries)
-    forecast_cutoff_authority = reviewed_grain_identity_set_identity_sha256()
-
-    materialization_grains = derive_materialization_grain_union(official)
-    if isinstance(materialization_grains, TrainValidationPairingMaterializationBlocker):
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=materialization_grains,
-            official_partitions=official,
-            forecast_row_count=len(reviewed_entries),
-        )
-
-    curve_obtain = obtain_live_incumbent_forecast_daily_curve_provider(
-        materialization_grains=materialization_grains,
-    )
-    if not curve_obtain.obtained or curve_obtain.provider is None:
-        return TrainValidationPairingMaterializationResult(
-            completed=False,
-            blocker=TrainValidationPairingMaterializationBlocker.NO_LAWFUL_INCUMBENT_DAILY_CURVE_PROVIDER,
-            official_partitions=official,
-            forecast_row_count=len(reviewed_entries),
-        )
-
-    deps = TrainValidationPairingMaterializationDeps(
-        official_partitions=official,
-        forecast_replay_entries=replay_entries,
-        forecast_provider=curve_obtain.provider,
-        forecast_cutoff_authority_identity=forecast_cutoff_authority,
-        forecast_content_identity_sha256=forecast_content_identity,
-    )
-    return materialize_train_validation_pairing_inputs(deps)
+    return asyncio.run(_materialize_train_validation_pairing_inputs_live_async())
 
 
 def build_materialization_evidence_payload(
