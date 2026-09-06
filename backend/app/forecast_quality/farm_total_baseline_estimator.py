@@ -18,6 +18,7 @@ MIN_TRAIN_SUPPORT_UNIT = "DISTINCT_VALID_TRAIN_HARVEST_DAYS_PER_BASELINE_FARM_GR
 
 class FarmTotalBaselineDerivationBlocker(StrEnum):
     NON_TRAIN_PARTITION = "NON_TRAIN_PARTITION"
+    NON_TRAIN_ROW_PARTITION = "NON_TRAIN_ROW_PARTITION"
 
 
 class FarmTotalBaselineGroupStatus(StrEnum):
@@ -111,6 +112,12 @@ def derive_farm_total_baseline_estimator(
         raise FarmTotalBaselineDerivationError(
             FarmTotalBaselineDerivationBlocker.NON_TRAIN_PARTITION
         )
+
+    for row in partition_dataset.rows:
+        if row.partition != "TRAIN":
+            raise FarmTotalBaselineDerivationError(
+                FarmTotalBaselineDerivationBlocker.NON_TRAIN_ROW_PARTITION
+            )
 
     rows_by_group: dict[str, list[FarmTotalDatasetRow]] = {}
     for row in partition_dataset.rows:

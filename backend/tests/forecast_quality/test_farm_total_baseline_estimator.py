@@ -475,6 +475,23 @@ def test_derivation_rejects_non_train_partition() -> None:
     assert exc_info.value.blocker is FarmTotalBaselineDerivationBlocker.NON_TRAIN_PARTITION
 
 
+def test_derivation_rejects_non_train_row_partition() -> None:
+    train_rows = _five_date_rows(
+        "g1",
+        (Decimal("10"), Decimal("10"), Decimal("10"), Decimal("10"), Decimal("10")),
+    )
+    validation_row = _synthetic_row(
+        group="g1",
+        harvest_date=date(2025, 9, 6),
+        quantity_kg=Decimal("99999"),
+        partition="VALIDATION",
+    )
+    mixed_rows = (*train_rows[:4], validation_row)
+    with pytest.raises(FarmTotalBaselineDerivationError) as exc_info:
+        derive_farm_total_baseline_estimator(_train_dataset(mixed_rows))
+    assert exc_info.value.blocker is FarmTotalBaselineDerivationBlocker.NON_TRAIN_ROW_PARTITION
+
+
 def test_no_p80_p90_surface() -> None:
     point_fields = {field.name for field in dataclasses.fields(FarmTotalBaselinePoint)}
     assert "baseline_harvest_quantity_kg" in point_fields
