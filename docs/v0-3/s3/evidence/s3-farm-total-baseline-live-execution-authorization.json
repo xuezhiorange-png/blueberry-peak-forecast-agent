@@ -1,0 +1,372 @@
+{
+  "artifact_identity": {
+    "artifact_id": "V0_3_S3_FARM_TOTAL_BASELINE_LIVE_EXECUTION_AUTHORIZATION",
+    "artifact_version": "R1",
+    "authorization_scope": "V0_3_S3_FARM_TOTAL_BASELINE_EVALUATION_PACKAGE_LIVE_EXECUTION_ONLY",
+    "contract_and_authorization_in_one_pr": true,
+    "evidence_json_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-live-execution-authorization.json",
+    "task_class": "DOCS_ONLY_LIVE_EXECUTION_CONTRACT_AND_AUTHORIZATION",
+    "task_id": "V0_3_S3_FARM_TOTAL_BASELINE_LIVE_EXECUTION_CONTRACT_AND_AUTHORIZATION_R1",
+    "user_gate": "可以",
+    "workpaper_path": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-live-execution-authorization.md"
+  },
+  "parent_authority": {
+    "base_main_sha": "80b05d5c033f19d0ded3dc7c983a08f00f50d662",
+    "evaluation_package_authorization_pr": 565,
+    "evaluation_package_authorization_merge_sha": "814ff739b094a9c964b426a6f6947c1f57e6dfe7",
+    "evaluation_package_implementation_pr": 566,
+    "evaluation_package_implementation_merge_sha": "80b05d5c033f19d0ded3dc7c983a08f00f50d662",
+    "evaluation_package_module": "backend/app/forecast_quality/farm_total_baseline_evaluation_package.py",
+    "estimator_implementation_pr": 564,
+    "estimator_implementation_merge_sha": "9eb5f115c1f41e2d0f1156df4440f5eb4872860a",
+    "estimator_module": "backend/app/forecast_quality/farm_total_baseline_estimator.py",
+    "farm_total_data_plane_module": "backend/app/forecast_quality/farm_total_data_plane.py",
+    "owner_decision_binding": "docs/v0-3/s3/s3-farm-total-baseline-estimator-owner-decision-binding.md",
+    "owner_decision_sha256": "39722ff8e8a520813975cd7270b6453db388633bffee9c90fb12140440431463"
+  },
+  "live_execution_grant": {
+    "authorization_merge_does_not_execute_live_baseline": true,
+    "authorization_merge_does_not_read_official_train_bytes": true,
+    "authorization_merge_does_not_read_official_validation_bytes": true,
+    "authorization_merge_does_not_score_validation": true,
+    "execution_requires_separate_user_gate": "可以执行",
+    "future_live_runner_implementation_authorized": true,
+    "live_baseline_execution_performed": false,
+    "live_evaluation_package_construction_authorized": true,
+    "live_execution_authorized": true,
+    "live_execution_authorized_implies_live_execution_performed": false,
+    "live_execution_authorized_implies_s3_metric_execution_authorized": false,
+    "live_execution_authorized_implies_test_evaluation_access": false,
+    "live_execution_authorized_implies_validation_scoring_authorized": false,
+    "live_execution_evidence_authorized": true,
+    "live_execution_performed": false,
+    "live_replay_execution_authorized": true,
+    "live_train_execution_performed": false,
+    "live_validation_execution_performed": false,
+    "live_validation_target_projection_authorized": true,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "official_train_byte_read_authorized": true,
+    "official_train_execution_authorized": true,
+    "official_validation_byte_read_authorized": true,
+    "official_validation_target_projection_authorized": true,
+    "ready_authorized": false,
+    "real_baseline_prediction_materialization_in_memory_authorized": true,
+    "real_train_group_median_computation_authorized": true,
+    "validation_baseline_materialized": false,
+    "validation_baseline_scored": false,
+    "v0_3_s3_farm_total_baseline_live_execution_authorization_authorized": true,
+    "v0_3_s3_farm_total_baseline_live_execution_contract_authorized": true
+  },
+  "future_authorized_paths": {
+    "existing_file_mutation_authorized": false,
+    "future_changed_file_count": 4,
+    "live_runner": "scripts/run_v03_farm_total_baseline_evaluation_package.py",
+    "live_runner_tests": "backend/tests/forecast_quality/test_farm_total_baseline_live_execution_runner.py",
+    "live_execution_workpaper": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-live-execution-r1.md",
+    "live_execution_evidence": "docs/v0-3/s3/evidence/s3-farm-total-baseline-live-execution-r1.json",
+    "future_task_combines_runner_tests_execution_replay_evidence": true,
+    "future_task_split_authorized": false
+  },
+  "source_002_read_contract": {
+    "governed_live_obtain_required": true,
+    "obtain_function": "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_obtain.obtain_accepted_s2_train_val_content_bytes_from_bound_live_session",
+    "new_raw_sql_reader_authorized": false,
+    "new_db_engine_authorized": false,
+    "invented_connection_string_authorized": false,
+    "independent_s2_partition_query_authorized": false,
+    "required_obtain_state": {
+      "obtained": true,
+      "reason_code": "OBTAINED",
+      "train_content_bytes_present": true,
+      "validation_content_bytes_present": true,
+      "test_remains_sealed": true
+    },
+    "fail_closed_on_obtain_failure_required": true
+  },
+  "test_custody_contract": {
+    "test_evaluation_access_authorized": false,
+    "test_label_access_authorized": false,
+    "test_target_construction_authorized": false,
+    "test_package_construction_authorized": false,
+    "test_scoring_authorized": false,
+    "test_payload_returned": false,
+    "sealed_test_custody_verification_via_existing_reader_authorized": true,
+    "test_remains_sealed": true,
+    "custody_verification_is_not_test_evaluation_authorization": true,
+    "permitted_custody_checks": [
+      "test_row_count",
+      "sealed_test_byte_count",
+      "sealed_test_content_hash"
+    ]
+  },
+  "authority_package_contract": {
+    "load_authority_bundle_from_paths_authorized": true,
+    "authority_dir_flag_required": true,
+    "required_authority_files": [
+      "farm_total_group_mapping_package.json",
+      "farm_total_area_authority_package.json"
+    ],
+    "authority_package_regeneration_authorized": false,
+    "generate_v03_farm_total_authority_packages_script_authorized": false,
+    "synthetic_authority_package_substitution_authorized": false,
+    "regenerate_from_guessed_paths_authorized": false,
+    "stop_and_report_live_authority_package_files_unavailable_required": true
+  },
+  "data_plane_contract": {
+    "materialize_farm_total_baseline_data_plane_on_official_data_authorized": true,
+    "verify_official_hashes_required": true,
+    "required_success_conditions": {
+      "blocker": "FarmTotalDatasetBlocker.NONE",
+      "result_not_none": true,
+      "validation_used_as_training_input": false,
+      "area_double_count_count": 0,
+      "source_farm_double_map_count": 0,
+      "source_actual_double_count": 0
+    },
+    "duplicate_data_plane_validation_in_runner_authorized": false
+  },
+  "evaluation_package_contract": {
+    "package_builder_api": "build_farm_total_baseline_evaluation_package(train_dataset, validation_dataset)",
+    "target_key_builder_api": "build_farm_total_validation_target_keys(validation_dataset)",
+    "estimator_derivation_api": "derive_farm_total_baseline_estimator(train_dataset)",
+    "projection_api": "project_farm_total_baseline(estimator_state, target_keys)",
+    "reimplement_target_construction_authorized": false,
+    "reimplement_train_median_authorized": false,
+    "reimplement_support_policy_authorized": false,
+    "reimplement_projection_authorized": false,
+    "reimplement_hash_calculation_authorized": false,
+    "reimplement_diagnostics_authorized": false,
+    "existing_production_package_authoritative": true
+  },
+  "live_replay_contract": {
+    "live_replay_required": true,
+    "live_replay_count": 2,
+    "live_replay_identity_match_required": true,
+    "replay_inputs_must_match": [
+      "main_or_runner_commit",
+      "accepted_source_002_dataset_identity",
+      "reviewed_authority_package_files"
+    ],
+    "replay_equalities_required": [
+      "TRAIN_FARM_TOTAL_DATASET_SHA256",
+      "VALIDATION_FARM_TOTAL_DATASET_SHA256",
+      "ESTIMATOR_STATE_SHA256",
+      "TARGET_IDENTITY_SET_SHA256",
+      "BASELINE_POINT_SET_SHA256",
+      "TARGET_OUTCOME_SET_SHA256",
+      "PREDICTION_IDENTITY_SHA256",
+      "PACKAGE_SHA256",
+      "TARGET_COUNT",
+      "EMITTED_POINT_COUNT",
+      "BLOCKED_TARGET_COUNT",
+      "READY_TARGET_COUNT",
+      "INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT",
+      "UNSEEN_GROUP_TARGET_COUNT"
+    ],
+    "replay_failure_execution_status": "BLOCKED",
+    "replay_failure_replay_status": "FAIL",
+    "publish_pass_execution_artifact_on_replay_failure_authorized": false
+  },
+  "execution_evidence_contract": {
+    "execution_evidence_authorized": true,
+    "stdout_json_only_authorized": true,
+    "business_value_tables_authorized": false,
+    "full_target_list_authorized": false,
+    "actual_rows_authorized": false,
+    "full_baseline_points_authorized": false,
+    "real_kg_values_in_repository_evidence_authorized": false,
+    "required_evidence_fields": [
+      "EXECUTION_MAIN_SHA",
+      "RUNNER_COMMIT_SHA",
+      "SOURCE_002_DATASET_ID",
+      "SOURCE_002_DATASET_VERSION",
+      "SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256",
+      "OFFICIAL_TRAIN_CONTENT_SHA256",
+      "OFFICIAL_VALIDATION_CONTENT_SHA256",
+      "TRAIN_SOURCE_ROW_COUNT",
+      "VALIDATION_SOURCE_ROW_COUNT",
+      "TEST_REMAINS_SEALED",
+      "FARM_GROUP_MAPPING_SET_SHA256",
+      "FARM_AREA_AUTHORITY_SET_SHA256",
+      "TRAIN_FARM_TOTAL_ROW_COUNT",
+      "VALIDATION_FARM_TOTAL_ROW_COUNT",
+      "TRAIN_FARM_GROUP_COUNT",
+      "VALIDATION_FARM_GROUP_COUNT",
+      "TRAIN_FARM_TOTAL_DATASET_SHA256",
+      "VALIDATION_FARM_TOTAL_DATASET_SHA256",
+      "AREA_DOUBLE_COUNT_COUNT",
+      "SOURCE_FARM_DOUBLE_MAP_COUNT",
+      "SOURCE_ACTUAL_DOUBLE_COUNT",
+      "VALIDATION_USED_AS_TRAINING_INPUT",
+      "PACKAGE_SCHEMA_VERSION",
+      "TARGET_COUNT",
+      "EMITTED_POINT_COUNT",
+      "BLOCKED_TARGET_COUNT",
+      "READY_TARGET_COUNT",
+      "INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT",
+      "UNSEEN_GROUP_TARGET_COUNT",
+      "ESTIMATOR_STATE_SHA256",
+      "TARGET_IDENTITY_SET_SHA256",
+      "BASELINE_POINT_SET_SHA256",
+      "TARGET_OUTCOME_SET_SHA256",
+      "PREDICTION_IDENTITY_SHA256",
+      "PACKAGE_SHA256"
+    ],
+    "fail_closed_exit_nonzero_required": true
+  },
+  "package_diagnostics": {
+    "hash_layers": [
+      "estimator_state_sha256",
+      "target_identity_set_sha256",
+      "baseline_point_set_sha256",
+      "target_outcome_set_sha256",
+      "prediction_identity_sha256",
+      "package_sha256"
+    ],
+    "hash_algorithm_change_authorized": false,
+    "new_canonicalization_authorized": false,
+    "independent_ad_hoc_serializer_authorized": false,
+    "use_values_emitted_by_farm_total_baseline_evaluation_package_required": true
+  },
+  "hash_identities": {
+    "estimator_state_sha256_required": true,
+    "target_identity_set_sha256_required": true,
+    "baseline_point_set_sha256_required": true,
+    "target_outcome_set_sha256_required": true,
+    "prediction_identity_sha256_required": true,
+    "package_sha256_required": true
+  },
+  "replay": {
+    "live_replay_required": true,
+    "live_replay_count": 2,
+    "live_replay_identity_match_required": true
+  },
+  "publication_boundary": {
+    "real_baseline_predictions_computable_in_memory": true,
+    "real_baseline_point_values_repository_persistence_authorized": false,
+    "validation_actual_values_repository_persistence_authorized": false,
+    "raw_train_rows_repository_persistence_authorized": false,
+    "raw_validation_rows_repository_persistence_authorized": false,
+    "persist_full_train_rows_authorized": false,
+    "persist_full_validation_rows_authorized": false,
+    "persist_validation_actual_quantities_per_target_authorized": false,
+    "persist_baseline_prediction_values_per_target_authorized": false,
+    "persist_raw_source_002_bytes_authorized": false,
+    "persist_test_bytes_authorized": false
+  },
+  "validation_scoring_boundary": {
+    "validation_scoring_authorized": false,
+    "validation_baseline_scored": false,
+    "s3_metric_execution_authorized": false,
+    "s3_c_backtest_execution_authorized": false,
+    "mae_calculation_authorized": false,
+    "wape_calculation_authorized": false,
+    "smape_calculation_authorized": false,
+    "mape_calculation_authorized": false,
+    "bias_calculation_authorized": false,
+    "coverage_calculation_authorized": false,
+    "baseline_vs_incumbent_difference_authorized": false,
+    "improvement_percentage_authorized": false,
+    "pass_fail_superiority_authorized": false,
+    "live_execution_is_prediction_materialization_only": true
+  },
+  "quantile_boundary": {
+    "baseline_output_distribution_authorized": false,
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE",
+    "baseline_p80_p90_reason": "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "p80_output_authorized": false,
+    "p90_output_authorized": false,
+    "baseline_uncertainty_distribution_authorized": false
+  },
+  "model_boundary": {
+    "model_change": false,
+    "parameter_change": false,
+    "v0_3_s4_authorized": false,
+    "incumbent_model_import_or_mutation_authorized": false
+  },
+  "test_boundary": {
+    "test_evaluation_access_authorized": false,
+    "test_payload_returned": false,
+    "test_remains_sealed": true,
+    "sealed_test_custody_verification_authorized": true,
+    "live_db_connection_in_pytest_authorized": false
+  },
+  "persistence_boundary": {
+    "runtime_package_persistence": "IN_MEMORY_ONLY",
+    "database_table_authorized": false,
+    "orm_authorized": false,
+    "migration_authorized": false,
+    "json_dump_of_full_package_points_authorized": false,
+    "object_storage_authorized": false,
+    "baseline_prediction_table_authorized": false,
+    "authorized_repository_persistence": [
+      "summarized_workpaper",
+      "evidence_json"
+    ],
+    "migration_change": false,
+    "schema_change": false
+  },
+  "future_test_requirements": {
+    "minimum_test_themes": 20,
+    "synthetic_in_memory_only": true,
+    "themes": [
+      "successful_runner_orchestration_on_synthetic_authority_data",
+      "source_002_obtain_failure_fails_closed",
+      "missing_authority_package_path_fails_closed",
+      "invalid_authority_bundle_fails_closed",
+      "farm_total_data_plane_blocker_fails_closed",
+      "validation_used_as_training_input_true_rejected",
+      "nonzero_area_double_count_count_rejected",
+      "nonzero_source_farm_double_map_count_rejected",
+      "nonzero_source_actual_double_count_rejected",
+      "package_builder_called_only_after_data_plane_success",
+      "runner_output_includes_all_six_hash_fields",
+      "runner_output_excludes_target_level_actuals",
+      "runner_output_excludes_target_level_baseline_values",
+      "runner_output_excludes_test_payload",
+      "deterministic_stdout_payload_under_same_synthetic_inputs",
+      "execution_evidence_contains_package_diagnostics_counts",
+      "no_scoring_fields",
+      "no_metric_result_fields",
+      "no_p80_p90_baseline_values",
+      "fail_closed_exit_behavior_is_deterministic"
+    ]
+  },
+  "baseline_evaluation_package": {
+    "module": "backend/app/forecast_quality/farm_total_baseline_evaluation_package.py",
+    "package_builder": "build_farm_total_baseline_evaluation_package",
+    "target_key_builder": "build_farm_total_validation_target_keys"
+  },
+  "farm_total_data_plane": {
+    "module": "backend/app/forecast_quality/farm_total_data_plane.py",
+    "materialize_function": "materialize_farm_total_baseline_data_plane",
+    "load_authority_bundle_function": "load_authority_bundle_from_paths"
+  },
+  "prohibitions": {
+    "python_creation_in_this_pr_authorized": false,
+    "existing_file_modification_in_this_pr_authorized": false,
+    "official_train_execution_in_this_pr_authorized": false,
+    "official_validation_execution_in_this_pr_authorized": false,
+    "source_002_read_in_this_pr_authorized": false,
+    "database_connection_in_this_pr_authorized": false,
+    "live_data_plane_execution_in_this_pr_authorized": false,
+    "real_median_computation_in_this_pr_authorized": false,
+    "real_baseline_prediction_computation_in_this_pr_authorized": false,
+    "authority_package_generation_in_this_pr_authorized": false,
+    "validation_scoring_in_this_pr_authorized": false,
+    "metric_calculation_in_this_pr_authorized": false,
+    "test_evaluation_access_in_this_pr_authorized": false,
+    "model_modification_in_this_pr_authorized": false,
+    "parameter_modification_in_this_pr_authorized": false,
+    "s4_authorization_in_this_pr_authorized": false,
+    "ci_modification_in_this_pr_authorized": false,
+    "pr_549_modification_authorized": false
+  },
+  "this_pr_scope": {
+    "changed_file_count_expected": 2,
+    "docs_only": true,
+    "live_execution_performed": false
+  }
+}
