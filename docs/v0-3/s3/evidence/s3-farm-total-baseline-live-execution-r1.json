@@ -1,0 +1,157 @@
+{
+  "artifact_identity": {
+    "artifact_id": "V0_3_S3_FARM_TOTAL_BASELINE_LIVE_EXECUTION_R1",
+    "artifact_version": "R1",
+    "task_id": "V0_3_S3_FARM_TOTAL_BASELINE_LIVE_EXECUTION_R1",
+    "task_class": "LIVE_EXECUTION",
+    "authorization_scope": "V0_3_S3_FARM_TOTAL_BASELINE_EVALUATION_PACKAGE_LIVE_EXECUTION_ONLY",
+    "workpaper_path": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-live-execution-r1.md",
+    "evidence_json_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-live-execution-r1.json",
+    "user_execution_gate": "可以执行",
+    "no_step_implies_the_next": true
+  },
+  "execution_authority": {
+    "parent_authorization_pr": 567,
+    "parent_authorization_merge_sha": "090f282ab44e9aee836fc561a429200640b10633",
+    "parent_evaluation_package_pr": 566,
+    "parent_evaluation_package_merge_sha": "80b05d5c033f19d0ded3dc7c983a08f00f50d662",
+    "owner_decision_sha256": "39722ff8e8a520813975cd7270b6453db388633bffee9c90fb12140440431463",
+    "authorization_artifact_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-live-execution-authorization.json",
+    "live_execution_authorized": true,
+    "authority_package_regeneration_performed": false,
+    "live_database_attestation_precheck": "PASS",
+    "previous_empty_isolated_db_reused": false,
+    "runner_changed_after_blocker": false
+  },
+  "repository_identity": {
+    "base_main_sha": "090f282ab44e9aee836fc561a429200640b10633",
+    "execution_main_sha": "090f282ab44e9aee836fc561a429200640b10633",
+    "runner_commit_sha": "bfd6d08aecb7c34ce12dbc2fc198f2a00dbcd6c9",
+    "runner_path": "scripts/run_v03_farm_total_baseline_evaluation_package.py",
+    "execution_status": "PASS"
+  },
+  "source_002_authority": {
+    "governed_live_obtain_function": "backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read_live_obtain.obtain_accepted_s2_train_val_content_bytes_from_bound_live_session",
+    "source_002_live_obtain_performed": true,
+    "official_train_byte_read_performed": true,
+    "official_validation_byte_read_performed": true,
+    "dataset_id": "source-002",
+    "dataset_version": "e5-live-v1",
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "official_train_content_sha256": "be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2",
+    "official_validation_content_sha256": "4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06",
+    "train_source_row_count": 16224,
+    "validation_source_row_count": 8006,
+    "live_database_dataset_id": "source-002",
+    "live_database_dataset_version": "e5-live-v1",
+    "live_database_materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785"
+  },
+  "test_custody": {
+    "test_remains_sealed": true,
+    "test_payload_returned": false,
+    "test_evaluation_access": false,
+    "test_label_access": false,
+    "test_target_construction": false,
+    "test_package_construction": false,
+    "test_scoring": false
+  },
+  "authority_bundle": {
+    "authority_dir_source": "/tmp/v03-farm-total-authority",
+    "farm_group_mapping_set_sha256": "eb013e3e638074945d182c89433096716e771b934855bc0139b9f20ca76c8677",
+    "farm_area_authority_set_sha256": "339d2adebe1b3db6fece4726934191b86dc311be26c481e9d6dc333b4cae1d3f",
+    "authority_mapping_package_file_sha256": "a349f48da71095fffb4a71dc7cbe92d81e04add62c8475601cc4c0eaaf4f56df",
+    "authority_area_package_file_sha256": "c26eb6ebc5bdbd537a0ccec3fe48388b6432cc685ada0763f7b7d765a28f4757"
+  },
+  "farm_total_data_plane": {
+    "materialize_function": "materialize_farm_total_baseline_data_plane",
+    "verify_official_hashes": true,
+    "train_farm_total_row_count": 2663,
+    "validation_farm_total_row_count": 1033,
+    "train_farm_group_count": 31,
+    "validation_farm_group_count": 31,
+    "train_farm_total_dataset_sha256": "08aa2116d700ce00531943fcb00e7ed9b9353ed7821012359838ec027ef7a0e1",
+    "validation_farm_total_dataset_sha256": "351a401fccfeb42758401583ee88a86fb85e9917ca5f3997c62ac3b36f81cac0",
+    "area_double_count_count": 0,
+    "source_farm_double_map_count": 0,
+    "source_actual_double_count": 0,
+    "validation_used_as_training_input": false
+  },
+  "baseline_evaluation_package": {
+    "package_builder": "build_farm_total_baseline_evaluation_package",
+    "package_schema_version": "v0-3-s3-farm-total-baseline-evaluation-package-v1",
+    "live_baseline_execution_performed": true,
+    "live_train_execution_performed": true,
+    "live_validation_target_projection_performed": true,
+    "validation_baseline_materialized": true
+  },
+  "package_diagnostics": {
+    "target_count": 1033,
+    "emitted_point_count": 1033,
+    "blocked_target_count": 0,
+    "ready_target_count": 1033,
+    "insufficient_train_support_target_count": 0,
+    "unseen_group_target_count": 0
+  },
+  "hash_identities": {
+    "estimator_state_sha256": "daf4a0565d910ef0da70f3de1adcbf6507b60c2c77c784d4c2412a416da755c3",
+    "target_identity_set_sha256": "9f268fa082e4dc6e1c83ed47fc32a4b6b202f07e38773d9b5a5967c0c9bfe427",
+    "baseline_point_set_sha256": "5869bbde1c3717c2ee5469976a6cea368c4e5c538063b893c383f244aeaee0a5",
+    "target_outcome_set_sha256": "169033291c46884c587275888b1e6fb83e740b240a74c5a063c4b36291f64d94",
+    "prediction_identity_sha256": "2608b407dc00361cf2cd73e8469ce569591cdb6eacc033e16578d7e1561dbf44",
+    "package_sha256": "f1098fd3ff2559bda9ff311788496bdbbcb6000c335743f2028ffe558e291c37"
+  },
+  "replay": {
+    "live_replay_required": true,
+    "live_replay_count": 2,
+    "live_replay_status": "PASS",
+    "replay_identity_match_result": "PASS"
+  },
+  "publication_boundary": {
+    "real_baseline_predictions_computed_in_memory": true,
+    "real_baseline_point_values_repository_persistence": false,
+    "validation_actual_values_repository_persistence": false,
+    "raw_train_rows_repository_persistence": false,
+    "raw_validation_rows_repository_persistence": false,
+    "persist_baseline_prediction_values_per_target": false,
+    "persist_validation_actual_quantities_per_target": false,
+    "persist_test_bytes": false
+  },
+  "validation_scoring_boundary": {
+    "validation_baseline_scored": false,
+    "validation_scoring_performed": false,
+    "s3_c_backtest_execution_performed": false,
+    "s3_metric_execution_performed": false,
+    "mae_calculation_performed": false,
+    "wape_calculation_performed": false,
+    "smape_calculation_performed": false,
+    "mape_calculation_performed": false,
+    "bias_calculation_performed": false,
+    "coverage_calculation_performed": false,
+    "baseline_vs_incumbent_difference_performed": false,
+    "improvement_percentage_performed": false,
+    "pass_fail_superiority_performed": false
+  },
+  "model_boundary": {
+    "model_change": false,
+    "parameter_change": false,
+    "v0_3_s4_authorized": false
+  },
+  "test_boundary": {
+    "test_evaluation_access": false,
+    "test_payload_returned": false,
+    "test_remains_sealed": true
+  },
+  "prohibitions": {
+    "validation_scoring": false,
+    "s3_metric_execution": false,
+    "s3_c_backtest_execution": false,
+    "test_evaluation_access": false,
+    "model_change": false,
+    "parameter_change": false,
+    "migration_change": false,
+    "schema_change": false,
+    "v0_3_s4_authorized": false,
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE"
+  }
+}
