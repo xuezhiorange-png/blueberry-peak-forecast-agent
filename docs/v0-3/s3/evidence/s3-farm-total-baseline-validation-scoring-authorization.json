@@ -1,0 +1,463 @@
+{
+  "artifact_identity": {
+    "artifact_id": "V0_3_S3_FARM_TOTAL_BASELINE_VALIDATION_SCORING_AUTHORIZATION",
+    "artifact_version": "R1",
+    "authorization_scope": "V0_3_S3_FARM_TOTAL_BASELINE_VALIDATION_SCORING_ONLY",
+    "contract_and_authorization_in_one_pr": true,
+    "evidence_json_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-validation-scoring-authorization.json",
+    "task_class": "DOCS_ONLY_SCORING_CONTRACT_AND_AUTHORIZATION",
+    "task_id": "V0_3_S3_FARM_TOTAL_BASELINE_VALIDATION_SCORING_CONTRACT_AND_AUTHORIZATION_R1",
+    "user_gate": "可以",
+    "workpaper_path": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-validation-scoring-authorization.md"
+  },
+  "parent_authority": {
+    "base_main_sha": "80298b85c4250f1e0c8a6660c2eeb8f670d4f1eb",
+    "live_execution_pr": 568,
+    "live_execution_merge_sha": "80298b85c4250f1e0c8a6660c2eeb8f670d4f1eb",
+    "live_execution_evidence_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-live-execution-r1.json",
+    "baseline_evaluation_package_module": "backend/app/forecast_quality/farm_total_baseline_evaluation_package.py",
+    "owner_decision_binding": "docs/v0-3/s3/s3-farm-total-baseline-estimator-owner-decision-binding.md",
+    "owner_decision_sha256": "39722ff8e8a520813975cd7270b6453db388633bffee9c90fb12140440431463"
+  },
+  "accepted_parent_state": {
+    "current_main_sha": "80298b85c4250f1e0c8a6660c2eeb8f670d4f1eb",
+    "live_baseline_execution_performed": true,
+    "validation_baseline_materialized": true,
+    "live_replay_status": "PASS",
+    "validation_baseline_scored": false,
+    "test_remains_sealed": true,
+    "source_002_dataset_id": "source-002",
+    "source_002_dataset_version": "e5-live-v1",
+    "source_002_materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "official_train_content_sha256": "be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2",
+    "official_validation_content_sha256": "4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06",
+    "train_farm_total_dataset_sha256": "08aa2116d700ce00531943fcb00e7ed9b9353ed7821012359838ec027ef7a0e1",
+    "validation_farm_total_dataset_sha256": "351a401fccfeb42758401583ee88a86fb85e9917ca5f3997c62ac3b36f81cac0",
+    "estimator_state_sha256": "daf4a0565d910ef0da70f3de1adcbf6507b60c2c77c784d4c2412a416da755c3",
+    "target_identity_set_sha256": "9f268fa082e4dc6e1c83ed47fc32a4b6b202f07e38773d9b5a5967c0c9bfe427",
+    "baseline_point_set_sha256": "5869bbde1c3717c2ee5469976a6cea368c4e5c538063b893c383f244aeaee0a5",
+    "target_outcome_set_sha256": "169033291c46884c587275888b1e6fb83e740b240a74c5a063c4b36291f64d94",
+    "prediction_identity_sha256": "2608b407dc00361cf2cd73e8469ce569591cdb6eacc033e16578d7e1561dbf44",
+    "package_sha256": "f1098fd3ff2559bda9ff311788496bdbbcb6000c335743f2028ffe558e291c37",
+    "target_count": 1033,
+    "emitted_point_count": 1033,
+    "blocked_target_count": 0,
+    "ready_target_count": 1033
+  },
+  "scoring_grant": {
+    "authorization_merge_does_not_execute_scoring": true,
+    "authorization_merge_does_not_read_official_validation_actuals": true,
+    "authorization_merge_does_not_compute_metrics": true,
+    "execution_requires_separate_user_gate": "可以执行评分",
+    "farm_total_baseline_metric_execution_authorized": true,
+    "farm_total_baseline_metric_execution_implies_s3_metric_execution_authorized": false,
+    "future_live_scoring_runner_implementation_authorized": true,
+    "future_scoring_implementation_authorized": true,
+    "live_scoring_evidence_authorized": true,
+    "live_scoring_performed": false,
+    "live_scoring_replay_authorized": true,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "official_validation_actual_use_for_scoring_authorized": true,
+    "ready_authorized": false,
+    "validation_baseline_scored": false,
+    "v0_3_s3_farm_total_baseline_validation_scoring_authorization_authorized": true,
+    "v0_3_s3_farm_total_baseline_validation_scoring_contract_authorized": true
+  },
+  "scoring_input_contract": {
+    "evaluation_package_type": "FarmTotalBaselineEvaluationPackage",
+    "validation_dataset_type": "FarmTotalValidationDataset",
+    "future_public_api": "score_farm_total_baseline_validation(evaluation_package, validation_dataset)",
+    "rebuild_baseline_estimator_authorized": false,
+    "recalculate_train_medians_independently_authorized": false,
+    "reproject_baseline_points_independently_authorized": false,
+    "load_different_validation_dataset_authorized": false,
+    "discover_actuals_from_another_source_authorized": false,
+    "db_join_authorized": false,
+    "test_read_authorized": false,
+    "incumbent_forecast_load_authorized": false,
+    "required_dataset_binding": {
+      "validation_dataset_partition_sha256_must_equal_evaluation_package_validation_dataset_sha256": true,
+      "validation_target_identity_set_must_equal_package_target_identity_set": true
+    },
+    "target_identity": [
+      "season_business_key",
+      "baseline_farm_group_key",
+      "harvest_business_date"
+    ],
+    "forbidden_association_modes": [
+      "positional_zip",
+      "row_order_association",
+      "latest_fallback",
+      "target_date_only_association",
+      "source_farm_level_association",
+      "area_based_association"
+    ]
+  },
+  "scoring_grain": {
+    "scoring_target_grain": "SEASON_X_BASELINE_FARM_GROUP_X_HARVEST_BUSINESS_DATE",
+    "scoring_result_grain": "ONE_RESULT_PACKAGE_PER_FARM_TOTAL_VALIDATION_EVALUATION_PACKAGE",
+    "per_farm_group_score_publication_authorized": false,
+    "per_day_score_publication_authorized": false,
+    "per_target_error_publication_authorized": false,
+    "per_source_farm_score_publication_authorized": false
+  },
+  "ready_target_policy": {
+    "comparable_target_definition": "READY AND EXACT_BASELINE_POINT_PRESENT AND EXACT_VALIDATION_ACTUAL_PRESENT",
+    "structural_fail_closed_on_ready_missing_point_or_actual": true,
+    "do_not_silently_drop_ready_target": true,
+    "do_not_convert_structural_invalidity_to_ordinary_blocked_target": true
+  },
+  "blocked_target_policy": {
+    "package_outcomes_authoritative": true,
+    "known_non_ready_classes": [
+      "INSUFFICIENT_TRAIN_SUPPORT",
+      "UNSEEN_GROUP"
+    ],
+    "blocked_targets_remain_in_target_count": true,
+    "blocked_targets_remain_in_diagnostic_counters": true,
+    "blocked_targets_excluded_from_numeric_metric_arithmetic": true,
+    "blocked_targets_not_treated_as_zero_baseline": true,
+    "blocked_targets_not_treated_as_zero_actual": true,
+    "target_count_closure": "TARGET_COUNT = COMPARABLE_TARGET_COUNT + BLOCKED_TARGET_COUNT",
+    "comparable_count_equals_ready_count_required": true
+  },
+  "missing_actual_policy": {
+    "missing_day_policy": "UNKNOWN_NOT_ZERO",
+    "missing_actual_treated_as_zero": false,
+    "numeric_imputation_allowed": false,
+    "zero_fill_authorized": false,
+    "ready_target_missing_actual_is_structural_invalidity": true
+  },
+  "metric_family": {
+    "farm_total_baseline_mae_authorized": true,
+    "farm_total_baseline_wape_authorized": true,
+    "farm_total_baseline_smape_authorized": true,
+    "farm_total_baseline_mape_authorized": false,
+    "farm_total_baseline_bias_authorized": false,
+    "farm_total_baseline_relative_bias_authorized": false,
+    "farm_total_baseline_coverage_authorized": false,
+    "farm_total_baseline_peak_metric_authorized": false,
+    "farm_total_baseline_cumulative_metric_authorized": false,
+    "farm_total_baseline_quantile_metric_authorized": false,
+    "baseline_vs_incumbent_comparison_authorized": false
+  },
+  "metric_formulas": {
+    "decimal_only": true,
+    "native_float_accumulation_forbidden": true,
+    "decimal_quantum": "0.000001",
+    "rounding": "ROUND_HALF_EVEN",
+    "mae_formula": "sum(absolute_error_i) / N",
+    "mae_not_computable_when": "N = 0",
+    "wape_formula": "sum(absolute_error_i) / sum(actual_i)",
+    "wape_not_computable_when": "sum(actual_i) = 0",
+    "smape_term_zero_zero": "0",
+    "smape_term_nonzero": "2 * abs(prediction_i - actual_i) / (abs(prediction_i) + abs(actual_i))",
+    "smape_formula": "sum(smape_term_i) / N",
+    "smape_not_computable_when": "N = 0"
+  },
+  "metric_status_contract": {
+    "required_fields_per_metric": [
+      "metric_name",
+      "metric_value",
+      "metric_status",
+      "reason_code",
+      "numerator",
+      "denominator"
+    ],
+    "status_family": [
+      "COMPUTED",
+      "NOT_COMPUTABLE"
+    ],
+    "reason_codes_minimum": [
+      "NONE",
+      "NO_COMPARABLE_TARGETS",
+      "WAPE_DENOMINATOR_ZERO"
+    ],
+    "absent_metric_not_published_as_zero": true,
+    "pass_fail_superiority_semantics_authorized": false,
+    "business_acceptance_threshold_authorized": false
+  },
+  "future_scoring_package": {
+    "metric_cell_type": "FarmTotalBaselineValidationMetricCell",
+    "diagnostics_type": "FarmTotalBaselineValidationScoreDiagnostics",
+    "package_type": "FarmTotalBaselineValidationScorePackage",
+    "required_diagnostics": [
+      "target_count",
+      "comparable_target_count",
+      "blocked_target_count",
+      "ready_target_count",
+      "insufficient_train_support_target_count",
+      "unseen_group_target_count"
+    ],
+    "metric_cells": [
+      "MAE",
+      "WAPE",
+      "SMAPE"
+    ]
+  },
+  "hash_identities": {
+    "scoring_target_actual_set_sha256_required": true,
+    "scoring_input_sha256_required": true,
+    "metric_result_set_sha256_required": true,
+    "score_package_sha256_required": true,
+    "scoring_target_actual_set_semantics": "canonical ordered set of target identity plus exact validation actual value",
+    "scoring_input_semantics": [
+      "score_schema_version",
+      "evaluation_package_sha256",
+      "validation_farm_total_dataset_sha256",
+      "target_identity_set_sha256",
+      "baseline_point_set_sha256",
+      "target_outcome_set_sha256",
+      "scoring_target_actual_set_sha256",
+      "target_comparable_blocked_counters",
+      "metric_policy_version"
+    ],
+    "metric_result_set_semantics": "exact three ordered metric cells with name, value/null, status, reason, numerator/null, denominator/null",
+    "score_package_semantics": "all upstream scoring identities, score diagnostics, metric result set hash"
+  },
+  "canonicalization": {
+    "canonical_json_bytes_module": "backend.app.forecast_quality.canonical.canonical_json_bytes",
+    "decimal_emission_helpers_required": true,
+    "native_float_forbidden": true,
+    "independent_ad_hoc_json_serializer_forbidden": true,
+    "deterministic_ordering_independent_of_input_row_order": true
+  },
+  "publication_boundary": {
+    "in_memory_computation_of_real_values_authorized": true,
+    "repository_may_persist_aggregate_metric_values": true,
+    "repository_may_persist_aggregate_numerators_denominators": true,
+    "repository_may_persist_counts_and_hashes": true,
+    "persist_per_target_baseline_point_forbidden": true,
+    "persist_per_target_validation_actual_forbidden": true,
+    "persist_per_target_error_forbidden": true,
+    "persist_per_target_absolute_error_forbidden": true,
+    "persist_full_scoring_pair_list_forbidden": true,
+    "persist_raw_train_rows_forbidden": true,
+    "persist_raw_validation_rows_forbidden": true,
+    "persist_test_bytes_forbidden": true
+  },
+  "test_custody": {
+    "test_evaluation_access_authorized": false,
+    "test_label_access_authorized": false,
+    "test_target_construction_authorized": false,
+    "test_scoring_authorized": false,
+    "test_payload_returned": false,
+    "test_remains_sealed": true,
+    "sealed_test_custody_verification_via_existing_reader_authorized": true,
+    "custody_verification_is_not_test_evaluation_authorization": true
+  },
+  "incumbent_comparison_boundary": {
+    "baseline_vs_incumbent_comparison_authorized": false,
+    "round_c_comparison_execution_authorized": false,
+    "incumbent_forecast_loading_authorized": false,
+    "incumbent_scoring_authorized": false,
+    "comparison_py_execution_authorized": false,
+    "daily_mae_delta_authorized": false,
+    "daily_wape_delta_authorized": false,
+    "daily_smape_delta_authorized": false,
+    "improvement_percentage_authorized": false,
+    "superiority_pass_fail_authorized": false
+  },
+  "s3_global_metric_boundary": {
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "farm_total_baseline_metric_execution_implies_s3_metric_execution": false,
+    "local_grant_is_not_global_s3_metric_grant": true
+  },
+  "complete_rowset_metric_boundary": {
+    "single_day_peak_metric_authorized": false,
+    "sustained_peak_metric_authorized": false,
+    "season_cumulative_metric_authorized": false,
+    "complete_horizon_metric_authorized": false
+  },
+  "quantile_boundary": {
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE",
+    "baseline_output_distribution_authorized": false,
+    "baseline_quantile_scoring_authorized": false,
+    "interval_coverage_authorized": false,
+    "p80_p90_scoring_authorized": false,
+    "pinball_loss_authorized": false
+  },
+  "future_authorized_paths": {
+    "existing_file_mutation_authorized": false,
+    "future_changed_file_count": 5,
+    "scorer_module": "backend/app/forecast_quality/farm_total_baseline_validation_scoring.py",
+    "scorer_tests": "backend/tests/forecast_quality/test_farm_total_baseline_validation_scoring.py",
+    "live_scoring_runner": "scripts/run_v03_farm_total_baseline_validation_scoring.py",
+    "live_scoring_workpaper": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-validation-scoring-r1.md",
+    "live_scoring_evidence": "docs/v0-3/s3/evidence/s3-farm-total-baseline-validation-scoring-r1.json",
+    "future_task_combines_implementation_tests_live_replay_evidence": true,
+    "future_task_split_authorized": false,
+    "forbidden_existing_mutations": [
+      "backend/app/forecast_quality/farm_total_baseline_estimator.py",
+      "backend/app/forecast_quality/farm_total_baseline_evaluation_package.py",
+      "backend/app/forecast_quality/farm_total_data_plane.py",
+      "backend/app/forecast_quality/calculator_daily.py",
+      "backend/app/forecast_quality/comparison.py",
+      "backend/app/forecast_quality/persistence.py",
+      "backend/app/forecast_quality/schemas.py",
+      "backend/app/forecast_quality/enums.py",
+      "migrations"
+    ]
+  },
+  "future_live_scoring_input_reconstruction": {
+    "governed_chain_required": true,
+    "steps": [
+      "official SOURCE-002 TRAIN/VALIDATION obtain",
+      "reviewed authority bundle",
+      "materialize_farm_total_baseline_data_plane(verify_official_hashes=True)",
+      "build_farm_total_baseline_evaluation_package(...)"
+    ],
+    "r1_official_replay_package_sha256": "f1098fd3ff2559bda9ff311788496bdbbcb6000c335743f2028ffe558e291c37",
+    "fail_closed_on_package_identity_mismatch": true
+  },
+  "future_live_replay": {
+    "live_scoring_replay_required": true,
+    "live_scoring_replay_count": 2,
+    "live_scoring_replay_identity_match_required": true,
+    "replay_inputs_must_match": [
+      "runner_commit",
+      "source_002_identity",
+      "authority_packages",
+      "baseline_evaluation_package_identity",
+      "validation_dataset_identity"
+    ],
+    "replay_equalities_required": [
+      "PACKAGE_SHA256",
+      "SCORING_TARGET_ACTUAL_SET_SHA256",
+      "SCORING_INPUT_SHA256",
+      "METRIC_RESULT_SET_SHA256",
+      "SCORE_PACKAGE_SHA256",
+      "TARGET_COUNT",
+      "COMPARABLE_TARGET_COUNT",
+      "BLOCKED_TARGET_COUNT",
+      "READY_TARGET_COUNT",
+      "INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT",
+      "UNSEEN_GROUP_TARGET_COUNT",
+      "MAE_VALUE",
+      "MAE_STATUS",
+      "MAE_REASON_CODE",
+      "WAPE_VALUE",
+      "WAPE_STATUS",
+      "WAPE_REASON_CODE",
+      "SMAPE_VALUE",
+      "SMAPE_STATUS",
+      "SMAPE_REASON_CODE"
+    ],
+    "replay_failure_live_scoring_status": "BLOCKED",
+    "replay_failure_live_scoring_replay_status": "FAIL",
+    "publish_pass_execution_artifact_on_replay_failure_authorized": false
+  },
+  "future_test_requirements": {
+    "minimum_test_themes": 34,
+    "synthetic_in_memory_only": true,
+    "themes": [
+      "exact_package_validation_dataset_hash_binding",
+      "row_order_invariance",
+      "exact_target_key_pairing",
+      "duplicate_validation_target_fail_closed",
+      "missing_ready_actual_fail_closed",
+      "missing_ready_baseline_point_fail_closed",
+      "blocked_targets_excluded_from_arithmetic_but_retained_in_counters",
+      "target_count_closure",
+      "comparable_count_equals_ready_count",
+      "mae_hand_computed_example",
+      "wape_hand_computed_example",
+      "smape_hand_computed_example",
+      "smape_zero_zero_term_equals_zero",
+      "zero_comparable_targets_metrics_not_computable",
+      "wape_zero_denominator_not_computable",
+      "decimal_only_arithmetic",
+      "native_float_rejected_or_not_used",
+      "deterministic_target_actual_set_hash",
+      "deterministic_scoring_input_hash",
+      "deterministic_metric_result_set_hash",
+      "deterministic_score_package_hash",
+      "validation_actual_perturbation_changes_scoring_hashes_and_results",
+      "baseline_point_perturbation_changes_scoring_hashes_and_results",
+      "train_only_unrelated_mutation_cannot_alter_validation_target_actual_set_identity",
+      "no_per_target_values_in_repository_evidence_payload",
+      "no_test_access",
+      "no_incumbent_import_or_use",
+      "no_comparison_result_fields",
+      "no_mape",
+      "no_bias",
+      "no_coverage",
+      "no_p80_p90",
+      "no_peak_or_cumulative_metrics",
+      "fail_closed_behavior_deterministic"
+    ]
+  },
+  "future_execution_evidence_contract": {
+    "required_fields": [
+      "EXECUTION_MAIN_SHA",
+      "SCORING_RUNNER_COMMIT_SHA",
+      "SOURCE_002_DATASET_ID",
+      "SOURCE_002_DATASET_VERSION",
+      "SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256",
+      "OFFICIAL_TRAIN_CONTENT_SHA256",
+      "OFFICIAL_VALIDATION_CONTENT_SHA256",
+      "FARM_GROUP_MAPPING_SET_SHA256",
+      "FARM_AREA_AUTHORITY_SET_SHA256",
+      "TRAIN_FARM_TOTAL_DATASET_SHA256",
+      "VALIDATION_FARM_TOTAL_DATASET_SHA256",
+      "BASELINE_EVALUATION_PACKAGE_SHA256",
+      "TARGET_IDENTITY_SET_SHA256",
+      "BASELINE_POINT_SET_SHA256",
+      "TARGET_OUTCOME_SET_SHA256",
+      "SCORING_TARGET_ACTUAL_SET_SHA256",
+      "SCORING_INPUT_SHA256",
+      "METRIC_RESULT_SET_SHA256",
+      "SCORE_PACKAGE_SHA256",
+      "TARGET_COUNT",
+      "COMPARABLE_TARGET_COUNT",
+      "BLOCKED_TARGET_COUNT",
+      "READY_TARGET_COUNT",
+      "INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT",
+      "UNSEEN_GROUP_TARGET_COUNT",
+      "MAE_VALUE",
+      "MAE_STATUS",
+      "MAE_REASON_CODE",
+      "WAPE_VALUE",
+      "WAPE_STATUS",
+      "WAPE_REASON_CODE",
+      "SMAPE_VALUE",
+      "SMAPE_STATUS",
+      "SMAPE_REASON_CODE",
+      "LIVE_SCORING_REPLAY_COUNT",
+      "LIVE_SCORING_REPLAY_STATUS",
+      "TEST_REMAINS_SEALED",
+      "VALIDATION_BASELINE_SCORED"
+    ],
+    "per_target_values_forbidden": true
+  },
+  "model_boundary": {
+    "model_change": false,
+    "parameter_change": false,
+    "migration_change": false,
+    "schema_change": false,
+    "v0_3_s4_authorized": false
+  },
+  "prohibitions": {
+    "scoring_implementation_in_this_pr_authorized": false,
+    "scoring_execution_in_this_pr_authorized": false,
+    "official_validation_actual_read_in_this_pr_authorized": false,
+    "live_db_connection_in_this_pr_authorized": false,
+    "metric_value_computation_in_this_pr_authorized": false,
+    "test_access_in_this_pr_authorized": false,
+    "incumbent_forecast_access_in_this_pr_authorized": false,
+    "comparison_execution_in_this_pr_authorized": false,
+    "s3_c_execution_in_this_pr_authorized": false,
+    "s4_authorization_in_this_pr_authorized": false,
+    "existing_file_modification_in_this_pr_authorized": false,
+    "python_creation_in_this_pr_authorized": false
+  },
+  "this_pr_scope": {
+    "changed_file_count_expected": 2,
+    "docs_only": true,
+    "live_scoring_performed": false,
+    "validation_baseline_scored": false
+  }
+}
