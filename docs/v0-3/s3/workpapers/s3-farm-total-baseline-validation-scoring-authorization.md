@@ -37,6 +37,13 @@ SCORING_EXECUTION_REQUIRES_SEPARATE_USER_GATE=可以执行评分
 LIVE_SCORING_PERFORMED=false
 VALIDATION_BASELINE_SCORED=false
 
+VALIDATION_ACTUAL_FINITE_DECIMAL_REQUIRED=true
+VALIDATION_ACTUAL_NONNEGATIVE_PRECONDITION_REQUIRED=true
+NEGATIVE_VALIDATION_ACTUAL_BLOCKER=NEGATIVE_VALIDATION_ACTUAL
+NEGATIVE_VALIDATION_ACTUAL_ACTION=STRUCTURAL_FAIL_CLOSED
+NEGATIVE_VALIDATION_ACTUAL_IS_NOT_ZERO=true
+UPSTREAM_NONNEGATIVE_GUARANTEE_CLAIMED=false
+
 FARM_TOTAL_BASELINE_MAE_AUTHORIZED=true
 FARM_TOTAL_BASELINE_WAPE_AUTHORIZED=true
 FARM_TOTAL_BASELINE_SMAPE_AUTHORIZED=true
@@ -292,6 +299,31 @@ ZERO_FILL_AUTHORIZED=false
 For an existing READY target, a missing actual is structural invalidity for this
 scoring package, not a zero.
 
+### Validation actual domain and scorer-local precondition
+
+The S2/Farm-total production path does not itself establish a nonnegative
+guarantee for `MaterializableRow.actual_harvest_quantity_kg`. This R1 contract
+therefore freezes the validation at the scorer boundary:
+
+```text
+VALIDATION_ACTUAL_FINITE_DECIMAL_REQUIRED=true
+VALIDATION_ACTUAL_NONNEGATIVE_PRECONDITION_REQUIRED=true
+NEGATIVE_VALIDATION_ACTUAL_BLOCKER=NEGATIVE_VALIDATION_ACTUAL
+NEGATIVE_VALIDATION_ACTUAL_ACTION=STRUCTURAL_FAIL_CLOSED
+NEGATIVE_VALIDATION_ACTUAL_IS_NOT_ZERO=true
+UPSTREAM_NONNEGATIVE_GUARANTEE_CLAIMED=false
+```
+
+Before any MAE/WAPE/sMAPE arithmetic, every comparable VALIDATION actual must:
+
+1. be a finite `Decimal`
+2. satisfy `actual_i >= 0`
+
+If any comparable target has `actual_i < 0`, the complete score package must
+fail closed with blocker `NEGATIVE_VALIDATION_ACTUAL`. Do not abs-transform the
+negative actual, zero-fill it, silently omit it, convert it to `BLOCKED`, or
+continue scoring the remaining targets.
+
 ## 9. Allowed metric family — exactly three
 
 | Metric | Authorized |
@@ -317,6 +349,10 @@ All numeric arithmetic:
 - `DECIMAL_QUANTUM=0.000001`
 - `ROUNDING=ROUND_HALF_EVEN`
 
+R1 scoring first requires every comparable VALIDATION actual to pass the
+scorer-local finite-Decimal and nonnegative precondition. Only after that
+precondition passes may MAE/WAPE/sMAPE arithmetic begin.
+
 For each comparable target `i`:
 
 ```text
@@ -341,8 +377,9 @@ MAE = sum(absolute_error_i) / N
 WAPE = sum(absolute_error_i) / sum(actual_i)
 ```
 
-Because harvest actuals are governed non-negative quantities, use the governed
-actual kg directly.
+R1 scoring first requires every comparable VALIDATION actual to pass the
+scorer-local finite-Decimal and nonnegative precondition. After that
+precondition passes, WAPE uses the governed actual kg values directly.
 
 `WAPE` is `NOT_COMPUTABLE` when `sum(actual_i) = 0`. Do not substitute another
 denominator.
@@ -406,6 +443,16 @@ Required score diagnostics:
 - `ready_target_count`
 - `insufficient_train_support_target_count`
 - `unseen_group_target_count`
+- `negative_validation_actual_count`
+
+Successful score package:
+
+```text
+NEGATIVE_VALIDATION_ACTUAL_COUNT=0
+```
+
+If `NEGATIVE_VALIDATION_ACTUAL_COUNT > 0`, the complete score package must fail
+closed and no successful score package may be emitted.
 
 Metric cells exactly: `MAE`, `WAPE`, `SMAPE`.
 
@@ -617,6 +664,7 @@ Require equality at minimum:
 - `READY_TARGET_COUNT`
 - `INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT`
 - `UNSEEN_GROUP_TARGET_COUNT`
+- `NEGATIVE_VALIDATION_ACTUAL_COUNT`
 - MAE metric value/status/reason
 - WAPE metric value/status/reason
 - SMAPE metric value/status/reason
@@ -632,42 +680,49 @@ No PASS evidence.
 
 ## 25. Future test requirements
 
-Minimum test themes (34):
+MINIMUM_TEST_THEMES=35
+
+Minimum test themes (35):
 
 1. exact package/validation dataset hash binding
 2. row-order invariance
 3. exact target-key pairing
 4. duplicate validation target fail closed
 5. missing READY actual fail closed
-6. missing READY baseline point fail closed
-7. blocked targets excluded from arithmetic but retained in counters
-8. target count closure
-9. comparable count equals READY count
-10. MAE hand-computed example
-11. WAPE hand-computed example
-12. sMAPE hand-computed example
-13. sMAPE zero/zero term equals zero
-14. zero comparable targets => metrics NOT_COMPUTABLE
-15. WAPE zero denominator => WAPE NOT_COMPUTABLE
-16. Decimal-only arithmetic
-17. native float rejected/not used
-18. deterministic target-actual-set hash
-19. deterministic scoring-input hash
-20. deterministic metric-result-set hash
-21. deterministic score-package hash
-22. validation actual perturbation changes scoring hashes/results
-23. baseline point perturbation changes scoring hashes/results
-24. TRAIN-only unrelated mutation cannot directly alter validation target actual set identity
-25. no per-target values serialized into repository evidence payload
-26. no TEST access
-27. no incumbent import/use
-28. no comparison result fields
-29. no MAPE
-30. no bias
-31. no coverage
-32. no P80/P90
-33. no peak/cumulative metrics
-34. fail-closed behavior deterministic
+6. negative_validation_actual_fail_closed
+7. missing READY baseline point fail closed
+8. blocked targets excluded from arithmetic but retained in counters
+9. target count closure
+10. comparable count equals READY count
+11. MAE hand-computed example
+12. WAPE hand-computed example
+13. sMAPE hand-computed example
+14. sMAPE zero/zero term equals zero
+15. zero comparable targets => metrics NOT_COMPUTABLE
+16. WAPE zero denominator => WAPE NOT_COMPUTABLE
+17. Decimal-only arithmetic
+18. native float rejected/not used
+19. deterministic target-actual-set hash
+20. deterministic scoring-input hash
+21. deterministic metric-result-set hash
+22. deterministic score-package hash
+23. validation actual perturbation changes scoring hashes/results
+24. baseline point perturbation changes scoring hashes/results
+25. TRAIN-only unrelated mutation cannot directly alter validation target actual set identity
+26. no per-target values serialized into repository evidence payload
+27. no TEST access
+28. no incumbent import/use
+29. no comparison result fields
+30. no MAPE
+31. no bias
+32. no coverage
+33. no P80/P90
+34. no peak/cumulative metrics
+35. fail-closed behavior deterministic
+
+Required negative-actual behavior: one negative comparable VALIDATION actual must
+cause structural fail closed, emit no successful metric package, and must not be
+abs-transformed, silently omitted, or zero-filled.
 
 ## 26. Future execution evidence fields
 
@@ -676,8 +731,18 @@ Future live evidence must include at minimum:
 `EXECUTION_MAIN_SHA`, `SCORING_RUNNER_COMMIT_SHA`, SOURCE-002 identities,
 authority hashes, baseline evaluation package hashes, scoring hash layers,
 target/comparable/blocked counters, MAE/WAPE/SMAPE value/status/reason,
-`LIVE_SCORING_REPLAY_COUNT`, `LIVE_SCORING_REPLAY_STATUS`, `TEST_REMAINS_SEALED`,
+`NEGATIVE_VALIDATION_ACTUAL_COUNT`, `LIVE_SCORING_REPLAY_COUNT`,
+`LIVE_SCORING_REPLAY_STATUS`, `TEST_REMAINS_SEALED`,
 `VALIDATION_BASELINE_SCORED=true`.
+
+Successful official scoring requires:
+
+```text
+NEGATIVE_VALIDATION_ACTUAL_COUNT=0
+```
+
+If `NEGATIVE_VALIDATION_ACTUAL_COUNT > 0`, no successful score package or PASS
+execution evidence may be emitted.
 
 No per-target values.
 
