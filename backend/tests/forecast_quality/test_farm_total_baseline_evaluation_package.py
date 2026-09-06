@@ -491,7 +491,10 @@ def test_no_missing_date_synthesis() -> None:
 # C. VALIDATION LEAKAGE
 
 
-def _leakage_pair() -> tuple[FarmTotalBaselineEvaluationPackage, FarmTotalBaselineEvaluationPackage]:
+def _leakage_pair() -> tuple[
+    FarmTotalBaselineEvaluationPackage,
+    FarmTotalBaselineEvaluationPackage,
+]:
     train_rows = _five_train_rows(
         "g1",
         (Decimal("10"), Decimal("20"), Decimal("30"), Decimal("40"), Decimal("50")),
@@ -632,18 +635,35 @@ def test_changing_train_actual_quantities_changes_prediction_identity_sha256() -
 
 
 def test_changing_train_area_mu_only_does_not_alter_baseline_points() -> None:
-    train_rows = tuple(
+    quantities = (
+        Decimal("10"),
+        Decimal("20"),
+        Decimal("30"),
+        Decimal("40"),
+        Decimal("50"),
+    )
+    train_rows_a = tuple(
         _synthetic_row(
             group="g1",
             harvest_date=date(2025, 9, index + 1),
             quantity_kg=quantity,
-            area_mu=Decimal(str((index + 1) * 100)),
+            area_mu=Decimal("100.0"),
             partition="TRAIN",
         )
-        for index, quantity in enumerate(
-            (Decimal("10"), Decimal("20"), Decimal("30"), Decimal("40"), Decimal("50"))
-        )
+        for index, quantity in enumerate(quantities)
     )
+    train_rows_b = tuple(
+        _synthetic_row(
+            group="g1",
+            harvest_date=date(2025, 9, index + 1),
+            quantity_kg=quantity,
+            area_mu=Decimal(str((index + 1) * 1000)),
+            partition="TRAIN",
+        )
+        for index, quantity in enumerate(quantities)
+    )
+    assert train_rows_a[0].area_mu != train_rows_b[0].area_mu
+    assert train_rows_a[0].actual_harvest_kg_per_mu != train_rows_b[0].actual_harvest_kg_per_mu
     validation_rows = (
         _synthetic_row(
             group="g1",
@@ -651,9 +671,26 @@ def test_changing_train_area_mu_only_does_not_alter_baseline_points() -> None:
             quantity_kg=Decimal("1"),
             partition="VALIDATION",
         ),
+        _synthetic_row(
+            group="g1",
+            harvest_date=date(2025, 9, 2),
+            quantity_kg=Decimal("2"),
+            partition="VALIDATION",
+        ),
     )
-    package = _build_package(train_rows, validation_rows)
-    assert package.projection_result.points[0].baseline_harvest_quantity_kg == Decimal("30")
+    fixed_train_sha = "fixed-train-sha-area-invariance"
+    package_a = build_farm_total_baseline_evaluation_package(
+        train_dataset=_train_dataset(train_rows_a, dataset_sha256=fixed_train_sha),
+        validation_dataset=_validation_dataset(validation_rows),
+    )
+    package_b = build_farm_total_baseline_evaluation_package(
+        train_dataset=_train_dataset(train_rows_b, dataset_sha256=fixed_train_sha),
+        validation_dataset=_validation_dataset(validation_rows),
+    )
+    assert package_a.projection_result.points == package_b.projection_result.points
+    assert package_a.estimator_state == package_b.estimator_state
+    assert package_a.estimator_state_sha256 == package_b.estimator_state_sha256
+    assert package_a.baseline_point_set_sha256 == package_b.baseline_point_set_sha256
 
 
 # E. HASH / REPLAY
@@ -763,14 +800,21 @@ def test_row_order_permutation_with_fixed_provenance_does_not_change_semantics()
         train_dataset_sha256=fixed_train_sha,
         validation_dataset_sha256=fixed_validation_sha,
     )
+    shuffled_train = (train_rows[4], train_rows[2], train_rows[0], train_rows[3], train_rows[1])
     shuffled_validation = (validation_rows[1], validation_rows[0])
     package_b = _build_package(
-        train_rows,
+        shuffled_train,
         shuffled_validation,
         train_dataset_sha256=fixed_train_sha,
         validation_dataset_sha256=fixed_validation_sha,
     )
     assert package_a.target_keys == package_b.target_keys
+    assert package_a.estimator_state == package_b.estimator_state
+    assert package_a.projection_result == package_b.projection_result
+    assert package_a.estimator_state_sha256 == package_b.estimator_state_sha256
+    assert package_a.target_identity_set_sha256 == package_b.target_identity_set_sha256
+    assert package_a.baseline_point_set_sha256 == package_b.baseline_point_set_sha256
+    assert package_a.target_outcome_set_sha256 == package_b.target_outcome_set_sha256
     assert package_a.prediction_identity_sha256 == package_b.prediction_identity_sha256
     assert package_a.package_sha256 == package_b.package_sha256
 
