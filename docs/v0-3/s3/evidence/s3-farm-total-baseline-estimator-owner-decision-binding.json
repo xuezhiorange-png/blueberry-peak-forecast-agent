@@ -22,11 +22,14 @@
   "estimator_semantic_normalization": {
     "area_mu_used_in_estimator": false,
     "cross_group_pooling": false,
+    "derived_semantic_normalization": true,
     "fail_closed_when_support_below_min": true,
     "median_even_count_rule": "ARITHMETIC_MEAN_OF_TWO_MIDDLE_ORDERED_VALUES",
     "median_odd_count_rule": "MIDDLE_ORDERED_VALUE",
     "min_train_support": 5,
     "min_train_support_unit": "DISTINCT_VALID_TRAIN_HARVEST_DAYS_PER_BASELINE_FARM_GROUP",
+    "min_train_support_unit_class": "DERIVED_SEMANTIC_NORMALIZATION",
+    "min_train_support_unit_derived_from": "MIN_TRAIN_SUPPORT",
     "output_grain": [
       "baseline_farm_group_key",
       "harvest_business_date"
@@ -134,7 +137,6 @@
     "BASELINE_ESTIMATOR_FAMILY": "GROUP_SPECIFIC_HISTORICAL_STATISTIC",
     "COLD_START_POLICY": "FAIL_CLOSED",
     "MIN_TRAIN_SUPPORT": 5,
-    "MIN_TRAIN_SUPPORT_UNIT": "DISTINCT_VALID_TRAIN_HARVEST_DAYS_PER_BASELINE_FARM_GROUP",
     "MISSING_DAY_POLICY": "SKIP_OUTPUT",
     "OUTPUT_SEMANTICS": "DAILY_HARVEST_KG_PER_BASELINE_FARM_GROUP",
     "OWNER_ATTESTATION": "OWNER_ATTESTATION_STATUS=ACCEPTED",
