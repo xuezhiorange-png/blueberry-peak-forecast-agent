@@ -1,0 +1,413 @@
+{
+  "artifact_identity": {
+    "artifact_id": "V0_3_S3_FARM_TOTAL_BASELINE_EVALUATION_PACKAGE_IMPLEMENTATION_AUTHORIZATION",
+    "artifact_version": "R1",
+    "authorization_scope": "V0_3_S3_FARM_TOTAL_BASELINE_EVALUATION_PACKAGE_NON_LIVE_IMPLEMENTATION_ONLY",
+    "contract_and_authorization_in_one_pr": true,
+    "evidence_json_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-evaluation-package-implementation-authorization.json",
+    "task_class": "DOCS_ONLY_CONTRACT_AND_IMPLEMENTATION_AUTHORIZATION",
+    "task_id": "V0_3_S3_FARM_TOTAL_BASELINE_EVALUATION_PACKAGE_CONTRACT_AND_IMPLEMENTATION_AUTHORIZATION_R1",
+    "user_gate": "可以继续",
+    "workpaper_path": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-evaluation-package-implementation-authorization.md"
+  },
+  "base_authority": {
+    "base_main_sha": "9eb5f115c1f41e2d0f1156df4440f5eb4872860a",
+    "canonical_hash_module": "backend/app/forecast_quality/canonical.py",
+    "estimator_implementation_authorization": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-estimator-implementation-authorization.md",
+    "farm_total_data_plane_module": "backend/app/forecast_quality/farm_total_data_plane.py",
+    "farm_total_dataset_module": "backend/app/forecast_quality/farm_total_dataset.py",
+    "owner_decision_binding": "docs/v0-3/s3/s3-farm-total-baseline-estimator-owner-decision-binding.md",
+    "owner_decision_sha256": "39722ff8e8a520813975cd7270b6453db388633bffee9c90fb12140440431463"
+  },
+  "parent_estimator": {
+    "parent_estimator_merge_sha": "9eb5f115c1f41e2d0f1156df4440f5eb4872860a",
+    "parent_estimator_module": "backend/app/forecast_quality/farm_total_baseline_estimator.py",
+    "parent_estimator_pr": 564
+  },
+  "contract_authority": {
+    "authorization_merge_does_not_execute_package": true,
+    "authorization_merge_does_not_implement_package": true,
+    "authorization_merge_does_not_read_test": true,
+    "authorization_merge_does_not_score_validation": true,
+    "contract_authorized": true,
+    "contract_authorized_implies_implemented": false,
+    "evaluation_package_is_not_backtest_execution": true,
+    "evaluation_package_is_not_metric_execution": true,
+    "farm_total_baseline_evaluation_package_implemented": false,
+    "implementation_authorized_implies_live_execution_authorized": false,
+    "implementation_authorized_implies_metric_execution_authorized": false,
+    "implementation_authorized_implies_test_access": false,
+    "implementation_authorized_implies_validation_scoring_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "ready_authorized": false,
+    "schema_version": "v0-3-s3-farm-total-baseline-evaluation-package-v1",
+    "v0_3_s3_farm_total_baseline_evaluation_package_contract_authorized": true
+  },
+  "implementation_grant": {
+    "farm_total_baseline_evaluation_package_implemented": false,
+    "implementation_authorized": true,
+    "implementation_performed": false,
+    "implementation_requires_separate_user_gate": "可以实施",
+    "live_baseline_execution_authorized": false,
+    "live_estimator_executed": false,
+    "live_train_execution_authorized": false,
+    "live_validation_execution_authorized": false,
+    "v0_3_s3_farm_total_baseline_evaluation_package_implementation_authorized": true
+  },
+  "authorized_future_paths": {
+    "existing_file_mutation_authorized": false,
+    "future_authorized_production_path_count": 1,
+    "future_authorized_test_path_count": 1,
+    "production": [
+      "backend/app/forecast_quality/farm_total_baseline_evaluation_package.py"
+    ],
+    "reused_without_modification": [
+      "backend/app/forecast_quality/farm_total_baseline_estimator.py",
+      "backend/app/forecast_quality/farm_total_dataset.py",
+      "backend/app/forecast_quality/farm_total_data_plane.py",
+      "backend/app/forecast_quality/farm_total_policy.py"
+    ],
+    "tests": [
+      "backend/tests/forecast_quality/test_farm_total_baseline_evaluation_package.py"
+    ]
+  },
+  "target_identity_contract": {
+    "build_operation_equivalent": "build_farm_total_validation_target_keys(validation_dataset: FarmTotalValidationDataset)",
+    "canonical_target_order": [
+      "season_business_key",
+      "baseline_farm_group_key",
+      "harvest_business_date"
+    ],
+    "target_key_contains_actual_harvest": false,
+    "target_key_contains_area": false,
+    "target_key_identity_fields": [
+      "season_business_key",
+      "baseline_farm_group_key",
+      "harvest_business_date"
+    ],
+    "target_key_identity_only": true,
+    "target_key_type": "FarmTotalBaselineTargetKey"
+  },
+  "partition_guards": {
+    "outer_validation_partition_guard_required": true,
+    "outer_validation_partition_guard_value": "VALIDATION",
+    "row_validation_partition_guard_required": true,
+    "row_validation_partition_guard_value": "VALIDATION",
+    "required_blockers": [
+      "NON_VALIDATION_PARTITION",
+      "NON_VALIDATION_ROW_PARTITION"
+    ],
+    "skip_invalid_rows_authorized": false,
+    "mixed_train_validation_rows_authorized": false,
+    "partial_materialization_after_violation_authorized": false
+  },
+  "duplicate_target_policy": {
+    "duplicate_validation_target_key_blocker": "DUPLICATE_VALIDATION_TARGET_KEY",
+    "duplicate_validation_target_policy": "FAIL_CLOSED",
+    "silent_deduplication_authorized": false
+  },
+  "orchestration_contract": {
+    "derivation_api": "derive_farm_total_baseline_estimator(train_dataset)",
+    "estimator_implementation_duplication_allowed": false,
+    "missing_day_policy": "SKIP_OUTPUT",
+    "projection_api": "project_farm_total_baseline(estimator_state, target_keys)",
+    "second_projection_algorithm_authorized": false,
+    "supported_group_behavior": "emit point",
+    "insufficient_support_behavior": "no numeric point + explicit INSUFFICIENT_TRAIN_SUPPORT outcome",
+    "unseen_group_behavior": "no numeric point + explicit UNSEEN_GROUP outcome",
+    "date_synthesis_authorized": false,
+    "interpolation_authorized": false,
+    "forward_fill_authorized": false,
+    "zero_fill_authorized": false
+  },
+  "canonical_hash_contract": {
+    "canonical_json_bytes_module": "backend.app.forecast_quality.canonical.canonical_json_bytes",
+    "emit_s3_decimal_module": "backend.app.forecast_quality.canonical.emit_s3_decimal",
+    "encoding": "UTF-8",
+    "hash_algorithm": "SHA-256",
+    "json_keys_sorted_by_existing_canonical_json_bytes": true,
+    "native_float_serialization_forbidden": true,
+    "second_json_canonicalization_system_authorized": false,
+    "hash_layers": {
+      "estimator_state_sha256": {
+        "fields": [
+          "baseline_farm_group_key",
+          "train_support_count",
+          "status",
+          "baseline_harvest_quantity_kg"
+        ],
+        "canonical_order": "baseline_farm_group_key"
+      },
+      "target_identity_set_sha256": {
+        "fields": [
+          "season_business_key",
+          "baseline_farm_group_key",
+          "harvest_business_date"
+        ],
+        "excludes_validation_actual_quantity": true,
+        "excludes_area": true
+      },
+      "baseline_point_set_sha256": {
+        "fields": [
+          "season_business_key",
+          "baseline_farm_group_key",
+          "harvest_business_date",
+          "baseline_harvest_quantity_kg"
+        ],
+        "quantile_fields_included": false
+      },
+      "target_outcome_set_sha256": {
+        "includes_target_identity": true,
+        "includes_status": true,
+        "includes_point_existence": true,
+        "includes_point_quantity_when_exists": true
+      },
+      "prediction_identity_sha256": {
+        "depends_on": [
+          "schema_version",
+          "train_dataset_sha256",
+          "estimator_state_sha256",
+          "target_identity_set_sha256",
+          "baseline_point_set_sha256",
+          "target_outcome_set_sha256",
+          "frozen_estimator_semantic_identity"
+        ],
+        "must_not_depend_on_validation_actual_harvest_quantity_kg": true,
+        "must_not_depend_on_validation_actual_harvest_kg_per_mu": true,
+        "must_not_depend_on_validation_area_mu": true
+      },
+      "package_sha256": {
+        "may_bind_validation_dataset_sha256": true,
+        "full_provenance_bound_package_identity": true
+      }
+    }
+  },
+  "prediction_identity_contract": {
+    "validation_actuals_may_change_package_sha256_through_provenance": true,
+    "validation_actuals_must_not_change_baseline_point_set_sha256": true,
+    "validation_actuals_must_not_change_baseline_point_values": true,
+    "validation_actuals_must_not_change_prediction_identity_sha256": true,
+    "validation_actuals_must_not_change_target_identity_set_sha256": true
+  },
+  "provenance_contract": {
+    "train_dataset_sha256_source": "train_dataset.partition_dataset.dataset_sha256",
+    "validation_dataset_sha256_source": "validation_dataset.partition_dataset.dataset_sha256",
+    "provenance_only": true,
+    "independent_re_materialization_from_live_bytes_claimed": false
+  },
+  "validation_leakage_boundary": {
+    "validation_use_policy": "EVALUATION_ONLY",
+    "validation_actuals_used_for_estimator_derivation": false,
+    "validation_actuals_used_for_baseline_prediction": false,
+    "validation_actuals_allowed_in_provenance_hash_only": true,
+    "validation_actuals_must_not_affect_train_median": true,
+    "validation_actuals_must_not_affect_support_count": true,
+    "validation_actuals_must_not_affect_group_readiness": true,
+    "validation_actuals_must_not_affect_target_identity": true,
+    "validation_actuals_must_not_affect_emitted_baseline_quantity": true,
+    "validation_actuals_must_not_affect_prediction_identity_sha256": true
+  },
+  "quantile_boundary": {
+    "baseline_output_distribution_authorized": false,
+    "baseline_p80_p90_reason": "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE",
+    "p80_field_authorized": false,
+    "p90_field_authorized": false,
+    "quantile_distribution_authorized": false,
+    "variance_field_authorized": false,
+    "standard_deviation_field_authorized": false,
+    "confidence_interval_field_authorized": false,
+    "residual_distribution_field_authorized": false,
+    "synthetic_quantiles_authorized": false
+  },
+  "metric_execution_boundary": {
+    "validation_scoring_authorized": false,
+    "s3_c_backtest_execution_authorized": false,
+    "s3_metric_execution_authorized": false,
+    "score_validation_function_authorized": false,
+    "compute_mae_function_authorized": false,
+    "compute_wape_function_authorized": false,
+    "compute_smape_function_authorized": false,
+    "compute_mape_function_authorized": false,
+    "compute_bias_function_authorized": false,
+    "compare_incumbent_function_authorized": false,
+    "metric_result_function_authorized": false,
+    "package_stops_at_baseline_prediction_preparation": true
+  },
+  "live_execution_boundary": {
+    "live_baseline_execution_authorized": false,
+    "live_train_execution_authorized": false,
+    "live_validation_execution_authorized": false,
+    "official_train_byte_read_authorized": false,
+    "official_validation_byte_read_authorized": false,
+    "load_authority_bundle_from_paths_authorized": false,
+    "materialize_farm_total_baseline_data_plane_on_official_data_authorized": false,
+    "run_v03_farm_total_data_plane_verification_script_authorized": false,
+    "real_farm_group_median_computation_authorized": false,
+    "real_baseline_prediction_emission_authorized": false,
+    "real_package_persistence_authorized": false,
+    "synthetic_in_memory_datasets_for_tests_authorized": true
+  },
+  "test_boundary": {
+    "test_access_authorized": false,
+    "test_use": "SEALED",
+    "test_execution_authorized": false,
+    "test_byte_read_authorized": false,
+    "test_target_key_construction_authorized": false,
+    "test_package_construction_authorized": false,
+    "test_fixture_pretending_governed_live_data_authorized": false
+  },
+  "model_boundary": {
+    "model_change": false,
+    "parameter_change": false,
+    "v0_3_s4_authorized": false,
+    "incumbent_model_import_or_alteration_authorized": false,
+    "diagnostic_infrastructure_only": true
+  },
+  "persistence_boundary": {
+    "persistence_mode": "IN_MEMORY_ONLY",
+    "database_authorized": false,
+    "orm_authorized": false,
+    "alembic_authorized": false,
+    "migration_authorized": false,
+    "table_creation_authorized": false,
+    "object_storage_authorized": false,
+    "filesystem_writer_authorized": false,
+    "artifact_repository_mutation_authorized": false,
+    "migration_change": false,
+    "schema_change": false
+  },
+  "required_test_matrix": {
+    "minimum_test_count": 38,
+    "official_live_data_required": false,
+    "sections": {
+      "A_target_construction": {
+        "count": 8,
+        "cases": [
+          "validation_rows_produce_identity_only_target_keys",
+          "target_keys_contain_no_actual_quantity_field",
+          "target_keys_contain_no_area_field",
+          "target_order_deterministic",
+          "outer_non_validation_partition_fails_closed",
+          "inner_non_validation_row_fails_closed_before_target_construction",
+          "duplicate_target_identity_fails_closed",
+          "empty_validation_target_set_returns_deterministic_empty_package"
+        ]
+      },
+      "B_estimator_orchestration": {
+        "count": 6,
+        "cases": [
+          "supported_group_emits_correct_existing_estimator_baseline",
+          "insufficient_support_preserves_INSUFFICIENT_TRAIN_SUPPORT",
+          "unseen_group_preserves_UNSEEN_GROUP",
+          "mixed_supported_blocked_groups_do_not_globally_fail",
+          "no_cross_group_pooling",
+          "no_date_synthesis"
+        ]
+      },
+      "C_leakage": {
+        "count": 7,
+        "cases": [
+          "identical_identity_different_actual_produces_identical_target_keys",
+          "same_pair_produces_identical_baseline_point_values",
+          "same_pair_produces_identical_target_identity_set_sha256",
+          "same_pair_produces_identical_baseline_point_set_sha256",
+          "same_pair_produces_identical_prediction_identity_sha256",
+          "validation_dataset_sha256_values_differ",
+          "package_sha256_may_differ_when_provenance_changed"
+        ]
+      },
+      "D_train_dependency": {
+        "count": 2,
+        "cases": [
+          "changing_train_actual_quantities_changes_estimator_and_prediction_identity",
+          "changing_train_area_mu_only_does_not_alter_baseline_point_values"
+        ]
+      },
+      "E_hash_replay": {
+        "count": 7,
+        "cases": [
+          "estimator_state_sha256_replay_equality",
+          "target_identity_set_sha256_replay_equality",
+          "baseline_point_set_sha256_replay_equality",
+          "target_outcome_set_sha256_replay_equality",
+          "prediction_identity_sha256_replay_equality",
+          "package_sha256_replay_equality",
+          "input_order_permutation_does_not_change_semantic_hashes"
+        ]
+      },
+      "F_output_surface": {
+        "count": 6,
+        "cases": [
+          "point_output_contains_decimal_kg_only",
+          "no_native_float_baseline_arithmetic",
+          "no_p80_field",
+          "no_p90_field",
+          "no_metric_result_fields",
+          "blocked_outcomes_contain_no_synthetic_numeric_baseline"
+        ]
+      },
+      "G_regression": {
+        "count": 2,
+        "cases": [
+          "existing_estimator_test_suite_remains_green",
+          "farm_total_data_plane_r1_r2_suites_remain_green"
+        ]
+      }
+    }
+  },
+  "prohibitions": {
+    "python_creation_in_this_pr_authorized": false,
+    "existing_file_modification_in_this_pr_authorized": false,
+    "live_data_execution_in_this_pr_authorized": false,
+    "real_median_calculation_in_this_pr_authorized": false,
+    "validation_scoring_in_this_pr_authorized": false,
+    "metric_calculation_in_this_pr_authorized": false,
+    "test_access_in_this_pr_authorized": false,
+    "model_modification_in_this_pr_authorized": false,
+    "parameter_modification_in_this_pr_authorized": false,
+    "s4_authorization_in_this_pr_authorized": false,
+    "migration_creation_in_this_pr_authorized": false,
+    "ci_modification_in_this_pr_authorized": false,
+    "pr_549_modification_authorized": false
+  },
+  "this_pr_scope": {
+    "changed_file_count_expected": 2,
+    "docs_only": true,
+    "evaluation_package_code_in_this_pr_authorized": false
+  },
+  "empty_target_set_policy": {
+    "owner_policy_for_empty_validation_targets_defined": false,
+    "deterministic_empty_package_authorized": true,
+    "empty_target_set_is_not_validation_score": true,
+    "reinterpret_empty_as_pass_authorized": false,
+    "reinterpret_empty_as_fail_authorized": false,
+    "reinterpret_empty_as_zero_harvest_authorized": false,
+    "reinterpret_empty_as_metric_success_authorized": false
+  },
+  "required_future_package_fields": [
+    "schema_version",
+    "train_dataset_sha256",
+    "validation_dataset_sha256",
+    "target_keys",
+    "estimator_state",
+    "projection_result",
+    "target_count",
+    "emitted_point_count",
+    "blocked_target_count",
+    "estimator_state_sha256",
+    "target_identity_set_sha256",
+    "baseline_point_set_sha256",
+    "target_outcome_set_sha256",
+    "prediction_identity_sha256",
+    "package_sha256"
+  ],
+  "required_future_immutable_types": [
+    "FarmTotalBaselineTargetKeySet",
+    "FarmTotalBaselineEvaluationPackage",
+    "FarmTotalBaselineEvaluationPackageDiagnostics",
+    "FarmTotalBaselineEvaluationPackageBlocker"
+  ]
+}
