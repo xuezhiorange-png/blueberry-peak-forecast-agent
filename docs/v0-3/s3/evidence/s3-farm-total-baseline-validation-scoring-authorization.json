@@ -61,7 +61,7 @@
     "official_validation_actual_use_for_scoring_authorized": true,
     "ready_authorized": false,
     "validation_baseline_scored": false,
-    "v0_3_s3_farm_total_baseline_validation_scoring_authorization_authorized": true,
+    "v0_3_s3_farm_total_baseline_validation_scoring_authorized": true,
     "v0_3_s3_farm_total_baseline_validation_scoring_contract_authorized": true
   },
   "scoring_input_contract": {
@@ -129,6 +129,24 @@
     "zero_fill_authorized": false,
     "ready_target_missing_actual_is_structural_invalidity": true
   },
+  "validation_actual_domain": {
+    "finite_decimal_required": true,
+    "nonnegative_precondition_required": true,
+    "precondition_applies_before_metric_arithmetic": true,
+    "comparable_validation_actual_must_be_finite_decimal": true,
+    "comparable_validation_actual_must_be_nonnegative": true,
+    "negative_validation_actual_action": "STRUCTURAL_FAIL_CLOSED",
+    "negative_validation_actual_blocker": "NEGATIVE_VALIDATION_ACTUAL",
+    "negative_validation_actual_is_not_zero": true,
+    "negative_validation_actual_treated_as_zero": false,
+    "negative_validation_actual_silently_excluded": false,
+    "negative_validation_actual_abs_transform_authorized": false,
+    "negative_validation_actual_zero_fill_authorized": false,
+    "negative_validation_actual_silent_omission_authorized": false,
+    "negative_validation_actual_continue_scoring_authorized": false,
+    "negative_validation_actual_fail_closed_scope": "COMPLETE_SCORE_PACKAGE",
+    "upstream_nonnegative_guarantee_claimed": false
+  },
   "metric_family": {
     "farm_total_baseline_mae_authorized": true,
     "farm_total_baseline_wape_authorized": true,
@@ -150,6 +168,7 @@
     "mae_formula": "sum(absolute_error_i) / N",
     "mae_not_computable_when": "N = 0",
     "wape_formula": "sum(absolute_error_i) / sum(actual_i)",
+    "wape_actual_semantics": "R1 scoring first requires every comparable VALIDATION actual to pass the scorer-local finite-Decimal and nonnegative precondition. After that precondition passes, WAPE uses the governed actual kg values directly.",
     "wape_not_computable_when": "sum(actual_i) = 0",
     "smape_term_zero_zero": "0",
     "smape_term_nonzero": "2 * abs(prediction_i - actual_i) / (abs(prediction_i) + abs(actual_i))",
@@ -188,8 +207,11 @@
       "blocked_target_count",
       "ready_target_count",
       "insufficient_train_support_target_count",
-      "unseen_group_target_count"
+      "unseen_group_target_count",
+      "negative_validation_actual_count"
     ],
+    "successful_score_package_requires_negative_validation_actual_count": 0,
+    "positive_negative_validation_actual_count_forbids_successful_score_package": true,
     "metric_cells": [
       "MAE",
       "WAPE",
@@ -336,6 +358,7 @@
       "READY_TARGET_COUNT",
       "INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT",
       "UNSEEN_GROUP_TARGET_COUNT",
+      "NEGATIVE_VALIDATION_ACTUAL_COUNT",
       "MAE_VALUE",
       "MAE_STATUS",
       "MAE_REASON_CODE",
@@ -351,7 +374,7 @@
     "publish_pass_execution_artifact_on_replay_failure_authorized": false
   },
   "future_test_requirements": {
-    "minimum_test_themes": 34,
+    "minimum_test_themes": 35,
     "synthetic_in_memory_only": true,
     "themes": [
       "exact_package_validation_dataset_hash_binding",
@@ -359,6 +382,7 @@
       "exact_target_key_pairing",
       "duplicate_validation_target_fail_closed",
       "missing_ready_actual_fail_closed",
+      "negative_validation_actual_fail_closed",
       "missing_ready_baseline_point_fail_closed",
       "blocked_targets_excluded_from_arithmetic_but_retained_in_counters",
       "target_count_closure",
@@ -417,6 +441,7 @@
       "READY_TARGET_COUNT",
       "INSUFFICIENT_TRAIN_SUPPORT_TARGET_COUNT",
       "UNSEEN_GROUP_TARGET_COUNT",
+      "NEGATIVE_VALIDATION_ACTUAL_COUNT",
       "MAE_VALUE",
       "MAE_STATUS",
       "MAE_REASON_CODE",
