@@ -1,0 +1,137 @@
+{
+  "artifact_identity": {
+    "artifact_id": "V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_IMPLEMENTATION_AUTHORIZATION",
+    "artifact_version": "R1",
+    "authorization_scope": "V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_IMPLEMENTATION_GRANT_ONLY",
+    "evidence_json_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-estimator-implementation-authorization.json",
+    "task_class": "DOCS_ONLY_IMPLEMENTATION_AUTHORIZATION_ISSUANCE",
+    "task_id": "V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_IMPLEMENTATION_AUTHORIZATION_R1",
+    "user_gate": "可以继续",
+    "workpaper_path": "docs/v0-3/s3/workpapers/s3-farm-total-baseline-estimator-implementation-authorization.md"
+  },
+  "authorization_grant": {
+    "authorization_granted": true,
+    "authorization_merge_does_not_execute_estimator": true,
+    "authorization_merge_does_not_implement_estimator": true,
+    "authorization_merge_does_not_read_test": true,
+    "authorization_merge_does_not_score_validation": true,
+    "estimator_implementation_authorized": true,
+    "estimator_implemented": false,
+    "execution_performed": false,
+    "implementation_authorized": true,
+    "implementation_performed": false,
+    "implementation_requires_separate_user_gate": "可以实施",
+    "live_estimator_executed": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "ready_authorized": false,
+    "validation_baseline_materialized": false,
+    "validation_baseline_scored": false,
+    "v0_3_s3_farm_total_baseline_estimator_implementation_authorized": true
+  },
+  "authorized_future_paths": {
+    "existing_file_mutation_authorized": false,
+    "production": [
+      "backend/app/forecast_quality/farm_total_baseline_estimator.py"
+    ],
+    "tests": [
+      "backend/tests/forecast_quality/test_farm_total_baseline_estimator.py"
+    ]
+  },
+  "base_authority": {
+    "base_main_sha": "c8719c31489ff6fe1bd33b0e31603066d784c3d2",
+    "farm_total_data_plane_module": "backend/app/forecast_quality/farm_total_data_plane.py",
+    "farm_total_dataset_module": "backend/app/forecast_quality/farm_total_dataset.py",
+    "parent_contract": "docs/v0-3/s3/s3-farm-total-baseline-estimator-contract.md",
+    "parent_merge_sha": "c8719c31489ff6fe1bd33b0e31603066d784c3d2",
+    "parent_pr": 562
+  },
+  "execution_boundary": {
+    "live_train_execution_authorized": false,
+    "live_validation_execution_authorized": false,
+    "persistence_mode": "IN_MEMORY_ONLY",
+    "test_execution_authorized": false,
+    "validation_scoring_authorized": false
+  },
+  "frozen_estimator_semantics": {
+    "area_normalization_policy": "NO_AREA_NORMALIZATION",
+    "baseline_estimator_family": "GROUP_SPECIFIC_HISTORICAL_STATISTIC",
+    "baseline_output_distribution_authorized": false,
+    "baseline_p80_p90_reason": "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE",
+    "cold_start_policy": "FAIL_CLOSED",
+    "median_even_count_rule": "ARITHMETIC_MEAN_OF_TWO_MIDDLE_ORDERED_VALUES",
+    "median_odd_count_rule": "MIDDLE_ORDERED_VALUE",
+    "min_train_support": 5,
+    "min_train_support_unit": "DISTINCT_VALID_TRAIN_HARVEST_DAYS_PER_BASELINE_FARM_GROUP",
+    "min_train_support_unit_class": "DERIVED_SEMANTIC_NORMALIZATION",
+    "min_train_support_unit_derived_from": "MIN_TRAIN_SUPPORT",
+    "missing_day_policy": "SKIP_OUTPUT",
+    "output_semantics": "DAILY_HARVEST_KG_PER_BASELINE_FARM_GROUP",
+    "output_unit": "kg",
+    "pooling_grain": "BASELINE_FARM_GROUP_SPECIFIC",
+    "statistic_field": "actual_harvest_quantity_kg",
+    "time_axis": "HARVEST_BUSINESS_DATE",
+    "train_aggregation_statistic": "MEDIAN",
+    "train_partition_only": true,
+    "unseen_group_policy": "FAIL_CLOSED",
+    "valid_row_definition_authority": "EXISTING_FARM_TOTAL_DATA_PLANE_VALIDATION",
+    "validation_use_policy": "EVALUATION_ONLY"
+  },
+  "model_boundary": {
+    "model_change": false,
+    "parameter_change": false,
+    "v0_3_s4_authorized": false
+  },
+  "owner_decision_binding": {
+    "owner_decision_binding_evidence": "docs/v0-3/s3/evidence/s3-farm-total-baseline-estimator-owner-decision-binding.json",
+    "owner_decision_binding_workpaper": "docs/v0-3/s3/s3-farm-total-baseline-estimator-owner-decision-binding.md",
+    "owner_decision_complete": true,
+    "owner_decision_sha256": "39722ff8e8a520813975cd7270b6453db388633bffee9c90fb12140440431463",
+    "owner_decision_status": "ACCEPTED"
+  },
+  "prohibitions": {
+    "incumbent_model_modification_authorized": false,
+    "live_official_dataset_execution_authorized": false,
+    "migration_change_authorized": false,
+    "official_test_byte_read_authorized": false,
+    "persistence_authorized": false,
+    "quantile_output_authorized": false,
+    "s3_metric_result_publication_authorized": false,
+    "schema_change_authorized": false,
+    "s3_production_code_mutation_authorized_in_this_pr": false,
+    "s3_test_code_mutation_authorized_in_this_pr": false
+  },
+  "quantile_boundary": {
+    "baseline_output_distribution_authorized": false,
+    "baseline_p80_p90_reason": "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE",
+    "copy_incumbent_quantiles_authorized": false,
+    "emit_p80_authorized": false,
+    "emit_p90_authorized": false,
+    "infer_uncertainty_from_train_authorized": false,
+    "residual_distribution_fit_authorized": false
+  },
+  "test_boundary": {
+    "test_access": false,
+    "test_partition_acceptance_authorized": false,
+    "test_use": "SEALED"
+  },
+  "this_pr_scope": {
+    "changed_file_count_expected": 2,
+    "docs_only": true,
+    "estimator_code_in_this_pr_authorized": false
+  },
+  "validation_boundary": {
+    "general_validation_purpose": "CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+    "general_validation_purpose_source": "docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md",
+    "validation_actual_quantity_as_estimator_input_authorized": false,
+    "validation_uses_for_evaluation": true,
+    "validation_uses_for_family_selection": false,
+    "validation_uses_for_fitting": false,
+    "validation_uses_for_parameter_tuning": false,
+    "validation_use_policy": "EVALUATION_ONLY"
+  }
+}
