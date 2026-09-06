@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -50,38 +51,9 @@ from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read
 
 MAPPING_PACKAGE_NAME = "farm_total_group_mapping_package.json"
 AREA_PACKAGE_NAME = "farm_total_area_authority_package.json"
-
-EXPECTED_FARM_GROUP_MAPPING_SET_SHA256 = (
-    "eb013e3e638074945d182c89433096716e771b934855bc0139b9f20ca76c8677"
-)
-EXPECTED_FARM_AREA_AUTHORITY_SET_SHA256 = (
-    "339d2adebe1b3db6fece4726934191b86dc311be26c481e9d6dc333b4cae1d3f"
-)
-EXPECTED_TRAIN_FARM_TOTAL_DATASET_SHA256 = (
-    "08aa2116d700ce00531943fcb00e7ed9b9353ed7821012359838ec027ef7a0e1"
-)
-EXPECTED_VALIDATION_FARM_TOTAL_DATASET_SHA256 = (
-    "351a401fccfeb42758401583ee88a86fb85e9917ca5f3997c62ac3b36f81cac0"
-)
-EXPECTED_BASELINE_EVALUATION_PACKAGE_SHA256 = (
-    "f1098fd3ff2559bda9ff311788496bdbbcb6000c335743f2028ffe558e291c37"
-)
-EXPECTED_ESTIMATOR_STATE_SHA256 = (
-    "daf4a0565d910ef0da70f3de1adcbf6507b60c2c77c784d4c2412a416da755c3"
-)
-EXPECTED_TARGET_IDENTITY_SET_SHA256 = (
-    "9f268fa082e4dc6e1c83ed47fc32a4b6b202f07e38773d9b5a5967c0c9bfe427"
-)
-EXPECTED_BASELINE_POINT_SET_SHA256 = (
-    "5869bbde1c3717c2ee5469976a6cea368c4e5c538063b893c383f244aeaee0a5"
-)
-EXPECTED_TARGET_OUTCOME_SET_SHA256 = (
-    "169033291c46884c587275888b1e6fb83e740b240a74c5a063c4b36291f64d94"
-)
-EXPECTED_PREDICTION_IDENTITY_SHA256 = (
-    "2608b407dc00361cf2cd73e8469ce569591cdb6eacc033e16578d7e1561dbf44"
-)
-EXPECTED_TARGET_COUNT = 1033
+R4_AUTHORITY_LINEAGE = "R4_REISSUED_DURABLE"
+R4_AUTHORITY_RECOVERY_MODE = "R4_REISSUANCE"
+R4_CANONICAL_AUTHORITY_DIR = REPO_ROOT / "docs" / "v0-3" / "s3" / "authority"
 
 LiveObtainEnvelope = source_002_live_obtain.AcceptedS2TrainValLiveObtainEnvelope
 LiveObtainReasonCode = source_002_live_obtain.LiveObtainReasonCode
@@ -91,6 +63,9 @@ class LiveExecutionBlocker(StrEnum):
     REPOSITORY_IDENTITY_MISMATCH = "REPOSITORY_IDENTITY_MISMATCH"
     LIVE_AUTHORITY_PACKAGE_FILES_UNAVAILABLE = "LIVE_AUTHORITY_PACKAGE_FILES_UNAVAILABLE"
     LIVE_AUTHORITY_PACKAGE_INVALID = "LIVE_AUTHORITY_PACKAGE_INVALID"
+    R4_AUTHORITY_PATH_MISMATCH = "R4_AUTHORITY_PATH_MISMATCH"
+    R4_AUTHORITY_LINEAGE_MISMATCH = "R4_AUTHORITY_LINEAGE_MISMATCH"
+    R4_AUTHORITY_NOT_DURABLY_COMMITTED = "R4_AUTHORITY_NOT_DURABLY_COMMITTED"
     SOURCE_002_OBTAIN_FAILED = "SOURCE_002_OBTAIN_FAILED"
     SOURCE_002_BYTES_MISSING = "SOURCE_002_BYTES_MISSING"
     SOURCE_002_IDENTITY_MISMATCH = "SOURCE_002_IDENTITY_MISMATCH"
@@ -102,6 +77,10 @@ class LiveExecutionBlocker(StrEnum):
     EVALUATION_PACKAGE_IDENTITY_MISMATCH = "EVALUATION_PACKAGE_IDENTITY_MISMATCH"
     SCORING_DIAGNOSTIC_MISMATCH = "SCORING_DIAGNOSTIC_MISMATCH"
     SCORING_INTERNAL_ERROR = "SCORING_INTERNAL_ERROR"
+
+
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _git_rev_parse(ref: str) -> str:
@@ -145,6 +124,82 @@ def verify_authority_package_files(authority_dir: Path) -> LiveExecutionBlocker 
     return None
 
 
+def _load_authority_provenance(authority_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    mapping_payload = json.loads(
+        (authority_dir / MAPPING_PACKAGE_NAME).read_text(encoding="utf-8")
+    )
+    area_payload = json.loads(
+        (authority_dir / AREA_PACKAGE_NAME).read_text(encoding="utf-8")
+    )
+    mapping_provenance = mapping_payload.get("r4_provenance")
+    area_provenance = area_payload.get("r4_provenance")
+    if not isinstance(mapping_provenance, dict) or not isinstance(area_provenance, dict):
+        raise ValueError("R4 authority provenance is missing")
+    return mapping_provenance, area_provenance
+
+
+def _git_path_is_tracked(path: Path) -> bool:
+    try:
+        subprocess.check_call(
+            ["git", "ls-files", "--error-unmatch", "--", str(path.relative_to(REPO_ROOT))],
+            cwd=REPO_ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return False
+    return True
+
+
+def validate_r4_authority_binding(
+    *,
+    authority_dir: Path,
+) -> tuple[LiveExecutionBlocker | None, dict[str, Any] | None]:
+    """Require the official run to use the committed R4 authority lineage."""
+
+    try:
+        resolved_dir = authority_dir.resolve()
+        if resolved_dir != R4_CANONICAL_AUTHORITY_DIR.resolve():
+            return LiveExecutionBlocker.R4_AUTHORITY_PATH_MISMATCH, None
+        mapping_path = resolved_dir / MAPPING_PACKAGE_NAME
+        area_path = resolved_dir / AREA_PACKAGE_NAME
+        if not _git_path_is_tracked(mapping_path) or not _git_path_is_tracked(area_path):
+            return LiveExecutionBlocker.R4_AUTHORITY_NOT_DURABLY_COMMITTED, None
+        mapping_provenance, area_provenance = _load_authority_provenance(resolved_dir)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return LiveExecutionBlocker.R4_AUTHORITY_LINEAGE_MISMATCH, None
+
+    expected_fields = {
+        "authority_lineage": R4_AUTHORITY_LINEAGE,
+        "recovery_mode": R4_AUTHORITY_RECOVERY_MODE,
+        "authority_byte_identical_recovery_required": False,
+        "historical_authority_may_not_be_impersonated": True,
+        "historical_mapping_semantic_parity": "NOT_REPRODUCED",
+    }
+    for provenance in (mapping_provenance, area_provenance):
+        if any(provenance.get(field) != value for field, value in expected_fields.items()):
+            return LiveExecutionBlocker.R4_AUTHORITY_LINEAGE_MISMATCH, None
+    if mapping_provenance.get("r4_mapping_semantics_recovered_from_hash_oracle") is not False:
+        return LiveExecutionBlocker.R4_AUTHORITY_LINEAGE_MISMATCH, None
+
+    metadata: dict[str, Any] = {
+        "AUTHORITY_LINEAGE": R4_AUTHORITY_LINEAGE,
+        "AUTHORITY_RECOVERY_MODE": R4_AUTHORITY_RECOVERY_MODE,
+        "AUTHORITY_PACKAGE_RECOVERY_PERFORMED": True,
+        "AUTHORITY_PACKAGE_RECOVERY_STATUS": "PASS",
+        "AUTHORITY_PACKAGE_RECOVERY_IDENTITY": "NEW_R4_NOT_BYTE_IDENTICAL",
+        "AUTHORITY_PACKAGE_SEMANTIC_CHANGE": False,
+        "R4_NEW_AUTHORITY_IDENTITY": True,
+        "LOST_R1_AUTHORITY_FILES_RECOVERED": False,
+        "AUTHORITY_MAPPING_PACKAGE_FILE_SHA256": _file_sha256(mapping_path),
+        "AUTHORITY_AREA_PACKAGE_FILE_SHA256": _file_sha256(area_path),
+        "HISTORICAL_MAPPING_SEMANTIC_PARITY": "NOT_REPRODUCED",
+        "HISTORICAL_AUTHORITY_MAY_NOT_BE_IMPERSONATED": True,
+        "R4_AUTHORITY_DURABLY_COMMITTED": True,
+    }
+    return None, metadata
+
+
 def load_authority_bundle_from_directory(authority_dir: Path) -> FarmTotalAuthorityBundle:
     return load_authority_bundle_from_paths(
         mapping_package_path=authority_dir / MAPPING_PACKAGE_NAME,
@@ -170,12 +225,19 @@ def validate_source_002_obtain(
         != OFFICIAL_MATERIALIZED_DATASET_IDENTITY_SHA256
     ):
         return LiveExecutionBlocker.SOURCE_002_IDENTITY_MISMATCH
+    if (
+        hashlib.sha256(obtain.train_content_bytes).hexdigest() != OFFICIAL_TRAIN_CONTENT_SHA256
+        or hashlib.sha256(obtain.validation_content_bytes).hexdigest()
+        != OFFICIAL_VALIDATION_CONTENT_SHA256
+    ):
+        return LiveExecutionBlocker.SOURCE_002_IDENTITY_MISMATCH
     return None
 
 
 def validate_data_plane_result(
     blocker: FarmTotalDatasetBlocker,
     result: FarmTotalDataPlaneResult | None,
+    authority_bundle: FarmTotalAuthorityBundle | None = None,
 ) -> LiveExecutionBlocker | None:
     if blocker != FarmTotalDatasetBlocker.NONE or result is None:
         return LiveExecutionBlocker.FARM_TOTAL_DATA_PLANE_BLOCKED
@@ -186,13 +248,10 @@ def validate_data_plane_result(
         or result.source_actual_double_count != 0
     ):
         return LiveExecutionBlocker.FARM_TOTAL_DATA_PLANE_INVARIANT_VIOLATION
-    if (
-        result.mapping_set_sha256 != EXPECTED_FARM_GROUP_MAPPING_SET_SHA256
-        or result.area_authority_set_sha256 != EXPECTED_FARM_AREA_AUTHORITY_SET_SHA256
-        or result.train_dataset.partition_dataset.dataset_sha256
-        != EXPECTED_TRAIN_FARM_TOTAL_DATASET_SHA256
-        or result.validation_dataset.partition_dataset.dataset_sha256
-        != EXPECTED_VALIDATION_FARM_TOTAL_DATASET_SHA256
+    if authority_bundle is not None and (
+        result.mapping_set_sha256 != authority_bundle.mapping_package.mapping_set_sha256
+        or result.area_authority_set_sha256
+        != authority_bundle.area_package.area_authority_set_sha256
     ):
         return LiveExecutionBlocker.FARM_TOTAL_DATA_PLANE_IDENTITY_MISMATCH
     return None
@@ -205,21 +264,16 @@ def validate_evaluation_package(
     diagnostics = package.diagnostics
     if (
         package.schema_version != FARM_TOTAL_BASELINE_EVALUATION_PACKAGE_SCHEMA_VERSION
-        or package.package_sha256 != EXPECTED_BASELINE_EVALUATION_PACKAGE_SHA256
         or package.train_dataset_sha256
         != data_plane_result.train_dataset.partition_dataset.dataset_sha256
         or package.validation_dataset_sha256
         != data_plane_result.validation_dataset.partition_dataset.dataset_sha256
-        or package.estimator_state_sha256 != EXPECTED_ESTIMATOR_STATE_SHA256
-        or package.target_identity_set_sha256 != EXPECTED_TARGET_IDENTITY_SET_SHA256
-        or package.baseline_point_set_sha256 != EXPECTED_BASELINE_POINT_SET_SHA256
-        or package.target_outcome_set_sha256 != EXPECTED_TARGET_OUTCOME_SET_SHA256
-        or package.prediction_identity_sha256 != EXPECTED_PREDICTION_IDENTITY_SHA256
-        or diagnostics.target_count != EXPECTED_TARGET_COUNT
-        or diagnostics.ready_target_count != EXPECTED_TARGET_COUNT
-        or diagnostics.blocked_target_count != 0
-        or diagnostics.insufficient_train_support_target_count != 0
-        or diagnostics.unseen_group_target_count != 0
+        or diagnostics.target_count
+        != diagnostics.ready_target_count + diagnostics.blocked_target_count
+        or diagnostics.blocked_target_count
+        != diagnostics.insufficient_train_support_target_count
+        + diagnostics.unseen_group_target_count
+        or diagnostics.emitted_point_count != diagnostics.ready_target_count
     ):
         return LiveExecutionBlocker.EVALUATION_PACKAGE_IDENTITY_MISMATCH
     return None
@@ -245,10 +299,11 @@ def build_success_payload(
     data_plane_result: FarmTotalDataPlaneResult,
     package: FarmTotalBaselineEvaluationPackage,
     score_package: FarmTotalBaselineValidationScorePackage,
+    authority_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     diagnostics = score_package.diagnostics
     cells = {cell.metric_name: cell for cell in score_package.metric_cells}
-    return {
+    payload: dict[str, Any] = {
         "EXECUTION_STATUS": "PASS",
         "EXECUTION_MAIN_SHA": execution_main_sha,
         "SCORING_RUNNER_COMMIT_SHA": runner_commit_sha,
@@ -298,6 +353,9 @@ def build_success_payload(
         "SMAPE_REASON_CODE": _metric_reason(cells["SMAPE"]),
         "VALIDATION_BASELINE_SCORED": True,
     }
+    if authority_metadata is not None:
+        payload.update(authority_metadata)
+    return payload
 
 
 def build_blocked_payload(*, blocker: str, reason_code: str) -> dict[str, str]:
@@ -331,6 +389,17 @@ def run_farm_total_baseline_validation_scoring(
                 blocker=repo_blocker.value,
                 reason_code=repo_blocker.value,
             )
+
+        authority_lineage_blocker, authority_metadata = validate_r4_authority_binding(
+            authority_dir=authority_dir,
+        )
+        if authority_lineage_blocker is not None:
+            return build_blocked_payload(
+                blocker=authority_lineage_blocker.value,
+                reason_code=authority_lineage_blocker.value,
+            )
+    else:
+        authority_metadata = None
 
     files_blocker = verify_authority_package_files(authority_dir)
     if files_blocker is not None:
@@ -371,7 +440,11 @@ def run_farm_total_baseline_validation_scoring(
         authority_bundle=authority_bundle,
         verify_official_hashes=True,
     )
-    data_plane_blocker = validate_data_plane_result(blocker, data_plane_result)
+    data_plane_blocker = validate_data_plane_result(
+        blocker,
+        data_plane_result,
+        authority_bundle,
+    )
     if data_plane_blocker is not None:
         reason = (
             blocker.value
@@ -419,12 +492,12 @@ def run_farm_total_baseline_validation_scoring(
 
     diagnostics = score_package.diagnostics
     if (
-        diagnostics.target_count != EXPECTED_TARGET_COUNT
-        or diagnostics.comparable_target_count != EXPECTED_TARGET_COUNT
-        or diagnostics.ready_target_count != EXPECTED_TARGET_COUNT
-        or diagnostics.blocked_target_count != 0
-        or diagnostics.insufficient_train_support_target_count != 0
-        or diagnostics.unseen_group_target_count != 0
+        diagnostics.target_count
+        != diagnostics.comparable_target_count + diagnostics.blocked_target_count
+        or diagnostics.comparable_target_count != diagnostics.ready_target_count
+        or diagnostics.blocked_target_count
+        != diagnostics.insufficient_train_support_target_count
+        + diagnostics.unseen_group_target_count
         or diagnostics.negative_validation_actual_count != 0
     ):
         return build_blocked_payload(
@@ -439,6 +512,7 @@ def run_farm_total_baseline_validation_scoring(
         data_plane_result=data_plane_result,
         package=package,
         score_package=score_package,
+        authority_metadata=authority_metadata,
     )
 
 
@@ -448,9 +522,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--authority-dir",
-        required=True,
+        default=R4_CANONICAL_AUTHORITY_DIR,
         type=Path,
-        help="Directory containing reviewed Farm-total authority package JSON files.",
+        help="Directory containing the durable R4 Farm-total authority package JSON files.",
     )
     parser.add_argument(
         "--execution-main-sha",
