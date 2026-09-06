@@ -1,0 +1,277 @@
+{
+  "artifact_id": "V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_OWNER_DECISION_REQUEST",
+  "artifact_status": "OWNER_DECISION_REQUIRED",
+  "artifact_version": "R1",
+  "base_main_sha": "1cb21350531c30d09d5f3c6abd215a9e7a361a51",
+  "decision_request": {
+    "decision_request_id": "V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_SEMANTICS",
+    "decision_request_status": "OWNER_DECISION_REQUIRED",
+    "decision_request_version": "R1",
+    "owner_decision_final": false,
+    "owner_decision_issued": false,
+    "owner_decision_request_prepared": true
+  },
+  "evidence_json_path": "docs/v0-3/s3/evidence/s3-farm-total-baseline-estimator-owner-decision-request.json",
+  "implementation_gate": {
+    "estimator_implementation_gate_open": false,
+    "estimator_implementation_status": "BLOCKED_OWNER_DECISION",
+    "implementation_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "inherited_authority": {
+    "baseline_entity": "BASELINE_FARM_GROUP",
+    "baseline_output_distribution_authorized": false,
+    "baseline_p80_p90_reason": "BASELINE_QUANTILE_DISTRIBUTION_NOT_DEFINED",
+    "baseline_p80_status": "NOT_COMPUTABLE",
+    "baseline_p90_status": "NOT_COMPUTABLE",
+    "conflict_excluded_baseline_farm_groups": [
+      "双龙营",
+      "新哨",
+      "盘龙"
+    ],
+    "farm_total_data_plane_implemented": true,
+    "farm_total_estimator_implemented": false,
+    "general_validation_purpose": "CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+    "general_validation_purpose_source": "docs/v0-3/s1/workpapers/s1-split-policy-owner-decision-binding.md",
+    "parent_contract_status": "OWNER_DECISION_REQUIRED",
+    "reviewed_eligible_proxy_area_mu": "21719.09138059892957",
+    "reviewed_eligible_proxy_group_count": 31,
+    "test_use": "SEALED",
+    "v0_3_baseline_target": "FARM_TOTAL_HARVEST_QUANTITY"
+  },
+  "owner_decision_fields": {
+    "AREA_NORMALIZATION_POLICY": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "RAW_HARVEST_KG",
+        "KG_PER_MU_THEN_PROJECT_BY_AUTHORIZED_AREA",
+        "NO_AREA_NORMALIZATION",
+        "OTHER_EXPLICIT_OWNER_POLICY"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "BASELINE_ESTIMATOR_FAMILY": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "GROUP_SPECIFIC_HISTORICAL_STATISTIC",
+        "AREA_NORMALIZED_KG_PER_MU_PROJECTION",
+        "POOLED_FARM_TOTAL_SEASONAL_PROFILE",
+        "PRIOR_PERIOD_OR_ANALOG_DATE"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "proposal_labels": [
+        "PROPOSAL_ONLY",
+        "NOT_AUTHORIZED",
+        "DO_NOT_IMPLEMENT"
+      ],
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "COLD_START_POLICY": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "FAIL_CLOSED",
+        "EXPLICIT_POOL_FALLBACK",
+        "EXPLICIT_PRIOR_PERIOD_FALLBACK",
+        "OTHER_OWNER_DEFINED_POLICY"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "MIN_TRAIN_SUPPORT": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "EXPLICIT_NON_NEGATIVE_INTEGER_OR_DETERMINISTIC_SUPPORT_RULE"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "MISSING_DAY_POLICY": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "FAIL_CLOSED",
+        "SKIP_OUTPUT",
+        "NEAREST_PRIOR_ALLOWED_SOURCE",
+        "INTERPOLATION_IF_SEPARATELY_AUTHORIZED",
+        "OTHER_EXPLICIT_OWNER_POLICY"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "OUTPUT_SEMANTICS": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "DAILY_HARVEST_KG_PER_BASELINE_FARM_GROUP",
+        "KG_PER_MU_INTERMEDIATE_PROJECTED_TO_DAILY_KG",
+        "CUMULATIVE_HARVEST_KG",
+        "OTHER_EXPLICIT_POINT_TARGET_TRANSFORM"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "note": "Resolving OUTPUT_SEMANTICS does not authorize BASELINE_OUTPUT_DISTRIBUTION_AUTHORIZED or P80/P90 emission.",
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "OWNER_ATTESTATION": {
+      "accepted_value": null,
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_INPUT_REQUIRED"
+    },
+    "OWNER_IDENTITY": {
+      "accepted_value": null,
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_INPUT_REQUIRED"
+    },
+    "POOLING_GRAIN": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "BASELINE_FARM_GROUP_SPECIFIC",
+        "POOLED_ACROSS_ELIGIBLE_GROUPS",
+        "OTHER_EXPLICIT_OWNER_GRAIN"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "TIME_AXIS": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "HARVEST_BUSINESS_DATE",
+        "SEASON_DAY_INDEX",
+        "OWNER_DEFINED_ANALOG_DATE_MAPPING",
+        "OTHER_EXPLICITLY_DEFINED_TIME_AXIS"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "TRAIN_AGGREGATION_STATISTIC": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "MEAN",
+        "MEDIAN",
+        "TRIMMED_STATISTIC",
+        "ANALOG_LOOKUP",
+        "PERSISTENCE",
+        "OWNER_DEFINED_DETERMINISTIC_STATISTIC"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "note": "Listed statistics are example shapes only; not selected.",
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "UNSEEN_GROUP_POLICY": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "FAIL_CLOSED",
+        "POOL_FALLBACK",
+        "GLOBAL_FALLBACK",
+        "OTHER_EXPLICIT_OWNER_POLICY"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "owner_decision_required": true,
+      "status": "OWNER_DECISION_REQUIRED"
+    },
+    "VALIDATION_USE_POLICY": {
+      "accepted_value": null,
+      "candidate_values_or_decision_shape": [
+        "EVALUATION_ONLY",
+        "INHERIT_GENERAL_CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+        "OTHER_EXPLICIT_BASELINE_SPECIFIC_POLICY"
+      ],
+      "can_be_decided_in_current_task": false,
+      "can_be_inferred": false,
+      "existing_general_authority": "CANDIDATE_SELECTION_AND_VALIDATION_ONLY",
+      "owner_decision_required": true,
+      "proposed_farm_total_baseline_validation_use": "EVALUATION_ONLY",
+      "proposed_farm_total_baseline_validation_use_accepted": false,
+      "proposed_farm_total_baseline_validation_use_labels": [
+        "PROPOSAL_ONLY",
+        "NOT_AUTHORIZED",
+        "DO_NOT_IMPLEMENT"
+      ],
+      "status": "OWNER_DECISION_REQUIRED"
+    }
+  },
+  "parent_contract": "docs/v0-3/s3/s3-farm-total-baseline-estimator-contract.md",
+  "prohibitions": {
+    "estimator_execution": false,
+    "estimator_implementation": false,
+    "model_change": false,
+    "owner_attestation_invention": false,
+    "owner_decision_invention": false,
+    "owner_identity_invention": false,
+    "parameter_change": false,
+    "s4_authorized": false,
+    "test_access": false,
+    "this_artifact_is_not_an_owner_decision": true,
+    "train_validation_test_data_execution": false,
+    "validation_scoring": false
+  },
+  "proposals": {
+    "estimator_family_proposals": [
+      {
+        "id": "GROUP_SPECIFIC_HISTORICAL_STATISTIC",
+        "labels": [
+          "PROPOSAL_ONLY",
+          "NOT_AUTHORIZED",
+          "DO_NOT_IMPLEMENT"
+        ]
+      },
+      {
+        "id": "AREA_NORMALIZED_KG_PER_MU_PROJECTION",
+        "labels": [
+          "PROPOSAL_ONLY",
+          "NOT_AUTHORIZED",
+          "DO_NOT_IMPLEMENT"
+        ]
+      },
+      {
+        "id": "POOLED_FARM_TOTAL_SEASONAL_PROFILE",
+        "labels": [
+          "PROPOSAL_ONLY",
+          "NOT_AUTHORIZED",
+          "DO_NOT_IMPLEMENT"
+        ]
+      },
+      {
+        "id": "PRIOR_PERIOD_OR_ANALOG_DATE",
+        "labels": [
+          "PROPOSAL_ONLY",
+          "NOT_AUTHORIZED",
+          "DO_NOT_IMPLEMENT"
+        ]
+      }
+    ],
+    "farm_total_baseline_validation_use": {
+      "accepted": false,
+      "labels": [
+        "PROPOSAL_ONLY",
+        "NOT_AUTHORIZED",
+        "DO_NOT_IMPLEMENT"
+      ],
+      "value": "EVALUATION_ONLY"
+    },
+    "no_winner_assigned": true
+  },
+  "task_id": "V0_3_S3_FARM_TOTAL_BASELINE_ESTIMATOR_OWNER_DECISION_REQUEST_R1",
+  "workpaper_path": "docs/v0-3/s3/s3-farm-total-baseline-estimator-owner-decision-request.md"
+}
