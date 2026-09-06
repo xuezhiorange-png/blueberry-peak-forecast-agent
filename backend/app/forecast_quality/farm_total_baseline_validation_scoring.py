@@ -436,8 +436,7 @@ def _validate_validation_dataset(
     package_target_identities = {_target_identity(key) for key in evaluation_package.target_keys}
     if (
         set(rows_by_identity) != package_target_identities
-        or validation_target_identity_set_sha256
-        != evaluation_package.target_identity_set_sha256
+        or validation_target_identity_set_sha256 != evaluation_package.target_identity_set_sha256
     ):
         _raise(FarmTotalBaselineValidationScoringBlocker.TARGET_IDENTITY_SET_MISMATCH)
 
@@ -505,7 +504,6 @@ def _build_metric_cells(
         for _, prediction, actual in comparable
     )
     smape_numerator = sum(smape_terms, Decimal("0"))
-
 
     mae_numerator = _quantized_decimal(absolute_error_sum)
     mae_denominator = _quantized_decimal(target_count_decimal)
