@@ -125,12 +125,8 @@ def verify_authority_package_files(authority_dir: Path) -> LiveExecutionBlocker 
 
 
 def _load_authority_provenance(authority_dir: Path) -> tuple[dict[str, Any], dict[str, Any]]:
-    mapping_payload = json.loads(
-        (authority_dir / MAPPING_PACKAGE_NAME).read_text(encoding="utf-8")
-    )
-    area_payload = json.loads(
-        (authority_dir / AREA_PACKAGE_NAME).read_text(encoding="utf-8")
-    )
+    mapping_payload = json.loads((authority_dir / MAPPING_PACKAGE_NAME).read_text(encoding="utf-8"))
+    area_payload = json.loads((authority_dir / AREA_PACKAGE_NAME).read_text(encoding="utf-8"))
     mapping_provenance = mapping_payload.get("r4_provenance")
     area_provenance = area_payload.get("r4_provenance")
     if not isinstance(mapping_provenance, dict) or not isinstance(area_provenance, dict):
@@ -447,9 +443,7 @@ def run_farm_total_baseline_validation_scoring(
     )
     if data_plane_blocker is not None:
         reason = (
-            blocker.value
-            if blocker != FarmTotalDatasetBlocker.NONE
-            else data_plane_blocker.value
+            blocker.value if blocker != FarmTotalDatasetBlocker.NONE else data_plane_blocker.value
         )
         return build_blocked_payload(blocker=data_plane_blocker.value, reason_code=reason)
     assert data_plane_result is not None

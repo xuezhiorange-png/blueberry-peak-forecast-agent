@@ -360,10 +360,13 @@ def test_missing_ready_baseline_point_fail_closed() -> None:
 
 # 8. blocked targets excluded from arithmetic but retained in counters
 def test_blocked_targets_excluded_from_arithmetic_but_retained_in_counters() -> None:
-    train_rows = _five_train_rows("ready") + _five_train_rows(
-        "weak",
-        (Decimal("1"),) * 5,
-    )[:2]
+    train_rows = (
+        _five_train_rows("ready")
+        + _five_train_rows(
+            "weak",
+            (Decimal("1"),) * 5,
+        )[:2]
+    )
     validation_rows = (
         _row(
             group="ready",
@@ -645,8 +648,7 @@ def test_fail_closed_behavior_is_deterministic() -> None:
     second = _error(tampered, validation)
     assert (first.blocker, first.reason_code) == (second.blocker, second.reason_code)
     assert (
-        first.blocker
-        is scoring.FarmTotalBaselineValidationScoringBlocker.PACKAGE_IDENTITY_MISMATCH
+        first.blocker is scoring.FarmTotalBaselineValidationScoringBlocker.PACKAGE_IDENTITY_MISMATCH
     )
 
 
@@ -709,8 +711,7 @@ def test_invalid_package_identity_hash_fails_closed_without_row_values() -> None
     package, validation = _package_and_validation()
     error = _error(dataclasses.replace(package, baseline_point_set_sha256="0" * 64), validation)
     assert (
-        error.blocker
-        is scoring.FarmTotalBaselineValidationScoringBlocker.PACKAGE_IDENTITY_MISMATCH
+        error.blocker is scoring.FarmTotalBaselineValidationScoringBlocker.PACKAGE_IDENTITY_MISMATCH
     )
     assert "30" not in str(error)
 
@@ -726,11 +727,8 @@ def test_validation_content_hash_mutation_fails_closed() -> None:
         dataset_sha256=validation.partition_dataset.dataset_sha256,
     )
     error = _error(package, changed)
-    assert (
-        error.blocker
-        is (
-            scoring.FarmTotalBaselineValidationScoringBlocker.VALIDATION_DATASET_CONTENT_HASH_MISMATCH
-        )
+    assert error.blocker is (
+        scoring.FarmTotalBaselineValidationScoringBlocker.VALIDATION_DATASET_CONTENT_HASH_MISMATCH
     )
 
 
