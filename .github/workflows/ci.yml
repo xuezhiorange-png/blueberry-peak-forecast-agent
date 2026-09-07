@@ -2146,8 +2146,8 @@ jobs:
                       raise SystemExit("Trial policy fixture did not provide the active policy")
                   session.add_all(
                       [
-                          Farm(id=102, name="s2-fixture-farm-west"),
-                          Subfarm(id=1201, farm_id=102, name="s2-fixture-west"),
+                          Farm(id=102, name="retention-production-farm-west"),
+                          Subfarm(id=1201, farm_id=102, name="retention-production-west"),
                       ]
                   )
                   await session.flush()
@@ -2234,13 +2234,13 @@ jobs:
                   )
                   await session.commit()
               entries = (
-                  {"source_field": "season_code", "source_code": "2026-DEMO",
-                   "target_type": "SEASON", "target_business_key": "2026-DEMO"},
+                  {"source_field": "season_code", "source_code": "retention-production-season",
+                   "target_type": "SEASON", "target_business_key": "retention-production-season"},
                   {"source_field": "farm_code", "source_code": "farm-1",
-                   "target_type": "FARM", "target_business_key": "s2-fixture-farm"},
+                   "target_type": "FARM", "target_business_key": "retention-production-farm"},
                   {"source_field": "subfarm_or_plot_code", "source_code": "sub-1",
-                   "target_type": "SUBFARM", "target_business_key": "s2-fixture-east",
-                   "target_parent_business_key": "s2-fixture-farm"},
+                   "target_type": "SUBFARM", "target_business_key": "retention-production-east",
+                   "target_parent_business_key": "retention-production-farm"},
                   {"source_field": "variety_code", "source_code": "var-1",
                    "target_type": "VARIETY", "target_business_key": "S2-VAR-A"},
               )
@@ -2288,7 +2288,7 @@ jobs:
                   "source_recorded_at_authority_status": "TRUSTED_SOURCE_TIMESTAMP",
                   "source_recorded_at_authority_reference_or_null": "farm-source",
                   "revision_number": "1", "record_status": "ACTIVE",
-                  "supersedes_external_revision_id": "", "season_code": "2026-DEMO",
+                  "supersedes_external_revision_id": "", "season_code": "retention-production-season",
                   "farm_timezone": "Asia/Shanghai", "revised_at": "2026-03-09T10:00:00+00:00",
                   "finalized_at": "", "source_note": f"frontend-e2e-xlsx-{project}",
               }

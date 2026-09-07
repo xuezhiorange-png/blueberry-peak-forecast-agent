@@ -156,7 +156,7 @@ def test_production_writer_with_both_exact_ids_found() -> None:
         encoding="utf-8"
     )
     assert "_write_persisted_task10_authority_binding_after_reuse" in node_source
-    assert "write_persisted_task10_authority_binding_from_pinned_lineage" in node_source
+    assert "write_persisted_task10_authority_binding_and_capture" in node_source
 
 
 def test_no_production_writer_in_core_forecast_persistence() -> None:

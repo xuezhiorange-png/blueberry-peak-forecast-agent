@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal, DecimalException, localcontext
 
@@ -69,6 +70,13 @@ _QUANTITIES = (
     "postharvest_retention_rate",
     "effective_marketable_quantity_kg",
 )
+
+
+Clock = Callable[[], datetime]
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 class CoreForecastPersistenceError(RuntimeError):
@@ -367,8 +375,9 @@ def _validate_business_invariants(
 
 
 class CoreForecastRunRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, *, clock: Clock = _utc_now) -> None:
         self._session = session
+        self._clock = clock
 
     async def register_code_authority(
         self,
@@ -500,7 +509,7 @@ class CoreForecastRunRepository:
 
         if curve.status != "COMPLETED" or metrics.status != "COMPLETED":
             raise CoreForecastWriteFailure("only completed curve and metrics may be persisted")
-        now = datetime.now(UTC)
+        now = self._clock()
         if (
             code_authority is not None
             and request.forecast_effective_cutoff_at is not None

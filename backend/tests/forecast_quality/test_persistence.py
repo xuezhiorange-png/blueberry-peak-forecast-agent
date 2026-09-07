@@ -741,7 +741,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "c1d4e8f2a9b3"
+                "0031_forecast_authority_task10_extension"
             )
             nullable_rows = await conn.fetch(
                 """
@@ -804,7 +804,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
             assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "c1d4e8f2a9b3"
+                "0031_forecast_authority_task10_extension"
             )
         finally:
             await conn.close()
@@ -1132,8 +1132,15 @@ async def _repair_task9_fixture_for_quality(
     )
     assert members
     first = members[0]
+    # The new production Forecast entrypoint captures the completed Task 8/
+    # Task 9 owner chain before Quality persistence.  Keep this legacy Quality
+    # fixture production-shaped so it can exercise Quality behavior without
+    # accidentally attempting to promote the shared S2 test fixture into
+    # durable production forecast authority.
+    pool_id = "retention-production-quality-pool"
+    for member in members:
+        member.capacity_pool_id = pool_id
     membership_hash = first.capacity_pool_membership_hash
-    pool_id = first.capacity_pool_id
     zero = Decimal("0.000")
     pool = HarvestStateDailyPoolRowModel(
         harvest_state_run_id=run.id,
@@ -4059,7 +4066,9 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
         try:
             # §8 oracle
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "c1d4e8f2a9b3"
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
+                "0031_forecast_authority_task10_extension"
+            )
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_name = 'model_baseline_comparison'"
@@ -4152,7 +4161,9 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             # §11.3 oracle: current_database is still the temp DB and
             # version is still 0026.
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == "c1d4e8f2a9b3"
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
+                "0031_forecast_authority_task10_extension"
+            )
             assert (
                 await conn.fetchval(
                     "SELECT count(*) FROM quality_evaluation_run "
