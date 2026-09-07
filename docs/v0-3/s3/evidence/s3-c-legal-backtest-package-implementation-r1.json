@@ -52,7 +52,16 @@
     "forecast_cutoff_canonicalization_implemented": true,
     "same_instant_cross_timezone_identity_invariant": true,
     "different_instant_not_collapsed": true,
-    "naive_forecast_cutoff_fail_closed": true
+    "naive_forecast_cutoff_fail_closed": true,
+    "production_public_persisted_provider_injection_surface": false,
+    "production_provider_class_type_is_not_authority": true,
+    "db_backed_governed_authority_obtain_bound": true,
+    "persisted_authority_obtain_failure_fail_closed": true,
+    "test_only_persisted_provider_injection_seam": true,
+    "test_only_seam_is_not_production_trust_boundary": true,
+    "caller_constructed_concrete_provider_can_force_legal": false,
+    "caller_constructed_concrete_provider_negative_test": "PASS",
+    "production_wrapper_orchestration_tested": true
   },
   "package_contract": {
     "schema_version": "v0-3-s3-c-legal-backtest-package-v1",
@@ -78,6 +87,7 @@
     "forecast_authority_resolver": "IncumbentDailyCurveProvider.forecast_authority_for",
     "persisted_forecast_authority_resolver": "PitVisibleIncumbentDailyCurveProvider emitted by the governed persisted PIT loader",
     "candidate_authority_equivalence_helper": "assert_full_s2_forecast_authority_bundle_equivalence",
+    "db_backed_governed_authority_obtain_bound": true,
     "forecast_selection_policy": "historical_observed_pit_visible_unique_grain_forecast_run",
     "forecast_authority_bundle_fields": [
       "forecast_run_identity_hash",
@@ -106,6 +116,8 @@
     "persisted_forecast_authority_provenance_replay_implemented": true,
     "exact_persisted_bundle_equivalence_verified": true,
     "malicious_provider_true_marker_fails_closed": true,
+    "production_public_persisted_provider_injection_surface": false,
+    "production_provider_class_type_is_not_authority": true,
     "positional_pairing": false,
     "latest_row_fallback": false,
     "test_derived_members": false
@@ -184,7 +196,7 @@
   "synthetic_test_contract": {
     "test_path": "backend/tests/forecast_quality/test_s3_legal_backtest_package.py",
     "theme_coverage": "35/35",
-    "test_count": 80,
+    "test_count": 82,
     "result": "PASS",
     "all_tests_in_memory": true,
     "test_access_performed": false,
@@ -198,13 +210,21 @@
     "cutoff_reverse_input_identity_invariant_tested": true,
     "cutoff_same_instant_cross_timezone_tested": true,
     "cutoff_different_instant_tested": true,
-    "cutoff_naive_rejection_tested": true
+    "cutoff_naive_rejection_tested": true,
+    "production_public_persisted_provider_injection_surface_tested": true,
+    "persisted_authority_obtain_failure_fail_closed_tested": true,
+    "persisted_authority_obtain_success_gate_tested": true
   },
   "execution_boundary": {
     "live_pairing_materialization_performed": false,
     "pairing_package_publication_performed": false,
     "authority_issuance_performed": false,
     "live_legal_backtest_package_constructed": false,
+    "production_public_persisted_provider_injection_surface": false,
+    "db_backed_governed_authority_obtain_bound": true,
+    "test_only_persisted_provider_injection_seam": true,
+    "test_only_seam_is_not_production_trust_boundary": true,
+    "caller_constructed_concrete_provider_can_force_legal": false,
     "user_gate_interpretation": "S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_ONLY",
     "user_gate_does_not_trigger_s3_c_execution": true,
     "user_gate_does_not_trigger_metric_execution": true,
@@ -232,5 +252,5 @@
     "MERGE_AUTHORIZED": false,
     "NO_STEP_IMPLIES_THE_NEXT": true
   },
-  "next_gate": "COORDINATOR_PR572_FINAL_RE_REVIEW"
+  "next_gate": "COORDINATOR_PR572_FINAL_ACCEPTANCE_REVIEW"
 }

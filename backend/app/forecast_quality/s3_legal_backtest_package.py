@@ -1,7 +1,9 @@
 """Deterministic, fail-closed S3-C legal backtest package construction.
 
-This module only validates and packages already materialized TRAIN and
-VALIDATION pairing inputs.  It does not obtain data, publish pairing
+The validation core only packages already materialized TRAIN and VALIDATION
+pairing inputs. The production wrapper delegates persisted forecast-authority
+obtain to the repository-owned governed live seam; it does not implement SQL
+or a second authority resolver. This module does not publish pairing
 packages, issue authority records, execute a backtest, calculate metrics, or
 access TEST.
 """
@@ -43,6 +45,7 @@ from backend.app.forecast_quality.train_val_pairing_materialization import (
     _build_partition_s2_binding_request,
     compute_canonical_forecast_binding_key_hash,
     compute_s3_binding_row_set_hash,
+    derive_materialization_grain_union,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
     PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY,
@@ -67,11 +70,8 @@ from backend.app.s3_daily_rowset.forecast_port import (
     ForecastAvailability,
     IncumbentDailyCurveProvider,
 )
-from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
-    PitVisibleIncumbentDailyCurveIndex,
-)
-from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider import (
-    PitVisibleIncumbentDailyCurveProvider,
+from backend.app.s3_daily_rowset.incumbent_forecast_daily_curve_live_obtain import (
+    obtain_live_incumbent_forecast_daily_curve_provider,
 )
 from backend.app.s3_daily_rowset.pit_visible_incumbent_forecast_authority_loader import (
     is_synthetic_forecast_authority,
@@ -812,15 +812,28 @@ def _row_s2_request(
     )
 
 
-def _is_persisted_authority_provider(provider: object) -> bool:
-    """Accept only the concrete provider produced by the governed PIT loader."""
+def _obtain_repository_owned_persisted_authority_provider(
+    materialization: TrainValidationPairingMaterializationResult | None,
+) -> IncumbentDailyCurveProvider | None:
+    """Obtain persisted authority through the repository-owned live seam."""
 
-    if not isinstance(provider, PitVisibleIncumbentDailyCurveProvider):
-        return False
-    return (
-        type(provider) is PitVisibleIncumbentDailyCurveProvider
-        and type(provider.index) is PitVisibleIncumbentDailyCurveIndex
-    )
+    if materialization is None or materialization.official_partitions is None:
+        return None
+    try:
+        grains = derive_materialization_grain_union(materialization.official_partitions)
+    except Exception:
+        return None
+    if isinstance(grains, TrainValidationPairingMaterializationBlocker) or not grains:
+        return None
+    try:
+        obtained = obtain_live_incumbent_forecast_daily_curve_provider(
+            materialization_grains=grains,
+        )
+    except Exception:
+        return None
+    if not obtained.obtained or obtained.provider is None:
+        return None
+    return obtained.provider
 
 
 def _validate_forecast_binding_and_pit(
@@ -830,17 +843,16 @@ def _validate_forecast_binding_and_pit(
     forecast_cutoff_authority_identity: str,
     model_identity: str,
     forecast_provider: IncumbentDailyCurveProvider | None,
-    persisted_authority_provider: PitVisibleIncumbentDailyCurveProvider | None,
+    persisted_authority_provider: IncumbentDailyCurveProvider | None,
     blockers: set[S3LegalBacktestPackageBlocker],
 ) -> None:
-    if not _is_persisted_authority_provider(persisted_authority_provider):
+    if persisted_authority_provider is None:
         if any(
             isinstance(row, S3BindingRow) and row.s2_status == _COMPARABLE_STATUS for row in rows
         ):
             blockers.add(S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY)
         return
 
-    assert persisted_authority_provider is not None
     value_provider = forecast_provider or persisted_authority_provider
 
     member_keys = {
@@ -1239,7 +1251,7 @@ def _build_s3_legal_backtest_package_with_context(
     forecast_cutoff_set: S3LegalBacktestForecastCutoffSet | Sequence[S3LegalBacktestForecastCutoff],
     context: _LegalBacktestAuthorityContext,
     forecast_provider: IncumbentDailyCurveProvider | None = None,
-    persisted_authority_provider: PitVisibleIncumbentDailyCurveProvider | None = None,
+    persisted_authority_provider: IncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
 ) -> S3LegalBacktestPackageResult:
     """Internal constructor used by the production wrapper and unit fixtures."""
@@ -1447,10 +1459,15 @@ def _build_s3_legal_backtest_package_with_registries(
     cutoff_set_complete: bool = True,
     generic_artifact_requirement: S3GenericIncumbentForecastArtifactRequirement | None = None,
     forecast_provider: IncumbentDailyCurveProvider | None = None,
-    persisted_authority_provider: PitVisibleIncumbentDailyCurveProvider | None = None,
+    persisted_authority_provider: IncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
 ) -> S3LegalBacktestPackageResult:
-    """Test-only in-memory authority context for hypothetical legal paths."""
+    """Test-only in-memory authority context for hypothetical legal paths.
+
+    The persisted-provider argument is an internal synthetic-test seam. The
+    production public wrapper never accepts or forwards a caller-selected
+    persisted provider.
+    """
 
     context = _LegalBacktestAuthorityContext(
         published_registry=published_registry,
@@ -1484,7 +1501,6 @@ def build_s3_legal_backtest_package(
     forecast_cutoff_set: S3LegalBacktestForecastCutoffSet
     | Sequence[S3LegalBacktestForecastCutoff] = (),
     forecast_provider: IncumbentDailyCurveProvider | None = None,
-    persisted_authority_provider: PitVisibleIncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
 ) -> S3LegalBacktestPackageResult:
     """Build a production legal-package result using only trusted registries.
@@ -1494,10 +1510,11 @@ def build_s3_legal_backtest_package(
     this entry point is expected to return BLOCKED until those independent
     gates are resolved.  The compatibility materialization names accept the
     current combined result without inventing a second producer result.
-    `forecast_provider` is only a candidate value provider.  Comparable rows
-    additionally require the exact concrete PIT provider emitted by the
-    governed persisted-authority loader through `persisted_authority_provider`;
-    the provider's lawful marker is never used as authority.
+    `forecast_provider` is only a candidate value provider. Comparable rows
+    additionally require the persisted PIT provider obtained internally from
+    the repository-owned governed live seam; callers cannot select or supply
+    that persisted trust source, and its lawful marker is never used as
+    authority.
     """
 
     combined = pairing_materialization
@@ -1512,6 +1529,7 @@ def build_s3_legal_backtest_package(
             combined = train_materialization
         elif validation_materialization is not None and train_materialization is None:
             combined = validation_materialization
+    persisted_authority_provider = _obtain_repository_owned_persisted_authority_provider(combined)
     return _build_s3_legal_backtest_package_with_context(
         pairing_materialization=combined,
         train_partition_authority=train_partition_authority,
