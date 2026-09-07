@@ -7,6 +7,7 @@ import io
 import os
 import re
 from collections import defaultdict
+from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -99,6 +100,17 @@ _FORECAST_CAPTURE_TEST_NOW = datetime(2026, 2, 27, 12, tzinfo=UTC)
 
 def _forecast_capture_test_clock() -> datetime:
     return _FORECAST_CAPTURE_TEST_NOW
+
+
+@pytest.fixture
+async def _isolated_production_capture_rows() -> AsyncIterator[None]:
+    """Keep the committed fresh-session capture test isolated from S4 rows."""
+
+    await _truncate_s4_rows_for_postgres_test()
+    try:
+        yield
+    finally:
+        await _truncate_s4_rows_for_postgres_test()
 
 
 async def _cleanup_s4_rows(public_forecast_id: str | None = None) -> None:
@@ -1046,7 +1058,9 @@ async def test_postgres_default_trial_service_create_replay_and_owner_readback(
     assert await _related_row_counts(transactional_pg_session, created.run_id) == (1, 1, 1)
 
 
-async def test_postgres_production_forecast_capture_fresh_session_and_immutability() -> None:
+async def test_postgres_production_forecast_capture_fresh_session_and_immutability(
+    _isolated_production_capture_rows: None,
+) -> None:
     """Prove the real Forecast entrypoint freezes and reads back the daily authority."""
 
     async with AsyncSessionMaker() as writer:

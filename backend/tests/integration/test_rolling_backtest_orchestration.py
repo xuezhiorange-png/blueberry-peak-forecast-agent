@@ -12,7 +12,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -127,6 +127,16 @@ pytestmark = pytest.mark.integration
 def _require_postgres() -> None:
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
         pytest.skip("set RUN_POSTGRES_INTEGRATION=1 when PostgreSQL is available")
+
+
+@pytest.fixture
+def _stub_base_capture_for_task10_only_fixture(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep Task 10-only orchestration fixtures outside Forecast retention scope."""
+
+    monkeypatch.setattr(
+        "backend.app.rolling_backtest.node_orchestration.capture_persisted_forecast_base_authority_from_pinned_lineage",
+        AsyncMock(),
+    )
 
 
 # ── Canonical Task 8 fixture hashes (deterministic SHA-256) ─────────────────
@@ -2502,7 +2512,9 @@ async def test_update_run_status_from_attempts() -> None:
 
 
 @pytest.mark.asyncio
-async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
+async def test_real_authority_exact_load_reuse_and_snapshot(
+    _stub_base_capture_for_task10_only_fixture: None,
+) -> None:
     """orchestrate_node must exact-load real Task 8/9/10 authorities and freeze them in snapshot."""
     fixture_season_id = 2099
     _require_postgres()
@@ -2609,7 +2621,9 @@ async def test_real_authority_exact_load_reuse_and_snapshot() -> None:
 
 
 @pytest.mark.asyncio
-async def test_historical_resolution_real_chain_success_and_snapshot() -> None:
+async def test_historical_resolution_real_chain_success_and_snapshot(
+    _stub_base_capture_for_task10_only_fixture: None,
+) -> None:
     """Historical resolution must select real persisted Task 8/9/10 authorities and complete."""
     _require_postgres()
     cmd = await _build_real_historical_resolution_command(
@@ -3038,7 +3052,9 @@ async def test_real_task10_prediction_completed_after_cutoff_blocks() -> None:
 
 
 @pytest.mark.asyncio
-async def test_integrity_reload_failure_rolls_back_completed_execution() -> None:
+async def test_integrity_reload_failure_rolls_back_completed_execution(
+    _stub_base_capture_for_task10_only_fixture: None,
+) -> None:
     """Integrity reload failure must rollback completed attempt, snapshot, and run status."""
     _require_postgres()
     cmd = await _build_real_orchestration_command(
