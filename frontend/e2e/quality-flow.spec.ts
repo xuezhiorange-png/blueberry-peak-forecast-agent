@@ -93,7 +93,7 @@ function qualityCsv(identity: ProjectScopedIdentity) {
       "1",
       "ACTIVE",
       "",
-      "2026-DEMO",
+      "retention-production-season",
       "Asia/Shanghai",
       `${identity.harvestBusinessDate}T10:00:00+00:00`,
       "",
@@ -122,7 +122,7 @@ function validationFailureCsv(identity: ProjectScopedIdentity, rowCount = 101) {
       "1",
       "ACTIVE",
       "",
-      "2026-DEMO",
+      "retention-production-season",
       "Asia/Shanghai",
       `${identity.harvestBusinessDate}T10:00:00+00:00`,
       "",
@@ -170,10 +170,10 @@ async function uploadAndCommitCsv(page: Page, identity: ProjectScopedIdentity, t
 
 async function createForecastForQuality(page: Page): Promise<string> {
   await page.goto("/trial/forecast");
-  await expect(page.getByLabel("加工厂")).toHaveValue("S2-FIXTURE");
-  await page.getByLabel("产季").selectOption("2026-DEMO");
-  await page.getByLabel("农场").selectOption("s2-fixture-farm");
-  await page.getByLabel("分场").selectOption("s2-fixture-east");
+  await expect(page.getByLabel("加工厂")).toHaveValue("RETENTION-PRODUCTION");
+  await page.getByLabel("产季").selectOption("retention-production-season");
+  await page.getByLabel("农场").selectOption("retention-production-farm");
+  await page.getByLabel("分场").selectOption("retention-production-east");
   await page.getByLabel("品种").selectOption("S2-VAR-A");
   await page.getByLabel("我确认使用服务端权威面积").check();
   await page.getByRole("button", { name: "生成预测" }).click();

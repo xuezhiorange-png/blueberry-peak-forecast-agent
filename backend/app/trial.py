@@ -1344,9 +1344,30 @@ class DefaultTrialApplicationService:
             execution = await execute_core_forecast_run(
                 session,
                 request=authority.core_request,
+                clock=self.clock,
             )
             if execution.status != "COMPLETED" or execution.run is None:
                 raise _map_core_execution_error(execution)
+            # Forecast completion is the base-authority freeze boundary.  This
+            # deliberately runs before Trial evidence and before any later
+            # Task 10 work; the immutable Task 10 extension is appended by the
+            # rolling production writer when that result exists.
+            try:
+                from backend.app.forecast_authority.retention import (
+                    ForecastAuthorityError,
+                    capture_production_forecast_base_authority,
+                )
+
+                await capture_production_forecast_base_authority(
+                    session,
+                    core_forecast_run_id=execution.run.run_id,
+                )
+            except ForecastAuthorityError as error:
+                raise TrialApiError(
+                    TrialApiErrorCode.EVIDENCE_CONFLICT,
+                    status_code=409,
+                    message="Forecast authority could not be durably captured.",
+                ) from error
             try:
                 evidence = await create_forecast_evidence_and_binding_in_result_boundary(
                     session,
