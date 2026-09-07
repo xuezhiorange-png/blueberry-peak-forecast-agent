@@ -83,8 +83,6 @@ from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import
     _seed_authorities,
 )
 
-_FORECAST_CAPTURE_TEST_CUTOFF = datetime(2099, 12, 31, tzinfo=UTC)
-
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.postgres,
@@ -870,6 +868,7 @@ async def _prepare_default_trial_forecast(
     policy_available_at: datetime = datetime(2026, 2, 1, tzinfo=UTC),
     policy_effective_from: date = date(2026, 1, 1),
 ) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
+    capture_cutoff = datetime.now(UTC) + timedelta(minutes=30)
     await _seed_authorities(session)
     await _seed_forecast_authority_dependencies(session)
     await _remove_test_fixture_markers_from_forecast_owners(session)
@@ -888,8 +887,8 @@ async def _prepare_default_trial_forecast(
         .where(HarvestStateRun.id == 910001)
         .values(
             is_replay=True,
-            forecast_effective_cutoff_at=_FORECAST_CAPTURE_TEST_CUTOFF,
-            replay_executed_at=datetime(2026, 2, 28, 1, tzinfo=UTC),
+            forecast_effective_cutoff_at=capture_cutoff,
+            replay_executed_at=datetime.now(UTC),
             replay_code_version="retention-production-replay-v1",
             replay_run_correlation_id="retention-production-replay-910001",
         )
@@ -914,7 +913,7 @@ async def _prepare_default_trial_forecast(
         variety_business_key=item.variety_business_key,
         season_business_key=item.season_business_key,
         destination_factory_business_key=item.destination_factory_business_key,
-        forecast_cutoff_at=_FORECAST_CAPTURE_TEST_CUTOFF,
+        forecast_cutoff_at=capture_cutoff,
         forecast_input_authority_hash=authority.forecast_input_authority_hash,
         plan_row_hash=item.plan_row_hash,
         planting_area_mu=item.planting_area_mu,
