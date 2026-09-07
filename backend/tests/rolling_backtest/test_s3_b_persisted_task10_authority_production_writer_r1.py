@@ -173,9 +173,14 @@ async def _run_production_writer_stage(
         f"{_NODE_MOD}.write_persisted_task10_authority_binding_and_capture",
         new=_binding_only_compatibility_writer,
     )
+    base_capture_patch = patch(
+        f"{_NODE_MOD}.capture_persisted_forecast_base_authority_from_pinned_lineage",
+        new=AsyncMock(),
+    )
     with load_patch:
         if use_binding_only_compatibility:
             capture_patch.start()
+        base_capture_patch.start()
         try:
             await node_orch._stage_execute_task10_prediction(
                 session,
@@ -186,6 +191,7 @@ async def _run_production_writer_stage(
         finally:
             if use_binding_only_compatibility:
                 capture_patch.stop()
+            base_capture_patch.stop()
 
 
 async def _binding_only_compatibility_writer(
@@ -645,6 +651,10 @@ def test_production_writer_path_is_node_orchestration() -> None:
     stage_start = node_source.index("async def _stage_execute_task10_prediction")
     stage_end = node_source.index("async def _stage_finalize_snapshot", stage_start)
     stage_source = node_source[stage_start:stage_end]
+    base_capture_index = stage_source.index(
+        "capture_persisted_forecast_base_authority_from_pinned_lineage"
+    )
     reuse_index = stage_source.index("_execute_task10_prediction_reuse")
     writer_index = stage_source.index("_write_persisted_task10_authority_binding_after_reuse")
+    assert base_capture_index < reuse_index
     assert reuse_index < writer_index

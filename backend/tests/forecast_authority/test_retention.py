@@ -24,13 +24,17 @@ from backend.app.forecast_authority.retention import (
     ForecastAuthorityPostCutoffError,
     ForecastAuthoritySource,
     ForecastAuthorityTestFixtureError,
+    append_task10_forecast_authority,
+    capture_base_forecast_authority,
     capture_forecast_authority,
     capture_production_forecast_authority,
     load_pit_visible_forecast_authority,
 )
 from backend.app.models.forecast_authority import (
+    FORECAST_AUTHORITY_CAPTURE_STAGE_BASE,
     ForecastAuthorityCaptureModel,
     ForecastAuthorityDailyModel,
+    ForecastAuthorityTask10ExtensionModel,
 )
 
 _CUTOFF = datetime(2026, 2, 16, 0, 0, tzinfo=UTC)
@@ -172,6 +176,20 @@ def _source(
     )
 
 
+def _base_source(source: ForecastAuthoritySource) -> ForecastAuthoritySource:
+    return replace(
+        source,
+        task10_training_run_id=None,
+        task10_training_signature=None,
+        task10_prediction_run_id=None,
+        task10_prediction_input_signature=None,
+        task10_prediction_hash=None,
+        task10_binding_id=None,
+        task10_binding_hash=None,
+        task10_snapshot=None,
+    )
+
+
 @pytest.fixture
 async def session() -> AsyncGenerator[AsyncSession, None]:
     engine = create_async_engine(
@@ -181,9 +199,11 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
     )
     capture_table = cast(Table, ForecastAuthorityCaptureModel.__table__)
     daily_table = cast(Table, ForecastAuthorityDailyModel.__table__)
+    extension_table = cast(Table, ForecastAuthorityTask10ExtensionModel.__table__)
     async with engine.begin() as connection:
         await connection.run_sync(capture_table.create)
         await connection.run_sync(daily_table.create)
+        await connection.run_sync(extension_table.create)
     async with AsyncSession(engine, expire_on_commit=False) as db_session:
         yield db_session
     await engine.dispose()
@@ -207,7 +227,7 @@ async def test_production_entrypoint_creates_durable_capture(session: AsyncSessi
     finally:
         retention.build_forecast_authority_source_from_persisted_lineage = original
     assert result.reused_existing is False
-    assert result.write_count == 3
+    assert result.write_count == 4
     assert (
         await session.scalar(select(ForecastAuthorityCaptureModel.authority_scope)) == "PRODUCTION"
     )
@@ -246,7 +266,7 @@ async def test_task10_completion_boundary_captures_authority(
         "write_persisted_task10_authority_binding_from_pinned_lineage",
         _bind,
     )
-    monkeypatch.setattr(retention, "capture_production_forecast_authority", _capture)
+    monkeypatch.setattr(retention, "capture_production_forecast_task10_extension", _capture)
 
     result = await task10_binding.write_persisted_task10_authority_binding_and_capture(
         session,
@@ -260,6 +280,42 @@ async def test_task10_completion_boundary_captures_authority(
     assert result.outcome == task10_binding.PersistedTask10AuthorityBindingWriteOutcome.BOUND
     assert result.forecast_authority_capture_id == 22
     assert result.forecast_authority_reused_existing is False
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_base_capture_is_frozen_before_task10_extension(session: AsyncSession) -> None:
+    source = _source(identity="base-before-task10")
+    base = await capture_base_forecast_authority(session, source=source)
+    assert base.write_count == 3
+    parent = await session.get(ForecastAuthorityCaptureModel, base.capture_id)
+    assert parent is not None
+    assert parent.capture_stage == FORECAST_AUTHORITY_CAPTURE_STAGE_BASE
+    assert parent.task10_prediction_run_id is None
+    assert await session.scalar(select(func.count(ForecastAuthorityTask10ExtensionModel.id))) == 0
+
+    loaded_base = await load_pit_visible_forecast_authority(
+        session,
+        forecast_identity=source.forecast_identity,
+        cutoff_at=_CUTOFF,
+    )
+    assert loaded_base.task10_snapshot == {}
+    extension = await append_task10_forecast_authority(session, source=source)
+    assert extension.write_count == 1
+    assert extension.task10_extension_hash
+    parent_after = await session.get(ForecastAuthorityCaptureModel, base.capture_id)
+    assert parent_after is not None
+    assert parent_after.capture_stage == FORECAST_AUTHORITY_CAPTURE_STAGE_BASE
+    assert parent_after.task10_prediction_run_id is None
+    loaded_complete = await load_pit_visible_forecast_authority(
+        session,
+        forecast_identity=source.forecast_identity,
+        cutoff_at=_CUTOFF,
+    )
+    assert loaded_complete.task10_snapshot == source.task10_snapshot
+    replay = await append_task10_forecast_authority(session, source=source)
+    assert replay.write_count == 0
+    assert replay.task10_extension_hash == extension.task10_extension_hash
 
 
 @pytest.mark.unit
@@ -320,8 +376,8 @@ async def test_all_lineage_snapshots_bind_to_one_capture(session: AsyncSession) 
     assert row.core_forecast_run_id == source.core_forecast_run_id
     assert row.task8_forecast_run_id == source.task8_forecast_run_id
     assert row.task9_run_id == source.task9_run_id
-    assert row.task10_prediction_run_id == source.task10_prediction_run_id
-    assert row.task10_binding_id == source.task10_binding_id
+    assert row.task10_prediction_run_id is None
+    assert row.task10_binding_id is None
     assert row.plan_id == source.plan_id
     assert row.location_reference_id == source.location_reference_id
     assert row.business_grain_snapshot["grain"] == "SEASON_X_FARM_X_SUBFARM_X_VARIETY"
@@ -347,7 +403,7 @@ async def test_exact_replay_is_zero_write(session: AsyncSession) -> None:
     before = await session.scalar(select(func.count(ForecastAuthorityCaptureModel.id)))
     replay = await capture_forecast_authority(session, source=source)
     after = await session.scalar(select(func.count(ForecastAuthorityCaptureModel.id)))
-    assert first.write_count == 3
+    assert first.write_count == 4
     assert replay.write_count == 0
     assert before == after == 1
 
@@ -455,9 +511,11 @@ async def test_postgres_session_boundary_is_opt_in() -> None:
     try:
         capture_table = cast(Table, ForecastAuthorityCaptureModel.__table__)
         daily_table = cast(Table, ForecastAuthorityDailyModel.__table__)
+        extension_table = cast(Table, ForecastAuthorityTask10ExtensionModel.__table__)
         async with engine.begin() as connection:
             await connection.run_sync(capture_table.create, checkfirst=True)
             await connection.run_sync(daily_table.create, checkfirst=True)
+            await connection.run_sync(extension_table.create, checkfirst=True)
         source = _source(identity="postgres-boundary")
         async with AsyncSession(engine, expire_on_commit=False) as writer:
             await capture_forecast_authority(writer, source=source)

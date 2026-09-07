@@ -9,6 +9,7 @@ import re
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from sqlalchemy import and_, delete, func, not_, select, text, update
@@ -28,19 +29,37 @@ from backend.app.core_forecast.repository import (
 )
 from backend.app.core_forecast.schemas import RegisterCoreForecastCodeAuthority
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.forecast_authority.retention import load_pit_visible_forecast_authority
 from backend.app.models.core_forecast import (
     CoreForecastDailyRowModel,
     CoreForecastMetricModel,
     CoreForecastRunModel,
 )
+from backend.app.models.forecast_authority import (
+    FORECAST_AUTHORITY_CAPTURE_STAGE_BASE,
+    ForecastAuthorityCaptureModel,
+    ForecastAuthorityDailyModel,
+)
 from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel, HarvestStateRun
-from backend.app.models.maturity import MaturityDailyPredictionModel
+from backend.app.models.master_data import Factory, Farm, Subfarm, Variety
+from backend.app.models.maturity import (
+    MaturityDailyPredictionModel,
+    MaturityForecastRun,
+    MaturityModelArtifact,
+    MaturityModelRun,
+)
+from backend.app.models.planning import LocationReference
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.models.trial import (
     CoreForecastMarketablePolicyEntryModel,
     CoreForecastMarketablePolicyModel,
     TrialForecastEvidenceModel,
     TrialResourceBindingModel,
+)
+from backend.app.models.weather import (
+    BaseTemperatureSearchRun,
+    LocationWeatherMapping,
+    WeatherSourceLocation,
 )
 from backend.app.repositories.trial_forecast_evidence import (
     TrialForecastEvidenceConflictError,
@@ -63,6 +82,8 @@ from backend.tests.integration.test_v0_1_s2_complete_daily_curve_postgres import
     SEASON_ID,
     _seed_authorities,
 )
+
+_FORECAST_CAPTURE_TEST_CUTOFF = datetime(2099, 12, 31, tzinfo=UTC)
 
 pytestmark = [
     pytest.mark.integration,
@@ -697,6 +718,155 @@ async def _restrict_authorities_to_trial_scope(session: AsyncSession) -> None:
     await session.flush()
 
 
+async def _seed_forecast_authority_dependencies(session: AsyncSession) -> None:
+    """Complete the production owner chain required by retention readback."""
+
+    weather_source = WeatherSourceLocation(
+        id=4101,
+        provider_code="retention-weather-provider",
+        external_location_id="retention-location-1",
+        location_type="station",
+        name="retention-weather-station",
+        latitude=Decimal("24.400000"),
+        longitude=Decimal("103.400000"),
+        altitude_m=Decimal("1600.00"),
+        timezone_name="Asia/Shanghai",
+        grid_resolution=None,
+        source_version="retention-weather-v1",
+        valid_from=date(2026, 1, 1),
+        valid_to=None,
+        row_hash="e" * 64,
+    )
+    mapping = LocationWeatherMapping(
+        id=4102,
+        location_reference_id=3101,
+        weather_source_location_id=weather_source.id,
+        mapping_method="explicit",
+        distance_km=Decimal("0.000000"),
+        altitude_difference_m=Decimal("0.000000"),
+        mapping_score=Decimal("1.000000"),
+        confidence_level="HIGH",
+        mapping_version="retention-weather-mapping-v1",
+        config_hash="f" * 64,
+        available_at=date(2026, 1, 1),
+        valid_from=date(2026, 1, 1),
+        valid_to=None,
+        row_hash="1" * 64,
+    )
+    base_temperature = BaseTemperatureSearchRun(
+        id=4103,
+        scope_type="variety",
+        variety_id=2101,
+        climate_zone_id=None,
+        training_cutoff=date(2025, 12, 31),
+        anchor_event="flowering",
+        target_event="maturity",
+        candidate_temperatures=["8.000000", "10.000000"],
+        selected_base_temperature=Decimal("10.000000"),
+        scoring_method="retention-fixture",
+        selected_score=Decimal("1.000000"),
+        sample_count=1,
+        distinct_season_count=1,
+        training_sample_ids=[1],
+        candidate_scores={"10.000000": "1.000000"},
+        config_hash="2" * 64,
+        feature_version="retention-weather-feature-v1",
+        source_signature="3" * 64,
+        status="completed",
+        warnings=[],
+        blockers=[],
+        input_snapshot={"source": "retention-weather-authority"},
+        finished_at=datetime(2026, 1, 2, tzinfo=UTC),
+    )
+    session.add_all([weather_source, mapping, base_temperature])
+    await session.flush()
+    await session.execute(
+        update(MaturityForecastRun)
+        .where(MaturityForecastRun.id == 810001)
+        .values(weather_mapping_id=mapping.id, base_temperature_search_run_id=base_temperature.id)
+    )
+
+
+async def _remove_test_fixture_markers_from_forecast_owners(session: AsyncSession) -> None:
+    """Make the shared integration data a production-shaped, non-fixture owner chain."""
+
+    await session.execute(
+        update(Farm).where(Farm.id == 101).values(name="retention-production-farm")
+    )
+    await session.execute(
+        update(Subfarm)
+        .where(Subfarm.id == 1101)
+        .values(name="retention-production-east")
+    )
+    await session.execute(
+        update(Subfarm)
+        .where(Subfarm.id == 1102)
+        .values(name="retention-production-west")
+    )
+    await session.execute(
+        update(Variety)
+        .where(Variety.id.in_((2101, 2102)))
+        .values(name="retention-production-variety")
+    )
+    await session.execute(
+        update(Factory)
+        .where(Factory.id == FACTORY_ID)
+        .values(code="RETENTION-PRODUCTION", name="retention-production-factory")
+    )
+    await session.execute(
+        update(LocationReference)
+        .where(LocationReference.id == 3101)
+        .values(
+            address_normalized="retention-production-location",
+            location_source="retention-production-location-source",
+            source_version="retention-production-location-v1",
+        )
+    )
+    await session.execute(
+        update(FarmSeasonVarietyPlan)
+        .where(FarmSeasonVarietyPlan.id == 3201)
+        .values(
+            source_type="retention-production-plan",
+            source_name="retention-production-plan",
+            source_version="retention-production-plan-v1",
+        )
+    )
+    await session.execute(
+        update(MaturityModelRun)
+        .where(MaturityModelRun.id == 810000)
+        .values(
+            model_version="retention-production-task8-v1",
+            model_family="retention-production-task8",
+            scope="retention-production",
+            config_snapshot={"source": "retention-production-task8"},
+            finished_at=datetime(2026, 2, 28, tzinfo=UTC),
+        )
+    )
+    await session.execute(
+        update(MaturityModelArtifact)
+        .where(MaturityModelArtifact.id == 810010)
+        .values(artifact_payload={"source": "retention-production-task8-artifact"})
+    )
+    await session.execute(
+        update(MaturityForecastRun)
+        .where(MaturityForecastRun.id == 810001)
+        .values(
+            expected_total_source="retention-production-plan",
+            finished_at=datetime(2026, 2, 28, tzinfo=UTC),
+        )
+    )
+    await session.execute(
+        update(HarvestStateRun)
+        .where(HarvestStateRun.id == 910001)
+        .values(
+            maturity_model_version="retention-production-task8-v1",
+            replay_code_version="retention-production-replay-v1",
+            replay_run_correlation_id="retention-production-replay-910001",
+        )
+    )
+    await session.flush()
+
+
 async def _prepare_default_trial_forecast(
     session: AsyncSession,
     *,
@@ -705,6 +875,8 @@ async def _prepare_default_trial_forecast(
     policy_effective_from: date = date(2026, 1, 1),
 ) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
     await _seed_authorities(session)
+    await _seed_forecast_authority_dependencies(session)
+    await _remove_test_fixture_markers_from_forecast_owners(session)
     await _restrict_authorities_to_trial_scope(session)
     if seed_policy:
         await _seed_marketable_policy(
@@ -720,10 +892,10 @@ async def _prepare_default_trial_forecast(
         .where(HarvestStateRun.id == 910001)
         .values(
             is_replay=True,
-            forecast_effective_cutoff_at=datetime(2026, 2, 28, tzinfo=UTC),
+            forecast_effective_cutoff_at=_FORECAST_CAPTURE_TEST_CUTOFF,
             replay_executed_at=datetime(2026, 2, 28, 1, tzinfo=UTC),
-            replay_code_version="a2-f-default-trial-fixture-v1",
-            replay_run_correlation_id="a2-f-default-trial-fixture-910001",
+            replay_code_version="retention-production-replay-v1",
+            replay_run_correlation_id="retention-production-replay-910001",
         )
     )
     await CoreForecastRunRepository(session).register_code_authority(
@@ -746,7 +918,7 @@ async def _prepare_default_trial_forecast(
         variety_business_key=item.variety_business_key,
         season_business_key=item.season_business_key,
         destination_factory_business_key=item.destination_factory_business_key,
-        forecast_cutoff_at=datetime(2026, 2, 28, tzinfo=UTC),
+        forecast_cutoff_at=_FORECAST_CAPTURE_TEST_CUTOFF,
         forecast_input_authority_hash=authority.forecast_input_authority_hash,
         plan_row_hash=item.plan_row_hash,
         planting_area_mu=item.planting_area_mu,
@@ -860,6 +1032,92 @@ async def test_postgres_default_trial_service_create_replay_and_owner_readback(
     assert conflicting_owner_replay.value.code is TrialApiErrorCode.CONFLICTING_REPLAY
     assert conflicting_owner_replay.value.status_code == 409
     assert await _related_row_counts(transactional_pg_session, created.run_id) == (1, 1, 1)
+
+
+async def test_postgres_production_forecast_capture_fresh_session_and_immutability() -> None:
+    """Prove the real Forecast entrypoint freezes and reads back the daily authority."""
+
+    async with AsyncSessionMaker() as writer:
+        service, request, actor = await _prepare_default_trial_forecast(writer)
+        created = await service.create_forecast(writer, request, actor)
+        await writer.commit()
+
+    async with AsyncSessionMaker() as reader:
+        capture = await reader.scalar(
+            select(ForecastAuthorityCaptureModel).where(
+                ForecastAuthorityCaptureModel.forecast_identity == created.run_id
+            )
+        )
+        assert capture is not None
+        assert capture.capture_stage == FORECAST_AUTHORITY_CAPTURE_STAGE_BASE
+        assert capture.task10_training_run_id is None
+        assert capture.task10_prediction_run_id is None
+        retained_rows = list(
+            await reader.scalars(
+                select(ForecastAuthorityDailyModel)
+                .where(ForecastAuthorityDailyModel.forecast_authority_capture_id == capture.id)
+                .order_by(ForecastAuthorityDailyModel.prediction_date.asc())
+            )
+        )
+        source_rows = list(
+            await reader.scalars(
+                select(MaturityDailyPredictionModel)
+                .where(
+                    MaturityDailyPredictionModel.forecast_run_id
+                    == capture.task8_forecast_run_id
+                )
+                .order_by(MaturityDailyPredictionModel.prediction_date.asc())
+            )
+        )
+        loaded = await load_pit_visible_forecast_authority(
+            reader,
+            forecast_identity=created.run_id,
+            cutoff_at=request.forecast_cutoff_at,
+        )
+
+    assert len(retained_rows) == len(source_rows) == 90
+    assert loaded.task10_snapshot == {}
+    assert [
+        (row.p50_kg, row.p80_kg, row.p90_kg) for row in loaded.daily_predictions
+    ] == [(row.p50_kg, row.p80_kg, row.p90_kg) for row in source_rows]
+
+    async def _immutable_write(statement: Any) -> None:
+        async with AsyncSessionMaker() as mutation:
+            try:
+                await mutation.execute(statement)
+                await mutation.commit()
+            except DBAPIError:
+                await mutation.rollback()
+            else:
+                raise AssertionError("immutable authority write unexpectedly succeeded")
+
+    await _immutable_write(
+        update(ForecastAuthorityCaptureModel)
+        .where(ForecastAuthorityCaptureModel.id == capture.id)
+        .values(forecast_identity="f" * 64)
+    )
+    await _immutable_write(
+        delete(ForecastAuthorityCaptureModel).where(ForecastAuthorityCaptureModel.id == capture.id)
+    )
+    first_daily_id = retained_rows[0].id
+    await _immutable_write(
+        update(ForecastAuthorityDailyModel)
+        .where(ForecastAuthorityDailyModel.id == first_daily_id)
+        .values(p50_kg=Decimal("9.000000"))
+    )
+    await _immutable_write(
+        delete(ForecastAuthorityDailyModel).where(ForecastAuthorityDailyModel.id == first_daily_id)
+    )
+
+    async with AsyncSessionMaker() as final_reader:
+        final_loaded = await load_pit_visible_forecast_authority(
+            final_reader,
+            forecast_identity=created.run_id,
+            cutoff_at=request.forecast_cutoff_at,
+        )
+    assert [
+        (row.p50_kg, row.p80_kg, row.p90_kg) for row in final_loaded.daily_predictions
+    ] == [(row.p50_kg, row.p80_kg, row.p90_kg) for row in source_rows]
 
 
 async def test_postgres_default_trial_service_historical_readback_is_stable(

@@ -93,6 +93,7 @@ from backend.app.rolling_backtest.orchestration import (
 from backend.app.rolling_backtest.persisted_task10_authority_binding import (
     PersistedTask10AuthorityBindingWriteOutcome,
     PersistedTask10AuthorityBindingWriteResult,
+    capture_persisted_forecast_base_authority_from_pinned_lineage,
     write_persisted_task10_authority_binding_and_capture,
 )
 from backend.app.rolling_backtest.persistence import (
@@ -3307,6 +3308,32 @@ async def _stage_execute_task10_prediction(  # noqa: ARG001
 
     For historical_observed: reuse persisted prediction only.
     """
+    if ctx.task10_authority is not None:
+        if ctx.task9_authority is None or ctx.task9_authority.run_reference is None:
+            raise Task10Task9BindingMismatchError(
+                "Task 10 authority requires a pinned Task 9 run before base capture"
+            )
+        task9_reference = ctx.task9_authority.run_reference
+        if (
+            task9_reference.reference_type != "database_run_id"
+            or not isinstance(task9_reference.reference_value, int)
+            or ctx.task9_authority.result_hash is None
+        ):
+            raise Task10Task9BindingMismatchError(
+                "Task 10 authority requires an exact Task 9 identity before base capture"
+            )
+        task9_run = await session.get(HarvestStateRun, task9_reference.reference_value)
+        if task9_run is None or task9_run.maturity_forecast_run_id is None:
+            raise Task10Task9BindingMismatchError(
+                "Task 10 authority requires a Task 8 lineage before base capture"
+            )
+        await capture_persisted_forecast_base_authority_from_pinned_lineage(
+            session,
+            task8_forecast_run_id=task9_run.maturity_forecast_run_id,
+            task9_harvest_state_run_id=task9_run.id,
+            task9_result_hash=ctx.task9_authority.result_hash,
+            forecast_effective_cutoff_at=node.forecast_cutoff_at,
+        )
     await _execute_task10_prediction_reuse(session, ctx, config, node)
     await _write_persisted_task10_authority_binding_after_reuse(session, ctx, node)
     return ctx

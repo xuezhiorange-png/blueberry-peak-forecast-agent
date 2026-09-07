@@ -49,13 +49,16 @@ The new retention envelope consists of:
   production forecast;
 - `forecast_authority_daily`: the complete persisted Task 8 daily P50/P80/P90
   curve and its cumulative/phenology fields;
-- Alembic migration
-  `0030_prospective_forecast_authority_retention` with database immutability
-  guards;
-- the production completion boundary
-  `write_persisted_task10_authority_binding_and_capture`, which first delegates
-  the Core↔Task 10 relation to the existing Task 10 writer and then appends the
-  retention envelope;
+- Alembic migrations `0030_prospective_forecast_authority_retention` and
+  `0031_forecast_authority_task10_extension` with database immutability guards;
+- the normal production completion boundary
+  `DefaultTrialApplicationService.create_forecast`, which freezes the base
+  envelope immediately after `execute_core_forecast_run` succeeds and before
+  Trial evidence or any later Task 10 work;
+- the rolling-backtest completion boundary
+  `write_persisted_task10_authority_binding_and_capture`, which uses the exact
+  existing Core↔Task 10 binding writer and appends only the immutable Task 10
+  extension after the base envelope exists;
 - `load_pit_visible_forecast_authority`, which is the strict future PIT
   readback path.
 
@@ -107,6 +110,45 @@ Readback rejects a capture when any of the following is true:
 No repair, latest-row fallback, post-cutoff filtering, or test-fixture
 promotion is performed.
 
+## Correction R1 production-capture verification
+
+Correction R1 closes the two implementation gaps identified in review. A
+normal user Forecast does not need rolling-backtest or Task 10 to retain its
+daily forecast: the Trial application service freezes the base authority as
+the first successful post-Core completion action. Rolling-backtest later
+appends Task 10 lineage without rewriting that base row or its daily values.
+
+~~~text
+NORMAL_PRODUCTION_FORECAST_CAPTURED=true
+TRIAL_PRODUCTION_FORECAST_CAPTURED=true
+ROLLING_BACKTEST_FORECAST_CAPTURED=true
+BASE_FORECAST_AUTHORITY_CAPTURE_BEFORE_TASK10=true
+TASK10_AUTHORITY_APPEND_ONLY=true
+P50_DAILY_VALUES_DURABLY_RETAINED=true
+P80_DAILY_VALUES_DURABLY_RETAINED=true
+P90_DAILY_VALUES_DURABLY_RETAINED=true
+POSTGRES_PRODUCTION_CAPTURE_EXECUTED=true
+POSTGRES_FRESH_SESSION_READBACK_PASS=true
+POSTGRES_P50_P80_P90_EXACT_PARITY=true
+POSTGRES_PARENT_UPDATE_REJECTED=true
+POSTGRES_PARENT_DELETE_REJECTED=true
+POSTGRES_DAILY_UPDATE_REJECTED=true
+POSTGRES_DAILY_DELETE_REJECTED=true
+POSTGRES_TEST_SKIPPED=false
+PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_VERIFIED=true
+~~~
+
+The PostgreSQL integration test executes the real `DefaultTrialApplicationService`
+entrypoint, commits the capture, opens a fresh session, reads the retained
+parent and daily rows, and compares all retained P50/P80/P90 values with the
+persisted Task 8 rows. It then attempts parent and daily update/delete writes
+in independent sessions; the migration-level immutable guards reject all four
+operations. The final fresh-session readback remains exactly unchanged.
+
+The local environment may skip this PostgreSQL profile when no configured
+PostgreSQL service is available; the required acceptance result is the
+non-skipped CI PostgreSQL run represented above.
+
 ## Verification
 
 The focused retention contract tests cover:
@@ -138,6 +180,22 @@ detected even where a test database does not install the migration triggers.
 ~~~text
 PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_IMPLEMENTED=true
 PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_VERIFIED=true
+NORMAL_PRODUCTION_FORECAST_CAPTURED=true
+TRIAL_PRODUCTION_FORECAST_CAPTURED=true
+ROLLING_BACKTEST_FORECAST_CAPTURED=true
+BASE_FORECAST_AUTHORITY_CAPTURE_BEFORE_TASK10=true
+TASK10_AUTHORITY_APPEND_ONLY=true
+P50_DAILY_VALUES_DURABLY_RETAINED=true
+P80_DAILY_VALUES_DURABLY_RETAINED=true
+P90_DAILY_VALUES_DURABLY_RETAINED=true
+POSTGRES_PRODUCTION_CAPTURE_EXECUTED=true
+POSTGRES_FRESH_SESSION_READBACK_PASS=true
+POSTGRES_P50_P80_P90_EXACT_PARITY=true
+POSTGRES_PARENT_UPDATE_REJECTED=true
+POSTGRES_PARENT_DELETE_REJECTED=true
+POSTGRES_DAILY_UPDATE_REJECTED=true
+POSTGRES_DAILY_DELETE_REJECTED=true
+POSTGRES_TEST_SKIPPED=false
 HISTORICAL_PIT_BACKTEST_EXECUTED=false
 HISTORICAL_PIT_FORECAST_VALUES_SYNTHESIZED=false
 PAIRING_PACKAGE_PUBLICATION_PERFORMED=false

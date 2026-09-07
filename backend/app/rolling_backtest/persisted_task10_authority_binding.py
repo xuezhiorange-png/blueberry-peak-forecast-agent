@@ -228,6 +228,52 @@ async def write_persisted_task10_authority_binding_from_pinned_lineage(
     )
 
 
+async def capture_persisted_forecast_base_authority_from_pinned_lineage(
+    session: AsyncSession,
+    *,
+    task8_forecast_run_id: int,
+    task9_harvest_state_run_id: int,
+    task9_result_hash: str,
+    forecast_effective_cutoff_at: datetime,
+) -> None:
+    """Freeze the base forecast envelope before Task 10 work begins.
+
+    The exact Core identity is resolved through the same pinned lineage query
+    used by the Task 10 binding writer.  This function intentionally has no
+    fallback: a rolling node cannot start Task 10 until the completed Core
+    forecast has an immutable base-authority capture.
+    """
+    core_ids = await resolve_exact_core_forecast_run_ids(
+        session,
+        task8_forecast_run_id=task8_forecast_run_id,
+        task9_harvest_state_run_id=task9_harvest_state_run_id,
+        task9_result_hash=task9_result_hash,
+        forecast_effective_cutoff_at=forecast_effective_cutoff_at,
+    )
+    if not core_ids:
+        raise PersistedTask10AuthorityBindingLineageError(
+            "completed Core forecast authority is required before Task 10"
+        )
+    if len(core_ids) > 1:
+        raise PersistedTask10AuthorityBindingLineageError(
+            "ambiguous Core forecast authority exists before Task 10"
+        )
+    from backend.app.forecast_authority.retention import (
+        ForecastAuthorityError,
+        capture_production_forecast_base_authority,
+    )
+
+    try:
+        await capture_production_forecast_base_authority(
+            session,
+            core_forecast_run_id=core_ids[0],
+        )
+    except ForecastAuthorityError as exc:
+        raise PersistedTask10AuthorityBindingLineageError(
+            "base forecast authority capture failed before Task 10"
+        ) from exc
+
+
 async def write_persisted_task10_authority_binding_and_capture(
     session: AsyncSession,
     *,
@@ -262,11 +308,11 @@ async def write_persisted_task10_authority_binding_and_capture(
         )
     from backend.app.forecast_authority.retention import (
         ForecastAuthorityError,
-        capture_production_forecast_authority,
+        capture_production_forecast_task10_extension,
     )
 
     try:
-        capture = await capture_production_forecast_authority(
+        capture = await capture_production_forecast_task10_extension(
             session,
             core_forecast_run_id=result.core_forecast_run_id,
         )
