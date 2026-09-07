@@ -19965,3 +19965,92 @@ NO_STEP_IMPLIES_THE_NEXT=true
 This pointer freezes contract scope only. The next gate requires a separate
 implementation authorization and does not imply package publication, S3-C
 backtest execution, metric execution, attribution, TEST access, or S4.
+
+---
+
+### 4.4 — S3-C legal backtest package implementation R1 pointer (append-only)
+
+This pointer records implementation of the deterministic legal-package
+builder. It does not publish pairing packages, issue partition authority,
+construct a live package, execute S3-C, compute metrics, access TEST, or
+authorize S4.
+
+~~~text
+TASK_ID=V0_3_S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_R1
+S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_AUTHORIZED=true
+LEGAL_BACKTEST_PACKAGE_IMPLEMENTED=true
+LEGAL_BACKTEST_PACKAGE_CURRENTLY_AVAILABLE=false
+S3_LEGAL_BACKTEST_PACKAGE_SCHEMA_VERSION=v0-3-s3-c-legal-backtest-package-v1
+S3_LEGAL_BACKTEST_PACKAGE_STATUS_VALUES=LEGAL,BLOCKED
+LEGAL_PACKAGE_PARTIAL_STATUS_FORBIDDEN=true
+TRAIN_PAIRING_PACKAGE_PRODUCIBLE=true
+VALIDATION_PAIRING_PACKAGE_PRODUCIBLE=true
+TRAIN_PAIRING_PACKAGE_PUBLISHED=false
+VALIDATION_PAIRING_PACKAGE_PUBLISHED=false
+TRAIN_AUTHORITY_RECORD_TRUSTED=false
+VALIDATION_AUTHORITY_RECORD_TRUSTED=false
+FULL_HISTORICAL_CUTOFF_COVERAGE_AVAILABLE=false
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED=UNRESOLVED_BLOCKING
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_DECISION_NOT_FINAL=true
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_RESOLVED=false
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+LIVE_PAIRING_MATERIALIZATION_PERFORMED=false
+PAIRING_PACKAGE_PUBLICATION_PERFORMED=false
+AUTHORITY_ISSUANCE_PERFORMED=false
+LIVE_LEGAL_BACKTEST_PACKAGE_CONSTRUCTED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_EVALUATION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_REMAINS_SEALED=true
+NO_PRODUCTION_SCHEMA_CHANGE=true
+NO_DATABASE_MUTATION=true
+NO_MODEL_CHANGE=true
+NO_PARAMETER_CHANGE=true
+NO_S4=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+NEXT_GATE=COORDINATOR_LEGAL_PACKAGE_IMPLEMENTATION_REVIEW
+~~~
+
+The implementation pointer preserves the existing execution authorizations
+as separate gates. It does not imply trusted registry population, cutoff
+coverage, generic incumbent-artifact resolution, backtest execution, metric
+execution, attribution, TEST access, or S4.
+
+---
+
+### 4.4 — S3-C legal backtest package implementation R1 review correction pointer (append-only)
+
+This append-only pointer records the review correction for PR #572. The user
+gate authorizes implementation review only; it is not an execution gate and
+does not reinterpret the inherited S3-C, metric, or S3-D authorizations.
+
+~~~text
+TASK_ID=V0_3_S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_R1_REVIEW_CORRECTION
+REVIEW_ID=5128336176
+PR_NUMBER=572
+USER_GATE=可以继续
+USER_GATE_INTERPRETATION=S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_ONLY
+USER_GATE_DOES_NOT_TRIGGER_S3_C_EXECUTION=true
+USER_GATE_DOES_NOT_TRIGGER_METRIC_EXECUTION=true
+USER_GATE_DOES_NOT_TRIGGER_S3_D_EXECUTION=true
+PIT_EXACT_CELL_TARGET_QUANTILE_HORIZON_AUTHORITY_REPLAY_IMPLEMENTED=true
+PIT_AVAILABILITY_FAIL_CLOSED=true
+CUTOFF_SELECTION_POLICY_GOVERNED=true
+CUTOFF_MEMBER_STORAGE_CANONICAL=true
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+NEXT_GATE=COORDINATOR_PR572_RE_REVIEW
+~~~
+
+This correction pointer does not execute S3-C, metrics, or S3-D, does not
+access TEST, and does not alter the frozen legal-backtest contract.
