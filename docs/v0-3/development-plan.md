@@ -20019,3 +20019,38 @@ The implementation pointer preserves the existing execution authorizations
 as separate gates. It does not imply trusted registry population, cutoff
 coverage, generic incumbent-artifact resolution, backtest execution, metric
 execution, attribution, TEST access, or S4.
+
+---
+
+### 4.4 — S3-C legal backtest package implementation R1 review correction pointer (append-only)
+
+This append-only pointer records the review correction for PR #572. The user
+gate authorizes implementation review only; it is not an execution gate and
+does not reinterpret the inherited S3-C, metric, or S3-D authorizations.
+
+~~~text
+TASK_ID=V0_3_S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_R1_REVIEW_CORRECTION
+REVIEW_ID=5128336176
+PR_NUMBER=572
+USER_GATE=可以继续
+USER_GATE_INTERPRETATION=S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_ONLY
+USER_GATE_DOES_NOT_TRIGGER_S3_C_EXECUTION=true
+USER_GATE_DOES_NOT_TRIGGER_METRIC_EXECUTION=true
+USER_GATE_DOES_NOT_TRIGGER_S3_D_EXECUTION=true
+PIT_EXACT_CELL_TARGET_QUANTILE_HORIZON_AUTHORITY_REPLAY_IMPLEMENTED=true
+PIT_AVAILABILITY_FAIL_CLOSED=true
+CUTOFF_SELECTION_POLICY_GOVERNED=true
+CUTOFF_MEMBER_STORAGE_CANONICAL=true
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+NEXT_GATE=COORDINATOR_PR572_RE_REVIEW
+~~~
+
+This correction pointer does not execute S3-C, metrics, or S3-D, does not
+access TEST, and does not alter the frozen legal-backtest contract.

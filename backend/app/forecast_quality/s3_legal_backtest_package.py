@@ -11,9 +11,10 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
+from decimal import Decimal
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from backend.app.forecast_quality.canonical import canonical_json_bytes
 from backend.app.forecast_quality.quantile_coverage import (
@@ -38,6 +39,8 @@ from backend.app.forecast_quality.train_val_pairing_materialization import (
     OfficialPartitionRows,
     TrainValidationPairingMaterializationBlocker,
     TrainValidationPairingMaterializationResult,
+    _build_partition_s2_binding_request,
+    compute_canonical_forecast_binding_key_hash,
     compute_s3_binding_row_set_hash,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
@@ -47,10 +50,23 @@ from backend.app.forecast_quality.train_val_trusted_registry import (
     TrustedPublishedPairingPackageRegistry,
     verify_train_validation_coverage_authority,
 )
+from backend.app.rolling_backtest.persisted_forecast_authority import (
+    MATERIAL_S2_FORECAST_AUTHORITY_BUNDLE_FIELDS,
+)
+from backend.app.rolling_backtest.schemas import (
+    S2ForecastAuthorityBundle,
+    S2HistoricalBacktestRequest,
+)
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
     OFFICIAL_TRAIN_ROW_COUNT,
     OFFICIAL_VALIDATION_ROW_COUNT,
 )
+from backend.app.s3_daily_rowset.forecast_port import (
+    ForecastAvailability,
+    IncumbentDailyCurveProvider,
+)
+from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
+from backend.app.s3_daily_rowset.window import expected_forecast_target_date
 
 S3_LEGAL_BACKTEST_PACKAGE_SCHEMA_VERSION = "v0-3-s3-c-legal-backtest-package-v1"
 S3_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_VERSION = (
@@ -130,7 +146,7 @@ class S3LegalBacktestForecastCutoffSet:
     def from_members(
         cls, members: Sequence[S3LegalBacktestForecastCutoff]
     ) -> S3LegalBacktestForecastCutoffSet:
-        normalized = tuple(members)
+        normalized = canonicalize_forecast_cutoff_members(members)
         return cls(
             members=normalized,
             identity_sha256=compute_forecast_cutoff_set_identity_sha256(normalized),
@@ -262,20 +278,36 @@ def _cutoff_member_payload(
     }
 
 
+def _forecast_cutoff_member_sort_key(
+    member: S3LegalBacktestForecastCutoff,
+) -> tuple[str, str, str, str]:
+    payload = _cutoff_member_payload(member)
+    return (
+        payload["forecast_cutoff_at"],
+        payload["model_identity"],
+        payload["selection_policy"],
+        payload["forecast_authority_identity"],
+    )
+
+
+def canonicalize_forecast_cutoff_members(
+    members: Sequence[S3LegalBacktestForecastCutoff],
+) -> tuple[S3LegalBacktestForecastCutoff, ...]:
+    """Return the one canonical tuple used by every cutoff identity boundary."""
+
+    normalized = tuple(members)
+    for member in normalized:
+        _cutoff_member_payload(member)
+    return tuple(sorted(normalized, key=_forecast_cutoff_member_sort_key))
+
+
 def compute_forecast_cutoff_set_identity_sha256(
     members: Sequence[S3LegalBacktestForecastCutoff],
 ) -> str:
     """Hash the canonical ordered cutoff members with no hidden members."""
 
-    payload_members = [_cutoff_member_payload(member) for member in members]
-    payload_members.sort(
-        key=lambda member: (
-            member["forecast_cutoff_at"],
-            member["model_identity"],
-            member["selection_policy"],
-            member["forecast_authority_identity"],
-        )
-    )
+    canonical_members = canonicalize_forecast_cutoff_members(members)
+    payload_members = [_cutoff_member_payload(member) for member in canonical_members]
     return hashlib.sha256(canonical_json_bytes({"cutoff_members": payload_members})).hexdigest()
 
 
@@ -283,10 +315,10 @@ def _normalize_cutoff_set(
     cutoff_set: S3LegalBacktestForecastCutoffSet | Sequence[S3LegalBacktestForecastCutoff],
 ) -> tuple[tuple[S3LegalBacktestForecastCutoff, ...], str, bool]:
     if isinstance(cutoff_set, S3LegalBacktestForecastCutoffSet):
-        members = tuple(cutoff_set.members)
+        members = canonicalize_forecast_cutoff_members(cutoff_set.members)
         declared_identity = cutoff_set.identity_sha256
     else:
-        members = tuple(cutoff_set)
+        members = canonicalize_forecast_cutoff_members(cutoff_set)
         declared_identity = compute_forecast_cutoff_set_identity_sha256(members)
     recomputed_identity = compute_forecast_cutoff_set_identity_sha256(members)
     return members, declared_identity, declared_identity == recomputed_identity
@@ -314,16 +346,7 @@ def _cutoff_set_payload(
     members: Sequence[S3LegalBacktestForecastCutoff],
 ) -> list[dict[str, str]]:
     return [
-        _cutoff_member_payload(member)
-        for member in sorted(
-            members,
-            key=lambda member: (
-                member.forecast_cutoff_at.isoformat(),
-                member.model_identity,
-                member.selection_policy,
-                member.forecast_authority_identity,
-            ),
-        )
+        _cutoff_member_payload(member) for member in canonicalize_forecast_cutoff_members(members)
     ]
 
 
@@ -710,14 +733,70 @@ def _validate_actual_pairing(
             blockers.add(S3LegalBacktestPackageBlocker.MISSING_EXACT_ACTUAL_PAIRING)
 
 
+def _pit_timestamp_is_visible(value: object, cutoff_at: datetime) -> bool:
+    return (
+        isinstance(value, datetime)
+        and value.tzinfo is not None
+        and value.utcoffset() is not None
+        and cutoff_at.tzinfo is not None
+        and cutoff_at.utcoffset() is not None
+        and value.astimezone(UTC) <= cutoff_at.astimezone(UTC)
+    )
+
+
+def _authority_bundle_is_complete(authority: object) -> bool:
+    if not isinstance(authority, S2ForecastAuthorityBundle):
+        return False
+    try:
+        for field_name in MATERIAL_S2_FORECAST_AUTHORITY_BUNDLE_FIELDS:
+            value = getattr(authority, field_name)
+            if value is None or isinstance(value, float):
+                return False
+        # Use the existing canonical serializer as the authority bundle's
+        # Decimal/identity boundary; do not create a second authority hash.
+        canonical_json_bytes(authority.model_dump(mode="python"))
+    except Exception:
+        return False
+    return True
+
+
+def _row_s2_request(
+    rows: Sequence[S3BindingRow],
+    *,
+    forecast_cutoff_at: datetime,
+) -> S2HistoricalBacktestRequest:
+    aligned_grains = frozenset(
+        (
+            row.season_business_key,
+            row.farm_business_key,
+            row.subfarm_business_key,
+            row.variety_business_key,
+        )
+        for row in rows
+        if isinstance(row, S3BindingRow)
+    )
+    return _build_partition_s2_binding_request(
+        aligned_grains,
+        forecast_cutoff_at=forecast_cutoff_at,
+    )
+
+
 def _validate_forecast_binding_and_pit(
     *,
     rows: Sequence[S3BindingRow],
     cutoff_members: Sequence[S3LegalBacktestForecastCutoff],
     forecast_cutoff_authority_identity: str,
     model_identity: str,
+    forecast_provider: IncumbentDailyCurveProvider | None,
     blockers: set[S3LegalBacktestPackageBlocker],
 ) -> None:
+    if forecast_provider is None or not forecast_provider.is_lawful_production_provider:
+        if any(
+            isinstance(row, S3BindingRow) and row.s2_status == _COMPARABLE_STATUS for row in rows
+        ):
+            blockers.add(S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY)
+        return
+
     member_keys = {
         (
             member.forecast_cutoff_at,
@@ -726,11 +805,14 @@ def _validate_forecast_binding_and_pit(
         )
         for member in cutoff_members
     }
+    request_by_cutoff: dict[datetime, S2HistoricalBacktestRequest] = {}
     for row in rows:
         if not isinstance(row, S3BindingRow) or row.s2_status != _COMPARABLE_STATUS:
             continue
         if (
             row.forecast_value_kg is None
+            or not isinstance(row.forecast_value_kg, Decimal)
+            or not row.forecast_value_kg.is_finite()
             or not isinstance(row.forecast_business_key, str)
             or not row.forecast_business_key
             or not isinstance(row.forecast_cutoff_at, datetime)
@@ -746,6 +828,102 @@ def _validate_forecast_binding_and_pit(
             row.model_identity,
             forecast_cutoff_authority_identity,
         ) not in member_keys:
+            blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+
+        try:
+            expected_target_date = expected_forecast_target_date(
+                row.forecast_cutoff_at,
+                row.forecast_horizon_days,
+            )
+        except Exception:
+            blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+        if expected_target_date != row.forecast_target_date:
+            blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+        quantile = getattr(row.forecast_quantile, "value", row.forecast_quantile)
+        if quantile not in {"P50", "P80", "P90"}:
+            blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+        cell = EvaluationInstanceCell(
+            season=row.season_business_key,
+            farm=row.farm_business_key,
+            subfarm=row.subfarm_business_key,
+            variety=row.variety_business_key,
+            model_id=row.model_identity,
+            forecast_cutoff_at=row.forecast_cutoff_at,
+            forecast_quantile=quantile,
+        )
+        try:
+            authority = forecast_provider.forecast_authority_for(
+                cell,
+                business_date=row.forecast_target_date,
+                horizon_days=row.forecast_horizon_days,
+            )
+            forecast_result = forecast_provider.forecast_kg_for_day(
+                cell,
+                business_date=row.forecast_target_date,
+            )
+        except Exception:
+            authority = None
+            forecast_result = None
+        if not _authority_bundle_is_complete(authority):
+            blockers.add(S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY)
+            continue
+        assert isinstance(authority, S2ForecastAuthorityBundle)
+        forecast_value = (
+            forecast_result.forecast_harvest_quantity_kg if forecast_result is not None else None
+        )
+        if (
+            forecast_result is None
+            or forecast_result.availability is not ForecastAvailability.AVAILABLE
+            or not isinstance(forecast_value, Decimal)
+            or not forecast_value.is_finite()
+            or forecast_value != row.forecast_value_kg
+        ):
+            if isinstance(forecast_value, float) or isinstance(row.forecast_value_kg, float):
+                blockers.add(S3LegalBacktestPackageBlocker.NATIVE_FLOAT_FORBIDDEN)
+            else:
+                blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+        if not all(
+            _pit_timestamp_is_visible(
+                getattr(authority, field_name),
+                row.forecast_cutoff_at,
+            )
+            for field_name in (
+                "available_at",
+                "task10_model_available_at",
+                "historical_code_available_at",
+            )
+        ):
+            blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+
+        try:
+            request = request_by_cutoff.get(row.forecast_cutoff_at)
+            if request is None:
+                request = _row_s2_request(
+                    rows,
+                    forecast_cutoff_at=row.forecast_cutoff_at,
+                )
+                request_by_cutoff[row.forecast_cutoff_at] = request
+            expected_binding_key = compute_canonical_forecast_binding_key_hash(
+                request,
+                season_business_key=row.season_business_key,
+                farm_business_key=row.farm_business_key,
+                subfarm_business_key=row.subfarm_business_key,
+                variety_business_key=row.variety_business_key,
+                forecast_quantile=cast(Literal["P50", "P80", "P90"], quantile),
+                horizon_days=row.forecast_horizon_days,
+                target_date=row.forecast_target_date,
+                forecast_authority=authority,
+            )
+        except Exception:
+            blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
+            continue
+        if expected_binding_key != row.forecast_business_key:
             blockers.add(S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE)
 
 
@@ -827,16 +1005,22 @@ def _validate_cutoff_set(
         blockers.add(S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_EMPTY)
     if not identity_matches or not _is_sha256(declared_identity):
         blockers.add(S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH)
-    member_keys = [
-        (
-            member.forecast_cutoff_at,
-            member.model_identity,
-            member.selection_policy,
-            member.forecast_authority_identity,
-        )
-        for member in members
-    ]
+    try:
+        member_keys = [
+            (
+                member.forecast_cutoff_at,
+                member.model_identity,
+                member.selection_policy,
+                member.forecast_authority_identity,
+            )
+            for member in members
+        ]
+    except Exception:
+        member_keys = []
+        blockers.add(S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH)
     if len(member_keys) != len(set(member_keys)):
+        blockers.add(S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH)
+    if any(member.selection_policy != FORECAST_SELECTION_POLICY for member in members):
         blockers.add(S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH)
     if not complete:
         blockers.add(S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_INCOMPLETE)
@@ -912,6 +1096,7 @@ def _build_package(
     diagnostics: S3LegalBacktestPackageDiagnostics,
     test_partition_status: str,
 ) -> S3LegalBacktestPackage:
+    canonical_cutoff_members = canonicalize_forecast_cutoff_members(cutoff_members)
     package = S3LegalBacktestPackage(
         schema_version=S3_LEGAL_BACKTEST_PACKAGE_SCHEMA_VERSION,
         package_identity_sha256="",
@@ -926,7 +1111,7 @@ def _build_package(
         train_evaluation_input_identity=_evaluation_input_identity(train_input),
         validation_evaluation_input_identity=_evaluation_input_identity(validation_input),
         forecast_authority_identity=train_package.forecast_authority_identity,
-        in_scope_forecast_cutoff_set=cutoff_members,
+        in_scope_forecast_cutoff_set=canonical_cutoff_members,
         in_scope_forecast_cutoff_set_identity_sha256=cutoff_identity,
         forecast_cutoff_authority_identity=(train_package.forecast_cutoff_authority_identity),
         model_identity=REVIEWED_MODEL_ID,
@@ -984,6 +1169,7 @@ def _build_s3_legal_backtest_package_with_context(
     validation_partition_authority: TrainValidationCoveragePartitionAuthority | None,
     forecast_cutoff_set: S3LegalBacktestForecastCutoffSet | Sequence[S3LegalBacktestForecastCutoff],
     context: _LegalBacktestAuthorityContext,
+    forecast_provider: IncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
 ) -> S3LegalBacktestPackageResult:
     """Internal constructor used by the production wrapper and unit fixtures."""
@@ -1097,10 +1283,19 @@ def _build_s3_legal_backtest_package_with_context(
         train_package.forecast_cutoff_authority_identity if train_package is not None else ""
     )
     _validate_forecast_binding_and_pit(
-        rows=tuple(train_rows) + tuple(validation_rows),
+        rows=tuple(train_rows),
         cutoff_members=cutoff_members,
         forecast_cutoff_authority_identity=forecast_cutoff_authority_identity,
         model_identity=REVIEWED_MODEL_ID,
+        forecast_provider=forecast_provider,
+        blockers=blockers,
+    )
+    _validate_forecast_binding_and_pit(
+        rows=tuple(validation_rows),
+        cutoff_members=cutoff_members,
+        forecast_cutoff_authority_identity=forecast_cutoff_authority_identity,
+        model_identity=REVIEWED_MODEL_ID,
+        forecast_provider=forecast_provider,
         blockers=blockers,
     )
     _validate_generic_artifact_requirement(context.generic_artifact_requirement, blockers)
@@ -1179,6 +1374,7 @@ def _build_s3_legal_backtest_package_with_registries(
     issued_schema_versions: frozenset[str],
     cutoff_set_complete: bool = True,
     generic_artifact_requirement: S3GenericIncumbentForecastArtifactRequirement | None = None,
+    forecast_provider: IncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
 ) -> S3LegalBacktestPackageResult:
     """Test-only in-memory authority context for hypothetical legal paths."""
@@ -1199,6 +1395,7 @@ def _build_s3_legal_backtest_package_with_registries(
         validation_partition_authority=validation_partition_authority,
         forecast_cutoff_set=forecast_cutoff_set,
         context=context,
+        forecast_provider=forecast_provider,
         test_partition_status=test_partition_status,
     )
 
@@ -1212,6 +1409,7 @@ def build_s3_legal_backtest_package(
     validation_partition_authority: TrainValidationCoveragePartitionAuthority | None = None,
     forecast_cutoff_set: S3LegalBacktestForecastCutoffSet
     | Sequence[S3LegalBacktestForecastCutoff] = (),
+    forecast_provider: IncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
 ) -> S3LegalBacktestPackageResult:
     """Build a production legal-package result using only trusted registries.
@@ -1241,6 +1439,7 @@ def build_s3_legal_backtest_package(
         validation_partition_authority=validation_partition_authority,
         forecast_cutoff_set=forecast_cutoff_set,
         context=_PRODUCTION_AUTHORITY_CONTEXT,
+        forecast_provider=forecast_provider,
         test_partition_status=test_partition_status,
     )
 
@@ -1265,6 +1464,7 @@ __all__ = [
     "TEST_PARTITION_STATUS_SEALED_ABSENT",
     "build_s3_legal_backtest_package",
     "build_s3_legal_backtest_package_semantic_payload",
+    "canonicalize_forecast_cutoff_members",
     "compute_forecast_cutoff_set_identity_sha256",
     "compute_s3_legal_backtest_package_identity_hashes",
     "verify_s3_legal_backtest_package_hash_replay",

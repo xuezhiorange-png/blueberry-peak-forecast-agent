@@ -20,6 +20,7 @@ access; 31 no executor; 32 no comparison result; 33 no MAPE/bias/coverage;
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import inspect
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -63,6 +64,8 @@ from backend.app.forecast_quality.train_val_pairing_materialization import (
     OfficialPartitionRows,
     TrainValidationPairingMaterializationBlocker,
     TrainValidationPairingMaterializationResult,
+    _build_partition_s2_binding_request,
+    compute_canonical_forecast_binding_key_hash,
     compute_s3_binding_row_set_hash,
 )
 from backend.app.forecast_quality.train_val_trusted_registry import (
@@ -72,11 +75,24 @@ from backend.app.forecast_quality.train_val_trusted_registry import (
     TrustedPublishedPairingPackageRegistry,
     build_candidate_authority_record,
 )
+from backend.app.rolling_backtest.schemas import S2ForecastAuthorityBundle
 from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
     OFFICIAL_TRAIN_ROW_COUNT,
     OFFICIAL_VALIDATION_ROW_COUNT,
 )
+from backend.app.s3_daily_rowset.forecast_port import (
+    ForecastDayResult,
+    IncumbentDailyCurveProvider,
+)
+from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
+    PitVisibleDailyForecastCell,
+    PitVisibleIncumbentDailyCurveIndex,
+)
+from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider import (
+    PitVisibleIncumbentDailyCurveProvider,
+)
+from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
 
 _CUTOFF = datetime(2026, 2, 16, tzinfo=UTC)
 _LATER_CUTOFF = _CUTOFF + timedelta(days=1)
@@ -132,6 +148,116 @@ class _Fixture:
     published_registry: TrustedPublishedPairingPackageRegistry
     issued_registry: TrustedIssuedAuthorityRegistry
     cutoff_set: S3LegalBacktestForecastCutoffSet
+    forecast_provider: PitVisibleIncumbentDailyCurveProvider
+
+
+def _forecast_authority() -> S2ForecastAuthorityBundle:
+    def _digest(label: str) -> str:
+        return hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+    return S2ForecastAuthorityBundle(
+        forecast_run_identity_hash=_digest("forecast-run"),
+        daily_row_identity_hash=_digest("daily-row"),
+        task9_authority_identity_hash=_digest("task9-authority"),
+        task9_member_identity_hash=_digest("task9-member"),
+        task10_authority_identity_hash=_digest("task10-authority"),
+        task10_model_identity_hash=_digest("task10-model"),
+        task10_replay_identity_hash=_digest("task10-replay"),
+        task10_prediction_row_identity_hash=_digest("task10-prediction-row"),
+        historical_code_authority_id=901,
+        forecast_code_identity=_digest("forecast-code"),
+        historical_code_identity=hashlib.sha1(b"historical-code").hexdigest(),
+        build_artifact_hash=_digest("build-artifact"),
+        config_bundle_hash=_digest("config-bundle"),
+        model_identity=_MODEL,
+        parameter_identity="parameter-v1",
+        data_identity="data-v1",
+        available_at=_CUTOFF,
+        task10_model_available_at=_CUTOFF,
+        historical_code_available_at=_CUTOFF,
+    )
+
+
+def _canonicalize_fixture_rows(
+    rows: tuple[S3BindingRow, ...],
+    *,
+    authority: S2ForecastAuthorityBundle,
+) -> tuple[S3BindingRow, ...]:
+    request = _build_partition_s2_binding_request(
+        frozenset(
+            (
+                row.season_business_key,
+                row.farm_business_key,
+                row.subfarm_business_key,
+                row.variety_business_key,
+            )
+            for row in rows
+        ),
+        forecast_cutoff_at=_CUTOFF,
+    )
+    return tuple(
+        dataclasses.replace(
+            row,
+            forecast_business_key=compute_canonical_forecast_binding_key_hash(
+                request,
+                season_business_key=row.season_business_key,
+                farm_business_key=row.farm_business_key,
+                subfarm_business_key=row.subfarm_business_key,
+                variety_business_key=row.variety_business_key,
+                forecast_quantile=row.forecast_quantile.value,
+                horizon_days=row.forecast_horizon_days,
+                target_date=row.forecast_target_date,
+                forecast_authority=authority,
+            ),
+        )
+        for row in rows
+    )
+
+
+def _pit_provider_for_rows(
+    rows: tuple[S3BindingRow, ...],
+    *,
+    authority: S2ForecastAuthorityBundle,
+) -> PitVisibleIncumbentDailyCurveProvider:
+    cells: dict[tuple[str, str, str, str, str, date], PitVisibleDailyForecastCell] = {}
+    for index, row in enumerate(rows, start=1):
+        assert isinstance(row.forecast_value_kg, Decimal)
+        cells[
+            (
+                row.season_business_key,
+                row.farm_business_key,
+                row.subfarm_business_key,
+                row.variety_business_key,
+                row.forecast_quantile.value,
+                row.forecast_target_date,
+            )
+        ] = PitVisibleDailyForecastCell(
+            forecast_kg=row.forecast_value_kg,
+            task8_forecast_run_id=400 + index,
+            task8_daily_row_id=index,
+            task8_daily_prediction_payload_hash=hashlib.sha256(
+                f"daily-{index}".encode()
+            ).hexdigest(),
+            core_daily_row_identity_hash=authority.daily_row_identity_hash,
+            forecast_run_identity_hash=authority.forecast_run_identity_hash,
+            binding_authorities={row.forecast_horizon_days: authority},
+        )
+    grains = {
+        (
+            row.season_business_key,
+            row.farm_business_key,
+            row.subfarm_business_key,
+            row.variety_business_key,
+        )
+        for row in rows
+    }
+    return PitVisibleIncumbentDailyCurveProvider(
+        index=PitVisibleIncumbentDailyCurveIndex(
+            forecast_cutoff_at=_CUTOFF,
+            cells=cells,
+            grain_forecast_run_count={grain: 1 for grain in grains},
+        )
+    )
 
 
 def _fixture(
@@ -153,6 +279,13 @@ def _fixture(
             actual="20",
             forecast="25",
         ),
+    )
+    forecast_authority = _forecast_authority()
+    train_rows = _canonicalize_fixture_rows(train_rows, authority=forecast_authority)
+    validation_rows = _canonicalize_fixture_rows(validation_rows, authority=forecast_authority)
+    forecast_provider = _pit_provider_for_rows(
+        train_rows + validation_rows,
+        authority=forecast_authority,
     )
     train_input = _evaluation(train_rows, "train")
     validation_input = _evaluation(validation_rows, "validation")
@@ -276,6 +409,7 @@ def _fixture(
             }
         ),
         cutoff_set=cutoff_set,
+        forecast_provider=forecast_provider,
     )
 
 
@@ -290,6 +424,7 @@ def _legal_result(
     | None = None,
     cutoff_set_complete: bool = True,
     generic_requirement: S3GenericIncumbentForecastArtifactRequirement | None = None,
+    forecast_provider: IncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
     use_fixture_authorities: bool = True,
 ) -> S3LegalBacktestPackageResult:
@@ -312,6 +447,9 @@ def _legal_result(
         issued_schema_versions=frozenset({_SCHEMA}),
         cutoff_set_complete=cutoff_set_complete,
         generic_artifact_requirement=generic_requirement,
+        forecast_provider=(
+            fixture.forecast_provider if forecast_provider is None else forecast_provider
+        ),
         test_partition_status=test_partition_status,
     )
 
@@ -922,3 +1060,267 @@ def test_45_blocker_messages_are_codes_only() -> None:
     )
     assert all("season-" not in blocker for blocker in result.blocker_codes)
     assert all("physical-" not in blocker for blocker in result.blocker_codes)
+
+
+def _provider_with_authority(
+    fixture: _Fixture,
+    authority: S2ForecastAuthorityBundle,
+) -> PitVisibleIncumbentDailyCurveProvider:
+    cells = {
+        key: dataclasses.replace(
+            cell,
+            binding_authorities={
+                horizon_days: authority for horizon_days in cell.binding_authorities
+            },
+        )
+        for key, cell in fixture.forecast_provider.index.cells.items()
+    }
+    return PitVisibleIncumbentDailyCurveProvider(
+        index=dataclasses.replace(
+            fixture.forecast_provider.index,
+            cells=cells,
+        )
+    )
+
+
+class _PersistedAuthorityReplayGuard(IncumbentDailyCurveProvider):
+    """Synthetic stand-in for the existing persisted authority resolver."""
+
+    def __init__(
+        self,
+        delegate: PitVisibleIncumbentDailyCurveProvider,
+        expected_authority: S2ForecastAuthorityBundle,
+    ) -> None:
+        self._delegate = delegate
+        self._expected_authority = expected_authority
+
+    @property
+    def is_lawful_production_provider(self) -> bool:
+        return True
+
+    def forecast_kg_for_day(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+    ) -> ForecastDayResult:
+        return self._delegate.forecast_kg_for_day(
+            cell,
+            business_date=business_date,
+        )
+
+    def forecast_authority_for(
+        self,
+        cell: EvaluationInstanceCell,
+        *,
+        business_date: date,
+        horizon_days: int,
+    ) -> S2ForecastAuthorityBundle | None:
+        resolved = self._delegate.forecast_authority_for(
+            cell,
+            business_date=business_date,
+            horizon_days=horizon_days,
+        )
+        if resolved != self._expected_authority:
+            return None
+        return resolved
+
+
+def _validation_row_result(
+    fixture: _Fixture,
+    row: S3BindingRow,
+    *,
+    forecast_provider: IncumbentDailyCurveProvider | None = None,
+) -> S3LegalBacktestPackageResult:
+    package = fixture.materialization.validation_pairing_package
+    assert package is not None
+    validation_input = dataclasses.replace(
+        package.evaluation_input,
+        rows=(row,) + tuple(package.evaluation_input.rows[1:]),
+    )
+    tampered_package = dataclasses.replace(package, evaluation_input=validation_input)
+    return _legal_result(
+        fixture,
+        materialization=dataclasses.replace(
+            fixture.materialization,
+            validation_pairing_package=tampered_package,
+        ),
+        forecast_provider=forecast_provider,
+    )
+
+
+def test_46_cutoff_members_are_canonicalized_at_construction() -> None:
+    fixture = _fixture()
+    first = fixture.cutoff_set.members[0]
+    second = dataclasses.replace(
+        first,
+        forecast_cutoff_at=_LATER_CUTOFF,
+        forecast_authority_identity="e" * 64,
+    )
+    forward = S3LegalBacktestForecastCutoffSet.from_members((first, second))
+    reverse = S3LegalBacktestForecastCutoffSet.from_members((second, first))
+    assert forward.members == reverse.members
+    assert forward.identity_sha256 == reverse.identity_sha256
+
+    forward_result = _legal_result(fixture, cutoff_set=forward)
+    reverse_result = _legal_result(fixture, cutoff_set=reverse)
+    assert forward_result.package is not None
+    assert reverse_result.package is not None
+    assert (
+        forward_result.package.in_scope_forecast_cutoff_set
+        == reverse_result.package.in_scope_forecast_cutoff_set
+    )
+    assert (
+        forward_result.package.in_scope_forecast_cutoff_set_identity_sha256
+        == reverse_result.package.in_scope_forecast_cutoff_set_identity_sha256
+    )
+    assert (
+        forward_result.package.package_identity_sha256
+        == reverse_result.package.package_identity_sha256
+    )
+    assert (
+        forward_result.package.canonical_hash_sha256 == reverse_result.package.canonical_hash_sha256
+    )
+
+
+def test_47_duplicate_semantic_cutoff_member_is_blocked() -> None:
+    fixture = _fixture()
+    duplicate = S3LegalBacktestForecastCutoffSet.from_members(
+        (fixture.cutoff_set.members[0], fixture.cutoff_set.members[0])
+    )
+    result = _legal_result(fixture, cutoff_set=duplicate)
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert (
+        S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH.value
+        in result.blocker_codes
+    )
+
+
+def test_48_tampered_selection_policy_is_blocked_even_when_hash_replays() -> None:
+    fixture = _fixture()
+    tampered_member = dataclasses.replace(
+        fixture.cutoff_set.members[0],
+        selection_policy="latest",
+    )
+    tampered_set = S3LegalBacktestForecastCutoffSet.from_members((tampered_member,))
+    assert compute_forecast_cutoff_set_identity_sha256(tampered_set.members) == (
+        tampered_set.identity_sha256
+    )
+    result = _legal_result(fixture, cutoff_set=tampered_set)
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert (
+        S3LegalBacktestPackageBlocker.HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH.value
+        in result.blocker_codes
+    )
+
+
+@pytest.mark.parametrize(
+    "authority_field",
+    (
+        "available_at",
+        "task10_model_available_at",
+        "historical_code_available_at",
+    ),
+)
+def test_49_future_forecast_authority_availability_is_blocked(authority_field: str) -> None:
+    fixture = _fixture()
+    future_authority = _forecast_authority().model_copy(
+        update={authority_field: _CUTOFF + timedelta(seconds=1)}
+    )
+    result = _legal_result(
+        fixture,
+        forecast_provider=_provider_with_authority(fixture, future_authority),
+    )
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE.value in (
+        result.blocker_codes
+    )
+
+
+def test_50_wrong_horizon_target_date_and_quantile_are_not_exact_authority() -> None:
+    fixture = _fixture()
+    package = fixture.materialization.validation_pairing_package
+    assert package is not None
+    row = package.evaluation_input.rows[0]
+
+    wrong_horizon = dataclasses.replace(
+        row,
+        forecast_horizon_days=14,
+        forecast_target_date=date(2026, 3, 2),
+    )
+    wrong_target_date = dataclasses.replace(
+        row,
+        forecast_target_date=date(2026, 2, 24),
+    )
+    wrong_quantile = dataclasses.replace(
+        row,
+        forecast_quantile=SupportedQuantile.P80,
+    )
+    for tampered_row in (wrong_horizon, wrong_target_date, wrong_quantile):
+        result = _validation_row_result(fixture, tampered_row)
+        assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+        assert any(
+            blocker in result.blocker_codes
+            for blocker in (
+                S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE.value,
+                S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY.value,
+            )
+        )
+
+
+def test_51_wrong_cell_authority_is_not_reused_by_fallback() -> None:
+    fixture = _fixture()
+    package = fixture.materialization.validation_pairing_package
+    assert package is not None
+    row = package.evaluation_input.rows[0]
+    result = _validation_row_result(fixture, dataclasses.replace(row, farm_business_key="other"))
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert (
+        S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY.value
+        in result.blocker_codes
+    )
+
+
+@pytest.mark.parametrize(
+    "authority_field",
+    (
+        "forecast_run_identity_hash",
+        "daily_row_identity_hash",
+        "task9_authority_identity_hash",
+        "task9_member_identity_hash",
+        "task10_authority_identity_hash",
+        "task10_model_identity_hash",
+        "task10_replay_identity_hash",
+        "task10_prediction_row_identity_hash",
+        "forecast_code_identity",
+        "historical_code_identity",
+        "build_artifact_hash",
+        "config_bundle_hash",
+        "model_identity",
+        "parameter_identity",
+        "data_identity",
+    ),
+)
+def test_52_authority_identity_fields_are_consumed_from_exact_provider(
+    authority_field: str,
+) -> None:
+    """Tampering an authority carrier cannot be accepted as a new legal row."""
+    fixture = _fixture()
+    authority = _forecast_authority()
+    replacement = (
+        hashlib.sha1(f"tampered-{authority_field}".encode()).hexdigest()
+        if authority_field == "historical_code_identity"
+        else hashlib.sha256(f"tampered-{authority_field}".encode()).hexdigest()
+    )
+    tampered_authority = authority.model_copy(update={authority_field: replacement})
+    tampered_provider = _provider_with_authority(fixture, tampered_authority)
+    replay_guard = _PersistedAuthorityReplayGuard(
+        tampered_provider,
+        expected_authority=authority,
+    )
+    result = _legal_result(
+        fixture,
+        forecast_provider=replay_guard,
+    )
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert result.package is None
