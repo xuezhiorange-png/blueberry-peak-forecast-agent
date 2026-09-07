@@ -109,17 +109,22 @@ The builder validates the source and accepted TRAIN/VALIDATION partition
 identities, stored pairing package hashes, row-set hashes, exact actual
 pairing, cross-partition source-row overlap, exact PIT forecast binding,
 cutoff membership, TEST sealing, and package identity replay. For every
-comparable row, a lawful existing `IncumbentDailyCurveProvider` is required
-to resolve the exact `EvaluationInstanceCell`, target date, horizon, and
-quantile. The returned `S2ForecastAuthorityBundle` is required to carry every
-existing governed identity field, all three source-availability timestamps
-are checked against the row cutoff, and the provider forecast value must
-match the row value. The existing canonical S2 forecast binding-key helper is
-then replayed with the resolved authority, so row order, target-date, horizon,
-quantile, cutoff, and forecast-run substitutions fail closed. Task 9/Task 10
-authority-chain validation remains delegated to the existing persisted PIT
-loader/provider; this module does not duplicate that DB verifier or accept a
-caller-supplied verification boolean. It reuses:
+comparable row, the existing persisted PIT loader/provider is represented by
+an independent concrete `PitVisibleIncumbentDailyCurveProvider` resolver. A
+forecast value provider is only a candidate value seam: its complete
+`S2ForecastAuthorityBundle` must be exactly equivalent to the persisted
+resolver bundle through the existing full-field equivalence helper before the
+value can participate in legality. The package does not use
+`is_lawful_production_provider` or any caller-supplied boolean as authority.
+The exact cell, target date, horizon, and quantile are resolved, all three
+source-availability timestamps are checked against the canonical row cutoff,
+and the provider forecast value must match the row value. The existing
+canonical S2 forecast binding-key helper is then replayed with the persisted
+authority, so row order, target-date, horizon, quantile, cutoff, and
+forecast-run substitutions fail closed. Task 9/Task 10 authority-chain
+validation remains delegated to the existing persisted PIT loader/provider;
+this module does not duplicate that DB verifier or accept a caller-supplied
+verification boolean. It reuses:
 
 ~~~text
 verify_pairing_package_hash_replay=true
@@ -139,9 +144,22 @@ FORECAST_AVAILABLE_AT_CHECK_IMPLEMENTED=true
 TASK10_MODEL_AVAILABLE_AT_CHECK_IMPLEMENTED=true
 HISTORICAL_CODE_AVAILABLE_AT_CHECK_IMPLEMENTED=true
 PIT_AVAILABILITY_FAIL_CLOSED=true
+CALLER_CONTROLLED_PROVIDER_TRUST_BYPASS=false
+PRODUCTION_PROVIDER_BOOLEAN_IS_NOT_AUTHORITY=true
+PERSISTED_FORECAST_AUTHORITY_PROVENANCE_REPLAY_IMPLEMENTED=true
+EXACT_PERSISTED_BUNDLE_EQUIVALENCE_VERIFIED=true
+MALICIOUS_PROVIDER_TRUE_MARKER_FAILS_CLOSED=true
+TASK8_CORE_AUTHORITY_REPLAY_VERIFIED=true
+TASK9_AUTHORITY_REPLAY_VERIFIED=true
+TASK10_AUTHORITY_REPLAY_VERIFIED=true
 CUTOFF_SELECTION_POLICY_GOVERNED=true
 CUTOFF_MEMBER_STORAGE_CANONICAL=true
-FINAL_STOP_GATE=COORDINATOR_PR572_RE_REVIEW
+FORECAST_CUTOFF_TIMEZONE=Asia/Shanghai
+FORECAST_CUTOFF_CANONICALIZATION_IMPLEMENTED=true
+SAME_INSTANT_CROSS_TIMEZONE_IDENTITY_INVARIANT=true
+DIFFERENT_INSTANT_NOT_COLLAPSED=true
+NAIVE_FORECAST_CUTOFF_FAIL_CLOSED=true
+FINAL_STOP_GATE=COORDINATOR_PR572_FINAL_RE_REVIEW
 ~~~
 
 PIT visibility uses only the three availability fields on the resolved
@@ -227,19 +245,24 @@ implementation.
 ## 5. Synthetic test contract
 
 All new tests are in-memory and synthetic. The documented 35 themes are
-covered by 76 passing tests:
+covered by 80 passing tests:
 
 ~~~text
 TEST_THEME_COVERAGE_REQUIRED=35/35
 NEW_SCORER_TEST_RESULT=PASS
-NEW_SCORER_TEST_COUNT=76
+NEW_SCORER_TEST_COUNT=80
 NATIVE_FLOAT_TESTED=true
 HASH_REPLAY_TESTED=true
 DETERMINISTIC_FAIL_CLOSED_TESTED=true
 PIT_EXACT_CELL_TARGET_QUANTILE_HORIZON_AUTHORITY_REPLAY_TESTED=true
 PIT_AVAILABILITY_FAIL_CLOSED_TESTED=true
+PERSISTED_FORECAST_AUTHORITY_PROVENANCE_REPLAY_TESTED=true
+MALICIOUS_PROVIDER_TRUE_MARKER_FAILS_CLOSED_TESTED=true
 CUTOFF_SELECTION_POLICY_TAMPER_TESTED=true
 CUTOFF_REVERSE_INPUT_IDENTITY_INVARIANT_TESTED=true
+CUTOFF_SAME_INSTANT_CROSS_TIMEZONE_TESTED=true
+CUTOFF_DIFFERENT_INSTANT_TESTED=true
+CUTOFF_NAIVE_REJECTION_TESTED=true
 PRODUCTION_REGISTRIES_MUTATION_TESTED=false
 TEST_DATA_ACCESSED=false
 TEST_LABELS_ACCESSED=false
@@ -247,7 +270,12 @@ TEST_LABELS_ACCESSED=false
 
 The tests cover the legal hypothetical path only through immutable explicit
 in-memory registries. They also prove that the production wrapper cannot
-populate those registries and remains blocked.
+populate those registries and remains blocked. An ordinary provider subclass
+with `is_lawful_production_provider=true` and a structurally valid but
+different authority bundle cannot force a LEGAL result; the candidate bundle
+must match the separately supplied persisted PIT authority. Cutoff tests also
+prove that the same physical instant in UTC and `Asia/Shanghai` has one
+canonical identity, while a different instant and a naive cutoff fail closed.
 
 ## 6. Execution boundary
 
@@ -273,7 +301,7 @@ V0_3_S4_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-NEXT_GATE=COORDINATOR_PR572_RE_REVIEW
+NEXT_GATE=COORDINATOR_PR572_FINAL_RE_REVIEW
 ~~~
 
 Passing synthetic tests or implementing the package does not publish pairing

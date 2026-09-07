@@ -39,7 +39,20 @@
     "historical_code_available_at_check_implemented": true,
     "pit_availability_fail_closed": true,
     "cutoff_selection_policy_governed": true,
-    "cutoff_member_storage_canonical": true
+    "cutoff_member_storage_canonical": true,
+    "caller_controlled_provider_trust_bypass": false,
+    "production_provider_boolean_is_not_authority": true,
+    "persisted_forecast_authority_provenance_replay_implemented": true,
+    "exact_persisted_bundle_equivalence_verified": true,
+    "malicious_provider_true_marker_fails_closed": true,
+    "task8_core_authority_replay_verified": true,
+    "task9_authority_replay_verified": true,
+    "task10_authority_replay_verified": true,
+    "forecast_cutoff_timezone": "Asia/Shanghai",
+    "forecast_cutoff_canonicalization_implemented": true,
+    "same_instant_cross_timezone_identity_invariant": true,
+    "different_instant_not_collapsed": true,
+    "naive_forecast_cutoff_fail_closed": true
   },
   "package_contract": {
     "schema_version": "v0-3-s3-c-legal-backtest-package-v1",
@@ -63,6 +76,8 @@
     "production_trusted_published_pairing_package_registry": true,
     "production_trusted_issued_authority_registry": true,
     "forecast_authority_resolver": "IncumbentDailyCurveProvider.forecast_authority_for",
+    "persisted_forecast_authority_resolver": "PitVisibleIncumbentDailyCurveProvider emitted by the governed persisted PIT loader",
+    "candidate_authority_equivalence_helper": "assert_full_s2_forecast_authority_bundle_equivalence",
     "forecast_selection_policy": "historical_observed_pit_visible_unique_grain_forecast_run",
     "forecast_authority_bundle_fields": [
       "forecast_run_identity_hash",
@@ -87,6 +102,10 @@
     ],
     "actual_visibility_timestamp_used_as_forecast_availability": false,
     "caller_trust_bypass": false,
+    "production_provider_boolean_is_not_authority": true,
+    "persisted_forecast_authority_provenance_replay_implemented": true,
+    "exact_persisted_bundle_equivalence_verified": true,
+    "malicious_provider_true_marker_fails_closed": true,
     "positional_pairing": false,
     "latest_row_fallback": false,
     "test_derived_members": false
@@ -165,7 +184,7 @@
   "synthetic_test_contract": {
     "test_path": "backend/tests/forecast_quality/test_s3_legal_backtest_package.py",
     "theme_coverage": "35/35",
-    "test_count": 76,
+    "test_count": 80,
     "result": "PASS",
     "all_tests_in_memory": true,
     "test_access_performed": false,
@@ -173,8 +192,13 @@
     "production_registry_mutation": false,
     "pit_exact_cell_target_quantile_horizon_authority_replay_tested": true,
     "pit_availability_fail_closed_tested": true,
+    "persisted_forecast_authority_provenance_replay_tested": true,
+    "malicious_provider_true_marker_fails_closed_tested": true,
     "cutoff_selection_policy_tamper_tested": true,
-    "cutoff_reverse_input_identity_invariant_tested": true
+    "cutoff_reverse_input_identity_invariant_tested": true,
+    "cutoff_same_instant_cross_timezone_tested": true,
+    "cutoff_different_instant_tested": true,
+    "cutoff_naive_rejection_tested": true
   },
   "execution_boundary": {
     "live_pairing_materialization_performed": false,
@@ -208,5 +232,5 @@
     "MERGE_AUTHORIZED": false,
     "NO_STEP_IMPLIES_THE_NEXT": true
   },
-  "next_gate": "COORDINATOR_PR572_RE_REVIEW"
+  "next_gate": "COORDINATOR_PR572_FINAL_RE_REVIEW"
 }
