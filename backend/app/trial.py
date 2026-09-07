@@ -1344,6 +1344,7 @@ class DefaultTrialApplicationService:
             execution = await execute_core_forecast_run(
                 session,
                 request=authority.core_request,
+                clock=self.clock,
             )
             if execution.status != "COMPLETED" or execution.run is None:
                 raise _map_core_execution_error(execution)
