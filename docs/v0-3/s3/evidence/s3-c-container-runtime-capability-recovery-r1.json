@@ -1,0 +1,119 @@
+{
+  "artifact_id": "V0_3_S3_C_CONTAINER_RUNTIME_CAPABILITY_RECOVERY_R1",
+  "artifact_version": "s3-c-container-runtime-capability-recovery-r1-v1",
+  "task_id": "V0_3_S3_C_CONTAINER_RUNTIME_CAPABILITY_RECOVERY_R1",
+  "task_class": "CONTROLLED_LOCAL_RUNTIME_RECOVERY_AND_READ_ONLY_CONTAINER_STATE_DISCOVERY",
+  "base_main_sha": "76c9fb0b8b734bcc90907e1c631d25f4cf200e04",
+  "base_contains_pr575_merge": true,
+  "parent_pr": 575,
+  "parent_merge_commit": "76c9fb0b8b734bcc90907e1c631d25f4cf200e04",
+  "branch": "ops/v0-3-s3-c-container-runtime-capability-recovery-r1",
+  "authorization": {
+    "container_runtime_capability_recovery_authorized": true,
+    "docker_desktop_installation_authorized": true,
+    "read_only_container_discovery_authorized": true,
+    "read_only_volume_discovery_authorized": true,
+    "database_service_start_authorized": false,
+    "database_content_access_authorized": false,
+    "database_content_mutation_authorized": false,
+    "database_migration_authorized": false,
+    "source_002_reattestation_authorized": false,
+    "source_002_recovery_authorized": false,
+    "source_002_rebuild_authorized": false,
+    "pairing_materialization_rerun_authorized": false,
+    "test_access_authorized": false,
+    "test_evaluation_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true
+  },
+  "host": {
+    "os": "Darwin",
+    "arch": "arm64",
+    "homebrew_available": false
+  },
+  "runtime_lineage_discovery": {
+    "docker_desktop_app_present_before": false,
+    "docker_desktop_installation_performed": false,
+    "docker_desktop_launch_performed": false,
+    "docker_user_state_root_present": false,
+    "docker_desktop_container_state_root_present": false,
+    "docker_desktop_group_state_root_present": false,
+    "docker_desktop_application_state_root_present": false,
+    "docker_vm_disk_image_present": false,
+    "docker_vm_disk_image_size_bytes": null,
+    "alternative_runtime_installed": false,
+    "sensitive_runtime_state_read": false
+  },
+  "runtime_capability": {
+    "docker_cli_available": false,
+    "docker_daemon_reachable": false,
+    "docker_compose_available": false,
+    "docker_context": "UNKNOWN",
+    "health_verification_performed": false,
+    "container_runtime_capability_recovery": "BLOCKED",
+    "runtime_recovery_status": "BLOCKED_NO_SUPPORTED_INSTALL_PATH"
+  },
+  "container_discovery": {
+    "performed": false,
+    "project_db_container_exists": null,
+    "project_db_container_state": "UNKNOWN",
+    "project_db_container_identity": "UNKNOWN",
+    "project_db_container_identity_ambiguous": null
+  },
+  "volume_discovery": {
+    "performed": false,
+    "project_postgres_volume_exists": null,
+    "project_postgres_volume_identity": "UNKNOWN",
+    "project_postgres_volume_compose_label_match": null,
+    "declared_compose_volume": "postgres-data"
+  },
+  "database": {
+    "database_service_start_performed": false,
+    "new_database_initialization_performed": false,
+    "new_docker_volume_created": false,
+    "postgres_healthcheck": "NOT_RUN",
+    "application_database_select_1": "NOT_RUN",
+    "database_content_access_performed": false,
+    "database_content_mutation_performed": false,
+    "database_migration_performed": false
+  },
+  "source_002": {
+    "reattestation_executed": false,
+    "reattestation_attested": null,
+    "reattestation_reason_code": null,
+    "source_002_recovery_performed": false,
+    "pairing_materialization_rerun_performed": false
+  },
+  "boundaries": {
+    "train_pairing_package_published": false,
+    "validation_pairing_package_published": false,
+    "authority_issuance_performed": false,
+    "legal_backtest_package_currently_available": false,
+    "s3_c_backtest_execution_performed": false,
+    "s3_metric_execution_performed": false,
+    "s3_d_attribution_execution_performed": false,
+    "test_access_performed": false,
+    "test_evaluation_performed": false,
+    "test_remains_sealed": true,
+    "production_code_change": false,
+    "test_code_change": false,
+    "migration_change": false,
+    "schema_change": false
+  },
+  "validation": {
+    "expected_changed_file_count": 3,
+    "changed_files": [
+      "docs/v0-3/s3/workpapers/s3-c-container-runtime-capability-recovery-r1.md",
+      "docs/v0-3/s3/evidence/s3-c-container-runtime-capability-recovery-r1.json",
+      "docs/v0-3/development-plan.md"
+    ],
+    "json_validation_result": "PASS",
+    "diff_check_result": "PASS",
+    "development_plan_file_tail_append_only": "PASS"
+  },
+  "next_gate": "COORDINATOR_CONTAINER_RUNTIME_RECOVERY_REVIEW",
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "no_step_implies_the_next": true
+}
