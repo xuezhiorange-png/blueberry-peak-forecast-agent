@@ -20283,3 +20283,65 @@ The canonical attestation result and sanitized connection-probe details are
 persisted in the accompanying diagnosis evidence file. Current database
 reachability does not establish database-content identity or authorize
 recovery.
+
+---
+
+### 4.6 — S3-C local PostgreSQL endpoint recovery and SOURCE-002 re-attestation R1 pointer (append-only)
+
+This EOF-appended pointer records the controlled endpoint-recovery attempt
+following PR #574. The application binding matched the repository dev database
+contract, but this runtime had no Docker/Compose runtime and the existing local
+PostgreSQL endpoint on port 5432 was unreachable. No container or persistent
+volume could be verified, so no database service was started and no empty
+database was initialized. SOURCE-002 re-attestation was not run because the
+endpoint recovery gate did not pass.
+
+~~~text
+TASK_ID=V0_3_S3_C_LOCAL_POSTGRES_ENDPOINT_RECOVERY_AND_SOURCE_002_REATTESTATION_R1
+TASK_CLASS=CONTROLLED_LOCAL_INFRA_ENDPOINT_RECOVERY_AND_READ_ONLY_REATTESTATION
+BASE_MAIN_SHA=771271c4ec7821783230df69e8bad930bc7595d8
+PARENT_PR=574
+PARENT_MERGE_COMMIT=771271c4ec7821783230df69e8bad930bc7595d8
+CONFIGURED_ENDPOINT_MATCHES_REPOSITORY_DEV_DB=true
+DOCKER_CLI_AVAILABLE=false
+DOCKER_COMPOSE_AVAILABLE=false
+PROJECT_DB_CONTAINER_EXISTS=UNKNOWN
+PROJECT_POSTGRES_VOLUME_EXISTS=UNKNOWN
+PORT_5432_LISTENER_PRESENT=false
+PORT_5432_LISTENER_CLASS=NONE
+ENDPOINT_RECOVERY_STATUS=BLOCKED_DOCKER_RUNTIME_UNAVAILABLE
+ENDPOINT_RECOVERY_ACTION=NONE
+NEW_DATABASE_INITIALIZATION_PERFORMED=false
+POSTGRES_CONTAINER_RUNNING=UNKNOWN
+POSTGRES_HEALTHCHECK=NOT_RUN
+APPLICATION_DATABASE_SELECT_1=FAIL
+APPLICATION_DATABASE_SELECT_1_FAILURE_CLASS=LOOPBACK_POSTGRES_ENDPOINT_UNREACHABLE
+LOCAL_POSTGRES_ENDPOINT_RECOVERY=BLOCKED
+REATTESTATION_EXECUTED=false
+REATTESTATION_ATTESTED=false
+REATTESTATION_REASON_CODE=NONE
+SOURCE_002_DATA_RECOVERY_REQUIRED=UNKNOWN
+SOURCE_002_RECOVERY_PERFORMED=false
+DATABASE_CONTENT_MUTATION_PERFORMED=false
+DATABASE_MIGRATION_PERFORMED=false
+SCHEMA_CHANGE=false
+PAIRING_MATERIALIZATION_RERUN_PERFORMED=false
+TRAIN_PAIRING_PACKAGE_PUBLISHED=false
+VALIDATION_PAIRING_PACKAGE_PUBLISHED=false
+AUTHORITY_ISSUANCE_PERFORMED=false
+LEGAL_BACKTEST_PACKAGE_CURRENTLY_AVAILABLE=false
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_POSTGRES_ENDPOINT_RECOVERY_REVIEW
+~~~
+
+The accompanying evidence records the sanitized runtime configuration and
+read-only connection probes without exposing a DSN, credentials, database
+content, partition bytes, or TEST payload.

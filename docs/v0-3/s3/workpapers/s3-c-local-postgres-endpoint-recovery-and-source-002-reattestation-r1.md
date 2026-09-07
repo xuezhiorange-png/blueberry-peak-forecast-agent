@@ -1,0 +1,233 @@
+# V0.3 S3-C local PostgreSQL endpoint recovery and SOURCE-002 re-attestation R1
+
+## Scope and authorization
+
+```text
+TASK_ID=V0_3_S3_C_LOCAL_POSTGRES_ENDPOINT_RECOVERY_AND_SOURCE_002_REATTESTATION_R1
+TASK_CLASS=CONTROLLED_LOCAL_INFRA_ENDPOINT_RECOVERY_AND_READ_ONLY_REATTESTATION
+BASE_MAIN_SHA=771271c4ec7821783230df69e8bad930bc7595d8
+PARENT_PR=574
+PARENT_MERGE_COMMIT=771271c4ec7821783230df69e8bad930bc7595d8
+BRANCH=ops/v0-3-s3-c-local-postgres-endpoint-recovery-r1
+USER_GATE=可以下一步任务
+AUTHORIZATION_SCOPE=LOCAL_POSTGRES_ENDPOINT_RECOVERY_PLUS_SOURCE_002_ATTESTATION_ONLY
+LOCAL_POSTGRES_ENDPOINT_RECOVERY_AUTHORIZED=true
+SOURCE_002_REATTESTATION_AUTHORIZED=true
+SOURCE_002_DATA_RECOVERY_AUTHORIZED=false
+SOURCE_002_REBUILD_AUTHORIZED=false
+DATABASE_CONTENT_MUTATION_AUTHORIZED=false
+DATABASE_MIGRATION_AUTHORIZED=false
+PAIRING_MATERIALIZATION_RERUN_AUTHORIZED=false
+PAIRING_PACKAGE_PUBLICATION_AUTHORIZED=false
+AUTHORITY_ISSUANCE_AUTHORIZED=false
+TEST_ACCESS_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+This is an endpoint-recovery attempt and read-only re-attestation gate only.
+It does not authorize SOURCE-002 data recovery, database-content mutation,
+migrations, pairing materialization, package publication, authority
+issuance, TEST access, or downstream S3-C execution.
+
+## Baseline and historical boundary
+
+The branch is based on merged main containing PR #574:
+
+```text
+CURRENT_ORIGIN_MAIN_SHA=771271c4ec7821783230df69e8bad930bc7595d8
+BASE_CONTAINS_PR574_MERGE=true
+```
+
+PR #574 previously established the application-level diagnosis:
+
+```text
+PR574_ROOT_CAUSE_CATEGORY=LIVE_DATABASE_SESSION_BINDING_FAILURE
+PR574_REASON_CODE=FAIL_CLOSED_ASYNC_SESSION_UNREADABLE
+PR574_DATABASE_CONNECTION_PROBE=FAIL
+PR574_DATABASE_CONNECTION_PROBE_FAILURE_CLASS=LOOPBACK_POSTGRES_ENDPOINT_UNREACHABLE
+```
+
+The PR #570 recovery mode remains a separate historical instance:
+
+```text
+HISTORICAL_PR570_DATABASE_RECOVERY_MODE=ISOLATED_LOCAL_POSTGRES_FROM_FROZEN_RAW_SOURCE
+CURRENT_DATABASE_PROVEN_SAME_AS_PR570_ISOLATED_DATABASE=UNKNOWN
+```
+
+No claim is made that the current endpoint contains, lost, or deleted
+SOURCE-002.
+
+## Current application binding
+
+The existing application configuration was read without exposing credentials or
+a full DSN:
+
+```text
+APP_ENV=local
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=blueberry_peak
+POSTGRES_USER_PRESENT=true
+POSTGRES_PASSWORD_PRESENT=true
+CONFIGURED_ENDPOINT_MATCHES_REPOSITORY_DEV_DB=true
+DATABASE_BINDING_CLASS=LOCAL_POSTGRES
+DATABASE_BINDING_FINGERPRINT=73c49c9cf07f4f457a5850f08e7c3ed9189f09eca22633cdb1c7c2826e6acca4
+FULL_DSN_RECORDED=false
+CREDENTIALS_RECORDED=false
+```
+
+The configured endpoint therefore matches the repository contract. No `.env`
+correction was needed or authorized.
+
+## Existing endpoint state discovery
+
+The required Docker discovery could not run because this runtime has no Docker
+CLI, Docker Compose CLI, or Docker Desktop installation. No substitute runtime
+was available:
+
+```text
+DOCKER_CLI_AVAILABLE=false
+DOCKER_COMPOSE_AVAILABLE=false
+DOCKER_DESKTOP_APP_PRESENT=false
+PODMAN_PRESENT=false
+COLIMA_PRESENT=false
+PROJECT_DB_CONTAINER_EXISTS=UNKNOWN
+PROJECT_POSTGRES_VOLUME_EXISTS=UNKNOWN
+EXISTING_VOLUME_IS_BOUND_TO_COMPOSE_DB_SERVICE=UNKNOWN
+```
+
+Because the container and persistent volume could not be verified, no
+`docker compose start db` or `docker compose up -d db` command was issued. In
+particular, no new empty PostgreSQL cluster was initialized.
+
+A read-only loopback TCP probe to port 5432 was attempted as an equivalent
+endpoint reachability check:
+
+```text
+PORT_5432_LISTENER_PRESENT=false
+PORT_5432_LISTENER_CLASS=NONE
+PORT_5432_PROBE_METHOD=LOOPBACK_TCP_CONNECT
+PORT_5432_IPV4_PROBE=CONNECTION_REFUSED
+PORT_5432_IPV6_PROBE=CONNECTION_REFUSED
+```
+
+The application-owned binding was also tested through the existing live reader
+seam with only `SELECT 1`:
+
+```text
+APPLICATION_DATABASE_SELECT_1=FAIL
+APPLICATION_DATABASE_SELECT_1_EXCEPTION_TYPE=OSError
+APPLICATION_DATABASE_SELECT_1_FAILURE_CLASS=LOOPBACK_POSTGRES_ENDPOINT_UNREACHABLE
+```
+
+No SQL other than `SELECT 1` was issued. No database table, dataset metadata,
+partition bytes, or TEST content was read.
+
+## Endpoint recovery result
+
+```text
+ENDPOINT_RECOVERY_STATUS=BLOCKED_DOCKER_RUNTIME_UNAVAILABLE
+ENDPOINT_RECOVERY_ACTION=NONE
+LOCAL_POSTGRES_ENDPOINT_RECOVERY=BLOCKED
+NEW_DATABASE_INITIALIZATION_PERFORMED=false
+POSTGRES_CONTAINER_RUNNING=UNKNOWN
+POSTGRES_HEALTHCHECK=NOT_RUN
+```
+
+The endpoint could not be restored safely in this runtime because the required
+container/volume state could not be inspected and port 5432 was unreachable.
+This is an infrastructure/tooling blocker, not evidence that SOURCE-002 data
+must be recovered.
+
+## SOURCE-002 re-attestation gate
+
+The canonical
+`attest_accepted_s2_train_val_source_002_row_level_read()` call was not
+repeated because endpoint recovery did not succeed. The task's rule requires
+endpoint recovery before re-attestation, so no second attestation result is
+claimed:
+
+```text
+REATTESTATION_EXECUTED=false
+REATTESTATION_ATTESTED=false
+REATTESTATION_REASON_CODE=NONE
+DATASET_ID=NONE
+DATASET_VERSION=NONE
+MATERIALIZED_DATASET_IDENTITY_SHA256=NONE
+TRAIN_ROW_COUNT=NONE
+TRAIN_BYTE_COUNT=NONE
+TRAIN_CONTENT_SHA256=NONE
+VALIDATION_ROW_COUNT=NONE
+VALIDATION_BYTE_COUNT=NONE
+VALIDATION_CONTENT_SHA256=NONE
+TEST_ROW_COUNT=NONE
+TEST_REMAINS_SEALED=true
+```
+
+The official SOURCE-002 oracle remains unchanged and is recorded only as the
+expected comparison identity:
+
+```text
+EXPECTED_DATASET_ID=source-002
+EXPECTED_DATASET_VERSION=e5-live-v1
+EXPECTED_MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+EXPECTED_TRAIN_ROW_COUNT=16224
+EXPECTED_TRAIN_BYTE_COUNT=9087071
+EXPECTED_TRAIN_CONTENT_SHA256=be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2
+EXPECTED_VALIDATION_ROW_COUNT=8006
+EXPECTED_VALIDATION_BYTE_COUNT=4484905
+EXPECTED_VALIDATION_CONTENT_SHA256=4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06
+```
+
+## Safety boundaries
+
+```text
+DATABASE_CONTENT_MUTATION_PERFORMED=false
+DATABASE_MIGRATION_PERFORMED=false
+SCHEMA_CHANGE=false
+SOURCE_002_DATA_RECOVERY_REQUIRED=UNKNOWN
+SOURCE_002_RECOVERY_PERFORMED=false
+PAIRING_MATERIALIZATION_RERUN_PERFORMED=false
+TRAIN_PAIRING_PACKAGE_PUBLISHED=false
+VALIDATION_PAIRING_PACKAGE_PUBLISHED=false
+AUTHORITY_ISSUANCE_PERFORMED=false
+LEGAL_BACKTEST_PACKAGE_CURRENTLY_AVAILABLE=false
+LIVE_LEGAL_BACKTEST_PACKAGE_CONSTRUCTED=false
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+```
+
+## Validation and next gate
+
+Only the endpoint recovery/re-attestation evidence, workpaper, and an
+append-only development-plan pointer are in scope:
+
+```text
+EXPECTED_CHANGED_FILE_COUNT=3
+PRODUCTION_CODE_CHANGE=false
+TEST_CODE_CHANGE=false
+MIGRATION_CHANGE=false
+SCHEMA_CHANGE=false
+CHANGED_PATH_EXACTNESS_RESULT=PASS
+DEVELOPMENT_PLAN_FILE_TAIL_APPEND_ONLY=PASS
+JSON_VALIDATION_RESULT=PASS
+DIFF_CHECK_RESULT=PASS
+```
+
+The final stop gate is coordinator review. This result does not imply a
+SOURCE-002 recovery, a pairing-materialization retry, or any downstream step.
+
+```text
+FINAL_STOP_GATE=COORDINATOR_POSTGRES_ENDPOINT_RECOVERY_REVIEW
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
