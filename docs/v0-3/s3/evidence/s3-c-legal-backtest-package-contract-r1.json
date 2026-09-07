@@ -110,7 +110,8 @@
     ],
     "reviewed_grain_identity_set_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3",
     "reviewed_cutoff_member_count": 3,
-    "in_scope_forecast_cutoff_count_if_durably_known": 1,
+    "durably_observed_in_scope_forecast_cutoff_count": 1,
+    "complete_in_scope_forecast_cutoff_count": null,
     "full_historical_cutoff_coverage_available": false,
     "declared_cutoff_set_identity_replay_verified": false
   },
@@ -122,10 +123,12 @@
       "TRAIN_AUTHORITY_RECORD_NOT_TRUSTED",
       "VALIDATION_AUTHORITY_RECORD_NOT_TRUSTED",
       "HISTORICAL_CUTOFF_SET_INCOMPLETE",
+      "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED",
       "LEGAL_BACKTEST_PACKAGE_NOT_IMPLEMENTED"
     ],
     "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED": "UNRESOLVED_BLOCKING",
     "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_DECISION_NOT_FINAL": true,
+    "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_RESOLVED": false,
     "sparse_point_metrics_do_not_imply_daily_rowset_completeness": true
   },
   "required_future_blocker_codes": [
@@ -152,7 +155,8 @@
     "HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH",
     "NATIVE_FLOAT_FORBIDDEN",
     "PACKAGE_IDENTITY_MISMATCH",
-    "PACKAGE_CANONICAL_HASH_MISMATCH"
+    "PACKAGE_CANONICAL_HASH_MISMATCH",
+    "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED"
   ],
   "future_package_controls": {
     "required_fields": [
@@ -188,13 +192,17 @@
     "hash_algorithm": "SHA256(canonical_json_bytes(...))",
     "two_stage_non_self_referential_hash": true,
     "native_float_forbidden": true,
-    "no_raw_rows_in_public_execution_evidence": true
+    "no_raw_rows_in_public_execution_evidence": true,
+    "generic_incumbent_artifact_requirement_must_be_resolved_before_legal": true,
+    "unresolved_generic_incumbent_artifact_requirement_blocks_legal": true,
+    "resolving_requirement_does_not_require_artifact_presence": true
   },
   "future_sequence": [
     "SOURCE_002_GOVERNED_OBTAIN",
     "TRAIN_VALIDATION_PAIRING_MATERIALIZATION",
     "TRUSTED_PACKAGE_AND_AUTHORITY_VERIFICATION",
     "HISTORICAL_CUTOFF_SET_COMPLETENESS_VERIFICATION",
+    "GENERIC_INCUMBENT_ARTIFACT_REQUIREMENT_RESOLUTION",
     "LEGAL_PACKAGE_CONSTRUCTION",
     "PACKAGE_IDENTITY_REPLAY",
     "S3_C_PIT_BACKTEST_EXECUTION",
