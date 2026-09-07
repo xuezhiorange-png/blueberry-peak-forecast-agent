@@ -20605,3 +20605,122 @@ The corresponding durable closeout evidence is recorded in
 and its workpaper. This live pointer changes governance state only; it does
 not rewrite historical artifacts, execute a historical backtest, compute
 historical attribution, access TEST, start S4, or release V0.3.
+
+---
+
+### 4.10 — S4-A experiment plan and candidate registry freeze (append-only live authority)
+
+This EOF-appended pointer is the current live S4-A governance authority after
+the accepted S3 closeout. Historical §4.6 planning text and earlier freeze
+snapshots remain immutable context; this pointer does not rewrite them. It
+freezes exactly one finite experiment plan and candidate registry before any
+candidate execution. It does not execute a candidate, change model behavior,
+change parameters, train a model, consume validation budget, or access TEST.
+
+The complete canonical plan and machine-readable evidence are maintained in:
+
+```text
+PLAN_ARTIFACT=docs/v0-3/s4/s4-experiment-plan-v1.md
+EVIDENCE_ARTIFACT=docs/v0-3/s4/evidence/s4-a-experiment-plan-and-candidate-registry-freeze-r1.json
+WORKPAPER_ARTIFACT=docs/v0-3/s4/workpapers/s4-a-experiment-plan-and-candidate-registry-freeze-r1.md
+```
+
+~~~text
+TASK_ID=V0_3_S4_A_EXPERIMENT_PLAN_AND_CANDIDATE_REGISTRY_FREEZE_R1
+BASE_MAIN_SHA=896b195d6ba31c94f34967fb84f5388199b7885b
+PR581_MERGE_IN_BASE=true
+CURRENT_V0_3_S3_COMPLETE=true
+V0_3_S4_AUTHORIZED=true
+S3_C_HISTORICAL_PIT_STATUS=NOT_COMPUTABLE
+S3_HISTORICAL_EVALUATION_TERMINAL=true
+PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_VERIFIED=true
+FUTURE_LEGAL_PIT_REPLAY_SUPPORTED=true
+TEST_REMAINS_SEALED=true
+
+S4_IMPLEMENTATION_STARTED=true
+S4_A_EXPERIMENT_PLAN_FROZEN=true
+CURRENT_EXPERIMENT_PLAN_FROZEN=true
+S4_A_CANDIDATE_REGISTRY_FROZEN=true
+CURRENT_CANDIDATE_REGISTRY_FROZEN=true
+EXPERIMENT_PLAN_VERSION=v0.3-experiment-plan-v1
+EXPERIMENT_PLAN_HASH=275796f3e96c5807b7ed3c0e8720eaaf964942d538289905b5d91340ef4e01b9
+SAME_PLAN_CANONICAL_HASH_STABLE=true
+PLAN_HASH_CHANGES=true
+
+CANDIDATE_COUNT=8
+CANDIDATE_IDS=01_parameter_calibration,02_quantile_calibration,03_phenology_offset,04_yield_parameter,05_marketable_rate,06_weather_response,07_harvest_efficiency,08_residual_feature
+REGISTRATION_DOES_NOT_AUTHORIZE_EXECUTION=true
+MAX_VALIDATION_EVALUATIONS=32
+MAX_RUNS_PER_CANDIDATE=4
+PLANNED_TOTAL_RUN_COUNT=32
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_EXPERIMENT_BUDGET_EVALUATION_STATUS=NOT_EVALUATED
+
+PRIMARY_SELECTION_METRIC=daily_wape
+V0_3_METRIC_CONTRACT_VERSION=v0.3-metric-contract-v1
+METRIC_CONTRACT_AUTHORITY=docs/forecast-quality/s3-quality-metrics-contract.md
+METRIC_CONTRACT_STATUS=FROZEN_DEFINITION_BOUND_EXECUTION_NOT_PERFORMED
+MULTIPLE_COMPARISON_ADJUSTMENT=HOLM_BONFERRONI_OVER_PREDECLARED_PRIMARY_METRIC_COMPARISONS
+UNRESOLVED_METRIC_OR_THRESHOLD_PREREQUISITES=P50_SEMANTICS=NOT_VERIFIED;P80_SEMANTICS=NOT_VERIFIED;P90_SEMANTICS=NOT_VERIFIED;S3_COMPLETE_DAILY_ROW_SET_STATUS=NOT_AVAILABLE_FROM_CURRENT_S2_BINDING;CANDIDATE_GUARDRAIL_THRESHOLDS=NOT_FROZEN_IN_S4_A
+
+SAME_TRAIN_DATASET=true
+SAME_VALIDATION_DATASET=true
+SAME_TEST_DATASET=true
+SAME_LABELS=true
+SAME_EXCLUSION_POLICY=true
+SAME_CUTOFF_POLICY=true
+SAME_FORECAST_HORIZONS=true
+SAME_METRICS=true
+
+VALIDATION_EVALUATION_UNIT=ONE_ACTUAL_MODEL_OR_PARAMETER_EVALUATION_INVOCATION
+VALIDATION_EVALUATION_ID_REUSE_ALLOWED=false
+VALIDATION_LEDGER_COUNTS_ALL_STARTED_EVALUATIONS=true
+VALIDATION_LEDGER_RECONCILIATION_REQUIRED=true
+VALIDATION_BUDGET_FAIL_CLOSED=true
+CURRENT_LEDGER_ROW_COUNT=0
+
+S4_CANDIDATE_EXPERIMENT_EXECUTED=false
+S4_MODEL_CHANGE_AUTHORIZED=false
+S4_PARAMETER_CHANGE_AUTHORIZED=false
+S4_ALLOWLIST_EXPANSION_AUTHORIZED=false
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+SELECTED_CANDIDATE_COUNT=0
+MODEL_APPROVED_FOR_PILOT=false
+TEST_ACCESS_CURRENTLY_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+DO_NOT_ACCESS_TEST=true
+DO_NOT_UNSEAL_TEST=true
+DO_NOT_CHANGE_MODEL=true
+DO_NOT_CHANGE_PARAMETERS=true
+DO_NOT_TRAIN_MODEL=true
+DO_NOT_RETRAIN_RESIDUAL_MODEL=true
+DO_NOT_CHANGE_METRIC_FORMULAS=true
+DO_NOT_INVENT_THRESHOLDS=true
+DO_NOT_EXPAND_CANDIDATE_REGISTRY=true
+DO_NOT_CONSUME_VALIDATION_BUDGET=true
+DO_NOT_REOPEN_S3=true
+DO_NOT_RELEASE_V0_3=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_A_EXPERIMENT_PLAN_FREEZE_REVIEW
+~~~
+
+The registry contains the eight candidates in the frozen order above. Each
+has four planned runs, fixed-and-recorded-per-run seed policy, the exact
+parent `V0_2_CURRENT_MODEL`, the hypothesis recorded in the plan artifact,
+and `authorized_change=NOT_AUTHORIZED_UNTIL_S4_SUBTASK_AUTHORIZATION`.
+The optimization order is data/business parameter calibration, then P80/P90
+calibration, then finite structural/model changes only if calibration is
+insufficient. Structural candidates `06_weather_response` and
+`08_residual_feature` are registered but not authorized by registration.
+
+All future started evaluations, including failures and retries, must receive
+new ledger rows and new evaluation IDs. Retries reference
+`retry_of_evaluation_id`; existing rows cannot be overwritten. The plan
+records all required ledger fields, mechanical count equations, budget
+limits, fail-closed exceedance consequences, TEST boundary, and the current
+unresolved metric prerequisites. `CURRENT_EXPERIMENT_BUDGET_EVALUATION_STATUS`
+remains `NOT_EVALUATED` because no ledger rows exist; this is not a budget
+PASS.
+~~~
