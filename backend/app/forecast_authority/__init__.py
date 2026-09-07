@@ -13,9 +13,13 @@ from backend.app.forecast_authority.retention import (
     ForecastAuthorityPostCutoffError,
     ForecastAuthoritySource,
     ForecastAuthorityTestFixtureError,
+    append_task10_forecast_authority,
     build_forecast_authority_source_from_persisted_lineage,
+    capture_base_forecast_authority,
     capture_forecast_authority,
     capture_production_forecast_authority,
+    capture_production_forecast_base_authority,
+    capture_production_forecast_task10_extension,
     load_pit_visible_forecast_authority,
 )
 
@@ -33,7 +37,11 @@ __all__ = [
     "ForecastAuthoritySource",
     "ForecastAuthorityTestFixtureError",
     "build_forecast_authority_source_from_persisted_lineage",
+    "capture_base_forecast_authority",
     "capture_forecast_authority",
     "capture_production_forecast_authority",
+    "capture_production_forecast_base_authority",
+    "capture_production_forecast_task10_extension",
+    "append_task10_forecast_authority",
     "load_pit_visible_forecast_authority",
 ]

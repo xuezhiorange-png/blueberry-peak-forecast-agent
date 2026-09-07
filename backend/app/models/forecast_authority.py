@@ -1,7 +1,7 @@
 """Immutable prospective forecast-authority retention models.
 
 The existing Task 8, Task 9, Core Forecast, and Task 10 tables remain the
-owners of their respective business results.  These two tables are an
+owners of their respective business results.  These tables are an
 append-only, cross-owner retention envelope: it records the exact identities
 and the Task 8 daily values that were visible for one completed production
 forecast so a later point-in-time reader does not need to reconstruct the
@@ -39,6 +39,8 @@ _JSON_VARIANT = JSON().with_variant(JSONB(), "postgresql")
 FORECAST_AUTHORITY_SCHEMA_VERSION = "v0.3-s3-prospective-forecast-authority-v1"
 FORECAST_AUTHORITY_SCOPE_PRODUCTION = "PRODUCTION"
 FORECAST_AUTHORITY_STATUS_CAPTURED = "CAPTURED"
+FORECAST_AUTHORITY_CAPTURE_STAGE_BASE = "BASE_FORECAST"
+FORECAST_AUTHORITY_CAPTURE_STAGE_TASK10_COMPLETE = "TASK10_COMPLETE"
 
 
 def _sha256_checks(column: str, name: str) -> tuple[CheckConstraint, CheckConstraint]:
@@ -55,7 +57,12 @@ def _sha256_checks(column: str, name: str) -> tuple[CheckConstraint, CheckConstr
 
 
 class ForecastAuthorityCaptureModel(Base):
-    """One immutable, complete production forecast authority envelope."""
+    """One immutable base production forecast authority envelope.
+
+    Task 10 is optional here.  A completed Forecast freezes this row and its
+    daily values before Task 10 exists; later Task 10 lineage is appended in
+    :class:`ForecastAuthorityTask10ExtensionModel`.
+    """
 
     __tablename__ = "forecast_authority_capture"
     __table_args__ = (
@@ -77,9 +84,35 @@ class ForecastAuthorityCaptureModel(Base):
             name="ck_forecast_authority_capture_task8_ids",
         ),
         CheckConstraint(
-            "task9_run_id > 0 AND task10_training_run_id > 0 "
-            "AND task10_prediction_run_id > 0 AND task10_binding_id > 0",
-            name="ck_forecast_authority_capture_downstream_ids",
+            "capture_stage IN ('BASE_FORECAST', 'TASK10_COMPLETE')",
+            name="ck_forecast_authority_capture_stage",
+        ),
+        CheckConstraint(
+            "task9_run_id > 0",
+            name="ck_forecast_authority_capture_task9_ids",
+        ),
+        CheckConstraint(
+            "(capture_stage = 'BASE_FORECAST' "
+            "AND task10_training_run_id IS NULL "
+            "AND task10_training_signature IS NULL "
+            "AND task10_prediction_run_id IS NULL "
+            "AND task10_prediction_input_signature IS NULL "
+            "AND task10_prediction_hash IS NULL "
+            "AND task10_binding_id IS NULL "
+            "AND task10_binding_hash IS NULL "
+            "AND task10_authority_hash IS NULL "
+            "AND task10_snapshot IS NULL) "
+            "OR (capture_stage = 'TASK10_COMPLETE' "
+            "AND task10_training_run_id > 0 "
+            "AND task10_training_signature IS NOT NULL "
+            "AND task10_prediction_run_id > 0 "
+            "AND task10_prediction_input_signature IS NOT NULL "
+            "AND task10_prediction_hash IS NOT NULL "
+            "AND task10_binding_id > 0 "
+            "AND task10_binding_hash IS NOT NULL "
+            "AND task10_authority_hash IS NOT NULL "
+            "AND task10_snapshot IS NOT NULL)",
+            name="ck_forecast_authority_capture_task10_stage_payload",
         ),
         CheckConstraint("plan_id > 0", name="ck_forecast_authority_capture_plan_id"),
         *_sha256_checks(
@@ -163,6 +196,7 @@ class ForecastAuthorityCaptureModel(Base):
     authority_schema_version: Mapped[str] = mapped_column(Text, nullable=False)
     authority_scope: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
+    capture_stage: Mapped[str] = mapped_column(Text, nullable=False)
     forecast_identity: Mapped[str] = mapped_column(Text, nullable=False)
     forecast_cutoff_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     forecast_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -212,15 +246,15 @@ class ForecastAuthorityCaptureModel(Base):
     task9_authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
     task9_snapshot: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
 
-    task10_training_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
-    task10_training_signature: Mapped[str] = mapped_column(Text, nullable=False)
-    task10_prediction_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
-    task10_prediction_input_signature: Mapped[str] = mapped_column(Text, nullable=False)
-    task10_prediction_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    task10_binding_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
-    task10_binding_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    task10_authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    task10_snapshot: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    task10_training_run_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
+    task10_training_signature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    task10_prediction_run_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
+    task10_prediction_input_signature: Mapped[str | None] = mapped_column(Text, nullable=True)
+    task10_prediction_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    task10_binding_id: Mapped[int | None] = mapped_column(_BIGINT_VARIANT, nullable=True)
+    task10_binding_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    task10_authority_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    task10_snapshot: Mapped[dict[str, Any] | None] = mapped_column(_JSON_VARIANT, nullable=True)
 
     core_authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
     core_snapshot: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
@@ -292,6 +326,85 @@ class ForecastAuthorityDailyModel(Base):
     source_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
     row_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ForecastAuthorityTask10ExtensionModel(Base):
+    """Immutable Task 10 authority appended after the base capture."""
+
+    __tablename__ = "forecast_authority_task10_extension"
+    __table_args__ = (
+        UniqueConstraint(
+            "forecast_authority_capture_id",
+            name="uq_forecast_authority_task10_extension_capture",
+        ),
+        *_sha256_checks(
+            "task10_training_signature",
+            "ck_forecast_authority_task10_extension_training_signature",
+        ),
+        *_sha256_checks(
+            "task10_prediction_input_signature",
+            "ck_forecast_authority_task10_extension_input_signature",
+        ),
+        *_sha256_checks(
+            "task10_prediction_hash",
+            "ck_forecast_authority_task10_extension_prediction_hash",
+        ),
+        *_sha256_checks(
+            "task10_binding_hash",
+            "ck_forecast_authority_task10_extension_binding_hash",
+        ),
+        *_sha256_checks(
+            "task10_authority_hash",
+            "ck_forecast_authority_task10_extension_authority_hash",
+        ),
+        *_sha256_checks(
+            "base_authority_hash",
+            "ck_forecast_authority_task10_extension_base_hash",
+        ),
+        *_sha256_checks("extension_hash", "ck_forecast_authority_task10_extension_hash"),
+        CheckConstraint(
+            "forecast_authority_capture_id > 0",
+            name="ck_forecast_authority_task10_extension_capture_positive",
+        ),
+        CheckConstraint(
+            "task10_training_run_id > 0 AND task10_prediction_run_id > 0 AND task10_binding_id > 0",
+            name="ck_forecast_authority_task10_extension_ids",
+        ),
+        CheckConstraint(
+            "task10_snapshot IS NOT NULL AND canonical_payload IS NOT NULL",
+            name="ck_forecast_authority_task10_extension_payload_present",
+        ),
+        Index(
+            "ix_forecast_authority_task10_extension_prediction",
+            "task10_prediction_run_id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(_BIGINT_VARIANT, primary_key=True, autoincrement=True)
+    forecast_authority_capture_id: Mapped[int] = mapped_column(
+        _BIGINT_VARIANT,
+        ForeignKey(
+            "forecast_authority_capture.id",
+            name="fk_forecast_authority_task10_extension_capture_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    task10_training_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    task10_training_signature: Mapped[str] = mapped_column(Text, nullable=False)
+    task10_prediction_run_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    task10_prediction_input_signature: Mapped[str] = mapped_column(Text, nullable=False)
+    task10_prediction_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    task10_binding_id: Mapped[int] = mapped_column(_BIGINT_VARIANT, nullable=False)
+    task10_binding_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    task10_authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    task10_snapshot: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    base_authority_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    canonical_payload: Mapped[dict[str, Any]] = mapped_column(_JSON_VARIANT, nullable=False)
+    extension_hash: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

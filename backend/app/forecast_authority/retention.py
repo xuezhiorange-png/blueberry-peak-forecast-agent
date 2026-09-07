@@ -12,12 +12,12 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import null, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,11 +36,14 @@ from backend.app.models.core_forecast_task10_authority_binding import (
     CoreForecastTask10AuthorityBindingModel,
 )
 from backend.app.models.forecast_authority import (
+    FORECAST_AUTHORITY_CAPTURE_STAGE_BASE,
+    FORECAST_AUTHORITY_CAPTURE_STAGE_TASK10_COMPLETE,
     FORECAST_AUTHORITY_SCHEMA_VERSION,
     FORECAST_AUTHORITY_SCOPE_PRODUCTION,
     FORECAST_AUTHORITY_STATUS_CAPTURED,
     ForecastAuthorityCaptureModel,
     ForecastAuthorityDailyModel,
+    ForecastAuthorityTask10ExtensionModel,
 )
 from backend.app.models.harvest_state import HarvestStateRun
 from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
@@ -161,14 +164,14 @@ class ForecastAuthoritySource:
     task9_run_id: int
     task9_result_hash: str
     task9_snapshot: Mapping[str, Any]
-    task10_training_run_id: int
-    task10_training_signature: str
-    task10_prediction_run_id: int
-    task10_prediction_input_signature: str
-    task10_prediction_hash: str
-    task10_binding_id: int
-    task10_binding_hash: str
-    task10_snapshot: Mapping[str, Any]
+    task10_training_run_id: int | None
+    task10_training_signature: str | None
+    task10_prediction_run_id: int | None
+    task10_prediction_input_signature: str | None
+    task10_prediction_hash: str | None
+    task10_binding_id: int | None
+    task10_binding_hash: str | None
+    task10_snapshot: Mapping[str, Any] | None
     core_snapshot: Mapping[str, Any]
     governance_snapshot: Mapping[str, Any]
     daily_predictions: tuple[ForecastAuthorityDailySource, ...]
@@ -182,6 +185,7 @@ class ForecastAuthorityCaptureResult:
     authority_hash: str
     reused_existing: bool
     write_count: int
+    task10_extension_hash: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -300,6 +304,41 @@ def _require_snapshot(value: Mapping[str, Any]) -> Mapping[str, Any]:
     return value
 
 
+def _task10_fields(source: ForecastAuthoritySource) -> tuple[Any, ...]:
+    return (
+        source.task10_training_run_id,
+        source.task10_training_signature,
+        source.task10_prediction_run_id,
+        source.task10_prediction_input_signature,
+        source.task10_prediction_hash,
+        source.task10_binding_id,
+        source.task10_binding_hash,
+        source.task10_snapshot,
+    )
+
+
+def _has_complete_task10(source: ForecastAuthoritySource) -> bool:
+    fields = _task10_fields(source)
+    present = tuple(value is not None for value in fields)
+    if any(present) and not all(present):
+        raise ForecastAuthorityInputError()
+    return all(present)
+
+
+def _without_task10(source: ForecastAuthoritySource) -> ForecastAuthoritySource:
+    return replace(
+        source,
+        task10_training_run_id=None,
+        task10_training_signature=None,
+        task10_prediction_run_id=None,
+        task10_prediction_input_signature=None,
+        task10_prediction_hash=None,
+        task10_binding_id=None,
+        task10_binding_hash=None,
+        task10_snapshot=None,
+    )
+
+
 def _require_snapshot_identity(
     snapshot: Mapping[str, Any],
     *,
@@ -397,6 +436,7 @@ def _identity_payload(source: ForecastAuthoritySource, source_lineage_hash: str)
 
 
 def _lineage_hash(source: ForecastAuthoritySource, hashes: Mapping[str, str]) -> str:
+    task10_complete = _has_complete_task10(source)
     return _hash_payload(
         {
             "core_forecast_run_id": source.core_forecast_run_id,
@@ -409,10 +449,12 @@ def _lineage_hash(source: ForecastAuthoritySource, hashes: Mapping[str, str]) ->
             "task9_run_id": source.task9_run_id,
             "task9_result_hash": source.task9_result_hash,
             "task9_authority_hash": hashes["task9_authority_hash"],
-            "task10_training_run_id": source.task10_training_run_id,
-            "task10_prediction_run_id": source.task10_prediction_run_id,
-            "task10_binding_id": source.task10_binding_id,
-            "task10_authority_hash": hashes["task10_authority_hash"],
+            "task10_training_run_id": (source.task10_training_run_id if task10_complete else None),
+            "task10_prediction_run_id": (
+                source.task10_prediction_run_id if task10_complete else None
+            ),
+            "task10_binding_id": source.task10_binding_id if task10_complete else None,
+            "task10_authority_hash": (hashes["task10_authority_hash"] if task10_complete else None),
             "core_authority_hash": hashes["core_authority_hash"],
         }
     )
@@ -421,6 +463,7 @@ def _lineage_hash(source: ForecastAuthoritySource, hashes: Mapping[str, str]) ->
 def _build_capture_payload(
     source: ForecastAuthoritySource,
 ) -> tuple[dict[str, Any], tuple[dict[str, Any], ...], str]:
+    task10_complete = _has_complete_task10(source)
     if _contains_test_marker(source.business_grain_snapshot) or any(
         _contains_test_marker(snapshot)
         for snapshot in (
@@ -428,7 +471,7 @@ def _build_capture_payload(
             source.weather_snapshot,
             source.task8_snapshot,
             source.task9_snapshot,
-            source.task10_snapshot,
+            source.task10_snapshot if task10_complete else {},
             source.core_snapshot,
             source.governance_snapshot,
         )
@@ -440,11 +483,12 @@ def _build_capture_payload(
         source.weather_snapshot,
         source.task8_snapshot,
         source.task9_snapshot,
-        source.task10_snapshot,
         source.core_snapshot,
         source.governance_snapshot,
     ):
         _require_snapshot(snapshot)
+    if task10_complete:
+        _require_snapshot(cast(Mapping[str, Any], source.task10_snapshot))
     if not source.forecast_identity or not isinstance(source.forecast_identity, str):
         raise ForecastAuthorityInputError()
     _require_sha(source.forecast_identity)
@@ -454,12 +498,16 @@ def _build_capture_payload(
         source.task8_config_hash,
         source.task8_artifact_hash,
         source.task9_result_hash,
-        source.task10_training_signature,
-        source.task10_prediction_input_signature,
-        source.task10_prediction_hash,
-        source.task10_binding_hash,
     ):
         _require_sha(value)
+    if task10_complete:
+        for task10_hash_value in (
+            source.task10_training_signature,
+            source.task10_prediction_input_signature,
+            source.task10_prediction_hash,
+            source.task10_binding_hash,
+        ):
+            _require_sha(cast(str, task10_hash_value))
     for owner_id in (
         source.core_forecast_run_id,
         source.code_authority_id,
@@ -471,11 +519,15 @@ def _build_capture_payload(
         source.task8_model_run_id,
         source.task8_artifact_id,
         source.task9_run_id,
-        source.task10_training_run_id,
-        source.task10_prediction_run_id,
-        source.task10_binding_id,
     ):
         _require_positive(owner_id)
+    if task10_complete:
+        for task10_owner_id in (
+            source.task10_training_run_id,
+            source.task10_prediction_run_id,
+            source.task10_binding_id,
+        ):
+            _require_positive(cast(int, task10_owner_id))
     _require_positive(source.plan_version)
     for optional_owner_id in (source.weather_mapping_id, source.base_temperature_search_run_id):
         if optional_owner_id is not None:
@@ -537,19 +589,20 @@ def _build_capture_payload(
         expected={"run_id": source.task9_run_id, "result_hash": source.task9_result_hash},
         nested={"run": {"id": source.task9_run_id, "result_hash": source.task9_result_hash}},
     )
-    _require_snapshot_identity(
-        source.task10_snapshot,
-        expected={
-            "training_run_id": source.task10_training_run_id,
-            "prediction_run_id": source.task10_prediction_run_id,
-            "binding_id": source.task10_binding_id,
-        },
-        nested={
-            "binding": {"id": source.task10_binding_id},
-            "prediction_run": {"id": source.task10_prediction_run_id},
-            "training_run": {"id": source.task10_training_run_id},
-        },
-    )
+    if task10_complete:
+        _require_snapshot_identity(
+            cast(Mapping[str, Any], source.task10_snapshot),
+            expected={
+                "training_run_id": source.task10_training_run_id,
+                "prediction_run_id": source.task10_prediction_run_id,
+                "binding_id": source.task10_binding_id,
+            },
+            nested={
+                "binding": {"id": source.task10_binding_id},
+                "prediction_run": {"id": source.task10_prediction_run_id},
+                "training_run": {"id": source.task10_training_run_id},
+            },
+        )
     _require_snapshot_identity(
         source.core_snapshot,
         expected={"run_id": source.core_forecast_run_id, "request_hash": source.forecast_identity},
@@ -608,9 +661,12 @@ def _build_capture_payload(
         "weather_authority_hash": _hash_payload(source.weather_snapshot),
         "task8_authority_hash": _hash_payload(source.task8_snapshot),
         "task9_authority_hash": _hash_payload(source.task9_snapshot),
-        "task10_authority_hash": _hash_payload(source.task10_snapshot),
         "core_authority_hash": _hash_payload(source.core_snapshot),
     }
+    if task10_complete:
+        snapshots["task10_authority_hash"] = _hash_payload(
+            cast(Mapping[str, Any], source.task10_snapshot)
+        )
     source_lineage_hash = _lineage_hash(source, snapshots)
     authority_identity_hash = _hash_payload(_identity_payload(source, source_lineage_hash))
     daily_hashes = tuple(_hash_payload(item) for item in ordered_daily)
@@ -620,6 +676,11 @@ def _build_capture_payload(
             "authority_schema_version": FORECAST_AUTHORITY_SCHEMA_VERSION,
             "authority_scope": FORECAST_AUTHORITY_SCOPE_PRODUCTION,
             "status": FORECAST_AUTHORITY_STATUS_CAPTURED,
+            "capture_stage": (
+                FORECAST_AUTHORITY_CAPTURE_STAGE_TASK10_COMPLETE
+                if task10_complete
+                else FORECAST_AUTHORITY_CAPTURE_STAGE_BASE
+            ),
             "forecast_identity": source.forecast_identity,
             "forecast_cutoff_at": cutoff,
             "forecast_created_at": created,
@@ -654,15 +715,23 @@ def _build_capture_payload(
             "task9_result_hash": source.task9_result_hash,
             "task9_authority_hash": snapshots["task9_authority_hash"],
             "task9_snapshot": source.task9_snapshot,
-            "task10_training_run_id": source.task10_training_run_id,
-            "task10_training_signature": source.task10_training_signature,
-            "task10_prediction_run_id": source.task10_prediction_run_id,
-            "task10_prediction_input_signature": source.task10_prediction_input_signature,
-            "task10_prediction_hash": source.task10_prediction_hash,
-            "task10_binding_id": source.task10_binding_id,
-            "task10_binding_hash": source.task10_binding_hash,
-            "task10_authority_hash": snapshots["task10_authority_hash"],
-            "task10_snapshot": source.task10_snapshot,
+            "task10_training_run_id": (source.task10_training_run_id if task10_complete else None),
+            "task10_training_signature": (
+                source.task10_training_signature if task10_complete else None
+            ),
+            "task10_prediction_run_id": (
+                source.task10_prediction_run_id if task10_complete else None
+            ),
+            "task10_prediction_input_signature": (
+                source.task10_prediction_input_signature if task10_complete else None
+            ),
+            "task10_prediction_hash": source.task10_prediction_hash if task10_complete else None,
+            "task10_binding_id": source.task10_binding_id if task10_complete else None,
+            "task10_binding_hash": source.task10_binding_hash if task10_complete else None,
+            "task10_authority_hash": (
+                snapshots["task10_authority_hash"] if task10_complete else None
+            ),
+            "task10_snapshot": source.task10_snapshot if task10_complete else None,
             "core_authority_hash": snapshots["core_authority_hash"],
             "core_snapshot": source.core_snapshot,
             "governance_snapshot": source.governance_snapshot,
@@ -682,6 +751,7 @@ def _expected_parent_payload(row: ForecastAuthorityCaptureModel) -> dict[str, An
             "authority_schema_version": row.authority_schema_version,
             "authority_scope": row.authority_scope,
             "status": row.status,
+            "capture_stage": row.capture_stage,
             "forecast_identity": row.forecast_identity,
             "forecast_cutoff_at": _utc(row.forecast_cutoff_at),
             "forecast_created_at": _utc(row.forecast_created_at),
@@ -765,6 +835,11 @@ def _verify_capture_rows(
         parent.authority_schema_version != FORECAST_AUTHORITY_SCHEMA_VERSION
         or parent.authority_scope != FORECAST_AUTHORITY_SCOPE_PRODUCTION
         or parent.status != FORECAST_AUTHORITY_STATUS_CAPTURED
+        or parent.capture_stage
+        not in (
+            FORECAST_AUTHORITY_CAPTURE_STAGE_BASE,
+            FORECAST_AUTHORITY_CAPTURE_STAGE_TASK10_COMPLETE,
+        )
         or parent.daily_row_count <= 0
     ):
         raise ForecastAuthorityIntegrityError()
@@ -781,17 +856,37 @@ def _verify_capture_rows(
         parent.task8_authority_hash,
         parent.task9_result_hash,
         parent.task9_authority_hash,
-        parent.task10_training_signature,
-        parent.task10_prediction_input_signature,
-        parent.task10_prediction_hash,
-        parent.task10_binding_hash,
-        parent.task10_authority_hash,
         parent.core_authority_hash,
         parent.source_lineage_hash,
         parent.task8_daily_artifact_hash,
         parent.authority_hash,
     ):
         _require_sha(value)
+    task10_complete = parent.capture_stage == FORECAST_AUTHORITY_CAPTURE_STAGE_TASK10_COMPLETE
+    if task10_complete:
+        for task10_hash_value in (
+            parent.task10_training_signature,
+            parent.task10_prediction_input_signature,
+            parent.task10_prediction_hash,
+            parent.task10_binding_hash,
+            parent.task10_authority_hash,
+        ):
+            _require_sha(cast(str, task10_hash_value))
+    elif any(
+        value is not None
+        for value in (
+            parent.task10_training_run_id,
+            parent.task10_training_signature,
+            parent.task10_prediction_run_id,
+            parent.task10_prediction_input_signature,
+            parent.task10_prediction_hash,
+            parent.task10_binding_id,
+            parent.task10_binding_hash,
+            parent.task10_authority_hash,
+            parent.task10_snapshot,
+        )
+    ):
+        raise ForecastAuthorityIntegrityError()
     for owner_id in (
         parent.core_forecast_run_id,
         parent.code_authority_id,
@@ -803,11 +898,15 @@ def _verify_capture_rows(
         parent.task8_model_run_id,
         parent.task8_artifact_id,
         parent.task9_run_id,
-        parent.task10_training_run_id,
-        parent.task10_prediction_run_id,
-        parent.task10_binding_id,
     ):
         _require_positive(owner_id)
+    if task10_complete:
+        for task10_owner_id in (
+            parent.task10_training_run_id,
+            parent.task10_prediction_run_id,
+            parent.task10_binding_id,
+        ):
+            _require_positive(cast(int, task10_owner_id))
     if parent.weather_mapping_id is not None:
         _require_positive(parent.weather_mapping_id)
     if parent.base_temperature_search_run_id is not None:
@@ -821,16 +920,19 @@ def _verify_capture_rows(
         ),
         (parent.task8_snapshot, ("forecast_run", "model_run", "artifact", "daily_row_ids")),
         (parent.task9_snapshot, ("run", "member_row_count")),
-        (
-            parent.task10_snapshot,
-            ("binding", "prediction_run", "training_run", "prediction_row_hashes"),
-        ),
         (parent.core_snapshot, ("run", "daily_row_hashes")),
         (parent.governance_snapshot, ("policy_version", "model_identity", "source_identity")),
     )
     for snapshot, keys in required_snapshots:
         _require_snapshot(snapshot)
         if any(key not in snapshot for key in keys):
+            raise ForecastAuthorityIntegrityError()
+    if task10_complete:
+        _require_snapshot(cast(Mapping[str, Any], parent.task10_snapshot))
+        if any(
+            key not in cast(Mapping[str, Any], parent.task10_snapshot)
+            for key in ("binding", "prediction_run", "training_run", "prediction_row_hashes")
+        ):
             raise ForecastAuthorityIntegrityError()
     parent_payload = _expected_parent_payload(parent)
     if parent.canonical_payload != parent_payload:
@@ -847,15 +949,21 @@ def _verify_capture_rows(
     }
     if _hash_payload(identity_payload) != parent.authority_identity_hash:
         raise ForecastAuthorityIntegrityError()
-    snapshot_hashes = (
+    snapshot_hashes: list[tuple[Mapping[str, Any], str]] = [
         (parent.business_grain_snapshot, parent.business_grain_hash),
         (parent.plan_snapshot, parent.plan_authority_hash),
         (parent.weather_snapshot, parent.weather_authority_hash),
         (parent.task8_snapshot, parent.task8_authority_hash),
         (parent.task9_snapshot, parent.task9_authority_hash),
-        (parent.task10_snapshot, parent.task10_authority_hash),
         (parent.core_snapshot, parent.core_authority_hash),
-    )
+    ]
+    if task10_complete:
+        snapshot_hashes.append(
+            (
+                cast(Mapping[str, Any], parent.task10_snapshot),
+                cast(str, parent.task10_authority_hash),
+            )
+        )
     if any(_hash_payload(snapshot) != expected_hash for snapshot, expected_hash in snapshot_hashes):
         raise ForecastAuthorityIntegrityError()
     expected_lineage = _hash_payload(
@@ -870,10 +978,12 @@ def _verify_capture_rows(
             "task9_run_id": parent.task9_run_id,
             "task9_result_hash": parent.task9_result_hash,
             "task9_authority_hash": parent.task9_authority_hash,
-            "task10_training_run_id": parent.task10_training_run_id,
-            "task10_prediction_run_id": parent.task10_prediction_run_id,
-            "task10_binding_id": parent.task10_binding_id,
-            "task10_authority_hash": parent.task10_authority_hash,
+            "task10_training_run_id": parent.task10_training_run_id if task10_complete else None,
+            "task10_prediction_run_id": parent.task10_prediction_run_id
+            if task10_complete
+            else None,
+            "task10_binding_id": parent.task10_binding_id if task10_complete else None,
+            "task10_authority_hash": parent.task10_authority_hash if task10_complete else None,
             "core_authority_hash": parent.core_authority_hash,
         }
     )
@@ -932,15 +1042,18 @@ def _verify_capture_rows(
         or tuple(daily_row_ids) != tuple(row.source_daily_prediction_id for row in ordered_rows)
     ):
         raise ForecastAuthorityIntegrityError()
-    prediction_row_hashes = parent.task10_snapshot["prediction_row_hashes"]
-    if (
-        not isinstance(prediction_row_hashes, list)
-        or not prediction_row_hashes
-        or any(not isinstance(value, str) for value in prediction_row_hashes)
-    ):
-        raise ForecastAuthorityIntegrityError()
-    for prediction_row_hash in prediction_row_hashes:
-        _require_sha(prediction_row_hash)
+    if task10_complete:
+        prediction_row_hashes = cast(Mapping[str, Any], parent.task10_snapshot)[
+            "prediction_row_hashes"
+        ]
+        if (
+            not isinstance(prediction_row_hashes, list)
+            or not prediction_row_hashes
+            or any(not isinstance(value, str) for value in prediction_row_hashes)
+        ):
+            raise ForecastAuthorityIntegrityError()
+        for prediction_row_hash in prediction_row_hashes:
+            _require_sha(prediction_row_hash)
 
 
 def _parent_values(
@@ -952,6 +1065,7 @@ def _parent_values(
         "authority_schema_version": FORECAST_AUTHORITY_SCHEMA_VERSION,
         "authority_scope": FORECAST_AUTHORITY_SCOPE_PRODUCTION,
         "status": FORECAST_AUTHORITY_STATUS_CAPTURED,
+        "capture_stage": parent_payload["capture_stage"],
         "forecast_identity": source.forecast_identity,
         "forecast_cutoff_at": _utc(source.forecast_cutoff_at),
         "forecast_created_at": _utc(source.forecast_created_at),
@@ -994,7 +1108,11 @@ def _parent_values(
         "task10_binding_id": source.task10_binding_id,
         "task10_binding_hash": source.task10_binding_hash,
         "task10_authority_hash": parent_payload["task10_authority_hash"],
-        "task10_snapshot": cast(dict[str, Any], parent_payload["task10_snapshot"]),
+        "task10_snapshot": (
+            cast(dict[str, Any], parent_payload["task10_snapshot"])
+            if parent_payload["task10_snapshot"] is not None
+            else null()
+        ),
         "core_authority_hash": parent_payload["core_authority_hash"],
         "core_snapshot": cast(dict[str, Any], parent_payload["core_snapshot"]),
         "governance_snapshot": cast(dict[str, Any], parent_payload["governance_snapshot"]),
@@ -1033,6 +1151,159 @@ def _daily_values(
     }
 
 
+def _build_task10_extension_payload(
+    source: ForecastAuthoritySource,
+    *,
+    capture_id: int,
+    base_authority_hash: str,
+) -> tuple[dict[str, Any], str]:
+    if not _has_complete_task10(source):
+        raise ForecastAuthorityInputError()
+    task10_snapshot = cast(Mapping[str, Any], source.task10_snapshot)
+    _require_snapshot(task10_snapshot)
+    _require_positive(capture_id)
+    _require_sha(base_authority_hash)
+    for task10_hash_value in (
+        source.task10_training_signature,
+        source.task10_prediction_input_signature,
+        source.task10_prediction_hash,
+        source.task10_binding_hash,
+    ):
+        _require_sha(cast(str, task10_hash_value))
+    for task10_owner_id in (
+        source.task10_training_run_id,
+        source.task10_prediction_run_id,
+        source.task10_binding_id,
+    ):
+        _require_positive(cast(int, task10_owner_id))
+    _require_snapshot_identity(
+        task10_snapshot,
+        expected={
+            "training_run_id": source.task10_training_run_id,
+            "prediction_run_id": source.task10_prediction_run_id,
+            "binding_id": source.task10_binding_id,
+        },
+        nested={
+            "binding": {"id": source.task10_binding_id},
+            "prediction_run": {"id": source.task10_prediction_run_id},
+            "training_run": {"id": source.task10_training_run_id},
+        },
+    )
+    if _contains_test_marker(task10_snapshot):
+        raise ForecastAuthorityTestFixtureError()
+    task10_authority_hash = _hash_payload(task10_snapshot)
+    payload = _canonical_dict(
+        {
+            "authority_schema_version": FORECAST_AUTHORITY_SCHEMA_VERSION,
+            "policy_version": FORECAST_AUTHORITY_POLICY_VERSION,
+            "extension_type": "TASK10_AUTHORITY",
+            "forecast_authority_capture_id": capture_id,
+            "base_authority_hash": base_authority_hash,
+            "task10_training_run_id": source.task10_training_run_id,
+            "task10_training_signature": source.task10_training_signature,
+            "task10_prediction_run_id": source.task10_prediction_run_id,
+            "task10_prediction_input_signature": source.task10_prediction_input_signature,
+            "task10_prediction_hash": source.task10_prediction_hash,
+            "task10_binding_id": source.task10_binding_id,
+            "task10_binding_hash": source.task10_binding_hash,
+            "task10_authority_hash": task10_authority_hash,
+            "task10_snapshot": task10_snapshot,
+        }
+    )
+    return payload, _hash_payload(payload)
+
+
+def _expected_task10_extension_payload(
+    row: ForecastAuthorityTask10ExtensionModel,
+) -> dict[str, Any]:
+    return _canonical_dict(
+        {
+            "authority_schema_version": FORECAST_AUTHORITY_SCHEMA_VERSION,
+            "policy_version": FORECAST_AUTHORITY_POLICY_VERSION,
+            "extension_type": "TASK10_AUTHORITY",
+            "forecast_authority_capture_id": row.forecast_authority_capture_id,
+            "base_authority_hash": row.base_authority_hash,
+            "task10_training_run_id": row.task10_training_run_id,
+            "task10_training_signature": row.task10_training_signature,
+            "task10_prediction_run_id": row.task10_prediction_run_id,
+            "task10_prediction_input_signature": row.task10_prediction_input_signature,
+            "task10_prediction_hash": row.task10_prediction_hash,
+            "task10_binding_id": row.task10_binding_id,
+            "task10_binding_hash": row.task10_binding_hash,
+            "task10_authority_hash": row.task10_authority_hash,
+            "task10_snapshot": row.task10_snapshot,
+        }
+    )
+
+
+def _verify_task10_extension(
+    parent: ForecastAuthorityCaptureModel,
+    extension: ForecastAuthorityTask10ExtensionModel,
+) -> None:
+    if parent.capture_stage != FORECAST_AUTHORITY_CAPTURE_STAGE_BASE:
+        raise ForecastAuthorityIntegrityError()
+    for extension_owner_id in (
+        extension.id,
+        extension.forecast_authority_capture_id,
+        extension.task10_training_run_id,
+        extension.task10_prediction_run_id,
+        extension.task10_binding_id,
+    ):
+        _require_positive(extension_owner_id)
+    for extension_hash_value in (
+        extension.task10_training_signature,
+        extension.task10_prediction_input_signature,
+        extension.task10_prediction_hash,
+        extension.task10_binding_hash,
+        extension.task10_authority_hash,
+        extension.base_authority_hash,
+        extension.extension_hash,
+    ):
+        _require_sha(extension_hash_value)
+    if extension.forecast_authority_capture_id != parent.id:
+        raise ForecastAuthorityIntegrityError()
+    if extension.base_authority_hash != parent.authority_hash:
+        raise ForecastAuthorityIntegrityError()
+    _require_snapshot(extension.task10_snapshot)
+    if any(
+        key not in extension.task10_snapshot
+        for key in ("binding", "prediction_run", "training_run", "prediction_row_hashes")
+    ):
+        raise ForecastAuthorityIntegrityError()
+    if _contains_test_marker(extension.canonical_payload):
+        raise ForecastAuthorityTestFixtureError()
+    expected = _expected_task10_extension_payload(extension)
+    if extension.canonical_payload != expected:
+        raise ForecastAuthorityIntegrityError()
+    if _hash_payload(expected) != extension.extension_hash:
+        raise ForecastAuthorityIntegrityError()
+    if _hash_payload(extension.task10_snapshot) != extension.task10_authority_hash:
+        raise ForecastAuthorityIntegrityError()
+    binding_snapshot = extension.task10_snapshot["binding"]
+    prediction_snapshot = extension.task10_snapshot["prediction_run"]
+    training_snapshot = extension.task10_snapshot["training_run"]
+    if not all(
+        isinstance(value, Mapping)
+        for value in (binding_snapshot, prediction_snapshot, training_snapshot)
+    ):
+        raise ForecastAuthorityIntegrityError()
+    if binding_snapshot.get("id") != extension.task10_binding_id:
+        raise ForecastAuthorityIntegrityError()
+    if prediction_snapshot.get("id") != extension.task10_prediction_run_id:
+        raise ForecastAuthorityIntegrityError()
+    if training_snapshot.get("id") != extension.task10_training_run_id:
+        raise ForecastAuthorityIntegrityError()
+    prediction_row_hashes = extension.task10_snapshot["prediction_row_hashes"]
+    if (
+        not isinstance(prediction_row_hashes, list)
+        or not prediction_row_hashes
+        or any(not isinstance(value, str) for value in prediction_row_hashes)
+    ):
+        raise ForecastAuthorityIntegrityError()
+    for prediction_row_hash in prediction_row_hashes:
+        _require_sha(prediction_row_hash)
+
+
 async def _load_capture_by_identity(
     session: AsyncSession,
     forecast_identity: str,
@@ -1049,22 +1320,35 @@ async def _load_capture_by_identity(
     return rows[0] if rows else None
 
 
-async def capture_forecast_authority(
+async def _load_task10_extension_by_capture_id(
+    session: AsyncSession,
+    capture_id: int,
+) -> ForecastAuthorityTask10ExtensionModel | None:
+    rows = list(
+        await session.scalars(
+            select(ForecastAuthorityTask10ExtensionModel).where(
+                ForecastAuthorityTask10ExtensionModel.forecast_authority_capture_id == capture_id
+            )
+        )
+    )
+    if len(rows) > 1:
+        raise ForecastAuthorityAmbiguousError()
+    return rows[0] if rows else None
+
+
+async def _capture_base_forecast_authority(
     session: AsyncSession,
     *,
     source: ForecastAuthoritySource,
 ) -> ForecastAuthorityCaptureResult:
-    """Append one complete production authority envelope.
-
-    A replay with the same canonical identity and content returns ``write_count
-    == 0``.  Any same-identity content drift is rejected; this function never
-    updates or deletes a previous capture.
-    """
-
+    if _has_complete_task10(source):
+        raise ForecastAuthorityInputError()
     parent_payload, daily_payloads, authority_hash = _build_capture_payload(source)
     existing = await _load_capture_by_identity(session, source.forecast_identity)
     if existing is not None:
         if existing.core_forecast_run_id != source.core_forecast_run_id:
+            raise ForecastAuthorityConflictError()
+        if existing.capture_stage != FORECAST_AUTHORITY_CAPTURE_STAGE_BASE:
             raise ForecastAuthorityConflictError()
         daily_rows = list(
             await session.scalars(
@@ -1148,6 +1432,148 @@ async def capture_forecast_authority(
     )
 
 
+async def capture_forecast_authority(
+    session: AsyncSession,
+    *,
+    source: ForecastAuthoritySource,
+) -> ForecastAuthorityCaptureResult:
+    """Freeze the base first, then append Task 10 when it is already complete."""
+
+    task10_complete = _has_complete_task10(source)
+    base_result = await _capture_base_forecast_authority(
+        session,
+        source=source if not task10_complete else _without_task10(source),
+    )
+    if not task10_complete:
+        return base_result
+    extension_result = await append_task10_forecast_authority(session, source=source)
+    return ForecastAuthorityCaptureResult(
+        capture_id=base_result.capture_id,
+        authority_hash=base_result.authority_hash,
+        reused_existing=base_result.reused_existing and extension_result.reused_existing,
+        write_count=base_result.write_count + extension_result.write_count,
+        task10_extension_hash=extension_result.task10_extension_hash,
+    )
+
+
+async def capture_base_forecast_authority(
+    session: AsyncSession,
+    *,
+    source: ForecastAuthoritySource,
+) -> ForecastAuthorityCaptureResult:
+    """Freeze a completed Forecast before any Task 10 result exists."""
+
+    return await _capture_base_forecast_authority(
+        session,
+        source=_without_task10(source) if _has_complete_task10(source) else source,
+    )
+
+
+async def append_task10_forecast_authority(
+    session: AsyncSession,
+    *,
+    source: ForecastAuthoritySource,
+) -> ForecastAuthorityCaptureResult:
+    """Append one immutable Task 10 extension without updating the parent."""
+
+    if not _has_complete_task10(source):
+        raise ForecastAuthorityInputError()
+    parent = await _load_capture_by_identity(session, source.forecast_identity)
+    if parent is None:
+        base_result = await _capture_base_forecast_authority(
+            session,
+            source=_without_task10(source),
+        )
+        parent = await session.get(ForecastAuthorityCaptureModel, base_result.capture_id)
+        if parent is None:
+            raise ForecastAuthorityMissingError()
+    daily_rows = list(
+        await session.scalars(
+            select(ForecastAuthorityDailyModel)
+            .where(ForecastAuthorityDailyModel.forecast_authority_capture_id == parent.id)
+            .order_by(ForecastAuthorityDailyModel.prediction_date.asc())
+        )
+    )
+    _verify_capture_rows(parent, daily_rows)
+    if parent.capture_stage == FORECAST_AUTHORITY_CAPTURE_STAGE_TASK10_COMPLETE:
+        expected_parent, daily_payloads, authority_hash = _build_capture_payload(source)
+        if parent.canonical_payload != expected_parent or parent.authority_hash != authority_hash:
+            raise ForecastAuthorityConflictError()
+        if tuple(row.row_hash for row in daily_rows) != tuple(
+            _hash_payload(item) for item in daily_payloads
+        ):
+            raise ForecastAuthorityConflictError()
+        return ForecastAuthorityCaptureResult(
+            capture_id=parent.id,
+            authority_hash=parent.authority_hash,
+            reused_existing=True,
+            write_count=0,
+        )
+    base_source = _without_task10(source)
+    expected_base, _, base_hash = _build_capture_payload(base_source)
+    if parent.canonical_payload != expected_base or parent.authority_hash != base_hash:
+        raise ForecastAuthorityConflictError()
+    payload, extension_hash = _build_task10_extension_payload(
+        source,
+        capture_id=parent.id,
+        base_authority_hash=parent.authority_hash,
+    )
+    existing = await _load_task10_extension_by_capture_id(session, parent.id)
+    if existing is not None:
+        _verify_task10_extension(parent, existing)
+        if existing.extension_hash != extension_hash or existing.canonical_payload != payload:
+            raise ForecastAuthorityConflictError()
+        return ForecastAuthorityCaptureResult(
+            capture_id=parent.id,
+            authority_hash=parent.authority_hash,
+            reused_existing=True,
+            write_count=0,
+            task10_extension_hash=existing.extension_hash,
+        )
+    task10_snapshot = cast(Mapping[str, Any], source.task10_snapshot)
+    extension = ForecastAuthorityTask10ExtensionModel(
+        forecast_authority_capture_id=parent.id,
+        task10_training_run_id=cast(int, source.task10_training_run_id),
+        task10_training_signature=cast(str, source.task10_training_signature),
+        task10_prediction_run_id=cast(int, source.task10_prediction_run_id),
+        task10_prediction_input_signature=cast(str, source.task10_prediction_input_signature),
+        task10_prediction_hash=cast(str, source.task10_prediction_hash),
+        task10_binding_id=cast(int, source.task10_binding_id),
+        task10_binding_hash=cast(str, source.task10_binding_hash),
+        task10_authority_hash=_hash_payload(task10_snapshot),
+        task10_snapshot=_canonical_dict(task10_snapshot),
+        base_authority_hash=parent.authority_hash,
+        canonical_payload=payload,
+        extension_hash=extension_hash,
+        created_at=datetime.now(UTC),
+    )
+    try:
+        async with session.begin_nested():
+            session.add(extension)
+            await session.flush()
+    except IntegrityError as exc:
+        replay = await _load_task10_extension_by_capture_id(session, parent.id)
+        if replay is None:
+            raise ForecastAuthorityConflictError() from exc
+        _verify_task10_extension(parent, replay)
+        if replay.extension_hash != extension_hash:
+            raise ForecastAuthorityConflictError() from exc
+        return ForecastAuthorityCaptureResult(
+            capture_id=parent.id,
+            authority_hash=parent.authority_hash,
+            reused_existing=True,
+            write_count=0,
+            task10_extension_hash=replay.extension_hash,
+        )
+    return ForecastAuthorityCaptureResult(
+        capture_id=parent.id,
+        authority_hash=parent.authority_hash,
+        reused_existing=False,
+        write_count=1,
+        task10_extension_hash=extension_hash,
+    )
+
+
 async def load_pit_visible_forecast_authority(
     session: AsyncSession,
     *,
@@ -1178,6 +1604,17 @@ async def load_pit_visible_forecast_authority(
         )
     )
     _verify_capture_rows(parent, daily_rows)
+    extension = await _load_task10_extension_by_capture_id(session, parent.id)
+    if parent.capture_stage == FORECAST_AUTHORITY_CAPTURE_STAGE_BASE:
+        if extension is not None:
+            _verify_task10_extension(parent, extension)
+            task10_snapshot: Mapping[str, Any] = extension.task10_snapshot
+        else:
+            task10_snapshot = {}
+    else:
+        if extension is not None:
+            raise ForecastAuthorityIntegrityError()
+        task10_snapshot = cast(Mapping[str, Any], parent.task10_snapshot)
     if any(_utc(row.source_created_at) > requested_cutoff for row in daily_rows):
         raise ForecastAuthorityPostCutoffError()
     daily = tuple(
@@ -1208,7 +1645,7 @@ async def load_pit_visible_forecast_authority(
         weather_snapshot=parent.weather_snapshot,
         task8_snapshot=parent.task8_snapshot,
         task9_snapshot=parent.task9_snapshot,
-        task10_snapshot=parent.task10_snapshot,
+        task10_snapshot=task10_snapshot,
         core_snapshot=parent.core_snapshot,
         governance_snapshot=parent.governance_snapshot,
         daily_predictions=daily,
@@ -1220,12 +1657,15 @@ async def build_forecast_authority_source_from_persisted_lineage(
     session: AsyncSession,
     *,
     core_forecast_run_id: int,
+    require_task10: bool = True,
 ) -> ForecastAuthoritySource:
     """Project existing production owner rows into a retention source.
 
-    This is intentionally strict: a complete Task 8/Task 9/Core/Task 10
-    chain and its plan/weather/master-data inputs are required.  The function
-    does not select a latest row and does not synthesize missing authority.
+    This is intentionally strict: the completed Task 8/Task 9/Core chain and
+    its plan/weather/master-data inputs are required.  Task 10 is required for
+    the downstream extension path and intentionally not required for the base
+    Forecast-completion path.  The function does not select a latest row and
+    does not synthesize missing authority.
     """
 
     core = await session.get(CoreForecastRunModel, core_forecast_run_id)
@@ -1256,13 +1696,6 @@ async def build_forecast_authority_source_from_persisted_lineage(
         else None
     )
     task9 = await session.get(HarvestStateRun, core.task9_harvest_state_run_id)
-    binding_rows = list(
-        await session.scalars(
-            select(CoreForecastTask10AuthorityBindingModel).where(
-                CoreForecastTask10AuthorityBindingModel.core_forecast_run_id == core.id
-            )
-        )
-    )
     if (
         model_run is None
         or artifact is None
@@ -1271,18 +1704,30 @@ async def build_forecast_authority_source_from_persisted_lineage(
         or mapping is None
         or base_temperature is None
         or task9 is None
-        or len(binding_rows) != 1
     ):
         raise ForecastAuthorityMissingError()
-    binding = binding_rows[0]
-    prediction = await session.get(ResidualModelPredictionRun, binding.task10_prediction_run_id)
-    training = (
-        await session.get(ResidualModelTrainingRun, prediction.training_run_id)
-        if prediction is not None and prediction.training_run_id is not None
-        else None
-    )
-    if prediction is None or training is None:
-        raise ForecastAuthorityMissingError()
+    binding: CoreForecastTask10AuthorityBindingModel | None = None
+    prediction: ResidualModelPredictionRun | None = None
+    training: ResidualModelTrainingRun | None = None
+    if require_task10:
+        binding_rows = list(
+            await session.scalars(
+                select(CoreForecastTask10AuthorityBindingModel).where(
+                    CoreForecastTask10AuthorityBindingModel.core_forecast_run_id == core.id
+                )
+            )
+        )
+        if len(binding_rows) != 1:
+            raise ForecastAuthorityMissingError()
+        binding = binding_rows[0]
+        prediction = await session.get(ResidualModelPredictionRun, binding.task10_prediction_run_id)
+        training = (
+            await session.get(ResidualModelTrainingRun, prediction.training_run_id)
+            if prediction is not None and prediction.training_run_id is not None
+            else None
+        )
+        if prediction is None or training is None:
+            raise ForecastAuthorityMissingError()
     if (
         model_run.status != "completed"
         or task8.status != "completed"
@@ -1302,17 +1747,23 @@ async def build_forecast_authority_source_from_persisted_lineage(
         or task9.maturity_forecast_source_signature != task8.source_signature
         or task9.maturity_model_source_signature != model_run.source_signature
         or task9.maturity_model_artifact_hash != artifact.artifact_hash
-        or binding.task9_run_id != task9.id
-        or binding.task10_prediction_run_id != prediction.id
-        or prediction.execution_status != "completed"
-        or prediction.task9_run_id != task9.id
-        or prediction.task9_result_hash != task9.result_hash
-        or prediction.training_run_id != training.id
-        or training.execution_status != "completed"
-        or training.eligibility_status != "eligible"
-        or prediction.expected_prediction_row_count <= 0
     ):
         raise ForecastAuthorityIntegrityError()
+    if require_task10:
+        if binding is None or prediction is None or training is None:
+            raise ForecastAuthorityMissingError()
+        if (
+            binding.task9_run_id != task9.id
+            or binding.task10_prediction_run_id != prediction.id
+            or prediction.execution_status != "completed"
+            or prediction.task9_run_id != task9.id
+            or prediction.task9_result_hash != task9.result_hash
+            or prediction.training_run_id != training.id
+            or training.execution_status != "completed"
+            or training.eligibility_status != "eligible"
+            or prediction.expected_prediction_row_count <= 0
+        ):
+            raise ForecastAuthorityIntegrityError()
     if core.code_authority_id != code.id or core.code_authority_hash != code.authority_hash:
         raise ForecastAuthorityIntegrityError()
     if core.task8_artifact_hash != artifact.artifact_hash:
@@ -1330,28 +1781,37 @@ async def build_forecast_authority_source_from_persisted_lineage(
         raise ForecastAuthorityIntegrityError() from exc
     if persisted_core is None or persisted_core.run.result_hash != core.result_hash:
         raise ForecastAuthorityIntegrityError()
-    expected_binding_hash = compute_binding_identity_hash(
-        core_forecast_run_id=core.id,
-        core_forecast_result_hash=core.result_hash,
-        task9_run_id=core.task9_harvest_state_run_id,
-        task9_result_hash=core.task9_result_hash,
-        task10_prediction_run_id=prediction.id,
-        task10_prediction_hash=prediction.prediction_hash,
-    )
-    if binding.binding_identity_hash != expected_binding_hash:
-        raise ForecastAuthorityIntegrityError()
+    if require_task10:
+        assert binding is not None
+        assert prediction is not None
+        assert training is not None
+        expected_binding_hash = compute_binding_identity_hash(
+            core_forecast_run_id=core.id,
+            core_forecast_result_hash=core.result_hash,
+            task9_run_id=core.task9_harvest_state_run_id,
+            task9_result_hash=core.task9_result_hash,
+            task10_prediction_run_id=prediction.id,
+            task10_prediction_hash=prediction.prediction_hash,
+        )
+        if binding.binding_identity_hash != expected_binding_hash:
+            raise ForecastAuthorityIntegrityError()
     cutoff = _utc(core.forecast_effective_cutoff_at)
-    for timestamp in (
+    visible_timestamps = [
         code.available_at,
         core.created_at,
         core.completed_at,
         model_run.finished_at,
         task8.finished_at,
-        training.finished_at,
-        prediction.completed_at,
-        binding.created_at,
         base_temperature.finished_at,
-    ):
+    ]
+    if require_task10:
+        assert binding is not None
+        assert prediction is not None
+        assert training is not None
+        visible_timestamps.extend(
+            [training.finished_at, prediction.completed_at, binding.created_at]
+        )
+    for timestamp in visible_timestamps:
         _require_visible_timestamp(timestamp, cutoff)
     if (
         plan.available_at > cutoff.date()
@@ -1408,18 +1868,21 @@ async def build_forecast_authority_source_from_persisted_lineage(
     )
     if len(core_rows) != core.daily_row_count:
         raise ForecastAuthorityIntegrityError()
-    prediction_rows = list(
-        await session.scalars(
-            select(ResidualModelPredictionRow)
-            .where(ResidualModelPredictionRow.prediction_run_id == prediction.id)
-            .order_by(
-                ResidualModelPredictionRow.arrival_local_date.asc(),
-                ResidualModelPredictionRow.destination_factory_id.asc(),
+    prediction_rows: list[ResidualModelPredictionRow] = []
+    if require_task10:
+        assert prediction is not None
+        prediction_rows = list(
+            await session.scalars(
+                select(ResidualModelPredictionRow)
+                .where(ResidualModelPredictionRow.prediction_run_id == prediction.id)
+                .order_by(
+                    ResidualModelPredictionRow.arrival_local_date.asc(),
+                    ResidualModelPredictionRow.destination_factory_id.asc(),
+                )
             )
         )
-    )
-    if len(prediction_rows) != prediction.expected_prediction_row_count:
-        raise ForecastAuthorityIntegrityError()
+        if len(prediction_rows) != prediction.expected_prediction_row_count:
+            raise ForecastAuthorityIntegrityError()
 
     season = await session.get(Season, core.forecast_season_id)
     factory = await session.get(Factory, core.destination_factory_id)
@@ -1483,12 +1946,17 @@ async def build_forecast_authority_source_from_persisted_lineage(
         "run": _model_snapshot(task9),
         "member_row_count": task9.member_row_count,
     }
-    task10_snapshot = {
-        "binding": _model_snapshot(binding),
-        "prediction_run": _model_snapshot(prediction),
-        "training_run": _model_snapshot(training),
-        "prediction_row_hashes": [row.prediction_row_hash for row in prediction_rows],
-    }
+    task10_snapshot: Mapping[str, Any] | None = None
+    if require_task10:
+        assert binding is not None
+        assert prediction is not None
+        assert training is not None
+        task10_snapshot = {
+            "binding": _model_snapshot(binding),
+            "prediction_run": _model_snapshot(prediction),
+            "training_run": _model_snapshot(training),
+            "prediction_row_hashes": [row.prediction_row_hash for row in prediction_rows],
+        }
     core_snapshot = {
         "run": _model_snapshot(core),
         "daily_row_hashes": [row.row_hash for row in core_rows],
@@ -1499,6 +1967,13 @@ async def build_forecast_authority_source_from_persisted_lineage(
         "weather_source_location": _model_snapshot(weather_source),
         "base_temperature_search_run": _model_snapshot(base_temperature),
     }
+    source_identity: dict[str, Any] = {
+        "task8_source_signature": task8.source_signature,
+        "task9_result_hash": task9.result_hash,
+    }
+    if require_task10:
+        assert prediction is not None
+        source_identity["task10_prediction_input_signature"] = prediction.prediction_input_signature
     governance_snapshot = {
         "policy_version": FORECAST_AUTHORITY_POLICY_VERSION,
         "model_identity": {
@@ -1507,11 +1982,7 @@ async def build_forecast_authority_source_from_persisted_lineage(
             "task8_artifact_hash": artifact.artifact_hash,
         },
         "parameter_identity": core.retention_policy_snapshot_hash,
-        "source_identity": {
-            "task8_source_signature": task8.source_signature,
-            "task9_result_hash": task9.result_hash,
-            "task10_prediction_input_signature": prediction.prediction_input_signature,
-        },
+        "source_identity": source_identity,
         "code_identity": code.authority_hash,
     }
     return ForecastAuthoritySource(
@@ -1544,13 +2015,25 @@ async def build_forecast_authority_source_from_persisted_lineage(
         task9_run_id=task9.id,
         task9_result_hash=task9.result_hash,
         task9_snapshot=task9_snapshot,
-        task10_training_run_id=training.id,
-        task10_training_signature=training.training_signature,
-        task10_prediction_run_id=prediction.id,
-        task10_prediction_input_signature=prediction.prediction_input_signature,
-        task10_prediction_hash=prediction.prediction_hash,
-        task10_binding_id=binding.id,
-        task10_binding_hash=binding.binding_identity_hash,
+        task10_training_run_id=training.id if require_task10 and training is not None else None,
+        task10_training_signature=(
+            training.training_signature if require_task10 and training is not None else None
+        ),
+        task10_prediction_run_id=prediction.id
+        if require_task10 and prediction is not None
+        else None,
+        task10_prediction_input_signature=(
+            prediction.prediction_input_signature
+            if require_task10 and prediction is not None
+            else None
+        ),
+        task10_prediction_hash=(
+            prediction.prediction_hash if require_task10 and prediction is not None else None
+        ),
+        task10_binding_id=binding.id if require_task10 and binding is not None else None,
+        task10_binding_hash=(
+            binding.binding_identity_hash if require_task10 and binding is not None else None
+        ),
         task10_snapshot=task10_snapshot,
         core_snapshot=core_snapshot,
         governance_snapshot=governance_snapshot,
@@ -1570,3 +2053,33 @@ async def capture_production_forecast_authority(
         core_forecast_run_id=core_forecast_run_id,
     )
     return await capture_forecast_authority(session, source=source)
+
+
+async def capture_production_forecast_base_authority(
+    session: AsyncSession,
+    *,
+    core_forecast_run_id: int,
+) -> ForecastAuthorityCaptureResult:
+    """Freeze production Forecast authority immediately after Core completion."""
+
+    source = await build_forecast_authority_source_from_persisted_lineage(
+        session,
+        core_forecast_run_id=core_forecast_run_id,
+        require_task10=False,
+    )
+    return await capture_base_forecast_authority(session, source=source)
+
+
+async def capture_production_forecast_task10_extension(
+    session: AsyncSession,
+    *,
+    core_forecast_run_id: int,
+) -> ForecastAuthorityCaptureResult:
+    """Append Task 10 authority after the already-frozen base Forecast."""
+
+    source = await build_forecast_authority_source_from_persisted_lineage(
+        session,
+        core_forecast_run_id=core_forecast_run_id,
+        require_task10=True,
+    )
+    return await append_task10_forecast_authority(session, source=source)

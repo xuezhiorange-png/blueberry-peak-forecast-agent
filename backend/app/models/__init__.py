@@ -41,6 +41,7 @@ from backend.app.models.core_forecast_task10_authority_binding import (
 from backend.app.models.forecast_authority import (
     ForecastAuthorityCaptureModel,
     ForecastAuthorityDailyModel,
+    ForecastAuthorityTask10ExtensionModel,
 )
 from backend.app.models.forecast_quality import (
     ModelBaselineComparisonModel,
@@ -152,6 +153,7 @@ __all__ = [
     "CoreForecastRunModel",
     "ForecastAuthorityCaptureModel",
     "ForecastAuthorityDailyModel",
+    "ForecastAuthorityTask10ExtensionModel",
     "FactReceiptRaw",
     "FactReceiptDaily",
     "Factory",

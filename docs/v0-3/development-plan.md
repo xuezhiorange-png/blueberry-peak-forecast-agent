@@ -20429,3 +20429,74 @@ PIT replay does not need to recompute historical business facts. This closes a
 prospective engineering gap only. It does not make the historical S3-C
 backtest computable, does not authorize S3-D or S4, and does not set
 `CURRENT_V0_3_S3_COMPLETE`.
+
+---
+
+### 4.8 — S3-C prospective forecast-authority capture correction R1 (append-only)
+
+This EOF-appended correction records the production-capture boundary and the
+PostgreSQL session-boundary verification added after review of PR #580. The
+historical S3-C disposition in §4.7 is unchanged: the historical PIT question
+remains terminally `NOT_COMPUTABLE` because the incumbent daily forecast
+authority was not durably retained. No historical values are synthesized.
+
+~~~text
+TASK_ID=V0_3_S3_HISTORICAL_PIT_NONCOMPUTABLE_AND_PROSPECTIVE_AUTHORITY_CAPTURE_R1_CORRECTION_R1
+PARENT_PR=580
+PARENT_HEAD_SHA=f099483ce8d640a0973c36ec5b60a482d106fd1d
+S3_C_HISTORICAL_PIT_STATUS=NOT_COMPUTABLE
+S3_C_HISTORICAL_PIT_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+HISTORICAL_PIT_PASS=false
+HISTORICAL_PIT_FAILURE=false
+HISTORICAL_PIT_NOT_COMPUTABLE=true
+HISTORICAL_PIT_BACKTEST_EXECUTED=false
+HISTORICAL_PIT_FORECAST_VALUES_SYNTHESIZED=false
+
+NORMAL_PRODUCTION_FORECAST_CAPTURED=true
+TRIAL_PRODUCTION_FORECAST_CAPTURED=true
+ROLLING_BACKTEST_FORECAST_CAPTURED=true
+BASE_FORECAST_AUTHORITY_CAPTURE_BEFORE_TASK10=true
+TASK10_AUTHORITY_APPEND_ONLY=true
+P50_DAILY_VALUES_DURABLY_RETAINED=true
+P80_DAILY_VALUES_DURABLY_RETAINED=true
+P90_DAILY_VALUES_DURABLY_RETAINED=true
+POSTGRES_PRODUCTION_CAPTURE_EXECUTED=true
+POSTGRES_FRESH_SESSION_READBACK_PASS=true
+POSTGRES_P50_P80_P90_EXACT_PARITY=true
+POSTGRES_PARENT_UPDATE_REJECTED=true
+POSTGRES_PARENT_DELETE_REJECTED=true
+POSTGRES_DAILY_UPDATE_REJECTED=true
+POSTGRES_DAILY_DELETE_REJECTED=true
+POSTGRES_TEST_SKIPPED=false
+PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_VERIFIED=true
+RUNNER_CHANGED_AFTER_LIVE_EXECUTION=false
+SCORER_CHANGED_AFTER_LIVE_EXECUTION=false
+TEST_CHANGED_AFTER_LIVE_EXECUTION=false
+
+PAIRING_PACKAGE_PUBLICATION_PERFORMED=false
+AUTHORITY_ISSUANCE_PERFORMED=false
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+MODEL_CHANGE=false
+PARAMETER_CHANGE=false
+MIGRATION_CHANGE=true
+SCHEMA_CHANGE=true
+CURRENT_V0_3_S3_COMPLETE=false
+V0_3_S4_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR580_CORRECTION_R1_REVIEW
+~~~
+
+The normal Forecast application freezes the base authority directly after a
+successful Core Forecast completion. The rolling-backtest path resolves the
+same exact Core lineage before Task 10 prediction work and then appends the
+Task 10 extension. A PostgreSQL integration test proves commit/fresh-session
+readback, exact P50/P80/P90 parity, and rejection of parent and daily
+update/delete attempts. The implementation is not a release decision and
+does not set `CURRENT_V0_3_S3_COMPLETE` or authorize S4.
