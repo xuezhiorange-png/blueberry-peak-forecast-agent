@@ -10,7 +10,13 @@ TASK_CLASS=AUTHORIZED_IMPLEMENTATION
 BASE_MAIN_SHA=416e8d5d3e62511be384beb4a3b9cb4c728955d9
 PARENT_PR=571
 PARENT_MERGE_COMMIT=416e8d5d3e62511be384beb4a3b9cb4c728955d9
-USER_GATE=可以执行评分
+USER_GATE=可以继续
+USER_GATE_INTERPRETATION=S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_ONLY
+USER_GATE_DOES_NOT_TRIGGER_S3_C_EXECUTION=true
+USER_GATE_DOES_NOT_TRIGGER_METRIC_EXECUTION=true
+USER_GATE_DOES_NOT_TRIGGER_S3_D_EXECUTION=true
+AUTHORIZATION_PROVENANCE_CORRECTED=true
+IMPLEMENTATION_BLOCKED_BY_CONTRACT_CONFLICT=false
 IMPLEMENTATION_AUTHORIZED=true
 PACKAGE_BUILDER_IMPLEMENTED=true
 S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_AUTHORIZED=true
@@ -28,8 +34,10 @@ CURRENT_S3_D_ATTRIBUTION_EXECUTION_STATUS=CONTRACT_STILL_BOUND_BLOCKED
 ~~~
 
 This workpaper records the implementation surface authorized by the
-post-#571 contract. It does not claim that the prerequisites for a live legal
-package are currently available.
+post-#571 contract. The current user gate is implementation-only; the
+inherited S3-C, metric, and S3-D execution authorizations remain separate
+gates. It does not claim that the prerequisites for a live legal package are
+currently available.
 
 ## 1. Authorized change surface
 
@@ -99,8 +107,19 @@ future legal branches.
 
 The builder validates the source and accepted TRAIN/VALIDATION partition
 identities, stored pairing package hashes, row-set hashes, exact actual
-pairing, cross-partition source-row overlap, forecast binding presence, PIT
-cutoff membership, TEST sealing, and package identity replay. It reuses:
+pairing, cross-partition source-row overlap, exact PIT forecast binding,
+cutoff membership, TEST sealing, and package identity replay. For every
+comparable row, a lawful existing `IncumbentDailyCurveProvider` is required
+to resolve the exact `EvaluationInstanceCell`, target date, horizon, and
+quantile. The returned `S2ForecastAuthorityBundle` is required to carry every
+existing governed identity field, all three source-availability timestamps
+are checked against the row cutoff, and the provider forecast value must
+match the row value. The existing canonical S2 forecast binding-key helper is
+then replayed with the resolved authority, so row order, target-date, horizon,
+quantile, cutoff, and forecast-run substitutions fail closed. Task 9/Task 10
+authority-chain validation remains delegated to the existing persisted PIT
+loader/provider; this module does not duplicate that DB verifier or accept a
+caller-supplied verification boolean. It reuses:
 
 ~~~text
 verify_pairing_package_hash_replay=true
@@ -111,7 +130,23 @@ canonical_json_bytes=true
 TWO_STAGE_PACKAGE_HASH=true
 TWO_STAGE_HASH_SELF_REFERENCE=false
 NATIVE_FLOAT_FORBIDDEN=true
+PIT_EXACT_CELL_TARGET_QUANTILE_HORIZON_AUTHORITY_REPLAY_IMPLEMENTED=true
+EXACT_CELL_BINDING_VERIFIED=true
+EXACT_TARGET_DATE_BINDING_VERIFIED=true
+EXACT_QUANTILE_BINDING_VERIFIED=true
+EXACT_HORIZON_BINDING_VERIFIED=true
+FORECAST_AVAILABLE_AT_CHECK_IMPLEMENTED=true
+TASK10_MODEL_AVAILABLE_AT_CHECK_IMPLEMENTED=true
+HISTORICAL_CODE_AVAILABLE_AT_CHECK_IMPLEMENTED=true
+PIT_AVAILABILITY_FAIL_CLOSED=true
+CUTOFF_SELECTION_POLICY_GOVERNED=true
+CUTOFF_MEMBER_STORAGE_CANONICAL=true
+FINAL_STOP_GATE=COORDINATOR_PR572_RE_REVIEW
 ~~~
+
+PIT visibility uses only the three availability fields on the resolved
+forecast authority. `actual_visibility_timestamp` is not used as a proxy for
+forecast-source availability.
 
 The only package statuses are:
 
@@ -192,15 +227,19 @@ implementation.
 ## 5. Synthetic test contract
 
 All new tests are in-memory and synthetic. The documented 35 themes are
-covered by 53 passing tests:
+covered by 76 passing tests:
 
 ~~~text
 TEST_THEME_COVERAGE_REQUIRED=35/35
 NEW_SCORER_TEST_RESULT=PASS
-NEW_SCORER_TEST_COUNT=53
+NEW_SCORER_TEST_COUNT=76
 NATIVE_FLOAT_TESTED=true
 HASH_REPLAY_TESTED=true
 DETERMINISTIC_FAIL_CLOSED_TESTED=true
+PIT_EXACT_CELL_TARGET_QUANTILE_HORIZON_AUTHORITY_REPLAY_TESTED=true
+PIT_AVAILABILITY_FAIL_CLOSED_TESTED=true
+CUTOFF_SELECTION_POLICY_TAMPER_TESTED=true
+CUTOFF_REVERSE_INPUT_IDENTITY_INVARIANT_TESTED=true
 PRODUCTION_REGISTRIES_MUTATION_TESTED=false
 TEST_DATA_ACCESSED=false
 TEST_LABELS_ACCESSED=false
@@ -234,7 +273,7 @@ V0_3_S4_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-NEXT_GATE=COORDINATOR_LEGAL_PACKAGE_IMPLEMENTATION_REVIEW
+NEXT_GATE=COORDINATOR_PR572_RE_REVIEW
 ~~~
 
 Passing synthetic tests or implementing the package does not publish pairing
