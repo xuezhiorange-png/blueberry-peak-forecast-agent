@@ -41,7 +41,7 @@ from backend.app.models.forecast_authority import (
     ForecastAuthorityDailyModel,
 )
 from backend.app.models.harvest_state import HarvestStateDailyMemberRowModel, HarvestStateRun
-from backend.app.models.master_data import Factory, Farm, Subfarm, Variety
+from backend.app.models.master_data import Factory, Farm, Season, Subfarm, Variety
 from backend.app.models.maturity import (
     MaturityDailyPredictionModel,
     MaturityForecastRun,
@@ -794,6 +794,9 @@ async def _remove_test_fixture_markers_from_forecast_owners(session: AsyncSessio
         update(Farm).where(Farm.id == 101).values(name="retention-production-farm")
     )
     await session.execute(
+        update(Season).where(Season.id == SEASON_ID).values(code="retention-production-season")
+    )
+    await session.execute(
         update(Subfarm).where(Subfarm.id == 1101).values(name="retention-production-east")
     )
     await session.execute(
@@ -857,6 +860,11 @@ async def _remove_test_fixture_markers_from_forecast_owners(session: AsyncSessio
         .values(
             maturity_model_version="retention-production-task8-v1",
         )
+    )
+    await session.execute(
+        update(HarvestStateDailyMemberRowModel)
+        .where(HarvestStateDailyMemberRowModel.harvest_state_run_id == 910001)
+        .values(capacity_pool_id="retention-production-pool")
     )
     await session.flush()
 

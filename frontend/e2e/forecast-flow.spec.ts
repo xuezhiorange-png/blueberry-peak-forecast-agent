@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 const authorityValues = {
-  factory: "S2-FIXTURE",
-  season: "2026-DEMO",
-  farm: "s2-fixture-farm",
-  subfarm: "s2-fixture-east",
+  factory: "RETENTION-PRODUCTION",
+  season: "retention-production-season",
+  farm: "retention-production-farm",
+  subfarm: "retention-production-east",
   variety: "S2-VAR-A",
 };
 
@@ -22,8 +22,8 @@ async function selectForecastAuthority(page: import("@playwright/test").Page) {
 }
 
 async function selectSecondForecastAuthority(page: import("@playwright/test").Page) {
-  await page.getByLabel("农场").selectOption("s2-fixture-farm-west");
-  await expect(page.getByLabel("分场")).toHaveValue("s2-fixture-west");
+  await page.getByLabel("农场").selectOption("retention-production-farm-west");
+  await expect(page.getByLabel("分场")).toHaveValue("retention-production-west");
   await expect(page.getByLabel("品种")).toHaveValue("S2-VAR-B");
   await expect(page.getByLabel("权威种植面积（亩）")).toHaveValue("8.000000");
 }

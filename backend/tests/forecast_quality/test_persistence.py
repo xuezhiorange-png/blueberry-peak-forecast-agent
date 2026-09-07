@@ -1132,8 +1132,15 @@ async def _repair_task9_fixture_for_quality(
     )
     assert members
     first = members[0]
+    # The new production Forecast entrypoint captures the completed Task 8/
+    # Task 9 owner chain before Quality persistence.  Keep this legacy Quality
+    # fixture production-shaped so it can exercise Quality behavior without
+    # accidentally attempting to promote the shared S2 test fixture into
+    # durable production forecast authority.
+    pool_id = "retention-production-quality-pool"
+    for member in members:
+        member.capacity_pool_id = pool_id
     membership_hash = first.capacity_pool_membership_hash
-    pool_id = first.capacity_pool_id
     zero = Decimal("0.000")
     pool = HarvestStateDailyPoolRowModel(
         harvest_state_run_id=run.id,
