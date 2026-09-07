@@ -343,8 +343,7 @@ def _contains_test_marker(value: Any) -> bool:
         )
     if isinstance(value, Mapping):
         return any(
-            _contains_test_marker(key) or _contains_test_marker(item)
-            for key, item in value.items()
+            _contains_test_marker(key) or _contains_test_marker(item) for key, item in value.items()
         )
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return any(_contains_test_marker(item) for item in value)
@@ -368,9 +367,7 @@ def _daily_payload(source: ForecastAuthorityDailySource) -> dict[str, Any]:
             "source_daily_prediction_id": source.source_daily_prediction_id,
             "forecast_run_id": source.forecast_run_id,
             "prediction_date": source.prediction_date,
-            "phenology_coordinate_day": _require_stored_decimal(
-                source.phenology_coordinate_day
-            ),
+            "phenology_coordinate_day": _require_stored_decimal(source.phenology_coordinate_day),
             "p50_kg": _require_stored_decimal(source.p50_kg),
             "p80_kg": _require_stored_decimal(source.p80_kg),
             "p90_kg": _require_stored_decimal(source.p90_kg),
@@ -929,9 +926,11 @@ def _verify_capture_rows(
     if _hash_payload({"rows": row_hashes}) != parent.task8_daily_artifact_hash:
         raise ForecastAuthorityIntegrityError()
     daily_row_ids = parent.task8_snapshot["daily_row_ids"]
-    if not isinstance(daily_row_ids, list) or any(
-        _require_positive(value) != value for value in daily_row_ids
-    ) or tuple(daily_row_ids) != tuple(row.source_daily_prediction_id for row in ordered_rows):
+    if (
+        not isinstance(daily_row_ids, list)
+        or any(_require_positive(value) != value for value in daily_row_ids)
+        or tuple(daily_row_ids) != tuple(row.source_daily_prediction_id for row in ordered_rows)
+    ):
         raise ForecastAuthorityIntegrityError()
     prediction_row_hashes = parent.task10_snapshot["prediction_row_hashes"]
     if (
@@ -1429,10 +1428,7 @@ async def build_forecast_authority_source_from_persisted_lineage(
     scope_ids = sorted({(row.farm_id, row.subfarm_id, row.variety_id) for row in core_rows})
     farm_ids = {item[0] for item in scope_ids}
     farms = {
-        row.id: row
-        for row in await session.scalars(
-            select(Farm).where(Farm.id.in_(farm_ids))
-        )
+        row.id: row for row in await session.scalars(select(Farm).where(Farm.id.in_(farm_ids)))
     }
     subfarms = {
         row.id: row
