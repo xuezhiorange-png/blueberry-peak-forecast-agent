@@ -86,6 +86,9 @@ from backend.app.s3_daily_rowset.forecast_port import (
     ForecastDayResult,
     IncumbentDailyCurveProvider,
 )
+from backend.app.s3_daily_rowset.incumbent_forecast_daily_curve_live_obtain import (
+    LiveIncumbentForecastDailyCurveObtainResult,
+)
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
     PitVisibleDailyForecastCell,
     PitVisibleIncumbentDailyCurveIndex,
@@ -381,13 +384,41 @@ def _fixture(
         harvest_business_date=ACCEPTED_VALIDATION_PARTITION_IDENTITY.partition_end_date,
         source_row_identity="source-validation-end",
     )
+
+    def _unique_official_rows(
+        *,
+        base: MaterializableRow,
+        terminal: MaterializableRow,
+        partition_label: str,
+        count: int,
+    ) -> tuple[MaterializableRow, ...]:
+        return tuple(
+            dataclasses.replace(
+                terminal if index == count - 1 else base,
+                farm=f"farm-source-{partition_label}-{index}",
+                subfarm=f"subfarm-source-{partition_label}-{index}",
+                variety=f"variety-source-{partition_label}-{index}",
+                source_row_identity=f"source-{partition_label}-{index}",
+                cleaned_row_identity=f"cleaned-{partition_label}-{index}",
+                pit_visibility_identity=f"pit-{partition_label}-{index}",
+                revision_winner_identity=f"revision-{partition_label}-{index}",
+            )
+            for index in range(count)
+        )
+
     official_partitions = OfficialPartitionRows(
-        train_rows=(train_source_row,)
-        + (train_source_row,) * (OFFICIAL_TRAIN_ROW_COUNT - 2)
-        + (train_source_end,),
-        validation_rows=(validation_source_row,)
-        + (validation_source_row,) * (OFFICIAL_VALIDATION_ROW_COUNT - 2)
-        + (validation_source_end,),
+        train_rows=_unique_official_rows(
+            base=train_source_row,
+            terminal=train_source_end,
+            partition_label="train",
+            count=OFFICIAL_TRAIN_ROW_COUNT,
+        ),
+        validation_rows=_unique_official_rows(
+            base=validation_source_row,
+            terminal=validation_source_end,
+            partition_label="validation",
+            count=OFFICIAL_VALIDATION_ROW_COUNT,
+        ),
         train_content_sha256=ACCEPTED_TRAIN_PARTITION_IDENTITY.content_sha256,
         validation_content_sha256=ACCEPTED_VALIDATION_PARTITION_IDENTITY.content_sha256,
     )
@@ -463,8 +494,18 @@ def _legal_result(
     )
 
 
-def test_01_production_wrapper_is_blocked_by_current_authority_state() -> None:
+def test_01_production_wrapper_is_blocked_by_current_authority_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     fixture = _fixture()
+    monkeypatch.setattr(
+        legal_module,
+        "obtain_live_incumbent_forecast_daily_curve_provider",
+        lambda *, materialization_grains: LiveIncumbentForecastDailyCurveObtainResult(
+            obtained=False,
+            provider=None,
+        ),
+    )
     before = (
         PRODUCTION_TRUSTED_PUBLISHED_PAIRING_PACKAGE_REGISTRY.count(),
         PRODUCTION_TRUSTED_ISSUED_AUTHORITY_REGISTRY.count(),
@@ -1409,3 +1450,68 @@ def test_56_naive_cutoff_is_rejected_or_blocked() -> None:
     result = _legal_result(fixture, cutoff_set=(naive_member,))
     assert result.status is S3LegalBacktestPackageStatus.BLOCKED
     assert result.package is None
+
+
+def test_57_caller_constructed_concrete_provider_cannot_force_production_legal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = _fixture()
+    fake_provider = _provider_with_authority(fixture, _forecast_authority())
+    monkeypatch.setattr(
+        legal_module,
+        "obtain_live_incumbent_forecast_daily_curve_provider",
+        lambda *, materialization_grains: LiveIncumbentForecastDailyCurveObtainResult(
+            obtained=False,
+            provider=None,
+        ),
+    )
+    assert (
+        "persisted_authority_provider"
+        not in inspect.signature(build_s3_legal_backtest_package).parameters
+    )
+    result = build_s3_legal_backtest_package(
+        pairing_materialization=fixture.materialization,
+        train_partition_authority=fixture.train_authority,
+        validation_partition_authority=fixture.validation_authority,
+        forecast_cutoff_set=fixture.cutoff_set,
+        forecast_provider=fake_provider,
+    )
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert result.package is None
+
+
+def test_58_production_wrapper_uses_governed_persisted_obtain_seam(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = _fixture()
+    obtained_grains: list[frozenset[tuple[str, str, str, str]]] = []
+
+    def _obtain(
+        *, materialization_grains: frozenset[tuple[str, str, str, str]]
+    ) -> LiveIncumbentForecastDailyCurveObtainResult:
+        obtained_grains.append(materialization_grains)
+        return LiveIncumbentForecastDailyCurveObtainResult(
+            obtained=True,
+            provider=fixture.forecast_provider,
+            forecast_cutoff_at=_CUTOFF,
+        )
+
+    monkeypatch.setattr(
+        legal_module,
+        "obtain_live_incumbent_forecast_daily_curve_provider",
+        _obtain,
+    )
+    result = build_s3_legal_backtest_package(
+        pairing_materialization=fixture.materialization,
+        train_partition_authority=fixture.train_authority,
+        validation_partition_authority=fixture.validation_authority,
+        forecast_cutoff_set=fixture.cutoff_set,
+        forecast_provider=fixture.forecast_provider,
+    )
+    assert obtained_grains and obtained_grains[0]
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert result.package is None
+    assert (
+        S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY.value
+        not in result.blocker_codes
+    )

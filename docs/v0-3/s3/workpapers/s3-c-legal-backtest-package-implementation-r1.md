@@ -109,12 +109,12 @@ The builder validates the source and accepted TRAIN/VALIDATION partition
 identities, stored pairing package hashes, row-set hashes, exact actual
 pairing, cross-partition source-row overlap, exact PIT forecast binding,
 cutoff membership, TEST sealing, and package identity replay. For every
-comparable row, the existing persisted PIT loader/provider is represented by
-an independent concrete `PitVisibleIncumbentDailyCurveProvider` resolver. A
-forecast value provider is only a candidate value seam: its complete
-`S2ForecastAuthorityBundle` must be exactly equivalent to the persisted
-resolver bundle through the existing full-field equivalence helper before the
-value can participate in legality. The package does not use
+comparable row, the persisted PIT authority is obtained internally through
+the repository-owned governed live obtain seam and its existing loader chain.
+A forecast value provider is only a candidate value seam: its complete
+`S2ForecastAuthorityBundle` must be exactly equivalent to the internally
+obtained persisted resolver bundle through the existing full-field equivalence
+helper before the value can participate in legality. The package does not use
 `is_lawful_production_provider` or any caller-supplied boolean as authority.
 The exact cell, target date, horizon, and quantile are resolved, all three
 source-availability timestamps are checked against the canonical row cutoff,
@@ -159,7 +159,16 @@ FORECAST_CUTOFF_CANONICALIZATION_IMPLEMENTED=true
 SAME_INSTANT_CROSS_TIMEZONE_IDENTITY_INVARIANT=true
 DIFFERENT_INSTANT_NOT_COLLAPSED=true
 NAIVE_FORECAST_CUTOFF_FAIL_CLOSED=true
-FINAL_STOP_GATE=COORDINATOR_PR572_FINAL_RE_REVIEW
+PRODUCTION_PUBLIC_PERSISTED_PROVIDER_INJECTION_SURFACE=false
+PRODUCTION_PROVIDER_CLASS_TYPE_IS_NOT_AUTHORITY=true
+DB_BACKED_GOVERNED_AUTHORITY_OBTAIN_BOUND=true
+PERSISTED_AUTHORITY_OBTAIN_FAILURE_FAIL_CLOSED=true
+TEST_ONLY_PERSISTED_PROVIDER_INJECTION_SEAM=true
+TEST_ONLY_SEAM_IS_NOT_PRODUCTION_TRUST_BOUNDARY=true
+CALLER_CONSTRUCTED_CONCRETE_PROVIDER_CAN_FORCE_LEGAL=false
+CALLER_CONSTRUCTED_CONCRETE_PROVIDER_NEGATIVE_TEST=PASS
+PRODUCTION_WRAPPER_ORCHESTRATION_TESTED=true
+FINAL_STOP_GATE=COORDINATOR_PR572_FINAL_ACCEPTANCE_REVIEW
 ~~~
 
 PIT visibility uses only the three availability fields on the resolved
@@ -245,12 +254,12 @@ implementation.
 ## 5. Synthetic test contract
 
 All new tests are in-memory and synthetic. The documented 35 themes are
-covered by 80 passing tests:
+covered by 82 passing tests:
 
 ~~~text
 TEST_THEME_COVERAGE_REQUIRED=35/35
 NEW_SCORER_TEST_RESULT=PASS
-NEW_SCORER_TEST_COUNT=80
+NEW_SCORER_TEST_COUNT=82
 NATIVE_FLOAT_TESTED=true
 HASH_REPLAY_TESTED=true
 DETERMINISTIC_FAIL_CLOSED_TESTED=true
@@ -263,6 +272,9 @@ CUTOFF_REVERSE_INPUT_IDENTITY_INVARIANT_TESTED=true
 CUTOFF_SAME_INSTANT_CROSS_TIMEZONE_TESTED=true
 CUTOFF_DIFFERENT_INSTANT_TESTED=true
 CUTOFF_NAIVE_REJECTION_TESTED=true
+PRODUCTION_PUBLIC_PERSISTED_PROVIDER_INJECTION_SURFACE_TESTED=true
+PERSISTED_AUTHORITY_OBTAIN_FAILURE_FAIL_CLOSED_TESTED=true
+PERSISTED_AUTHORITY_OBTAIN_SUCCESS_GATE_TESTED=true
 PRODUCTION_REGISTRIES_MUTATION_TESTED=false
 TEST_DATA_ACCESSED=false
 TEST_LABELS_ACCESSED=false
@@ -273,7 +285,10 @@ in-memory registries. They also prove that the production wrapper cannot
 populate those registries and remains blocked. An ordinary provider subclass
 with `is_lawful_production_provider=true` and a structurally valid but
 different authority bundle cannot force a LEGAL result; the candidate bundle
-must match the separately supplied persisted PIT authority. Cutoff tests also
+must match the internally obtained persisted PIT authority. The public
+signature has no persisted-provider injection surface, and even an exact
+caller-constructed concrete provider cannot supply the persisted truth.
+Cutoff tests also
 prove that the same physical instant in UTC and `Asia/Shanghai` has one
 canonical identity, while a different instant and a naive cutoff fail closed.
 
@@ -301,7 +316,7 @@ V0_3_S4_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-NEXT_GATE=COORDINATOR_PR572_FINAL_RE_REVIEW
+NEXT_GATE=COORDINATOR_PR572_FINAL_ACCEPTANCE_REVIEW
 ~~~
 
 Passing synthetic tests or implementing the package does not publish pairing
