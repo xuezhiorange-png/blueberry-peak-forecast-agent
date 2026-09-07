@@ -1,0 +1,723 @@
+{
+  "schema_version": "v0-3-farm-total-group-mapping-package-v1",
+  "policy_version": "v0-3-farm-total-area-proxy-policy-v1",
+  "mapping_policy_version": "v0-3-baseline-farm-group-mapping-r2-high-v1",
+  "target_season": "2025~2026",
+  "source_dataset_id": "source-002",
+  "source_dataset_version": "e5-live-v1",
+  "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+  "rows": [
+    {
+      "baseline_farm_group_key": "上允",
+      "source_farm_business_keys": [
+        "澜沧上允一场",
+        "澜沧上允农场"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "af76401261bbf66e8bc213c7dc1a242226f31a12ee18828a2523d8f895e796e8"
+    },
+    {
+      "baseline_farm_group_key": "东回",
+      "source_farm_business_keys": [
+        "澜沧东回一场",
+        "澜沧东回三场",
+        "澜沧东回二场",
+        "澜沧东回五场",
+        "澜沧东回四场"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "cd9e6f2dc786bf20ced40fea8b2939b7457dfef4413108b34f6acb001c9ae49f"
+    },
+    {
+      "baseline_farm_group_key": "中心试验站",
+      "source_farm_business_keys": [
+        "回龙中心实验站",
+        "回龙中心试验站"
+      ],
+      "mapping_relationship_type": "CANONICAL_CHARACTER_NORMALIZATION",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "7cb6b9c78a72bff6a864b684172860767951ba66835ec522864e094f6980ef96"
+    },
+    {
+      "baseline_farm_group_key": "五山",
+      "source_farm_business_keys": [
+        "弥勒五山农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "cd11225151798445ab6fe71ebba956fce479ad5e04609600fa4a2461fe4eead2"
+    },
+    {
+      "baseline_farm_group_key": "勐旺",
+      "source_farm_business_keys": [
+        "版纳勐旺农场"
+      ],
+      "mapping_relationship_type": "CANONICAL_CHARACTER_NORMALIZATION",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "e1709bd1bb968d9f9ce6a62e492d7821c78e1d13ea854eb78c866550d01fd153"
+    },
+    {
+      "baseline_farm_group_key": "南庄",
+      "source_farm_business_keys": [
+        "建水南庄农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "0e5c191bfe3b31bf8a9e60a728f3e322a5f5342a850fa57f0bf02c9c028686b7"
+    },
+    {
+      "baseline_farm_group_key": "双龙营",
+      "source_farm_business_keys": [
+        "丘北双龙营一场",
+        "丘北双龙营三场",
+        "丘北双龙营二场",
+        "丘北双龙营农场",
+        "丘北双龙营四场"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "EXCLUDED_CONFLICT",
+      "exclusion_reason": "CURRENT_VS_PREVIOUS_CONFLICT",
+      "row_hash": "1d07b78e034451a5e903d56c8f068e3922242e933d030f3a5fb3ee60dbbc643d"
+    },
+    {
+      "baseline_farm_group_key": "回龙",
+      "source_farm_business_keys": [
+        "砚山回龙农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "8774abc3adebc815fbc266975fb54b7ff36d91829b6bcff9cfe063cdc2b7ecad"
+    },
+    {
+      "baseline_farm_group_key": "天星",
+      "source_farm_business_keys": [
+        "丘北天星农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "28d48a6079017713ebb5e10e7655af62740392273e398fdd93dd49c6b716949e"
+    },
+    {
+      "baseline_farm_group_key": "岔科",
+      "source_farm_business_keys": [
+        "建水岔科农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "e4d399774908df3440b7ab6acebfe308b3ce3b1e3d927ed1f1763a6a9e9bee39"
+    },
+    {
+      "baseline_farm_group_key": "巍山",
+      "source_farm_business_keys": [
+        "大理巍山农场",
+        "大理巍山农场（WRM)"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "21ed3ff4586f0bb3209d12b65a994a51216e5f1951fb79c684b109aa5d759e59"
+    },
+    {
+      "baseline_farm_group_key": "巡检司",
+      "source_farm_business_keys": [
+        "弥勒巡检司农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "c02074f65797a838c1427194b36ac260935a49fc92187cbf776090118130b366"
+    },
+    {
+      "baseline_farm_group_key": "平远",
+      "source_farm_business_keys": [
+        "砚山平远一场",
+        "砚山平远三场",
+        "砚山平远二场"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "2bb9d0e3782fd715ce160aac7cd39c2b9ac5c565a84bc32c7f555e7f5058c84e"
+    },
+    {
+      "baseline_farm_group_key": "新哨",
+      "source_farm_business_keys": [
+        "弥勒新哨一场",
+        "弥勒新哨三场",
+        "弥勒新哨二场",
+        "弥勒新哨四场"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "EXCLUDED_CONFLICT",
+      "exclusion_reason": "CURRENT_VS_PREVIOUS_CONFLICT",
+      "row_hash": "6d9c0e41387761fd80cc832f08f1ecef354c75aee48fcc6036204f7081403c6f"
+    },
+    {
+      "baseline_farm_group_key": "旧莫",
+      "source_farm_business_keys": [
+        "广南旧莫农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "2bd2f0f8d98a6a030c2c90301117b4a9001f1f09ba9fb1a1fd55c7025329c161"
+    },
+    {
+      "baseline_farm_group_key": "曰者",
+      "source_farm_business_keys": [
+        "丘北曰者农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "275a669871c7b0d1ce4d5f9f17b55b70bd0e14cfd38e97f4a2257d304087443f"
+    },
+    {
+      "baseline_farm_group_key": "曲石",
+      "source_farm_business_keys": [
+        "腾冲曲石农场"
+      ],
+      "mapping_relationship_type": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "113e006fc81346aa1f849b905e2a96d84b23dc3ed49223a988a406d6389540be"
+    },
+    {
+      "baseline_farm_group_key": "朋普",
+      "source_farm_business_keys": [
+        "弥勒朋普农场",
+        "弥勒朋普农场（MYM）"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "486dd38fc82a3afbfeb7c07e11b2962600669a2ccd6e6fc895adb7603bfd88d6"
+    },
+    {
+      "baseline_farm_group_key": "杨柳",
+      "source_farm_business_keys": [
+        "保山杨柳农场"
+      ],
+      "mapping_relationship_type": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "7237b1bd50177740ee0503c7c017f2a115136974275ffdc106fdf9b0196594c8"
+    },
+    {
+      "baseline_farm_group_key": "杨武",
+      "source_farm_business_keys": [
+        "新平扬武农场"
+      ],
+      "mapping_relationship_type": "CANONICAL_CHARACTER_NORMALIZATION",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "b93f08b571d1f7840c3309232bcb7c6bf1407eca44580b2328c1443d083cb88f"
+    },
+    {
+      "baseline_farm_group_key": "炭房",
+      "source_farm_business_keys": [
+        "砚山炭房农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "1b3213477a9877327c2f33d962787736b72e8b5c958bc8e53ce4820a3ffdf2dd"
+    },
+    {
+      "baseline_farm_group_key": "猛虎",
+      "source_farm_business_keys": [
+        "永仁猛虎农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "0776cbd2ce1af6ba30379b283bbec5381b1afb7e286493319134f7a0ef0169d4"
+    },
+    {
+      "baseline_farm_group_key": "由旺",
+      "source_farm_business_keys": [
+        "保山由旺农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "765e55898c673a8d584b4781f8900f0b4b8a54627f50efff81c30605b63ecb6c"
+    },
+    {
+      "baseline_farm_group_key": "盘龙",
+      "source_farm_business_keys": [
+        "砚山盘龙农场"
+      ],
+      "mapping_relationship_type": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+      "exclusion_status": "EXCLUDED_CONFLICT",
+      "exclusion_reason": "CURRENT_VS_PREVIOUS_CONFLICT",
+      "row_hash": "81a77012f387efc8c72404832859d9252b8c47d93cfc9681f141007a87458358"
+    },
+    {
+      "baseline_farm_group_key": "维摩一",
+      "source_farm_business_keys": [
+        "砚山维摩一场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "8b97b9a81738f8d7b050745c6bc52431fe7ffd0ff47af32d96f83373b7e133b7"
+    },
+    {
+      "baseline_farm_group_key": "维摩二",
+      "source_farm_business_keys": [
+        "砚山维摩二场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "03223abf8d957c289e09466f8e3d91662ee233ee4e15892e8323824df6488771"
+    },
+    {
+      "baseline_farm_group_key": "莲池一",
+      "source_farm_business_keys": [
+        "永仁莲池一场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "35c8b9315c1a35ee1ec41e35e29d62b80649ab840dbfb554d3e7d8030d4cf1d6"
+    },
+    {
+      "baseline_farm_group_key": "莲池二",
+      "source_farm_business_keys": [
+        "永仁莲池二场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "d10f260877a61a606078f9648ece4e290f69cc496321ba8ec9fb624cf4f17a39"
+    },
+    {
+      "baseline_farm_group_key": "西三",
+      "source_farm_business_keys": [
+        "弥勒西三农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "d1fa046f47f6df5a72dc91c758dd070df1604b8077d8a27e556f66b9a8660918"
+    },
+    {
+      "baseline_farm_group_key": "阿朋",
+      "source_farm_business_keys": [
+        "建水阿朋农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "d150a3d98558613021f72c697faf9d7e9da60702994723c0d56ca0efb165ce20"
+    },
+    {
+      "baseline_farm_group_key": "阿猛",
+      "source_farm_business_keys": [
+        "砚山阿猛农场"
+      ],
+      "mapping_relationship_type": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "1606915e4d7fef8d6c7cacb649dd66f9d3e56cd29c493741d9dd76a6df2eddae"
+    },
+    {
+      "baseline_farm_group_key": "面甸",
+      "source_farm_business_keys": [
+        "建水面甸一场",
+        "建水面甸二场",
+        "建水面甸农场"
+      ],
+      "mapping_relationship_type": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "afa2c291544549f2b55331bfa7a8681bf26a3d75090d6c11d9ee458ab667f111"
+    },
+    {
+      "baseline_farm_group_key": "麦拉",
+      "source_farm_business_keys": [
+        "永仁麦拉农场"
+      ],
+      "mapping_relationship_type": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "39269349606d1280cf95389656d433b98719685108a9d074a951a79f8c7f289f"
+    },
+    {
+      "baseline_farm_group_key": "黑鱼洞",
+      "source_farm_business_keys": [
+        "砚山黑鱼洞农场"
+      ],
+      "mapping_relationship_type": "EXACT_NORMALIZED_FARM_NAME",
+      "exclusion_status": "ELIGIBLE",
+      "exclusion_reason": null,
+      "row_hash": "e532e62b08281b2054223c9af4b585c962a722e17a1318155944c8da1769c73f"
+    }
+  ],
+  "mapping_set_sha256": "ea107c4944358644a51f515e7cc664ad0e3f14da64feeaed99a8c96e5ace2c14",
+  "canonical_hash": "1e347ab061b7c19417798079b18d81020aabad28c3f9411f2b6c7d13d855215a",
+  "r4_provenance": {
+    "authority_lineage": "R4_REISSUED_DURABLE",
+    "recovery_mode": "R4_REISSUANCE",
+    "authority_byte_identical_recovery_required": false,
+    "historical_authority_may_not_be_impersonated": true,
+    "historical_mapping_semantic_parity": "NOT_REPRODUCED",
+    "r4_mapping_semantics_recovered_from_hash_oracle": false,
+    "historical_parity_oracle": {
+      "mapping_set_sha256": "eb013e3e638074945d182c89433096716e771b934855bc0139b9f20ca76c8677",
+      "area_set_sha256": "339d2adebe1b3db6fece4726934191b86dc311be26c481e9d6dc333b4cae1d3f"
+    },
+    "source_002_cohort_manifest_sha256": "952e82491b7db90e131c6ac471a634db3a450821b2a28523b0a29acfa4b50871",
+    "source_workbook_sha256": "4d2ab255886e302236fa7490b0beb9a339d3896ef2f417e9164ef888090bafb6",
+    "source_worksheet": "25产季产量预测汇总表",
+    "source_area_row_range": "2:640",
+    "high_confidence_group_count": 34,
+    "eligible_group_count": 31,
+    "excluded_group_count": 3,
+    "excluded_groups": [
+      "双龙营",
+      "新哨",
+      "盘龙"
+    ],
+    "mapping_evidence": [
+      {
+        "baseline_farm_group_key": "上允",
+        "source_farm_business_keys": [
+          "澜沧上允一场",
+          "澜沧上允农场"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "上允一场 + 上允二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "东回",
+        "source_farm_business_keys": [
+          "澜沧东回一场",
+          "澜沧东回三场",
+          "澜沧东回二场",
+          "澜沧东回五场",
+          "澜沧东回四场"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "东回一场 + 东回二场 + 东回三场 + 东回四场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "中心试验站",
+        "source_farm_business_keys": [
+          "回龙中心实验站",
+          "回龙中心试验站"
+        ],
+        "evidence_class": "CANONICAL_CHARACTER_NORMALIZATION",
+        "prior_farm_core": "中心试验站",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "五山",
+        "source_farm_business_keys": [
+          "弥勒五山农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "五山农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "勐旺",
+        "source_farm_business_keys": [
+          "版纳勐旺农场"
+        ],
+        "evidence_class": "CANONICAL_CHARACTER_NORMALIZATION",
+        "prior_farm_core": "锰旺农场 -> 勐旺农场（字形归一）",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "南庄",
+        "source_farm_business_keys": [
+          "建水南庄农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "南庄农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "双龙营",
+        "source_farm_business_keys": [
+          "丘北双龙营一场",
+          "丘北双龙营三场",
+          "丘北双龙营二场",
+          "丘北双龙营农场",
+          "丘北双龙营四场"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "双龙营",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "回龙",
+        "source_farm_business_keys": [
+          "砚山回龙农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "回龙农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "天星",
+        "source_farm_business_keys": [
+          "丘北天星农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "天星农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "岔科",
+        "source_farm_business_keys": [
+          "建水岔科农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "岔科农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "巍山",
+        "source_farm_business_keys": [
+          "大理巍山农场",
+          "大理巍山农场（WRM)"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "巍山农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "巡检司",
+        "source_farm_business_keys": [
+          "弥勒巡检司农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "巡检司农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "平远",
+        "source_farm_business_keys": [
+          "砚山平远一场",
+          "砚山平远三场",
+          "砚山平远二场"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "平远一场 + 平远二场 + 平远三场 + 平远四场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "新哨",
+        "source_farm_business_keys": [
+          "弥勒新哨一场",
+          "弥勒新哨三场",
+          "弥勒新哨二场",
+          "弥勒新哨四场"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "新哨农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "旧莫",
+        "source_farm_business_keys": [
+          "广南旧莫农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "广南旧莫",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "曰者",
+        "source_farm_business_keys": [
+          "丘北曰者农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "曰者",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "曲石",
+        "source_farm_business_keys": [
+          "腾冲曲石农场"
+        ],
+        "evidence_class": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+        "prior_farm_core": "曲石一场 + 曲石二场 + 曲石三场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "朋普",
+        "source_farm_business_keys": [
+          "弥勒朋普农场",
+          "弥勒朋普农场（MYM）"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "朋普",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "杨柳",
+        "source_farm_business_keys": [
+          "保山杨柳农场"
+        ],
+        "evidence_class": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+        "prior_farm_core": "杨柳一场 + 杨柳二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "杨武",
+        "source_farm_business_keys": [
+          "新平扬武农场"
+        ],
+        "evidence_class": "CANONICAL_CHARACTER_NORMALIZATION",
+        "prior_farm_core": "杨武农场（扬武/杨武字形归一）",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "炭房",
+        "source_farm_business_keys": [
+          "砚山炭房农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "炭房农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "猛虎",
+        "source_farm_business_keys": [
+          "永仁猛虎农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "猛虎农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "由旺",
+        "source_farm_business_keys": [
+          "保山由旺农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "由旺农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "盘龙",
+        "source_farm_business_keys": [
+          "砚山盘龙农场"
+        ],
+        "evidence_class": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+        "prior_farm_core": "盘龙一场 + 盘龙二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "维摩一",
+        "source_farm_business_keys": [
+          "砚山维摩一场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "维摩一场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "维摩二",
+        "source_farm_business_keys": [
+          "砚山维摩二场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "维摩二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "莲池一",
+        "source_farm_business_keys": [
+          "永仁莲池一场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "莲池一场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "莲池二",
+        "source_farm_business_keys": [
+          "永仁莲池二场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "莲池二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "西三",
+        "source_farm_business_keys": [
+          "弥勒西三农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "西三农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "阿朋",
+        "source_farm_business_keys": [
+          "建水阿朋农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "阿朋",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "阿猛",
+        "source_farm_business_keys": [
+          "砚山阿猛农场"
+        ],
+        "evidence_class": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+        "prior_farm_core": "阿猛一场 + 阿猛二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "面甸",
+        "source_farm_business_keys": [
+          "建水面甸一场",
+          "建水面甸二场",
+          "建水面甸农场"
+        ],
+        "evidence_class": "MULTI_CURRENT_FARMS_TO_SHARED_PRIOR_FARM_CORE",
+        "prior_farm_core": "面甸农场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "麦拉",
+        "source_farm_business_keys": [
+          "永仁麦拉农场"
+        ],
+        "evidence_class": "MULTI_PRIOR_FARMS_TO_SHARED_CURRENT_FARM_CORE",
+        "prior_farm_core": "麦拉一场 + 麦拉二场",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      },
+      {
+        "baseline_farm_group_key": "黑鱼洞",
+        "source_farm_business_keys": [
+          "砚山黑鱼洞农场"
+        ],
+        "evidence_class": "EXACT_NORMALIZED_FARM_NAME",
+        "prior_farm_core": "黑鱼洞",
+        "evidence_basis": "SOURCE-002 coverage_scope.farms plus exact workbook farm/subfarm name normalization."
+      }
+    ]
+  }
+}
