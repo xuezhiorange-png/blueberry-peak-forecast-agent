@@ -1,0 +1,187 @@
+{
+  "artifact_id": "V0_3_S3_C_INCUMBENT_FORECAST_DURABLE_AUTHORITY_SOURCE_RECOVERY_R1",
+  "artifact_version": "s3-c-incumbent-forecast-durable-authority-source-recovery-r1-v1",
+  "task_id": "V0_3_S3_C_INCUMBENT_FORECAST_DURABLE_AUTHORITY_SOURCE_RECOVERY_R1",
+  "base_main_sha": "54ffc7d24b28e536fc4c8ee0bd3bf000ba42cf15",
+  "branch": "ops/v0-3-s3-c-incumbent-forecast-durable-authority-source-recovery-r1",
+  "pr578_merge_in_base": true,
+  "durable_authority_discovery_performed": true,
+  "discovery_mode": "READ_ONLY_REPOSITORY_HISTORY_AND_GOVERNED_SOURCE_DISCOVERY",
+  "decision": "FAIL_CLOSED_NO_GOVERNED_HISTORICAL_INCUMBENT_FORECAST_AUTHORITY_SOURCE_AVAILABLE",
+  "source_002": {
+    "status": "CLOSED_PRIOR_ACCEPTED_EXECUTION_INPUT",
+    "reinvestigation_performed": false,
+    "raw_object_identity": "PASS",
+    "raw_object_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "rebuild_parity": "PASS",
+    "attested": true,
+    "train_row_count": 16224,
+    "validation_row_count": 8006,
+    "test_materialized_row_count": 0,
+    "materialized_dataset_identity_sha256": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "test_remains_sealed": true
+  },
+  "replay_identity": {
+    "status": "CLOSED_PRIOR_ACCEPTED_EXECUTION_INPUT",
+    "landing_reinvestigation_performed": false,
+    "row_count": 3,
+    "reviewed_grain_identity_set_identity_sha256": "76b97d1feee4ad388200dc6d774b50afaefa5137e41a367b2e6c65b685f5bdb3",
+    "forecast_artifact_content_identity_sha256": "7114b43a9de6b6c8a77e4297f235faab943030fe8feb8c78aae76fa24dd4706d",
+    "contains_daily_forecast_values": false
+  },
+  "authority_source_discovery": {
+    "master_authority": {
+      "found": false,
+      "source_kind": "PARTIAL_SOURCE_002_COHORT_AND_VARIETY_MAPPING_ONLY",
+      "recovery_performed": false,
+      "partial_source_found": true,
+      "candidates": [
+        "docs/v0-3/s1/evidence/source-002-final-source-cohort-manifest.json",
+        "backend/app/s3_daily_rowset/source_002_variety_master_identity.py",
+        "backend/app/models/master_data.py",
+        "docs/v0-3/s3/authority/farm_total_group_mapping_package.json",
+        "docs/v0-3/s3/authority/farm_total_area_authority_package.json"
+      ],
+      "reason_not_sufficient": "Cohort coverage, source-variety mapping, and Farm-total aggregation authority do not provide populated formal Season/Farm/Subfarm/Variety rows and relationships required by the PIT resolver."
+    },
+    "production_plan_authority": {
+      "found": false,
+      "source_kind": "NO_POPULATED_VERSIONED_PRODUCTION_PLAN_SOURCE",
+      "recovery_performed": false,
+      "candidates": [
+        "backend/app/models/production_plan.py",
+        "backend/app/planning/plan_importer.py",
+        "data/templates/production_plans.csv"
+      ],
+      "reason_not_sufficient": "The model/importer is a runtime contract and the CSV is a template; no populated historical point-in-time plan source was found."
+    },
+    "weather_input_authority": {
+      "found": false,
+      "source_kind": "NO_POPULATED_PIT_VISIBLE_WEATHER_OR_BASE_TEMPERATURE_SOURCE",
+      "recovery_performed": false,
+      "candidates": [
+        "backend/app/models/weather.py",
+        "backend/app/weather/",
+        "data/templates/weather_daily_observations.csv",
+        "data/templates/weather_history.csv",
+        "data/templates/weather_source_locations.csv"
+      ],
+      "reason_not_sufficient": "The repository contains weather contracts/templates only; existing governed evidence marks weather unavailable and forbids inventing it."
+    },
+    "task8_forecast_value_authority": {
+      "found": false,
+      "source_kind": "NO_DURABLE_TASK8_DAILY_FORECAST_VALUE_PAYLOAD",
+      "recovery_performed": false,
+      "candidates": [
+        "backend/app/models/maturity.py",
+        "backend/app/maturity/",
+        "backend/app/s3_daily_rowset/pit_visible_incumbent_daily_curve_loader.py",
+        "backend/app/s3_daily_rowset/authority_packages/default_catalog_live_bindable_authority_package_v1.json",
+        "backend/app/s3_daily_rowset/authority_packages/default_catalog_registry_available_closeout_package_v1.json"
+      ],
+      "reason_not_sufficient": "Production model/loader code and the default catalog contain contracts or metadata identity, not a versioned historical Task 8 daily forecast-value payload."
+    },
+    "core_authority": {
+      "found": false,
+      "source_kind": "NO_DURABLE_CORE_FORECAST_RUN_OR_DAILY_ROW_SOURCE",
+      "recovery_performed": false,
+      "candidates": [
+        "backend/app/core_forecast/",
+        "backend/app/models/core_forecast.py",
+        "backend/app/core_forecast/persistence.py"
+      ],
+      "reason_not_sufficient": "Core production code defines persistence and resolution, but no populated historical Core run/daily-row payload or database export is present."
+    },
+    "task10_binding": {
+      "found": false,
+      "source_kind": "NO_DURABLE_TASK10_PERSISTED_BINDING_SOURCE",
+      "recovery_performed": false,
+      "candidates": [
+        "backend/app/models/core_forecast_task10_authority_binding.py",
+        "backend/app/rolling_backtest/persisted_task10_authority_binding.py",
+        "backend/app/rolling_backtest/persisted_forecast_authority.py"
+      ],
+      "reason_not_sufficient": "The production writer/resolver is validation logic only; no persisted historical Task 10 binding source or daily authority payload is available."
+    }
+  },
+  "historical_evidence_reviewed": [
+    {
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-r1.json",
+      "finding": "NO_LAWFUL_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
+    },
+    {
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-observation-r1.json",
+      "finding": "WEATHER_AND_PLANS_UNAVAILABLE_AND_VERSIONED_ARTIFACT_CLOSEOUT_NOT_MET"
+    },
+    {
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-r1.json",
+      "finding": "IN_MEMORY_CATALOG_IS_NOT_VERSIONED_REPOSITORY_ARTIFACT"
+    },
+    {
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-bindable-repository-r1.json",
+      "finding": "NO_BINDABLE_CATALOG_IN_REPOSITORY"
+    },
+    {
+      "path": "docs/v0-3/s3/evidence/s3-a2-evaluation-instance-registry-available-closeout-r1.json",
+      "finding": "EVALUATION_INSTANCE_REGISTRY_AVAILABLE_FALSE"
+    },
+    {
+      "path": "docs/v0-3/s3/evidence/s3-c-incumbent-forecast-authority-recovery-pairing-materialization-r2.json",
+      "finding": "434_GRAINS_UNAVAILABLE_AT_FORMAL_MASTER_BINDING"
+    }
+  ],
+  "classification": {
+    "database_empty_is_not_final_root_cause": true,
+    "durable_source_exists_but_not_materialized": false,
+    "durable_source_exists_and_can_be_rebuilt": false,
+    "no_durable_authority_source_determined": true,
+    "continuation_would_require_inventing_business_data": true,
+    "test_fixtures_excluded_from_production_recovery": true,
+    "source_002_reinvestigation_performed": false
+  },
+  "materialization": {
+    "grain_count": 434,
+    "formal_business_grain_resolved_count": 0,
+    "task8_visible_forecast_grain_count": 0,
+    "core_forecast_authority_resolved_grain_count": 0,
+    "task10_binding_resolved_grain_count": 0,
+    "pit_visible_provider_obtained": false,
+    "pit_visible_provider_unavailable_grain_count": 434,
+    "pit_visible_provider_ambiguous_grain_count": 0,
+    "basis": "PR578_ACCEPTED_SAME_LIFECYCLE_EXECUTION_EVIDENCE_NOT_REPROBED_HERE",
+    "train_pairing_package_materialized": false,
+    "validation_pairing_package_materialized": false,
+    "train_pairing_package_identity": null,
+    "train_pairing_package_hash": null,
+    "validation_pairing_package_identity": null,
+    "validation_pairing_package_hash": null,
+    "pairing_replay_count": 0,
+    "pairing_replay_status": "NOT_RUN_AFTER_NON_DERIVABLE_SOURCE_AUTHORITY"
+  },
+  "final_stop": {
+    "first_non_derivable_authority": "FORMAL_SEASON_FARM_SUBFARM_VARIETY_MASTER_BINDING",
+    "materialization_blocker": "NO_GOVERNED_HISTORICAL_INCUMBENT_FORECAST_AUTHORITY_SOURCE_AVAILABLE",
+    "pairing_package_publication_performed": false,
+    "authority_issuance_performed": false,
+    "s3_c_backtest_execution_performed": false,
+    "s3_metric_execution_performed": false,
+    "s3_d_attribution_execution_performed": false,
+    "test_evaluation_performed": false,
+    "test_remains_sealed": true,
+    "model_semantic_change": false,
+    "metric_semantic_change": false,
+    "migration_change": false,
+    "schema_change": false,
+    "v0_3_s4_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "final_stop_gate": "COORDINATOR_DURABLE_AUTHORITY_SOURCE_RECOVERY_REVIEW"
+  },
+  "public_payload_policy": {
+    "per_target_forecast_values_serialized": false,
+    "raw_train_rows_serialized": false,
+    "raw_validation_rows_serialized": false,
+    "test_payload_serialized": false
+  }
+}
