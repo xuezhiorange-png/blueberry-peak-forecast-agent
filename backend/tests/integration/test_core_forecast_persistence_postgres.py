@@ -794,14 +794,10 @@ async def _remove_test_fixture_markers_from_forecast_owners(session: AsyncSessio
         update(Farm).where(Farm.id == 101).values(name="retention-production-farm")
     )
     await session.execute(
-        update(Subfarm)
-        .where(Subfarm.id == 1101)
-        .values(name="retention-production-east")
+        update(Subfarm).where(Subfarm.id == 1101).values(name="retention-production-east")
     )
     await session.execute(
-        update(Subfarm)
-        .where(Subfarm.id == 1102)
-        .values(name="retention-production-west")
+        update(Subfarm).where(Subfarm.id == 1102).values(name="retention-production-west")
     )
     await session.execute(
         update(Variety)
@@ -1063,8 +1059,7 @@ async def test_postgres_production_forecast_capture_fresh_session_and_immutabili
             await reader.scalars(
                 select(MaturityDailyPredictionModel)
                 .where(
-                    MaturityDailyPredictionModel.forecast_run_id
-                    == capture.task8_forecast_run_id
+                    MaturityDailyPredictionModel.forecast_run_id == capture.task8_forecast_run_id
                 )
                 .order_by(MaturityDailyPredictionModel.prediction_date.asc())
             )
@@ -1077,9 +1072,9 @@ async def test_postgres_production_forecast_capture_fresh_session_and_immutabili
 
     assert len(retained_rows) == len(source_rows) == 90
     assert loaded.task10_snapshot == {}
-    assert [
-        (row.p50_kg, row.p80_kg, row.p90_kg) for row in loaded.daily_predictions
-    ] == [(row.p50_kg, row.p80_kg, row.p90_kg) for row in source_rows]
+    assert [(row.p50_kg, row.p80_kg, row.p90_kg) for row in loaded.daily_predictions] == [
+        (row.p50_kg, row.p80_kg, row.p90_kg) for row in source_rows
+    ]
 
     async def _immutable_write(statement: Any) -> None:
         async with AsyncSessionMaker() as mutation:
@@ -1115,9 +1110,9 @@ async def test_postgres_production_forecast_capture_fresh_session_and_immutabili
             forecast_identity=created.run_id,
             cutoff_at=request.forecast_cutoff_at,
         )
-    assert [
-        (row.p50_kg, row.p80_kg, row.p90_kg) for row in final_loaded.daily_predictions
-    ] == [(row.p50_kg, row.p80_kg, row.p90_kg) for row in source_rows]
+    assert [(row.p50_kg, row.p80_kg, row.p90_kg) for row in final_loaded.daily_predictions] == [
+        (row.p50_kg, row.p80_kg, row.p90_kg) for row in source_rows
+    ]
 
 
 async def test_postgres_default_trial_service_historical_readback_is_stable(
