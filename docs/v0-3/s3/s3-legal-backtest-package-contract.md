@@ -230,9 +230,13 @@ A package may be LEGAL only when every predicate below passes:
 14. All business numeric values are Decimal values; native floats are
     forbidden at the canonical boundary.
 15. The generic versioned incumbent forecast artifact requirement decision must
-    be resolved by governed authority. An UNRESOLVED_BLOCKING state makes the
-    legal package BLOCKED; resolving the requirement does not itself require
-    the artifact to exist when the governed decision explicitly waives it.
+    be resolved by governed authority:
+    - an UNRESOLVED_BLOCKING state makes the legal package BLOCKED;
+    - a governed REQUIRED=false result makes artifact presence unnecessary for
+      this gate;
+    - a governed REQUIRED=true result makes artifact presence, governed
+      identity, binding, provenance, and replay predicates mandatory.
+      Resolution alone is not sufficient in this branch.
 16. The complete package identity and canonical hash replay exactly.
 
 The evaluation window is inherited from the accepted S3-A1 window contract.
@@ -300,6 +304,7 @@ NATIVE_FLOAT_FORBIDDEN
 PACKAGE_IDENTITY_MISMATCH
 PACKAGE_CANONICAL_HASH_MISMATCH
 GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_BUT_NOT_AVAILABLE
 LEGAL_BACKTEST_PACKAGE_NOT_IMPLEMENTED
 ~~~
 
@@ -311,6 +316,12 @@ TRAIN_VALIDATION_PAIRING_PACKAGE_NOT_PUBLISHED
 TRAIN_VALIDATION_AUTHORITY_RECORD_NOT_FOUND
 TRAIN_VALIDATION_PARTITION_AUTHORITY_NOT_ISSUED
 ~~~
+
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_BUT_NOT_AVAILABLE is a
+future-only blocker. It may be emitted only when the governed requirement has
+resolved to REQUIRED=true and the required versioned artifact is absent or
+fails the governed identity, binding, provenance, or replay predicates. It
+must not replace the current unresolved blocker.
 
 No unknown or partial condition may be promoted to LEGAL. There is no
 pass-with-warnings state.
@@ -373,7 +384,8 @@ SOURCE-002 governed obtain
   -> TRAIN/VALIDATION pairing materialization
   -> trusted package and authority verification
   -> historical cutoff-set completeness verification
-  -> generic incumbent artifact requirement resolution
+  -> GENERIC_INCUMBENT_ARTIFACT_REQUIREMENT_RESOLUTION
+  -> GENERIC_INCUMBENT_ARTIFACT_BINDING_IF_REQUIRED
   -> legal package construction
   -> package identity replay
   -> S3-C PIT backtest execution
@@ -399,10 +411,19 @@ GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_RESOLVED=false
 ~~~
 
 This does not silently require or waive a new artifact. A future decision may
-set the requirement to false only after lawful PIT authority, exact
-per-cell/horizon bundles, binding replay, trusted package and authority
-verification, and full cutoff coverage are all evidenced. Existing snapshots
-must not be overridden by an unverified artifact.
+resolve the requirement through a governed branch:
+
+- UNRESOLVED_BLOCKING keeps the package BLOCKED and does not enter the
+  conditional artifact-binding gate.
+- REQUIRED=false is a lawful no-op for artifact presence in this gate.
+- REQUIRED=true enters the conditional artifact-binding gate. The required
+  artifact must be available and pass all identity, binding, provenance, and
+  replay predicates defined by the resolving authority; otherwise the package
+  is BLOCKED with
+  GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_BUT_NOT_AVAILABLE.
+
+Existing snapshots must not be overridden by an unverified artifact, and this
+contract does not invent an artifact identity, schema, hash, or content.
 
 ## 9. Execution and authority boundaries
 

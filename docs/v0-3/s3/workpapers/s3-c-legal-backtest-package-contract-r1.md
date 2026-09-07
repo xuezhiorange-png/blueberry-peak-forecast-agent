@@ -237,6 +237,28 @@ legal package status is BLOCKED even if every other predicate passes. The
 resolution step does not require an artifact itself when the governed decision
 explicitly waives that artifact.
 
+The future legality branches are frozen as follows:
+
+1. UNRESOLVED_BLOCKING keeps the package BLOCKED and does not enter the
+   conditional artifact-binding gate.
+2. REQUIRED=false is a lawful no-op for artifact presence in this gate.
+3. REQUIRED=true enters the conditional artifact-binding gate. The required
+   artifact must be available and pass all governed identity, binding,
+   provenance, and replay predicates. Otherwise the package is BLOCKED with
+   GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_BUT_NOT_AVAILABLE.
+4. Resolving the requirement is not sufficient when REQUIRED=true.
+
+The required future gate is:
+
+~~~text
+HISTORICAL_CUTOFF_SET_COMPLETENESS_VERIFICATION
+  -> GENERIC_INCUMBENT_ARTIFACT_REQUIREMENT_RESOLUTION
+  -> GENERIC_INCUMBENT_ARTIFACT_BINDING_IF_REQUIRED
+  -> LEGAL_PACKAGE_CONSTRUCTION
+~~~
+
+No artifact identity, schema, hash, or content is invented by this workpaper.
+
 ## 6. S3-B semantic and completeness boundary
 
 Current main records P50, P80, and P90 as verified true upper quantiles. That

@@ -156,7 +156,8 @@
     "NATIVE_FLOAT_FORBIDDEN",
     "PACKAGE_IDENTITY_MISMATCH",
     "PACKAGE_CANONICAL_HASH_MISMATCH",
-    "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED"
+    "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED",
+    "GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED_BUT_NOT_AVAILABLE"
   ],
   "future_package_controls": {
     "required_fields": [
@@ -195,7 +196,8 @@
     "no_raw_rows_in_public_execution_evidence": true,
     "generic_incumbent_artifact_requirement_must_be_resolved_before_legal": true,
     "unresolved_generic_incumbent_artifact_requirement_blocks_legal": true,
-    "resolving_requirement_does_not_require_artifact_presence": true
+    "artifact_presence_not_required_when_requirement_resolves_false": true,
+    "artifact_presence_and_replay_required_when_requirement_resolves_true": true
   },
   "future_sequence": [
     "SOURCE_002_GOVERNED_OBTAIN",
@@ -203,6 +205,7 @@
     "TRUSTED_PACKAGE_AND_AUTHORITY_VERIFICATION",
     "HISTORICAL_CUTOFF_SET_COMPLETENESS_VERIFICATION",
     "GENERIC_INCUMBENT_ARTIFACT_REQUIREMENT_RESOLUTION",
+    "GENERIC_INCUMBENT_ARTIFACT_BINDING_IF_REQUIRED",
     "LEGAL_PACKAGE_CONSTRUCTION",
     "PACKAGE_IDENTITY_REPLAY",
     "S3_C_PIT_BACKTEST_EXECUTION",
