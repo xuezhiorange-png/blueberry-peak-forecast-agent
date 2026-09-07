@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ast
-from datetime import UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -23,6 +23,7 @@ from backend.app.rolling_backtest.orchestration import Task9AuthorityOutcome, Ta
 from backend.app.rolling_backtest.persisted_task10_authority_binding import (
     PersistedTask10AuthorityBindingConflictError,
     PersistedTask10AuthorityBindingWriteOutcome,
+    PersistedTask10AuthorityBindingWriteResult,
     write_persisted_task10_authority_binding_from_pinned_lineage,
 )
 from backend.app.rolling_backtest.schemas import PersistentUpstreamReference, RollingNodeDefinition
@@ -145,6 +146,7 @@ async def _run_production_writer_stage(
     ctx: node_orch._StageContext | None = None,
     node=None,
     prediction_result=None,
+    use_binding_only_compatibility: bool = True,
 ) -> None:
     ctx = ctx or _make_stage_ctx()
     node = node or _make_writer_node_def()
@@ -163,16 +165,47 @@ async def _run_production_writer_stage(
         return row
 
     session.get = _session_get  # type: ignore[method-assign]
-    with patch(
+    load_patch = patch(
         f"{_NODE_MOD}.load_residual_prediction_run_by_id",
         new=AsyncMock(return_value=prediction_result),
-    ):
-        await node_orch._stage_execute_task10_prediction(
-            session,
-            ctx,
-            _make_config(),
-            node,
-        )
+    )
+    capture_patch = patch(
+        f"{_NODE_MOD}.write_persisted_task10_authority_binding_and_capture",
+        new=_binding_only_compatibility_writer,
+    )
+    with load_patch:
+        if use_binding_only_compatibility:
+            capture_patch.start()
+        try:
+            await node_orch._stage_execute_task10_prediction(
+                session,
+                ctx,
+                _make_config(),
+                node,
+            )
+        finally:
+            if use_binding_only_compatibility:
+                capture_patch.stop()
+
+
+async def _binding_only_compatibility_writer(
+    session: AsyncSession,
+    *,
+    task10_prediction_run_id: int,
+    task8_forecast_run_id: int,
+    task9_harvest_state_run_id: int,
+    task9_result_hash: str,
+    forecast_effective_cutoff_at: datetime,
+) -> PersistedTask10AuthorityBindingWriteResult:
+    """Keep this binding-only fixture focused on its pre-retention contract."""
+    return await write_persisted_task10_authority_binding_from_pinned_lineage(
+        session,
+        task10_prediction_run_id=task10_prediction_run_id,
+        task8_forecast_run_id=task8_forecast_run_id,
+        task9_harvest_state_run_id=task9_harvest_state_run_id,
+        task9_result_hash=task9_result_hash,
+        forecast_effective_cutoff_at=forecast_effective_cutoff_at,
+    )
 
 
 @pytest.mark.asyncio
@@ -213,7 +246,7 @@ async def test_task10_reference_preexists_writer(authority_loader_session) -> No
     async with async_session() as session:
         await copy_fixture_rows_to_async_session(authority_loader_session, session, fixture=fixture)
         with patch(
-            f"{_NODE_MOD}.write_persisted_task10_authority_binding_from_pinned_lineage",
+            f"{_NODE_MOD}.write_persisted_task10_authority_binding_and_capture",
             new=AsyncMock(
                 return_value=SimpleNamespace(
                     outcome=PersistedTask10AuthorityBindingWriteOutcome.BOUND,
@@ -223,7 +256,11 @@ async def test_task10_reference_preexists_writer(authority_loader_session) -> No
                 )
             ),
         ) as lineage_writer:
-            await _run_production_writer_stage(session, ctx=ctx)
+            await _run_production_writer_stage(
+                session,
+                ctx=ctx,
+                use_binding_only_compatibility=False,
+            )
             lineage_writer.assert_awaited_once()
             kwargs = lineage_writer.await_args.kwargs
             assert kwargs["task10_prediction_run_id"] == PREDICTION_RUN_ID
@@ -604,7 +641,7 @@ def test_production_writer_path_is_node_orchestration() -> None:
         encoding="utf-8"
     )
     assert "_write_persisted_task10_authority_binding_after_reuse" in node_source
-    assert "write_persisted_task10_authority_binding_from_pinned_lineage" in node_source
+    assert "write_persisted_task10_authority_binding_and_capture" in node_source
     stage_start = node_source.index("async def _stage_execute_task10_prediction")
     stage_end = node_source.index("async def _stage_finalize_snapshot", stage_start)
     stage_source = node_source[stage_start:stage_end]

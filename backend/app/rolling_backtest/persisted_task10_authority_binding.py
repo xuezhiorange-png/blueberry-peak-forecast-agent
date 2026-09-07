@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 
@@ -48,6 +48,8 @@ class PersistedTask10AuthorityBindingWriteResult:
     core_forecast_run_id: int | None = None
     task10_prediction_run_id: int | None = None
     binding_id: int | None = None
+    forecast_authority_capture_id: int | None = None
+    forecast_authority_reused_existing: bool | None = None
 
 
 def compute_binding_identity_hash(
@@ -223,6 +225,59 @@ async def write_persisted_task10_authority_binding_from_pinned_lineage(
         core_forecast_run_id=core_forecast_run_id,
         task10_prediction_run_id=task10_prediction_run_id,
         binding_id=binding.id,
+    )
+
+
+async def write_persisted_task10_authority_binding_and_capture(
+    session: AsyncSession,
+    *,
+    task10_prediction_run_id: int,
+    task8_forecast_run_id: int,
+    task9_harvest_state_run_id: int,
+    task9_result_hash: str,
+    forecast_effective_cutoff_at: datetime,
+) -> PersistedTask10AuthorityBindingWriteResult:
+    """Bind Task 10 and retain the complete prospective forecast authority.
+
+    This is the production completion boundary for a forecast that has a
+    persisted Task 10 result.  The existing binding writer remains the single
+    owner of the Core↔Task 10 relation; the retention envelope is appended
+    only after that exact relation has been established.  A missing or
+    inconsistent retention envelope raises and therefore rolls back the
+    caller's transaction instead of returning a partially retained forecast.
+    """
+    result = await write_persisted_task10_authority_binding_from_pinned_lineage(
+        session,
+        task10_prediction_run_id=task10_prediction_run_id,
+        task8_forecast_run_id=task8_forecast_run_id,
+        task9_harvest_state_run_id=task9_harvest_state_run_id,
+        task9_result_hash=task9_result_hash,
+        forecast_effective_cutoff_at=forecast_effective_cutoff_at,
+    )
+    if result.outcome != PersistedTask10AuthorityBindingWriteOutcome.BOUND:
+        return result
+    if result.core_forecast_run_id is None:
+        raise PersistedTask10AuthorityBindingLineageError(
+            "bound Task 10 result did not expose a Core forecast identity"
+        )
+    from backend.app.forecast_authority.retention import (
+        ForecastAuthorityError,
+        capture_production_forecast_authority,
+    )
+
+    try:
+        capture = await capture_production_forecast_authority(
+            session,
+            core_forecast_run_id=result.core_forecast_run_id,
+        )
+    except ForecastAuthorityError as exc:
+        raise PersistedTask10AuthorityBindingLineageError(
+            "complete prospective forecast authority capture failed"
+        ) from exc
+    return replace(
+        result,
+        forecast_authority_capture_id=capture.capture_id,
+        forecast_authority_reused_existing=capture.reused_existing,
     )
 
 
