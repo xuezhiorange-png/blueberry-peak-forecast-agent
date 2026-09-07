@@ -44,7 +44,8 @@ TRAIN_PAIRING_PACKAGE_PUBLISHED=false
 VALIDATION_PAIRING_PACKAGE_PUBLISHED=false
 TRAIN_AUTHORITY_RECORD_TRUSTED=false
 VALIDATION_AUTHORITY_RECORD_TRUSTED=false
-IN_SCOPE_FORECAST_CUTOFF_COUNT_IF_DURABLY_KNOWN=1
+DURABLY_OBSERVED_IN_SCOPE_FORECAST_CUTOFF_COUNT=1
+COMPLETE_IN_SCOPE_FORECAST_CUTOFF_COUNT=UNKNOWN
 FULL_HISTORICAL_CUTOFF_COVERAGE_AVAILABLE=false
 LEGAL_BACKTEST_PACKAGE_CURRENTLY_AVAILABLE=false
 GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED=UNRESOLVED_BLOCKING
@@ -228,7 +229,11 @@ A package may be LEGAL only when every predicate below passes:
     latest-row fallback, or TEST-derived member list is used as authority.
 14. All business numeric values are Decimal values; native floats are
     forbidden at the canonical boundary.
-15. The complete package identity and canonical hash replay exactly.
+15. The generic versioned incumbent forecast artifact requirement decision must
+    be resolved by governed authority. An UNRESOLVED_BLOCKING state makes the
+    legal package BLOCKED; resolving the requirement does not itself require
+    the artifact to exist when the governed decision explicitly waives it.
+16. The complete package identity and canonical hash replay exactly.
 
 The evaluation window is inherited from the accepted S3-A1 window contract.
 Package legality does not silently assert that a complete daily rowset exists.
@@ -294,6 +299,7 @@ HISTORICAL_CUTOFF_SET_IDENTITY_MISMATCH
 NATIVE_FLOAT_FORBIDDEN
 PACKAGE_IDENTITY_MISMATCH
 PACKAGE_CANONICAL_HASH_MISMATCH
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED
 LEGAL_BACKTEST_PACKAGE_NOT_IMPLEMENTED
 ~~~
 
@@ -367,6 +373,7 @@ SOURCE-002 governed obtain
   -> TRAIN/VALIDATION pairing materialization
   -> trusted package and authority verification
   -> historical cutoff-set completeness verification
+  -> generic incumbent artifact requirement resolution
   -> legal package construction
   -> package identity replay
   -> S3-C PIT backtest execution
@@ -388,6 +395,7 @@ contract deliberately records:
 ~~~text
 GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIRED=UNRESOLVED_BLOCKING
 GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_DECISION_NOT_FINAL=true
+GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_RESOLVED=false
 ~~~
 
 This does not silently require or waive a new artifact. A future decision may
@@ -443,11 +451,14 @@ incumbent comparison is performed or authorized by this contract.
 ~~~text
 LEGAL_BACKTEST_PACKAGE_CURRENTLY_AVAILABLE=false
 NO_LEGAL_BACKTEST_PACKAGE=true
-CURRENT_LEGAL_BACKTEST_PACKAGE_BLOCKER=TRAIN_PAIRING_PACKAGE_NOT_PUBLISHED;VALIDATION_PAIRING_PACKAGE_NOT_PUBLISHED;TRAIN_AUTHORITY_RECORD_NOT_TRUSTED;VALIDATION_AUTHORITY_RECORD_NOT_TRUSTED;HISTORICAL_CUTOFF_SET_INCOMPLETE;LEGAL_BACKTEST_PACKAGE_NOT_IMPLEMENTED
+CURRENT_LEGAL_BACKTEST_PACKAGE_BLOCKER=TRAIN_PAIRING_PACKAGE_NOT_PUBLISHED;VALIDATION_PAIRING_PACKAGE_NOT_PUBLISHED;TRAIN_AUTHORITY_RECORD_NOT_TRUSTED;VALIDATION_AUTHORITY_RECORD_NOT_TRUSTED;HISTORICAL_CUTOFF_SET_INCOMPLETE;GENERIC_VERSIONED_INCUMBENT_FORECAST_ARTIFACT_REQUIREMENT_UNRESOLVED;LEGAL_BACKTEST_PACKAGE_NOT_IMPLEMENTED
 NEXT_GATE=授权实施legal backtest package
 ~~~
 
 This R1 contract freezes the legal package boundary and the current discovery
 result. A separate user-authorized implementation task is required before
-package construction, and separate execution authorization is required before
-S3-C backtest or metric execution.
+legal-package construction. Existing S3-C, metric, and attribution execution
+authorizations remain inherited live authority and are not revoked or
+re-granted by this contract. They do not cause execution automatically:
+execution remains contract-bound and blocked until the legal-package
+prerequisites pass, and no step implies the next.
