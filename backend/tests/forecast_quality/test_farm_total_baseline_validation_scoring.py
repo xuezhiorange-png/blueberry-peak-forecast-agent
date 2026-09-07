@@ -32,6 +32,7 @@ from backend.app.forecast_quality.farm_total_dataset import (
 from backend.app.forecast_quality.farm_total_policy import (
     AREA_AUTHORITY_CLASS_PREVIOUS_SEASON_PROXY,
 )
+from scripts import run_v03_farm_total_baseline_validation_scoring as runner
 
 SEASON = "2025~2026"
 PARTITION = Literal["TRAIN", "VALIDATION"]
@@ -749,3 +750,18 @@ def test_metric_order_and_status_reason_families_are_frozen() -> None:
         "NO_COMPARABLE_TARGETS",
         "WAPE_DENOMINATOR_ZERO",
     }
+
+
+def test_r4_runner_success_metadata_does_not_claim_r1_equivalence() -> None:
+    blocker, metadata = runner.validate_r4_authority_binding(
+        authority_dir=runner.R4_CANONICAL_AUTHORITY_DIR,
+    )
+    assert blocker is None
+    assert metadata is not None
+    assert metadata["R4_NEW_AUTHORITY_IDENTITY"] is True
+    assert metadata["AUTHORITY_PACKAGE_SEMANTIC_EQUIVALENCE_TO_R1"] == "NOT_ESTABLISHED"
+    assert metadata["HISTORICAL_MAPPING_SEMANTIC_PARITY"] == "NOT_REPRODUCED"
+    assert metadata["HISTORICAL_AUTHORITY_MAY_NOT_BE_IMPERSONATED"] is True
+    assert metadata["LOST_R1_AUTHORITY_FILES_RECOVERED"] is False
+    assert metadata["R4_AUTHORITY_DURABLY_COMMITTED"] is True
+    assert "AUTHORITY_PACKAGE_SEMANTIC_CHANGE" not in metadata
