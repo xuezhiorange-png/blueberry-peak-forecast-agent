@@ -20054,3 +20054,43 @@ NEXT_GATE=COORDINATOR_PR572_RE_REVIEW
 
 This correction pointer does not execute S3-C, metrics, or S3-D, does not
 access TEST, and does not alter the frozen legal-backtest contract.
+
+---
+
+### 4.4 — S3-C legal backtest package implementation R1 final review correction pointer (append-only)
+
+This append-only pointer records the final review correction for PR #572. It
+keeps the implementation-only gate and records the persisted PIT authority
+provenance boundary plus the canonical forecast-cutoff timezone invariant.
+
+~~~text
+TASK_ID=V0_3_S3_C_LEGAL_BACKTEST_PACKAGE_IMPLEMENTATION_R1_FINAL_REVIEW_CORRECTION
+REVIEW_ID=5128599789
+PR_NUMBER=572
+CALLER_CONTROLLED_PROVIDER_TRUST_BYPASS=false
+PRODUCTION_PROVIDER_BOOLEAN_IS_NOT_AUTHORITY=true
+PERSISTED_FORECAST_AUTHORITY_PROVENANCE_REPLAY_IMPLEMENTED=true
+EXACT_PERSISTED_BUNDLE_EQUIVALENCE_VERIFIED=true
+MALICIOUS_PROVIDER_TRUE_MARKER_FAILS_CLOSED=true
+TASK8_CORE_AUTHORITY_REPLAY_VERIFIED=true
+TASK9_AUTHORITY_REPLAY_VERIFIED=true
+TASK10_AUTHORITY_REPLAY_VERIFIED=true
+FORECAST_CUTOFF_TIMEZONE=Asia/Shanghai
+FORECAST_CUTOFF_CANONICALIZATION_IMPLEMENTED=true
+SAME_INSTANT_CROSS_TIMEZONE_IDENTITY_INVARIANT=true
+DIFFERENT_INSTANT_NOT_COLLAPSED=true
+NAIVE_FORECAST_CUTOFF_FAIL_CLOSED=true
+LEGAL_BACKTEST_PACKAGE_CURRENTLY_AVAILABLE=false
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+NEXT_GATE=COORDINATOR_PR572_FINAL_RE_REVIEW
+~~~
+
+This correction pointer does not execute S3-C, metrics, or S3-D, does not
+access TEST, and does not alter the frozen legal-backtest contract.

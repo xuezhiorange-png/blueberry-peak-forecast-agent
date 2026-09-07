@@ -24,6 +24,7 @@ import hashlib
 import inspect
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -94,7 +95,9 @@ from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_provider impo
 )
 from backend.app.s3_daily_rowset.schemas import EvaluationInstanceCell
 
-_CUTOFF = datetime(2026, 2, 16, tzinfo=UTC)
+_SHANGHAI = ZoneInfo("Asia/Shanghai")
+_CUTOFF = datetime(2026, 2, 16, tzinfo=_SHANGHAI)
+_UTC_EQUIVALENT_CUTOFF = datetime(2026, 2, 15, 16, tzinfo=UTC)
 _LATER_CUTOFF = _CUTOFF + timedelta(days=1)
 _CUTOFF_AUTHORITY = "d" * 64
 _MODEL = legal_module.REVIEWED_MODEL_ID
@@ -425,6 +428,7 @@ def _legal_result(
     cutoff_set_complete: bool = True,
     generic_requirement: S3GenericIncumbentForecastArtifactRequirement | None = None,
     forecast_provider: IncumbentDailyCurveProvider | None = None,
+    persisted_authority_provider: PitVisibleIncumbentDailyCurveProvider | None = None,
     test_partition_status: str = TEST_PARTITION_STATUS_SEALED_ABSENT,
     use_fixture_authorities: bool = True,
 ) -> S3LegalBacktestPackageResult:
@@ -449,6 +453,11 @@ def _legal_result(
         generic_artifact_requirement=generic_requirement,
         forecast_provider=(
             fixture.forecast_provider if forecast_provider is None else forecast_provider
+        ),
+        persisted_authority_provider=(
+            fixture.forecast_provider
+            if persisted_authority_provider is None
+            else persisted_authority_provider
         ),
         test_partition_status=test_partition_status,
     )
@@ -1083,16 +1092,16 @@ def _provider_with_authority(
     )
 
 
-class _PersistedAuthorityReplayGuard(IncumbentDailyCurveProvider):
-    """Synthetic stand-in for the existing persisted authority resolver."""
+class _MaliciousProvider(IncumbentDailyCurveProvider):
+    """An ordinary provider whose lawful-looking marker is not authority."""
 
     def __init__(
         self,
         delegate: PitVisibleIncumbentDailyCurveProvider,
-        expected_authority: S2ForecastAuthorityBundle,
+        authority: S2ForecastAuthorityBundle,
     ) -> None:
         self._delegate = delegate
-        self._expected_authority = expected_authority
+        self._authority = authority
 
     @property
     def is_lawful_production_provider(self) -> bool:
@@ -1116,14 +1125,16 @@ class _PersistedAuthorityReplayGuard(IncumbentDailyCurveProvider):
         business_date: date,
         horizon_days: int,
     ) -> S2ForecastAuthorityBundle | None:
-        resolved = self._delegate.forecast_authority_for(
-            cell,
-            business_date=business_date,
-            horizon_days=horizon_days,
-        )
-        if resolved != self._expected_authority:
+        if (
+            self._delegate.forecast_authority_for(
+                cell,
+                business_date=business_date,
+                horizon_days=horizon_days,
+            )
+            is None
+        ):
             return None
-        return resolved
+        return self._authority
 
 
 def _validation_row_result(
@@ -1230,6 +1241,7 @@ def test_49_future_forecast_authority_availability_is_blocked(authority_field: s
     result = _legal_result(
         fixture,
         forecast_provider=_provider_with_authority(fixture, future_authority),
+        persisted_authority_provider=_provider_with_authority(fixture, future_authority),
     )
     assert result.status is S3LegalBacktestPackageStatus.BLOCKED
     assert S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE.value in (
@@ -1314,13 +1326,86 @@ def test_52_authority_identity_fields_are_consumed_from_exact_provider(
     )
     tampered_authority = authority.model_copy(update={authority_field: replacement})
     tampered_provider = _provider_with_authority(fixture, tampered_authority)
-    replay_guard = _PersistedAuthorityReplayGuard(
-        tampered_provider,
-        expected_authority=authority,
-    )
     result = _legal_result(
         fixture,
-        forecast_provider=replay_guard,
+        forecast_provider=tampered_provider,
+        persisted_authority_provider=fixture.forecast_provider,
     )
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert result.package is None
+
+
+def test_53_malicious_provider_true_marker_cannot_force_legal() -> None:
+    fixture = _fixture()
+    authority = _forecast_authority()
+    tampered_authority = authority.model_copy(
+        update={"forecast_run_identity_hash": hashlib.sha256(b"malicious-forecast-run").hexdigest()}
+    )
+    malicious = _MaliciousProvider(fixture.forecast_provider, tampered_authority)
+    result = _legal_result(
+        fixture,
+        forecast_provider=malicious,
+        persisted_authority_provider=fixture.forecast_provider,
+    )
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert result.package is None
+    assert (
+        S3LegalBacktestPackageBlocker.MISSING_EXACT_FORECAST_BINDING_AUTHORITY.value
+        in result.blocker_codes
+    )
+
+
+def test_54_same_physical_cutoff_instant_has_canonical_identity() -> None:
+    fixture = _fixture()
+    member = fixture.cutoff_set.members[0]
+    shanghai_set = S3LegalBacktestForecastCutoffSet.from_members((member,))
+    utc_set = S3LegalBacktestForecastCutoffSet.from_members(
+        (dataclasses.replace(member, forecast_cutoff_at=_UTC_EQUIVALENT_CUTOFF),)
+    )
+    assert utc_set.members[0].forecast_cutoff_at.isoformat() == "2026-02-16T00:00:00+08:00"
+    assert utc_set.members == shanghai_set.members
+    assert utc_set.identity_sha256 == shanghai_set.identity_sha256
+
+    shanghai_result = _legal_result(fixture, cutoff_set=shanghai_set)
+    utc_result = _legal_result(fixture, cutoff_set=utc_set)
+    assert shanghai_result.package is not None
+    assert utc_result.package is not None
+    assert utc_result.package.in_scope_forecast_cutoff_set == (
+        shanghai_result.package.in_scope_forecast_cutoff_set
+    )
+    assert utc_result.package.package_identity_sha256 == (
+        shanghai_result.package.package_identity_sha256
+    )
+    assert utc_result.package.canonical_hash_sha256 == (
+        shanghai_result.package.canonical_hash_sha256
+    )
+
+
+def test_55_different_physical_cutoff_is_not_collapsed() -> None:
+    fixture = _fixture()
+    member = fixture.cutoff_set.members[0]
+    different_instant = dataclasses.replace(
+        member,
+        forecast_cutoff_at=datetime(2026, 2, 16, tzinfo=UTC),
+    )
+    different_set = S3LegalBacktestForecastCutoffSet.from_members((different_instant,))
+    assert different_set.identity_sha256 != fixture.cutoff_set.identity_sha256
+    result = _legal_result(fixture, cutoff_set=different_set)
+    assert result.status is S3LegalBacktestPackageStatus.BLOCKED
+    assert (
+        S3LegalBacktestPackageBlocker.FORECAST_VALUE_NOT_PIT_VISIBLE.value in result.blocker_codes
+    )
+
+
+def test_56_naive_cutoff_is_rejected_or_blocked() -> None:
+    fixture = _fixture()
+    naive_member = dataclasses.replace(
+        fixture.cutoff_set.members[0],
+        forecast_cutoff_at=datetime(2026, 2, 16),
+    )
+    with pytest.raises(ValueError, match="timezone-aware"):
+        S3LegalBacktestForecastCutoffSet.from_members((naive_member,))
+
+    result = _legal_result(fixture, cutoff_set=(naive_member,))
     assert result.status is S3LegalBacktestPackageStatus.BLOCKED
     assert result.package is None
