@@ -35,7 +35,7 @@ _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _MIGRATION_PATH = (
     _BACKEND_ROOT / "alembic" / "versions" / "e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py"
 )
-NEW_ALEMBIC_HEAD = "c1d4e8f2a9b3"
+NEW_ALEMBIC_HEAD = "0030_prospective_forecast_authority_retention"
 INCUMBENT_REPLAY_IDENTITY_REVISION = "e8b2c4d6f1a3"
 PARENT_ALEMBIC_REVISION = "a7c3e9f1b2d4"
 TABLE_NAME = "s3_incumbent_forecast_replay_identity"

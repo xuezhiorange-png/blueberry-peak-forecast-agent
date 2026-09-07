@@ -93,7 +93,7 @@ from backend.app.rolling_backtest.orchestration import (
 from backend.app.rolling_backtest.persisted_task10_authority_binding import (
     PersistedTask10AuthorityBindingWriteOutcome,
     PersistedTask10AuthorityBindingWriteResult,
-    write_persisted_task10_authority_binding_from_pinned_lineage,
+    write_persisted_task10_authority_binding_and_capture,
 )
 from backend.app.rolling_backtest.persistence import (
     _finalize_attempt_status_in_session,
@@ -2104,7 +2104,7 @@ async def _write_persisted_task10_authority_binding_after_reuse(
             outcome=PersistedTask10AuthorityBindingWriteOutcome.TASK8_LINEAGE_NOT_FOUND,
             task10_prediction_run_id=prediction_reference.reference_value,
         )
-    return await write_persisted_task10_authority_binding_from_pinned_lineage(
+    return await write_persisted_task10_authority_binding_and_capture(
         session,
         task10_prediction_run_id=prediction_reference.reference_value,
         task8_forecast_run_id=task9_run.maturity_forecast_run_id,

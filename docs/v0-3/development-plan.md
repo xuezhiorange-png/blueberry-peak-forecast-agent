@@ -20345,3 +20345,87 @@ FINAL_STOP_GATE=COORDINATOR_POSTGRES_ENDPOINT_RECOVERY_REVIEW
 The accompanying evidence records the sanitized runtime configuration and
 read-only connection probes without exposing a DSN, credentials, database
 content, partition bytes, or TEST payload.
+
+---
+
+### 4.7 — S3-C historical PIT terminal disposition and prospective forecast-authority retention (append-only)
+
+This is the current governance pointer for the historical S3-C PIT question.
+Earlier S3-C execution and recovery entries remain immutable historical
+snapshots; they are not rewritten by this pointer. PR #579's durable-source
+discovery established that no governed historical incumbent daily forecast
+authority source is available. Consequently the historical PIT result is a
+terminal `NOT_COMPUTABLE` state, not a retryable implementation blocker. No
+historical forecast values are reconstructed, synthesized, or inferred from
+replay identity metadata.
+
+~~~text
+TASK_ID=V0_3_S3_HISTORICAL_PIT_NONCOMPUTABLE_AND_PROSPECTIVE_AUTHORITY_RETENTION_R1
+BASE_MAIN_SHA=f5e6b6c88717167550da14cb235dee6873586cdb
+PARENT_DURABLE_SOURCE_DISCOVERY_PR=579
+SOURCE_002_AVAILABLE=true
+SOURCE_002_REBUILD_PARITY=PASS
+SOURCE_002_ATTESTED=true
+TRAIN_ACTUALS_AVAILABLE=true
+VALIDATION_ACTUALS_AVAILABLE=true
+INCUMBENT_REPLAY_IDENTITY_AVAILABLE=true
+HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_AVAILABLE=false
+HISTORICAL_PIT_PASS=false
+HISTORICAL_PIT_FAILURE=false
+HISTORICAL_PIT_NOT_COMPUTABLE=true
+S3_C_HISTORICAL_PIT_STATUS=NOT_COMPUTABLE
+S3_C_HISTORICAL_PIT_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+HISTORICAL_PIT_BACKTEST_EXECUTED=false
+HISTORICAL_PIT_FORECAST_VALUES_SYNTHESIZED=false
+HISTORICAL_REPLAY_IDENTITY_REINTERPRETED_AS_FORECAST_VALUES=false
+
+PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_IMPLEMENTED=true
+PROSPECTIVE_FORECAST_AUTHORITY_CAPTURE_VERIFIED=true
+FORECAST_AUTHORITY_SCHEMA_VERSION=v0.3-s3-prospective-forecast-authority-v1
+FORECAST_AUTHORITY_POLICY_VERSION=v0.3-s3-prospective-forecast-authority-retention-v1
+FORECAST_AUTHORITY_RETENTION_MIGRATION=0030_prospective_forecast_authority_retention
+FORECAST_AUTHORITY_PRODUCTION_CAPTURE_BOUNDARY=backend.app.rolling_backtest.persisted_task10_authority_binding.write_persisted_task10_authority_binding_and_capture
+FORECAST_AUTHORITY_PIT_READBACK=backend.app.forecast_authority.retention.load_pit_visible_forecast_authority
+APPEND_ONLY_OR_EQUIVALENT_IMMUTABLE=true
+EXACT_REPLAYABLE=true
+DETERMINISTIC_CANONICAL_HASH=true
+SAME_REQUEST_EXACT_REPLAY_ZERO_WRITE=true
+SAME_IDENTITY_SAME_CONTENT_ACCEPTED=true
+CONFLICTING_REPLAY_REJECTED=true
+POST_HOC_AUTHORITY_REWRITE_FORBIDDEN=true
+DAILY_FORECAST_VALUES_DURABLY_RETAINED=true
+FORECAST_CUTOFF_DURABLY_RETAINED=true
+SOURCE_LINEAGE_DURABLY_RETAINED=true
+PIT_READBACK_FAILS_CLOSED=true
+PIT_READBACK_REQUIRES_PRODUCTION_SCOPE=true
+PIT_READBACK_REJECTS_TEST_FIXTURE_AUTHORITY=true
+
+HISTORICAL_PIT_SCOPE_CLOSED=true
+PRODUCTION_LIVE_HISTORICAL_S3_C_BACKTEST_EXECUTED=false
+S3_C_BACKTEST_EXECUTION_PERFORMED=false
+S3_METRIC_EXECUTION_PERFORMED=false
+S3_D_ATTRIBUTION_EXECUTION_PERFORMED=false
+TEST_ACCESS_PERFORMED=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+MODEL_CHANGE=false
+PARAMETER_CHANGE=false
+MIGRATION_CHANGE=true
+SCHEMA_CHANGE=true
+V0_3_S3_ENGINEERING_IMPLEMENTATION_COMPLETE=true
+CURRENT_V0_3_S3_COMPLETE=false
+V0_3_S4_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_S3_NONCOMPUTABLE_AND_PROSPECTIVE_AUTHORITY_REVIEW
+~~~
+
+The implementation adds an immutable cross-owner retention envelope and a
+point-in-time readback path. Existing Core Forecast, Task 8, Task 9, and Task
+10 owners remain authoritative for their own identities; the envelope retains
+their exact lineage plus the complete persisted Task 8 daily curve so future
+PIT replay does not need to recompute historical business facts. This closes a
+prospective engineering gap only. It does not make the historical S3-C
+backtest computable, does not authorize S3-D or S4, and does not set
+`CURRENT_V0_3_S3_COMPLETE`.
