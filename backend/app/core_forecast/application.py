@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
+from datetime import datetime
 
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -87,10 +89,16 @@ async def execute_core_forecast_run(
     request: ExecuteCoreForecastRunRequest,
     upstream_repository: CoreForecastRepository | None = None,
     persistence_repository: CoreForecastRunRepository | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> CoreForecastExecutionResult:
     """Execute S2 and S3 once, then persist one immutable completed run."""
 
-    persistence = persistence_repository or CoreForecastRunRepository(session)
+    if persistence_repository is not None:
+        persistence = persistence_repository
+    elif clock is not None:
+        persistence = CoreForecastRunRepository(session, clock=clock)
+    else:
+        persistence = CoreForecastRunRepository(session)
     upstream = upstream_repository or SqlAlchemyCoreForecastRepository(session)
     try:
         canonical_request = ExecuteCoreForecastRunRequest.model_validate(

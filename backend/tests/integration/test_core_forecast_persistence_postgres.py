@@ -93,6 +93,14 @@ pytestmark = [
 ]
 
 
+_FORECAST_CAPTURE_TEST_CUTOFF = datetime(2026, 2, 28, tzinfo=UTC)
+_FORECAST_CAPTURE_TEST_NOW = datetime(2026, 2, 27, 12, tzinfo=UTC)
+
+
+def _forecast_capture_test_clock() -> datetime:
+    return _FORECAST_CAPTURE_TEST_NOW
+
+
 async def _cleanup_s4_rows(public_forecast_id: str | None = None) -> None:
     async with AsyncSessionMaker() as session:
         if public_forecast_id is not None:
@@ -708,6 +716,7 @@ async def _restrict_authorities_to_trial_scope(session: AsyncSession) -> None:
                 curve_share=Decimal("0.0100000000"),
                 confidence_level="HIGH",
                 quality_flags=[],
+                created_at=_FORECAST_CAPTURE_TEST_NOW,
             )
         )
     await session.execute(
@@ -876,7 +885,7 @@ async def _prepare_default_trial_forecast(
     policy_available_at: datetime = datetime(2026, 2, 1, tzinfo=UTC),
     policy_effective_from: date = date(2026, 1, 1),
 ) -> tuple[DefaultTrialApplicationService, TrialForecastCreateRequest, ActualHarvestActorContext]:
-    capture_cutoff = datetime.now(UTC) + timedelta(minutes=30)
+    capture_cutoff = _FORECAST_CAPTURE_TEST_CUTOFF
     await _seed_authorities(session)
     await _seed_forecast_authority_dependencies(session)
     await _remove_test_fixture_markers_from_forecast_owners(session)
@@ -896,7 +905,7 @@ async def _prepare_default_trial_forecast(
         .values(
             is_replay=True,
             forecast_effective_cutoff_at=capture_cutoff,
-            replay_executed_at=datetime.now(UTC),
+            replay_executed_at=datetime(2026, 2, 28, 1, tzinfo=UTC),
             replay_code_version="retention-production-replay-v1",
             replay_run_correlation_id="retention-production-replay-910001",
         )
@@ -910,7 +919,7 @@ async def _prepare_default_trial_forecast(
             available_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
     )
-    service = DefaultTrialApplicationService()
+    service = DefaultTrialApplicationService(clock=_forecast_capture_test_clock)
     actor = _forecast_actor("actor:postgres-default-trial")
     authority = await service.get_forecast_input_authority(session, actor)
     assert len(authority.items) == 1
