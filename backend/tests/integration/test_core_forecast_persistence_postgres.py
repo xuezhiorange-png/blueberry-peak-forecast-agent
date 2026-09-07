@@ -778,7 +778,9 @@ async def _seed_forecast_authority_dependencies(session: AsyncSession) -> None:
         input_snapshot={"source": "retention-weather-authority"},
         finished_at=datetime(2026, 1, 2, tzinfo=UTC),
     )
-    session.add_all([weather_source, mapping, base_temperature])
+    session.add(weather_source)
+    await session.flush()
+    session.add_all([mapping, base_temperature])
     await session.flush()
     await session.execute(
         update(MaturityForecastRun)
