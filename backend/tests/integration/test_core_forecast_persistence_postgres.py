@@ -858,8 +858,6 @@ async def _remove_test_fixture_markers_from_forecast_owners(session: AsyncSessio
         .where(HarvestStateRun.id == 910001)
         .values(
             maturity_model_version="retention-production-task8-v1",
-            replay_code_version="retention-production-replay-v1",
-            replay_run_correlation_id="retention-production-replay-910001",
         )
     )
     await session.flush()
