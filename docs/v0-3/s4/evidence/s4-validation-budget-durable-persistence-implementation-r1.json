@@ -50,7 +50,7 @@
   "LOCAL_VALIDATION": {
     "FOCUSED_PERSISTENCE_TESTS": {
       "STATUS": "PASS",
-      "PASSED": 39,
+      "PASSED": 52,
       "COMMAND": "pytest backend/tests/s4_validation_budget/test_persistence.py"
     },
     "EXISTING_S4_EXPERIMENT_TESTS": {
@@ -60,7 +60,7 @@
     },
     "COMBINED_S4_TESTS": {
       "STATUS": "PASS",
-      "PASSED": 180
+      "PASSED": 193
     },
     "RUFF": "PASS",
     "RUFF_FORMAT": "PASS",
@@ -73,8 +73,33 @@
     "REQUIRED": true,
     "TEST_PATH": "backend/tests/s4_validation_budget/test_postgres_persistence.py",
     "WORKFLOW_JOB": "postgres-concurrency",
-    "STATUS": "PENDING_PR_CI",
-    "CONCURRENCY_TEST_REQUIRED": true
+    "STATUS": "PASS",
+    "CONCURRENCY_TEST_REQUIRED": true,
+    "CI_RUN": 34226664470,
+    "CI_HEAD_SHA": "75f3aea4c8adbc71dde90cd029b17f2e64a8882d",
+    "POSTGRES_CONCURRENCY_JOB": "SUCCESS",
+    "FULL_SUITE_CANARY": "SKIPPED",
+    "ADDITIONAL_ACCEPTANCE_TESTS": [
+      "test_postgres_event_update_is_rejected",
+      "test_postgres_event_delete_is_rejected",
+      "test_postgres_candidate_run_partial_unique_is_enforced",
+      "test_postgres_global_ordinal_partial_unique_is_enforced",
+      "test_postgres_rollback_atomicity_leaves_no_orphan_event",
+      "test_postgres_committed_started_survives_fresh_session_readback"
+    ]
+  },
+  "REVIEW_CORRECTION_R1": {
+    "STARTED_EXECUTION_POLICY_ADMISSION_CORRECTED": true,
+    "INVOCATION_TYPE_BOUND_TO_S4_EXECUTION_POLICY": true,
+    "RETRY_PARENT_DURABLE_HISTORY_VALIDATION": true,
+    "READBACK_POLICY_REPLAY_IMPLEMENTED": true,
+    "GLOBAL_ORDINAL_CONTIGUITY_READBACK": true,
+    "CANDIDATE_RUN_ORDINAL_CONTIGUITY_READBACK": true,
+    "TERMINAL_SEMANTIC_READBACK": true,
+    "INTEGRITY_ERROR_CONSTRAINT_CLASSIFICATION": true,
+    "UNKNOWN_INTEGRITY_ERROR_RELABELLED_AS_DUPLICATE": false,
+    "CI_RUN": 34226664470,
+    "CI_HEAD_SHA": "75f3aea4c8adbc71dde90cd029b17f2e64a8882d"
   },
   "BOUNDARIES": {
     "RUNNER_INTEGRATION_IMPLEMENTED": false,

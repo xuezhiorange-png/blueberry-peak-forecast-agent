@@ -146,4 +146,53 @@ The implementation does not authorize or perform candidate execution,
 validation scoring, TEST evaluation, model/parameter changes, or integration
 with PR #587's runner. Those remain separate coordinator decisions.
 
+## Review Correction R1
+
+The final review correction keeps the Alembic/schema architecture unchanged
+and closes the admission/readback symmetry gaps:
+
+```text
+STARTED_EXECUTION_POLICY_ADMISSION_CORRECTED=true
+INVOCATION_TYPE_BOUND_TO_S4_EXECUTION_POLICY=true
+RETRY_PARENT_DURABLE_HISTORY_VALIDATION=true
+READBACK_POLICY_REPLAY_IMPLEMENTED=true
+GLOBAL_ORDINAL_CONTIGUITY_READBACK=true
+CANDIDATE_RUN_ORDINAL_CONTIGUITY_READBACK=true
+TERMINAL_SEMANTIC_READBACK=true
+INTEGRITY_ERROR_CONSTRAINT_CLASSIFICATION=true
+UNKNOWN_INTEGRITY_ERROR_RELABELLED_AS_DUPLICATE=false
+```
+
+The durable repository now imports the invocation and retry vocabulary from
+the executable S4 gate. Only `NORMAL_RUN`, `AUTOMATIC_RETRY`,
+`MANUAL_RETRY`, and `OPERATOR_TRIGGERED_RERUN` are admissible. Retry parents
+must be earlier accepted STARTED events; self-reference and evaluation-ID
+reuse are rejected. Verified replay applies the same semantic validator,
+checks contiguous global and per-candidate ordinals, and revalidates terminal
+status/required fields before calculating budget state.
+
+Integrity errors are classified by the named PostgreSQL constraint. Candidate
+run, global ordinal, evaluation identity, terminal duplication, foreign-key,
+and unknown integrity failures have distinct stable outcomes; unknown errors
+are never relabelled as duplicate-run or duplicate-terminal outcomes.
+
+The correction's exact-head CI acceptance was:
+
+```text
+CORRECTION_CI_RUN=34226664470
+CORRECTION_CI_HEAD_SHA=75f3aea4c8adbc71dde90cd029b17f2e64a8882d
+POSTGRES_CONCURRENCY_JOB=SUCCESS
+POSTGRES_MIGRATION_JOB=SUCCESS
+POSTGRES_DOMAIN_1_JOB=SUCCESS
+POSTGRES_DOMAIN_2_JOB=SUCCESS
+FOCUSED_PERSISTENCE_TESTS=52 passed
+EXISTING_S4_EXPERIMENT_TESTS=141 passed
+```
+
+The PostgreSQL tests ran against the isolated CI PostgreSQL service and
+covered event update/delete rejection, both partial unique indexes, rollback
+atomicity, committed STARTED fresh-session durability, and the existing
+two-session concurrency case. No candidate execution, validation scoring,
+TEST access, or PR #587 mutation was performed.
+
 FINAL_STOP_GATE=COORDINATOR_S4_DURABLE_PERSISTENCE_IMPLEMENTATION_REVIEW
