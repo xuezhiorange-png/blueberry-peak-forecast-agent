@@ -10,6 +10,16 @@ approval, or a final model-selection decision.
 TASK_ID=V0_3_S4_LOCAL_ENGINEERING_VALIDATION_BOOTSTRAP_AND_C01_EXECUTION_R1
 BASE_MAIN_SHA=77e3d8ac63d794babfe0c8549fd34d0467f0d57e
 EVALUATION_LANE=LOCAL_ENGINEERING_REPLAY
+C01_RESULT_REVIEWED=true
+C01_RESULT_ACCEPTED_FOR_SELECTION=false
+C01_BUDGET_CONSUMPTION_RETAINED=true
+C01_NUMERIC_EVIDENCE_INVALIDATED_FOR_GUARDRAIL_AUTHORITY=true
+ORIGINAL_LOCAL_RUN_METRICS_PRESERVED_FOR_AUDIT=true
+ORIGINAL_LOCAL_RUN_METRICS_SELECTION_AUTHORITY=false
+ORIGINAL_LOCAL_RUN_METRICS_GUARDRAIL_AUTHORITY=false
+EXECUTION_GATE_RECONCILIATION=FAIL
+VALIDATION_LEDGER_RECONCILIATION=FAIL
+BLOCK_REASON=METRIC_AND_EXECUTION_CONTRACT_INVALID
 TEST_REMAINS_SEALED=true
 TEST_EVALUATION_PERFORMED=false
 PRODUCTION_DATABASE_MUTATION_PERFORMED=false
@@ -60,7 +70,8 @@ curve.spline_knot_count=6
 curve.ridge_alpha=0.10
 random_seed=20260624
 INCUMBENT_CONFIG_HASH=3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c
-NO_FUTURE_LABEL_LEAKAGE=true
+ORIGINAL_RUN_NO_FUTURE_LABEL_LEAKAGE_STATUS=NOT_ESTABLISHED
+CORRECTED_IMPLEMENTATION_NO_FUTURE_LABEL_LEAKAGE_VERIFIED=true
 NO_TEST_ACCESS=true
 ```
 
@@ -88,6 +99,12 @@ The incumbent aggregate metrics were:
 | P80_COVERAGE | `0.134649` |
 | P90_COVERAGE | `0.193355` |
 
+These values are retained as `OBSERVED_FROM_ORIGINAL_LOCAL_RUN` for audit
+traceability only. They are not accepted S4 selection evidence or accepted
+guardrail evidence after this correction. The original run did not have a
+lawful forecast-cutoff authority, so its horizon breakdown cannot establish
+the required `forecast_horizon_days` contract.
+
 ## Candidate 01 execution
 
 The frozen Candidate 01 manifest was validated before execution:
@@ -99,11 +116,13 @@ RANDOM_SEED=20260624
 RUN_COUNT=4
 ```
 
-All four runs used the same TRAIN rows, VALIDATION rows, actual labels,
-cutoff policy, forecast horizon policy, business-grain set, and metric
+All four runs used the same TRAIN rows, VALIDATION rows, actual labels, and
+business-grain inputs. The original runner recorded a cutoff/horizon policy,
+but this correction establishes that it did not have valid cutoff authority
+and therefore did not satisfy the frozen forecast-horizon or complete metric
 contract. The incumbent reference replay is not counted as a candidate
 evaluation. The four candidate invocations are real validation-driven
-engineering evaluations:
+engineering evaluations whose budget consumption is retained:
 
 | run | frozen delta | daily_wape | daily_mae | cumulative abs. error | P80 | P90 | primary relation | guardrail | coverage |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |
@@ -112,11 +131,11 @@ engineering evaluations:
 | 3 | knot 6, alpha 0.05 | `0.823557` | `1176.703613` | `9147321.490436` | `0.135274` | `0.194479` | IMPROVED | BLOCKED | BLOCKED |
 | 4 | knot 6, alpha 0.20 | `0.825535` | `1179.529266` | `9176280.083193` | `0.133525` | `0.193105` | WORSE | BLOCKED | BLOCKED |
 
-The complete run payload also contains the required aggregate breakdown
-metrics for all six axes:
+The original run payload reported aggregate breakdown metrics for all six
+named axes:
 
 ```text
-forecast_horizon_days: 38 cells
+forecast_horizon_days: 38 cells (historical hard-coded-anchor output)
 farm_business_key: 74 cells
 subfarm_business_key: 186 cells
 variety_business_key: 17 cells
@@ -125,15 +144,24 @@ model_identity: 1 cell
 BREAKDOWN_METRICS_SET_SHA256=47a4027f5a641faf13206c813fc5e869eefd8bab07e2b3655ff04327858ef058
 ```
 
-Runs 2 and 3 improved the primary metric and the lower-is-better guardrails,
-but every run was correctly blocked by the existing coverage gate because at
-least one required breakdown cell was below
-`MIN_COMPARABLE_ROWS_FOR_REPORTING=10`. No cell was silently excluded. As a
-result:
+The original local runs observed a `BELOW_MINIMUM` coverage outcome, but this
+review found metric-contract and execution-governance defects that prevent
+that outcome from serving as accepted S4 guardrail evidence. In particular,
+the historical horizon cells used a hard-coded calendar anchor, and the
+original invocation had no execution gate or validation-ledger reconciliation.
+The corrected implementation now rejects missing forecast-cutoff authority,
+rejects incomplete seven-day windows without zero fill, uses aggregation-aware
+peak and cumulative formulas, and removes the VALIDATION-actual prediction
+fallback. No cell was silently excluded in the original payload; its numeric
+results are nevertheless not selection-authoritative.
+
+The corrected disposition is:
 
 ```text
 CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
 CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+CANDIDATE_01_NUMERIC_EVIDENCE_ACCEPTED=false
+CANDIDATE_01_GUARDRAIL_DECISION_ACCEPTED=false
 MODEL_APPROVED_FOR_PILOT=false
 FINAL_MODEL_SELECTED=false
 ```
@@ -149,24 +177,47 @@ LOCAL_ENGINEERING_VALIDATION_EVALUATION_COUNT=4
 CANDIDATE_01_ENGINEERING_RUN_COUNT=4
 EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
 REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
-VALIDATION_BUDGET_STATUS=PASS
+VALIDATION_BUDGET_STATUS=FAIL
+CANDIDATE_01_STARTED_EVALUATION_COUNT=4
+CANDIDATE_01_RUN_COUNT=4
+CANDIDATE_01_RERUN_REQUIRED_BY_THIS_TASK=false
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_01_RERUN_AUTHORIZED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+NEW_VALIDATION_SCORING_AUTHORIZED=false
+NEW_CANDIDATE_EVALUATION_AUTHORIZED=false
+VALIDATION_BUDGET_REWRITE_AUTHORIZED=false
+PRIOR_EVALUATION_DELETION_AUTHORIZED=false
+PRIOR_EVALUATION_RECLASSIFICATION_TO_ZERO_AUTHORIZED=false
 ```
 
-The PASS result was generated by runner commit
-`83084a583497547e317ccdfa2a6c5fbc91a9f9d9`. After that controlled run, the
-runner was hardened so its existing-database path projects only partition
-metadata and loads TRAIN/VALIDATION payloads explicitly; it does not parse or
-load TEST content. The follow-up commit also added type annotations only. A
-direct current-code database preflight re-verified the same dataset identity,
-partition hashes, rebuild parity, and zero TEST rows. No scoring semantics,
-candidate definitions, or metric results changed, and the four-evaluation
-budget was not consumed a second time.
+The original run was generated by runner commit
+`83084a583497547e317ccdfa2a6c5fbc91a9f9d9`; its numeric payload remains an
+audit observation, not accepted guardrail evidence. The correction was not a
+rerun: `CANDIDATE_01_RERUN_PERFORMED=false` and
+`NEW_VALIDATION_SCORING_CALL_COUNT=0`. The four started evaluations remain
+counted against the budget, and no prior evaluation row or budget consumption
+was deleted or reclassified as zero.
+
+The current runner still verifies SOURCE-002 and TEST sealing, but now fails
+closed before scoring when the required forecast-cutoff authority is absent.
+The metric implementation has no VALIDATION-actual fallback and does not use
+missing-day zero fill.
 
 ## Boundaries
 
 ```text
 TEST_EVALUATION_PERFORMED=false
 TEST_REMAINS_SEALED=true
+FORECAST_HORIZON_BREAKDOWN_STATUS=BLOCKED
+FORECAST_HORIZON_BREAKDOWN_REASON=FORECAST_HORIZON_AUTHORITY_UNAVAILABLE
+SUSTAINED_7DAY_WINDOW_DAYS=7
+MISSING_DAY_ZERO_FILL=false
+SUSTAINED_7DAY_WINDOW_POLICY=REJECT_INCOMPLETE_WINDOW
+CUMULATIVE_AGGREGATION_POLICY=ABS_OF_AGGREGATE_DIFFERENCE
+FARM_PEAK_COMPUTED_AFTER_DAILY_SUBFARM_SUM=true
+VALIDATION_ACTUAL_FALLBACK_REMOVED=true
+CANDIDATE_02_EXECUTION_AUTHORIZED=false
 PRODUCTION_DATABASE_MUTATION_PERFORMED=false
 PRODUCTION_MODEL_CHANGE=false
 PARAMETER_CHANGE_TO_PRODUCTION=false

@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from statistics import median
-from typing import Any
+from typing import Any, Literal
 
 from backend.app.forecast_quality.canonical import canonical_json_bytes
 from backend.app.maturity.config import MaturityCurveConfig
@@ -47,6 +47,9 @@ from backend.app.s4_experiment import (
 )
 
 DECIMAL_QUANTUM = Decimal("0.000001")
+SUSTAINED_7DAY_WINDOW_DAYS = 7
+SUSTAINED_7DAY_WINDOW_POLICY = "REJECT_INCOMPLETE_WINDOW"
+MISSING_DAY_ZERO_FILL = False
 SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256 = (
     "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785"
 )
@@ -65,6 +68,7 @@ REQUIRED_BREAKDOWN_AXES = (
     "season_business_key",
     "model_identity",
 )
+MetricStatus = Literal["COMPUTED", "NOT_COMPUTABLE"]
 
 
 class LocalEngineeringContractError(ValueError):
@@ -87,6 +91,7 @@ class FrozenEngineeringDataset:
     validation_content_sha256: str
     materialized_dataset_identity_sha256: str
     test_row_count: int
+    forecast_cutoff_at: date | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +101,7 @@ class LocalPrediction:
     subfarm: str
     variety: str
     harvest_business_date: date
+    forecast_cutoff_at: date | None
     actual_kg: Decimal
     p50_kg: Decimal
     p80_kg: Decimal
@@ -103,7 +109,9 @@ class LocalPrediction:
 
     @property
     def horizon_days(self) -> int:
-        return (self.harvest_business_date - date(2026, 1, 30)).days
+        if self.forecast_cutoff_at is None:
+            raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
+        return (self.harvest_business_date - self.forecast_cutoff_at).days
 
     @property
     def business_key(self) -> tuple[str, str, str, str, date]:
@@ -122,11 +130,13 @@ class LocalMetricSet:
     daily_mae: Decimal
     cumulative_absolute_error_kg: Decimal
     single_day_peak_quantity_absolute_error_kg_q: Decimal
-    sustained_7day_quantity_absolute_error_kg_q: Decimal
+    sustained_7day_quantity_absolute_error_kg_q: Decimal | None
+    sustained_7day_metric_status: MetricStatus
+    sustained_7day_metric_reason_code: str
     p80_coverage: Decimal
     p90_coverage: Decimal
     comparable_row_count: int
-    breakdown_metrics: Mapping[str, Mapping[str, Mapping[str, str | int]]]
+    breakdown_metrics: Mapping[str, Mapping[str, Mapping[str, str | int | None]]]
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -136,9 +146,13 @@ class LocalMetricSet:
             "single_day_peak_quantity_absolute_error_kg_q": _decimal_text(
                 self.single_day_peak_quantity_absolute_error_kg_q
             ),
-            "sustained_7day_quantity_absolute_error_kg_q": _decimal_text(
-                self.sustained_7day_quantity_absolute_error_kg_q
+            "sustained_7day_quantity_absolute_error_kg_q": (
+                _decimal_text(self.sustained_7day_quantity_absolute_error_kg_q)
+                if self.sustained_7day_quantity_absolute_error_kg_q is not None
+                else None
             ),
+            "sustained_7day_metric_status": self.sustained_7day_metric_status,
+            "sustained_7day_metric_reason_code": self.sustained_7day_metric_reason_code,
             "P80_COVERAGE": _decimal_text(self.p80_coverage),
             "P90_COVERAGE": _decimal_text(self.p90_coverage),
             "comparable_row_count": self.comparable_row_count,
@@ -197,6 +211,7 @@ def _prediction_payload(item: LocalPrediction) -> dict[str, Any]:
         "subfarm": item.subfarm,
         "variety": item.variety,
         "harvest_business_date": item.harvest_business_date,
+        "forecast_cutoff_at": item.forecast_cutoff_at,
         "actual_kg": _decimal_text(item.actual_kg),
         "p50_kg": _decimal_text(item.p50_kg),
         "p80_kg": _decimal_text(item.p80_kg),
@@ -362,7 +377,10 @@ def _build_predictions(
     train_rows: tuple[MaterializableRow, ...],
     validation_rows: tuple[MaterializableRow, ...],
     config: MaturityCurveConfig,
+    forecast_cutoff_at: date | None,
 ) -> tuple[LocalPrediction, ...]:
+    if forecast_cutoff_at is None:
+        raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
     support_days = _curve_support(train_rows, validation_rows)
     by_group: dict[tuple[str, str, str], list[MaterializableRow]] = defaultdict(list)
     by_variety: dict[str, list[MaterializableRow]] = defaultdict(list)
@@ -383,7 +401,6 @@ def _build_predictions(
 
     group_curves: dict[tuple[str, str, str], tuple[Decimal, ...] | None] = {}
     variety_curves: dict[str, tuple[Decimal, ...] | None] = {}
-    global_samples: list[tuple[int, Decimal]] = []
     for key, rows in by_group.items():
         anchor = group_anchors[key]
         samples = [
@@ -391,17 +408,14 @@ def _build_predictions(
             for row in rows
         ]
         group_curves[key] = _fit_curve(samples, config=config, support_days=support_days)
-        total = group_totals[key]
-        if total > 0:
-            global_samples.extend((relative_day, value / total) for relative_day, value in samples)
     for variety, _rows in by_variety.items():
         grouped_samples: list[tuple[int, Decimal]] = []
         for key, group_rows in by_group.items():
             if key[2] != variety:
                 continue
             anchor = group_anchors[key]
-            total = group_totals[key]
-            if total > 0:
+            variety_total = group_totals[key]
+            if variety_total > 0:
                 grouped_samples.extend(
                     (
                         (row.harvest_business_date - anchor).days,
@@ -412,7 +426,6 @@ def _build_predictions(
         variety_curves[variety] = _fit_curve(
             grouped_samples, config=config, support_days=support_days
         )
-    global_curve = _fit_curve(global_samples, config=config, support_days=support_days)
     fallback_total = {
         variety: _q(Decimal(str(median(values))))
         for variety, values in variety_totals.items()
@@ -424,27 +437,20 @@ def _build_predictions(
     p90_multiplier = _quantile_multiplier(config, "p90")
     for row in sorted(validation_rows, key=_row_key):
         key = (row.farm, row.subfarm, row.variety)
-        anchor = group_anchors.get(
-            key,
-            min(
-                (item.harvest_business_date for item in by_variety.get(row.variety, (row,))),
-                default=row.harvest_business_date,
-            ),
-        )
-        relative_day = (row.harvest_business_date - anchor).days
-        curve = group_curves.get(key) or variety_curves.get(row.variety) or global_curve
-        total = group_totals.get(
-            key, fallback_total.get(row.variety, row.actual_harvest_quantity_kg)
-        )
-        if (
-            curve is None
-            or total <= 0
-            or relative_day < support_days[0]
-            or relative_day > support_days[-1]
-        ):
-            p50 = Decimal("0")
+        if key in group_anchors:
+            anchor = group_anchors[key]
+        elif row.variety in by_variety:
+            anchor = min(item.harvest_business_date for item in by_variety[row.variety])
         else:
-            p50 = _q(total * curve[relative_day - support_days[0]])
+            raise LocalEngineeringContractError("LOCAL_VALIDATION_TRAIN_SUPPORT_UNAVAILABLE")
+        relative_day = (row.harvest_business_date - anchor).days
+        curve = group_curves.get(key) or variety_curves.get(row.variety)
+        prediction_total: Decimal | None = group_totals.get(key, fallback_total.get(row.variety))
+        if curve is None or prediction_total is None or prediction_total <= 0:
+            raise LocalEngineeringContractError("LOCAL_VALIDATION_TRAIN_SUPPORT_UNAVAILABLE")
+        if relative_day < support_days[0] or relative_day > support_days[-1]:
+            raise LocalEngineeringContractError("LOCAL_VALIDATION_TRAIN_SUPPORT_UNAVAILABLE")
+        p50 = _q(prediction_total * curve[relative_day - support_days[0]])
         p80 = _q(p50 * p80_multiplier)
         p90 = _q(p50 * p90_multiplier)
         predictions.append(
@@ -454,6 +460,7 @@ def _build_predictions(
                 subfarm=row.subfarm,
                 variety=row.variety,
                 harvest_business_date=row.harvest_business_date,
+                forecast_cutoff_at=forecast_cutoff_at,
                 actual_kg=_q(row.actual_harvest_quantity_kg),
                 p50_kg=p50,
                 p80_kg=max(p80, p50),
@@ -471,36 +478,76 @@ def _daily_totals(predictions: Iterable[LocalPrediction]) -> dict[date, tuple[De
     return {day: (values[0], values[1]) for day, values in totals.items()}
 
 
-def _rolling_peak_error(predictions: tuple[LocalPrediction, ...]) -> Decimal:
-    daily = _daily_totals(predictions)
+def _earliest_daily_peak(
+    daily: Mapping[date, tuple[Decimal, Decimal]], index: int
+) -> tuple[Decimal, date | None]:
     if not daily:
-        return Decimal("0")
+        return Decimal("0"), None
+    peak_value = Decimal("0")
+    peak_date: date | None = None
+    for current_date in sorted(daily):
+        current_value = daily[current_date][index]
+        if peak_date is None or current_value > peak_value:
+            peak_value = current_value
+            peak_date = current_date
+    return peak_value, peak_date
+
+
+def _single_day_peak_error(
+    predictions: tuple[LocalPrediction, ...],
+) -> tuple[Decimal, date | None, Decimal, date | None]:
+    daily = _daily_totals(predictions)
+    actual_peak, actual_peak_date = _earliest_daily_peak(daily, 0)
+    predicted_peak, predicted_peak_date = _earliest_daily_peak(daily, 1)
+    return (
+        _q(abs(predicted_peak - actual_peak)),
+        actual_peak_date,
+        predicted_peak,
+        predicted_peak_date,
+    )
+
+
+def _complete_7day_windows(
+    daily: Mapping[date, tuple[Decimal, Decimal]],
+) -> tuple[tuple[date, tuple[Decimal, Decimal]], ...]:
+    if not daily:
+        return ()
     start = min(daily)
-    end = max(daily)
+    last_start = max(daily) - timedelta(days=SUSTAINED_7DAY_WINDOW_DAYS - 1)
+    windows: list[tuple[date, tuple[Decimal, Decimal]]] = []
+    window_start = start
+    while window_start <= last_start:
+        window_days = tuple(
+            window_start + timedelta(days=offset) for offset in range(SUSTAINED_7DAY_WINDOW_DAYS)
+        )
+        if all(day in daily for day in window_days):
+            windows.append(
+                (
+                    window_start,
+                    (
+                        sum((daily[day][0] for day in window_days), Decimal("0")),
+                        sum((daily[day][1] for day in window_days), Decimal("0")),
+                    ),
+                )
+            )
+        window_start += timedelta(days=1)
+    return tuple(windows)
+
+
+def _rolling_peak_error(predictions: tuple[LocalPrediction, ...]) -> Decimal | None:
+    daily = _daily_totals(predictions)
+    windows = _complete_7day_windows(daily)
+    if not windows:
+        return None
     actual_peak = Decimal("0")
     predicted_peak = Decimal("0")
-    for offset in range((end - start).days - 6):
-        window_start = start + timedelta(days=offset)
-        actual = sum(
-            (
-                daily.get(window_start + timedelta(days=i), (Decimal("0"), Decimal("0")))[0]
-                for i in range(7)
-            ),
-            Decimal("0"),
-        )
-        predicted = sum(
-            (
-                daily.get(window_start + timedelta(days=i), (Decimal("0"), Decimal("0")))[1]
-                for i in range(7)
-            ),
-            Decimal("0"),
-        )
+    for _, (actual, predicted) in windows:
         actual_peak = max(actual_peak, actual)
         predicted_peak = max(predicted_peak, predicted)
     return _q(abs(predicted_peak - actual_peak))
 
 
-def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str | int]:
+def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str | int | None]:
     if not predictions:
         raise LocalEngineeringContractError("LOCAL_VALIDATION_EMPTY")
     absolute_errors = [abs(item.p50_kg - item.actual_kg) for item in predictions]
@@ -509,23 +556,14 @@ def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str |
         _q(sum(absolute_errors, Decimal("0")) / actual_total) if actual_total else Decimal("0")
     )
     daily_mae = _q(sum(absolute_errors, Decimal("0")) / Decimal(len(predictions)))
-    by_group: dict[tuple[str, str, str], list[LocalPrediction]] = defaultdict(list)
-    for item in predictions:
-        by_group[(item.farm, item.subfarm, item.variety)].append(item)
     cumulative_error = _q(
-        sum(
-            (
-                abs(
-                    sum((item.p50_kg for item in rows), Decimal("0"))
-                    - sum((item.actual_kg for item in rows), Decimal("0"))
-                )
-                for rows in by_group.values()
-            ),
-            Decimal("0"),
+        abs(
+            sum((item.p50_kg for item in predictions), Decimal("0"))
+            - sum((item.actual_kg for item in predictions), Decimal("0"))
         )
     )
-    actual_peak = max((item.actual_kg for item in predictions), default=Decimal("0"))
-    predicted_peak = max((item.p50_kg for item in predictions), default=Decimal("0"))
+    peak_error, _, _, _ = _single_day_peak_error(predictions)
+    sustained_error = _rolling_peak_error(predictions)
     p80_coverage = _q(
         Decimal(sum(item.actual_kg <= item.p80_kg for item in predictions))
         / Decimal(len(predictions))
@@ -538,11 +576,15 @@ def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str |
         "daily_wape": _decimal_text(daily_wape),
         "daily_mae": _decimal_text(daily_mae),
         "cumulative_absolute_error_kg": _decimal_text(cumulative_error),
-        "single_day_peak_quantity_absolute_error_kg_q": _decimal_text(
-            _q(abs(predicted_peak - actual_peak))
+        "single_day_peak_quantity_absolute_error_kg_q": _decimal_text(peak_error),
+        "sustained_7day_quantity_absolute_error_kg_q": (
+            _decimal_text(sustained_error) if sustained_error is not None else None
         ),
-        "sustained_7day_quantity_absolute_error_kg_q": _decimal_text(
-            _rolling_peak_error(predictions)
+        "sustained_7day_metric_status": (
+            "COMPUTED" if sustained_error is not None else "NOT_COMPUTABLE"
+        ),
+        "sustained_7day_metric_reason_code": (
+            "NONE" if sustained_error is not None else "NO_COMPLETE_7DAY_WINDOW"
         ),
         "P80_COVERAGE": _decimal_text(p80_coverage),
         "P90_COVERAGE": _decimal_text(p90_coverage),
@@ -552,8 +594,8 @@ def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str |
 
 def _breakdown_metrics(
     predictions: tuple[LocalPrediction, ...],
-) -> dict[str, dict[str, dict[str, str | int]]]:
-    result: dict[str, dict[str, dict[str, str | int]]] = {}
+) -> dict[str, dict[str, dict[str, str | int | None]]]:
+    result: dict[str, dict[str, dict[str, str | int | None]]] = {}
     for axis in REQUIRED_BREAKDOWN_AXES:
         buckets: dict[str, list[LocalPrediction]] = defaultdict(list)
         for item in predictions:
@@ -576,21 +618,59 @@ def _breakdown_metrics(
 
 def compute_metrics(predictions: tuple[LocalPrediction, ...]) -> LocalMetricSet:
     values = _metric_payload(predictions)
+    sustained_value = values["sustained_7day_quantity_absolute_error_kg_q"]
+    sustained_status = values["sustained_7day_metric_status"]
+    if sustained_status == "COMPUTED":
+        normalized_sustained_status: MetricStatus = "COMPUTED"
+    elif sustained_status == "NOT_COMPUTABLE":
+        normalized_sustained_status = "NOT_COMPUTABLE"
+    else:
+        raise LocalEngineeringContractError("SUSTAINED_7DAY_METRIC_STATUS_INVALID")
     return LocalMetricSet(
-        daily_wape=Decimal(values["daily_wape"]),
-        daily_mae=Decimal(values["daily_mae"]),
-        cumulative_absolute_error_kg=Decimal(values["cumulative_absolute_error_kg"]),
-        single_day_peak_quantity_absolute_error_kg_q=Decimal(
-            values["single_day_peak_quantity_absolute_error_kg_q"]
+        daily_wape=_payload_decimal(values, "daily_wape"),
+        daily_mae=_payload_decimal(values, "daily_mae"),
+        cumulative_absolute_error_kg=_payload_decimal(values, "cumulative_absolute_error_kg"),
+        single_day_peak_quantity_absolute_error_kg_q=_payload_decimal(
+            values, "single_day_peak_quantity_absolute_error_kg_q"
         ),
-        sustained_7day_quantity_absolute_error_kg_q=Decimal(
-            values["sustained_7day_quantity_absolute_error_kg_q"]
+        sustained_7day_quantity_absolute_error_kg_q=(
+            Decimal(sustained_value) if isinstance(sustained_value, str) else None
         ),
-        p80_coverage=Decimal(values["P80_COVERAGE"]),
-        p90_coverage=Decimal(values["P90_COVERAGE"]),
-        comparable_row_count=int(values["comparable_row_count"]),
+        sustained_7day_metric_status=normalized_sustained_status,
+        sustained_7day_metric_reason_code=str(values["sustained_7day_metric_reason_code"]),
+        p80_coverage=_payload_decimal(values, "P80_COVERAGE"),
+        p90_coverage=_payload_decimal(values, "P90_COVERAGE"),
+        comparable_row_count=_payload_int(values, "comparable_row_count"),
         breakdown_metrics=_breakdown_metrics(predictions),
     )
+
+
+def _payload_decimal(values: Mapping[str, str | int | None], key: str) -> Decimal:
+    value = values[key]
+    if not isinstance(value, str):
+        raise LocalEngineeringContractError(f"METRIC_PAYLOAD_DECIMAL_MISSING:{key}")
+    return Decimal(value)
+
+
+def _payload_int(values: Mapping[str, str | int | None], key: str) -> int:
+    value = values[key]
+    if not isinstance(value, int):
+        raise LocalEngineeringContractError(f"METRIC_PAYLOAD_INTEGER_MISSING:{key}")
+    return value
+
+
+def _breakdown_comparable_rows(cell: Mapping[str, str | int | None]) -> int:
+    return _payload_int(cell, "comparable_row_count")
+
+
+def _metric_observation(
+    metric_name: str,
+    value: Decimal | None,
+    status: MetricStatus,
+) -> MetricObservation:
+    if status != "COMPUTED" or value is None:
+        return MetricObservation.not_computable(metric_name)
+    return MetricObservation.computed(metric_name, value)
 
 
 def run_local_replay(
@@ -598,10 +678,13 @@ def run_local_replay(
     dataset: FrozenEngineeringDataset,
     config: MaturityCurveConfig,
 ) -> LocalReplayResult:
+    if dataset.forecast_cutoff_at is None:
+        raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
     predictions = _build_predictions(
         train_rows=dataset.train_rows,
         validation_rows=dataset.validation_rows,
         config=config,
+        forecast_cutoff_at=dataset.forecast_cutoff_at,
     )
     if len(predictions) != len(dataset.validation_rows):
         raise LocalEngineeringContractError("LOCAL_VALIDATION_PREDICTION_ROW_COUNT_MISMATCH")
@@ -640,7 +723,7 @@ def guardrail_payload(
             cells=tuple(
                 BreakdownCellEvidence(
                     cell_id=f"{axis}:{cell_id}",
-                    comparable_rows=int(cell["comparable_row_count"]),
+                    comparable_rows=_breakdown_comparable_rows(cell),
                 )
                 for cell_id, cell in candidate_metrics.breakdown_metrics[axis].items()
             ),
@@ -658,17 +741,41 @@ def guardrail_payload(
         breakdown_axes=axes,
         no_silent_exclusion=True,
     )
-    lower = {
-        name: (
-            MetricObservation.computed(name, getattr(candidate_metrics, name)),
-            MetricObservation.computed(name, getattr(incumbent_metrics, name)),
-        )
-        for name in (
-            "daily_mae",
-            "cumulative_absolute_error_kg",
-            "single_day_peak_quantity_absolute_error_kg_q",
-            "sustained_7day_quantity_absolute_error_kg_q",
-        )
+    lower: dict[str, tuple[MetricObservation, MetricObservation]] = {
+        "daily_mae": (
+            MetricObservation.computed("daily_mae", candidate_metrics.daily_mae),
+            MetricObservation.computed("daily_mae", incumbent_metrics.daily_mae),
+        ),
+        "cumulative_absolute_error_kg": (
+            MetricObservation.computed(
+                "cumulative_absolute_error_kg", candidate_metrics.cumulative_absolute_error_kg
+            ),
+            MetricObservation.computed(
+                "cumulative_absolute_error_kg", incumbent_metrics.cumulative_absolute_error_kg
+            ),
+        ),
+        "single_day_peak_quantity_absolute_error_kg_q": (
+            MetricObservation.computed(
+                "single_day_peak_quantity_absolute_error_kg_q",
+                candidate_metrics.single_day_peak_quantity_absolute_error_kg_q,
+            ),
+            MetricObservation.computed(
+                "single_day_peak_quantity_absolute_error_kg_q",
+                incumbent_metrics.single_day_peak_quantity_absolute_error_kg_q,
+            ),
+        ),
+        "sustained_7day_quantity_absolute_error_kg_q": (
+            _metric_observation(
+                "sustained_7day_quantity_absolute_error_kg_q",
+                candidate_metrics.sustained_7day_quantity_absolute_error_kg_q,
+                candidate_metrics.sustained_7day_metric_status,
+            ),
+            _metric_observation(
+                "sustained_7day_quantity_absolute_error_kg_q",
+                incumbent_metrics.sustained_7day_quantity_absolute_error_kg_q,
+                incumbent_metrics.sustained_7day_metric_status,
+            ),
+        ),
     }
     eligibility = evaluate_candidate_guardrails(
         candidate_primary_metric=MetricObservation.computed(
