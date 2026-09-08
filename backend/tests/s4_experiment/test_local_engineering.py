@@ -4,15 +4,18 @@ from pathlib import Path
 
 import pytest
 
-from backend.app.maturity.config import load_maturity_curve_config
+from backend.app.maturity.config import MaturityCurveConfig, load_maturity_curve_config
 from backend.app.s4_candidate_execution import (
     CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND,
+    CandidateRunDefinition,
     build_candidate_01_manifest,
     build_derived_candidate_config,
     validate_candidate_01_manifest,
 )
 from backend.app.s4_local_engineering import (
     LOCAL_ENGINEERING_REPLAY_AUTHORITY_CLASS,
+    FrozenEngineeringDataset,
+    LocalReplayResult,
     load_frozen_engineering_dataset,
     run_local_replay,
     verify_frozen_source_object,
@@ -22,16 +25,16 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @pytest.fixture(scope="module")
-def dataset():
+def dataset() -> FrozenEngineeringDataset:
     return load_frozen_engineering_dataset(REPO_ROOT)
 
 
 @pytest.fixture(scope="module")
-def incumbent_config():
+def incumbent_config() -> MaturityCurveConfig:
     return load_maturity_curve_config(REPO_ROOT / "configs/maturity_curve.yaml")
 
 
-def test_frozen_source_and_partition_identity(dataset) -> None:
+def test_frozen_source_and_partition_identity(dataset: FrozenEngineeringDataset) -> None:
     source = verify_frozen_source_object(Path("/tmp/source-002-original.xls"))
 
     assert source.byte_count == 28_668_416
@@ -50,7 +53,9 @@ def test_frozen_source_and_partition_identity(dataset) -> None:
     assert dataset.test_row_count == 0
 
 
-def test_incumbent_replay_is_deterministic_and_local_only(dataset, incumbent_config) -> None:
+def test_incumbent_replay_is_deterministic_and_local_only(
+    dataset: FrozenEngineeringDataset, incumbent_config: MaturityCurveConfig
+) -> None:
     first = run_local_replay(dataset=dataset, config=incumbent_config)
     second = run_local_replay(dataset=dataset, config=incumbent_config)
 
@@ -73,13 +78,13 @@ def test_candidate_manifest_is_frozen_to_four_runs() -> None:
 
 
 def test_four_candidate_runs_are_paired_to_the_same_validation_labels(
-    dataset, incumbent_config
+    dataset: FrozenEngineeringDataset, incumbent_config: MaturityCurveConfig
 ) -> None:
     config_path = REPO_ROOT / "configs/maturity_curve.yaml"
     manifest = build_candidate_01_manifest(config_path)
     incumbent = run_local_replay(dataset=dataset, config=incumbent_config)
 
-    results = []
+    results: list[tuple[CandidateRunDefinition, LocalReplayResult]] = []
     for ordinal in range(1, 5):
         run, candidate_config = build_derived_candidate_config(manifest, ordinal)
         result = run_local_replay(dataset=dataset, config=candidate_config)
@@ -98,7 +103,9 @@ def test_four_candidate_runs_are_paired_to_the_same_validation_labels(
     assert {run.random_seed for run, _ in results} == {20_260_624}
 
 
-def test_result_payload_is_aggregate_only(dataset, incumbent_config) -> None:
+def test_result_payload_is_aggregate_only(
+    dataset: FrozenEngineeringDataset, incumbent_config: MaturityCurveConfig
+) -> None:
     result = run_local_replay(dataset=dataset, config=incumbent_config)
     payload = result.payload()
 
