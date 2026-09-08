@@ -1,9 +1,13 @@
-"""Candidate 01 manifest, preflight, and append-only validation ledger.
+"""Candidate 01 manifest and historical ledger compatibility machinery.
 
 This module owns the small amount of S4-C01 control-plane machinery that is
 safe to run before a candidate has a lawful paired validation authority.  It
 does not read TEST, derive labels, synthesize forecasts, or silently turn a
 missing historical incumbent authority into an executable comparison.
+
+The JSONL journal and reconciliation helpers are retained for historical audit
+compatibility only.  The live candidate execution path uses
+``S4CandidateExecutionAuthority`` and the PostgreSQL budget repository instead.
 """
 
 from __future__ import annotations
@@ -75,6 +79,7 @@ VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH: Final[str] = (
     "docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json"
 )
 VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_TYPE: Final[str] = "S4_VALIDATION_BUDGET_RECONCILIATION"
+LEGACY_PREFLIGHT_EXECUTION_AUTHORITY: Final[bool] = False
 _LEDGER_GENESIS_HASH: Final[str] = "0" * 64
 
 _SHA256_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
@@ -1248,6 +1253,8 @@ def candidate_01_execution_preflight(
     manifest: Candidate01ParameterManifest,
     journal: AppendOnlyValidationJournal,
 ) -> Candidate01PreflightResult:
+    """Compatibility-only historical preflight; never a live authority."""
+
     validate_candidate_01_manifest(
         manifest,
         config_path=repo_root / manifest.incumbent_config_path,
@@ -1397,6 +1404,7 @@ __all__ = [
     "HISTORICAL_INCUMBENT_AUTHORITY_REASON",
     "INCUMBENT_CONFIG_FILE_SHA256_BOUND",
     "INCUMBENT_CONFIG_HASH_BOUND",
+    "LEGACY_PREFLIGHT_EXECUTION_AUTHORITY",
     "PairingAuthorityResolution",
     "PairingIdentityBinding",
     "ParameterDiffResult",
