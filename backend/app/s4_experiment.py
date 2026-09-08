@@ -8,7 +8,7 @@ candidate runner must pass before it can consume a validation budget unit.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Final, Literal
@@ -47,10 +47,12 @@ REQUIRED_BREAKDOWN_AXES: Final[tuple[str, ...]] = (
 REQUIRED_BREAKDOWN_AXIS_COUNT: Final[int] = len(REQUIRED_BREAKDOWN_AXES)
 RUN_ORDINAL_COUNT_RECONCILIATION_REQUIRED: Final[bool] = True
 _SHA256_IDENTITY_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
-_RETRY_INVOCATION_TYPES: Final[frozenset[str]] = frozenset(
+RETRY_INVOCATION_TYPES: Final[frozenset[str]] = frozenset(
     {"AUTOMATIC_RETRY", "MANUAL_RETRY", "OPERATOR_TRIGGERED_RERUN"}
 )
-_INVOCATION_TYPES: Final[frozenset[str]] = frozenset({"NORMAL_RUN", *_RETRY_INVOCATION_TYPES})
+VALIDATION_INVOCATION_TYPES: Final[frozenset[str]] = frozenset(
+    {"NORMAL_RUN", *RETRY_INVOCATION_TYPES}
+)
 
 GuardrailStatus = Literal["PASS", "FAIL", "BLOCKED"]
 EvidenceStatus = Literal["COMPUTED", "NOT_COMPUTABLE", "MISSING", "INSUFFICIENT_SAMPLE"]
@@ -820,6 +822,39 @@ def _canonical_identity(value: str | None) -> bool:
     return isinstance(value, str) and _SHA256_IDENTITY_PATTERN.fullmatch(value) is not None
 
 
+def validate_s4_invocation_semantics(
+    *,
+    invocation_type: str,
+    evaluation_id: str | None,
+    retry_of_evaluation_id: str | None,
+    prior_evaluation_ids: Collection[str],
+) -> tuple[str, ...]:
+    """Return the shared invocation/retry policy reasons used by S4-B.
+
+    The execution gate and the durable validation-budget repository both call
+    this function.  Keeping the vocabulary and retry-parent rules here avoids
+    a persistence-specific policy that could accept an invocation the
+    executable S4 gate would reject.
+    """
+
+    reasons: list[str] = []
+    if invocation_type not in VALIDATION_INVOCATION_TYPES:
+        reasons.append("INVOCATION_TYPE_INVALID")
+    if evaluation_id is not None and evaluation_id in prior_evaluation_ids:
+        reasons.append("EVALUATION_ID_REUSE_FORBIDDEN")
+    is_retry = invocation_type in RETRY_INVOCATION_TYPES or retry_of_evaluation_id is not None
+    if is_retry and retry_of_evaluation_id is None:
+        reasons.append("RETRY_PARENT_ID_MISSING")
+    if retry_of_evaluation_id is not None:
+        if not _nonempty(retry_of_evaluation_id):
+            reasons.append("RETRY_PARENT_ID_MISSING")
+        elif retry_of_evaluation_id == evaluation_id:
+            reasons.append("RETRY_REUSES_EVALUATION_ID")
+        elif retry_of_evaluation_id not in prior_evaluation_ids:
+            reasons.append("RETRY_PARENT_INVOCATION_NOT_FOUND")
+    return tuple(dict.fromkeys(reasons))
+
+
 def check_candidate_execution_gate(
     request: CandidateExecutionGateRequest,
 ) -> CandidateExecutionGateResult:
@@ -905,24 +940,14 @@ def check_candidate_execution_gate(
         reasons.append("RANDOM_SEED_MISSING_OR_INVALID")
     if not _nonempty(request.evaluation_id):
         reasons.append("EVALUATION_ID_MISSING")
-    if request.invocation_type not in _INVOCATION_TYPES:
-        reasons.append("INVOCATION_TYPE_INVALID")
-    if request.evaluation_id is not None and request.evaluation_id in request.prior_evaluation_ids:
-        reasons.append("EVALUATION_ID_REUSE_FORBIDDEN")
-    is_retry = request.invocation_type in _RETRY_INVOCATION_TYPES or (
-        request.retry_of_evaluation_id is not None
+    reasons.extend(
+        validate_s4_invocation_semantics(
+            invocation_type=request.invocation_type,
+            evaluation_id=request.evaluation_id,
+            retry_of_evaluation_id=request.retry_of_evaluation_id,
+            prior_evaluation_ids=request.prior_evaluation_ids,
+        )
     )
-    if is_retry and request.retry_of_evaluation_id is None:
-        reasons.append("RETRY_PARENT_ID_MISSING")
-    if request.retry_of_evaluation_id is not None:
-        if not _nonempty(request.retry_of_evaluation_id):
-            reasons.append("RETRY_PARENT_ID_MISSING")
-        elif request.retry_of_evaluation_id == request.evaluation_id:
-            reasons.append("RETRY_REUSES_EVALUATION_ID")
-        elif request.retry_of_evaluation_id not in request.prior_evaluation_ids:
-            reasons.append("RETRY_PARENT_INVOCATION_NOT_FOUND")
-    elif request.invocation_type in _RETRY_INVOCATION_TYPES:
-        reasons.append("RETRY_PARENT_ID_MISSING")
     if not request.candidate_execution_manifest_frozen:
         reasons.append("EXECUTION_MANIFEST_NOT_FROZEN")
     if request.policy_payload is not None:
@@ -954,7 +979,9 @@ __all__ = [
     "METRIC_CONTRACT_IDENTITY",
     "REQUIRED_BREAKDOWN_AXES",
     "REQUIRED_BREAKDOWN_AXIS_COUNT",
+    "RETRY_INVOCATION_TYPES",
     "RUN_ORDINAL_COUNT_RECONCILIATION_REQUIRED",
+    "VALIDATION_INVOCATION_TYPES",
     "check_candidate_execution_gate",
     "canonical_guardrail_policy",
     "compare_calibration_distance",
@@ -962,4 +989,5 @@ __all__ = [
     "compare_primary_metric",
     "evaluate_candidate_guardrails",
     "evaluate_coverage_quality_gate",
+    "validate_s4_invocation_semantics",
 ]
