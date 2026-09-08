@@ -60,7 +60,7 @@ repository canonicalizer.
 | 4 | 6 | 0.20 | 20260624 | `3706c05b1ff5128d69ff8bece5a5c17808ff25354e0d2ca83e7a2ad9deb3df38` | `1240bbd568a9eb87a689b88c09053e5fe7c5a559df4f8b1aa970cad513cf71da` |
 
 The run 4 candidate config hash is fixed by the canonical manifest evidence as
-`1240bbd568a9eb87a689b88c09053e5fe7c5a55954e0d2ca83e7a2ad9deb3df38`.
+`1240bbd568a9eb87a689b88c09053e5fe7c5a559df4f8b1aa970cad513cf71da`.
 
 The four ordinals are sequential and exhaustive. No fifth configuration,
 adaptive insertion, retry, post-validation substitution, or candidate from

@@ -139,3 +139,51 @@ FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_CONTROLLED_VALIDATION_REVIEW
 
 This workpaper does not claim candidate failure, candidate improvement,
 historical S3 recovery, TEST access, production promotion, or V0.3 release.
+
+## Correction R1: content-level manifest enforcement
+
+Correction R1 makes the existing manifest executable only under its exact
+frozen content. The control plane now independently derives each run's
+authorized parameter delta from its full snapshot, recomputes its candidate
+config hash and per-run parameter-manifest hash, verifies the bound incumbent
+file/hash identities, and verifies the complete manifest hash. Derived config,
+preflight, and gate-request entry points all invoke this validation before any
+execution decision. Hostile tests cover all four run-value mutations, forged
+hashes, incumbent identity drift, seed drift, delta/content disagreement, and
+top-level manifest mutation.
+
+The prior Phase A CI head remains historical context. The correction freeze
+head is the executable Phase A authority for the preflight below:
+
+```text
+CORRECTION_TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1_CORRECTION_R1
+PREVIOUS_PHASE_A_CI_HEAD=45bf4519ea0baae858d67b38624467fd388cbe4f
+NEW_PHASE_A_CORRECTION_FREEZE_HEAD=f29410c6ab9d1add2cdb8969a90b013aa3905753
+NEW_PHASE_A_EXACT_HEAD_CI_RUN=34180407000
+NEW_PHASE_A_EXACT_HEAD_CI_HEAD_SHA=f29410c6ab9d1add2cdb8969a90b013aa3905753
+NEW_PHASE_A_EXACT_HEAD_CI=SUCCESS
+CORRECTION_R1_CONTENT_VALIDATION_ENFORCED=true
+```
+
+The corrected official preflight was then run once, with the exact frozen
+manifest and the clean correction head. The result remains the accepted
+historical-authority stop:
+
+```text
+PAIRING_AUTHORITY_RESOLUTION_STATUS=BLOCKED
+FIRST_NON_DERIVABLE_AUTHORITY=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY
+CANDIDATE_01_EXECUTION_PREFLIGHT=BLOCKED
+CANDIDATE_01_EXECUTION_BLOCK_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+CANDIDATE_01_EXECUTION_ADAPTER_USED=false
+CANDIDATE_01_EXECUTION_REACHED=false
+NO_VALIDATION_EVALUATION_STARTED=true
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+JOURNAL_EVENT_COUNT=0
+REMAINING_GLOBAL_VALIDATION_BUDGET=32
+TEST_REMAINS_SEALED=true
+```
+
+No speculative execution adapter was added, no candidate evaluation was
+started, and no validation or TEST data was accessed.
