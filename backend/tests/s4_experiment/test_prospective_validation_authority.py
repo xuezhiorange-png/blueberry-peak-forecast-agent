@@ -179,9 +179,7 @@ def test_incumbent_model_identity_is_canonically_bound() -> None:
         ("S2-FIXTURE", "MISSING_MODEL_IDENTITY"),
     ),
 )
-def test_non_incumbent_model_identity_is_rejected(
-    model_identity: str, reason: str
-) -> None:
+def test_non_incumbent_model_identity_is_rejected(model_identity: str, reason: str) -> None:
     capture, authority = _forecast_pair()
     authority = replace(authority, governance_snapshot={"model_identity": model_identity})
     with pytest.raises(ProspectiveAuthorityContractError, match=reason):
@@ -321,9 +319,7 @@ async def test_test_overlapping_snapshot_header_rejects_before_child_load(
     monkeypatch.setattr(
         prospective_authority, "load_label_rows_for_snapshot", unexpected_child_loader
     )
-    monkeypatch.setattr(
-        prospective_authority, "load_winners_for_snapshot", unexpected_child_loader
-    )
+    monkeypatch.setattr(prospective_authority, "load_winners_for_snapshot", unexpected_child_loader)
     monkeypatch.setattr(
         prospective_authority, "load_exclusion_rows_for_snapshot", unexpected_child_loader
     )
