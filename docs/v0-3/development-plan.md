@@ -20973,3 +20973,50 @@ WORKPAPER_ARTIFACT=docs/v0-3/s4/workpapers/s4-c01-parameter-calibration-controll
 This result is a preflight terminal stop for this Candidate 01 task. It does
 not consume VALIDATION budget, reopen S3, synthesize historical authority,
 select a candidate, or release V0.3.
+
+---
+
+### 4.14 — S4-C01 manifest content-validation correction R1 (append-only live pointer)
+
+Correction R1 binds Candidate 01 execution to the exact frozen manifest
+content. The validator recomputes each authorized delta, candidate config
+hash, per-run manifest hash, incumbent identity, and complete manifest hash;
+derived-config, preflight, and gate-request entry points validate before any
+execution decision. The correction does not add an execution adapter and does
+not alter the accepted historical-authority blocker.
+
+```text
+TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1_CORRECTION_R1
+PR_NUMBER=584
+PR_STATE=DRAFT
+PREVIOUS_PHASE_A_CI_HEAD=45bf4519ea0baae858d67b38624467fd388cbe4f
+NEW_PHASE_A_CORRECTION_FREEZE_HEAD=f29410c6ab9d1add2cdb8969a90b013aa3905753
+NEW_PHASE_A_EXACT_HEAD_CI_RUN=34180407000
+NEW_PHASE_A_EXACT_HEAD_CI=SUCCESS
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_EXECUTION_ADAPTER_USED=false
+CANDIDATE_01_EXECUTION_REACHED=false
+PAIRING_AUTHORITY_RESOLUTION_STATUS=BLOCKED
+FIRST_NON_DERIVABLE_AUTHORITY=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY
+CANDIDATE_01_EXECUTION_PREFLIGHT=BLOCKED
+CANDIDATE_01_EXECUTION_BLOCK_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+JOURNAL_EVENT_COUNT=0
+REMAINING_GLOBAL_VALIDATION_BUDGET=32
+NO_VALIDATION_EVALUATION_STARTED=true
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+S4_CANDIDATE_EXPERIMENT_EXECUTED=false
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR584_CORRECTION_R1_REVIEW
+```
+
+The corrected Phase A control head passed exact-head CI before this single
+preflight. The preflight emitted no `EVALUATION_STARTED` event and consumed no
+VALIDATION budget.
