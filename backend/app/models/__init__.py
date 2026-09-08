@@ -95,6 +95,10 @@ from backend.app.models.rolling_backtest import (
     RollingBacktestRun,
     RollingBacktestStageEvent,
 )
+from backend.app.models.s4_validation_budget import (
+    S4ValidationBudgetAuthority,
+    S4ValidationEvent,
+)
 from backend.app.models.task9_authority import (
     Task9AuthorityLifecycleEvent,
     Task9CapacityPoolDefinition,
@@ -200,6 +204,8 @@ __all__ = [
     "RollingBacktestResolvedInput",
     "RollingBacktestRun",
     "RollingBacktestStageEvent",
+    "S4ValidationBudgetAuthority",
+    "S4ValidationEvent",
     "S2MaterializedDatasetModel",
     "S2MaterializedMaterializableRowModel",
     "S2MaterializedPartitionModel",
