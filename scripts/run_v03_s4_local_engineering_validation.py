@@ -38,6 +38,7 @@ from backend.app.s2_materialized_dataset.lane_d.service import (  # noqa: E402
 from backend.app.s2_materialized_dataset.shared.contracts import PartitionName  # noqa: E402
 from backend.app.s4_candidate_execution import (  # noqa: E402
     CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND,
+    CandidateRunDefinition,
     build_candidate_01_manifest,
     build_derived_candidate_config,
     validate_candidate_01_manifest,
@@ -53,6 +54,7 @@ from backend.app.s4_local_engineering import (  # noqa: E402
     SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256,
     FrozenEngineeringDataset,
     LocalEngineeringContractError,
+    LocalReplayResult,
     guardrail_payload,
     load_frozen_engineering_dataset,
     relation_to_incumbent,
@@ -272,11 +274,17 @@ async def _load_database_dataset(
         await engine.dispose()
 
 
-def _metric_summary(result: Any) -> dict[str, Any]:
+def _metric_summary(result: LocalReplayResult) -> dict[str, Any]:
     return result.payload(include_predictions=False)
 
 
-def _run_summary(*, ordinal: int, run: Any, result: Any, incumbent: Any) -> dict[str, Any]:
+def _run_summary(
+    *,
+    ordinal: int,
+    run: CandidateRunDefinition,
+    result: LocalReplayResult,
+    incumbent: LocalReplayResult,
+) -> dict[str, Any]:
     guardrails = guardrail_payload(candidate=result, incumbent=incumbent)
     coverage = next(
         (
@@ -389,7 +397,7 @@ def _execute(args: argparse.Namespace) -> dict[str, Any]:
                 incumbent=incumbent_first,
             )
         )
-    best_run, candidate_result = _best_run(summaries)
+    best_run, result_code = _best_run(summaries)
     return {
         "EXECUTION_STATUS": "PASS",
         "TASK_ID": "V0_3_S4_LOCAL_ENGINEERING_VALIDATION_BOOTSTRAP_AND_C01_EXECUTION_R1",
@@ -429,7 +437,7 @@ def _execute(args: argparse.Namespace) -> dict[str, Any]:
         "CANDIDATE_01_ENGINEERING_RUN_COUNT": EXPECTED_RUN_COUNT,
         "CANDIDATE_01_RUNS": summaries,
         "CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN": best_run,
-        "CANDIDATE_01_LOCAL_ENGINEERING_RESULT": candidate_result,
+        "CANDIDATE_01_LOCAL_ENGINEERING_RESULT": result_code,
         "LOCAL_ENGINEERING_VALIDATION_EVALUATION_COUNT": EXPECTED_RUN_COUNT,
         "EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED": EXPECTED_RUN_COUNT,
         "REMAINING_EFFECTIVE_VALIDATION_BUDGET": REMAINING_EFFECTIVE_BUDGET,
