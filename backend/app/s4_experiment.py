@@ -7,6 +7,7 @@ candidate runner must pass before it can consume a validation budget unit.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
@@ -20,6 +21,9 @@ S4_A_EXPERIMENT_PLAN_HASH_BOUND: Final[str] = (
 )
 EXPERIMENT_PLAN_VERSION: Final[str] = "v0.3-experiment-plan-v1"
 METRIC_CONTRACT_VERSION: Final[str] = "v0.3-metric-contract-v1"
+METRIC_CONTRACT_IDENTITY: Final[str] = (
+    "e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd"
+)
 PRIMARY_SELECTION_METRIC: Final[str] = "daily_wape"
 INCUMBENT_MODEL_ID: Final[str] = "V0_2_CURRENT_MODEL"
 MAX_VALIDATION_EVALUATIONS: Final[int] = 32
@@ -31,6 +35,22 @@ MIN_COMPARABLE_ROWS_FOR_REPORTING: Final[int] = 10
 P80_NOMINAL_QUANTILE: Final[Decimal] = Decimal("0.80")
 P90_NOMINAL_QUANTILE: Final[Decimal] = Decimal("0.90")
 S1_METRIC_CONTRACT_AUTHORITY: Final[str] = "docs/forecast-quality/s3-quality-metrics-contract.md"
+
+REQUIRED_BREAKDOWN_AXES: Final[tuple[str, ...]] = (
+    "forecast_horizon_days",
+    "farm_business_key",
+    "subfarm_business_key",
+    "variety_business_key",
+    "season_business_key",
+    "model_identity",
+)
+REQUIRED_BREAKDOWN_AXIS_COUNT: Final[int] = len(REQUIRED_BREAKDOWN_AXES)
+RUN_ORDINAL_COUNT_RECONCILIATION_REQUIRED: Final[bool] = True
+_SHA256_IDENTITY_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
+_RETRY_INVOCATION_TYPES: Final[frozenset[str]] = frozenset(
+    {"AUTOMATIC_RETRY", "MANUAL_RETRY", "OPERATOR_TRIGGERED_RERUN"}
+)
+_INVOCATION_TYPES: Final[frozenset[str]] = frozenset({"NORMAL_RUN", *_RETRY_INVOCATION_TYPES})
 
 GuardrailStatus = Literal["PASS", "FAIL", "BLOCKED"]
 EvidenceStatus = Literal["COMPUTED", "NOT_COMPUTABLE", "MISSING", "INSUFFICIENT_SAMPLE"]
@@ -203,13 +223,25 @@ class BreakdownCellEvidence:
 
 
 @dataclass(frozen=True, slots=True)
+class BreakdownAxisEvidence:
+    """Evidence for one independently reported required breakdown axis."""
+
+    axis_name: str
+    cells: tuple[BreakdownCellEvidence, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.axis_name:
+            raise ValueError("axis_name is required")
+
+
+@dataclass(frozen=True, slots=True)
 class CoverageQualityEvidence:
     """The accepted S1 coverage/data-quality inputs for one candidate run."""
 
     coverage_ratio: MetricObservation
     valid_included_canonical_group_coverage: MetricObservation
     missing_data_proportion: MetricObservation
-    breakdown_cells: tuple[BreakdownCellEvidence, ...] = ()
+    breakdown_axes: tuple[BreakdownAxisEvidence, ...] = ()
     no_silent_exclusion: bool = True
 
 
@@ -259,6 +291,16 @@ def canonical_guardrail_policy() -> dict[str, object]:
         "candidate_ids": [registration.candidate_id for registration in FROZEN_CANDIDATE_REGISTRY],
         "metric_contract_version": METRIC_CONTRACT_VERSION,
         "metric_contract_authority": S1_METRIC_CONTRACT_AUTHORITY,
+        "metric_contract_identity": METRIC_CONTRACT_IDENTITY,
+        "metric_identity_binding": {
+            "primary": PRIMARY_SELECTION_METRIC,
+            "lower_is_better_guardrails": list(LOWER_IS_BETTER_GUARDRAILS),
+            "p80_coverage": "P80_COVERAGE",
+            "p90_coverage": "P90_COVERAGE",
+            "coverage_ratio": "coverage_ratio",
+            "valid_included_canonical_group_coverage": ("valid_included_canonical_group_coverage"),
+            "missing_data_proportion": "missing_data_proportion",
+        },
         "candidate_registry": [
             {
                 "candidate_id": registration.candidate_id,
@@ -318,12 +360,42 @@ def canonical_guardrail_policy() -> dict[str, object]:
             "missing_data_proportion_threshold": MISSING_DATA_PROPORTION_THRESHOLD,
             "no_silent_exclusion": True,
             "minimum_comparable_rows_for_reporting": MIN_COMPARABLE_ROWS_FOR_REPORTING,
+            "required_breakdown_axes": list(REQUIRED_BREAKDOWN_AXES),
+            "required_breakdown_axis_count": REQUIRED_BREAKDOWN_AXIS_COUNT,
+            "all_required_breakdown_axes_must_be_present": True,
+            "empty_breakdown_evidence": "BLOCKED",
+            "unknown_breakdown_axis": "BLOCKED",
+            "duplicate_breakdown_axis": "BLOCKED",
+            "conflicting_breakdown_axis_evidence": "BLOCKED",
+            "empty_required_breakdown_axis_cells": "BLOCKED",
+            "below_minimum_cell": "BLOCKED",
+            "non_computed_cell": "BLOCKED",
         },
         "paired_comparison": {
             "required": True,
             "unpaired_candidate_score_allowed": False,
             "common_comparable_set_required": True,
             "same_actual_label_rows_required": True,
+            "same_train_dataset_required": True,
+            "same_validation_dataset_required": True,
+            "same_labels_required": True,
+            "same_exclusion_policy_required": True,
+            "same_cutoff_policy_required": True,
+            "same_forecast_horizons_required": True,
+            "same_metrics_required": True,
+            "same_business_grains_required": True,
+            "identity_fields": [
+                "train_dataset_identity",
+                "validation_dataset_identity",
+                "actual_label_set_identity",
+                "exclusion_policy_identity",
+                "cutoff_policy_identity",
+                "forecast_horizon_set_identity",
+                "metric_contract_identity",
+                "business_grain_set_identity",
+                "common_comparable_set_identity",
+            ],
+            "identity_format": "64-character lowercase SHA-256",
             "incumbent_model_id": INCUMBENT_MODEL_ID,
             "farm_total_baseline_is_not_s4_incumbent": True,
         },
@@ -334,6 +406,12 @@ def canonical_guardrail_policy() -> dict[str, object]:
             "separate_incumbent_only_validation_invocation_allowed": False,
             "one_candidate_run_one_ledger_row": True,
             "one_candidate_run_consumes_one_validation_evaluation": True,
+            "run_ordinal_count_reconciliation_required": True,
+            "candidate_run_ordinal_rule": "candidate_actual_run_count + 1",
+            "retry_counts_as_new_candidate_run": True,
+            "retry_requires_new_evaluation_id": True,
+            "retry_requires_parent_in_prior_ledger": True,
+            "prior_ledger_rows_are_immutable": True,
         },
         "fail_closed_aggregation": {
             "all_required_guardrails_must_pass": True,
@@ -390,7 +468,13 @@ def _observation_values(
     guardrail_id: str,
     candidate: MetricObservation,
     incumbent: MetricObservation,
+    expected_metric_name: str,
 ) -> GuardrailResult | tuple[Decimal, Decimal]:
+    if (
+        candidate.metric_name != expected_metric_name
+        or incumbent.metric_name != expected_metric_name
+    ):
+        return _blocked_result(guardrail_id, "METRIC_IDENTITY_MISMATCH")
     if candidate.status != "COMPUTED" or incumbent.status != "COMPUTED":
         if "INSUFFICIENT_SAMPLE" in (candidate.status, incumbent.status):
             reason_code = "BELOW_MINIMUM"
@@ -410,7 +494,12 @@ def compare_primary_metric(
 ) -> GuardrailResult:
     """Require a strict improvement in the lower-is-better primary metric."""
 
-    values = _observation_values(PRIMARY_SELECTION_METRIC, candidate, incumbent)
+    values = _observation_values(
+        PRIMARY_SELECTION_METRIC,
+        candidate,
+        incumbent,
+        PRIMARY_SELECTION_METRIC,
+    )
     if isinstance(values, GuardrailResult):
         return values
     candidate_value, incumbent_value = values
@@ -446,7 +535,9 @@ def compare_lower_is_better(
 ) -> GuardrailResult:
     """Apply zero-tolerance non-regression for a lower-is-better metric."""
 
-    values = _observation_values(guardrail_id, candidate, incumbent)
+    if guardrail_id not in LOWER_IS_BETTER_GUARDRAILS:
+        return _blocked_result(guardrail_id, "UNKNOWN_GUARDRAIL_ID")
+    values = _observation_values(guardrail_id, candidate, incumbent, guardrail_id)
     if isinstance(values, GuardrailResult):
         return values
     candidate_value, incumbent_value = values
@@ -482,7 +573,22 @@ def compare_calibration_distance(
         raise TypeError("nominal quantile must be Decimal")
     if not nominal_quantile.is_finite():
         raise ValueError("nominal quantile must be finite")
-    values = _observation_values(guardrail_id, candidate_coverage, incumbent_coverage)
+    if guardrail_id == "P80_COVERAGE":
+        expected_metric_name = "P80_COVERAGE"
+        expected_nominal_quantile = P80_NOMINAL_QUANTILE
+    elif guardrail_id == "P90_COVERAGE":
+        expected_metric_name = "P90_COVERAGE"
+        expected_nominal_quantile = P90_NOMINAL_QUANTILE
+    else:
+        return _blocked_result(guardrail_id, "UNKNOWN_GUARDRAIL_ID")
+    if nominal_quantile != expected_nominal_quantile:
+        return _blocked_result(guardrail_id, "NOMINAL_QUANTILE_MISMATCH")
+    values = _observation_values(
+        guardrail_id,
+        candidate_coverage,
+        incumbent_coverage,
+        expected_metric_name,
+    )
     if isinstance(values, GuardrailResult):
         return values
     candidate_value, incumbent_value = values
@@ -520,17 +626,50 @@ def evaluate_coverage_quality_gate(evidence: CoverageQualityEvidence) -> Guardra
     guardrail_id = "coverage_and_data_quality"
     if not evidence.no_silent_exclusion:
         return GuardrailResult(guardrail_id, "FAIL", "SILENT_EXCLUSION_FORBIDDEN")
-    for cell in evidence.breakdown_cells:
-        if cell.comparable_rows < MIN_COMPARABLE_ROWS_FOR_REPORTING:
-            return GuardrailResult(guardrail_id, "BLOCKED", "BELOW_MINIMUM")
-        if cell.metric_status != "COMPUTED":
-            return GuardrailResult(guardrail_id, "BLOCKED", "INSUFFICIENT_REQUIRED_EVIDENCE")
+
+    if not evidence.breakdown_axes:
+        return GuardrailResult(guardrail_id, "BLOCKED", "EMPTY_BREAKDOWN_EVIDENCE")
+    axis_names = tuple(axis.axis_name for axis in evidence.breakdown_axes)
+    unknown_axes = tuple(
+        axis_name for axis_name in axis_names if axis_name not in REQUIRED_BREAKDOWN_AXES
+    )
+    if unknown_axes:
+        return GuardrailResult(guardrail_id, "BLOCKED", "UNKNOWN_REQUIRED_BREAKDOWN_AXIS")
+    if len(set(axis_names)) != len(axis_names):
+        return GuardrailResult(guardrail_id, "BLOCKED", "DUPLICATE_REQUIRED_BREAKDOWN_AXIS")
+    if set(axis_names) != set(REQUIRED_BREAKDOWN_AXES):
+        return GuardrailResult(guardrail_id, "BLOCKED", "MISSING_REQUIRED_BREAKDOWN_AXIS")
+    for axis in evidence.breakdown_axes:
+        if not axis.cells:
+            return GuardrailResult(guardrail_id, "BLOCKED", "EMPTY_REQUIRED_AXIS_CELLS")
+        seen_cell_ids: dict[str, BreakdownCellEvidence] = {}
+        for cell in axis.cells:
+            prior_cell = seen_cell_ids.get(cell.cell_id)
+            if prior_cell is not None and prior_cell != cell:
+                return GuardrailResult(guardrail_id, "BLOCKED", "CONFLICTING_AXIS_EVIDENCE")
+            if prior_cell is not None:
+                return GuardrailResult(guardrail_id, "BLOCKED", "CONFLICTING_AXIS_EVIDENCE")
+            seen_cell_ids[cell.cell_id] = cell
+            if cell.comparable_rows < MIN_COMPARABLE_ROWS_FOR_REPORTING:
+                return GuardrailResult(guardrail_id, "BLOCKED", "BELOW_MINIMUM")
+            if cell.metric_status != "COMPUTED":
+                return GuardrailResult(guardrail_id, "BLOCKED", "INSUFFICIENT_REQUIRED_EVIDENCE")
 
     observations = (
         evidence.coverage_ratio,
         evidence.valid_included_canonical_group_coverage,
         evidence.missing_data_proportion,
     )
+    expected_names = (
+        "coverage_ratio",
+        "valid_included_canonical_group_coverage",
+        "missing_data_proportion",
+    )
+    if any(
+        observation.metric_name != expected_name
+        for observation, expected_name in zip(observations, expected_names, strict=True)
+    ):
+        return GuardrailResult(guardrail_id, "BLOCKED", "METRIC_IDENTITY_MISMATCH")
     if any(observation.status != "COMPUTED" for observation in observations):
         return GuardrailResult(guardrail_id, "BLOCKED", "MISSING_REQUIRED_EVIDENCE")
     values = tuple(observation.value for observation in observations)
@@ -649,6 +788,15 @@ class CandidateExecutionGateRequest:
     candidate_execution_manifest_frozen: bool = False
     candidate_registry: tuple[CandidateRegistration, ...] | None = None
     policy_payload: object | None = None
+    actual_label_set_identity: str | None = None
+    exclusion_policy_identity: str | None = None
+    cutoff_policy_identity: str | None = None
+    forecast_horizon_set_identity: str | None = None
+    metric_contract_identity: str | None = None
+    business_grain_set_identity: str | None = None
+    common_comparable_set_identity: str | None = None
+    invocation_type: str = "NORMAL_RUN"
+    prior_evaluation_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -666,6 +814,10 @@ class CandidateExecutionGateResult:
 
 def _nonempty(value: str | None) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _canonical_identity(value: str | None) -> bool:
+    return isinstance(value, str) and _SHA256_IDENTITY_PATTERN.fullmatch(value) is not None
 
 
 def check_candidate_execution_gate(
@@ -704,16 +856,41 @@ def check_candidate_execution_gate(
     elif request.candidate_actual_run_count >= MAX_RUNS_PER_CANDIDATE:
         reasons.append("CANDIDATE_BUDGET_EXHAUSTED")
     if (
+        type(request.candidate_run_ordinal) is int
+        and request.candidate_run_ordinal >= 1
+        and type(request.candidate_actual_run_count) is int
+        and request.candidate_actual_run_count >= 0
+        and request.candidate_actual_run_count < MAX_RUNS_PER_CANDIDATE
+        and request.candidate_run_ordinal != request.candidate_actual_run_count + 1
+    ):
+        reasons.append("RUN_ORDINAL_COUNT_MISMATCH")
+    if (
         type(request.global_actual_evaluation_count) is not int
         or request.global_actual_evaluation_count < 0
     ):
         reasons.append("INVALID_GLOBAL_EVALUATION_COUNT")
     elif request.global_actual_evaluation_count >= MAX_VALIDATION_EVALUATIONS:
         reasons.append("GLOBAL_VALIDATION_BUDGET_EXHAUSTED")
-    if not _nonempty(request.train_dataset_identity):
-        reasons.append("TRAIN_DATASET_IDENTITY_MISSING")
-    if not _nonempty(request.validation_dataset_identity):
-        reasons.append("VALIDATION_DATASET_IDENTITY_MISSING")
+    pairing_identities = (
+        ("train_dataset_identity", request.train_dataset_identity),
+        ("validation_dataset_identity", request.validation_dataset_identity),
+        ("actual_label_set_identity", request.actual_label_set_identity),
+        ("exclusion_policy_identity", request.exclusion_policy_identity),
+        ("cutoff_policy_identity", request.cutoff_policy_identity),
+        ("forecast_horizon_set_identity", request.forecast_horizon_set_identity),
+        ("business_grain_set_identity", request.business_grain_set_identity),
+        ("common_comparable_set_identity", request.common_comparable_set_identity),
+    )
+    for field_name, value in pairing_identities:
+        field_prefix = field_name.upper()
+        if not _nonempty(value):
+            reasons.append(f"{field_prefix}_MISSING")
+        elif not _canonical_identity(value):
+            reasons.append(f"{field_prefix}_MALFORMED")
+    if not _nonempty(request.metric_contract_identity):
+        reasons.append("METRIC_CONTRACT_IDENTITY_MISSING")
+    elif request.metric_contract_identity != METRIC_CONTRACT_IDENTITY:
+        reasons.append("METRIC_CONTRACT_IDENTITY_MISMATCH")
     if request.metric_contract_version != METRIC_CONTRACT_VERSION:
         reasons.append("METRIC_CONTRACT_VERSION_MISMATCH")
     if request.test_access_requested:
@@ -728,11 +905,24 @@ def check_candidate_execution_gate(
         reasons.append("RANDOM_SEED_MISSING_OR_INVALID")
     if not _nonempty(request.evaluation_id):
         reasons.append("EVALUATION_ID_MISSING")
+    if request.invocation_type not in _INVOCATION_TYPES:
+        reasons.append("INVOCATION_TYPE_INVALID")
+    if request.evaluation_id is not None and request.evaluation_id in request.prior_evaluation_ids:
+        reasons.append("EVALUATION_ID_REUSE_FORBIDDEN")
+    is_retry = request.invocation_type in _RETRY_INVOCATION_TYPES or (
+        request.retry_of_evaluation_id is not None
+    )
+    if is_retry and request.retry_of_evaluation_id is None:
+        reasons.append("RETRY_PARENT_ID_MISSING")
     if request.retry_of_evaluation_id is not None:
         if not _nonempty(request.retry_of_evaluation_id):
             reasons.append("RETRY_PARENT_ID_MISSING")
         elif request.retry_of_evaluation_id == request.evaluation_id:
             reasons.append("RETRY_REUSES_EVALUATION_ID")
+        elif request.retry_of_evaluation_id not in request.prior_evaluation_ids:
+            reasons.append("RETRY_PARENT_INVOCATION_NOT_FOUND")
+    elif request.invocation_type in _RETRY_INVOCATION_TYPES:
+        reasons.append("RETRY_PARENT_ID_MISSING")
     if not request.candidate_execution_manifest_frozen:
         reasons.append("EXECUTION_MANIFEST_NOT_FROZEN")
     if request.policy_payload is not None:
@@ -753,6 +943,7 @@ __all__ = [
     "CandidateRegistration",
     "CoverageQualityEvidence",
     "BreakdownCellEvidence",
+    "BreakdownAxisEvidence",
     "EvidenceStatus",
     "FROZEN_CANDIDATE_REGISTRY",
     "GUARDRAIL_POLICY_HASH",
@@ -760,6 +951,10 @@ __all__ = [
     "GuardrailResult",
     "GuardrailStatus",
     "MetricObservation",
+    "METRIC_CONTRACT_IDENTITY",
+    "REQUIRED_BREAKDOWN_AXES",
+    "REQUIRED_BREAKDOWN_AXIS_COUNT",
+    "RUN_ORDINAL_COUNT_RECONCILIATION_REQUIRED",
     "check_candidate_execution_gate",
     "canonical_guardrail_policy",
     "compare_calibration_distance",

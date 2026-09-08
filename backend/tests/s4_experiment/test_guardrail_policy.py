@@ -12,9 +12,12 @@ from backend.app.s4_experiment import (
     FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
     GUARDRAIL_POLICY_VERSION,
+    METRIC_CONTRACT_IDENTITY,
     METRIC_CONTRACT_VERSION,
     PRIMARY_SELECTION_METRIC,
+    REQUIRED_BREAKDOWN_AXES,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+    BreakdownAxisEvidence,
     BreakdownCellEvidence,
     CandidateEligibilityResult,
     CandidateExecutionGateRequest,
@@ -24,12 +27,18 @@ from backend.app.s4_experiment import (
     check_candidate_execution_gate,
     compare_calibration_distance,
     compare_lower_is_better,
+    compare_primary_metric,
     evaluate_candidate_guardrails,
+    evaluate_coverage_quality_gate,
 )
 
 
 def _metric(name: str, value: str) -> MetricObservation:
     return MetricObservation.computed(name, Decimal(value))
+
+
+def _identity(seed: str) -> str:
+    return (seed * 64)[:64]
 
 
 def _coverage_quality() -> CoverageQualityEvidence:
@@ -39,7 +48,13 @@ def _coverage_quality() -> CoverageQualityEvidence:
             "valid_included_canonical_group_coverage", "1.000000"
         ),
         missing_data_proportion=_metric("missing_data_proportion", "0.000000"),
-        breakdown_cells=(BreakdownCellEvidence("all-six-axes", 10),),
+        breakdown_axes=tuple(
+            BreakdownAxisEvidence(
+                axis_name,
+                (BreakdownCellEvidence(f"{axis_name}-cell", 10),),
+            )
+            for axis_name in REQUIRED_BREAKDOWN_AXES
+        ),
     )
 
 
@@ -79,8 +94,8 @@ def _gate_request() -> CandidateExecutionGateRequest:
         candidate_planned_run_count=4,
         candidate_actual_run_count=0,
         global_actual_evaluation_count=0,
-        train_dataset_identity="train-identity",
-        validation_dataset_identity="validation-identity",
+        train_dataset_identity=_identity("a"),
+        validation_dataset_identity=_identity("b"),
         metric_contract_version=METRIC_CONTRACT_VERSION,
         test_access_requested=False,
         test_sealed=True,
@@ -90,6 +105,13 @@ def _gate_request() -> CandidateExecutionGateRequest:
         evaluation_id="evaluation-1",
         candidate_execution_manifest_frozen=True,
         candidate_registry=FROZEN_CANDIDATE_REGISTRY,
+        actual_label_set_identity=_identity("c"),
+        exclusion_policy_identity=_identity("d"),
+        cutoff_policy_identity=_identity("e"),
+        forecast_horizon_set_identity=_identity("f"),
+        metric_contract_identity=METRIC_CONTRACT_IDENTITY,
+        business_grain_set_identity=_identity("1"),
+        common_comparable_set_identity=_identity("2"),
     )
 
 
@@ -149,7 +171,13 @@ def test_not_computable_guardrail_is_blocked() -> None:
 def test_insufficient_required_breakdown_evidence_is_blocked() -> None:
     evidence = replace(
         _coverage_quality(),
-        breakdown_cells=(BreakdownCellEvidence("farm-a", 9),),
+        breakdown_axes=tuple(
+            BreakdownAxisEvidence(
+                axis_name,
+                (BreakdownCellEvidence(f"{axis_name}-cell", 9),),
+            )
+            for axis_name in REQUIRED_BREAKDOWN_AXES
+        ),
     )
     coverage_result = evaluate_candidate_guardrails(
         candidate_primary_metric=_metric(PRIMARY_SELECTION_METRIC, "0.4"),
@@ -341,3 +369,248 @@ def test_primary_metric_equality_is_not_improved_and_not_eligible() -> None:
     assert result.status == "FAIL"
     assert result.candidate_eligible is False
     assert "NOT_IMPROVED" in result.reason_codes
+
+
+def test_primary_candidate_metric_identity_mismatch_blocks() -> None:
+    result = compare_primary_metric(
+        _metric("daily_mae", "0.4"),
+        _metric(PRIMARY_SELECTION_METRIC, "0.5"),
+    )
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+def test_primary_incumbent_metric_identity_mismatch_blocks() -> None:
+    result = compare_primary_metric(
+        _metric(PRIMARY_SELECTION_METRIC, "0.4"),
+        _metric("daily_mae", "0.5"),
+    )
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+def test_lower_guardrail_rejects_candidate_metric_named_as_primary() -> None:
+    result = compare_lower_is_better(
+        "daily_mae",
+        _metric(PRIMARY_SELECTION_METRIC, "0.4"),
+        _metric("daily_mae", "0.5"),
+    )
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+def test_candidate_and_incumbent_metric_name_disagreement_blocks() -> None:
+    result = compare_lower_is_better(
+        "daily_mae",
+        _metric("daily_mae", "0.4"),
+        _metric("daily_wape", "0.5"),
+    )
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+def test_p80_candidate_supplied_as_p90_blocks() -> None:
+    result = compare_calibration_distance(
+        "P80_COVERAGE",
+        _metric("P90_COVERAGE", "0.79"),
+        _metric("P80_COVERAGE", "0.75"),
+        Decimal("0.80"),
+    )
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+def test_p90_incumbent_supplied_as_p80_blocks() -> None:
+    result = compare_calibration_distance(
+        "P90_COVERAGE",
+        _metric("P90_COVERAGE", "0.89"),
+        _metric("P80_COVERAGE", "0.85"),
+        Decimal("0.90"),
+    )
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+@pytest.mark.parametrize(
+    ("field_name", "wrong_name"),
+    (
+        ("coverage_ratio", "missing_data_proportion"),
+        ("valid_included_canonical_group_coverage", "coverage_ratio"),
+        ("missing_data_proportion", "coverage_ratio"),
+    ),
+)
+def test_coverage_quality_metric_identity_mismatch_blocks(field_name: str, wrong_name: str) -> None:
+    evidence = _coverage_quality()
+    replacement = _metric(wrong_name, "1.000000")
+    result = evaluate_coverage_quality_gate(replace(evidence, **{field_name: replacement}))
+    assert (result.status, result.reason_code) == ("BLOCKED", "METRIC_IDENTITY_MISMATCH")
+
+
+def test_empty_breakdown_evidence_blocks() -> None:
+    result = evaluate_coverage_quality_gate(replace(_coverage_quality(), breakdown_axes=()))
+    assert (result.status, result.reason_code) == ("BLOCKED", "EMPTY_BREAKDOWN_EVIDENCE")
+
+
+@pytest.mark.parametrize("missing_axis", REQUIRED_BREAKDOWN_AXES)
+def test_missing_required_breakdown_axis_blocks(missing_axis: str) -> None:
+    axes = tuple(
+        axis for axis in _coverage_quality().breakdown_axes if axis.axis_name != missing_axis
+    )
+    result = evaluate_coverage_quality_gate(replace(_coverage_quality(), breakdown_axes=axes))
+    assert (result.status, result.reason_code) == (
+        "BLOCKED",
+        "MISSING_REQUIRED_BREAKDOWN_AXIS",
+    )
+
+
+def test_unknown_breakdown_axis_blocks() -> None:
+    axes = (*_coverage_quality().breakdown_axes, BreakdownAxisEvidence("unknown_axis"))
+    result = evaluate_coverage_quality_gate(replace(_coverage_quality(), breakdown_axes=axes))
+    assert (result.status, result.reason_code) == (
+        "BLOCKED",
+        "UNKNOWN_REQUIRED_BREAKDOWN_AXIS",
+    )
+
+
+def test_duplicate_required_breakdown_axis_blocks() -> None:
+    axes = (*_coverage_quality().breakdown_axes, _coverage_quality().breakdown_axes[0])
+    result = evaluate_coverage_quality_gate(replace(_coverage_quality(), breakdown_axes=axes))
+    assert (result.status, result.reason_code) == (
+        "BLOCKED",
+        "DUPLICATE_REQUIRED_BREAKDOWN_AXIS",
+    )
+
+
+def test_conflicting_breakdown_axis_evidence_blocks() -> None:
+    first_axis = REQUIRED_BREAKDOWN_AXES[0]
+    conflicting_axis = BreakdownAxisEvidence(
+        first_axis,
+        (
+            BreakdownCellEvidence("same-cell", 10),
+            BreakdownCellEvidence("same-cell", 11),
+        ),
+    )
+    axes = (conflicting_axis, *_coverage_quality().breakdown_axes[1:])
+    result = evaluate_coverage_quality_gate(replace(_coverage_quality(), breakdown_axes=axes))
+    assert (result.status, result.reason_code) == (
+        "BLOCKED",
+        "CONFLICTING_AXIS_EVIDENCE",
+    )
+
+
+def test_empty_required_axis_cells_blocks() -> None:
+    first_axis = REQUIRED_BREAKDOWN_AXES[0]
+    axes = (
+        BreakdownAxisEvidence(first_axis),
+        *_coverage_quality().breakdown_axes[1:],
+    )
+    result = evaluate_coverage_quality_gate(replace(_coverage_quality(), breakdown_axes=axes))
+    assert (result.status, result.reason_code) == (
+        "BLOCKED",
+        "EMPTY_REQUIRED_AXIS_CELLS",
+    )
+
+
+def test_all_six_required_breakdown_axes_with_valid_cells_pass() -> None:
+    result = evaluate_coverage_quality_gate(_coverage_quality())
+    assert (result.status, result.reason_code) == ("PASS", "S1_POLICY_SATISFIED")
+
+
+@pytest.mark.parametrize(
+    ("field_name", "reason_code"),
+    (
+        ("train_dataset_identity", "TRAIN_DATASET_IDENTITY_MISSING"),
+        ("validation_dataset_identity", "VALIDATION_DATASET_IDENTITY_MISSING"),
+        ("actual_label_set_identity", "ACTUAL_LABEL_SET_IDENTITY_MISSING"),
+        ("exclusion_policy_identity", "EXCLUSION_POLICY_IDENTITY_MISSING"),
+        ("cutoff_policy_identity", "CUTOFF_POLICY_IDENTITY_MISSING"),
+        ("forecast_horizon_set_identity", "FORECAST_HORIZON_SET_IDENTITY_MISSING"),
+        ("business_grain_set_identity", "BUSINESS_GRAIN_SET_IDENTITY_MISSING"),
+        ("common_comparable_set_identity", "COMMON_COMPARABLE_SET_IDENTITY_MISSING"),
+    ),
+)
+def test_missing_pairing_identity_blocks(field_name: str, reason_code: str) -> None:
+    result = check_candidate_execution_gate(replace(_gate_request(), **{field_name: None}))
+    assert result.status == "BLOCKED"
+    assert reason_code in result.reason_codes
+
+
+def test_metric_contract_identity_mismatch_blocks() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), metric_contract_identity="0" * 64)
+    )
+    assert result.status == "BLOCKED"
+    assert "METRIC_CONTRACT_IDENTITY_MISMATCH" in result.reason_codes
+
+
+def test_malformed_pairing_identity_blocks() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), train_dataset_identity="TRAIN-ALIAS")
+    )
+    assert result.status == "BLOCKED"
+    assert "TRAIN_DATASET_IDENTITY_MALFORMED" in result.reason_codes
+
+
+def test_complete_exact_pairing_identity_set_is_allowed() -> None:
+    result = check_candidate_execution_gate(_gate_request())
+    assert (result.status, result.allowed, result.reason_codes) == ("ALLOWED", True, ())
+
+
+def test_run_ordinal_count_mismatch_actual_zero_ordinal_four_blocks() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), candidate_run_ordinal=4, candidate_actual_run_count=0)
+    )
+    assert result.status == "BLOCKED"
+    assert "RUN_ORDINAL_COUNT_MISMATCH" in result.reason_codes
+
+
+def test_run_ordinal_count_mismatch_actual_two_ordinal_two_blocks() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), candidate_run_ordinal=2, candidate_actual_run_count=2)
+    )
+    assert result.status == "BLOCKED"
+    assert "RUN_ORDINAL_COUNT_MISMATCH" in result.reason_codes
+
+
+def test_run_ordinal_count_actual_zero_ordinal_one_is_allowed() -> None:
+    result = check_candidate_execution_gate(_gate_request())
+    assert result.allowed is True
+
+
+def test_run_ordinal_count_actual_three_ordinal_four_is_allowed() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), candidate_run_ordinal=4, candidate_actual_run_count=3)
+    )
+    assert result.allowed is True
+
+
+def test_candidate_actual_run_count_four_is_blocked() -> None:
+    result = check_candidate_execution_gate(replace(_gate_request(), candidate_actual_run_count=4))
+    assert result.status == "BLOCKED"
+    assert "CANDIDATE_BUDGET_EXHAUSTED" in result.reason_codes
+
+
+def test_retry_without_parent_identity_blocks() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), invocation_type="AUTOMATIC_RETRY")
+    )
+    assert result.status == "BLOCKED"
+    assert "RETRY_PARENT_ID_MISSING" in result.reason_codes
+
+
+def test_distinct_retry_with_parent_and_next_ordinal_is_allowed() -> None:
+    result = check_candidate_execution_gate(
+        replace(
+            _gate_request(),
+            candidate_run_ordinal=2,
+            candidate_actual_run_count=1,
+            global_actual_evaluation_count=1,
+            evaluation_id="evaluation-2",
+            invocation_type="AUTOMATIC_RETRY",
+            retry_of_evaluation_id="evaluation-1",
+            prior_evaluation_ids=("evaluation-1",),
+        )
+    )
+    assert (result.status, result.allowed, result.reason_codes) == ("ALLOWED", True, ())
+
+
+def test_retry_reusing_prior_evaluation_id_blocks() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(), prior_evaluation_ids=("evaluation-1",))
+    )
+    assert result.status == "BLOCKED"
+    assert "EVALUATION_ID_REUSE_FORBIDDEN" in result.reason_codes
