@@ -21216,3 +21216,56 @@ scanner execution or prospective authority conclusion was issued. The
 configured endpoint is recorded as unreachable and the intended authority
 store identity remains not established; no substitute database or volume was
 created.
+
+### 4.18 — S4-C01 local engineering validation R1 (append-only live pointer)
+
+This live pointer records the authorized local engineering lane. It does not
+reopen historical authority recovery and does not promote regenerated local
+forecasts to production or historical PIT authority.
+
+```text
+TASK_ID=V0_3_S4_LOCAL_ENGINEERING_VALIDATION_BOOTSTRAP_AND_C01_EXECUTION_R1
+BASE_MAIN_SHA=77e3d8ac63d794babfe0c8549fd34d0467f0d57e
+BRANCH=codex/v0-3-s4-c01-local-engineering-validation-r1
+EVALUATION_LANE=LOCAL_ENGINEERING_REPLAY
+LOCAL_POSTGRES_READY=true
+LOCAL_DATABASE_NAME=blueberry_peak_s4_local_engineering
+LOCAL_DATABASE_BINDING=127.0.0.1:55435
+SOURCE_002_RESTORED=true
+SOURCE_002_REBUILD_PARITY=PASS
+SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+TRAIN_CONTENT_SHA256=be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2
+VALIDATION_ROW_COUNT=8006
+VALIDATION_CONTENT_SHA256=4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06
+TEST_ROW_COUNT=0
+TEST_REMAINS_SEALED=true
+INCUMBENT_MODEL_ID=V0_2_CURRENT_MODEL
+REGENERATED_INCUMBENT_AUTHORITY_CLASS=LOCAL_ENGINEERING_REPLAY
+LOCAL_INCUMBENT_REPLAY_STATUS=PASS
+LOCAL_INCUMBENT_REPLAY_COUNT=2
+LOCAL_INCUMBENT_REPLAY_DETERMINISTIC=true
+CANDIDATE_ID=01_parameter_calibration
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_ENGINEERING_RUN_COUNT=4
+LOCAL_ENGINEERING_VALIDATION_EVALUATION_COUNT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+VALIDATION_BUDGET_STATUS=PASS
+CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
+CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+TEST_EVALUATION_PERFORMED=false
+PRODUCTION_DATABASE_MUTATION_PERFORMED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_LOCAL_ENGINEERING_RESULT_REVIEW
+```
+
+The four candidate evaluations are recorded as real VALIDATION-informed
+engineering evaluations. Runs 2 and 3 improved the primary metric but were
+blocked by the frozen breakdown coverage guardrail; no candidate was approved
+or selected. The detailed aggregate result is recorded in
+`docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json`.
