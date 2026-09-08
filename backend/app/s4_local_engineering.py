@@ -496,22 +496,14 @@ def _build_predictions(
         ]
         group_curves[key] = _fit_curve(samples, config=config, support_days=support_days)
     for variety, _rows in by_variety.items():
-        grouped_samples: list[tuple[int, Decimal]] = []
-        for key, group_rows in by_group.items():
-            if key[2] != variety:
-                continue
-            anchor = group_anchors[key]
-            variety_total = group_totals[key]
-            if variety_total > 0:
-                grouped_samples.extend(
-                    (
-                        (row.harvest_business_date - anchor).days,
-                        row.actual_harvest_quantity_kg / total,
-                    )
-                    for row in group_rows
-                )
+        grouped_samples = _variety_curve_samples(
+            variety=variety,
+            by_group=by_group,
+            group_anchors=group_anchors,
+            group_totals=group_totals,
+        )
         variety_curves[variety] = _fit_curve(
-            grouped_samples, config=config, support_days=support_days
+            list(grouped_samples), config=config, support_days=support_days
         )
     fallback_total = {
         variety: _q(Decimal(str(median(values))))
@@ -565,7 +557,62 @@ def _daily_totals(predictions: Iterable[LocalPrediction]) -> dict[date, tuple[De
     return {day: (values[0], values[1]) for day, values in totals.items()}
 
 
+def _variety_curve_samples(
+    *,
+    variety: str,
+    by_group: Mapping[tuple[str, str, str], list[MaterializableRow]],
+    group_anchors: Mapping[tuple[str, str, str], date],
+    group_totals: Mapping[tuple[str, str, str], Decimal],
+) -> tuple[tuple[int, Decimal], ...]:
+    """Build deterministic per-group-normalized samples for one variety."""
+
+    grouped_samples: list[tuple[int, Decimal]] = []
+    for key in sorted(by_group):
+        if key[2] != variety:
+            continue
+        group_total = group_totals[key]
+        if group_total <= 0:
+            continue
+        anchor = group_anchors[key]
+        grouped_samples.extend(
+            (
+                (row.harvest_business_date - anchor).days,
+                row.actual_harvest_quantity_kg / group_total,
+            )
+            for row in sorted(by_group[key], key=_row_key)
+        )
+    return tuple(sorted(grouped_samples, key=lambda sample: (sample[0], sample[1])))
+
+
 FarmPeakKey = tuple[str, str, str, date, date, str, str]
+FarmSeriesKey = tuple[str, str, str, date, str, str]
+
+
+def _farm_variety_daily_series(
+    predictions: Iterable[LocalPrediction],
+) -> dict[FarmSeriesKey, dict[date, tuple[Decimal, Decimal]]]:
+    """Sum subfarms while preserving each canonical farm-variety series grain."""
+
+    totals: dict[FarmSeriesKey, dict[date, list[Decimal]]] = defaultdict(
+        lambda: defaultdict(lambda: [Decimal("0"), Decimal("0")])
+    )
+    for item in predictions:
+        if item.forecast_cutoff_at is None:
+            raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
+        key: FarmSeriesKey = (
+            item.season,
+            item.farm,
+            item.variety,
+            item.forecast_cutoff_at,
+            item.model_identity,
+            LOCAL_FARM_PEAK_FORECAST_QUANTILE,
+        )
+        totals[key][item.harvest_business_date][0] += item.actual_kg
+        totals[key][item.harvest_business_date][1] += item.p50_kg
+    return {
+        key: {target_date: (values[0], values[1]) for target_date, values in daily.items()}
+        for key, daily in totals.items()
+    }
 
 
 def _farm_daily_totals(
@@ -573,22 +620,12 @@ def _farm_daily_totals(
 ) -> dict[FarmPeakKey, tuple[Decimal, Decimal]]:
     """Sum subfarms while retaining the frozen farm/variety forecast grain."""
 
-    totals: dict[FarmPeakKey, list[Decimal]] = defaultdict(lambda: [Decimal("0"), Decimal("0")])
-    for item in predictions:
-        if item.forecast_cutoff_at is None:
-            raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
-        key: FarmPeakKey = (
-            item.season,
-            item.farm,
-            item.variety,
-            item.harvest_business_date,
-            item.forecast_cutoff_at,
-            item.model_identity,
-            LOCAL_FARM_PEAK_FORECAST_QUANTILE,
-        )
-        totals[key][0] += item.actual_kg
-        totals[key][1] += item.p50_kg
-    return {key: (values[0], values[1]) for key, values in totals.items()}
+    totals: dict[FarmPeakKey, tuple[Decimal, Decimal]] = {}
+    for series_key, daily in _farm_variety_daily_series(predictions).items():
+        season, farm, variety, cutoff, model_identity, quantile = series_key
+        for target_date, values in daily.items():
+            totals[(season, farm, variety, target_date, cutoff, model_identity, quantile)] = values
+    return totals
 
 
 def _farm_peak_daily_totals(
@@ -662,8 +699,11 @@ def _complete_7day_windows(
 
 
 def _rolling_peak_error(predictions: tuple[LocalPrediction, ...]) -> Decimal | None:
-    daily = _daily_totals(predictions)
-    windows = _complete_7day_windows(daily)
+    windows = [
+        window
+        for daily in _farm_variety_daily_series(predictions).values()
+        for window in _complete_7day_windows(daily)
+    ]
     if not windows:
         return None
     actual_peak = Decimal("0")
