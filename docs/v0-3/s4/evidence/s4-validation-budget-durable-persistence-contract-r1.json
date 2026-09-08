@@ -3,10 +3,39 @@
   "ARTIFACT_TYPE": "S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT",
   "CONTRACT_VERSION": "v0.3-s4-validation-budget-durable-persistence-contract-v1",
   "CONTRACT_STATUS": "FROZEN",
-  "CONTRACT_HASH": "85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561",
+  "CONTRACT_HASH": "a7c7c5eac5550f531836968b5001bfd487218960f31e56ad5a1c5c175169410f",
   "GENESIS_IS_HUMAN_READABLE_LABEL_ONLY": true,
   "GENESIS_PERSISTED_FIELD_VALUE_IS_ALL_ZERO_SHA256": true,
   "GENESIS_PERSISTED_FIELD_VALUE": "0000000000000000000000000000000000000000000000000000000000000000",
+  "CANONICAL_EVENT_BODY_IS_SINGLE_SOURCE_OF_TRUTH": true,
+  "TYPED_COLUMNS_ARE_CANONICAL_EVENT_BODY_PROJECTIONS": true,
+  "TYPED_COLUMNS_INDEPENDENT_SEMANTIC_AUTHORITY": false,
+  "TYPED_COLUMN_PAYLOAD_MISMATCH_FORBIDDEN": true,
+  "EVENT_HASH_COVERS_ALL_CANONICAL_EVENT_SEMANTICS": true,
+  "TYPED_PROJECTION_VALIDATION_REQUIRED_BEFORE_COMMIT": true,
+  "TYPED_PROJECTION_VALIDATION_REQUIRED_ON_READBACK": true,
+  "HASH_REPLAY_USES_STORED_CANONICAL_EVENT_BODY": true,
+  "COLUMN_VALUE_OVERRIDES_EVENT_BODY": false,
+  "EVENT_BODY_OVERRIDES_MISMATCHED_COLUMN": false,
+  "MISMATCH_RESULT": "BLOCKED",
+  "PROJECTION_MISMATCH_REASON": "VALIDATION_EVENT_PROJECTION_MISMATCH",
+  "BUDGET_RECONCILIATION_REQUIRES_VERIFIED_EVENT_PROJECTIONS": true,
+  "BUDGET_RECONCILIATION_REQUIRES_VERIFIED_HASH_CHAIN": true,
+  "BUDGET_RECONCILIATION_REQUIRES_ACCEPTED_HEAD_MATCH": true,
+  "RETRY_COUNTS_AS_NEW_CANDIDATE_RUN": true,
+  "RETRY_REQUIRES_NEW_EVALUATION_ID": true,
+  "STARTED_TYPED_EVALUATION_ID_EQUALS_BODY": true,
+  "STARTED_TYPED_CANDIDATE_ID_EQUALS_BODY": true,
+  "STARTED_TYPED_CANDIDATE_RUN_ORDINAL_EQUALS_BODY": true,
+  "STARTED_TYPED_GLOBAL_EVALUATION_ORDINAL_EQUALS_BODY": true,
+  "STARTED_TYPED_INVOCATION_TYPE_EQUALS_BODY": true,
+  "STARTED_TYPED_COUNTED_TOWARD_BUDGET_EQUALS_BODY": true,
+  "STARTED_TYPED_BUDGET_COUNT_REASON_EQUALS_BODY": true,
+  "TERMINAL_TYPED_EVALUATION_ID_EQUALS_BODY": true,
+  "TERMINAL_TYPED_CANDIDATE_ID_EQUALS_BODY": true,
+  "TERMINAL_TYPED_FINISHED_AT_EQUALS_BODY": true,
+  "TERMINAL_TYPED_EXECUTION_STATUS_EQUALS_BODY": true,
+  "TERMINAL_TYPED_METRIC_RESULT_STATUS_EQUALS_BODY": true,
   "BASE_MAIN_SHA": "77e3d8ac63d794babfe0c8549fd34d0467f0d57e",
   "SOURCE_PR": 587,
   "SOURCE_PR_HEAD_SHA": "ffc5dd31bfb5ea9f036d0e27d3c4d9566ce1a69d",
@@ -95,6 +124,7 @@
     "VALIDATION_TERMINAL_WITHOUT_STARTED",
     "VALIDATION_TERMINAL_CANDIDATE_MISMATCH",
     "VALIDATION_DUPLICATE_TERMINAL",
+    "VALIDATION_EVENT_PROJECTION_MISMATCH",
     "LEGACY_VALIDATION_DEBIT_MISMATCH"
   ],
   "IMPLEMENTATION_AUTHORIZED": false,
@@ -121,7 +151,14 @@
   "GENESIS_CANONICAL_VALUE_CORRECTED": true,
   "STARTED_CANDIDATE_RUN_UNIQUENESS_FROZEN": true,
   "TERMINAL_TO_STARTED_BINDING_FROZEN": true,
-  "FINAL_STOP_GATE": "COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW",
+  "CORRECTION_R3_TASK_ID": "V0_3_S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT_PAYLOAD_BINDING_CORRECTION_R3",
+  "CORRECTION_R3_PREVIOUS_HEAD_SHA": "dbf5390154319378dbf82153f11c047d2331bf3b",
+  "CORRECTION_R3_OLD_CONTRACT_HASH": "85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561",
+  "CORRECTION_R3_NEW_CONTRACT_HASH": "a7c7c5eac5550f531836968b5001bfd487218960f31e56ad5a1c5c175169410f",
+  "CANONICAL_EVENT_BODY_SINGLE_SOURCE_OF_TRUTH": true,
+  "TYPED_COLUMN_PAYLOAD_BINDING_FROZEN": true,
+  "PROJECTION_MISMATCH_FAILS_CLOSED": true,
+  "FINAL_STOP_GATE": "COORDINATOR_PR588_PAYLOAD_BINDING_CORRECTION_REVIEW",
   "canonical_contract": {
     "contract_version": "v0.3-s4-validation-budget-durable-persistence-contract-v1",
     "canonical_authority": {
@@ -134,7 +171,15 @@
       "process_memory_budget_authority": false,
       "cross_domain_authority_reuse_forbidden": true,
       "genesis_is_human_readable_label_only": true,
-      "genesis_persisted_field_value": "0000000000000000000000000000000000000000000000000000000000000000"
+      "genesis_persisted_field_value": "0000000000000000000000000000000000000000000000000000000000000000",
+      "canonical_event_body_is_single_source_of_truth": true,
+      "typed_columns_are_canonical_event_body_projections": true,
+      "typed_columns_independent_semantic_authority": false,
+      "typed_column_payload_mismatch_forbidden": true,
+      "typed_columns_support_index_and_constraints": true,
+      "column_value_overrides_event_body": false,
+      "event_body_overrides_mismatched_column": false,
+      "mismatch_result": "BLOCKED"
     },
     "authority_object": {
       "authority_type": "S4_VALIDATION_BUDGET",
@@ -177,6 +222,10 @@
         "EVALUATION_STARTED",
         "EVALUATION_TERMINAL"
       ],
+      "canonical_event_body_field": "event_payload",
+      "canonical_event_body_is_single_source_of_truth": true,
+      "typed_columns_are_canonical_event_body_projections": true,
+      "typed_column_payload_mismatch_forbidden": true,
       "common_fields": [
         "authority_key",
         "event_sequence",
@@ -195,6 +244,27 @@
         "counted_toward_budget",
         "budget_count_reason"
       ],
+      "started_canonical_event_body_fields": [
+        "evaluation_id",
+        "experiment_plan_version",
+        "candidate_id",
+        "candidate_run_ordinal",
+        "global_evaluation_ordinal",
+        "invocation_type",
+        "trigger_source",
+        "started_at",
+        "finished_at",
+        "execution_status",
+        "metric_result_status",
+        "dataset_hash",
+        "validation_split_hash",
+        "code_commit_sha",
+        "parameter_manifest_hash",
+        "random_seed",
+        "retry_of_evaluation_id",
+        "counted_toward_budget",
+        "budget_count_reason"
+      ],
       "started_semantics": {
         "counted_toward_budget": true,
         "budget_count_reason": "STARTED_INVOCATION",
@@ -209,7 +279,27 @@
         "binding_scope": "AUTHORITY_KEY_X_EVALUATION_ID",
         "candidate_id_must_match_started": true,
         "duplicate_terminal_forbidden": true,
-        "never_increments_accepted_started_count": true
+        "never_increments_accepted_started_count": true,
+        "canonical_event_body_is_single_source_of_truth": true,
+        "typed_columns_are_canonical_event_body_projections": true,
+        "typed_column_payload_mismatch_forbidden": true,
+        "projection_mismatch_reason": "VALIDATION_EVENT_PROJECTION_MISMATCH"
+      },
+      "started_typed_projection_bindings": {
+        "evaluation_id_equals_body": true,
+        "candidate_id_equals_body": true,
+        "candidate_run_ordinal_equals_body": true,
+        "global_evaluation_ordinal_equals_body": true,
+        "invocation_type_equals_body": true,
+        "counted_toward_budget_equals_body": true,
+        "budget_count_reason_equals_body": true
+      },
+      "terminal_typed_projection_bindings": {
+        "evaluation_id_equals_body": true,
+        "candidate_id_equals_body": true,
+        "finished_at_equals_body": true,
+        "execution_status_equals_body": true,
+        "metric_result_status_equals_body": true
       },
       "constraints": {
         "primary_key": [
@@ -244,7 +334,12 @@
         "terminal_candidate_id_must_match_started": true,
         "duplicate_terminal_forbidden": true,
         "terminal_rows_do_not_count_as_started": true,
-        "terminal_rows_do_not_increment_budget": true
+        "terminal_rows_do_not_increment_budget": true,
+        "typed_projection_validation_required_before_commit": true,
+        "typed_projection_validation_required_on_readback": true,
+        "column_value_overrides_event_body": false,
+        "event_body_overrides_mismatched_column": false,
+        "mismatch_result": "BLOCKED"
       }
     },
     "hash_chain": {
@@ -253,15 +348,20 @@
       "genesis_persisted_field_value_is_all_zero_sha256": true,
       "algorithm": "SHA-256",
       "serialization": "repository canonical JSON",
+      "stored_canonical_event_body_field": "event_payload",
+      "canonical_event_body_is_single_source_of_truth": true,
       "preimage_fields": [
         "event_type",
-        "canonical_event_payload",
+        "canonical_event_body",
         "previous_event_hash"
       ],
       "new_event_previous_hash_must_equal_accepted_head": true,
       "new_event_sequence_must_equal_accepted_event_count_plus_one": true,
       "full_chain_verification_required": true,
-      "hash_chain_alone_is_not_independent_tail_authority": true
+      "hash_chain_alone_is_not_independent_tail_authority": true,
+      "event_hash_covers_all_canonical_event_semantics": true,
+      "hash_replay_uses_stored_canonical_event_body": true,
+      "hash_replay_does_not_reconstruct_body_from_typed_columns": true
     },
     "atomic_transition": {
       "event_insert_and_head_advance_same_transaction": true,
@@ -276,7 +376,8 @@
       "affected_row_count_must_equal": 1,
       "cas_conflict_reason": "VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT",
       "concurrent_writer_fail_closed": true,
-      "silent_same_evaluation_retry_forbidden": true
+      "silent_same_evaluation_retry_forbidden": true,
+      "typed_projection_validation_required_before_commit": true
     },
     "started_protocol": [
       "resolve_frozen_candidate_and_run_authority",
@@ -310,6 +411,11 @@
         "started_debit_retained",
         "started_is_not_deleted"
       ],
+      "projection_mismatch": [
+        "status_blocked",
+        "reason_validation_event_projection_mismatch",
+        "budget_reconciliation_not_performed"
+      ],
       "tail_suffix_missing_against_accepted_head": "VALIDATION_LEDGER_TAIL_TRUNCATION_DETECTED"
     },
     "budget": {
@@ -340,7 +446,10 @@
         }
       ],
       "candidate_count_independent_from_global_count": true,
-      "next_started_at_effective_32": "BLOCKED"
+      "next_started_at_effective_32": "BLOCKED",
+      "retry_counts_as_new_candidate_run": true,
+      "retry_requires_new_evaluation_id": true,
+      "retry_candidate_run_ordinal_formula": "candidate_actual_run_count + 1"
     },
     "tail_readback": {
       "accepted_head_is_prefix_boundary": true,
@@ -348,7 +457,11 @@
       "event_count_mismatch_reason": "VALIDATION_LEDGER_EVENT_COUNT_MISMATCH",
       "started_count_mismatch_reason": "VALIDATION_LEDGER_STARTED_COUNT_MISMATCH",
       "head_mismatch_reason": "VALIDATION_LEDGER_HEAD_MISMATCH",
-      "hash_chain_mismatch_reason": "VALIDATION_EVENT_HASH_CHAIN_MISMATCH"
+      "hash_chain_mismatch_reason": "VALIDATION_EVENT_HASH_CHAIN_MISMATCH",
+      "projection_mismatch_reason": "VALIDATION_EVENT_PROJECTION_MISMATCH",
+      "budget_reconciliation_requires_verified_event_projections": true,
+      "budget_reconciliation_requires_verified_hash_chain": true,
+      "budget_reconciliation_requires_accepted_head_match": true
     },
     "bootstrap": {
       "authority_created_only_if_missing": true,
@@ -401,6 +514,15 @@
       "test_duplicate_terminal_is_rejected",
       "test_terminal_same_authority_and_evaluation_binds_exact_started",
       "test_terminal_does_not_increment_started_count_or_budget",
+      "test_started_typed_columns_must_match_hashed_event_body",
+      "test_terminal_typed_columns_must_match_hashed_event_body",
+      "test_candidate_id_cannot_diverge_between_column_and_event_body",
+      "test_candidate_run_ordinal_cannot_diverge_between_column_and_event_body",
+      "test_global_evaluation_ordinal_cannot_diverge_between_column_and_event_body",
+      "test_evaluation_id_cannot_diverge_between_column_and_event_body",
+      "test_counted_toward_budget_cannot_diverge_between_column_and_event_body",
+      "test_budget_reconciliation_blocks_on_projection_mismatch",
+      "test_hash_replay_uses_stored_canonical_event_body",
       "test_no_legacy_fake_events_are_created",
       "test_jsonl_is_not_budget_authority"
     ]

@@ -17,6 +17,14 @@ CANONICAL_DB_EVENT_LEDGER_REQUIRED=true
 DURABLE_MONOTONIC_HEAD_REQUIRED=true
 GENESIS_IS_HUMAN_READABLE_LABEL_ONLY=true
 GENESIS_PERSISTED_FIELD_VALUE_IS_ALL_ZERO_SHA256=true
+CANONICAL_EVENT_BODY_IS_SINGLE_SOURCE_OF_TRUTH=true
+TYPED_COLUMNS_ARE_CANONICAL_EVENT_BODY_PROJECTIONS=true
+TYPED_COLUMNS_INDEPENDENT_SEMANTIC_AUTHORITY=false
+TYPED_COLUMN_PAYLOAD_MISMATCH_FORBIDDEN=true
+EVENT_HASH_COVERS_ALL_CANONICAL_EVENT_SEMANTICS=true
+TYPED_PROJECTION_VALIDATION_REQUIRED_BEFORE_COMMIT=true
+TYPED_PROJECTION_VALIDATION_REQUIRED_ON_READBACK=true
+HASH_REPLAY_USES_STORED_CANONICAL_EVENT_BODY=true
 
 No candidate is executed by this contract. TEST remains sealed.
 
@@ -97,15 +105,35 @@ The implementation must persist the canonical events in a PostgreSQL event table
 
 The event table must support exactly these event types: EVALUATION_STARTED and EVALUATION_TERMINAL.
 
-Each event must bind these fields: authority_key, event_sequence, event_type, evaluation_id, candidate_id, event_payload, previous_event_hash, event_hash, and created_at.
+Each event must bind these fields: authority_key, event_sequence, event_type, evaluation_id, candidate_id, event_payload, previous_event_hash, event_hash, and created_at. `event_payload` is the stored `canonical_event_body`; it is the single semantic authority used for hashing. Typed governance columns are deterministic, validated projections of that body and are not a second authority.
 
-An EVALUATION_STARTED event additionally requires candidate_run_ordinal, global_evaluation_ordinal, invocation_type, counted_toward_budget, and budget_count_reason. A STARTED event must satisfy:
+An EVALUATION_STARTED event additionally requires candidate_run_ordinal, global_evaluation_ordinal, invocation_type, counted_toward_budget, and budget_count_reason. Its canonical event body must contain, at minimum, evaluation_id, experiment_plan_version, candidate_id, candidate_run_ordinal, global_evaluation_ordinal, invocation_type, trigger_source, started_at, finished_at, execution_status, metric_result_status, dataset_hash, validation_split_hash, code_commit_sha, parameter_manifest_hash, random_seed, retry_of_evaluation_id, counted_toward_budget, and budget_count_reason. A STARTED event must satisfy:
 
 STARTED_CANDIDATE_RUN_ORDINAL_MIN=1
 STARTED_CANDIDATE_RUN_ORDINAL_MAX=4
 STARTED_GLOBAL_EVALUATION_ORDINAL_MIN=1
 
 An EVALUATION_TERMINAL event must bind to the one existing EVALUATION_STARTED event with the same authority_key and evaluation_id. Its candidate_id must equal the STARTED candidate_id. A terminal event is not a second STARTED invocation and never consumes additional budget.
+
+For every persisted STARTED row, each typed governance column MUST equal the corresponding field in the canonical event body used to compute event_hash. The required STARTED projection bindings are:
+
+STARTED_TYPED_EVALUATION_ID_EQUALS_BODY=true
+STARTED_TYPED_CANDIDATE_ID_EQUALS_BODY=true
+STARTED_TYPED_CANDIDATE_RUN_ORDINAL_EQUALS_BODY=true
+STARTED_TYPED_GLOBAL_EVALUATION_ORDINAL_EQUALS_BODY=true
+STARTED_TYPED_INVOCATION_TYPE_EQUALS_BODY=true
+STARTED_TYPED_COUNTED_TOWARD_BUDGET_EQUALS_BODY=true
+STARTED_TYPED_BUDGET_COUNT_REASON_EQUALS_BODY=true
+
+The required TERMINAL projection bindings are:
+
+TERMINAL_TYPED_EVALUATION_ID_EQUALS_BODY=true
+TERMINAL_TYPED_CANDIDATE_ID_EQUALS_BODY=true
+TERMINAL_TYPED_FINISHED_AT_EQUALS_BODY=true
+TERMINAL_TYPED_EXECUTION_STATUS_EQUALS_BODY=true
+TERMINAL_TYPED_METRIC_RESULT_STATUS_EQUALS_BODY=true
+
+If a future physical schema has no typed column for a semantic field, that field remains only in the canonical event body. It must not have a second independently assignable value. Any typed-column/body mismatch is invalid and fails closed; neither side may override the other.
 
 The started contract is immutable:
 
@@ -136,6 +164,9 @@ The event schema must freeze these database constraints:
 - TERMINAL requires an existing STARTED in the same authority scope and evaluation_id;
 - TERMINAL candidate_id must match the bound STARTED candidate_id;
 - at most one TERMINAL exists for each authority_key plus evaluation_id;
+- canonical event body is the only semantic authority for every hashed event;
+- typed governance columns are validated projections of the canonical event body;
+- typed projection equality is required before commit and on readback;
 - no UPDATE or DELETE of accepted events;
 - no event sequence gap can be accepted by the head advance transaction.
 
@@ -145,6 +176,20 @@ UNIQUE (authority_key, global_evaluation_ordinal) WHERE event_type = 'EVALUATION
 UNIQUE (authority_key, candidate_id, candidate_run_ordinal) WHERE event_type = 'EVALUATION_STARTED'
 
 The second constraint must include candidate_id, so the same run ordinal is allowed for different candidates while duplicate runs for one candidate are rejected. Terminal rows do not occupy either STARTED-only ordinal constraint.
+
+Typed columns support indexing, constraints, querying, candidate budget
+reconciliation, global ordinal uniqueness, and candidate/run uniqueness. They
+are not independent semantic authority:
+
+TYPED_COLUMNS_SUPPORT_INDEX_AND_CONSTRAINTS=true
+TYPED_COLUMNS_INDEPENDENT_SEMANTIC_AUTHORITY=false
+COLUMN_VALUE_OVERRIDES_EVENT_BODY=false
+EVENT_BODY_OVERRIDES_MISMATCHED_COLUMN=false
+MISMATCH_RESULT=BLOCKED
+
+The persistence path must validate the typed projection against the canonical
+event body before commit. The readback path must perform the same validation
+before using event rows for budget reconciliation.
 
 ## Hash chain
 
@@ -158,7 +203,23 @@ The symbolic label `GENESIS` is documentation-only. The only persisted
 `accepted_head_event_hash` value for the empty ledger is the 64-character
 all-zero SHA-256 sentinel above.
 
-The canonical preimage is the repository canonical JSON representation of the event type, event payload, and previous event hash. The event hash must be computed as SHA-256 of event_type plus canonical event payload plus previous_event_hash.
+The canonical event body is the repository-canonical JSON object containing all
+semantic fields for that event type. The persisted `event_payload` is this
+canonical body, not an independently authored copy. The event hash must be
+computed exactly as:
+
+event_hash = SHA256(canonical_json({event_type, canonical_event_body, previous_event_hash}))
+
+This covers all canonical event semantics. Hash replay MUST use the stored
+canonical event body, not reconstruct a body from typed columns:
+
+1. read the stored canonical event body;
+2. verify every typed projection matches it;
+3. recompute event_hash from the stored canonical body;
+4. verify the previous_event_hash chain.
+
+HASH_REPLAY_USES_STORED_CANONICAL_EVENT_BODY=true
+EVENT_HASH_COVERS_ALL_CANONICAL_EVENT_SEMANTICS=true
 
 For every new event:
 
@@ -182,6 +243,8 @@ If the affected row count is not exactly one, the transaction must roll back and
 VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT
 
 The implementation must not silently retry the same evaluation identity after a CAS conflict. A new operator-triggered invocation requires a new evaluation_id and is counted as a new invocation when it commits.
+
+TYPED_PROJECTION_VALIDATION_REQUIRED_BEFORE_COMMIT=true
 
 ## STARTED transaction boundary
 
@@ -225,6 +288,13 @@ Expected forward states:
 
 At effective 32, the next STARTED transaction must fail closed before model evaluation. Candidate-level run count remains independent from the global effective count; for example, two C02 starts mean candidate count 2, global canonical started count 2, and effective count 6 after the legacy debit.
 
+RETRY_COUNTS_AS_NEW_CANDIDATE_RUN=true
+RETRY_REQUIRES_NEW_EVALUATION_ID=true
+
+Every retry uses `candidate_run_ordinal = candidate_actual_run_count + 1` and
+creates a new immutable event identity. It does not overwrite a prior ledger
+row.
+
 ## Tail truncation and readback
 
 The DB authority is the accepted prefix boundary. A reader must compare the event history with the accepted authority row before calculating budget.
@@ -235,6 +305,17 @@ STATUS=BLOCKED
 REASON=VALIDATION_LEDGER_TAIL_TRUNCATION_DETECTED
 
 It must not recompute effective consumption as 5 and continue. A mismatch at the accepted boundary uses VALIDATION_LEDGER_HEAD_MISMATCH. Counter mismatches use VALIDATION_LEDGER_EVENT_COUNT_MISMATCH or VALIDATION_LEDGER_STARTED_COUNT_MISMATCH. Hash-chain failures use VALIDATION_EVENT_HASH_CHAIN_MISMATCH.
+
+Budget reconciliation is permitted only after all of the following pass:
+
+BUDGET_RECONCILIATION_REQUIRES_VERIFIED_EVENT_PROJECTIONS=true
+BUDGET_RECONCILIATION_REQUIRES_VERIFIED_HASH_CHAIN=true
+BUDGET_RECONCILIATION_REQUIRES_ACCEPTED_HEAD_MATCH=true
+
+If a typed column and the stored canonical event body disagree, readback is:
+
+STATUS=BLOCKED
+REASON=VALIDATION_EVENT_PROJECTION_MISMATCH
 
 ## Bootstrap and legacy binding
 
@@ -276,6 +357,7 @@ At minimum, implementation must expose these stable reason codes:
 - VALIDATION_TERMINAL_WITHOUT_STARTED
 - VALIDATION_TERMINAL_CANDIDATE_MISMATCH
 - VALIDATION_DUPLICATE_TERMINAL
+- VALIDATION_EVENT_PROJECTION_MISMATCH
 - LEGACY_VALIDATION_DEBIT_MISMATCH
 
 ## Security and trust boundary
@@ -312,8 +394,51 @@ The subsequent implementation task must provide at least these tests:
 - test_duplicate_terminal_is_rejected
 - test_terminal_same_authority_and_evaluation_binds_exact_started
 - test_terminal_does_not_increment_started_count_or_budget
+- test_started_typed_columns_must_match_hashed_event_body
+- test_terminal_typed_columns_must_match_hashed_event_body
+- test_candidate_id_cannot_diverge_between_column_and_event_body
+- test_candidate_run_ordinal_cannot_diverge_between_column_and_event_body
+- test_global_evaluation_ordinal_cannot_diverge_between_column_and_event_body
+- test_evaluation_id_cannot_diverge_between_column_and_event_body
+- test_counted_toward_budget_cannot_diverge_between_column_and_event_body
+- test_budget_reconciliation_blocks_on_projection_mismatch
+- test_hash_replay_uses_stored_canonical_event_body
 - test_no_legacy_fake_events_are_created
 - test_jsonl_is_not_budget_authority
+
+## Hostile projection examples
+
+The implementation acceptance contract must keep typed columns and the hashed
+canonical body in one semantic domain. For example:
+
+| Case | Typed column | Canonical event body | Required result |
+| --- | --- | --- | --- |
+| Candidate mismatch | `candidate_id=03_candidate` | `candidate_id=02_candidate` | `STATUS=BLOCKED`, `REASON=VALIDATION_EVENT_PROJECTION_MISMATCH` |
+| Run ordinal mismatch | `candidate_run_ordinal=2` | `candidate_run_ordinal=1` | `STATUS=BLOCKED` |
+| Budget flag mismatch | `counted_toward_budget=false` | `counted_toward_budget=true` | `STATUS=BLOCKED` |
+
+The implementation must not choose one side as authoritative, silently reduce
+the budget, or continue reconciliation after any of these mismatches.
+
+## Correction R3 addendum
+
+TASK_ID=V0_3_S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT_PAYLOAD_BINDING_CORRECTION_R3
+TARGET_PR=588
+PREVIOUS_HEAD_SHA=dbf5390154319378dbf82153f11c047d2331bf3b
+OLD_CONTRACT_HASH=85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561
+NEW_CONTRACT_HASH=a7c7c5eac5550f531836968b5001bfd487218960f31e56ad5a1c5c175169410f
+CANONICAL_EVENT_BODY_SINGLE_SOURCE_OF_TRUTH=true
+TYPED_COLUMN_PAYLOAD_BINDING_FROZEN=true
+PROJECTION_MISMATCH_FAILS_CLOSED=true
+IMPLEMENTATION_AUTHORIZED=false
+MIGRATION_AUTHORIZED=false
+SCHEMA_CHANGE_AUTHORIZED=false
+TEST_ACCESS_AUTHORIZED=false
+TEST_MUST_REMAIN_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR588_PAYLOAD_BINDING_CORRECTION_REVIEW
 
 ## Explicit boundary
 
@@ -331,4 +456,4 @@ PR587_MERGE_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW
+FINAL_STOP_GATE=COORDINATOR_PR588_PAYLOAD_BINDING_CORRECTION_REVIEW
