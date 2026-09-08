@@ -18,7 +18,7 @@ import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import delete, func, select, text, update
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -32,7 +32,8 @@ from backend.app.s4_validation_budget import (
     TerminalEventCommand,
     ValidationBudgetError,
 )
-from backend.app.s4_validation_budget.canonical import validation_event_hash
+from backend.app.s4_validation_budget.canonical import canonical_event_body, validation_event_hash
+from backend.app.s4_validation_budget.persistence import _integrity_reason
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
@@ -85,6 +86,8 @@ def _command(
     candidate_id: str = "01_parameter_calibration",
     candidate_run_ordinal: int | None = None,
     evaluation_id: str | None = None,
+    invocation_type: str = "NORMAL_RUN",
+    retry_of_evaluation_id: str | None = None,
     expected_authority_version: int | None = None,
     expected_event_count: int | None = None,
     expected_started_count: int | None = None,
@@ -97,7 +100,7 @@ def _command(
         candidate_id=candidate_id,
         candidate_run_ordinal=(ordinal if candidate_run_ordinal is None else candidate_run_ordinal),
         global_evaluation_ordinal=ordinal,
-        invocation_type="NORMAL_RUN",
+        invocation_type=invocation_type,
         trigger_source="synthetic-contract-test",
         started_at=datetime(2026, 1, 1, tzinfo=UTC) + timedelta(minutes=ordinal),
         dataset_hash="a" * 64,
@@ -105,6 +108,7 @@ def _command(
         code_commit_sha="c" * 40,
         parameter_manifest_hash="d" * 64,
         random_seed=ordinal,
+        retry_of_evaluation_id=retry_of_evaluation_id,
         expected_authority_version=expected_authority_version,
         expected_event_count=expected_event_count,
         expected_started_count=expected_started_count,
@@ -120,6 +124,8 @@ async def _start(
     candidate_id: str = "01_parameter_calibration",
     candidate_run_ordinal: int | None = None,
     evaluation_id: str | None = None,
+    invocation_type: str = "NORMAL_RUN",
+    retry_of_evaluation_id: str | None = None,
 ) -> None:
     await S4ValidationBudgetRepository(session).append_started(
         _command(
@@ -127,6 +133,8 @@ async def _start(
             candidate_id=candidate_id,
             candidate_run_ordinal=candidate_run_ordinal,
             evaluation_id=evaluation_id,
+            invocation_type=invocation_type,
+            retry_of_evaluation_id=retry_of_evaluation_id,
         )
     )
 
@@ -140,6 +148,52 @@ async def _expect_reason(awaitable: Any, reason: str) -> None:
 async def _drop_event_guards(session: AsyncSession) -> None:
     await session.execute(text("DROP TRIGGER IF EXISTS s4_validation_event_immutable_update"))
     await session.execute(text("DROP TRIGGER IF EXISTS s4_validation_event_immutable_delete"))
+    await session.commit()
+
+
+async def _rewrite_last_event_semantically(
+    session: AsyncSession,
+    *,
+    payload_updates: dict[str, Any],
+) -> None:
+    """Create a hash/projection-consistent hostile row for replay tests."""
+
+    row = await session.scalar(
+        select(S4ValidationEvent).order_by(S4ValidationEvent.event_sequence.desc())
+    )
+    assert row is not None
+    payload = dict(row.event_payload)
+    payload.update(payload_updates)
+    payload = canonical_event_body(payload)
+    values: dict[str, Any] = {
+        "event_payload": payload,
+        "event_hash": validation_event_hash(
+            event_type=row.event_type,
+            event_payload=payload,
+            previous_event_hash=row.previous_event_hash,
+        ),
+    }
+    for field in (
+        "evaluation_id",
+        "candidate_id",
+        "candidate_run_ordinal",
+        "global_evaluation_ordinal",
+        "invocation_type",
+        "counted_toward_budget",
+        "budget_count_reason",
+        "execution_status",
+        "metric_result_status",
+    ):
+        if field in payload_updates:
+            values[field] = payload[field]
+    await session.execute(
+        update(S4ValidationEvent)
+        .where(S4ValidationEvent.event_sequence == row.event_sequence)
+        .values(**values)
+    )
+    await session.execute(
+        update(S4ValidationBudgetAuthority).values(accepted_head_event_hash=values["event_hash"])
+    )
     await session.commit()
 
 
@@ -177,6 +231,87 @@ async def test_second_started_commits_six_of_thirty_two(
     assert state.remaining == 26
 
 
+async def test_unknown_invocation_type_is_rejected(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).append_started(
+            _command(1, candidate_run_ordinal=1, invocation_type="UNKNOWN_RUN")
+        ),
+        "INVOCATION_TYPE_INVALID",
+    )
+
+
+async def test_retry_invocation_requires_parent(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).append_started(
+            _command(1, candidate_run_ordinal=1, invocation_type="AUTOMATIC_RETRY")
+        ),
+        "RETRY_PARENT_ID_MISSING",
+    )
+
+
+async def test_retry_parent_must_exist_in_prior_started_history(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).append_started(
+            _command(
+                1,
+                candidate_run_ordinal=1,
+                invocation_type="MANUAL_RETRY",
+                retry_of_evaluation_id="missing-parent",
+            )
+        ),
+        "RETRY_PARENT_INVOCATION_NOT_FOUND",
+    )
+
+
+async def test_retry_parent_cannot_be_current_evaluation(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).append_started(
+            _command(
+                1,
+                candidate_run_ordinal=1,
+                evaluation_id="self-retry",
+                invocation_type="OPERATOR_TRIGGERED_RERUN",
+                retry_of_evaluation_id="self-retry",
+            )
+        ),
+        "RETRY_REUSES_EVALUATION_ID",
+    )
+
+
+async def test_retry_uses_new_evaluation_id_and_consumes_new_ordinals(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await _start(
+        session,
+        2,
+        candidate_run_ordinal=2,
+        evaluation_id="retry-evaluation",
+        invocation_type="AUTOMATIC_RETRY",
+        retry_of_evaluation_id="evaluation-1-01_parameter_calibration",
+    )
+    state = await S4ValidationBudgetRepository(session).load_verified_state()
+    assert state.accepted_started_count == 2
+    assert state.events[1].event_payload["retry_of_evaluation_id"] == (
+        "evaluation-1-01_parameter_calibration"
+    )
+    assert state.events[1].event_payload["candidate_run_ordinal"] == 2
+    assert state.events[1].event_payload["global_evaluation_ordinal"] == 2
+
+
 async def test_started_commit_precedes_model_execution(
     sqlite_db: tuple[AsyncSession, AsyncEngine],
 ) -> None:
@@ -209,6 +344,63 @@ async def test_failed_scoring_does_not_refund_started_budget(
     state = await S4ValidationBudgetRepository(session).load_verified_state()
     assert state.accepted_started_count == 1
     assert state.remaining == 27
+
+
+async def test_evaluation_id_reuse_is_rejected(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).append_started(
+            _command(
+                2,
+                candidate_id="02_quantile_calibration",
+                candidate_run_ordinal=1,
+                evaluation_id="evaluation-1-01_parameter_calibration",
+            )
+        ),
+        "VALIDATION_EVALUATION_ID_REUSE",
+    )
+
+
+def test_integrity_error_constraint_classification_is_fail_closed() -> None:
+    candidate = IntegrityError(
+        "insert",
+        {},
+        Exception(
+            "duplicate key value violates unique constraint "
+            '"uq_s4_validation_event_started_candidate_run"'
+        ),
+    )
+    global_ordinal = IntegrityError(
+        "insert",
+        {},
+        Exception(
+            "duplicate key value violates unique constraint "
+            '"uq_s4_validation_event_started_global_ordinal"'
+        ),
+    )
+    evaluation = IntegrityError(
+        "insert",
+        {},
+        Exception(
+            "duplicate key value violates unique constraint "
+            '"uq_s4_validation_event_evaluation_type"'
+        ),
+    )
+    unknown = IntegrityError("insert", {}, Exception("unexpected integrity failure"))
+    assert _integrity_reason(candidate, operation="started") == (
+        "VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE"
+    )
+    assert _integrity_reason(global_ordinal, operation="started") == (
+        "VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT"
+    )
+    assert _integrity_reason(evaluation, operation="started") == "VALIDATION_EVALUATION_ID_REUSE"
+    assert _integrity_reason(evaluation, operation="terminal") == "VALIDATION_DUPLICATE_TERMINAL"
+    assert (
+        _integrity_reason(unknown, operation="started") == "VALIDATION_PERSISTENCE_INTEGRITY_ERROR"
+    )
 
 
 async def test_terminal_does_not_increment_budget(
@@ -318,6 +510,119 @@ async def test_global_ordinal_regression_is_rejected(
     await _expect_reason(
         S4ValidationBudgetRepository(session).load_verified_state(),
         "VALIDATION_GLOBAL_ORDINAL_REGRESSION",
+    )
+
+
+async def test_readback_rejects_unknown_invocation_type(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await _drop_event_guards(session)
+    await _rewrite_last_event_semantically(
+        session, payload_updates={"invocation_type": "UNKNOWN_RUN"}
+    )
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).load_verified_state(),
+        "INVOCATION_TYPE_INVALID",
+    )
+
+
+async def test_readback_rejects_retry_without_prior_parent(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    # Build a hash-consistent invalid retry without using a production bypass.
+    await _drop_event_guards(session)
+    await _rewrite_last_event_semantically(
+        session,
+        payload_updates={
+            "invocation_type": "MANUAL_RETRY",
+            "retry_of_evaluation_id": "future-or-missing",
+        },
+    )
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).load_verified_state(),
+        "RETRY_PARENT_INVOCATION_NOT_FOUND",
+    )
+
+
+async def test_readback_rejects_global_ordinal_gap(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await _start(session, 2, candidate_run_ordinal=2)
+    await _drop_event_guards(session)
+    await _rewrite_last_event_semantically(
+        session,
+        payload_updates={"global_evaluation_ordinal": 3},
+    )
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).load_verified_state(),
+        "VALIDATION_GLOBAL_ORDINAL_REGRESSION",
+    )
+
+
+async def test_readback_rejects_candidate_run_ordinal_gap(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await _start(session, 2, candidate_run_ordinal=2)
+    await _drop_event_guards(session)
+    await _rewrite_last_event_semantically(
+        session,
+        payload_updates={"candidate_run_ordinal": 3},
+    )
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).load_verified_state(),
+        "VALIDATION_CANDIDATE_RUN_ORDINAL_INVALID",
+    )
+
+
+async def test_readback_rejects_invalid_terminal_execution_status(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await S4ValidationBudgetRepository(session).append_terminal(
+        TerminalEventCommand(
+            "evaluation-1-01_parameter_calibration",
+            "01_parameter_calibration",
+            datetime(2026, 1, 2, tzinfo=UTC),
+            "COMPLETED",
+            "COMPUTED",
+        )
+    )
+    await _drop_event_guards(session)
+    await _rewrite_last_event_semantically(session, payload_updates={"execution_status": "GARBAGE"})
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).load_verified_state(),
+        "VALIDATION_TERMINAL_SEMANTICS_INVALID",
+    )
+
+
+async def test_readback_rejects_terminal_missing_required_semantics(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    await _start(session, 1, candidate_run_ordinal=1)
+    await S4ValidationBudgetRepository(session).append_terminal(
+        TerminalEventCommand(
+            "evaluation-1-01_parameter_calibration",
+            "01_parameter_calibration",
+            datetime(2026, 1, 2, tzinfo=UTC),
+            "COMPLETED",
+            "COMPUTED",
+        )
+    )
+    await _drop_event_guards(session)
+    await _rewrite_last_event_semantically(session, payload_updates={"metric_result_status": ""})
+    await _expect_reason(
+        S4ValidationBudgetRepository(session).load_verified_state(),
+        "VALIDATION_TERMINAL_SEMANTICS_INVALID",
     )
 
 

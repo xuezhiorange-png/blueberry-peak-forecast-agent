@@ -10,7 +10,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Collection, Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -24,6 +24,7 @@ from backend.app.models.s4_validation_budget import (
     S4ValidationEvent,
 )
 from backend.app.rolling_backtest.canonical import canonical_json_dumps
+from backend.app.s4_experiment import validate_s4_invocation_semantics
 from backend.app.s4_validation_budget.canonical import (
     GENESIS_EVENT_HASH,
     canonical_event_body,
@@ -50,6 +51,7 @@ _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _TERMINAL_STATUSES = frozenset(
     {"COMPLETED", "FAILED", "ABORTED", "CANCELLED", "TIMEOUT", "BLOCKED"}
 )
+_GENERIC_INTEGRITY_REASON = "VALIDATION_PERSISTENCE_INTEGRITY_ERROR"
 
 BeforeHeadAdvanceHook = Callable[[AsyncSession], Awaitable[None] | None]
 
@@ -88,6 +90,80 @@ def _valid_sha(value: object) -> bool:
 
 def _nonempty_text(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _valid_timestamp(value: object) -> bool:
+    if isinstance(value, datetime):
+        return True
+    if not isinstance(value, str) or not value.strip():
+        return False
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
+def _invocation_reason(reasons: Collection[str]) -> str | None:
+    """Map shared S4 gate reasons to stable durable-admission reasons."""
+
+    for reason in reasons:
+        if reason == "INVOCATION_TYPE_INVALID":
+            return "INVOCATION_TYPE_INVALID"
+        if reason == "EVALUATION_ID_REUSE_FORBIDDEN":
+            return "VALIDATION_EVALUATION_ID_REUSE"
+        if reason == "RETRY_PARENT_ID_MISSING":
+            return "RETRY_PARENT_ID_MISSING"
+        if reason == "RETRY_REUSES_EVALUATION_ID":
+            return "RETRY_REUSES_EVALUATION_ID"
+        if reason == "RETRY_PARENT_INVOCATION_NOT_FOUND":
+            return "RETRY_PARENT_INVOCATION_NOT_FOUND"
+    return None
+
+
+def _extract_constraint_name(exc: IntegrityError) -> str | None:
+    """Extract a PostgreSQL/SQLite constraint identity without leaking data."""
+
+    original = getattr(exc, "orig", None)
+    if original is None:
+        return None
+    diagnostic = getattr(original, "diag", None)
+    diagnostic_name = getattr(diagnostic, "constraint_name", None)
+    if isinstance(diagnostic_name, str) and diagnostic_name:
+        return diagnostic_name
+    direct_name = getattr(original, "constraint_name", None)
+    if isinstance(direct_name, str) and direct_name:
+        return direct_name
+    message = str(original)
+    match = re.search(r'(?:constraint|index) "([^"]+)"', message, flags=re.IGNORECASE)
+    if match:
+        return match.group(1)
+    # SQLite's text does not preserve named partial-index diagnostics.
+    lowered = message.lower()
+    if "candidate_run_ordinal" in lowered and "unique" in lowered:
+        return "uq_s4_validation_event_started_candidate_run"
+    if "global_evaluation_ordinal" in lowered and "unique" in lowered:
+        return "uq_s4_validation_event_started_global_ordinal"
+    if "evaluation_id" in lowered and "event_type" in lowered and "unique" in lowered:
+        return "uq_s4_validation_event_evaluation_type"
+    if "foreign key" in lowered or "foreignkeyviolation" in lowered:
+        return "fk_s4_validation_event_authority"
+    return None
+
+
+def _integrity_reason(exc: IntegrityError, *, operation: str) -> str:
+    constraint = _extract_constraint_name(exc)
+    if constraint == "uq_s4_validation_event_started_candidate_run":
+        return "VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE"
+    if constraint == "uq_s4_validation_event_started_global_ordinal":
+        return "VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT"
+    if constraint == "uq_s4_validation_event_evaluation_type":
+        if operation == "terminal":
+            return "VALIDATION_DUPLICATE_TERMINAL"
+        return "VALIDATION_EVALUATION_ID_REUSE"
+    if constraint == "fk_s4_validation_event_authority":
+        return "VALIDATION_BUDGET_AUTHORITY_INVALID"
+    return _GENERIC_INTEGRITY_REASON
 
 
 def _model_event(row: S4ValidationEvent) -> StoredValidationEvent:
@@ -258,12 +334,28 @@ def _verify_events(
 
     started_by_evaluation: dict[str, StoredValidationEvent] = {}
     terminal_by_evaluation: dict[str, StoredValidationEvent] = {}
+    candidate_started_counts: dict[str, int] = {}
+    prior_started_ids: list[str] = []
+    expected_global_ordinal = 1
     for event in events:
         if event.event_type == EVENT_STARTED:
             if event.evaluation_id in started_by_evaluation:
-                raise _blocked("VALIDATION_EVENT_HASH_CHAIN_MISMATCH")
+                raise _blocked("VALIDATION_EVALUATION_ID_REUSE")
+            candidate_count = candidate_started_counts.get(event.candidate_id, 0)
+            if candidate_count >= MAX_RUNS_PER_CANDIDATE:
+                raise _blocked("VALIDATION_CANDIDATE_RUN_LIMIT_EXCEEDED")
+            _validate_started_semantics(
+                event.event_payload,
+                prior_evaluation_ids=prior_started_ids,
+                expected_candidate_run_ordinal=candidate_count + 1,
+                expected_global_evaluation_ordinal=expected_global_ordinal,
+            )
             started_by_evaluation[event.evaluation_id] = event
+            prior_started_ids.append(event.evaluation_id)
+            candidate_started_counts[event.candidate_id] = candidate_count + 1
+            expected_global_ordinal += 1
         elif event.event_type == EVENT_TERMINAL:
+            _validate_terminal_semantics(event.event_payload)
             if event.evaluation_id in terminal_by_evaluation:
                 raise _blocked("VALIDATION_DUPLICATE_TERMINAL")
             terminal_by_evaluation[event.evaluation_id] = event
@@ -280,11 +372,7 @@ def _verify_events(
     started_count = len(started_by_evaluation)
     if started_count != int(authority.accepted_started_count):
         raise _blocked("VALIDATION_LEDGER_STARTED_COUNT_MISMATCH")
-    max_global = max(
-        (event.global_evaluation_ordinal or 0 for event in started_by_evaluation.values()),
-        default=0,
-    )
-    if max_global != int(authority.accepted_last_global_evaluation_ordinal):
+    if started_count != int(authority.accepted_last_global_evaluation_ordinal):
         raise _blocked("VALIDATION_GLOBAL_ORDINAL_REGRESSION")
     if events and events[-1].event_hash != authority.accepted_head_event_hash:
         raise _blocked("VALIDATION_LEDGER_HEAD_MISMATCH")
@@ -325,48 +413,117 @@ def _candidate_started_count(events: Sequence[StoredValidationEvent], candidate_
     )
 
 
-def _validate_started_command(command: StartedEventCommand) -> None:
-    for value in (
-        command.evaluation_id,
-        command.experiment_plan_version,
-        command.candidate_id,
-        command.invocation_type,
-        command.trigger_source,
-        command.dataset_hash,
-        command.validation_split_hash,
-        command.code_commit_sha,
-        command.parameter_manifest_hash,
+def _validate_started_semantics(
+    payload: Mapping[str, Any],
+    *,
+    prior_evaluation_ids: Collection[str],
+    expected_candidate_run_ordinal: int | None = None,
+    expected_global_evaluation_ordinal: int | None = None,
+) -> None:
+    """Validate one STARTED body for both admission and verified replay."""
+
+    if set(payload) < set(STARTED_BODY_FIELDS):
+        raise _blocked("VALIDATION_EVENT_SEMANTICS_INVALID")
+    for field in (
+        "evaluation_id",
+        "experiment_plan_version",
+        "candidate_id",
+        "invocation_type",
+        "trigger_source",
+        "dataset_hash",
+        "validation_split_hash",
+        "code_commit_sha",
+        "parameter_manifest_hash",
     ):
-        if not _nonempty_text(value):
-            raise _blocked("VALIDATION_BUDGET_AUTHORITY_INVALID")
+        if not _nonempty_text(payload.get(field)):
+            raise _blocked("VALIDATION_EVENT_SEMANTICS_INVALID")
+    if not _valid_timestamp(payload.get("started_at")):
+        raise _blocked("VALIDATION_EVENT_SEMANTICS_INVALID")
+    if payload.get("finished_at") is not None and not _valid_timestamp(payload["finished_at"]):
+        raise _blocked("VALIDATION_EVENT_SEMANTICS_INVALID")
+    if type(payload.get("random_seed")) is not int:
+        raise _blocked("VALIDATION_EVENT_SEMANTICS_INVALID")
+    candidate_run_ordinal = payload.get("candidate_run_ordinal")
+    global_evaluation_ordinal = payload.get("global_evaluation_ordinal")
     if (
-        not isinstance(command.candidate_run_ordinal, int)
-        or isinstance(command.candidate_run_ordinal, bool)
-        or not isinstance(command.global_evaluation_ordinal, int)
-        or isinstance(command.global_evaluation_ordinal, bool)
-        or command.candidate_run_ordinal < 1
-        or command.global_evaluation_ordinal < 1
+        type(candidate_run_ordinal) is not int
+        or not 1 <= candidate_run_ordinal <= MAX_RUNS_PER_CANDIDATE
     ):
         raise _blocked("VALIDATION_CANDIDATE_RUN_ORDINAL_INVALID")
-    if command.counted_toward_budget is not True:
+    if type(global_evaluation_ordinal) is not int or global_evaluation_ordinal < 1:
+        raise _blocked("VALIDATION_GLOBAL_ORDINAL_REGRESSION")
+    if payload.get("counted_toward_budget") is not True:
         raise _blocked("VALIDATION_EVENT_PROJECTION_MISMATCH")
-    if command.budget_count_reason != STARTED_INVOCATION:
+    if payload.get("budget_count_reason") != STARTED_INVOCATION:
         raise _blocked("VALIDATION_EVENT_PROJECTION_MISMATCH")
+    invocation_reason = _invocation_reason(
+        validate_s4_invocation_semantics(
+            invocation_type=cast(str, payload["invocation_type"]),
+            evaluation_id=cast(str, payload["evaluation_id"]),
+            retry_of_evaluation_id=cast(str | None, payload.get("retry_of_evaluation_id")),
+            prior_evaluation_ids=prior_evaluation_ids,
+        )
+    )
+    if invocation_reason is not None:
+        raise _blocked(invocation_reason)
+    if (
+        expected_candidate_run_ordinal is not None
+        and candidate_run_ordinal != expected_candidate_run_ordinal
+    ):
+        if candidate_run_ordinal < expected_candidate_run_ordinal:
+            raise _blocked("VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE")
+        raise _blocked("VALIDATION_CANDIDATE_RUN_ORDINAL_INVALID")
+    if (
+        expected_global_evaluation_ordinal is not None
+        and global_evaluation_ordinal != expected_global_evaluation_ordinal
+    ):
+        raise _blocked("VALIDATION_GLOBAL_ORDINAL_REGRESSION")
+
+
+def _validate_terminal_semantics(payload: Mapping[str, Any]) -> None:
+    """Validate terminal fields symmetrically on write and verified replay."""
+
+    if set(payload) < set(TERMINAL_BODY_FIELDS):
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+    if not _nonempty_text(payload.get("evaluation_id")):
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+    if not _nonempty_text(payload.get("candidate_id")):
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+    if not _valid_timestamp(payload.get("finished_at")):
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+    if payload.get("execution_status") not in _TERMINAL_STATUSES:
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+    if not _nonempty_text(payload.get("metric_result_status")):
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+    if payload.get("counted_toward_budget") is not False:
+        raise _blocked("VALIDATION_TERMINAL_SEMANTICS_INVALID")
+
+
+def _validate_started_command(
+    command: StartedEventCommand,
+    *,
+    prior_evaluation_ids: Collection[str],
+    expected_candidate_run_ordinal: int,
+    expected_global_evaluation_ordinal: int,
+) -> None:
     try:
-        canonical_event_body(command.body())
+        payload = canonical_event_body(command.body())
     except (TypeError, ValueError):
         raise _blocked("VALIDATION_EVENT_PROJECTION_MISMATCH") from None
+    _validate_started_semantics(
+        payload,
+        prior_evaluation_ids=prior_evaluation_ids,
+        expected_candidate_run_ordinal=expected_candidate_run_ordinal,
+        expected_global_evaluation_ordinal=expected_global_evaluation_ordinal,
+    )
 
 
 def _validate_terminal_command(command: TerminalEventCommand) -> None:
-    if not _nonempty_text(command.evaluation_id) or not _nonempty_text(command.candidate_id):
-        raise _blocked("VALIDATION_TERMINAL_WITHOUT_STARTED")
-    if command.execution_status not in _TERMINAL_STATUSES:
-        raise _blocked("VALIDATION_BUDGET_AUTHORITY_INVALID")
     try:
-        canonical_event_body(command.body())
+        payload = canonical_event_body(command.body())
     except (TypeError, ValueError):
         raise _blocked("VALIDATION_EVENT_PROJECTION_MISMATCH") from None
+    _validate_terminal_semantics(payload)
 
 
 class S4ValidationBudgetRepository:
@@ -485,7 +642,6 @@ class S4ValidationBudgetRepository:
 
         if not isinstance(command, StartedEventCommand):
             command = StartedEventCommand.from_mapping(command)
-        _validate_started_command(command)
         try:
             async with self._session.begin():
                 authority, state = await self._locked_state()
@@ -504,19 +660,32 @@ class S4ValidationBudgetRepository:
                 if candidate_count >= MAX_RUNS_PER_CANDIDATE:
                     raise _blocked("VALIDATION_CANDIDATE_RUN_LIMIT_EXCEEDED")
                 expected_candidate_ordinal = candidate_count + 1
-                if command.candidate_run_ordinal != expected_candidate_ordinal:
-                    if command.candidate_run_ordinal <= candidate_count:
-                        raise _blocked("VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE")
-                    raise _blocked("VALIDATION_CANDIDATE_RUN_ORDINAL_INVALID")
                 expected_global_ordinal = state.accepted_last_global_evaluation_ordinal + 1
-                if command.global_evaluation_ordinal != expected_global_ordinal:
-                    if command.global_evaluation_ordinal <= (
-                        state.accepted_last_global_evaluation_ordinal
-                    ):
-                        raise _blocked("VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT")
+                if (
+                    isinstance(command.global_evaluation_ordinal, int)
+                    and not isinstance(command.global_evaluation_ordinal, bool)
+                    and command.global_evaluation_ordinal >= 1
+                    and command.global_evaluation_ordinal
+                    <= state.accepted_last_global_evaluation_ordinal
+                ):
+                    raise _blocked("VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT")
+                if (
+                    isinstance(command.global_evaluation_ordinal, int)
+                    and not isinstance(command.global_evaluation_ordinal, bool)
+                    and command.global_evaluation_ordinal >= 1
+                    and command.global_evaluation_ordinal != expected_global_ordinal
+                ):
                     raise _blocked("VALIDATION_GLOBAL_ORDINAL_REGRESSION")
-                if any(event.evaluation_id == command.evaluation_id for event in state.events):
-                    raise _blocked("VALIDATION_EVALUATION_ID_REUSE")
+                _validate_started_command(
+                    command,
+                    prior_evaluation_ids=tuple(
+                        event.evaluation_id
+                        for event in state.events
+                        if event.event_type == EVENT_STARTED
+                    ),
+                    expected_candidate_run_ordinal=expected_candidate_ordinal,
+                    expected_global_evaluation_ordinal=expected_global_ordinal,
+                )
 
                 payload = canonical_event_body(command.body())
                 sequence = state.accepted_event_count + 1
@@ -553,7 +722,7 @@ class S4ValidationBudgetRepository:
                 await self._session.flush()
                 return _model_event(event_row)
         except IntegrityError as exc:
-            raise _blocked("VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE") from exc
+            raise _blocked(_integrity_reason(exc, operation="started")) from exc
 
     async def append_terminal(
         self,
@@ -620,7 +789,7 @@ class S4ValidationBudgetRepository:
                 await self._session.flush()
                 return _model_event(event_row)
         except IntegrityError as exc:
-            raise _blocked("VALIDATION_DUPLICATE_TERMINAL") from exc
+            raise _blocked(_integrity_reason(exc, operation="terminal")) from exc
 
 
 __all__ = ["S4ValidationBudgetRepository"]
