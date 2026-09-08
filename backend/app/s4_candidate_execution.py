@@ -35,6 +35,7 @@ from backend.app.s4_experiment import (
     FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
     GUARDRAIL_POLICY_VERSION,
+    MAX_VALIDATION_EVALUATIONS,
     METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
     CandidateExecutionGateRequest,
@@ -70,6 +71,10 @@ HISTORICAL_INCUMBENT_AUTHORITY_REASON: Final[str] = (
     "HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED"
 )
 NO_VERSIONED_FORECAST_AUTHORITY_REASON: Final[str] = "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH: Final[str] = (
+    "docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json"
+)
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_TYPE: Final[str] = "S4_VALIDATION_BUDGET_RECONCILIATION"
 
 _SHA256_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
 _LEDGER_EVENT_TYPES: Final[frozenset[str]] = frozenset(
@@ -890,6 +895,213 @@ class Candidate01PreflightResult:
     actual_validation_evaluation_count: int
 
 
+@dataclass(frozen=True, slots=True)
+class ValidationBudgetReconciliation:
+    """Machine-readable effective budget state without fabricating ledger rows."""
+
+    status: Literal["PASS", "BLOCKED"]
+    blocker: str | None
+    reason_code: str | None
+    canonical_ledger_row_count: int
+    canonical_started_evaluation_count: int
+    legacy_unledgered_c01_started_evaluation_count: int
+    effective_validation_evaluations_consumed: int
+    remaining_effective_validation_budget: int
+
+    @property
+    def resolved(self) -> bool:
+        return self.status == "PASS"
+
+
+def _budget_blocked(
+    *,
+    blocker: str,
+    canonical_rows: int = 0,
+    canonical_started: int = 0,
+    legacy_started: int = 0,
+    effective: int = 0,
+    remaining: int = MAX_VALIDATION_EVALUATIONS,
+) -> ValidationBudgetReconciliation:
+    return ValidationBudgetReconciliation(
+        status="BLOCKED",
+        blocker=blocker,
+        reason_code=blocker,
+        canonical_ledger_row_count=canonical_rows,
+        canonical_started_evaluation_count=canonical_started,
+        legacy_unledgered_c01_started_evaluation_count=legacy_started,
+        effective_validation_evaluations_consumed=effective,
+        remaining_effective_validation_budget=remaining,
+    )
+
+
+def _load_budget_reconciliation_artifact(repo_root: Path) -> Mapping[str, Any] | None:
+    path = repo_root / VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    declared_hash = payload.get("RECONCILIATION_SHA256")
+    if not isinstance(declared_hash, str):
+        return None
+    unsigned = {key: value for key, value in payload.items() if key != "RECONCILIATION_SHA256"}
+    if sha256_payload(unsigned) != declared_hash:
+        return None
+    if payload.get("ARTIFACT_TYPE") != VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_TYPE:
+        return None
+    expected_values: dict[str, object] = {
+        "MAX_VALIDATION_EVALUATIONS": MAX_VALIDATION_EVALUATIONS,
+        "CANONICAL_LEDGER_ROW_COUNT": 0,
+        "CANONICAL_LEDGER_STARTED_EVALUATION_COUNT": 0,
+        "LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT": 4,
+        "LEGACY_UNLEDGERED_C01_BUDGET_DEBIT": 4,
+        "EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED": 4,
+        "REMAINING_EFFECTIVE_VALIDATION_BUDGET": 28,
+        "LEGACY_EXECUTION_CONTRACT_VALID": False,
+        "LEGACY_NUMERIC_EVIDENCE_SELECTION_AUTHORITY": False,
+        "LEGACY_ROWS_BACKFILLED": False,
+        "HISTORICAL_LEDGER_FABRICATION": False,
+        "CANDIDATE_01_RERUN_PERFORMED": False,
+        "SOURCE_PR_NUMBER": 587,
+        "CANDIDATE_ID": CANDIDATE_01_ID,
+        "CANDIDATE_RUN_ORDINALS": [1, 2, 3, 4],
+        "CANDIDATE_01_PARAMETER_MANIFEST_HASH": CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND,
+        "CANDIDATE_01_RANDOM_SEED": CANDIDATE_01_RANDOM_SEED,
+        "ORIGINAL_SCORING_RUNNER_SHA": "83084a583497547e317ccdfa2a6c5fbc91a9f9d9",
+        "ORIGINAL_EVIDENCE_PATH": (
+            "docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json"
+        ),
+        "ORIGINAL_EVIDENCE_SHA256": (
+            "23eea8fe718dc0bc10331b3205fd38e5a7600ccd6d579af39e113c8da4391772"
+        ),
+        "CORRECTION_EVIDENCE_PATH": (
+            "docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json"
+        ),
+        "LEGACY_EXECUTION_REASON": "LEGACY_EXECUTION_OCCURRED_OUTSIDE_FROZEN_S4_LEDGER_GATE",
+    }
+    if any(payload.get(key) != value for key, value in expected_values.items()):
+        return None
+    correction_path = repo_root / str(payload["CORRECTION_EVIDENCE_PATH"])
+    correction_sha = payload.get("CORRECTION_EVIDENCE_SHA256")
+    original_sha = payload.get("ORIGINAL_EVIDENCE_SHA256")
+    if (
+        not correction_path.is_file()
+        or not isinstance(correction_sha, str)
+        or not isinstance(original_sha, str)
+        or _file_sha256(correction_path) != correction_sha
+    ):
+        return None
+    return payload
+
+
+def reconcile_validation_budget(
+    *,
+    repo_root: Path,
+    journal: AppendOnlyValidationJournal,
+) -> ValidationBudgetReconciliation:
+    """Reconcile the append-only ledger with the durable legacy debit artifact."""
+
+    artifact = _load_budget_reconciliation_artifact(repo_root)
+    if artifact is None:
+        return _budget_blocked(blocker="VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_INVALID")
+    try:
+        rows = journal.materialize()
+    except Candidate01ContractError:
+        return _budget_blocked(blocker="VALIDATION_LEDGER_INVALID")
+    canonical_rows = len(rows)
+    canonical_started = sum(1 for row in rows if row.get("counted_toward_budget") is True)
+    expected_rows = int(artifact["CANONICAL_LEDGER_ROW_COUNT"])
+    expected_started = int(artifact["CANONICAL_LEDGER_STARTED_EVALUATION_COUNT"])
+    legacy_started = int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"])
+    effective = canonical_started + legacy_started
+    remaining = MAX_VALIDATION_EVALUATIONS - effective
+    if canonical_rows != expected_rows or canonical_started != expected_started:
+        return _budget_blocked(
+            blocker="VALIDATION_LEDGER_RECONCILIATION_MISMATCH",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=legacy_started,
+            effective=effective,
+            remaining=remaining,
+        )
+    if (
+        effective != int(artifact["EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED"])
+        or remaining != int(artifact["REMAINING_EFFECTIVE_VALIDATION_BUDGET"])
+        or effective > MAX_VALIDATION_EVALUATIONS
+        or remaining < 0
+    ):
+        return _budget_blocked(
+            blocker="VALIDATION_BUDGET_RECONCILIATION_MISMATCH",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=legacy_started,
+            effective=effective,
+            remaining=remaining,
+        )
+    return ValidationBudgetReconciliation(
+        status="PASS",
+        blocker=None,
+        reason_code=None,
+        canonical_ledger_row_count=canonical_rows,
+        canonical_started_evaluation_count=canonical_started,
+        legacy_unledgered_c01_started_evaluation_count=legacy_started,
+        effective_validation_evaluations_consumed=effective,
+        remaining_effective_validation_budget=remaining,
+    )
+
+
+def candidate_budget_preflight(
+    *,
+    repo_root: Path,
+    journal: AppendOnlyValidationJournal,
+    candidate_id: str,
+    candidate_actual_run_count: int,
+) -> ValidationBudgetReconciliation:
+    """Return effective budget state for any future candidate before its gate."""
+
+    result = reconcile_validation_budget(repo_root=repo_root, journal=journal)
+    if not result.resolved:
+        return result
+    registration = next(
+        (item for item in FROZEN_CANDIDATE_REGISTRY if item.candidate_id == candidate_id),
+        None,
+    )
+    if registration is None:
+        return _budget_blocked(
+            blocker="UNKNOWN_CANDIDATE",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=result.remaining_effective_validation_budget,
+        )
+    candidate_rows = sum(
+        1 for row in journal.materialize() if row.get("candidate_id") == candidate_id
+    )
+    if candidate_rows != candidate_actual_run_count:
+        return _budget_blocked(
+            blocker="CANDIDATE_BUDGET_RECONCILIATION_MISMATCH",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=result.remaining_effective_validation_budget,
+        )
+    if candidate_actual_run_count > registration.planned_run_count:
+        return _budget_blocked(
+            blocker="CANDIDATE_BUDGET_EXCEEDED",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=result.remaining_effective_validation_budget,
+        )
+    return result
+
+
 def candidate_01_execution_preflight(
     *,
     repo_root: Path,
@@ -902,15 +1114,31 @@ def candidate_01_execution_preflight(
     )
     rows = journal.materialize()
     count = len(rows)
-    if count > 0:
+    budget = candidate_budget_preflight(
+        repo_root=repo_root,
+        journal=journal,
+        candidate_id=CANDIDATE_01_ID,
+        candidate_actual_run_count=count,
+    )
+    if not budget.resolved:
+        return Candidate01PreflightResult(
+            "BLOCKED",
+            budget.blocker,
+            budget.reason_code,
+            "VALIDATION_BUDGET_RECONCILIATION",
+            manifest.manifest_hash,
+            budget.canonical_ledger_row_count,
+            budget.effective_validation_evaluations_consumed,
+        )
+    if count > 0 or budget.legacy_unledgered_c01_started_evaluation_count > 0:
         return Candidate01PreflightResult(
             "BLOCKED",
             "CANDIDATE_01_ALREADY_STARTED",
             "CANDIDATE_01_ALREADY_STARTED",
-            "CANDIDATE_01_LEDGER_ALREADY_CONSUMED",
+            "CANDIDATE_01_LEDGER_OR_LEGACY_RECONCILIATION_ALREADY_CONSUMED",
             manifest.manifest_hash,
             count,
-            count,
+            budget.effective_validation_evaluations_consumed,
         )
     pairing = resolve_pairing_authority(repo_root)
     if not pairing.resolved:
@@ -920,8 +1148,8 @@ def candidate_01_execution_preflight(
             pairing.reason_code,
             pairing.first_non_derivable_authority,
             manifest.manifest_hash,
-            0,
-            0,
+            budget.canonical_ledger_row_count,
+            budget.effective_validation_evaluations_consumed,
         )
     raise Candidate01PreflightBlocked("candidate execution adapter must be explicit")
 
@@ -935,8 +1163,18 @@ def build_candidate_gate_request(
     global_actual_evaluation_count: int,
     code_commit_sha: str,
     evaluation_id: str,
+    budget_reconciliation: ValidationBudgetReconciliation | None = None,
 ) -> CandidateExecutionGateRequest:
     validate_candidate_01_manifest(manifest)
+    if budget_reconciliation is not None:
+        if not budget_reconciliation.resolved:
+            raise Candidate01PreflightBlocked(
+                budget_reconciliation.reason_code or "VALIDATION_BUDGET_RECONCILIATION_BLOCKED"
+            )
+        if global_actual_evaluation_count != (
+            budget_reconciliation.effective_validation_evaluations_consumed
+        ):
+            raise Candidate01PreflightBlocked("VALIDATION_BUDGET_RECONCILIATION_MISMATCH")
     expected_run = manifest.run(run.candidate_run_ordinal)
     if run != expected_run:
         raise Candidate01ContractError("candidate run is not the frozen manifest run")
@@ -1017,12 +1255,16 @@ __all__ = [
     "PairingIdentityBinding",
     "ParameterDiffResult",
     "VALIDATION_EVENT_SCHEMA_VERSION",
+    "VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH",
+    "ValidationBudgetReconciliation",
     "VALIDATION_LEDGER_SCHEMA_VERSION",
     "build_candidate_01_manifest",
     "build_candidate_gate_request",
     "build_derived_candidate_config",
     "candidate_01_execution_preflight",
+    "candidate_budget_preflight",
     "json_payload",
+    "reconcile_validation_budget",
     "resolve_pairing_authority",
     "validate_candidate_01_manifest",
     "verify_parameter_allowlist",

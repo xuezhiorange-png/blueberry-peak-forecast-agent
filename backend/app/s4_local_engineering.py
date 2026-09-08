@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from statistics import median
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 from backend.app.forecast_quality.canonical import canonical_json_bytes
 from backend.app.maturity.config import MaturityCurveConfig
@@ -60,6 +60,11 @@ LOCAL_ENGINEERING_REPLAY_AUTHORITY_CLASS = "LOCAL_ENGINEERING_REPLAY"
 LOCAL_CUTOFF_POLICY_IDENTITY = "LOCAL_ENGINEERING_TRAIN_BEFORE_VALIDATION_V1"
 LOCAL_FORECAST_HORIZON_POLICY_IDENTITY = "LOCAL_ENGINEERING_DAILY_VALIDATION_HORIZON_V1"
 LOCAL_INTERVAL_POLICY_IDENTITY = "LOCAL_ENGINEERING_UNCALIBRATED_INTERVAL_PROXY_V1"
+FROZEN_FORECAST_HORIZONS: Final[frozenset[int]] = frozenset({7, 14, 21})
+COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE = "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+FORECAST_HORIZON_NOT_IN_FROZEN_SET = "FORECAST_HORIZON_NOT_IN_FROZEN_SET"
+WAPE_ACTUAL_DENOMINATOR_ZERO = "WAPE_ACTUAL_DENOMINATOR_ZERO"
+LOCAL_FARM_PEAK_FORECAST_QUANTILE = "P50"
 REQUIRED_BREAKDOWN_AXES = (
     "forecast_horizon_days",
     "farm_business_key",
@@ -84,6 +89,58 @@ class FrozenSourceObject:
 
 
 @dataclass(frozen=True, slots=True)
+class CompleteWindowAuthority:
+    """Explicit authority for metrics requiring a complete daily window."""
+
+    daily_rowset_authority: bool
+    daily_rowset_identity: str | None
+    daily_rowset_completeness: bool
+    evaluation_window_start: date | None
+    evaluation_window_end: date | None
+    evaluation_window_days: int | None
+    forecast_cutoff_identity: str | None
+    forecast_horizon_identity: str | None
+    no_missing_days: bool
+
+    def is_valid_for(self, predictions: tuple[LocalPrediction, ...]) -> bool:
+        if not (
+            self.daily_rowset_authority
+            and self.daily_rowset_completeness
+            and self.no_missing_days
+            and self.daily_rowset_identity
+            and self.forecast_cutoff_identity
+            and self.forecast_horizon_identity
+        ):
+            return False
+        if (
+            self.evaluation_window_start is None
+            or self.evaluation_window_end is None
+            or self.evaluation_window_days is None
+            or self.evaluation_window_days <= 0
+            or self.evaluation_window_end < self.evaluation_window_start
+        ):
+            return False
+        expected_days = (self.evaluation_window_end - self.evaluation_window_start).days + 1
+        if expected_days != self.evaluation_window_days:
+            return False
+        dates = {item.harvest_business_date for item in predictions}
+        expected_date_set = {
+            self.evaluation_window_start + timedelta(days=offset)
+            for offset in range(self.evaluation_window_days)
+        }
+        if dates != expected_date_set:
+            return False
+        cutoff_values = {item.forecast_cutoff_at for item in predictions}
+        if not cutoff_values or None in cutoff_values:
+            return False
+        try:
+            horizons = {item.horizon_days for item in predictions}
+        except LocalEngineeringContractError:
+            return False
+        return horizons.issubset(FROZEN_FORECAST_HORIZONS)
+
+
+@dataclass(frozen=True, slots=True)
 class FrozenEngineeringDataset:
     train_rows: tuple[MaterializableRow, ...]
     validation_rows: tuple[MaterializableRow, ...]
@@ -92,6 +149,7 @@ class FrozenEngineeringDataset:
     materialized_dataset_identity_sha256: str
     test_row_count: int
     forecast_cutoff_at: date | None = None
+    complete_window_authority: CompleteWindowAuthority | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,12 +164,16 @@ class LocalPrediction:
     p50_kg: Decimal
     p80_kg: Decimal
     p90_kg: Decimal
+    model_identity: str = LOCAL_ENGINEERING_REPLAY_MODEL_ID
 
     @property
     def horizon_days(self) -> int:
         if self.forecast_cutoff_at is None:
             raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
-        return (self.harvest_business_date - self.forecast_cutoff_at).days
+        horizon_days = (self.harvest_business_date - self.forecast_cutoff_at).days
+        if horizon_days not in FROZEN_FORECAST_HORIZONS:
+            raise LocalEngineeringContractError(FORECAST_HORIZON_NOT_IN_FROZEN_SET)
+        return horizon_days
 
     @property
     def business_key(self) -> tuple[str, str, str, str, date]:
@@ -126,10 +188,16 @@ class LocalPrediction:
 
 @dataclass(frozen=True, slots=True)
 class LocalMetricSet:
-    daily_wape: Decimal
+    daily_wape: Decimal | None
+    daily_wape_metric_status: MetricStatus
+    daily_wape_metric_reason_code: str
     daily_mae: Decimal
-    cumulative_absolute_error_kg: Decimal
-    single_day_peak_quantity_absolute_error_kg_q: Decimal
+    cumulative_absolute_error_kg: Decimal | None
+    cumulative_metric_status: MetricStatus
+    cumulative_metric_reason_code: str
+    single_day_peak_quantity_absolute_error_kg_q: Decimal | None
+    single_day_peak_metric_status: MetricStatus
+    single_day_peak_metric_reason_code: str
     sustained_7day_quantity_absolute_error_kg_q: Decimal | None
     sustained_7day_metric_status: MetricStatus
     sustained_7day_metric_reason_code: str
@@ -140,12 +208,30 @@ class LocalMetricSet:
 
     def payload(self) -> dict[str, Any]:
         return {
-            "daily_wape": _decimal_text(self.daily_wape),
+            "daily_wape": (_decimal_text(self.daily_wape) if self.daily_wape is not None else None),
+            "daily_wape_status": self.daily_wape_metric_status,
+            "daily_wape_reason_code": self.daily_wape_metric_reason_code,
+            "daily_wape_metric_status": self.daily_wape_metric_status,
+            "daily_wape_metric_reason_code": self.daily_wape_metric_reason_code,
             "daily_mae": _decimal_text(self.daily_mae),
-            "cumulative_absolute_error_kg": _decimal_text(self.cumulative_absolute_error_kg),
+            "cumulative_absolute_error_kg": (
+                _decimal_text(self.cumulative_absolute_error_kg)
+                if self.cumulative_absolute_error_kg is not None
+                else None
+            ),
+            "cumulative_status": self.cumulative_metric_status,
+            "cumulative_reason_code": self.cumulative_metric_reason_code,
+            "cumulative_metric_status": self.cumulative_metric_status,
+            "cumulative_metric_reason_code": self.cumulative_metric_reason_code,
             "single_day_peak_quantity_absolute_error_kg_q": _decimal_text(
                 self.single_day_peak_quantity_absolute_error_kg_q
-            ),
+            )
+            if self.single_day_peak_quantity_absolute_error_kg_q is not None
+            else None,
+            "single_day_peak_status": self.single_day_peak_metric_status,
+            "single_day_peak_reason_code": self.single_day_peak_metric_reason_code,
+            "single_day_peak_metric_status": self.single_day_peak_metric_status,
+            "single_day_peak_metric_reason_code": self.single_day_peak_metric_reason_code,
             "sustained_7day_quantity_absolute_error_kg_q": (
                 _decimal_text(self.sustained_7day_quantity_absolute_error_kg_q)
                 if self.sustained_7day_quantity_absolute_error_kg_q is not None
@@ -216,6 +302,7 @@ def _prediction_payload(item: LocalPrediction) -> dict[str, Any]:
         "p50_kg": _decimal_text(item.p50_kg),
         "p80_kg": _decimal_text(item.p80_kg),
         "p90_kg": _decimal_text(item.p90_kg),
+        "model_identity": item.model_identity,
     }
 
 
@@ -453,20 +540,20 @@ def _build_predictions(
         p50 = _q(prediction_total * curve[relative_day - support_days[0]])
         p80 = _q(p50 * p80_multiplier)
         p90 = _q(p50 * p90_multiplier)
-        predictions.append(
-            LocalPrediction(
-                season=row.season,
-                farm=row.farm,
-                subfarm=row.subfarm,
-                variety=row.variety,
-                harvest_business_date=row.harvest_business_date,
-                forecast_cutoff_at=forecast_cutoff_at,
-                actual_kg=_q(row.actual_harvest_quantity_kg),
-                p50_kg=p50,
-                p80_kg=max(p80, p50),
-                p90_kg=max(p90, p80, p50),
-            )
+        prediction = LocalPrediction(
+            season=row.season,
+            farm=row.farm,
+            subfarm=row.subfarm,
+            variety=row.variety,
+            harvest_business_date=row.harvest_business_date,
+            forecast_cutoff_at=forecast_cutoff_at,
+            actual_kg=_q(row.actual_harvest_quantity_kg),
+            p50_kg=p50,
+            p80_kg=max(p80, p50),
+            p90_kg=max(p90, p80, p50),
         )
+        _ = prediction.horizon_days
+        predictions.append(prediction)
     return tuple(predictions)
 
 
@@ -476,6 +563,46 @@ def _daily_totals(predictions: Iterable[LocalPrediction]) -> dict[date, tuple[De
         totals[item.harvest_business_date][0] += item.actual_kg
         totals[item.harvest_business_date][1] += item.p50_kg
     return {day: (values[0], values[1]) for day, values in totals.items()}
+
+
+FarmPeakKey = tuple[str, str, str, date, date, str, str]
+
+
+def _farm_daily_totals(
+    predictions: Iterable[LocalPrediction],
+) -> dict[FarmPeakKey, tuple[Decimal, Decimal]]:
+    """Sum subfarms while retaining the frozen farm/variety forecast grain."""
+
+    totals: dict[FarmPeakKey, list[Decimal]] = defaultdict(lambda: [Decimal("0"), Decimal("0")])
+    for item in predictions:
+        if item.forecast_cutoff_at is None:
+            raise LocalEngineeringContractError("FORECAST_HORIZON_AUTHORITY_UNAVAILABLE")
+        key: FarmPeakKey = (
+            item.season,
+            item.farm,
+            item.variety,
+            item.harvest_business_date,
+            item.forecast_cutoff_at,
+            item.model_identity,
+            LOCAL_FARM_PEAK_FORECAST_QUANTILE,
+        )
+        totals[key][0] += item.actual_kg
+        totals[key][1] += item.p50_kg
+    return {key: (values[0], values[1]) for key, values in totals.items()}
+
+
+def _farm_peak_daily_totals(
+    predictions: Iterable[LocalPrediction],
+) -> dict[date, tuple[Decimal, Decimal]]:
+    """Return peak candidates per date without summing different varieties."""
+
+    candidates: dict[date, list[Decimal]] = {}
+    for key, (actual, predicted) in _farm_daily_totals(predictions).items():
+        target_date = key[3]
+        current = candidates.setdefault(target_date, [Decimal("0"), Decimal("0")])
+        current[0] = max(current[0], actual)
+        current[1] = max(current[1], predicted)
+    return {day: (values[0], values[1]) for day, values in candidates.items()}
 
 
 def _earliest_daily_peak(
@@ -496,7 +623,7 @@ def _earliest_daily_peak(
 def _single_day_peak_error(
     predictions: tuple[LocalPrediction, ...],
 ) -> tuple[Decimal, date | None, Decimal, date | None]:
-    daily = _daily_totals(predictions)
+    daily = _farm_peak_daily_totals(predictions)
     actual_peak, actual_peak_date = _earliest_daily_peak(daily, 0)
     predicted_peak, predicted_peak_date = _earliest_daily_peak(daily, 1)
     return (
@@ -547,23 +674,61 @@ def _rolling_peak_error(predictions: tuple[LocalPrediction, ...]) -> Decimal | N
     return _q(abs(predicted_peak - actual_peak))
 
 
-def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str | int | None]:
+def _complete_window_reason(
+    predictions: tuple[LocalPrediction, ...],
+    authority: CompleteWindowAuthority | None,
+) -> str | None:
+    if authority is None or not authority.is_valid_for(predictions):
+        return COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+    return None
+
+
+def _metric_payload(
+    predictions: tuple[LocalPrediction, ...],
+    *,
+    complete_window_authority: CompleteWindowAuthority | None = None,
+) -> dict[str, str | int | None]:
     if not predictions:
         raise LocalEngineeringContractError("LOCAL_VALIDATION_EMPTY")
     absolute_errors = [abs(item.p50_kg - item.actual_kg) for item in predictions]
     actual_total = sum((item.actual_kg for item in predictions), Decimal("0"))
-    daily_wape = (
-        _q(sum(absolute_errors, Decimal("0")) / actual_total) if actual_total else Decimal("0")
-    )
+    if actual_total == 0:
+        daily_wape: Decimal | None = None
+        daily_wape_status: MetricStatus = "NOT_COMPUTABLE"
+        daily_wape_reason_code = WAPE_ACTUAL_DENOMINATOR_ZERO
+    else:
+        daily_wape = _q(sum(absolute_errors, Decimal("0")) / actual_total)
+        daily_wape_status = "COMPUTED"
+        daily_wape_reason_code = "NONE"
     daily_mae = _q(sum(absolute_errors, Decimal("0")) / Decimal(len(predictions)))
-    cumulative_error = _q(
-        abs(
-            sum((item.p50_kg for item in predictions), Decimal("0"))
-            - sum((item.actual_kg for item in predictions), Decimal("0"))
+    complete_reason = _complete_window_reason(predictions, complete_window_authority)
+    if complete_reason is None:
+        cumulative_error: Decimal | None = _q(
+            abs(
+                sum((item.p50_kg for item in predictions), Decimal("0"))
+                - sum((item.actual_kg for item in predictions), Decimal("0"))
+            )
         )
-    )
-    peak_error, _, _, _ = _single_day_peak_error(predictions)
-    sustained_error = _rolling_peak_error(predictions)
+        cumulative_status: MetricStatus = "COMPUTED"
+        cumulative_reason_code = "NONE"
+        peak_error: Decimal | None = _single_day_peak_error(predictions)[0]
+        peak_status: MetricStatus = "COMPUTED"
+        peak_reason_code = "NONE"
+        sustained_error = _rolling_peak_error(predictions)
+        sustained_status: MetricStatus = (
+            "COMPUTED" if sustained_error is not None else "NOT_COMPUTABLE"
+        )
+        sustained_reason_code = "NONE" if sustained_error is not None else "NO_COMPLETE_7DAY_WINDOW"
+    else:
+        cumulative_error = None
+        cumulative_status = "NOT_COMPUTABLE"
+        cumulative_reason_code = complete_reason
+        peak_error = None
+        peak_status = "NOT_COMPUTABLE"
+        peak_reason_code = complete_reason
+        sustained_error = None
+        sustained_status = "NOT_COMPUTABLE"
+        sustained_reason_code = complete_reason
     p80_coverage = _q(
         Decimal(sum(item.actual_kg <= item.p80_kg for item in predictions))
         / Decimal(len(predictions))
@@ -573,19 +738,31 @@ def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str |
         / Decimal(len(predictions))
     )
     return {
-        "daily_wape": _decimal_text(daily_wape),
+        "daily_wape": _decimal_text(daily_wape) if daily_wape is not None else None,
+        "daily_wape_status": daily_wape_status,
+        "daily_wape_reason_code": daily_wape_reason_code,
+        "daily_wape_metric_status": daily_wape_status,
+        "daily_wape_metric_reason_code": daily_wape_reason_code,
         "daily_mae": _decimal_text(daily_mae),
-        "cumulative_absolute_error_kg": _decimal_text(cumulative_error),
-        "single_day_peak_quantity_absolute_error_kg_q": _decimal_text(peak_error),
+        "cumulative_absolute_error_kg": (
+            _decimal_text(cumulative_error) if cumulative_error is not None else None
+        ),
+        "cumulative_metric_status": cumulative_status,
+        "cumulative_metric_reason_code": cumulative_reason_code,
+        "cumulative_status": cumulative_status,
+        "cumulative_reason_code": cumulative_reason_code,
+        "single_day_peak_quantity_absolute_error_kg_q": (
+            _decimal_text(peak_error) if peak_error is not None else None
+        ),
+        "single_day_peak_metric_status": peak_status,
+        "single_day_peak_metric_reason_code": peak_reason_code,
+        "single_day_peak_status": peak_status,
+        "single_day_peak_reason_code": peak_reason_code,
         "sustained_7day_quantity_absolute_error_kg_q": (
             _decimal_text(sustained_error) if sustained_error is not None else None
         ),
-        "sustained_7day_metric_status": (
-            "COMPUTED" if sustained_error is not None else "NOT_COMPUTABLE"
-        ),
-        "sustained_7day_metric_reason_code": (
-            "NONE" if sustained_error is not None else "NO_COMPLETE_7DAY_WINDOW"
-        ),
+        "sustained_7day_metric_status": sustained_status,
+        "sustained_7day_metric_reason_code": sustained_reason_code,
         "P80_COVERAGE": _decimal_text(p80_coverage),
         "P90_COVERAGE": _decimal_text(p90_coverage),
         "comparable_row_count": len(predictions),
@@ -594,6 +771,8 @@ def _metric_payload(predictions: tuple[LocalPrediction, ...]) -> dict[str, str |
 
 def _breakdown_metrics(
     predictions: tuple[LocalPrediction, ...],
+    *,
+    complete_window_authority: CompleteWindowAuthority | None = None,
 ) -> dict[str, dict[str, dict[str, str | int | None]]]:
     result: dict[str, dict[str, dict[str, str | int | None]]] = {}
     for axis in REQUIRED_BREAKDOWN_AXES:
@@ -612,27 +791,39 @@ def _breakdown_metrics(
             else:
                 key = LOCAL_ENGINEERING_REPLAY_MODEL_ID
             buckets[key].append(item)
-        result[axis] = {key: _metric_payload(tuple(rows)) for key, rows in sorted(buckets.items())}
+        result[axis] = {
+            key: _metric_payload(tuple(rows), complete_window_authority=complete_window_authority)
+            for key, rows in sorted(buckets.items())
+        }
     return result
 
 
-def compute_metrics(predictions: tuple[LocalPrediction, ...]) -> LocalMetricSet:
-    values = _metric_payload(predictions)
+def compute_metrics(
+    predictions: tuple[LocalPrediction, ...],
+    *,
+    complete_window_authority: CompleteWindowAuthority | None = None,
+) -> LocalMetricSet:
+    values = _metric_payload(predictions, complete_window_authority=complete_window_authority)
+    daily_wape_status = _payload_status(values, "daily_wape_metric_status")
+    cumulative_status = _payload_status(values, "cumulative_metric_status")
+    peak_status = _payload_status(values, "single_day_peak_metric_status")
     sustained_value = values["sustained_7day_quantity_absolute_error_kg_q"]
-    sustained_status = values["sustained_7day_metric_status"]
-    if sustained_status == "COMPUTED":
-        normalized_sustained_status: MetricStatus = "COMPUTED"
-    elif sustained_status == "NOT_COMPUTABLE":
-        normalized_sustained_status = "NOT_COMPUTABLE"
-    else:
-        raise LocalEngineeringContractError("SUSTAINED_7DAY_METRIC_STATUS_INVALID")
+    normalized_sustained_status = _payload_status(values, "sustained_7day_metric_status")
     return LocalMetricSet(
-        daily_wape=_payload_decimal(values, "daily_wape"),
+        daily_wape=_payload_optional_decimal(values, "daily_wape"),
+        daily_wape_metric_status=daily_wape_status,
+        daily_wape_metric_reason_code=str(values["daily_wape_metric_reason_code"]),
         daily_mae=_payload_decimal(values, "daily_mae"),
-        cumulative_absolute_error_kg=_payload_decimal(values, "cumulative_absolute_error_kg"),
-        single_day_peak_quantity_absolute_error_kg_q=_payload_decimal(
+        cumulative_absolute_error_kg=_payload_optional_decimal(
+            values, "cumulative_absolute_error_kg"
+        ),
+        cumulative_metric_status=cumulative_status,
+        cumulative_metric_reason_code=str(values["cumulative_metric_reason_code"]),
+        single_day_peak_quantity_absolute_error_kg_q=_payload_optional_decimal(
             values, "single_day_peak_quantity_absolute_error_kg_q"
         ),
+        single_day_peak_metric_status=peak_status,
+        single_day_peak_metric_reason_code=str(values["single_day_peak_metric_reason_code"]),
         sustained_7day_quantity_absolute_error_kg_q=(
             Decimal(sustained_value) if isinstance(sustained_value, str) else None
         ),
@@ -641,7 +832,9 @@ def compute_metrics(predictions: tuple[LocalPrediction, ...]) -> LocalMetricSet:
         p80_coverage=_payload_decimal(values, "P80_COVERAGE"),
         p90_coverage=_payload_decimal(values, "P90_COVERAGE"),
         comparable_row_count=_payload_int(values, "comparable_row_count"),
-        breakdown_metrics=_breakdown_metrics(predictions),
+        breakdown_metrics=_breakdown_metrics(
+            predictions, complete_window_authority=complete_window_authority
+        ),
     )
 
 
@@ -650,6 +843,24 @@ def _payload_decimal(values: Mapping[str, str | int | None], key: str) -> Decima
     if not isinstance(value, str):
         raise LocalEngineeringContractError(f"METRIC_PAYLOAD_DECIMAL_MISSING:{key}")
     return Decimal(value)
+
+
+def _payload_optional_decimal(values: Mapping[str, str | int | None], key: str) -> Decimal | None:
+    value = values[key]
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise LocalEngineeringContractError(f"METRIC_PAYLOAD_DECIMAL_INVALID:{key}")
+    return Decimal(value)
+
+
+def _payload_status(values: Mapping[str, str | int | None], key: str) -> MetricStatus:
+    value = values[key]
+    if value == "COMPUTED":
+        return "COMPUTED"
+    if value == "NOT_COMPUTABLE":
+        return "NOT_COMPUTABLE"
+    raise LocalEngineeringContractError(f"METRIC_PAYLOAD_STATUS_INVALID:{key}")
 
 
 def _payload_int(values: Mapping[str, str | int | None], key: str) -> int:
@@ -703,7 +914,9 @@ def run_local_replay(
         prediction_identity_sha256=prediction_identity,
         actual_label_set_identity_sha256=_actual_label_set_hash(dataset.validation_rows),
         business_grain_set_identity_sha256=_business_grain_set_hash(dataset.validation_rows),
-        metrics=compute_metrics(predictions),
+        metrics=compute_metrics(
+            predictions, complete_window_authority=dataset.complete_window_authority
+        ),
         predictions=predictions,
         train_dataset_sha256=dataset.train_content_sha256,
         validation_dataset_sha256=dataset.validation_content_sha256,
@@ -747,21 +960,27 @@ def guardrail_payload(
             MetricObservation.computed("daily_mae", incumbent_metrics.daily_mae),
         ),
         "cumulative_absolute_error_kg": (
-            MetricObservation.computed(
-                "cumulative_absolute_error_kg", candidate_metrics.cumulative_absolute_error_kg
+            _metric_observation(
+                "cumulative_absolute_error_kg",
+                candidate_metrics.cumulative_absolute_error_kg,
+                candidate_metrics.cumulative_metric_status,
             ),
-            MetricObservation.computed(
-                "cumulative_absolute_error_kg", incumbent_metrics.cumulative_absolute_error_kg
+            _metric_observation(
+                "cumulative_absolute_error_kg",
+                incumbent_metrics.cumulative_absolute_error_kg,
+                incumbent_metrics.cumulative_metric_status,
             ),
         ),
         "single_day_peak_quantity_absolute_error_kg_q": (
-            MetricObservation.computed(
+            _metric_observation(
                 "single_day_peak_quantity_absolute_error_kg_q",
                 candidate_metrics.single_day_peak_quantity_absolute_error_kg_q,
+                candidate_metrics.single_day_peak_metric_status,
             ),
-            MetricObservation.computed(
+            _metric_observation(
                 "single_day_peak_quantity_absolute_error_kg_q",
                 incumbent_metrics.single_day_peak_quantity_absolute_error_kg_q,
+                incumbent_metrics.single_day_peak_metric_status,
             ),
         ),
         "sustained_7day_quantity_absolute_error_kg_q": (
@@ -778,11 +997,15 @@ def guardrail_payload(
         ),
     }
     eligibility = evaluate_candidate_guardrails(
-        candidate_primary_metric=MetricObservation.computed(
-            "daily_wape", candidate_metrics.daily_wape
+        candidate_primary_metric=_metric_observation(
+            "daily_wape",
+            candidate_metrics.daily_wape,
+            candidate_metrics.daily_wape_metric_status,
         ),
-        incumbent_primary_metric=MetricObservation.computed(
-            "daily_wape", incumbent_metrics.daily_wape
+        incumbent_primary_metric=_metric_observation(
+            "daily_wape",
+            incumbent_metrics.daily_wape,
+            incumbent_metrics.daily_wape_metric_status,
         ),
         lower_is_better_metrics=lower,
         candidate_p80_coverage=MetricObservation.computed(
@@ -821,6 +1044,8 @@ def guardrail_payload(
 
 
 def relation_to_incumbent(candidate: LocalReplayResult, incumbent: LocalReplayResult) -> str:
+    if candidate.metrics.daily_wape is None or incumbent.metrics.daily_wape is None:
+        return "NOT_COMPUTABLE"
     if candidate.metrics.daily_wape < incumbent.metrics.daily_wape:
         return "IMPROVED"
     if candidate.metrics.daily_wape == incumbent.metrics.daily_wape:
@@ -829,6 +1054,10 @@ def relation_to_incumbent(candidate: LocalReplayResult, incumbent: LocalReplayRe
 
 
 __all__ = [
+    "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE",
+    "CompleteWindowAuthority",
+    "FROZEN_FORECAST_HORIZONS",
+    "FORECAST_HORIZON_NOT_IN_FROZEN_SET",
     "FrozenEngineeringDataset",
     "FrozenSourceObject",
     "LOCAL_ENGINEERING_REPLAY_AUTHORITY_CLASS",
@@ -838,6 +1067,7 @@ __all__ = [
     "LocalPrediction",
     "LocalReplayResult",
     "SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256",
+    "WAPE_ACTUAL_DENOMINATOR_ZERO",
     "compute_metrics",
     "guardrail_payload",
     "load_frozen_engineering_dataset",

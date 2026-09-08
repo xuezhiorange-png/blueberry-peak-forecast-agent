@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -17,6 +18,8 @@ from backend.app.s4_candidate_execution import (
     build_candidate_gate_request,
     build_derived_candidate_config,
     candidate_01_execution_preflight,
+    candidate_budget_preflight,
+    reconcile_validation_budget,
     resolve_pairing_authority,
     validate_candidate_01_manifest,
     verify_parameter_allowlist,
@@ -342,12 +345,86 @@ def test_current_pairing_preflight_blocks_before_started_event(tmp_path: Path) -
         journal=journal,
     )
     assert result.status == "BLOCKED"
-    assert result.reason_code == (
-        "HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED"
-    )
+    assert result.reason_code == ("CANDIDATE_01_ALREADY_STARTED")
     assert result.current_ledger_row_count == 0
-    assert result.actual_validation_evaluation_count == 0
+    assert result.actual_validation_evaluation_count == 4
     assert not journal.path.exists()
+
+
+def test_empty_ledger_plus_legacy_c01_debit_resolves_to_four_consumed(tmp_path: Path) -> None:
+    journal = AppendOnlyValidationJournal(tmp_path / "journal.jsonl")
+
+    result = reconcile_validation_budget(repo_root=REPO_ROOT, journal=journal)
+
+    assert result.status == "PASS"
+    assert result.canonical_ledger_row_count == 0
+    assert result.legacy_unledgered_c01_started_evaluation_count == 4
+    assert result.effective_validation_evaluations_consumed == 4
+
+
+def test_effective_remaining_budget_is_twenty_eight(tmp_path: Path) -> None:
+    journal = AppendOnlyValidationJournal(tmp_path / "journal.jsonl")
+
+    result = candidate_budget_preflight(
+        repo_root=REPO_ROOT,
+        journal=journal,
+        candidate_id="02_quantile_calibration",
+        candidate_actual_run_count=0,
+    )
+
+    assert result.effective_validation_evaluations_consumed == 4
+    assert result.remaining_effective_validation_budget == 28
+
+
+def test_legacy_reconciliation_does_not_create_fake_ledger_rows(tmp_path: Path) -> None:
+    journal = AppendOnlyValidationJournal(tmp_path / "journal.jsonl")
+
+    reconcile_validation_budget(repo_root=REPO_ROOT, journal=journal)
+
+    assert journal.materialize() == ()
+    assert not journal.path.exists()
+
+
+def test_legacy_reconciliation_does_not_make_c01_evidence_authoritative() -> None:
+    artifact = json.loads(
+        (REPO_ROOT / "docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert artifact["LEGACY_EXECUTION_CONTRACT_VALID"] is False
+    assert artifact["LEGACY_NUMERIC_EVIDENCE_SELECTION_AUTHORITY"] is False
+    assert artifact["CANDIDATE_01_RERUN_PERFORMED"] is False
+
+
+def test_budget_gate_blocks_when_ledger_and_reconciliation_disagree(tmp_path: Path) -> None:
+    journal = AppendOnlyValidationJournal(tmp_path / "journal.jsonl")
+    journal.append_started(_start_payload())
+
+    result = candidate_budget_preflight(
+        repo_root=REPO_ROOT,
+        journal=journal,
+        candidate_id="02_quantile_calibration",
+        candidate_actual_run_count=1,
+    )
+
+    assert result.status == "BLOCKED"
+    assert result.reason_code == "VALIDATION_LEDGER_RECONCILIATION_MISMATCH"
+
+
+def test_candidate_02_preflight_observes_effective_budget_4_of_32(tmp_path: Path) -> None:
+    journal = AppendOnlyValidationJournal(tmp_path / "journal.jsonl")
+
+    result = candidate_budget_preflight(
+        repo_root=REPO_ROOT,
+        journal=journal,
+        candidate_id="02_quantile_calibration",
+        candidate_actual_run_count=0,
+    )
+
+    assert result.status == "PASS"
+    assert result.effective_validation_evaluations_consumed == 4
+    assert result.remaining_effective_validation_budget == 28
 
 
 def test_execution_gate_rejects_run_ordinal_skip_and_fifth_run() -> None:

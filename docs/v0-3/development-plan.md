@@ -21330,3 +21330,56 @@ difference of aggregate forecast and actual totals, computes peaks after
 daily subfarm aggregation, requires an explicit forecast cutoff for horizon
 breakdowns, and fails closed when TRAIN support is unavailable. No C01 runner
 or equivalent validation scoring call was made during this correction.
+
+### 4.20 — S4-C01 final contract and budget reconciliation R1 (live pointer)
+
+This EOF pointer supersedes only the live S4-C01 disposition fields; prior
+execution snapshots remain immutable. It records the machine-executable
+reconciliation of the empty canonical journal with the four real, unledgered
+Candidate 01 invocations. No journal rows were fabricated and Candidate 01
+was not rerun.
+
+```text
+TASK_ID=V0_3_S4_C01_LOCAL_ENGINEERING_FINAL_CONTRACT_AND_BUDGET_RECONCILIATION_R1
+TARGET_PR=587
+C01_RESULT=BLOCKED
+BLOCK_REASON=METRIC_AND_EXECUTION_CONTRACT_INVALID
+ORIGINAL_C01_METRICS=AUDIT_ONLY
+C01_NUMERIC_EVIDENCE_ACCEPTED=false
+C01_GUARDRAIL_DECISION_ACCEPTED=false
+CANONICAL_LEDGER_ROW_COUNT=0
+CANONICAL_LEDGER_STARTED_EVALUATION_COUNT=0
+LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT=4
+LEGACY_UNLEDGERED_C01_BUDGET_DEBIT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH=docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json
+VALIDATION_BUDGET_GATE_MACHINE_RECONCILED=true
+LEGACY_EXECUTION_CONTRACT_VALID=false
+LEGACY_NUMERIC_EVIDENCE_SELECTION_AUTHORITY=false
+LEGACY_ROWS_BACKFILLED=false
+HISTORICAL_LEDGER_FABRICATION=false
+CANDIDATE_01_RERUN_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+```
+
+The live implementation now accepts only forecast horizons `{7, 14, 21}`
+from an explicit cutoff. Cumulative, single-day peak, and sustained seven-day
+metrics require explicit complete daily-rowset authority; cutoff presence
+alone is insufficient. Zero actual WAPE denominator is emitted as
+`NOT_COMPUTABLE` with reason `WAPE_ACTUAL_DENOMINATOR_ZERO`, never as zero.
+Farm peak aggregation retains season, farm, variety, target date, cutoff,
+model identity, and forecast quantile while summing subfarms only.
+
+```text
+SUSTAINED_3_VS_7_OWNER_CONFLICT_RESOLVED_BY_THIS_TASK=false
+S4_CANDIDATE_EXPERIMENT_EXECUTED=true
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_FINAL_CONTRACT_AND_BUDGET_REVIEW
+```

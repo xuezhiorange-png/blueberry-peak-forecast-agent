@@ -17,7 +17,10 @@ from backend.app.s4_candidate_execution import (
     validate_candidate_01_manifest,
 )
 from backend.app.s4_local_engineering import (
+    COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE,
     LOCAL_ENGINEERING_REPLAY_AUTHORITY_CLASS,
+    WAPE_ACTUAL_DENOMINATOR_ZERO,
+    CompleteWindowAuthority,
     FrozenEngineeringDataset,
     LocalEngineeringContractError,
     LocalPrediction,
@@ -28,13 +31,14 @@ from backend.app.s4_local_engineering import (
     _rolling_peak_error,
     _single_day_peak_error,
     compute_metrics,
+    guardrail_payload,
     load_frozen_engineering_dataset,
     run_local_replay,
     verify_frozen_source_object,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SYNTHETIC_CUTOFF = date(2026, 1, 9)
+SYNTHETIC_CUTOFF = date(2026, 1, 1)
 
 
 @pytest.fixture(scope="module")
@@ -55,7 +59,7 @@ def synthetic_dataset() -> FrozenEngineeringDataset:
     )
     validation_rows = tuple(
         _row(
-            harvest_date=date(2026, 1, 10) + timedelta(days=index),
+            harvest_date=(date(2026, 1, 8), date(2026, 1, 15))[index],
             quantity=Decimal(20 + index),
         )
         for index in range(2)
@@ -107,19 +111,37 @@ def _prediction(
     farm: str = "farm-a",
     subfarm: str = "subfarm-a",
     variety: str = "variety-a",
+    season: str = "season-a",
+    cutoff: date | None = None,
 ) -> LocalPrediction:
     p50_value = Decimal(p50)
     return LocalPrediction(
-        season="season-a",
+        season=season,
         farm=farm,
         subfarm=subfarm,
         variety=variety,
         harvest_business_date=day,
-        forecast_cutoff_at=date(2026, 1, 1),
+        forecast_cutoff_at=day - timedelta(days=7) if cutoff is None else cutoff,
         actual_kg=Decimal(actual),
         p50_kg=p50_value,
         p80_kg=p50_value,
         p90_kg=p50_value,
+    )
+
+
+def _complete_authority(predictions: tuple[LocalPrediction, ...]) -> CompleteWindowAuthority:
+    dates = sorted({item.harvest_business_date for item in predictions})
+    assert dates
+    return CompleteWindowAuthority(
+        daily_rowset_authority=True,
+        daily_rowset_identity="daily-rowset-authority",
+        daily_rowset_completeness=True,
+        evaluation_window_start=dates[0],
+        evaluation_window_end=dates[-1],
+        evaluation_window_days=(dates[-1] - dates[0]).days + 1,
+        forecast_cutoff_identity="forecast-cutoff-authority",
+        forecast_horizon_identity="horizon-set-7-14-21",
+        no_missing_days=True,
     )
 
 
@@ -263,7 +285,9 @@ def test_sustained_7day_no_complete_window_is_not_computable() -> None:
 
     assert payload["sustained_7day_quantity_absolute_error_kg_q"] is None
     assert payload["sustained_7day_metric_status"] == "NOT_COMPUTABLE"
-    assert payload["sustained_7day_metric_reason_code"] == "NO_COMPLETE_7DAY_WINDOW"
+    assert payload["sustained_7day_metric_reason_code"] == (
+        COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+    )
 
 
 def test_cumulative_absolute_error_is_abs_of_aggregate_difference() -> None:
@@ -272,7 +296,9 @@ def test_cumulative_absolute_error_is_abs_of_aggregate_difference() -> None:
         _prediction(day=date(2026, 1, 2), actual="10", p50="0", subfarm="subfarm-b"),
     )
 
-    assert compute_metrics(predictions).cumulative_absolute_error_kg == Decimal("0.000000")
+    assert compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    ).cumulative_absolute_error_kg == Decimal("0.000000")
 
 
 def test_cumulative_absolute_error_is_not_sum_of_group_absolute_errors() -> None:
@@ -281,7 +307,9 @@ def test_cumulative_absolute_error_is_not_sum_of_group_absolute_errors() -> None
         _prediction(day=date(2026, 1, 2), actual="10", p50="0", subfarm="subfarm-b"),
     )
 
-    assert compute_metrics(predictions).cumulative_absolute_error_kg != Decimal("20.000000")
+    assert compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    ).cumulative_absolute_error_kg != Decimal("20.000000")
 
 
 def test_farm_single_day_peak_is_computed_after_subfarm_daily_sum() -> None:
@@ -291,9 +319,9 @@ def test_farm_single_day_peak_is_computed_after_subfarm_daily_sum() -> None:
         _prediction(day=date(2026, 1, 3), actual="10", p50="0", subfarm="subfarm-c"),
     )
 
-    assert compute_metrics(predictions).single_day_peak_quantity_absolute_error_kg_q == Decimal(
-        "12.000000"
-    )
+    assert compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    ).single_day_peak_quantity_absolute_error_kg_q == Decimal("12.000000")
 
 
 def test_single_day_peak_earliest_date_wins_tie() -> None:
@@ -307,10 +335,241 @@ def test_single_day_peak_earliest_date_wins_tie() -> None:
     assert predicted_peak_date == date(2026, 1, 2)
 
 
-def test_forecast_horizon_uses_cutoff_to_target_definition() -> None:
-    prediction = _prediction(day=date(2026, 1, 4), actual="1", p50="1")
+def _assert_valid_horizon(horizon_days: int) -> None:
+    prediction = _prediction(
+        day=date(2026, 1, 1) + timedelta(days=horizon_days),
+        actual="1",
+        p50="1",
+        cutoff=date(2026, 1, 1),
+    )
 
-    assert prediction.horizon_days == 3
+    assert prediction.horizon_days == horizon_days
+
+
+def test_forecast_horizon_seven_days_is_valid() -> None:
+    _assert_valid_horizon(7)
+
+
+def test_forecast_horizon_fourteen_days_is_valid() -> None:
+    _assert_valid_horizon(14)
+
+
+def test_forecast_horizon_twenty_one_days_is_valid() -> None:
+    _assert_valid_horizon(21)
+
+
+def test_forecast_horizon_three_days_fails_closed() -> None:
+    prediction = _prediction(day=date(2026, 1, 4), actual="1", p50="1", cutoff=date(2026, 1, 1))
+
+    with pytest.raises(LocalEngineeringContractError, match="FORECAST_HORIZON_NOT_IN_FROZEN_SET"):
+        _ = prediction.horizon_days
+
+
+@pytest.mark.parametrize("horizon_days", [3, 8, 12, 38])
+def test_forecast_horizon_arbitrary_value_fails_closed(horizon_days: int) -> None:
+    prediction = _prediction(
+        day=date(2026, 1, 1) + timedelta(days=horizon_days),
+        actual="1",
+        p50="1",
+        cutoff=date(2026, 1, 1),
+    )
+
+    with pytest.raises(LocalEngineeringContractError, match="FORECAST_HORIZON_NOT_IN_FROZEN_SET"):
+        _ = prediction.horizon_days
+
+
+def test_forecast_horizon_unknown_cutoff_fails_closed() -> None:
+    prediction = replace(
+        _prediction(day=date(2026, 1, 8), actual="1", p50="1"),
+        forecast_cutoff_at=None,
+    )
+
+    with pytest.raises(
+        LocalEngineeringContractError, match="FORECAST_HORIZON_AUTHORITY_UNAVAILABLE"
+    ):
+        _ = prediction.horizon_days
+
+
+def test_required_horizon_breakdown_cannot_use_arbitrary_dataset_cutoff(
+    synthetic_dataset: FrozenEngineeringDataset, incumbent_config: MaturityCurveConfig
+) -> None:
+    arbitrary_cutoff_dataset = replace(synthetic_dataset, forecast_cutoff_at=date(2026, 1, 4))
+
+    with pytest.raises(LocalEngineeringContractError, match="FORECAST_HORIZON_NOT_IN_FROZEN_SET"):
+        run_local_replay(dataset=arbitrary_cutoff_dataset, config=incumbent_config)
+
+
+def test_farm_peak_does_not_sum_different_varieties_together() -> None:
+    predictions = (
+        _prediction(
+            day=date(2026, 1, 2), actual="6", p50="0", subfarm="subfarm-a", variety="variety-a"
+        ),
+        _prediction(
+            day=date(2026, 1, 2), actual="6", p50="0", subfarm="subfarm-b", variety="variety-a"
+        ),
+        _prediction(
+            day=date(2026, 1, 2), actual="10", p50="0", subfarm="subfarm-c", variety="variety-b"
+        ),
+    )
+
+    metrics = compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    )
+
+    assert metrics.single_day_peak_quantity_absolute_error_kg_q == Decimal("12.000000")
+
+
+def test_farm_peak_sums_multiple_subfarms_within_same_variety() -> None:
+    predictions = (
+        _prediction(day=date(2026, 1, 2), actual="6", p50="0", subfarm="subfarm-a"),
+        _prediction(day=date(2026, 1, 2), actual="6", p50="0", subfarm="subfarm-b"),
+    )
+
+    metrics = compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    )
+
+    assert metrics.single_day_peak_quantity_absolute_error_kg_q == Decimal("12.000000")
+
+
+def test_farm_peak_retains_season_and_cutoff_grain() -> None:
+    predictions = (
+        _prediction(
+            day=date(2026, 1, 2), actual="8", p50="0", season="season-a", cutoff=date(2025, 12, 26)
+        ),
+        _prediction(
+            day=date(2026, 1, 2), actual="7", p50="0", season="season-b", cutoff=date(2025, 12, 19)
+        ),
+    )
+
+    metrics = compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    )
+
+    assert metrics.single_day_peak_quantity_absolute_error_kg_q == Decimal("8.000000")
+
+
+def test_wape_zero_actual_denominator_is_not_computable() -> None:
+    predictions = (_prediction(day=date(2026, 1, 2), actual="0", p50="2"),)
+
+    metrics = compute_metrics(predictions)
+
+    assert metrics.daily_wape is None
+    assert metrics.daily_wape_metric_status == "NOT_COMPUTABLE"
+    assert metrics.daily_wape_metric_reason_code == WAPE_ACTUAL_DENOMINATOR_ZERO
+
+
+def test_wape_zero_denominator_is_not_reported_as_zero() -> None:
+    prediction = _prediction(day=date(2026, 1, 2), actual="0", p50="0")
+
+    assert compute_metrics((prediction,)).payload()["daily_wape"] is None
+
+
+def test_wape_nonzero_denominator_remains_computed() -> None:
+    prediction = _prediction(day=date(2026, 1, 2), actual="4", p50="2")
+
+    metrics = compute_metrics((prediction,))
+
+    assert metrics.daily_wape == Decimal("0.500000")
+    assert metrics.daily_wape_metric_status == "COMPUTED"
+
+
+def test_wape_not_computable_blocks_guardrail_evaluation(
+    synthetic_dataset: FrozenEngineeringDataset, incumbent_config: MaturityCurveConfig
+) -> None:
+    predictions = (_prediction(day=date(2026, 1, 2), actual="0", p50="2"),)
+    result = run_local_replay(dataset=synthetic_dataset, config=incumbent_config)
+    # Use direct metric objects for the zero-denominator guardrail contract.
+    zero_result = replace(result, metrics=compute_metrics(predictions))
+    guardrails = guardrail_payload(candidate=zero_result, incumbent=zero_result)
+
+    assert guardrails["status"] == "BLOCKED"
+    assert any(
+        item["guardrail_id"] == "daily_wape" and item["status"] == "BLOCKED"
+        for item in guardrails["guardrails"]
+    )
+
+
+def test_complete_window_metrics_require_explicit_daily_rowset_authority() -> None:
+    predictions = tuple(
+        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        for index in range(7)
+    )
+
+    metrics = compute_metrics(predictions)
+
+    assert metrics.cumulative_absolute_error_kg is None
+    assert metrics.single_day_peak_quantity_absolute_error_kg_q is None
+    assert metrics.sustained_7day_quantity_absolute_error_kg_q is None
+    assert metrics.cumulative_metric_reason_code == COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+
+
+def test_cutoff_presence_alone_does_not_authorize_complete_window_metrics() -> None:
+    predictions = tuple(
+        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        for index in range(7)
+    )
+
+    metrics = compute_metrics(predictions, complete_window_authority=None)
+
+    assert metrics.cumulative_metric_status == "NOT_COMPUTABLE"
+    assert metrics.single_day_peak_metric_status == "NOT_COMPUTABLE"
+    assert metrics.sustained_7day_metric_status == "NOT_COMPUTABLE"
+
+
+def test_complete_daily_authority_allows_synthetic_window_metric_computation() -> None:
+    predictions = tuple(
+        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        for index in range(7)
+    )
+
+    metrics = compute_metrics(
+        predictions, complete_window_authority=_complete_authority(predictions)
+    )
+
+    assert metrics.cumulative_metric_status == "COMPUTED"
+    assert metrics.single_day_peak_metric_status == "COMPUTED"
+    assert metrics.sustained_7day_metric_status == "COMPUTED"
+
+
+def test_incomplete_daily_authority_blocks_cumulative_metric() -> None:
+    predictions = tuple(
+        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        for index in range(7)
+    )
+    authority = replace(_complete_authority(predictions), daily_rowset_completeness=False)
+
+    metrics = compute_metrics(predictions, complete_window_authority=authority)
+
+    assert metrics.cumulative_metric_reason_code == COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+
+
+def test_incomplete_daily_authority_blocks_single_day_peak_metric() -> None:
+    predictions = tuple(
+        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        for index in range(7)
+    )
+    authority = replace(_complete_authority(predictions), no_missing_days=False)
+
+    metrics = compute_metrics(predictions, complete_window_authority=authority)
+
+    assert metrics.single_day_peak_metric_reason_code == (
+        COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+    )
+
+
+def test_incomplete_daily_authority_blocks_sustained_peak_metric() -> None:
+    predictions = tuple(
+        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        for index in range(7)
+    )
+    authority = replace(_complete_authority(predictions), daily_rowset_authority=False)
+
+    metrics = compute_metrics(predictions, complete_window_authority=authority)
+
+    assert metrics.sustained_7day_metric_reason_code == (
+        COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+    )
 
 
 def test_missing_forecast_cutoff_authority_fails_closed(

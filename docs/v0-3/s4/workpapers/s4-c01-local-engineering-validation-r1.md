@@ -228,3 +228,72 @@ MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_LOCAL_ENGINEERING_RESULT_REVIEW
 ```
+
+## Final contract and budget reconciliation R1
+
+This append-only correction tightens the implementation contract without
+rerunning Candidate 01. The original four started validation invocations are
+retained as a legacy budget debit; they are not backfilled into the canonical
+append-only journal and their numeric payload is not restored as selection
+authority.
+
+```text
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH=docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json
+CANONICAL_LEDGER_ROW_COUNT=0
+CANONICAL_LEDGER_STARTED_EVALUATION_COUNT=0
+LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT=4
+LEGACY_UNLEDGERED_C01_BUDGET_DEBIT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+LEGACY_EXECUTION_CONTRACT_VALID=false
+LEGACY_NUMERIC_EVIDENCE_SELECTION_AUTHORITY=false
+LEGACY_ROWS_BACKFILLED=false
+HISTORICAL_LEDGER_FABRICATION=false
+CANDIDATE_01_RERUN_PERFORMED=false
+VALIDATION_BUDGET_GATE_MACHINE_RECONCILED=true
+```
+
+The future budget preflight reads the durable reconciliation artifact and the
+canonical journal together. It blocks on either artifact/hash drift or a
+ledger-count mismatch, and reports the effective count as 4 of 32 for a
+Candidate 02 preflight. It never creates synthetic journal rows.
+
+The forecast-horizon contract is exact: only `{7, 14, 21}` calendar days from
+an explicit forecast cutoff are accepted. A missing cutoff or any arbitrary
+horizon fails closed with `FORECAST_HORIZON_NOT_IN_FROZEN_SET` (or the missing
+cutoff authority blocker); a dataset-global cutoff alone is not a complete
+window authority.
+
+The complete-window metrics—cumulative absolute error, single-day peak, and
+sustained seven-day peak—require explicit `daily_rowset_authority`,
+`daily_rowset_identity`, `daily_rowset_completeness`, evaluation window start,
+end and day count, cutoff identity, horizon identity, and
+`no_missing_days=true`. Missing or incomplete authority emits
+`COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE`. Cutoff presence by itself does
+not authorize these metrics.
+
+WAPE uses the actual denominator. When the actual denominator is zero,
+`daily_wape=null`, status is `NOT_COMPUTABLE`, and reason is
+`WAPE_ACTUAL_DENOMINATOR_ZERO`; it is never reported as numeric zero and the
+primary guardrail is blocked.
+
+Farm peak aggregation retains the grain
+`season × farm × variety × target_date × forecast_cutoff × model_identity ×
+forecast_quantile` and sums subfarms only. Different varieties are not summed
+into one farm peak. The sustained 3-versus-7-day owner conflict remains
+explicitly unresolved by this task:
+`SUSTAINED_3_VS_7_OWNER_CONFLICT_RESOLVED_BY_THIS_TASK=false`.
+
+```text
+S4_CANDIDATE_EXPERIMENT_EXECUTED=true
+CANDIDATE_01_RERUN_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_FINAL_CONTRACT_AND_BUDGET_REVIEW
+```
