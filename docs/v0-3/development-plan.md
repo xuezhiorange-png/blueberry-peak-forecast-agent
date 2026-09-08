@@ -21269,3 +21269,64 @@ engineering evaluations. Runs 2 and 3 improved the primary metric but were
 blocked by the frozen breakdown coverage guardrail; no candidate was approved
 or selected. The detailed aggregate result is recorded in
 `docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json`.
+
+### 4.19 — S4-C01 review correction R1 (append-only live pointer)
+
+This pointer supersedes the S4-C01 result-disposition fields in §4.18 without
+rewriting that historical execution snapshot. The four started evaluations
+remain real VALIDATION-informed engineering evaluations and continue to
+consume four budget units; they are not accepted S4 selection or guardrail
+evidence because the original implementation lacked the required metric and
+execution-contract guarantees.
+
+```text
+TASK_ID=V0_3_S4_C01_LOCAL_ENGINEERING_REVIEW_CORRECTION_R1
+TARGET_PR=587
+C01_RESULT_REVIEWED=true
+C01_RESULT_ACCEPTED_FOR_SELECTION=false
+C01_BUDGET_CONSUMPTION_RETAINED=true
+C01_NUMERIC_EVIDENCE_INVALIDATED_FOR_GUARDRAIL_AUTHORITY=true
+ORIGINAL_LOCAL_RUN_METRICS_PRESERVED_FOR_AUDIT=true
+ORIGINAL_LOCAL_RUN_METRICS_SELECTION_AUTHORITY=false
+ORIGINAL_LOCAL_RUN_METRICS_GUARDRAIL_AUTHORITY=false
+SUSTAINED_7DAY_OFF_BY_ONE_FIXED=true
+MISSING_DAY_ZERO_FILL_REMOVED=true
+CUMULATIVE_AGGREGATION_FIXED=true
+FARM_PEAK_AGGREGATION_FIXED=true
+FORECAST_HORIZON_CONTRACT_FIXED_OR_FAIL_CLOSED=true
+FORECAST_HORIZON_BREAKDOWN_STATUS=BLOCKED
+FORECAST_HORIZON_BREAKDOWN_REASON=FORECAST_HORIZON_AUTHORITY_UNAVAILABLE
+VALIDATION_ACTUAL_FALLBACK_REMOVED=true
+EXECUTION_GATE_RECONCILIATION=FAIL
+VALIDATION_LEDGER_RECONCILIATION=FAIL
+CANDIDATE_01_STARTED_EVALUATION_COUNT=4
+CANDIDATE_01_RUN_COUNT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+CANDIDATE_01_RERUN_REQUIRED_BY_THIS_TASK=false
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_01_RERUN_AUTHORIZED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+NEW_VALIDATION_SCORING_AUTHORIZED=false
+NEW_CANDIDATE_EVALUATION_AUTHORIZED=false
+VALIDATION_BUDGET_REWRITE_AUTHORIZED=false
+PRIOR_EVALUATION_DELETION_AUTHORIZED=false
+PRIOR_EVALUATION_RECLASSIFICATION_TO_ZERO_AUTHORIZED=false
+CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
+CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+TEST_EVALUATION_PERFORMED=false
+CANDIDATE_02_EXECUTION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_REVIEW_CORRECTION_REVIEW
+```
+
+The corrected local metric layer uses continuous calendar-day windows with
+`REJECT_INCOMPLETE_WINDOW`, computes cumulative error as the absolute
+difference of aggregate forecast and actual totals, computes peaks after
+daily subfarm aggregation, requires an explicit forecast cutoff for horizon
+breakdowns, and fails closed when TRAIN support is unavailable. No C01 runner
+or equivalent validation scoring call was made during this correction.
