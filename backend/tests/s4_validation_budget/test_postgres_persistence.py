@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from sqlalchemy import text, update
@@ -13,6 +15,13 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
 from backend.app.models.s4_validation_budget import S4ValidationEvent
+from backend.app.s4_candidate_03_execution import (
+    C03PairingIdentities,
+    build_candidate_03_gate_request,
+    build_candidate_03_manifest,
+    execute_authorized_candidate_03,
+    preflight_candidate_03,
+)
 from backend.app.s4_candidate_execution_authority import S4CandidateExecutionAuthority
 from backend.app.s4_experiment import (
     EXPERIMENT_PLAN_VERSION,
@@ -432,3 +441,168 @@ async def test_postgres_terminal_does_not_add_budget(
         assert state.accepted_started_count == 1
         assert state.effective_consumed == 5
         assert state.remaining == 27
+
+
+def _c03_context():
+    repo_root = Path(__file__).resolve().parents[3]
+    manifest = build_candidate_03_manifest(repo_root / "configs/maturity_curve.yaml")
+
+    def identity(label: str) -> str:
+        return hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+    pairing = C03PairingIdentities(
+        train_dataset_identity=identity("pg-c03-train"),
+        validation_dataset_identity=identity("pg-c03-validation"),
+        actual_label_set_identity=identity("pg-c03-labels"),
+        exclusion_policy_identity=identity("pg-c03-exclusion"),
+        cutoff_policy_identity=identity("pg-c03-cutoff"),
+        forecast_horizon_set_identity=identity("pg-c03-horizons"),
+        business_grain_set_identity=identity("pg-c03-grains"),
+        common_comparable_set_identity=identity("pg-c03-comparable"),
+    )
+    return manifest, pairing
+
+
+def _c03_request(evaluation_id: str) -> CandidateExecutionGateRequest:
+    manifest, pairing = _c03_context()
+    return build_candidate_03_gate_request(
+        manifest=manifest,
+        run=manifest.run(1),
+        pairing_identities=pairing,
+        code_commit_sha="c" * 40,
+        evaluation_id=evaluation_id,
+    )
+
+
+async def test_postgres_c03_preflight_observes_4_of_32(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    manifest, pairing = _c03_context()
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+        preflight = await preflight_candidate_03(
+            session,
+            manifest=manifest,
+            candidate_run_ordinal=1,
+            pairing_identities=pairing,
+            code_commit_sha="c" * 40,
+            evaluation_id="pg-c03-preflight",
+        )
+    assert preflight.allowed is True
+    assert preflight.candidate_actual_run_count == 0
+    assert preflight.global_actual_evaluation_count == 4
+    assert preflight.gate_request is not None
+    assert preflight.gate_request.candidate_run_ordinal == 1
+    assert preflight.gate_request.global_actual_evaluation_count == 4
+
+
+async def test_postgres_c03_started_commits_before_fake_scorer(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    manifest, pairing = _c03_context()
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+        observed: list[int] = []
+
+        async def fake_scorer() -> str:
+            state = await S4ValidationBudgetRepository(session).load_verified_state()
+            observed.append(state.effective_consumed)
+            return "COMPUTED"
+
+        result = await execute_authorized_candidate_03(
+            session,
+            manifest=manifest,
+            candidate_run_ordinal=1,
+            pairing_identities=pairing,
+            code_commit_sha="c" * 40,
+            evaluation_id="pg-c03-order",
+            scorer=fake_scorer,
+            execution_authorized=True,
+            trigger_source="postgres-c03-order",
+        )
+    assert result.status == "COMPLETED"
+    assert result.started_persisted is True
+    assert observed == [5]
+
+
+async def test_postgres_c03_cas_conflict_blocks_second_execution(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    manifest, pairing = _c03_context()
+    first_session = AsyncSession(isolated_postgres_engine, expire_on_commit=False)
+    second_session = AsyncSession(isolated_postgres_engine, expire_on_commit=False)
+    try:
+        first_authority = S4CandidateExecutionAuthority(first_session)
+        second_authority = S4CandidateExecutionAuthority(second_session)
+        first_preflight = await preflight_candidate_03(
+            first_session,
+            manifest=manifest,
+            candidate_run_ordinal=1,
+            pairing_identities=pairing,
+            code_commit_sha="c" * 40,
+            evaluation_id="pg-c03-cas-first",
+        )
+        second_preflight = await preflight_candidate_03(
+            second_session,
+            manifest=manifest,
+            candidate_run_ordinal=1,
+            pairing_identities=pairing,
+            code_commit_sha="c" * 40,
+            evaluation_id="pg-c03-cas-second",
+        )
+        assert first_preflight.allowed is True
+        assert second_preflight.allowed is True
+        second_scorer_called = False
+
+        def second_scorer() -> str:
+            nonlocal second_scorer_called
+            second_scorer_called = True
+            return "COMPUTED"
+
+        first_result, second_result = await asyncio.gather(
+            first_authority.execute_preflight(
+                first_preflight,
+                scorer=lambda: "COMPUTED",
+                execution_authorized=True,
+                trigger_source="postgres-c03-cas-first",
+            ),
+            second_authority.execute_preflight(
+                second_preflight,
+                scorer=second_scorer,
+                execution_authorized=True,
+                trigger_source="postgres-c03-cas-second",
+            ),
+        )
+        assert first_result.status == "COMPLETED"
+        assert second_result.reason_code == "VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT"
+        assert second_result.scorer_called is False
+        assert second_scorer_called is False
+    finally:
+        await first_session.close()
+        await second_session.close()
+
+
+async def test_postgres_c03_failed_fake_scorer_keeps_debit(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    manifest, pairing = _c03_context()
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+
+        def fake_scorer() -> str:
+            raise RuntimeError("synthetic C03 scorer failure")
+
+        result = await execute_authorized_candidate_03(
+            session,
+            manifest=manifest,
+            candidate_run_ordinal=1,
+            pairing_identities=pairing,
+            code_commit_sha="c" * 40,
+            evaluation_id="pg-c03-failed-scorer",
+            scorer=fake_scorer,
+            execution_authorized=True,
+            trigger_source="postgres-c03-failed-scorer",
+        )
+    assert result.status == "FAILED"
+    assert result.started_persisted is True
+    assert result.terminal_persisted is True
+    assert result.state_after_terminal is not None
+    assert result.state_after_terminal.effective_consumed == 5
+    assert result.state_after_terminal.remaining == 27
