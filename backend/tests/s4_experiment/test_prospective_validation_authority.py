@@ -10,12 +10,14 @@ from typing import Any, cast
 
 import pytest
 
+import backend.app.s4_prospective_authority as prospective_authority
 from backend.app.forecast_authority.retention import (
     ForecastAuthorityMissingError,
     ForecastAuthorityPostCutoffError,
     PersistedForecastAuthority,
     PersistedForecastAuthorityDaily,
 )
+from backend.app.s4_experiment import INCUMBENT_MODEL_ID
 from backend.app.s4_prospective_authority import (
     MINIMUM_POST_TEST_TARGET_DATE,
     BusinessGrainKey,
@@ -79,7 +81,7 @@ def _forecast_pair() -> tuple[Any, PersistedForecastAuthority]:
         task9_snapshot={"run": {"id": 1}, "member_row_count": 1},
         task10_snapshot={},
         core_snapshot={"run": {"id": 1}, "daily_row_hashes": [HASH_C]},
-        governance_snapshot={"model_identity": "V0_2_CURRENT_MODEL"},
+        governance_snapshot={"model_identity": INCUMBENT_MODEL_ID},
         daily_predictions=daily,
         authority_hash=HASH_B,
     )
@@ -159,6 +161,30 @@ def test_synthetic_authority_marker_is_rejected() -> None:
             authority,
             business_grain_snapshot={"grain": "S2-FIXTURE", "grains": []},
         )
+        _forecast_evidence_from_capture(capture, authority)
+
+
+def test_incumbent_model_identity_is_canonically_bound() -> None:
+    capture, authority = _forecast_pair()
+    evidence = _forecast_evidence_from_capture(capture, authority)
+    assert evidence.model_identity == INCUMBENT_MODEL_ID
+
+
+@pytest.mark.parametrize(
+    ("model_identity", "reason"),
+    (
+        ("V0_3_SOMETHING", "INCUMBENT_MODEL_IDENTITY_MISMATCH"),
+        ("ANOTHER_PRODUCTION_MODEL", "INCUMBENT_MODEL_IDENTITY_MISMATCH"),
+        ("", "MISSING_MODEL_IDENTITY"),
+        ("S2-FIXTURE", "MISSING_MODEL_IDENTITY"),
+    ),
+)
+def test_non_incumbent_model_identity_is_rejected(
+    model_identity: str, reason: str
+) -> None:
+    capture, authority = _forecast_pair()
+    authority = replace(authority, governance_snapshot={"model_identity": model_identity})
+    with pytest.raises(ProspectiveAuthorityContractError, match=reason):
         _forecast_evidence_from_capture(capture, authority)
 
 
@@ -244,28 +270,160 @@ async def test_final_adjudicated_snapshot_is_rejected_by_loader() -> None:
         )
 
 
-class _TestRowSession:
+class _NoChildQuerySession:
+    def __init__(self) -> None:
+        self.scalar_calls = 0
+
     async def scalar(self, _query: Any) -> int:
-        return 1
+        self.scalar_calls += 1
+        raise AssertionError("rejected snapshot must not issue child-row SQL")
+
+
+def _snapshot_header(
+    *,
+    start: date,
+    end: date,
+    visibility_mode: str = "AS_OF_EVALUATION",
+    cutoff: datetime | None = UTC_CUTOFF,
+) -> Any:
+    return SimpleNamespace(
+        id=1,
+        visibility_mode=visibility_mode,
+        label_observation_cutoff_at_or_null=cutoff,
+        harvest_date_start=start,
+        harvest_date_end=end,
+        source_system="production",
+        snapshot_idempotency_key="snapshot-1",
+        created_by_identity="owner",
+    )
 
 
 @pytest.mark.asyncio
-async def test_label_snapshot_with_test_row_is_rejected_by_loader() -> None:
-    with pytest.raises(ProspectiveAuthorityContractError, match="TEST_LABEL_ROW"):
+@pytest.mark.parametrize(
+    ("start", "end"),
+    (
+        (date(2026, 3, 10), date(2026, 3, 20)),
+        (date(2026, 4, 16), date(2026, 4, 30)),
+        (date(2026, 4, 10), date(2026, 4, 30)),
+        (date(2026, 1, 1), date(2026, 5, 1)),
+    ),
+)
+async def test_test_overlapping_snapshot_header_rejects_before_child_load(
+    monkeypatch: pytest.MonkeyPatch, start: date, end: date
+) -> None:
+    session = _NoChildQuerySession()
+    child_calls: list[str] = []
+
+    async def unexpected_child_loader(*_: Any, **__: Any) -> tuple[Any, ...]:
+        child_calls.append("child")
+        raise AssertionError("rejected snapshot must not load child rows")
+
+    monkeypatch.setattr(
+        prospective_authority, "load_label_rows_for_snapshot", unexpected_child_loader
+    )
+    monkeypatch.setattr(
+        prospective_authority, "load_winners_for_snapshot", unexpected_child_loader
+    )
+    monkeypatch.setattr(
+        prospective_authority, "load_exclusion_rows_for_snapshot", unexpected_child_loader
+    )
+    with pytest.raises(
+        ProspectiveAuthorityContractError, match="SNAPSHOT_SCOPE_OVERLAPS_SEALED_TEST"
+    ):
         await _load_verified_label_snapshot(
-            cast(Any, _TestRowSession()),
-            cast(
-                Any,
-                SimpleNamespace(
-                    id=1,
-                    visibility_mode="AS_OF_EVALUATION",
-                    label_observation_cutoff_at_or_null=UTC_CUTOFF,
-                    source_system="production",
-                    snapshot_idempotency_key="snapshot-1",
-                    created_by_identity="owner",
-                ),
+            cast(Any, session),
+            _snapshot_header(start=start, end=end),
+        )
+    assert session.scalar_calls == 0
+    assert child_calls == []
+
+
+@pytest.mark.asyncio
+async def test_post_test_snapshot_header_permits_child_loading(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _NoChildQuerySession()
+    child_calls: list[str] = []
+
+    async def child_loader(*_: Any, **__: Any) -> tuple[Any, ...]:
+        child_calls.append("labels")
+        raise ProspectiveAuthorityContractError("CHILD_LOADER_REACHED")
+
+    monkeypatch.setattr(prospective_authority, "load_label_rows_for_snapshot", child_loader)
+    with pytest.raises(ProspectiveAuthorityContractError, match="CHILD_LOADER_REACHED"):
+        await _load_verified_label_snapshot(
+            cast(Any, session),
+            _snapshot_header(start=date(2026, 4, 17), end=date(2026, 4, 30)),
+        )
+    assert session.scalar_calls == 0
+    assert child_calls == ["labels"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("visibility_mode", "cutoff", "reason"),
+    (
+        ("FINAL_ADJUDICATED", None, "FINAL_ADJUDICATED_NOT_ALLOWED"),
+        ("AS_OF_EVALUATION", None, "INVALID_AS_OF_LABEL_SNAPSHOT"),
+    ),
+)
+async def test_snapshot_header_rejects_invalid_visibility_before_child_load(
+    monkeypatch: pytest.MonkeyPatch,
+    visibility_mode: str,
+    cutoff: datetime | None,
+    reason: str,
+) -> None:
+    session = _NoChildQuerySession()
+    child_calls: list[str] = []
+
+    async def unexpected_child_loader(*_: Any, **__: Any) -> tuple[Any, ...]:
+        child_calls.append("child")
+        raise AssertionError("invalid header must not load child rows")
+
+    monkeypatch.setattr(
+        prospective_authority, "load_label_rows_for_snapshot", unexpected_child_loader
+    )
+    with pytest.raises(ProspectiveAuthorityContractError, match=reason):
+        await _load_verified_label_snapshot(
+            cast(Any, session),
+            _snapshot_header(
+                start=date(2026, 4, 17),
+                end=date(2026, 4, 30),
+                visibility_mode=visibility_mode,
+                cutoff=cutoff,
             ),
         )
+    assert session.scalar_calls == 0
+    assert child_calls == []
+
+
+def test_rejected_header_path_contains_no_test_child_query() -> None:
+    source = prospective_authority.__file__
+    assert source is not None
+    text = open(source, encoding="utf-8").read()
+    assert "ActualHarvestLabelSnapshotLabelModel" not in text
+    assert "select(func.count())" not in text
+    assert "TEST_LABEL_ROW_REJECTED" in text
+
+
+@pytest.mark.asyncio
+async def test_wrong_model_authority_does_not_enter_scan_counts_or_hashes() -> None:
+    capture, authority = _forecast_pair()
+    authority = replace(authority, governance_snapshot={"model_identity": "V0_3_SOMETHING"})
+    session = _CaptureThenEmptySession(capture)
+
+    async def loader(_session: Any, **_: Any) -> PersistedForecastAuthority:
+        return authority
+
+    result = await scan_prospective_validation_authority(
+        session,  # type: ignore[arg-type]
+        forecast_loader=loader,
+    )
+    assert result.status == "BLOCKED"
+    assert result.blocker == "PIT_READBACK_FAILURE"
+    assert result.pit_readable_forecast_count == 0
+    assert result.prospective_common_comparable_row_count == 0
+    assert result.proposed_hashes == type(result.proposed_hashes)(None, None, None, None, None)
 
 
 def test_label_snapshot_with_test_row_is_not_pairable() -> None:

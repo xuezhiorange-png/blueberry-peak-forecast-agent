@@ -17,7 +17,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, Literal, cast
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.actual_harvest_labels.hashes import (
@@ -28,10 +28,7 @@ from backend.app.actual_harvest_labels.hashes import (
     compute_snapshot_request_identity_hash,
     compute_winner_manifest_hash,
 )
-from backend.app.actual_harvest_labels.models import (
-    ActualHarvestLabelSnapshotLabelModel,
-    ActualHarvestLabelSnapshotModel,
-)
+from backend.app.actual_harvest_labels.models import ActualHarvestLabelSnapshotModel
 from backend.app.actual_harvest_labels.persistence import (
     exclusion_row_hash_for,
     exclusion_row_to_value_object,
@@ -59,6 +56,7 @@ from backend.app.s3_daily_rowset.window import (
     expected_forecast_target_date,
     horizon_window_dates,
 )
+from backend.app.s4_experiment import INCUMBENT_MODEL_ID
 
 TEST_END_DATE = date(2026, 4, 16)
 MINIMUM_POST_TEST_TARGET_DATE = date(2026, 4, 17)
@@ -387,6 +385,8 @@ def _model_identity_from_authority(authority: PersistedForecastAuthority) -> str
     value = governance.get("model_identity")
     if not isinstance(value, str) or not value or _contains_test_marker(value):
         raise ProspectiveAuthorityContractError("MISSING_MODEL_IDENTITY")
+    if value != INCUMBENT_MODEL_ID:
+        raise ProspectiveAuthorityContractError("INCUMBENT_MODEL_IDENTITY_MISMATCH")
     return value
 
 
@@ -497,6 +497,10 @@ async def _load_verified_label_snapshot(
         raise ProspectiveAuthorityContractError("FINAL_ADJUDICATED_NOT_ALLOWED")
     if snapshot.label_observation_cutoff_at_or_null is None:
         raise ProspectiveAuthorityContractError("INVALID_AS_OF_LABEL_SNAPSHOT")
+    if snapshot.harvest_date_end < snapshot.harvest_date_start:
+        raise ProspectiveAuthorityContractError("SNAPSHOT_DATE_RANGE_INVALID")
+    if snapshot.harvest_date_start <= TEST_END_DATE:
+        raise ProspectiveAuthorityContractError("SNAPSHOT_SCOPE_OVERLAPS_SEALED_TEST")
     if _contains_test_marker(
         {
             "source_system": snapshot.source_system,
@@ -506,24 +510,14 @@ async def _load_verified_label_snapshot(
     ):
         raise ProspectiveAuthorityContractError("TEST_OR_SYNTHETIC_LABEL_AUTHORITY")
 
-    test_row_count = await session.scalar(
-        select(func.count())
-        .select_from(ActualHarvestLabelSnapshotLabelModel)
-        .where(
-            ActualHarvestLabelSnapshotLabelModel.snapshot_id == snapshot.id,
-            ActualHarvestLabelSnapshotLabelModel.harvest_business_date >= TEST_START_DATE,
-            ActualHarvestLabelSnapshotLabelModel.harvest_business_date <= TEST_END_DATE,
-        )
-    )
-    if int(test_row_count or 0) != 0:
-        raise ProspectiveAuthorityContractError("TEST_LABEL_ROW_REJECTED")
-
     label_rows = await load_label_rows_for_snapshot(session, snapshot.id)
     winners = await load_winners_for_snapshot(session, snapshot.id)
     exclusions = await load_exclusion_rows_for_snapshot(session, snapshot.id)
     winner_values = tuple(winner_to_value_object(item) for item in winners)
     label_values = tuple(label_row_to_value_object(item) for item in label_rows)
     exclusion_values = tuple(exclusion_row_to_value_object(item) for item in exclusions)
+    if any(not is_post_test_target_date(item.harvest_business_date) for item in label_values):
+        raise ProspectiveAuthorityContractError("TEST_LABEL_ROW_REJECTED")
     if any(_contains_test_marker(item.model_dump(mode="python")) for item in label_values):
         raise ProspectiveAuthorityContractError("TEST_LABEL_ROW_REJECTED")
     if any(
