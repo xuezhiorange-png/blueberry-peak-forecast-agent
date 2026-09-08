@@ -31,9 +31,7 @@ from backend.app.s4_candidate_execution import (  # noqa: E402
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Run the S4-C01 parameter-calibration preflight"
-    )
+    parser = argparse.ArgumentParser(description="Run the S4-C01 parameter-calibration preflight")
     parser.add_argument(
         "--config",
         type=Path,
@@ -70,9 +68,7 @@ def _repository_identity_blocker(
             return "REPOSITORY_IDENTITY_MISMATCH"
         if _git("origin/main") != execution_main_sha:
             return "REPOSITORY_IDENTITY_MISMATCH"
-        if subprocess.check_output(
-            ["git", "status", "--porcelain"], cwd=ROOT, text=True
-        ).strip():
+        if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
             return "REPOSITORY_NOT_CLEAN"
     except (OSError, subprocess.CalledProcessError):
         return "REPOSITORY_IDENTITY_UNAVAILABLE"

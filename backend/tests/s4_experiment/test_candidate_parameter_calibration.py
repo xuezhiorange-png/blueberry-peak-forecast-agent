@@ -122,9 +122,7 @@ def test_manifest_has_exact_four_runs_and_order() -> None:
     assert manifest.version == CANDIDATE_01_PARAMETER_MANIFEST_VERSION
     assert manifest.allowed_parameter_paths == CANDIDATE_01_ALLOWED_PARAMETER_PATHS
     assert [run.candidate_run_ordinal for run in manifest.runs] == [1, 2, 3, 4]
-    assert [
-        dict(run.authorized_parameter_delta) for run in manifest.runs
-    ] == [
+    assert [dict(run.authorized_parameter_delta) for run in manifest.runs] == [
         {"curve.spline_knot_count": 5, "curve.ridge_alpha": Decimal("0.10")},
         {"curve.spline_knot_count": 7, "curve.ridge_alpha": Decimal("0.10")},
         {"curve.spline_knot_count": 6, "curve.ridge_alpha": Decimal("0.05")},
@@ -219,14 +217,10 @@ def test_current_pairing_preflight_blocks_before_started_event(tmp_path: Path) -
 
 
 def test_execution_gate_rejects_run_ordinal_skip_and_fifth_run() -> None:
-    skipped = check_candidate_execution_gate(
-        replace(_gate_request(), candidate_run_ordinal=2)
-    )
+    skipped = check_candidate_execution_gate(replace(_gate_request(), candidate_run_ordinal=2))
     assert skipped.status == "BLOCKED"
     assert "RUN_ORDINAL_COUNT_MISMATCH" in skipped.reason_codes
-    fifth = check_candidate_execution_gate(
-        replace(_gate_request(), candidate_run_ordinal=5)
-    )
+    fifth = check_candidate_execution_gate(replace(_gate_request(), candidate_run_ordinal=5))
     assert fifth.status == "BLOCKED"
     assert "CANDIDATE_RUN_ORDINAL_EXCEEDS_LIMIT" in fifth.reason_codes
 
