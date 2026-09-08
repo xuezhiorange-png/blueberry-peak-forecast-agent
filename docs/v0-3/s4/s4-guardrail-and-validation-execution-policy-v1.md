@@ -18,8 +18,10 @@ CURRENT_CANDIDATE_REGISTRY_FROZEN=true
 EXPERIMENT_PLAN_VERSION=v0.3-experiment-plan-v1
 S4_A_EXPERIMENT_PLAN_HASH_BOUND=9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500
 GUARDRAIL_POLICY_VERSION=v0.3-s4-guardrail-policy-v1
-GUARDRAIL_POLICY_HASH=0a910697cf5588383e117df8a22e3826b0d21b9dda38cef490698ad89560a27f
+GUARDRAIL_POLICY_HASH=74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8
 GUARDRAIL_POLICY_HASH_REPLAY=PASS
+OLD_GUARDRAIL_POLICY_HASH=0a910697cf5588383e117df8a22e3826b0d21b9dda38cef490698ad89560a27f
+OLD_GUARDRAIL_POLICY_HASH_INVALIDATED_BY_CORRECTION=true
 ```
 
 The policy hash is SHA-256 over the complete canonical policy preimage
@@ -42,6 +44,15 @@ MAX_RUNS_PER_CANDIDATE=4
 ACTUAL_VALIDATION_EVALUATION_COUNT=0
 CURRENT_LEDGER_ROW_COUNT=0
 ```
+
+Metric evidence is identity-bound before any comparison result is emitted. The
+primary metric must be `daily_wape`; the four lower-is-better guardrails must
+use their exact metric names; P80/P90 observations must use `P80_COVERAGE` /
+`P90_COVERAGE`; and the three coverage/data-quality observations must use
+`coverage_ratio`, `valid_included_canonical_group_coverage`, and
+`missing_data_proportion`, respectively. A candidate/incumbent identity
+mismatch is `BLOCKED / METRIC_IDENTITY_MISMATCH` and can never become `PASS`
+or `FAIL`.
 
 ## Primary metric and error guardrails
 
@@ -99,6 +110,18 @@ threshold. A required breakdown cell below 10 rows is retained as
 `INSUFFICIENT_SAMPLE` and produces `GUARDRAIL_DECISION_STATUS=BLOCKED`; it
 cannot silently become `PASS` or `FAIL` from a numeric metric.
 
+Coverage evidence must independently contain exactly these six required axes:
+
+```text
+REQUIRED_BREAKDOWN_AXES=forecast_horizon_days,farm_business_key,subfarm_business_key,variety_business_key,season_business_key,model_identity
+REQUIRED_BREAKDOWN_AXIS_COUNT=6
+```
+
+Empty evidence, a missing required axis, an unknown or duplicate axis,
+conflicting axis evidence, empty required-axis cells, a below-minimum cell, or
+a non-computed cell is `BLOCKED`. The six-axis requirement is distinct from
+the 10-row reporting floor.
+
 ## Paired comparison and budget
 
 Each future candidate evaluation is one paired comparison between
@@ -106,6 +129,24 @@ Each future candidate evaluation is one paired comparison between
 the same TRAIN identity, VALIDATION identity, labels, exclusions, cutoff,
 horizons, metric contract, and business grains. The Farm-total VALIDATION
 baseline is not the S4 incumbent.
+
+The gate requires these immutable, canonical lowercase SHA-256 identities:
+
+```text
+train_dataset_identity
+validation_dataset_identity
+actual_label_set_identity
+exclusion_policy_identity
+cutoff_policy_identity
+forecast_horizon_set_identity
+metric_contract_identity
+business_grain_set_identity
+common_comparable_set_identity
+```
+
+Missing, malformed, or mismatched identities fail closed. The metric contract
+identity is bound to the accepted S1 owner-decision identity
+`e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd`.
 
 The paired incumbent reference is part of the same candidate invocation:
 
@@ -118,14 +159,29 @@ PAIRED_INCUMBENT_REFERENCE_IS_NOT_SEPARATELY_TRIGGERABLE=true
 SEPARATE_INCUMBENT_ONLY_VALIDATION_INVOCATION_ALLOWED=false
 ONE_CANDIDATE_RUN_ONE_LEDGER_ROW=true
 ONE_CANDIDATE_RUN_CONSUMES_ONE_VALIDATION_EVALUATION=true
+SAME_TRAIN_DATASET_REQUIRED=true
+SAME_VALIDATION_DATASET_REQUIRED=true
+SAME_LABELS_REQUIRED=true
+SAME_EXCLUSION_POLICY_REQUIRED=true
+SAME_CUTOFF_POLICY_REQUIRED=true
+SAME_FORECAST_HORIZONS_REQUIRED=true
+SAME_METRICS_REQUIRED=true
+SAME_BUSINESS_GRAINS_REQUIRED=true
+RUN_ORDINAL_COUNT_RECONCILIATION_REQUIRED=true
+CANDIDATE_RUN_ORDINAL=candidate_actual_run_count+1
+RETRY_COUNTS_AS_NEW_CANDIDATE_RUN=true
+RETRY_REQUIRES_PARENT_IN_PRIOR_LEDGER=true
+PRIOR_LEDGER_ROWS_ARE_IMMUTABLE=true
 ```
 
 S4-A's budget remains 32 total evaluations and four runs per candidate. The
 S4-B gate checks the plan hash, guardrail-policy hash, exact candidate
-registration, candidate ordinal and counts, global count, dataset identities,
-metric contract, TEST seal, execution manifest, parameter manifest, code
-commit, seed, and evaluation identity. A retry must use a new evaluation ID
-and reference `retry_of_evaluation_id`; no ledger row is overwritten.
+registration, candidate ordinal/count reconciliation, global count, all paired
+dataset/policy identities, metric contract, TEST seal, execution manifest,
+parameter manifest, code commit, seed, and evaluation identity. A retry must
+use a new evaluation ID, reference an existing prior invocation through
+`retry_of_evaluation_id`, consume the next run ordinal, and never overwrite a
+ledger row.
 
 ## Fail-closed aggregation
 
