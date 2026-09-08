@@ -20879,3 +20879,144 @@ This S4-B pointer freezes infrastructure only. It does not execute Candidate
 01 or any other candidate, consume VALIDATION budget, change model behavior or
 parameters, train a model, access TEST, issue a selected candidate, reopen S3,
 or release V0.3.
+
+---
+
+### 4.12 — S4-C01 Candidate 01 parameter-calibration control (append-only live pointer)
+
+This EOF-appended pointer binds the Candidate 01 finite manifest and its
+controlled execution machinery. It does not rewrite the historical S4-A or
+S4-B snapshots.
+
+```text
+TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1
+BASE_MAIN_SHA=39f63206a07b70e08b2602fca61f4d077b2ed362
+PR583_MUST_BE_IN_BASE=true
+EXPERIMENT_PLAN_HASH=9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500
+GUARDRAIL_POLICY_HASH=74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8
+CANDIDATE_ID=01_parameter_calibration
+CANDIDATE_01_PARAMETER_MANIFEST_VERSION=v0.3-s4-c01-parameter-manifest-v1
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_ALLOWED_PARAMETER_PATHS=curve.spline_knot_count,curve.ridge_alpha
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+CANDIDATE_01_PARAMETER_MANIFEST_FROZEN=true
+CANDIDATE_01_EXECUTION_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+S4_CANDIDATE_EXPERIMENT_EXECUTED=false
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_CONTROLLED_VALIDATION_REVIEW
+```
+
+The durable artifacts are:
+
+```text
+MANIFEST_ARTIFACT=docs/v0-3/s4/candidates/01-parameter-calibration-manifest-v1.md
+EVIDENCE_ARTIFACT=docs/v0-3/s4/evidence/s4-c01-parameter-calibration-manifest-r1.json
+```
+
+Phase A freezes exactly four Candidate 01 run definitions and the append-only
+ledger interface. No validation evaluation, training invocation, TEST access,
+production parameter change, candidate selection, or promotion is implied by
+this pointer.
+
+---
+
+### 4.13 — S4-C01 controlled VALIDATION preflight result (append-only live pointer)
+
+This EOF-appended pointer records the real Phase B preflight result. It does
+not rewrite the S4-A/S4-B historical snapshots or the Candidate 01 manifest.
+
+```text
+TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1
+BASE_MAIN_SHA=39f63206a07b70e08b2602fca61f4d077b2ed362
+PR_NUMBER=584
+PR_STATE=DRAFT
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_FREEZE_COMMIT_SHA=33511af91e558f355991189cc551e85c2fae32a6
+PHASE_A_FORMAT_CORRECTION_COMMIT_SHA=45bf4519ea0baae858d67b38624467fd388cbe4f
+PHASE_A_EXACT_HEAD_CI_RUN=34178189758
+PHASE_A_EXACT_HEAD_CI=SUCCESS
+PAIRING_AUTHORITY_RESOLUTION_STATUS=BLOCKED
+FIRST_NON_DERIVABLE_AUTHORITY=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY
+CANDIDATE_01_EXECUTION_PREFLIGHT=BLOCKED
+CANDIDATE_01_EXECUTION_BLOCK_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+CURRENT_EXPERIMENT_BUDGET_EVALUATION_STATUS=NOT_EVALUATED
+NO_VALIDATION_EVALUATION_STARTED=true
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_CONTROLLED_VALIDATION_REVIEW
+```
+
+The durable result and intentionally empty journal are:
+
+```text
+RESULT_ARTIFACT=docs/v0-3/s4/evidence/s4-c01-validation-results-r1.json
+JOURNAL_ARTIFACT=docs/v0-3/s4/evidence/s4-validation-evaluation-journal-v1.jsonl
+WORKPAPER_ARTIFACT=docs/v0-3/s4/workpapers/s4-c01-parameter-calibration-controlled-validation-r1.md
+```
+
+This result is a preflight terminal stop for this Candidate 01 task. It does
+not consume VALIDATION budget, reopen S3, synthesize historical authority,
+select a candidate, or release V0.3.
+
+---
+
+### 4.14 — S4-C01 manifest content-validation correction R1 (append-only live pointer)
+
+Correction R1 binds Candidate 01 execution to the exact frozen manifest
+content. The validator recomputes each authorized delta, candidate config
+hash, per-run manifest hash, incumbent identity, and complete manifest hash;
+derived-config, preflight, and gate-request entry points validate before any
+execution decision. The correction does not add an execution adapter and does
+not alter the accepted historical-authority blocker.
+
+```text
+TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1_CORRECTION_R1
+PR_NUMBER=584
+PR_STATE=DRAFT
+PREVIOUS_PHASE_A_CI_HEAD=45bf4519ea0baae858d67b38624467fd388cbe4f
+NEW_PHASE_A_CORRECTION_FREEZE_HEAD=f29410c6ab9d1add2cdb8969a90b013aa3905753
+NEW_PHASE_A_EXACT_HEAD_CI_RUN=34180407000
+NEW_PHASE_A_EXACT_HEAD_CI=SUCCESS
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_EXECUTION_ADAPTER_USED=false
+CANDIDATE_01_EXECUTION_REACHED=false
+PAIRING_AUTHORITY_RESOLUTION_STATUS=BLOCKED
+FIRST_NON_DERIVABLE_AUTHORITY=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY
+CANDIDATE_01_EXECUTION_PREFLIGHT=BLOCKED
+CANDIDATE_01_EXECUTION_BLOCK_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+JOURNAL_EVENT_COUNT=0
+REMAINING_GLOBAL_VALIDATION_BUDGET=32
+NO_VALIDATION_EVALUATION_STARTED=true
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+S4_CANDIDATE_EXPERIMENT_EXECUTED=false
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR584_CORRECTION_R1_REVIEW
+```
+
+The corrected Phase A control head passed exact-head CI before this single
+preflight. The preflight emitted no `EVALUATION_STARTED` event and consumed no
+VALIDATION budget.
