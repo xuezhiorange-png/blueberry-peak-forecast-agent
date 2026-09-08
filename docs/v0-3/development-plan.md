@@ -20879,3 +20879,49 @@ This S4-B pointer freezes infrastructure only. It does not execute Candidate
 01 or any other candidate, consume VALIDATION budget, change model behavior or
 parameters, train a model, access TEST, issue a selected candidate, reopen S3,
 or release V0.3.
+
+---
+
+### 4.12 — S4-C01 Candidate 01 parameter-calibration control (append-only live pointer)
+
+This EOF-appended pointer binds the Candidate 01 finite manifest and its
+controlled execution machinery. It does not rewrite the historical S4-A or
+S4-B snapshots.
+
+```text
+TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1
+BASE_MAIN_SHA=39f63206a07b70e08b2602fca61f4d077b2ed362
+PR583_MUST_BE_IN_BASE=true
+EXPERIMENT_PLAN_HASH=9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500
+GUARDRAIL_POLICY_HASH=74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8
+CANDIDATE_ID=01_parameter_calibration
+CANDIDATE_01_PARAMETER_MANIFEST_VERSION=v0.3-s4-c01-parameter-manifest-v1
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_ALLOWED_PARAMETER_PATHS=curve.spline_knot_count,curve.ridge_alpha
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+CANDIDATE_01_PARAMETER_MANIFEST_FROZEN=true
+CANDIDATE_01_EXECUTION_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+S4_CANDIDATE_EXPERIMENT_EXECUTED=false
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_CONTROLLED_VALIDATION_REVIEW
+```
+
+The durable artifacts are:
+
+```text
+MANIFEST_ARTIFACT=docs/v0-3/s4/candidates/01-parameter-calibration-manifest-v1.md
+EVIDENCE_ARTIFACT=docs/v0-3/s4/evidence/s4-c01-parameter-calibration-manifest-r1.json
+```
+
+Phase A freezes exactly four Candidate 01 run definitions and the append-only
+ledger interface. No validation evaluation, training invocation, TEST access,
+production parameter change, candidate selection, or promotion is implied by
+this pointer.

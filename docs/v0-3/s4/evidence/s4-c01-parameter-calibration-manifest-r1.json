@@ -1,0 +1,322 @@
+{
+  "TASK_ID": "V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1",
+  "ARTIFACT_TYPE": "S4_C01_PARAMETER_CALIBRATION_MANIFEST",
+  "BASE_MAIN_SHA": "39f63206a07b70e08b2602fca61f4d077b2ed362",
+  "BASE_MAIN_TREE_SHA": "32b1b2dcc13a8c52dddf05662034e319b9362063",
+  "PR583_MUST_BE_IN_BASE": true,
+  "EXPERIMENT_PLAN_VERSION": "v0.3-experiment-plan-v1",
+  "EXPERIMENT_PLAN_HASH": "9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500",
+  "GUARDRAIL_POLICY_VERSION": "v0.3-s4-guardrail-policy-v1",
+  "GUARDRAIL_POLICY_HASH": "74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8",
+  "CANDIDATE_ID": "01_parameter_calibration",
+  "CANDIDATE_FAMILY": "PARAMETER_CALIBRATION",
+  "PARENT_MODEL_ID": "V0_2_CURRENT_MODEL",
+  "HYPOTHESIS": "parameter_calibration_reduces_primary_metric_without_guardrail_regression",
+  "CANDIDATE_01_PARAMETER_MANIFEST_VERSION": "v0.3-s4-c01-parameter-manifest-v1",
+  "CANDIDATE_01_PARAMETER_MANIFEST_HASH": "eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b",
+  "INCUMBENT_CONFIG_PATH": "configs/maturity_curve.yaml",
+  "INCUMBENT_CONFIG_FILE_SHA256": "fc023976a228c36556ed5f7ababe722a3dd8a558ed11e0473eb415b52dd69ace",
+  "INCUMBENT_CONFIG_HASH": "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c",
+  "CANDIDATE_01_ALLOWED_PARAMETER_PATHS": [
+    "curve.spline_knot_count",
+    "curve.ridge_alpha"
+  ],
+  "UNAUTHORIZED_PARAMETER_DIFF_COUNT": 0,
+  "NATIVE_FLOAT_ALLOWED": false,
+  "ADAPTIVE_SEARCH_ALLOWED": false,
+  "POST_VALIDATION_PARAMETER_SUBSTITUTION_ALLOWED": false,
+  "CANONICALIZATION": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "serialization": "repository canonical JSON with sorted keys, compact separators, ensure_ascii=false",
+    "decimal_policy": "Decimal only; native float rejected",
+    "preimage": "CANONICAL_MANIFEST_PAYLOAD only"
+  },
+  "CANONICAL_MANIFEST_PAYLOAD": {
+    "adaptive_search_allowed": false,
+    "allowed_parameter_paths": [
+      "curve.spline_knot_count",
+      "curve.ridge_alpha"
+    ],
+    "candidate_01_only": true,
+    "candidate_01_parameter_manifest_version": "v0.3-s4-c01-parameter-manifest-v1",
+    "candidate_family": "PARAMETER_CALIBRATION",
+    "candidate_id": "01_parameter_calibration",
+    "hypothesis": "parameter_calibration_reduces_primary_metric_without_guardrail_regression",
+    "incumbent_config_file_sha256": "fc023976a228c36556ed5f7ababe722a3dd8a558ed11e0473eb415b52dd69ace",
+    "incumbent_config_hash": "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c",
+    "incumbent_config_path": "configs/maturity_curve.yaml",
+    "incumbent_parameter_snapshot": {
+      "curve": {
+        "ridge_alpha": "0.1",
+        "spline_degree": 3,
+        "spline_knot_count": 6,
+        "support_max_day": 90,
+        "support_min_day": -30,
+        "version": "task8-v1"
+      },
+      "forecast": {
+        "minimum_observed_axis_coverage_ratio": "1",
+        "observed_phase_adjustment_max_days": 14,
+        "p50_mass_tolerance_kg": "0.01"
+      },
+      "holidays": {
+        "disturbance_weight": "0.5",
+        "exclude_from_loss": false,
+        "spring_festival_codes": ["spring_festival"]
+      },
+      "intervals": {
+        "calendar_proxy_widening_factor": "1.25",
+        "p80_quantile": "0.8",
+        "p90_quantile": "0.9",
+        "uncalibrated_widening_factor": "1.5"
+      },
+      "model_family": "shared_spline_partial_pooling",
+      "offset": {
+        "maximum_abs_shift_days": 21,
+        "minimum_training_samples": 3
+      },
+      "pooling": {
+        "full_pooling_sample_target": 4,
+        "minimum_farms": 1,
+        "minimum_samples": 2,
+        "minimum_seasons": 2,
+        "minimum_subfarms": 1
+      },
+      "random_seed": 20260624
+    },
+    "native_float_allowed": false,
+    "parent_model_id": "V0_2_CURRENT_MODEL",
+    "planned_run_count": 4,
+    "post_validation_parameter_substitution_allowed": false,
+    "random_seed_policy": "FIXED_AND_RECORDED_PER_RUN",
+    "runs": [
+      {
+        "authorized_parameter_delta": {
+          "curve.ridge_alpha": "0.1",
+          "curve.spline_knot_count": 5
+        },
+        "candidate_config_hash": "78805778135e84a76a7a08656f42f0f74337f4166d82bf7dfb31e01e4a36daa8",
+        "candidate_id": "01_parameter_calibration",
+        "candidate_run_ordinal": 1,
+        "full_parameter_snapshot": {
+          "curve": {
+            "ridge_alpha": "0.1",
+            "spline_degree": 3,
+            "spline_knot_count": 5,
+            "support_max_day": 90,
+            "support_min_day": -30,
+            "version": "task8-v1"
+          },
+          "forecast": {
+            "minimum_observed_axis_coverage_ratio": "1",
+            "observed_phase_adjustment_max_days": 14,
+            "p50_mass_tolerance_kg": "0.01"
+          },
+          "holidays": {
+            "disturbance_weight": "0.5",
+            "exclude_from_loss": false,
+            "spring_festival_codes": ["spring_festival"]
+          },
+          "intervals": {
+            "calendar_proxy_widening_factor": "1.25",
+            "p80_quantile": "0.8",
+            "p90_quantile": "0.9",
+            "uncalibrated_widening_factor": "1.5"
+          },
+          "model_family": "shared_spline_partial_pooling",
+          "offset": {
+            "maximum_abs_shift_days": 21,
+            "minimum_training_samples": 3
+          },
+          "pooling": {
+            "full_pooling_sample_target": 4,
+            "minimum_farms": 1,
+            "minimum_samples": 2,
+            "minimum_seasons": 2,
+            "minimum_subfarms": 1
+          },
+          "random_seed": 20260624
+        },
+        "incumbent_config_hash": "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c",
+        "parameter_manifest_hash": "fbf5335e98981a7161e16230495760c46a02b96ac0151b557e999428380273ec",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "random_seed": 20260624,
+        "unauthorized_parameter_diff_count": 0
+      },
+      {
+        "authorized_parameter_delta": {
+          "curve.ridge_alpha": "0.1",
+          "curve.spline_knot_count": 7
+        },
+        "candidate_config_hash": "ca6b3857c3c5a8f316283bdfb4e3b97530a1aba9597120e6b46cf82c75c5a3b9",
+        "candidate_id": "01_parameter_calibration",
+        "candidate_run_ordinal": 2,
+        "full_parameter_snapshot": {
+          "curve": {
+            "ridge_alpha": "0.1",
+            "spline_degree": 3,
+            "spline_knot_count": 7,
+            "support_max_day": 90,
+            "support_min_day": -30,
+            "version": "task8-v1"
+          },
+          "forecast": {
+            "minimum_observed_axis_coverage_ratio": "1",
+            "observed_phase_adjustment_max_days": 14,
+            "p50_mass_tolerance_kg": "0.01"
+          },
+          "holidays": {
+            "disturbance_weight": "0.5",
+            "exclude_from_loss": false,
+            "spring_festival_codes": ["spring_festival"]
+          },
+          "intervals": {
+            "calendar_proxy_widening_factor": "1.25",
+            "p80_quantile": "0.8",
+            "p90_quantile": "0.9",
+            "uncalibrated_widening_factor": "1.5"
+          },
+          "model_family": "shared_spline_partial_pooling",
+          "offset": {
+            "maximum_abs_shift_days": 21,
+            "minimum_training_samples": 3
+          },
+          "pooling": {
+            "full_pooling_sample_target": 4,
+            "minimum_farms": 1,
+            "minimum_samples": 2,
+            "minimum_seasons": 2,
+            "minimum_subfarms": 1
+          },
+          "random_seed": 20260624
+        },
+        "incumbent_config_hash": "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c",
+        "parameter_manifest_hash": "811cb73f3471ab7b9743e31b1d0458009d5c4d5348a2dd722e54fd1af45dc754",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "random_seed": 20260624,
+        "unauthorized_parameter_diff_count": 0
+      },
+      {
+        "authorized_parameter_delta": {
+          "curve.ridge_alpha": "0.05",
+          "curve.spline_knot_count": 6
+        },
+        "candidate_config_hash": "5345b04f6bb2926b2a0f3a45b06d9ffc8e449291605ee7d50899e2d2c875cae5",
+        "candidate_id": "01_parameter_calibration",
+        "candidate_run_ordinal": 3,
+        "full_parameter_snapshot": {
+          "curve": {
+            "ridge_alpha": "0.05",
+            "spline_degree": 3,
+            "spline_knot_count": 6,
+            "support_max_day": 90,
+            "support_min_day": -30,
+            "version": "task8-v1"
+          },
+          "forecast": {
+            "minimum_observed_axis_coverage_ratio": "1",
+            "observed_phase_adjustment_max_days": 14,
+            "p50_mass_tolerance_kg": "0.01"
+          },
+          "holidays": {
+            "disturbance_weight": "0.5",
+            "exclude_from_loss": false,
+            "spring_festival_codes": ["spring_festival"]
+          },
+          "intervals": {
+            "calendar_proxy_widening_factor": "1.25",
+            "p80_quantile": "0.8",
+            "p90_quantile": "0.9",
+            "uncalibrated_widening_factor": "1.5"
+          },
+          "model_family": "shared_spline_partial_pooling",
+          "offset": {
+            "maximum_abs_shift_days": 21,
+            "minimum_training_samples": 3
+          },
+          "pooling": {
+            "full_pooling_sample_target": 4,
+            "minimum_farms": 1,
+            "minimum_samples": 2,
+            "minimum_seasons": 2,
+            "minimum_subfarms": 1
+          },
+          "random_seed": 20260624
+        },
+        "incumbent_config_hash": "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c",
+        "parameter_manifest_hash": "924b520bceac3a577f447ebda7247cd4083f522075293a97260a2f716509c529",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "random_seed": 20260624,
+        "unauthorized_parameter_diff_count": 0
+      },
+      {
+        "authorized_parameter_delta": {
+          "curve.ridge_alpha": "0.2",
+          "curve.spline_knot_count": 6
+        },
+        "candidate_config_hash": "1240bbd568a9eb87a689b88c09053e5fe7c5a559df4f8b1aa970cad513cf71da",
+        "candidate_id": "01_parameter_calibration",
+        "candidate_run_ordinal": 4,
+        "full_parameter_snapshot": {
+          "curve": {
+            "ridge_alpha": "0.2",
+            "spline_degree": 3,
+            "spline_knot_count": 6,
+            "support_max_day": 90,
+            "support_min_day": -30,
+            "version": "task8-v1"
+          },
+          "forecast": {
+            "minimum_observed_axis_coverage_ratio": "1",
+            "observed_phase_adjustment_max_days": 14,
+            "p50_mass_tolerance_kg": "0.01"
+          },
+          "holidays": {
+            "disturbance_weight": "0.5",
+            "exclude_from_loss": false,
+            "spring_festival_codes": ["spring_festival"]
+          },
+          "intervals": {
+            "calendar_proxy_widening_factor": "1.25",
+            "p80_quantile": "0.8",
+            "p90_quantile": "0.9",
+            "uncalibrated_widening_factor": "1.5"
+          },
+          "model_family": "shared_spline_partial_pooling",
+          "offset": {
+            "maximum_abs_shift_days": 21,
+            "minimum_training_samples": 3
+          },
+          "pooling": {
+            "full_pooling_sample_target": 4,
+            "minimum_farms": 1,
+            "minimum_samples": 2,
+            "minimum_seasons": 2,
+            "minimum_subfarms": 1
+          },
+          "random_seed": 20260624
+        },
+        "incumbent_config_hash": "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c",
+        "parameter_manifest_hash": "3706c05b1ff5128d69ff8bece5a5c17808ff25354e0d2ca83e7a2ad9deb3df38",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "random_seed": 20260624,
+        "unauthorized_parameter_diff_count": 0
+      }
+    ]
+  },
+  "PHASE_A_STATUS": "MANIFEST_AND_EXECUTION_INFRA_FROZEN",
+  "VALIDATION_EXECUTION_PERFORMED": false,
+  "ACTUAL_VALIDATION_EVALUATION_COUNT": 0,
+  "CURRENT_LEDGER_ROW_COUNT": 0,
+  "TEST_EVALUATION_AUTHORIZED": false,
+  "TEST_REMAINS_SEALED": true,
+  "PRODUCTION_PARAMETER_CHANGE_AUTHORIZED": false,
+  "S4_MODEL_CHANGE_AUTHORIZED": false,
+  "S4_CANDIDATE_EXPERIMENT_EXECUTED": false,
+  "SELECTED_CANDIDATE_ID": "NOT_ISSUED",
+  "MODEL_APPROVED_FOR_PILOT": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true
+}
