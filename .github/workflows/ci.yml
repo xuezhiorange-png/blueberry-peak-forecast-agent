@@ -1429,6 +1429,7 @@ jobs:
             backend/tests/test_concurrency_isolation_helpers_live.py \
             backend/tests/rolling_backtest/test_historical_backtest_concurrency.py \
             backend/tests/forecast_quality/test_idempotency.py \
+            backend/tests/s4_validation_budget/test_postgres_persistence.py \
             -m postgres_concurrency -q --tb=long \
             --timeout=180 \
             --timeout-method=signal \
