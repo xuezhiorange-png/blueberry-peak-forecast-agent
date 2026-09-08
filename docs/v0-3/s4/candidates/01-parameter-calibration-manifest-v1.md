@@ -101,3 +101,23 @@ MODEL_APPROVED_FOR_PILOT=false
 
 The manifest freezes the experimental neighborhood; it does not select a
 winner, promote a parameter value, release V0.3, or imply any next step.
+
+## Phase A verification
+
+```text
+CANDIDATE_01_FREEZE_COMMIT_SHA=33511af91e558f355991189cc551e85c2fae32a6
+PHASE_A_FORMAT_CORRECTION_COMMIT_SHA=45bf4519ea0baae858d67b38624467fd388cbe4f
+PHASE_A_EXACT_HEAD_CI_RUN=34178189758
+PHASE_A_EXACT_HEAD_CI_HEAD_SHA=45bf4519ea0baae858d67b38624467fd388cbe4f
+PHASE_A_EXACT_HEAD_CI=SUCCESS
+CANDIDATE_01_EXECUTION_PREFLIGHT=BLOCKED
+FIRST_NON_DERIVABLE_AUTHORITY=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY
+CANDIDATE_01_EXECUTION_BLOCK_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+NO_VALIDATION_EVALUATION_STARTED=true
+```
+
+The official preflight produced no journal file and no `EVALUATION_STARTED`
+event. The result is recorded separately in the controlled-validation
+workpaper and evidence; no validation result or candidate metric is inferred.

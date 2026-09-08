@@ -20925,3 +20925,51 @@ Phase A freezes exactly four Candidate 01 run definitions and the append-only
 ledger interface. No validation evaluation, training invocation, TEST access,
 production parameter change, candidate selection, or promotion is implied by
 this pointer.
+
+---
+
+### 4.13 — S4-C01 controlled VALIDATION preflight result (append-only live pointer)
+
+This EOF-appended pointer records the real Phase B preflight result. It does
+not rewrite the S4-A/S4-B historical snapshots or the Candidate 01 manifest.
+
+```text
+TASK_ID=V0_3_S4_C01_PARAMETER_CALIBRATION_MANIFEST_AND_CONTROLLED_VALIDATION_R1
+BASE_MAIN_SHA=39f63206a07b70e08b2602fca61f4d077b2ed362
+PR_NUMBER=584
+PR_STATE=DRAFT
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_FREEZE_COMMIT_SHA=33511af91e558f355991189cc551e85c2fae32a6
+PHASE_A_FORMAT_CORRECTION_COMMIT_SHA=45bf4519ea0baae858d67b38624467fd388cbe4f
+PHASE_A_EXACT_HEAD_CI_RUN=34178189758
+PHASE_A_EXACT_HEAD_CI=SUCCESS
+PAIRING_AUTHORITY_RESOLUTION_STATUS=BLOCKED
+FIRST_NON_DERIVABLE_AUTHORITY=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY
+CANDIDATE_01_EXECUTION_PREFLIGHT=BLOCKED
+CANDIDATE_01_EXECUTION_BLOCK_REASON=HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED
+CANDIDATE_01_RUN_COUNT=0
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+CURRENT_EXPERIMENT_BUDGET_EVALUATION_STATUS=NOT_EVALUATED
+NO_VALIDATION_EVALUATION_STARTED=true
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_CONTROLLED_VALIDATION_REVIEW
+```
+
+The durable result and intentionally empty journal are:
+
+```text
+RESULT_ARTIFACT=docs/v0-3/s4/evidence/s4-c01-validation-results-r1.json
+JOURNAL_ARTIFACT=docs/v0-3/s4/evidence/s4-validation-evaluation-journal-v1.jsonl
+WORKPAPER_ARTIFACT=docs/v0-3/s4/workpapers/s4-c01-parameter-calibration-controlled-validation-r1.md
+```
+
+This result is a preflight terminal stop for this Candidate 01 task. It does
+not consume VALIDATION budget, reopen S3, synthesize historical authority,
+select a candidate, or release V0.3.
