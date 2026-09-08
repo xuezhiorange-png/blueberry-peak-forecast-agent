@@ -31,11 +31,9 @@ if str(_IMPORT_ROOT) not in sys.path:
 from backend.app.maturity.config import load_maturity_curve_config  # noqa: E402
 from backend.app.s2_materialized_dataset.lane_d.canonical import parse_partition_bytes  # noqa: E402
 from backend.app.s2_materialized_dataset.lane_d.service import (  # noqa: E402
-    MaterializedDatasetBuildError,
     S2MaterializedDatasetModel,
     S2MaterializedPartitionModel,
     controlled_materialize_source_002_from_environment,
-    load_materialized_dataset_result,
 )
 from backend.app.s2_materialized_dataset.shared.contracts import PartitionName  # noqa: E402
 from backend.app.s4_candidate_execution import (  # noqa: E402
@@ -67,6 +65,8 @@ EXPECTED_TRAIN_HASH = "be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389
 EXPECTED_VALIDATION_HASH = "4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06"
 EXPECTED_TRAIN_ROWS = 16_224
 EXPECTED_VALIDATION_ROWS = 8_006
+EXPECTED_TRAIN_BYTES = 9_087_071
+EXPECTED_VALIDATION_BYTES = 4_484_905
 EXPECTED_TEST_ROWS = 0
 EXPECTED_RUN_COUNT = 4
 REMAINING_EFFECTIVE_BUDGET = 28
@@ -133,13 +133,13 @@ def _load_database_dataset_sync(
 ) -> tuple[FrozenEngineeringDataset, dict[str, Any]]:
     """Load only TRAIN/VALIDATION bytes from the isolated materialized store."""
 
-    try:
-        persisted = load_materialized_dataset_result(
-            session,
-            dataset_id=dataset_id,
-            dataset_version=dataset_version,
+    dataset_row = session.scalar(
+        select(S2MaterializedDatasetModel).where(
+            S2MaterializedDatasetModel.dataset_id == dataset_id,
+            S2MaterializedDatasetModel.dataset_version == dataset_version,
         )
-    except MaterializedDatasetBuildError:
+    )
+    if dataset_row is None:
         report = controlled_materialize_source_002_from_environment(
             session,
             dataset_id=dataset_id,
@@ -155,33 +155,47 @@ def _load_database_dataset_sync(
             or report.test_rows != EXPECTED_TEST_ROWS
         ):
             raise LocalRunnerContractError("SOURCE_002_MATERIALIZATION_ORACLE_MISMATCH") from None
-        persisted = load_materialized_dataset_result(
-            session,
-            dataset_id=dataset_id,
-            dataset_version=dataset_version,
+        dataset_row = session.scalar(
+            select(S2MaterializedDatasetModel).where(
+                S2MaterializedDatasetModel.dataset_id == dataset_id,
+                S2MaterializedDatasetModel.dataset_version == dataset_version,
+            )
         )
 
     if (
-        persisted.materialized_dataset_identity_sha256
+        dataset_row is None
+        or dataset_row.materialized_dataset_identity_sha256
         != SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256
     ):
         raise LocalRunnerContractError("MATERIALIZED_DATASET_IDENTITY_MISMATCH")
-    if not persisted.lineage_complete or persisted.quality_gate_status.value != "ACCEPTED":
+    if not dataset_row.lineage_complete or dataset_row.quality_gate_status != "ACCEPTED":
         raise LocalRunnerContractError("MATERIALIZED_DATASET_QUALITY_GATE_MISMATCH")
 
-    partition_rows = session.scalars(
-        select(S2MaterializedPartitionModel)
-        .where(
-            S2MaterializedPartitionModel.materialized_dataset_id
-            == _dataset_row_id(session, dataset_id, dataset_version)
+    partition_rows = (
+        session.execute(
+            select(
+                S2MaterializedPartitionModel.id,
+                S2MaterializedPartitionModel.partition_name,
+                S2MaterializedPartitionModel.row_count,
+                S2MaterializedPartitionModel.byte_count,
+                S2MaterializedPartitionModel.content_sha256,
+                S2MaterializedPartitionModel.rebuild_hash_replay_status,
+            )
+            .where(S2MaterializedPartitionModel.materialized_dataset_id == dataset_row.id)
+            .order_by(S2MaterializedPartitionModel.partition_name)
         )
-        .order_by(S2MaterializedPartitionModel.partition_name)
-    ).all()
-    by_name = {_partition_name(row.partition_name): row for row in partition_rows}
+        .mappings()
+        .all()
+    )
+    by_name = {_partition_name(row["partition_name"]): row for row in partition_rows}
     if set(by_name) != {"TRAIN", "VALIDATION", "TEST"}:
         raise LocalRunnerContractError("MATERIALIZED_PARTITION_SET_MISMATCH")
-    if by_name["TEST"].row_count != EXPECTED_TEST_ROWS:
+    if by_name["TEST"]["row_count"] != EXPECTED_TEST_ROWS:
         raise LocalRunnerContractError("TEST_ROWS_PRESENT_IN_LOCAL_ENGINEERING_DATABASE")
+    if any(
+        str(row["rebuild_hash_replay_status"]).split(".")[-1] != "PASS" for row in by_name.values()
+    ):
+        raise LocalRunnerContractError("SOURCE_002_REBUILD_PARITY_NOT_PASS")
 
     parsed: dict[str, tuple[Any, ...]] = {}
     for name, expected_hash, expected_rows in (
@@ -189,10 +203,19 @@ def _load_database_dataset_sync(
         ("VALIDATION", EXPECTED_VALIDATION_HASH, EXPECTED_VALIDATION_ROWS),
     ):
         row = by_name[name]
-        content = bytes(row.content_bytes)
-        if row.content_sha256 != expected_hash or _sha256(content) != expected_hash:
+        materialized_row = session.get(S2MaterializedPartitionModel, int(row["id"]))
+        if materialized_row is None:
+            raise LocalRunnerContractError(f"{name}_PARTITION_ROW_UNAVAILABLE")
+        content = bytes(materialized_row.content_bytes)
+        expected_bytes = EXPECTED_TRAIN_BYTES if name == "TRAIN" else EXPECTED_VALIDATION_BYTES
+        if (
+            row["content_sha256"] != expected_hash
+            or row["byte_count"] != expected_bytes
+            or _sha256(content) != expected_hash
+            or len(content) != expected_bytes
+        ):
             raise LocalRunnerContractError(f"{name}_CONTENT_HASH_MISMATCH")
-        if row.row_count != expected_rows:
+        if row["row_count"] != expected_rows:
             raise LocalRunnerContractError(f"{name}_ROW_COUNT_MISMATCH")
         parsed[name] = parse_partition_bytes(content)
         if len(parsed[name]) != expected_rows:
@@ -203,35 +226,22 @@ def _load_database_dataset_sync(
         validation_rows=tuple(parsed["VALIDATION"]),
         train_content_sha256=EXPECTED_TRAIN_HASH,
         validation_content_sha256=EXPECTED_VALIDATION_HASH,
-        materialized_dataset_identity_sha256=persisted.materialized_dataset_identity_sha256,
+        materialized_dataset_identity_sha256=dataset_row.materialized_dataset_identity_sha256,
         test_row_count=EXPECTED_TEST_ROWS,
     )
     return dataset, {
-        "materialized_dataset_identity_sha256": persisted.materialized_dataset_identity_sha256,
-        "train_row_count": by_name["TRAIN"].row_count,
-        "validation_row_count": by_name["VALIDATION"].row_count,
-        "test_row_count": by_name["TEST"].row_count,
-        "train_content_sha256": by_name["TRAIN"].content_sha256,
-        "validation_content_sha256": by_name["VALIDATION"].content_sha256,
-        "test_content_sha256": by_name["TEST"].content_sha256,
+        "materialized_dataset_identity_sha256": dataset_row.materialized_dataset_identity_sha256,
+        "source_002_rebuild_parity": "PASS",
+        "train_row_count": by_name["TRAIN"]["row_count"],
+        "validation_row_count": by_name["VALIDATION"]["row_count"],
+        "test_row_count": by_name["TEST"]["row_count"],
+        "train_content_sha256": by_name["TRAIN"]["content_sha256"],
+        "validation_content_sha256": by_name["VALIDATION"]["content_sha256"],
+        "test_content_sha256": by_name["TEST"]["content_sha256"],
         "partition_rebuild_hash_replay": {
-            name: str(row.rebuild_hash_replay_status) for name, row in by_name.items()
+            name: str(row["rebuild_hash_replay_status"]) for name, row in by_name.items()
         },
     }
-
-
-def _dataset_row_id(session: Any, dataset_id: str, dataset_version: str) -> int:
-    result = session.execute(
-        select(S2MaterializedDatasetModel.id)
-        .where(
-            S2MaterializedDatasetModel.dataset_id == dataset_id,
-            S2MaterializedDatasetModel.dataset_version == dataset_version,
-        )
-        .limit(1)
-    ).scalar_one_or_none()
-    if result is None:
-        raise LocalRunnerContractError("MATERIALIZED_DATASET_ROW_UNAVAILABLE")
-    return int(result)
 
 
 async def _load_database_dataset(
@@ -395,6 +405,7 @@ def _execute(args: argparse.Namespace) -> dict[str, Any]:
         "SOURCE_002_RAW_OBJECT_BYTE_COUNT": source.byte_count,
         "SOURCE_002_RAW_OBJECT_ROW_COUNT": source.row_count,
         "SOURCE_002_RESTORED": True,
+        "SOURCE_002_REBUILD_PARITY": database_summary["source_002_rebuild_parity"],
         "SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256": database_summary[
             "materialized_dataset_identity_sha256"
         ],
