@@ -21279,3 +21279,35 @@ EVIDENCE_ARTIFACT=docs/v0-3/s4/evidence/s4-validation-budget-durable-persistence
 WORKPAPER_ARTIFACT=docs/v0-3/s4/workpapers/s4-validation-budget-durable-persistence-contract-r1.md
 
 The next implementation task is separately authorized only after this contract is reviewed and merged. It must create the PostgreSQL event ledger and monotonic head in one transaction; it must not use JSONL or another cross-domain table as the budget authority.
+
+### 4.19 — S4 validation budget durable persistence contract correction R2 (append-only live pointer)
+
+This docs-only correction closes the three contract-level gaps identified by review ID 5140022893 on PR #588. It does not redesign the PostgreSQL authority, implement a schema or migration, execute scoring, or modify PR #587.
+
+TASK_ID=V0_3_S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT_CORRECTION_R2
+TARGET_PR=588
+REVIEW_ID=5140022893
+PREVIOUS_HEAD_SHA=219d79824b119a04a63615962b9809959d81c691
+OLD_CONTRACT_HASH=1b492fa3efa1205288d6288843b700122f74f96fecbb8bc12b3afe947d12810a
+NEW_CONTRACT_HASH=85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561
+GENESIS_CANONICAL_VALUE_CORRECTED=true
+GENESIS_PERSISTED_FIELD_VALUE=0000000000000000000000000000000000000000000000000000000000000000
+STARTED_CANDIDATE_RUN_UNIQUENESS_FROZEN=true
+STARTED_CANDIDATE_RUN_ORDINAL_RANGE=1..4
+STARTED_GLOBAL_EVALUATION_ORDINAL_MIN=1
+TERMINAL_TO_STARTED_BINDING_FROZEN=true
+ORPHAN_TERMINAL_FORBIDDEN=true
+TERMINAL_REQUIRES_EXISTING_STARTED=true
+TERMINAL_CANDIDATE_ID_MUST_MATCH_STARTED=true
+DUPLICATE_TERMINAL_FORBIDDEN=true
+IMPLEMENTATION_AUTHORIZED=false
+MIGRATION_AUTHORIZED=false
+SCHEMA_CHANGE_AUTHORIZED=false
+PRODUCTION_CODE_CHANGED=false
+TEST_CODE_CHANGED=false
+TEST_ACCESS_AUTHORIZED=false
+TEST_MUST_REMAIN_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW

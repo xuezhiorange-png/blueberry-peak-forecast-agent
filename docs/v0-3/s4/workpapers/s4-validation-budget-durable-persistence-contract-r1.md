@@ -44,7 +44,15 @@ REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
 LEGACY_ROWS_BACKFILLED=false
 HISTORICAL_LEDGER_FABRICATION=false
 
-The first implementation must create an authority row at version zero with a GENESIS head. It must not create four fake STARTED rows and must not reduce the legacy debit to zero.
+The first implementation must create an authority row at version zero with the
+all-zero SHA-256 head sentinel. The symbolic label `GENESIS` is human-readable
+documentation only and is not a persisted field value. It must not create four
+fake STARTED rows and must not reduce the legacy debit to zero.
+
+GENESIS_IS_HUMAN_READABLE_LABEL_ONLY=true
+GENESIS_PERSISTED_FIELD_VALUE_IS_ALL_ZERO_SHA256=true
+ACCEPTED_HEAD_EVENT_HASH=0000000000000000000000000000000000000000000000000000000000000000
+AUTHORITY_EMPTY_LAST_GLOBAL_ORDINAL=0
 
 ## Frozen transaction protocol
 
@@ -60,6 +68,43 @@ The accepted operation is:
 candidate/run preflight -> authority CAS check -> STARTED event insert -> monotonic head/version advance -> PostgreSQL commit -> committed-head verification -> model evaluation
 
 A CAS conflict, head mismatch, counter regression, event-chain mismatch, or budget exhaustion blocks closed. A process crash after the STARTED commit does not refund the debit. If model evaluation fails or terminal persistence fails, the STARTED debit remains consumed and the STARTED event is never deleted or refunded.
+
+## Candidate/run and terminal binding constraints
+
+STARTED candidate/run identity is a persistence-level constraint, not only an
+application preflight check:
+
+UNIQUE_STARTED_GLOBAL_EVALUATION_ORDINAL_PER_AUTHORITY=true
+UNIQUE_STARTED_CANDIDATE_RUN_ORDINAL_PER_AUTHORITY=true
+STARTED_GLOBAL_EVALUATION_ORDINAL_MIN=1
+STARTED_CANDIDATE_RUN_ORDINAL_MIN=1
+STARTED_CANDIDATE_RUN_ORDINAL_MAX=4
+
+The required partial uniqueness is:
+
+UNIQUE (authority_key, global_evaluation_ordinal)
+WHERE event_type = 'EVALUATION_STARTED'
+
+UNIQUE (authority_key, candidate_id, candidate_run_ordinal)
+WHERE event_type = 'EVALUATION_STARTED'
+
+Therefore the same run ordinal is valid for different candidates, but a
+candidate cannot reuse its own run ordinal. The empty authority may retain
+last global ordinal 0; no STARTED event may use global ordinal 0.
+
+Terminal events have an exact immutable parent binding:
+
+ORPHAN_TERMINAL_FORBIDDEN=true
+TERMINAL_REQUIRES_EXISTING_STARTED=true
+TERMINAL_STARTED_BINDING_SCOPE=AUTHORITY_KEY_X_EVALUATION_ID
+TERMINAL_CANDIDATE_ID_MUST_MATCH_STARTED=true
+DUPLICATE_TERMINAL_FORBIDDEN=true
+TERMINAL_COUNTED_TOWARD_BUDGET=false
+TERMINAL_NEVER_INCREMENTS_ACCEPTED_STARTED_COUNT=true
+
+The terminal must bind to the one STARTED event with the same authority_key and
+evaluation_id, and its candidate_id must match. Terminal persistence never
+creates another budget debit or occupies a STARTED-only ordinal constraint.
 
 ## Tail truncation cases
 
@@ -78,6 +123,10 @@ It must not report the shortened prefix as a new valid budget state. This applie
 - [ ] CAS checks version, event count, started count, head hash, and last ordinal.
 - [ ] Accepted event rows cannot be updated or deleted by the application path.
 - [ ] Started ordinals and evaluation identities are unique within the scope.
+- [ ] Started candidate/run ordinal uniqueness is a partial persistence constraint including candidate_id.
+- [ ] Started candidate/run ordinals are restricted to 1..4 and started global ordinals start at 1.
+- [ ] Terminal events require the exact existing STARTED parent in the same authority/evaluation scope.
+- [ ] Terminal candidate identity matches STARTED and duplicate terminals are rejected.
 - [ ] 4 legacy + canonical started remains the budget formula.
 - [ ] No legacy rows are fabricated.
 - [ ] JSONL is derived/audit only.
@@ -99,8 +148,44 @@ CANDIDATE_01_RERUN_PERFORMED=false
 CANDIDATE_02_EXECUTION_PERFORMED=false
 NEW_VALIDATION_SCORING_CALL_COUNT=0
 TEST_EVALUATION_PERFORMED=false
+GENESIS_CANONICAL_VALUE_CORRECTED=true
+STARTED_CANDIDATE_RUN_UNIQUENESS_FROZEN=true
+TERMINAL_TO_STARTED_BINDING_FROZEN=true
 IMPLEMENTATION_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-FINAL_STOP_GATE=COORDINATOR_S4_DURABLE_PERSISTENCE_CONTRACT_REVIEW
+FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW
+
+## Correction R2 addendum
+
+Review ID 5140022893 required three contract-level clarifications without
+changing the approved architecture. The corrected contract now uses only the
+64-character all-zero SHA-256 value for a persisted empty-ledger head; keeps
+`GENESIS` as a documentation label; requires STARTED candidate/run uniqueness
+on `(authority_key, candidate_id, candidate_run_ordinal)` with candidate run
+ordinal 1..4; and requires every TERMINAL to bind to the existing STARTED with
+the same authority_key and evaluation_id and matching candidate_id.
+
+OLD_CONTRACT_HASH=1b492fa3efa1205288d6288843b700122f74f96fecbb8bc12b3afe947d12810a
+NEW_CONTRACT_HASH=85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561
+
+The follow-up implementation acceptance contract must include duplicate,
+zero, five, and cross-candidate candidate-run ordinal cases, plus orphan,
+candidate-mismatch, duplicate-terminal, exact-parent-binding, and
+no-additional-budget-debit terminal cases. This task adds no test code and
+does not authorize implementation, migration, scoring, TEST access, Ready, or
+Merge.
+
+GENESIS_CANONICAL_VALUE_CORRECTED=true
+STARTED_CANDIDATE_RUN_UNIQUENESS_FROZEN=true
+TERMINAL_TO_STARTED_BINDING_FROZEN=true
+IMPLEMENTATION_AUTHORIZED=false
+MIGRATION_AUTHORIZED=false
+SCHEMA_CHANGE_AUTHORIZED=false
+TEST_ACCESS_AUTHORIZED=false
+TEST_MUST_REMAIN_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW
