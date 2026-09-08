@@ -55,6 +55,15 @@ CANDIDATE_01_ALLOWED_PARAMETER_PATHS: Final[tuple[str, ...]] = (
 CANDIDATE_01_RANDOM_SEED: Final[int] = 20260624
 CANDIDATE_01_PLANNED_RUN_COUNT: Final[int] = 4
 INCUMBENT_CONFIG_PATH: Final[str] = "configs/maturity_curve.yaml"
+CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND: Final[str] = (
+    "eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b"
+)
+INCUMBENT_CONFIG_FILE_SHA256_BOUND: Final[str] = (
+    "fc023976a228c36556ed5f7ababe722a3dd8a558ed11e0473eb415b52dd69ace"
+)
+INCUMBENT_CONFIG_HASH_BOUND: Final[str] = (
+    "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c"
+)
 VALIDATION_LEDGER_SCHEMA_VERSION: Final[str] = "v0.3-s4-validation-ledger-v1"
 VALIDATION_EVENT_SCHEMA_VERSION: Final[str] = "v0.3-s4-validation-event-v1"
 HISTORICAL_INCUMBENT_AUTHORITY_REASON: Final[str] = (
@@ -68,6 +77,32 @@ _LEDGER_EVENT_TYPES: Final[frozenset[str]] = frozenset(
 )
 _TERMINAL_EXECUTION_STATUSES: Final[frozenset[str]] = frozenset(
     {"COMPLETED", "FAILED", "ABORTED", "CANCELLED", "TIMEOUT", "BLOCKED"}
+)
+_FROZEN_RUN_DEFINITIONS: Final[tuple[tuple[int, tuple[tuple[str, object], ...], str, str], ...]] = (
+    (
+        1,
+        (("curve.spline_knot_count", 5), ("curve.ridge_alpha", Decimal("0.10"))),
+        "fbf5335e98981a7161e16230495760c46a02b96ac0151b557e999428380273ec",
+        "78805778135e84a76a7a08656f42f0f74337f4166d82bf7dfb31e01e4a36daa8",
+    ),
+    (
+        2,
+        (("curve.spline_knot_count", 7), ("curve.ridge_alpha", Decimal("0.10"))),
+        "811cb73f3471ab7b9743e31b1d0458009d5c4d5348a2dd722e54fd1af45dc754",
+        "ca6b3857c3c5a8f316283bdfb4e3b97530a1aba9597120e6b46cf82c75c5a3b9",
+    ),
+    (
+        3,
+        (("curve.spline_knot_count", 6), ("curve.ridge_alpha", Decimal("0.05"))),
+        "924b520bceac3a577f447ebda7247cd4083f522075293a97260a2f716509c529",
+        "5345b04f6bb2926b2a0f3a45b06d9ffc8e449291605ee7d50899e2d2c875cae5",
+    ),
+    (
+        4,
+        (("curve.spline_knot_count", 6), ("curve.ridge_alpha", Decimal("0.20"))),
+        "3706c05b1ff5128d69ff8bece5a5c17808ff25354e0d2ca83e7a2ad9deb3df38",
+        "1240bbd568a9eb87a689b88c09053e5fe7c5a559df4f8b1aa970cad513cf71da",
+    ),
 )
 _LEDGER_FIELDS: Final[tuple[str, ...]] = (
     "evaluation_id",
@@ -322,6 +357,30 @@ def _run_manifest_hash(
     )
 
 
+def _recompute_authorized_parameter_delta(
+    *,
+    incumbent_snapshot: Mapping[str, Any],
+    candidate_snapshot: Mapping[str, Any],
+    expected_delta: Mapping[str, object],
+) -> dict[str, object]:
+    """Derive the authorized delta from snapshots rather than trusting metadata."""
+
+    if _contains_native_float(incumbent_snapshot) or _contains_native_float(candidate_snapshot):
+        raise Candidate01ContractError("native float is present in candidate manifest content")
+    diff = verify_parameter_allowlist(
+        incumbent_snapshot=incumbent_snapshot,
+        candidate_snapshot=candidate_snapshot,
+    )
+    if diff.unauthorized_parameter_diff_count != 0:
+        raise Candidate01ContractError("candidate parameter delta contains unauthorized changes")
+    recomputed = {
+        path: _decimalize(_path_value(candidate_snapshot, path)) for path in expected_delta
+    }
+    if recomputed != dict(expected_delta):
+        raise Candidate01ContractError("candidate parameter delta value mismatch")
+    return recomputed
+
+
 def build_candidate_01_manifest(
     config_path: Path,
 ) -> Candidate01ParameterManifest:
@@ -388,11 +447,15 @@ def build_candidate_01_manifest(
         planned_run_count=CANDIDATE_01_PLANNED_RUN_COUNT,
         runs=tuple(runs),
     )
-    validate_candidate_01_manifest(manifest)
+    validate_candidate_01_manifest(manifest, config_path=config_path)
     return manifest
 
 
-def validate_candidate_01_manifest(manifest: Candidate01ParameterManifest) -> None:
+def validate_candidate_01_manifest(
+    manifest: Candidate01ParameterManifest,
+    *,
+    config_path: Path | None = None,
+) -> None:
     """Reject post-freeze insertion, reordering, or unauthorized run drift."""
 
     if manifest.version != CANDIDATE_01_PARAMETER_MANIFEST_VERSION:
@@ -407,18 +470,69 @@ def validate_candidate_01_manifest(manifest: Candidate01ParameterManifest) -> No
         raise Candidate01ContractError("candidate allowlist mismatch")
     if manifest.planned_run_count != CANDIDATE_01_PLANNED_RUN_COUNT:
         raise Candidate01ContractError("candidate planned run count mismatch")
+    if manifest.incumbent_config_file_sha256 != INCUMBENT_CONFIG_FILE_SHA256_BOUND:
+        raise Candidate01ContractError("incumbent config file identity mismatch")
+    if manifest.incumbent_config_hash != INCUMBENT_CONFIG_HASH_BOUND:
+        raise Candidate01ContractError("incumbent config hash mismatch")
+    if _contains_native_float(manifest.incumbent_parameter_snapshot):
+        raise Candidate01ContractError("native float is present in incumbent manifest content")
     ordinals = tuple(run.candidate_run_ordinal for run in manifest.runs)
     if ordinals != (1, 2, 3, 4):
         raise Candidate01ContractError("candidate run order is not frozen")
-    for run in manifest.runs:
-        diff = verify_parameter_allowlist(
+    for run, frozen in zip(manifest.runs, _FROZEN_RUN_DEFINITIONS, strict=True):
+        frozen_ordinal, frozen_delta_items, frozen_manifest_hash, frozen_config_hash = frozen
+        if run.candidate_run_ordinal != frozen_ordinal:
+            raise Candidate01ContractError("candidate run ordinal mismatch")
+        expected_delta = dict(frozen_delta_items)
+        recomputed_delta = _recompute_authorized_parameter_delta(
             incumbent_snapshot=manifest.incumbent_parameter_snapshot,
             candidate_snapshot=run.full_parameter_snapshot,
+            expected_delta=expected_delta,
         )
-        if diff.native_float_present or diff.unauthorized_parameter_diff_count != 0:
-            raise Candidate01ContractError("candidate config violates parameter allowlist")
+        if tuple(run.parameter_delta) != frozen_delta_items:
+            raise Candidate01ContractError("candidate parameter delta sequence mismatch")
+        if _contains_native_float(run.authorized_parameter_delta):
+            raise Candidate01ContractError("native float is present in authorized delta")
+        stored_delta = _decimalize(run.authorized_parameter_delta)
+        if not isinstance(stored_delta, Mapping) or dict(stored_delta) != recomputed_delta:
+            raise Candidate01ContractError("stored authorized delta is not content-derived")
+        recomputed_candidate_hash = _candidate_config_hash(run.full_parameter_snapshot)
+        if recomputed_candidate_hash != run.candidate_config_hash:
+            raise Candidate01ContractError("candidate config hash mismatch")
+        if recomputed_candidate_hash != frozen_config_hash:
+            raise Candidate01ContractError("candidate config is not a frozen run")
+        if run.parameter_manifest_hash != frozen_manifest_hash:
+            raise Candidate01ContractError("candidate parameter manifest hash is not frozen")
+        canonical_snapshot = _decimalize(run.full_parameter_snapshot)
+        if not isinstance(canonical_snapshot, Mapping):
+            raise Candidate01ContractError("candidate snapshot is not a mapping")
+        recomputed_run_hash = _run_manifest_hash(
+            ordinal=run.candidate_run_ordinal,
+            parameter_delta=recomputed_delta,
+            full_snapshot=cast(Mapping[str, Any], canonical_snapshot),
+            incumbent_config_hash=INCUMBENT_CONFIG_HASH_BOUND,
+        )
+        if recomputed_run_hash != run.parameter_manifest_hash:
+            raise Candidate01ContractError("candidate parameter manifest hash mismatch")
+        if run.incumbent_config_hash != INCUMBENT_CONFIG_HASH_BOUND:
+            raise Candidate01ContractError("candidate incumbent config hash mismatch")
+        if run.random_seed != CANDIDATE_01_RANDOM_SEED:
+            raise Candidate01ContractError("candidate random seed mismatch")
         if run.unauthorized_parameter_diff_count != 0:
             raise Candidate01ContractError("candidate run contains unauthorized diff")
+    if manifest.manifest_hash != CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND:
+        raise Candidate01ContractError("candidate parameter manifest hash mismatch")
+    if config_path is not None:
+        if not config_path.is_file():
+            raise Candidate01ContractError("incumbent config file is unavailable")
+        if _file_sha256(config_path) != INCUMBENT_CONFIG_FILE_SHA256_BOUND:
+            raise Candidate01ContractError("incumbent config file identity mismatch")
+        config = load_maturity_curve_config(config_path)
+        _validate_incumbent_values(config)
+        if config.config_hash != INCUMBENT_CONFIG_HASH_BOUND:
+            raise Candidate01ContractError("incumbent config hash mismatch")
+        if _decimalize(config.snapshot) != dict(manifest.incumbent_parameter_snapshot):
+            raise Candidate01ContractError("incumbent config snapshot mismatch")
 
 
 def _config_from_snapshot(
@@ -496,6 +610,7 @@ def build_derived_candidate_config(
     manifest: Candidate01ParameterManifest,
     candidate_run_ordinal: int,
 ) -> tuple[CandidateRunDefinition, MaturityCurveConfig]:
+    validate_candidate_01_manifest(manifest)
     run = manifest.run(candidate_run_ordinal)
     diff = verify_parameter_allowlist(
         incumbent_snapshot=manifest.incumbent_parameter_snapshot,
@@ -781,6 +896,10 @@ def candidate_01_execution_preflight(
     manifest: Candidate01ParameterManifest,
     journal: AppendOnlyValidationJournal,
 ) -> Candidate01PreflightResult:
+    validate_candidate_01_manifest(
+        manifest,
+        config_path=repo_root / manifest.incumbent_config_path,
+    )
     rows = journal.materialize()
     count = len(rows)
     if count > 0:
@@ -817,6 +936,10 @@ def build_candidate_gate_request(
     code_commit_sha: str,
     evaluation_id: str,
 ) -> CandidateExecutionGateRequest:
+    validate_candidate_01_manifest(manifest)
+    expected_run = manifest.run(run.candidate_run_ordinal)
+    if run != expected_run:
+        raise Candidate01ContractError("candidate run is not the frozen manifest run")
     missing = [name for name in _REQUIRED_PAIRING_IDENTITY_NAMES if name not in pairing_bindings]
     if missing:
         raise Candidate01PreflightBlocked("paired identity is missing")
@@ -876,6 +999,7 @@ __all__ = [
     "CANDIDATE_01_HYPOTHESIS",
     "CANDIDATE_01_ID",
     "CANDIDATE_01_PARAMETER_MANIFEST_VERSION",
+    "CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND",
     "CANDIDATE_01_PARENT_MODEL_ID",
     "CANDIDATE_01_PLANNED_RUN_COUNT",
     "CANDIDATE_01_RANDOM_SEED",
@@ -887,6 +1011,8 @@ __all__ = [
     "LedgerEvent",
     "NO_VERSIONED_FORECAST_AUTHORITY_REASON",
     "HISTORICAL_INCUMBENT_AUTHORITY_REASON",
+    "INCUMBENT_CONFIG_FILE_SHA256_BOUND",
+    "INCUMBENT_CONFIG_HASH_BOUND",
     "PairingAuthorityResolution",
     "PairingIdentityBinding",
     "ParameterDiffResult",

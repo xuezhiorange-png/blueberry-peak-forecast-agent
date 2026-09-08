@@ -14,6 +14,7 @@ from backend.app.s4_candidate_execution import (
     AppendOnlyValidationJournal,
     Candidate01ContractError,
     build_candidate_01_manifest,
+    build_candidate_gate_request,
     build_derived_candidate_config,
     candidate_01_execution_preflight,
     resolve_pairing_authority,
@@ -128,6 +129,139 @@ def test_manifest_has_exact_four_runs_and_order() -> None:
         {"curve.spline_knot_count": 6, "curve.ridge_alpha": Decimal("0.05")},
         {"curve.spline_knot_count": 6, "curve.ridge_alpha": Decimal("0.20")},
     ]
+
+
+def _manifest_with_run(manifest, ordinal: int, **changes):
+    runs = list(manifest.runs)
+    runs[ordinal - 1] = replace(runs[ordinal - 1], **changes)
+    return replace(manifest, runs=tuple(runs))
+
+
+def _snapshot_with_value(manifest, ordinal: int, path: str, value: object):
+    snapshot = copy.deepcopy(dict(manifest.run(ordinal).full_parameter_snapshot))
+    section, key = path.split(".")
+    snapshot[section][key] = value
+    return snapshot
+
+
+@pytest.mark.parametrize(
+    ("ordinal", "path", "value"),
+    [
+        (1, "curve.spline_knot_count", 4),
+        (2, "curve.spline_knot_count", 8),
+        (3, "curve.ridge_alpha", Decimal("0.07")),
+        (4, "curve.ridge_alpha", Decimal("0.25")),
+    ],
+)
+def test_exact_frozen_run_value_mutation_is_rejected(
+    ordinal: int,
+    path: str,
+    value: object,
+) -> None:
+    manifest = _manifest()
+    forged = _manifest_with_run(
+        manifest,
+        ordinal,
+        full_parameter_snapshot=_snapshot_with_value(manifest, ordinal, path, value),
+    )
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+def test_exact_original_four_run_manifest_passes_content_validation() -> None:
+    manifest = _manifest()
+    validate_candidate_01_manifest(manifest)
+    assert manifest.manifest_hash == (
+        "eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b"
+    )
+
+
+def test_authorized_delta_must_match_full_snapshot() -> None:
+    manifest = _manifest()
+    forged = _manifest_with_run(
+        manifest,
+        1,
+        authorized_parameter_delta={
+            "curve.spline_knot_count": 5,
+            "curve.ridge_alpha": Decimal("0.11"),
+        },
+    )
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["parameter_manifest_hash", "candidate_config_hash", "incumbent_config_hash"],
+)
+def test_forged_run_hashes_are_rejected(field: str) -> None:
+    manifest = _manifest()
+    forged = _manifest_with_run(manifest, 1, **{field: "0" * 64})
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+def test_forged_incumbent_file_hash_is_rejected() -> None:
+    manifest = _manifest()
+    forged = replace(manifest, incumbent_config_file_sha256="0" * 64)
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+def test_random_seed_drift_is_rejected() -> None:
+    manifest = _manifest()
+    forged = _manifest_with_run(manifest, 1, random_seed=20260625)
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+def test_same_ordinals_and_allowlist_do_not_permit_different_values() -> None:
+    manifest = _manifest()
+    snapshot = _snapshot_with_value(manifest, 1, "curve.spline_knot_count", 8)
+    forged = _manifest_with_run(
+        manifest,
+        1,
+        full_parameter_snapshot=snapshot,
+        authorized_parameter_delta={
+            "curve.spline_knot_count": 8,
+            "curve.ridge_alpha": Decimal("0.10"),
+        },
+    )
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+def test_top_level_manifest_content_hash_mismatch_is_rejected() -> None:
+    manifest = _manifest()
+    forged = replace(manifest, hypothesis=manifest.hypothesis + "_forged")
+    with pytest.raises(Candidate01ContractError):
+        validate_candidate_01_manifest(forged)
+
+
+def test_gate_request_rejects_run_not_belonging_to_frozen_manifest() -> None:
+    manifest = _manifest()
+    forged_run = replace(manifest.run(1), parameter_manifest_hash="0" * 64)
+    bindings = {
+        "train_dataset_identity": _identity("a"),
+        "validation_dataset_identity": _identity("b"),
+        "actual_label_set_identity": _identity("c"),
+        "exclusion_policy_identity": _identity("d"),
+        "cutoff_policy_identity": _identity("e"),
+        "forecast_horizon_set_identity": _identity("f"),
+        "metric_contract_identity": METRIC_CONTRACT_IDENTITY,
+        "business_grain_set_identity": _identity("1"),
+        "common_comparable_set_identity": _identity("2"),
+    }
+    with pytest.raises(Candidate01ContractError):
+        build_candidate_gate_request(
+            manifest=manifest,
+            run=forged_run,
+            pairing_bindings=bindings,
+            candidate_actual_run_count=0,
+            global_actual_evaluation_count=0,
+            code_commit_sha="c" * 40,
+            evaluation_id="evaluation-1",
+        )
 
 
 def test_manifest_hash_is_stable_and_mutation_changes_it() -> None:
