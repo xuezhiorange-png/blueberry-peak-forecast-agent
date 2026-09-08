@@ -9,6 +9,7 @@
   "BASE_MAIN_SHA": "4953f68182b08f5e10d9e6235bb191cbb1c08ec4",
   "NEW_MIGRATION": "0032_s4_validation_budget_durable_persistence",
   "ALEMBIC_HEAD_COUNT": 1,
+  "EXISTING_MIGRATION_HEAD_CONTRACTS_RECONCILED": true,
   "ALEMBIC_HEADS": [
     "0032_s4_validation_budget_durable_persistence"
   ],

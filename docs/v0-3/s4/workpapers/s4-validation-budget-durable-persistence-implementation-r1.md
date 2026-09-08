@@ -103,7 +103,13 @@ SQLITE_MIGRATION_BOOTSTRAP=PASS
 SQLITE_MIGRATION_ROUND_TRIP=PASS
 ALEMBIC_HEAD_COUNT=1
 ALEMBIC_HEAD=0032_s4_validation_budget_durable_persistence
+EXISTING_MIGRATION_HEAD_CONTRACTS_RECONCILED=true
 ```
+
+The existing migration-contract tests that asserted the former `0031` head
+were updated to assert the new single live head. This is a test-contract
+reconciliation required by adding a real Alembic revision; it does not alter
+the historical migration files or any production business behavior.
 
 The development environment has no PostgreSQL endpoint or local PostgreSQL
 server. The real transaction/locking/concurrency test is included in the
