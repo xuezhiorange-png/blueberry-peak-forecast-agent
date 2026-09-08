@@ -348,3 +348,55 @@ windows sum subfarms only and never combine different varieties.
 
 No C01/C02 scoring, TEST evaluation, ledger rewrite, budget deletion, or
 production model/parameter change was performed in R2.
+
+## Validation budget append-only forward compatibility R3
+
+This correction preserves the accepted R2 state while making the durable
+reconciliation artifact an immutable historical baseline rather than a
+perpetual zero-row requirement. The four legacy Candidate 01 invocations
+remain a single reconciled debit. Future canonical journal starts are valid
+append-only events and are counted in addition to that debit; the artifact is
+not rewritten after each future candidate run.
+
+```text
+TASK_ID=V0_3_S4_VALIDATION_BUDGET_APPEND_ONLY_FORWARD_COMPATIBILITY_R3
+TARGET_PR=587
+R3_BUDGET_FORWARD_APPEND_COMPATIBILITY_APPLIED=true
+RECONCILIATION_BASELINE_CANONICAL_LEDGER_COUNT=0
+RECONCILIATION_BASELINE_CANONICAL_STARTED_COUNT=0
+CANONICAL_LEDGER_COUNTS_ARE_BASELINE=true
+LIVE_CANONICAL_APPEND_ALLOWED=true
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CURRENT_LIVE_CANONICAL_STARTED_COUNT=0
+CURRENT_EFFECTIVE_CONSUMED=4
+CURRENT_REMAINING=28
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_02_EXECUTION_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+TEST_EVALUATION_CALL_COUNT=0
+C01_RESULT=BLOCKED
+LEGACY_DEBIT_DOUBLE_COUNT_FORBIDDEN=true
+BASELINE_HISTORY_MUTATION_FAILS_CLOSED=true
+GLOBAL_MAX_32_ENFORCED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_BUDGET_FORWARD_COMPATIBILITY_REVIEW
+```
+
+The current empty journal therefore reconciles to effective consumption `4`
+of `32`, with `28` remaining. A synthetic in-memory future append is not a
+scoring run: one valid canonical started event reconciles to `5/32` with `27`
+remaining, and two reconcile to `6/32` with `26` remaining. Candidate-level
+run counts remain separate from the global effective count. At effective
+consumption `32`, the current reconciliation may report zero remaining, but
+the next candidate start is blocked and the remaining value never becomes
+negative.
+
+The journal retains its event-hash integrity, duplicate-identity checks,
+immutable event payload checks, unique global-ordinal checks, and chained
+append verification. An accepted non-empty baseline can be pinned by its
+exact event-hash prefix; mutation or deletion of that accepted history fails
+closed. No legacy C01 rows are fabricated or double-counted, and no C01/C02
+scoring, TEST evaluation, ledger rewrite, budget deletion, or production
+model/parameter change was performed in R3.
