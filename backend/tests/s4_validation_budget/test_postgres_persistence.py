@@ -13,6 +13,17 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
 from backend.app.models.s4_validation_budget import S4ValidationEvent
+from backend.app.s4_candidate_execution_authority import S4CandidateExecutionAuthority
+from backend.app.s4_experiment import (
+    EXPERIMENT_PLAN_VERSION,
+    FROZEN_CANDIDATE_REGISTRY,
+    GUARDRAIL_POLICY_HASH,
+    GUARDRAIL_POLICY_VERSION,
+    METRIC_CONTRACT_IDENTITY,
+    METRIC_CONTRACT_VERSION,
+    S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+    CandidateExecutionGateRequest,
+)
 from backend.app.s4_validation_budget import (
     S4ValidationBudgetRepository,
     StartedEventCommand,
@@ -267,6 +278,157 @@ async def test_postgres_committed_started_survives_fresh_session_readback(
         )
     async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as fresh_session:
         state = await S4ValidationBudgetRepository(fresh_session).load_verified_state()
+        assert state.accepted_started_count == 1
+        assert state.effective_consumed == 5
+        assert state.remaining == 27
+
+
+def _durable_gate_request(
+    *,
+    evaluation_id: str,
+    candidate_id: str = "02_quantile_calibration",
+) -> CandidateExecutionGateRequest:
+    identity = "a" * 64
+    return CandidateExecutionGateRequest(
+        experiment_plan_version=EXPERIMENT_PLAN_VERSION,
+        experiment_plan_hash=S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+        guardrail_policy_version=GUARDRAIL_POLICY_VERSION,
+        guardrail_policy_hash=GUARDRAIL_POLICY_HASH,
+        candidate_id=candidate_id,
+        candidate_run_ordinal=1,
+        candidate_planned_run_count=4,
+        candidate_actual_run_count=0,
+        global_actual_evaluation_count=0,
+        train_dataset_identity=identity,
+        validation_dataset_identity=identity,
+        actual_label_set_identity=identity,
+        exclusion_policy_identity=identity,
+        cutoff_policy_identity=identity,
+        forecast_horizon_set_identity=identity,
+        metric_contract_identity=METRIC_CONTRACT_IDENTITY,
+        business_grain_set_identity=identity,
+        common_comparable_set_identity=identity,
+        metric_contract_version=METRIC_CONTRACT_VERSION,
+        test_access_requested=False,
+        test_sealed=True,
+        parameter_manifest_hash=identity,
+        code_commit_sha="c" * 40,
+        random_seed=20260908,
+        evaluation_id=evaluation_id,
+        candidate_execution_manifest_frozen=True,
+        candidate_registry=FROZEN_CANDIDATE_REGISTRY,
+    )
+
+
+async def test_postgres_execution_started_commits_before_fake_scorer(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+        observed: list[int] = []
+
+        async def fake_scorer() -> str:
+            state = await S4ValidationBudgetRepository(session).load_verified_state()
+            observed.append(state.effective_consumed)
+            return "COMPUTED"
+
+        result = await S4CandidateExecutionAuthority(session).execute(
+            _durable_gate_request(evaluation_id="pg-integration-order"),
+            scorer=fake_scorer,
+            execution_authorized=True,
+            trigger_source="postgres-integration-order",
+        )
+        assert result.status == "COMPLETED"
+        assert result.started_persisted is True
+        assert observed == [5]
+
+
+async def test_postgres_execution_cas_conflict_never_calls_second_scorer(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    first_session = AsyncSession(isolated_postgres_engine, expire_on_commit=False)
+    second_session = AsyncSession(isolated_postgres_engine, expire_on_commit=False)
+    try:
+        first_authority = S4CandidateExecutionAuthority(first_session)
+        second_authority = S4CandidateExecutionAuthority(second_session)
+        first_preflight = await first_authority.preflight(
+            _durable_gate_request(evaluation_id="pg-cas-first")
+        )
+        second_preflight = await second_authority.preflight(
+            _durable_gate_request(evaluation_id="pg-cas-second")
+        )
+        assert first_preflight.allowed is True
+        assert second_preflight.allowed is True
+        second_scorer_called = False
+
+        def second_scorer() -> str:
+            nonlocal second_scorer_called
+            second_scorer_called = True
+            return "COMPUTED"
+
+        first_result, second_result = await asyncio.gather(
+            first_authority.execute_preflight(
+                first_preflight,
+                scorer=lambda: "COMPUTED",
+                execution_authorized=True,
+                trigger_source="postgres-cas-first",
+            ),
+            second_authority.execute_preflight(
+                second_preflight,
+                scorer=second_scorer,
+                execution_authorized=True,
+                trigger_source="postgres-cas-second",
+            ),
+        )
+        assert first_result.status == "COMPLETED"
+        assert second_result.reason_code == "VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT"
+        assert second_result.scorer_called is False
+        assert second_scorer_called is False
+    finally:
+        await first_session.close()
+        await second_session.close()
+
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+        state = await S4ValidationBudgetRepository(session).load_verified_state()
+        assert state.accepted_started_count == 1
+        assert state.effective_consumed == 5
+
+
+async def test_postgres_failed_fake_scorer_keeps_started_debit(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+
+        def fake_scorer() -> str:
+            raise RuntimeError("synthetic scorer failure")
+
+        result = await S4CandidateExecutionAuthority(session).execute(
+            _durable_gate_request(evaluation_id="pg-failed-scorer"),
+            scorer=fake_scorer,
+            execution_authorized=True,
+            trigger_source="postgres-failed-scorer",
+        )
+        assert result.status == "FAILED"
+        assert result.started_persisted is True
+        assert result.terminal_persisted is True
+        assert result.state_after_terminal is not None
+        assert result.state_after_terminal.effective_consumed == 5
+        assert result.state_after_terminal.remaining == 27
+
+
+async def test_postgres_terminal_does_not_add_budget(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+        result = await S4CandidateExecutionAuthority(session).execute(
+            _durable_gate_request(evaluation_id="pg-terminal-no-budget"),
+            scorer=lambda: "COMPUTED",
+            execution_authorized=True,
+            trigger_source="postgres-terminal-no-budget",
+        )
+        assert result.status == "COMPLETED"
+        assert result.state_after_terminal is not None
+        state = result.state_after_terminal
+        assert state.accepted_event_count == 2
         assert state.accepted_started_count == 1
         assert state.effective_consumed == 5
         assert state.remaining == 27
