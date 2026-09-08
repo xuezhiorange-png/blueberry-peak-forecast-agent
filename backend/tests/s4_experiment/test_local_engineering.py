@@ -30,6 +30,7 @@ from backend.app.s4_local_engineering import (
     _metric_payload,
     _rolling_peak_error,
     _single_day_peak_error,
+    _variety_curve_samples,
     compute_metrics,
     guardrail_payload,
     load_frozen_engineering_dataset,
@@ -237,7 +238,12 @@ def test_result_payload_is_aggregate_only(
 
 def test_sustained_7day_exactly_seven_days_has_one_window() -> None:
     predictions = tuple(
-        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
+        _prediction(
+            day=date(2026, 1, 2) + timedelta(days=index),
+            actual="1",
+            p50="2",
+            cutoff=date(2025, 12, 26),
+        )
         for index in range(7)
     )
     daily = {item.harvest_business_date: (item.actual_kg, item.p50_kg) for item in predictions}
@@ -252,6 +258,7 @@ def test_sustained_7day_includes_last_legal_window() -> None:
             day=date(2026, 1, 2) + timedelta(days=index),
             actual="1",
             p50="1" if index < 7 else "3",
+            cutoff=date(2025, 12, 26),
         )
         for index in range(8)
     )
@@ -261,7 +268,7 @@ def test_sustained_7day_includes_last_legal_window() -> None:
 
 def test_sustained_7day_rejects_missing_calendar_day() -> None:
     predictions = tuple(
-        _prediction(day=day, actual="1", p50="2")
+        _prediction(day=day, actual="1", p50="2", cutoff=date(2025, 12, 26))
         for day in (
             date(2026, 1, 2),
             date(2026, 1, 3),
@@ -449,6 +456,130 @@ def test_farm_peak_retains_season_and_cutoff_grain() -> None:
     assert metrics.single_day_peak_quantity_absolute_error_kg_q == Decimal("8.000000")
 
 
+def test_variety_curve_normalization_uses_each_groups_own_total() -> None:
+    rows_a = [
+        _row(
+            harvest_date=date(2026, 1, 1),
+            quantity=Decimal("20"),
+            subfarm="group-a",
+        ),
+        _row(
+            harvest_date=date(2026, 1, 2),
+            quantity=Decimal("80"),
+            subfarm="group-a",
+        ),
+    ]
+    rows_b = [
+        _row(
+            harvest_date=date(2026, 1, 1),
+            quantity=Decimal("500"),
+            subfarm="group-b",
+        ),
+        _row(
+            harvest_date=date(2026, 1, 2),
+            quantity=Decimal("500"),
+            subfarm="group-b",
+        ),
+    ]
+    key_a = ("farm-a", "group-a", "variety-a")
+    key_b = ("farm-a", "group-b", "variety-a")
+
+    samples = _variety_curve_samples(
+        variety="variety-a",
+        by_group={key_a: rows_a, key_b: rows_b},
+        group_anchors={key_a: date(2026, 1, 1), key_b: date(2026, 1, 1)},
+        group_totals={key_a: Decimal("100"), key_b: Decimal("1000")},
+    )
+
+    assert samples == (
+        (0, Decimal("0.2")),
+        (0, Decimal("0.5")),
+        (1, Decimal("0.5")),
+        (1, Decimal("0.8")),
+    )
+
+
+def test_variety_curve_result_is_invariant_to_group_iteration_order() -> None:
+    rows_a = [
+        _row(harvest_date=date(2026, 1, 1), quantity=Decimal("20"), subfarm="group-a"),
+        _row(harvest_date=date(2026, 1, 2), quantity=Decimal("80"), subfarm="group-a"),
+    ]
+    rows_b = [
+        _row(harvest_date=date(2026, 1, 1), quantity=Decimal("500"), subfarm="group-b"),
+        _row(harvest_date=date(2026, 1, 2), quantity=Decimal("500"), subfarm="group-b"),
+    ]
+    key_a = ("farm-a", "group-a", "variety-a")
+    key_b = ("farm-a", "group-b", "variety-a")
+    anchors = {key_a: date(2026, 1, 1), key_b: date(2026, 1, 1)}
+    totals = {key_a: Decimal("100"), key_b: Decimal("1000")}
+
+    forward = _variety_curve_samples(
+        variety="variety-a",
+        by_group={key_a: rows_a, key_b: rows_b},
+        group_anchors=anchors,
+        group_totals=totals,
+    )
+    reverse = _variety_curve_samples(
+        variety="variety-a",
+        by_group={key_b: rows_b, key_a: rows_a},
+        group_anchors=anchors,
+        group_totals=totals,
+    )
+
+    assert forward == reverse
+
+
+def _sustained_farm_variety_predictions() -> tuple[LocalPrediction, ...]:
+    start = date(2026, 1, 8)
+    cutoff = date(2026, 1, 1)
+    predictions: list[LocalPrediction] = []
+    for index in range(7):
+        day = start + timedelta(days=index)
+        predictions.extend(
+            (
+                _prediction(
+                    day=day,
+                    actual="6",
+                    p50="0",
+                    subfarm="subfarm-a1",
+                    variety="variety-a",
+                    cutoff=cutoff,
+                ),
+                _prediction(
+                    day=day,
+                    actual="6",
+                    p50="0",
+                    subfarm="subfarm-a2",
+                    variety="variety-a",
+                    cutoff=cutoff,
+                ),
+                _prediction(
+                    day=day,
+                    actual="10",
+                    p50="0",
+                    subfarm="subfarm-b1",
+                    variety="variety-b",
+                    cutoff=cutoff,
+                ),
+            )
+        )
+    return tuple(predictions)
+
+
+def test_sustained_farm_peak_does_not_sum_different_varieties() -> None:
+    predictions = _sustained_farm_variety_predictions()
+
+    assert _rolling_peak_error(predictions) == Decimal("84.000000")
+
+
+def test_sustained_farm_peak_sums_subfarms_within_same_variety() -> None:
+    predictions = tuple(
+        item for item in _sustained_farm_variety_predictions() if item.variety == "variety-a"
+    )
+
+    assert _rolling_peak_error(predictions) == Decimal("84.000000")
+
+
 def test_wape_zero_actual_denominator_is_not_computable() -> None:
     predictions = (_prediction(day=date(2026, 1, 2), actual="0", p50="2"),)
 
@@ -517,10 +648,16 @@ def test_cutoff_presence_alone_does_not_authorize_complete_window_metrics() -> N
     assert metrics.sustained_7day_metric_status == "NOT_COMPUTABLE"
 
 
-def test_complete_daily_authority_allows_synthetic_window_metric_computation() -> None:
+def test_complete_daily_authority_allows_authorized_non_sustained_metrics() -> None:
     predictions = tuple(
-        _prediction(day=date(2026, 1, 2) + timedelta(days=index), actual="1", p50="2")
-        for index in range(7)
+        _prediction(
+            day=date(2026, 1, 8),
+            actual="1",
+            p50="2",
+            subfarm=f"subfarm-{index}",
+            cutoff=date(2026, 1, 1),
+        )
+        for index in range(2)
     )
 
     metrics = compute_metrics(
@@ -529,7 +666,8 @@ def test_complete_daily_authority_allows_synthetic_window_metric_computation() -
 
     assert metrics.cumulative_metric_status == "COMPUTED"
     assert metrics.single_day_peak_metric_status == "COMPUTED"
-    assert metrics.sustained_7day_metric_status == "COMPUTED"
+    assert metrics.sustained_7day_metric_status == "NOT_COMPUTABLE"
+    assert metrics.sustained_7day_metric_reason_code == "NO_COMPLETE_7DAY_WINDOW"
 
 
 def test_incomplete_daily_authority_blocks_cumulative_metric() -> None:

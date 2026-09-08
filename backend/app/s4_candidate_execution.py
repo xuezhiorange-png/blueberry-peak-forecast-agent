@@ -893,6 +893,7 @@ class Candidate01PreflightResult:
     manifest_hash: str
     current_ledger_row_count: int
     actual_validation_evaluation_count: int
+    budget_reconciliation: ValidationBudgetReconciliation | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1129,6 +1130,7 @@ def candidate_01_execution_preflight(
             manifest.manifest_hash,
             budget.canonical_ledger_row_count,
             budget.effective_validation_evaluations_consumed,
+            budget,
         )
     if count > 0 or budget.legacy_unledgered_c01_started_evaluation_count > 0:
         return Candidate01PreflightResult(
@@ -1139,6 +1141,7 @@ def candidate_01_execution_preflight(
             manifest.manifest_hash,
             count,
             budget.effective_validation_evaluations_consumed,
+            budget,
         )
     pairing = resolve_pairing_authority(repo_root)
     if not pairing.resolved:
@@ -1150,6 +1153,7 @@ def candidate_01_execution_preflight(
             manifest.manifest_hash,
             budget.canonical_ledger_row_count,
             budget.effective_validation_evaluations_consumed,
+            budget,
         )
     raise Candidate01PreflightBlocked("candidate execution adapter must be explicit")
 
@@ -1166,15 +1170,16 @@ def build_candidate_gate_request(
     budget_reconciliation: ValidationBudgetReconciliation | None = None,
 ) -> CandidateExecutionGateRequest:
     validate_candidate_01_manifest(manifest)
-    if budget_reconciliation is not None:
-        if not budget_reconciliation.resolved:
-            raise Candidate01PreflightBlocked(
-                budget_reconciliation.reason_code or "VALIDATION_BUDGET_RECONCILIATION_BLOCKED"
-            )
-        if global_actual_evaluation_count != (
-            budget_reconciliation.effective_validation_evaluations_consumed
-        ):
-            raise Candidate01PreflightBlocked("VALIDATION_BUDGET_RECONCILIATION_MISMATCH")
+    if budget_reconciliation is None:
+        raise Candidate01PreflightBlocked("VALIDATION_BUDGET_RECONCILIATION_REQUIRED")
+    if not budget_reconciliation.resolved:
+        raise Candidate01PreflightBlocked(
+            budget_reconciliation.reason_code or "VALIDATION_BUDGET_RECONCILIATION_BLOCKED"
+        )
+    if global_actual_evaluation_count != (
+        budget_reconciliation.effective_validation_evaluations_consumed
+    ):
+        raise Candidate01PreflightBlocked("VALIDATION_BUDGET_RECONCILIATION_MISMATCH")
     expected_run = manifest.run(run.candidate_run_ordinal)
     if run != expected_run:
         raise Candidate01ContractError("candidate run is not the frozen manifest run")

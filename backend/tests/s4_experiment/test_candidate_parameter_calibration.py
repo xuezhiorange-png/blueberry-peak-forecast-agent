@@ -14,6 +14,8 @@ from backend.app.s4_candidate_execution import (
     CANDIDATE_01_PARAMETER_MANIFEST_VERSION,
     AppendOnlyValidationJournal,
     Candidate01ContractError,
+    Candidate01PreflightBlocked,
+    ValidationBudgetReconciliation,
     build_candidate_01_manifest,
     build_candidate_gate_request,
     build_derived_candidate_config,
@@ -35,6 +37,7 @@ from backend.app.s4_experiment import (
     CandidateExecutionGateRequest,
     check_candidate_execution_gate,
 )
+from scripts.run_v03_s4_c01_parameter_calibration import _preflight_payload
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CONFIG_PATH = REPO_ROOT / "configs/maturity_curve.yaml"
@@ -46,6 +49,48 @@ def _identity(seed: str) -> str:
 
 def _manifest():
     return build_candidate_01_manifest(CONFIG_PATH)
+
+
+def _resolved_budget(
+    *,
+    status: str = "PASS",
+    effective: int = 4,
+    remaining: int = 28,
+) -> ValidationBudgetReconciliation:
+    blocked = status != "PASS"
+    return ValidationBudgetReconciliation(
+        status="BLOCKED" if blocked else "PASS",
+        blocker="VALIDATION_BUDGET_RECONCILIATION_BLOCKED" if blocked else None,
+        reason_code="VALIDATION_BUDGET_RECONCILIATION_BLOCKED" if blocked else None,
+        canonical_ledger_row_count=0,
+        canonical_started_evaluation_count=0,
+        legacy_unledgered_c01_started_evaluation_count=4,
+        effective_validation_evaluations_consumed=effective,
+        remaining_effective_validation_budget=remaining,
+    )
+
+
+def _build_gate_request_kwargs(*, global_actual_evaluation_count: int) -> dict[str, object]:
+    manifest = _manifest()
+    return {
+        "manifest": manifest,
+        "run": manifest.run(1),
+        "pairing_bindings": {
+            "train_dataset_identity": _identity("a"),
+            "validation_dataset_identity": _identity("b"),
+            "actual_label_set_identity": _identity("c"),
+            "exclusion_policy_identity": _identity("d"),
+            "cutoff_policy_identity": _identity("e"),
+            "forecast_horizon_set_identity": _identity("f"),
+            "metric_contract_identity": METRIC_CONTRACT_IDENTITY,
+            "business_grain_set_identity": _identity("1"),
+            "common_comparable_set_identity": _identity("2"),
+        },
+        "candidate_actual_run_count": 0,
+        "global_actual_evaluation_count": global_actual_evaluation_count,
+        "code_commit_sha": "c" * 40,
+        "evaluation_id": "evaluation-1",
+    }
 
 
 def _gate_request() -> CandidateExecutionGateRequest:
@@ -349,6 +394,85 @@ def test_current_pairing_preflight_blocks_before_started_event(tmp_path: Path) -
     assert result.current_ledger_row_count == 0
     assert result.actual_validation_evaluation_count == 4
     assert not journal.path.exists()
+
+
+def _current_preflight_payload(tmp_path: Path) -> dict[str, object]:
+    manifest = _manifest()
+    journal = AppendOnlyValidationJournal(tmp_path / "journal.jsonl")
+    result = candidate_01_execution_preflight(
+        repo_root=REPO_ROOT,
+        manifest=manifest,
+        journal=journal,
+    )
+    return _preflight_payload(result)
+
+
+def test_official_c01_preflight_blocked_payload_reports_effective_four_consumed(
+    tmp_path: Path,
+) -> None:
+    payload = _current_preflight_payload(tmp_path)
+
+    assert payload["CURRENT_LEDGER_ROW_COUNT"] == 0
+    assert payload["ACTUAL_VALIDATION_EVALUATION_COUNT"] == 4
+    assert payload["EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED"] == 4
+
+
+def test_official_c01_preflight_blocked_payload_reports_remaining_twenty_eight(
+    tmp_path: Path,
+) -> None:
+    payload = _current_preflight_payload(tmp_path)
+
+    assert payload["REMAINING_GLOBAL_VALIDATION_BUDGET"] == 28
+    assert payload["REMAINING_EFFECTIVE_VALIDATION_BUDGET"] == 28
+
+
+def test_official_c01_preflight_keeps_canonical_ledger_row_count_zero(
+    tmp_path: Path,
+) -> None:
+    payload = _current_preflight_payload(tmp_path)
+
+    assert payload["CANONICAL_LEDGER_ROW_COUNT"] == 0
+    assert payload["CANONICAL_LEDGER_STARTED_EVALUATION_COUNT"] == 0
+    assert payload["LEGACY_RECONCILED_VALIDATION_DEBIT"] == 4
+
+
+def test_gate_request_requires_budget_reconciliation() -> None:
+    with pytest.raises(
+        Candidate01PreflightBlocked,
+        match="VALIDATION_BUDGET_RECONCILIATION_REQUIRED",
+    ):
+        build_candidate_gate_request(**_build_gate_request_kwargs(global_actual_evaluation_count=0))
+
+
+def test_gate_request_rejects_global_count_zero_when_reconciled_count_is_four() -> None:
+    with pytest.raises(
+        Candidate01PreflightBlocked,
+        match="VALIDATION_BUDGET_RECONCILIATION_MISMATCH",
+    ):
+        build_candidate_gate_request(
+            **_build_gate_request_kwargs(global_actual_evaluation_count=0),
+            budget_reconciliation=_resolved_budget(),
+        )
+
+
+def test_gate_request_accepts_matching_effective_count_four() -> None:
+    request = build_candidate_gate_request(
+        **_build_gate_request_kwargs(global_actual_evaluation_count=4),
+        budget_reconciliation=_resolved_budget(),
+    )
+
+    assert request.global_actual_evaluation_count == 4
+
+
+def test_blocked_budget_reconciliation_cannot_build_gate_request() -> None:
+    with pytest.raises(
+        Candidate01PreflightBlocked,
+        match="VALIDATION_BUDGET_RECONCILIATION_BLOCKED",
+    ):
+        build_candidate_gate_request(
+            **_build_gate_request_kwargs(global_actual_evaluation_count=4),
+            budget_reconciliation=_resolved_budget(status="BLOCKED"),
+        )
 
 
 def test_empty_ledger_plus_legacy_c01_debit_resolves_to_four_consumed(tmp_path: Path) -> None:

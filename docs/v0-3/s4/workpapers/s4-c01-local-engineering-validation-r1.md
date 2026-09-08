@@ -297,3 +297,54 @@ MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_PR587_FINAL_CONTRACT_AND_BUDGET_REVIEW
 ```
+
+## Final narrow correction R2
+
+This append-only correction closes the remaining preflight, budget-gate, and
+farm-peak aggregation findings. It does not rerun Candidate 01, invoke the
+official C01 scoring runner, consume additional validation budget, or access
+TEST. The four historical Candidate 01 invocations remain an effective debit
+of four evaluations even though the canonical ledger contains no rows.
+
+```text
+TASK_ID=V0_3_S4_C01_FINAL_NARROW_CORRECTION_R2
+TARGET_PR=587
+R2_NARROW_CORRECTION_APPLIED=true
+CANDIDATE_01_RERUN_PERFORMED=false
+OFFICIAL_C01_SCORING_RUNNER_CALL_COUNT=0
+LOCAL_ENGINEERING_VALIDATION_RUNNER_CALL_COUNT=0
+CANDIDATE_02_RUNNER_CALL_COUNT=0
+TEST_EVALUATION_CALL_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+CANONICAL_LEDGER_STARTED_EVALUATION_COUNT=0
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+ACTUAL_VALIDATION_EVALUATION_COUNT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_GLOBAL_VALIDATION_BUDGET=28
+BUDGET_RECONCILIATION_REQUIRED_AT_GATE=true
+MISSING_BUDGET_RECONCILIATION_FAILS_CLOSED=true
+GLOBAL_COUNT_ZERO_WITH_RECONCILED_FOUR_REJECTED=true
+VARIETY_CURVE_NORMALIZATION_USES_CURRENT_GROUP_TOTAL=true
+VARIETY_CURVE_GROUP_ORDER_INVARIANT=true
+SINGLE_DAY_FARM_VARIETY_GRAIN_PRESERVED=true
+SUSTAINED_7DAY_FARM_VARIETY_GRAIN_PRESERVED=true
+CROSS_VARIETY_SUSTAINED_FARM_SUM_FORBIDDEN=true
+C01_RESULT=BLOCKED
+CANDIDATE_01_NUMERIC_EVIDENCE_ACCEPTED=false
+CANDIDATE_01_GUARDRAIL_DECISION_ACCEPTED=false
+CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
+CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+FINAL_STOP_GATE=COORDINATOR_PR587_FINAL_NARROW_CORRECTION_REVIEW
+```
+
+The official preflight now reports the canonical ledger count separately from
+the effective reconciled debit: `0` canonical rows, `4` consumed validation
+evaluations, and `28` remaining global budget. A gate request cannot be built
+without a resolved reconciliation artifact and rejects a stale global count
+of zero. Variety-curve normalization uses each group's own total and is
+invariant to group iteration order. Single-day and sustained seven-day farm
+peaks retain the full farm-variety-cutoff-model-quantile grain; sustained
+windows sum subfarms only and never combine different varieties.
+
+No C01/C02 scoring, TEST evaluation, ledger rewrite, budget deletion, or
+production model/parameter change was performed in R2.

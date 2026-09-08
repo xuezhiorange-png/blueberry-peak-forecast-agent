@@ -28,6 +28,7 @@ from backend.app.s4_candidate_execution import (  # noqa: E402
     candidate_01_execution_preflight,
     json_payload,
 )
+from backend.app.s4_experiment import MAX_VALIDATION_EVALUATIONS  # noqa: E402
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -82,6 +83,10 @@ def _blocked_payload(
     first_non_derivable_authority: str | None = None,
     manifest_hash: str | None = None,
     ledger_row_count: int = 0,
+    canonical_ledger_started_evaluation_count: int = 0,
+    legacy_reconciled_validation_debit: int = 0,
+    effective_validation_evaluation_count: int = 0,
+    remaining_validation_budget: int = MAX_VALIDATION_EVALUATIONS,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "EXECUTION_STATUS": "BLOCKED",
@@ -96,8 +101,14 @@ def _blocked_payload(
         "CANDIDATE_01_EXECUTION_ADAPTER_USED": False,
         "CANDIDATE_01_EXECUTION_REACHED": False,
         "CANDIDATE_01_RUN_COUNT": ledger_row_count,
-        "ACTUAL_VALIDATION_EVALUATION_COUNT": ledger_row_count,
-        "REMAINING_GLOBAL_VALIDATION_BUDGET": 32 - ledger_row_count,
+        "CANONICAL_LEDGER_ROW_COUNT": ledger_row_count,
+        "CANONICAL_LEDGER_STARTED_EVALUATION_COUNT": canonical_ledger_started_evaluation_count,
+        "LEGACY_RECONCILED_VALIDATION_DEBIT": legacy_reconciled_validation_debit,
+        "LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT": legacy_reconciled_validation_debit,
+        "ACTUAL_VALIDATION_EVALUATION_COUNT": effective_validation_evaluation_count,
+        "EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED": effective_validation_evaluation_count,
+        "REMAINING_GLOBAL_VALIDATION_BUDGET": remaining_validation_budget,
+        "REMAINING_EFFECTIVE_VALIDATION_BUDGET": remaining_validation_budget,
         "CURRENT_LEDGER_ROW_COUNT": ledger_row_count,
         "S4_CANDIDATE_EXPERIMENT_EXECUTED": False,
         "S4_METRIC_EXECUTION_PERFORMED": False,
@@ -111,6 +122,20 @@ def _blocked_payload(
 
 
 def _preflight_payload(result: Candidate01PreflightResult) -> dict[str, Any]:
+    reconciliation = result.budget_reconciliation
+    canonical_started = (
+        reconciliation.canonical_started_evaluation_count if reconciliation is not None else 0
+    )
+    legacy_debit = (
+        reconciliation.legacy_unledgered_c01_started_evaluation_count
+        if reconciliation is not None
+        else 0
+    )
+    remaining_budget = (
+        reconciliation.remaining_effective_validation_budget
+        if reconciliation is not None
+        else MAX_VALIDATION_EVALUATIONS - result.actual_validation_evaluation_count
+    )
     if result.status == "BLOCKED":
         return _blocked_payload(
             blocker=result.blocker or "CANDIDATE_01_EXECUTION_PREFLIGHT_BLOCKED",
@@ -118,6 +143,10 @@ def _preflight_payload(result: Candidate01PreflightResult) -> dict[str, Any]:
             first_non_derivable_authority=result.first_non_derivable_authority,
             manifest_hash=result.manifest_hash,
             ledger_row_count=result.current_ledger_row_count,
+            canonical_ledger_started_evaluation_count=canonical_started,
+            legacy_reconciled_validation_debit=legacy_debit,
+            effective_validation_evaluation_count=result.actual_validation_evaluation_count,
+            remaining_validation_budget=remaining_budget,
         )
     return {
         "EXECUTION_STATUS": "PASS",
@@ -128,8 +157,14 @@ def _preflight_payload(result: Candidate01PreflightResult) -> dict[str, Any]:
         "CANDIDATE_01_EXECUTION_ADAPTER_USED": False,
         "CANDIDATE_01_EXECUTION_REACHED": False,
         "CANDIDATE_01_RUN_COUNT": result.current_ledger_row_count,
+        "CANONICAL_LEDGER_ROW_COUNT": result.current_ledger_row_count,
+        "CANONICAL_LEDGER_STARTED_EVALUATION_COUNT": canonical_started,
+        "LEGACY_RECONCILED_VALIDATION_DEBIT": legacy_debit,
+        "LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT": legacy_debit,
         "ACTUAL_VALIDATION_EVALUATION_COUNT": result.actual_validation_evaluation_count,
-        "REMAINING_GLOBAL_VALIDATION_BUDGET": 32 - result.actual_validation_evaluation_count,
+        "EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED": result.actual_validation_evaluation_count,
+        "REMAINING_GLOBAL_VALIDATION_BUDGET": remaining_budget,
+        "REMAINING_EFFECTIVE_VALIDATION_BUDGET": remaining_budget,
         "CURRENT_LEDGER_ROW_COUNT": result.current_ledger_row_count,
         "TEST_EVALUATION_AUTHORIZED": False,
         "TEST_REMAINS_SEALED": True,
