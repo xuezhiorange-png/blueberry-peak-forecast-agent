@@ -21218,6 +21218,271 @@ configured endpoint is recorded as unreachable and the intended authority
 store identity remains not established; no substitute database or volume was
 created.
 
+### 4.18 — S4-C01 local engineering validation R1 (append-only live pointer)
+
+This live pointer records the authorized local engineering lane. It does not
+reopen historical authority recovery and does not promote regenerated local
+forecasts to production or historical PIT authority.
+
+```text
+TASK_ID=V0_3_S4_LOCAL_ENGINEERING_VALIDATION_BOOTSTRAP_AND_C01_EXECUTION_R1
+BASE_MAIN_SHA=77e3d8ac63d794babfe0c8549fd34d0467f0d57e
+BRANCH=codex/v0-3-s4-c01-local-engineering-validation-r1
+EVALUATION_LANE=LOCAL_ENGINEERING_REPLAY
+LOCAL_POSTGRES_READY=true
+LOCAL_DATABASE_NAME=blueberry_peak_s4_local_engineering
+LOCAL_DATABASE_BINDING=127.0.0.1:55435
+SOURCE_002_RESTORED=true
+SOURCE_002_REBUILD_PARITY=PASS
+SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256=f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785
+TRAIN_ROW_COUNT=16224
+TRAIN_CONTENT_SHA256=be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2
+VALIDATION_ROW_COUNT=8006
+VALIDATION_CONTENT_SHA256=4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06
+TEST_ROW_COUNT=0
+TEST_REMAINS_SEALED=true
+INCUMBENT_MODEL_ID=V0_2_CURRENT_MODEL
+REGENERATED_INCUMBENT_AUTHORITY_CLASS=LOCAL_ENGINEERING_REPLAY
+LOCAL_INCUMBENT_REPLAY_STATUS=PASS
+LOCAL_INCUMBENT_REPLAY_COUNT=2
+LOCAL_INCUMBENT_REPLAY_DETERMINISTIC=true
+CANDIDATE_ID=01_parameter_calibration
+CANDIDATE_01_PARAMETER_MANIFEST_HASH=eba8af27f926635d654aa4c5331f323a9e4edfa399659e1917b729ac6550910b
+CANDIDATE_01_ENGINEERING_RUN_COUNT=4
+LOCAL_ENGINEERING_VALIDATION_EVALUATION_COUNT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+VALIDATION_BUDGET_STATUS=PASS
+CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
+CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+TEST_EVALUATION_PERFORMED=false
+PRODUCTION_DATABASE_MUTATION_PERFORMED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C01_LOCAL_ENGINEERING_RESULT_REVIEW
+```
+
+The four candidate evaluations are recorded as real VALIDATION-informed
+engineering evaluations. Runs 2 and 3 improved the primary metric but were
+blocked by the frozen breakdown coverage guardrail; no candidate was approved
+or selected. The detailed aggregate result is recorded in
+`docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json`.
+
+### 4.19 — S4-C01 review correction R1 (append-only live pointer)
+
+This pointer supersedes the S4-C01 result-disposition fields in §4.18 without
+rewriting that historical execution snapshot. The four started evaluations
+remain real VALIDATION-informed engineering evaluations and continue to
+consume four budget units; they are not accepted S4 selection or guardrail
+evidence because the original implementation lacked the required metric and
+execution-contract guarantees.
+
+```text
+TASK_ID=V0_3_S4_C01_LOCAL_ENGINEERING_REVIEW_CORRECTION_R1
+TARGET_PR=587
+C01_RESULT_REVIEWED=true
+C01_RESULT_ACCEPTED_FOR_SELECTION=false
+C01_BUDGET_CONSUMPTION_RETAINED=true
+C01_NUMERIC_EVIDENCE_INVALIDATED_FOR_GUARDRAIL_AUTHORITY=true
+ORIGINAL_LOCAL_RUN_METRICS_PRESERVED_FOR_AUDIT=true
+ORIGINAL_LOCAL_RUN_METRICS_SELECTION_AUTHORITY=false
+ORIGINAL_LOCAL_RUN_METRICS_GUARDRAIL_AUTHORITY=false
+SUSTAINED_7DAY_OFF_BY_ONE_FIXED=true
+MISSING_DAY_ZERO_FILL_REMOVED=true
+CUMULATIVE_AGGREGATION_FIXED=true
+FARM_PEAK_AGGREGATION_FIXED=true
+FORECAST_HORIZON_CONTRACT_FIXED_OR_FAIL_CLOSED=true
+FORECAST_HORIZON_BREAKDOWN_STATUS=BLOCKED
+FORECAST_HORIZON_BREAKDOWN_REASON=FORECAST_HORIZON_AUTHORITY_UNAVAILABLE
+VALIDATION_ACTUAL_FALLBACK_REMOVED=true
+EXECUTION_GATE_RECONCILIATION=FAIL
+VALIDATION_LEDGER_RECONCILIATION=FAIL
+CANDIDATE_01_STARTED_EVALUATION_COUNT=4
+CANDIDATE_01_RUN_COUNT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+CANDIDATE_01_RERUN_REQUIRED_BY_THIS_TASK=false
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_01_RERUN_AUTHORIZED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+NEW_VALIDATION_SCORING_AUTHORIZED=false
+NEW_CANDIDATE_EVALUATION_AUTHORIZED=false
+VALIDATION_BUDGET_REWRITE_AUTHORIZED=false
+PRIOR_EVALUATION_DELETION_AUTHORIZED=false
+PRIOR_EVALUATION_RECLASSIFICATION_TO_ZERO_AUTHORIZED=false
+CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
+CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+TEST_EVALUATION_PERFORMED=false
+CANDIDATE_02_EXECUTION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_REVIEW_CORRECTION_REVIEW
+```
+
+The corrected local metric layer uses continuous calendar-day windows with
+`REJECT_INCOMPLETE_WINDOW`, computes cumulative error as the absolute
+difference of aggregate forecast and actual totals, computes peaks after
+daily subfarm aggregation, requires an explicit forecast cutoff for horizon
+breakdowns, and fails closed when TRAIN support is unavailable. No C01 runner
+or equivalent validation scoring call was made during this correction.
+
+### 4.20 — S4-C01 final contract and budget reconciliation R1 (live pointer)
+
+This EOF pointer supersedes only the live S4-C01 disposition fields; prior
+execution snapshots remain immutable. It records the machine-executable
+reconciliation of the empty canonical journal with the four real, unledgered
+Candidate 01 invocations. No journal rows were fabricated and Candidate 01
+was not rerun.
+
+```text
+TASK_ID=V0_3_S4_C01_LOCAL_ENGINEERING_FINAL_CONTRACT_AND_BUDGET_RECONCILIATION_R1
+TARGET_PR=587
+C01_RESULT=BLOCKED
+BLOCK_REASON=METRIC_AND_EXECUTION_CONTRACT_INVALID
+ORIGINAL_C01_METRICS=AUDIT_ONLY
+C01_NUMERIC_EVIDENCE_ACCEPTED=false
+C01_GUARDRAIL_DECISION_ACCEPTED=false
+CANONICAL_LEDGER_ROW_COUNT=0
+CANONICAL_LEDGER_STARTED_EVALUATION_COUNT=0
+LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT=4
+LEGACY_UNLEDGERED_C01_BUDGET_DEBIT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH=docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json
+VALIDATION_BUDGET_GATE_MACHINE_RECONCILED=true
+LEGACY_EXECUTION_CONTRACT_VALID=false
+LEGACY_NUMERIC_EVIDENCE_SELECTION_AUTHORITY=false
+LEGACY_ROWS_BACKFILLED=false
+HISTORICAL_LEDGER_FABRICATION=false
+CANDIDATE_01_RERUN_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+```
+
+The live implementation now accepts only forecast horizons `{7, 14, 21}`
+from an explicit cutoff. Cumulative, single-day peak, and sustained seven-day
+metrics require explicit complete daily-rowset authority; cutoff presence
+alone is insufficient. Zero actual WAPE denominator is emitted as
+`NOT_COMPUTABLE` with reason `WAPE_ACTUAL_DENOMINATOR_ZERO`, never as zero.
+Farm peak aggregation retains season, farm, variety, target date, cutoff,
+model identity, and forecast quantile while summing subfarms only.
+
+```text
+SUSTAINED_3_VS_7_OWNER_CONFLICT_RESOLVED_BY_THIS_TASK=false
+S4_CANDIDATE_EXPERIMENT_EXECUTED=true
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+MODEL_APPROVED_FOR_PILOT=false
+FINAL_MODEL_SELECTED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_FINAL_CONTRACT_AND_BUDGET_REVIEW
+```
+
+### 4.21 — S4-C01 final narrow correction R2 (live pointer)
+
+This EOF pointer is the current live S4-C01 correction state. It supersedes
+only the live preflight, gate-request, and farm-peak implementation semantics;
+historical execution snapshots remain immutable. No candidate was rerun and
+no additional validation budget was consumed.
+
+```text
+TASK_ID=V0_3_S4_C01_FINAL_NARROW_CORRECTION_R2
+TARGET_PR=587
+R2_NARROW_CORRECTION_APPLIED=true
+CURRENT_LEDGER_ROW_COUNT=0
+CANONICAL_LEDGER_STARTED_EVALUATION_COUNT=0
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+ACTUAL_VALIDATION_EVALUATION_COUNT=4
+EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+REMAINING_GLOBAL_VALIDATION_BUDGET=28
+BUDGET_RECONCILIATION_REQUIRED_AT_GATE=true
+MISSING_BUDGET_RECONCILIATION_FAILS_CLOSED=true
+GLOBAL_COUNT_ZERO_WITH_RECONCILED_FOUR_REJECTED=true
+VARIETY_CURVE_NORMALIZATION_USES_CURRENT_GROUP_TOTAL=true
+VARIETY_CURVE_GROUP_ORDER_INVARIANT=true
+SINGLE_DAY_FARM_VARIETY_GRAIN_PRESERVED=true
+SUSTAINED_7DAY_FARM_VARIETY_GRAIN_PRESERVED=true
+CROSS_VARIETY_SUSTAINED_FARM_SUM_FORBIDDEN=true
+CANDIDATE_01_RERUN_PERFORMED=false
+OFFICIAL_C01_SCORING_RUNNER_CALL_COUNT=0
+LOCAL_ENGINEERING_VALIDATION_RUNNER_CALL_COUNT=0
+CANDIDATE_02_RUNNER_CALL_COUNT=0
+TEST_EVALUATION_CALL_COUNT=0
+C01_RESULT=BLOCKED
+CANDIDATE_01_NUMERIC_EVIDENCE_ACCEPTED=false
+CANDIDATE_01_GUARDRAIL_DECISION_ACCEPTED=false
+CANDIDATE_01_LOCAL_ENGINEERING_BEST_RUN=NONE
+CANDIDATE_01_LOCAL_ENGINEERING_RESULT=BLOCKED
+S4_CANDIDATE_EXPERIMENT_EXECUTED=true
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_FINAL_NARROW_CORRECTION_REVIEW
+```
+
+The corrected preflight distinguishes the empty canonical journal from the
+four reconciled historical validation debits and therefore uses effective
+consumption `4/32`, with `28` remaining. Gate construction fails closed when
+reconciliation is missing, blocked, or inconsistent. The corrected metric
+helpers normalize each variety group by its own total, preserve iteration
+order determinism, and keep sustained seven-day aggregation within the full
+farm-variety-cutoff-model-quantile grain while summing subfarms only.
+
+### 4.22 — S4-C01 validation budget append-only forward compatibility R3 (live pointer)
+
+This EOF pointer supersedes only the live validation-budget reconciliation
+semantics; historical execution snapshots remain immutable. The durable
+artifact's canonical ledger counts are the accepted baseline snapshot and do
+not need to remain zero after a lawful future append.
+
+```text
+TASK_ID=V0_3_S4_VALIDATION_BUDGET_APPEND_ONLY_FORWARD_COMPATIBILITY_R3
+TARGET_PR=587
+R3_BUDGET_FORWARD_APPEND_COMPATIBILITY_APPLIED=true
+RECONCILIATION_BASELINE_CANONICAL_LEDGER_COUNT=0
+RECONCILIATION_BASELINE_CANONICAL_STARTED_COUNT=0
+CANONICAL_LEDGER_COUNTS_ARE_BASELINE=true
+LIVE_CANONICAL_APPEND_ALLOWED=true
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CURRENT_LIVE_CANONICAL_STARTED_COUNT=0
+CURRENT_EFFECTIVE_CONSUMED=4
+CURRENT_REMAINING=28
+ONE_FUTURE_CANONICAL_STARTED_EFFECTIVE_CONSUMED=5
+ONE_FUTURE_CANONICAL_STARTED_REMAINING=27
+TWO_FUTURE_CANONICAL_STARTED_EFFECTIVE_CONSUMED=6
+TWO_FUTURE_CANONICAL_STARTED_REMAINING=26
+CANDIDATE_02_SECOND_PREFLIGHT_OBSERVES_PRIOR_STARTED_ROW=true
+CANDIDATE_LEVEL_COUNT_SEPARATE_FROM_GLOBAL_EFFECTIVE_COUNT=true
+LEGACY_DEBIT_DOUBLE_COUNT_FORBIDDEN=true
+BASELINE_HISTORY_MUTATION_FAILS_CLOSED=true
+GLOBAL_MAX_32_ENFORCED=true
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_02_EXECUTION_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+TEST_EVALUATION_CALL_COUNT=0
+C01_RESULT=BLOCKED
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_BUDGET_FORWARD_COMPATIBILITY_REVIEW
+```
+
+The implementation continues to count all started invocations, keeps the
+four legacy C01 invocations as a single debit, validates any accepted
+baseline prefix, and allows only valid append-only canonical events after that
+baseline. Effective consumption is capped at `32`; when no budget remains the
+next candidate start fails closed. No C01/C02 scoring, TEST evaluation, ledger
+rewrite, budget deletion, or production model/parameter change was performed
+in R3.
 ### 4.18 — S4 validation budget durable persistence contract R1 (append-only live pointer)
 
 This docs-only contract freezes the missing authority boundary identified by PR #587. It does not modify PR #587, implement a database schema, add a migration, or execute validation.
@@ -21382,3 +21647,50 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_S4_DURABLE_PERSISTENCE_IMPLEMENTATION_REVIEW
+
+### 4.23 — S4-C01 durable PostgreSQL authority integration R1 (append-only live pointer)
+
+This implementation switches the future S4 candidate execution control plane to
+the merged PostgreSQL validation-budget authority. The historical JSONL journal
+and reconciliation artifact remain audit evidence only and are not live budget
+inputs. No candidate scoring, model evaluation, C01 rerun, C02 execution, or
+TEST access was performed.
+
+TASK_ID=V0_3_S4_PR587_DURABLE_AUTHORITY_INTEGRATION_R1
+SOURCE_PR=587
+SOURCE_PR_PRE_INTEGRATION_HEAD=ffc5dd31bfb5ea9f036d0e27d3c4d9566ce1a69d
+SOURCE_PERSISTENCE_PR=589
+SOURCE_PERSISTENCE_MERGE_SHA=47b03d23c6f7b4807e9f07cbc712c1d2c31af360
+MAIN_MERGED_INTO_PR587=true
+POSTGRESQL_LIVE_BUDGET_AUTHORITY=true
+POSTGRESQL_LIVE_EVENT_AUTHORITY=true
+JSONL_LIVE_BUDGET_AUTHORITY=false
+JSONL_DUAL_WRITE=false
+RECONCILIATION_ARTIFACT_LIVE_BUDGET_AUTHORITY=false
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CURRENT_CANONICAL_STARTED_COUNT=0
+CURRENT_EFFECTIVE_CONSUMED=4
+CURRENT_REMAINING=28
+C01_RESULT=BLOCKED
+C01_RERUN_AUTHORIZED=false
+C01_LEGACY_RUN_COUNT=4
+C02_EXECUTION_AUTHORIZED=false
+STARTED_BEFORE_MODEL_EXECUTION=true
+STARTED_READBACK_BEFORE_MODEL_EXECUTION=true
+CAS_EXPECTED_STATE_BOUND=true
+TERMINAL_NO_ADDITIONAL_BUDGET=true
+ACTUAL_SCORING_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+RUNNER_INTEGRATION_IMPLEMENTED=true
+ALEMBIC_HEAD=0032_s4_validation_budget_durable_persistence
+NEW_MIGRATION_ADDED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_DURABLE_AUTHORITY_INTEGRATION_REVIEW
+
+The durable integration evidence is:
+
+EVIDENCE_ARTIFACT=docs/v0-3/s4/evidence/s4-pr587-durable-authority-integration-r1.json

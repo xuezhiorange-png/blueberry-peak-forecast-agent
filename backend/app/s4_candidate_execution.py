@@ -1,9 +1,13 @@
-"""Candidate 01 manifest, preflight, and append-only validation ledger.
+"""Candidate 01 manifest and historical ledger compatibility machinery.
 
 This module owns the small amount of S4-C01 control-plane machinery that is
 safe to run before a candidate has a lawful paired validation authority.  It
 does not read TEST, derive labels, synthesize forecasts, or silently turn a
 missing historical incumbent authority into an executable comparison.
+
+The JSONL journal and reconciliation helpers are retained for historical audit
+compatibility only.  The live candidate execution path uses
+``S4CandidateExecutionAuthority`` and the PostgreSQL budget repository instead.
 """
 
 from __future__ import annotations
@@ -35,6 +39,7 @@ from backend.app.s4_experiment import (
     FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
     GUARDRAIL_POLICY_VERSION,
+    MAX_VALIDATION_EVALUATIONS,
     METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
     CandidateExecutionGateRequest,
@@ -70,6 +75,12 @@ HISTORICAL_INCUMBENT_AUTHORITY_REASON: Final[str] = (
     "HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED"
 )
 NO_VERSIONED_FORECAST_AUTHORITY_REASON: Final[str] = "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH: Final[str] = (
+    "docs/v0-3/s4/evidence/s4-validation-budget-reconciliation-r1.json"
+)
+VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_TYPE: Final[str] = "S4_VALIDATION_BUDGET_RECONCILIATION"
+LEGACY_PREFLIGHT_EXECUTION_AUTHORITY: Final[bool] = False
+_LEDGER_GENESIS_HASH: Final[str] = "0" * 64
 
 _SHA256_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
 _LEDGER_EVENT_TYPES: Final[frozenset[str]] = frozenset(
@@ -715,18 +726,30 @@ class LedgerEvent:
     event_type: str
     event_payload: Mapping[str, Any]
     event_hash: str
+    previous_event_hash: str | None = None
 
     def record(self) -> dict[str, Any]:
-        return {
+        record = {
             "schema_version": VALIDATION_EVENT_SCHEMA_VERSION,
             "event_type": self.event_type,
             "event_payload": copy.deepcopy(dict(self.event_payload)),
             "event_hash": self.event_hash,
         }
+        if self.previous_event_hash is not None:
+            record["previous_event_hash"] = self.previous_event_hash
+        return record
 
 
-def _event_hash(event_type: str, payload: Mapping[str, Any]) -> str:
-    return sha256_payload({"event_type": event_type, "event_payload": payload})
+def _event_hash(
+    event_type: str,
+    payload: Mapping[str, Any],
+    *,
+    previous_event_hash: str | None = None,
+) -> str:
+    body: dict[str, Any] = {"event_type": event_type, "event_payload": payload}
+    if previous_event_hash is not None:
+        body["previous_event_hash"] = previous_event_hash
+    return sha256_payload(body)
 
 
 def _validate_ledger_payload(payload: Mapping[str, Any]) -> None:
@@ -757,6 +780,8 @@ class AppendOnlyValidationJournal:
             return []
         events: list[LedgerEvent] = []
         seen_event_keys: set[tuple[str, str]] = set()
+        previous_event_hash: str | None = None
+        chained_events_seen = False
         for raw_line in self.path.read_text(encoding="utf-8").splitlines():
             if not raw_line.strip():
                 continue
@@ -767,9 +792,24 @@ class AppendOnlyValidationJournal:
                 event_type = record["event_type"]
                 payload = record["event_payload"]
                 event_hash = record["event_hash"]
+                recorded_previous_event_hash = record.get("previous_event_hash")
                 if event_type not in _LEDGER_EVENT_TYPES or not isinstance(payload, dict):
                     raise Candidate01ContractError("ledger event shape is invalid")
-                if event_hash != _event_hash(event_type, payload):
+                if "previous_event_hash" in record:
+                    expected_previous_event_hash = previous_event_hash or _LEDGER_GENESIS_HASH
+                    if recorded_previous_event_hash != expected_previous_event_hash:
+                        raise Candidate01ContractError("ledger hash chain mismatch")
+                    expected_event_hash = _event_hash(
+                        event_type,
+                        payload,
+                        previous_event_hash=recorded_previous_event_hash,
+                    )
+                    chained_events_seen = True
+                else:
+                    if chained_events_seen:
+                        raise Candidate01ContractError("legacy ledger event follows chained event")
+                    expected_event_hash = _event_hash(event_type, payload)
+                if event_hash != expected_event_hash:
                     raise Candidate01ContractError("ledger event hash mismatch")
                 evaluation_id = payload.get("evaluation_id")
                 if not isinstance(evaluation_id, str):
@@ -778,7 +818,15 @@ class AppendOnlyValidationJournal:
                 if key in seen_event_keys:
                     raise Candidate01ContractError("duplicate ledger event")
                 seen_event_keys.add(key)
-                events.append(LedgerEvent(event_type, payload, event_hash))
+                events.append(
+                    LedgerEvent(
+                        event_type,
+                        payload,
+                        event_hash,
+                        cast(str | None, recorded_previous_event_hash),
+                    )
+                )
+                previous_event_hash = event_hash
             except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
                 if isinstance(exc, Candidate01ContractError):
                     raise
@@ -789,10 +837,19 @@ class AppendOnlyValidationJournal:
         if event_type not in _LEDGER_EVENT_TYPES:
             raise Candidate01ContractError("unsupported ledger event type")
         canonical_payload = cast(dict[str, Any], json.loads(canonical_json_dumps(dict(payload))))
+        existing_events = self._read_events()
+        previous_event_hash = (
+            existing_events[-1].event_hash if existing_events else _LEDGER_GENESIS_HASH
+        )
         event = LedgerEvent(
             event_type,
             canonical_payload,
-            _event_hash(event_type, canonical_payload),
+            _event_hash(
+                event_type,
+                canonical_payload,
+                previous_event_hash=previous_event_hash,
+            ),
+            previous_event_hash,
         )
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as file:
@@ -803,6 +860,7 @@ class AppendOnlyValidationJournal:
                         "event_type": event.event_type,
                         "event_payload": event.event_payload,
                         "event_hash": event.event_hash,
+                        "previous_event_hash": event.previous_event_hash,
                     }
                 )
             )
@@ -876,7 +934,24 @@ class AppendOnlyValidationJournal:
                 row["metric_result_status"] = terminal["metric_result_status"]
             rows.append(row)
         rows.sort(key=lambda row: (int(row["global_evaluation_ordinal"]), row["evaluation_id"]))
+        global_ordinals = [int(row["global_evaluation_ordinal"]) for row in rows]
+        if len(global_ordinals) != len(set(global_ordinals)):
+            raise Candidate01ContractError("duplicate global evaluation ordinal")
         return tuple(rows)
+
+    def event_hashes(self) -> tuple[str, ...]:
+        """Return the verified event-hash sequence for baseline-prefix checks."""
+
+        return tuple(event.event_hash for event in self._read_events())
+
+    def started_event_hashes(self) -> tuple[str, ...]:
+        """Return verified started-event hashes in journal order."""
+
+        return tuple(
+            event.event_hash
+            for event in self._read_events()
+            if event.event_type == "EVALUATION_STARTED"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -888,6 +963,288 @@ class Candidate01PreflightResult:
     manifest_hash: str
     current_ledger_row_count: int
     actual_validation_evaluation_count: int
+    budget_reconciliation: ValidationBudgetReconciliation | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationBudgetReconciliation:
+    """Machine-readable effective budget state without fabricating ledger rows."""
+
+    status: Literal["PASS", "BLOCKED"]
+    blocker: str | None
+    reason_code: str | None
+    canonical_ledger_row_count: int
+    canonical_started_evaluation_count: int
+    legacy_unledgered_c01_started_evaluation_count: int
+    effective_validation_evaluations_consumed: int
+    remaining_effective_validation_budget: int
+
+    @property
+    def resolved(self) -> bool:
+        return self.status == "PASS"
+
+
+def _budget_blocked(
+    *,
+    blocker: str,
+    canonical_rows: int = 0,
+    canonical_started: int = 0,
+    legacy_started: int = 0,
+    effective: int = 0,
+    remaining: int = MAX_VALIDATION_EVALUATIONS,
+) -> ValidationBudgetReconciliation:
+    return ValidationBudgetReconciliation(
+        status="BLOCKED",
+        blocker=blocker,
+        reason_code=blocker,
+        canonical_ledger_row_count=canonical_rows,
+        canonical_started_evaluation_count=canonical_started,
+        legacy_unledgered_c01_started_evaluation_count=legacy_started,
+        effective_validation_evaluations_consumed=effective,
+        remaining_effective_validation_budget=max(0, remaining),
+    )
+
+
+def _load_budget_reconciliation_artifact(repo_root: Path) -> Mapping[str, Any] | None:
+    path = repo_root / VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    declared_hash = payload.get("RECONCILIATION_SHA256")
+    if not isinstance(declared_hash, str):
+        return None
+    unsigned = {key: value for key, value in payload.items() if key != "RECONCILIATION_SHA256"}
+    if sha256_payload(unsigned) != declared_hash:
+        return None
+    if payload.get("ARTIFACT_TYPE") != VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_TYPE:
+        return None
+    expected_values: dict[str, object] = {
+        "MAX_VALIDATION_EVALUATIONS": MAX_VALIDATION_EVALUATIONS,
+        "CANONICAL_LEDGER_ROW_COUNT": 0,
+        "CANONICAL_LEDGER_STARTED_EVALUATION_COUNT": 0,
+        "BASELINE_CANONICAL_LEDGER_ROW_COUNT": 0,
+        "BASELINE_CANONICAL_LEDGER_STARTED_EVALUATION_COUNT": 0,
+        "CANONICAL_LEDGER_COUNTS_ARE_BASELINE": True,
+        "LIVE_LEDGER_APPEND_AFTER_BASELINE_ALLOWED": True,
+        "LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT": 4,
+        "LEGACY_UNLEDGERED_C01_BUDGET_DEBIT": 4,
+        "EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED": 4,
+        "REMAINING_EFFECTIVE_VALIDATION_BUDGET": 28,
+        "LEGACY_EXECUTION_CONTRACT_VALID": False,
+        "LEGACY_NUMERIC_EVIDENCE_SELECTION_AUTHORITY": False,
+        "LEGACY_ROWS_BACKFILLED": False,
+        "HISTORICAL_LEDGER_FABRICATION": False,
+        "CANDIDATE_01_RERUN_PERFORMED": False,
+        "SOURCE_PR_NUMBER": 587,
+        "CANDIDATE_ID": CANDIDATE_01_ID,
+        "CANDIDATE_RUN_ORDINALS": [1, 2, 3, 4],
+        "CANDIDATE_01_PARAMETER_MANIFEST_HASH": CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND,
+        "CANDIDATE_01_RANDOM_SEED": CANDIDATE_01_RANDOM_SEED,
+        "ORIGINAL_SCORING_RUNNER_SHA": "83084a583497547e317ccdfa2a6c5fbc91a9f9d9",
+        "ORIGINAL_EVIDENCE_PATH": (
+            "docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json"
+        ),
+        "ORIGINAL_EVIDENCE_SHA256": (
+            "23eea8fe718dc0bc10331b3205fd38e5a7600ccd6d579af39e113c8da4391772"
+        ),
+        "CORRECTION_EVIDENCE_PATH": (
+            "docs/v0-3/s4/evidence/s4-c01-local-engineering-validation-r1.json"
+        ),
+        "LEGACY_EXECUTION_REASON": "LEGACY_EXECUTION_OCCURRED_OUTSIDE_FROZEN_S4_LEDGER_GATE",
+    }
+    if any(payload.get(key) != value for key, value in expected_values.items()):
+        return None
+    baseline_event_hashes = payload.get("CANONICAL_LEDGER_BASELINE_EVENT_HASHES", [])
+    baseline_started_event_hashes = payload.get(
+        "CANONICAL_LEDGER_BASELINE_STARTED_EVENT_HASHES", []
+    )
+    if (
+        not isinstance(baseline_event_hashes, list)
+        or any(
+            not isinstance(event_hash, str) or not _SHA256_PATTERN.fullmatch(event_hash)
+            for event_hash in baseline_event_hashes
+        )
+        or not isinstance(baseline_started_event_hashes, list)
+        or any(
+            not isinstance(event_hash, str) or not _SHA256_PATTERN.fullmatch(event_hash)
+            for event_hash in baseline_started_event_hashes
+        )
+    ):
+        return None
+    correction_path = repo_root / str(payload["CORRECTION_EVIDENCE_PATH"])
+    correction_sha = payload.get("CORRECTION_EVIDENCE_SHA256")
+    original_sha = payload.get("ORIGINAL_EVIDENCE_SHA256")
+    if (
+        not correction_path.is_file()
+        or not isinstance(correction_sha, str)
+        or not isinstance(original_sha, str)
+        or _file_sha256(correction_path) != correction_sha
+    ):
+        return None
+    return payload
+
+
+def reconcile_validation_budget(
+    *,
+    repo_root: Path,
+    journal: AppendOnlyValidationJournal,
+) -> ValidationBudgetReconciliation:
+    """Reconcile the append-only ledger with the durable legacy debit artifact."""
+
+    artifact = _load_budget_reconciliation_artifact(repo_root)
+    if artifact is None:
+        return _budget_blocked(blocker="VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_INVALID")
+    try:
+        rows = journal.materialize()
+        event_hashes = journal.event_hashes()
+        started_event_hashes = journal.started_event_hashes()
+    except Candidate01ContractError:
+        return _budget_blocked(blocker="VALIDATION_LEDGER_INVALID")
+    canonical_rows = len(rows)
+    canonical_started = sum(1 for row in rows if row.get("counted_toward_budget") is True)
+    baseline_event_hashes = tuple(
+        cast(list[str], artifact.get("CANONICAL_LEDGER_BASELINE_EVENT_HASHES", []))
+    )
+    baseline_started_event_hashes = tuple(
+        cast(
+            list[str],
+            artifact.get("CANONICAL_LEDGER_BASELINE_STARTED_EVENT_HASHES", []),
+        )
+    )
+    if event_hashes[: len(baseline_event_hashes)] != baseline_event_hashes:
+        return _budget_blocked(
+            blocker="VALIDATION_LEDGER_BASELINE_PREFIX_MISMATCH",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"]),
+            effective=canonical_started
+            + int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"]),
+            remaining=MAX_VALIDATION_EVALUATIONS
+            - canonical_started
+            - int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"]),
+        )
+    if started_event_hashes[: len(baseline_started_event_hashes)] != baseline_started_event_hashes:
+        return _budget_blocked(
+            blocker="VALIDATION_LEDGER_BASELINE_PREFIX_MISMATCH",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"]),
+            effective=canonical_started
+            + int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"]),
+            remaining=MAX_VALIDATION_EVALUATIONS
+            - canonical_started
+            - int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"]),
+        )
+    expected_rows = int(artifact["BASELINE_CANONICAL_LEDGER_ROW_COUNT"])
+    expected_started = int(artifact["BASELINE_CANONICAL_LEDGER_STARTED_EVALUATION_COUNT"])
+    legacy_started = int(artifact["LEGACY_UNLEDGERED_C01_STARTED_EVALUATION_COUNT"])
+    legacy_debit = int(artifact["LEGACY_UNLEDGERED_C01_BUDGET_DEBIT"])
+    if legacy_started < 4 or legacy_debit != 4 or legacy_started != legacy_debit:
+        return _budget_blocked(
+            blocker="LEGACY_RECONCILIATION_DEBIT_INVALID",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=legacy_started,
+            effective=canonical_started + legacy_started,
+            remaining=MAX_VALIDATION_EVALUATIONS - canonical_started - legacy_started,
+        )
+    effective = canonical_started + legacy_started
+    remaining = MAX_VALIDATION_EVALUATIONS - effective
+    if (
+        len(baseline_started_event_hashes) != expected_rows
+        or expected_started > len(baseline_started_event_hashes)
+        or len(baseline_event_hashes) < len(baseline_started_event_hashes)
+    ):
+        return _budget_blocked(
+            blocker="VALIDATION_LEDGER_BASELINE_ARTIFACT_MISMATCH",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=legacy_started,
+            effective=effective,
+            remaining=remaining,
+        )
+    if effective < legacy_started or effective > MAX_VALIDATION_EVALUATIONS or remaining < 0:
+        return _budget_blocked(
+            blocker="VALIDATION_BUDGET_RECONCILIATION_INVALID",
+            canonical_rows=canonical_rows,
+            canonical_started=canonical_started,
+            legacy_started=legacy_started,
+            effective=effective,
+            remaining=remaining,
+        )
+    return ValidationBudgetReconciliation(
+        status="PASS",
+        blocker=None,
+        reason_code=None,
+        canonical_ledger_row_count=canonical_rows,
+        canonical_started_evaluation_count=canonical_started,
+        legacy_unledgered_c01_started_evaluation_count=legacy_started,
+        effective_validation_evaluations_consumed=effective,
+        remaining_effective_validation_budget=remaining,
+    )
+
+
+def candidate_budget_preflight(
+    *,
+    repo_root: Path,
+    journal: AppendOnlyValidationJournal,
+    candidate_id: str,
+    candidate_actual_run_count: int,
+) -> ValidationBudgetReconciliation:
+    """Return effective budget state for any future candidate before its gate."""
+
+    result = reconcile_validation_budget(repo_root=repo_root, journal=journal)
+    if not result.resolved:
+        return result
+    if result.remaining_effective_validation_budget <= 0:
+        return _budget_blocked(
+            blocker="VALIDATION_BUDGET_EXHAUSTED",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=0,
+        )
+    registration = next(
+        (item for item in FROZEN_CANDIDATE_REGISTRY if item.candidate_id == candidate_id),
+        None,
+    )
+    if registration is None:
+        return _budget_blocked(
+            blocker="UNKNOWN_CANDIDATE",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=result.remaining_effective_validation_budget,
+        )
+    candidate_rows = sum(
+        1 for row in journal.materialize() if row.get("candidate_id") == candidate_id
+    )
+    if candidate_rows != candidate_actual_run_count:
+        return _budget_blocked(
+            blocker="CANDIDATE_BUDGET_RECONCILIATION_MISMATCH",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=result.remaining_effective_validation_budget,
+        )
+    if candidate_actual_run_count > registration.planned_run_count:
+        return _budget_blocked(
+            blocker="CANDIDATE_BUDGET_EXCEEDED",
+            canonical_rows=result.canonical_ledger_row_count,
+            canonical_started=result.canonical_started_evaluation_count,
+            legacy_started=result.legacy_unledgered_c01_started_evaluation_count,
+            effective=result.effective_validation_evaluations_consumed,
+            remaining=result.remaining_effective_validation_budget,
+        )
+    return result
 
 
 def candidate_01_execution_preflight(
@@ -896,21 +1253,41 @@ def candidate_01_execution_preflight(
     manifest: Candidate01ParameterManifest,
     journal: AppendOnlyValidationJournal,
 ) -> Candidate01PreflightResult:
+    """Compatibility-only historical preflight; never a live authority."""
+
     validate_candidate_01_manifest(
         manifest,
         config_path=repo_root / manifest.incumbent_config_path,
     )
     rows = journal.materialize()
     count = len(rows)
-    if count > 0:
+    budget = candidate_budget_preflight(
+        repo_root=repo_root,
+        journal=journal,
+        candidate_id=CANDIDATE_01_ID,
+        candidate_actual_run_count=count,
+    )
+    if not budget.resolved:
+        return Candidate01PreflightResult(
+            "BLOCKED",
+            budget.blocker,
+            budget.reason_code,
+            "VALIDATION_BUDGET_RECONCILIATION",
+            manifest.manifest_hash,
+            budget.canonical_ledger_row_count,
+            budget.effective_validation_evaluations_consumed,
+            budget,
+        )
+    if count > 0 or budget.legacy_unledgered_c01_started_evaluation_count > 0:
         return Candidate01PreflightResult(
             "BLOCKED",
             "CANDIDATE_01_ALREADY_STARTED",
             "CANDIDATE_01_ALREADY_STARTED",
-            "CANDIDATE_01_LEDGER_ALREADY_CONSUMED",
+            "CANDIDATE_01_LEDGER_OR_LEGACY_RECONCILIATION_ALREADY_CONSUMED",
             manifest.manifest_hash,
             count,
-            count,
+            budget.effective_validation_evaluations_consumed,
+            budget,
         )
     pairing = resolve_pairing_authority(repo_root)
     if not pairing.resolved:
@@ -920,8 +1297,9 @@ def candidate_01_execution_preflight(
             pairing.reason_code,
             pairing.first_non_derivable_authority,
             manifest.manifest_hash,
-            0,
-            0,
+            budget.canonical_ledger_row_count,
+            budget.effective_validation_evaluations_consumed,
+            budget,
         )
     raise Candidate01PreflightBlocked("candidate execution adapter must be explicit")
 
@@ -935,8 +1313,21 @@ def build_candidate_gate_request(
     global_actual_evaluation_count: int,
     code_commit_sha: str,
     evaluation_id: str,
+    budget_reconciliation: ValidationBudgetReconciliation | None = None,
 ) -> CandidateExecutionGateRequest:
     validate_candidate_01_manifest(manifest)
+    if budget_reconciliation is None:
+        raise Candidate01PreflightBlocked("VALIDATION_BUDGET_RECONCILIATION_REQUIRED")
+    if not budget_reconciliation.resolved:
+        raise Candidate01PreflightBlocked(
+            budget_reconciliation.reason_code or "VALIDATION_BUDGET_RECONCILIATION_BLOCKED"
+        )
+    if budget_reconciliation.remaining_effective_validation_budget <= 0:
+        raise Candidate01PreflightBlocked("VALIDATION_BUDGET_EXHAUSTED")
+    if global_actual_evaluation_count != (
+        budget_reconciliation.effective_validation_evaluations_consumed
+    ):
+        raise Candidate01PreflightBlocked("VALIDATION_BUDGET_RECONCILIATION_MISMATCH")
     expected_run = manifest.run(run.candidate_run_ordinal)
     if run != expected_run:
         raise Candidate01ContractError("candidate run is not the frozen manifest run")
@@ -1013,16 +1404,21 @@ __all__ = [
     "HISTORICAL_INCUMBENT_AUTHORITY_REASON",
     "INCUMBENT_CONFIG_FILE_SHA256_BOUND",
     "INCUMBENT_CONFIG_HASH_BOUND",
+    "LEGACY_PREFLIGHT_EXECUTION_AUTHORITY",
     "PairingAuthorityResolution",
     "PairingIdentityBinding",
     "ParameterDiffResult",
     "VALIDATION_EVENT_SCHEMA_VERSION",
+    "VALIDATION_BUDGET_RECONCILIATION_ARTIFACT_PATH",
+    "ValidationBudgetReconciliation",
     "VALIDATION_LEDGER_SCHEMA_VERSION",
     "build_candidate_01_manifest",
     "build_candidate_gate_request",
     "build_derived_candidate_config",
     "candidate_01_execution_preflight",
+    "candidate_budget_preflight",
     "json_payload",
+    "reconcile_validation_budget",
     "resolve_pairing_authority",
     "validate_candidate_01_manifest",
     "verify_parameter_allowlist",

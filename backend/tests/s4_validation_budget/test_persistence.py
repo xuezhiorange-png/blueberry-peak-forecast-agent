@@ -26,6 +26,22 @@ from backend.app.models.s4_validation_budget import (
     S4ValidationBudgetAuthority,
     S4ValidationEvent,
 )
+from backend.app.s4_candidate_execution import AppendOnlyValidationJournal
+from backend.app.s4_candidate_execution_authority import (
+    CANDIDATE_01_RERUN_FORBIDDEN,
+    CANDIDATE_EXECUTION_NOT_AUTHORIZED,
+    S4CandidateExecutionAuthority,
+)
+from backend.app.s4_experiment import (
+    EXPERIMENT_PLAN_VERSION,
+    FROZEN_CANDIDATE_REGISTRY,
+    GUARDRAIL_POLICY_HASH,
+    GUARDRAIL_POLICY_VERSION,
+    METRIC_CONTRACT_IDENTITY,
+    METRIC_CONTRACT_VERSION,
+    S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+    CandidateExecutionGateRequest,
+)
 from backend.app.s4_validation_budget import (
     S4ValidationBudgetRepository,
     StartedEventCommand,
@@ -980,3 +996,241 @@ async def test_event_immutability(sqlite_db: tuple[AsyncSession, AsyncEngine]) -
     await session.rollback()
     state = await S4ValidationBudgetRepository(session).load_verified_state()
     assert state.accepted_started_count == 1
+
+
+def _durable_gate_request(
+    *,
+    candidate_id: str = "02_quantile_calibration",
+    evaluation_id: str = "durable-evaluation-1",
+) -> CandidateExecutionGateRequest:
+    identity = "a" * 64
+    return CandidateExecutionGateRequest(
+        experiment_plan_version=EXPERIMENT_PLAN_VERSION,
+        experiment_plan_hash=S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+        guardrail_policy_version=GUARDRAIL_POLICY_VERSION,
+        guardrail_policy_hash=GUARDRAIL_POLICY_HASH,
+        candidate_id=candidate_id,
+        candidate_run_ordinal=1,
+        candidate_planned_run_count=4,
+        candidate_actual_run_count=0,
+        global_actual_evaluation_count=0,
+        train_dataset_identity=identity,
+        validation_dataset_identity=identity,
+        actual_label_set_identity=identity,
+        exclusion_policy_identity=identity,
+        cutoff_policy_identity=identity,
+        forecast_horizon_set_identity=identity,
+        metric_contract_identity=METRIC_CONTRACT_IDENTITY,
+        business_grain_set_identity=identity,
+        common_comparable_set_identity=identity,
+        metric_contract_version=METRIC_CONTRACT_VERSION,
+        test_access_requested=False,
+        test_sealed=True,
+        parameter_manifest_hash=identity,
+        code_commit_sha="c" * 40,
+        random_seed=20260908,
+        evaluation_id=evaluation_id,
+        candidate_execution_manifest_frozen=True,
+        candidate_registry=FROZEN_CANDIDATE_REGISTRY,
+    )
+
+
+async def test_durable_c01_no_rerun_does_not_create_started_event(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    scorer_called = False
+
+    def scorer() -> str:
+        nonlocal scorer_called
+        scorer_called = True
+        return "COMPUTED"
+
+    result = await S4CandidateExecutionAuthority(session).execute(
+        _durable_gate_request(candidate_id="01_parameter_calibration"),
+        scorer=scorer,
+        execution_authorized=True,
+        trigger_source="synthetic-c01-no-rerun",
+    )
+
+    assert result.status == "BLOCKED"
+    assert result.reason_code == CANDIDATE_01_RERUN_FORBIDDEN
+    assert result.scorer_called is False
+    assert scorer_called is False
+    assert result.preflight.global_actual_evaluation_count == 4
+    state = await S4ValidationBudgetRepository(session).load_verified_state()
+    assert state.accepted_started_count == 0
+    assert state.effective_consumed == 4
+    assert state.remaining == 28
+
+
+async def test_durable_c02_preflight_uses_effective_count_and_stops_before_start(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    authority = S4CandidateExecutionAuthority(session)
+    preflight = await authority.preflight(_durable_gate_request())
+
+    assert preflight.allowed is True
+    assert preflight.candidate_actual_run_count == 0
+    assert preflight.global_actual_evaluation_count == 4
+    assert preflight.gate_request is not None
+    assert preflight.gate_request.candidate_run_ordinal == 1
+    assert preflight.gate_request.global_actual_evaluation_count == 4
+
+    scorer_called = False
+
+    def scorer() -> str:
+        nonlocal scorer_called
+        scorer_called = True
+        return "COMPUTED"
+
+    result = await authority.execute_preflight(
+        preflight,
+        scorer=scorer,
+        execution_authorized=False,
+        trigger_source="synthetic-c02-preflight-only",
+    )
+    assert result.reason_code == CANDIDATE_EXECUTION_NOT_AUTHORIZED
+    assert result.started_persisted is False
+    assert result.scorer_called is False
+    assert scorer_called is False
+    state = await S4ValidationBudgetRepository(session).load_verified_state()
+    assert state.accepted_started_count == 0
+    assert state.effective_consumed == 4
+
+
+async def test_durable_cas_race_blocks_second_preflight_without_second_scorer(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    authority = S4CandidateExecutionAuthority(session)
+    first = await authority.preflight(_durable_gate_request(evaluation_id="durable-race-first"))
+    second = await authority.preflight(_durable_gate_request(evaluation_id="durable-race-second"))
+    assert first.allowed is True
+    assert second.allowed is True
+
+    first_result = await authority.execute_preflight(
+        first,
+        scorer=lambda: "COMPUTED",
+        execution_authorized=True,
+        trigger_source="synthetic-cas-first",
+    )
+    second_scorer_called = False
+
+    def second_scorer() -> str:
+        nonlocal second_scorer_called
+        second_scorer_called = True
+        return "COMPUTED"
+
+    second_result = await authority.execute_preflight(
+        second,
+        scorer=second_scorer,
+        execution_authorized=True,
+        trigger_source="synthetic-cas-second",
+    )
+    assert first_result.status == "COMPLETED"
+    assert second_result.reason_code == "VALIDATION_BUDGET_AUTHORITY_CAS_CONFLICT"
+    assert second_result.started_persisted is False
+    assert second_result.scorer_called is False
+    assert second_scorer_called is False
+    state = await S4ValidationBudgetRepository(session).load_verified_state()
+    assert state.accepted_started_count == 1
+    assert state.effective_consumed == 5
+
+
+async def test_durable_started_readback_precedes_scorer_and_terminal(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    events: list[str] = []
+    authority = S4CandidateExecutionAuthority(session)
+
+    async def scorer() -> str:
+        state = await S4ValidationBudgetRepository(session).load_verified_state()
+        assert state.accepted_started_count == 1
+        events.append("SCORER_CALLED")
+        return "COMPUTED"
+
+    result = await authority.execute(
+        _durable_gate_request(),
+        scorer=scorer,
+        execution_authorized=True,
+        trigger_source="synthetic-ordering",
+    )
+    events.insert(0, "DURABLE_STARTED_COMMITTED")
+    events.append("TERMINAL_COMMITTED")
+    assert result.status == "COMPLETED"
+    assert result.started_persisted is True
+    assert result.terminal_persisted is True
+    assert events == ["DURABLE_STARTED_COMMITTED", "SCORER_CALLED", "TERMINAL_COMMITTED"]
+
+
+async def test_durable_scorer_failure_keeps_started_debit_and_appends_failed_terminal(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+
+    def failing_scorer() -> str:
+        raise RuntimeError("synthetic scorer failure")
+
+    result = await S4CandidateExecutionAuthority(session).execute(
+        _durable_gate_request(),
+        scorer=failing_scorer,
+        execution_authorized=True,
+        trigger_source="synthetic-failure",
+    )
+
+    assert result.status == "FAILED"
+    assert result.started_persisted is True
+    assert result.terminal_persisted is True
+    assert result.state_after_terminal is not None
+    assert result.state_after_terminal.effective_consumed == 5
+    assert result.state_after_terminal.remaining == 27
+    terminal = next(
+        event
+        for event in result.state_after_terminal.events
+        if event.event_type == "EVALUATION_TERMINAL"
+    )
+    assert terminal.event_payload["execution_status"] == "FAILED"
+
+
+async def test_durable_authority_failure_has_no_jsonl_fallback(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    del sqlite_db
+
+    class BrokenRepository:
+        async def load_verified_state(self) -> Any:
+            raise ValidationBudgetError("VALIDATION_EVENT_HASH_CHAIN_MISMATCH")
+
+    result = await S4CandidateExecutionAuthority(
+        session=None,  # type: ignore[arg-type]
+        repository=BrokenRepository(),  # type: ignore[arg-type]
+    ).execute(
+        _durable_gate_request(),
+        scorer=lambda: "COMPUTED",
+        execution_authorized=True,
+        trigger_source="synthetic-corrupt-authority",
+    )
+    assert result.status == "BLOCKED"
+    assert result.reason_code == "VALIDATION_EVENT_HASH_CHAIN_MISMATCH"
+    assert result.scorer_called is False
+
+
+async def test_durable_preflight_ignores_jsonl_rows_and_reconciliation_artifact(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+    tmp_path: Path,
+) -> None:
+    session, _ = sqlite_db
+    journal = AppendOnlyValidationJournal(tmp_path / "extra-history.jsonl")
+    journal.append_started(_command(1, candidate_id="02_quantile_calibration").body())
+
+    preflight = await S4CandidateExecutionAuthority(session).preflight(_durable_gate_request())
+
+    assert preflight.allowed is True
+    assert preflight.global_actual_evaluation_count == 4
+    assert preflight.candidate_actual_run_count == 0
+    state = await S4ValidationBudgetRepository(session).load_verified_state()
+    assert state.accepted_started_count == 0
+    assert state.effective_consumed == 4
