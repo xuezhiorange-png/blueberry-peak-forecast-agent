@@ -15,6 +15,8 @@ The contract therefore establishes one future canonical authority:
 CANONICAL_VALIDATION_EXECUTION_AUTHORITY=POSTGRESQL
 CANONICAL_DB_EVENT_LEDGER_REQUIRED=true
 DURABLE_MONOTONIC_HEAD_REQUIRED=true
+GENESIS_IS_HUMAN_READABLE_LABEL_ONLY=true
+GENESIS_PERSISTED_FIELD_VALUE_IS_ALL_ZERO_SHA256=true
 
 No candidate is executed by this contract. TEST remains sealed.
 
@@ -72,7 +74,8 @@ The authority row must contain, at minimum:
 - authority_version: non-negative monotonic version, initially 0.
 - accepted_event_count: number of committed canonical events, initially 0.
 - accepted_started_count: number of committed budget-counted STARTED events, initially 0.
-- accepted_head_event_hash: lowercase SHA-256 or the all-zero GENESIS value.
+- accepted_head_event_hash: lowercase SHA-256; for the empty ledger it is the
+  64-character all-zero SHA-256 sentinel.
 - accepted_last_global_evaluation_ordinal: non-negative monotonic ordinal, initially 0.
 - legacy_reconciled_validation_debit: frozen at 4; never silently reclassified.
 - created_at and updated_at: database timestamps owned by the authority store.
@@ -96,13 +99,26 @@ The event table must support exactly these event types: EVALUATION_STARTED and E
 
 Each event must bind these fields: authority_key, event_sequence, event_type, evaluation_id, candidate_id, event_payload, previous_event_hash, event_hash, and created_at.
 
-An EVALUATION_STARTED event additionally requires candidate_run_ordinal, global_evaluation_ordinal, invocation_type, counted_toward_budget, and budget_count_reason.
+An EVALUATION_STARTED event additionally requires candidate_run_ordinal, global_evaluation_ordinal, invocation_type, counted_toward_budget, and budget_count_reason. A STARTED event must satisfy:
+
+STARTED_CANDIDATE_RUN_ORDINAL_MIN=1
+STARTED_CANDIDATE_RUN_ORDINAL_MAX=4
+STARTED_GLOBAL_EVALUATION_ORDINAL_MIN=1
+
+An EVALUATION_TERMINAL event must bind to the one existing EVALUATION_STARTED event with the same authority_key and evaluation_id. Its candidate_id must equal the STARTED candidate_id. A terminal event is not a second STARTED invocation and never consumes additional budget.
 
 The started contract is immutable:
 
 STARTED_COUNTED_TOWARD_BUDGET=true
 STARTED_BUDGET_COUNT_REASON=STARTED_INVOCATION
 TERMINAL_ADDITIONAL_BUDGET_DEBIT=0
+TERMINAL_COUNTED_TOWARD_BUDGET=false
+ORPHAN_TERMINAL_FORBIDDEN=true
+TERMINAL_REQUIRES_EXISTING_STARTED=true
+TERMINAL_STARTED_BINDING_SCOPE=AUTHORITY_KEY_X_EVALUATION_ID
+TERMINAL_CANDIDATE_ID_MUST_MATCH_STARTED=true
+DUPLICATE_TERMINAL_FORBIDDEN=true
+TERMINAL_NEVER_INCREMENTS_ACCEPTED_STARTED_COUNT=true
 
 The event schema must freeze these database constraints:
 
@@ -110,21 +126,37 @@ The event schema must freeze these database constraints:
 - foreign key from event authority scope to the authority row;
 - unique authority_key plus event_hash;
 - unique authority_key plus evaluation_id plus event_type;
-- unique started global_evaluation_ordinal within the authority scope;
-- positive event sequence and non-negative global ordinal;
+- partial unique started global_evaluation_ordinal within the authority scope;
+- partial unique started candidate_id plus candidate_run_ordinal within the authority scope;
+- STARTED global_evaluation_ordinal is at least 1; only the empty authority sentinel may have last ordinal 0;
+- STARTED candidate_run_ordinal is in the inclusive range 1..4;
+- positive event sequence;
 - started-only fields required for STARTED and absent or neutral for TERMINAL;
 - SHA-256 fields exactly 64 lowercase hexadecimal characters;
-- candidate_run_ordinal within the frozen candidate limit;
+- TERMINAL requires an existing STARTED in the same authority scope and evaluation_id;
+- TERMINAL candidate_id must match the bound STARTED candidate_id;
+- at most one TERMINAL exists for each authority_key plus evaluation_id;
 - no UPDATE or DELETE of accepted events;
 - no event sequence gap can be accepted by the head advance transaction.
 
-For PostgreSQL, started-ordinal uniqueness should be represented with a partial unique index or an equivalent constraint that does not treat terminal rows as separate started invocations.
+For PostgreSQL, started-ordinal uniqueness must be represented with partial unique indexes or equivalent constraints:
+
+UNIQUE (authority_key, global_evaluation_ordinal) WHERE event_type = 'EVALUATION_STARTED'
+UNIQUE (authority_key, candidate_id, candidate_run_ordinal) WHERE event_type = 'EVALUATION_STARTED'
+
+The second constraint must include candidate_id, so the same run ordinal is allowed for different candidates while duplicate runs for one candidate are rejected. Terminal rows do not occupy either STARTED-only ordinal constraint.
 
 ## Hash chain
 
 The event chain remains part of the contract:
 
 GENESIS_EVENT_HASH=0000000000000000000000000000000000000000000000000000000000000000
+GENESIS_IS_HUMAN_READABLE_LABEL_ONLY=true
+GENESIS_PERSISTED_FIELD_VALUE_IS_ALL_ZERO_SHA256=true
+
+The symbolic label `GENESIS` is documentation-only. The only persisted
+`accepted_head_event_hash` value for the empty ledger is the 64-character
+all-zero SHA-256 sentinel above.
 
 The canonical preimage is the repository canonical JSON representation of the event type, event payload, and previous event hash. The event hash must be computed as SHA-256 of event_type plus canonical event payload plus previous_event_hash.
 
@@ -212,8 +244,9 @@ AUTHORITY_EXISTS_BEFORE=false
 AUTHORITY_VERSION=0
 ACCEPTED_EVENT_COUNT=0
 ACCEPTED_STARTED_COUNT=0
-ACCEPTED_HEAD_EVENT_HASH=GENESIS
+ACCEPTED_HEAD_EVENT_HASH=0000000000000000000000000000000000000000000000000000000000000000
 ACCEPTED_LAST_GLOBAL_EVALUATION_ORDINAL=0
+AUTHORITY_EMPTY_LAST_GLOBAL_ORDINAL=0
 LEGACY_RECONCILED_VALIDATION_DEBIT=4
 
 If the row already exists, initialization must validate it and never reset, overwrite, or reduce counters. The debit source is frozen to:
@@ -238,6 +271,11 @@ At minimum, implementation must expose these stable reason codes:
 - VALIDATION_EVENT_HASH_CHAIN_MISMATCH
 - VALIDATION_BUDGET_EXHAUSTED
 - VALIDATION_CANDIDATE_RUN_LIMIT_EXCEEDED
+- VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE
+- VALIDATION_CANDIDATE_RUN_ORDINAL_INVALID
+- VALIDATION_TERMINAL_WITHOUT_STARTED
+- VALIDATION_TERMINAL_CANDIDATE_MISMATCH
+- VALIDATION_DUPLICATE_TERMINAL
 - LEGACY_VALIDATION_DEBIT_MISMATCH
 
 ## Security and trust boundary
@@ -265,6 +303,15 @@ The subsequent implementation task must provide at least these tests:
 - test_two_concurrent_runners_cannot_consume_same_ordinal
 - test_budget_32_blocks_next_started
 - test_candidate_fifth_run_is_rejected
+- test_duplicate_started_candidate_run_ordinal_is_rejected
+- test_started_candidate_run_ordinal_zero_is_rejected
+- test_started_candidate_run_ordinal_five_is_rejected
+- test_same_run_ordinal_is_allowed_for_different_candidates
+- test_orphan_terminal_is_rejected
+- test_terminal_candidate_id_must_match_started
+- test_duplicate_terminal_is_rejected
+- test_terminal_same_authority_and_evaluation_binds_exact_started
+- test_terminal_does_not_increment_started_count_or_budget
 - test_no_legacy_fake_events_are_created
 - test_jsonl_is_not_budget_authority
 
@@ -284,4 +331,4 @@ PR587_MERGE_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-FINAL_STOP_GATE=COORDINATOR_S4_DURABLE_PERSISTENCE_CONTRACT_REVIEW
+FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW

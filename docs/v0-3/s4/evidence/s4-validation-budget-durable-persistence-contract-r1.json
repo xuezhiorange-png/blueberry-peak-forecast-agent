@@ -3,7 +3,10 @@
   "ARTIFACT_TYPE": "S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT",
   "CONTRACT_VERSION": "v0.3-s4-validation-budget-durable-persistence-contract-v1",
   "CONTRACT_STATUS": "FROZEN",
-  "CONTRACT_HASH": "1b492fa3efa1205288d6288843b700122f74f96fecbb8bc12b3afe947d12810a",
+  "CONTRACT_HASH": "85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561",
+  "GENESIS_IS_HUMAN_READABLE_LABEL_ONLY": true,
+  "GENESIS_PERSISTED_FIELD_VALUE_IS_ALL_ZERO_SHA256": true,
+  "GENESIS_PERSISTED_FIELD_VALUE": "0000000000000000000000000000000000000000000000000000000000000000",
   "BASE_MAIN_SHA": "77e3d8ac63d794babfe0c8549fd34d0467f0d57e",
   "SOURCE_PR": 587,
   "SOURCE_PR_HEAD_SHA": "ffc5dd31bfb5ea9f036d0e27d3c4d9566ce1a69d",
@@ -42,8 +45,9 @@
     "AUTHORITY_VERSION": 0,
     "ACCEPTED_EVENT_COUNT": 0,
     "ACCEPTED_STARTED_COUNT": 0,
-    "ACCEPTED_HEAD_EVENT_HASH": "GENESIS",
+    "ACCEPTED_HEAD_EVENT_HASH": "0000000000000000000000000000000000000000000000000000000000000000",
     "ACCEPTED_LAST_GLOBAL_EVALUATION_ORDINAL": 0,
+    "AUTHORITY_EMPTY_LAST_GLOBAL_ORDINAL": 0,
     "LEGACY_RECONCILED_VALIDATION_DEBIT": 4
   },
   "LEGACY_BINDING": {
@@ -62,6 +66,17 @@
   },
   "MAX_VALIDATION_EVALUATIONS": 32,
   "MAX_RUNS_PER_CANDIDATE": 4,
+  "UNIQUE_STARTED_GLOBAL_EVALUATION_ORDINAL_PER_AUTHORITY": true,
+  "UNIQUE_STARTED_CANDIDATE_RUN_ORDINAL_PER_AUTHORITY": true,
+  "STARTED_GLOBAL_EVALUATION_ORDINAL_MIN": 1,
+  "STARTED_CANDIDATE_RUN_ORDINAL_MIN": 1,
+  "STARTED_CANDIDATE_RUN_ORDINAL_MAX": 4,
+  "ORPHAN_TERMINAL_FORBIDDEN": true,
+  "TERMINAL_REQUIRES_EXISTING_STARTED": true,
+  "TERMINAL_STARTED_BINDING_SCOPE": "AUTHORITY_KEY_X_EVALUATION_ID",
+  "TERMINAL_CANDIDATE_ID_MUST_MATCH_STARTED": true,
+  "DUPLICATE_TERMINAL_FORBIDDEN": true,
+  "TERMINAL_NEVER_INCREMENTS_ACCEPTED_STARTED_COUNT": true,
   "TAIL_TRUNCATION_MUST_FAIL_CLOSED": true,
   "REQUIRED_FAILURE_REASON_CODES": [
     "VALIDATION_BUDGET_AUTHORITY_MISSING",
@@ -75,6 +90,11 @@
     "VALIDATION_EVENT_HASH_CHAIN_MISMATCH",
     "VALIDATION_BUDGET_EXHAUSTED",
     "VALIDATION_CANDIDATE_RUN_LIMIT_EXCEEDED",
+    "VALIDATION_CANDIDATE_RUN_ORDINAL_DUPLICATE",
+    "VALIDATION_CANDIDATE_RUN_ORDINAL_INVALID",
+    "VALIDATION_TERMINAL_WITHOUT_STARTED",
+    "VALIDATION_TERMINAL_CANDIDATE_MISMATCH",
+    "VALIDATION_DUPLICATE_TERMINAL",
     "LEGACY_VALIDATION_DEBIT_MISMATCH"
   ],
   "IMPLEMENTATION_AUTHORIZED": false,
@@ -94,6 +114,14 @@
   "READY_AUTHORIZED": false,
   "MERGE_AUTHORIZED": false,
   "NO_STEP_IMPLIES_THE_NEXT": true,
+  "CORRECTION_TASK_ID": "V0_3_S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT_CORRECTION_R2",
+  "TARGET_PR": 588,
+  "REVIEW_ID": 5140022893,
+  "PREVIOUS_HEAD_SHA": "219d79824b119a04a63615962b9809959d81c691",
+  "GENESIS_CANONICAL_VALUE_CORRECTED": true,
+  "STARTED_CANDIDATE_RUN_UNIQUENESS_FROZEN": true,
+  "TERMINAL_TO_STARTED_BINDING_FROZEN": true,
+  "FINAL_STOP_GATE": "COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW",
   "canonical_contract": {
     "contract_version": "v0.3-s4-validation-budget-durable-persistence-contract-v1",
     "canonical_authority": {
@@ -104,7 +132,9 @@
       "jsonl_budget_authority": false,
       "jsonl_derived_from_database": true,
       "process_memory_budget_authority": false,
-      "cross_domain_authority_reuse_forbidden": true
+      "cross_domain_authority_reuse_forbidden": true,
+      "genesis_is_human_readable_label_only": true,
+      "genesis_persisted_field_value": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     "authority_object": {
       "authority_type": "S4_VALIDATION_BUDGET",
@@ -125,8 +155,9 @@
         "authority_version": 0,
         "accepted_event_count": 0,
         "accepted_started_count": 0,
-        "accepted_head_event_hash": "GENESIS",
+        "accepted_head_event_hash": "0000000000000000000000000000000000000000000000000000000000000000",
         "accepted_last_global_evaluation_ordinal": 0,
+        "empty_last_global_evaluation_ordinal": 0,
         "legacy_reconciled_validation_debit": 4
       },
       "invariants": {
@@ -166,9 +197,20 @@
       ],
       "started_semantics": {
         "counted_toward_budget": true,
-        "budget_count_reason": "STARTED_INVOCATION"
+        "budget_count_reason": "STARTED_INVOCATION",
+        "candidate_run_ordinal_min": 1,
+        "candidate_run_ordinal_max": 4,
+        "global_evaluation_ordinal_min": 1
       },
       "terminal_additional_budget_debit": 0,
+      "terminal_semantics": {
+        "counted_toward_budget": false,
+        "requires_existing_started": true,
+        "binding_scope": "AUTHORITY_KEY_X_EVALUATION_ID",
+        "candidate_id_must_match_started": true,
+        "duplicate_terminal_forbidden": true,
+        "never_increments_accepted_started_count": true
+      },
       "constraints": {
         "primary_key": [
           "authority_key",
@@ -178,17 +220,37 @@
         "unique_event_hash_per_authority": true,
         "unique_evaluation_and_event_type_per_authority": true,
         "unique_started_global_ordinal_per_authority": true,
+        "unique_started_candidate_run_ordinal_per_authority": true,
+        "partial_unique_started_global_ordinal_fields": [
+          "authority_key",
+          "global_evaluation_ordinal"
+        ],
+        "partial_unique_started_candidate_run_ordinal_fields": [
+          "authority_key",
+          "candidate_id",
+          "candidate_run_ordinal"
+        ],
         "positive_event_sequence": true,
-        "non_negative_global_ordinal": true,
+        "started_global_evaluation_ordinal_min": 1,
+        "started_candidate_run_ordinal_min": 1,
+        "started_candidate_run_ordinal_max": 4,
+        "empty_authority_last_global_ordinal_is_zero": true,
         "sha256_fields_lowercase_64_hex": true,
         "accepted_events_update_forbidden": true,
         "accepted_events_delete_forbidden": true,
         "sequence_gap_forbidden": true,
-        "terminal_rows_do_not_count_as_started": true
+        "terminal_requires_existing_started": true,
+        "terminal_binding_scope": "AUTHORITY_KEY_X_EVALUATION_ID",
+        "terminal_candidate_id_must_match_started": true,
+        "duplicate_terminal_forbidden": true,
+        "terminal_rows_do_not_count_as_started": true,
+        "terminal_rows_do_not_increment_budget": true
       }
     },
     "hash_chain": {
       "genesis_event_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "genesis_is_human_readable_label_only": true,
+      "genesis_persisted_field_value_is_all_zero_sha256": true,
       "algorithm": "SHA-256",
       "serialization": "repository canonical JSON",
       "preimage_fields": [
@@ -330,6 +392,15 @@
       "test_two_concurrent_runners_cannot_consume_same_ordinal",
       "test_budget_32_blocks_next_started",
       "test_candidate_fifth_run_is_rejected",
+      "test_duplicate_started_candidate_run_ordinal_is_rejected",
+      "test_started_candidate_run_ordinal_zero_is_rejected",
+      "test_started_candidate_run_ordinal_five_is_rejected",
+      "test_same_run_ordinal_is_allowed_for_different_candidates",
+      "test_orphan_terminal_is_rejected",
+      "test_terminal_candidate_id_must_match_started",
+      "test_duplicate_terminal_is_rejected",
+      "test_terminal_same_authority_and_evaluation_binds_exact_started",
+      "test_terminal_does_not_increment_started_count_or_budget",
       "test_no_legacy_fake_events_are_created",
       "test_jsonl_is_not_budget_authority"
     ]
