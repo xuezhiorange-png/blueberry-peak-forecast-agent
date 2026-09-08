@@ -8,6 +8,20 @@ The current JSONL event journal is cryptographically chained, but its final acce
 
 The future canonical authority is a PostgreSQL event ledger plus a PostgreSQL monotonic head row, updated in one transaction with compare-and-swap semantics.
 
+The event ledger has one semantic source of truth. The stored `event_payload` is
+the canonical event body used by the hash preimage; typed database columns are
+validated projections for indexing, constraints, querying, and budget
+reconciliation. They are never an independent authority.
+
+CANONICAL_EVENT_BODY_IS_SINGLE_SOURCE_OF_TRUTH=true
+TYPED_COLUMNS_ARE_CANONICAL_EVENT_BODY_PROJECTIONS=true
+TYPED_COLUMNS_INDEPENDENT_SEMANTIC_AUTHORITY=false
+TYPED_COLUMN_PAYLOAD_MISMATCH_FORBIDDEN=true
+EVENT_HASH_COVERS_ALL_CANONICAL_EVENT_SEMANTICS=true
+TYPED_PROJECTION_VALIDATION_REQUIRED_BEFORE_COMMIT=true
+TYPED_PROJECTION_VALIDATION_REQUIRED_ON_READBACK=true
+HASH_REPLAY_USES_STORED_CANONICAL_EVENT_BODY=true
+
 ## Repository survey
 
 The survey was performed from the task-start origin/main at:
@@ -106,6 +120,79 @@ The terminal must bind to the one STARTED event with the same authority_key and
 evaluation_id, and its candidate_id must match. Terminal persistence never
 creates another budget debit or occupies a STARTED-only ordinal constraint.
 
+## Canonical event body and typed projection binding
+
+The physical `event_payload` stores the canonical event body. For STARTED, the
+body includes evaluation_id, experiment_plan_version, candidate_id,
+candidate_run_ordinal, global_evaluation_ordinal, invocation_type,
+trigger_source, started_at, finished_at, execution_status,
+metric_result_status, dataset_hash, validation_split_hash, code_commit_sha,
+parameter_manifest_hash, random_seed, retry_of_evaluation_id,
+counted_toward_budget, and budget_count_reason.
+
+The hash preimage is:
+
+event_hash = SHA256(canonical_json({event_type, canonical_event_body, previous_event_hash}))
+
+For every persisted STARTED row, typed governance columns must equal the
+corresponding stored body fields:
+
+STARTED_TYPED_EVALUATION_ID_EQUALS_BODY=true
+STARTED_TYPED_CANDIDATE_ID_EQUALS_BODY=true
+STARTED_TYPED_CANDIDATE_RUN_ORDINAL_EQUALS_BODY=true
+STARTED_TYPED_GLOBAL_EVALUATION_ORDINAL_EQUALS_BODY=true
+STARTED_TYPED_INVOCATION_TYPE_EQUALS_BODY=true
+STARTED_TYPED_COUNTED_TOWARD_BUDGET_EQUALS_BODY=true
+STARTED_TYPED_BUDGET_COUNT_REASON_EQUALS_BODY=true
+
+For TERMINAL rows, the same rule applies to the available typed fields:
+
+TERMINAL_TYPED_EVALUATION_ID_EQUALS_BODY=true
+TERMINAL_TYPED_CANDIDATE_ID_EQUALS_BODY=true
+TERMINAL_TYPED_FINISHED_AT_EQUALS_BODY=true
+TERMINAL_TYPED_EXECUTION_STATUS_EQUALS_BODY=true
+TERMINAL_TYPED_METRIC_RESULT_STATUS_EQUALS_BODY=true
+
+If a future schema does not expose a typed column for a field, that field stays
+only in the canonical body; it is not duplicated with another assignable
+value. Neither side overrides the other:
+
+COLUMN_VALUE_OVERRIDES_EVENT_BODY=false
+EVENT_BODY_OVERRIDES_MISMATCHED_COLUMN=false
+MISMATCH_RESULT=BLOCKED
+PROJECTION_MISMATCH_REASON=VALIDATION_EVENT_PROJECTION_MISMATCH
+
+Projection equality is required before commit and on readback. Hash replay
+reads the stored canonical body, verifies projections first, recomputes the
+hash from that body, and then verifies the previous-event-hash chain. It must
+not reconstruct the body from typed columns.
+
+Hostile examples are fail-closed. `candidate_id=03_candidate` in a typed
+column versus `candidate_id=02_candidate` in the body is blocked with
+`VALIDATION_EVENT_PROJECTION_MISMATCH`; a typed
+`candidate_run_ordinal=2` versus body ordinal 1 is blocked; and
+`counted_toward_budget=false` versus body `true` is blocked. The implementation
+must not choose one side, silently reduce the budget, or continue.
+
+BUDGET_RECONCILIATION_REQUIRES_VERIFIED_EVENT_PROJECTIONS=true
+BUDGET_RECONCILIATION_REQUIRES_VERIFIED_HASH_CHAIN=true
+BUDGET_RECONCILIATION_REQUIRES_ACCEPTED_HEAD_MATCH=true
+
+RETRY_COUNTS_AS_NEW_CANDIDATE_RUN=true
+RETRY_REQUIRES_NEW_EVALUATION_ID=true
+
+The implementation acceptance contract must add these focused tests:
+
+- `test_started_typed_columns_must_match_hashed_event_body`
+- `test_terminal_typed_columns_must_match_hashed_event_body`
+- `test_candidate_id_cannot_diverge_between_column_and_event_body`
+- `test_candidate_run_ordinal_cannot_diverge_between_column_and_event_body`
+- `test_global_evaluation_ordinal_cannot_diverge_between_column_and_event_body`
+- `test_evaluation_id_cannot_diverge_between_column_and_event_body`
+- `test_counted_toward_budget_cannot_diverge_between_column_and_event_body`
+- `test_budget_reconciliation_blocks_on_projection_mismatch`
+- `test_hash_replay_uses_stored_canonical_event_body`
+
 ## Tail truncation cases
 
 The implementation must compare the database event history with the accepted authority row. If the authority records run2 as the accepted head but storage only returns the run1 prefix, it must return:
@@ -127,6 +214,10 @@ It must not report the shortened prefix as a new valid budget state. This applie
 - [ ] Started candidate/run ordinals are restricted to 1..4 and started global ordinals start at 1.
 - [ ] Terminal events require the exact existing STARTED parent in the same authority/evaluation scope.
 - [ ] Terminal candidate identity matches STARTED and duplicate terminals are rejected.
+- [ ] Typed columns are validated projections of the hashed canonical event body.
+- [ ] STARTED and TERMINAL projection mismatches fail closed before commit and on readback.
+- [ ] Hash replay uses the stored canonical event body, not a body reconstructed from columns.
+- [ ] Budget reconciliation verifies projections, the hash chain, and the accepted head first.
 - [ ] 4 legacy + canonical started remains the budget formula.
 - [ ] No legacy rows are fabricated.
 - [ ] JSONL is derived/audit only.
@@ -155,7 +246,7 @@ IMPLEMENTATION_AUTHORIZED=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
-FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW
+FINAL_STOP_GATE=COORDINATOR_PR588_PAYLOAD_BINDING_CORRECTION_REVIEW
 
 ## Correction R2 addendum
 
@@ -189,3 +280,22 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_PR588_CONTRACT_CORRECTION_REVIEW
+
+## Correction R3 addendum
+
+Review correction R3 closes the remaining typed-column versus hashed-payload
+binding gap without authorizing implementation or schema work. The persisted
+canonical event body is the sole semantic authority; typed columns are
+validated projections, and any mismatch blocks both commit and readback.
+
+OLD_CONTRACT_HASH=85f54c6160282eddc7ebdc6eb847d21d996a3147e8c6a9e84783444e77916561
+NEW_CONTRACT_HASH=a7c7c5eac5550f531836968b5001bfd487218960f31e56ad5a1c5c175169410f
+CANONICAL_EVENT_BODY_IS_SINGLE_SOURCE_OF_TRUTH=true
+TYPED_COLUMN_PAYLOAD_BINDING_FROZEN=true
+PROJECTION_MISMATCH_FAILS_CLOSED=true
+IMPLEMENTATION_AUTHORIZED=false
+MIGRATION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR588_PAYLOAD_BINDING_CORRECTION_REVIEW
