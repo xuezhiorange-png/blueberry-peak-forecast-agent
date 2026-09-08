@@ -21435,3 +21435,50 @@ reconciliation is missing, blocked, or inconsistent. The corrected metric
 helpers normalize each variety group by its own total, preserve iteration
 order determinism, and keep sustained seven-day aggregation within the full
 farm-variety-cutoff-model-quantile grain while summing subfarms only.
+
+### 4.22 — S4-C01 validation budget append-only forward compatibility R3 (live pointer)
+
+This EOF pointer supersedes only the live validation-budget reconciliation
+semantics; historical execution snapshots remain immutable. The durable
+artifact's canonical ledger counts are the accepted baseline snapshot and do
+not need to remain zero after a lawful future append.
+
+```text
+TASK_ID=V0_3_S4_VALIDATION_BUDGET_APPEND_ONLY_FORWARD_COMPATIBILITY_R3
+TARGET_PR=587
+R3_BUDGET_FORWARD_APPEND_COMPATIBILITY_APPLIED=true
+RECONCILIATION_BASELINE_CANONICAL_LEDGER_COUNT=0
+RECONCILIATION_BASELINE_CANONICAL_STARTED_COUNT=0
+CANONICAL_LEDGER_COUNTS_ARE_BASELINE=true
+LIVE_CANONICAL_APPEND_ALLOWED=true
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CURRENT_LIVE_CANONICAL_STARTED_COUNT=0
+CURRENT_EFFECTIVE_CONSUMED=4
+CURRENT_REMAINING=28
+ONE_FUTURE_CANONICAL_STARTED_EFFECTIVE_CONSUMED=5
+ONE_FUTURE_CANONICAL_STARTED_REMAINING=27
+TWO_FUTURE_CANONICAL_STARTED_EFFECTIVE_CONSUMED=6
+TWO_FUTURE_CANONICAL_STARTED_REMAINING=26
+CANDIDATE_02_SECOND_PREFLIGHT_OBSERVES_PRIOR_STARTED_ROW=true
+CANDIDATE_LEVEL_COUNT_SEPARATE_FROM_GLOBAL_EFFECTIVE_COUNT=true
+LEGACY_DEBIT_DOUBLE_COUNT_FORBIDDEN=true
+BASELINE_HISTORY_MUTATION_FAILS_CLOSED=true
+GLOBAL_MAX_32_ENFORCED=true
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_02_EXECUTION_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+TEST_EVALUATION_CALL_COUNT=0
+C01_RESULT=BLOCKED
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR587_BUDGET_FORWARD_COMPATIBILITY_REVIEW
+```
+
+The implementation continues to count all started invocations, keeps the
+four legacy C01 invocations as a single debit, validates any accepted
+baseline prefix, and allows only valid append-only canonical events after that
+baseline. Effective consumption is capped at `32`; when no budget remains the
+next candidate start fails closed. No C01/C02 scoring, TEST evaluation, ledger
+rewrite, budget deletion, or production model/parameter change was performed
+in R3.
