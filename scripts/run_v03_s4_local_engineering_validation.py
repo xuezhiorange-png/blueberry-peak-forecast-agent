@@ -22,29 +22,35 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from backend.app.maturity.config import load_maturity_curve_config
-from backend.app.s2_materialized_dataset.lane_d.canonical import parse_partition_bytes
-from backend.app.s2_materialized_dataset.lane_d.service import (
+# Make direct ``python scripts/...`` invocation use the repository package
+# exactly as the repository's other operational runners do.
+_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_IMPORT_ROOT))
+
+from backend.app.maturity.config import load_maturity_curve_config  # noqa: E402
+from backend.app.s2_materialized_dataset.lane_d.canonical import parse_partition_bytes  # noqa: E402
+from backend.app.s2_materialized_dataset.lane_d.service import (  # noqa: E402
     MaterializedDatasetBuildError,
     S2MaterializedDatasetModel,
     S2MaterializedPartitionModel,
     controlled_materialize_source_002_from_environment,
     load_materialized_dataset_result,
 )
-from backend.app.s2_materialized_dataset.shared.contracts import PartitionName
-from backend.app.s4_candidate_execution import (
+from backend.app.s2_materialized_dataset.shared.contracts import PartitionName  # noqa: E402
+from backend.app.s4_candidate_execution import (  # noqa: E402
     CANDIDATE_01_PARAMETER_MANIFEST_HASH_BOUND,
     build_candidate_01_manifest,
     build_derived_candidate_config,
     validate_candidate_01_manifest,
 )
-from backend.app.s4_experiment import (
+from backend.app.s4_experiment import (  # noqa: E402
     GUARDRAIL_POLICY_HASH,
     GUARDRAIL_POLICY_VERSION,
     METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
 )
-from backend.app.s4_local_engineering import (
+from backend.app.s4_local_engineering import (  # noqa: E402
     LOCAL_ENGINEERING_REPLAY_AUTHORITY_CLASS,
     SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256,
     FrozenEngineeringDataset,
