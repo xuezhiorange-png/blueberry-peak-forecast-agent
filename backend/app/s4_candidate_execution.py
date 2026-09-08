@@ -47,9 +47,7 @@ CANDIDATE_01_PARENT_MODEL_ID: Final[str] = "V0_2_CURRENT_MODEL"
 CANDIDATE_01_HYPOTHESIS: Final[str] = (
     "parameter_calibration_reduces_primary_metric_without_guardrail_regression"
 )
-CANDIDATE_01_PARAMETER_MANIFEST_VERSION: Final[str] = (
-    "v0.3-s4-c01-parameter-manifest-v1"
-)
+CANDIDATE_01_PARAMETER_MANIFEST_VERSION: Final[str] = "v0.3-s4-c01-parameter-manifest-v1"
 CANDIDATE_01_ALLOWED_PARAMETER_PATHS: Final[tuple[str, ...]] = (
     "curve.spline_knot_count",
     "curve.ridge_alpha",
@@ -62,9 +60,7 @@ VALIDATION_EVENT_SCHEMA_VERSION: Final[str] = "v0.3-s4-validation-event-v1"
 HISTORICAL_INCUMBENT_AUTHORITY_REASON: Final[str] = (
     "HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED"
 )
-NO_VERSIONED_FORECAST_AUTHORITY_REASON: Final[str] = (
-    "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
-)
+NO_VERSIONED_FORECAST_AUTHORITY_REASON: Final[str] = "NO_VERSIONED_INCUMBENT_FORECAST_ARTIFACT"
 
 _SHA256_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
 _LEDGER_EVENT_TYPES: Final[frozenset[str]] = frozenset(
@@ -197,9 +193,7 @@ def verify_parameter_allowlist(
     candidate_flat = _flatten_paths(candidate)
     all_paths = sorted(set(incumbent_flat) | set(candidate_flat))
     changed = tuple(
-        path
-        for path in all_paths
-        if incumbent_flat.get(path) != candidate_flat.get(path)
+        path for path in all_paths if incumbent_flat.get(path) != candidate_flat.get(path)
     )
     allowed = set(allowed_paths)
     unauthorized = tuple(path for path in changed if path not in allowed)
@@ -265,9 +259,7 @@ class Candidate01ParameterManifest:
             "incumbent_config_path": self.incumbent_config_path,
             "incumbent_config_file_sha256": self.incumbent_config_file_sha256,
             "incumbent_config_hash": self.incumbent_config_hash,
-            "incumbent_parameter_snapshot": copy.deepcopy(
-                dict(self.incumbent_parameter_snapshot)
-            ),
+            "incumbent_parameter_snapshot": copy.deepcopy(dict(self.incumbent_parameter_snapshot)),
             "random_seed_policy": self.random_seed_policy,
             "planned_run_count": self.planned_run_count,
             "runs": [run.payload() for run in self.runs],
@@ -556,8 +548,7 @@ def resolve_pairing_authority(repo_root: Path) -> PairingAuthorityResolution:
     """Resolve only durable authorities; never manufacture an identity hash."""
 
     closeout_path = repo_root / (
-        "docs/v0-3/s3/evidence/"
-        "s3-final-closeout-and-s4-entry-authorization-r1.json"
+        "docs/v0-3/s3/evidence/s3-final-closeout-and-s4-entry-authorization-r1.json"
     )
     if not closeout_path.is_file():
         return PairingAuthorityResolution(
@@ -578,9 +569,7 @@ def resolve_pairing_authority(repo_root: Path) -> PairingAuthorityResolution:
             "S3_FINAL_CLOSEOUT_EVIDENCE",
         )
     historical = closeout.get("HISTORICAL_S3_EVALUATION", {})
-    historical_available = historical.get(
-        "HISTORICAL_INCUMBENT_FORECAST_DAILY_AUTHORITY_AVAILABLE"
-    )
+    historical_available = historical.get("HISTORICAL_INCUMBENT_FORECAST_DAILY_AUTHORITY_AVAILABLE")
     if historical_available is False:
         return PairingAuthorityResolution(
             "BLOCKED",
@@ -684,9 +673,7 @@ class AppendOnlyValidationJournal:
     def _append(self, event_type: str, payload: Mapping[str, Any]) -> LedgerEvent:
         if event_type not in _LEDGER_EVENT_TYPES:
             raise Candidate01ContractError("unsupported ledger event type")
-        canonical_payload = cast(
-            dict[str, Any], json.loads(canonical_json_dumps(dict(payload)))
-        )
+        canonical_payload = cast(dict[str, Any], json.loads(canonical_json_dumps(dict(payload))))
         event = LedgerEvent(
             event_type,
             canonical_payload,
@@ -694,12 +681,16 @@ class AppendOnlyValidationJournal:
         )
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as file:
-            file.write(canonical_json_dumps({
-                "schema_version": VALIDATION_EVENT_SCHEMA_VERSION,
-                "event_type": event.event_type,
-                "event_payload": event.event_payload,
-                "event_hash": event.event_hash,
-            }))
+            file.write(
+                canonical_json_dumps(
+                    {
+                        "schema_version": VALIDATION_EVENT_SCHEMA_VERSION,
+                        "event_type": event.event_type,
+                        "event_payload": event.event_payload,
+                        "event_hash": event.event_hash,
+                    }
+                )
+            )
             file.write("\n")
         return event
 
@@ -707,10 +698,7 @@ class AppendOnlyValidationJournal:
         _validate_ledger_payload(payload)
         events = self._read_events()
         evaluation_id = cast(str, payload["evaluation_id"])
-        if any(
-            event.event_payload.get("evaluation_id") == evaluation_id
-            for event in events
-        ):
+        if any(event.event_payload.get("evaluation_id") == evaluation_id for event in events):
             raise Candidate01ContractError("evaluation identity reuse is forbidden")
         return self._append("EVALUATION_STARTED", payload)
 
@@ -724,7 +712,8 @@ class AppendOnlyValidationJournal:
     ) -> LedgerEvent:
         events = self._read_events()
         started = [
-            event for event in events
+            event
+            for event in events
             if event.event_type == "EVALUATION_STARTED"
             and event.event_payload.get("evaluation_id") == evaluation_id
         ]
@@ -828,9 +817,7 @@ def build_candidate_gate_request(
     code_commit_sha: str,
     evaluation_id: str,
 ) -> CandidateExecutionGateRequest:
-    missing = [
-        name for name in _REQUIRED_PAIRING_IDENTITY_NAMES if name not in pairing_bindings
-    ]
+    missing = [name for name in _REQUIRED_PAIRING_IDENTITY_NAMES if name not in pairing_bindings]
     if missing:
         raise Candidate01PreflightBlocked("paired identity is missing")
     registration = next(
