@@ -21075,3 +21075,69 @@ POLICY_ARTIFACT=docs/v0-3/s4/s4-prospective-validation-authority-feasibility-r1.
 The live store was unavailable, so this pointer does not claim that the
 prospective cohort is empty or feasible. It records an environment-blocked
 feasibility decision and issues no split or experiment-plan amendment.
+
+### 4.16 — S4 prospective VALIDATION authority feasibility correction R1 (append-only live pointer)
+
+This correction closes the TEST-custody and incumbent-model-identity gates
+without changing the accepted historical S1/S3 terminal state, the frozen S4
+plan, the guardrail policy, or the validation budget. The corrected scanner was
+frozen and passed exact-head CI before one corrected live scan. The live store
+remained unavailable, so the scan remains environment-blocked and does not
+claim that any prospective cohort is empty, feasible, or executable.
+
+```text
+TASK_ID=V0_3_S4_VALIDATION_AUTHORITY_FEASIBILITY_AND_PROSPECTIVE_AMENDMENT_DECISION_R1_CORRECTION_R1
+PR_NUMBER=585
+PR_STATE=DRAFT
+PREVIOUS_HEAD_SHA=73ac069a5859f68443b979dfd2bbe8b21b575fec
+CORRECTION_COMMIT_SHA=a89bb67060e68adaac383b9ec93f084e95e59f78
+CORRECTION_SCANNER_FREEZE_HEAD=ab8427535fe1ebd50b8a7302a08c144bd4386b10
+CORRECTION_SCANNER_EXACT_HEAD_CI_RUN=34185669069
+CORRECTION_SCANNER_EXACT_HEAD_CI=SUCCESS
+TEST_SNAPSHOT_HEADER_GATE_ENFORCED=true
+TEST_OVERLAPPING_SNAPSHOT_REJECTED_BEFORE_CHILD_LOAD=true
+TEST_CHILD_ROW_QUERY_REMOVED=true
+TEST_CHILD_ROW_QUERY_COUNT=0
+TEST_ROWS_SELECTED=false
+TEST_LABELS_LOADED=false
+TEST_FORECASTS_LOADED=false
+TEST_ACCESS=false
+TEST_REMAINS_SEALED=true
+INCUMBENT_MODEL_ID=V0_2_CURRENT_MODEL
+INCUMBENT_MODEL_IDENTITY_EXACT_BINDING_ENFORCED=true
+OTHER_PRODUCTION_MODEL_REJECTED=true
+FROZEN_S1_VALIDATION_PAIRED_S4_EXECUTABLE=false
+LIVE_PROSPECTIVE_SCAN_STATUS=BLOCKED
+LIVE_PROSPECTIVE_SCAN_BLOCK_REASON=POSTGRESQL_AUTHORITY_STORE_UNAVAILABLE
+LIVE_PROSPECTIVE_SCAN_REASON_CODE=POSTGRESQL_AUTHORITY_STORE_UNAVAILABLE
+LIVE_PROSPECTIVE_SCAN_COUNTS_OBSERVED=false
+PROSPECTIVE_VALIDATION_EXTENSION_FEASIBILITY_DETERMINED=false
+PROSPECTIVE_VALIDATION_EXTENSION_FEASIBLE=false
+S4_PLAN_AMENDMENT_REQUIRED=false
+PROSPECTIVE_SPLIT_AMENDMENT_REQUIRED=false
+PROPOSED_TRAIN_DATASET_HASH=null
+PROPOSED_VALIDATION_DATASET_HASH=null
+PROPOSED_INCUMBENT_FORECAST_ARTIFACT_HASH=null
+PROPOSED_PROSPECTIVE_AUTHORITY_HASH=null
+PROPOSED_PROSPECTIVE_COHORT_HASH=null
+ACTUAL_VALIDATION_EVALUATION_COUNT=0
+CURRENT_LEDGER_ROW_COUNT=0
+REMAINING_GLOBAL_VALIDATION_BUDGET=32
+CANDIDATE_01_RUN_COUNT=0
+CANDIDATE_01_EXECUTION_AUTHORIZED=false
+TEST_EVALUATION_AUTHORIZED=false
+TEST_REMAINS_SEALED=true
+FOCUSED_TESTS=40 passed
+S4_RETENTION_REGRESSION=157 passed, 1 skipped
+EVIDENCE_TEST_COUNT_MATCHES_EXECUTION=true
+AMENDMENT_ISSUED_IN_THIS_TASK=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR585_CORRECTION_R1_REVIEW
+```
+
+The corrected Phase A control head passed exact-head CI before this single
+corrected live scan. The scan emitted no production writes, selected no TEST
+rows, created no evaluation-ledger events, consumed no VALIDATION budget, and
+does not authorize a future candidate run or a split/plan amendment.
