@@ -21211,8 +21211,71 @@ NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_PROSPECTIVE_AUTHORITY_STORE_RESCAN_REVIEW
 ```
 
+
 The application-owned `SELECT 1` probe failed before schema inspection, so no
 scanner execution or prospective authority conclusion was issued. The
 configured endpoint is recorded as unreachable and the intended authority
 store identity remains not established; no substitute database or volume was
 created.
+
+### 4.18 — S4 validation budget durable persistence contract R1 (append-only live pointer)
+
+This docs-only contract freezes the missing authority boundary identified by PR #587. It does not modify PR #587, implement a database schema, add a migration, or execute validation.
+
+TASK_ID=V0_3_S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT_R1
+CONTRACT_VERSION=v0.3-s4-validation-budget-durable-persistence-contract-v1
+CONTRACT_BASE_MAIN_SHA=77e3d8ac63d794babfe0c8549fd34d0467f0d57e
+SOURCE_PR=587
+SOURCE_PR_HEAD_SHA=ffc5dd31bfb5ea9f036d0e27d3c4d9566ce1a69d
+SOURCE_REVIEW_ID=5139541424
+SOURCE_BLOCKER=VALIDATION_LEDGER_DURABLE_HEAD_AUTHORITY_UNAVAILABLE
+CONTRACT_OR_PERSISTENCE_AMENDMENT_REQUIRED=true
+
+S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_CONTRACT=FROZEN
+S4_VALIDATION_BUDGET_DURABLE_PERSISTENCE_IMPLEMENTATION=NOT_AUTHORIZED
+CANONICAL_VALIDATION_EXECUTION_AUTHORITY=POSTGRESQL
+CANONICAL_DB_EVENT_LEDGER_REQUIRED=true
+DURABLE_MONOTONIC_HEAD_REQUIRED=true
+EVENT_INSERT_AND_HEAD_ADVANCE_SAME_TRANSACTION=true
+COMPARE_AND_SWAP_REQUIRED=true
+CONCURRENT_WRITER_FAILS_CLOSED=true
+MODEL_EVALUATION_BEFORE_DURABLE_STARTED_COMMIT=false
+JSONL_BUDGET_AUTHORITY=false
+JSON_SIDECAR_DURABLE_HEAD_AUTHORITY=false
+
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+LEGACY_ROWS_BACKFILLED=false
+HISTORICAL_LEDGER_FABRICATION=false
+CURRENT_CANONICAL_STARTED_COUNT=0
+CURRENT_EFFECTIVE_VALIDATION_EVALUATIONS_CONSUMED=4
+CURRENT_REMAINING_EFFECTIVE_VALIDATION_BUDGET=28
+MAX_VALIDATION_EVALUATIONS=32
+MAX_RUNS_PER_CANDIDATE=4
+TAIL_TRUNCATION_MUST_FAIL_CLOSED=true
+
+PRODUCTION_CODE_CHANGED=false
+TEST_CODE_CHANGED=false
+SCHEMA_CHANGED=false
+MIGRATION_ADDED=false
+RUNNER_CHANGED=false
+CANDIDATE_01_RERUN_PERFORMED=false
+CANDIDATE_02_EXECUTION_PERFORMED=false
+NEW_VALIDATION_SCORING_CALL_COUNT=0
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+PR587_REMAINS_DRAFT=true
+PR587_MUTATION_AUTHORIZED=false
+IMPLEMENTATION_AUTHORIZED=false
+MIGRATION_AUTHORIZED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_S4_DURABLE_PERSISTENCE_CONTRACT_REVIEW
+
+The durable contract and machine-readable evidence are:
+
+CONTRACT_ARTIFACT=docs/v0-3/s4/s4-validation-budget-durable-persistence-contract.md
+EVIDENCE_ARTIFACT=docs/v0-3/s4/evidence/s4-validation-budget-durable-persistence-contract-r1.json
+WORKPAPER_ARTIFACT=docs/v0-3/s4/workpapers/s4-validation-budget-durable-persistence-contract-r1.md
+
+The next implementation task is separately authorized only after this contract is reviewed and merged. It must create the PostgreSQL event ledger and monotonic head in one transaction; it must not use JSONL or another cross-domain table as the budget authority.
