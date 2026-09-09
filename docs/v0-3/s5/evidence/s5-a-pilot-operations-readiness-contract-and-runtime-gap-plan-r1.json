@@ -1,0 +1,638 @@
+{
+  "TASK_ID": "V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_AND_RUNTIME_GAP_PLAN_R1",
+  "TASK_CLASS": "DOCUMENTATION_ONLY_PROPOSED_S5_EXECUTION_CONTRACT_FREEZE",
+  "REPOSITORY": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "BASE_MAIN_SHA": "49388438c0fb287068b3f0bb803f7c03bd00a81a",
+  "PR593_MERGE_IN_BASE": true,
+  "DOCUMENT_SCOPE_ONLY": true,
+  "PRODUCTION_CODE_CHANGED": false,
+  "FRONTEND_CODE_CHANGED": false,
+  "DATABASE_SCHEMA_CHANGED": false,
+  "MIGRATION_CHANGED": false,
+  "MODEL_CHANGED": false,
+  "PARAMETERS_CHANGED": false,
+  "CANDIDATE_EXECUTION_PERFORMED": false,
+  "VALIDATION_SCORING_PERFORMED": false,
+  "PROSPECTIVE_SCAN_PERFORMED": false,
+  "PROSPECTIVE_AUTHORITY_STORE_CREATED": false,
+  "PROSPECTIVE_AUTHORITY_SEEDED": false,
+  "PROSPECTIVE_AUTHORITY_BACKFILLED": false,
+  "S5_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7",
+  "CURRENT_V0_3_S1_COMPLETE": true,
+  "CURRENT_V0_3_S2_COMPLETE": true,
+  "CURRENT_V0_3_S3_COMPLETE": true,
+  "CURRENT_V0_3_S4_COMPLETE": false,
+  "CURRENT_V0_3_S5_SLICE_DEFINITION_EXISTS": true,
+  "CURRENT_V0_3_S5_FORMAL_SUBTASK_DECOMPOSITION_EXISTS": false,
+  "V0_3_S5_CURRENT_DEFINITION_EXISTS": true,
+  "V0_3_S6_CURRENT_DEFINITION_EXISTS": true,
+  "PROPOSED_S5_EXECUTION_DECOMPOSITION_SOURCE": "PR593_PLANNING_PROPOSAL",
+  "PROPOSED_S5_EXECUTION_DECOMPOSITION": [
+    "S5-A PILOT OPERATIONS READINESS",
+    "S5-B FRONTEND COMPARISON WARNINGS AND STRUCTURED EXPLANATION",
+    "S5-C CONTINUOUS EVALUATION AND ADOPTION RECORDS"
+  ],
+  "PROPOSED_S5_EXECUTION_DECOMPOSITION_AUTHORIZED": false,
+  "PROPOSED_S5_EXECUTION_DECOMPOSITION_IMPLEMENTED": false,
+  "PROPOSED_S5_A_CONTRACT_VERSION": "v0.3-s5-a-pilot-operations-readiness-contract-v1",
+  "PROPOSED_S5_A_CONTRACT_STATUS": "FROZEN_PROPOSAL_NOT_AUTHORIZED",
+  "PROPOSED_S5_A_CONTRACT_FROZEN": true,
+  "S5_A_CONTRACT_PROPOSAL_COMPLETE": true,
+  "S5_A_CURRENT_IMPLEMENTATION_READINESS": "BLOCKED_BY_IDENTIFIED_PREREQUISITES",
+  "S5_A_IMPLEMENTATION_READY": false,
+  "S5_A_PRODUCTION_CODE_CHANGED": false,
+  "CURRENT_S4_EXECUTION_STATUS": "WAITING_FOR_REAL_PROSPECTIVE_FORECAST_AUTHORITY",
+  "CURRENT_S4_BLOCKER": "REAL_PROSPECTIVE_FORECAST_AUTHORITY_NOT_YET_AVAILABLE",
+  "FURTHER_PROSPECTIVE_AUTHORITY_STORE_DISCOVERY_REQUIRED": false,
+  "FURTHER_POSTGRES_RECONNECT_REQUIRED": false,
+  "FURTHER_DOCKER_VOLUME_RECOVERY_REQUIRED": false,
+  "FURTHER_DSN_SEARCH_REQUIRED": false,
+  "PROSPECTIVE_SCAN_BEFORE_TRIGGER": false,
+  "CANDIDATE_EXECUTION_BEFORE_TRIGGER": false,
+  "VALIDATION_SCORING_BEFORE_TRIGGER": false,
+  "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+  "CANONICAL_STARTED_COUNT": 0,
+  "EFFECTIVE_CONSUMED": 4,
+  "REMAINING": 28,
+  "BUDGET_DELTA": 0,
+  "TEST_ACCESS_REQUESTED": false,
+  "TEST_EVALUATION_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "S1_SPLIT_MANIFEST_MUTATED": false,
+  "S4_EXPERIMENT_PLAN_AMENDED": false,
+  "V0_3_S5_AUTHORIZED": false,
+  "S5_IMPLEMENTATION_STARTED": false,
+  "S5_A_IMPLEMENTATION_AUTHORIZED": false,
+  "V0_3_S6_AUTHORIZED": false,
+  "S6_IMPLEMENTATION_STARTED": false,
+  "TASK_ISOLATED_DATABASE_IS_PRODUCTION": false,
+  "CLIENT_SIDE_BUSINESS_METRIC_RECOMPUTATION_ALLOWED": false,
+  "BUSINESS_ADOPTION_IS_BUSINESS_ACCEPTANCE": false,
+  "UNSUPPORTED_CAUSE_INFERENCE_ALLOWED": false,
+  "S5_A_CODE_GAP_COUNT": 3,
+  "S5_A_RUNTIME_GAP_COUNT": 7,
+  "S5_A_EXTERNAL_DECISION_GAP_COUNT": 2,
+  "S5_A_BLOCKING_GAP_IDS": [
+    "S5A-CODE-001",
+    "S5A-CODE-002",
+    "S5A-CODE-003",
+    "S5A-RUNTIME-001",
+    "S5A-RUNTIME-002",
+    "S5A-RUNTIME-003",
+    "S5A-RUNTIME-004",
+    "S5A-RUNTIME-005",
+    "S5A-RUNTIME-006",
+    "S5A-RUNTIME-007",
+    "S5A-EXT-001",
+    "S5A-EXT-002"
+  ],
+  "S5_REQUIREMENT_TRACEABILITY": [
+    {
+      "REQUIREMENT_ID": "S5-REQ-001",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "PARTIALLY_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/trial.py",
+        "backend/app/forecast_authority/retention.py",
+        "backend/app/api/trial.py"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Persisted current-versus-previous forecast comparison authority and history selection",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Approved model and versioned comparison contract",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Two persisted forecast versions, same-scope comparison payload, hashes, and reload proof"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-002",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "NOT_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": ["backend/app/trial.py"],
+      "PROVEN_BY_CURRENT_MAIN": false,
+      "MISSING_CAPABILITY": "Current model versus previous pilot-approved model record and comparison",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "MODEL_APPROVED_FOR_PILOT=true and approved-model registry decision",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Approved-model identities, comparison result, and owner review"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-003",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "NOT_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "docs/v0-3/s4/s4-experiment-plan-v1.md",
+        "docs/v0-3/s4/s4-c03-phenology-offset-execution-contract.md"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": false,
+      "MISSING_CAPABILITY": "Persisted before/after calibration comparison for pilot runs",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Accepted S4 result and explicit calibration comparison authority",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Paired pre/post records with parameter manifests and server-derived deltas"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-004",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "PARTIALLY_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/forecast_authority/retention.py",
+        "backend/app/trial.py",
+        "frontend/src/features/forecast/ForecastResult.tsx",
+        "frontend/src/features/quality/QualityReport.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Cross-version and cross-quantile comparison payload owned by the server",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Comparison schema and complete persisted members",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "P50/P80/P90 comparison rows, identity binding, and exact readback"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-005",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "IMPLEMENTED_REUSABLE",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/actual_harvest_labels/service.py",
+        "backend/app/trial.py",
+        "backend/app/api/trial.py"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Pilot-operational run linkage and broader history workflow",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Committed actual evidence and approved operational scope",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Forecast/actual report, AS_OF_EVALUATION visibility, reason codes, and export"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-006",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "IMPLEMENTED_REUSABLE",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/forecast_quality/comparison.py",
+        "backend/app/models/forecast_quality.py",
+        "backend/app/api/trial.py",
+        "frontend/src/features/quality/QualityReport.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Explicit S5 naming, lineage, and use in the pilot run contract",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Existing comparison policy bound to S5 run identity",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Persisted baseline member set, comparison hash, availability, and reload proof"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-007",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "PARTIALLY_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/trial.py",
+        "frontend/src/features/forecast/ForecastResult.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Typed notice envelope with evidence source, scope, severity, and affected run",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Notice vocabulary and evidence mapping",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Notice code/source/scope/severity/observed fact plus unsupported-cause negative test"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-008",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "PARTIALLY_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/trial.py",
+        "backend/app/s2_materialized_dataset/lane_b/schemas.py"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Server-owned data-quality risk notice contract separate from ad hoc strings",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Data-quality classification and owner decision",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Persisted notice evidence and no unsupported cause inference"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-009",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "IMPLEMENTED_REUSABLE",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/trial.py",
+        "frontend/src/features/forecast/ForecastResult.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Pilot-approved/current model status display and history filter",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Approved model identity",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Version display bound to run identity and persisted record"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-010",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "IMPLEMENTED_REUSABLE",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/trial.py",
+        "frontend/src/features/forecast/ForecastResult.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Version history and comparison binding",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Immutable parameter manifest identity",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Parameter version and hash present in every operational run"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-011",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "PARTIALLY_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/api/trial.py",
+        "backend/app/forecast_authority/retention.py"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Operator-facing historical list/filter/query contract and pagination",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "History query contract and access policy",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Multiple immutable runs queryable after fresh-session reload"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-012",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "IMPLEMENTED_REUSABLE",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/api/trial.py",
+        "frontend/src/features/forecast/ForecastResult.tsx",
+        "frontend/src/features/quality/QualityReport.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Version-aware operational export manifest and audit linkage",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Export schema and access policy",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Export identity, source hashes, version fields, and deterministic output"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-013",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "NOT_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [],
+      "PROVEN_BY_CURRENT_MAIN": false,
+      "MISSING_CAPABILITY": "Business adoption event/hook with actor, run, timestamp, and observed action",
+      "PROPOSED_S5_OWNER": "S5-A hook; S5-C ledger",
+      "IMPLEMENTATION_PREREQUISITE": "Business owner decision and persistence contract",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Append-only adoption record with actor/run lineage and no acceptance inference"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-014",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Required capabilities",
+      "CURRENT_IMPLEMENTATION_STATUS": "NOT_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [],
+      "PROVEN_BY_CURRENT_MAIN": false,
+      "MISSING_CAPABILITY": "Adjustment event and mandatory reason linked to the immutable forecast",
+      "PROPOSED_S5_OWNER": "S5-A hook; S5-C audit loop",
+      "IMPLEMENTATION_PREREQUISITE": "Business/data owner decision and authorization policy",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Immutable adjustment record, reason vocabulary, actor, and parent run"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-015",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 Explanation rule",
+      "CURRENT_IMPLEMENTATION_STATUS": "PARTIALLY_IMPLEMENTED",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/trial.py",
+        "frontend/src/features/forecast/ForecastResult.tsx",
+        "frontend/src/features/quality/QualityReport.tsx"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "Evidence-derived explanation payload and persisted provenance",
+      "PROPOSED_S5_OWNER": "S5-A server contract; S5-B presentation",
+      "IMPLEMENTATION_PREREQUISITE": "Evidence-to-explanation mapping with unsupported causes forbidden",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "Explanation references input/version/result differences and passes negative tests"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-016",
+      "SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 immutability rule",
+      "CURRENT_IMPLEMENTATION_STATUS": "IMPLEMENTED_REUSABLE",
+      "CURRENT_IMPLEMENTATION_PATHS": [
+        "backend/app/forecast_authority/retention.py",
+        "backend/app/models/forecast_authority.py",
+        "backend/app/api/trial.py"
+      ],
+      "PROVEN_BY_CURRENT_MAIN": true,
+      "MISSING_CAPABILITY": "S5 history/index/access surface over retained records",
+      "PROPOSED_S5_OWNER": "S5-A",
+      "IMPLEMENTATION_PREREQUISITE": "Operational access policy",
+      "ACCEPTANCE_EVIDENCE_REQUIRED": "New run does not overwrite prior run; hashes and daily P50/P80/P90 survive reload"
+    }
+  ],
+  "CURRENT_CAPABILITY_INVENTORY": [
+    {
+      "DOMAIN": "real business source",
+      "CURRENT_STATUS": "AVAILABLE_FOR_ACCEPTED_S1_S2_BASELINE",
+      "PROVEN_BY_CURRENT_MAIN": "SOURCE-002 and accepted TRAIN/VALIDATION materialization",
+      "NOT_PROVEN": "Current real-season pilot feed, source owner, and operating cadence"
+    },
+    {
+      "DOMAIN": "actual-harvest pipeline",
+      "CURRENT_STATUS": "IMPLEMENTED",
+      "PROVEN_BY_CURRENT_MAIN": "Import, validation, seal/commit, immutable label snapshots, AS_OF_EVALUATION",
+      "NOT_PROVEN": "Future post-TEST labels for a prospective cohort"
+    },
+    {
+      "DOMAIN": "forecast execution",
+      "CURRENT_STATUS": "IMPLEMENTED_ENGINEERING_PATH",
+      "PROVEN_BY_CURRENT_MAIN": "Trial/Core execution and persisted daily result",
+      "NOT_PROVEN": "Active model-approved pilot operation"
+    },
+    {
+      "DOMAIN": "forecast authority retention",
+      "CURRENT_STATUS": "IMPLEMENTED_AND_VERIFIED",
+      "PROVEN_BY_CURRENT_MAIN": "Base capture before Task10, immutable daily P50/P80/P90, PIT readback and hashes",
+      "NOT_PROVEN": "Production operational binding in the current environment"
+    },
+    {
+      "DOMAIN": "persistence/query",
+      "CURRENT_STATUS": "IMPLEMENTED_ENGINEERING_PATH",
+      "PROVEN_BY_CURRENT_MAIN": "PostgreSQL-backed authority and read/export endpoints",
+      "NOT_PROVEN": "Deployment-specific production DB binding and SLO evidence"
+    },
+    {
+      "DOMAIN": "quality comparison",
+      "CURRENT_STATUS": "PARTIALLY_IMPLEMENTED",
+      "PROVEN_BY_CURRENT_MAIN": "Forecast/actual report and model/naive-baseline comparison",
+      "NOT_PROVEN": "Current/previous, approved-model, and calibration comparisons"
+    },
+    {
+      "DOMAIN": "API",
+      "CURRENT_STATUS": "IMPLEMENTED_ENGINEERING_SURFACE",
+      "PROVEN_BY_CURRENT_MAIN": "Forecast, daily curve, export, actual-harvest, quality report/comparison/export routes",
+      "NOT_PROVEN": "Accepted S5 operations package for an approved pilot model"
+    },
+    {
+      "DOMAIN": "frontend/browser workflow",
+      "CURRENT_STATUS": "ENGINEERING_FLOW_PRESENT",
+      "PROVEN_BY_CURRENT_MAIN": "Forecast and Quality pages render persisted values and reasons",
+      "NOT_PROVEN": "S5 comparison, warning, explanation, adoption, and pilot-acceptance surfaces"
+    },
+    {
+      "DOMAIN": "business pilot operation",
+      "CURRENT_STATUS": "NOT_STARTED",
+      "PROVEN_BY_CURRENT_MAIN": "§4.7/§4.8 definitions and dependency order",
+      "NOT_PROVEN": "Operating cadence, roles, adoption records, and real-season evidence"
+    },
+    {
+      "DOMAIN": "deployment/runtime",
+      "CURRENT_STATUS": "PARTIAL_LOCAL_ENGINEERING_ONLY",
+      "PROVEN_BY_CURRENT_MAIN": "Local docker-compose.yml, TEST-only docker-compose.test.yml, /live, /ready",
+      "NOT_PROVEN": "Production binding, secret management, backup/restore, deployment owner"
+    },
+    {
+      "DOMAIN": "observability/audit",
+      "CURRENT_STATUS": "PARTIAL_AUDITABILITY",
+      "PROVEN_BY_CURRENT_MAIN": "Request/idempotency IDs, lineage, hashes, persisted evidence",
+      "NOT_PROVEN": "Production telemetry, dashboards, alerting, incident review"
+    },
+    {
+      "DOMAIN": "release/acceptance",
+      "CURRENT_STATUS": "NOT_STARTED",
+      "PROVEN_BY_CURRENT_MAIN": "S6 acceptance contract and production release outside V0.3",
+      "NOT_PROVEN": "Model approval, pilot acceptance, rollback decision"
+    }
+  ],
+  "RUNTIME_GAP_MATRIX": [
+    {
+      "GAP_ID": "S5A-CODE-001",
+      "DOMAIN": "Server comparison/history",
+      "CURRENT_STATE": "PARTIAL",
+      "EVIDENCE_PATH": ["backend/app/trial.py", "backend/app/forecast_quality/comparison.py", "backend/app/models/forecast_quality.py"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Operators need comparable, versioned server-owned views without client recalculation",
+      "BLOCKS_S5_A_IMPLEMENTATION": true,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "CODE_IMPLEMENTATION",
+      "EXTERNAL_DECISION_REQUIRED": false,
+      "PROPOSED_FUTURE_OWNER": "S5-A backend owner",
+      "ACCEPTANCE_PROOF": "Persisted comparison members, scope/hash binding, and fresh-session readback"
+    },
+    {
+      "GAP_ID": "S5A-CODE-002",
+      "DOMAIN": "Notices/explanation",
+      "CURRENT_STATE": "PARTIAL",
+      "EVIDENCE_PATH": ["backend/app/trial.py", "backend/app/s2_materialized_dataset/lane_b/schemas.py", "frontend/src/features/forecast/ForecastResult.tsx"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Operators need actionable, evidence-backed data-gap and quality-risk status",
+      "BLOCKS_S5_A_IMPLEMENTATION": true,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "CODE_IMPLEMENTATION",
+      "EXTERNAL_DECISION_REQUIRED": false,
+      "PROPOSED_FUTURE_OWNER": "S5-A backend owner",
+      "ACCEPTANCE_PROOF": "Typed notice/explanation payload, evidence links, and unsupported-cause negative test"
+    },
+    {
+      "GAP_ID": "S5A-CODE-003",
+      "DOMAIN": "Feedback persistence",
+      "CURRENT_STATE": "NOT_IMPLEMENTED",
+      "EVIDENCE_PATH": ["backend/app/actual_harvest_imports", "backend/app/actual_harvest_labels", "scoped backend/app search"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Adoption and adjustment actions must be auditable and separate from business acceptance",
+      "BLOCKS_S5_A_IMPLEMENTATION": true,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "DATABASE_SCHEMA",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "S5-A/S5-C owner with business/data owner",
+      "ACCEPTANCE_PROOF": "Append-only record, actor/run linkage, reason vocabulary, and replay/readback"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-001",
+      "DOMAIN": "PostgreSQL production binding",
+      "CURRENT_STATE": "NOT_PROVEN",
+      "EVIDENCE_PATH": ["backend/app/core/config.py", "docker-compose.yml", "docs/v0-3/development-plan.md §4.29"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Pilot data must persist in an identified production authority, not a local/task-isolated DB",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "DEPLOYMENT_CONFIGURATION",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Deployment owner",
+      "ACCEPTANCE_PROOF": "Sanitized binding record, migration head, and connection/readiness evidence"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-002",
+      "DOMAIN": "Secret/config externalization",
+      "CURRENT_STATE": "NOT_PROVEN",
+      "EVIDENCE_PATH": ["backend/app/core/config.py", "docker-compose.yml"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Credentials and environment-specific authority must not rely on repository defaults",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "SECURITY_CONFIGURATION",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Security/deployment owner",
+      "ACCEPTANCE_PROOF": "Secret-manager/config-provider evidence with no secret in git"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-003",
+      "DOMAIN": "Migration/deployment procedure",
+      "CURRENT_STATE": "PARTIAL",
+      "EVIDENCE_PATH": ["backend/alembic/", "docker-compose.yml", "docker-compose.test.yml"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Schema/runtime drift can invalidate immutable authority and API behavior",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "DEPLOYMENT_CONFIGURATION",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Deployment owner",
+      "ACCEPTANCE_PROOF": "Rehearsed upgrade, unique head, rollback policy, and release record"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-004",
+      "DOMAIN": "Health/readiness/authority readiness",
+      "CURRENT_STATE": "PARTIAL",
+      "EVIDENCE_PATH": ["backend/app/api/health.py", "backend/app/schemas/health.py"],
+      "WHY_IT_MATTERS_FOR_PILOT": "The existing endpoints prove liveness and SELECT 1 only, not forecast authority readiness",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "OBSERVABILITY",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "S5-A/deployment owner",
+      "ACCEPTANCE_PROOF": "Health contract covers DB, migrations, authority retention, and dependency state"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-005",
+      "DOMAIN": "Backup and restore",
+      "CURRENT_STATE": "NOT_PROVEN",
+      "EVIDENCE_PATH": ["scoped current-main runtime documentation inventory"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Immutable pilot history is not operationally safe without recoverability proof",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "OPERATIONS_PROCESS",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Operations/data owner",
+      "ACCEPTANCE_PROOF": "Successful restore rehearsal, integrity/hash comparison, and RPO/RTO record"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-006",
+      "DOMAIN": "Telemetry/logging/alerting",
+      "CURRENT_STATE": "PARTIAL",
+      "EVIDENCE_PATH": ["backend/app/core/config.py", "backend/app/api/trial.py", "scoped current-main runtime documentation inventory"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Operators must detect failed runs, stale authority, data gaps, and persistence failures",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "OBSERVABILITY",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Operations owner",
+      "ACCEPTANCE_PROOF": "Metrics/log correlation, alerts, dashboard, and tested notification path"
+    },
+    {
+      "GAP_ID": "S5A-RUNTIME-007",
+      "DOMAIN": "Incident/rollback/runbook",
+      "CURRENT_STATE": "NOT_PROVEN",
+      "EVIDENCE_PATH": ["scoped current-main runtime documentation inventory"],
+      "WHY_IT_MATTERS_FOR_PILOT": "A failed or disputed forecast needs a safe, accountable response",
+      "BLOCKS_S5_A_IMPLEMENTATION": false,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "OPERATIONS_PROCESS",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Operations/deployment owner",
+      "ACCEPTANCE_PROOF": "Reviewed runbook, rollback procedure, incident roles, and tabletop evidence"
+    },
+    {
+      "GAP_ID": "S5A-EXT-001",
+      "DOMAIN": "Model/S4 governance",
+      "CURRENT_STATE": "NOT_SATISFIED",
+      "EVIDENCE_PATH": ["docs/v0-3/development-plan.md §4.7", "docs/v0-3/development-plan.md §4.29"],
+      "WHY_IT_MATTERS_FOR_PILOT": "S5-A must operate an explicitly approved model, not an unselected candidate",
+      "BLOCKS_S5_A_IMPLEMENTATION": true,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "BUSINESS_OWNER_DECISION",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Coordinator/model-validation owner",
+      "ACCEPTANCE_PROOF": "CURRENT_V0_3_S4_COMPLETE=true, MODEL_APPROVED_FOR_PILOT=true, and review record"
+    },
+    {
+      "GAP_ID": "S5A-EXT-002",
+      "DOMAIN": "Pilot scope/owners/cadence",
+      "CURRENT_STATE": "NOT_PROVEN",
+      "EVIDENCE_PATH": ["docs/v0-3/development-plan.md §4.8", "docs/v0-3/post-s4-business-pilot-remaining-scope-and-execution-plan-r1.md"],
+      "WHY_IT_MATTERS_FOR_PILOT": "Roles, farms/varieties, cadence, data/security ownership, and feedback boundary define safe pilot operation",
+      "BLOCKS_S5_A_IMPLEMENTATION": true,
+      "BLOCKS_S5_A_ACCEPTANCE": true,
+      "RESOLUTION_CLASS": "BUSINESS_OWNER_DECISION",
+      "EXTERNAL_DECISION_REQUIRED": true,
+      "PROPOSED_FUTURE_OWNER": "Business/data/security/operations owners",
+      "ACCEPTANCE_PROOF": "Signed scope, roles, cadence, handling, and S6 linkage record"
+    }
+  ],
+  "EXTERNAL_DECISION_MATRIX": [
+    {
+      "DECISION_ID": "S5A-DEC-001",
+      "DECISION_NEEDED": "Accept this S5-A proposal and its server-owned comparison/notice/feedback scope",
+      "CURRENT_STATUS": "NOT_ISSUED",
+      "OWNER": "Coordinator plus business/data owner",
+      "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_EVIDENCE": "Explicit contract acceptance and separately scoped implementation authorization"
+    },
+    {
+      "DECISION_ID": "S5A-DEC-002",
+      "DECISION_NEEDED": "Confirm model and S4 disposition",
+      "CURRENT_STATUS": "NOT_SATISFIED",
+      "OWNER": "Coordinator/model-validation owner",
+      "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_EVIDENCE": "MODEL_APPROVED_FOR_PILOT=true and CURRENT_V0_3_S4_COMPLETE=true"
+    },
+    {
+      "DECISION_ID": "S5A-DEC-003",
+      "DECISION_NEEDED": "Confirm pilot farms/varieties, cadence, data owner, security owner, operating owner, and deployment owner",
+      "CURRENT_STATUS": "NOT_PROVEN",
+      "OWNER": "Business/operations/security/data owners",
+      "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_EVIDENCE": "Signed role/scope/cadence/feedback/handling record"
+    },
+    {
+      "DECISION_ID": "S5A-DEC-004",
+      "DECISION_NEEDED": "Decide backup/restore, alerting, incident response, and rollback obligations",
+      "CURRENT_STATUS": "NOT_PROVEN",
+      "OWNER": "Operations/deployment owner",
+      "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_EVIDENCE": "Runbook, rehearsal, RPO/RTO, and alert evidence"
+    },
+    {
+      "DECISION_ID": "S5A-DEC-005",
+      "DECISION_NEEDED": "Decide whether adoption/manual-adjustment hooks are S5-A interfaces or S5-C ledger work",
+      "CURRENT_STATUS": "NOT_ISSUED",
+      "OWNER": "Coordinator and business owner",
+      "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_EVIDENCE": "Boundary decision preserving BUSINESS_ADOPTION_IS_BUSINESS_ACCEPTANCE=false"
+    }
+  ],
+  "IMPLEMENTATION_PREREQUISITES": [
+    "MODEL_APPROVED_FOR_PILOT=true",
+    "CURRENT_V0_3_S4_COMPLETE=true",
+    "PROPOSED_S5_A_CONTRACT_ACCEPTED=true",
+    "S5_A_IMPLEMENTATION_SEPARATELY_AUTHORIZED=true",
+    "ALL_REQUIRED_EXTERNAL_PREREQUISITES_HAVE_EXPLICIT_DISPOSITION=true"
+  ],
+  "ACCEPTANCE_EVIDENCE_CONTRACT": [
+    "Versioned pilot-run identity binds public forecast identity, cutoff, model/parameter versions, input/retention authority, grain, lineage, actor if enabled, status, and canonical hashes",
+    "Multiple immutable forecast versions survive fresh-session readback without overwrite/delete",
+    "Server-owned comparison results cover current/previous, approved-model, calibration, forecast/actual, naive baseline, and P50/P80/P90, with honest unavailable reasons",
+    "Typed data-gap/data-quality notices and evidence-derived explanations have provenance and unsupported-cause negative tests",
+    "History queries and deterministic exports retain identity and source hashes",
+    "Adoption/manual-adjustment hooks, if accepted into S5-A, are append-only and explicitly not business acceptance",
+    "Production binding, secret/config, migration, authority-aware readiness, backup/restore, telemetry/alerting, incident/rollback, and named-owner evidence exist",
+    "S4 remains isolated: no candidate execution, validation budget delta, TEST access, S1 split change, or S4 plan amendment"
+  ],
+  "S5_B_BOUNDARY": {
+    "STATUS": "PROPOSAL_ONLY",
+    "SCOPE": [
+      "Frontend comparison and warning presentation",
+      "Structured explanation UI"
+    ],
+    "NOT_AUTHORIZED": true,
+    "CONSTRAINTS": [
+      "Consume server-owned S5-A evidence",
+      "No client-side business metric recomputation",
+      "No unsupported cause inference"
+    ]
+  },
+  "S5_C_BOUNDARY": {
+    "STATUS": "PROPOSAL_ONLY",
+    "SCOPE": [
+      "Recurring evaluation scheduling",
+      "Long-term adoption/non-adoption records",
+      "Continuous metric pipelines"
+    ],
+    "NOT_AUTHORIZED": true,
+    "CONSTRAINTS": [
+      "Do not convert adoption into business acceptance",
+      "S6 retains real-season business acceptance authority"
+    ]
+  },
+  "NEXT_ACTION": "COORDINATOR_REVIEW_OF_PROPOSED_S5_A_CONTRACT",
+  "NEXT_ACTION_DOES_NOT_AUTHORIZE_S5": true,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_REVIEW"
+}
