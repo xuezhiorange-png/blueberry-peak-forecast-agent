@@ -39,6 +39,7 @@ from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read
     OFFICIAL_VALIDATION_ROW_COUNT,
 )
 from backend.app.s4_experiment import (
+    V2_FORECAST_HORIZONS,
     BreakdownAxisEvidence,
     BreakdownCellEvidence,
     CoverageQualityEvidence,
@@ -1093,6 +1094,267 @@ def relation_to_incumbent(candidate: LocalReplayResult, incumbent: LocalReplayRe
     return "WORSE"
 
 
+V2_SOURCE_ID: Final[str] = "SOURCE_002"
+V2_CUTOFF_POLICY_IDENTITY: Final[str] = (
+    "V0_3_S4_V2_CUTOFF_MAX_TRAIN_HARVEST_DATE_BEFORE_VALIDATION_V1"
+)
+V2_FORECAST_HORIZON_SET_POLICY_IDENTITY: Final[str] = "V0_3_S4_V2_FORECAST_HORIZON_SET_7_14_21_V1"
+V2_BUSINESS_GRAIN_POLICY_IDENTITY: Final[str] = (
+    "V0_3_S4_V2_BUSINESS_GRAIN_SEASON_FARM_SUBFARM_VARIETY_DATE_V1"
+)
+V2_COMMON_COMPARABLE_POLICY_IDENTITY: Final[str] = "V0_3_S4_V2_COMMON_COMPARABLE_TARGET_ROWS_V1"
+V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE: Final[str] = COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+V2_POST_CUTOFF_FEATURE_FORBIDDEN: Final[str] = "POST_CUTOFF_FEATURE_FORBIDDEN"
+V2_HISTORICAL_TARGET_SET_EMPTY: Final[str] = "HISTORICAL_TARGET_SET_EMPTY"
+V2_HISTORICAL_HORIZON_SET_INCOMPLETE: Final[str] = "V2_HISTORICAL_HORIZON_SET_INCOMPLETE"
+V2_PARTITION_BOUNDARY_INVALID: Final[str] = "V2_TRAIN_VALIDATION_BOUNDARY_INVALID"
+
+
+@dataclass(frozen=True, slots=True)
+class V2HistoricalEvaluationAuthority:
+    """Bound SOURCE-002 TRAIN/VALIDATION authority for future offline runs.
+
+    This object contains dataset and target-row identities only.  Constructing
+    it verifies partition bytes and derives the cutoff; it does not fit a
+    model, score a candidate, read TEST, or append a budget event.
+    """
+
+    source_id: str
+    materialized_dataset_identity_sha256: str
+    train_dataset_identity: str
+    validation_dataset_identity: str
+    actual_label_set_identity: str
+    cutoff_policy_identity: str
+    forecast_horizon_set_identity: str
+    business_grain_set_identity: str
+    common_comparable_set_identity: str
+    forecast_cutoff_at: date
+    requested_forecast_horizons: tuple[int, ...]
+    observed_forecast_horizons: tuple[int, ...]
+    train_row_count: int
+    validation_row_count: int
+    evaluation_row_count: int
+    train_rows: tuple[MaterializableRow, ...]
+    validation_rows: tuple[MaterializableRow, ...]
+    evaluation_rows: tuple[MaterializableRow, ...]
+    complete_window_authority: CompleteWindowAuthority | None
+    test_remains_sealed: bool
+
+    def identity_values(self) -> tuple[tuple[str, str], ...]:
+        return (
+            ("train_dataset_identity", self.train_dataset_identity),
+            ("validation_dataset_identity", self.validation_dataset_identity),
+            ("actual_label_set_identity", self.actual_label_set_identity),
+            ("cutoff_policy_identity", self.cutoff_policy_identity),
+            ("forecast_horizon_set_identity", self.forecast_horizon_set_identity),
+            ("business_grain_set_identity", self.business_grain_set_identity),
+            ("common_comparable_set_identity", self.common_comparable_set_identity),
+        )
+
+    def payload(self) -> dict[str, object]:
+        """Return the compact, row-free authority projection."""
+
+        return {
+            "source_id": self.source_id,
+            "materialized_dataset_identity_sha256": self.materialized_dataset_identity_sha256,
+            "train_dataset_identity": self.train_dataset_identity,
+            "validation_dataset_identity": self.validation_dataset_identity,
+            "actual_label_set_identity": self.actual_label_set_identity,
+            "cutoff_policy_identity": self.cutoff_policy_identity,
+            "forecast_horizon_set_identity": self.forecast_horizon_set_identity,
+            "business_grain_set_identity": self.business_grain_set_identity,
+            "common_comparable_set_identity": self.common_comparable_set_identity,
+            "forecast_cutoff_at": self.forecast_cutoff_at,
+            "requested_forecast_horizons": self.requested_forecast_horizons,
+            "observed_forecast_horizons": self.observed_forecast_horizons,
+            "train_row_count": self.train_row_count,
+            "validation_row_count": self.validation_row_count,
+            "evaluation_row_count": self.evaluation_row_count,
+            "complete_window_authority": self.complete_window_authority is not None,
+            "complete_window_metrics_reason": V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE,
+            "test_remains_sealed": self.test_remains_sealed,
+        }
+
+
+def derive_v2_historical_cutoff(
+    train_rows: tuple[MaterializableRow, ...],
+    validation_rows: tuple[MaterializableRow, ...],
+) -> date:
+    """Derive the cutoff from the governed partition dates, never a literal."""
+
+    if not train_rows or not validation_rows:
+        raise LocalEngineeringContractError(V2_PARTITION_BOUNDARY_INVALID)
+    train_end = max(row.harvest_business_date for row in train_rows)
+    validation_start = min(row.harvest_business_date for row in validation_rows)
+    if train_end >= validation_start:
+        raise LocalEngineeringContractError(V2_PARTITION_BOUNDARY_INVALID)
+    return train_end
+
+
+def _v2_target_rows(
+    validation_rows: tuple[MaterializableRow, ...],
+    *,
+    forecast_cutoff_at: date,
+) -> tuple[MaterializableRow, ...]:
+    targets = tuple(
+        sorted(
+            (
+                row
+                for row in validation_rows
+                if (row.harvest_business_date - forecast_cutoff_at).days in V2_FORECAST_HORIZONS
+            ),
+            key=_row_key,
+        )
+    )
+    if not targets:
+        raise LocalEngineeringContractError(V2_HISTORICAL_TARGET_SET_EMPTY)
+    observed_horizons = {(row.harvest_business_date - forecast_cutoff_at).days for row in targets}
+    if observed_horizons != set(V2_FORECAST_HORIZONS):
+        raise LocalEngineeringContractError(V2_HISTORICAL_HORIZON_SET_INCOMPLETE)
+    return targets
+
+
+def _v2_common_comparable_set_hash(
+    rows: tuple[MaterializableRow, ...], *, forecast_cutoff_at: date
+) -> str:
+    return _sha(
+        {
+            "policy": V2_COMMON_COMPARABLE_POLICY_IDENTITY,
+            "rows": [
+                {
+                    "season": row.season,
+                    "farm": row.farm,
+                    "subfarm": row.subfarm,
+                    "variety": row.variety,
+                    "harvest_business_date": row.harvest_business_date,
+                    "forecast_horizon_days": (row.harvest_business_date - forecast_cutoff_at).days,
+                }
+                for row in rows
+            ],
+        }
+    )
+
+
+def _v2_business_grain_set_hash(rows: tuple[MaterializableRow, ...]) -> str:
+    return _sha(
+        {
+            "policy": V2_BUSINESS_GRAIN_POLICY_IDENTITY,
+            "rows": [
+                {
+                    "season": row.season,
+                    "farm": row.farm,
+                    "subfarm": row.subfarm,
+                    "variety": row.variety,
+                    "harvest_business_date": row.harvest_business_date,
+                }
+                for row in rows
+            ],
+        }
+    )
+
+
+def build_v2_historical_evaluation_authority(
+    dataset: FrozenEngineeringDataset,
+) -> V2HistoricalEvaluationAuthority:
+    """Verify and bind the accepted SOURCE-002 historical evaluation surface."""
+
+    if (
+        len(dataset.train_rows) != OFFICIAL_TRAIN_ROW_COUNT
+        or len(dataset.validation_rows) != OFFICIAL_VALIDATION_ROW_COUNT
+        or dataset.train_content_sha256 != OFFICIAL_TRAIN_CONTENT_SHA256
+        or dataset.validation_content_sha256 != OFFICIAL_VALIDATION_CONTENT_SHA256
+        or dataset.test_row_count != 0
+    ):
+        raise LocalEngineeringContractError("SOURCE_002_V2_PARTITION_IDENTITY_MISMATCH")
+    cutoff = derive_v2_historical_cutoff(dataset.train_rows, dataset.validation_rows)
+    evaluation_rows = _v2_target_rows(dataset.validation_rows, forecast_cutoff_at=cutoff)
+    observed_horizons = tuple(
+        sorted({(row.harvest_business_date - cutoff).days for row in evaluation_rows})
+    )
+    cutoff_identity = _sha(
+        {
+            "policy": V2_CUTOFF_POLICY_IDENTITY,
+            "train_end_derived_from_rows": cutoff,
+            "validation_start_derived_from_rows": min(
+                row.harvest_business_date for row in dataset.validation_rows
+            ),
+        }
+    )
+    horizon_identity = _sha(
+        {
+            "policy": V2_FORECAST_HORIZON_SET_POLICY_IDENTITY,
+            "horizons": V2_FORECAST_HORIZONS,
+        }
+    )
+    return V2HistoricalEvaluationAuthority(
+        source_id=V2_SOURCE_ID,
+        materialized_dataset_identity_sha256=dataset.materialized_dataset_identity_sha256,
+        train_dataset_identity=dataset.train_content_sha256,
+        validation_dataset_identity=dataset.validation_content_sha256,
+        actual_label_set_identity=_actual_label_set_hash(evaluation_rows),
+        cutoff_policy_identity=cutoff_identity,
+        forecast_horizon_set_identity=horizon_identity,
+        business_grain_set_identity=_v2_business_grain_set_hash(evaluation_rows),
+        common_comparable_set_identity=_v2_common_comparable_set_hash(
+            evaluation_rows, forecast_cutoff_at=cutoff
+        ),
+        forecast_cutoff_at=cutoff,
+        requested_forecast_horizons=V2_FORECAST_HORIZONS,
+        observed_forecast_horizons=observed_horizons,
+        train_row_count=len(dataset.train_rows),
+        validation_row_count=len(dataset.validation_rows),
+        evaluation_row_count=len(evaluation_rows),
+        train_rows=dataset.train_rows,
+        validation_rows=dataset.validation_rows,
+        evaluation_rows=evaluation_rows,
+        complete_window_authority=None,
+        test_remains_sealed=True,
+    )
+
+
+def validate_v2_feature_dates(feature_dates: Iterable[date], *, forecast_cutoff_at: date) -> None:
+    """Reject any feature observed after the derived historical cutoff."""
+
+    for feature_date in feature_dates:
+        if type(feature_date) is not date or feature_date > forecast_cutoff_at:
+            raise LocalEngineeringContractError(V2_POST_CUTOFF_FEATURE_FORBIDDEN)
+
+
+def v2_training_rows(
+    authority: V2HistoricalEvaluationAuthority,
+) -> tuple[MaterializableRow, ...]:
+    """Return only rows allowed to participate in historical fitting."""
+
+    validate_v2_feature_dates(
+        (row.harvest_business_date for row in authority.train_rows),
+        forecast_cutoff_at=authority.forecast_cutoff_at,
+    )
+    return authority.train_rows
+
+
+def validate_v2_forecast_horizon(horizon_days: int) -> int:
+    if type(horizon_days) is not int or horizon_days not in V2_FORECAST_HORIZONS:
+        raise LocalEngineeringContractError(FORECAST_HORIZON_NOT_IN_FROZEN_SET)
+    return horizon_days
+
+
+def v2_metric_availability() -> dict[str, str]:
+    """Expose computability without weakening the inherited S4-B policy."""
+
+    return {
+        "daily_wape": "COMPUTABLE_AFTER_HISTORICAL_ONLY_SCORING_PATH",
+        "daily_mae": "COMPUTABLE_AFTER_HISTORICAL_ONLY_SCORING_PATH",
+        "p80_coverage": "COMPUTABLE_AFTER_HISTORICAL_ONLY_SCORING_PATH",
+        "p90_coverage": "COMPUTABLE_AFTER_HISTORICAL_ONLY_SCORING_PATH",
+        "cumulative_absolute_error_kg": V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE,
+        "single_day_peak_quantity_absolute_error_kg_q": V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE,
+        "sustained_7day_quantity_absolute_error_kg_q": V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE,
+        "s4_b_guardrail_disposition": (
+            "BLOCKED_UNDER_INHERITED_POLICY_WHEN_REQUIRED_COMPLETE_WINDOW_METRICS_UNAVAILABLE"
+        ),
+    }
+
+
 __all__ = [
     "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE",
     "CompleteWindowAuthority",
@@ -1107,11 +1369,27 @@ __all__ = [
     "LocalPrediction",
     "LocalReplayResult",
     "SOURCE_002_MATERIALIZED_DATASET_IDENTITY_SHA256",
+    "V2_BUSINESS_GRAIN_POLICY_IDENTITY",
+    "V2_COMMON_COMPARABLE_POLICY_IDENTITY",
+    "V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE",
+    "V2_CUTOFF_POLICY_IDENTITY",
+    "V2_FORECAST_HORIZON_SET_POLICY_IDENTITY",
+    "V2_HISTORICAL_TARGET_SET_EMPTY",
+    "V2_HISTORICAL_HORIZON_SET_INCOMPLETE",
+    "V2_POST_CUTOFF_FEATURE_FORBIDDEN",
+    "V2_SOURCE_ID",
+    "V2HistoricalEvaluationAuthority",
     "WAPE_ACTUAL_DENOMINATOR_ZERO",
+    "build_v2_historical_evaluation_authority",
     "compute_metrics",
+    "derive_v2_historical_cutoff",
     "guardrail_payload",
     "load_frozen_engineering_dataset",
     "relation_to_incumbent",
     "run_local_replay",
+    "validate_v2_feature_dates",
+    "validate_v2_forecast_horizon",
     "verify_frozen_source_object",
+    "v2_metric_availability",
+    "v2_training_rows",
 ]
