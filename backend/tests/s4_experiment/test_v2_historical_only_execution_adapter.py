@@ -104,7 +104,7 @@ def _gate_request(
     return CandidateExecutionGateRequest(
         experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION if v2 else EXPERIMENT_PLAN_VERSION,
         experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH if v2 else S4_A_EXPERIMENT_PLAN_HASH_BOUND,
-        guardrail_policy_version=V2_GUARDRAIL_POLICY_VERSION if v2 else GUARDRAIL_POLICY_VERSION,
+        guardrail_policy_version=(V2_GUARDRAIL_POLICY_VERSION if v2 else GUARDRAIL_POLICY_VERSION),
         guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH if v2 else GUARDRAIL_POLICY_HASH,
         candidate_id=candidate_id,
         candidate_run_ordinal=1,
@@ -170,8 +170,7 @@ def test_v1_execution_gate_still_accepts_v1_identity() -> None:
 
 def test_v2_execution_gate_accepts_v2_identity() -> None:
     request = _gate_request(v2=True)
-    result = check_candidate_execution_gate_v2(request)
-    assert result.allowed is True
+    assert check_candidate_execution_gate_v2(request).allowed is True
     assert check_candidate_execution_gate(request).allowed is True
 
 
@@ -250,7 +249,8 @@ def test_v2_guardrail_hash_excludes_runtime_remaining(
 def test_c01_rerun_remains_forbidden() -> None:
     item = _audit_by_id()[V2_CANDIDATE_01_ID]
     assert V2_CANDIDATE_01_RERUN_FORBIDDEN is True
-    assert item.current_v0_3_execution_eligible is False
+    assert item.current_v0_3_execution_eligible is True
+    assert item.currently_runnable_under_v2 is False
     assert item.reason_code == "CANDIDATE_01_RERUN_FORBIDDEN"
     assert item.parameter_reaches_prediction_math is True
     assert item.parameter_change_can_change_prediction is True
@@ -261,7 +261,10 @@ def test_candidate_06_v2_execution_blocked() -> None:
     assert V2_CANDIDATE_06_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_06_execution_eligible is False
     assert readiness.next_executable_candidate == "NONE"
-    assert V2_CANDIDATE_06_ID not in V2_CANDIDATE_AUDIT_ORDER
+    assert V2_CANDIDATE_06_ID in V2_CANDIDATE_AUDIT_ORDER
+    item = _audit_by_id()[V2_CANDIDATE_06_ID]
+    assert item.current_v0_3_execution_eligible is False
+    assert item.currently_runnable_under_v2 is False
 
 
 def test_candidate_08_v2_execution_blocked() -> None:
@@ -269,7 +272,10 @@ def test_candidate_08_v2_execution_blocked() -> None:
     assert V2_CANDIDATE_08_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_08_execution_eligible is False
     assert readiness.next_executable_candidate == "NONE"
-    assert V2_CANDIDATE_08_ID not in V2_CANDIDATE_AUDIT_ORDER
+    assert V2_CANDIDATE_08_ID in V2_CANDIDATE_AUDIT_ORDER
+    item = _audit_by_id()[V2_CANDIDATE_08_ID]
+    assert item.current_v0_3_execution_eligible is False
+    assert item.currently_runnable_under_v2 is False
 
 
 def test_source002_train_identity_exact(
@@ -382,11 +388,13 @@ def test_candidate_parameter_must_reach_prediction_path() -> None:
     assert audit[V2_CANDIDATE_04_ID].parameter_reaches_prediction_math is False
 
 
-def test_candidate_using_weather_is_historical_only_ineligible() -> None:
+def test_c03_frozen_historical_eligibility_is_distinct_from_legacy_path() -> None:
     item = _audit_by_id()["03_phenology_offset"]
     assert item.uses_weather is True
-    assert item.historical_only_input_compatible is False
+    assert item.historical_only_input_compatible is True
+    assert item.current_v0_3_execution_eligible is True
     assert item.historical_only_execution_compatible is False
+    assert item.currently_runnable_under_v2 is False
 
 
 def test_candidate_using_plan_is_historical_only_ineligible() -> None:
@@ -400,7 +408,8 @@ def test_c03_parameter_effect_path_is_proven_or_fail_closed() -> None:
     assert item.parameter_or_feature_path == ("offset.maximum_abs_shift_days",)
     assert item.parameter_reaches_prediction_math is True
     assert item.v2_historical_only_scoring_path_exists is False
-    assert item.current_v0_3_execution_eligible is False
+    assert item.current_v0_3_execution_eligible is True
+    assert item.currently_runnable_under_v2 is False
     assert item.reason_code == "C03_NO_SOURCE_002_ONLY_SCORING_PATH"
 
 
@@ -422,9 +431,9 @@ def test_budget_remains_4_consumed_28_remaining() -> None:
     assert V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED == 4
     assert V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS == 28
     assert readiness.legacy_reconciled_validation_debit == 4
-    assert readiness.canonical_started_count == 0
-    assert readiness.effective_consumed == 4
-    assert readiness.remaining == 28
+    assert readiness.budget_snapshot_canonical_started_count == 0
+    assert readiness.budget_snapshot_effective_consumed == 4
+    assert readiness.budget_snapshot_remaining == 28
 
 
 def test_v2_authority_identity_fields_are_all_sha256(
@@ -468,11 +477,28 @@ def test_c02_quantile_path_is_metric_only() -> None:
     assert "S3_BINDING_FORECAST_ROWS" in item.actual_data_sources_read
 
 
-def test_candidate_audit_has_exact_six_entries() -> None:
+def test_candidate_audit_has_exact_eight_entries() -> None:
     audit = build_v2_candidate_compatibility_audit()
-    assert len(audit) == 6
+    assert len(audit) == 8
     assert tuple(item.candidate_id for item in audit) == V2_CANDIDATE_AUDIT_ORDER
     assert {item.candidate_id for item in audit} == {
+        "01_parameter_calibration",
+        "02_quantile_calibration",
+        "03_phenology_offset",
+        "04_yield_parameter",
+        "05_marketable_rate",
+        "06_weather_response",
+        "07_harvest_efficiency",
+        "08_residual_feature",
+    }
+
+
+def test_frozen_v2_eligibility_is_preserved_independently_of_runnability() -> None:
+    audit = _audit_by_id()
+    eligible = {
+        item.candidate_id for item in audit.values() if item.current_v0_3_execution_eligible
+    }
+    assert eligible == {
         "01_parameter_calibration",
         "02_quantile_calibration",
         "03_phenology_offset",
@@ -485,7 +511,7 @@ def test_candidate_audit_has_exact_six_entries() -> None:
 def test_next_executable_candidate_is_none() -> None:
     readiness = build_v2_historical_only_readiness()
     assert readiness.next_executable_candidate == "NONE"
-    assert all(item.current_v0_3_execution_eligible is False for item in readiness.candidate_audit)
+    assert all(item.currently_runnable_under_v2 is False for item in readiness.candidate_audit)
 
 
 def _baseline_row(index: int, quantity: str) -> FarmTotalDatasetRow:
