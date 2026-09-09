@@ -19,8 +19,8 @@ from backend.app.s4_experiment import (
     V2_CANDIDATE_01_RERUN_FORBIDDEN,
     V2_CANDIDATE_06_EXECUTION_ELIGIBLE,
     V2_CANDIDATE_08_EXECUTION_ELIGIBLE,
-    V2_CANONICAL_STARTED_COUNT,
-    V2_EFFECTIVE_CONSUMED,
+    V2_BUDGET_SNAPSHOT_CANONICAL_STARTED_COUNT,
+    V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED,
     V2_FORECAST_HORIZONS,
     V2_GUARDRAIL_POLICY_HASH,
     V2_GUARDRAIL_POLICY_VERSION,
@@ -28,7 +28,7 @@ from backend.app.s4_experiment import (
     V2_LEGACY_RECONCILED_VALIDATION_DEBIT,
     V2_PRODUCTION_PLAN_REQUIRED,
     V2_PROSPECTIVE_CAPTURE_REQUIRED,
-    V2_REMAINING_VALIDATION_EVALUATIONS,
+    V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS,
     V2_TASK8_TASK9_REQUIRED,
     V2_TEST_REMAINS_SEALED,
     V2_WALL_CLOCK_WAIT_REQUIRED,
@@ -49,7 +49,9 @@ V2_CANDIDATE_AUDIT_ORDER: Final[tuple[str, ...]] = (
     "03_phenology_offset",
     "04_yield_parameter",
     "05_marketable_rate",
+    "06_weather_response",
     "07_harvest_efficiency",
+    "08_residual_feature",
 )
 
 V2_CANDIDATE_06_ID: Final[str] = "06_weather_response"
@@ -74,7 +76,7 @@ CompatibilityStatus = Literal["COMPATIBLE", "INCOMPATIBLE"]
 
 @dataclass(frozen=True, slots=True)
 class V2CandidateCompatibility:
-    """Code-level candidate compatibility facts, not an execution grant."""
+    """Frozen V2 eligibility plus current code-path compatibility facts."""
 
     candidate_id: str
     parameter_or_feature_path: tuple[str, ...]
@@ -93,6 +95,7 @@ class V2CandidateCompatibility:
     historical_only_input_compatible: bool
     historical_only_execution_compatible: bool
     current_v0_3_execution_eligible: bool
+    currently_runnable_under_v2: bool
     status: CompatibilityStatus
     reason_code: str
 
@@ -115,6 +118,7 @@ class V2CandidateCompatibility:
             "historical_only_input_compatible": self.historical_only_input_compatible,
             "historical_only_execution_compatible": self.historical_only_execution_compatible,
             "current_v0_3_execution_eligible": self.current_v0_3_execution_eligible,
+            "currently_runnable_under_v2": self.currently_runnable_under_v2,
             "status": self.status,
             "reason_code": self.reason_code,
         }
@@ -137,7 +141,7 @@ def _audit(
     parameter_change_can_change_prediction: bool,
     v2_historical_only_scoring_path_exists: bool,
     historical_only_input_compatible: bool,
-    current_v0_3_execution_eligible: bool = False,
+    current_v0_3_execution_eligible: bool,
     reason_code: str,
 ) -> V2CandidateCompatibility:
     historical_only_execution_compatible = (
@@ -150,6 +154,9 @@ def _audit(
         and not uses_task8
         and not uses_task9
         and not uses_other_forward_looking_authority
+    )
+    currently_runnable_under_v2 = (
+        current_v0_3_execution_eligible and historical_only_execution_compatible
     )
     return V2CandidateCompatibility(
         candidate_id=candidate_id,
@@ -168,24 +175,20 @@ def _audit(
         v2_historical_only_scoring_path_exists=v2_historical_only_scoring_path_exists,
         historical_only_input_compatible=historical_only_input_compatible,
         historical_only_execution_compatible=historical_only_execution_compatible,
-        current_v0_3_execution_eligible=(
-            current_v0_3_execution_eligible and historical_only_execution_compatible
-        ),
+        current_v0_3_execution_eligible=current_v0_3_execution_eligible,
+        currently_runnable_under_v2=currently_runnable_under_v2,
         status=("COMPATIBLE" if historical_only_execution_compatible else "INCOMPATIBLE"),
         reason_code=reason_code,
     )
 
 
 def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, ...]:
-    """Return the fixed six-candidate audit in declared candidate order."""
+    """Return all eight frozen V2 candidates in registry order."""
 
     return (
         _audit(
             candidate_id=V2_CANDIDATE_01_ID,
-            parameter_or_feature_path=(
-                "curve.spline_knot_count",
-                "curve.ridge_alpha",
-            ),
+            parameter_or_feature_path=("curve.spline_knot_count", "curve.ridge_alpha"),
             actual_execution_function=(V2_C01_LOCAL_SCORER_PATH,),
             actual_data_sources_read=(
                 "SOURCE_002_TRAIN",
@@ -198,14 +201,12 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_change_can_change_prediction=True,
             v2_historical_only_scoring_path_exists=False,
             historical_only_input_compatible=True,
+            current_v0_3_execution_eligible=True,
             reason_code=CANDIDATE_01_RERUN_FORBIDDEN,
         ),
         _audit(
             candidate_id=V2_CANDIDATE_02_ID,
-            parameter_or_feature_path=(
-                "intervals.p80_quantile",
-                "intervals.p90_quantile",
-            ),
+            parameter_or_feature_path=("intervals.p80_quantile", "intervals.p90_quantile"),
             actual_execution_function=(V2_C02_METRIC_ONLY_PATH,),
             actual_data_sources_read=(
                 "S3_BINDING_FORECAST_ROWS",
@@ -217,7 +218,8 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_reaches_prediction_math=False,
             parameter_change_can_change_prediction=False,
             v2_historical_only_scoring_path_exists=False,
-            historical_only_input_compatible=False,
+            historical_only_input_compatible=True,
+            current_v0_3_execution_eligible=True,
             reason_code="NO_V2_BOUND_PREDICTION_QUANTILE_PATH",
         ),
         _audit(
@@ -243,7 +245,8 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_reaches_prediction_math=True,
             parameter_change_can_change_prediction=True,
             v2_historical_only_scoring_path_exists=False,
-            historical_only_input_compatible=False,
+            historical_only_input_compatible=True,
+            current_v0_3_execution_eligible=True,
             reason_code="C03_NO_SOURCE_002_ONLY_SCORING_PATH",
         ),
         _audit(
@@ -257,6 +260,7 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_change_can_change_prediction=False,
             v2_historical_only_scoring_path_exists=False,
             historical_only_input_compatible=True,
+            current_v0_3_execution_eligible=True,
             reason_code="NO_BOUND_CANDIDATE_04_SCORING_PATH",
         ),
         _audit(
@@ -270,7 +274,23 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_change_can_change_prediction=False,
             v2_historical_only_scoring_path_exists=False,
             historical_only_input_compatible=True,
+            current_v0_3_execution_eligible=True,
             reason_code="NO_BOUND_CANDIDATE_05_SCORING_PATH",
+        ),
+        _audit(
+            candidate_id=V2_CANDIDATE_06_ID,
+            parameter_or_feature_path=("weather_response_features",),
+            actual_execution_function=(),
+            actual_data_sources_read=("CURRENT_WEATHER", "WEATHER_FEATURES"),
+            uses_source_002_train=False,
+            uses_source_002_validation=False,
+            uses_weather=True,
+            parameter_reaches_prediction_math=False,
+            parameter_change_can_change_prediction=False,
+            v2_historical_only_scoring_path_exists=False,
+            historical_only_input_compatible=False,
+            current_v0_3_execution_eligible=False,
+            reason_code="C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY",
         ),
         _audit(
             candidate_id=V2_CANDIDATE_07_ID,
@@ -283,7 +303,27 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_change_can_change_prediction=False,
             v2_historical_only_scoring_path_exists=False,
             historical_only_input_compatible=True,
+            current_v0_3_execution_eligible=True,
             reason_code="NO_BOUND_CANDIDATE_07_SCORING_PATH",
+        ),
+        _audit(
+            candidate_id=V2_CANDIDATE_08_ID,
+            parameter_or_feature_path=("residual_feature_manifest",),
+            actual_execution_function=(),
+            actual_data_sources_read=(
+                "TASK9_STRUCTURAL_OUTPUT_OR_EQUIVALENT",
+                "POSSIBLE_WEATHER_FEATURES",
+            ),
+            uses_source_002_train=False,
+            uses_source_002_validation=False,
+            uses_weather=True,
+            uses_task9=True,
+            parameter_reaches_prediction_math=False,
+            parameter_change_can_change_prediction=False,
+            v2_historical_only_scoring_path_exists=False,
+            historical_only_input_compatible=False,
+            current_v0_3_execution_eligible=False,
+            reason_code="V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED",
         ),
     )
 
@@ -308,9 +348,9 @@ class V2HistoricalOnlyReadiness:
     candidate_08_execution_eligible: bool
     candidate_01_rerun_forbidden: bool
     legacy_reconciled_validation_debit: int
-    canonical_started_count: int
-    effective_consumed: int
-    remaining: int
+    budget_snapshot_canonical_started_count: int
+    budget_snapshot_effective_consumed: int
+    budget_snapshot_remaining: int
     candidate_audit: tuple[V2CandidateCompatibility, ...]
     next_executable_candidate: str
     started_event_created: bool
@@ -335,9 +375,9 @@ class V2HistoricalOnlyReadiness:
             "candidate_08_execution_eligible": self.candidate_08_execution_eligible,
             "candidate_01_rerun_forbidden": self.candidate_01_rerun_forbidden,
             "legacy_reconciled_validation_debit": self.legacy_reconciled_validation_debit,
-            "canonical_started_count": self.canonical_started_count,
-            "effective_consumed": self.effective_consumed,
-            "remaining": self.remaining,
+            "budget_snapshot_canonical_started_count": self.budget_snapshot_canonical_started_count,
+            "budget_snapshot_effective_consumed": self.budget_snapshot_effective_consumed,
+            "budget_snapshot_remaining": self.budget_snapshot_remaining,
             "candidate_audit": [item.payload() for item in self.candidate_audit],
             "next_executable_candidate": self.next_executable_candidate,
             "started_event_created": self.started_event_created,
@@ -347,11 +387,11 @@ class V2HistoricalOnlyReadiness:
 
 
 def build_v2_historical_only_readiness() -> V2HistoricalOnlyReadiness:
-    """Build the V2 policy snapshot without reading budget persistence."""
+    """Build V2 readiness; budget values are freeze-point evidence, not durable authority."""
 
     audit = build_v2_candidate_compatibility_audit()
     next_candidate = next(
-        (item.candidate_id for item in audit if item.current_v0_3_execution_eligible),
+        (item.candidate_id for item in audit if item.currently_runnable_under_v2),
         "NONE",
     )
     return V2HistoricalOnlyReadiness(
@@ -371,9 +411,9 @@ def build_v2_historical_only_readiness() -> V2HistoricalOnlyReadiness:
         candidate_08_execution_eligible=V2_CANDIDATE_08_EXECUTION_ELIGIBLE,
         candidate_01_rerun_forbidden=V2_CANDIDATE_01_RERUN_FORBIDDEN,
         legacy_reconciled_validation_debit=V2_LEGACY_RECONCILED_VALIDATION_DEBIT,
-        canonical_started_count=V2_CANONICAL_STARTED_COUNT,
-        effective_consumed=V2_EFFECTIVE_CONSUMED,
-        remaining=V2_REMAINING_VALIDATION_EVALUATIONS,
+        budget_snapshot_canonical_started_count=V2_BUDGET_SNAPSHOT_CANONICAL_STARTED_COUNT,
+        budget_snapshot_effective_consumed=V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED,
+        budget_snapshot_remaining=V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS,
         candidate_audit=audit,
         next_executable_candidate=next_candidate,
         started_event_created=False,
