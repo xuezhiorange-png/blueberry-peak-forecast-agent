@@ -243,6 +243,8 @@ def test_post_cutoff_feature_rejected(
 
 def test_candidate_parameter_must_reach_prediction_path() -> None:
     audit = _audit_by_id()
+    assert audit[V2_CANDIDATE_01_ID].uses_source_002_train is True
+    assert audit[V2_CANDIDATE_01_ID].uses_source_002_validation is True
     assert audit[V2_CANDIDATE_01_ID].parameter_reaches_prediction_math is True
     assert audit[V2_CANDIDATE_01_ID].parameter_change_can_change_prediction is True
     assert audit[V2_CANDIDATE_02_ID].parameter_reaches_prediction_math is False
@@ -326,6 +328,8 @@ def test_sparse_targets_not_complete_window(
 
 def test_c02_quantile_path_is_metric_only() -> None:
     item = _audit_by_id()[V2_CANDIDATE_02_ID]
+    assert item.uses_source_002_train is False
+    assert item.uses_source_002_validation is False
     assert item.actual_execution_function == (
         "backend.app.forecast_quality.quantile_coverage.compute_upper_quantile_coverage",
     )
