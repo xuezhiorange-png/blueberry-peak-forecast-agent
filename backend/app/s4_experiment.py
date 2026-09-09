@@ -20,6 +20,26 @@ S4_A_EXPERIMENT_PLAN_HASH_BOUND: Final[str] = (
     "9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500"
 )
 EXPERIMENT_PLAN_VERSION: Final[str] = "v0.3-experiment-plan-v1"
+EXPERIMENT_PLAN_V2_VERSION: Final[str] = "v0.3-experiment-plan-v2"
+EXPERIMENT_PLAN_V2_HASH: Final[str] = (
+    "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9"
+)
+V2_GUARDRAIL_POLICY_VERSION: Final[str] = "v0.3-s4-guardrail-policy-v2"
+V2_HISTORICAL_DATA_ONLY: Final[bool] = True
+V2_WEATHER_REQUIRED: Final[bool] = False
+V2_PRODUCTION_PLAN_REQUIRED: Final[bool] = False
+V2_TASK8_TASK9_REQUIRED: Final[bool] = False
+V2_PROSPECTIVE_CAPTURE_REQUIRED: Final[bool] = False
+V2_WALL_CLOCK_WAIT_REQUIRED: Final[bool] = False
+V2_TEST_REMAINS_SEALED: Final[bool] = True
+V2_FORECAST_HORIZONS: Final[tuple[int, ...]] = (7, 14, 21)
+V2_CANDIDATE_06_EXECUTION_ELIGIBLE: Final[bool] = False
+V2_CANDIDATE_08_EXECUTION_ELIGIBLE: Final[bool] = False
+V2_CANDIDATE_01_RERUN_FORBIDDEN: Final[bool] = True
+V2_LEGACY_RECONCILED_VALIDATION_DEBIT: Final[int] = 4
+V2_CANONICAL_STARTED_COUNT: Final[int] = 0
+V2_EFFECTIVE_CONSUMED: Final[int] = 4
+V2_REMAINING_VALIDATION_EVALUATIONS: Final[int] = 28
 METRIC_CONTRACT_VERSION: Final[str] = "v0.3-metric-contract-v1"
 METRIC_CONTRACT_IDENTITY: Final[str] = (
     "e3ff3221338863aa9128890c23e463e7a3868cd8dfc3e1b2c30c503c351a3acd"
@@ -448,7 +468,42 @@ def canonical_guardrail_policy() -> dict[str, object]:
     }
 
 
+def canonical_guardrail_policy_v2() -> dict[str, object]:
+    """Return the V2 policy without mutating the replayable V1 preimage.
+
+    Metric and comparison semantics are inherited byte-for-byte from the V1
+    policy payload.  Only the plan/policy identity and the historical-only
+    execution overlay are changed for the current execution authority.
+    """
+
+    policy = canonical_guardrail_policy()
+    policy["guardrail_policy_version"] = V2_GUARDRAIL_POLICY_VERSION
+    policy["s4_a_experiment_plan_hash_bound"] = EXPERIMENT_PLAN_V2_HASH
+    policy["experiment_plan_version"] = EXPERIMENT_PLAN_V2_VERSION
+    policy["historical_only_execution_overlay"] = {
+        "historical_data_only": V2_HISTORICAL_DATA_ONLY,
+        "weather_required": V2_WEATHER_REQUIRED,
+        "production_plan_required": V2_PRODUCTION_PLAN_REQUIRED,
+        "task8_task9_required": V2_TASK8_TASK9_REQUIRED,
+        "prospective_capture_required": V2_PROSPECTIVE_CAPTURE_REQUIRED,
+        "wall_clock_wait_required": V2_WALL_CLOCK_WAIT_REQUIRED,
+        "test_remains_sealed": V2_TEST_REMAINS_SEALED,
+        "forecast_horizons": list(V2_FORECAST_HORIZONS),
+        "candidate_01_rerun_forbidden": V2_CANDIDATE_01_RERUN_FORBIDDEN,
+        "legacy_reconciled_validation_debit": V2_LEGACY_RECONCILED_VALIDATION_DEBIT,
+        "canonical_started_count": V2_CANONICAL_STARTED_COUNT,
+        "effective_consumed": V2_EFFECTIVE_CONSUMED,
+        "remaining": V2_REMAINING_VALIDATION_EVALUATIONS,
+        "candidate_06_execution_eligible": V2_CANDIDATE_06_EXECUTION_ELIGIBLE,
+        "candidate_08_execution_eligible": V2_CANDIDATE_08_EXECUTION_ELIGIBLE,
+        "candidate_06_blocker": "CURRENT_WEATHER_AUTHORITY_REQUIRED",
+        "candidate_08_blocker": "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED",
+    }
+    return policy
+
+
 GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy())
+V2_GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy_v2())
 
 
 def _blocked_result(
@@ -971,12 +1026,31 @@ __all__ = [
     "BreakdownAxisEvidence",
     "EvidenceStatus",
     "FROZEN_CANDIDATE_REGISTRY",
+    "EXPERIMENT_PLAN_V2_HASH",
+    "EXPERIMENT_PLAN_V2_VERSION",
     "GUARDRAIL_POLICY_HASH",
     "GUARDRAIL_POLICY_VERSION",
     "GuardrailResult",
     "GuardrailStatus",
     "MetricObservation",
     "METRIC_CONTRACT_IDENTITY",
+    "V2_CANONICAL_STARTED_COUNT",
+    "V2_CANDIDATE_01_RERUN_FORBIDDEN",
+    "V2_CANDIDATE_06_EXECUTION_ELIGIBLE",
+    "V2_CANDIDATE_08_EXECUTION_ELIGIBLE",
+    "V2_EFFECTIVE_CONSUMED",
+    "V2_FORECAST_HORIZONS",
+    "V2_GUARDRAIL_POLICY_HASH",
+    "V2_GUARDRAIL_POLICY_VERSION",
+    "V2_HISTORICAL_DATA_ONLY",
+    "V2_LEGACY_RECONCILED_VALIDATION_DEBIT",
+    "V2_PRODUCTION_PLAN_REQUIRED",
+    "V2_PROSPECTIVE_CAPTURE_REQUIRED",
+    "V2_REMAINING_VALIDATION_EVALUATIONS",
+    "V2_TASK8_TASK9_REQUIRED",
+    "V2_TEST_REMAINS_SEALED",
+    "V2_WALL_CLOCK_WAIT_REQUIRED",
+    "V2_WEATHER_REQUIRED",
     "REQUIRED_BREAKDOWN_AXES",
     "REQUIRED_BREAKDOWN_AXIS_COUNT",
     "RETRY_INVOCATION_TYPES",
@@ -984,6 +1058,7 @@ __all__ = [
     "VALIDATION_INVOCATION_TYPES",
     "check_candidate_execution_gate",
     "canonical_guardrail_policy",
+    "canonical_guardrail_policy_v2",
     "compare_calibration_distance",
     "compare_lower_is_better",
     "compare_primary_metric",

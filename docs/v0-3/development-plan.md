@@ -22283,3 +22283,46 @@ NO_STEP_IMPLIES_THE_NEXT=true
 EVIDENCE_JSON=docs/v0-3/s4/evidence/s4-historical-only-validation-path-realignment-r1.json
 WORKPAPER=docs/v0-3/s4/workpapers/s4-historical-only-validation-path-realignment-r1.md
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_HISTORICAL_ONLY_REALIGNMENT_REVIEW
+
+### 4.34 — V0.3 S4 V2 historical-only execution adapter and compatibility R1
+
+This live pointer records the V2-bound readiness adapter and code-level audit.
+It preserves V1 identities, binds the V2 historical-only policy to the
+accepted SOURCE-002 TRAIN/VALIDATION partitions, and does not execute a
+candidate, score VALIDATION, access TEST, or mutate the budget.
+
+```text
+TASK_ID=V0_3_S4_V2_HISTORICAL_ONLY_EXECUTION_ADAPTER_AND_COMPATIBILITY_R1
+BASE_MAIN_SHA=219d72399e0d23dbe57e35169a2196b37a990a49
+EXPERIMENT_PLAN_V2_BOUND=true
+V2_GUARDRAIL_POLICY_BOUND=true
+HISTORICAL_OFFLINE_AUTHORITY_IMPLEMENTED=true
+WEATHER_REQUIRED=false
+PRODUCTION_PLAN_REQUIRED=false
+TASK8_TASK9_REQUIRED=false
+PROSPECTIVE_REQUIRED=false
+FORECAST_HORIZONS=7,14,21
+CANDIDATE_COMPATIBILITY_AUDIT_COMPLETE=true
+NEXT_EXECUTABLE_CANDIDATE=NONE
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The detailed contract, machine-readable evidence, and workpaper are:
+
+```text
+DESIGN_DOC=docs/v0-3/s4/s4-v2-historical-only-execution-adapter-and-compatibility-r1.md
+EVIDENCE_JSON=docs/v0-3/s4/evidence/s4-v2-historical-only-execution-adapter-and-compatibility-r1.json
+WORKPAPER=docs/v0-3/s4/workpapers/s4-v2-historical-only-execution-adapter-and-compatibility-r1.md
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_V2_EXECUTION_COMPATIBILITY_REVIEW
+```
