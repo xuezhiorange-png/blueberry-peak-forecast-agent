@@ -178,26 +178,30 @@
     {
       "candidate_id": "04_yield_parameter",
       "parameter_or_feature_path": [
-        "yield_parameter"
+        "yield_amplitude_multiplier"
       ],
-      "actual_execution_function": [],
+      "actual_execution_function": [
+        "backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows"
+      ],
       "actual_data_sources_read": [
-        "NO_BOUND_CANDIDATE_SCORER"
+        "SOURCE_002_TRAIN",
+        "SOURCE_002_VALIDATION_TARGET_IDENTITIES",
+        "configs/maturity_curve.yaml"
       ],
-      "uses_SOURCE_002_TRAIN": false,
-      "uses_SOURCE_002_VALIDATION": false,
+      "uses_SOURCE_002_TRAIN": true,
+      "uses_SOURCE_002_VALIDATION": true,
       "uses_weather": false,
       "uses_production_plan": false,
       "uses_Task8": false,
       "uses_Task9": false,
-      "parameter_reaches_prediction_math": false,
-      "parameter_change_can_change_prediction": false,
-      "v2_historical_only_scoring_path_exists": false,
+      "parameter_reaches_prediction_math": true,
+      "parameter_change_can_change_prediction": true,
+      "v2_historical_only_scoring_path_exists": true,
       "historical_only_input_compatible": true,
-      "historical_only_execution_compatible": false,
+      "historical_only_execution_compatible": true,
       "current_v0_3_execution_eligible": true,
-      "currently_runnable_under_v2": false,
-      "reason_code": "NO_BOUND_CANDIDATE_04_SCORING_PATH"
+      "currently_runnable_under_v2": true,
+      "reason_code": "C04_HISTORICAL_ONLY_SCORER_READY"
     },
     {
       "candidate_id": "05_marketable_rate",
@@ -329,11 +333,16 @@
       "05_marketable_rate",
       "07_harvest_efficiency"
     ],
-    "currently_runnable_under_v2_ids": [],
-    "next_executable_candidate": "NONE",
+    "currently_runnable_under_v2_ids": [
+      "04_yield_parameter"
+    ],
+    "next_executable_candidate": "04_yield_parameter",
     "c03_historical_only_scoring_path_exists": false,
     "c03_current_v0_3_execution_eligible": true,
     "c03_currently_runnable_under_v2": false,
+    "c04_historical_only_scoring_path_exists": true,
+    "c04_current_v0_3_execution_eligible": true,
+    "c04_currently_runnable_under_v2": true,
     "candidate_execution_performed": false,
     "ready_authorized": false,
     "merge_authorized": false,
@@ -372,5 +381,53 @@
     "merge_authorized": false,
     "no_step_implies_the_next": true,
     "final_stop_gate": "COORDINATOR_PR597_V2_DURABLE_EXECUTION_GATE_R2_REVIEW"
+  },
+  "C04_HISTORICAL_SCORER_READINESS_R1": {
+    "task_id": "V0_3_S4_C04_HISTORICAL_YIELD_SCORER_READINESS_R1",
+    "status": "APPLIED",
+    "candidate_id": "04_yield_parameter",
+    "parameter_semantic": "TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER",
+    "parameter_unit": "RATIO",
+    "parameter_values": [
+      "5.265539",
+      "2.165000",
+      "1.784578",
+      "1.128703"
+    ],
+    "parameter_value_count": 4,
+    "parameter_values_unique_positive_finite": true,
+    "parameter_derivation_policy": "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_MEDIAN_AMPLITUDE_RATIO_V1",
+    "validation_used_for_parameter_derivation": false,
+    "test_used": false,
+    "historical_only_scoring_path_exists": true,
+    "parameter_reaches_prediction_math": true,
+    "parameter_change_can_change_prediction": true,
+    "scorer_path": "backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows",
+    "scorer_data_sources": [
+      "SOURCE_002_TRAIN",
+      "SOURCE_002_VALIDATION_TARGET_IDENTITIES",
+      "configs/maturity_curve.yaml"
+    ],
+    "uses_weather": false,
+    "uses_production_plan": false,
+    "uses_Task8": false,
+    "uses_Task9": false,
+    "future_execution_primary_metric_computable": true,
+    "future_execution_full_guardrail_computable": false,
+    "future_execution_guardrail_blocker": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE",
+    "candidate_execution_performed": false,
+    "validation_scoring_performed": false,
+    "evaluation_started_created": false,
+    "legacy_reconciled_validation_debit": 4,
+    "canonical_started_count": 0,
+    "effective_consumed": 4,
+    "remaining": 28,
+    "budget_delta": 0,
+    "test_remains_sealed": true,
+    "next_executable_candidate": "04_yield_parameter",
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "final_stop_gate": "COORDINATOR_V0_3_S4_C04_HISTORICAL_SCORER_READINESS_REVIEW"
   }
 }
