@@ -90,7 +90,7 @@ The machine-readable aggregate record is
 It contains no raw TRAIN/VALIDATION rows, labels, or predictions.
 
 The final Draft-PR exact-head CI run completed successfully at
-`CI_RUN=34294866938` for head `e225fbca964e96d9bad8a4c7de90f09e1dc85a9b`.
+`CI_RUN=34295638751` for head `d17ed4fa1544a01f10c773cce0bd073fe64d9e06`.
 The workflow's `postgres-concurrency` job was successful and its
 `full-suite-canary` job was skipped by workflow policy. This CI run tested the
 document-only blocked record; it did not invoke the controlled C03 runner.
