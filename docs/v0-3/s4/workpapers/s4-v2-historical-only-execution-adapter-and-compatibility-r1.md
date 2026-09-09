@@ -7,6 +7,15 @@ BASE_MAIN_TREE=834875e61de8542487f91ff801acc973131da817
 TASK_CLASS=IMPLEMENTATION_AND_EXECUTION_READINESS
 ```
 
+## Review correction R2
+
+R2 preserves the canonical V2 plan's eligibility semantics. The six candidates
+01, 02, 03, 04, 05, and 07 remain `current_v0_3_execution_eligible=true`
+for the historical-only lane, while execution readiness is represented
+separately by `currently_runnable_under_v2`. The audit now covers all eight
+registered candidates. No candidate execution, VALIDATION scoring, TEST access,
+or durable budget mutation is introduced.
+
 ## 1. Scope and safety decision
 
 This work closes the missing V2-bound execution-readiness layer. It is not a
@@ -98,9 +107,12 @@ zero-fill or artificial complete-window claim was introduced.
 
 ## 5. Candidate audit work
 
-The audit implementation in
-`backend/app/s4_v2_historical_only_execution.py` records actual code paths,
-data domains, parameter reachability, and V2-path existence in a fixed order:
+The audit records two different authorities without conflating them:
+
+- `current_v0_3_execution_eligible`: frozen V2 plan eligibility for a future separately authorized historical-only manifest;
+- `currently_runnable_under_v2`: current repository runnability after code-path, scorer, and execution blockers are applied.
+
+The fixed audit order is the full frozen registry:
 
 ```text
 01_parameter_calibration
@@ -108,49 +120,23 @@ data domains, parameter reachability, and V2-path existence in a fixed order:
 03_phenology_offset
 04_yield_parameter
 05_marketable_rate
+06_weather_response
 07_harvest_efficiency
+08_residual_feature
 ```
 
-### C01
-
-The existing local replay reads SOURCE-002 TRAIN/VALIDATION and its curve
-configuration, and its curve parameters reach local prediction math. It is
-nevertheless not a V2 execution path because the frozen C01 policy permanently
-forbids rerun. The adapter never calls `run_local_replay()`.
-
-### C02
-
-`compute_upper_quantile_coverage()` is a metric-only function over an S3
-binding contract. There is no V2-bound historical prediction/quantile
-calibration path. The audit therefore records no parameter reachability and
-does not infer execution eligibility from the candidate manifest.
-
-### C03
-
-`offset.maximum_abs_shift_days` is a real parameter in the legacy maturity
-service path. That path is not a V2 historical-only scorer: it depends on
-production-plan, weather, and Task8/Task9 runtime authority. The C01 local
-scorer does not consume the offset. Wiring the legacy service into V2 would
-violate the frozen input basis, so the adapter records:
+Frozen historical-only eligibility remains true for 01, 02, 03, 04, 05, and 07, and false for 06 and 08. Current runnability is false for all eight. C01 is blocked by the permanent rerun prohibition; C02 has no V2-bound prediction/quantile path; C03 has no SOURCE-002-only scorer despite a real legacy parameter effect; C04/C05/C07 have no bound candidate scorers; C06 requires weather outside the V2 historical-only policy; and C08 has no V2 historical-only feature manifest.
 
 ```text
+CANDIDATE_COMPATIBILITY_AUDIT_COMPLETE=true
+AUDITED_CANDIDATE_COUNT=8
+FROZEN_CURRENT_V0_3_EXECUTION_ELIGIBLE_IDS=01,02,03,04,05,07
+CURRENTLY_RUNNABLE_UNDER_V2_IDS=NONE
+NEXT_EXECUTABLE_CANDIDATE=NONE
 C03_HISTORICAL_ONLY_SCORING_PATH_EXISTS=false
-C03_CURRENT_V0_3_EXECUTION_ELIGIBLE=false
-REASON=C03_NO_SOURCE_002_ONLY_SCORING_PATH
+C03_CURRENT_V0_3_EXECUTION_ELIGIBLE=true
+C03_CURRENTLY_RUNNABLE_UNDER_V2=false
 ```
-
-### C04/C05/C07
-
-The current repository has no bound candidate-specific historical scorer for
-these registered parameter hypotheses. Their input-policy shape can be
-historical, but no actual function currently makes the parameter change a
-prediction result. They remain fail-closed.
-
-### C06/C08
-
-C06 is blocked by the explicit weather requirement. C08 is blocked because no
-V2-bound SOURCE-002-only feature manifest exists. They are represented in the
-V2 policy overlay, not smuggled into the six-candidate audit.
 
 ## 6. Baseline and later lanes
 
@@ -161,10 +147,12 @@ no candidate is selected, no model is approved for pilot, and S5/S6 are not
 started.
 
 ```text
+DURABLE_VALIDATION_BUDGET_AUTHORITY=POSTGRESQL
+BUDGET_STATE_CLASS=FREEZE_POINT_EVIDENCE_SNAPSHOT_NOT_DURABLE_READBACK
 LEGACY_RECONCILED_VALIDATION_DEBIT=4
-CANONICAL_STARTED_COUNT=0
-EFFECTIVE_CONSUMED=4
-REMAINING=28
+FREEZE_SNAPSHOT_CANONICAL_STARTED_COUNT=0
+FREEZE_SNAPSHOT_EFFECTIVE_CONSUMED=4
+FREEZE_SNAPSHOT_REMAINING=28
 BUDGET_DELTA=0
 CANDIDATE_EXECUTION_PERFORMED=false
 VALIDATION_SCORING_PERFORMED=false
