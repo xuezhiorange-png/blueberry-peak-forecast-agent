@@ -16,6 +16,11 @@ from backend.app.s4_candidate_04_historical_yield import (
     C04_ALLOWED_PARAMETER_PATHS,
     C04_BASELINE_MULTIPLIER,
     C04_CANDIDATE_ID,
+    C04_INCUMBENT_CONFIG_FILE_SHA256,
+    C04_INCUMBENT_CONFIG_HASH,
+    C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS,
+    C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS,
+    C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES,
     C04_PARAMETER_SEMANTIC,
     C04HistoricalScorerError,
     C04HistoricalYieldScorer,
@@ -184,6 +189,39 @@ def test_c04_multiplier_one_replays_base_prediction(
         == (item.base_prediction_total_kg * item.curve_share).quantize(Decimal("0.000001"))
         for item in predictions
     )
+
+
+def test_c04_incumbent_configuration_identity_is_bound(manifest: Any) -> None:
+    assert manifest.incumbent_config_file_sha256 == C04_INCUMBENT_CONFIG_FILE_SHA256
+    assert manifest.incumbent_config_hash == C04_INCUMBENT_CONFIG_HASH
+    assert manifest.incumbent_parameter_snapshot["offset"]["maximum_abs_shift_days"] == (
+        C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS
+    )
+    assert manifest.incumbent_parameter_snapshot["offset"]["minimum_training_samples"] == (
+        C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES
+    )
+    assert (
+        manifest.incumbent_parameter_snapshot["forecast"]["observed_phase_adjustment_max_days"]
+        == C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS
+    )
+
+    forged = replace(manifest, incumbent_config_hash="0" * 64)
+    with pytest.raises(C04HistoricalScorerError, match="C04_INCUMBENT_CONFIG_IDENTITY_MISMATCH"):
+        validate_c04_parameter_manifest(forged)
+
+
+def test_c04_manifest_run_prediction_uses_frozen_run_value(
+    authority: V2HistoricalEvaluationAuthority,
+    manifest: Any,
+) -> None:
+    scorer = build_c04_historical_yield_scorer(
+        authority=authority,
+        config_path=CONFIG_PATH,
+    )
+    rows = _masked_target_rows(authority)
+    bound = scorer.predict_manifest_run(manifest, 1, rows)
+    direct = scorer.predict_rows(rows, manifest.run(1).parameter_value)
+    assert scorer.prediction_identity(bound) == scorer.prediction_identity(direct)
 
 
 def test_c04_horizons_exactly_7_14_21(
