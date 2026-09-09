@@ -63,8 +63,20 @@ C04_RANDOM_SEED_POLICY: Final[str] = "FIXED_AND_RECORDED_PER_RUN"
 C04_RANDOM_SEED: Final[int] = 20260624
 C04_PLANNED_RUN_COUNT: Final[int] = 4
 C04_INCUMBENT_CONFIG_PATH: Final[str] = "configs/maturity_curve.yaml"
+C04_INCUMBENT_CONFIG_FILE_SHA256: Final[str] = (
+    "fc023976a228c36556ed5f7ababe722a3dd8a558ed11e0473eb415b52dd69ace"
+)
+C04_INCUMBENT_CONFIG_HASH: Final[str] = (
+    "3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1a7612c"
+)
+C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS: Final[Decimal] = Decimal("21")
+C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES: Final[int] = 3
+C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS: Final[Decimal] = Decimal("14")
 C04_MODEL_IDENTITY: Final[str] = INCUMBENT_MODEL_ID
 C04_AUTHORITY_CLASS: Final[str] = "S4_V2_HISTORICAL_ONLY_CANDIDATE_04"
+C04_HISTORICAL_ONLY_SCORING_PATH_EXISTS: Final[bool] = True
+C04_PARAMETER_REACHES_PREDICTION_MATH: Final[bool] = True
+C04_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION: Final[bool] = True
 C04_TEST_REMAINS_SEALED: Final[bool] = True
 C04_VALIDATION_USED_FOR_PARAMETER_DERIVATION: Final[bool] = False
 C04_TEST_USED: Final[bool] = False
@@ -197,6 +209,46 @@ def verify_c04_parameter_allowlist(
 
 def _config_file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _validate_incumbent_config_values(config: MaturityCurveConfig) -> None:
+    if config.config_hash != C04_INCUMBENT_CONFIG_HASH:
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_IDENTITY_MISMATCH")
+    if (
+        config.rules.offset.maximum_abs_shift_days != C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS
+        or config.rules.offset.minimum_training_samples
+        != C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES
+        or config.rules.forecast.observed_phase_adjustment_max_days
+        != C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS
+    ):
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_SEMANTIC_MISMATCH")
+
+
+def _validate_incumbent_config(path: Path, config: MaturityCurveConfig) -> None:
+    if _config_file_sha256(path) != C04_INCUMBENT_CONFIG_FILE_SHA256:
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_IDENTITY_MISMATCH")
+    _validate_incumbent_config_values(config)
+
+
+def _snapshot_value(snapshot: Mapping[str, object], path: str) -> object:
+    current: object = snapshot
+    for segment in path.split("."):
+        if not isinstance(current, Mapping) or segment not in current:
+            raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_SNAPSHOT_INVALID")
+        current = current[segment]
+    return current
+
+
+def _validate_incumbent_snapshot(snapshot: Mapping[str, object]) -> None:
+    if (
+        _decimalize(_snapshot_value(snapshot, "offset.maximum_abs_shift_days"))
+        != C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS
+        or _snapshot_value(snapshot, "offset.minimum_training_samples")
+        != C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES
+        or _decimalize(_snapshot_value(snapshot, "forecast.observed_phase_adjustment_max_days"))
+        != C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS
+    ):
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_SEMANTIC_MISMATCH")
 
 
 @dataclass(frozen=True, slots=True)
@@ -555,6 +607,7 @@ class C04HistoricalYieldScorer:
         train_rows = v2_training_rows(authority)
         if authority.source_id != "SOURCE_002" or authority.train_row_count != len(train_rows):
             raise C04HistoricalScorerError("C04_SOURCE_002_TRAIN_IDENTITY_MISMATCH")
+        _validate_incumbent_config_values(config)
         return cls(
             train_rows=train_rows,
             forecast_cutoff_at=authority.forecast_cutoff_at,
@@ -642,6 +695,22 @@ class C04HistoricalYieldScorer:
             base_replay_exact=all(item.base_p50_kg == item.candidate_p50_kg for item in baseline),
         )
 
+    def predict_manifest_run(
+        self,
+        manifest: C04ParameterManifest,
+        candidate_run_ordinal: int,
+        target_rows: tuple[MaterializableRow, ...],
+    ) -> tuple[C04Prediction, ...]:
+        """Predict only the frozen multiplier bound to a manifest run."""
+
+        validate_c04_parameter_manifest(manifest)
+        if (
+            self.train_dataset_identity != manifest.train_dataset_identity
+            or self.config.config_hash != manifest.incumbent_config_hash
+        ):
+            raise C04HistoricalScorerError("C04_SCORER_BINDING_MISMATCH")
+        return self.predict_rows(target_rows, manifest.run(candidate_run_ordinal).parameter_value)
+
 
 def build_c04_historical_yield_scorer(
     *,
@@ -653,6 +722,7 @@ def build_c04_historical_yield_scorer(
     if not config_path.is_file():
         raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_UNAVAILABLE")
     config = load_maturity_curve_config(config_path)
+    _validate_incumbent_config(config_path, config)
     return C04HistoricalYieldScorer.from_v2_authority(authority, config)
 
 
@@ -876,6 +946,7 @@ def build_c04_parameter_manifest(
     if not config_path.is_file():
         raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_UNAVAILABLE")
     config = load_maturity_curve_config(config_path)
+    _validate_incumbent_config(config_path, config)
     derivation = derive_c04_parameter_calibration(authority.train_rows)
     incumbent_snapshot_value = _decimalize(config.snapshot)
     if not isinstance(incumbent_snapshot_value, Mapping):
@@ -1033,10 +1104,18 @@ def validate_c04_parameter_manifest(manifest: C04ParameterManifest) -> None:
         manifest.materialized_dataset_identity,
     ):
         _validate_sha256_identity(identity, "C04_MANIFEST_IDENTITY_INVALID")
+    if manifest.incumbent_config_path != C04_INCUMBENT_CONFIG_PATH:
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_IDENTITY_MISMATCH")
+    if (
+        manifest.incumbent_config_file_sha256 != C04_INCUMBENT_CONFIG_FILE_SHA256
+        or manifest.incumbent_config_hash != C04_INCUMBENT_CONFIG_HASH
+    ):
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_IDENTITY_MISMATCH")
     if not isinstance(manifest.incumbent_parameter_snapshot, Mapping):
         raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_SNAPSHOT_INVALID")
     if _contains_native_float(manifest.incumbent_parameter_snapshot):
         raise C04HistoricalScorerError("C04_NATIVE_FLOAT_FORBIDDEN")
+    _validate_incumbent_snapshot(manifest.incumbent_parameter_snapshot)
     if len(manifest.parameter_values) != C04_PLANNED_RUN_COUNT:
         raise C04HistoricalScorerError("C04_PARAMETER_VALUE_COUNT_INVALID")
     if len(set(manifest.parameter_values)) != C04_PLANNED_RUN_COUNT:
@@ -1220,11 +1299,20 @@ __all__ = [
     "C04_FUTURE_EXECUTION_FULL_GUARDRAIL_COMPUTABLE",
     "C04_FUTURE_EXECUTION_PRIMARY_METRIC_COMPUTABLE",
     "C04_HYPOTHESIS",
+    "C04_HISTORICAL_ONLY_SCORING_PATH_EXISTS",
+    "C04_INCUMBENT_CONFIG_FILE_SHA256",
+    "C04_INCUMBENT_CONFIG_HASH",
+    "C04_INCUMBENT_CONFIG_PATH",
+    "C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS",
+    "C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS",
+    "C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES",
     "C04_PARAMETER_DERIVATION_POLICY",
     "C04_PARAMETER_MANIFEST_VERSION",
     "C04_PARAMETER_PATH",
     "C04_PARAMETER_SEMANTIC",
     "C04_PARAMETER_UNIT",
+    "C04_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION",
+    "C04_PARAMETER_REACHES_PREDICTION_MATH",
     "C04_PLANNED_RUN_COUNT",
     "C04_RANDOM_SEED",
     "C04_RANDOM_SEED_POLICY",
