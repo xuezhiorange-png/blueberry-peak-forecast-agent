@@ -18,7 +18,11 @@
     "task8_task9_required": false,
     "prospective_capture_required": false,
     "wall_clock_wait_required": false,
-    "forecast_horizons": [7, 14, 21],
+    "forecast_horizons": [
+      7,
+      14,
+      21
+    ],
     "test_remains_sealed": true
   },
   "GUARDRAIL_POLICY_V1": {
@@ -47,8 +51,16 @@
     "derived_cutoff": "2026-01-30",
     "validation_start": "2026-01-31",
     "evaluation_row_count": 688,
-    "requested_horizons": [7, 14, 21],
-    "observed_horizons": [7, 14, 21],
+    "requested_horizons": [
+      7,
+      14,
+      21
+    ],
+    "observed_horizons": [
+      7,
+      14,
+      21
+    ],
     "complete_window_authority": false,
     "identity": {
       "train_dataset_identity": "be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2",
@@ -73,9 +85,18 @@
   "CANDIDATE_COMPATIBILITY_AUDIT": [
     {
       "candidate_id": "01_parameter_calibration",
-      "parameter_or_feature_path": ["curve.spline_knot_count", "curve.ridge_alpha"],
-      "actual_execution_function": ["backend.app.s4_local_engineering.run_local_replay"],
-      "actual_data_sources_read": ["SOURCE_002_TRAIN", "SOURCE_002_VALIDATION", "configs/maturity_curve.yaml"],
+      "parameter_or_feature_path": [
+        "curve.spline_knot_count",
+        "curve.ridge_alpha"
+      ],
+      "actual_execution_function": [
+        "backend.app.s4_local_engineering.run_local_replay"
+      ],
+      "actual_data_sources_read": [
+        "SOURCE_002_TRAIN",
+        "SOURCE_002_VALIDATION",
+        "configs/maturity_curve.yaml"
+      ],
       "uses_SOURCE_002_TRAIN": true,
       "uses_SOURCE_002_VALIDATION": true,
       "uses_weather": false,
@@ -87,14 +108,24 @@
       "v2_historical_only_scoring_path_exists": false,
       "historical_only_input_compatible": true,
       "historical_only_execution_compatible": false,
-      "current_v0_3_execution_eligible": false,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v2": false,
       "reason_code": "CANDIDATE_01_RERUN_FORBIDDEN"
     },
     {
       "candidate_id": "02_quantile_calibration",
-      "parameter_or_feature_path": ["intervals.p80_quantile", "intervals.p90_quantile"],
-      "actual_execution_function": ["backend.app.forecast_quality.quantile_coverage.compute_upper_quantile_coverage"],
-      "actual_data_sources_read": ["S3_BINDING_FORECAST_ROWS", "S3_BINDING_ACTUAL_ROWS", "S3_TRAIN_VALIDATION_PAIRING_AUTHORITY"],
+      "parameter_or_feature_path": [
+        "intervals.p80_quantile",
+        "intervals.p90_quantile"
+      ],
+      "actual_execution_function": [
+        "backend.app.forecast_quality.quantile_coverage.compute_upper_quantile_coverage"
+      ],
+      "actual_data_sources_read": [
+        "S3_BINDING_FORECAST_ROWS",
+        "S3_BINDING_ACTUAL_ROWS",
+        "S3_TRAIN_VALIDATION_PAIRING_AUTHORITY"
+      ],
       "uses_SOURCE_002_TRAIN": false,
       "uses_SOURCE_002_VALIDATION": false,
       "uses_weather": false,
@@ -104,16 +135,28 @@
       "parameter_reaches_prediction_math": false,
       "parameter_change_can_change_prediction": false,
       "v2_historical_only_scoring_path_exists": false,
-      "historical_only_input_compatible": false,
+      "historical_only_input_compatible": true,
       "historical_only_execution_compatible": false,
-      "current_v0_3_execution_eligible": false,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v2": false,
       "reason_code": "NO_V2_BOUND_PREDICTION_QUANTILE_PATH"
     },
     {
       "candidate_id": "03_phenology_offset",
-      "parameter_or_feature_path": ["offset.maximum_abs_shift_days"],
-      "actual_execution_function": ["backend.app.s4_candidate_03_execution.build_candidate_03_derived_config", "backend.app.maturity.service.forecast_natural_maturity", "NONE_BOUND_TO_V2_HISTORICAL_ONLY_EXECUTION"],
-      "actual_data_sources_read": ["configs/maturity_curve.yaml", "production_plan", "weather_observations", "Task8/Task9_runtime_authority"],
+      "parameter_or_feature_path": [
+        "offset.maximum_abs_shift_days"
+      ],
+      "actual_execution_function": [
+        "backend.app.s4_candidate_03_execution.build_candidate_03_derived_config",
+        "backend.app.maturity.service.forecast_natural_maturity",
+        "NONE_BOUND_TO_V2_HISTORICAL_ONLY_EXECUTION"
+      ],
+      "actual_data_sources_read": [
+        "configs/maturity_curve.yaml",
+        "production_plan",
+        "weather_observations",
+        "Task8/Task9_runtime_authority"
+      ],
       "uses_SOURCE_002_TRAIN": false,
       "uses_SOURCE_002_VALIDATION": false,
       "uses_weather": true,
@@ -123,16 +166,21 @@
       "parameter_reaches_prediction_math": true,
       "parameter_change_can_change_prediction": true,
       "v2_historical_only_scoring_path_exists": false,
-      "historical_only_input_compatible": false,
+      "historical_only_input_compatible": true,
       "historical_only_execution_compatible": false,
-      "current_v0_3_execution_eligible": false,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v2": false,
       "reason_code": "C03_NO_SOURCE_002_ONLY_SCORING_PATH"
     },
     {
       "candidate_id": "04_yield_parameter",
-      "parameter_or_feature_path": ["yield_parameter"],
+      "parameter_or_feature_path": [
+        "yield_parameter"
+      ],
       "actual_execution_function": [],
-      "actual_data_sources_read": ["NO_BOUND_CANDIDATE_SCORER"],
+      "actual_data_sources_read": [
+        "NO_BOUND_CANDIDATE_SCORER"
+      ],
       "uses_SOURCE_002_TRAIN": false,
       "uses_SOURCE_002_VALIDATION": false,
       "uses_weather": false,
@@ -144,14 +192,19 @@
       "v2_historical_only_scoring_path_exists": false,
       "historical_only_input_compatible": true,
       "historical_only_execution_compatible": false,
-      "current_v0_3_execution_eligible": false,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v2": false,
       "reason_code": "NO_BOUND_CANDIDATE_04_SCORING_PATH"
     },
     {
       "candidate_id": "05_marketable_rate",
-      "parameter_or_feature_path": ["marketable_rate"],
+      "parameter_or_feature_path": [
+        "marketable_rate"
+      ],
       "actual_execution_function": [],
-      "actual_data_sources_read": ["NO_BOUND_CANDIDATE_SCORER"],
+      "actual_data_sources_read": [
+        "NO_BOUND_CANDIDATE_SCORER"
+      ],
       "uses_SOURCE_002_TRAIN": false,
       "uses_SOURCE_002_VALIDATION": false,
       "uses_weather": false,
@@ -163,14 +216,44 @@
       "v2_historical_only_scoring_path_exists": false,
       "historical_only_input_compatible": true,
       "historical_only_execution_compatible": false,
-      "current_v0_3_execution_eligible": false,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v2": false,
       "reason_code": "NO_BOUND_CANDIDATE_05_SCORING_PATH"
     },
     {
-      "candidate_id": "07_harvest_efficiency",
-      "parameter_or_feature_path": ["harvest_efficiency"],
+      "candidate_id": "06_weather_response",
+      "parameter_or_feature_path": [
+        "weather_response_features"
+      ],
       "actual_execution_function": [],
-      "actual_data_sources_read": ["NO_BOUND_CANDIDATE_SCORER"],
+      "actual_data_sources_read": [
+        "CURRENT_WEATHER",
+        "WEATHER_FEATURES"
+      ],
+      "uses_SOURCE_002_TRAIN": false,
+      "uses_SOURCE_002_VALIDATION": false,
+      "uses_weather": true,
+      "uses_production_plan": false,
+      "uses_Task8": false,
+      "uses_Task9": false,
+      "parameter_reaches_prediction_math": false,
+      "parameter_change_can_change_prediction": false,
+      "v2_historical_only_scoring_path_exists": false,
+      "historical_only_input_compatible": false,
+      "historical_only_execution_compatible": false,
+      "current_v0_3_execution_eligible": false,
+      "currently_runnable_under_v2": false,
+      "reason_code": "C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY"
+    },
+    {
+      "candidate_id": "07_harvest_efficiency",
+      "parameter_or_feature_path": [
+        "harvest_efficiency"
+      ],
+      "actual_execution_function": [],
+      "actual_data_sources_read": [
+        "NO_BOUND_CANDIDATE_SCORER"
+      ],
       "uses_SOURCE_002_TRAIN": false,
       "uses_SOURCE_002_VALIDATION": false,
       "uses_weather": false,
@@ -182,25 +265,43 @@
       "v2_historical_only_scoring_path_exists": false,
       "historical_only_input_compatible": true,
       "historical_only_execution_compatible": false,
-      "current_v0_3_execution_eligible": false,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v2": false,
       "reason_code": "NO_BOUND_CANDIDATE_07_SCORING_PATH"
-    }
-  ],
-  "DEFERRED_CANDIDATES": {
-    "06_weather_response": {
-      "execution_eligible": false,
-      "reason_code": "CURRENT_WEATHER_AUTHORITY_REQUIRED"
     },
-    "08_residual_feature": {
-      "execution_eligible": false,
+    {
+      "candidate_id": "08_residual_feature",
+      "parameter_or_feature_path": [
+        "residual_feature_manifest"
+      ],
+      "actual_execution_function": [],
+      "actual_data_sources_read": [
+        "TASK9_STRUCTURAL_OUTPUT_OR_EQUIVALENT",
+        "POSSIBLE_WEATHER_FEATURES"
+      ],
+      "uses_SOURCE_002_TRAIN": false,
+      "uses_SOURCE_002_VALIDATION": false,
+      "uses_weather": true,
+      "uses_production_plan": false,
+      "uses_Task8": false,
+      "uses_Task9": true,
+      "parameter_reaches_prediction_math": false,
+      "parameter_change_can_change_prediction": false,
+      "v2_historical_only_scoring_path_exists": false,
+      "historical_only_input_compatible": false,
+      "historical_only_execution_compatible": false,
+      "current_v0_3_execution_eligible": false,
+      "currently_runnable_under_v2": false,
       "reason_code": "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED"
     }
-  },
+  ],
   "BUDGET": {
+    "durable_authority": "POSTGRESQL",
+    "state_class": "FREEZE_POINT_EVIDENCE_SNAPSHOT_NOT_DURABLE_READBACK",
     "legacy_reconciled_validation_debit": 4,
-    "canonical_started_count": 0,
-    "effective_consumed": 4,
-    "remaining": 28,
+    "freeze_snapshot_canonical_started_count": 0,
+    "freeze_snapshot_effective_consumed": 4,
+    "freeze_snapshot_remaining": 28,
     "budget_delta": 0,
     "evaluation_started_created": false,
     "candidate_execution_performed": false,
@@ -216,12 +317,33 @@
   },
   "DECISION": {
     "candidate_compatibility_audit_complete": true,
+    "audited_candidate_count": 8,
+    "frozen_current_v0_3_execution_eligible_ids": [
+      "01_parameter_calibration",
+      "02_quantile_calibration",
+      "03_phenology_offset",
+      "04_yield_parameter",
+      "05_marketable_rate",
+      "07_harvest_efficiency"
+    ],
+    "currently_runnable_under_v2_ids": [],
     "next_executable_candidate": "NONE",
     "c03_historical_only_scoring_path_exists": false,
-    "c03_current_v0_3_execution_eligible": false,
+    "c03_current_v0_3_execution_eligible": true,
+    "c03_currently_runnable_under_v2": false,
     "candidate_execution_performed": false,
     "ready_authorized": false,
     "merge_authorized": false,
     "no_step_implies_the_next": true
+  },
+  "REVIEW_CORRECTION_R2": {
+    "status": "APPLIED",
+    "frozen_v2_eligibility_preserved": true,
+    "execution_runnability_separated_from_plan_eligibility": true,
+    "candidate_audit_complete_8_of_8": true,
+    "budget_values_relabelled_as_freeze_snapshot": true,
+    "candidate_execution_performed": false,
+    "validation_scoring_performed": false,
+    "test_access_requested": false
   }
 }
