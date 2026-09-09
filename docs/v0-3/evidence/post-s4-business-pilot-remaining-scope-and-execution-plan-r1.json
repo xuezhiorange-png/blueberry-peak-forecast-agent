@@ -1,0 +1,448 @@
+{
+  "TASK_ID": "V0_3_POST_S4_BUSINESS_PILOT_REMAINING_SCOPE_AND_EXECUTION_PLAN_R1",
+  "TASK_CLASS": "CURRENT_MAIN_READ_ONLY_STATUS_INVENTORY",
+  "REPOSITORY": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "BASE_MAIN_SHA": "82d174e450e9e9d7bb9a04964185e0d45d91b9c1",
+  "ORIGIN_MAIN_SHA": "82d174e450e9e9d7bb9a04964185e0d45d91b9c1",
+  "PR592_MERGE_COMMIT": "82d174e450e9e9d7bb9a04964185e0d45d91b9c1",
+  "PR592_MERGE_IN_BASE": true,
+  "CURRENT_MAIN_AUDIT_PERFORMED": true,
+  "DOCUMENT_SCOPE_ONLY": true,
+  "PRODUCTION_CODE_CHANGED": false,
+  "MODEL_CHANGED": false,
+  "PARAMETERS_CHANGED": false,
+  "CANDIDATE_EXECUTION_PERFORMED": false,
+  "VALIDATION_SCORING_PERFORMED": false,
+  "TEST_ACCESS_REQUESTED": false,
+  "TEST_EVALUATION_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "S1_SPLIT_CHANGED": false,
+  "S4_EXPERIMENT_PLAN_CHANGED": false,
+  "PROSPECTIVE_AUTHORITY_STORE_CREATED": false,
+  "PROSPECTIVE_AUTHORITY_SEEDED": false,
+  "PROSPECTIVE_AUTHORITY_BACKFILLED": false,
+  "PROSPECTIVE_RESCAN_PERFORMED": false,
+  "VALIDATION_BUDGET_CONSUMED": false,
+  "CURRENT_GOVERNANCE_STATE": {
+    "CURRENT_V0_3_S1_COMPLETE": true,
+    "CURRENT_V0_3_S2_COMPLETE": true,
+    "CURRENT_V0_3_S3_COMPLETE": true,
+    "V0_3_S3_ENGINEERING_IMPLEMENTATION_COMPLETE": true,
+    "S3_C_HISTORICAL_PIT_STATUS": "NOT_COMPUTABLE",
+    "HISTORICAL_VALIDATION_TERMINAL": true,
+    "HISTORICAL_PIT_REASON": "HISTORICAL_INCUMBENT_DAILY_FORECAST_AUTHORITY_NOT_DURABLY_RETAINED",
+    "CURRENT_V0_3_S4_COMPLETE": false,
+    "CURRENT_S4_EXECUTION_STATUS": "WAITING_FOR_REAL_PROSPECTIVE_FORECAST_AUTHORITY",
+    "CURRENT_S4_BLOCKER": "REAL_PROSPECTIVE_FORECAST_AUTHORITY_NOT_YET_AVAILABLE",
+    "FURTHER_PROSPECTIVE_AUTHORITY_STORE_DISCOVERY_REQUIRED": false,
+    "FURTHER_POSTGRES_RECONNECT_REQUIRED": false,
+    "FURTHER_DOCKER_VOLUME_RECOVERY_REQUIRED": false,
+    "FURTHER_DSN_SEARCH_REQUIRED": false,
+    "PROSPECTIVE_SCAN_BEFORE_TRIGGER": false,
+    "CANDIDATE_EXECUTION_BEFORE_TRIGGER": false,
+    "VALIDATION_SCORING_BEFORE_TRIGGER": false,
+    "TEST_REMAINS_SEALED": true,
+    "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+    "CANONICAL_STARTED_COUNT": 0,
+    "EFFECTIVE_CONSUMED": 4,
+    "REMAINING": 28,
+    "BUDGET_DELTA": 0,
+    "VALIDATION_LEDGER_EVENTS_CREATED": 0,
+    "READY_AUTHORIZED": false,
+    "MERGE_AUTHORIZED": false,
+    "NO_STEP_IMPLIES_THE_NEXT": true
+  },
+  "COMPLETED_WORK": [
+    {
+      "AREA": "S1_S2_DATA_FOUNDATION",
+      "STATUS": "ACCEPTED",
+      "EVIDENCE": [
+        "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+        "docs/v0-3/s2/evidence/s2-slice-complete-registry-closeout.json"
+      ],
+      "DETAIL": "SOURCE-002 and the governed TRAIN/VALIDATION materialization are accepted; materialized dataset identity is f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785."
+    },
+    {
+      "AREA": "ACTUAL_HARVEST_AND_LABEL_AUTHORITY",
+      "STATUS": "IMPLEMENTED",
+      "EVIDENCE": [
+        "backend/app/api/actual_harvest_imports.py",
+        "backend/app/actual_harvest_labels/service.py"
+      ],
+      "DETAIL": "Import, validation, seal/commit, immutable label snapshots, and AS_OF_EVALUATION visibility are implemented. Future post-TEST labels are not currently proven."
+    },
+    {
+      "AREA": "FORECAST_EXECUTION_AND_RETENTION",
+      "STATUS": "IMPLEMENTED_AND_VERIFIED",
+      "EVIDENCE": [
+        "backend/app/trial.py",
+        "backend/app/core_forecast/application.py",
+        "backend/app/forecast_authority/retention.py"
+      ],
+      "DETAIL": "Production forecast completion captures base authority before later Task10 work; immutable daily P50/P80/P90 authority and PIT readback are implemented."
+    },
+    {
+      "AREA": "S4_CONTROL_PLANE",
+      "STATUS": "ENGINEERING_IMPLEMENTATION_COMPLETE",
+      "EVIDENCE": [
+        "docs/v0-3/s4/evidence/s4-a-experiment-plan-and-candidate-registry-freeze-r1.json",
+        "docs/v0-3/s4/evidence/s4-b-guardrail-policy-and-validation-execution-gate-freeze-r1.json",
+        "docs/v0-3/s4/evidence/s4-prospective-post-test-authority-scan-r1.json"
+      ],
+      "DETAIL": "The finite plan, guardrails, durable budget, authority retention, and fail-closed execution controls exist. No prospective candidate validation has run."
+    },
+    {
+      "AREA": "PR592_TERMINAL_DISPOSITION",
+      "STATUS": "ACCEPTED",
+      "EVIDENCE": [
+        "docs/v0-3/s4/evidence/s4-prospective-post-test-authority-scan-r1.json",
+        "docs/v0-3/development-plan.md"
+      ],
+      "DETAIL": "The current environment did not prove an existing real production forecast-authority store; further discovery/reconnect/recovery is closed."
+    }
+  ],
+  "BUSINESS_PILOT_CAPABILITY_INVENTORY": [
+    {
+      "CAPABILITY": "real business source",
+      "CURRENT_STATUS": "AVAILABLE_FOR_ACCEPTED_S1_S2_BASELINE",
+      "PROVEN": "SOURCE-002 identity, rebuild parity, and accepted TRAIN/VALIDATION materialization.",
+      "NOT_PROVEN": "A current real-season pilot feed with its source owner and operating cadence."
+    },
+    {
+      "CAPABILITY": "actual-harvest pipeline",
+      "CURRENT_STATUS": "IMPLEMENTED",
+      "PROVEN": "Import, validation, sealing, commit, and immutable AS_OF_EVALUATION label snapshots.",
+      "NOT_PROVEN": "Corresponding future post-TEST actual labels for a prospective cohort."
+    },
+    {
+      "CAPABILITY": "forecast execution",
+      "CURRENT_STATUS": "IMPLEMENTED_ENGINEERING_PATH",
+      "PROVEN": "Trial/Core Forecast execution and persisted daily results.",
+      "NOT_PROVEN": "A real prospective production capture available for the next S4 scan."
+    },
+    {
+      "CAPABILITY": "forecast authority retention",
+      "CURRENT_STATUS": "IMPLEMENTED_AND_VERIFIED",
+      "PROVEN": "Base capture, Task10 extension, PIT reader, lineage, hashes, and immutability.",
+      "NOT_PROVEN": "Real production rows in a currently proven authority store."
+    },
+    {
+      "CAPABILITY": "persistence and query",
+      "CURRENT_STATUS": "IMPLEMENTED_ENGINEERING_PATH",
+      "PROVEN": "PostgreSQL-owned forecast authority objects plus query and export paths.",
+      "NOT_PROVEN": "Deployment-specific production database binding and operational SLO evidence."
+    },
+    {
+      "CAPABILITY": "API",
+      "CURRENT_STATUS": "IMPLEMENTED_ENGINEERING_SURFACE",
+      "PROVEN": "Actual-harvest, trial forecast, daily curve, export, and quality report endpoints.",
+      "NOT_PROVEN": "An accepted S5 operations package for the approved pilot model."
+    },
+    {
+      "CAPABILITY": "frontend and browser workflow",
+      "CURRENT_STATUS": "ENGINEERING_FLOW_PRESENT",
+      "PROVEN": "Forecast and quality pages with engineering browser/unit evidence.",
+      "NOT_PROVEN": "S5 comparison, warning, explanation, adoption, and pilot-acceptance surfaces."
+    },
+    {
+      "CAPABILITY": "business pilot operation",
+      "CURRENT_STATUS": "NOT_STARTED",
+      "PROVEN": "S5 definition and dependency order.",
+      "NOT_PROVEN": "Operating cadence, business roles, adoption records, and real-season run evidence."
+    },
+    {
+      "CAPABILITY": "deployment and runtime prerequisites",
+      "CURRENT_STATUS": "PARTIAL_LOCAL_ENGINEERING_ONLY",
+      "PROVEN": "Local compose configuration and basic live/ready health endpoints.",
+      "NOT_PROVEN": "Production deployment, externalized secrets, backup/restore, runbook, and operational ownership."
+    },
+    {
+      "CAPABILITY": "observability and audit",
+      "CURRENT_STATUS": "PARTIAL_AUDITABILITY",
+      "PROVEN": "Request/idempotency identifiers, persisted lineage, hashes, and evidence records.",
+      "NOT_PROVEN": "Production telemetry, alerting, dashboards, incident procedures, and pilot operating review."
+    },
+    {
+      "CAPABILITY": "release and pilot acceptance",
+      "CURRENT_STATUS": "NOT_STARTED",
+      "PROVEN": "S6 acceptance contract and explicit V0.3 production-release boundary.",
+      "NOT_PROVEN": "Model approval, real-season acceptance, rollback decision, or release approval."
+    }
+  ],
+  "S4_REMAINING_STATE": {
+    "HISTORICAL_S1_VALIDATION_EXECUTION": "TERMINAL_NOT_COMPUTABLE",
+    "HISTORICAL_AUTHORITY_RECOVERY_REQUIRED": false,
+    "HISTORICAL_AUTHORITY_RECOVERY_ALLOWED": false,
+    "PROSPECTIVE_TRIGGER_REQUIRED": true,
+    "PROSPECTIVE_TRIGGER": "A_REAL_NORMAL_PRODUCTION_FORECAST_HAS_BEEN_CAPTURED_BY_THE_EXISTING_FORECAST_AUTHORITY_RETENTION_PATH_AND_CORRESPONDING_POST_TEST_ACTUAL_LABELS_HAVE_LATER_BECOME_AVAILABLE",
+    "PROSPECTIVE_COHORT_CURRENTLY_PROVEN": false,
+    "PROSPECTIVE_VALIDATION_EXTENSION_FEASIBILITY_DETERMINED": false,
+    "PROSPECTIVE_VALIDATION_EXTENSION_FEASIBLE": false,
+    "CANDIDATE_VALIDATION_AUTHORIZED": false,
+    "MODEL_SELECTION_ISSUED": false,
+    "MODEL_APPROVED_FOR_PILOT": false,
+    "TEST_ACCESS_AUTHORIZED": false,
+    "TEST_REMAINS_SEALED": true,
+    "NOT_AN_ENGINEERING_RECOVERY_QUEUE": true
+  },
+  "S5_S6_AUTHORITY": {
+    "V0_3_S5_CURRENT_DEFINITION_EXISTS": true,
+    "V0_3_S5_DEFINITION_SOURCE": "docs/v0-3/development-plan.md section 4.7",
+    "V0_3_S5_AUTHORIZED": false,
+    "CURRENT_V0_3_S5_COMPLETE": false,
+    "S5_SUBTASKS": [
+      "S5-A BACKEND_PILOT_OPERATIONS",
+      "S5-B FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION",
+      "S5-C CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS"
+    ],
+    "V0_3_S6_CURRENT_DEFINITION_EXISTS": true,
+    "V0_3_S6_DEFINITION_SOURCE": "docs/v0-3/development-plan.md section 4.8",
+    "V0_3_S6_AUTHORIZED": false,
+    "CURRENT_V0_3_S6_COMPLETE": false,
+    "S6_MINIMUM_SCOPE": "At least two farms and two varieties, fixed forecast cadence, complete actual-result feedback, and documented technical/model/business acceptance.",
+    "PRODUCTION_RELEASE_IN_V0_3_SCOPE": false,
+    "V0_3_S5_S6_DEFINITIONS_ARE_V0_3_CURRENT": true,
+    "V0_1_V0_2_S5_S6_USED_AS_CURRENT_AUTHORITY": false
+  },
+  "REMAINING_TASKS": [
+    {
+      "TASK_NAME": "S4_PROSPECTIVE_TRIGGERED_SCAN_AND_COHORT_FREEZE",
+      "WHY_NEEDED": "Establish the lawful prospective forecast/actual pairing authority needed before future S4 candidate validation.",
+      "CURRENT_STATUS": "WAITING_FOR_EXTERNAL_PROSPECTIVE_AUTHORITY_TRIGGER",
+      "BLOCKER": "No proven real normal-production forecast capture plus corresponding post-TEST actual labels in the existing retention path.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "The exact PR #592 trigger must occur first; no further store discovery, reconnect, Docker recovery, DSN search, seed, or backfill.",
+      "PROPOSED_STAGE": "V0.3-S4 continuation",
+      "ESTIMATED_SCOPE": "One read-only scanner invocation; if READY, freeze a new prospective cohort version and prepare a new plan version without writing forecast/label authority or consuming budget.",
+      "ACCEPTANCE_CRITERIA": [
+        "The scanner runs once only after the trigger.",
+        "If READY, all five cohort hashes are real and bound.",
+        "Every included grain has a complete 7/14/21 horizon set with no TEST overlap.",
+        "S1 remains unchanged and the durable budget remains 4 consumed of 32 with 28 remaining."
+      ]
+    },
+    {
+      "TASK_NAME": "S4_PROSPECTIVE_CANDIDATE_VALIDATION",
+      "WHY_NEEDED": "Evaluate registered candidates against the frozen prospective cohort under S4-B fairness, metrics, guardrails, and the durable ledger.",
+      "CURRENT_STATUS": "NOT_STARTED_NOT_AUTHORIZED",
+      "BLOCKER": "Requires an accepted prospective cohort/plan version and separate candidate-execution authorization; TEST remains sealed until its later gate.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "Task 01 READY result, exact plan/cohort identity, paired data, verified PostgreSQL budget state, and explicit candidate authorization.",
+      "PROPOSED_STAGE": "V0.3-S4 continuation",
+      "ESTIMATED_SCOPE": "Finite registered candidate invocations with durable STARTED/TERMINAL records, paired incumbent comparison, honest outcomes, and append-only budget reconciliation.",
+      "ACCEPTANCE_CRITERIA": [
+        "No hidden retries or candidates.",
+        "All data and policy hashes match.",
+        "Every started invocation is durably recorded before scoring.",
+        "NOT_COMPUTABLE outcomes remain explicit and no selection or promotion is issued automatically."
+      ]
+    },
+    {
+      "TASK_NAME": "S4_LOCKED_TEST_AND_MODEL_APPROVAL",
+      "WHY_NEEDED": "Convert an eligible prospective validation result into a one-time locked TEST evaluation and a coordinator-reviewed pilot-model approval/rollback manifest.",
+      "CURRENT_STATUS": "NOT_ISSUED_NOT_STARTED",
+      "BLOCKER": "Requires completed prospective candidate validation, a locked selection-eligible result, and separate TEST authorization.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "Task 02 accepted; selection and guardrail prerequisites resolved; explicit TEST authorization.",
+      "PROPOSED_STAGE": "V0.3-S4-D",
+      "ESTIMATED_SCOPE": "Lock candidate and incumbent identities, execute TEST once under separate authorization, issue a traceable selection decision, and record approval/rollback evidence.",
+      "ACCEPTANCE_CRITERIA": [
+        "TEST access is separately authorized and sealed before use.",
+        "No TEST-after tuning occurs.",
+        "One immutable result and a traceable selection decision are recorded.",
+        "MODEL_APPROVED_FOR_PILOT is explicitly decided rather than inferred."
+      ]
+    },
+    {
+      "TASK_NAME": "S5_A_PILOT_OPERATIONS_READINESS",
+      "WHY_NEEDED": "Turn the approved model into a repeatable, auditable pilot-operations workflow rather than a one-off engineering forecast.",
+      "CURRENT_STATUS": "DEFINED_BUT_NOT_AUTHORIZED",
+      "BLOCKER": "MODEL_APPROVED_FOR_PILOT and accepted S4 completion are required for implementation and operations acceptance.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "Task 03 approval, an independently authorized S5-A scope, and runtime/owner/security prerequisites.",
+      "PROPOSED_STAGE": "V0.3-S5-A",
+      "ESTIMATED_SCOPE": "Versioned run records, current/previous comparison, forecast-to-actual and naive-baseline views, history/readback/export, quality/data-gap notices, and feedback hooks.",
+      "ACCEPTANCE_CRITERIA": [
+        "Immutable run records are complete.",
+        "Version, lineage, comparison, readback, export, and quality notices are evidenced.",
+        "S5-A review explicitly accepts pilot operations readiness."
+      ]
+    },
+    {
+      "TASK_NAME": "S5_B_FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION",
+      "WHY_NEEDED": "Give business users evidence-derived comparison, warnings, and explanations without client-side calculation or invented causes.",
+      "CURRENT_STATUS": "DEFINED_BUT_NOT_AUTHORIZED",
+      "BLOCKER": "Requires accepted S5-A operations contracts and records.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "S5-A accepted, an independently authorized S5-B scope, and real persisted evidence for every displayed claim.",
+      "PROPOSED_STAGE": "V0.3-S5-B",
+      "ESTIMATED_SCOPE": "Browser/API comparison, data-quality warnings, evidence-backed explanations, and version-aware display.",
+      "ACCEPTANCE_CRITERIA": [
+        "Browser evidence covers the frozen flows.",
+        "Explanations reference recorded input/version/result differences.",
+        "No unsupported LLM cause, client-side formula, or TEST access is introduced."
+      ]
+    },
+    {
+      "TASK_NAME": "S5_C_CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS",
+      "WHY_NEEDED": "Close the operating loop with repeated forecast-to-actual evaluation, adoption/non-adoption reasons, and manual-adjustment audit.",
+      "CURRENT_STATUS": "DEFINED_BUT_NOT_AUTHORIZED",
+      "BLOCKER": "Requires accepted S5-A and S5-B plus future actual labels.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "S5-A and S5-B accepted, actual-result feedback available, and an independently authorized S5-C scope.",
+      "PROPOSED_STAGE": "V0.3-S5-C",
+      "ESTIMATED_SCOPE": "Append-only continuous evaluation records, metric updates, adoption/non-adoption ledger, and reasoned manual-adjustment records.",
+      "ACCEPTANCE_CRITERIA": [
+        "Every record is attributable to forecast and actual identities.",
+        "Updates are append-only and missing data is explicit.",
+        "Adoption decisions remain distinct from business acceptance and S5-C review passes."
+      ]
+    },
+    {
+      "TASK_NAME": "S6_REAL_SEASON_PILOT_SCOPE_AND_EXECUTION",
+      "WHY_NEEDED": "Exercise the pilot-approved model with real business users and a governed operating cadence.",
+      "CURRENT_STATUS": "NOT_STARTED",
+      "BLOCKER": "Requires model approval, S5 acceptance, scope/owner/security authorization, real business source, and actual-result feedback.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "S4 model approval, applicable S5 acceptance, at least two farms and two varieties, fixed cadence, and documented source owner/measurement boundary.",
+      "PROPOSED_STAGE": "V0.3-S6",
+      "ESTIMATED_SCOPE": "Real-season run plan, scheduled forecast operations, actual feedback, technical traceability, and business-use evidence.",
+      "ACCEPTANCE_CRITERIA": [
+        "Scope is authorized before data import.",
+        "Minimum farms/varieties and fixed cadence are met.",
+        "Forecast, feedback, and audit records are complete.",
+        "No production command or unrelated automation is introduced."
+      ]
+    },
+    {
+      "TASK_NAME": "S6_BUSINESS_ACCEPTANCE_AND_RELEASE_BOUNDARY",
+      "WHY_NEEDED": "Make an explicit pilot accepted/failed decision from technical, model, and business evidence while preserving the V0.3 release boundary.",
+      "CURRENT_STATUS": "NOT_STARTED",
+      "BLOCKER": "Requires a completed S6 real-season pilot and complete business acceptance evidence.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "S6 pilot complete, business acceptance roles, and rollback or non-adoption evidence.",
+      "PROPOSED_STAGE": "V0.3-S6",
+      "ESTIMATED_SCOPE": "Review early-peak usefulness, preparation impact, user understanding, error acceptability, adoption, non-adoption, rollback, and larger-pilot recommendation.",
+      "ACCEPTANCE_CRITERIA": [
+        "V0_3_BUSINESS_PILOT_ACCEPTED or V0_3_BUSINESS_PILOT_FAILED is explicitly issued.",
+        "Evidence covers technical, model, and business acceptance.",
+        "Production release remains false because it is outside V0.3 scope."
+      ]
+    },
+    {
+      "TASK_NAME": "PRODUCTION_RUNTIME_AND_OPERATIONAL_READINESS",
+      "WHY_NEEDED": "Provide deployment, security, resilience, health, telemetry, and operational ownership for a real business pilot.",
+      "CURRENT_STATUS": "PARTIAL_LOCAL_ENGINEERING_ONLY",
+      "BLOCKER": "Actual deployment target, owner, security requirements, backup/restore policy, and operational SLO/incident requirements are not frozen in current evidence.",
+      "CAN_EXECUTE_NOW": false,
+      "DEPENDENCY": "Separate runtime-readiness authorization and defined pilot environment; task-isolated #591 databases cannot be treated as production.",
+      "PROPOSED_STAGE": "S5 enabler / technical acceptance",
+      "ESTIMATED_SCOPE": "Production configuration/secrets, migrations, backup/restore, health/readiness, telemetry, alerts, runbook, and exact runtime evidence.",
+      "ACCEPTANCE_CRITERIA": [
+        "Target environment and ownership are identified.",
+        "Secrets are externalized and restore is tested.",
+        "Health and authority readiness are observable.",
+        "Alerts, runbook, and ownership are reviewed without touching TEST or validation budget."
+      ]
+    },
+    {
+      "TASK_NAME": "V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_AND_RUNTIME_GAP_PLAN_R1",
+      "WHY_NEEDED": "Translate the current S5-A definition into an executable scope, evidence schema, and dependency checklist while S4 waits for its external trigger.",
+      "CURRENT_STATUS": "CAN_START_AS_DOCUMENTATION_ONLY",
+      "BLOCKER": "No blocker for the planning artifact itself; S5-A implementation still depends on MODEL_APPROVED_FOR_PILOT and separate authorization.",
+      "CAN_EXECUTE_NOW": true,
+      "DEPENDENCY": "Current V0.3 S5 definition, current API/retention evidence, and runtime audit; no S4 plan amendment or S5 authorization.",
+      "PROPOSED_STAGE": "S5-A pre-authorization planning",
+      "ESTIMATED_SCOPE": "Docs-only contract for pilot run identity, comparison/history/export, quality notices, feedback/adoption records, runtime prerequisites, owners, acceptance evidence, and a gap-to-implementation map.",
+      "ACCEPTANCE_CRITERIA": [
+        "One reviewed contract names the exact S5-A boundary and dependencies.",
+        "Acceptance evidence is machine-readable.",
+        "Implementation paths remain unauthorized.",
+        "No production code, model, parameters, database, budget, S1 split, S4 plan, or TEST state changes."
+      ]
+    }
+  ],
+  "NO_LONGER_NEEDED_OR_OUT_OF_SCOPE": [
+    {
+      "ITEM": "HISTORICAL_S3_C_INCUMBENT_FORECAST_RECOVERY",
+      "STATUS": "TERMINALLY_CLOSED",
+      "RATIONALE": "Historical PIT is NOT_COMPUTABLE because incumbent daily forecast authority was not durably retained.",
+      "NEXT_ACTION": "None; do not recover or synthesize historical values."
+    },
+    {
+      "ITEM": "REPEATED_PROSPECTIVE_STORE_DISCOVERY_AND_INFRASTRUCTURE_RECOVERY",
+      "STATUS": "CLOSED_BY_PR592",
+      "RATIONALE": "Further discovery, reconnect, Docker recovery, and DSN search are explicitly false.",
+      "NEXT_ACTION": "Wait for the real production-capture plus future-label trigger."
+    },
+    {
+      "ITEM": "REPLACEMENT_PRODUCTION_AUTHORITY_STORE_OR_SEEDING",
+      "STATUS": "FORBIDDEN",
+      "RATIONALE": "It would create authority rather than observe the existing production retention path.",
+      "NEXT_ACTION": "None."
+    },
+    {
+      "ITEM": "HISTORICAL_C01_OR_FROZEN_S1_C03_RERUN",
+      "STATUS": "CLOSED_OR_AUDIT_ONLY",
+      "RATIONALE": "Historical evidence cannot authorize a new validation invocation.",
+      "NEXT_ACTION": "None."
+    },
+    {
+      "ITEM": "UNRELATED_AUTOMATION_AND_RELEASE_EXPANSION",
+      "STATUS": "OUT_OF_SCOPE_FOR_V0_3",
+      "RATIONALE": "Routing, factory optimization, automatic dispatch, ERP/IoT integration, and production release are outside the current V0.3 contract.",
+      "NEXT_ACTION": "Do not add to S5/S6 backlog."
+    }
+  ],
+  "NEXT_EXECUTABLE_TASK": {
+    "TASK_NAME": "V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_AND_RUNTIME_GAP_PLAN_R1",
+    "TYPE": "DOCUMENTATION_ONLY",
+    "WHY_THIS_ONE": "It is the only immediate task identified by this inventory that can proceed without the S4 prospective trigger, model approval, TEST, budget consumption, or production implementation.",
+    "DOES_NOT_MEAN": [
+      "S5 implementation has started",
+      "S5 is authorized",
+      "A model is approved",
+      "S4 is complete",
+      "TEST may be opened"
+    ]
+  },
+  "RETURN_TO_S4_CONDITIONS": [
+    "A real normal production Forecast has completed through the existing forecast-authority retention path.",
+    "The capture is durably readable by the existing PIT reader with complete daily authority, cutoff, lineage, and hashes.",
+    "Corresponding actual-harvest labels become available after the declared TEST interval with AS_OF_EVALUATION visibility.",
+    "The coordinator authorizes the one read-only prospective scan.",
+    "The scan proves the full 7/14/21 horizon cohort, exact business grain, coverage, and five real identity hashes before any candidate execution authorization."
+  ],
+  "CANONICALIZATION_NOTE": {
+    "ENCODING": "UTF-8",
+    "SORT_KEYS": true,
+    "COMPACT_SEPARATORS": true,
+    "ENSURE_ASCII": false,
+    "PURPOSE": "Deterministic evidence representation; no live authority or budget is derived from this file."
+  },
+  "EVIDENCE_BASIS": [
+    "docs/v0-3/s1/evidence/s1-acceptance-record.json",
+    "docs/v0-3/s2/evidence/s2-slice-complete-registry-closeout.json",
+    "docs/v0-3/s3/evidence/s3-final-closeout-and-s4-entry-authorization-r1.json",
+    "docs/v0-3/s4/evidence/s4-a-experiment-plan-and-candidate-registry-freeze-r1.json",
+    "docs/v0-3/s4/evidence/s4-b-guardrail-policy-and-validation-execution-gate-freeze-r1.json",
+    "docs/v0-3/s4/evidence/s4-prospective-post-test-authority-scan-r1.json",
+    "docs/v0-3/development-plan.md sections 4.7, 4.8, and the EOF-appended PR #592 terminal pointer",
+    "backend/app/actual_harvest_labels/service.py",
+    "backend/app/api/actual_harvest_imports.py",
+    "backend/app/api/trial.py",
+    "backend/app/trial.py",
+    "backend/app/forecast_authority/retention.py",
+    "backend/app/core_forecast/application.py",
+    "backend/app/api/health.py",
+    "frontend/src/app/routes.tsx",
+    "frontend/src/pages/ForecastPage.tsx",
+    "frontend/src/pages/QualityPage.tsx",
+    "docker-compose.yml",
+    "docker-compose.test.yml"
+  ],
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_POST_S4_BUSINESS_PILOT_REMAINING_SCOPE_REVIEW"
+}
