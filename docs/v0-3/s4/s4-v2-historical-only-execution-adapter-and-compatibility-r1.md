@@ -1,5 +1,7 @@
 # V0.3 S4 V2 historical-only execution adapter and compatibility R1
 
+> Review correction R2 preserves the frozen V2 candidate eligibility semantics, separates plan eligibility from current runnability, completes the audit to 8/8 candidates, and relabels budget numbers as freeze-point evidence rather than durable authority.
+
 This document records the V2 execution-readiness adapter. It binds the
 current execution policy to the accepted SOURCE-002 historical TRAIN and
 VALIDATION partitions, and audits the registered candidate code paths. It does
@@ -112,37 +114,32 @@ missing days are never zero-filled. No scoring is run by this adapter.
 
 ## Code-level candidate compatibility audit
 
-Compatibility requires both historical-only input compatibility and a real
-V2-bound path whose parameter reaches prediction math and can change the
-prediction. A manifest or a parameter name alone is not enough.
+The frozen V2 plan uses `current_v0_3_execution_eligible` to mean that a candidate is within the historical-only V0.3 lane and may proceed to a future, separately authorized V2 manifest. It does **not** mean that a runnable scorer already exists. R2 therefore keeps that frozen eligibility unchanged and separately records `currently_runnable_under_v2`.
 
-| candidate | actual path | data/input finding | reaches prediction math | parameter can change prediction | V2 historical path | current eligible | reason |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `01_parameter_calibration` | `backend.app.s4_local_engineering.run_local_replay` | SOURCE-002 TRAIN/VALIDATION plus curve config | true | true | false | false | `CANDIDATE_01_RERUN_FORBIDDEN` |
-| `02_quantile_calibration` | `backend.app.forecast_quality.quantile_coverage.compute_upper_quantile_coverage` | S3-bound forecast/actual metric rows, not a V2 prediction path | false | false | false | false | `NO_V2_BOUND_PREDICTION_QUANTILE_PATH` |
-| `03_phenology_offset` | legacy maturity service plus no V2 local scorer | production plan, weather, and Task8/Task9 runtime authority | true in legacy path | true in legacy path | false | false | `C03_NO_SOURCE_002_ONLY_SCORING_PATH` |
-| `04_yield_parameter` | no bound candidate scorer | no actual V2 execution function | false | false | false | false | `NO_BOUND_CANDIDATE_04_SCORING_PATH` |
-| `05_marketable_rate` | no bound candidate scorer | no actual V2 execution function | false | false | false | false | `NO_BOUND_CANDIDATE_05_SCORING_PATH` |
-| `07_harvest_efficiency` | no bound candidate scorer | no actual V2 execution function | false | false | false | false | `NO_BOUND_CANDIDATE_07_SCORING_PATH` |
+A candidate is currently runnable only when the frozen eligibility is true and the repository has a V2-bound historical-only scoring path whose parameter or feature reaches prediction math and can change predictions. The audit covers all eight frozen registry entries.
 
-Candidate 01 remains permanently blocked from rerun despite its old local
-scorer using the historical partitions. Candidate 02 currently has only a
-metric calculator; it does not produce the candidate-specific historical
-predictions required for lawful quantile calibration. Candidate 03's
-`offset.maximum_abs_shift_days` reaches the legacy maturity prediction math,
-but that path consumes planning/weather/Task8/Task9 authority and is not a
-SOURCE-002-only V2 scorer. It is therefore explicitly fail-closed rather than
-wired to the old forward-looking service.
+| candidate | frozen historical-only eligible | V2 scoring path | currently runnable | reason |
+| --- | --- | --- | --- | --- |
+| `01_parameter_calibration` | true | false | false | `CANDIDATE_01_RERUN_FORBIDDEN` |
+| `02_quantile_calibration` | true | false | false | `NO_V2_BOUND_PREDICTION_QUANTILE_PATH` |
+| `03_phenology_offset` | true | false | false | `C03_NO_SOURCE_002_ONLY_SCORING_PATH` |
+| `04_yield_parameter` | true | false | false | `NO_BOUND_CANDIDATE_04_SCORING_PATH` |
+| `05_marketable_rate` | true | false | false | `NO_BOUND_CANDIDATE_05_SCORING_PATH` |
+| `06_weather_response` | false | false | false | `C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY` |
+| `07_harvest_efficiency` | true | false | false | `NO_BOUND_CANDIDATE_07_SCORING_PATH` |
+| `08_residual_feature` | false | false | false | `V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED` |
 
-Candidates 06 and 08 remain blocked by the V2 eligibility overlay: 06 requires
-weather-response authority and 08 lacks a V2-bound historical-only feature
-manifest. Neither is included in the six-candidate V2-eligible audit table.
+Candidate 01 remains frozen as V2 historical-only eligible in the canonical plan but cannot be rerun. Candidate 02 has only a metric calculator, not a V2-bound prediction/quantile calibration path. Candidate 03's parameter reaches legacy maturity prediction math, but that legacy path consumes planning/weather/Task8/Task9 authority and is not a SOURCE-002-only V2 scorer. Candidates 04, 05, and 07 have historical-only-compatible hypotheses but no bound candidate-specific scorer. Candidates 06 and 08 remain ineligible under the frozen V2 overlay and are still included in the 8/8 compatibility audit.
 
 ```text
 CANDIDATE_COMPATIBILITY_AUDIT_COMPLETE=true
+AUDITED_CANDIDATE_COUNT=8
+FROZEN_CURRENT_V0_3_EXECUTION_ELIGIBLE_IDS=01,02,03,04,05,07
+CURRENTLY_RUNNABLE_UNDER_V2_IDS=NONE
 NEXT_EXECUTABLE_CANDIDATE=NONE
 C03_HISTORICAL_ONLY_SCORING_PATH_EXISTS=false
-C03_CURRENT_V0_3_EXECUTION_ELIGIBLE=false
+C03_CURRENT_V0_3_EXECUTION_ELIGIBLE=true
+C03_CURRENTLY_RUNNABLE_UNDER_V2=false
 ```
 
 ## Execution, budget, and TEST safety
@@ -152,10 +149,12 @@ It does not call the durable execution authority, create a STARTED event, run
 the local scorer, score VALIDATION, or read TEST:
 
 ```text
+DURABLE_VALIDATION_BUDGET_AUTHORITY=POSTGRESQL
+BUDGET_STATE_CLASS=FREEZE_POINT_EVIDENCE_SNAPSHOT_NOT_DURABLE_READBACK
 LEGACY_RECONCILED_VALIDATION_DEBIT=4
-CANONICAL_STARTED_COUNT=0
-EFFECTIVE_CONSUMED=4
-REMAINING=28
+FREEZE_SNAPSHOT_CANONICAL_STARTED_COUNT=0
+FREEZE_SNAPSHOT_EFFECTIVE_CONSUMED=4
+FREEZE_SNAPSHOT_REMAINING=28
 BUDGET_DELTA=0
 EVALUATION_STARTED_CREATED=false
 CANDIDATE_EXECUTION_PERFORMED=false
