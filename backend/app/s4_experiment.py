@@ -491,9 +491,6 @@ def canonical_guardrail_policy_v2() -> dict[str, object]:
         "forecast_horizons": list(V2_FORECAST_HORIZONS),
         "candidate_01_rerun_forbidden": V2_CANDIDATE_01_RERUN_FORBIDDEN,
         "legacy_reconciled_validation_debit": V2_LEGACY_RECONCILED_VALIDATION_DEBIT,
-        "canonical_started_count": V2_CANONICAL_STARTED_COUNT,
-        "effective_consumed": V2_EFFECTIVE_CONSUMED,
-        "remaining": V2_REMAINING_VALIDATION_EVALUATIONS,
         "candidate_06_execution_eligible": V2_CANDIDATE_06_EXECUTION_ELIGIBLE,
         "candidate_08_execution_eligible": V2_CANDIDATE_08_EXECUTION_ELIGIBLE,
         "candidate_06_blocker": "CURRENT_WEATHER_AUTHORITY_REQUIRED",
@@ -910,19 +907,25 @@ def validate_s4_invocation_semantics(
     return tuple(dict.fromkeys(reasons))
 
 
-def check_candidate_execution_gate(
+def _check_candidate_execution_gate_for_policy(
     request: CandidateExecutionGateRequest,
+    *,
+    expected_experiment_plan_version: str,
+    expected_experiment_plan_hash: str,
+    expected_guardrail_policy_version: str,
+    expected_guardrail_policy_hash: str,
+    restricted_candidates: Mapping[str, str] | None = None,
 ) -> CandidateExecutionGateResult:
-    """Fail closed unless every S4-A identity and execution precondition matches."""
+    """Apply the common gate against one explicit immutable policy identity."""
 
     reasons: list[str] = []
-    if request.experiment_plan_version != EXPERIMENT_PLAN_VERSION:
+    if request.experiment_plan_version != expected_experiment_plan_version:
         reasons.append("EXPERIMENT_PLAN_VERSION_MISMATCH")
-    if request.experiment_plan_hash != S4_A_EXPERIMENT_PLAN_HASH_BOUND:
+    if request.experiment_plan_hash != expected_experiment_plan_hash:
         reasons.append("EXPERIMENT_PLAN_HASH_MISMATCH")
-    if request.guardrail_policy_version != GUARDRAIL_POLICY_VERSION:
+    if request.guardrail_policy_version != expected_guardrail_policy_version:
         reasons.append("GUARDRAIL_POLICY_VERSION_MISMATCH")
-    if request.guardrail_policy_hash != GUARDRAIL_POLICY_HASH:
+    if request.guardrail_policy_hash != expected_guardrail_policy_hash:
         reasons.append("GUARDRAIL_POLICY_HASH_MISMATCH")
     if request.candidate_registry != FROZEN_CANDIDATE_REGISTRY:
         reasons.append("CANDIDATE_REGISTRY_MISMATCH")
@@ -1010,10 +1013,60 @@ def check_candidate_execution_gate(
             canonical_json_dumps(request.policy_payload)
         except (TypeError, ValueError):
             reasons.append("NATIVE_FLOAT_OR_NON_CANONICAL_POLICY_PAYLOAD")
+    if restricted_candidates is not None:
+        blocker = restricted_candidates.get(request.candidate_id)
+        if blocker is not None:
+            reasons.append(blocker)
     ordered_reasons = tuple(dict.fromkeys(reasons))
     if ordered_reasons:
         return CandidateExecutionGateResult("BLOCKED", False, ordered_reasons)
     return CandidateExecutionGateResult("ALLOWED", True, ())
+
+
+def check_candidate_execution_gate_v1(
+    request: CandidateExecutionGateRequest,
+) -> CandidateExecutionGateResult:
+    """Evaluate a request against the immutable V1 execution authority."""
+
+    return _check_candidate_execution_gate_for_policy(
+        request,
+        expected_experiment_plan_version=EXPERIMENT_PLAN_VERSION,
+        expected_experiment_plan_hash=S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+        expected_guardrail_policy_version=GUARDRAIL_POLICY_VERSION,
+        expected_guardrail_policy_hash=GUARDRAIL_POLICY_HASH,
+    )
+
+
+def check_candidate_execution_gate_v2(
+    request: CandidateExecutionGateRequest,
+) -> CandidateExecutionGateResult:
+    """Evaluate a request against the current V2 historical-only authority."""
+
+    return _check_candidate_execution_gate_for_policy(
+        request,
+        expected_experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION,
+        expected_experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH,
+        expected_guardrail_policy_version=V2_GUARDRAIL_POLICY_VERSION,
+        expected_guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH,
+        restricted_candidates={
+            "01_parameter_calibration": "CANDIDATE_01_RERUN_FORBIDDEN",
+            "06_weather_response": "CURRENT_WEATHER_AUTHORITY_REQUIRED",
+            "08_residual_feature": "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED",
+        },
+    )
+
+
+def check_candidate_execution_gate(
+    request: CandidateExecutionGateRequest,
+) -> CandidateExecutionGateResult:
+    """Dispatch explicitly versioned requests without changing the V1 API."""
+
+    if (
+        request.experiment_plan_version == EXPERIMENT_PLAN_V2_VERSION
+        or request.guardrail_policy_version == V2_GUARDRAIL_POLICY_VERSION
+    ):
+        return check_candidate_execution_gate_v2(request)
+    return check_candidate_execution_gate_v1(request)
 
 
 __all__ = [
@@ -1057,6 +1110,8 @@ __all__ = [
     "RUN_ORDINAL_COUNT_RECONCILIATION_REQUIRED",
     "VALIDATION_INVOCATION_TYPES",
     "check_candidate_execution_gate",
+    "check_candidate_execution_gate_v1",
+    "check_candidate_execution_gate_v2",
     "canonical_guardrail_policy",
     "canonical_guardrail_policy_v2",
     "compare_calibration_distance",

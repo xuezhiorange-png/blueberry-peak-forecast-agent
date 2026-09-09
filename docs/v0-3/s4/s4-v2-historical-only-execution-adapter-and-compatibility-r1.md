@@ -22,7 +22,7 @@ The current execution policy is a separate V2 object:
 EXPERIMENT_PLAN_V2=v0.3-experiment-plan-v2
 EXPERIMENT_PLAN_V2_HASH=c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9
 GUARDRAIL_POLICY_V2_VERSION=v0.3-s4-guardrail-policy-v2
-GUARDRAIL_POLICY_V2_HASH=8bdf09c983b11c66547f4c684dcf851ead39952b2b569532c00fa2501301e5c9
+GUARDRAIL_POLICY_V2_HASH=65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793
 ```
 
 The V2 overlay is historical-only and fail-closed:
@@ -189,4 +189,43 @@ MERGE_AUTHORIZED=false
 TEST_REMAINS_SEALED=true
 NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_V2_EXECUTION_COMPATIBILITY_REVIEW
+```
+
+## R2 correction — durable execution gate binding
+
+The durable authority now dispatches the existing public gate by the request's
+explicit experiment-plan/policy identity. V1 requests continue to use the V1
+plan and guardrail hash; V2 requests use the V2 plan and the corrected V2
+guardrail hash. This keeps V1 replayability intact and prevents a V2 request
+from being rejected solely by a V1-only execution adapter.
+
+The V2 canonical guardrail policy contains immutable policy facts only. The
+observed runtime values `canonical_started_count=0`, `effective_consumed=4`,
+and `remaining=28` remain readiness evidence and are read from the durable
+PostgreSQL authority; they are excluded from the V2 policy preimage.
+
+```text
+TASK_ID=V0_3_S4_V2_DURABLE_EXECUTION_GATE_BINDING_CORRECTION_R2
+TARGET_PR=597
+PREVIOUS_HEAD_SHA=8b38e50dee8d88f5943b4d1daa710a1893b59ddb
+V1_REPLAYABILITY_PRESERVED=true
+V2_EXECUTION_GATE_ROUTED_BY_EXPLICIT_IDENTITY=true
+V2_GUARDRAIL_POLICY_HASH=65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793
+V2_RUNTIME_COUNTERS_EXCLUDED_FROM_POLICY_HASH=true
+V2_PREFLIGHT_READS_DURABLE_BUDGET_STATE=true
+V2_PREFLIGHT_CREATES_NO_STARTED_EVENT=true
+V2_PREFLIGHT_CALLS_NO_SCORER=true
+CURRENT_V2_BOUND_EXECUTION_ADAPTER_IMPLEMENTED=true
+NEXT_EXECUTABLE_CANDIDATE=NONE
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR597_V2_DURABLE_EXECUTION_GATE_R2_REVIEW
 ```

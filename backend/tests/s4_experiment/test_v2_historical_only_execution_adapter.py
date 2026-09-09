@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 
+import backend.app.s4_experiment as s4_experiment
 import backend.app.s4_local_engineering as local_engineering
 from backend.app.forecast_quality.farm_total_baseline_estimator import (
     FarmTotalBaselineGroupStatus,
@@ -32,7 +33,11 @@ from backend.app.s4_experiment import (
     EXPERIMENT_PLAN_V2_HASH,
     EXPERIMENT_PLAN_V2_VERSION,
     EXPERIMENT_PLAN_VERSION,
+    FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
+    GUARDRAIL_POLICY_VERSION,
+    METRIC_CONTRACT_IDENTITY,
+    METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
     V2_CANDIDATE_01_RERUN_FORBIDDEN,
     V2_CANDIDATE_06_EXECUTION_ELIGIBLE,
@@ -41,12 +46,17 @@ from backend.app.s4_experiment import (
     V2_EFFECTIVE_CONSUMED,
     V2_FORECAST_HORIZONS,
     V2_GUARDRAIL_POLICY_HASH,
+    V2_GUARDRAIL_POLICY_VERSION,
     V2_HISTORICAL_DATA_ONLY,
     V2_LEGACY_RECONCILED_VALIDATION_DEBIT,
     V2_REMAINING_VALIDATION_EVALUATIONS,
     V2_TEST_REMAINS_SEALED,
+    CandidateExecutionGateRequest,
     canonical_guardrail_policy,
     canonical_guardrail_policy_v2,
+    check_candidate_execution_gate,
+    check_candidate_execution_gate_v1,
+    check_candidate_execution_gate_v2,
 )
 from backend.app.s4_local_engineering import (
     V2_COMPLETE_WINDOW_METRICS_UNAVAILABLE,
@@ -87,6 +97,41 @@ def _audit_by_id() -> dict[str, Any]:
     return {item.candidate_id: item for item in build_v2_candidate_compatibility_audit()}
 
 
+def _gate_request(
+    *, v2: bool = False, candidate_id: str = "02_quantile_calibration"
+) -> CandidateExecutionGateRequest:
+    identity = "a" * 64
+    return CandidateExecutionGateRequest(
+        experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION if v2 else EXPERIMENT_PLAN_VERSION,
+        experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH if v2 else S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+        guardrail_policy_version=V2_GUARDRAIL_POLICY_VERSION if v2 else GUARDRAIL_POLICY_VERSION,
+        guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH if v2 else GUARDRAIL_POLICY_HASH,
+        candidate_id=candidate_id,
+        candidate_run_ordinal=1,
+        candidate_planned_run_count=4,
+        candidate_actual_run_count=0,
+        global_actual_evaluation_count=4,
+        train_dataset_identity=identity,
+        validation_dataset_identity=identity,
+        actual_label_set_identity=identity,
+        exclusion_policy_identity=identity,
+        cutoff_policy_identity=identity,
+        forecast_horizon_set_identity=identity,
+        metric_contract_identity=METRIC_CONTRACT_IDENTITY,
+        business_grain_set_identity=identity,
+        common_comparable_set_identity=identity,
+        metric_contract_version=METRIC_CONTRACT_VERSION,
+        test_access_requested=False,
+        test_sealed=True,
+        parameter_manifest_hash=identity,
+        code_commit_sha="c" * 40,
+        random_seed=20260908,
+        evaluation_id="v2-gate-evaluation",
+        candidate_execution_manifest_frozen=True,
+        candidate_registry=FROZEN_CANDIDATE_REGISTRY,
+    )
+
+
 def test_v1_plan_identity_remains_replayable() -> None:
     assert EXPERIMENT_PLAN_VERSION == "v0.3-experiment-plan-v1"
     assert S4_A_EXPERIMENT_PLAN_HASH_BOUND == (
@@ -115,6 +160,87 @@ def test_v2_policy_does_not_change_v1_hash() -> None:
     v1_before = sha256_payload(canonical_guardrail_policy())
     _ = canonical_guardrail_policy_v2()
     assert sha256_payload(canonical_guardrail_policy()) == v1_before == GUARDRAIL_POLICY_HASH
+
+
+def test_v1_execution_gate_still_accepts_v1_identity() -> None:
+    request = _gate_request()
+    assert check_candidate_execution_gate_v1(request).allowed is True
+    assert check_candidate_execution_gate(request).allowed is True
+
+
+def test_v2_execution_gate_accepts_v2_identity() -> None:
+    request = _gate_request(v2=True)
+    result = check_candidate_execution_gate_v2(request)
+    assert result.allowed is True
+    assert check_candidate_execution_gate(request).allowed is True
+
+
+def test_v2_request_is_not_checked_against_v1_plan_hash() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(v2=True), experiment_plan_hash=S4_A_EXPERIMENT_PLAN_HASH_BOUND)
+    )
+    assert result.allowed is False
+    assert "EXPERIMENT_PLAN_HASH_MISMATCH" in result.reason_codes
+    assert "GUARDRAIL_POLICY_VERSION_MISMATCH" not in result.reason_codes
+
+
+def test_v2_request_is_not_checked_against_v1_guardrail_hash() -> None:
+    result = check_candidate_execution_gate(
+        replace(_gate_request(v2=True), guardrail_policy_hash=GUARDRAIL_POLICY_HASH)
+    )
+    assert result.allowed is False
+    assert "GUARDRAIL_POLICY_HASH_MISMATCH" in result.reason_codes
+    assert "EXPERIMENT_PLAN_VERSION_MISMATCH" not in result.reason_codes
+
+
+@pytest.mark.parametrize(
+    ("candidate_id", "reason"),
+    (
+        ("01_parameter_calibration", "CANDIDATE_01_RERUN_FORBIDDEN"),
+        ("06_weather_response", "CURRENT_WEATHER_AUTHORITY_REQUIRED"),
+        ("08_residual_feature", "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED"),
+    ),
+)
+def test_v2_restricted_candidates_are_blocked(candidate_id: str, reason: str) -> None:
+    result = check_candidate_execution_gate(_gate_request(v2=True, candidate_id=candidate_id))
+    assert result.allowed is False
+    assert reason in result.reason_codes
+
+
+def _assert_v2_hash_excludes_runtime_counter(
+    monkeypatch: pytest.MonkeyPatch, constant_name: str, policy_key: str
+) -> None:
+    original_hash = V2_GUARDRAIL_POLICY_HASH
+    monkeypatch.setattr(s4_experiment, constant_name, 999)
+    policy = canonical_guardrail_policy_v2()
+    overlay = policy["historical_only_execution_overlay"]
+    assert isinstance(overlay, dict)
+    assert policy_key not in overlay
+    assert sha256_payload(policy) == original_hash
+
+
+def test_v2_guardrail_hash_excludes_runtime_started_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _assert_v2_hash_excludes_runtime_counter(
+        monkeypatch, "V2_CANONICAL_STARTED_COUNT", "canonical_started_count"
+    )
+
+
+def test_v2_guardrail_hash_excludes_runtime_effective_consumed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _assert_v2_hash_excludes_runtime_counter(
+        monkeypatch, "V2_EFFECTIVE_CONSUMED", "effective_consumed"
+    )
+
+
+def test_v2_guardrail_hash_excludes_runtime_remaining(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _assert_v2_hash_excludes_runtime_counter(
+        monkeypatch, "V2_REMAINING_VALIDATION_EVALUATIONS", "remaining"
+    )
 
 
 def test_c01_rerun_remains_forbidden() -> None:
