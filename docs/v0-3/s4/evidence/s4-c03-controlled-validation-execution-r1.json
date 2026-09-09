@@ -91,8 +91,8 @@
     "not_docker_blocker": true,
     "not_localhost_recovery": true
   },
-  "CI_RUN": 34295638751,
-  "CI_HEAD_SHA": "d17ed4fa1544a01f10c773cce0bd073fe64d9e06",
+  "CI_RUN": 34296368852,
+  "CI_HEAD_SHA": "4557da46b988960534c61aa0535d35beb2b37607",
   "CI_STATUS": "SUCCESS",
   "POSTGRES_CONCURRENCY_JOB": "SUCCESS",
   "FULL_SUITE_CANARY": "SKIPPED",
