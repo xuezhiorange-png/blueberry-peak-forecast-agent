@@ -18,6 +18,89 @@ EXPERIMENT_PLAN_V1_HASH=9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e
 GUARDRAIL_POLICY_V1_HASH=74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8
 ```
 
+## C04 historical-only scorer readiness correction
+
+The C04 readiness implementation adds a real SOURCE-002-only prediction path
+without changing the V1 authority or running a candidate.  Candidate 04 is a
+TRAIN-derived point-forecast amplitude multiplier, not a planning yield input:
+
+```text
+TASK_ID=V0_3_S4_C04_HISTORICAL_YIELD_SCORER_READINESS_R1
+C04_PARAMETER_SEMANTIC=TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER
+C04_PARAMETER_UNIT=RATIO
+C04_PARAMETER_PATH=yield_amplitude_multiplier
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_MEDIAN_AMPLITUDE_RATIO_V1
+C04_PARAMETER_VALUES=5.265539,2.165000,1.784578,1.128703
+C04_PARAMETER_VALUE_COUNT=4
+C04_PARAMETER_VALUES_UNIQUE_POSITIVE_FINITE=true
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+```
+
+The four values are the median actual-to-time-scaled-baseline amplitude ratio
+from four chronological inner folds of TRAIN.  Fold fitting precedes each
+holdout segment; VALIDATION is not an input to derivation and TEST is not read.
+The candidate prediction is explicitly:
+
+```text
+candidate_prediction_total = base_prediction_total * yield_amplitude_multiplier
+candidate_daily_p50 = candidate_prediction_total * curve_share
+```
+
+The scorer uses the existing `fit_shared_curve` modeling primitive and never
+calls `run_local_replay`.  A baseline multiplier of `1.0` replays the base
+amplitude exactly, while a different positive multiplier changes the canonical
+prediction identity.  Full configuration snapshots, run-level hashes, and the
+V2 plan/guardrail identities are bound in the C04 manifest.
+
+```text
+C04_HISTORICAL_ONLY_SCORING_PATH_EXISTS=true
+C04_PARAMETER_REACHES_PREDICTION_MATH=true
+C04_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION=true
+C04_SCORER_PATH=backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows
+C04_V2_MANIFEST_BINDING=true
+C04_PARAMETER_ALLOWLIST=yield_amplitude_multiplier
+USES_SOURCE_002_TRAIN=true
+USES_SOURCE_002_VALIDATION_TARGET_IDENTITIES=true
+USES_WEATHER=false
+USES_PRODUCTION_PLAN=false
+USES_TASK8=false
+USES_TASK9=false
+```
+
+The existing V2 compatibility audit now reports C04 as the only currently
+runnable historical-only scorer.  This is execution readiness, not execution
+authorization or selection:
+
+```text
+CURRENTLY_RUNNABLE_UNDER_V2_IDS=04_yield_parameter
+NEXT_EXECUTABLE_CANDIDATE=04_yield_parameter
+C04_FUTURE_EXECUTION_PRIMARY_METRIC_COMPUTABLE=true
+C04_FUTURE_EXECUTION_FULL_GUARDRAIL_COMPUTABLE=false
+C04_FUTURE_EXECUTION_GUARDRAIL_BLOCKER=COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+```
+
+The sparse 7/14/21 target surface still does not establish a complete daily
+rowset.  The inherited cumulative, single-day peak, and sustained seven-day
+guardrails therefore remain unavailable and are not weakened or zero-filled.
+No STARTED event, VALIDATION metric result, candidate execution, budget debit,
+or TEST access was introduced.
+
+```text
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C04_HISTORICAL_SCORER_READINESS_REVIEW
+```
+
 The current execution policy is a separate V2 object:
 
 ```text
@@ -123,7 +206,7 @@ A candidate is currently runnable only when the frozen eligibility is true and t
 | `01_parameter_calibration` | true | false | false | `CANDIDATE_01_RERUN_FORBIDDEN` |
 | `02_quantile_calibration` | true | false | false | `NO_V2_BOUND_PREDICTION_QUANTILE_PATH` |
 | `03_phenology_offset` | true | false | false | `C03_NO_SOURCE_002_ONLY_SCORING_PATH` |
-| `04_yield_parameter` | true | false | false | `NO_BOUND_CANDIDATE_04_SCORING_PATH` |
+| `04_yield_parameter` | true | true | true | `C04_HISTORICAL_ONLY_SCORER_READY` |
 | `05_marketable_rate` | true | false | false | `NO_BOUND_CANDIDATE_05_SCORING_PATH` |
 | `06_weather_response` | false | false | false | `C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY` |
 | `07_harvest_efficiency` | true | false | false | `NO_BOUND_CANDIDATE_07_SCORING_PATH` |
@@ -135,8 +218,8 @@ Candidate 01 remains frozen as V2 historical-only eligible in the canonical plan
 CANDIDATE_COMPATIBILITY_AUDIT_COMPLETE=true
 AUDITED_CANDIDATE_COUNT=8
 FROZEN_CURRENT_V0_3_EXECUTION_ELIGIBLE_IDS=01,02,03,04,05,07
-CURRENTLY_RUNNABLE_UNDER_V2_IDS=NONE
-NEXT_EXECUTABLE_CANDIDATE=NONE
+CURRENTLY_RUNNABLE_UNDER_V2_IDS=04_yield_parameter
+NEXT_EXECUTABLE_CANDIDATE=04_yield_parameter
 C03_HISTORICAL_ONLY_SCORING_PATH_EXISTS=false
 C03_CURRENT_V0_3_EXECUTION_ELIGIBLE=true
 C03_CURRENTLY_RUNNABLE_UNDER_V2=false
