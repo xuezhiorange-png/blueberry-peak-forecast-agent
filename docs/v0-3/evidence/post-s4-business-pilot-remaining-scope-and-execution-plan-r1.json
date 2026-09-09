@@ -188,13 +188,18 @@
   "S5_S6_AUTHORITY": {
     "V0_3_S5_CURRENT_DEFINITION_EXISTS": true,
     "V0_3_S5_DEFINITION_SOURCE": "docs/v0-3/development-plan.md section 4.7",
+    "CURRENT_V0_3_S5_SLICE_DEFINITION_EXISTS": true,
+    "CURRENT_V0_3_S5_FORMAL_SUBTASK_DECOMPOSITION_EXISTS": false,
     "V0_3_S5_AUTHORIZED": false,
     "CURRENT_V0_3_S5_COMPLETE": false,
-    "S5_SUBTASKS": [
-      "S5-A BACKEND_PILOT_OPERATIONS",
+    "PROPOSED_S5_EXECUTION_DECOMPOSITION": [
+      "S5-A PILOT_OPERATIONS_READINESS",
       "S5-B FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION",
       "S5-C CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS"
     ],
+    "PROPOSED_S5_EXECUTION_DECOMPOSITION_SOURCE": "PR593_PLANNING_PROPOSAL",
+    "PROPOSED_S5_EXECUTION_DECOMPOSITION_AUTHORIZED": false,
+    "PROPOSED_S5_EXECUTION_DECOMPOSITION_IMPLEMENTED": false,
     "V0_3_S6_CURRENT_DEFINITION_EXISTS": true,
     "V0_3_S6_DEFINITION_SOURCE": "docs/v0-3/development-plan.md section 4.8",
     "V0_3_S6_AUTHORIZED": false,
@@ -256,7 +261,7 @@
     {
       "TASK_NAME": "S5_A_PILOT_OPERATIONS_READINESS",
       "WHY_NEEDED": "Turn the approved model into a repeatable, auditable pilot-operations workflow rather than a one-off engineering forecast.",
-      "CURRENT_STATUS": "DEFINED_BUT_NOT_AUTHORIZED",
+      "CURRENT_STATUS": "PROPOSED_NOT_AUTHORIZED",
       "BLOCKER": "MODEL_APPROVED_FOR_PILOT and accepted S4 completion are required for implementation and operations acceptance.",
       "CAN_EXECUTE_NOW": false,
       "DEPENDENCY": "Task 03 approval, an independently authorized S5-A scope, and runtime/owner/security prerequisites.",
@@ -271,7 +276,7 @@
     {
       "TASK_NAME": "S5_B_FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION",
       "WHY_NEEDED": "Give business users evidence-derived comparison, warnings, and explanations without client-side calculation or invented causes.",
-      "CURRENT_STATUS": "DEFINED_BUT_NOT_AUTHORIZED",
+      "CURRENT_STATUS": "PROPOSED_NOT_AUTHORIZED",
       "BLOCKER": "Requires accepted S5-A operations contracts and records.",
       "CAN_EXECUTE_NOW": false,
       "DEPENDENCY": "S5-A accepted, an independently authorized S5-B scope, and real persisted evidence for every displayed claim.",
@@ -286,7 +291,7 @@
     {
       "TASK_NAME": "S5_C_CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS",
       "WHY_NEEDED": "Close the operating loop with repeated forecast-to-actual evaluation, adoption/non-adoption reasons, and manual-adjustment audit.",
-      "CURRENT_STATUS": "DEFINED_BUT_NOT_AUTHORIZED",
+      "CURRENT_STATUS": "PROPOSED_NOT_AUTHORIZED",
       "BLOCKER": "Requires accepted S5-A and S5-B plus future actual labels.",
       "CAN_EXECUTE_NOW": false,
       "DEPENDENCY": "S5-A and S5-B accepted, actual-result feedback available, and an independently authorized S5-C scope.",
@@ -397,6 +402,10 @@
   "NEXT_EXECUTABLE_TASK": {
     "TASK_NAME": "V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_AND_RUNTIME_GAP_PLAN_R1",
     "TYPE": "DOCUMENTATION_ONLY",
+    "NEXT_EXECUTABLE_TASK_IS_PR593_PROPOSED_DECOMPOSITION": true,
+    "NEXT_EXECUTABLE_TASK_IS_EXISTING_S5_FORMAL_SUBTASK": false,
+    "NEXT_EXECUTABLE_TASK_SCOPE": "DOCUMENTATION_ONLY",
+    "NEXT_EXECUTABLE_TASK_DOES_NOT_AUTHORIZE_S5": true,
     "WHY_THIS_ONE": "It is the only immediate task identified by this inventory that can proceed without the S4 prospective trigger, model approval, TEST, budget consumption, or production implementation.",
     "DOES_NOT_MEAN": [
       "S5 implementation has started",

@@ -163,8 +163,22 @@ docs/v0-3/development-plan.md:
 
 S5 is defined in section 4.7 as business forecast operations, explanation,
 history/export, comparison, data-quality notices, and continuous
-forecast-to-actual/adoption records. S5-A, S5-B, and S5-C are separately
-listed and independently unauthorized until their dependencies are met.
+forecast-to-actual/adoption records. Section 4.7 freezes the S5 slice and its
+required capabilities, but it does not freeze a formal S5-A/S5-B/S5-C
+subtask decomposition. The three names used by this planning package are
+proposals only:
+
+    CURRENT_V0_3_S5_SLICE_DEFINITION_EXISTS=true
+    CURRENT_V0_3_S5_FORMAL_SUBTASK_DECOMPOSITION_EXISTS=false
+    PROPOSED_S5_EXECUTION_DECOMPOSITION_SOURCE=PR593_PLANNING_PROPOSAL
+    PROPOSED_S5_EXECUTION_DECOMPOSITION_AUTHORIZED=false
+    PROPOSED_S5_EXECUTION_DECOMPOSITION_IMPLEMENTED=false
+
+    PROPOSED_S5_EXECUTION_DECOMPOSITION=[
+      S5-A PILOT_OPERATIONS_READINESS,
+      S5-B FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION,
+      S5-C CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS
+    ]
 
 S6 is defined in section 4.8 as the real-season business pilot and acceptance
 slice. Its minimum scope is at least two farms and two varieties, fixed
@@ -276,14 +290,14 @@ use, no TEST-after tuning occurs, one immutable result is recorded, selection
 is traceable, and MODEL_APPROVED_FOR_PILOT is explicitly decided rather than
 inferred.
 
-### 04 — S5-A pilot operations readiness
+### 04 — Proposed S5-A pilot operations readiness
 
 TASK_NAME=S5_A_PILOT_OPERATIONS_READINESS
 
 WHY_NEEDED=Turn the approved model into a repeatable, auditable pilot
 operations workflow rather than a one-off engineering forecast.
 
-CURRENT_STATUS=DEFINED_BUT_NOT_AUTHORIZED
+CURRENT_STATUS=PROPOSED_NOT_AUTHORIZED
 
 BLOCKER=MODEL_APPROVED_FOR_PILOT and accepted S4 completion are required for
 implementation and operations acceptance.
@@ -303,14 +317,14 @@ ACCEPTANCE_CRITERIA=An operations-readiness package proves immutable run
 records, version and lineage display, comparison/readback/export behavior,
 quality notices, and explicit S5-A review acceptance.
 
-### 05 — S5-B frontend comparison and explanation
+### 05 — Proposed S5-B frontend comparison and explanation
 
 TASK_NAME=S5_B_FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION
 
 WHY_NEEDED=Give business users evidence-derived comparison, warnings, and
 explanation surfaces without client-side calculation or invented causes.
 
-CURRENT_STATUS=DEFINED_BUT_NOT_AUTHORIZED
+CURRENT_STATUS=PROPOSED_NOT_AUTHORIZED
 
 BLOCKER=Requires accepted S5-A operations contracts and records.
 
@@ -329,14 +343,14 @@ ACCEPTANCE_CRITERIA=Browser evidence covers the frozen flows; explanations
 reference recorded input/version/result differences; no unsupported LLM
 cause, client-side formula, or TEST access is introduced.
 
-### 06 — S5-C continuous evaluation and adoption records
+### 06 — Proposed S5-C continuous evaluation and adoption records
 
 TASK_NAME=S5_C_CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS
 
 WHY_NEEDED=Close the operating loop with repeated forecast-to-actual
 evaluation, adoption/non-adoption reasons, and manual-adjustment audit.
 
-CURRENT_STATUS=DEFINED_BUT_NOT_AUTHORIZED
+CURRENT_STATUS=PROPOSED_NOT_AUTHORIZED
 
 BLOCKER=Requires accepted S5-A and S5-B plus future actual labels.
 
@@ -441,8 +455,8 @@ budget is touched.
 TASK_NAME=V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_AND_RUNTIME_GAP_PLAN_R1
 
 WHY_NEEDED=Translate the already-defined S5-A objective into an executable
-scope, evidence schema, and dependency checklist while S4 waits for its
-external prospective trigger.
+proposal for an executable scope, evidence schema, and dependency checklist
+while S4 waits for its external prospective trigger.
 
 CURRENT_STATUS=CAN_START_AS_DOCUMENTATION_ONLY
 
@@ -454,7 +468,7 @@ CAN_EXECUTE_NOW=true
 DEPENDENCY=Current V0.3 S5 definition, current API/retention evidence, and
 runtime audit; it must not amend the S4 experiment plan or authorize S5.
 
-PROPOSED_STAGE=S5-A PRE-AUTHORIZATION PLANNING
+PROPOSED_STAGE=S5-A PROPOSAL PRE-AUTHORIZATION PLANNING
 
 ESTIMATED_SCOPE=Docs-only contract for pilot run identity, comparison/history/
 export, quality notices, feedback/adoption records, runtime prerequisites,
@@ -466,7 +480,13 @@ remain unauthorized; no production code, parameters, model, database,
 budget, S1 split, S4 plan, or TEST state changes.
 
 This is the only immediate next task named by this inventory. It is a
-governance/planning task, not a claim that S5 has started.
+governance/planning task that would freeze the S5-A proposal for review; it is
+not an existing formal S5-A authority and does not claim that S5 has started.
+
+    NEXT_EXECUTABLE_TASK_IS_PR593_PROPOSED_DECOMPOSITION=true
+    NEXT_EXECUTABLE_TASK_IS_EXISTING_S5_FORMAL_SUBTASK=false
+    NEXT_EXECUTABLE_TASK_SCOPE=DOCUMENTATION_ONLY
+    NEXT_EXECUTABLE_TASK_DOES_NOT_AUTHORIZE_S5=true
 
 ## 6. Work that is no longer needed or is explicitly out of scope
 

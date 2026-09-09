@@ -118,20 +118,34 @@ amendment. It does not itself authorize a candidate or TEST evaluation.
 
 ## S5/S6 authority check
 
-Current V0.3 S5 and S6 definitions do exist in development-plan.md sections
-4.7 and 4.8. They are not imported from V0.1 or V0.2:
+Current V0.3 S5 and S6 slice definitions do exist in development-plan.md
+sections 4.7 and 4.8. They are not imported from V0.1 or V0.2:
 
     V0_3_S5_CURRENT_DEFINITION_EXISTS=true
     V0_3_S6_CURRENT_DEFINITION_EXISTS=true
+    CURRENT_V0_3_S5_SLICE_DEFINITION_EXISTS=true
+    CURRENT_V0_3_S5_FORMAL_SUBTASK_DECOMPOSITION_EXISTS=false
     V0_3_S5_AUTHORIZED=false
     V0_3_S6_AUTHORIZED=false
     CURRENT_V0_3_S5_COMPLETE=false
     CURRENT_V0_3_S6_COMPLETE=false
 
-S5 is the operations/explanation/continuous-evaluation slice. S6 is the
-real-season pilot and technical/model/business acceptance slice, with a
-minimum of two farms and two varieties plus fixed cadence and complete actual
-feedback. Production release is explicitly outside V0.3.
+S5 is the operations/explanation/continuous-evaluation slice. Section 4.7
+freezes its required capabilities, not formal S5-A/S5-B/S5-C identities. This
+package proposes the following decomposition for a later owner review:
+
+    PROPOSED_S5_EXECUTION_DECOMPOSITION=[
+      S5-A PILOT_OPERATIONS_READINESS,
+      S5-B FRONTEND_COMPARISON_WARNINGS_AND_STRUCTURED_EXPLANATION,
+      S5-C CONTINUOUS_EVALUATION_AND_ADOPTION_RECORDS
+    ]
+    PROPOSED_S5_EXECUTION_DECOMPOSITION_SOURCE=PR593_PLANNING_PROPOSAL
+    PROPOSED_S5_EXECUTION_DECOMPOSITION_AUTHORIZED=false
+    PROPOSED_S5_EXECUTION_DECOMPOSITION_IMPLEMENTED=false
+
+S6 is the real-season pilot and technical/model/business acceptance slice,
+with a minimum of two farms and two varieties plus fixed cadence and complete
+actual feedback. Production release is explicitly outside V0.3.
 
 ## Remaining work classification
 
@@ -141,27 +155,33 @@ evidence. The decision categories are:
 1. S4 prospective scan/cohort: WAITING_EXTERNAL_TRIGGER.
 2. S4 candidate validation: WAITING_FOR_COHORT_AND_AUTHORIZATION.
 3. S4 locked TEST/model approval: WAITING_FOR_VALIDATION_AND_TEST_AUTHORIZATION.
-4. S5-A operations readiness: DEFINED_BUT_NOT_AUTHORIZED.
-5. S5-B frontend comparisons/explanations: DEFINED_BUT_NOT_AUTHORIZED.
-6. S5-C continuous evaluation/adoption: DEFINED_BUT_NOT_AUTHORIZED and also
-   requires actual feedback.
+4. Proposed S5-A operations readiness: PROPOSED_NOT_AUTHORIZED.
+5. Proposed S5-B frontend comparisons/explanations: PROPOSED_NOT_AUTHORIZED.
+6. Proposed S5-C continuous evaluation/adoption: PROPOSED_NOT_AUTHORIZED and
+   also requires actual feedback.
 7. S6 real-season pilot: NOT_STARTED.
 8. S6 business acceptance/release boundary: NOT_STARTED.
 9. Production runtime/operational readiness: PARTIAL_LOCAL_ENGINEERING_ONLY.
 10. S5-A contract and runtime-gap plan: CAN_START_AS_DOCUMENTATION_ONLY.
 
-The tenth item is deliberately a planning task, not an authorization to start
-S5 implementation. It is the only immediate next task selected by this audit.
+The tenth item is deliberately a planning task for the proposed S5-A
+decomposition, not an authorization to start S5 implementation. It is the
+only immediate next task selected by this audit.
 
 ## Sole next task
 
     NEXT_EXECUTABLE_TASK=V0_3_S5_A_PILOT_OPERATIONS_READINESS_CONTRACT_AND_RUNTIME_GAP_PLAN_R1
+    NEXT_EXECUTABLE_TASK_IS_PR593_PROPOSED_DECOMPOSITION=true
+    NEXT_EXECUTABLE_TASK_IS_EXISTING_S5_FORMAL_SUBTASK=false
+    NEXT_EXECUTABLE_TASK_SCOPE=DOCUMENTATION_ONLY
+    NEXT_EXECUTABLE_TASK_DOES_NOT_AUTHORIZE_S5=true
 
-The next task should remain docs-only: define the S5-A operation/run
+The next task should remain docs-only: turn the proposed S5-A operation/run
 identity, comparison/history/export, quality-notice, feedback/adoption,
-runtime, owner, and acceptance-evidence contracts. It must explicitly depend
-on future MODEL_APPROVED_FOR_PILOT for implementation and must not touch S4
-plan identity, validation budget, production code, TEST, or the S1 split.
+runtime, owner, and acceptance-evidence boundary into a reviewable contract.
+It must explicitly depend on future MODEL_APPROVED_FOR_PILOT for
+implementation and must not touch S4 plan identity, validation budget,
+production code, TEST, or the S1 split.
 
 ## No-longer-needed work
 
