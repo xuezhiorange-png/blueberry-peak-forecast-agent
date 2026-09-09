@@ -89,8 +89,8 @@ The machine-readable aggregate record is
 `docs/v0-3/s4/evidence/s4-c03-controlled-validation-execution-r1.json`.
 It contains no raw TRAIN/VALIDATION rows, labels, or predictions.
 
-The first Draft-PR exact-head CI run completed successfully at
-`CI_RUN=34294032298` for head `9782dcbc1221b8be1f9a3f3e0f994f36b87d90c4`.
+The final Draft-PR exact-head CI run completed successfully at
+`CI_RUN=34294866938` for head `e225fbca964e96d9bad8a4c7de90f09e1dc85a9b`.
 The workflow's `postgres-concurrency` job was successful and its
 `full-suite-canary` job was skipped by workflow policy. This CI run tested the
 document-only blocked record; it did not invoke the controlled C03 runner.
