@@ -272,15 +272,35 @@ database is not a production authority:
 TASK_ISOLATED_DATABASE_IS_PRODUCTION=false
 ```
 
+The gap counters have separate, non-interchangeable meanings. The legacy
+`S5_A_EXTERNAL_DECISION_GAP_COUNT` is retained only as the dedicated
+`S5A-EXT-*` prefix count; it is not the count of every gap that requires an
+external decision.
+
+```text
+S5_A_CODE_GAP_COUNT=3
+S5_A_CODE_GAP_COUNT_SEMANTICS=COUNT(GAP_ID starts with S5A-CODE-)
+S5_A_RUNTIME_GAP_COUNT=7
+S5_A_RUNTIME_GAP_COUNT_SEMANTICS=COUNT(GAP_ID starts with S5A-RUNTIME-)
+S5_A_EXTERNAL_DECISION_GAP_COUNT=2
+S5_A_EXTERNAL_DECISION_GAP_COUNT_SEMANTICS=COUNT_DEDICATED_S5A_EXT_PREFIX_GAPS_ONLY
+S5_A_DEDICATED_EXTERNAL_GOVERNANCE_GAP_COUNT=2
+S5_A_DEDICATED_EXTERNAL_GOVERNANCE_GAP_COUNT_SEMANTICS=COUNT(GAP_ID starts with S5A-EXT-)
+S5_A_EXTERNAL_DECISION_REQUIRED_GAP_COUNT=10
+S5_A_EXTERNAL_DECISION_REQUIRED_GAP_COUNT_SEMANTICS=COUNT(RUNTIME_GAP_MATRIX rows WHERE EXTERNAL_DECISION_REQUIRED=true)
+S5_A_EXTERNAL_DECISION_RECORD_COUNT=5
+S5_A_EXTERNAL_DECISION_RECORD_COUNT_SEMANTICS=COUNT(EXTERNAL_DECISION_MATRIX)
+```
+
 ## 7. External decision matrix
 
-| Decision ID | Decision needed | Current status | Owner | Required before implementation | Required evidence |
-| --- | --- | --- | --- | --- | --- |
-| S5A-DEC-001 | Approve the S5-A proposal and its server-owned comparison/notice/feedback scope | NOT_ISSUED | Coordinator plus business/data owner | Yes | Explicit contract acceptance and separately scoped implementation authorization |
-| S5A-DEC-002 | Confirm model and S4 disposition | NOT_SATISFIED | Coordinator/model-validation owner | Yes | `MODEL_APPROVED_FOR_PILOT=true` and `CURRENT_V0_3_S4_COMPLETE=true` |
-| S5A-DEC-003 | Confirm pilot farms/varieties, cadence, data owner, security owner, operating owner, and deployment owner | NOT_PROVEN | Business/operations/security/data owners | Yes for acceptance; scope decisions before production data | Signed role/scope/cadence/handling record |
-| S5A-DEC-004 | Decide backup/restore, alerting, incident response, and rollback obligations | NOT_PROVEN | Operations/deployment owner | Yes for acceptance | Runbook, rehearsal, RPO/RTO and alert evidence |
-| S5A-DEC-005 | Decide whether adoption/manual-adjustment hooks are S5-A interfaces or S5-C ledger work | NOT_ISSUED | Coordinator and business owner | Yes | Boundary decision preserving `BUSINESS_ADOPTION_IS_BUSINESS_ACCEPTANCE=false` |
+| Decision ID | Decision needed | Current status | Owner | REQUIRED_BEFORE_IMPLEMENTATION | REQUIRED_BEFORE_ACCEPTANCE | Required evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| S5A-DEC-001 | Approve the S5-A proposal and its server-owned comparison/notice/feedback scope | NOT_ISSUED | Coordinator plus business/data owner | true | true | Explicit contract acceptance and separately scoped implementation authorization |
+| S5A-DEC-002 | Confirm model and S4 disposition | NOT_SATISFIED | Coordinator/model-validation owner | true | true | `MODEL_APPROVED_FOR_PILOT=true` and `CURRENT_V0_3_S4_COMPLETE=true` |
+| S5A-DEC-003 | Confirm pilot farms/varieties, cadence, data owner, security owner, operating owner, and deployment owner | NOT_PROVEN | Business/operations/security/data owners | true | true | Signed role/scope/cadence/handling record |
+| S5A-DEC-004 | Decide backup/restore, alerting, incident response, and rollback obligations | NOT_PROVEN | Operations/deployment owner | false | true | Runbook, rehearsal, RPO/RTO and alert evidence |
+| S5A-DEC-005 | Decide whether adoption/manual-adjustment hooks are S5-A interfaces or S5-C ledger work | NOT_ISSUED | Coordinator and business owner | true | true | Boundary decision preserving `BUSINESS_ADOPTION_IS_BUSINESS_ACCEPTANCE=false` |
 
 ## 8. Future implementation authorization gate
 
@@ -292,7 +312,8 @@ MODEL_APPROVED_FOR_PILOT=true
 CURRENT_V0_3_S4_COMPLETE=true
 PROPOSED_S5_A_CONTRACT_ACCEPTED=true
 S5_A_IMPLEMENTATION_SEPARATELY_AUTHORIZED=true
-ALL_REQUIRED_EXTERNAL_PREREQUISITES_HAVE_EXPLICIT_DISPOSITION=true
+IMPLEMENTATION_EXTERNAL_PREREQUISITE_RULE=ALL_EXTERNAL_DECISIONS_WITH_REQUIRED_BEFORE_IMPLEMENTATION_TRUE_HAVE_EXPLICIT_ACCEPTED_DISPOSITION
+ACCEPTANCE_EXTERNAL_PREREQUISITE_RULE=ALL_EXTERNAL_DECISIONS_WITH_REQUIRED_BEFORE_ACCEPTANCE_TRUE_HAVE_ACCEPTED_EVIDENCE
 ```
 
 The current task establishes none of those authorizations. The contract is
@@ -356,6 +377,10 @@ S5_A_IMPLEMENTATION_READY=false
 S5_A_CODE_GAP_COUNT=3
 S5_A_RUNTIME_GAP_COUNT=7
 S5_A_EXTERNAL_DECISION_GAP_COUNT=2
+S5_A_EXTERNAL_DECISION_GAP_COUNT_SEMANTICS=COUNT_DEDICATED_S5A_EXT_PREFIX_GAPS_ONLY
+S5_A_DEDICATED_EXTERNAL_GOVERNANCE_GAP_COUNT=2
+S5_A_EXTERNAL_DECISION_REQUIRED_GAP_COUNT=10
+S5_A_EXTERNAL_DECISION_RECORD_COUNT=5
 S5_A_BLOCKING_GAP_IDS=
 S5A-CODE-001,S5A-CODE-002,S5A-CODE-003,
 S5A-RUNTIME-001,S5A-RUNTIME-002,S5A-RUNTIME-003,S5A-RUNTIME-004,

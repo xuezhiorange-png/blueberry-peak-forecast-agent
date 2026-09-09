@@ -70,8 +70,17 @@
   "BUSINESS_ADOPTION_IS_BUSINESS_ACCEPTANCE": false,
   "UNSUPPORTED_CAUSE_INFERENCE_ALLOWED": false,
   "S5_A_CODE_GAP_COUNT": 3,
+  "S5_A_CODE_GAP_COUNT_SEMANTICS": "COUNT(GAP_ID starts with S5A-CODE-)",
   "S5_A_RUNTIME_GAP_COUNT": 7,
+  "S5_A_RUNTIME_GAP_COUNT_SEMANTICS": "COUNT(GAP_ID starts with S5A-RUNTIME-)",
   "S5_A_EXTERNAL_DECISION_GAP_COUNT": 2,
+  "S5_A_EXTERNAL_DECISION_GAP_COUNT_SEMANTICS": "COUNT_DEDICATED_S5A_EXT_PREFIX_GAPS_ONLY",
+  "S5_A_DEDICATED_EXTERNAL_GOVERNANCE_GAP_COUNT": 2,
+  "S5_A_DEDICATED_EXTERNAL_GOVERNANCE_GAP_COUNT_SEMANTICS": "COUNT(GAP_ID starts with S5A-EXT-)",
+  "S5_A_EXTERNAL_DECISION_REQUIRED_GAP_COUNT": 10,
+  "S5_A_EXTERNAL_DECISION_REQUIRED_GAP_COUNT_SEMANTICS": "COUNT(RUNTIME_GAP_MATRIX rows WHERE EXTERNAL_DECISION_REQUIRED=true)",
+  "S5_A_EXTERNAL_DECISION_RECORD_COUNT": 5,
+  "S5_A_EXTERNAL_DECISION_RECORD_COUNT_SEMANTICS": "COUNT(EXTERNAL_DECISION_MATRIX)",
   "S5_A_BLOCKING_GAP_IDS": [
     "S5A-CODE-001",
     "S5A-CODE-002",
@@ -551,6 +560,7 @@
       "CURRENT_STATUS": "NOT_ISSUED",
       "OWNER": "Coordinator plus business/data owner",
       "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_BEFORE_ACCEPTANCE": true,
       "REQUIRED_EVIDENCE": "Explicit contract acceptance and separately scoped implementation authorization"
     },
     {
@@ -559,6 +569,7 @@
       "CURRENT_STATUS": "NOT_SATISFIED",
       "OWNER": "Coordinator/model-validation owner",
       "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_BEFORE_ACCEPTANCE": true,
       "REQUIRED_EVIDENCE": "MODEL_APPROVED_FOR_PILOT=true and CURRENT_V0_3_S4_COMPLETE=true"
     },
     {
@@ -567,6 +578,7 @@
       "CURRENT_STATUS": "NOT_PROVEN",
       "OWNER": "Business/operations/security/data owners",
       "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_BEFORE_ACCEPTANCE": true,
       "REQUIRED_EVIDENCE": "Signed role/scope/cadence/feedback/handling record"
     },
     {
@@ -574,7 +586,8 @@
       "DECISION_NEEDED": "Decide backup/restore, alerting, incident response, and rollback obligations",
       "CURRENT_STATUS": "NOT_PROVEN",
       "OWNER": "Operations/deployment owner",
-      "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_BEFORE_IMPLEMENTATION": false,
+      "REQUIRED_BEFORE_ACCEPTANCE": true,
       "REQUIRED_EVIDENCE": "Runbook, rehearsal, RPO/RTO, and alert evidence"
     },
     {
@@ -583,6 +596,7 @@
       "CURRENT_STATUS": "NOT_ISSUED",
       "OWNER": "Coordinator and business owner",
       "REQUIRED_BEFORE_IMPLEMENTATION": true,
+      "REQUIRED_BEFORE_ACCEPTANCE": true,
       "REQUIRED_EVIDENCE": "Boundary decision preserving BUSINESS_ADOPTION_IS_BUSINESS_ACCEPTANCE=false"
     }
   ],
@@ -590,9 +604,10 @@
     "MODEL_APPROVED_FOR_PILOT=true",
     "CURRENT_V0_3_S4_COMPLETE=true",
     "PROPOSED_S5_A_CONTRACT_ACCEPTED=true",
-    "S5_A_IMPLEMENTATION_SEPARATELY_AUTHORIZED=true",
-    "ALL_REQUIRED_EXTERNAL_PREREQUISITES_HAVE_EXPLICIT_DISPOSITION=true"
+    "S5_A_IMPLEMENTATION_SEPARATELY_AUTHORIZED=true"
   ],
+  "IMPLEMENTATION_EXTERNAL_PREREQUISITE_RULE": "ALL_EXTERNAL_DECISIONS_WITH_REQUIRED_BEFORE_IMPLEMENTATION_TRUE_HAVE_EXPLICIT_ACCEPTED_DISPOSITION",
+  "ACCEPTANCE_EXTERNAL_PREREQUISITE_RULE": "ALL_EXTERNAL_DECISIONS_WITH_REQUIRED_BEFORE_ACCEPTANCE_TRUE_HAVE_ACCEPTED_EVIDENCE",
   "ACCEPTANCE_EVIDENCE_CONTRACT": [
     "Versioned pilot-run identity binds public forecast identity, cutoff, model/parameter versions, input/retention authority, grain, lineage, actor if enabled, status, and canonical hashes",
     "Multiple immutable forecast versions survive fresh-session readback without overwrite/delete",
