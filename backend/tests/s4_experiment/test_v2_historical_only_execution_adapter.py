@@ -39,17 +39,17 @@ from backend.app.s4_experiment import (
     METRIC_CONTRACT_IDENTITY,
     METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+    V2_BUDGET_SNAPSHOT_CANONICAL_STARTED_COUNT,
+    V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED,
+    V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS,
     V2_CANDIDATE_01_RERUN_FORBIDDEN,
     V2_CANDIDATE_06_EXECUTION_ELIGIBLE,
     V2_CANDIDATE_08_EXECUTION_ELIGIBLE,
-    V2_CANONICAL_STARTED_COUNT,
-    V2_EFFECTIVE_CONSUMED,
     V2_FORECAST_HORIZONS,
     V2_GUARDRAIL_POLICY_HASH,
     V2_GUARDRAIL_POLICY_VERSION,
     V2_HISTORICAL_DATA_ONLY,
     V2_LEGACY_RECONCILED_VALIDATION_DEBIT,
-    V2_REMAINING_VALIDATION_EVALUATIONS,
     V2_TEST_REMAINS_SEALED,
     CandidateExecutionGateRequest,
     canonical_guardrail_policy,
@@ -223,7 +223,9 @@ def test_v2_guardrail_hash_excludes_runtime_started_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _assert_v2_hash_excludes_runtime_counter(
-        monkeypatch, "V2_CANONICAL_STARTED_COUNT", "canonical_started_count"
+        monkeypatch,
+        "V2_BUDGET_SNAPSHOT_CANONICAL_STARTED_COUNT",
+        "canonical_started_count",
     )
 
 
@@ -231,7 +233,7 @@ def test_v2_guardrail_hash_excludes_runtime_effective_consumed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _assert_v2_hash_excludes_runtime_counter(
-        monkeypatch, "V2_EFFECTIVE_CONSUMED", "effective_consumed"
+        monkeypatch, "V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED", "effective_consumed"
     )
 
 
@@ -239,7 +241,9 @@ def test_v2_guardrail_hash_excludes_runtime_remaining(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _assert_v2_hash_excludes_runtime_counter(
-        monkeypatch, "V2_REMAINING_VALIDATION_EVALUATIONS", "remaining"
+        monkeypatch,
+        "V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS",
+        "remaining",
     )
 
 
@@ -414,9 +418,9 @@ def test_preflight_creates_no_started_event(monkeypatch: pytest.MonkeyPatch) -> 
 def test_budget_remains_4_consumed_28_remaining() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_LEGACY_RECONCILED_VALIDATION_DEBIT == 4
-    assert V2_CANONICAL_STARTED_COUNT == 0
-    assert V2_EFFECTIVE_CONSUMED == 4
-    assert V2_REMAINING_VALIDATION_EVALUATIONS == 28
+    assert V2_BUDGET_SNAPSHOT_CANONICAL_STARTED_COUNT == 0
+    assert V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED == 4
+    assert V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS == 28
     assert readiness.legacy_reconciled_validation_debit == 4
     assert readiness.canonical_started_count == 0
     assert readiness.effective_consumed == 4
