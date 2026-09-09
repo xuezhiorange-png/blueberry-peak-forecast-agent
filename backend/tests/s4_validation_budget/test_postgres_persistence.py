@@ -24,6 +24,8 @@ from backend.app.s4_candidate_03_execution import (
 )
 from backend.app.s4_candidate_execution_authority import S4CandidateExecutionAuthority
 from backend.app.s4_experiment import (
+    EXPERIMENT_PLAN_V2_HASH,
+    EXPERIMENT_PLAN_V2_VERSION,
     EXPERIMENT_PLAN_VERSION,
     FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
@@ -31,6 +33,8 @@ from backend.app.s4_experiment import (
     METRIC_CONTRACT_IDENTITY,
     METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+    V2_GUARDRAIL_POLICY_HASH,
+    V2_GUARDRAIL_POLICY_VERSION,
     CandidateExecutionGateRequest,
 )
 from backend.app.s4_validation_budget import (
@@ -296,13 +300,14 @@ def _durable_gate_request(
     *,
     evaluation_id: str,
     candidate_id: str = "02_quantile_calibration",
+    v2: bool = False,
 ) -> CandidateExecutionGateRequest:
     identity = "a" * 64
     return CandidateExecutionGateRequest(
-        experiment_plan_version=EXPERIMENT_PLAN_VERSION,
-        experiment_plan_hash=S4_A_EXPERIMENT_PLAN_HASH_BOUND,
-        guardrail_policy_version=GUARDRAIL_POLICY_VERSION,
-        guardrail_policy_hash=GUARDRAIL_POLICY_HASH,
+        experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION if v2 else EXPERIMENT_PLAN_VERSION,
+        experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH if v2 else S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+        guardrail_policy_version=(V2_GUARDRAIL_POLICY_VERSION if v2 else GUARDRAIL_POLICY_VERSION),
+        guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH if v2 else GUARDRAIL_POLICY_HASH,
         candidate_id=candidate_id,
         candidate_run_ordinal=1,
         candidate_planned_run_count=4,
@@ -327,6 +332,23 @@ def _durable_gate_request(
         candidate_execution_manifest_frozen=True,
         candidate_registry=FROZEN_CANDIDATE_REGISTRY,
     )
+
+
+async def test_postgres_v2_preflight_reads_current_durable_budget_state(
+    isolated_postgres_engine: AsyncEngine,
+) -> None:
+    async with AsyncSession(isolated_postgres_engine, expire_on_commit=False) as session:
+        preflight = await S4CandidateExecutionAuthority(session).preflight(
+            _durable_gate_request(evaluation_id="pg-v2-preflight", v2=True)
+        )
+        assert preflight.allowed is True
+        assert preflight.global_actual_evaluation_count == 4
+        assert preflight.candidate_actual_run_count == 0
+        state = await S4ValidationBudgetRepository(session).load_verified_state()
+        assert state.accepted_event_count == 0
+        assert state.accepted_started_count == 0
+        assert state.effective_consumed == 4
+        assert state.remaining == 28
 
 
 async def test_postgres_execution_started_commits_before_fake_scorer(
