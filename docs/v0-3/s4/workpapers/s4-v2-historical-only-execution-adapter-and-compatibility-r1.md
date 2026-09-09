@@ -43,7 +43,7 @@ V1_PLAN_HASH=9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500
 V1_GUARDRAIL_POLICY_HASH=74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8
 V2_PLAN_HASH=c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9
 V2_GUARDRAIL_POLICY_VERSION=v0.3-s4-guardrail-policy-v2
-V2_GUARDRAIL_POLICY_HASH=8bdf09c983b11c66547f4c684dcf851ead39952b2b569532c00fa2501301e5c9
+V2_GUARDRAIL_POLICY_HASH=65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793
 ```
 
 The overlay freezes no new model formula. It binds the absence of weather,
@@ -179,3 +179,28 @@ NO_STEP_IMPLIES_THE_NEXT=true
 The next valid governance step is a coordinator review of this compatibility
 evidence. A future candidate run needs a separately bound V2 manifest and
 execution authorization; this readiness adapter does not imply either.
+
+## 7. R2 durable gate correction
+
+The shared `check_candidate_execution_gate()` entry point now dispatches by
+explicit request identity. V1 remains replayable through its original plan and
+guardrail constants, while V2 requests are checked by the V2 plan hash and the
+new V2 guardrail-policy hash. The durable authority preflight uses that
+dispatch after loading verified PostgreSQL state, so it binds the effective
+count of `4` without creating an event or invoking a scorer.
+
+The V2 policy no longer hashes the mutable readiness counters
+`canonical_started_count`, `effective_consumed`, or `remaining`. They remain
+observed evidence only. The corrected deterministic hash is:
+
+```text
+V2_GUARDRAIL_POLICY_HASH=65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793
+V1_REPLAYABILITY_PRESERVED=true
+V2_DURABLE_EXECUTION_GATE_ROUTED=true
+V2_PREFLIGHT_READS_DURABLE_BUDGET_STATE=true
+V2_PREFLIGHT_CREATES_NO_STARTED_EVENT=true
+V2_PREFLIGHT_CALLS_NO_SCORER=true
+```
+
+No candidate execution or VALIDATION scoring occurred, and the durable budget
+remains `4` consumed with `28` remaining.

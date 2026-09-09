@@ -33,6 +33,8 @@ from backend.app.s4_candidate_execution_authority import (
     S4CandidateExecutionAuthority,
 )
 from backend.app.s4_experiment import (
+    EXPERIMENT_PLAN_V2_HASH,
+    EXPERIMENT_PLAN_V2_VERSION,
     EXPERIMENT_PLAN_VERSION,
     FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
@@ -40,6 +42,8 @@ from backend.app.s4_experiment import (
     METRIC_CONTRACT_IDENTITY,
     METRIC_CONTRACT_VERSION,
     S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+    V2_GUARDRAIL_POLICY_HASH,
+    V2_GUARDRAIL_POLICY_VERSION,
     CandidateExecutionGateRequest,
 )
 from backend.app.s4_validation_budget import (
@@ -1002,13 +1006,14 @@ def _durable_gate_request(
     *,
     candidate_id: str = "02_quantile_calibration",
     evaluation_id: str = "durable-evaluation-1",
+    v2: bool = False,
 ) -> CandidateExecutionGateRequest:
     identity = "a" * 64
     return CandidateExecutionGateRequest(
-        experiment_plan_version=EXPERIMENT_PLAN_VERSION,
-        experiment_plan_hash=S4_A_EXPERIMENT_PLAN_HASH_BOUND,
-        guardrail_policy_version=GUARDRAIL_POLICY_VERSION,
-        guardrail_policy_hash=GUARDRAIL_POLICY_HASH,
+        experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION if v2 else EXPERIMENT_PLAN_VERSION,
+        experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH if v2 else S4_A_EXPERIMENT_PLAN_HASH_BOUND,
+        guardrail_policy_version=(V2_GUARDRAIL_POLICY_VERSION if v2 else GUARDRAIL_POLICY_VERSION),
+        guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH if v2 else GUARDRAIL_POLICY_HASH,
         candidate_id=candidate_id,
         candidate_run_ordinal=1,
         candidate_planned_run_count=4,
@@ -1098,6 +1103,60 @@ async def test_durable_c02_preflight_uses_effective_count_and_stops_before_start
     state = await S4ValidationBudgetRepository(session).load_verified_state()
     assert state.accepted_started_count == 0
     assert state.effective_consumed == 4
+
+
+async def test_v2_preflight_reads_durable_budget_state(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    preflight = await S4CandidateExecutionAuthority(session).preflight(
+        _durable_gate_request(v2=True)
+    )
+    assert preflight.allowed is True
+    assert preflight.global_actual_evaluation_count == 4
+    assert preflight.candidate_actual_run_count == 0
+    assert preflight.gate_request is not None
+    assert preflight.gate_request.experiment_plan_version == EXPERIMENT_PLAN_V2_VERSION
+    assert preflight.gate_request.guardrail_policy_version == V2_GUARDRAIL_POLICY_VERSION
+
+
+async def test_v2_preflight_creates_no_started_event(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    preflight = await S4CandidateExecutionAuthority(session).preflight(
+        _durable_gate_request(v2=True, evaluation_id="v2-preflight-only")
+    )
+    assert preflight.allowed is True
+    assert await session.scalar(select(func.count()).select_from(S4ValidationEvent)) == 0
+    state = await S4ValidationBudgetRepository(session).load_verified_state()
+    assert state.accepted_event_count == 0
+    assert state.accepted_started_count == 0
+    assert state.effective_consumed == 4
+    assert state.remaining == 28
+
+
+async def test_v2_preflight_calls_no_scorer(
+    sqlite_db: tuple[AsyncSession, AsyncEngine],
+) -> None:
+    session, _ = sqlite_db
+    scorer_called = False
+
+    def scorer() -> str:
+        nonlocal scorer_called
+        scorer_called = True
+        return "SHOULD_NOT_RUN"
+
+    result = await S4CandidateExecutionAuthority(session).execute(
+        _durable_gate_request(v2=True, evaluation_id="v2-preflight-no-scorer"),
+        scorer=scorer,
+        execution_authorized=False,
+        trigger_source="v2-preflight-only",
+    )
+    assert result.reason_code == CANDIDATE_EXECUTION_NOT_AUTHORIZED
+    assert result.started_persisted is False
+    assert result.scorer_called is False
+    assert scorer_called is False
 
 
 async def test_durable_cas_race_blocks_second_preflight_without_second_scorer(

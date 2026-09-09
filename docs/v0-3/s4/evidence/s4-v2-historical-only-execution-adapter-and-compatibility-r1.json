@@ -3,6 +3,9 @@
   "TASK_CLASS": "IMPLEMENTATION_AND_EXECUTION_READINESS",
   "RESULT": "V2_HISTORICAL_ONLY_EXECUTION_PATH_RECONCILED",
   "CURRENT_V2_BOUND_EXECUTION_ADAPTER_IMPLEMENTED": true,
+  "V2_DURABLE_EXECUTION_GATE_ROUTED": true,
+  "V1_REPLAYABILITY_PRESERVED": true,
+  "V2_RUNTIME_COUNTERS_EXCLUDED_FROM_POLICY_HASH": true,
   "EXPERIMENT_PLAN_V1": {
     "version": "v0.3-experiment-plan-v1",
     "hash": "9e223a02a1b38c028c230a45eb1fa8323f3c2247bb85e7b439f3351e51042500",
@@ -28,7 +31,7 @@
   },
   "GUARDRAIL_POLICY_V2": {
     "version": "v0.3-s4-guardrail-policy-v2",
-    "hash": "8bdf09c983b11c66547f4c684dcf851ead39952b2b569532c00fa2501301e5c9",
+    "hash": "65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793",
     "bound_plan_hash": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9",
     "deterministic": true,
     "candidate_01_rerun_forbidden": true,
@@ -223,5 +226,29 @@
     "ready_authorized": false,
     "merge_authorized": false,
     "no_step_implies_the_next": true
+  },
+  "R2_CORRECTION": {
+    "task_id": "V0_3_S4_V2_DURABLE_EXECUTION_GATE_BINDING_CORRECTION_R2",
+    "target_pr": 597,
+    "previous_head_sha": "8b38e50dee8d88f5943b4d1daa710a1893b59ddb",
+    "v1_replayability_preserved": true,
+    "v2_execution_gate_accepts_v2_identity": true,
+    "v2_preflight_uses_durable_budget_state": true,
+    "v2_preflight_creates_no_started_event": true,
+    "v2_preflight_calls_no_scorer": true,
+    "v2_policy_hash_excludes_canonical_started_count": true,
+    "v2_policy_hash_excludes_effective_consumed": true,
+    "v2_policy_hash_excludes_remaining": true,
+    "canonical_started_count": 0,
+    "effective_consumed": 4,
+    "remaining": 28,
+    "budget_delta": 0,
+    "candidate_execution_performed": false,
+    "validation_scoring_performed": false,
+    "test_remains_sealed": true,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "no_step_implies_the_next": true,
+    "final_stop_gate": "COORDINATOR_PR597_V2_DURABLE_EXECUTION_GATE_R2_REVIEW"
   }
 }

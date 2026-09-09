@@ -22326,3 +22326,34 @@ EVIDENCE_JSON=docs/v0-3/s4/evidence/s4-v2-historical-only-execution-adapter-and-
 WORKPAPER=docs/v0-3/s4/workpapers/s4-v2-historical-only-execution-adapter-and-compatibility-r1.md
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_V2_EXECUTION_COMPATIBILITY_REVIEW
 ```
+
+### 4.35 — V0.3 S4 V2 durable execution gate binding correction R2
+
+This append-only pointer closes the V2 gate-binding correction for PR #597.
+The V1 execution identity remains replayable; the durable preflight now routes
+explicit V2 requests to the V2 plan and corrected guardrail-policy identity.
+Mutable budget counters remain runtime evidence sourced from PostgreSQL, not
+part of the immutable V2 policy hash. No candidate or scorer was run.
+
+```text
+TASK_ID=V0_3_S4_V2_DURABLE_EXECUTION_GATE_BINDING_CORRECTION_R2
+TARGET_PR=597
+V1_REPLAYABILITY_PRESERVED=true
+V2_EXECUTION_GATE_ROUTED_BY_EXPLICIT_IDENTITY=true
+V2_GUARDRAIL_POLICY_HASH=65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793
+V2_RUNTIME_COUNTERS_EXCLUDED_FROM_POLICY_HASH=true
+CURRENT_V2_BOUND_EXECUTION_ADAPTER_IMPLEMENTED=true
+NEXT_EXECUTABLE_CANDIDATE=NONE
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR597_V2_DURABLE_EXECUTION_GATE_R2_REVIEW
+```
