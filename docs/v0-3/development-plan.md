@@ -22648,3 +22648,49 @@ EVIDENCE_JSON=docs/v0-3/s4/evidence/s4-c04-validation-eligibility-policy-correct
 WORKPAPER=docs/v0-3/s4/workpapers/s4-c04-validation-eligibility-policy-correction-r2.md
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C04_VALIDATION_ELIGIBILITY_R2_REVIEW
 ```
+
+### 4.42 — V0.3 S4 C04 evidence-bound readjudication correction R3
+
+This append-only live pointer corrects the provenance boundary of the R2
+selection-policy readjudication. The R1 evidence digest is verified and scalar
+metrics are parsed from the immutable R1 JSON. The current R1 file contains
+axis-level breakdown summaries, but not the required per-cell identities,
+comparable-row counts, metric statuses, or explicit no-silent-exclusion
+evidence. V4 eligibility is therefore not proven and the historical R2 result
+remains provisional rather than being promoted.
+
+```text
+TASK_ID=V0_3_S4_C04_EVIDENCE_BOUND_READJUDICATION_CORRECTION_R3
+TARGET_PR=600
+PREVIOUS_HEAD_SHA=4c5a09f929ba3490129d83424eb997aa1ad8e4bf
+READJUDICATION_INPUT_SOURCE=docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json
+R1_EVIDENCE_SHA256=78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3
+R1_EVIDENCE_IMMUTABLE=true
+REAL_R1_BREAKDOWN_CELL_EVIDENCE_AVAILABLE=false
+RESULT=BLOCKED
+BLOCKER=R1_BREAKDOWN_CELL_EVIDENCE_INSUFFICIENT_FOR_V4_READJUDICATION
+RUN_1_V4_ELIGIBILITY=NOT_PROVEN
+RUN_2_V4_ELIGIBILITY=NOT_PROVEN
+RUN_3_V4_ELIGIBILITY=NOT_PROVEN
+RUN_4_V4_ELIGIBILITY=NOT_PROVEN
+C04_BEST_VALIDATION_RUN=NONE
+C04_VALIDATION_OUTCOME=BLOCKED_EVIDENCE_INSUFFICIENT
+R2_PROVISIONAL_RESULT_PRESERVED=true
+SYNTHETIC_COVERAGE_USED=false
+VALIDATION_DATA_REREAD=false
+SCORER_CALLED=false
+NEW_VALIDATION_EXECUTION=false
+NEW_VALIDATION_SCORING=false
+NEW_STARTED_EVENT_COUNT=0
+NEW_TERMINAL_EVENT_COUNT=0
+CANONICAL_STARTED_COUNT=4
+C04_CANONICAL_STARTED_COUNT=4
+EFFECTIVE_CONSUMED=8
+REMAINING=24
+R3_BUDGET_DELTA=0
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C04_EVIDENCE_BOUND_R3_REVIEW
+```
