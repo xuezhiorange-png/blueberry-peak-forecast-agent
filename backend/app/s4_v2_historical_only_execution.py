@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Literal
 
+from backend.app.s4_candidate_03_historical_phenology import C03_HISTORICAL_SCORER_PATH
 from backend.app.s4_candidate_execution_authority import CANDIDATE_01_RERUN_FORBIDDEN
 from backend.app.s4_experiment import (
     EXPERIMENT_PLAN_V2_HASH,
@@ -99,6 +100,7 @@ class V2CandidateCompatibility:
     historical_only_execution_compatible: bool
     current_v0_3_execution_eligible: bool
     currently_runnable_under_v2: bool
+    currently_runnable_under_v4: bool
     status: CompatibilityStatus
     reason_code: str
 
@@ -122,6 +124,7 @@ class V2CandidateCompatibility:
             "historical_only_execution_compatible": self.historical_only_execution_compatible,
             "current_v0_3_execution_eligible": self.current_v0_3_execution_eligible,
             "currently_runnable_under_v2": self.currently_runnable_under_v2,
+            "currently_runnable_under_v4": self.currently_runnable_under_v4,
             "status": self.status,
             "reason_code": self.reason_code,
         }
@@ -146,6 +149,8 @@ def _audit(
     historical_only_input_compatible: bool,
     current_v0_3_execution_eligible: bool,
     reason_code: str,
+    currently_runnable_under_v2: bool | None = None,
+    currently_runnable_under_v4: bool | None = None,
 ) -> V2CandidateCompatibility:
     historical_only_execution_compatible = (
         historical_only_input_compatible
@@ -158,8 +163,13 @@ def _audit(
         and not uses_task9
         and not uses_other_forward_looking_authority
     )
-    currently_runnable_under_v2 = (
+    runnable_under_v2 = (
         current_v0_3_execution_eligible and historical_only_execution_compatible
+        if currently_runnable_under_v2 is None
+        else currently_runnable_under_v2
+    )
+    runnable_under_v4 = (
+        runnable_under_v2 if currently_runnable_under_v4 is None else currently_runnable_under_v4
     )
     return V2CandidateCompatibility(
         candidate_id=candidate_id,
@@ -179,7 +189,8 @@ def _audit(
         historical_only_input_compatible=historical_only_input_compatible,
         historical_only_execution_compatible=historical_only_execution_compatible,
         current_v0_3_execution_eligible=current_v0_3_execution_eligible,
-        currently_runnable_under_v2=currently_runnable_under_v2,
+        currently_runnable_under_v2=runnable_under_v2,
+        currently_runnable_under_v4=runnable_under_v4,
         status=("COMPATIBLE" if historical_only_execution_compatible else "INCOMPATIBLE"),
         reason_code=reason_code,
     )
@@ -228,29 +239,22 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
         _audit(
             candidate_id=V2_CANDIDATE_03_ID,
             parameter_or_feature_path=("offset.maximum_abs_shift_days",),
-            actual_execution_function=(
-                "backend.app.s4_candidate_03_execution.build_candidate_03_derived_config",
-                V2_C03_LEGACY_PATH,
-                V2_C03_LOCAL_PATH,
-            ),
+            actual_execution_function=(C03_HISTORICAL_SCORER_PATH,),
             actual_data_sources_read=(
+                "SOURCE_002_TRAIN",
+                "SOURCE_002_VALIDATION_TARGET_IDENTITIES",
                 "configs/maturity_curve.yaml",
-                "production_plan",
-                "weather_observations",
-                "Task8/Task9_runtime_authority",
             ),
-            uses_source_002_train=False,
-            uses_source_002_validation=False,
-            uses_weather=True,
-            uses_production_plan=True,
-            uses_task8=True,
-            uses_task9=True,
+            uses_source_002_train=True,
+            uses_source_002_validation=True,
             parameter_reaches_prediction_math=True,
             parameter_change_can_change_prediction=True,
-            v2_historical_only_scoring_path_exists=False,
+            v2_historical_only_scoring_path_exists=True,
             historical_only_input_compatible=True,
             current_v0_3_execution_eligible=True,
-            reason_code="C03_NO_SOURCE_002_ONLY_SCORING_PATH",
+            currently_runnable_under_v2=False,
+            currently_runnable_under_v4=True,
+            reason_code="C03_HISTORICAL_ONLY_SCORER_READY",
         ),
         _audit(
             candidate_id=V2_CANDIDATE_04_ID,
@@ -267,8 +271,15 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_change_can_change_prediction=True,
             v2_historical_only_scoring_path_exists=True,
             historical_only_input_compatible=True,
-            current_v0_3_execution_eligible=True,
-            reason_code="C04_HISTORICAL_ONLY_SCORER_READY",
+            # C04's four V3 executions are exhausted and its required
+            # breakdown-cell provenance was not retained.  Keep the scorer's
+            # historical compatibility facts for audit, but do not expose it
+            # as a current runnable candidate until a separately authorized
+            # evidence/selection disposition exists.
+            current_v0_3_execution_eligible=False,
+            currently_runnable_under_v2=False,
+            currently_runnable_under_v4=False,
+            reason_code="C04_EXHAUSTED_EVIDENCE_INSUFFICIENT",
         ),
         _audit(
             candidate_id=V2_CANDIDATE_05_ID,
@@ -394,11 +405,16 @@ class V2HistoricalOnlyReadiness:
 
 
 def build_v2_historical_only_readiness() -> V2HistoricalOnlyReadiness:
-    """Build V2 readiness; budget values are freeze-point evidence, not durable authority."""
+    """Build V2 readiness; budget values are freeze-point evidence, not durable authority.
+
+    Runnability is selected from the current V4 execution overlay.  Historical
+    compatibility remains visible in the audit even when a candidate is closed
+    by an exhausted-evidence disposition.
+    """
 
     audit = build_v2_candidate_compatibility_audit()
     next_candidate = next(
-        (item.candidate_id for item in audit if item.currently_runnable_under_v2),
+        (item.candidate_id for item in audit if item.currently_runnable_under_v4),
         "NONE",
     )
     return V2HistoricalOnlyReadiness(
