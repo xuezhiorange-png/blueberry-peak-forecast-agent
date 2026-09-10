@@ -46,6 +46,7 @@
     "cell_id",
     "comparable_rows",
     "metric_status",
+    "reason_code",
     "reporting_status",
     "reporting_reason",
     "selection_blocking"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
@@ -41,8 +42,10 @@ def _coverage_quality() -> CoverageQualityEvidence:
             BreakdownAxisEvidence(
                 axis_name=axis,
                 cells=(
-                    BreakdownCellEvidence(f"{axis}:small", 9),
-                    BreakdownCellEvidence(f"{axis}:large", 12),
+                    BreakdownCellEvidence(
+                        f"{axis}:small", 9, reason_code="RAW_SMALL_SAMPLE_REASON"
+                    ),
+                    BreakdownCellEvidence(f"{axis}:large", 12, reason_code="RAW_COMPUTED_REASON"),
                 ),
             )
             for axis in REQUIRED_BREAKDOWN_AXES
@@ -106,6 +109,22 @@ def test_evidence_serializer_persists_metric_status() -> None:
     } == {"COMPUTED"}
 
 
+def test_serializer_persists_cell_reason_code() -> None:
+    payload = build_coverage_quality_evidence_payload(_coverage_quality())
+    assert {
+        cell["reason_code"]
+        for axis_payload in payload["breakdown_axes"].values()
+        for cell in axis_payload["cells"]
+    } == {"RAW_SMALL_SAMPLE_REASON", "RAW_COMPUTED_REASON"}
+
+
+def test_parser_requires_cell_reason_code() -> None:
+    payload = build_coverage_quality_evidence_payload(_coverage_quality())
+    del payload["breakdown_axes"][REQUIRED_BREAKDOWN_AXES[0]]["cells"][0]["reason_code"]
+    with pytest.raises(SelectionEvidenceProvenanceError, match="reason_code"):
+        parse_coverage_quality_evidence_payload(payload)
+
+
 def test_evidence_serializer_persists_no_silent_exclusion() -> None:
     payload = build_coverage_quality_evidence_payload(_coverage_quality())
     assert payload["no_silent_exclusion"] is True
@@ -128,7 +147,35 @@ def test_evidence_round_trip_preserves_cell_identity() -> None:
     assert [cell.metric_status for axis in restored.breakdown_axes for cell in axis.cells] == [
         cell.metric_status for axis in original.breakdown_axes for cell in axis.cells
     ]
+    assert [cell.reason_code for axis in restored.breakdown_axes for cell in axis.cells] == [
+        cell.reason_code for axis in original.breakdown_axes for cell in axis.cells
+    ]
     assert restored.no_silent_exclusion is True
+
+
+def test_round_trip_preserves_cell_reason_code() -> None:
+    original = _coverage_quality()
+    restored = parse_coverage_quality_evidence_payload(
+        json.loads(canonical_json_dumps(build_coverage_quality_evidence_payload(original)))
+    )
+    assert [cell.reason_code for axis in restored.breakdown_axes for cell in axis.cells] == [
+        cell.reason_code for axis in original.breakdown_axes for cell in axis.cells
+    ]
+
+
+def test_metric_status_and_reason_code_are_independent() -> None:
+    payload = build_coverage_quality_evidence_payload(_coverage_quality())
+    cell = payload["breakdown_axes"][REQUIRED_BREAKDOWN_AXES[0]]["cells"][0]
+    assert cell["metric_status"] == "COMPUTED"
+    assert cell["reason_code"] == "RAW_SMALL_SAMPLE_REASON"
+
+
+def test_reporting_reason_does_not_replace_metric_reason_code() -> None:
+    payload = build_coverage_quality_evidence_payload(_coverage_quality())
+    cell = payload["breakdown_axes"][REQUIRED_BREAKDOWN_AXES[0]]["cells"][0]
+    assert cell["reporting_reason"] == "BELOW_MINIMUM"
+    assert cell["reason_code"] == "RAW_SMALL_SAMPLE_REASON"
+    assert cell["reporting_reason"] != cell["reason_code"]
 
 
 def test_evidence_round_trip_hash_is_deterministic() -> None:
@@ -200,6 +247,26 @@ def test_incomplete_selection_evidence_fails_closed() -> None:
     payload.pop("no_silent_exclusion")
     with pytest.raises(SelectionEvidenceProvenanceError):
         parse_coverage_quality_evidence_payload(payload)
+
+
+def test_missing_reason_code_fails_closed() -> None:
+    original = _coverage_quality()
+    first_axis = original.breakdown_axes[0]
+    first_cell = first_axis.cells[0]
+    missing_reason = BreakdownCellEvidence(
+        first_cell.cell_id,
+        first_cell.comparable_rows,
+        first_cell.metric_status,
+    )
+    incomplete = replace(
+        original,
+        breakdown_axes=(
+            replace(first_axis, cells=(missing_reason, *first_axis.cells[1:])),
+            *original.breakdown_axes[1:],
+        ),
+    )
+    with pytest.raises(SelectionEvidenceProvenanceError, match="reason_code"):
+        build_coverage_quality_evidence_payload(incomplete)
 
 
 def test_no_validation_dataset_read(monkeypatch: pytest.MonkeyPatch) -> None:

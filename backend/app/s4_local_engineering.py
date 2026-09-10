@@ -832,10 +832,19 @@ def _breakdown_metrics(
             else:
                 key = LOCAL_ENGINEERING_REPLAY_MODEL_ID
             buckets[key].append(item)
-        result[axis] = {
-            key: _metric_payload(tuple(rows), complete_window_authority=complete_window_authority)
-            for key, rows in sorted(buckets.items())
-        }
+        cells: dict[str, dict[str, str | int | None]] = {}
+        for key, rows in sorted(buckets.items()):
+            cell = _metric_payload(tuple(rows), complete_window_authority=complete_window_authority)
+            raw_reason_code = cell.get("daily_wape_metric_reason_code")
+            if not isinstance(raw_reason_code, str) or not raw_reason_code:
+                raise LocalEngineeringContractError(
+                    "BREAKDOWN_REASON_CODE_MISSING_FROM_METRIC_COMPUTATION"
+                )
+            # Preserve the computation-layer reason as a first-class field;
+            # reporting disposition is derived later by S4 policy code.
+            cell["reason_code"] = raw_reason_code
+            cells[key] = cell
+        result[axis] = cells
     return result
 
 

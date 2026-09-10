@@ -41,6 +41,10 @@ the derived reporting disposition. It also persists the explicit
 `no_silent_exclusion` fact. A summary is retained only as a summary and is
 never accepted as cell evidence.
 
+Each persisted cell also carries the raw computation-layer `reason_code`.
+This is distinct from the policy-derived `reporting_reason`; the serializer
+and parser require the raw reason and fail closed rather than inventing one.
+
 ```text
 FUTURE_EVIDENCE_SCHEMA_VERSION=v0.3-s4-selection-evidence-v1
 SUMMARY_IS_CELL_EVIDENCE=false
@@ -51,8 +55,8 @@ WRITE_TIME_BLOCK_REASON=SELECTION_EVIDENCE_PROVENANCE_INCOMPLETE
 The C04 controlled runner now serializes its candidate and incumbent coverage
 evidence through this contract. `write_evidence` validates the complete
 selection payload before writing. Compact payloads, missing cells, missing
-comparable rows, missing metric status, or missing no-silent-exclusion proof
-fail closed before a selection artifact is written.
+comparable rows, missing metric status, missing raw reason code, or missing
+no-silent-exclusion proof fail closed before a selection artifact is written.
 
 The local round-trip tests cover:
 
@@ -65,8 +69,8 @@ LocalMetricSet-derived coverage evidence
 ```
 
 They verify axis count, cell count, cell identities, comparable rows, metric
-statuses, no-silent-exclusion, reporting disposition, and deterministic hash
-replay. No real VALIDATION rows are used by these tests.
+statuses, raw reason codes, no-silent-exclusion, reporting disposition, and
+deterministic hash replay. No real VALIDATION rows are used by these tests.
 
 ## Non-execution and budget boundary
 

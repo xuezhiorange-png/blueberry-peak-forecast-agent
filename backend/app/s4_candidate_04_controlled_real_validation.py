@@ -209,6 +209,15 @@ def _coverage_quality(
     }
     group_coverage = Decimal(len(predicted_groups & target_groups)) / Decimal(len(target_groups))
     missing_proportion = Decimal(len(target_keys - predicted_keys)) / Decimal(len(target_keys))
+
+    def raw_breakdown_reason_code(
+        axis: str, cell_id: str, cell: Mapping[str, str | int | None]
+    ) -> str:
+        reason_code = cell.get("reason_code")
+        if not isinstance(reason_code, str) or not reason_code:
+            raise C04ControlledValidationError(f"BREAKDOWN_REASON_CODE_MISSING:{axis}:{cell_id}")
+        return reason_code
+
     axes = tuple(
         BreakdownAxisEvidence(
             axis_name=axis,
@@ -220,6 +229,7 @@ def _coverage_quality(
                         EvidenceStatus,
                         str(cell.get("daily_wape_metric_status", "MISSING")),
                     ),
+                    reason_code=raw_breakdown_reason_code(axis, cell_id, cell),
                 )
                 for cell_id, cell in metrics.breakdown_metrics[axis].items()
             ),
