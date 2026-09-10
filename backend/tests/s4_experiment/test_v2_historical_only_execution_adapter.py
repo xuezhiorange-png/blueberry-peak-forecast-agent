@@ -260,7 +260,7 @@ def test_candidate_06_v2_execution_blocked() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_CANDIDATE_06_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_06_execution_eligible is False
-    assert readiness.next_executable_candidate == "NONE"
+    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
     assert V2_CANDIDATE_06_ID in V2_CANDIDATE_AUDIT_ORDER
     item = _audit_by_id()[V2_CANDIDATE_06_ID]
     assert item.current_v0_3_execution_eligible is False
@@ -271,7 +271,7 @@ def test_candidate_08_v2_execution_blocked() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_CANDIDATE_08_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_08_execution_eligible is False
-    assert readiness.next_executable_candidate == "NONE"
+    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
     assert V2_CANDIDATE_08_ID in V2_CANDIDATE_AUDIT_ORDER
     item = _audit_by_id()[V2_CANDIDATE_08_ID]
     assert item.current_v0_3_execution_eligible is False
@@ -385,7 +385,15 @@ def test_candidate_parameter_must_reach_prediction_path() -> None:
     assert audit[V2_CANDIDATE_01_ID].parameter_change_can_change_prediction is True
     assert audit[V2_CANDIDATE_02_ID].parameter_reaches_prediction_math is False
     assert audit[V2_CANDIDATE_02_ID].parameter_change_can_change_prediction is False
-    assert audit[V2_CANDIDATE_04_ID].parameter_reaches_prediction_math is False
+    assert audit[V2_CANDIDATE_04_ID].uses_source_002_train is True
+    assert audit[V2_CANDIDATE_04_ID].uses_source_002_validation is True
+    assert audit[V2_CANDIDATE_04_ID].actual_execution_function == (
+        "backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows",
+    )
+    assert audit[V2_CANDIDATE_04_ID].parameter_reaches_prediction_math is True
+    assert audit[V2_CANDIDATE_04_ID].parameter_change_can_change_prediction is True
+    assert audit[V2_CANDIDATE_04_ID].v2_historical_only_scoring_path_exists is True
+    assert audit[V2_CANDIDATE_04_ID].historical_only_execution_compatible is True
 
 
 def test_c03_frozen_historical_eligibility_is_distinct_from_legacy_path() -> None:
@@ -508,10 +516,13 @@ def test_frozen_v2_eligibility_is_preserved_independently_of_runnability() -> No
     }
 
 
-def test_next_executable_candidate_is_none() -> None:
+def test_next_executable_candidate_is_c04() -> None:
     readiness = build_v2_historical_only_readiness()
-    assert readiness.next_executable_candidate == "NONE"
-    assert all(item.currently_runnable_under_v2 is False for item in readiness.candidate_audit)
+    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    runnable = [
+        item.candidate_id for item in readiness.candidate_audit if item.currently_runnable_under_v2
+    ]
+    assert runnable == [V2_CANDIDATE_04_ID]
 
 
 def _baseline_row(index: int, quantity: str) -> FarmTotalDatasetRow:

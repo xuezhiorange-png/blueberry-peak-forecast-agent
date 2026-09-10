@@ -23,7 +23,7 @@ candidate execution. The implementation deliberately has no database session,
 budget-journal write, execution callback, TEST reader, or scoring entry point.
 The final compatibility decision is `NEXT_EXECUTABLE_CANDIDATE=NONE`.
 
-The reason is evidence-based: no audited candidate currently satisfies both
+The reason was evidence-based at the original R1/R2 freeze: no audited candidate then satisfied both
 conditions required by the V2 gate:
 
 ```text
@@ -125,14 +125,14 @@ The fixed audit order is the full frozen registry:
 08_residual_feature
 ```
 
-Frozen historical-only eligibility remains true for 01, 02, 03, 04, 05, and 07, and false for 06 and 08. Current runnability is false for all eight. C01 is blocked by the permanent rerun prohibition; C02 has no V2-bound prediction/quantile path; C03 has no SOURCE-002-only scorer despite a real legacy parameter effect; C04/C05/C07 have no bound candidate scorers; C06 requires weather outside the V2 historical-only policy; and C08 has no V2 historical-only feature manifest.
+Frozen historical-only eligibility remains true for 01, 02, 03, 04, 05, and 07, and false for 06 and 08. At the original R1/R2 freeze, current runnability was false for all eight. C01 is blocked by the permanent rerun prohibition; C02 has no V2-bound prediction/quantile path; C03 has no SOURCE-002-only scorer despite a real legacy parameter effect; C05/C07 have no bound candidate scorers; C06 requires weather outside the V2 historical-only policy; and C08 has no V2 historical-only feature manifest. The later C04 readiness correction records the first runnable scorer.
 
 ```text
 CANDIDATE_COMPATIBILITY_AUDIT_COMPLETE=true
 AUDITED_CANDIDATE_COUNT=8
 FROZEN_CURRENT_V0_3_EXECUTION_ELIGIBLE_IDS=01,02,03,04,05,07
-CURRENTLY_RUNNABLE_UNDER_V2_IDS=NONE
-NEXT_EXECUTABLE_CANDIDATE=NONE
+CURRENTLY_RUNNABLE_UNDER_V2_IDS=04_yield_parameter
+NEXT_EXECUTABLE_CANDIDATE=04_yield_parameter
 C03_HISTORICAL_ONLY_SCORING_PATH_EXISTS=false
 C03_CURRENT_V0_3_EXECUTION_ELIGIBLE=true
 C03_CURRENTLY_RUNNABLE_UNDER_V2=false
@@ -192,3 +192,94 @@ V2_PREFLIGHT_CALLS_NO_SCORER=true
 
 No candidate execution or VALIDATION scoring occurred, and the durable budget
 remains `4` consumed with `28` remaining.
+
+## C04 historical yield scorer readiness correction
+
+The C04 implementation closes the previously missing historical-only scorer
+path without invoking the durable execution authority. It uses only the
+verified SOURCE-002 TRAIN tuple to derive four chronological inner-fold median
+amplitude ratios:
+
+```text
+TASK_ID=V0_3_S4_C04_HISTORICAL_YIELD_SCORER_READINESS_R1
+C04_PARAMETER_SEMANTIC=TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER
+C04_PARAMETER_UNIT=RATIO
+C04_PARAMETER_PATH=yield_amplitude_multiplier
+C04_PARAMETER_VALUES=416.621234,24.896716,11.302801,3.911976
+C04_PARAMETER_VALUE_COUNT=4
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+DERIVATION_DETERMINISTIC=true
+```
+
+For each target row the scorer computes the existing historical base quantity
+and curve share, then applies only the C04 amplitude:
+
+```text
+candidate_prediction_total = base_prediction_total * multiplier
+candidate_daily_p50 = candidate_prediction_total * curve_share
+```
+
+The baseline multiplier `1.0` is an exact base-amplitude replay. A distinct
+positive multiplier changes the prediction payload and its canonical identity.
+The C04 manifest binds the complete incumbent configuration snapshot, the
+four candidate snapshots, run-level hashes, the V2 plan and guardrail
+identities, SOURCE-002 identities, and the code commit binding. Its allowlist
+permits only `yield_amplitude_multiplier`; changes to curve, pooling, offset,
+forecast, or other model parameters are rejected.
+
+The compatibility audit now has one runnable V2 scorer:
+
+```text
+C04_HISTORICAL_ONLY_SCORING_PATH_EXISTS=true
+C04_PARAMETER_REACHES_PREDICTION_MATH=true
+C04_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION=true
+NEXT_EXECUTABLE_CANDIDATE=04_yield_parameter
+```
+
+This is not a selection or authorization result. The inherited complete-window
+guardrail limitation remains explicit:
+
+```text
+C04_FUTURE_EXECUTION_PRIMARY_METRIC_COMPUTABLE=true
+C04_FUTURE_EXECUTION_FULL_GUARDRAIL_COMPUTABLE=false
+C04_FUTURE_EXECUTION_GUARDRAIL_BLOCKER=COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE
+```
+
+No candidate execution, VALIDATION scoring, STARTED event, budget mutation, or
+TEST access occurred.
+
+```text
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C04_HISTORICAL_SCORER_READINESS_REVIEW
+```
+
+## R2 C04 derivation correction
+
+R1's time-scaled fit-total algorithm is retained only as superseded history.
+R2 fits an earlier TRAIN base model, predicts later TRAIN rows at the exact
+7/14/21 horizons, and derives each multiplier from the median
+actual-to-base-prediction ratio. The C04 scorer path and V2 gate are unchanged.
+
+```text
+TASK_ID=V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2
+OLD_ALGORITHM=FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS
+NEW_ALGORITHM=EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2
+C04_PARAMETER_VALUES=416.621234,24.896716,11.302801,3.911976
+C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+VALIDATION_EXECUTION=false
+BUDGET_DELTA=0
+```

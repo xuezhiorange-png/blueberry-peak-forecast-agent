@@ -70,6 +70,9 @@ V2_C02_METRIC_ONLY_PATH: Final[str] = (
 )
 V2_C03_LEGACY_PATH: Final[str] = "backend.app.maturity.service.forecast_natural_maturity"
 V2_C03_LOCAL_PATH: Final[str] = V2_NO_EXECUTION_PATH
+V2_C04_HISTORICAL_SCORER_PATH: Final[str] = (
+    "backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows"
+)
 
 CompatibilityStatus = Literal["COMPATIBLE", "INCOMPATIBLE"]
 
@@ -251,17 +254,21 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
         ),
         _audit(
             candidate_id=V2_CANDIDATE_04_ID,
-            parameter_or_feature_path=("yield_parameter",),
-            actual_execution_function=(),
-            actual_data_sources_read=("NO_BOUND_CANDIDATE_SCORER",),
-            uses_source_002_train=False,
-            uses_source_002_validation=False,
-            parameter_reaches_prediction_math=False,
-            parameter_change_can_change_prediction=False,
-            v2_historical_only_scoring_path_exists=False,
+            parameter_or_feature_path=("yield_amplitude_multiplier",),
+            actual_execution_function=(V2_C04_HISTORICAL_SCORER_PATH,),
+            actual_data_sources_read=(
+                "SOURCE_002_TRAIN",
+                "SOURCE_002_VALIDATION_TARGET_IDENTITIES",
+                "configs/maturity_curve.yaml",
+            ),
+            uses_source_002_train=True,
+            uses_source_002_validation=True,
+            parameter_reaches_prediction_math=True,
+            parameter_change_can_change_prediction=True,
+            v2_historical_only_scoring_path_exists=True,
             historical_only_input_compatible=True,
             current_v0_3_execution_eligible=True,
-            reason_code="NO_BOUND_CANDIDATE_04_SCORING_PATH",
+            reason_code="C04_HISTORICAL_ONLY_SCORER_READY",
         ),
         _audit(
             candidate_id=V2_CANDIDATE_05_ID,
@@ -455,6 +462,7 @@ __all__ = [
     "V2_CANDIDATE_07_ID",
     "V2_CANDIDATE_08_ID",
     "V2_CANDIDATE_AUDIT_ORDER",
+    "V2_C04_HISTORICAL_SCORER_PATH",
     "V2HistoricalEvaluationAuthority",
     "V2CandidateCompatibility",
     "V2HistoricalOnlyReadiness",
