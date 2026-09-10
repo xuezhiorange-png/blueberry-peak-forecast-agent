@@ -40,18 +40,24 @@ C04_PARAMETER_PATH=yield_amplitude_multiplier
 BASELINE_MULTIPLIER=1.0
 ```
 
-Exactly four values are derived from SOURCE-002 TRAIN. Four chronological inner
-folds fit the same historical base model on earlier TRAIN dates, then predict
-the later TRAIN target dates at exactly +7, +14, and +21 days. Each fold
-computes the robust median of `actual_harvest_quantity_kg / base_prediction`
-over those comparable target rows. The resulting fold medians are fixed in
-ordinal order:
+Exactly four values are derived from SOURCE-002 TRAIN at one latest legal
+pseudo-cutoff. The cutoff is derived dynamically as
+`max(TRAIN.harvest_business_date) - max(FORECAST_HORIZONS)`, which is
+`2026-01-09` for the frozen TRAIN ending on `2026-01-30`. One base model is fit
+on TRAIN rows through that cutoff. It first predicts the three target dates
+`2026-01-16`, `2026-01-23`, and `2026-01-30` from group identity and date only;
+only after those base-prediction identities are fixed are TRAIN target actuals
+read for calibration. Each multiplier is the median of one ratio per canonical
+`SEASON × FARM × SUBFARM × VARIETY` group. The four values are M7, M14, M21,
+and MALL, where MALL requires the same group to have all three horizons:
 
 ```text
-RUN_1=416.621234
-RUN_2=24.896716
-RUN_3=11.302801
-RUN_4=3.911976
+CALIBRATION_CUTOFF=2026-01-09
+RUN_1_M7=3.802757
+RUN_2_M14=4.961884
+RUN_3_M21=5.182238
+RUN_4_MALL=4.152099
+C04_PARAMETER_VALUES=3.802757,4.961884,5.182238,4.152099
 PARAMETER_VALUE_COUNT=4
 VALUES_UNIQUE=true
 VALUES_POSITIVE=true
@@ -59,6 +65,10 @@ VALUES_FINITE=true
 DERIVATION_DETERMINISTIC=true
 VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
 TEST_USED=false
+SAME_CALIBRATION_CUTOFF_FOR_ALL_VALUES=true
+GROUP_LEVEL_RATIO_USED=true
+ROW_LEVEL_RATIO_MEDIAN_USED=false
+TARGET_ACTUAL_USED_FOR_MODEL_FITTING=false
 ADAPTIVE_SEARCH_ALLOWED=false
 POST_VALIDATION_PARAMETER_SUBSTITUTION_ALLOWED=false
 ```
@@ -132,8 +142,8 @@ No guardrail threshold or metric formula was weakened.
 
 ```text
 C04_PARAMETER_MANIFEST_VERSION=v0.3-s4-c04-yield-parameter-manifest-v1
-C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
-C04_PARAMETER_MANIFEST_CODE_COMMIT=b2def154e9851d90353b24ce8dddd16467e19539
+C04_PARAMETER_MANIFEST_HASH=555a8b53253c3bfce917b41ddac771f7df82e6add0f005fcd2c2b33e624be22f
+C04_PARAMETER_MANIFEST_CODE_COMMIT=57932bb6f2b6ba17ad0ad4a2ef5fdd73425e6df1
 C04_PARAMETER_MANIFEST_FROZEN=true
 C04_CURRENT_V0_3_EXECUTION_ELIGIBLE=true
 C04_CURRENTLY_RUNNABLE_UNDER_V2=true
@@ -164,25 +174,26 @@ FINAL_STOP_GATE=COORDINATOR_V0_3_S4_C04_HISTORICAL_SCORER_READINESS_REVIEW
 
 ## Verification coverage
 
-The C04 contract tests cover TRAIN-only derivation, exact four-value and
-chronological-fold invariants, native-float rejection, canonical manifest and
+The C04 contract tests cover TRAIN-only derivation, latest-legal-cutoff and
+same-cutoff group-level ratio invariants, exact four-value uniqueness, native-
+float rejection, canonical manifest and
 run-hash replay, full-snapshot allowlisting, no-weather/no-plan/no-Task8/Task9
 inputs, exact horizons, base replay, prediction identity change, V2 gate
 binding, no STARTED event, unchanged budget, and the sealed TEST boundary.
 The existing V2 S4 adapter suite was updated only to reflect the now-proven
 C04 path; C01 remains forbidden and C06/C08 remain V2-ineligible.
 
-## R2 parameter-derivation correction
+## R2 parameter-derivation correction (superseded by R3)
 
 The original R1 derivation used `fit_total / fit_days * holdout_days` as the
-baseline. That time-scaled total folds seasonal ramp-up into the amplitude and
-is superseded. The current R2 derivation fits an earlier TRAIN base model,
-predicts later TRAIN rows at the frozen 7/14/21-day horizons, and takes the
-median of each comparable row's actual-to-base-prediction ratio. It remains
-TRAIN-only and deterministic; VALIDATION and TEST are not read.
+baseline. R2 then moved to earlier-TRAIN fitting and later-TRAIN base-model
+predictions, but still used multiple stage cutoffs and row-level ratios. R2 is
+retained as audit provenance only and is superseded by the single-cutoff,
+group-level R3 derivation below.
 
 ```text
 TASK_ID=V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2
+SUPERSEDED=true
 OLD_ALGORITHM=FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS
 NEW_ALGORITHM=EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN
 C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2
@@ -204,7 +215,57 @@ MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
-The prior values and manifest remain available in the repository history and
-are explicitly superseded by this correction. The corrected four run values
-are not an execution authorization and no STARTED event or validation score
-was created.
+The prior values and manifest remain available as superseded audit history.
+
+## R3 final parameter-freeze correction
+
+R3 fixes the remaining calibration-granularity error. It uses the latest legal
+TRAIN pseudo-cutoff, one base model state, and one ratio per canonical group.
+The base predictions are completed from target identity fields before target
+actuals are read. M7, M14, and M21 are per-horizon group ratios; MALL is the
+same-group ratio over the summed 7/14/21 actuals and predictions, excluding any
+group missing a horizon. No row-level median, partial-group aggregation, or
+manual uniqueness perturbation is allowed.
+
+```text
+TASK_ID=V0_3_S4_C04_PARAMETER_FREEZE_FINAL_CORRECTION_R3
+TARGET_PR=598
+SUPERSEDES_R2=true
+OLD_R2_VALUES_SUPERSEDED=true
+OLD_R2_VALUES_NOT_FROZEN=true
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_LATEST_LEGAL_PSEUDO_CUTOFF_GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3
+TRAIN_END=2026-01-30
+C04_CALIBRATION_CUTOFF=2026-01-09
+CALIBRATION_TARGET_DATES=2026-01-16,2026-01-23,2026-01-30
+C04_M7=3.802757
+C04_M14=4.961884
+C04_M21=5.182238
+C04_MALL=4.152099
+C04_PARAMETER_VALUES=3.802757,4.961884,5.182238,4.152099
+C04_PARAMETER_VALUE_COUNT=4
+SAME_CALIBRATION_CUTOFF_FOR_ALL_VALUES=true
+SAME_MODEL_STATE_FOR_ALL_VALUES=true
+GROUP_LEVEL_RATIO_USED=true
+ROW_LEVEL_RATIO_MEDIAN_USED=false
+TARGET_ACTUAL_USED_FOR_MODEL_FITTING=false
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+C04_PARAMETER_MANIFEST_HASH=555a8b53253c3bfce917b41ddac771f7df82e6add0f005fcd2c2b33e624be22f
+C04_PARAMETER_MANIFEST_CODE_COMMIT=57932bb6f2b6ba17ad0ad4a2ef5fdd73425e6df1
+VALIDATION_EXECUTION=false
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR598_C04_PARAMETER_FREEZE_FINAL_REVIEW
+```
+
+R3 changes only parameter derivation. The scorer path, V2 gate, SOURCE-002
+authority, budget persistence, and TEST boundary remain unchanged.

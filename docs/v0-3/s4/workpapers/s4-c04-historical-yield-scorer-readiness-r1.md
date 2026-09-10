@@ -23,26 +23,30 @@ FORECAST_HORIZONS=7,14,21
 TEST_REMAINS_SEALED=true
 ```
 
-The C04 derivation function accepts only the TRAIN tuple. It partitions the
-ordered TRAIN dates into four expanding chronological folds. For each fold it
-fits the same historical base model on earlier TRAIN dates, predicts later
-TRAIN target rows at exactly 7, 14, and 21 days after the fit cutoff, and
-computes `actual_harvest_quantity_kg / base_prediction` for each comparable
-row. The fold value is the median of those ratios. No VALIDATION outcome, TEST
-byte, weather, production-plan input, Task8, or Task9 output enters the
-derivation.
+The C04 derivation function accepts only the TRAIN tuple. It derives one
+latest legal pseudo-cutoff dynamically as the maximum TRAIN date minus the
+maximum frozen horizon: `2026-01-30 - 21 days = 2026-01-09`. One base model is
+fit on rows through that cutoff. It first predicts the three target dates
+`2026-01-16`, `2026-01-23`, and `2026-01-30` using only group identity and
+date; only then are TRAIN target actuals read. For each horizon, the ratio is
+aggregated per `SEASON × FARM × SUBFARM × VARIETY` group before taking the
+median. MALL uses only groups with all 7/14/21 horizons and sums actuals and
+predictions within the same group. No VALIDATION outcome, TEST byte, weather,
+production-plan input, Task8, or Task9 output enters the derivation.
 
 Observed fold values:
 
 ```text
-FOLD_1=416.621234
-FOLD_2=24.896716
-FOLD_3=11.302801
-FOLD_4=3.911976
+CALIBRATION_CUTOFF=2026-01-09
+M7=3.802757
+M14=4.961884
+M21=5.182238
+MALL=4.152099
+C04_PARAMETER_VALUES=3.802757,4.961884,5.182238,4.152099
 ```
 
 They are four unique positive finite Decimal values and replay deterministically
-from the same TRAIN identity. The parameter is explicitly:
+from the same TRAIN identity and model state. The parameter is explicitly:
 
 ```text
 C04_PARAMETER_SEMANTIC=TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER
@@ -92,15 +96,15 @@ INCUMBENT_CONFIG_HASH=3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1
 ```
 
 The manifest and run hashes are deterministic under canonical JSON rules. The
-corrected manifest is bound to implementation commit
-`b2def154e9851d90353b24ce8dddd16467e19539`:
+R3 corrected manifest is bound to implementation commit
+`57932bb6f2b6ba17ad0ad4a2ef5fdd73425e6df1`:
 
 ```text
-C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
-RUN_1_PARAMETER_MANIFEST_HASH=1af87375617e3336f289827f730c696011bbc95788c6b03bbf46e0decf7320f9
-RUN_2_PARAMETER_MANIFEST_HASH=9d1b76216ac1633d9d1ce17710935fa7ce20c7e5f35263ce0db5a4c5165a595a
-RUN_3_PARAMETER_MANIFEST_HASH=85d381af339f897a36a30c18685c943fc22666113655fc3abe3338664da2364e
-RUN_4_PARAMETER_MANIFEST_HASH=9bc83a2d4a2d3ea35c3856e9603de3bb667a79a686369c86f06944cd49f112c3
+C04_PARAMETER_MANIFEST_HASH=555a8b53253c3bfce917b41ddac771f7df82e6add0f005fcd2c2b33e624be22f
+RUN_1_PARAMETER_MANIFEST_HASH=4ec3b36876b6394ef72596e1d52fd941023ca350aa8f5d51831f16b5ae770310
+RUN_2_PARAMETER_MANIFEST_HASH=a222b793cf91f2a212e9cb2b905d8e737e8152a192a9e403951de05c73d86bbf
+RUN_3_PARAMETER_MANIFEST_HASH=633be3689dca6af97e2b52ff44cf2bef6f3d81f085ae7136aeca205791afc7d3
+RUN_4_PARAMETER_MANIFEST_HASH=cb6d816a18ffd732fb2dee7df7fb3b1aa4c7fd312be489dffbd049b595c2569d
 ```
 
 ## Guardrail and budget disposition
@@ -148,7 +152,7 @@ NEXT_EXECUTABLE_CANDIDATE=04_yield_parameter
 path for a separately authorized future run. No C04 execution occurred in this
 workpaper's task.
 
-## R2 correction record
+## R2 correction record (superseded by R3)
 
 The R1 time-scaled-fit derivation is retained as superseded provenance, not as
 the current parameter authority. R2 uses earlier-TRAIN fitting and later-TRAIN
@@ -158,6 +162,7 @@ boundary are unchanged.
 
 ```text
 TASK_ID=V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2
+SUPERSEDED=true
 FIX=C04_PARAMETER_DERIVATION
 OLD_ALGORITHM=FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS
 NEW_ALGORITHM=EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN
@@ -168,4 +173,52 @@ VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
 TEST_USED=false
 VALIDATION_EXECUTION=false
 BUDGET_DELTA=0
+```
+
+## R3 final parameter-freeze correction
+
+R3 replaces the R2 row-level, multi-stage-cutoff derivation. All four values
+now use the same latest legal TRAIN pseudo-cutoff and the same model state.
+Base predictions are materialized before target actuals are read, and each
+ratio is formed at canonical group grain. The fourth value requires a complete
+7/14/21 horizon set for the same group.
+
+```text
+TASK_ID=V0_3_S4_C04_PARAMETER_FREEZE_FINAL_CORRECTION_R3
+TARGET_PR=598
+SUPERSEDES_R2=true
+OLD_R2_VALUES_SUPERSEDED=true
+OLD_R2_VALUES_NOT_FROZEN=true
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_LATEST_LEGAL_PSEUDO_CUTOFF_GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3
+TRAIN_END=2026-01-30
+C04_CALIBRATION_CUTOFF=2026-01-09
+CALIBRATION_TARGET_DATES=2026-01-16,2026-01-23,2026-01-30
+C04_M7=3.802757
+C04_M14=4.961884
+C04_M21=5.182238
+C04_MALL=4.152099
+C04_PARAMETER_VALUES=3.802757,4.961884,5.182238,4.152099
+C04_PARAMETER_VALUE_COUNT=4
+SAME_CALIBRATION_CUTOFF_FOR_ALL_VALUES=true
+SAME_MODEL_STATE_FOR_ALL_VALUES=true
+GROUP_LEVEL_RATIO_USED=true
+ROW_LEVEL_RATIO_MEDIAN_USED=false
+TARGET_ACTUAL_USED_FOR_MODEL_FITTING=false
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+C04_PARAMETER_MANIFEST_HASH=555a8b53253c3bfce917b41ddac771f7df82e6add0f005fcd2c2b33e624be22f
+C04_PARAMETER_MANIFEST_CODE_COMMIT=57932bb6f2b6ba17ad0ad4a2ef5fdd73425e6df1
+VALIDATION_EXECUTION=false
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_PR598_C04_PARAMETER_FREEZE_FINAL_REVIEW
 ```
