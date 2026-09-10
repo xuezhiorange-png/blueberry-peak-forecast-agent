@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import gzip
 from dataclasses import replace
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -26,11 +27,11 @@ from backend.app.s4_candidate_04_historical_yield import (
     C04_PARAMETER_SEMANTIC,
     C04HistoricalScorerError,
     C04HistoricalYieldScorer,
+    CalibrationKey,
     _build_training_model,
-    _fold_dates,
-    _fold_target_dates,
-    _median,
-    _try_base_prediction,
+    _calibration_base_predictions,
+    _calibration_target_actuals,
+    _group_level_ratio_summaries,
     build_c04_derived_config,
     build_c04_gate_request,
     build_c04_historical_yield_scorer,
@@ -91,20 +92,29 @@ def test_c04_parameter_derivation_train_only(
     authority: V2HistoricalEvaluationAuthority,
 ) -> None:
     derivation = derive_c04_parameter_calibration(authority.train_rows)
+    expected_cutoff = max(row.harvest_business_date for row in authority.train_rows) - timedelta(
+        days=21
+    )
     assert derivation.validation_used_for_parameter_derivation is False
     assert derivation.test_used is False
+    assert derivation.calibration_cutoff == expected_cutoff
+    assert all(fold.calibration_cutoff == expected_cutoff for fold in derivation.folds)
+    assert all(fold.fit_end_date == expected_cutoff for fold in derivation.folds)
     assert all(fold.fit_end_date < fold.holdout_start_date for fold in derivation.folds)
     assert all(fold.fit_row_count > 0 and fold.holdout_row_count > 0 for fold in derivation.folds)
     assert derivation.policy == C04_PARAMETER_DERIVATION_POLICY
-    assert all(fold.target_horizon_days == (7, 14, 21) for fold in derivation.folds)
+    assert tuple(fold.target_horizon_days for fold in derivation.folds) == (
+        (7,),
+        (14,),
+        (21,),
+        (7, 14, 21),
+    )
     assert all(fold.comparable_prediction_row_count > 0 for fold in derivation.folds)
 
 
-def test_c04_parameter_derivation_uses_base_predictions_at_frozen_horizons(
+def _calibration_components(
     authority: V2HistoricalEvaluationAuthority,
-) -> None:
-    """The fold value is actual/base-prediction, not a day-scaled total ratio."""
-
+) -> tuple[date, dict[CalibrationKey, Decimal], dict[CalibrationKey, Decimal]]:
     config = load_maturity_curve_config(CONFIG_PATH)
     ordered = tuple(
         sorted(
@@ -118,22 +128,198 @@ def test_c04_parameter_derivation_uses_base_predictions_at_frozen_horizons(
             ),
         )
     )
-    (_all_dates, fit_dates), *_ = _fold_dates(ordered)
-    target_dates = _fold_target_dates(
-        cutoff_date=fit_dates[-1],
-        available_dates={row.harvest_business_date for row in ordered},
-    )
-    fit_rows = tuple(row for row in ordered if row.harvest_business_date in set(fit_dates))
+    cutoff = max(row.harvest_business_date for row in ordered) - timedelta(days=21)
+    target_dates = tuple(cutoff + timedelta(days=horizon) for horizon in (7, 14, 21))
+    fit_rows = tuple(row for row in ordered if row.harvest_business_date <= cutoff)
     target_rows = tuple(row for row in ordered if row.harvest_business_date in set(target_dates))
-    model = _build_training_model(fit_rows, target_rows, config)
-    ratios = [
-        (row.actual_harvest_quantity_kg / base_prediction).quantize(Decimal("0.000001"))
-        for row in target_rows
-        if (base_prediction := _try_base_prediction(model, row)) is not None
-    ]
-    derivation = derive_c04_parameter_calibration(authority.train_rows, config=config)
-    assert derivation.folds[0].target_horizon_days == (7, 14, 21)
-    assert derivation.folds[0].amplitude_ratio == _median(ratios)
+    identity_target_rows = tuple(
+        replace(row, actual_harvest_quantity_kg=Decimal("0")) for row in target_rows
+    )
+    model = _build_training_model(fit_rows, identity_target_rows, config)
+    base_predictions = _calibration_base_predictions(
+        model=model,
+        target_rows=identity_target_rows,
+        calibration_cutoff=cutoff,
+    )
+    target_actuals = _calibration_target_actuals(
+        target_rows=target_rows,
+        calibration_cutoff=cutoff,
+    )
+    return cutoff, base_predictions, target_actuals
+
+
+def test_c04_calibration_cutoff_is_latest_train_cutoff_with_full_21d_labels(
+    authority: V2HistoricalEvaluationAuthority,
+) -> None:
+    derivation = derive_c04_parameter_calibration(authority.train_rows)
+    expected_cutoff = max(row.harvest_business_date for row in authority.train_rows) - timedelta(
+        days=max((7, 14, 21))
+    )
+    assert derivation.calibration_cutoff == expected_cutoff
+    assert derivation.folds[-1].holdout_start_date == expected_cutoff + timedelta(days=7)
+    assert derivation.folds[-1].holdout_end_date == expected_cutoff + timedelta(days=21)
+
+
+def test_c04_all_four_parameters_use_same_calibration_cutoff(
+    authority: V2HistoricalEvaluationAuthority,
+) -> None:
+    derivation = derive_c04_parameter_calibration(authority.train_rows)
+    assert len({fold.calibration_cutoff for fold in derivation.folds}) == 1
+    assert all(fold.fit_end_date == derivation.calibration_cutoff for fold in derivation.folds)
+
+
+def test_c04_base_prediction_ignores_target_actual(
+    authority: V2HistoricalEvaluationAuthority,
+) -> None:
+    cutoff, base_predictions, _target_actuals = _calibration_components(authority)
+    config = load_maturity_curve_config(CONFIG_PATH)
+    ordered = tuple(sorted(authority.train_rows, key=lambda row: row.harvest_business_date))
+    fit_rows = tuple(row for row in ordered if row.harvest_business_date <= cutoff)
+    target_dates = {cutoff + timedelta(days=horizon) for horizon in (7, 14, 21)}
+    target_rows = tuple(row for row in ordered if row.harvest_business_date in target_dates)
+    identity_rows = tuple(
+        replace(row, actual_harvest_quantity_kg=Decimal("0")) for row in target_rows
+    )
+    mutated_rows = tuple(
+        replace(row, actual_harvest_quantity_kg=Decimal("999999999")) for row in target_rows
+    )
+    identity_model = _build_training_model(fit_rows, identity_rows, config)
+    mutated_model = _build_training_model(fit_rows, mutated_rows, config)
+    assert base_predictions == _calibration_base_predictions(
+        model=identity_model,
+        target_rows=identity_rows,
+        calibration_cutoff=cutoff,
+    )
+    assert base_predictions == _calibration_base_predictions(
+        model=mutated_model,
+        target_rows=mutated_rows,
+        calibration_cutoff=cutoff,
+    )
+
+
+@pytest.mark.parametrize(
+    ("horizon", "fold_ordinal"),
+    ((7, 1), (14, 2), (21, 3)),
+)
+def test_c04_horizon_uses_group_level_ratios(
+    authority: V2HistoricalEvaluationAuthority,
+    horizon: int,
+    fold_ordinal: int,
+) -> None:
+    _cutoff, base_predictions, target_actuals = _calibration_components(authority)
+    ratio, group_count, prediction_row_count, horizons = _group_level_ratio_summaries(
+        base_predictions=base_predictions,
+        target_actuals=target_actuals,
+        required_horizons=(horizon,),
+    )
+    fold = derive_c04_parameter_calibration(authority.train_rows).folds[fold_ordinal - 1]
+    assert horizons == (horizon,)
+    assert fold.amplitude_ratio == ratio
+    assert fold.comparable_group_count == group_count
+    assert fold.comparable_prediction_row_count == prediction_row_count
+
+
+def test_c04_horizon7_uses_group_level_ratios(authority: V2HistoricalEvaluationAuthority) -> None:
+    test_c04_horizon_uses_group_level_ratios(authority, 7, 1)
+
+
+def test_c04_horizon14_uses_group_level_ratios(authority: V2HistoricalEvaluationAuthority) -> None:
+    test_c04_horizon_uses_group_level_ratios(authority, 14, 2)
+
+
+def test_c04_horizon21_uses_group_level_ratios(authority: V2HistoricalEvaluationAuthority) -> None:
+    test_c04_horizon_uses_group_level_ratios(authority, 21, 3)
+
+
+def test_c04_all_horizon_ratio_uses_same_group_7_14_21_sum(
+    authority: V2HistoricalEvaluationAuthority,
+) -> None:
+    _cutoff, base_predictions, target_actuals = _calibration_components(authority)
+    ratio, group_count, prediction_row_count, horizons = _group_level_ratio_summaries(
+        base_predictions=base_predictions,
+        target_actuals=target_actuals,
+        required_horizons=(7, 14, 21),
+    )
+    fold = derive_c04_parameter_calibration(authority.train_rows).folds[3]
+    assert horizons == (7, 14, 21)
+    assert fold.amplitude_ratio == ratio
+    assert fold.comparable_group_count == group_count
+    assert fold.comparable_prediction_row_count == prediction_row_count
+
+
+def test_c04_row_level_ratio_median_is_not_parameter_policy() -> None:
+    group_a = ("season", "farm-a", "subfarm", "variety")
+    group_b = ("season", "farm-b", "subfarm", "variety")
+    base_predictions = {
+        (group_a, 7): Decimal("1"),
+        (group_a, 14): Decimal("1"),
+        (group_a, 21): Decimal("1"),
+        (group_b, 7): Decimal("1"),
+        (group_b, 14): Decimal("1"),
+        (group_b, 21): Decimal("1"),
+    }
+    target_actuals = {
+        (group_a, 7): Decimal("10"),
+        (group_a, 14): Decimal("1"),
+        (group_a, 21): Decimal("1"),
+        (group_b, 7): Decimal("2"),
+        (group_b, 14): Decimal("2"),
+        (group_b, 21): Decimal("2"),
+    }
+    ratio, _, _, _ = _group_level_ratio_summaries(
+        base_predictions=base_predictions,
+        target_actuals=target_actuals,
+        required_horizons=(7, 14, 21),
+    )
+    assert ratio == Decimal("3.000000")
+    assert C04_PARAMETER_DERIVATION_POLICY.endswith("GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3")
+
+
+def test_c04_missing_horizon_group_excluded_from_all_horizon_ratio() -> None:
+    complete = ("season", "complete", "subfarm", "variety")
+    partial = ("season", "partial", "subfarm", "variety")
+    base_predictions = {
+        (complete, 7): Decimal("1"),
+        (complete, 14): Decimal("1"),
+        (complete, 21): Decimal("1"),
+        (partial, 7): Decimal("1"),
+        (partial, 14): Decimal("1"),
+    }
+    target_actuals = {
+        (complete, 7): Decimal("2"),
+        (complete, 14): Decimal("2"),
+        (complete, 21): Decimal("2"),
+        (partial, 7): Decimal("100"),
+        (partial, 14): Decimal("100"),
+    }
+    ratio, group_count, prediction_row_count, _ = _group_level_ratio_summaries(
+        base_predictions=base_predictions,
+        target_actuals=target_actuals,
+        required_horizons=(7, 14, 21),
+    )
+    assert ratio == Decimal("2.000000")
+    assert group_count == 1
+    assert prediction_row_count == 3
+
+
+def test_c04_parameter_values_exactly_four_unique_positive_finite(
+    authority: V2HistoricalEvaluationAuthority,
+) -> None:
+    values = derive_c04_parameter_calibration(authority.train_rows).parameter_values
+    assert len(values) == 4
+    assert len(set(values)) == 4
+    assert all(value > 0 and value.is_finite() for value in values)
+
+
+def test_c04_old_r2_values_not_frozen(authority: V2HistoricalEvaluationAuthority) -> None:
+    old_r2_values = {
+        Decimal("416.621234"),
+        Decimal("24.896716"),
+        Decimal("11.302801"),
+        Decimal("3.911976"),
+    }
+    values = set(derive_c04_parameter_calibration(authority.train_rows).parameter_values)
+    assert values.isdisjoint(old_r2_values)
 
 
 def test_c04_validation_not_used_for_parameter_derivation(
@@ -184,10 +370,13 @@ def test_c04_inner_folds_time_ordered(
     folds = derive_c04_parameter_calibration(authority.train_rows).folds
     assert tuple(fold.fold_ordinal for fold in folds) == (1, 2, 3, 4)
     assert all(fold.fit_end_date < fold.holdout_start_date for fold in folds)
-    assert all(
-        left.holdout_end_date < right.holdout_start_date
-        for left, right in zip(folds, folds[1:], strict=False)
+    assert tuple(fold.target_horizon_days for fold in folds) == (
+        (7,),
+        (14,),
+        (21,),
+        (7, 14, 21),
     )
+    assert folds[-1].holdout_start_date < folds[-1].holdout_end_date
 
 
 def test_c04_multiplier_reaches_prediction_math(
