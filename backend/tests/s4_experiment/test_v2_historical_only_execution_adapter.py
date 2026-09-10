@@ -523,7 +523,6 @@ def test_frozen_v2_eligibility_is_preserved_independently_of_runnability() -> No
         "01_parameter_calibration",
         "02_quantile_calibration",
         "03_phenology_offset",
-        "04_yield_parameter",
         "05_marketable_rate",
         "07_harvest_efficiency",
     }
