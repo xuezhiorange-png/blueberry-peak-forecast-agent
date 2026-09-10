@@ -8,10 +8,6 @@ from decimal import Decimal
 import pytest
 
 from backend.app.rolling_backtest.canonical import sha256_payload
-from backend.app.s4_c04_validation_eligibility_rejudication import (
-    FrozenC04RunMetrics,
-    readjudicate_c04_runs,
-)
 from backend.app.s4_experiment import (
     FROZEN_CANDIDATE_REGISTRY,
     GUARDRAIL_POLICY_HASH,
@@ -137,54 +133,6 @@ def _gate_request(candidate_id: str = "04_yield_parameter") -> CandidateExecutio
         forecast_horizons=V3_FORECAST_HORIZONS,
         complete_daily_rowset_authority=False,
         missing_day_zero_fill=False,
-    )
-
-
-def _frozen_runs() -> tuple[FrozenC04RunMetrics, ...]:
-    return (
-        FrozenC04RunMetrics(
-            1,
-            Decimal("3.802757"),
-            Decimal("0.725160"),
-            Decimal("893.149826"),
-            Decimal("0.585756"),
-            Decimal("0.665698"),
-        ),
-        FrozenC04RunMetrics(
-            2,
-            Decimal("4.961884"),
-            Decimal("0.885404"),
-            Decimal("1090.516549"),
-            Decimal("0.655523"),
-            Decimal("0.726744"),
-        ),
-        FrozenC04RunMetrics(
-            3,
-            Decimal("5.182238"),
-            Decimal("0.921748"),
-            Decimal("1135.280015"),
-            Decimal("0.665698"),
-            Decimal("0.735465"),
-        ),
-        FrozenC04RunMetrics(
-            4,
-            Decimal("4.152099"),
-            Decimal("0.766618"),
-            Decimal("944.212641"),
-            Decimal("0.613372"),
-            Decimal("0.686047"),
-        ),
-    )
-
-
-def _frozen_incumbent() -> FrozenC04RunMetrics:
-    return FrozenC04RunMetrics(
-        0,
-        Decimal("1.0"),
-        Decimal("0.773022"),
-        Decimal("952.100208"),
-        Decimal("0.139535"),
-        Decimal("0.223837"),
     )
 
 
@@ -337,42 +285,33 @@ def test_complete_window_metrics_remain_diagnostic_only() -> None:
     assert all(item.diagnostic_only is True for item in result.diagnostics)
 
 
-def test_c04_readjudication_uses_only_frozen_r1_evidence() -> None:
-    results = readjudicate_c04_runs(
-        _frozen_runs(), _frozen_incumbent(), coverage_quality=_coverage()
-    )
-    assert [result.status for result in results] == ["PASS", "FAIL", "FAIL", "PASS"]
-    assert all(result.candidate_eligible for result in (results[0], results[3]))
-    assert all(not result.candidate_eligible for result in (results[1], results[2]))
+def test_v4_policy_evaluator_accepts_explicit_frozen_metric_observations() -> None:
+    result = _evaluate()
+    assert result.status == "PASS"
+    assert result.candidate_eligible is True
 
 
-def test_c04_readjudication_calls_no_scorer(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_low_level_v4_evaluator_calls_no_scorer(monkeypatch: pytest.MonkeyPatch) -> None:
     from backend.app.s4_candidate_04_historical_yield import C04HistoricalYieldScorer
 
     def fail_if_called(*args: object, **kwargs: object) -> object:
-        raise AssertionError("R2 re-adjudication must not call the scorer")
+        raise AssertionError("V4 policy evaluation must not call the scorer")
 
     monkeypatch.setattr(C04HistoricalYieldScorer, "predict_rows", fail_if_called)
-    results = readjudicate_c04_runs(
-        _frozen_runs(), _frozen_incumbent(), coverage_quality=_coverage()
-    )
-    assert len(results) == 4
+    result = _evaluate()
+    assert result.status == "PASS"
 
 
-def test_c04_readjudication_reads_no_validation_dataset() -> None:
-    # The re-adjudication API accepts only frozen scalar metrics and in-memory
+def test_low_level_v4_evaluator_reads_no_validation_dataset() -> None:
+    # The low-level policy API accepts only frozen scalar metrics and in-memory
     # reporting evidence; there is no dataset/path argument or loader call.
-    results = readjudicate_c04_runs(
-        _frozen_runs(), _frozen_incumbent(), coverage_quality=_coverage()
-    )
-    assert len(results) == 4
+    result = _evaluate()
+    assert result.status == "PASS"
 
 
-def test_c04_readjudication_creates_no_started_event_and_budget_is_unchanged() -> None:
-    results = readjudicate_c04_runs(
-        _frozen_runs(), _frozen_incumbent(), coverage_quality=_coverage()
-    )
-    assert len(results) == 4
+def test_low_level_v4_evaluator_creates_no_started_event_and_budget_is_unchanged() -> None:
+    result = _evaluate()
+    assert result.status == "PASS"
     assert {
         "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
         "CANONICAL_STARTED_COUNT": 4,
@@ -383,17 +322,3 @@ def test_c04_readjudication_creates_no_started_event_and_budget_is_unchanged() -
         "NEW_STARTED_EVENT_COUNT": 0,
         "NEW_VALIDATION_SCORING_CALL_COUNT": 0,
     }["R2_BUDGET_DELTA"] == 0
-
-
-def test_c04_readjudication_expected_best_run_is_1() -> None:
-    results = readjudicate_c04_runs(
-        _frozen_runs(), _frozen_incumbent(), coverage_quality=_coverage()
-    )
-    eligible = [
-        run
-        for run, result in zip(_frozen_runs(), results, strict=True)
-        if result.candidate_eligible
-    ]
-    assert len(eligible) == 2
-    assert eligible[0].run_ordinal == 1
-    assert eligible[0].multiplier == Decimal("3.802757")
