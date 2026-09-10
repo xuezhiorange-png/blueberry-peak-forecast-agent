@@ -11,7 +11,7 @@ import re
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Final, Literal
+from typing import Final, Literal, cast
 
 from backend.app.rolling_backtest.canonical import canonical_json_dumps, sha256_payload
 
@@ -315,6 +315,291 @@ class CoverageQualityEvidence:
     missing_data_proportion: MetricObservation
     breakdown_axes: tuple[BreakdownAxisEvidence, ...] = ()
     no_silent_exclusion: bool = True
+
+
+SELECTION_EVIDENCE_SCHEMA_VERSION: Final[str] = "v0.3-s4-selection-evidence-v1"
+SELECTION_EVIDENCE_PROVENANCE_INCOMPLETE: Final[str] = "SELECTION_EVIDENCE_PROVENANCE_INCOMPLETE"
+
+
+class SelectionEvidenceProvenanceError(ValueError):
+    """Raised when a selection evidence payload cannot be replayed safely."""
+
+    def __init__(self, detail: str = SELECTION_EVIDENCE_PROVENANCE_INCOMPLETE) -> None:
+        super().__init__(f"{SELECTION_EVIDENCE_PROVENANCE_INCOMPLETE}:{detail}")
+
+
+def _selection_metric_payload(observation: MetricObservation) -> dict[str, object]:
+    return {
+        "status": observation.status,
+        "value": None if observation.value is None else format(observation.value, "f"),
+    }
+
+
+def _selection_metric_from_payload(
+    payload: Mapping[str, object],
+    *,
+    metric_name: str,
+) -> MetricObservation:
+    status = payload.get("status")
+    value = payload.get("value")
+    if not isinstance(status, str) or status not in (
+        "COMPUTED",
+        "NOT_COMPUTABLE",
+        "MISSING",
+        "INSUFFICIENT_SAMPLE",
+    ):
+        raise SelectionEvidenceProvenanceError(f"{metric_name}:metric_status")
+    if value is None:
+        parsed_value: Decimal | None = None
+    elif isinstance(value, str):
+        try:
+            parsed_value = Decimal(value)
+        except Exception as exc:  # pragma: no cover - Decimal errors vary
+            raise SelectionEvidenceProvenanceError(f"{metric_name}:metric_value") from exc
+        if not parsed_value.is_finite():
+            raise SelectionEvidenceProvenanceError(f"{metric_name}:metric_value")
+    else:
+        raise SelectionEvidenceProvenanceError(f"{metric_name}:metric_value")
+    try:
+        return MetricObservation(
+            metric_name=metric_name,
+            status=cast(EvidenceStatus, status),
+            value=parsed_value,
+        )
+    except (TypeError, ValueError) as exc:
+        raise SelectionEvidenceProvenanceError(f"{metric_name}:metric_observation") from exc
+
+
+def build_coverage_quality_evidence_payload(
+    evidence: CoverageQualityEvidence,
+) -> dict[str, object]:
+    """Serialize replayable S4 coverage evidence with every required cell.
+
+    This is the write-time contract for future real S4 validation evidence. A
+    compact axis summary is intentionally not representable here: the
+    selection surface needs each axis, cell identity, comparable-row count,
+    metric status, and the derived reporting disposition.
+    """
+
+    if not isinstance(evidence, CoverageQualityEvidence):
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:type")
+    expected_metric_names = (
+        "coverage_ratio",
+        "valid_included_canonical_group_coverage",
+        "missing_data_proportion",
+    )
+    observations = (
+        evidence.coverage_ratio,
+        evidence.valid_included_canonical_group_coverage,
+        evidence.missing_data_proportion,
+    )
+    if tuple(item.metric_name for item in observations) != expected_metric_names:
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:metric_identity")
+    if type(evidence.no_silent_exclusion) is not bool:
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:no_silent_exclusion")
+
+    axes_by_name: dict[str, BreakdownAxisEvidence] = {}
+    for axis in evidence.breakdown_axes:
+        if axis.axis_name not in REQUIRED_BREAKDOWN_AXES:
+            raise SelectionEvidenceProvenanceError(
+                f"coverage_quality_evidence:unknown_axis:{axis.axis_name}"
+            )
+        if axis.axis_name in axes_by_name:
+            raise SelectionEvidenceProvenanceError(
+                f"coverage_quality_evidence:duplicate_axis:{axis.axis_name}"
+            )
+        if not axis.cells:
+            raise SelectionEvidenceProvenanceError(
+                f"coverage_quality_evidence:empty_axis:{axis.axis_name}"
+            )
+        axes_by_name[axis.axis_name] = axis
+    if set(axes_by_name) != set(REQUIRED_BREAKDOWN_AXES):
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:required_axes")
+
+    axes_payload: dict[str, object] = {}
+    for axis_name in REQUIRED_BREAKDOWN_AXES:
+        axis = axes_by_name[axis_name]
+        seen_cell_ids: set[str] = set()
+        cells_payload: list[dict[str, object]] = []
+        for cell in axis.cells:
+            if cell.cell_id in seen_cell_ids:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:duplicate_cell:{axis_name}:{cell.cell_id}"
+                )
+            seen_cell_ids.add(cell.cell_id)
+            disposition = breakdown_reporting_disposition(cell)
+            cells_payload.append(
+                {
+                    "axis_name": axis_name,
+                    "cell_id": cell.cell_id,
+                    "comparable_rows": cell.comparable_rows,
+                    "metric_status": cell.metric_status,
+                    "reporting_status": disposition.reporting_status,
+                    "reporting_reason": disposition.reporting_reason,
+                    "selection_blocking": disposition.selection_blocking,
+                }
+            )
+        axes_payload[axis_name] = {"axis_name": axis_name, "cells": cells_payload}
+
+    return {
+        "schema_version": SELECTION_EVIDENCE_SCHEMA_VERSION,
+        "coverage_ratio": _selection_metric_payload(evidence.coverage_ratio)["value"],
+        "coverage_ratio_status": evidence.coverage_ratio.status,
+        "valid_included_canonical_group_coverage": _selection_metric_payload(
+            evidence.valid_included_canonical_group_coverage
+        )["value"],
+        "valid_included_canonical_group_coverage_status": (
+            evidence.valid_included_canonical_group_coverage.status
+        ),
+        "missing_data_proportion": _selection_metric_payload(evidence.missing_data_proportion)[
+            "value"
+        ],
+        "missing_data_proportion_status": evidence.missing_data_proportion.status,
+        "no_silent_exclusion": evidence.no_silent_exclusion,
+        "summary_is_cell_evidence": False,
+        "breakdown_axes": axes_payload,
+    }
+
+
+def parse_coverage_quality_evidence_payload(
+    payload: Mapping[str, object],
+) -> CoverageQualityEvidence:
+    """Parse and validate the canonical cell-level coverage evidence payload."""
+
+    if payload.get("schema_version") != SELECTION_EVIDENCE_SCHEMA_VERSION:
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:schema_version")
+    if payload.get("summary_is_cell_evidence") is not False:
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:summary_only")
+    no_silent_exclusion = payload.get("no_silent_exclusion")
+    if type(no_silent_exclusion) is not bool:
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:no_silent_exclusion")
+
+    scalar_specs = (
+        ("coverage_ratio", "coverage_ratio_status"),
+        (
+            "valid_included_canonical_group_coverage",
+            "valid_included_canonical_group_coverage_status",
+        ),
+        ("missing_data_proportion", "missing_data_proportion_status"),
+    )
+    observations: list[MetricObservation] = []
+    for metric_name, status_field in scalar_specs:
+        value = payload.get(metric_name)
+        status = payload.get(status_field)
+        observations.append(
+            _selection_metric_from_payload(
+                {"value": value, "status": status}, metric_name=metric_name
+            )
+        )
+
+    axes_payload = payload.get("breakdown_axes")
+    if not isinstance(axes_payload, Mapping):
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:breakdown_axes")
+    if set(axes_payload) != set(REQUIRED_BREAKDOWN_AXES):
+        raise SelectionEvidenceProvenanceError("coverage_quality_evidence:required_axes")
+
+    axes: list[BreakdownAxisEvidence] = []
+    for axis_name in REQUIRED_BREAKDOWN_AXES:
+        axis_payload = axes_payload.get(axis_name)
+        if not isinstance(axis_payload, Mapping):
+            raise SelectionEvidenceProvenanceError(f"coverage_quality_evidence:axis:{axis_name}")
+        if axis_payload.get("axis_name") != axis_name:
+            raise SelectionEvidenceProvenanceError(
+                f"coverage_quality_evidence:axis_identity:{axis_name}"
+            )
+        cells_payload = axis_payload.get("cells")
+        if not isinstance(cells_payload, list) or not cells_payload:
+            raise SelectionEvidenceProvenanceError(f"coverage_quality_evidence:cells:{axis_name}")
+        cells: list[BreakdownCellEvidence] = []
+        seen_cell_ids: set[str] = set()
+        for cell_payload in cells_payload:
+            if not isinstance(cell_payload, Mapping):
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:cell:{axis_name}"
+                )
+            if cell_payload.get("axis_name") != axis_name:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:cell_axis:{axis_name}"
+                )
+            cell_id = cell_payload.get("cell_id")
+            comparable_rows = cell_payload.get("comparable_rows")
+            metric_status = cell_payload.get("metric_status")
+            if not isinstance(cell_id, str) or not cell_id:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:cell_id:{axis_name}"
+                )
+            if cell_id in seen_cell_ids:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:duplicate_cell:{axis_name}:{cell_id}"
+                )
+            if type(comparable_rows) is not int or comparable_rows < 0:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:comparable_rows:{axis_name}:{cell_id}"
+                )
+            if not isinstance(metric_status, str):
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:metric_status:{axis_name}:{cell_id}"
+                )
+            try:
+                cell = BreakdownCellEvidence(
+                    cell_id=cell_id,
+                    comparable_rows=comparable_rows,
+                    metric_status=cast(EvidenceStatus, metric_status),
+                )
+            except (TypeError, ValueError) as exc:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:cell:{axis_name}:{cell_id}"
+                ) from exc
+            disposition = breakdown_reporting_disposition(cell)
+            if (
+                cell_payload.get("reporting_status") != disposition.reporting_status
+                or cell_payload.get("reporting_reason") != disposition.reporting_reason
+                or cell_payload.get("selection_blocking") != disposition.selection_blocking
+            ):
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:reporting_disposition:{axis_name}:{cell_id}"
+                )
+            seen_cell_ids.add(cell_id)
+            cells.append(cell)
+        axes.append(BreakdownAxisEvidence(axis_name=axis_name, cells=tuple(cells)))
+
+    return CoverageQualityEvidence(
+        coverage_ratio=observations[0],
+        valid_included_canonical_group_coverage=observations[1],
+        missing_data_proportion=observations[2],
+        breakdown_axes=tuple(axes),
+        no_silent_exclusion=no_silent_exclusion,
+    )
+
+
+def validate_s4_selection_evidence_payload(evidence: Mapping[str, object]) -> None:
+    """Fail closed before writing a future real-validation evidence artifact."""
+
+    incumbent = evidence.get("INCUMBENT_METRICS")
+    if not isinstance(incumbent, Mapping):
+        raise SelectionEvidenceProvenanceError("INCUMBENT_METRICS")
+    incumbent_quality = incumbent.get("coverage_quality_evidence")
+    if not isinstance(incumbent_quality, Mapping):
+        raise SelectionEvidenceProvenanceError("INCUMBENT_METRICS:coverage_quality_evidence")
+    parse_coverage_quality_evidence_payload(incumbent_quality)
+
+    runs = evidence.get("RUNS")
+    if not isinstance(runs, list):
+        raise SelectionEvidenceProvenanceError("RUNS")
+    for index, run in enumerate(runs):
+        if not isinstance(run, Mapping):
+            raise SelectionEvidenceProvenanceError(f"RUNS[{index}]")
+        metrics = run.get("candidate_metrics")
+        if metrics is None:
+            if run.get("eligibility_status") is not None:
+                raise SelectionEvidenceProvenanceError(f"RUNS[{index}]:candidate_metrics")
+            continue
+        if not isinstance(metrics, Mapping):
+            raise SelectionEvidenceProvenanceError(f"RUNS[{index}]:candidate_metrics")
+        quality = metrics.get("coverage_quality_evidence")
+        if not isinstance(quality, Mapping):
+            raise SelectionEvidenceProvenanceError(f"RUNS[{index}]:coverage_quality_evidence")
+        parse_coverage_quality_evidence_payload(quality)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1559,6 +1844,9 @@ __all__ = [
     "CandidateExecutionGateResult",
     "CandidateRegistration",
     "CoverageQualityEvidence",
+    "SELECTION_EVIDENCE_PROVENANCE_INCOMPLETE",
+    "SELECTION_EVIDENCE_SCHEMA_VERSION",
+    "SelectionEvidenceProvenanceError",
     "DiagnosticMetricDisposition",
     "BreakdownCellEvidence",
     "BreakdownAxisEvidence",
@@ -1623,5 +1911,8 @@ __all__ = [
     "evaluate_coverage_quality_gate",
     "evaluate_coverage_quality_gate_v4_breakdown_reporting",
     "breakdown_reporting_disposition",
+    "build_coverage_quality_evidence_payload",
+    "parse_coverage_quality_evidence_payload",
+    "validate_s4_selection_evidence_payload",
     "validate_s4_invocation_semantics",
 ]

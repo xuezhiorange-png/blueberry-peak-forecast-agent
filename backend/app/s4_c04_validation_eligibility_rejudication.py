@@ -34,7 +34,9 @@ from backend.app.s4_experiment import (
     CandidateEligibilityResult,
     CoverageQualityEvidence,
     MetricObservation,
+    SelectionEvidenceProvenanceError,
     evaluate_candidate_guardrails_v4_breakdown_reporting,
+    parse_coverage_quality_evidence_payload,
 )
 
 C04_REJUDICATION_POLICY: Final[str] = "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor"
@@ -226,6 +228,13 @@ def _parse_axis_cells(
 def _parse_coverage_quality(
     payload: Mapping[str, object], *, context: str
 ) -> tuple[CoverageQualityEvidence | None, tuple[str, ...]]:
+    canonical_payload = payload.get("coverage_quality_evidence")
+    if isinstance(canonical_payload, Mapping):
+        try:
+            return parse_coverage_quality_evidence_payload(canonical_payload), ()
+        except SelectionEvidenceProvenanceError as exc:
+            return None, (f"{context}.coverage_quality_evidence:{exc}",)
+
     missing: list[str] = []
     breakdown_payload = payload.get("breakdown_metrics")
     if not isinstance(breakdown_payload, Mapping):
