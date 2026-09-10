@@ -1,0 +1,102 @@
+{
+  "TASK_ID": "V0_3_S4_SPARSE_HORIZON_GUARDRAIL_ALIGNMENT_R1",
+  "TASK_CLASS": "GUARDRAIL_POLICY_CORRECTION_AND_C04_REBIND",
+  "RESULT": "ALIGNED_AND_PUSHED",
+  "BASE_MAIN_SHA": "f9f9c0644c73a4f2d1c28eb33241b898b44f6ead",
+  "V1_GUARDRAIL_POLICY_PRESERVED": true,
+  "V2_GUARDRAIL_POLICY_PRESERVED": true,
+  "GUARDRAIL_POLICY_V1_HASH_UNCHANGED": true,
+  "GUARDRAIL_POLICY_V2_HASH_UNCHANGED": true,
+  "GUARDRAIL_POLICY_V1": {
+    "version": "v0.3-s4-guardrail-policy-v1",
+    "hash": "74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8"
+  },
+  "GUARDRAIL_POLICY_V2": {
+    "version": "v0.3-s4-guardrail-policy-v2",
+    "hash": "65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793"
+  },
+  "GUARDRAIL_POLICY_V3": {
+    "version": "v0.3-s4-guardrail-policy-v3-sparse-horizon",
+    "hash": "004be89a726ea4afd90ac895ea10f885f749b2f222e0fca5a67d57ba4e2bd3e0",
+    "experiment_plan_version": "v0.3-experiment-plan-v2",
+    "experiment_plan_hash": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9",
+    "deterministic": true
+  },
+  "V3_EVALUATION_SURFACE_ID": "V0_3_S4_SOURCE002_SPARSE_HORIZON_7_14_21_V1",
+  "FORECAST_HORIZONS": [7, 14, 21],
+  "COMPLETE_DAILY_ROWSET_AUTHORITY": false,
+  "MISSING_DAY_ZERO_FILL": false,
+  "SPARSE_SELECTION_PRIMARY_METRIC": "daily_wape",
+  "SPARSE_SELECTION_PRIMARY_DIRECTION": "LOWER_IS_BETTER",
+  "SPARSE_SELECTION_PRIMARY_RELATION": "CANDIDATE_STRICTLY_LESS_THAN_INCUMBENT",
+  "SPARSE_SELECTION_POINT_GUARDRAIL": "daily_mae",
+  "SPARSE_SELECTION_POINT_RELATION": "CANDIDATE_LESS_THAN_OR_EQUAL_TO_INCUMBENT",
+  "COMPLETE_WINDOW_METRICS": {
+    "cumulative_absolute_error_kg": {
+      "status": "NOT_COMPUTABLE",
+      "selection_blocking": false,
+      "diagnostic_only": true,
+      "reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+    },
+    "single_day_peak_quantity_absolute_error_kg_q": {
+      "status": "NOT_COMPUTABLE",
+      "selection_blocking": false,
+      "diagnostic_only": true,
+      "reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+    },
+    "sustained_7day_quantity_absolute_error_kg_q": {
+      "status": "NOT_COMPUTABLE",
+      "selection_blocking": false,
+      "diagnostic_only": true,
+      "reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+    }
+  },
+  "REQUIRED_SELECTION_GUARDRAILS_PRESERVED": [
+    "P80_COVERAGE",
+    "P90_COVERAGE",
+    "coverage_ratio",
+    "valid_included_canonical_group_coverage",
+    "missing_data_proportion",
+    "required_breakdown_axes",
+    "minimum_comparable_rows",
+    "no_silent_exclusion"
+  ],
+  "C04_REBIND": {
+    "candidate_id": "04_yield_parameter",
+    "parameter_derivation_policy": "TRAIN_ONLY_LATEST_LEGAL_PSEUDO_CUTOFF_GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3",
+    "calibration_cutoff": "2026-01-09",
+    "parameter_values": ["3.802757", "4.961884", "5.182238", "4.152099"],
+    "parameter_values_unchanged": true,
+    "derivation_policy_unchanged": true,
+    "calibration_cutoff_unchanged": true,
+    "old_manifest_version": "v0.3-s4-c04-yield-parameter-manifest-v1",
+    "old_manifest_hash": "555a8b53253c3bfce917b41ddac771f7df82e6add0f005fcd2c2b33e624be22f",
+    "manifest_version": "v0.3-s4-c04-yield-parameter-manifest-v2",
+    "manifest_hash": "1e3433b9216f8ebe63db44ba0bc1353e1d4664cef3c1cc3f2a57bb794fe280ee",
+    "code_commit_binding": "d219a3d99da3a1766ace75dcbf6a99b82d66f2a4",
+    "guardrail_policy_version": "v0.3-s4-guardrail-policy-v3-sparse-horizon",
+    "guardrail_policy_hash": "004be89a726ea4afd90ac895ea10f885f749b2f222e0fca5a67d57ba4e2bd3e0",
+    "evaluation_surface_identity": "V0_3_S4_SOURCE002_SPARSE_HORIZON_7_14_21_V1"
+  },
+  "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+  "CANONICAL_STARTED_COUNT": 0,
+  "EFFECTIVE_CONSUMED": 4,
+  "REMAINING": 28,
+  "BUDGET_DELTA": 0,
+  "EVALUATION_STARTED_CREATED": false,
+  "CANDIDATE_EXECUTION_PERFORMED": false,
+  "VALIDATION_SCORING_PERFORMED": false,
+  "TEST_ACCESS_REQUESTED": false,
+  "TEST_BYTES_READ": false,
+  "TEST_EVALUATION_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "FOCUSED_TESTS": {
+    "command": "pytest backend/tests/s4_experiment/test_sparse_horizon_guardrail_alignment.py backend/tests/s4_experiment/test_candidate_04_historical_yield.py backend/tests/s4_experiment/test_v2_historical_only_execution_adapter.py",
+    "result": "PASS",
+    "passed": 114
+  },
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_S4_SPARSE_HORIZON_GUARDRAIL_ALIGNMENT_REVIEW"
+}
