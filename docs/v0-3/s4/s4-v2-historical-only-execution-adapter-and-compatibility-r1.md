@@ -1,6 +1,6 @@
 # V0.3 S4 V2 historical-only execution adapter and compatibility R1
 
-> Review correction R2 preserves the frozen V2 candidate eligibility semantics, separates plan eligibility from current runnability, completes the audit to 8/8 candidates, and relabels budget numbers as freeze-point evidence rather than durable authority.
+> Review corrections R2/R3 preserve the frozen V2 candidate eligibility semantics, separate plan eligibility from current runnability, complete the audit to 8/8 candidates, and keep the C04 R3 parameter freeze distinct from durable budget authority.
 
 This document records the V2 execution-readiness adapter. It binds the
 current execution policy to the accepted SOURCE-002 historical TRAIN and
@@ -29,18 +29,20 @@ TASK_ID=V0_3_S4_C04_HISTORICAL_YIELD_SCORER_READINESS_R1
 C04_PARAMETER_SEMANTIC=TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER
 C04_PARAMETER_UNIT=RATIO
 C04_PARAMETER_PATH=yield_amplitude_multiplier
-C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2
-C04_PARAMETER_VALUES=416.621234,24.896716,11.302801,3.911976
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_LATEST_LEGAL_PSEUDO_CUTOFF_GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3
+C04_CALIBRATION_CUTOFF=2026-01-09
+C04_PARAMETER_VALUES=3.802757,4.961884,5.182238,4.152099
 C04_PARAMETER_VALUE_COUNT=4
 C04_PARAMETER_VALUES_UNIQUE_POSITIVE_FINITE=true
 VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
 TEST_USED=false
 ```
 
-The four values are the median actual-to-base-model-prediction ratio from four
-chronological inner folds of TRAIN. Each earlier TRAIN fit predicts later TRAIN
-rows at the exact 7/14/21 horizons; VALIDATION is not an input to derivation
-and TEST is not read.
+The four values are M7, M14, M21, and MALL from one latest legal TRAIN
+pseudo-cutoff. A single base model predicts the three TRAIN target dates before
+target actuals are read. Ratios are computed at canonical group grain; MALL
+requires all three horizons for the same group. VALIDATION is not an input to
+derivation and TEST is not read.
 The candidate prediction is explicitly:
 
 ```text
@@ -274,17 +276,16 @@ NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_V0_3_S4_V2_EXECUTION_COMPATIBILITY_REVIEW
 ```
 
-## R2 C04 parameter-derivation correction
+## R2 C04 parameter-derivation correction (superseded by R3)
 
-The original C04 time-scaled fit-total derivation is superseded. The current
-manifest values are derived by fitting an earlier TRAIN base model, predicting
-later TRAIN rows at the exact 7/14/21 horizons, and taking the median
-actual-to-base-prediction ratio. This correction changes only parameter
-derivation; the C04 scorer path, V2 gate, and no-execution boundary remain
-unchanged.
+The original C04 time-scaled fit-total derivation is superseded. R2's
+earlier-TRAIN approach is also superseded because it used multiple stage
+cutoffs and row-level ratios. This historical section is retained for audit;
+R3 below is the current parameter authority.
 
 ```text
 TASK_ID=V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2
+SUPERSEDED=true
 OLD_ALGORITHM=FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS
 NEW_ALGORITHM=EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN
 C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2
@@ -295,6 +296,46 @@ VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
 TEST_USED=false
 VALIDATION_EXECUTION=false
 BUDGET_DELTA=0
+```
+
+## R3 C04 final parameter-freeze correction
+
+```text
+TASK_ID=V0_3_S4_C04_PARAMETER_FREEZE_FINAL_CORRECTION_R3
+TARGET_PR=598
+SUPERSEDES_R2=true
+OLD_R2_VALUES_SUPERSEDED=true
+OLD_R2_VALUES_NOT_FROZEN=true
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_LATEST_LEGAL_PSEUDO_CUTOFF_GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3
+TRAIN_END=2026-01-30
+C04_CALIBRATION_CUTOFF=2026-01-09
+CALIBRATION_TARGET_DATES=2026-01-16,2026-01-23,2026-01-30
+C04_M7=3.802757
+C04_M14=4.961884
+C04_M21=5.182238
+C04_MALL=4.152099
+C04_PARAMETER_VALUES=3.802757,4.961884,5.182238,4.152099
+C04_PARAMETER_VALUE_COUNT=4
+SAME_CALIBRATION_CUTOFF_FOR_ALL_VALUES=true
+GROUP_LEVEL_RATIO_USED=true
+ROW_LEVEL_RATIO_MEDIAN_USED=false
+TARGET_ACTUAL_USED_FOR_MODEL_FITTING=false
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+C04_PARAMETER_MANIFEST_HASH=555a8b53253c3bfce917b41ddac771f7df82e6add0f005fcd2c2b33e624be22f
+C04_PARAMETER_MANIFEST_CODE_COMMIT=57932bb6f2b6ba17ad0ad4a2ef5fdd73425e6df1
+VALIDATION_EXECUTION=false
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+CANONICAL_STARTED_COUNT=0
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
 ```
 
 ## R2 correction — durable execution gate binding
