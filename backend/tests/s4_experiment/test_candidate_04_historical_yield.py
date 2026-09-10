@@ -18,6 +18,7 @@ from backend.app.s4_candidate_04_historical_yield import (
     C04_ALLOWED_PARAMETER_PATHS,
     C04_BASELINE_MULTIPLIER,
     C04_CANDIDATE_ID,
+    C04_EVALUATION_SURFACE_ID,
     C04_INCUMBENT_CONFIG_FILE_SHA256,
     C04_INCUMBENT_CONFIG_HASH,
     C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS,
@@ -44,6 +45,8 @@ from backend.app.s4_experiment import (
     V2_BUDGET_SNAPSHOT_CANONICAL_STARTED_COUNT,
     V2_BUDGET_SNAPSHOT_EFFECTIVE_CONSUMED,
     V2_BUDGET_SNAPSHOT_REMAINING_VALIDATION_EVALUATIONS,
+    V3_GUARDRAIL_POLICY_HASH,
+    V3_GUARDRAIL_POLICY_VERSION,
     check_candidate_execution_gate,
 )
 from backend.app.s4_local_engineering import (
@@ -609,7 +612,7 @@ def test_c04_incumbent_snapshot_not_mutated(manifest: Any) -> None:
     )
 
 
-def test_c04_gate_request_is_v2_bound(manifest: Any) -> None:
+def test_c04_gate_request_is_v3_sparse_bound(manifest: Any) -> None:
     request = build_c04_gate_request(
         manifest=manifest,
         candidate_run_ordinal=1,
@@ -618,6 +621,12 @@ def test_c04_gate_request_is_v2_bound(manifest: Any) -> None:
     )
     result = check_candidate_execution_gate(request)
     assert result.allowed is True
+    assert request.guardrail_policy_version == V3_GUARDRAIL_POLICY_VERSION
+    assert request.guardrail_policy_hash == V3_GUARDRAIL_POLICY_HASH
+    assert request.evaluation_surface_identity == C04_EVALUATION_SURFACE_ID
+    assert request.forecast_horizons == (7, 14, 21)
+    assert request.complete_daily_rowset_authority is False
+    assert request.missing_day_zero_fill is False
     assert request.candidate_id == C04_CANDIDATE_ID
     assert request.global_actual_evaluation_count == 4
     assert request.candidate_actual_run_count == 0

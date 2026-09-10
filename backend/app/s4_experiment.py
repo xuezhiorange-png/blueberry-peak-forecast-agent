@@ -25,6 +25,11 @@ EXPERIMENT_PLAN_V2_HASH: Final[str] = (
     "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9"
 )
 V2_GUARDRAIL_POLICY_VERSION: Final[str] = "v0.3-s4-guardrail-policy-v2"
+V3_GUARDRAIL_POLICY_VERSION: Final[str] = "v0.3-s4-guardrail-policy-v3-sparse-horizon"
+V3_EVALUATION_SURFACE_ID: Final[str] = "V0_3_S4_SOURCE002_SPARSE_HORIZON_7_14_21_V1"
+V3_FORECAST_HORIZONS: Final[tuple[int, ...]] = (7, 14, 21)
+V3_COMPLETE_DAILY_ROWSET_AUTHORITY: Final[bool] = False
+V3_MISSING_DAY_ZERO_FILL: Final[bool] = False
 V2_HISTORICAL_DATA_ONLY: Final[bool] = True
 V2_WEATHER_REQUIRED: Final[bool] = False
 V2_PRODUCTION_PLAN_REQUIRED: Final[bool] = False
@@ -81,6 +86,11 @@ ExecutionGateStatus = Literal["ALLOWED", "BLOCKED"]
 
 LOWER_IS_BETTER_GUARDRAILS: Final[tuple[str, ...]] = (
     "daily_mae",
+    "cumulative_absolute_error_kg",
+    "single_day_peak_quantity_absolute_error_kg_q",
+    "sustained_7day_quantity_absolute_error_kg_q",
+)
+SPARSE_COMPLETE_WINDOW_METRICS: Final[tuple[str, ...]] = (
     "cumulative_absolute_error_kg",
     "single_day_peak_quantity_absolute_error_kg_q",
     "sustained_7day_quantity_absolute_error_kg_q",
@@ -295,12 +305,35 @@ class CandidateEligibilityResult:
     candidate_eligible: bool
     guardrails: tuple[GuardrailResult, ...]
     reason_codes: tuple[str, ...]
+    diagnostics: tuple[DiagnosticMetricDisposition, ...] = ()
 
     def __post_init__(self) -> None:
         if self.status not in ("PASS", "FAIL", "BLOCKED"):
             raise ValueError("unsupported candidate eligibility status")
         if self.candidate_eligible != (self.status == "PASS"):
             raise ValueError("eligibility must be true only for a PASS result")
+
+
+@dataclass(frozen=True, slots=True)
+class DiagnosticMetricDisposition:
+    """A metric retained as evidence but excluded from sparse selection."""
+
+    metric_name: str
+    status: EvidenceStatus
+    selection_blocking: bool
+    diagnostic_only: bool
+    reason_code: str
+
+    def __post_init__(self) -> None:
+        if not self.metric_name or not self.reason_code:
+            raise ValueError("metric_name and reason_code are required")
+        if self.status not in (
+            "COMPUTED",
+            "NOT_COMPUTABLE",
+            "MISSING",
+            "INSUFFICIENT_SAMPLE",
+        ):
+            raise ValueError("unsupported diagnostic metric status")
 
 
 def canonical_guardrail_policy() -> dict[str, object]:
@@ -500,8 +533,42 @@ def canonical_guardrail_policy_v2() -> dict[str, object]:
     return policy
 
 
+def canonical_guardrail_policy_v3_sparse() -> dict[str, object]:
+    """Return the immutable V3 sparse-horizon selection-policy preimage.
+
+    V1 and V2 remain replayable.  V3 inherits their metric and identity
+    contract, then explicitly narrows the selection surface so complete-window
+    metrics are diagnostic evidence rather than fabricated sparse guardrails.
+    """
+
+    policy = canonical_guardrail_policy_v2()
+    policy["guardrail_policy_version"] = V3_GUARDRAIL_POLICY_VERSION
+    policy["sparse_horizon_selection_overlay"] = {
+        "experiment_plan_version": EXPERIMENT_PLAN_V2_VERSION,
+        "experiment_plan_hash": EXPERIMENT_PLAN_V2_HASH,
+        "evaluation_surface_id": V3_EVALUATION_SURFACE_ID,
+        "forecast_horizons": list(V3_FORECAST_HORIZONS),
+        "complete_daily_rowset_authority": V3_COMPLETE_DAILY_ROWSET_AUTHORITY,
+        "missing_day_zero_fill": V3_MISSING_DAY_ZERO_FILL,
+        "primary_selection_metric": PRIMARY_SELECTION_METRIC,
+        "primary_direction": "LOWER_IS_BETTER",
+        "primary_required_relation": "CANDIDATE_STRICTLY_LESS_THAN_INCUMBENT",
+        "primary_tolerance": "ZERO",
+        "point_guardrail": "daily_mae",
+        "point_guardrail_relation": "CANDIDATE_LESS_THAN_OR_EQUAL_TO_INCUMBENT",
+        "point_guardrail_tolerance": "ZERO",
+        "diagnostic_only_complete_window_metrics": list(SPARSE_COMPLETE_WINDOW_METRICS),
+        "diagnostic_reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE",
+        "candidate_01_rerun_forbidden": V2_CANDIDATE_01_RERUN_FORBIDDEN,
+        "candidate_06_execution_eligible": V2_CANDIDATE_06_EXECUTION_ELIGIBLE,
+        "candidate_08_execution_eligible": V2_CANDIDATE_08_EXECUTION_ELIGIBLE,
+    }
+    return policy
+
+
 GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy())
 V2_GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy_v2())
+V3_GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy_v3_sparse())
 
 
 def _blocked_result(
@@ -743,7 +810,11 @@ def evaluate_coverage_quality_gate(evidence: CoverageQualityEvidence) -> Guardra
     return GuardrailResult(guardrail_id, "PASS", "S1_POLICY_SATISFIED")
 
 
-def _aggregate(results: tuple[GuardrailResult, ...]) -> CandidateEligibilityResult:
+def _aggregate(
+    results: tuple[GuardrailResult, ...],
+    *,
+    diagnostics: tuple[DiagnosticMetricDisposition, ...] = (),
+) -> CandidateEligibilityResult:
     blocked = tuple(result for result in results if result.status == "BLOCKED")
     failed = tuple(result for result in results if result.status == "FAIL")
     if blocked:
@@ -758,6 +829,7 @@ def _aggregate(results: tuple[GuardrailResult, ...]) -> CandidateEligibilityResu
         candidate_eligible=status == "PASS",
         guardrails=results,
         reason_codes=reason_codes,
+        diagnostics=diagnostics,
     )
 
 
@@ -817,6 +889,102 @@ def evaluate_candidate_guardrails(
     return _aggregate(tuple(results))
 
 
+def _sparse_surface_blocked(reason_code: str) -> CandidateEligibilityResult:
+    return _aggregate((_blocked_result("evaluation_surface", reason_code),))
+
+
+def evaluate_candidate_guardrails_v3_sparse(
+    *,
+    candidate_primary_metric: MetricObservation,
+    incumbent_primary_metric: MetricObservation,
+    candidate_daily_mae: MetricObservation,
+    incumbent_daily_mae: MetricObservation,
+    candidate_p80_coverage: MetricObservation,
+    incumbent_p80_coverage: MetricObservation,
+    candidate_p90_coverage: MetricObservation,
+    incumbent_p90_coverage: MetricObservation,
+    coverage_quality: CoverageQualityEvidence | None,
+    complete_window_metrics: Mapping[str, tuple[MetricObservation, MetricObservation]] | None,
+    evaluation_surface_identity: str | None,
+    forecast_horizons: Collection[int] | None,
+    complete_daily_rowset_authority: bool | None,
+    missing_day_zero_fill: bool | None,
+) -> CandidateEligibilityResult:
+    """Evaluate the frozen sparse 7/14/21 selection surface.
+
+    Only daily WAPE, daily MAE, quantile calibration, and coverage/data-quality
+    evidence can affect eligibility on this surface.  Complete-window metrics
+    remain explicit NOT_COMPUTABLE diagnostics and are never zero-filled.
+    """
+
+    if evaluation_surface_identity is None:
+        return _sparse_surface_blocked("EVALUATION_SURFACE_IDENTITY_MISSING")
+    if evaluation_surface_identity != V3_EVALUATION_SURFACE_ID:
+        return _sparse_surface_blocked("EVALUATION_SURFACE_IDENTITY_MISMATCH")
+    if forecast_horizons is None:
+        return _sparse_surface_blocked("FORECAST_HORIZONS_MISSING")
+    if tuple(forecast_horizons) != V3_FORECAST_HORIZONS:
+        return _sparse_surface_blocked("FORECAST_HORIZONS_MISMATCH")
+    if complete_daily_rowset_authority is None:
+        return _sparse_surface_blocked("COMPLETE_DAILY_ROWSET_AUTHORITY_MISSING")
+    if complete_daily_rowset_authority is not V3_COMPLETE_DAILY_ROWSET_AUTHORITY:
+        return _sparse_surface_blocked("SPARSE_SURFACE_REQUIRES_INCOMPLETE_DAILY_ROWSET")
+    if missing_day_zero_fill is None:
+        return _sparse_surface_blocked("MISSING_DAY_ZERO_FILL_POLICY_MISSING")
+    if missing_day_zero_fill is not V3_MISSING_DAY_ZERO_FILL:
+        return _sparse_surface_blocked("MISSING_DAY_ZERO_FILL_FORBIDDEN")
+
+    if complete_window_metrics is None:
+        return _sparse_surface_blocked("MISSING_COMPLETE_WINDOW_DIAGNOSTICS")
+    missing_diagnostics = set(SPARSE_COMPLETE_WINDOW_METRICS).difference(complete_window_metrics)
+    unexpected_diagnostics = set(complete_window_metrics).difference(SPARSE_COMPLETE_WINDOW_METRICS)
+    if missing_diagnostics:
+        return _sparse_surface_blocked("MISSING_COMPLETE_WINDOW_DIAGNOSTICS")
+    if unexpected_diagnostics:
+        return _sparse_surface_blocked("UNEXPECTED_COMPLETE_WINDOW_DIAGNOSTIC")
+
+    diagnostics: list[DiagnosticMetricDisposition] = []
+    for metric_name in SPARSE_COMPLETE_WINDOW_METRICS:
+        candidate, incumbent = complete_window_metrics[metric_name]
+        if (
+            candidate.metric_name != metric_name
+            or incumbent.metric_name != metric_name
+            or candidate.status != "NOT_COMPUTABLE"
+            or incumbent.status != "NOT_COMPUTABLE"
+        ):
+            return _sparse_surface_blocked("SPARSE_COMPLETE_WINDOW_METRIC_NOT_NOT_COMPUTABLE")
+        diagnostics.append(
+            DiagnosticMetricDisposition(
+                metric_name=metric_name,
+                status="NOT_COMPUTABLE",
+                selection_blocking=False,
+                diagnostic_only=True,
+                reason_code="COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE",
+            )
+        )
+
+    results = (
+        compare_primary_metric(candidate_primary_metric, incumbent_primary_metric),
+        compare_lower_is_better("daily_mae", candidate_daily_mae, incumbent_daily_mae),
+        compare_calibration_distance(
+            "P80_COVERAGE",
+            candidate_p80_coverage,
+            incumbent_p80_coverage,
+            P80_NOMINAL_QUANTILE,
+        ),
+        compare_calibration_distance(
+            "P90_COVERAGE",
+            candidate_p90_coverage,
+            incumbent_p90_coverage,
+            P90_NOMINAL_QUANTILE,
+        ),
+        _blocked_result("coverage_and_data_quality", "MISSING_REQUIRED_EVIDENCE")
+        if coverage_quality is None
+        else evaluate_coverage_quality_gate(coverage_quality),
+    )
+    return _aggregate(tuple(results), diagnostics=tuple(diagnostics))
+
+
 @dataclass(frozen=True, slots=True)
 class CandidateExecutionGateRequest:
     """All identity and budget inputs needed before a future candidate run."""
@@ -852,6 +1020,10 @@ class CandidateExecutionGateRequest:
     common_comparable_set_identity: str | None = None
     invocation_type: str = "NORMAL_RUN"
     prior_evaluation_ids: tuple[str, ...] = ()
+    evaluation_surface_identity: str | None = None
+    forecast_horizons: tuple[int, ...] | None = None
+    complete_daily_rowset_authority: bool | None = None
+    missing_day_zero_fill: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -916,6 +1088,10 @@ def _check_candidate_execution_gate_for_policy(
     expected_guardrail_policy_version: str,
     expected_guardrail_policy_hash: str,
     restricted_candidates: Mapping[str, str] | None = None,
+    expected_evaluation_surface_identity: str | None = None,
+    expected_forecast_horizons: tuple[int, ...] | None = None,
+    expected_complete_daily_rowset_authority: bool | None = None,
+    expected_missing_day_zero_fill: bool | None = None,
 ) -> CandidateExecutionGateResult:
     """Apply the common gate against one explicit immutable policy identity."""
 
@@ -928,6 +1104,28 @@ def _check_candidate_execution_gate_for_policy(
         reasons.append("GUARDRAIL_POLICY_VERSION_MISMATCH")
     if request.guardrail_policy_hash != expected_guardrail_policy_hash:
         reasons.append("GUARDRAIL_POLICY_HASH_MISMATCH")
+    if expected_evaluation_surface_identity is not None:
+        if request.evaluation_surface_identity is None:
+            reasons.append("EVALUATION_SURFACE_IDENTITY_MISSING")
+        elif request.evaluation_surface_identity != expected_evaluation_surface_identity:
+            reasons.append("EVALUATION_SURFACE_IDENTITY_MISMATCH")
+    if expected_forecast_horizons is not None:
+        if request.forecast_horizons is None:
+            reasons.append("FORECAST_HORIZONS_MISSING")
+        elif request.forecast_horizons != expected_forecast_horizons:
+            reasons.append("FORECAST_HORIZONS_MISMATCH")
+    if expected_complete_daily_rowset_authority is not None:
+        if request.complete_daily_rowset_authority is None:
+            reasons.append("COMPLETE_DAILY_ROWSET_AUTHORITY_MISSING")
+        elif (
+            request.complete_daily_rowset_authority is not expected_complete_daily_rowset_authority
+        ):
+            reasons.append("COMPLETE_DAILY_ROWSET_AUTHORITY_MISMATCH")
+    if expected_missing_day_zero_fill is not None:
+        if request.missing_day_zero_fill is None:
+            reasons.append("MISSING_DAY_ZERO_FILL_POLICY_MISSING")
+        elif request.missing_day_zero_fill is not expected_missing_day_zero_fill:
+            reasons.append("MISSING_DAY_ZERO_FILL_POLICY_MISMATCH")
     if request.candidate_registry != FROZEN_CANDIDATE_REGISTRY:
         reasons.append("CANDIDATE_REGISTRY_MISMATCH")
     registration = next(
@@ -1057,11 +1255,36 @@ def check_candidate_execution_gate_v2(
     )
 
 
+def check_candidate_execution_gate_v3_sparse(
+    request: CandidateExecutionGateRequest,
+) -> CandidateExecutionGateResult:
+    """Evaluate a request against the V3 sparse historical-only authority."""
+
+    return _check_candidate_execution_gate_for_policy(
+        request,
+        expected_experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION,
+        expected_experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH,
+        expected_guardrail_policy_version=V3_GUARDRAIL_POLICY_VERSION,
+        expected_guardrail_policy_hash=V3_GUARDRAIL_POLICY_HASH,
+        expected_evaluation_surface_identity=V3_EVALUATION_SURFACE_ID,
+        expected_forecast_horizons=V3_FORECAST_HORIZONS,
+        expected_complete_daily_rowset_authority=V3_COMPLETE_DAILY_ROWSET_AUTHORITY,
+        expected_missing_day_zero_fill=V3_MISSING_DAY_ZERO_FILL,
+        restricted_candidates={
+            "01_parameter_calibration": "CANDIDATE_01_RERUN_FORBIDDEN",
+            "06_weather_response": "CURRENT_WEATHER_AUTHORITY_REQUIRED",
+            "08_residual_feature": "V3_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED",
+        },
+    )
+
+
 def check_candidate_execution_gate(
     request: CandidateExecutionGateRequest,
 ) -> CandidateExecutionGateResult:
     """Dispatch explicitly versioned requests without changing the V1 API."""
 
+    if request.guardrail_policy_version == V3_GUARDRAIL_POLICY_VERSION:
+        return check_candidate_execution_gate_v3_sparse(request)
     if (
         request.experiment_plan_version == EXPERIMENT_PLAN_V2_VERSION
         or request.guardrail_policy_version == V2_GUARDRAIL_POLICY_VERSION
@@ -1076,6 +1299,7 @@ __all__ = [
     "CandidateExecutionGateResult",
     "CandidateRegistration",
     "CoverageQualityEvidence",
+    "DiagnosticMetricDisposition",
     "BreakdownCellEvidence",
     "BreakdownAxisEvidence",
     "EvidenceStatus",
@@ -1105,6 +1329,13 @@ __all__ = [
     "V2_TEST_REMAINS_SEALED",
     "V2_WALL_CLOCK_WAIT_REQUIRED",
     "V2_WEATHER_REQUIRED",
+    "V3_COMPLETE_DAILY_ROWSET_AUTHORITY",
+    "V3_EVALUATION_SURFACE_ID",
+    "V3_FORECAST_HORIZONS",
+    "V3_GUARDRAIL_POLICY_HASH",
+    "V3_GUARDRAIL_POLICY_VERSION",
+    "V3_MISSING_DAY_ZERO_FILL",
+    "SPARSE_COMPLETE_WINDOW_METRICS",
     "REQUIRED_BREAKDOWN_AXES",
     "REQUIRED_BREAKDOWN_AXIS_COUNT",
     "RETRY_INVOCATION_TYPES",
@@ -1113,12 +1344,15 @@ __all__ = [
     "check_candidate_execution_gate",
     "check_candidate_execution_gate_v1",
     "check_candidate_execution_gate_v2",
+    "check_candidate_execution_gate_v3_sparse",
     "canonical_guardrail_policy",
     "canonical_guardrail_policy_v2",
+    "canonical_guardrail_policy_v3_sparse",
     "compare_calibration_distance",
     "compare_lower_is_better",
     "compare_primary_metric",
     "evaluate_candidate_guardrails",
+    "evaluate_candidate_guardrails_v3_sparse",
     "evaluate_coverage_quality_gate",
     "validate_s4_invocation_semantics",
 ]
