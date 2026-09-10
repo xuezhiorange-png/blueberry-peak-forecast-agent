@@ -242,6 +242,10 @@ class BreakdownCellEvidence:
     cell_id: str
     comparable_rows: int
     metric_status: EvidenceStatus = "COMPUTED"
+    # Raw metric/breakdown reason from the computation layer.  It is optional
+    # for in-memory policy-only fixtures, but the canonical persistence gate
+    # rejects an omitted value rather than inventing ``NONE``.
+    reason_code: str | None = None
 
     def __post_init__(self) -> None:
         if not self.cell_id:
@@ -255,6 +259,10 @@ class BreakdownCellEvidence:
             "INSUFFICIENT_SAMPLE",
         ):
             raise ValueError("unsupported breakdown metric status")
+        if self.reason_code is not None and (
+            not isinstance(self.reason_code, str) or not self.reason_code
+        ):
+            raise ValueError("reason_code must be a non-empty string when provided")
 
 
 @dataclass(frozen=True, slots=True)
@@ -426,6 +434,10 @@ def build_coverage_quality_evidence_payload(
                 raise SelectionEvidenceProvenanceError(
                     f"coverage_quality_evidence:duplicate_cell:{axis_name}:{cell.cell_id}"
                 )
+            if not isinstance(cell.reason_code, str) or not cell.reason_code:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:reason_code:{axis_name}:{cell.cell_id}"
+                )
             seen_cell_ids.add(cell.cell_id)
             disposition = breakdown_reporting_disposition(cell)
             cells_payload.append(
@@ -434,6 +446,7 @@ def build_coverage_quality_evidence_payload(
                     "cell_id": cell.cell_id,
                     "comparable_rows": cell.comparable_rows,
                     "metric_status": cell.metric_status,
+                    "reason_code": cell.reason_code,
                     "reporting_status": disposition.reporting_status,
                     "reporting_reason": disposition.reporting_reason,
                     "selection_blocking": disposition.selection_blocking,
@@ -524,6 +537,7 @@ def parse_coverage_quality_evidence_payload(
             cell_id = cell_payload.get("cell_id")
             comparable_rows = cell_payload.get("comparable_rows")
             metric_status = cell_payload.get("metric_status")
+            reason_code = cell_payload.get("reason_code")
             if not isinstance(cell_id, str) or not cell_id:
                 raise SelectionEvidenceProvenanceError(
                     f"coverage_quality_evidence:cell_id:{axis_name}"
@@ -540,11 +554,16 @@ def parse_coverage_quality_evidence_payload(
                 raise SelectionEvidenceProvenanceError(
                     f"coverage_quality_evidence:metric_status:{axis_name}:{cell_id}"
                 )
+            if not isinstance(reason_code, str) or not reason_code:
+                raise SelectionEvidenceProvenanceError(
+                    f"coverage_quality_evidence:reason_code:{axis_name}:{cell_id}"
+                )
             try:
                 cell = BreakdownCellEvidence(
                     cell_id=cell_id,
                     comparable_rows=comparable_rows,
                     metric_status=cast(EvidenceStatus, metric_status),
+                    reason_code=reason_code,
                 )
             except (TypeError, ValueError) as exc:
                 raise SelectionEvidenceProvenanceError(
