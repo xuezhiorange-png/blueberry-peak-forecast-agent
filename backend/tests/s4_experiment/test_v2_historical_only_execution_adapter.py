@@ -260,7 +260,7 @@ def test_candidate_06_v2_execution_blocked() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_CANDIDATE_06_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_06_execution_eligible is False
-    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    assert readiness.next_executable_candidate == V2_CANDIDATE_03_ID
     assert V2_CANDIDATE_06_ID in V2_CANDIDATE_AUDIT_ORDER
     item = _audit_by_id()[V2_CANDIDATE_06_ID]
     assert item.current_v0_3_execution_eligible is False
@@ -271,7 +271,7 @@ def test_candidate_08_v2_execution_blocked() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_CANDIDATE_08_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_08_execution_eligible is False
-    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    assert readiness.next_executable_candidate == V2_CANDIDATE_03_ID
     assert V2_CANDIDATE_08_ID in V2_CANDIDATE_AUDIT_ORDER
     item = _audit_by_id()[V2_CANDIDATE_08_ID]
     assert item.current_v0_3_execution_eligible is False
@@ -394,31 +394,44 @@ def test_candidate_parameter_must_reach_prediction_path() -> None:
     assert audit[V2_CANDIDATE_04_ID].parameter_change_can_change_prediction is True
     assert audit[V2_CANDIDATE_04_ID].v2_historical_only_scoring_path_exists is True
     assert audit[V2_CANDIDATE_04_ID].historical_only_execution_compatible is True
+    assert audit[V2_CANDIDATE_04_ID].current_v0_3_execution_eligible is False
+    assert audit[V2_CANDIDATE_04_ID].currently_runnable_under_v2 is False
+    assert audit[V2_CANDIDATE_04_ID].currently_runnable_under_v4 is False
+    assert audit[V2_CANDIDATE_04_ID].reason_code == ("C04_EXHAUSTED_EVIDENCE_INSUFFICIENT")
 
 
 def test_c03_frozen_historical_eligibility_is_distinct_from_legacy_path() -> None:
     item = _audit_by_id()["03_phenology_offset"]
-    assert item.uses_weather is True
+    assert item.uses_weather is False
+    assert item.uses_production_plan is False
+    assert item.uses_task8 is False
+    assert item.uses_task9 is False
     assert item.historical_only_input_compatible is True
     assert item.current_v0_3_execution_eligible is True
-    assert item.historical_only_execution_compatible is False
+    assert item.historical_only_execution_compatible is True
     assert item.currently_runnable_under_v2 is False
+    assert item.currently_runnable_under_v4 is True
+    assert item.v2_historical_only_scoring_path_exists is True
 
 
-def test_candidate_using_plan_is_historical_only_ineligible() -> None:
+def test_c03_historical_only_path_has_no_forward_looking_dependencies() -> None:
     item = _audit_by_id()["03_phenology_offset"]
-    assert item.uses_production_plan is True
-    assert item.historical_only_execution_compatible is False
+    assert item.uses_other_forward_looking_authority is False
+    assert item.actual_execution_function == (
+        "backend.app.s4_candidate_03_historical_phenology.C03HistoricalPhenologyScorer.predict_rows",
+    )
+    assert item.historical_only_execution_compatible is True
 
 
-def test_c03_parameter_effect_path_is_proven_or_fail_closed() -> None:
+def test_c03_parameter_effect_path_is_proven() -> None:
     item = _audit_by_id()[V2_CANDIDATE_03_ID]
     assert item.parameter_or_feature_path == ("offset.maximum_abs_shift_days",)
     assert item.parameter_reaches_prediction_math is True
-    assert item.v2_historical_only_scoring_path_exists is False
+    assert item.v2_historical_only_scoring_path_exists is True
     assert item.current_v0_3_execution_eligible is True
     assert item.currently_runnable_under_v2 is False
-    assert item.reason_code == "C03_NO_SOURCE_002_ONLY_SCORING_PATH"
+    assert item.currently_runnable_under_v4 is True
+    assert item.reason_code == "C03_HISTORICAL_ONLY_SCORER_READY"
 
 
 def test_preflight_creates_no_started_event(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -516,13 +529,13 @@ def test_frozen_v2_eligibility_is_preserved_independently_of_runnability() -> No
     }
 
 
-def test_next_executable_candidate_is_c04() -> None:
+def test_next_executable_candidate_is_c03() -> None:
     readiness = build_v2_historical_only_readiness()
-    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    assert readiness.next_executable_candidate == V2_CANDIDATE_03_ID
     runnable = [
-        item.candidate_id for item in readiness.candidate_audit if item.currently_runnable_under_v2
+        item.candidate_id for item in readiness.candidate_audit if item.currently_runnable_under_v4
     ]
-    assert runnable == [V2_CANDIDATE_04_ID]
+    assert runnable == [V2_CANDIDATE_03_ID]
 
 
 def _baseline_row(index: int, quantity: str) -> FarmTotalDatasetRow:
