@@ -389,14 +389,14 @@
     "parameter_semantic": "TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER",
     "parameter_unit": "RATIO",
     "parameter_values": [
-      "5.265539",
-      "2.165000",
-      "1.784578",
-      "1.128703"
+      "416.621234",
+      "24.896716",
+      "11.302801",
+      "3.911976"
     ],
     "parameter_value_count": 4,
     "parameter_values_unique_positive_finite": true,
-    "parameter_derivation_policy": "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_MEDIAN_AMPLITUDE_RATIO_V1",
+    "parameter_derivation_policy": "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2",
     "validation_used_for_parameter_derivation": false,
     "test_used": false,
     "historical_only_scoring_path_exists": true,
@@ -429,5 +429,21 @@
     "merge_authorized": false,
     "no_step_implies_the_next": true,
     "final_stop_gate": "COORDINATOR_V0_3_S4_C04_HISTORICAL_SCORER_READINESS_REVIEW"
+  },
+  "C04_PARAMETER_DERIVATION_CORRECTION_R2": {
+    "task_id": "V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2",
+    "fix": "C04_PARAMETER_DERIVATION",
+    "old_algorithm": "FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS",
+    "new_algorithm": "EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN",
+    "parameter_derivation_policy": "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2",
+    "parameter_values": ["416.621234", "24.896716", "11.302801", "3.911976"],
+    "parameter_manifest_hash": "9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17",
+    "code_commit_binding": "b2def154e9851d90353b24ce8dddd16467e19539",
+    "validation_used_for_derivation": false,
+    "test_used": false,
+    "validation_execution": false,
+    "budget_unchanged": true,
+    "scorer_path": "KEEP",
+    "v2_gate": "KEEP"
   }
 }

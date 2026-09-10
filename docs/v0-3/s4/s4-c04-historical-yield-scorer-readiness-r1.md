@@ -41,16 +41,17 @@ BASELINE_MULTIPLIER=1.0
 ```
 
 Exactly four values are derived from SOURCE-002 TRAIN. Four chronological inner
-folds use earlier TRAIN dates for fitting and the immediately following TRAIN
-dates as holdout. Each fold computes the robust median of the observed
-holdout-to-time-scaled-fit amplitude ratio. The resulting fold medians are
-fixed in ordinal order:
+folds fit the same historical base model on earlier TRAIN dates, then predict
+the later TRAIN target dates at exactly +7, +14, and +21 days. Each fold
+computes the robust median of `actual_harvest_quantity_kg / base_prediction`
+over those comparable target rows. The resulting fold medians are fixed in
+ordinal order:
 
 ```text
-RUN_1=5.265539
-RUN_2=2.165000
-RUN_3=1.784578
-RUN_4=1.128703
+RUN_1=416.621234
+RUN_2=24.896716
+RUN_3=11.302801
+RUN_4=3.911976
 PARAMETER_VALUE_COUNT=4
 VALUES_UNIQUE=true
 VALUES_POSITIVE=true
@@ -131,8 +132,8 @@ No guardrail threshold or metric formula was weakened.
 
 ```text
 C04_PARAMETER_MANIFEST_VERSION=v0.3-s4-c04-yield-parameter-manifest-v1
-C04_PARAMETER_MANIFEST_HASH=62b9c5a13c34caa95c6e89b3d9c169fb867dee8496590033e723661d6092eb67
-C04_PARAMETER_MANIFEST_CODE_COMMIT=7e8491b3574d31baaaf2277661d4a726b7cfdf48
+C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
+C04_PARAMETER_MANIFEST_CODE_COMMIT=b2def154e9851d90353b24ce8dddd16467e19539
 C04_PARAMETER_MANIFEST_FROZEN=true
 C04_CURRENT_V0_3_EXECUTION_ELIGIBLE=true
 C04_CURRENTLY_RUNNABLE_UNDER_V2=true
@@ -170,3 +171,40 @@ inputs, exact horizons, base replay, prediction identity change, V2 gate
 binding, no STARTED event, unchanged budget, and the sealed TEST boundary.
 The existing V2 S4 adapter suite was updated only to reflect the now-proven
 C04 path; C01 remains forbidden and C06/C08 remain V2-ineligible.
+
+## R2 parameter-derivation correction
+
+The original R1 derivation used `fit_total / fit_days * holdout_days` as the
+baseline. That time-scaled total folds seasonal ramp-up into the amplitude and
+is superseded. The current R2 derivation fits an earlier TRAIN base model,
+predicts later TRAIN rows at the frozen 7/14/21-day horizons, and takes the
+median of each comparable row's actual-to-base-prediction ratio. It remains
+TRAIN-only and deterministic; VALIDATION and TEST are not read.
+
+```text
+TASK_ID=V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2
+OLD_ALGORITHM=FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS
+NEW_ALGORITHM=EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2
+C04_PARAMETER_VALUES=416.621234,24.896716,11.302801,3.911976
+C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
+C04_PARAMETER_MANIFEST_CODE_COMMIT=b2def154e9851d90353b24ce8dddd16467e19539
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+C04_SCORER_PATH=KEEP
+V2_GATE=KEEP
+VALIDATION_EXECUTION=false
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+EFFECTIVE_CONSUMED=4
+REMAINING=28
+BUDGET_DELTA=0
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+```
+
+The prior values and manifest remain available in the repository history and
+are explicitly superseded by this correction. The corrected four run values
+are not an execution authorization and no STARTED event or validation score
+was created.

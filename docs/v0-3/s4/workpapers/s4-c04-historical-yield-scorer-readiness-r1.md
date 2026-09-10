@@ -24,19 +24,21 @@ TEST_REMAINS_SEALED=true
 ```
 
 The C04 derivation function accepts only the TRAIN tuple. It partitions the
-ordered TRAIN dates into four expanding chronological fit/holdout folds. For
-each group present in both portions it compares the holdout total with the
-fit-total rate scaled by the respective number of observed days; the fold value
-is the median of those ratios. No VALIDATION outcome, TEST byte, weather,
-production-plan input, Task8, or Task9 output enters the derivation.
+ordered TRAIN dates into four expanding chronological folds. For each fold it
+fits the same historical base model on earlier TRAIN dates, predicts later
+TRAIN target rows at exactly 7, 14, and 21 days after the fit cutoff, and
+computes `actual_harvest_quantity_kg / base_prediction` for each comparable
+row. The fold value is the median of those ratios. No VALIDATION outcome, TEST
+byte, weather, production-plan input, Task8, or Task9 output enters the
+derivation.
 
 Observed fold values:
 
 ```text
-FOLD_1=5.265539
-FOLD_2=2.165000
-FOLD_3=1.784578
-FOLD_4=1.128703
+FOLD_1=416.621234
+FOLD_2=24.896716
+FOLD_3=11.302801
+FOLD_4=3.911976
 ```
 
 They are four unique positive finite Decimal values and replay deterministically
@@ -90,15 +92,15 @@ INCUMBENT_CONFIG_HASH=3571477d5822f57cd2c424620915560e22481f48983b397a1f1b8934e1
 ```
 
 The manifest and run hashes are deterministic under canonical JSON rules. The
-manifest is bound to implementation commit
-`7e8491b3574d31baaaf2277661d4a726b7cfdf48`:
+corrected manifest is bound to implementation commit
+`b2def154e9851d90353b24ce8dddd16467e19539`:
 
 ```text
-C04_PARAMETER_MANIFEST_HASH=62b9c5a13c34caa95c6e89b3d9c169fb867dee8496590033e723661d6092eb67
-RUN_1_PARAMETER_MANIFEST_HASH=41f6e9ccd4494d19bc1356d10cb39d35a941e1ebd61a4944bf589139f5a79b6d
-RUN_2_PARAMETER_MANIFEST_HASH=60412655fe3a2ffa716a99fe8d2866daf85fd65a03f538ef1868cd169cb385f4
-RUN_3_PARAMETER_MANIFEST_HASH=eb6d3f2b37d74bbf3ce223b4e7edcebf3ef497e9918105653345cbab3b51618d
-RUN_4_PARAMETER_MANIFEST_HASH=fda6718d5f6e0974b7a045b06eea1f9102d98fafcc63fdc2934fb1ea009f106e
+C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
+RUN_1_PARAMETER_MANIFEST_HASH=1af87375617e3336f289827f730c696011bbc95788c6b03bbf46e0decf7320f9
+RUN_2_PARAMETER_MANIFEST_HASH=9d1b76216ac1633d9d1ce17710935fa7ce20c7e5f35263ce0db5a4c5165a595a
+RUN_3_PARAMETER_MANIFEST_HASH=85d381af339f897a36a30c18685c943fc22666113655fc3abe3338664da2364e
+RUN_4_PARAMETER_MANIFEST_HASH=9bc83a2d4a2d3ea35c3856e9603de3bb667a79a686369c86f06944cd49f112c3
 ```
 
 ## Guardrail and budget disposition
@@ -145,3 +147,25 @@ NEXT_EXECUTABLE_CANDIDATE=04_yield_parameter
 “Executable” here means the first candidate with a real historical-only scorer
 path for a separately authorized future run. No C04 execution occurred in this
 workpaper's task.
+
+## R2 correction record
+
+The R1 time-scaled-fit derivation is retained as superseded provenance, not as
+the current parameter authority. R2 uses earlier-TRAIN fitting and later-TRAIN
+base-model predictions at the frozen 7/14/21 horizons, followed by the median
+actual-to-base-prediction ratio. The scorer path, V2 gate, and execution
+boundary are unchanged.
+
+```text
+TASK_ID=V0_3_S4_C04_PARAMETER_DERIVATION_CORRECTION_R2
+FIX=C04_PARAMETER_DERIVATION
+OLD_ALGORITHM=FIT_TOTAL_DIVIDED_BY_FIT_DAYS_TIMES_HOLDOUT_DAYS
+NEW_ALGORITHM=EARLIER_TRAIN_FIT_SAME_BASE_MODEL_PREDICTS_LATER_TRAIN_7_14_21_ACTUAL_OVER_BASE_PREDICTION_MEDIAN
+C04_PARAMETER_DERIVATION_POLICY=TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2
+C04_PARAMETER_VALUES=416.621234,24.896716,11.302801,3.911976
+C04_PARAMETER_MANIFEST_HASH=9cf648dfae3aab5f291503ad8ddf3979c2ad452f082c0ec2c7ff10f3a9f04c17
+VALIDATION_USED_FOR_PARAMETER_DERIVATION=false
+TEST_USED=false
+VALIDATION_EXECUTION=false
+BUDGET_DELTA=0
+```
