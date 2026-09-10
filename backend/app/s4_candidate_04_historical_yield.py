@@ -16,7 +16,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Final
@@ -57,7 +57,7 @@ C04_PARAMETER_PATH: Final[str] = "yield_amplitude_multiplier"
 C04_ALLOWED_PARAMETER_PATHS: Final[tuple[str, ...]] = (C04_PARAMETER_PATH,)
 C04_BASELINE_MULTIPLIER: Final[Decimal] = Decimal("1.0")
 C04_PARAMETER_DERIVATION_POLICY: Final[str] = (
-    "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_MEDIAN_AMPLITUDE_RATIO_V1"
+    "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2"
 )
 C04_RANDOM_SEED_POLICY: Final[str] = "FIXED_AND_RECORDED_PER_RUN"
 C04_RANDOM_SEED: Final[int] = 20260624
@@ -263,6 +263,8 @@ class C04InnerFoldCalibration:
     fit_row_count: int
     holdout_row_count: int
     comparable_group_count: int
+    comparable_prediction_row_count: int
+    target_horizon_days: tuple[int, ...]
     amplitude_ratio: Decimal
 
     def payload(self) -> dict[str, object]:
@@ -275,6 +277,8 @@ class C04InnerFoldCalibration:
             "fit_row_count": self.fit_row_count,
             "holdout_row_count": self.holdout_row_count,
             "comparable_group_count": self.comparable_group_count,
+            "comparable_prediction_row_count": self.comparable_prediction_row_count,
+            "target_horizon_days": self.target_horizon_days,
             "amplitude_ratio": self.amplitude_ratio,
         }
 
@@ -316,46 +320,84 @@ def _fold_dates(train_rows: tuple[MaterializableRow, ...]) -> tuple[FoldDates, .
     return tuple(result)
 
 
+def _default_incumbent_config() -> MaturityCurveConfig:
+    config_path = Path(__file__).resolve().parents[2] / C04_INCUMBENT_CONFIG_PATH
+    if not config_path.is_file():
+        raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_UNAVAILABLE")
+    config = load_maturity_curve_config(config_path)
+    _validate_incumbent_config(config_path, config)
+    return config
+
+
+def _fold_target_dates(
+    *,
+    cutoff_date: date,
+    available_dates: set[date],
+) -> tuple[date, ...]:
+    target_dates = tuple(cutoff_date + timedelta(days=horizon) for horizon in C04_FORECAST_HORIZONS)
+    if not set(target_dates).issubset(available_dates):
+        raise C04HistoricalScorerError("C04_TRAIN_CALIBRATION_HORIZONS_UNAVAILABLE")
+    return target_dates
+
+
+def _try_base_prediction(
+    model: _C04TrainingModel,
+    row: MaterializableRow,
+) -> Decimal | None:
+    key = _group_key(row)
+    anchor = model.group_anchors.get(key) or model.variety_anchors.get(row.variety)
+    curve = model.group_curves.get(key) or model.variety_curves.get(row.variety)
+    base_total = model.group_totals.get(key) or model.variety_total_medians.get(row.variety)
+    if anchor is None or curve is None or base_total is None:
+        return None
+    relative_day = (row.harvest_business_date - anchor).days
+    if relative_day < model.support_days[0] or relative_day > model.support_days[-1]:
+        return None
+    curve_share = _q(curve[relative_day - model.support_days[0]])
+    base_prediction = _q(base_total * curve_share)
+    return base_prediction if base_prediction > 0 else None
+
+
 def _derive_fold_ratio(
     fit_rows: tuple[MaterializableRow, ...],
     holdout_rows: tuple[MaterializableRow, ...],
-) -> tuple[Decimal, int]:
-    fit_totals: dict[GroupKey, Decimal] = defaultdict(lambda: Decimal("0"))
-    holdout_totals: dict[GroupKey, Decimal] = defaultdict(lambda: Decimal("0"))
-    fit_dates: dict[GroupKey, set[date]] = defaultdict(set)
-    holdout_dates: dict[GroupKey, set[date]] = defaultdict(set)
-    for row in fit_rows:
-        key = _group_key(row)
-        fit_totals[key] += row.actual_harvest_quantity_kg
-        fit_dates[key].add(row.harvest_business_date)
-    for row in holdout_rows:
-        key = _group_key(row)
-        holdout_totals[key] += row.actual_harvest_quantity_kg
-        holdout_dates[key].add(row.harvest_business_date)
+    *,
+    config: MaturityCurveConfig,
+) -> tuple[Decimal, int, int, tuple[int, ...]]:
+    """Calibrate from actual/base-model predictions at frozen TRAIN horizons."""
 
-    ratios: list[Decimal] = []
-    for key in sorted(holdout_totals):
-        fit_total = fit_totals.get(key, Decimal("0"))
-        fit_day_count = len(fit_dates.get(key, set()))
-        holdout_day_count = len(holdout_dates[key])
-        if fit_total <= 0 or fit_day_count <= 0 or holdout_day_count <= 0:
-            continue
-        base_total = fit_total * Decimal(holdout_day_count) / Decimal(fit_day_count)
-        if base_total <= 0:
-            continue
-        observed_total = holdout_totals[key]
-        if observed_total < 0:
-            raise C04HistoricalScorerError("C04_NEGATIVE_TRAIN_QUANTITY")
-        ratios.append(observed_total / base_total)
-    if not ratios:
+    if not holdout_rows:
         raise C04HistoricalScorerError("C04_TRAIN_CALIBRATION_INSUFFICIENT")
-    return _median(ratios), len(ratios)
+    cutoff_date = max(row.harvest_business_date for row in fit_rows)
+    model = _build_training_model(fit_rows, holdout_rows, config)
+    ratios: list[Decimal] = []
+    comparable_groups: set[GroupKey] = set()
+    comparable_horizons: set[int] = set()
+    for row in sorted(holdout_rows, key=_row_key):
+        horizon_days = (row.harvest_business_date - cutoff_date).days
+        try:
+            validate_v2_forecast_horizon(horizon_days)
+        except ValueError as exc:
+            raise C04HistoricalScorerError("C04_HORIZON_NOT_IN_FROZEN_SET") from exc
+        base_prediction = _try_base_prediction(model, row)
+        if base_prediction is None:
+            continue
+        if row.actual_harvest_quantity_kg < 0:
+            raise C04HistoricalScorerError("C04_NEGATIVE_TRAIN_QUANTITY")
+        ratios.append(_q(row.actual_harvest_quantity_kg / base_prediction))
+        comparable_groups.add(_group_key(row))
+        comparable_horizons.add(horizon_days)
+    if not ratios or comparable_horizons != set(C04_FORECAST_HORIZONS):
+        raise C04HistoricalScorerError("C04_TRAIN_CALIBRATION_INSUFFICIENT")
+    return _median(ratios), len(comparable_groups), len(ratios), tuple(sorted(comparable_horizons))
 
 
 def derive_c04_parameter_calibration(
     train_rows: tuple[MaterializableRow, ...],
+    *,
+    config: MaturityCurveConfig | None = None,
 ) -> C04ParameterDerivation:
-    """Derive exactly four positive multipliers from chronological TRAIN folds."""
+    """Derive four multipliers from TRAIN-only base predictions at 7/14/21."""
 
     if not train_rows or any(
         type(row.actual_harvest_quantity_kg) is not Decimal for row in train_rows
@@ -363,26 +405,37 @@ def derive_c04_parameter_calibration(
         raise C04HistoricalScorerError("C04_TRAIN_INPUT_INVALID")
     ordered = tuple(sorted(train_rows, key=_row_key))
     fold_specs = _fold_dates(ordered)
+    calibration_config = config or _default_incumbent_config()
+    _validate_incumbent_config_values(calibration_config)
+    available_dates = {row.harvest_business_date for row in ordered}
     folds: list[C04InnerFoldCalibration] = []
     values: list[Decimal] = []
-    for ordinal, (all_dates, fit_dates) in enumerate(fold_specs, start=1):
+    for ordinal, (_all_dates, fit_dates) in enumerate(fold_specs, start=1):
         fit_date_set = set(fit_dates)
-        holdout_date_set = set(all_dates).difference(fit_date_set)
-        fit_rows = tuple(row for row in ordered if row.harvest_business_date in fit_date_set)
-        holdout_rows = tuple(
-            row for row in ordered if row.harvest_business_date in holdout_date_set
+        target_dates = _fold_target_dates(
+            cutoff_date=fit_dates[-1],
+            available_dates=available_dates,
         )
-        ratio, comparable_groups = _derive_fold_ratio(fit_rows, holdout_rows)
+        target_date_set = set(target_dates)
+        fit_rows = tuple(row for row in ordered if row.harvest_business_date in fit_date_set)
+        holdout_rows = tuple(row for row in ordered if row.harvest_business_date in target_date_set)
+        ratio, comparable_groups, comparable_rows, comparable_horizons = _derive_fold_ratio(
+            fit_rows,
+            holdout_rows,
+            config=calibration_config,
+        )
         folds.append(
             C04InnerFoldCalibration(
                 fold_ordinal=ordinal,
                 fit_start_date=fit_dates[0],
                 fit_end_date=fit_dates[-1],
-                holdout_start_date=min(holdout_date_set),
-                holdout_end_date=max(holdout_date_set),
+                holdout_start_date=min(target_date_set),
+                holdout_end_date=max(target_date_set),
                 fit_row_count=len(fit_rows),
                 holdout_row_count=len(holdout_rows),
                 comparable_group_count=comparable_groups,
+                comparable_prediction_row_count=comparable_rows,
+                target_horizon_days=comparable_horizons,
                 amplitude_ratio=ratio,
             )
         )
@@ -637,16 +690,17 @@ class C04HistoricalYieldScorer:
         for row in sorted(target_rows, key=_row_key):
             horizon_days = (row.harvest_business_date - self.forecast_cutoff_at).days
             key = _group_key(row)
+            base_prediction = _try_base_prediction(model, row)
             anchor = model.group_anchors.get(key) or model.variety_anchors.get(row.variety)
             curve = model.group_curves.get(key) or model.variety_curves.get(row.variety)
             base_total = model.group_totals.get(key) or model.variety_total_medians.get(row.variety)
-            if anchor is None or curve is None or base_total is None:
+            if anchor is None or curve is None or base_total is None or base_prediction is None:
                 raise C04HistoricalScorerError("C04_TRAIN_SUPPORT_UNAVAILABLE")
             relative_day = (row.harvest_business_date - anchor).days
             if relative_day < model.support_days[0] or relative_day > model.support_days[-1]:
                 raise C04HistoricalScorerError("C04_TRAIN_SUPPORT_UNAVAILABLE")
             curve_share = _q(curve[relative_day - model.support_days[0]])
-            base_p50 = _q(base_total * curve_share)
+            base_p50 = base_prediction
             candidate_p50 = _q(base_total * multiplier * curve_share)
             candidate_p80 = max(_q(candidate_p50 * p80_multiplier), candidate_p50)
             candidate_p90 = max(_q(candidate_p50 * p90_multiplier), candidate_p80, candidate_p50)
@@ -947,7 +1001,7 @@ def build_c04_parameter_manifest(
         raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_UNAVAILABLE")
     config = load_maturity_curve_config(config_path)
     _validate_incumbent_config(config_path, config)
-    derivation = derive_c04_parameter_calibration(authority.train_rows)
+    derivation = derive_c04_parameter_calibration(authority.train_rows, config=config)
     incumbent_snapshot_value = _decimalize(config.snapshot)
     if not isinstance(incumbent_snapshot_value, Mapping):
         raise C04HistoricalScorerError("C04_INCUMBENT_CONFIG_SNAPSHOT_INVALID")
