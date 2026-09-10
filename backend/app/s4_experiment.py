@@ -26,10 +26,12 @@ EXPERIMENT_PLAN_V2_HASH: Final[str] = (
 )
 V2_GUARDRAIL_POLICY_VERSION: Final[str] = "v0.3-s4-guardrail-policy-v2"
 V3_GUARDRAIL_POLICY_VERSION: Final[str] = "v0.3-s4-guardrail-policy-v3-sparse-horizon"
+V4_GUARDRAIL_POLICY_VERSION: Final[str] = "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor"
 V3_EVALUATION_SURFACE_ID: Final[str] = "V0_3_S4_SOURCE002_SPARSE_HORIZON_7_14_21_V1"
 V3_FORECAST_HORIZONS: Final[tuple[int, ...]] = (7, 14, 21)
 V3_COMPLETE_DAILY_ROWSET_AUTHORITY: Final[bool] = False
 V3_MISSING_DAY_ZERO_FILL: Final[bool] = False
+V4_PREDECESSOR_POLICY_VERSION: Final[str] = V3_GUARDRAIL_POLICY_VERSION
 V2_HISTORICAL_DATA_ONLY: Final[bool] = True
 V2_WEATHER_REQUIRED: Final[bool] = False
 V2_PRODUCTION_PLAN_REQUIRED: Final[bool] = False
@@ -253,6 +255,43 @@ class BreakdownCellEvidence:
             "INSUFFICIENT_SAMPLE",
         ):
             raise ValueError("unsupported breakdown metric status")
+
+
+@dataclass(frozen=True, slots=True)
+class BreakdownReportingDisposition:
+    """Reporting-only status for one required breakdown cell.
+
+    The S3 reporting floor is intentionally separate from candidate selection.
+    A cell with fewer than ``MIN_COMPARABLE_ROWS_FOR_REPORTING`` rows remains
+    in the report as insufficient sample evidence, but cannot by itself block
+    the global candidate eligibility decision on the V4 policy.
+    """
+
+    reporting_status: EvidenceStatus
+    reporting_reason: str
+    selection_blocking: bool
+
+
+def breakdown_reporting_disposition(cell: BreakdownCellEvidence) -> BreakdownReportingDisposition:
+    """Classify a breakdown cell without dropping or altering its evidence."""
+
+    if cell.comparable_rows < MIN_COMPARABLE_ROWS_FOR_REPORTING:
+        return BreakdownReportingDisposition(
+            reporting_status="INSUFFICIENT_SAMPLE",
+            reporting_reason="BELOW_MINIMUM",
+            selection_blocking=False,
+        )
+    if cell.metric_status != "COMPUTED":
+        return BreakdownReportingDisposition(
+            reporting_status=cell.metric_status,
+            reporting_reason="INSUFFICIENT_REQUIRED_EVIDENCE",
+            selection_blocking=True,
+        )
+    return BreakdownReportingDisposition(
+        reporting_status="COMPUTED",
+        reporting_reason="NONE",
+        selection_blocking=False,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -566,9 +605,39 @@ def canonical_guardrail_policy_v3_sparse() -> dict[str, object]:
     return policy
 
 
+def canonical_guardrail_policy_v4_breakdown_reporting() -> dict[str, object]:
+    """Return the corrected V4 policy for sparse breakdown reporting.
+
+    V4 is a new policy identity.  The predecessor V3 payload remains
+    replayable and is never rewritten.  Only the interpretation of the
+    already-required breakdown reporting floor changes: a small cell is
+    retained as ``INSUFFICIENT_SAMPLE`` evidence and is not a global selection
+    blocker.
+    """
+
+    policy = canonical_guardrail_policy_v3_sparse()
+    policy["guardrail_policy_version"] = V4_GUARDRAIL_POLICY_VERSION
+    policy["breakdown_reporting_floor_overlay"] = {
+        "predecessor_policy_version": V4_PREDECESSOR_POLICY_VERSION,
+        "predecessor_policy_hash": V3_GUARDRAIL_POLICY_HASH,
+        "minimum_comparable_rows_for_reporting": MIN_COMPARABLE_ROWS_FOR_REPORTING,
+        "reporting_floor_is_selection_threshold": False,
+        "below_minimum_status": "INSUFFICIENT_SAMPLE",
+        "below_minimum_reason": "BELOW_MINIMUM",
+        "below_minimum_selection_blocking": False,
+        "required_breakdown_axes": list(REQUIRED_BREAKDOWN_AXES),
+        "all_cells_retained_for_reporting": True,
+        "silent_exclusion_is_still_forbidden": True,
+    }
+    return policy
+
+
 GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy())
 V2_GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy_v2())
 V3_GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(canonical_guardrail_policy_v3_sparse())
+V4_GUARDRAIL_POLICY_HASH: Final[str] = sha256_payload(
+    canonical_guardrail_policy_v4_breakdown_reporting()
+)
 
 
 def _blocked_result(
@@ -810,6 +879,81 @@ def evaluate_coverage_quality_gate(evidence: CoverageQualityEvidence) -> Guardra
     return GuardrailResult(guardrail_id, "PASS", "S1_POLICY_SATISFIED")
 
 
+def evaluate_coverage_quality_gate_v4_breakdown_reporting(
+    evidence: CoverageQualityEvidence,
+) -> GuardrailResult:
+    """Apply V4 coverage/data-quality gates with a reporting-only cell floor.
+
+    Required axes, cell identity integrity, complete evidence, coverage
+    thresholds, and no-silent-exclusion remain selection gates.  Only the
+    S3 reporting floor is non-blocking: cells below ten comparable rows are
+    retained as ``INSUFFICIENT_SAMPLE``/``BELOW_MINIMUM`` evidence.
+    """
+
+    guardrail_id = "coverage_and_data_quality"
+    if not evidence.no_silent_exclusion:
+        return GuardrailResult(guardrail_id, "FAIL", "SILENT_EXCLUSION_FORBIDDEN")
+
+    if not evidence.breakdown_axes:
+        return GuardrailResult(guardrail_id, "BLOCKED", "EMPTY_BREAKDOWN_EVIDENCE")
+    axis_names = tuple(axis.axis_name for axis in evidence.breakdown_axes)
+    if any(axis_name not in REQUIRED_BREAKDOWN_AXES for axis_name in axis_names):
+        return GuardrailResult(guardrail_id, "BLOCKED", "UNKNOWN_REQUIRED_BREAKDOWN_AXIS")
+    if len(set(axis_names)) != len(axis_names):
+        return GuardrailResult(guardrail_id, "BLOCKED", "DUPLICATE_REQUIRED_BREAKDOWN_AXIS")
+    if set(axis_names) != set(REQUIRED_BREAKDOWN_AXES):
+        return GuardrailResult(guardrail_id, "BLOCKED", "MISSING_REQUIRED_BREAKDOWN_AXIS")
+
+    for axis in evidence.breakdown_axes:
+        if not axis.cells:
+            return GuardrailResult(guardrail_id, "BLOCKED", "EMPTY_REQUIRED_AXIS_CELLS")
+        seen_cell_ids: dict[str, BreakdownCellEvidence] = {}
+        for cell in axis.cells:
+            prior_cell = seen_cell_ids.get(cell.cell_id)
+            if prior_cell is not None:
+                return GuardrailResult(guardrail_id, "BLOCKED", "CONFLICTING_AXIS_EVIDENCE")
+            seen_cell_ids[cell.cell_id] = cell
+            disposition = breakdown_reporting_disposition(cell)
+            if disposition.selection_blocking:
+                return GuardrailResult(
+                    guardrail_id,
+                    "BLOCKED",
+                    disposition.reporting_reason,
+                )
+
+    observations = (
+        evidence.coverage_ratio,
+        evidence.valid_included_canonical_group_coverage,
+        evidence.missing_data_proportion,
+    )
+    expected_names = (
+        "coverage_ratio",
+        "valid_included_canonical_group_coverage",
+        "missing_data_proportion",
+    )
+    if any(
+        observation.metric_name != expected_name
+        for observation, expected_name in zip(observations, expected_names, strict=True)
+    ):
+        return GuardrailResult(guardrail_id, "BLOCKED", "METRIC_IDENTITY_MISMATCH")
+    if any(observation.status != "COMPUTED" for observation in observations):
+        return GuardrailResult(guardrail_id, "BLOCKED", "MISSING_REQUIRED_EVIDENCE")
+    values = tuple(observation.value for observation in observations)
+    if any(value is None for value in values):
+        return GuardrailResult(guardrail_id, "BLOCKED", "MISSING_REQUIRED_EVIDENCE")
+    coverage_ratio, valid_group_coverage, missing_proportion = values
+    assert coverage_ratio is not None
+    assert valid_group_coverage is not None
+    assert missing_proportion is not None
+    if coverage_ratio < MINIMUM_COVERAGE_THRESHOLD:
+        return GuardrailResult(guardrail_id, "FAIL", "MINIMUM_COVERAGE_NOT_MET")
+    if valid_group_coverage < VALID_INCLUDED_CANONICAL_GROUP_COVERAGE_THRESHOLD:
+        return GuardrailResult(guardrail_id, "FAIL", "CANONICAL_GROUP_COVERAGE_NOT_MET")
+    if missing_proportion > MISSING_DATA_PROPORTION_THRESHOLD:
+        return GuardrailResult(guardrail_id, "FAIL", "MISSING_DATA_PROPORTION_EXCEEDED")
+    return GuardrailResult(guardrail_id, "PASS", "S1_POLICY_SATISFIED")
+
+
 def _aggregate(
     results: tuple[GuardrailResult, ...],
     *,
@@ -981,6 +1125,97 @@ def evaluate_candidate_guardrails_v3_sparse(
         _blocked_result("coverage_and_data_quality", "MISSING_REQUIRED_EVIDENCE")
         if coverage_quality is None
         else evaluate_coverage_quality_gate(coverage_quality),
+    )
+    return _aggregate(tuple(results), diagnostics=tuple(diagnostics))
+
+
+def evaluate_candidate_guardrails_v4_breakdown_reporting(
+    *,
+    candidate_primary_metric: MetricObservation,
+    incumbent_primary_metric: MetricObservation,
+    candidate_daily_mae: MetricObservation,
+    incumbent_daily_mae: MetricObservation,
+    candidate_p80_coverage: MetricObservation,
+    incumbent_p80_coverage: MetricObservation,
+    candidate_p90_coverage: MetricObservation,
+    incumbent_p90_coverage: MetricObservation,
+    coverage_quality: CoverageQualityEvidence | None,
+    complete_window_metrics: Mapping[str, tuple[MetricObservation, MetricObservation]] | None,
+    evaluation_surface_identity: str | None,
+    forecast_horizons: Collection[int] | None,
+    complete_daily_rowset_authority: bool | None,
+    missing_day_zero_fill: bool | None,
+) -> CandidateEligibilityResult:
+    """Evaluate V4 sparse selection with a reporting-only breakdown floor.
+
+    This is deliberately a new evaluator.  V1, V2, and V3 remain available
+    for historical replay and retain their original hashes and behavior.
+    """
+
+    if evaluation_surface_identity is None:
+        return _sparse_surface_blocked("EVALUATION_SURFACE_IDENTITY_MISSING")
+    if evaluation_surface_identity != V3_EVALUATION_SURFACE_ID:
+        return _sparse_surface_blocked("EVALUATION_SURFACE_IDENTITY_MISMATCH")
+    if forecast_horizons is None:
+        return _sparse_surface_blocked("FORECAST_HORIZONS_MISSING")
+    if tuple(forecast_horizons) != V3_FORECAST_HORIZONS:
+        return _sparse_surface_blocked("FORECAST_HORIZONS_MISMATCH")
+    if complete_daily_rowset_authority is None:
+        return _sparse_surface_blocked("COMPLETE_DAILY_ROWSET_AUTHORITY_MISSING")
+    if complete_daily_rowset_authority is not V3_COMPLETE_DAILY_ROWSET_AUTHORITY:
+        return _sparse_surface_blocked("SPARSE_SURFACE_REQUIRES_INCOMPLETE_DAILY_ROWSET")
+    if missing_day_zero_fill is None:
+        return _sparse_surface_blocked("MISSING_DAY_ZERO_FILL_POLICY_MISSING")
+    if missing_day_zero_fill is not V3_MISSING_DAY_ZERO_FILL:
+        return _sparse_surface_blocked("MISSING_DAY_ZERO_FILL_FORBIDDEN")
+
+    if complete_window_metrics is None:
+        return _sparse_surface_blocked("MISSING_COMPLETE_WINDOW_DIAGNOSTICS")
+    missing_diagnostics = set(SPARSE_COMPLETE_WINDOW_METRICS).difference(complete_window_metrics)
+    unexpected_diagnostics = set(complete_window_metrics).difference(SPARSE_COMPLETE_WINDOW_METRICS)
+    if missing_diagnostics:
+        return _sparse_surface_blocked("MISSING_COMPLETE_WINDOW_DIAGNOSTICS")
+    if unexpected_diagnostics:
+        return _sparse_surface_blocked("UNEXPECTED_COMPLETE_WINDOW_DIAGNOSTIC")
+
+    diagnostics: list[DiagnosticMetricDisposition] = []
+    for metric_name in SPARSE_COMPLETE_WINDOW_METRICS:
+        candidate, incumbent = complete_window_metrics[metric_name]
+        if (
+            candidate.metric_name != metric_name
+            or incumbent.metric_name != metric_name
+            or candidate.status != "NOT_COMPUTABLE"
+            or incumbent.status != "NOT_COMPUTABLE"
+        ):
+            return _sparse_surface_blocked("SPARSE_COMPLETE_WINDOW_METRIC_NOT_NOT_COMPUTABLE")
+        diagnostics.append(
+            DiagnosticMetricDisposition(
+                metric_name=metric_name,
+                status="NOT_COMPUTABLE",
+                selection_blocking=False,
+                diagnostic_only=True,
+                reason_code="COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE",
+            )
+        )
+
+    results = (
+        compare_primary_metric(candidate_primary_metric, incumbent_primary_metric),
+        compare_lower_is_better("daily_mae", candidate_daily_mae, incumbent_daily_mae),
+        compare_calibration_distance(
+            "P80_COVERAGE",
+            candidate_p80_coverage,
+            incumbent_p80_coverage,
+            P80_NOMINAL_QUANTILE,
+        ),
+        compare_calibration_distance(
+            "P90_COVERAGE",
+            candidate_p90_coverage,
+            incumbent_p90_coverage,
+            P90_NOMINAL_QUANTILE,
+        ),
+        _blocked_result("coverage_and_data_quality", "MISSING_REQUIRED_EVIDENCE")
+        if coverage_quality is None
+        else evaluate_coverage_quality_gate_v4_breakdown_reporting(coverage_quality),
     )
     return _aggregate(tuple(results), diagnostics=tuple(diagnostics))
 
@@ -1278,11 +1513,36 @@ def check_candidate_execution_gate_v3_sparse(
     )
 
 
+def check_candidate_execution_gate_v4_breakdown_reporting(
+    request: CandidateExecutionGateRequest,
+) -> CandidateExecutionGateResult:
+    """Evaluate a request against the corrected V4 sparse policy identity."""
+
+    return _check_candidate_execution_gate_for_policy(
+        request,
+        expected_experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION,
+        expected_experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH,
+        expected_guardrail_policy_version=V4_GUARDRAIL_POLICY_VERSION,
+        expected_guardrail_policy_hash=V4_GUARDRAIL_POLICY_HASH,
+        expected_evaluation_surface_identity=V3_EVALUATION_SURFACE_ID,
+        expected_forecast_horizons=V3_FORECAST_HORIZONS,
+        expected_complete_daily_rowset_authority=V3_COMPLETE_DAILY_ROWSET_AUTHORITY,
+        expected_missing_day_zero_fill=V3_MISSING_DAY_ZERO_FILL,
+        restricted_candidates={
+            "01_parameter_calibration": "CANDIDATE_01_RERUN_FORBIDDEN",
+            "06_weather_response": "CURRENT_WEATHER_AUTHORITY_REQUIRED",
+            "08_residual_feature": "V4_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED",
+        },
+    )
+
+
 def check_candidate_execution_gate(
     request: CandidateExecutionGateRequest,
 ) -> CandidateExecutionGateResult:
     """Dispatch explicitly versioned requests without changing the V1 API."""
 
+    if request.guardrail_policy_version == V4_GUARDRAIL_POLICY_VERSION:
+        return check_candidate_execution_gate_v4_breakdown_reporting(request)
     if request.guardrail_policy_version == V3_GUARDRAIL_POLICY_VERSION:
         return check_candidate_execution_gate_v3_sparse(request)
     if (
@@ -1302,6 +1562,7 @@ __all__ = [
     "DiagnosticMetricDisposition",
     "BreakdownCellEvidence",
     "BreakdownAxisEvidence",
+    "BreakdownReportingDisposition",
     "EvidenceStatus",
     "FROZEN_CANDIDATE_REGISTRY",
     "EXPERIMENT_PLAN_V2_HASH",
@@ -1335,6 +1596,9 @@ __all__ = [
     "V3_GUARDRAIL_POLICY_HASH",
     "V3_GUARDRAIL_POLICY_VERSION",
     "V3_MISSING_DAY_ZERO_FILL",
+    "V4_GUARDRAIL_POLICY_HASH",
+    "V4_GUARDRAIL_POLICY_VERSION",
+    "V4_PREDECESSOR_POLICY_VERSION",
     "SPARSE_COMPLETE_WINDOW_METRICS",
     "REQUIRED_BREAKDOWN_AXES",
     "REQUIRED_BREAKDOWN_AXIS_COUNT",
@@ -1345,14 +1609,19 @@ __all__ = [
     "check_candidate_execution_gate_v1",
     "check_candidate_execution_gate_v2",
     "check_candidate_execution_gate_v3_sparse",
+    "check_candidate_execution_gate_v4_breakdown_reporting",
     "canonical_guardrail_policy",
     "canonical_guardrail_policy_v2",
     "canonical_guardrail_policy_v3_sparse",
+    "canonical_guardrail_policy_v4_breakdown_reporting",
     "compare_calibration_distance",
     "compare_lower_is_better",
     "compare_primary_metric",
     "evaluate_candidate_guardrails",
     "evaluate_candidate_guardrails_v3_sparse",
+    "evaluate_candidate_guardrails_v4_breakdown_reporting",
     "evaluate_coverage_quality_gate",
+    "evaluate_coverage_quality_gate_v4_breakdown_reporting",
+    "breakdown_reporting_disposition",
     "validate_s4_invocation_semantics",
 ]
