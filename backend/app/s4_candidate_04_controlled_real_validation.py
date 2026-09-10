@@ -44,7 +44,9 @@ from backend.app.s4_experiment import (
     CoverageQualityEvidence,
     EvidenceStatus,
     MetricObservation,
+    build_coverage_quality_evidence_payload,
     evaluate_candidate_guardrails_v3_sparse,
+    validate_s4_selection_evidence_payload,
 )
 from backend.app.s4_local_engineering import (
     FrozenEngineeringDataset,
@@ -91,6 +93,7 @@ class C04RunScore:
     prediction_identity: str
     metric_evidence_identity: str
     metrics: LocalMetricSet
+    coverage_quality: CoverageQualityEvidence
     eligibility: CandidateEligibilityResult
 
 
@@ -242,6 +245,7 @@ def evaluate_c04_sparse_guardrails(
     incumbent_metrics: LocalMetricSet,
     target_rows: tuple[Any, ...],
     candidate_predictions: tuple[LocalPrediction, ...],
+    coverage_quality: CoverageQualityEvidence | None = None,
 ) -> CandidateEligibilityResult:
     """Run the real V3 sparse evaluator with complete-window diagnostics."""
 
@@ -252,6 +256,11 @@ def evaluate_c04_sparse_guardrails(
         )
         for metric_name in SPARSE_COMPLETE_WINDOW_METRICS
     }
+    coverage_quality = coverage_quality or _coverage_quality(
+        candidate_metrics,
+        target_rows=target_rows,
+        predictions=candidate_predictions,
+    )
     return evaluate_candidate_guardrails_v3_sparse(
         candidate_primary_metric=_metric_observation(
             "daily_wape",
@@ -277,11 +286,7 @@ def evaluate_c04_sparse_guardrails(
         incumbent_p90_coverage=MetricObservation.computed(
             "P90_COVERAGE", incumbent_metrics.p90_coverage
         ),
-        coverage_quality=_coverage_quality(
-            candidate_metrics,
-            target_rows=target_rows,
-            predictions=candidate_predictions,
-        ),
+        coverage_quality=coverage_quality,
         complete_window_metrics=complete_window_metrics,
         evaluation_surface_identity=V3_EVALUATION_SURFACE_ID,
         forecast_horizons=V3_FORECAST_HORIZONS,
@@ -322,11 +327,20 @@ def _eligibility_payload(result: CandidateEligibilityResult) -> dict[str, Any]:
     }
 
 
-def _metrics_payload(metrics: LocalMetricSet) -> dict[str, Any]:
+def _metrics_payload(
+    metrics: LocalMetricSet,
+    coverage_quality: CoverageQualityEvidence,
+) -> dict[str, Any]:
     payload = dict(metrics.payload())
-    payload["coverage_ratio"] = "1.000000"
-    payload["valid_included_canonical_group_coverage"] = "1.000000"
-    payload["missing_data_proportion"] = "0.000000"
+    coverage_payload = build_coverage_quality_evidence_payload(coverage_quality)
+    payload["coverage_quality_evidence"] = coverage_payload
+    payload["coverage_ratio"] = coverage_payload["coverage_ratio"]
+    payload["valid_included_canonical_group_coverage"] = coverage_payload[
+        "valid_included_canonical_group_coverage"
+    ]
+    payload["missing_data_proportion"] = coverage_payload["missing_data_proportion"]
+    payload["no_silent_exclusion"] = coverage_payload["no_silent_exclusion"]
+    payload["SUMMARY_IS_CELL_EVIDENCE"] = False
     payload["complete_window_selection_blocking"] = False
     payload["complete_window_diagnostic_only"] = True
     payload["complete_window_reason"] = "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
@@ -358,7 +372,7 @@ def _event_hash(state: Any | None, evaluation_id: str, event_type: str) -> str |
 
 
 def _run_score_payload(score: C04RunScore) -> dict[str, Any]:
-    metrics = _metrics_payload(score.metrics)
+    metrics = _metrics_payload(score.metrics, score.coverage_quality)
     return {
         "candidate_run_ordinal": score.ordinal,
         "multiplier": _decimal_text(score.multiplier),
@@ -386,19 +400,31 @@ def _score_run(
     candidate_predictions = project_predictions_with_actuals(prediction_projection, target_rows)
     metrics = compute_metrics(candidate_predictions, complete_window_authority=None)
     prediction_identity = scorer.prediction_identity(prediction_projection)
-    metric_identity = sha256_payload(metrics.payload())
+    coverage_quality = _coverage_quality(
+        metrics,
+        target_rows=target_rows,
+        predictions=candidate_predictions,
+    )
     eligibility = evaluate_c04_sparse_guardrails(
         candidate_metrics=metrics,
         incumbent_metrics=incumbent_metrics,
         target_rows=target_rows,
         candidate_predictions=candidate_predictions,
+        coverage_quality=coverage_quality,
+    )
+    metric_evidence_identity = sha256_payload(
+        {
+            "metrics": metrics.payload(),
+            "coverage_quality_evidence": build_coverage_quality_evidence_payload(coverage_quality),
+        }
     )
     return C04RunScore(
         ordinal=ordinal,
         multiplier=multiplier,
         prediction_identity=prediction_identity,
-        metric_evidence_identity=metric_identity,
+        metric_evidence_identity=metric_evidence_identity,
         metrics=metrics,
+        coverage_quality=coverage_quality,
         eligibility=eligibility,
     )
 
@@ -444,8 +470,20 @@ async def run_authorized_c04_validation(repo_root: Path) -> dict[str, Any]:
     incumbent_projection = scorer.predict_rows(masked_target_rows, C04_BASELINE_MULTIPLIER)
     incumbent_predictions = project_predictions_with_actuals(incumbent_projection, target_rows)
     incumbent_metrics = compute_metrics(incumbent_predictions, complete_window_authority=None)
+    incumbent_coverage_quality = _coverage_quality(
+        incumbent_metrics,
+        target_rows=target_rows,
+        predictions=incumbent_predictions,
+    )
     incumbent_prediction_identity = scorer.prediction_identity(incumbent_projection)
-    incumbent_metric_identity = sha256_payload(incumbent_metrics.payload())
+    incumbent_metric_identity = sha256_payload(
+        {
+            "metrics": incumbent_metrics.payload(),
+            "coverage_quality_evidence": build_coverage_quality_evidence_payload(
+                incumbent_coverage_quality
+            ),
+        }
+    )
     execution_code_sha = current_execution_code_sha(repo_root)
 
     before_state: Any | None = None
@@ -484,7 +522,7 @@ async def run_authorized_c04_validation(repo_root: Path) -> dict[str, Any]:
         "INCUMBENT_YIELD_AMPLITUDE_MULTIPLIER": "1.0",
         "INCUMBENT_PREDICTION_IDENTITY": incumbent_prediction_identity,
         "INCUMBENT_METRIC_EVIDENCE_IDENTITY": incumbent_metric_identity,
-        "INCUMBENT_METRICS": _metrics_payload(incumbent_metrics),
+        "INCUMBENT_METRICS": _metrics_payload(incumbent_metrics, incumbent_coverage_quality),
         "INCUMBENT_DAILY_WAPE": _decimal_text(incumbent_metrics.daily_wape),
         "INCUMBENT_DAILY_MAE": _decimal_text(incumbent_metrics.daily_mae),
         "INCUMBENT_P80_COVERAGE": _decimal_text(incumbent_metrics.p80_coverage),
@@ -715,6 +753,7 @@ async def run_authorized_c04_validation(repo_root: Path) -> dict[str, Any]:
 
 
 def write_evidence(path: Path, evidence: Mapping[str, Any]) -> None:
+    validate_s4_selection_evidence_payload(evidence)
     path.write_text(canonical_json_dumps(dict(evidence)) + "\n", encoding="utf-8")
 
 
