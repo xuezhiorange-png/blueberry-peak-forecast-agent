@@ -1,0 +1,245 @@
+{
+  "TASK_ID": "V0_3_S4_C04_VALIDATION_ELIGIBILITY_POLICY_CORRECTION_R2",
+  "TASK_CLASS": "SELECTION_POLICY_CORRECTION_AND_EXISTING_EVIDENCE_READJUDICATION",
+  "TARGET_PR": 600,
+  "PREVIOUS_HEAD_SHA": "0433961c7c97ac41914a161607c869bdec6889ff",
+  "CORRECTION_CODE_SHA": "af72a671a405e26557be9d7ca4cbb2cf086e9212",
+  "RESULT": "CORRECTED_AND_REJUDICATED",
+  "V1_POLICY_PRESERVED": true,
+  "V2_POLICY_PRESERVED": true,
+  "V3_POLICY_PRESERVED": true,
+  "V4_GUARDRAIL_POLICY_VERSION": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor",
+  "V4_GUARDRAIL_POLICY_HASH": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d2",
+  "PREDECESSOR_POLICY_VERSION": "v0.3-s4-guardrail-policy-v3-sparse-horizon",
+  "PREDECESSOR_POLICY_HASH": "004be89a726ea4afd90ac895ea10f885f749b2f222e0fca5a67d57ba4e2bd3e0",
+  "MIN_COMPARABLE_ROWS_FOR_REPORTING": 10,
+  "REPORTING_FLOOR_IS_SELECTION_THRESHOLD": false,
+  "BELOW_MINIMUM_STATUS": "INSUFFICIENT_SAMPLE",
+  "BELOW_MINIMUM_SELECTION_BLOCKING": false,
+  "POLICY_IDENTITIES": {
+    "V1": {
+      "version": "v0.3-s4-guardrail-policy-v1",
+      "hash": "74ecd47339572955e654cf61c38ee6b0546ba51a36e67f80f6ad4dd4519f1ff8"
+    },
+    "V2": {
+      "version": "v0.3-s4-guardrail-policy-v2",
+      "hash": "65ad056b3085b7ff41d25e1a7a86b990ac0f837270d62f6fd84ce5938843c793"
+    },
+    "V3": {
+      "version": "v0.3-s4-guardrail-policy-v3-sparse-horizon",
+      "hash": "004be89a726ea4afd90ac895ea10f885f749b2f222e0fca5a67d57ba4e2bd3e0"
+    },
+    "V4": {
+      "version": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor",
+      "hash": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d",
+      "predecessor_version": "v0.3-s4-guardrail-policy-v3-sparse-horizon",
+      "predecessor_hash": "004be89a726ea4afd90ac895ea10f885f749b2f222e0fca5a67d57ba4e2bd3e0"
+    }
+  },
+  "V4_BREAKDOWN_REPORTING_POLICY": {
+    "MIN_COMPARABLE_ROWS_FOR_REPORTING": 10,
+    "REPORTING_FLOOR_IS_SELECTION_THRESHOLD": false,
+    "BELOW_MINIMUM_STATUS": "INSUFFICIENT_SAMPLE",
+    "BELOW_MINIMUM_REASON": "BELOW_MINIMUM",
+    "BELOW_MINIMUM_SELECTION_BLOCKING": false,
+    "ALL_CELLS_RETAINED_FOR_REPORTING": true,
+    "REQUIRED_BREAKDOWN_AXES": [
+      "forecast_horizon_days",
+      "farm_business_key",
+      "subfarm_business_key",
+      "variety_business_key",
+      "season_business_key",
+      "model_identity"
+    ],
+    "MISSING_AXIS_BLOCKS": true,
+    "UNKNOWN_AXIS_BLOCKS": true,
+    "DUPLICATE_AXIS_BLOCKS": true,
+    "EMPTY_AXIS_BLOCKS": true,
+    "CONFLICTING_CELL_IDENTITY_BLOCKS": true,
+    "SILENT_EXCLUSION_FAILS": true
+  },
+  "EXPERIMENT_PLAN_VERSION": "v0.3-experiment-plan-v2",
+  "EXPERIMENT_PLAN_HASH": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9",
+  "EVALUATION_SURFACE_ID": "V0_3_S4_SOURCE002_SPARSE_HORIZON_7_14_21_V1",
+  "FORECAST_HORIZONS": [7, 14, 21],
+  "COMPLETE_DAILY_ROWSET_AUTHORITY": false,
+  "MISSING_DAY_ZERO_FILL": false,
+  "PRIMARY_SELECTION_METRIC": "daily_wape",
+  "PRIMARY_REQUIRED_RELATION": "CANDIDATE_STRICTLY_LESS_THAN_INCUMBENT",
+  "POINT_GUARDRAIL": "daily_mae",
+  "POINT_REQUIRED_RELATION": "CANDIDATE_LESS_THAN_OR_EQUAL_TO_INCUMBENT",
+  "S1_ACCEPTANCE_GATES": {
+    "coverage_ratio": "1.000000",
+    "valid_included_canonical_group_coverage": "1.000000",
+    "missing_data_proportion": "0.000000",
+    "no_silent_exclusion": true
+  },
+  "R1_EVIDENCE": {
+    "path": "docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json",
+    "sha256": "78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3",
+    "AS_EXECUTED_POLICY_VERSION": "v0.3-s4-guardrail-policy-v3-sparse-horizon",
+    "AS_EXECUTED_ADJUDICATION": {
+      "RUN_1": {
+        "eligibility": "BLOCKED",
+        "reason_codes": [
+          "STRICTLY_LESS_THAN_INCUMBENT",
+          "LOWER_THAN_INCUMBENT",
+          "CLOSER_TO_NOMINAL",
+          "BELOW_MINIMUM"
+        ]
+      },
+      "RUN_2": {
+        "eligibility": "BLOCKED",
+        "reason_codes": [
+          "HIGHER_THAN_INCUMBENT",
+          "CLOSER_TO_NOMINAL",
+          "BELOW_MINIMUM"
+        ]
+      },
+      "RUN_3": {
+        "eligibility": "BLOCKED",
+        "reason_codes": [
+          "HIGHER_THAN_INCUMBENT",
+          "CLOSER_TO_NOMINAL",
+          "BELOW_MINIMUM"
+        ]
+      },
+      "RUN_4": {
+        "eligibility": "BLOCKED",
+        "reason_codes": [
+          "STRICTLY_LESS_THAN_INCUMBENT",
+          "LOWER_THAN_INCUMBENT",
+          "CLOSER_TO_NOMINAL",
+          "BELOW_MINIMUM"
+        ]
+      }
+    }
+  },
+  "CORRECTED_SELECTION_POLICY_VERSION": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor",
+  "CORRECTED_SELECTION_POLICY_HASH": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d2",
+  "READJUDICATED_FROM_EXISTING_R1_EVIDENCE": true,
+  "VALIDATION_DATA_REREAD": false,
+  "SCORER_CALLED": false,
+  "DURABLE_EXECUTION_CALLED": false,
+  "TARGET_IDENTITY_HASH": "0e16328e531fc1509324c51d1b019f188b182ccce59a3d50f35f4516cd49ba5a",
+  "COMMON_COMPARABLE_SET_IDENTITY": "4ea0db5f4e61189aa2390ee5a6b51d9cc7ca2dea70d327da10f86b8c6c662807",
+  "INCUMBENT": {
+    "daily_wape": "0.773022",
+    "daily_mae": "952.100208",
+    "P80_COVERAGE": "0.139535",
+    "P90_COVERAGE": "0.223837"
+  },
+  "CANDIDATE_RUNS": [
+    {
+      "run_ordinal": 1,
+      "multiplier": "3.802757",
+      "daily_wape": "0.725160",
+      "daily_mae": "893.149826",
+      "P80_COVERAGE": "0.585756",
+      "P90_COVERAGE": "0.665698",
+      "R1_ELIGIBILITY": "BLOCKED",
+      "V4_ELIGIBILITY": "PASS",
+      "V4_REASON_CODES": [
+        "STRICTLY_LESS_THAN_INCUMBENT",
+        "LOWER_THAN_INCUMBENT",
+        "CLOSER_TO_NOMINAL",
+        "S1_POLICY_SATISFIED"
+      ]
+    },
+    {
+      "run_ordinal": 2,
+      "multiplier": "4.961884",
+      "daily_wape": "0.885404",
+      "daily_mae": "1090.516549",
+      "P80_COVERAGE": "0.655523",
+      "P90_COVERAGE": "0.726744",
+      "R1_ELIGIBILITY": "BLOCKED",
+      "V4_ELIGIBILITY": "FAIL",
+      "V4_REASON_CODES": [
+        "HIGHER_THAN_INCUMBENT",
+        "CLOSER_TO_NOMINAL",
+        "S1_POLICY_SATISFIED"
+      ]
+    },
+    {
+      "run_ordinal": 3,
+      "multiplier": "5.182238",
+      "daily_wape": "0.921748",
+      "daily_mae": "1135.280015",
+      "P80_COVERAGE": "0.665698",
+      "P90_COVERAGE": "0.735465",
+      "R1_ELIGIBILITY": "BLOCKED",
+      "V4_ELIGIBILITY": "FAIL",
+      "V4_REASON_CODES": [
+        "HIGHER_THAN_INCUMBENT",
+        "CLOSER_TO_NOMINAL",
+        "S1_POLICY_SATISFIED"
+      ]
+    },
+    {
+      "run_ordinal": 4,
+      "multiplier": "4.152099",
+      "daily_wape": "0.766618",
+      "daily_mae": "944.212641",
+      "P80_COVERAGE": "0.613372",
+      "P90_COVERAGE": "0.686047",
+      "R1_ELIGIBILITY": "BLOCKED",
+      "V4_ELIGIBILITY": "PASS",
+      "V4_REASON_CODES": [
+        "STRICTLY_LESS_THAN_INCUMBENT",
+        "LOWER_THAN_INCUMBENT",
+        "CLOSER_TO_NOMINAL",
+        "S1_POLICY_SATISFIED"
+      ]
+    }
+  ],
+  "COMPLETE_WINDOW_METRICS": {
+    "cumulative_absolute_error_kg": {
+      "status": "NOT_COMPUTABLE",
+      "selection_blocking": false,
+      "diagnostic_only": true,
+      "reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+    },
+    "single_day_peak_quantity_absolute_error_kg_q": {
+      "status": "NOT_COMPUTABLE",
+      "selection_blocking": false,
+      "diagnostic_only": true,
+      "reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+    },
+    "sustained_7day_quantity_absolute_error_kg_q": {
+      "status": "NOT_COMPUTABLE",
+      "selection_blocking": false,
+      "diagnostic_only": true,
+      "reason": "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
+    }
+  },
+  "C04_ELIGIBLE_RUN_COUNT": 2,
+  "C04_BEST_VALIDATION_RUN": 1,
+  "C04_BEST_RUN_ORDINAL": 1,
+  "C04_BEST_MULTIPLIER": "3.802757",
+  "C04_BEST_DAILY_WAPE": "0.725160",
+  "C04_BEST_DAILY_MAE": "893.149826",
+  "C04_VALIDATION_OUTCOME": "HAS_ELIGIBLE_WINNER",
+  "GLOBAL_SELECTION_ISSUED": false,
+  "FINAL_S4_WINNER_ISSUED": false,
+  "TEST_AUTHORIZATION": false,
+  "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+  "CANONICAL_STARTED_COUNT": 4,
+  "C04_CANONICAL_STARTED_COUNT": 4,
+  "EFFECTIVE_CONSUMED": 8,
+  "REMAINING": 24,
+  "R2_BUDGET_DELTA": 0,
+  "NEW_VALIDATION_EXECUTION": false,
+  "NEW_VALIDATION_SCORING": false,
+  "NEW_STARTED_EVENT_COUNT": 0,
+  "NEW_TERMINAL_EVENT_COUNT": 0,
+  "NEW_VALIDATION_SCORING_CALL_COUNT": 0,
+  "TEST_ACCESS_REQUESTED": false,
+  "TEST_BYTES_READ": false,
+  "TEST_EVALUATION_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_S4_C04_VALIDATION_ELIGIBILITY_R2_REVIEW"
+}
