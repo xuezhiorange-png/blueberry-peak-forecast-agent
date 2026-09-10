@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from backend.app.maturity.config import load_maturity_curve_config
 from backend.app.rolling_backtest.canonical import sha256_payload
 from backend.app.s4_candidate_04_historical_yield import (
     C04_ALLOWED_PARAMETER_PATHS,
@@ -21,9 +22,15 @@ from backend.app.s4_candidate_04_historical_yield import (
     C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS,
     C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS,
     C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES,
+    C04_PARAMETER_DERIVATION_POLICY,
     C04_PARAMETER_SEMANTIC,
     C04HistoricalScorerError,
     C04HistoricalYieldScorer,
+    _build_training_model,
+    _fold_dates,
+    _fold_target_dates,
+    _median,
+    _try_base_prediction,
     build_c04_derived_config,
     build_c04_gate_request,
     build_c04_historical_yield_scorer,
@@ -88,6 +95,45 @@ def test_c04_parameter_derivation_train_only(
     assert derivation.test_used is False
     assert all(fold.fit_end_date < fold.holdout_start_date for fold in derivation.folds)
     assert all(fold.fit_row_count > 0 and fold.holdout_row_count > 0 for fold in derivation.folds)
+    assert derivation.policy == C04_PARAMETER_DERIVATION_POLICY
+    assert all(fold.target_horizon_days == (7, 14, 21) for fold in derivation.folds)
+    assert all(fold.comparable_prediction_row_count > 0 for fold in derivation.folds)
+
+
+def test_c04_parameter_derivation_uses_base_predictions_at_frozen_horizons(
+    authority: V2HistoricalEvaluationAuthority,
+) -> None:
+    """The fold value is actual/base-prediction, not a day-scaled total ratio."""
+
+    config = load_maturity_curve_config(CONFIG_PATH)
+    ordered = tuple(
+        sorted(
+            authority.train_rows,
+            key=lambda row: (
+                row.season,
+                row.farm,
+                row.subfarm,
+                row.variety,
+                row.harvest_business_date,
+            ),
+        )
+    )
+    (_all_dates, fit_dates), *_ = _fold_dates(ordered)
+    target_dates = _fold_target_dates(
+        cutoff_date=fit_dates[-1],
+        available_dates={row.harvest_business_date for row in ordered},
+    )
+    fit_rows = tuple(row for row in ordered if row.harvest_business_date in set(fit_dates))
+    target_rows = tuple(row for row in ordered if row.harvest_business_date in set(target_dates))
+    model = _build_training_model(fit_rows, target_rows, config)
+    ratios = [
+        (row.actual_harvest_quantity_kg / base_prediction).quantize(Decimal("0.000001"))
+        for row in target_rows
+        if (base_prediction := _try_base_prediction(model, row)) is not None
+    ]
+    derivation = derive_c04_parameter_calibration(authority.train_rows, config=config)
+    assert derivation.folds[0].target_horizon_days == (7, 14, 21)
+    assert derivation.folds[0].amplitude_ratio == _median(ratios)
 
 
 def test_c04_validation_not_used_for_parameter_derivation(
