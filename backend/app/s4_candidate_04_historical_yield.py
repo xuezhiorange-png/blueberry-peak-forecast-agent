@@ -1,8 +1,8 @@
 """V0.3 S4 Candidate 04 historical-only yield-amplitude scorer.
 
 Candidate 04 is deliberately separate from the production planning model.  It
-derives a quantity-amplitude multiplier from chronological inner folds of the
-accepted SOURCE-002 TRAIN partition and applies that multiplier to the
+derives four quantity-amplitude multipliers from one latest legal pseudo-cutoff
+of the accepted SOURCE-002 TRAIN partition and applies each multiplier to the
 existing ``prediction_total * curve_share`` historical prediction math.  The
 module has no TEST reader, no weather/plan dependency, no scoring callback,
 and no durable-budget mutation path.
@@ -15,7 +15,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
@@ -57,7 +57,7 @@ C04_PARAMETER_PATH: Final[str] = "yield_amplitude_multiplier"
 C04_ALLOWED_PARAMETER_PATHS: Final[tuple[str, ...]] = (C04_PARAMETER_PATH,)
 C04_BASELINE_MULTIPLIER: Final[Decimal] = Decimal("1.0")
 C04_PARAMETER_DERIVATION_POLICY: Final[str] = (
-    "TRAIN_ONLY_CHRONOLOGICAL_INNER_FOLDS_BASE_MODEL_HORIZON_RATIO_MEDIAN_V2"
+    "TRAIN_ONLY_LATEST_LEGAL_PSEUDO_CUTOFF_GROUP_HORIZON_AMPLITUDE_CALIBRATION_V3"
 )
 C04_RANDOM_SEED_POLICY: Final[str] = "FIXED_AND_RECORDED_PER_RUN"
 C04_RANDOM_SEED: Final[int] = 20260624
@@ -253,9 +253,10 @@ def _validate_incumbent_snapshot(snapshot: Mapping[str, object]) -> None:
 
 @dataclass(frozen=True, slots=True)
 class C04InnerFoldCalibration:
-    """One chronological TRAIN-only calibration fold."""
+    """One same-cutoff TRAIN-only group-level calibration summary."""
 
     fold_ordinal: int
+    calibration_cutoff: date
     fit_start_date: date
     fit_end_date: date
     holdout_start_date: date
@@ -270,6 +271,7 @@ class C04InnerFoldCalibration:
     def payload(self) -> dict[str, object]:
         return {
             "fold_ordinal": self.fold_ordinal,
+            "calibration_cutoff": self.calibration_cutoff,
             "fit_start_date": self.fit_start_date,
             "fit_end_date": self.fit_end_date,
             "holdout_start_date": self.holdout_start_date,
@@ -285,9 +287,10 @@ class C04InnerFoldCalibration:
 
 @dataclass(frozen=True, slots=True)
 class C04ParameterDerivation:
-    """Deterministic four-value parameter derivation from TRAIN only."""
+    """Deterministic four-value same-cutoff derivation from TRAIN only."""
 
     policy: str
+    calibration_cutoff: date
     folds: tuple[C04InnerFoldCalibration, ...]
     parameter_values: tuple[Decimal, ...]
     validation_used_for_parameter_derivation: bool
@@ -296,6 +299,7 @@ class C04ParameterDerivation:
     def payload(self) -> dict[str, object]:
         return {
             "policy": self.policy,
+            "calibration_cutoff": self.calibration_cutoff,
             "folds": [fold.payload() for fold in self.folds],
             "parameter_values": self.parameter_values,
             "validation_used_for_parameter_derivation": (
@@ -358,38 +362,87 @@ def _try_base_prediction(
     return base_prediction if base_prediction > 0 else None
 
 
-def _derive_fold_ratio(
-    fit_rows: tuple[MaterializableRow, ...],
-    holdout_rows: tuple[MaterializableRow, ...],
-    *,
-    config: MaturityCurveConfig,
-) -> tuple[Decimal, int, int, tuple[int, ...]]:
-    """Calibrate from actual/base-model predictions at frozen TRAIN horizons."""
+CalibrationKey = tuple[GroupKey, int]
 
-    if not holdout_rows:
-        raise C04HistoricalScorerError("C04_TRAIN_CALIBRATION_INSUFFICIENT")
-    cutoff_date = max(row.harvest_business_date for row in fit_rows)
-    model = _build_training_model(fit_rows, holdout_rows, config)
-    ratios: list[Decimal] = []
-    comparable_groups: set[GroupKey] = set()
-    comparable_horizons: set[int] = set()
-    for row in sorted(holdout_rows, key=_row_key):
-        horizon_days = (row.harvest_business_date - cutoff_date).days
+
+def _calibration_base_predictions(
+    *,
+    model: _C04TrainingModel,
+    target_rows: tuple[MaterializableRow, ...],
+    calibration_cutoff: date,
+) -> dict[CalibrationKey, Decimal]:
+    """Build base predictions from target identities, never target actuals."""
+
+    predictions: dict[CalibrationKey, Decimal] = {}
+    for row in sorted(target_rows, key=_row_key):
+        horizon_days = (row.harvest_business_date - calibration_cutoff).days
         try:
             validate_v2_forecast_horizon(horizon_days)
         except ValueError as exc:
             raise C04HistoricalScorerError("C04_HORIZON_NOT_IN_FROZEN_SET") from exc
+        key = (_group_key(row), horizon_days)
+        if key in predictions:
+            raise C04HistoricalScorerError("C04_DUPLICATE_CALIBRATION_GROUP_HORIZON")
         base_prediction = _try_base_prediction(model, row)
-        if base_prediction is None:
+        if base_prediction is not None and base_prediction.is_finite() and base_prediction > 0:
+            predictions[key] = base_prediction
+    return predictions
+
+
+def _calibration_target_actuals(
+    *,
+    target_rows: tuple[MaterializableRow, ...],
+    calibration_cutoff: date,
+) -> dict[CalibrationKey, Decimal]:
+    """Read valid TRAIN target actuals after prediction identities are fixed."""
+
+    actuals: dict[CalibrationKey, Decimal] = {}
+    for row in sorted(target_rows, key=_row_key):
+        horizon_days = (row.harvest_business_date - calibration_cutoff).days
+        key = (_group_key(row), horizon_days)
+        if key in actuals:
+            raise C04HistoricalScorerError("C04_DUPLICATE_CALIBRATION_GROUP_HORIZON")
+        actual = row.actual_harvest_quantity_kg
+        if type(actual) is Decimal and actual.is_finite() and actual >= 0:
+            actuals[key] = actual
+    return actuals
+
+
+def _group_level_ratio_summaries(
+    *,
+    base_predictions: Mapping[CalibrationKey, Decimal],
+    target_actuals: Mapping[CalibrationKey, Decimal],
+    required_horizons: tuple[int, ...],
+) -> tuple[Decimal, int, int, tuple[int, ...]]:
+    """Aggregate one ratio per canonical group, never one ratio per row."""
+
+    groups = sorted({group for group, _horizon in set(base_predictions) & set(target_actuals)})
+    ratios: list[Decimal] = []
+    comparable_groups: set[GroupKey] = set()
+    for group in groups:
+        keys = tuple((group, horizon) for horizon in required_horizons)
+        if any(key not in base_predictions or key not in target_actuals for key in keys):
             continue
-        if row.actual_harvest_quantity_kg < 0:
-            raise C04HistoricalScorerError("C04_NEGATIVE_TRAIN_QUANTITY")
-        ratios.append(_q(row.actual_harvest_quantity_kg / base_prediction))
-        comparable_groups.add(_group_key(row))
-        comparable_horizons.add(horizon_days)
-    if not ratios or comparable_horizons != set(C04_FORECAST_HORIZONS):
+        prediction_total = sum(
+            (base_predictions[key] for key in keys),
+            Decimal("0"),
+        )
+        actual_total = sum(
+            (target_actuals[key] for key in keys),
+            Decimal("0"),
+        )
+        if not prediction_total.is_finite() or prediction_total <= 0:
+            continue
+        ratios.append(_q(actual_total / prediction_total))
+        comparable_groups.add(group)
+    if not ratios:
         raise C04HistoricalScorerError("C04_TRAIN_CALIBRATION_INSUFFICIENT")
-    return _median(ratios), len(comparable_groups), len(ratios), tuple(sorted(comparable_horizons))
+    return (
+        _median(ratios),
+        len(comparable_groups),
+        len(comparable_groups) * len(required_horizons),
+        tuple(required_horizons),
+    )
 
 
 def derive_c04_parameter_calibration(
@@ -397,45 +450,80 @@ def derive_c04_parameter_calibration(
     *,
     config: MaturityCurveConfig | None = None,
 ) -> C04ParameterDerivation:
-    """Derive four multipliers from TRAIN-only base predictions at 7/14/21."""
+    """Derive M7, M14, M21, and MALL at one latest legal TRAIN cutoff."""
 
     if not train_rows or any(
         type(row.actual_harvest_quantity_kg) is not Decimal for row in train_rows
     ):
         raise C04HistoricalScorerError("C04_TRAIN_INPUT_INVALID")
     ordered = tuple(sorted(train_rows, key=_row_key))
-    fold_specs = _fold_dates(ordered)
     calibration_config = config or _default_incumbent_config()
     _validate_incumbent_config_values(calibration_config)
+    train_end = max(row.harvest_business_date for row in ordered)
+    calibration_cutoff = train_end - timedelta(days=max(C04_FORECAST_HORIZONS))
     available_dates = {row.harvest_business_date for row in ordered}
+    target_dates = _fold_target_dates(
+        cutoff_date=calibration_cutoff,
+        available_dates=available_dates,
+    )
+    target_date_set = set(target_dates)
+    fit_rows = tuple(row for row in ordered if row.harvest_business_date <= calibration_cutoff)
+    target_rows = tuple(row for row in ordered if row.harvest_business_date in target_date_set)
+    if not fit_rows or not target_rows:
+        raise C04HistoricalScorerError("C04_TRAIN_CALIBRATION_INSUFFICIENT")
+    identity_target_rows = tuple(
+        replace(row, actual_harvest_quantity_kg=Decimal("0"))
+        for row in sorted(target_rows, key=_row_key)
+    )
+    model = _build_training_model(fit_rows, identity_target_rows, calibration_config)
+    base_predictions = _calibration_base_predictions(
+        model=model,
+        target_rows=identity_target_rows,
+        calibration_cutoff=calibration_cutoff,
+    )
+    target_actuals = _calibration_target_actuals(
+        target_rows=target_rows,
+        calibration_cutoff=calibration_cutoff,
+    )
+    summaries: list[tuple[tuple[int, ...], Decimal, int, int]] = []
+    for horizons in (
+        (C04_FORECAST_HORIZONS[0],),
+        (C04_FORECAST_HORIZONS[1],),
+        (C04_FORECAST_HORIZONS[2],),
+        C04_FORECAST_HORIZONS,
+    ):
+        ratio, comparable_groups, comparable_rows, comparable_horizons = (
+            _group_level_ratio_summaries(
+                base_predictions=base_predictions,
+                target_actuals=target_actuals,
+                required_horizons=horizons,
+            )
+        )
+        summaries.append((comparable_horizons, ratio, comparable_groups, comparable_rows))
     folds: list[C04InnerFoldCalibration] = []
     values: list[Decimal] = []
-    for ordinal, (_all_dates, fit_dates) in enumerate(fold_specs, start=1):
-        fit_date_set = set(fit_dates)
-        target_dates = _fold_target_dates(
-            cutoff_date=fit_dates[-1],
-            available_dates=available_dates,
-        )
-        target_date_set = set(target_dates)
-        fit_rows = tuple(row for row in ordered if row.harvest_business_date in fit_date_set)
-        holdout_rows = tuple(row for row in ordered if row.harvest_business_date in target_date_set)
-        ratio, comparable_groups, comparable_rows, comparable_horizons = _derive_fold_ratio(
-            fit_rows,
-            holdout_rows,
-            config=calibration_config,
+    for ordinal, (horizons, ratio, comparable_groups, comparable_rows) in enumerate(
+        summaries,
+        start=1,
+    ):
+        horizon_target_rows = tuple(
+            row
+            for row in target_rows
+            if (row.harvest_business_date - calibration_cutoff).days in horizons
         )
         folds.append(
             C04InnerFoldCalibration(
                 fold_ordinal=ordinal,
-                fit_start_date=fit_dates[0],
-                fit_end_date=fit_dates[-1],
-                holdout_start_date=min(target_date_set),
-                holdout_end_date=max(target_date_set),
+                calibration_cutoff=calibration_cutoff,
+                fit_start_date=min(row.harvest_business_date for row in fit_rows),
+                fit_end_date=calibration_cutoff,
+                holdout_start_date=min(row.harvest_business_date for row in horizon_target_rows),
+                holdout_end_date=max(row.harvest_business_date for row in horizon_target_rows),
                 fit_row_count=len(fit_rows),
-                holdout_row_count=len(holdout_rows),
+                holdout_row_count=len(horizon_target_rows),
                 comparable_group_count=comparable_groups,
                 comparable_prediction_row_count=comparable_rows,
-                target_horizon_days=comparable_horizons,
+                target_horizon_days=horizons,
                 amplitude_ratio=ratio,
             )
         )
@@ -449,6 +537,7 @@ def derive_c04_parameter_calibration(
         raise C04HistoricalScorerError("C04_PARAMETER_VALUES_INVALID")
     return C04ParameterDerivation(
         policy=C04_PARAMETER_DERIVATION_POLICY,
+        calibration_cutoff=calibration_cutoff,
         folds=tuple(folds),
         parameter_values=parameter_values,
         validation_used_for_parameter_derivation=C04_VALIDATION_USED_FOR_PARAMETER_DERIVATION,
@@ -1187,11 +1276,32 @@ def validate_c04_parameter_manifest(manifest: C04ParameterManifest) -> None:
         raise C04HistoricalScorerError("C04_RUN_ORDER_NOT_FROZEN")
     if len(manifest.calibration_folds) != C04_PLANNED_RUN_COUNT:
         raise C04HistoricalScorerError("C04_CALIBRATION_FOLD_COUNT_INVALID")
+    expected_horizons = (
+        (C04_FORECAST_HORIZONS[0],),
+        (C04_FORECAST_HORIZONS[1],),
+        (C04_FORECAST_HORIZONS[2],),
+        C04_FORECAST_HORIZONS,
+    )
+    if tuple(fold.target_horizon_days for fold in manifest.calibration_folds) != expected_horizons:
+        raise C04HistoricalScorerError("C04_CALIBRATION_HORIZON_BINDING_MISMATCH")
+    calibration_cutoffs = {fold.calibration_cutoff for fold in manifest.calibration_folds}
+    if len(calibration_cutoffs) != 1:
+        raise C04HistoricalScorerError("C04_CALIBRATION_CUTOFF_MISMATCH")
+    calibration_cutoff = next(iter(calibration_cutoffs))
     for run, fold, value in zip(
         manifest.runs, manifest.calibration_folds, manifest.parameter_values, strict=True
     ):
         if run.derivation_fold_ordinal != fold.fold_ordinal or run.parameter_value != value:
             raise C04HistoricalScorerError("C04_RUN_DERIVATION_BINDING_MISMATCH")
+        if fold.calibration_cutoff != calibration_cutoff or fold.fit_end_date != calibration_cutoff:
+            raise C04HistoricalScorerError("C04_CALIBRATION_CUTOFF_MISMATCH")
+        expected_holdout_dates = tuple(
+            calibration_cutoff + timedelta(days=horizon) for horizon in fold.target_horizon_days
+        )
+        if fold.holdout_start_date != min(expected_holdout_dates) or fold.holdout_end_date != max(
+            expected_holdout_dates
+        ):
+            raise C04HistoricalScorerError("C04_CALIBRATION_TARGET_BINDING_MISMATCH")
         if fold.fit_end_date >= fold.holdout_start_date:
             raise C04HistoricalScorerError("C04_INNER_FOLD_TIME_ORDER_INVALID")
         if not isinstance(run.full_parameter_snapshot, Mapping):
