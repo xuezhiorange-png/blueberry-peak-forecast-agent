@@ -32,9 +32,10 @@ from backend.app.s4_experiment import (
     INCUMBENT_MODEL_ID,
     METRIC_CONTRACT_IDENTITY,
     METRIC_CONTRACT_VERSION,
-    V2_FORECAST_HORIZONS,
-    V2_GUARDRAIL_POLICY_HASH,
-    V2_GUARDRAIL_POLICY_VERSION,
+    V3_EVALUATION_SURFACE_ID,
+    V3_FORECAST_HORIZONS,
+    V3_GUARDRAIL_POLICY_HASH,
+    V3_GUARDRAIL_POLICY_VERSION,
     CandidateExecutionGateRequest,
     CandidateExecutionGateResult,
     CandidateRegistration,
@@ -50,7 +51,7 @@ C04_CANDIDATE_ID: Final[str] = "04_yield_parameter"
 C04_CANDIDATE_FAMILY: Final[str] = "PARAMETER_CALIBRATION"
 C04_PARENT_MODEL_ID: Final[str] = INCUMBENT_MODEL_ID
 C04_HYPOTHESIS: Final[str] = "versioned_yield_parameter_calibration_reduces_quantity_error"
-C04_PARAMETER_MANIFEST_VERSION: Final[str] = "v0.3-s4-c04-yield-parameter-manifest-v1"
+C04_PARAMETER_MANIFEST_VERSION: Final[str] = "v0.3-s4-c04-yield-parameter-manifest-v2"
 C04_PARAMETER_SEMANTIC: Final[str] = "TRAIN_DERIVED_POINT_FORECAST_YIELD_AMPLITUDE_MULTIPLIER"
 C04_PARAMETER_UNIT: Final[str] = "RATIO"
 C04_PARAMETER_PATH: Final[str] = "yield_amplitude_multiplier"
@@ -73,7 +74,7 @@ C04_INCUMBENT_OFFSET_MAXIMUM_ABS_SHIFT_DAYS: Final[Decimal] = Decimal("21")
 C04_INCUMBENT_OFFSET_MINIMUM_TRAINING_SAMPLES: Final[int] = 3
 C04_INCUMBENT_FORECAST_OBSERVED_PHASE_ADJUSTMENT_MAX_DAYS: Final[Decimal] = Decimal("14")
 C04_MODEL_IDENTITY: Final[str] = INCUMBENT_MODEL_ID
-C04_AUTHORITY_CLASS: Final[str] = "S4_V2_HISTORICAL_ONLY_CANDIDATE_04"
+C04_AUTHORITY_CLASS: Final[str] = "S4_V3_SPARSE_HORIZON_HISTORICAL_ONLY_CANDIDATE_04"
 C04_HISTORICAL_ONLY_SCORING_PATH_EXISTS: Final[bool] = True
 C04_PARAMETER_REACHES_PREDICTION_MATH: Final[bool] = True
 C04_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION: Final[bool] = True
@@ -84,10 +85,13 @@ C04_WEATHER_USED: Final[bool] = False
 C04_PRODUCTION_PLAN_USED: Final[bool] = False
 C04_TASK8_USED: Final[bool] = False
 C04_TASK9_USED: Final[bool] = False
-C04_FORECAST_HORIZONS: Final[tuple[int, ...]] = V2_FORECAST_HORIZONS
+C04_FORECAST_HORIZONS: Final[tuple[int, ...]] = V3_FORECAST_HORIZONS
+C04_EVALUATION_SURFACE_ID: Final[str] = V3_EVALUATION_SURFACE_ID
 C04_COMPLETE_WINDOW_GUARDRAIL_BLOCKER: Final[str] = "COMPLETE_DAILY_ROW_SET_AUTHORITY_UNAVAILABLE"
 C04_FUTURE_EXECUTION_PRIMARY_METRIC_COMPUTABLE: Final[bool] = True
-C04_FUTURE_EXECUTION_FULL_GUARDRAIL_COMPUTABLE: Final[bool] = False
+C04_COMPLETE_WINDOW_METRICS_SELECTION_BLOCKING: Final[bool] = False
+C04_COMPLETE_WINDOW_METRICS_DIAGNOSTIC_ONLY: Final[bool] = True
+C04_FUTURE_EXECUTION_FULL_GUARDRAIL_COMPUTABLE: Final[bool] = True
 _SHA256_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[0-9a-f]{40}$")
 _DECIMAL_QUANTUM: Final[Decimal] = Decimal("0.000001")
@@ -919,6 +923,7 @@ class C04ParameterManifest:
     experiment_plan_hash: str
     guardrail_policy_version: str
     guardrail_policy_hash: str
+    evaluation_surface_identity: str
     train_dataset_identity: str
     validation_dataset_identity: str
     actual_label_set_identity: str
@@ -965,6 +970,7 @@ class C04ParameterManifest:
             "experiment_plan_hash": self.experiment_plan_hash,
             "guardrail_policy_version": self.guardrail_policy_version,
             "guardrail_policy_hash": self.guardrail_policy_hash,
+            "evaluation_surface_identity": self.evaluation_surface_identity,
             "train_dataset_identity": self.train_dataset_identity,
             "validation_dataset_identity": self.validation_dataset_identity,
             "actual_label_set_identity": self.actual_label_set_identity,
@@ -1143,8 +1149,9 @@ def build_c04_parameter_manifest(
         calibration_folds=derivation.folds,
         experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION,
         experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH,
-        guardrail_policy_version=V2_GUARDRAIL_POLICY_VERSION,
-        guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH,
+        guardrail_policy_version=V3_GUARDRAIL_POLICY_VERSION,
+        guardrail_policy_hash=V3_GUARDRAIL_POLICY_HASH,
+        evaluation_surface_identity=C04_EVALUATION_SURFACE_ID,
         train_dataset_identity=authority.train_dataset_identity,
         validation_dataset_identity=authority.validation_dataset_identity,
         actual_label_set_identity=authority.actual_label_set_identity,
@@ -1178,7 +1185,7 @@ def build_c04_parameter_manifest(
 
 
 def validate_c04_parameter_manifest(manifest: C04ParameterManifest) -> None:
-    """Validate registry, V2 identity, derivation, and four-run invariants."""
+    """Validate registry, V3 sparse identity, derivation, and four-run invariants."""
 
     _registered_c04()
     if manifest.version != C04_PARAMETER_MANIFEST_VERSION:
@@ -1205,10 +1212,11 @@ def validate_c04_parameter_manifest(manifest: C04ParameterManifest) -> None:
     if (
         manifest.experiment_plan_version != EXPERIMENT_PLAN_V2_VERSION
         or manifest.experiment_plan_hash != EXPERIMENT_PLAN_V2_HASH
-        or manifest.guardrail_policy_version != V2_GUARDRAIL_POLICY_VERSION
-        or manifest.guardrail_policy_hash != V2_GUARDRAIL_POLICY_HASH
+        or manifest.guardrail_policy_version != V3_GUARDRAIL_POLICY_VERSION
+        or manifest.guardrail_policy_hash != V3_GUARDRAIL_POLICY_HASH
+        or manifest.evaluation_surface_identity != C04_EVALUATION_SURFACE_ID
     ):
-        raise C04HistoricalScorerError("C04_V2_EXECUTION_IDENTITY_MISMATCH")
+        raise C04HistoricalScorerError("C04_V3_EXECUTION_IDENTITY_MISMATCH")
     if (
         manifest.random_seed_policy != C04_RANDOM_SEED_POLICY
         or manifest.random_seed != C04_RANDOM_SEED
@@ -1382,7 +1390,7 @@ def build_c04_gate_request(
     global_actual_evaluation_count: int = 4,
     retry_of_evaluation_id: str | None = None,
 ) -> CandidateExecutionGateRequest:
-    """Build a V2 gate request without invoking the durable execution adapter."""
+    """Build a V3 sparse gate request without invoking the durable adapter."""
 
     validate_c04_parameter_manifest(manifest)
     if not code_commit_sha or not evaluation_id:
@@ -1407,8 +1415,8 @@ def build_c04_gate_request(
     return CandidateExecutionGateRequest(
         experiment_plan_version=EXPERIMENT_PLAN_V2_VERSION,
         experiment_plan_hash=EXPERIMENT_PLAN_V2_HASH,
-        guardrail_policy_version=V2_GUARDRAIL_POLICY_VERSION,
-        guardrail_policy_hash=V2_GUARDRAIL_POLICY_HASH,
+        guardrail_policy_version=V3_GUARDRAIL_POLICY_VERSION,
+        guardrail_policy_hash=V3_GUARDRAIL_POLICY_HASH,
         candidate_id=C04_CANDIDATE_ID,
         candidate_run_ordinal=candidate_run_ordinal,
         candidate_planned_run_count=C04_PLANNED_RUN_COUNT,
@@ -1435,6 +1443,10 @@ def build_c04_gate_request(
         business_grain_set_identity=manifest.business_grain_set_identity,
         common_comparable_set_identity=manifest.common_comparable_set_identity,
         invocation_type="NORMAL_RUN",
+        evaluation_surface_identity=manifest.evaluation_surface_identity,
+        forecast_horizons=C04_FORECAST_HORIZONS,
+        complete_daily_rowset_authority=False,
+        missing_day_zero_fill=False,
     )
 
 
@@ -1459,6 +1471,8 @@ __all__ = [
     "C04_CANDIDATE_FAMILY",
     "C04_CANDIDATE_ID",
     "C04_COMPLETE_WINDOW_GUARDRAIL_BLOCKER",
+    "C04_COMPLETE_WINDOW_METRICS_DIAGNOSTIC_ONLY",
+    "C04_COMPLETE_WINDOW_METRICS_SELECTION_BLOCKING",
     "C04_FORECAST_HORIZONS",
     "C04_FUTURE_EXECUTION_FULL_GUARDRAIL_COMPUTABLE",
     "C04_FUTURE_EXECUTION_PRIMARY_METRIC_COMPUTABLE",
