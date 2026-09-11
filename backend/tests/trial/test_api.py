@@ -978,6 +978,7 @@ def test_openapi_schema_acceptance(trial_app) -> None:
     expected = {
         "/api/v1/trial/forecasts",
         "/api/v1/trial/forecast-input-authority",
+        "/api/v1/trial/empirical-forecasts/{run_id}",
         "/api/v1/trial/forecasts/{run_id}",
         "/api/v1/trial/forecasts/{run_id}/daily-curve",
         "/api/v1/trial/forecasts/{run_id}/export.csv",

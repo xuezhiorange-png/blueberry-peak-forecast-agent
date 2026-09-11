@@ -118,6 +118,10 @@ async def execute_harvest_state_run(
     forecast_cutoff_at: datetime | None = None,
 ) -> HarvestStateRunEnvelope:
     normalized_request = _normalize_request(request)
+    if normalized_request.empirical_daily_predictions:
+        from backend.app.planning.empirical_authority import verify_empirical_task9_request
+
+        await verify_empirical_task9_request(session, normalized_request)
     try:
         normalized_request = await bind_task8_daily_prediction_availability_from_persisted_rows(
             session,

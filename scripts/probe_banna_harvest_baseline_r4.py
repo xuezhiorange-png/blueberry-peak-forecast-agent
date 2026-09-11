@@ -18,7 +18,7 @@ SOURCE = Path("data/raw/2024_2025_receipts.xls")
 SOURCE_HASH = "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5"
 
 
-def main() -> None:
+def load_verified_facts() -> tuple[HarvestFact, ...]:
     source_bytes = SOURCE.read_bytes()
     if hashlib.sha256(source_bytes).hexdigest() != SOURCE_HASH:
         raise ValueError("historical source identity mismatch")
@@ -46,8 +46,12 @@ def main() -> None:
                     Decimal(str(values["入库公斤数"])),
                 )
             )
+    return tuple(facts)
+
+
+def main() -> None:
     result = build_harvest_baseline(
-        tuple(facts),
+        load_verified_facts(),
         source_sha256=SOURCE_HASH,
         farm_name="版纳勐旺农场",
         variety_code="Dx",
