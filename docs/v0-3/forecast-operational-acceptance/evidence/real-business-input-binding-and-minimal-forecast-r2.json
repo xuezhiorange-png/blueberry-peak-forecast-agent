@@ -1,0 +1,255 @@
+{
+  "TASK_ID": "V0_3_EXISTING_DATA_BINDING_AND_MINIMAL_FORECAST_PATH_RECOVERY_R2",
+  "TASK_CLASS": "EXISTING_DATA_ASSET_RECONCILIATION_AND_OPERATIONAL_FORECAST_PATH_RECOVERY",
+  "REPOSITORY": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "PR_NUMBER": 606,
+  "BASE_MAIN_SHA": "d704cc9338efda2e7aa80499b53622ae42f83fd6",
+  "PREVIOUS_HEAD_SHA": "4dba5a0f9fdfe45c48df0c35bff8834d6d17cef7",
+  "RESULT": "EXACT_EXTERNAL_FACT_GAP_AND_PUSHED",
+  "R1_SOURCE_ABSENCE_INTERPRETATION_SUPERSEDED": true,
+  "USER_DATA_ABSENCE_CLAIM_ISSUED": false,
+  "ASSET_PROVENANCE": {
+    "DATA_PREVIOUSLY_PROVIDED": true,
+    "DATA_PRESENT_IN_REPOSITORY": true,
+    "DATA_PRESENT_BUT_SCHEMA_ONLY": true,
+    "DATA_NOT_MOUNTED_IN_CODEX_RUNTIME": true,
+    "DATA_NOT_IMPORTED_IN_ACCEPTANCE_RUNTIME": true,
+    "DATA_IMPORTED_BUT_NOT_BOUND_TO_CURRENT_FORECAST": true,
+    "PREVIOUSLY_PROVIDED_ASSET_STATUS": "MIXED",
+    "PREVIOUSLY_PROVIDED_ASSET_RUNTIME_STATUS": "NOT_MOUNTED_IN_CODEX_RUNTIME",
+    "PREVIOUSLY_PROVIDED_ASSET_CONTENT_STATUS": "FOUND_SCHEMA_ONLY",
+    "ROW_BEARING_EXISTING_ASSETS": [
+      {
+        "path": "data/raw/2024_2025_receipts.xls",
+        "role": "HISTORICAL_RECEIPT_FACT_SOURCE",
+        "byte_count": 27880960,
+        "sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+        "used_as_current_scope": false
+      },
+      {
+        "path": "data/raw/2025_2026_receipts.xls",
+        "role": "HISTORICAL_RECEIPT_FACT_SOURCE",
+        "byte_count": 33155072,
+        "sha256": "66c4de6ddab4d8e3962eaaba0aab1b6ddcefff9f2605b36c950af3848e2a9c0b",
+        "used_as_current_scope": false
+      }
+    ],
+    "SCHEMA_ONLY_EXISTING_ASSETS": [
+      "data/templates/farm_location_master.csv",
+      "data/templates/season_variety_planting.csv",
+      "data/templates/phenology_history.csv",
+      "data/templates/weather_history.csv",
+      "data/templates/labor_history.csv",
+      "data/templates/parameter_observations.csv"
+    ],
+    "SCHEMA_ONLY_ASSET_ROW_COUNTS": {
+      "data/templates/farm_location_master.csv": 0,
+      "data/templates/season_variety_planting.csv": 0,
+      "data/templates/phenology_history.csv": 0,
+      "data/templates/weather_history.csv": 0,
+      "data/templates/labor_history.csv": 0,
+      "data/templates/parameter_observations.csv": 0
+    },
+    "SYNTHETIC_PARAMETER_LIBRARY_USED": false,
+    "TEMPLATE_PARAMETER_OBSERVATION_USED_AS_REAL": false,
+    "RAW_DATA_COMMITTED_BY_R2": false
+  },
+  "MINIMAL_INPUT_CONTRACT": {
+    "verified": true,
+    "endpoint": "POST /planning/tasks",
+    "implementation": "backend.app.planning.service.create_minimal_planning_task",
+    "location_required": true,
+    "location_options": [
+      "address",
+      "latitude+longitude",
+      "location_reference_id"
+    ],
+    "variety_lookup_required": true,
+    "planted_area_mu_required": true,
+    "yield_from_user_required": false,
+    "marketable_rate_from_user_required": false,
+    "task8_from_user_required": false,
+    "task9_from_user_required": false,
+    "current_scope_row_available": false,
+    "minimal_planning_executed": false,
+    "minimal_planning_status": "NOT_EXECUTED_NO_ROW_BEARING_MINIMAL_SCOPE"
+  },
+  "PARAMETER_LIBRARY_AUDIT": {
+    "parameter_library_import_path_exists": true,
+    "parameter_library_import_path": "backend.app.planning.importers.import_parameter_library_csv",
+    "parameter_library_cli": "scripts/import_parameter_library.py",
+    "historical_receipt_import_path_exists": true,
+    "historical_receipt_import_path": "backend.app.etl.history.importer.import_source",
+    "historical_to_parameter_observation_path_exists": false,
+    "parameter_library_ready": false,
+    "parameter_library_current_acceptance_row_count": 0,
+    "parameter_observation_current_acceptance_row_count": 0,
+    "reason": "NO_REPOSITORY_OWNED_HISTORICAL_TO_PARAMETER_OBSERVATION_BUILDER_AND_NO_CURRENT_LIBRARY_ROWS",
+    "parameter_types_expected_by_task5": [
+      "yield_kg_per_mu",
+      "marketable_rate",
+      "first_harvest_offset_days",
+      "maturity_peak_offset_days",
+      "maturity_width_days",
+      "maturity_skewness",
+      "harvest_realization_rate"
+    ],
+    "historical_raw_receipts_may_be_used_for": "GOVERNED_HISTORICAL_FACT_TO_PARAMETER_CONSTRUCTION_ONLY",
+    "historical_raw_receipts_may_not_be_used_for": "CURRENT_FORWARD_LOOKING_FORECAST_AUTHORITY"
+  },
+  "SOURCE_MANIFEST_AUDIT": {
+    "path": "configs/source_manifest.yaml",
+    "historical_importer_exists": true,
+    "repository_raw_filenames_present": [
+      "data/raw/2024_2025_receipts.xls",
+      "data/raw/2025_2026_receipts.xls"
+    ],
+    "manifest_filenames_match_repository_raw_filenames": false,
+    "finding_class": "HISTORICAL_INGESTION_BINDING_ONLY",
+    "changed_by_r2": false
+  },
+  "PRODUCTION_PLAN_AND_POLICY_AUDIT": {
+    "production_plan_import_path_exists": true,
+    "production_plan_import_path": "backend.app.planning.plan_importer.import_production_plans_csv",
+    "minimal_to_production_plan_automatic_materialization": false,
+    "production_plan_requires_explicit_expected_yield": true,
+    "production_plan_requires_explicit_marketable_rate": true,
+    "marketable_policy_schema_exists": true,
+    "marketable_policy_read_path_exists": true,
+    "marketable_policy_production_writer_exists": false,
+    "marketable_policy_current_acceptance_row_count": 0,
+    "plan_or_policy_created_by_r2": false
+  },
+  "FORECAST_PATH_AUDIT": {
+    "engineering_forecast_path_proven": true,
+    "trial_forecast_endpoint": "POST /api/v1/trial/forecasts",
+    "trial_input_authority_endpoint": "GET /api/v1/trial/forecast-input-authority",
+    "core_execution_path": "backend.app.core_forecast.application.execute_core_forecast_run",
+    "natural_capture_path": "backend.app.forecast_authority.retention.capture_production_forecast_base_authority",
+    "pit_readback_path": "backend.app.forecast_authority.retention.load_pit_visible_forecast_authority",
+    "task8_materialized": false,
+    "task9_materialized": false,
+    "forecast_input_authority_available": false,
+    "forecast_input_authority_item_count": 0,
+    "real_normal_forecast_executed": false,
+    "forecast_run_status": "NOT_EXECUTED",
+    "forecast_result_persisted": false,
+    "forecast_authority_captured": false
+  },
+  "ACCEPTANCE_RUNTIME_OBSERVATION": {
+    "runtime_bound": true,
+    "runtime_class": "NON_PRODUCTION_ACCEPTANCE_RUNTIME",
+    "production_runtime": false,
+    "task_isolated_database_is_production": false,
+    "host": "127.0.0.1",
+    "port": 55437,
+    "postgres_version": "16.15",
+    "alembic_head": "0032_s4_validation_budget_durable_persistence",
+    "database_at_current_head": true,
+    "database_identity": "blueberry_v03_acceptance_r2",
+    "relevant_table_counts": {
+      "dim_farm": 0,
+      "dim_variety": 0,
+      "farm_season_variety_plan": 0,
+      "parameter_library_version": 0,
+      "parameter_observation": 0,
+      "core_forecast_marketable_policy": 0,
+      "forecast_authority_capture": 0
+    },
+    "business_input_loaded": false,
+    "database_write_by_r2": false
+  },
+  "STAGE_STATUS": [
+    {
+      "stage": "MINIMAL_INPUT_SCOPE_ROW_BINDING",
+      "status": "BLOCKED",
+      "reason": "CURRENT_SCOPE_LOCATION_VARIETY_PLANTED_AREA_ROW_NOT_AVAILABLE",
+      "first_broken_stage": true
+    },
+    {
+      "stage": "TASK5_PARAMETER_INFERENCE",
+      "status": "NOT_REACHED",
+      "reason": "NO_LAWFUL_MINIMAL_INPUT_SCOPE_AND_PARAMETER_LIBRARY_NOT_READY"
+    },
+    {
+      "stage": "PRODUCTION_PLAN_AUTHORITY",
+      "status": "NOT_REACHED",
+      "reason": "UPSTREAM_PARAMETER_AND_SCOPE_AUTHORITY_UNAVAILABLE"
+    },
+    {
+      "stage": "MARKETABLE_POLICY_AUTHORITY",
+      "status": "NOT_REACHED",
+      "reason": "NO_ACTIVE_POLICY_ROWS_AND_NO_OPERATIONAL_WRITER_IDENTIFIED"
+    },
+    {
+      "stage": "TASK8_TASK9_SYSTEM_OUTPUTS",
+      "status": "NOT_REACHED",
+      "reason": "UPSTREAM_PRODUCTION_PLAN_AUTHORITY_UNAVAILABLE"
+    },
+    {
+      "stage": "NORMAL_TRIAL_CORE_FORECAST",
+      "status": "NOT_REACHED",
+      "reason": "FORECAST_INPUT_AUTHORITY_UNAVAILABLE"
+    }
+  ],
+  "CURRENT_FINDINGS": {
+    "FIRST_BROKEN_STAGE": "MINIMAL_INPUT_SCOPE_ROW_BINDING",
+    "INTERNAL_SOFTWARE_BLOCKER": "PARAMETER_LIBRARY_MATERIALIZATION_PATH_MISSING",
+    "MISSING_EXTERNAL_BUSINESS_FACTS": [
+      "CURRENT_SCOPE_LOCATION",
+      "CURRENT_SCOPE_VARIETY_LOOKUP",
+      "CURRENT_SCOPE_PLANTED_AREA_MU"
+    ],
+    "current_acceptance_runtime_business_input_data_missing": true,
+    "global_real_business_input_absence_claim": false,
+    "next_required_action": "LOAD_ONE_CURRENT_MINIMAL_SCOPE_ROW_WITH_LOCATION_VARIETY_PLANTED_AREA_MU"
+  },
+  "GOVERNANCE": {
+    "current_v0_3_s4_complete": true,
+    "current_s4_execution_status": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+    "current_s4_blocker": "NONE_CURRENT_PLAN_TERMINAL",
+    "s4_reopen_authorized": false,
+    "s4_candidate_execution_performed": false,
+    "validation_scoring_performed": false,
+    "prospective_scan_performed": false,
+    "v0_3_s5_authorized": false,
+    "s5_implementation_started": false,
+    "model_approved_for_pilot": false,
+    "production_release_approved": false
+  },
+  "BUDGET": {
+    "budget_state_class": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+    "last_accepted_canonical_started_count": 4,
+    "last_accepted_effective_consumed": 8,
+    "last_accepted_remaining": 24,
+    "remaining_validation_budget_unused": 24,
+    "budget_delta": 0,
+    "new_validation_ledger_event_count": 0
+  },
+  "TEST": {
+    "test_access_requested": false,
+    "test_bytes_read": false,
+    "test_evaluation_performed": false,
+    "test_remains_sealed": true
+  },
+  "SIDE_EFFECTS": {
+    "production_code_changed": false,
+    "database_schema_changed": false,
+    "migration_changed": false,
+    "database_write": false,
+    "forecast_execution": false,
+    "forecast_authority_seed_performed": false,
+    "forecast_authority_backfill_performed": false,
+    "candidate_execution": false,
+    "validation_scoring": false,
+    "prospective_scan": false,
+    "raw_xls_committed": false,
+    "raw_train_committed": false,
+    "raw_validation_committed": false,
+    "raw_predictions_committed": false
+  },
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_EXISTING_DATA_BINDING_R2_REVIEW"
+}
