@@ -164,6 +164,58 @@ def test_infer_parameter_returns_unavailable_when_no_candidates() -> None:
     assert result.status == "unavailable"
 
 
+@pytest.mark.parametrize(
+    "parameter_type",
+    [
+        "yield_kg_per_mu",
+        "marketable_rate",
+        "first_harvest_offset_days",
+        "maturity_peak_offset_days",
+        "maturity_width_days",
+        "maturity_skewness",
+        "harvest_realization_rate",
+    ],
+)
+def test_banna_missing_authority_never_emits_default_observation(parameter_type: str) -> None:
+    result = infer_parameter(parameter_type=parameter_type, candidates=[], rules=_rules())
+    assert result.status == "unavailable"
+    assert result.p50_value is None
+    assert result.p80_lower is None and result.p80_upper is None
+    assert result.source_observation_ids == ()
+    assert result.missing_evidence == ("no_historical_observations",)
+
+
+def test_banna_r3_semantic_gate_cannot_claim_materialization() -> None:
+    import hashlib
+    import json
+    from pathlib import Path
+
+    from backend.app.planning.service import PARAMETER_UNITS
+
+    evidence = json.loads(
+        Path(
+            "docs/v0-3/forecast-operational-acceptance/evidence/banna-parameter-materialization-r3.json"
+        ).read_text()
+    )
+    rows = evidence["PARAMETER_SEMANTIC_AUDIT"]
+    assert {row["parameter"] for row in rows} == set(PARAMETER_UNITS)
+    for row in rows:
+        assert row["unit"] == PARAMETER_UNITS[row["parameter"]]
+        assert row["missing_semantic_contract"]
+        assert row["status"] == "BLOCKED"
+        assert row["derivation_authorized"] is False
+    assert evidence["PARAMETER_OBSERVATION_COUNT"] == 0
+    assert evidence["AUTHORIZED_SOURCE_IDENTITIES"] == []
+    assert evidence["PARAMETER_OBSERVATIONS_MATERIALIZED"] is False
+    assert evidence["MINIMAL_PLANNING_EXECUTED"] is False
+    assert evidence["TEST_BYTES_READ"] is False
+    for path, expected in evidence["INSPECTED_AUTHORITY_HASHES"].items():
+        assert len(expected) == 64
+        # R2 evidence is immutable; living contracts may evolve after this audit.
+        if path.endswith("banna-scope-parameter-authority-r2.json"):
+            assert hashlib.sha256(Path(path).read_bytes()).hexdigest() == expected
+
+
 def test_infer_parameter_uses_first_satisfied_level_and_computes_weighted_p50_p80() -> None:
     result = infer_parameter(
         parameter_type="yield_kg_per_mu",
