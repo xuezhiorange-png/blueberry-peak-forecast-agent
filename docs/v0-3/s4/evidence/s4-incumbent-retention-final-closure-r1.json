@@ -1,0 +1,183 @@
+{
+  "TASK_ID": "V0_3_S4_INCUMBENT_RETENTION_FINAL_CLOSURE_R1",
+  "TASK_CLASS": "S4_FINAL_NO_SELECTION_CLOSURE",
+  "RESULT": "CLOSED_AND_PUSHED",
+  "BASE_MAIN_SHA": "ef15039e85e07d0115b7dde0f3ddee9d03a9763a",
+  "PR602_MERGE_IN_BASE": true,
+  "COORDINATOR_DECISION": {
+    "CLOSE_CURRENT_V0_3_S4": true,
+    "AUTHORIZE_NEW_EXPERIMENT_PLAN": false,
+    "AUTHORIZE_NEW_CANDIDATE": false,
+    "AUTHORIZE_TEST_OPENING": false,
+    "RETAIN_CURRENT_INCUMBENT": true
+  },
+  "S4_FINAL_STATUS": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+  "CURRENT_FROZEN_PLAN_HAS_NO_REMAINING_EXECUTABLE_CANDIDATE": true,
+  "NEXT_EXECUTABLE_CANDIDATE": "NONE",
+  "SELECTED_CANDIDATE_ID": "NOT_ISSUED",
+  "SELECTED_CANDIDATE_COUNT": 0,
+  "INCUMBENT_MODEL_ID": "V0_2_CURRENT_MODEL",
+  "INCUMBENT_RETAINED": true,
+  "INCUMBENT_RETENTION_REASON": "NO_ADMISSIBLE_REPLACEMENT_SELECTED_UNDER_FROZEN_PLAN",
+  "INCUMBENT_IS_S4_SELECTED_CANDIDATE": false,
+  "INCUMBENT_DECLARED_VALIDATION_WINNER": false,
+  "MULTIPLE_COMPARISON_FINAL_SELECTION_PERFORMED": false,
+  "HOLM_ADJUSTMENT_PERFORMED": false,
+  "MULTIPLE_COMPARISON_REASON": "NO_CANDIDATE_SELECTION_ISSUED",
+  "TEST_EVALUATION_AUTHORIZED": false,
+  "TEST_ROWS_SELECTED": false,
+  "TEST_LABELS_LOADED": false,
+  "TEST_BYTES_READ": false,
+  "TEST_SCORING_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "S4_MODEL_CHANGE_AUTHORIZED": false,
+  "S4_PARAMETER_CHANGE_AUTHORIZED": false,
+  "PRODUCTION_MODEL_CHANGE_PERFORMED": false,
+  "PRODUCTION_PARAMETER_CHANGE_PERFORMED": false,
+  "MODEL_APPROVED_FOR_PILOT": false,
+  "PILOT_DEPLOYMENT_AUTHORIZED": false,
+  "EXPERIMENT_PLAN_VERSION": "v0.3-experiment-plan-v2",
+  "EXPERIMENT_PLAN_HASH": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9",
+  "EXPERIMENT_PLAN_EXECUTION_STATUS": "CLOSED",
+  "EXPERIMENT_PLAN_REOPEN_AUTHORIZED": false,
+  "NEW_EXPERIMENT_PLAN_AUTHORIZED": false,
+  "NEW_EXPERIMENT_PLAN_VERSION": "NOT_ISSUED",
+  "V4_GUARDRAIL_POLICY_VERSION": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor",
+  "V4_GUARDRAIL_POLICY_HASH": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d2",
+  "NEW_GUARDRAIL_POLICY_AUTHORIZED": false,
+  "DURABLE_BUDGET_READBACK_AVAILABLE": false,
+  "BUDGET_STATE_CLASS": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+  "BUDGET_PROVENANCE": {
+    "EVIDENCE_PATH": "docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json",
+    "EVIDENCE_SHA256": "78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3"
+  },
+  "LAST_ACCEPTED_CANONICAL_STARTED_COUNT": 4,
+  "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+  "LAST_ACCEPTED_EFFECTIVE_CONSUMED": 8,
+  "LAST_ACCEPTED_REMAINING": 24,
+  "REMAINING_VALIDATION_BUDGET_UNUSED": 24,
+  "BUDGET_CARRY_FORWARD_AUTHORIZED": false,
+  "BUDGET_DELTA": 0,
+  "NEW_VALIDATION_EXECUTION": false,
+  "NEW_VALIDATION_SCORING": false,
+  "NEW_STARTED_EVENT_COUNT": 0,
+  "NEW_TERMINAL_EVENT_COUNT": 0,
+  "HISTORICAL_EVIDENCE_IMMUTABLE": true,
+  "HISTORICAL_EVIDENCE_NOT_REWRITTEN": true,
+  "MACHINE_DERIVED_CLOSURE_PAYLOAD": {
+    "budget": {
+      "budget_carry_forward_authorized": false,
+      "budget_delta": 0,
+      "durable_budget_readback_available": false,
+      "effective_consumed": 8,
+      "last_accepted_canonical_started_count": 4,
+      "new_started_event_count": 0,
+      "new_terminal_event_count": 0,
+      "provenance": {
+        "evidence_path": "docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json",
+        "evidence_sha256": "78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3"
+      },
+      "remaining_validation_budget_unused": 24,
+      "state_class": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT"
+    },
+    "candidate_dispositions": [
+      {
+        "candidate_id": "01_parameter_calibration",
+        "currently_runnable_under_v4": false,
+        "reason_code": "CANDIDATE_01_RERUN_FORBIDDEN"
+      },
+      {
+        "candidate_id": "02_quantile_calibration",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC"
+      },
+      {
+        "candidate_id": "03_phenology_offset",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+      },
+      {
+        "candidate_id": "04_yield_parameter",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C04_EXHAUSTED_EVIDENCE_INSUFFICIENT"
+      },
+      {
+        "candidate_id": "05_marketable_rate",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+      },
+      {
+        "candidate_id": "06_weather_response",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY"
+      },
+      {
+        "candidate_id": "07_harvest_efficiency",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+      },
+      {
+        "candidate_id": "08_residual_feature",
+        "currently_runnable_under_v4": false,
+        "reason_code": "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED"
+      }
+    ],
+    "current_frozen_plan_has_no_remaining_executable_candidate": true,
+    "execution_boundary": {
+      "new_validation_execution": false,
+      "new_validation_scoring": false
+    },
+    "experiment_plan": {
+      "execution_status": "CLOSED",
+      "hash": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9",
+      "reopen_authorized": false,
+      "version": "v0.3-experiment-plan-v2"
+    },
+    "guardrail_policy": {
+      "hash": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d2",
+      "version": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor"
+    },
+    "incumbent": {
+      "declared_validation_winner": false,
+      "is_s4_selected_candidate": false,
+      "model_id": "V0_2_CURRENT_MODEL",
+      "retained": true
+    },
+    "incumbent_retention_reason": "NO_ADMISSIBLE_REPLACEMENT_SELECTED_UNDER_FROZEN_PLAN",
+    "model_and_pilot_boundary": {
+      "model_approved_for_pilot": false,
+      "pilot_deployment_authorized": false,
+      "production_model_change_performed": false,
+      "production_parameter_change_performed": false,
+      "s4_model_change_authorized": false,
+      "s4_parameter_change_authorized": false
+    },
+    "multiple_comparison": {
+      "final_selection_performed": false,
+      "holm_adjustment_performed": false,
+      "reason": "NO_CANDIDATE_SELECTION_ISSUED"
+    },
+    "new_plan_boundary": {
+      "experiment_plan_authorized": false,
+      "experiment_plan_version": "NOT_ISSUED",
+      "guardrail_policy_authorized": false
+    },
+    "next_executable_candidate": "NONE",
+    "s4_final_status": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+    "selected_candidate_count": 0,
+    "selected_candidate_id": "NOT_ISSUED",
+    "task_id": "V0_3_S4_INCUMBENT_RETENTION_FINAL_CLOSURE_R1",
+    "test_boundary": {
+      "bytes_read": false,
+      "evaluation_authorized": false,
+      "labels_loaded": false,
+      "remains_sealed": true,
+      "rows_selected": false,
+      "scoring_performed": false
+    }
+  },
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_S4_FINAL_CLOSURE_REVIEW"
+}
