@@ -207,3 +207,63 @@ FINAL_STOP_GATE=COORDINATOR_V0_3_S4_REMAINING_CANDIDATE_VIABILITY_REVIEW
 The coordinator must choose between incumbent-oriented S4 closure and a
 separately authorized experiment-plan change before any new candidate work is
 started. This workpaper does not authorize either choice.
+
+## R2 provenance correction
+
+The R2 correction separates three identities that R1 had presented too
+compactly: immutable registry selection eligibility, the V2 current execution
+overlay, and current V4 runnability. Registry metadata is read from
+`FROZEN_CANDIDATE_REGISTRY`; V2 execution eligibility is read from
+`build_v2_candidate_compatibility_audit()`; current V4 runnability is composed
+from the C01 prohibition, C02 structural disposition, C03 blocker, C04
+exhausted closure, C05/C07 canonical dispositions, and C06/C08 V2 exclusions.
+
+```text
+TASK_ID=V0_3_S4_REMAINING_CANDIDATE_AUTHORITY_BINDING_CORRECTION_R2
+V2_CURRENT_EXECUTION_ELIGIBLE=01,02,03,04,05,07
+V2_CURRENT_EXECUTION_INELIGIBLE=06,08
+FROZEN_REGISTRY_SELECTION_ELIGIBILITY=ALL_EIGHT_REGISTERED_AND_GUARDRAIL_ELIGIBLE
+CURRENT_V4_RUNNABILITY=NONE
+NEXT_EXECUTABLE_CANDIDATE=NONE
+```
+
+C02 has two independent blockers: the missing V2-bound prediction/quantile
+path and the structural fact that P80/P90-only changes leave P50 and therefore
+`daily_wape` unchanged. The canonical `compare_primary_metric` result for
+equal values is `FAIL/NOT_IMPROVED`, so a future C02 would require a separately
+authorized policy amendment; none is made here.
+
+C05 is bound to the real planning/maturity route
+`_derived_total -> _prepare_plan_inputs -> _resolve_training_sample ->
+forecast_natural_maturity`, where
+`planted_area_mu * expected_yield_kg_per_mu * marketable_rate` produces the
+expected total marketable quantity. `compose_complete_daily_marketable_curve`
+is not treated as a second marketable-rate multiplication; its sorting and
+post-harvest retention factors remain distinct. C05 therefore remains blocked
+because SOURCE-002 does not supply the canonical upstream authority.
+
+C07 is bound to the real harvest-state route through `_validated_request`,
+`compute_weather_efficiency_ratio`, and `run_harvest_state_model`, including
+the resolved effective-capacity output. Its weather/Task9/holiday inputs are
+not historical-only SOURCE-002 authority, so the existing C07 blocker remains.
+
+The budget values are not a fresh database read in this audit. They are a
+last-accepted durable snapshot proven by
+`docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json` with SHA-256
+`78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3`.
+
+```text
+DURABLE_BUDGET_READBACK_AVAILABLE=false
+LAST_ACCEPTED_CANONICAL_STARTED_COUNT=4
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+BUDGET_DELTA=0
+NO_LEDGER_WRITE=true
+NO_VALIDATION_READ=true
+NO_SCORER_CALL=true
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_S4_REMAINING_CANDIDATE_AUTHORITY_R2_REVIEW
+```
