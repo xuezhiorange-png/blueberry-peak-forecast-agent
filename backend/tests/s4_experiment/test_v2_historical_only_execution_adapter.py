@@ -71,6 +71,7 @@ from backend.app.s4_local_engineering import (
     validate_v2_forecast_horizon,
 )
 from backend.app.s4_v2_historical_only_execution import (
+    V2_C03_CANONICAL_PATHS,
     V2_CANDIDATE_01_ID,
     V2_CANDIDATE_02_ID,
     V2_CANDIDATE_03_ID,
@@ -260,7 +261,7 @@ def test_candidate_06_v2_execution_blocked() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_CANDIDATE_06_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_06_execution_eligible is False
-    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    assert readiness.next_executable_candidate == "NONE"
     assert V2_CANDIDATE_06_ID in V2_CANDIDATE_AUDIT_ORDER
     item = _audit_by_id()[V2_CANDIDATE_06_ID]
     assert item.current_v0_3_execution_eligible is False
@@ -271,7 +272,7 @@ def test_candidate_08_v2_execution_blocked() -> None:
     readiness = build_v2_historical_only_readiness()
     assert V2_CANDIDATE_08_EXECUTION_ELIGIBLE is False
     assert readiness.candidate_08_execution_eligible is False
-    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    assert readiness.next_executable_candidate == "NONE"
     assert V2_CANDIDATE_08_ID in V2_CANDIDATE_AUDIT_ORDER
     item = _audit_by_id()[V2_CANDIDATE_08_ID]
     assert item.current_v0_3_execution_eligible is False
@@ -394,31 +395,49 @@ def test_candidate_parameter_must_reach_prediction_path() -> None:
     assert audit[V2_CANDIDATE_04_ID].parameter_change_can_change_prediction is True
     assert audit[V2_CANDIDATE_04_ID].v2_historical_only_scoring_path_exists is True
     assert audit[V2_CANDIDATE_04_ID].historical_only_execution_compatible is True
+    assert audit[V2_CANDIDATE_04_ID].current_v0_3_execution_eligible is True
+    assert audit[V2_CANDIDATE_04_ID].currently_runnable_under_v2 is False
+    assert audit[V2_CANDIDATE_04_ID].currently_runnable_under_v4 is False
+    assert audit[V2_CANDIDATE_04_ID].reason_code == ("C04_EXHAUSTED_EVIDENCE_INSUFFICIENT")
 
 
 def test_c03_frozen_historical_eligibility_is_distinct_from_legacy_path() -> None:
     item = _audit_by_id()["03_phenology_offset"]
     assert item.uses_weather is True
-    assert item.historical_only_input_compatible is True
+    assert item.uses_production_plan is True
+    assert item.uses_task8 is False
+    assert item.uses_task9 is False
+    assert item.uses_other_forward_looking_authority is True
+    assert item.historical_only_input_compatible is False
     assert item.current_v0_3_execution_eligible is True
     assert item.historical_only_execution_compatible is False
     assert item.currently_runnable_under_v2 is False
+    assert item.currently_runnable_under_v4 is False
+    assert item.v2_historical_only_scoring_path_exists is False
 
 
-def test_candidate_using_plan_is_historical_only_ineligible() -> None:
+def test_c03_canonical_path_requires_forward_looking_dependencies() -> None:
     item = _audit_by_id()["03_phenology_offset"]
-    assert item.uses_production_plan is True
+    assert item.uses_other_forward_looking_authority is True
+    assert item.actual_execution_function == V2_C03_CANONICAL_PATHS
     assert item.historical_only_execution_compatible is False
+    assert item.reason_code == (
+        "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+    )
 
 
-def test_c03_parameter_effect_path_is_proven_or_fail_closed() -> None:
+def test_c03_parameter_effect_path_is_proven() -> None:
     item = _audit_by_id()[V2_CANDIDATE_03_ID]
     assert item.parameter_or_feature_path == ("offset.maximum_abs_shift_days",)
-    assert item.parameter_reaches_prediction_math is True
+    assert item.parameter_reaches_prediction_math is False
+    assert item.parameter_change_can_change_prediction is False
     assert item.v2_historical_only_scoring_path_exists is False
     assert item.current_v0_3_execution_eligible is True
     assert item.currently_runnable_under_v2 is False
-    assert item.reason_code == "C03_NO_SOURCE_002_ONLY_SCORING_PATH"
+    assert item.currently_runnable_under_v4 is False
+    assert item.reason_code == (
+        "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+    )
 
 
 def test_preflight_creates_no_started_event(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -516,13 +535,13 @@ def test_frozen_v2_eligibility_is_preserved_independently_of_runnability() -> No
     }
 
 
-def test_next_executable_candidate_is_c04() -> None:
+def test_next_executable_candidate_is_none_until_a_lawful_scorer_exists() -> None:
     readiness = build_v2_historical_only_readiness()
-    assert readiness.next_executable_candidate == V2_CANDIDATE_04_ID
+    assert readiness.next_executable_candidate == "NONE"
     runnable = [
-        item.candidate_id for item in readiness.candidate_audit if item.currently_runnable_under_v2
+        item.candidate_id for item in readiness.candidate_audit if item.currently_runnable_under_v4
     ]
-    assert runnable == [V2_CANDIDATE_04_ID]
+    assert runnable == []
 
 
 def _baseline_row(index: int, quantity: str) -> FarmTotalDatasetRow:
