@@ -23654,3 +23654,46 @@ MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 EVIDENCE_JSON=docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json
 FINAL_STOP_GATE=COORDINATOR_FIRST_REAL_FORECAST_R5_REVIEW
+
+### 4.60 V0.3 version closeout and acceptance reconciliation R1
+
+Current-live closeout on main `f3a0804869d459d423b31115ff9aae8a31ab0996`, which merged PR #607. See [closeout contract](v0-3-version-closeout-and-acceptance-reconciliation-r1.md) and [evidence](evidence/v0-3-version-closeout-and-acceptance-reconciliation-r1.json). Prior evidence is unchanged; this pointer reconciles current authority without rewriting historical snapshots.
+
+V0.3 is closed with a passing bounded empirical real-business forecast capability, not model accuracy approval, pilot acceptance or production release. S3 engineering completion does not imply historical PIT metrics became computable. PR607 does not overturn S4 no-selection. Weather is excluded; neutral Task9 fields are schema compatibility/baseline policy only. No next-version scope or implementation task is authorized.
+
+```text
+V0_3_VERSION_STATUS=CLOSED
+V0_3_CLOSEOUT_COMPLETE=true
+V0_3_CORE_FORECAST_CAPABILITY=PASS
+V0_3_FIRST_REAL_BUSINESS_FORECAST=PASS
+V0_3_S1_STATUS=COMPLETE
+V0_3_S2_STATUS=COMPLETE
+V0_3_S3_STATUS=COMPLETE
+V0_3_S4_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+SELECTED_CANDIDATE_ID=NOT_ISSUED
+MODEL_APPROVED_FOR_PILOT=false
+S5_ENTRY_STATUS=BLOCKED_NO_PILOT_APPROVED_MODEL
+V0_3_S5_STATUS=NOT_ENTERED
+V0_3_S6_STATUS=NOT_ENTERED
+S5_IMPLEMENTATION_STARTED=false
+S6_IMPLEMENTATION_STARTED=false
+V0_3_WEATHER_IN_SCOPE=false
+UNCERTAINTY_STATUS=NOT_CALIBRATED_IDENTICAL_POINT_SCENARIOS
+S4_REOPEN_AUTHORIZED=false
+NEW_EXPERIMENT_PLAN_AUTHORIZED=false
+BUDGET_STATE_CLASS=LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT
+DURABLE_BUDGET_READBACK_AVAILABLE=false
+VALUES_ARE_CURRENT_DATABASE_READBACK=false
+VALUES_ARE_LAST_ACCEPTED_DURABLE_SNAPSHOT=true
+LEGACY_RECONCILED_VALIDATION_DEBIT=4
+LAST_ACCEPTED_CANONICAL_STARTED_COUNT=4
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+REMAINING_VALIDATION_BUDGET_UNUSED=24
+VALIDATION_BUDGET_DELTA=0
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_V0_3_VERSION_CLOSEOUT_R1_REVIEW
+```
