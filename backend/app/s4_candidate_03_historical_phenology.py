@@ -1,19 +1,13 @@
-"""SOURCE-002-only C03 phenology-offset scorer and V4 manifest binding.
+"""C03 manifest/audit surface with a fail-closed canonical scorer boundary.
 
-Candidate 03 is a historical-only execution adapter.  It deliberately does
-not call the production forecast service because that service resolves current
-season planning, weather, and Task8/Task9 authorities.  Instead, it reuses
-the maturity curve fitting primitive and the production shift semantics that
-are lawful with the materialized historical rows:
-
-* learn a group-level peak delta from TRAIN curves against a variety parent
-  curve;
-* apply the frozen symmetric shift bound through ``ShiftModelArtifact.bounds``;
-* shift and normalize the curve before projecting the requested target row.
-
-The adapter never reads target actual quantities.  A target row is used only
-for its business grain and date when a prediction is projected.  It has no
-database, scorer callback, TEST reader, or durable-budget mutation path.
+The first readiness attempt contained a SOURCE-002-only group-peak-delta
+prototype.  That prototype is retained below for isolated mathematical tests
+and historical auditability, but it is *not* the production C03 execution
+authority.  The production phenology shift model is trained by
+``backend.app.maturity.service.train_maturity_curve`` from resolved maturity
+samples whose plan/weather/location/base-temperature authorities are not
+present in ``MaterializableRow``.  Until that equivalence and input authority
+are established, C03 execution must fail closed.
 """
 
 from __future__ import annotations
@@ -24,6 +18,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
+from dataclasses import fields as dataclass_fields
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
@@ -106,9 +101,13 @@ C03_EVALUATION_SURFACE_ID: Final[str] = V3_EVALUATION_SURFACE_ID
 C03_COMPLETE_DAILY_ROWSET_AUTHORITY: Final[bool] = V3_COMPLETE_DAILY_ROWSET_AUTHORITY
 C03_MISSING_DAY_ZERO_FILL: Final[bool] = V3_MISSING_DAY_ZERO_FILL
 C03_TEST_REMAINS_SEALED: Final[bool] = True
-C03_HISTORICAL_ONLY_SCORING_PATH_EXISTS: Final[bool] = True
-C03_PARAMETER_REACHES_PREDICTION_MATH: Final[bool] = True
-C03_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION: Final[bool] = True
+C03_CANONICAL_SHIFT_MODEL_BLOCKER: Final[str] = (
+    "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+)
+C03_HISTORICAL_ONLY_SCORING_PATH_EXISTS: Final[bool] = False
+C03_PARAMETER_REACHES_PREDICTION_MATH: Final[bool] = False
+C03_PARAMETER_CHANGE_CAN_CHANGE_PREDICTION: Final[bool] = False
+C03_CANONICAL_PARAMETER_CHANGE_STATUS: Final[str] = "NOT_PROVEN"
 C03_USES_WEATHER: Final[bool] = False
 C03_USES_PRODUCTION_PLAN: Final[bool] = False
 C03_USES_TASK8: Final[bool] = False
@@ -116,11 +115,52 @@ C03_USES_TASK9: Final[bool] = False
 C03_USES_CURRENT_SEASON_INPUT: Final[bool] = False
 C03_USES_PROSPECTIVE_CAPTURE: Final[bool] = False
 C03_USES_WALL_CLOCK_WAIT: Final[bool] = False
-C03_HISTORICAL_SCORER_PATH: Final[str] = (
+C03_CANONICAL_PRODUCTION_TRAINING_PATH: Final[str] = (
+    "backend.app.maturity.service.train_maturity_curve"
+)
+C03_CANONICAL_SHIFT_BUILDER_PATH: Final[str] = "backend.app.maturity.service._build_shift_model"
+C03_CANONICAL_SHIFT_PREDICTOR_PATH: Final[str] = "backend.app.maturity.service._predict_shift_days"
+C03_CANONICAL_FORECAST_PATH: Final[str] = "backend.app.maturity.service.forecast_natural_maturity"
+C03_CANONICAL_PRODUCTION_SHIFT_PATHS: Final[tuple[str, ...]] = (
+    C03_CANONICAL_PRODUCTION_TRAINING_PATH,
+    C03_CANONICAL_SHIFT_BUILDER_PATH,
+    C03_CANONICAL_SHIFT_PREDICTOR_PATH,
+    C03_CANONICAL_FORECAST_PATH,
+)
+C03_NON_CANONICAL_PROTOTYPE_PATH: Final[str] = (
     "backend.app.s4_candidate_03_historical_phenology.C03HistoricalPhenologyScorer.predict_rows"
 )
-# Explicit alias for callers that name the boundary by its historical-only role.
+# No SOURCE-002-only canonical scorer is currently bound to C03.
+C03_HISTORICAL_SCORER_PATH: Final[str] = "NONE_C03_CANONICAL_SOURCE_002_SCORER"
 C03_HISTORICAL_ONLY_SCORER_PATH: Final[str] = C03_HISTORICAL_SCORER_PATH
+C03_NON_CANONICAL_PROTOTYPE_STATUS: Final[str] = "NON_CANONICAL_EXPERIMENTAL_PROTOTYPE"
+C03_NON_CANONICAL_PROTOTYPE_IS_EXECUTION_AUTHORITY: Final[bool] = False
+C03_CANONICAL_SHIFT_TARGET_DEFINITION: Final[str] = (
+    "observed_peak_day - parent_curve_artifact.peak_day"
+)
+C03_CANONICAL_TRAINING_FEATURES: Final[tuple[str, ...]] = (
+    "altitude_m",
+    "tree_age_years",
+    "pruning_offset_days",
+    "flowering_peak_offset_days",
+    "first_pick_offset_days",
+    "facility_type",
+)
+C03_CANONICAL_TRAINING_REQUIRED_INPUTS: Final[tuple[str, ...]] = (
+    "training_sample.training_points",
+    "parent_curve_artifact.peak_day",
+    *(f"training_sample.feature_values.{name}" for name in C03_CANONICAL_TRAINING_FEATURES),
+)
+C03_CANONICAL_FORWARD_LOOKING_AUTHORITY_DOMAINS: Final[tuple[str, ...]] = (
+    "analytics_build_run",
+    "production_plan",
+    "location_reference",
+    "base_temperature_search",
+    "weather_mapping_and_observations",
+)
+C03_SOURCE002_MATERIALIZABLE_FIELDS: Final[tuple[str, ...]] = tuple(
+    field.name for field in dataclass_fields(MaterializableRow)
+)
 C03_AUTHORITY_CLASS: Final[str] = "S4_V4_SPARSE_HORIZON_HISTORICAL_ONLY_CANDIDATE_03"
 C03_EXCLUSION_POLICY_IDENTITY: Final[str] = sha256_payload(
     {
@@ -144,6 +184,75 @@ class C03HistoricalPhenologyError(ValueError):
     def __init__(self, reason_code: str) -> None:
         self.reason_code = reason_code
         super().__init__(reason_code)
+
+
+@dataclass(frozen=True, slots=True)
+class C03CanonicalTrainingInputAudit:
+    """Read-only audit of the production shift-model input boundary.
+
+    This object intentionally describes availability, not a replacement
+    trainer.  ``MaterializableRow`` is the only SOURCE-002 object admitted to
+    the V2 historical lane, so missing canonical inputs are a hard boundary.
+    """
+
+    production_training_path: str
+    production_shift_builder_path: str
+    production_shift_predictor_path: str
+    production_forecast_path: str
+    shift_target_definition: str
+    required_training_features: tuple[str, ...]
+    required_training_inputs: tuple[str, ...]
+    source002_materializable_fields: tuple[str, ...]
+    missing_source002_inputs: tuple[str, ...]
+    forward_looking_authority_domains: tuple[str, ...]
+    source002_can_supply_canonical_inputs: bool
+    separable_from_forward_looking_authority: bool
+    reason_code: str | None
+
+    def payload(self) -> dict[str, object]:
+        return {
+            "production_training_path": self.production_training_path,
+            "production_shift_builder_path": self.production_shift_builder_path,
+            "production_shift_predictor_path": self.production_shift_predictor_path,
+            "production_forecast_path": self.production_forecast_path,
+            "shift_target_definition": self.shift_target_definition,
+            "required_training_features": list(self.required_training_features),
+            "required_training_inputs": list(self.required_training_inputs),
+            "source002_materializable_fields": list(self.source002_materializable_fields),
+            "missing_source002_inputs": list(self.missing_source002_inputs),
+            "forward_looking_authority_domains": list(self.forward_looking_authority_domains),
+            "source002_can_supply_canonical_inputs": self.source002_can_supply_canonical_inputs,
+            "separable_from_forward_looking_authority": (
+                self.separable_from_forward_looking_authority
+            ),
+            "reason_code": self.reason_code,
+        }
+
+
+def audit_c03_canonical_training_inputs() -> C03CanonicalTrainingInputAudit:
+    """Audit canonical production inputs without loading data or running a model."""
+
+    available_fields = set(C03_SOURCE002_MATERIALIZABLE_FIELDS)
+    # These are resolved-sample/artifact paths, not aliases that may be
+    # inferred from a row's date, quantity, or business identity.
+    missing_inputs = tuple(
+        path for path in C03_CANONICAL_TRAINING_REQUIRED_INPUTS if path not in available_fields
+    )
+    return C03CanonicalTrainingInputAudit(
+        production_training_path=C03_CANONICAL_PRODUCTION_TRAINING_PATH,
+        production_shift_builder_path=C03_CANONICAL_SHIFT_BUILDER_PATH,
+        production_shift_predictor_path=C03_CANONICAL_SHIFT_PREDICTOR_PATH,
+        production_forecast_path=C03_CANONICAL_FORECAST_PATH,
+        shift_target_definition=C03_CANONICAL_SHIFT_TARGET_DEFINITION,
+        required_training_features=C03_CANONICAL_TRAINING_FEATURES,
+        required_training_inputs=C03_CANONICAL_TRAINING_REQUIRED_INPUTS,
+        source002_materializable_fields=C03_SOURCE002_MATERIALIZABLE_FIELDS,
+        missing_source002_inputs=missing_inputs,
+        forward_looking_authority_domains=C03_CANONICAL_FORWARD_LOOKING_AUTHORITY_DOMAINS,
+        source002_can_supply_canonical_inputs=not missing_inputs,
+        separable_from_forward_looking_authority=False,
+        reason_code=(C03_CANONICAL_SHIFT_MODEL_BLOCKER if missing_inputs else None),
+    )
 
 
 def _q(value: Decimal) -> Decimal:
@@ -1080,7 +1189,13 @@ class C03ParameterEffectProof:
 
 @dataclass(frozen=True, slots=True)
 class C03HistoricalPhenologyScorer:
-    """Historical-only learned-shift prediction service."""
+    """Non-canonical prototype retained for isolated audit fixtures only.
+
+    It must never be constructed from SOURCE-002 authority or used as the S4
+    C03 execution scorer.  The public class remains temporarily available so
+    old fixture-level experiments remain inspectable, but the authority-bound
+    constructor below fails closed.
+    """
 
     train_rows: tuple[MaterializableRow, ...]
     forecast_cutoff_at: date
@@ -1094,30 +1209,8 @@ class C03HistoricalPhenologyScorer:
         authority: V2HistoricalEvaluationAuthority,
         config: MaturityCurveConfig,
     ) -> C03HistoricalPhenologyScorer:
-        _validate_authority(authority)
-        from backend.app.s4_local_engineering import v2_training_rows
-
-        train_rows = v2_training_rows(authority)
-        if authority.test_remains_sealed is not True:
-            raise C03HistoricalPhenologyError("C03_TEST_MUST_REMAIN_SEALED")
-        if authority.source_id != C03_SOURCE_ID:
-            raise C03HistoricalPhenologyError("C03_SOURCE_002_IDENTITY_MISMATCH")
-        _validate_incumbent_config(None, config)
-        # Projection rows carry identities and dates only.  Masking the held-out
-        # quantity before the model builder makes the no-label-input boundary
-        # explicit even if the builder is changed later.
-        projection_rows = tuple(
-            replace(row, actual_harvest_quantity_kg=Decimal("0"))
-            for row in authority.evaluation_rows
-        )
-        model = _build_training_model(train_rows, projection_rows, config)
-        return cls(
-            train_rows=train_rows,
-            forecast_cutoff_at=authority.forecast_cutoff_at,
-            train_dataset_identity=authority.train_dataset_identity,
-            config=config,
-            _model=model,
-        )
+        del authority, config
+        raise C03HistoricalPhenologyError(C03_CANONICAL_SHIFT_MODEL_BLOCKER)
 
     def predict_rows(
         self, target_rows: tuple[MaterializableRow, ...], maximum_abs_shift_days: Decimal
@@ -1232,13 +1325,10 @@ class C03HistoricalPhenologyScorer:
 def build_c03_historical_phenology_scorer(
     *, authority: V2HistoricalEvaluationAuthority, config_path: Path
 ) -> C03HistoricalPhenologyScorer:
-    """Bind the scorer to verified V2 authority and the incumbent YAML."""
+    """Reject the non-canonical prototype at the authority boundary."""
 
-    if not config_path.is_file():
-        raise C03HistoricalPhenologyError("C03_INCUMBENT_CONFIG_UNAVAILABLE")
-    config = load_maturity_curve_config(config_path)
-    _validate_incumbent_config(config_path, config)
-    return C03HistoricalPhenologyScorer.from_v2_authority(authority, config)
+    del authority, config_path
+    raise C03HistoricalPhenologyError(C03_CANONICAL_SHIFT_MODEL_BLOCKER)
 
 
 def _manifest_pairing_payload(manifest: C03HistoricalParameterManifest) -> dict[str, object]:
@@ -1327,9 +1417,16 @@ def build_c03_v4_gate_request(
 
 
 def check_c03_v4_gate(request: CandidateExecutionGateRequest) -> CandidateExecutionGateResult:
-    """Expose the shared V4 gate for pure readiness tests."""
+    """Expose V4 identity checks, then fail closed without a canonical scorer."""
 
-    return check_candidate_execution_gate(request)
+    result = check_candidate_execution_gate(request)
+    if not result.allowed:
+        return result
+    return CandidateExecutionGateResult(
+        status="BLOCKED",
+        allowed=False,
+        reason_codes=(C03_CANONICAL_SHIFT_MODEL_BLOCKER,),
+    )
 
 
 # Candidate-control-plane-style aliases make the versioned surface discoverable.
@@ -1343,6 +1440,17 @@ __all__ = [
     "C03_AUTHORITY_CLASS",
     "C03_CANDIDATE_FAMILY",
     "C03_CANDIDATE_ID",
+    "C03_CANONICAL_FORWARD_LOOKING_AUTHORITY_DOMAINS",
+    "C03_CANONICAL_PARAMETER_CHANGE_STATUS",
+    "C03_CANONICAL_FORECAST_PATH",
+    "C03_CANONICAL_PRODUCTION_SHIFT_PATHS",
+    "C03_CANONICAL_PRODUCTION_TRAINING_PATH",
+    "C03_CANONICAL_SHIFT_BUILDER_PATH",
+    "C03_CANONICAL_SHIFT_MODEL_BLOCKER",
+    "C03_CANONICAL_SHIFT_PREDICTOR_PATH",
+    "C03_CANONICAL_SHIFT_TARGET_DEFINITION",
+    "C03_CANONICAL_TRAINING_FEATURES",
+    "C03_CANONICAL_TRAINING_REQUIRED_INPUTS",
     "C03_COMPLETE_DAILY_ROWSET_AUTHORITY",
     "C03_EVALUATION_SURFACE_ID",
     "C03_EXCLUDED_PARAMETER_PATH",
@@ -1367,6 +1475,11 @@ __all__ = [
     "C03_RUN_VALUES",
     "C03_SEMANTIC",
     "C03_SOURCE_ID",
+    "C03_SOURCE002_MATERIALIZABLE_FIELDS",
+    "C03_NON_CANONICAL_PROTOTYPE_IS_EXECUTION_AUTHORITY",
+    "C03_NON_CANONICAL_PROTOTYPE_PATH",
+    "C03_NON_CANONICAL_PROTOTYPE_STATUS",
+    "C03CanonicalTrainingInputAudit",
     "C03HistoricalParameterManifest",
     "C03HistoricalPhenologyError",
     "C03HistoricalPhenologyScorer",
@@ -1380,6 +1493,7 @@ __all__ = [
     "build_c03_historical_phenology_scorer",
     "build_c03_historical_derived_config",
     "build_c03_v4_gate_request",
+    "audit_c03_canonical_training_inputs",
     "build_candidate_03_historical_only_manifest",
     "build_candidate_03_v4_gate_request",
     "check_c03_v4_gate",

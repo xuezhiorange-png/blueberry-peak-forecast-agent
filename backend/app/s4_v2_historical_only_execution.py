@@ -12,7 +12,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Literal
 
-from backend.app.s4_candidate_03_historical_phenology import C03_HISTORICAL_SCORER_PATH
+from backend.app.s4_candidate_03_historical_phenology import (
+    C03_CANONICAL_PRODUCTION_SHIFT_PATHS,
+)
 from backend.app.s4_candidate_execution_authority import CANDIDATE_01_RERUN_FORBIDDEN
 from backend.app.s4_experiment import (
     EXPERIMENT_PLAN_V2_HASH,
@@ -71,6 +73,7 @@ V2_C02_METRIC_ONLY_PATH: Final[str] = (
 )
 V2_C03_LEGACY_PATH: Final[str] = "backend.app.maturity.service.forecast_natural_maturity"
 V2_C03_LOCAL_PATH: Final[str] = V2_NO_EXECUTION_PATH
+V2_C03_CANONICAL_PATHS: Final[tuple[str, ...]] = C03_CANONICAL_PRODUCTION_SHIFT_PATHS
 V2_C04_HISTORICAL_SCORER_PATH: Final[str] = (
     "backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows"
 )
@@ -239,22 +242,32 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
         _audit(
             candidate_id=V2_CANDIDATE_03_ID,
             parameter_or_feature_path=("offset.maximum_abs_shift_days",),
-            actual_execution_function=(C03_HISTORICAL_SCORER_PATH,),
+            actual_execution_function=V2_C03_CANONICAL_PATHS,
             actual_data_sources_read=(
                 "SOURCE_002_TRAIN",
                 "SOURCE_002_VALIDATION_TARGET_IDENTITIES",
                 "configs/maturity_curve.yaml",
+                "ANALYTICS_BUILD_RUN_AUTHORITY",
+                "PRODUCTION_PLAN_AUTHORITY",
+                "LOCATION_REFERENCE_AUTHORITY",
+                "BASE_TEMPERATURE_SEARCH_AUTHORITY",
+                "WEATHER_MAPPING_AND_OBSERVATION_AUTHORITY",
             ),
             uses_source_002_train=True,
             uses_source_002_validation=True,
-            parameter_reaches_prediction_math=True,
-            parameter_change_can_change_prediction=True,
-            v2_historical_only_scoring_path_exists=True,
-            historical_only_input_compatible=True,
+            uses_weather=True,
+            uses_production_plan=True,
+            uses_other_forward_looking_authority=True,
+            parameter_reaches_prediction_math=False,
+            parameter_change_can_change_prediction=False,
+            v2_historical_only_scoring_path_exists=False,
+            historical_only_input_compatible=False,
             current_v0_3_execution_eligible=True,
             currently_runnable_under_v2=False,
-            currently_runnable_under_v4=True,
-            reason_code="C03_HISTORICAL_ONLY_SCORER_READY",
+            currently_runnable_under_v4=False,
+            reason_code=(
+                "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+            ),
         ),
         _audit(
             candidate_id=V2_CANDIDATE_04_ID,
@@ -271,12 +284,10 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
             parameter_change_can_change_prediction=True,
             v2_historical_only_scoring_path_exists=True,
             historical_only_input_compatible=True,
-            # C04's four V3 executions are exhausted and its required
-            # breakdown-cell provenance was not retained.  Keep the scorer's
-            # historical compatibility facts for audit, but do not expose it
-            # as a current runnable candidate until a separately authorized
-            # evidence/selection disposition exists.
-            current_v0_3_execution_eligible=False,
+            # The V2 plan still registers C04 as historically eligible.  Its
+            # current runnability is independently closed by the exhausted
+            # evidence disposition, not by the plan eligibility overlay.
+            current_v0_3_execution_eligible=True,
             currently_runnable_under_v2=False,
             currently_runnable_under_v4=False,
             reason_code="C04_EXHAUSTED_EVIDENCE_INSUFFICIENT",
@@ -478,6 +489,7 @@ __all__ = [
     "V2_CANDIDATE_07_ID",
     "V2_CANDIDATE_08_ID",
     "V2_CANDIDATE_AUDIT_ORDER",
+    "V2_C03_CANONICAL_PATHS",
     "V2_C04_HISTORICAL_SCORER_PATH",
     "V2HistoricalEvaluationAuthority",
     "V2CandidateCompatibility",
