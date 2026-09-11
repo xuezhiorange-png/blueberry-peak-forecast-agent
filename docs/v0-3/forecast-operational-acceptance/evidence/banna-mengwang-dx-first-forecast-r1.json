@@ -1,0 +1,309 @@
+{
+  "TASK_ID": "V0_3_FIRST_REAL_SCOPE_EXECUTION_AND_FORECAST_PATH_RECOVERY_R1",
+  "TASK_CLASS": "COORDINATOR_AUTHORIZED_SCOPE_EXECUTION_AND_FIRST_FORECAST_RECOVERY",
+  "RESULT": "INTERNAL_PATH_BLOCKER_AND_PUSHED",
+  "BASE_MAIN_SHA": "68ed5691b5ee1163cc18e1ad1208146e3ebf82f3",
+  "ACCEPTANCE_SCOPE_ID": "BANNA_MENGWANG_DX_736MU_R1",
+  "CURRENT_SCOPE_LOCATION_LABEL": "版纳勐旺加工厂",
+  "CURRENT_SCOPE_VARIETY_SOURCE_LABEL": "蓝莓原果Dx",
+  "CURRENT_SCOPE_VARIETY_LOOKUP": "Dx",
+  "CURRENT_SCOPE_PLANTED_AREA_MU": "736.000000",
+  "SCOPE_AUTHORITY": "COORDINATOR_EXPLICIT_ACCEPTANCE_SCOPE_AUTHORIZATION",
+  "CURRENT_SCOPE_LOCATION_PROVIDED": true,
+  "CURRENT_SCOPE_VARIETY_PROVIDED": true,
+  "CURRENT_SCOPE_PLANTED_AREA_PROVIDED": true,
+  "CURRENT_SCOPE_EXTERNAL_FACT_GATE": "PASS",
+  "ACCEPTANCE_AS_OF_DATE": "2026-09-11",
+  "LOCATION_LABEL_RESOLUTION_ATTEMPTED": true,
+  "LOCATION_CANONICAL_IDENTITY_RESOLVED": false,
+  "LOCATION_RESOLUTION_EVIDENCE": {
+    "resolver": "backend.app.planning.location.resolve_location_input",
+    "mode": "NORMAL_RESOLVER_READ_ONLY_TRANSACTION",
+    "input": {
+      "address": "版纳勐旺加工厂"
+    },
+    "status": "unresolved",
+    "warnings": [
+      "address_unresolved"
+    ],
+    "candidate_count": 0,
+    "location_reference_id": null,
+    "source": "data/raw/2024_2025_receipts.xls",
+    "source_sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+    "metadata_matches": [
+      {
+        "column": "农场",
+        "label": "版纳勐旺农场",
+        "rows": 3420
+      },
+      {
+        "column": "分场",
+        "label": "版纳勐旺农场一分场",
+        "rows": 1271
+      },
+      {
+        "column": "分场",
+        "label": "版纳勐旺农场二分场",
+        "rows": 1159
+      },
+      {
+        "column": "分场",
+        "label": "版纳勐旺农场三分场",
+        "rows": 990
+      },
+      {
+        "column": "加工厂",
+        "label": "勐旺加工厂",
+        "rows": 3420
+      }
+    ],
+    "exact_authorized_factory_label_matches": 0,
+    "identity_columns_only": true,
+    "actual_quantity_column_read": false,
+    "interpretation": "Related source names exist, but neither a governed alias/location reference nor an assignment of the authorized 736 mu to canonical farm/subfarm scope is established. No factory-to-farm substitution is allowed."
+  },
+  "VARIETY_CANONICAL_IDENTITY_RESOLVED": true,
+  "VARIETY_BINDING": {
+    "source_label": "蓝莓原果Dx",
+    "source_label_2024_rows": 62268,
+    "mapping_path": "backend/app/s3_daily_rowset/source_002_variety_master_identity.py",
+    "mapping_sha256": "3ccc6f2cd352e746c4e45952a7a0008f4ad2819d81c879a96dd3481fc3e31897",
+    "service": "backend.app.services.master_data.create_master_data",
+    "code": "Dx",
+    "name": "Dx",
+    "persisted_id": 1,
+    "created_this_task": true,
+    "fresh_session_readback": true
+  },
+  "RUNTIME": {
+    "class": "NON_PRODUCTION_ACCEPTANCE",
+    "host": "127.0.0.1",
+    "port": 55437,
+    "database": "blueberry_v03_acceptance_r2",
+    "production": false,
+    "table_counts_before": {
+      "location_reference": 0,
+      "dim_farm": 0,
+      "dim_subfarm": 0,
+      "dim_factory": 0,
+      "dim_variety": 0,
+      "parameter_library_version": 0,
+      "parameter_observation": 0,
+      "farm_season_variety_plan": 0,
+      "core_forecast_marketable_policy": 0
+    },
+    "business_writes": [
+      "canonical Variety Dx creation"
+    ],
+    "budget_database_connected": false
+  },
+  "PARAMETER_LIBRARY_IMPORT_PATH_EXISTS": true,
+  "PARAMETER_LIBRARY_READY": false,
+  "HISTORICAL_TO_PARAMETER_OBSERVATION_PATH_IMPLEMENTED": false,
+  "PARAMETER_PROVENANCE_ANALYSIS": [
+    {
+      "PARAMETER": "yield_kg_per_mu",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "historical_scope_area_mu",
+        "same_scope_season_production_kg",
+        "complete_season"
+      ],
+      "SEMANTIC_TRANSFORMATION": "same-scope complete-season production kg / historical planted mu",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "Receipt kg is delivered quantity; historical area and production coverage are not supplied. Current 736 mu is not a historical denominator.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    },
+    {
+      "PARAMETER": "marketable_rate",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "marketable_kg",
+        "total_production_kg",
+        "same_scope_and_stage"
+      ],
+      "SEMANTIC_TRANSFORMATION": "marketable kg / total production kg at the same governed stage",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "Receipts and grade labels do not establish the total production denominator or loss stage.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    },
+    {
+      "PARAMETER": "first_harvest_offset_days",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "canonical_anchor_date",
+        "first_harvest_date",
+        "scope"
+      ],
+      "SEMANTIC_TRANSFORMATION": "first harvest date minus canonical phenology anchor date",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "Receipt date is not proved to be first harvest; phenology anchor is unavailable.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    },
+    {
+      "PARAMETER": "maturity_peak_offset_days",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "canonical_anchor_date",
+        "natural_maturity_daily_curve"
+      ],
+      "SEMANTIC_TRANSFORMATION": "natural maturity peak date minus canonical anchor date",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "Receipt peak is affected by harvest and logistics; no natural maturity or anchor authority.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    },
+    {
+      "PARAMETER": "maturity_width_days",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "natural_maturity_daily_curve",
+        "canonical_width_definition"
+      ],
+      "SEMANTIC_TRANSFORMATION": "existing canonical curve width parameter, fitted to authorized natural maturity evidence",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "Observed receipt spread is not semantically equivalent to a natural maturity width.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    },
+    {
+      "PARAMETER": "maturity_skewness",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "natural_maturity_daily_curve",
+        "canonical_shape_definition"
+      ],
+      "SEMANTIC_TRANSFORMATION": "existing canonical natural-maturity shape parameter under its fitted model",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "Receipt skewness cannot substitute for the maturity-model shape parameter.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    },
+    {
+      "PARAMETER": "harvest_realization_rate",
+      "DERIVABLE_FROM_EXISTING_REAL_DATA": false,
+      "REQUIRED_SOURCE_FIELDS": [
+        "harvested_kg",
+        "harvestable_mature_kg",
+        "same_window_scope"
+      ],
+      "SEMANTIC_TRANSFORMATION": "harvested kg / harvestable mature kg in the same window",
+      "SEMANTIC_EQUIVALENCE_PROVEN": false,
+      "SOURCE_AUTHORITY": "2024_2025_RECEIPTS_SCHEMA_AND_CURRENT_REPOSITORY_CONTRACTS",
+      "PIT_SAFE": false,
+      "PIT_REASON": "No candidate observation constructed; parameter-level availability and semantic prerequisites not established.",
+      "REASON": "No harvestable-mature denominator or governed backlog evidence.",
+      "AUTHORIZED_FALLBACK_FOUND": false
+    }
+  ],
+  "PARAMETER_AUTHORITY_UNAVAILABLE": [
+    "yield_kg_per_mu",
+    "marketable_rate",
+    "first_harvest_offset_days",
+    "maturity_peak_offset_days",
+    "maturity_width_days",
+    "maturity_skewness",
+    "harvest_realization_rate"
+  ],
+  "FALLBACK_AUDIT": {
+    "levels": [
+      "SAME_FARM_VARIETY",
+      "SAME_TOWNSHIP_ALTITUDE_VARIETY",
+      "SAME_COUNTY_CLIMATE_ZONE_VARIETY",
+      "SAME_PROVINCE_VARIETY",
+      "LITERATURE_VARIETY_PRIOR"
+    ],
+    "current_acceptance_observations": 0,
+    "config": "configs/parameter_inference.yaml",
+    "config_contains_fallback_rules_not_observed_values": true,
+    "observation_template_nonempty_data_rows": 0,
+    "model_hyperparameters_are_not_parameter_observations": true,
+    "previously_provided_csvs": "SCHEMA_ONLY_AS_PREVIOUSLY_ACCEPTED; ROW_BEARING_ORIGINALS_NOT_MOUNTED",
+    "historical_2025_2026_payload_read_this_task": false,
+    "scope": "Checked repository canonical paths/configs/templates and existing acceptance database. No global absence claim."
+  },
+  "MINIMAL_PLANNING_EXECUTED": false,
+  "MINIMAL_PLANNING_STATUS": "NOT_EXECUTED_LOCATION_CANONICAL_MAPPING_UNAVAILABLE",
+  "YIELD_PARAMETER_AVAILABLE": false,
+  "MARKETABLE_RATE_AVAILABLE": false,
+  "FIRST_HARVEST_PARAMETER_AVAILABLE": false,
+  "MATURITY_PARAMETERS_AVAILABLE": false,
+  "HARVEST_REALIZATION_RATE_AVAILABLE": false,
+  "PRODUCTION_PLAN_MATERIALIZED": false,
+  "MARKETABLE_POLICY_READY": false,
+  "MARKETABLE_POLICY_PRODUCTION_WRITER_IMPLEMENTED_THIS_TASK": false,
+  "TASK8_MATERIALIZED": false,
+  "TASK8_RUN_ID": "NONE",
+  "TASK9_MATERIALIZED": false,
+  "TASK9_RUN_ID": "NONE",
+  "FORECAST_INPUT_AUTHORITY_AVAILABLE": false,
+  "REAL_NORMAL_FORECAST_EXECUTED": false,
+  "FORECAST_RUN_ID": "NONE",
+  "FORECAST_RUN_STATUS": "NOT_EXECUTED",
+  "DAILY_FORECAST_ROWS": 0,
+  "P50_AVAILABLE": false,
+  "P80_AVAILABLE": false,
+  "P90_AVAILABLE": false,
+  "FORECAST_RESULT_PERSISTED": false,
+  "FORECAST_AUTHORITY_CAPTURED": false,
+  "FRESH_SESSION_PIT_READBACK": false,
+  "FIRST_BROKEN_STAGE": "LOCATION_LABEL_TO_CANONICAL_SCOPE_BINDING",
+  "INTERNAL_SOFTWARE_BLOCKER": "AUTHORIZED_LOCATION_LABEL_TO_CANONICAL_SCOPE_MAPPING_UNAVAILABLE",
+  "MISSING_EXTERNAL_BUSINESS_FACTS": "NONE",
+  "CURRENT_REAL_FORECAST_CAPABILITY": "BLOCKED_INTERNAL_PATH",
+  "V0_3_CLOSEOUT_FORECAST_CAPABILITY_GATE": "FAIL",
+  "NEXT_REQUIRED_ACTION": "ESTABLISH_AUTHORIZED_LOCATION_LABEL_TO_CANONICAL_SCOPE_MAPPING",
+  "DOWNSTREAM_STATUS": "NOT_EXECUTED_UPSTREAM_IDENTITY_GATE_FAILED",
+  "ACCURACY_VALIDATION_PERFORMED": false,
+  "MODEL_QUALITY_CLAIM_ISSUED": false,
+  "MODEL_APPROVED_FOR_PILOT": false,
+  "CURRENT_V0_3_S4_COMPLETE": true,
+  "S4_REOPEN_AUTHORIZED": false,
+  "NEW_EXPERIMENT_PLAN_AUTHORIZED": false,
+  "S4_CANDIDATE_EXECUTION_PERFORMED": false,
+  "VALIDATION_SCORING_PERFORMED": false,
+  "TEST_ACCESS_REQUESTED": false,
+  "TEST_BYTES_READ": false,
+  "TEST_EVALUATION_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "BUDGET_STATE_CLASS": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+  "LAST_ACCEPTED_EFFECTIVE_CONSUMED": 8,
+  "LAST_ACCEPTED_REMAINING": 24,
+  "BUDGET_DELTA": 0,
+  "VERIFICATION": {
+    "FOCUSED_TESTS": "120 passed, 16 skipped, 12 warnings",
+    "LOCAL_POSTGRES_TESTS": "16 skipped; remote PostgreSQL CI required",
+    "RUFF": "PASS",
+    "FORMAT": "PASS",
+    "MYPY": "PASS",
+    "JSON_VALIDATION": "PASS",
+    "SCOPE_AUTHORIZATION_CONSISTENCY": "PASS",
+    "CANONICAL_MAPPING_HASH": "PASS",
+    "APPEND_ONLY_POINTER": "PASS",
+    "PATH_ALLOWLIST": "PASS",
+    "FINAL_CI_BINDING": "GitHub PR checks and final task response bind the final commit without a self-referential evidence commit"
+  },
+  "PRODUCTION_CODE_CHANGED": false,
+  "SYNTHETIC_PARAMETER_LIBRARY_USED": false,
+  "TEMPLATE_PARAMETER_OBSERVATION_USED_AS_REAL": false,
+  "RAW_XLS_MODIFIED": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_FIRST_REAL_SCOPE_FORECAST_REVIEW"
+}

@@ -181,8 +181,22 @@ class InitialInventorySourceRef(_BaseModel):
     as_of_date: date
 
 
+class EmpiricalPredictionSourceRef(_BaseModel):
+    source_ref_type: Literal["EMPIRICAL_CALIBRATION_FORECAST"] = "EMPIRICAL_CALIBRATION_FORECAST"
+    source_ref_schema_version: Literal["task9a-source-ref-v1"] = "task9a-source-ref-v1"
+    authority_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    curve_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    available_at: date
+    prediction_date: date
+    forecast_quantile: ForecastQuantile
+    source_quantity_kg: NonNegativeBusinessDecimal
+
+
 SourceRef = Annotated[
-    Task8PredictionSourceRef | InitialInventorySourceRef | ParameterSourceRef,
+    Task8PredictionSourceRef
+    | InitialInventorySourceRef
+    | ParameterSourceRef
+    | EmpiricalPredictionSourceRef,
     Field(discriminator="source_ref_type"),
 ]
 
@@ -194,6 +208,14 @@ class Task8DailyPredictionInput(_BaseModel):
     variety_id: int
     source_ref: Task8PredictionSourceRef
     verification_snapshot: Task8PredictionVerificationSnapshot
+
+
+class EmpiricalDailyPredictionInput(_BaseModel):
+    prediction_date: date
+    farm_id: int
+    subfarm_id: int | None
+    variety_id: int
+    source_ref: EmpiricalPredictionSourceRef
 
 
 class InitialInventoryCohortInput(_BaseModel):
@@ -436,6 +458,7 @@ class Task9ARequest(_BaseModel):
     daily_capacity_inputs: list[DailyCapacityInput]
     daily_weather_features: list[DailyWeatherFeatureInput]
     task8_daily_predictions: list[Task8DailyPredictionInput]
+    empirical_daily_predictions: list[EmpiricalDailyPredictionInput] = Field(default_factory=list)
     initial_inventory_cohorts: list[InitialInventoryCohortInput] | None = None
     initial_opening_mature_inventory_kg: NonNegativeBusinessDecimal | None = None
     mature_inventory_loss_inputs: list[MatureInventoryLossInput]
@@ -452,6 +475,8 @@ class Task9ARequest(_BaseModel):
 
     @model_validator(mode="after")
     def _validate_dates(self) -> Task9ARequest:
+        if self.task8_daily_predictions and self.empirical_daily_predictions:
+            raise ValueError("maturity authority paths must not be mixed")
         if self.forecast_end_date < self.forecast_start_date:
             raise ValueError("forecast_end_date must be >= forecast_start_date")
         if self.harvest_to_arrival_lag_days < 0:

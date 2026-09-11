@@ -21,6 +21,12 @@ from backend.app.actual_harvest_import.api_schemas import (
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.spreadsheet_policy import DEFAULT_SPREADSHEET_POLICY
 from backend.app.db.session import get_db_session
+from backend.app.planning.empirical_forecast import (
+    EmpiricalForecastCreateRequest,
+    EmpiricalForecastResponse,
+    create_empirical_forecast,
+    read_empirical_forecast,
+)
 from backend.app.trial import (
     TrialActorDep,
     TrialActualHarvestCommitResponse,
@@ -41,6 +47,7 @@ from backend.app.trial import (
     TrialQualityReportCreateRequest,
     TrialQualityReportResponse,
     TrialServiceDep,
+    _require_forecast_permission,
     map_actual_harvest_error,
     map_unhandled_error,
 )
@@ -159,18 +166,23 @@ async def get_trial_forecast_input_authority(
 
 @router.post(
     "/forecasts",
-    response_model=TrialForecastSummaryResponse,
+    response_model=TrialForecastSummaryResponse | EmpiricalForecastResponse,
     operation_id="createTrialForecast",
 )
 async def create_trial_forecast(
     request: Request,
-    body: TrialForecastCreateRequest,
+    body: TrialForecastCreateRequest | EmpiricalForecastCreateRequest,
     session: SessionDep,
     actor: TrialActorDep,
     service: TrialServiceDep,
-) -> TrialForecastSummaryResponse | JSONResponse:
+) -> TrialForecastSummaryResponse | EmpiricalForecastResponse | JSONResponse:
     request_id = _request_id(request)
     try:
+        if isinstance(body, EmpiricalForecastCreateRequest):
+            _require_forecast_permission(actor, "may_create_forecast")
+            result = await create_empirical_forecast(session, body, actor_identity=actor.identity)
+            await session.commit()
+            return result
         return await service.create_forecast(session, body, actor)
     except TrialApiError as error:
         return _error_response(request_id, error)
@@ -178,6 +190,14 @@ async def create_trial_forecast(
         return _error_response(request_id, map_actual_harvest_error(error))
     except Exception as error:
         return _error_response(request_id, map_unhandled_error(error))
+
+
+@router.get("/empirical-forecasts/{run_id}", response_model=EmpiricalForecastResponse)
+async def get_empirical_forecast(
+    run_id: int, session: SessionDep, actor: TrialActorDep
+) -> EmpiricalForecastResponse:
+    _require_forecast_permission(actor, "may_read_forecast")
+    return await read_empirical_forecast(session, run_id)
 
 
 @router.get(

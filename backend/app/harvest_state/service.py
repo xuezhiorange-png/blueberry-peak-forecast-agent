@@ -49,6 +49,7 @@ from backend.app.harvest_state.schemas import (
     DailyMemberStateRow,
     DailyPoolResolvedParameters,
     DailyPoolStateRow,
+    EmpiricalDailyPredictionInput,
     ForecastSeasonIdentitySnapshot,
     FutureArrivalScheduleRow,
     InitialInventoryCohortInput,
@@ -80,7 +81,8 @@ class ValidatedRequest:
     daily_pool_parameters: dict[tuple[date, str], InternalDailyPoolParameters]
     weather_values_by_key: dict[tuple[date, str], dict[str, Decimal]]
     task8_daily_predictions_by_key: dict[
-        tuple[ForecastQuantile, date, str], list[Task8DailyPredictionInput]
+        tuple[ForecastQuantile, date, str],
+        list[Task8DailyPredictionInput | EmpiricalDailyPredictionInput],
     ]
     initial_inventory_cohorts: list[InitialInventoryCohortInput]
     initial_cohort_keys: list[str]
@@ -201,12 +203,26 @@ def _compute_initial_cohort_key(
 
 
 def _compute_task8_cohort_key(
-    prediction: Task8DailyPredictionInput,
+    prediction: Task8DailyPredictionInput | EmpiricalDailyPredictionInput,
     *,
     capacity_pool_id: str,
     capacity_pool_membership_hash: str,
     destination_factory_id: int,
 ) -> str:
+    if isinstance(prediction, EmpiricalDailyPredictionInput):
+        return make_stable_cohort_key(
+            {
+                "schema_version": STABLE_COHORT_KEY_SCHEMA_VERSION,
+                "source_ref_type": "EMPIRICAL_CALIBRATION_FORECAST",
+                "source_ref_hash": source_ref_hash(prediction.source_ref),
+                "farm_id": prediction.farm_id,
+                "subfarm_id": prediction.subfarm_id,
+                "variety_id": prediction.variety_id,
+                "capacity_pool_id": capacity_pool_id,
+                "capacity_pool_membership_hash": capacity_pool_membership_hash,
+                "destination_factory_id": destination_factory_id,
+            }
+        )
     payload = {
         "schema_version": STABLE_COHORT_KEY_SCHEMA_VERSION,
         "source_ref_type": "TASK8_DAILY_PREDICTION",
@@ -392,6 +408,26 @@ def _sorted_request_snapshot(
             for item in loss_inputs
         ],
     }
+    if request.empirical_daily_predictions:
+        snapshot["empirical_daily_predictions"] = [
+            {
+                "prediction_date": item.prediction_date,
+                "farm_id": item.farm_id,
+                "subfarm_id": item.subfarm_id,
+                "variety_id": item.variety_id,
+                "source_ref_hash": source_ref_hash(item.source_ref),
+            }
+            for item in sorted(
+                request.empirical_daily_predictions,
+                key=lambda p: (
+                    p.prediction_date,
+                    p.farm_id,
+                    p.subfarm_id or 0,
+                    p.variety_id,
+                    p.source_ref.forecast_quantile,
+                ),
+            )
+        ]
     if validated is not None:
         snapshot["pool_membership_hash_by_pool"] = validated.pool_membership_hash_by_pool
     return canonical_json_value(snapshot)  # type: ignore[return-value]
@@ -828,6 +864,12 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
 
         weather_key = (capacity_input.capacity_date, capacity_input.capacity_pool_id)
         feature_values = weather_values_by_key.get(weather_key)
+        if (
+            request.empirical_daily_predictions
+            and not request.weather_rule_config.required_feature_ids
+        ):
+            # Explicit empirical baseline policy; not fabricated weather observations.
+            feature_values = {}
         if feature_values is None:
             blockers.append(
                 f"{BlockerCode.MISSING_WEATHER_FEATURE}:{capacity_input.capacity_pool_id}:{capacity_input.capacity_date}"
@@ -911,7 +953,8 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
                 )
 
     task8_daily_predictions_by_key: dict[
-        tuple[ForecastQuantile, date, str], list[Task8DailyPredictionInput]
+        tuple[ForecastQuantile, date, str],
+        list[Task8DailyPredictionInput | EmpiricalDailyPredictionInput],
     ] = {}
     seen_task8_keys: set[tuple[date, int, int | None, int, ForecastQuantile]] = set()
     task8_request_identity: tuple[int, str, str, str, int, str, int, str, date] | None = None
@@ -1093,6 +1136,35 @@ def _validated_request(request: Task9ARequest) -> ValidatedRequest:
         )
         task8_daily_predictions_by_key.setdefault(prediction_lookup_key, []).append(prediction)
 
+    for empirical in request.empirical_daily_predictions:
+        source_refs.append(empirical.source_ref)
+        empirical_member = _member_key(
+            empirical.farm_id, empirical.subfarm_id, empirical.variety_id
+        )
+        empirical_pool = member_to_pool.get(empirical_member)
+        empirical_key = (
+            empirical.prediction_date,
+            empirical.farm_id,
+            empirical.subfarm_id,
+            empirical.variety_id,
+            empirical.source_ref.forecast_quantile,
+        )
+        if empirical_pool is None or empirical_key in seen_task8_keys:
+            blockers.append("EMPIRICAL_SCOPE_OR_DUPLICATE_INPUT")
+            continue
+        seen_task8_keys.add(empirical_key)
+        if (
+            empirical.source_ref.available_at > request.as_of_date
+            or empirical.source_ref.prediction_date != empirical.prediction_date
+            or not request.forecast_start_date
+            <= empirical.prediction_date
+            <= request.forecast_end_date
+        ):
+            blockers.append("EMPIRICAL_DATE_OR_VISIBILITY_MISMATCH")
+        task8_daily_predictions_by_key.setdefault(
+            (empirical.source_ref.forecast_quantile, empirical.prediction_date, empirical_pool), []
+        ).append(empirical)
+
     initial_inventory_cohorts = request.initial_inventory_cohorts or []
     initial_cohort_keys: list[str] = []
     initial_total = Decimal("0")
@@ -1246,6 +1318,8 @@ def _blocked_output(
 def _referenced_source_hashes_from_input_snapshot(snapshot: dict[str, Any]) -> set[str]:
     referenced: set[str] = set()
     referenced.update(snapshot.get("run_parameter_source_ref_hashes", []))
+    for item in snapshot.get("empirical_daily_predictions", []):
+        referenced.add(item["source_ref_hash"])
     for item in snapshot.get("daily_capacity_inputs", []):
         referenced.update(item.get("capacity_parameter_source_ref_hashes", []))
     for item in snapshot.get("daily_weather_features", []):

@@ -14,6 +14,7 @@ class LocationInput(BaseModel):
     latitude: Decimal | None = None
     longitude: Decimal | None = None
     location_reference_id: int | None = None
+    farm_id: int | None = Field(default=None, gt=0)
     altitude_m: Decimal | None = None
     province: str | None = None
     prefecture: str | None = None
@@ -24,13 +25,19 @@ class LocationInput(BaseModel):
 
     @model_validator(mode="after")
     def _validate_one_of(self) -> LocationInput:
+        if self.farm_id is not None:
+            if any(
+                value is not None for key, value in self.model_dump().items() if key != "farm_id"
+            ):
+                raise ValueError("canonical farm_id cannot be combined with location overrides")
+            return self
         choices = int(self.address is not None)
         choices += int(self.latitude is not None and self.longitude is not None)
         choices += int(self.location_reference_id is not None)
         if choices != 1:
             raise ValueError(
                 "location must provide exactly one of "
-                "address, latitude+longitude, or location_reference_id"
+                "address, latitude+longitude, location_reference_id, or farm_id"
             )
         return self
 

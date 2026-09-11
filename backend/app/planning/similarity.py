@@ -57,12 +57,25 @@ def rank_parameter_candidates(
     as_of_date: date,
 ) -> list[RankedObservation]:
     ranked: list[RankedObservation] = []
-    if resolved_location.latitude is None or resolved_location.longitude is None:
-        return ranked
+    has_geo = resolved_location.latitude is not None and resolved_location.longitude is not None
 
     for candidate in candidates:
+        if not has_geo:
+            if candidate.source_level == "same_farm_variety":
+                if (
+                    resolved_location.farm_id is None
+                    or candidate.farm_id != resolved_location.farm_id
+                ):
+                    continue
+            elif candidate.source_level != "literature_variety_prior":
+                continue
         distance_km = None
-        if candidate.latitude is not None and candidate.longitude is not None:
+        if (
+            resolved_location.latitude is not None
+            and resolved_location.longitude is not None
+            and candidate.latitude is not None
+            and candidate.longitude is not None
+        ):
             distance_km = haversine_distance_km(
                 float(resolved_location.latitude),
                 float(resolved_location.longitude),
