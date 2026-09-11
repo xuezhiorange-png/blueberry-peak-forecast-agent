@@ -34,6 +34,7 @@ class ResolvedLocation:
     climate_zone_distance_km: Decimal | None = None
     climate_zone_altitude_difference_m: Decimal | None = None
     climate_zone_score: Decimal | None = None
+    farm_id: int | None = None
 
 
 @dataclass(frozen=True)
