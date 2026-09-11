@@ -1,0 +1,330 @@
+{
+  "TASK_ID": "V0_3_REAL_BUSINESS_INPUT_MATERIALIZATION_AND_FIRST_FORECAST_R1",
+  "TASK_CLASS": "CURRENT_REAL_BUSINESS_INPUT_MATERIALIZATION_AND_FIRST_END_TO_END_FORECAST",
+  "REPOSITORY": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "EXPECTED_BASE_MAIN_SHA": "d704cc9338efda2e7aa80499b53622ae42f83fd6",
+  "BASE_MAIN_SHA": "d704cc9338efda2e7aa80499b53622ae42f83fd6",
+  "BASE_MAIN_EXPECTED_CONTAINS": true,
+  "BRANCH": "acceptance/v0-3-real-business-input-first-forecast-r1",
+  "GIT_STATUS_CLEAN_AT_START": true,
+  "RESULT": "REAL_BUSINESS_INPUT_REQUIRED_AND_PUSHED",
+  "CURRENT_REAL_BUSINESS_SOURCE_FOUND": false,
+  "CURRENT_REAL_BUSINESS_SOURCE_CLASS": "NOT_LOCATED_IN_AUTHORIZED_ENVIRONMENT",
+  "CURRENT_REAL_BUSINESS_SOURCE_IDENTITY": "NONE",
+  "SOURCE_DISCOVERY_PERFORMED": true,
+  "SOURCE_DISCOVERY_SCOPE": [
+    "repository_data_directory",
+    "repository_templates",
+    "authorized_local_business_input_names",
+    "authorized_local_runtime_bindings",
+    "non_production_acceptance_runtime_metadata"
+  ],
+  "SOURCE_DISCOVERY_DISPOSITION": {
+    "historical_repository_data_accepted_as_current": false,
+    "template_data_accepted_as_current": false,
+    "unidentified_external_files_read": false,
+    "unidentified_external_files_imported": false,
+    "synthetic_business_data_used": false,
+    "known_actual_outcome_used": false,
+    "global_absence_claim_issued": false
+  },
+  "REPOSITORY_DATA_FINDINGS": {
+    "historical_raw_files_present": [
+      "data/raw/2024_2025_receipts.xls",
+      "data/raw/2025_2026_receipts.xls"
+    ],
+    "historical_raw_files_accepted_as_current": false,
+    "template_files_present": true,
+    "production_plan_template_accepted_as_current": false,
+    "source_manifest_historical_scope_only": true
+  },
+  "ACCEPTANCE_RUNTIME_DISCOVERY": {
+    "runtime_class": "NON_PRODUCTION_ACCEPTANCE_RUNTIME",
+    "database_port": 55437,
+    "postgres_version": "16.15",
+    "production_authority": false,
+    "task_isolated_database_is_production": false,
+    "business_input_rows_present": false,
+    "global_absence_claim_issued": false,
+    "relevant_table_counts": {
+      "dim_farm": 0,
+      "dim_subfarm": 0,
+      "dim_season": 0,
+      "dim_variety": 0,
+      "dim_factory": 0,
+      "farm_season_variety_plan": 0,
+      "core_forecast_marketable_policy": 0,
+      "core_forecast_marketable_policy_entry": 0,
+      "maturity_model_run": 0,
+      "maturity_forecast_run": 0,
+      "harvest_state_run": 0,
+      "core_forecast_run": 0,
+      "forecast_authority_capture": 0,
+      "forecast_authority_daily": 0,
+      "trial_forecast_evidence": 0
+    }
+  },
+  "FORECAST_AUTHORITY_DEPENDENCY_DAG_VERIFIED": true,
+  "FORECAST_AUTHORITY_DEPENDENCY_DAG": {
+    "nodes": [
+      {
+        "id": "current_business_source",
+        "status": "NOT_FOUND_IN_AUTHORIZED_ENVIRONMENT"
+      },
+      {
+        "id": "master_data_and_scope",
+        "status": "REQUIRED_NOT_AVAILABLE_IN_ACCEPTANCE_RUNTIME"
+      },
+      {
+        "id": "farm_season_variety_plan",
+        "status": "REQUIRED_NOT_LOADED"
+      },
+      {
+        "id": "active_marketable_retention_policy",
+        "status": "REQUIRED_NOT_LOADED"
+      },
+      {
+        "id": "task8_maturity_authority",
+        "status": "NOT_AVAILABLE"
+      },
+      {
+        "id": "task9_harvest_state_authority",
+        "status": "NOT_AVAILABLE"
+      },
+      {
+        "id": "trial_forecast_input_authority",
+        "status": "UNAVAILABLE"
+      },
+      {
+        "id": "normal_trial_forecast",
+        "status": "IMPLEMENTED_NOT_EXECUTED"
+      },
+      {
+        "id": "core_forecast_persistence",
+        "status": "IMPLEMENTED_NOT_REACHED"
+      },
+      {
+        "id": "production_authority_capture",
+        "status": "IMPLEMENTED_NOT_EXECUTED"
+      },
+      {
+        "id": "pit_readback",
+        "status": "IMPLEMENTED_NOT_APPLICABLE_NO_CAPTURE"
+      }
+    ],
+    "edges": [
+      "current_business_source -> master_data_and_scope",
+      "master_data_and_scope -> farm_season_variety_plan",
+      "farm_season_variety_plan -> active_marketable_retention_policy",
+      "active_marketable_retention_policy -> task8_maturity_authority",
+      "task8_maturity_authority -> task9_harvest_state_authority",
+      "task9_harvest_state_authority -> trial_forecast_input_authority",
+      "trial_forecast_input_authority -> normal_trial_forecast",
+      "normal_trial_forecast -> core_forecast_persistence",
+      "core_forecast_persistence -> production_authority_capture",
+      "production_authority_capture -> pit_readback"
+    ]
+  },
+  "CODE_PATH_AUDIT": {
+    "trial_authority_route": "GET /api/v1/trial/forecast-input-authority",
+    "trial_forecast_route": "POST /api/v1/trial/forecasts",
+    "trial_service": "backend.app.trial.DefaultTrialApplicationService",
+    "core_execution": "backend.app.core_forecast.application.execute_core_forecast_run",
+    "retention_capture": "backend.app.forecast_authority.retention.capture_production_forecast_base_authority",
+    "pit_reader": "backend.app.forecast_authority.retention.load_pit_visible_forecast_authority",
+    "plan_ingestion": "backend.app.planning.plan_importer.import_production_plans_csv",
+    "actor_loader": "backend.app.actual_harvest_import.api_auth.get_actual_harvest_actor",
+    "normal_path_implemented": true,
+    "retention_path_implemented": true,
+    "pit_readback_implemented": true,
+    "frontend_forecast_workflow_implemented": true,
+    "frontend_quality_workflow_implemented": true,
+    "current_main_real_forecast_observed": false
+  },
+  "REQUIRED_INPUT_DOMAINS": [
+    {
+      "domain": "authorized_current_source",
+      "status": "NOT_PROVIDED",
+      "required_fields": [
+        "source_system",
+        "source_record_key",
+        "source_version",
+        "source_as_of",
+        "source_owner",
+        "authorization_record",
+        "content_sha256",
+        "byte_count",
+        "available_at"
+      ]
+    },
+    {
+      "domain": "master_data_and_operational_scope",
+      "status": "NOT_AVAILABLE",
+      "required_fields": [
+        "farm_id",
+        "farm_code",
+        "farm_name",
+        "subfarm_id",
+        "subfarm_code",
+        "subfarm_name",
+        "season_id",
+        "season_code",
+        "variety_id",
+        "variety_code",
+        "factory_id",
+        "factory_code",
+        "factory_name",
+        "location_timezone",
+        "weather_mapping_identity"
+      ]
+    },
+    {
+      "domain": "farm_season_variety_plan",
+      "status": "NOT_LOADED",
+      "required_fields": [
+        "planted_area_mu",
+        "expected_yield_kg_per_mu",
+        "marketable_rate_as_source_field_only",
+        "version",
+        "effective_from",
+        "effective_to",
+        "available_at",
+        "source_type",
+        "source_name",
+        "source_version",
+        "plan_hash"
+      ]
+    },
+    {
+      "domain": "active_marketable_retention_policy",
+      "status": "NOT_LOADED",
+      "operational_ingestion_path_available": false,
+      "required_fields": [
+        "public_policy_hash",
+        "policy_version",
+        "source_system",
+        "source_record_key",
+        "available_at",
+        "effective_from",
+        "effective_to",
+        "status",
+        "row_set_hash",
+        "scoped_policy_entries"
+      ]
+    },
+    {
+      "domain": "task8_maturity_authority",
+      "status": "NOT_AVAILABLE",
+      "required_fields": [
+        "maturity_model_run_id",
+        "maturity_forecast_run_id",
+        "artifact_hash",
+        "result_hash",
+        "forecast_cutoff",
+        "daily_p50",
+        "daily_p80",
+        "daily_p90",
+        "input_lineage"
+      ]
+    },
+    {
+      "domain": "task9_harvest_state_authority",
+      "status": "NOT_AVAILABLE",
+      "required_fields": [
+        "forecast_season_identity",
+        "as_of_date",
+        "forecast_start_date",
+        "forecast_end_date",
+        "forecast_quantiles",
+        "destination_factory_id",
+        "holiday_calendar_identity",
+        "weather_rule_config",
+        "capacity_inputs",
+        "task8_daily_predictions",
+        "result_hash"
+      ]
+    }
+  ],
+  "MASTER_DATA_READY": false,
+  "PRODUCTION_PLAN_LOADED": false,
+  "SUBFARM_AUTHORITY_RESOLVED": false,
+  "MARKETABLE_POLICY_READY": false,
+  "MARKETABLE_POLICY_OPERATIONAL_INGESTION_PATH_AVAILABLE": false,
+  "TASK8_CURRENT_FORECAST_AVAILABLE": false,
+  "TASK8_FORECAST_RUN_ID": "NONE",
+  "TASK9_CURRENT_RUN_AVAILABLE": false,
+  "TASK9_RUN_ID": "NONE",
+  "FORECAST_INPUT_AUTHORITY_AVAILABLE": false,
+  "FORECAST_INPUT_AUTHORITY_ITEM_COUNT": 0,
+  "FORECAST_INPUT_AUTHORITY_HTTP_STATUS": "NOT_EXECUTED_NO_CURRENT_SOURCE",
+  "FORECAST_INPUT_AUTHORITY_RESPONSE_CODE": "NOT_EXECUTED_NO_CURRENT_SOURCE",
+  "REAL_NORMAL_FORECAST_EXECUTED": false,
+  "FORECAST_RUN_ID": "NONE",
+  "FORECAST_RUN_STATUS": "NOT_EXECUTED",
+  "DAILY_FORECAST_ROWS": 0,
+  "P50_AVAILABLE": false,
+  "P80_AVAILABLE": false,
+  "P90_AVAILABLE": false,
+  "FORECAST_RESULT_PERSISTED": false,
+  "FORECAST_AUTHORITY_CAPTURED": false,
+  "FRESH_SESSION_PIT_READBACK": false,
+  "CURRENT_REAL_FORECAST_CAPABILITY": "BLOCKED_REAL_BUSINESS_INPUT_NOT_PROVIDED",
+  "V0_3_CLOSEOUT_FORECAST_CAPABILITY_GATE": "FAIL",
+  "NEXT_REQUIRED_ACTION": "COORDINATOR_PROVIDE_CURRENT_BUSINESS_INPUT_PACKAGE",
+  "LEGITIMATE_PLAN_INGESTION_PATH": "backend.app.planning.plan_importer.import_production_plans_csv",
+  "PLAN_INGESTION_ALONE_ESTABLISHES_COMPLETE_AUTHORITY": false,
+  "TEST": {
+    "TEST_ACCESS_REQUESTED": false,
+    "TEST_BYTES_READ": false,
+    "TEST_PAYLOAD_OBTAINED": false,
+    "TEST_EVALUATION_PERFORMED": false,
+    "TEST_REMAINS_SEALED": true
+  },
+  "S4": {
+    "CURRENT_V0_3_S4_COMPLETE": true,
+    "S4_FINAL_STATUS": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+    "CURRENT_S4_EXECUTION_STATUS": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+    "CURRENT_S4_BLOCKER": "NONE_CURRENT_PLAN_TERMINAL",
+    "S4_REOPEN_AUTHORIZED": false,
+    "S4_CANDIDATE_EXECUTION_PERFORMED": false,
+    "VALIDATION_SCORING_PERFORMED": false,
+    "PROSPECTIVE_SCAN_PERFORMED": false
+  },
+  "BUDGET": {
+    "BUDGET_STATE_CLASS": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+    "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+    "LAST_ACCEPTED_CANONICAL_STARTED_COUNT": 4,
+    "LAST_ACCEPTED_EFFECTIVE_CONSUMED": 8,
+    "LAST_ACCEPTED_REMAINING": 24,
+    "REMAINING_VALIDATION_BUDGET_UNUSED": 24,
+    "BUDGET_DELTA": 0,
+    "DURABLE_BUDGET_READBACK_PERFORMED_BY_THIS_TASK": false,
+    "NEW_VALIDATION_LEDGER_EVENT_COUNT": 0
+  },
+  "SIDE_EFFECTS": {
+    "PRODUCTION_CODE_CHANGED": false,
+    "DATABASE_SCHEMA_CHANGED": false,
+    "DATABASE_WRITE": false,
+    "FORECAST_EXECUTION": false,
+    "FORECAST_AUTHORITY_SEED_PERFORMED": false,
+    "FORECAST_AUTHORITY_BACKFILL_PERFORMED": false,
+    "CANDIDATE_EXECUTION": false,
+    "VALIDATION_SCORING": false,
+    "PROSPECTIVE_SCAN": false,
+    "RAW_XLS_COMMITTED": false,
+    "RAW_TRAIN_COMMITTED": false,
+    "RAW_VALIDATION_COMMITTED": false,
+    "RAW_PREDICTIONS_COMMITTED": false
+  },
+  "ACCURACY_VALIDATION_PERFORMED": false,
+  "MODEL_QUALITY_CLAIM_ISSUED": false,
+  "MODEL_APPROVED_FOR_PILOT": false,
+  "CURRENT_V0_3_S5_AUTHORIZED": false,
+  "S5_IMPLEMENTATION_STARTED": false,
+  "PRODUCTION_RELEASE_APPROVED": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "EVIDENCE_MANIFEST": "docs/v0-3/forecast-operational-acceptance/real-business-input-required-manifest-r1.md",
+  "FINAL_STOP_GATE": "COORDINATOR_REAL_BUSINESS_INPUT_AND_FIRST_FORECAST_REVIEW"
+}
