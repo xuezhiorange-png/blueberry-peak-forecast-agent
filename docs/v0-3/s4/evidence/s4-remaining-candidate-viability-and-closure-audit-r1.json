@@ -1,0 +1,633 @@
+{
+  "TASK_ID": "V0_3_S4_REMAINING_CANDIDATE_AUTHORITY_BINDING_CORRECTION_R2",
+  "TASK_CLASS": "AUDIT_PROVENANCE_CORRECTION_AND_CANONICAL_PATH_REBIND",
+  "RESULT": "CORRECTED_AND_PUSHED",
+  "BASE_MAIN_SHA": "b0257192bb27097f30f279dcc735d6cc9da812bd",
+  "PR601_MERGE_IN_BASE": true,
+  "AUDIT_CANDIDATES": [
+    "02_quantile_calibration",
+    "05_marketable_rate",
+    "07_harvest_efficiency"
+  ],
+  "FROZEN_EXECUTION_AUTHORITY": {
+    "EXPERIMENT_PLAN_VERSION": "v0.3-experiment-plan-v2",
+    "EXPERIMENT_PLAN_HASH": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9",
+    "GUARDRAIL_POLICY_VERSION": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor",
+    "GUARDRAIL_POLICY_HASH": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d2",
+    "V0_3_FORECAST_INPUT_BASIS": "HISTORICAL_DATA_ONLY",
+    "SOURCE_002_MATERIALIZED_DATASET_IDENTITY": "f537b0848465437cf9c504387de00bf70797debfe89fb6a85630b6086a484785",
+    "TRAIN_ROWS": 16224,
+    "TRAIN_CONTENT_SHA256": "be2d4184434a0f389af21c315945322e9216cd17cc471b772e3fff389d3386d2",
+    "VALIDATION_ROWS": 8006,
+    "VALIDATION_CONTENT_SHA256": "4cbf1119f83034464159210ebbbeea5ec87848f92ce044bb328949a8f5331d06",
+    "FORECAST_HORIZONS": [7, 14, 21],
+    "WEATHER_REQUIRED": false,
+    "PRODUCTION_PLAN_REQUIRED": false,
+    "TASK8_TASK9_REQUIRED": false,
+    "PROSPECTIVE_CAPTURE_REQUIRED": false,
+    "WALL_CLOCK_WAIT_REQUIRED": false,
+    "TEST_REMAINS_SEALED": true
+  },
+  "FROZEN_PLAN_ELIGIBILITY": {
+    "01_parameter_calibration": true,
+    "02_quantile_calibration": true,
+    "03_phenology_offset": true,
+    "04_yield_parameter": true,
+    "05_marketable_rate": true,
+    "06_weather_response": false,
+    "07_harvest_efficiency": true,
+    "08_residual_feature": false
+  },
+  "CANDIDATE_COMPATIBILITY_AUDIT": [
+    {
+      "candidate_id": "02_quantile_calibration",
+      "candidate_family": "QUANTILE_CALIBRATION",
+      "parent_model_id": "V0_2_CURRENT_MODEL",
+      "hypothesis": "quantile_calibration_improves_p80_p90_coverage_without_point_metric_regression",
+      "planned_run_count": 4,
+      "frozen_registry_selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+      "parameter_or_feature_path": [
+        "intervals.p80_quantile",
+        "intervals.p90_quantile"
+      ],
+      "canonical_control_fields": ["P50", "P80", "P90", "daily_wape", "daily_mae"],
+      "actual_execution_function": [
+        "backend.app.forecast_quality.quantile_coverage.compute_upper_quantile_coverage"
+      ],
+      "actual_data_sources_read": [
+        "S3_BINDING_FORECAST_ROWS",
+        "S3_BINDING_ACTUAL_ROWS",
+        "S3_TRAIN_VALIDATION_PAIRING_AUTHORITY"
+      ],
+      "uses_SOURCE_002_TRAIN": false,
+      "uses_SOURCE_002_VALIDATION": false,
+      "uses_weather": false,
+      "uses_production_plan": false,
+      "uses_Task8": false,
+      "uses_Task9": false,
+      "uses_other_forward_looking_authority": false,
+      "parameter_reaches_prediction_math": false,
+      "parameter_change_can_change_prediction": false,
+      "source_002_only_candidate_path_exists": false,
+      "historical_only_input_compatible": true,
+      "historical_only_execution_compatible": false,
+      "current_historical_only_execution_eligibility": true,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v4": false,
+      "structurally_selectable_under_v4": false,
+      "status": "INCOMPATIBLE",
+      "reason_code": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC",
+      "secondary_reason_codes": ["NO_V2_BOUND_PREDICTION_QUANTILE_PATH"],
+      "code_evidence_paths": [
+        "backend/app/forecast_quality/quantile_coverage.py:192-266",
+        "backend/app/s4_v2_historical_only_execution.py:224-240",
+        "backend/app/s4_experiment.py:55-62"
+      ],
+      "required_future_authority": [
+        "V2-bound candidate prediction path that applies p80/p90 controls",
+        "P50 prediction identity that can be compared under daily_wape",
+        "Separate policy amendment if a quantile-only candidate remains in scope"
+      ],
+      "implementation_blocker": "NO_V2_BOUND_PREDICTION_QUANTILE_PATH",
+      "structural_selection_blocker": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC",
+      "requires_policy_amendment": true
+    },
+    {
+      "candidate_id": "05_marketable_rate",
+      "candidate_family": "PARAMETER_CALIBRATION",
+      "parent_model_id": "V0_2_CURRENT_MODEL",
+      "hypothesis": "versioned_marketable_rate_calibration_reduces_marketable_quantity_error",
+      "planned_run_count": 4,
+      "frozen_registry_selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+      "parameter_or_feature_path": ["marketable_rate"],
+      "canonical_control_fields": [
+        "planted_area_mu",
+        "expected_yield_kg_per_mu",
+        "marketable_rate",
+        "expected_total_marketable_kg"
+      ],
+      "actual_execution_function": [
+        "backend.app.planning.plan_service._derived_total",
+        "backend.app.planning.plan_service._prepare_plan_inputs",
+        "backend.app.maturity.service._resolve_training_sample",
+        "backend.app.maturity.service.forecast_natural_maturity"
+      ],
+      "actual_data_sources_read": [
+        "PRODUCTION_PLAN_AUTHORITY",
+        "MATURITY_TRAINING_AND_FORECAST_AUTHORITY",
+        "TASK8_TASK9_DOWNSTREAM_QUANTITY_AUTHORITY_NOT_MARKETABLE_RATE_MULTIPLICATION"
+      ],
+      "uses_SOURCE_002_TRAIN": false,
+      "uses_SOURCE_002_VALIDATION": false,
+      "uses_weather": false,
+      "uses_production_plan": true,
+      "uses_Task8": false,
+      "uses_Task9": false,
+      "uses_other_forward_looking_authority": true,
+      "parameter_reaches_prediction_math": true,
+      "parameter_change_can_change_prediction": true,
+      "source_002_only_candidate_path_exists": false,
+      "historical_only_input_compatible": false,
+      "historical_only_execution_compatible": false,
+      "current_historical_only_execution_eligibility": true,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v4": false,
+      "structurally_selectable_under_v4": false,
+      "status": "INCOMPATIBLE",
+      "reason_code": "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE",
+      "secondary_reason_codes": [
+        "C05_MARKETABLE_RATE_IS_NOT_CORE_CURVE_RETENTION",
+        "NO_SOURCE002_MARKETABLE_RATE_AUTHORITY"
+      ],
+      "code_evidence_paths": [
+        "backend/app/planning/plan_service.py:119-125",
+        "backend/app/planning/plan_service.py:369-410",
+        "backend/app/maturity/service.py:682-742",
+        "backend/app/maturity/service.py:920-922",
+        "backend/app/maturity/service.py:2508-2604",
+        "backend/app/core_forecast/service.py:433-510"
+      ],
+      "required_future_authority": [
+        "Unambiguous SOURCE-002 historical planted-area/yield/marketable-rate authority",
+        "A V2-bound candidate scorer that applies marketable_rate on the canonical upstream path"
+      ],
+      "canonical_parameter_path": [
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.planted_area_mu",
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.expected_yield_kg_per_mu",
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.marketable_rate",
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.expected_total_marketable_kg"
+      ],
+      "canonical_execution_functions": [
+        "backend.app.planning.plan_service._derived_total",
+        "backend.app.planning.plan_service._prepare_plan_inputs",
+        "backend.app.maturity.service._resolve_training_sample",
+        "backend.app.maturity.service.forecast_natural_maturity"
+      ],
+      "canonical_source_domain": [
+        "PRODUCTION_PLAN_AUTHORITY",
+        "MATURITY_TRAINING_AND_FORECAST_AUTHORITY",
+        "TASK8_TASK9_DOWNSTREAM_QUANTITY_AUTHORITY_NOT_MARKETABLE_RATE_MULTIPLICATION"
+      ],
+      "explicit_total_override_exists": true
+    },
+    {
+      "candidate_id": "07_harvest_efficiency",
+      "candidate_family": "PARAMETER_CALIBRATION",
+      "parent_model_id": "V0_2_CURRENT_MODEL",
+      "hypothesis": "versioned_harvest_efficiency_calibration_reduces_peak_error",
+      "planned_run_count": 4,
+      "frozen_registry_selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+      "parameter_or_feature_path": ["harvest_efficiency"],
+      "canonical_control_fields": [
+        "labor_availability_ratio",
+        "weather_harvest_efficiency_ratio",
+        "operational_efficiency_ratio",
+        "resolved_effective_capacity_kg_per_day"
+      ],
+      "actual_execution_function": [
+        "backend.app.harvest_state.service._validated_request",
+        "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+        "backend.app.harvest_state.service.run_harvest_state_model"
+      ],
+      "actual_data_sources_read": [
+        "TASK9_DAILY_CAPACITY_AUTHORITY",
+        "WEATHER_FEATURE_AUTHORITY",
+        "HOLIDAY_CALENDAR_AUTHORITY",
+        "RESOLVED_EFFECTIVE_CAPACITY_OUTPUT"
+      ],
+      "uses_SOURCE_002_TRAIN": false,
+      "uses_SOURCE_002_VALIDATION": false,
+      "uses_weather": true,
+      "uses_production_plan": false,
+      "uses_Task8": false,
+      "uses_Task9": true,
+      "uses_other_forward_looking_authority": true,
+      "parameter_reaches_prediction_math": true,
+      "parameter_change_can_change_prediction": true,
+      "source_002_only_candidate_path_exists": false,
+      "historical_only_input_compatible": false,
+      "historical_only_execution_compatible": false,
+      "current_historical_only_execution_eligibility": true,
+      "current_v0_3_execution_eligible": true,
+      "currently_runnable_under_v4": false,
+      "structurally_selectable_under_v4": false,
+      "status": "INCOMPATIBLE",
+      "reason_code": "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE",
+      "secondary_reason_codes": [
+        "NO_SOURCE002_HARVEST_EFFICIENCY_INPUT_AUTHORITY",
+        "EFFECTIVE_CAPACITY_REQUIRES_WEATHER_AND_TASK9_STATE"
+      ],
+      "code_evidence_paths": [
+        "backend/app/harvest_state/service.py:631-886",
+        "backend/app/harvest_state/weather.py:49-68",
+        "backend/app/harvest_state/authority_schemas.py:163-204",
+        "backend/app/models/task9_authority.py:230-234"
+      ],
+      "required_future_authority": [
+        "Frozen historical labels for labor, weather, and operational efficiency",
+        "SOURCE-002 derivation of every canonical effective-capacity input",
+        "A V2-bound candidate scorer that applies the calibrated efficiency"
+      ],
+      "canonical_parameter_path": [
+        "backend.app.harvest_state.authority_schemas.Task9DailyCapacityAuthority.labor_availability_ratio",
+        "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+        "backend.app.harvest_state.authority_schemas.Task9DailyCapacityAuthority.operational_efficiency_ratio",
+        "resolved_effective_capacity_kg_per_day"
+      ],
+      "canonical_execution_functions": [
+        "backend.app.harvest_state.service._validated_request",
+        "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+        "backend.app.harvest_state.service.run_harvest_state_model"
+      ],
+      "canonical_source_domain": [
+        "TASK9_DAILY_CAPACITY_AUTHORITY",
+        "WEATHER_FEATURE_AUTHORITY",
+        "HOLIDAY_CALENDAR_AUTHORITY",
+        "RESOLVED_EFFECTIVE_CAPACITY_OUTPUT"
+      ],
+      "explicit_total_override_exists": null
+    }
+  ],
+  "CURRENT_V4_RUNNABILITY": [
+    {
+      "candidate_id": "01_parameter_calibration",
+      "currently_runnable_under_v4": false,
+      "reason_code": "CANDIDATE_01_RERUN_FORBIDDEN"
+    },
+    {
+      "candidate_id": "02_quantile_calibration",
+      "currently_runnable_under_v4": false,
+      "reason_code": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC"
+    },
+    {
+      "candidate_id": "03_phenology_offset",
+      "currently_runnable_under_v4": false,
+      "reason_code": "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+    },
+    {
+      "candidate_id": "04_yield_parameter",
+      "currently_runnable_under_v4": false,
+      "reason_code": "C04_EXHAUSTED_EVIDENCE_INSUFFICIENT"
+    },
+    {
+      "candidate_id": "05_marketable_rate",
+      "currently_runnable_under_v4": false,
+      "reason_code": "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+    },
+    {
+      "candidate_id": "06_weather_response",
+      "currently_runnable_under_v4": false,
+      "reason_code": "C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY"
+    },
+    {
+      "candidate_id": "07_harvest_efficiency",
+      "currently_runnable_under_v4": false,
+      "reason_code": "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+    },
+    {
+      "candidate_id": "08_residual_feature",
+      "currently_runnable_under_v4": false,
+      "reason_code": "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED"
+    }
+  ],
+  "DECISION": {
+    "NEXT_EXECUTABLE_CANDIDATE": "NONE",
+    "CURRENT_FROZEN_PLAN_HAS_NO_REMAINING_EXECUTABLE_CANDIDATE": true,
+    "S4_NEXT_DECISION_REQUIRED": "COORDINATOR_CHOICE_BETWEEN_INCUMBENT_CLOSURE_OR_NEW_EXPERIMENT_PLAN_AUTHORIZATION",
+    "NO_NEW_CANDIDATE_SEMANTICS": true,
+    "NO_PROXY_PARAMETER_INVENTION": true,
+    "NO_SOURCE002_FIELD_REINTERPRETATION": true
+  },
+  "S4_CURRENT_STATUS": {
+    "CURRENT_S4_EXECUTION_STATUS": "NO_REMAINING_EXECUTABLE_CANDIDATE_UNDER_FROZEN_V2_V4",
+    "CURRENT_S4_BLOCKER": "NO_REMAINING_CANDIDATE_HAS_A_LAWFUL_SOURCE002_ONLY_V4_SCORING_PATH",
+    "C01_RERUN_FORBIDDEN": true,
+    "C03_CURRENTLY_RUNNABLE_UNDER_V4": false,
+    "C04_FINAL_STATUS": "EXHAUSTED_EVIDENCE_INSUFFICIENT",
+    "C06_EXECUTION_ELIGIBLE": false,
+    "C08_EXECUTION_ELIGIBLE": false
+  },
+  "BUDGET": {
+    "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+    "CANONICAL_STARTED_COUNT": 4,
+    "EFFECTIVE_CONSUMED": 8,
+    "REMAINING": 24,
+    "BUDGET_DELTA": 0,
+    "STATE_CLASS": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+    "DURABLE_BUDGET_READBACK_AVAILABLE": false,
+    "CURRENT_DURABLE_STATE_READBACK_PERFORMED": false,
+    "VALUES_ARE_CURRENT_DATABASE_READBACK": false,
+    "PROVENANCE": {
+      "EVIDENCE_PATH": "docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json",
+      "EVIDENCE_SHA256": "78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3"
+    },
+    "NEW_STARTED_EVENT_COUNT": 0,
+    "NEW_TERMINAL_EVENT_COUNT": 0
+  },
+  "EXECUTION_BOUNDARY": {
+    "VALIDATION_EXECUTION_AUTHORIZED": false,
+    "VALIDATION_SCORING_AUTHORIZED": false,
+    "VALIDATION_DATA_REREAD": false,
+    "VALIDATION_SCORING_PERFORMED": false,
+    "CANDIDATE_EXECUTION_PERFORMED": false,
+    "TEST_ACCESS_REQUESTED": false,
+    "TEST_BYTES_READ": false,
+    "TEST_EVALUATION_PERFORMED": false,
+    "TEST_REMAINS_SEALED": true
+  },
+  "FARM_TOTAL_BASELINE_ROLE": {
+    "TRAIN_ONLY": true,
+    "VALIDATION_USE": "EVALUATION_ONLY",
+    "TRAIN_AGGREGATION_STATISTIC": "MEDIAN",
+    "SELECTED_MODEL": false,
+    "BASELINE_QUANTILES_INVENTED": false
+  },
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_S4_REMAINING_CANDIDATE_AUTHORITY_R2_REVIEW",
+  "V2_CURRENT_EXECUTION_ELIGIBILITY": {
+    "01_parameter_calibration": true,
+    "02_quantile_calibration": true,
+    "03_phenology_offset": true,
+    "04_yield_parameter": true,
+    "05_marketable_rate": true,
+    "06_weather_response": false,
+    "07_harvest_efficiency": true,
+    "08_residual_feature": false
+  },
+  "FROZEN_REGISTRY_SELECTION_ELIGIBILITY": {
+    "01_parameter_calibration": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "02_quantile_calibration": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "03_phenology_offset": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "04_yield_parameter": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "05_marketable_rate": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "06_weather_response": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "07_harvest_efficiency": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+    "08_residual_feature": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+  },
+  "MACHINE_DERIVED_AUDIT_PAYLOAD": {
+    "task_id": "V0_3_S4_REMAINING_CANDIDATE_AUTHORITY_BINDING_CORRECTION_R2",
+    "experiment_plan": {
+      "version": "v0.3-experiment-plan-v2",
+      "hash": "c2bfab4ec38b4ca640f62d061494961c5b49afe5b52fa675326aa80fdf5f8ad9"
+    },
+    "guardrail_policy": {
+      "version": "v0.3-s4-guardrail-policy-v4-breakdown-reporting-floor",
+      "hash": "f2b5c808d5a72170f055f891422f4253834a977cd5c74b450c8e4546653f46d2"
+    },
+    "v2_current_execution_eligibility": {
+      "01_parameter_calibration": true,
+      "02_quantile_calibration": true,
+      "03_phenology_offset": true,
+      "04_yield_parameter": true,
+      "05_marketable_rate": true,
+      "06_weather_response": false,
+      "07_harvest_efficiency": true,
+      "08_residual_feature": false
+    },
+    "frozen_registry_selection_eligibility": {
+      "01_parameter_calibration": {
+        "candidate_family": "PARAMETER_CALIBRATION",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "parameter_calibration_reduces_primary_metric_without_guardrail_regression",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "02_quantile_calibration": {
+        "candidate_family": "QUANTILE_CALIBRATION",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "quantile_calibration_improves_p80_p90_coverage_without_point_metric_regression",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "03_phenology_offset": {
+        "candidate_family": "PARAMETER_CALIBRATION",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "versioned_phenology_offset_reduces_timing_error",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "04_yield_parameter": {
+        "candidate_family": "PARAMETER_CALIBRATION",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "versioned_yield_parameter_calibration_reduces_quantity_error",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "05_marketable_rate": {
+        "candidate_family": "PARAMETER_CALIBRATION",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "versioned_marketable_rate_calibration_reduces_marketable_quantity_error",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "06_weather_response": {
+        "candidate_family": "STRUCTURAL_MODEL_CANDIDATE",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "authorized_weather_response_features_reduce_residual_error",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "07_harvest_efficiency": {
+        "candidate_family": "PARAMETER_CALIBRATION",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "versioned_harvest_efficiency_calibration_reduces_peak_error",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      },
+      "08_residual_feature": {
+        "candidate_family": "STRUCTURAL_MODEL_CANDIDATE",
+        "parent_model_id": "V0_2_CURRENT_MODEL",
+        "hypothesis": "authorized_residual_features_reduce_unexplained_residual",
+        "planned_run_count": 4,
+        "selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE"
+      }
+    },
+    "candidate_compatibility_audit": [
+      {
+        "candidate_id": "02_quantile_calibration",
+        "frozen_registry_selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+        "current_historical_only_execution_eligibility": true,
+        "historical_only_input_compatible": true,
+        "historical_only_execution_compatible": false,
+        "currently_runnable_under_v4": false,
+        "structurally_selectable_under_v4": false,
+        "parameter_reaches_prediction_math": false,
+        "parameter_change_can_change_prediction": false,
+        "reason_code": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC",
+        "secondary_reason_codes": ["NO_V2_BOUND_PREDICTION_QUANTILE_PATH"],
+        "implementation_blocker": "NO_V2_BOUND_PREDICTION_QUANTILE_PATH",
+        "structural_selection_blocker": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC",
+        "requires_policy_amendment": true
+      },
+      {
+        "candidate_id": "05_marketable_rate",
+        "frozen_registry_selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+        "current_historical_only_execution_eligibility": true,
+        "historical_only_input_compatible": false,
+        "historical_only_execution_compatible": false,
+        "currently_runnable_under_v4": false,
+        "structurally_selectable_under_v4": false,
+        "parameter_reaches_prediction_math": true,
+        "parameter_change_can_change_prediction": true,
+        "reason_code": "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE",
+        "secondary_reason_codes": [
+          "C05_MARKETABLE_RATE_IS_NOT_CORE_CURVE_RETENTION",
+          "NO_SOURCE002_MARKETABLE_RATE_AUTHORITY"
+        ],
+        "implementation_blocker": null,
+        "structural_selection_blocker": null,
+        "requires_policy_amendment": false
+      },
+      {
+        "candidate_id": "07_harvest_efficiency",
+        "frozen_registry_selection_eligibility": "REGISTERED_AND_GUARDRAIL_ELIGIBLE",
+        "current_historical_only_execution_eligibility": true,
+        "historical_only_input_compatible": false,
+        "historical_only_execution_compatible": false,
+        "currently_runnable_under_v4": false,
+        "structurally_selectable_under_v4": false,
+        "parameter_reaches_prediction_math": true,
+        "parameter_change_can_change_prediction": true,
+        "reason_code": "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE",
+        "secondary_reason_codes": [
+          "NO_SOURCE002_HARVEST_EFFICIENCY_INPUT_AUTHORITY",
+          "EFFECTIVE_CAPACITY_REQUIRES_WEATHER_AND_TASK9_STATE"
+        ],
+        "implementation_blocker": null,
+        "structural_selection_blocker": null,
+        "requires_policy_amendment": false
+      }
+    ],
+    "current_v4_runnability": [
+      {
+        "candidate_id": "01_parameter_calibration",
+        "currently_runnable_under_v4": false,
+        "reason_code": "CANDIDATE_01_RERUN_FORBIDDEN"
+      },
+      {
+        "candidate_id": "02_quantile_calibration",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C02_QUANTILE_ONLY_CANDIDATE_CANNOT_STRICTLY_IMPROVE_V4_PRIMARY_POINT_METRIC"
+      },
+      {
+        "candidate_id": "03_phenology_offset",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C03_CANONICAL_TRAINING_SHIFT_MODEL_NOT_SEPARABLE_FROM_FORWARD_LOOKING_AUTHORITY"
+      },
+      {
+        "candidate_id": "04_yield_parameter",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C04_EXHAUSTED_EVIDENCE_INSUFFICIENT"
+      },
+      {
+        "candidate_id": "05_marketable_rate",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+      },
+      {
+        "candidate_id": "06_weather_response",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C06_WEATHER_OUTSIDE_V2_HISTORICAL_POLICY"
+      },
+      {
+        "candidate_id": "07_harvest_efficiency",
+        "currently_runnable_under_v4": false,
+        "reason_code": "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+      },
+      {
+        "candidate_id": "08_residual_feature",
+        "currently_runnable_under_v4": false,
+        "reason_code": "V2_HISTORICAL_ONLY_FEATURE_MANIFEST_REQUIRED"
+      }
+    ],
+    "next_executable_candidate": "NONE",
+    "current_frozen_plan_has_no_remaining_executable_candidate": true,
+    "c02_quantile_effect_proof": {
+      "p50_unchanged": true,
+      "p80_changed": true,
+      "p90_changed": true,
+      "base_prediction": {
+        "P50": "100.000000",
+        "P80": "120.000000",
+        "P90": "140.000000"
+      },
+      "changed_intervals": {
+        "P50": "100.000000",
+        "P80": "130.000000",
+        "P90": "150.000000"
+      },
+      "equal_daily_wape_status": "FAIL",
+      "equal_daily_wape_reason_code": "NOT_IMPROVED",
+      "equal_wape_is_not_improved": true
+    },
+    "c05_canonical_path_audit": {
+      "canonical_parameter_path": [
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.planted_area_mu",
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.expected_yield_kg_per_mu",
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.marketable_rate",
+        "backend.app.models.production_plan.FarmSeasonVarietyPlan.expected_total_marketable_kg"
+      ],
+      "canonical_execution_functions": [
+        "backend.app.planning.plan_service._derived_total",
+        "backend.app.planning.plan_service._prepare_plan_inputs",
+        "backend.app.maturity.service._resolve_training_sample",
+        "backend.app.maturity.service.forecast_natural_maturity"
+      ],
+      "canonical_source_domain": [
+        "PRODUCTION_PLAN_AUTHORITY",
+        "MATURITY_TRAINING_AND_FORECAST_AUTHORITY",
+        "TASK8_TASK9_DOWNSTREAM_QUANTITY_AUTHORITY_NOT_MARKETABLE_RATE_MULTIPLICATION"
+      ],
+      "explicit_total_override_exists": true,
+      "marketable_rate_formula": "planted_area_mu * expected_yield_kg_per_mu * marketable_rate",
+      "core_curve_does_not_reapply_marketable_rate": true,
+      "sorting_and_postharvest_retention_are_distinct": true,
+      "currently_runnable_under_v4": false,
+      "blocker": "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+    },
+    "c07_canonical_path_audit": {
+      "canonical_parameter_path": [
+        "backend.app.harvest_state.authority_schemas.Task9DailyCapacityAuthority.labor_availability_ratio",
+        "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+        "backend.app.harvest_state.authority_schemas.Task9DailyCapacityAuthority.operational_efficiency_ratio",
+        "resolved_effective_capacity_kg_per_day"
+      ],
+      "canonical_execution_functions": [
+        "backend.app.harvest_state.service._validated_request",
+        "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+        "backend.app.harvest_state.service.run_harvest_state_model"
+      ],
+      "canonical_source_domain": [
+        "TASK9_DAILY_CAPACITY_AUTHORITY",
+        "WEATHER_FEATURE_AUTHORITY",
+        "HOLIDAY_CALENDAR_AUTHORITY",
+        "RESOLVED_EFFECTIVE_CAPACITY_OUTPUT"
+      ],
+      "effective_capacity_formula": "resolved_nominal_capacity * labor_availability_ratio * weather_harvest_efficiency_ratio * operational_efficiency_ratio",
+      "currently_runnable_under_v4": false,
+      "blocker": "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+    },
+    "budget": {
+      "state_class": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+      "durable_budget_readback_available": false,
+      "current_durable_state_readback_performed": false,
+      "values_are_current_database_readback": false,
+      "provenance": {
+        "evidence_path": "docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json",
+        "evidence_sha256": "78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3"
+      },
+      "legacy_reconciled_validation_debit": 4,
+      "canonical_started_count": 4,
+      "effective_consumed": 8,
+      "remaining": 24,
+      "budget_delta": 0,
+      "v2_freeze_snapshot": {
+        "canonical_started_count": 0,
+        "effective_consumed": 4,
+        "remaining": 28
+      }
+    }
+  }
+}
