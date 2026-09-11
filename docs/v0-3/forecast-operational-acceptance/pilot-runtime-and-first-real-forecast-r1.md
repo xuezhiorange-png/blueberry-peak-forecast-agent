@@ -188,3 +188,92 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false  
 NO_STEP_IMPLIES_THE_NEXT=true  
 FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_OPERATIONAL_ACCEPTANCE_REVIEW
+
+## R2 current-main runtime and input-authority probe
+
+R2 performed the required operational probe against current main at
+`8de8b54c1dd0476aac903e80a45a6cd1d997c78a`. The R1 environment observation is
+retained above as historical evidence; it is not reused as the R2 runtime
+result.
+
+The existing PostgreSQL process on port `55436` required SCRAM credentials that
+were not available for a safe identity readback. It was not reconnected to,
+modified, or treated as production authority. R2 instead started a separate
+current-main acceptance runtime on local port `55437`, with an isolated
+database and no fixture or business rows. This runtime is explicitly not
+production and is not the TEST environment.
+
+```text
+CURRENT_MAIN_CODE_IDENTITY_VERIFIED=true
+CURRENT_MAIN_APP_RUNTIME_BOUND=true
+ACCEPTANCE_RUNTIME_IS_PRODUCTION=false
+ACCEPTANCE_RUNTIME_IS_TEST_FIXTURE=false
+REAL_BUSINESS_DATA_IN_NEW_RUNTIME=false
+DATABASE_AT_CURRENT_HEAD=true
+POSTGRES_VERSION=16.15
+ALEMBIC_HEAD=0032_s4_validation_budget_durable_persistence
+HEALTH_LIVE_HTTP_STATUS=200
+HEALTH_READY_HTTP_STATUS=200
+```
+
+The real current-main endpoint was then called:
+
+```text
+GET /api/v1/trial/forecast-input-authority
+HTTP_STATUS=503
+RESPONSE_CODE=TRIAL_AUTHORIZATION_UNAVAILABLE
+FORECAST_INPUT_AUTHORITY_AVAILABLE=false
+FORECAST_INPUT_AUTHORITY_ITEM_COUNT=0
+```
+
+The acceptance database has no master-data, production-plan, active marketable
+policy, factory, or retained forecast-authority rows. The normal input path is
+therefore operational but correctly fails closed. The repository-owned
+ingestion path remains
+`backend.app.planning.plan_importer.import_production_plans_csv`; the minimum
+business input must provide `farm_name`, `season_code`, `variety_code`,
+`planted_area_mu`, `expected_yield_kg_per_mu`, `marketable_rate`, and `version`,
+with `subfarm_name` where applicable and valid `effective_from`/`available_at`
+metadata. No value was invented or inserted during R2.
+
+Because no real current business input authority was available, R2 did not send
+`POST /api/v1/trial/forecasts`, did not call core forecast or retention
+directly, and created no forecast or authority rows. The prior CI/browser path
+proves engineering-path availability only; it is not real-business acceptance.
+
+```text
+CURRENT_V0_3_S4_COMPLETE=true
+S4_FINAL_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+CURRENT_S4_EXECUTION_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+CURRENT_S4_BLOCKER=NONE_CURRENT_PLAN_TERMINAL
+S4_REOPEN_AUTHORIZED=false
+CURRENT_MAIN_RUNTIME_OPERATIONAL=true
+CURRENT_MAIN_INPUT_AUTHORITY_PROBE_EXECUTED=true
+REAL_FORWARD_LOOKING_BUSINESS_INPUT_AVAILABLE=false
+REAL_NORMAL_PRODUCTION_FORECAST_EXECUTED=false
+REAL_PROSPECTIVE_FORECAST_AUTHORITY_CAPTURED=false
+PROSPECTIVE_CLOCK_STARTED=false
+CURRENT_REAL_FORECAST_CAPABILITY=BLOCKED_REAL_BUSINESS_INPUT_NOT_LOADED
+NEXT_REQUIRED_ACTION=LOAD_CURRENT_BUSINESS_FORECAST_INPUT
+```
+
+The budget remains the last accepted durable snapshot because R2 did not read
+or write the S4 ledger. No validation event, candidate execution, scorer call,
+or TEST access occurred:
+
+```text
+BUDGET_STATE_CLASS=LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT
+LAST_ACCEPTED_CANONICAL_STARTED_COUNT=4
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+REMAINING_VALIDATION_BUDGET_UNUSED=24
+BUDGET_DELTA=0
+TEST_ACCESS_REQUESTED=false
+TEST_BYTES_READ=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_R2_REVIEW
+```
