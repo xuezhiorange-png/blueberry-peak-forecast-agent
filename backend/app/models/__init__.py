@@ -38,6 +38,7 @@ from backend.app.models.core_forecast import (
 from backend.app.models.core_forecast_task10_authority_binding import (
     CoreForecastTask10AuthorityBindingModel,
 )
+from backend.app.models.empirical_forecast import EmpiricalForecastRun, EmpiricalMaturityAuthority
 from backend.app.models.forecast_authority import (
     ForecastAuthorityCaptureModel,
     ForecastAuthorityDailyModel,
@@ -231,6 +232,8 @@ __all__ = [
     "WeatherImportRun",
     "WeatherSourceLocation",
 ]
+
+__all__ += ["EmpiricalForecastRun", "EmpiricalMaturityAuthority"]
 
 _S2_MODEL_EXPORTS = {
     "S2MaterializedDatasetModel",
