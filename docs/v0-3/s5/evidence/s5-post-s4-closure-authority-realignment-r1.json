@@ -1,0 +1,480 @@
+{
+  "TASK_ID": "V0_3_S5_POST_S4_CLOSURE_AUTHORITY_REALIGNMENT_R1",
+  "TASK_CLASS": "GOVERNANCE_AND_S5_ENTRY_CRITERIA_REALIGNMENT",
+  "REPOSITORY": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "BASE_MAIN_SHA": "2026424daf267ab292eee49166002dde3b936ffa",
+  "PR603_MERGE_IN_BASE": true,
+  "PR603_MERGE_SHA": "2026424daf267ab292eee49166002dde3b936ffa",
+  "DOCUMENT_SCOPE_ONLY": true,
+  "PRODUCTION_CODE_CHANGED": false,
+  "FRONTEND_CODE_CHANGED": false,
+  "DATABASE_SCHEMA_CHANGED": false,
+  "MIGRATION_CHANGED": false,
+  "DATABASE_WRITE": false,
+  "PILOT_RUNTIME_START": false,
+  "FORECAST_EXECUTION": false,
+  "FORECAST_AUTHORITY_CAPTURE": false,
+  "ACTUAL_LABEL_IMPORT": false,
+  "ADOPTION_RECORD_WRITE": false,
+  "SCHEDULER_START": false,
+  "S4_FINAL_STATUS": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+  "SELECTED_CANDIDATE_ID": "NOT_ISSUED",
+  "SELECTED_CANDIDATE_COUNT": 0,
+  "INCUMBENT_MODEL_ID": "V0_2_CURRENT_MODEL",
+  "INCUMBENT_RETAINED": true,
+  "INCUMBENT_IS_S4_SELECTED_CANDIDATE": false,
+  "INCUMBENT_DECLARED_VALIDATION_WINNER": false,
+  "MODEL_APPROVED_FOR_PILOT": false,
+  "DOES_S5_REQUIRE_MODEL_APPROVED_FOR_PILOT": true,
+  "DOES_S5_REQUIRE_MODEL_APPROVED_FOR_PILOT_SEMANTICS": "FORMAL_S5_OPERATIONAL_ENTRY_AND_ACCEPTANCE_REQUIREMENT; EXISTING_REUSABLE_ENGINEERING_CAPABILITIES_DO_NOT_CREATE_A_PRE_APPROVAL_IMPLEMENTATION_LANE",
+  "CAN_INCUMBENT_RETAINED_SATISFY_MODEL_APPROVED_FOR_PILOT": false,
+  "FORMAL_S5_SLICE_AUTHORITY": "docs/v0-3/development-plan.md §4.7",
+  "FORMAL_S5_SLICE_AUTHORITY_AUDITED": true,
+  "FORMAL_S6_SLICE_AUTHORITY": "docs/v0-3/development-plan.md §4.8",
+  "V0_3_S5_CURRENT_DEFINITION_EXISTS": true,
+  "V0_3_S6_CURRENT_DEFINITION_EXISTS": true,
+  "CURRENT_V0_3_S5_SLICE_DEFINITION_EXISTS": true,
+  "CURRENT_V0_3_S5_FORMAL_SUBTASK_DECOMPOSITION_EXISTS": false,
+  "PROPOSED_S5_ABC_DECOMPOSITION_AUTHORIZED": false,
+  "PROPOSED_S5_ABC_DECOMPOSITION_IMPLEMENTED": false,
+  "PROPOSED_S5_EXECUTION_DECOMPOSITION_SOURCE": "PR593_PLANNING_PROPOSAL",
+  "PROPOSED_S5_EXECUTION_DECOMPOSITION": [
+    "S5-A PILOT OPERATIONS READINESS",
+    "S5-B FRONTEND COMPARISON WARNINGS AND STRUCTURED EXPLANATION",
+    "S5-C CONTINUOUS EVALUATION AND ADOPTION RECORDS"
+  ],
+  "S5_ENTRY_STATUS": "BLOCKED_NO_PILOT_APPROVED_MODEL",
+  "NEXT_S5_ACTION": "NO_S5_IMPLEMENTATION",
+  "V0_3_NEXT_DECISION_REQUIRED": "COORDINATOR_VERSION_CLOSEOUT_OR_NEW_MODEL_EXPERIMENT_AUTHORIZATION",
+  "S5_A_CONTRACT_PROPOSAL_COMPLETE": true,
+  "PROPOSED_S5_A_CONTRACT_FROZEN": true,
+  "S5_A_IMPLEMENTATION_READY": false,
+  "S5_REQUISITE_BUCKETS_MAY_OVERLAP": true,
+  "S5_REQUIREMENT_COUNT": 16,
+  "S5_REQUIREMENTS_REUSABLE_WITHOUT_PILOT_APPROVAL": [
+    "S5-REQ-005",
+    "S5-REQ-006",
+    "S5-REQ-009",
+    "S5-REQ-010",
+    "S5-REQ-012",
+    "S5-REQ-016"
+  ],
+  "S5_REQUIREMENTS_BLOCKED_BY_PILOT_APPROVAL": [
+    "S5-REQ-001",
+    "S5-REQ-002",
+    "S5-REQ-003",
+    "S5-REQ-004",
+    "S5-REQ-013",
+    "S5-REQ-014",
+    "S5-REQ-015"
+  ],
+  "S5_REQUIREMENTS_BLOCKED_BY_OTHER_AUTHORITY": [
+    "S5-REQ-007",
+    "S5-REQ-008",
+    "S5-REQ-011",
+    "S5-REQ-013",
+    "S5-REQ-014"
+  ],
+  "S5_REQUIREMENT_TRACEABILITY": [
+    {
+      "REQUIREMENT_ID": "S5-REQ-001",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 current forecast versus previous forecast",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py",
+        "backend/app/core_forecast/persistence.py",
+        "backend/app/forecast_authority/retention.py"
+      ],
+      "CURRENT_STATE": "PARTIALLY_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_PILOT_APPROVED_MODEL",
+      "NEXT_ALLOWED_ACTION": "RECONSIDER_AFTER_MODEL_APPROVAL_AND_SEPARATE_S5_AUTHORIZATION",
+      "BLOCKER": "NO_SELECTED_PILOT_APPROVED_MODEL_AND_NO_VERSIONED_OPERATIONAL_COMPARISON_CONTRACT"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-002",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 current model versus previous pilot-approved model",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py model_identity/model_version fields",
+        "backend/app/models/trial.py"
+      ],
+      "CURRENT_STATE": "NOT_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_PILOT_APPROVED_MODEL",
+      "NEXT_ALLOWED_ACTION": "OBTAIN_EXPLICIT_APPROVED_MODEL_REGISTRY_DECISION_THEN_AUTHORIZE_IMPLEMENTATION",
+      "BLOCKER": "MODEL_APPROVED_FOR_PILOT=false"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-003",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 before and after calibration",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/s4_experiment.py",
+        "docs/v0-3/s4/evidence/s4-incumbent-retention-final-closure-r1.json"
+      ],
+      "CURRENT_STATE": "NOT_IMPLEMENTED_AS_S5_OPERATION",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_PILOT_APPROVED_MODEL",
+      "NEXT_ALLOWED_ACTION": "RECONSIDER_ONLY_AFTER_A_SELECTED_APPROVED_MODEL_AND_EXPLICIT_CALIBRATION_COMPARISON_AUTHORITY_EXIST",
+      "BLOCKER": "PR603_ISSUES_NO_SELECTED_CANDIDATE_OR_VALIDATION_WINNER"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-004",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 P50/P80/P90 comparison",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/forecast_quality",
+        "backend/app/trial.py",
+        "frontend/src/features/quality"
+      ],
+      "CURRENT_STATE": "PARTIALLY_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_PILOT_APPROVED_MODEL",
+      "NEXT_ALLOWED_ACTION": "DEFINE_SERVER_OWNED_CROSS_RUN_COMPARISON_AFTER_S5_ENTRY_AUTHORIZATION",
+      "BLOCKER": "CURRENT_SURFACE_IS_NOT_A_COMPLETE_APPROVED-PILOT_COMPARISON_AUTHORITY"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-005",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 forecast versus actual comparison",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/actual_harvest_labels",
+        "backend/app/trial.py",
+        "GET /api/v1/trial/quality-reports"
+      ],
+      "CURRENT_STATE": "IMPLEMENTED_REUSABLE",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "REUSABLE_WITHOUT_PILOT_MODEL_APPROVAL",
+      "NEXT_ALLOWED_ACTION": "PRESERVE_AS_A_REUSABLE_TECHNICAL_REPORTING_CAPABILITY",
+      "BLOCKER": null
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-006",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 current model versus naive baseline",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/forecast_quality/comparison.py",
+        "backend/app/models/forecast_quality.py",
+        "backend/app/trial.py"
+      ],
+      "CURRENT_STATE": "IMPLEMENTED_REUSABLE",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "REUSABLE_WITHOUT_PILOT_MODEL_APPROVAL",
+      "NEXT_ALLOWED_ACTION": "PRESERVE_AS_A_REUSABLE_COMPARISON_BUILDING_BLOCK",
+      "BLOCKER": null
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-007",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 data-gap notices",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py TrialForecastSummaryResponse.data_gap_summaries",
+        "frontend/src/features/forecast/ForecastResult.tsx"
+      ],
+      "CURRENT_STATE": "PARTIALLY_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_OTHER_AUTHORITY",
+      "NEXT_ALLOWED_ACTION": "DECIDE_TYPED_NOTICE_VOCABULARY_SCOPE_AND_OWNER_IN_A_SEPARATELY_AUTHORIZED_TASK",
+      "BLOCKER": "CURRENT_SUMMARIES_ARE_NOT_A_COMPLETE_TYPED_OPERATIONAL_NOTICE_AUTHORITY"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-008",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 data-quality risk notices",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py blocker_summaries",
+        "backend/app/forecast_quality/status_evidence.py",
+        "backend/app/s2_materialized_dataset/lane_b/schemas.py"
+      ],
+      "CURRENT_STATE": "PARTIALLY_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_OTHER_AUTHORITY",
+      "NEXT_ALLOWED_ACTION": "DECIDE_SERVER_OWNED_CLASSIFICATION_AND_EVIDENCE_MAPPING_LATER",
+      "BLOCKER": "CURRENT_REASONS_DO_NOT_PROVE_A_COMPLETE_S5_NOTICE_CONTRACT"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-009",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 model version display",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py TrialForecastSummaryResponse.model_version",
+        "frontend/src/features/forecast/ForecastResult.tsx"
+      ],
+      "CURRENT_STATE": "IMPLEMENTED_REUSABLE",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": false,
+      "DISPOSITION": "REUSABLE_WITHOUT_PILOT_MODEL_APPROVAL",
+      "NEXT_ALLOWED_ACTION": "PRESERVE_VERSION_DISPLAY_AND_KEEP_IT_DISTINCT_FROM_APPROVAL",
+      "BLOCKER": null
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-010",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 parameter version display",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py TrialForecastSummaryResponse.parameter_version",
+        "frontend/src/features/forecast/ForecastResult.tsx"
+      ],
+      "CURRENT_STATE": "IMPLEMENTED_REUSABLE",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": false,
+      "DISPOSITION": "REUSABLE_WITHOUT_PILOT_MODEL_APPROVAL",
+      "NEXT_ALLOWED_ACTION": "PRESERVE_PARAMETER_IDENTITY_DISPLAY_WITHOUT_MUTATING_PARAMETERS",
+      "BLOCKER": null
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-011",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 historical forecast query",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "GET /api/v1/trial/forecasts/{run_id}",
+        "backend/app/forecast_authority/retention.py",
+        "backend/app/trial.py"
+      ],
+      "CURRENT_STATE": "PARTIALLY_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_OTHER_AUTHORITY",
+      "NEXT_ALLOWED_ACTION": "DEFINE_OPERATIONAL_LIST_FILTER_ACCESS_AND_PAGINATION_POLICY_LATER",
+      "BLOCKER": "CURRENT_MAIN_PROVES_KNOWN-ID_READ_NOT_COMPLETE_OPERATIONAL_HISTORY_ACCESS"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-012",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 result export",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/api/trial.py forecast and quality CSV routes",
+        "frontend/src/components/ExportButton.tsx"
+      ],
+      "CURRENT_STATE": "IMPLEMENTED_REUSABLE",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": false,
+      "DISPOSITION": "REUSABLE_WITHOUT_PILOT_MODEL_APPROVAL",
+      "NEXT_ALLOWED_ACTION": "PRESERVE_SERVER_EXPORTS_AND_ADD_VERSION-AWARE_POLICY_ONLY_AFTER_AUTHORIZATION",
+      "BLOCKER": null
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-013",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 business adoption record",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "No current-main S5 adoption record model/API found in scoped audit"
+      ],
+      "CURRENT_STATE": "NOT_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_BUSINESS_OWNER_DECISION",
+      "NEXT_ALLOWED_ACTION": "DECIDE_ADOPTION_HOOK_BOUNDARY_AND_AUTHORIZE_IMPLEMENTATION_ONLY_AFTER_S5_ENTRY",
+      "BLOCKER": "NO_MODEL_APPROVAL_AND_NO_ADOPTION_PERSISTENCE_CONTRACT; ADOPTION_IS_NOT_BUSINESS_ACCEPTANCE"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-014",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 reason record for manual adjustment",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "No current-main manual-adjustment reason model/API found in scoped audit"
+      ],
+      "CURRENT_STATE": "NOT_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_BUSINESS_OWNER_DECISION",
+      "NEXT_ALLOWED_ACTION": "DECIDE_REASON_VOCABULARY_ACTOR_AND_IMMUTABLE_HOOK_AFTER_S5_ENTRY",
+      "BLOCKER": "NO_MODEL_APPROVAL_AND_NO_BUSINESS/DATA_OWNER_ADJUSTMENT_POLICY"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-015",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 explanation rule",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/trial.py data_gap_summaries and blocker_summaries",
+        "backend/app/forecast_quality/status_evidence.py",
+        "frontend/src/features/quality/QualityReport.tsx"
+      ],
+      "CURRENT_STATE": "PARTIALLY_IMPLEMENTED",
+      "PILOT_MODEL_APPROVAL_REQUIRED": true,
+      "BUSINESS_OWNER_DECISION_REQUIRED": true,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "BLOCKED_REQUIRES_PILOT_APPROVED_MODEL",
+      "NEXT_ALLOWED_ACTION": "DEFINE_EVIDENCE-DERIVED_EXPLANATION_ENVELOPE_AFTER_S5_ENTRY",
+      "BLOCKER": "NO_APPROVED_OPERATIONAL_COMPARISON/EVIDENCE_ENVELOPE; UNSUPPORTED_CAUSE_INFERENCE_FORBIDDEN"
+    },
+    {
+      "REQUIREMENT_ID": "S5-REQ-016",
+      "FORMAL_SOURCE_AUTHORITY": "docs/v0-3/development-plan.md §4.7 immutable historical forecasts",
+      "CURRENT_MAIN_IMPLEMENTATION_PATH": [
+        "backend/app/forecast_authority/retention.py",
+        "backend/app/models/forecast_authority.py",
+        "forecast-authority migrations",
+        "PIT/readback APIs"
+      ],
+      "CURRENT_STATE": "IMPLEMENTED_REUSABLE",
+      "PILOT_MODEL_APPROVAL_REQUIRED": false,
+      "BUSINESS_OWNER_DECISION_REQUIRED": false,
+      "RUNTIME_REQUIRED": true,
+      "DISPOSITION": "REUSABLE_WITHOUT_PILOT_MODEL_APPROVAL",
+      "NEXT_ALLOWED_ACTION": "PRESERVE_APPEND_ONLY_RETENTION_AND_VERIFIED_READBACK",
+      "BLOCKER": null
+    }
+  ],
+  "PR595_RUNTIME_STILL_EXISTS_AS_REUSABLE_INFRASTRUCTURE": "NOT_PROVEN",
+  "PR595_S4_STATUS_IS_CURRENT": false,
+  "PR595_PROSPECTIVE_S4_WAIT_STATE_SUPERSEDED": true,
+  "PR595_RUNTIME_AUTHORIZES_S5_IMPLEMENTATION": false,
+  "PR595_RUNTIME_AUTHORIZES_PILOT": false,
+  "TASK_ISOLATED_DATABASE_IS_PRODUCTION": false,
+  "HISTORICAL_ARTIFACT_SUPERSESSION_MAP": [
+    {
+      "ARTIFACT_ID": "PR593",
+      "ARTIFACT_PATH_OR_PR": "PR #593; docs/v0-3/post-s4-business-pilot-remaining-scope-and-execution-plan-r1.md",
+      "STATUS": "PROPOSAL_ONLY_NOT_AUTHORIZED",
+      "CURRENT_INTERPRETATION": "S5 decomposition and remaining-scope provenance only",
+      "SUPERSEDED_FACT": "Its pre-closure prospective-S4 wait wording is superseded by PR603"
+    },
+    {
+      "ARTIFACT_ID": "PR594",
+      "ARTIFACT_PATH_OR_PR": "PR #594; docs/v0-3/s5/s5-a-pilot-operations-readiness-contract-and-runtime-gap-plan-r1.md",
+      "STATUS": "PROPOSAL_ONLY_NOT_AUTHORIZED",
+      "CURRENT_INTERPRETATION": "Frozen S5-A contract proposal and gap inventory",
+      "SUPERSEDED_FACT": "No implementation or pilot authorization is implied"
+    },
+    {
+      "ARTIFACT_ID": "PR595",
+      "ARTIFACT_PATH_OR_PR": "PR #595; docs/v0-3/pilot-runtime",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "Reusable runtime engineering evidence only",
+      "SUPERSEDED_FACT": "Its old prospective-S4 wait state is not current"
+    },
+    {
+      "ARTIFACT_ID": "PR596",
+      "ARTIFACT_PATH_OR_PR": "PR #596; historical-only S4 path realignment",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "Historical-only S4 input policy and evidence",
+      "SUPERSEDED_FACT": "It does not reopen S4 after PR603 closure"
+    },
+    {
+      "ARTIFACT_ID": "PR597",
+      "ARTIFACT_PATH_OR_PR": "PR #597; V2 historical-only execution adapter",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "V2 control-plane engineering evidence",
+      "SUPERSEDED_FACT": "No candidate execution follows from this artifact"
+    },
+    {
+      "ARTIFACT_ID": "PR598",
+      "ARTIFACT_PATH_OR_PR": "PR #598; C04 historical scorer readiness",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "C04 scorer and manifest engineering evidence",
+      "SUPERSEDED_FACT": "C04 is not selected or a pilot-approved model"
+    },
+    {
+      "ARTIFACT_ID": "PR599",
+      "ARTIFACT_PATH_OR_PR": "PR #599; sparse-horizon guardrail alignment",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "S4 guardrail lineage",
+      "SUPERSEDED_FACT": "It does not issue S5 or TEST authorization"
+    },
+    {
+      "ARTIFACT_ID": "PR600",
+      "ARTIFACT_PATH_OR_PR": "PR #600; C04 validation and evidence hardening",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "Immutable four-run and evidence-hardening provenance",
+      "SUPERSEDED_FACT": "No new readjudication is issued here"
+    },
+    {
+      "ARTIFACT_ID": "PR601",
+      "ARTIFACT_PATH_OR_PR": "PR #601; C03 historical-only scorer readiness",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "C03 readiness evidence",
+      "SUPERSEDED_FACT": "C03 is not selected or authorized"
+    },
+    {
+      "ARTIFACT_ID": "PR602",
+      "ARTIFACT_PATH_OR_PR": "PR #602; remaining candidate viability audit",
+      "STATUS": "SUPERSEDED_BY_PR603_FINAL_CLOSURE",
+      "CURRENT_INTERPRETATION": "Consumed as the no-remaining-candidate input to closure",
+      "SUPERSEDED_FACT": "PR603 is the current no-selection authority"
+    },
+    {
+      "ARTIFACT_ID": "PR603",
+      "ARTIFACT_PATH_OR_PR": "PR #603; docs-v0-3/s4/s4-incumbent-retention-final-closure-r1.md",
+      "STATUS": "CURRENT",
+      "CURRENT_INTERPRETATION": "Canonical current S4 final closure",
+      "SUPERSEDED_FACT": null
+    },
+    {
+      "ARTIFACT_ID": "POST_S4_PLANNING",
+      "ARTIFACT_PATH_OR_PR": "docs/v0-3/post-s4-business-pilot-remaining-scope-and-execution-plan-r1.md",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "S5/S6 inventory and planning provenance",
+      "SUPERSEDED_FACT": "Its pre-PR603 current S4 wait wording is superseded"
+    },
+    {
+      "ARTIFACT_ID": "S5_A_PROPOSAL",
+      "ARTIFACT_PATH_OR_PR": "docs/v0-3/s5/s5-a-pilot-operations-readiness-contract-and-runtime-gap-plan-r1.md and evidence",
+      "STATUS": "PROPOSAL_ONLY_NOT_AUTHORIZED",
+      "CURRENT_INTERPRETATION": "Proposal-only S5-A scope and contract",
+      "SUPERSEDED_FACT": "It is not a formal current S5 subtask authority"
+    },
+    {
+      "ARTIFACT_ID": "PILOT_RUNTIME_EVIDENCE",
+      "ARTIFACT_PATH_OR_PR": "docs/v0-3/pilot-runtime/evidence/pilot-runtime-and-first-prospective-capture-r1.json",
+      "STATUS": "HISTORICAL_STILL_VALID",
+      "CURRENT_INTERPRETATION": "Reusable infrastructure evidence",
+      "SUPERSEDED_FACT": "Live runtime existence is not re-proven and it authorizes neither S5 nor pilot"
+    },
+    {
+      "ARTIFACT_ID": "S4_FINAL_CLOSURE",
+      "ARTIFACT_PATH_OR_PR": "docs/v0-3/s4/evidence/s4-incumbent-retention-final-closure-r1.json",
+      "STATUS": "CURRENT",
+      "CURRENT_INTERPRETATION": "Current S4 incumbent-retention/no-selection authority",
+      "SUPERSEDED_FACT": null
+    }
+  ],
+  "CURRENT_S4_EXECUTION_STATUS": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+  "CURRENT_S4_BLOCKER": "NONE_CURRENT_PLAN_TERMINAL",
+  "S4_REOPEN_AUTHORIZED": false,
+  "NEW_EXPERIMENT_PLAN_AUTHORIZED": false,
+  "NEW_CANDIDATE_AUTHORIZED": false,
+  "VALIDATION_EXECUTION_AUTHORIZED": false,
+  "VALIDATION_SCORING_AUTHORIZED": false,
+  "PROSPECTIVE_SCAN_PERFORMED": false,
+  "LEGACY_RECONCILED_VALIDATION_DEBIT": 4,
+  "BUDGET_DELTA": 0,
+  "DURABLE_BUDGET_READBACK_AVAILABLE": false,
+  "BUDGET_STATE_CLASS": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+  "LAST_ACCEPTED_CANONICAL_STARTED_COUNT": 4,
+  "LAST_ACCEPTED_EFFECTIVE_CONSUMED": 8,
+  "LAST_ACCEPTED_REMAINING": 24,
+  "REMAINING_VALIDATION_BUDGET_UNUSED": 24,
+  "VALUES_ARE_CURRENT_DATABASE_READBACK": false,
+  "VALUES_ARE_LAST_ACCEPTED_DURABLE_SNAPSHOT": true,
+  "BUDGET_PROVENANCE": "docs/v0-3/s4/evidence/s4-c04-controlled-real-validation-r1.json",
+  "BUDGET_PROVENANCE_SHA256": "78b1489b28fe0056e1c7fd88165f927c04d16bf1083926048ba4c36e3c1498b3",
+  "TEST_AUTHORIZED": false,
+  "TEST_ACCESS_REQUESTED": false,
+  "TEST_BYTES_READ": false,
+  "TEST_EVALUATION_PERFORMED": false,
+  "TEST_REMAINS_SEALED": true,
+  "S5_AUTHORIZED": false,
+  "V0_3_S5_AUTHORIZED": false,
+  "S5_IMPLEMENTATION_STARTED": false,
+  "S5_A_IMPLEMENTATION_AUTHORIZED": false,
+  "S6_AUTHORIZED": false,
+  "S6_IMPLEMENTATION_STARTED": false,
+  "PILOT_DEPLOYMENT_AUTHORIZED": false,
+  "BUSINESS_PILOT_AUTHORIZED": false,
+  "PRODUCTION_MODEL_CHANGE_AUTHORIZED": false,
+  "PRODUCTION_PARAMETER_CHANGE_AUTHORIZED": false,
+  "HISTORICAL_EVIDENCE_IMMUTABLE": true,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_V0_3_S5_POST_S4_ENTRY_REALIGNMENT_REVIEW"
+}
