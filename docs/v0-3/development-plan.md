@@ -23581,3 +23581,40 @@ MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 EVIDENCE_JSON=docs/v0-3/forecast-operational-acceptance/evidence/banna-parameter-materialization-r3.json
 FINAL_STOP_GATE=COORDINATOR_BANNA_PARAMETER_SOURCE_SEMANTIC_CONTRACT_REVIEW
+
+### 4.58 Banna R4 arrival-equals-harvest baseline and actual execution boundary
+
+R4 accepts historical arrival as harvest and implements deterministic aggregation
+plus the two explicitly authorized 1.0 baseline policies. It supersedes R3's
+receipt/proxy rejection. Actual source execution gives 968113.233000 kg across
+3420 rows. This is partial calibration, not a complete parameter library.
+The remaining code interface mismatch is Task5 maturity scalars versus Task8's
+artifact-bound spline density; no width/skewness mapping or anchor was invented.
+The same acceptance runtime was restarted; actual Task5 again returned 422.
+
+TASK_ID=V0_3_BANNA_FIRST_REAL_FORECAST_CALIBRATION_AND_EXECUTION_R4
+RESULT=PARTIAL_CALIBRATION_AND_INTERNAL_PATH_BLOCKED
+ARRIVAL_EQUALS_HARVEST=true
+HISTORICAL_CALIBRATION_SOURCE_READY=true
+MARKETABLE_RATE=1.000000
+MARKETABLE_RATE_AUTHORITY_TYPE=BASELINE_POLICY
+HARVEST_REALIZATION_RATE=1.000000
+HARVEST_REALIZATION_AUTHORITY_TYPE=BASELINE_POLICY
+PARAMETER_LIBRARY_READY=false
+MINIMAL_PLANNING_EXECUTED=true
+MINIMAL_PLANNING_STATUS=HTTP_422_PARAMETER_LIBRARY_VERSION_NOT_FOUND
+INTERNAL_SOFTWARE_BLOCKER=TASK5_SCALAR_MATURITY_PARAMETERS_NOT_CONSUMED_BY_TASK8_SPLINE
+TASK8_MATERIALIZED=false
+TASK9_MATERIALIZED=false
+REAL_NORMAL_FORECAST_EXECUTED=false
+S4_REOPENED=false
+BUDGET_STATE_CLASS=LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+VALIDATION_BUDGET_DELTA=0
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+EVIDENCE_JSON=docs/v0-3/forecast-operational-acceptance/evidence/banna-first-forecast-calibration-r4.json
+FINAL_STOP_GATE=COORDINATOR_FIRST_REAL_FORECAST_R4_REVIEW
