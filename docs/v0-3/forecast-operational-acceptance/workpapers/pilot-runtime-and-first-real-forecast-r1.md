@@ -112,3 +112,53 @@ PROSPECTIVE_CLOCK_STARTED=false
 ```
 
 FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_OPERATIONAL_ACCEPTANCE_REVIEW
+
+## R2 continuation: current-main runtime and input probe
+
+R2 corrected the stale S4 top-level conclusion without reopening S4. The
+current terminal state is `CURRENT_V0_3_S4_COMPLETE=true` with
+`CURRENT_S4_EXECUTION_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED` and
+`CURRENT_S4_BLOCKER=NONE_CURRENT_PLAN_TERMINAL`.
+
+The previously observed 55436 PostgreSQL process was not safely identifiable:
+it required SCRAM authentication and no authorized credentials were available.
+It was not reconnected to or changed. A separate current-main acceptance
+runtime was started on PostgreSQL 16.15 port 55437, upgraded to
+`0032_s4_validation_budget_durable_persistence`, and bound to the current-main
+application on port 18005. `/health/live` and `/health/ready` both returned
+HTTP 200. The database was empty by construction and is not production, TEST,
+CI, or a task-isolated production authority.
+
+The live current-main call to
+`GET /api/v1/trial/forecast-input-authority` returned HTTP 503 with
+`TRIAL_AUTHORIZATION_UNAVAILABLE`. The relevant master-data, production-plan,
+active marketable-policy, factory, and retained-authority row counts were all
+zero. This is a verified operationally available runtime with no real
+business input loaded, not a claim that a production authority was found.
+
+The legitimate next input route was audited at
+`backend.app.planning.plan_importer.import_production_plans_csv`. A real
+operator-provided plan must include the farm, season, variety, planted area,
+expected yield, marketable rate, version, and valid effective/availability
+metadata; a subfarm is required for a concrete Trial Forecast scope. R2 did
+not construct or import any row.
+
+No `POST /api/v1/trial/forecasts` was sent because the authority endpoint was
+unavailable. Consequently there was no forecast, capture, daily authority, or
+PIT readback. No S4 ledger event or validation/candidate scorer call occurred,
+and TEST remained sealed. The permitted R2 outcome is:
+
+```text
+RESULT=REAL_INPUT_NOT_LOADED_AND_PUSHED
+CURRENT_MAIN_RUNTIME_OPERATIONAL=true
+FORECAST_INPUT_AUTHORITY_AVAILABLE=false
+ENGINEERING_FORECAST_PATH_PROVEN=true
+REAL_BUSINESS_FORECAST_NOT_EXECUTED=true
+NEXT_REQUIRED_ACTION=LOAD_CURRENT_BUSINESS_FORECAST_INPUT
+BUDGET_STATE_CLASS=LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+BUDGET_DELTA=0
+TEST_REMAINS_SEALED=true
+FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_R2_REVIEW
+```
