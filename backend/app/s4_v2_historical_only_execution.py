@@ -77,6 +77,40 @@ V2_C03_CANONICAL_PATHS: Final[tuple[str, ...]] = C03_CANONICAL_PRODUCTION_SHIFT_
 V2_C04_HISTORICAL_SCORER_PATH: Final[str] = (
     "backend.app.s4_candidate_04_historical_yield.C04HistoricalYieldScorer.predict_rows"
 )
+V2_C05_CANONICAL_PARAMETER_PATH: Final[tuple[str, ...]] = (
+    "backend.app.models.production_plan.FarmSeasonVarietyPlan.planted_area_mu",
+    "backend.app.models.production_plan.FarmSeasonVarietyPlan.expected_yield_kg_per_mu",
+    "backend.app.models.production_plan.FarmSeasonVarietyPlan.marketable_rate",
+    "backend.app.models.production_plan.FarmSeasonVarietyPlan.expected_total_marketable_kg",
+)
+V2_C05_CANONICAL_EXECUTION_FUNCTIONS: Final[tuple[str, ...]] = (
+    "backend.app.planning.plan_service._derived_total",
+    "backend.app.planning.plan_service._prepare_plan_inputs",
+    "backend.app.maturity.service._resolve_training_sample",
+    "backend.app.maturity.service.forecast_natural_maturity",
+)
+V2_C05_CANONICAL_SOURCE_DOMAIN: Final[tuple[str, ...]] = (
+    "PRODUCTION_PLAN_AUTHORITY",
+    "MATURITY_TRAINING_AND_FORECAST_AUTHORITY",
+    "TASK8_TASK9_DOWNSTREAM_QUANTITY_AUTHORITY_NOT_MARKETABLE_RATE_MULTIPLICATION",
+)
+V2_C07_CANONICAL_PARAMETER_PATH: Final[tuple[str, ...]] = (
+    "backend.app.harvest_state.authority_schemas.Task9DailyCapacityAuthority.labor_availability_ratio",
+    "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+    "backend.app.harvest_state.authority_schemas.Task9DailyCapacityAuthority.operational_efficiency_ratio",
+    "resolved_effective_capacity_kg_per_day",
+)
+V2_C07_CANONICAL_EXECUTION_FUNCTIONS: Final[tuple[str, ...]] = (
+    "backend.app.harvest_state.service._validated_request",
+    "backend.app.harvest_state.weather.compute_weather_efficiency_ratio",
+    "backend.app.harvest_state.service.run_harvest_state_model",
+)
+V2_C07_CANONICAL_SOURCE_DOMAIN: Final[tuple[str, ...]] = (
+    "TASK9_DAILY_CAPACITY_AUTHORITY",
+    "WEATHER_FEATURE_AUTHORITY",
+    "HOLIDAY_CALENDAR_AUTHORITY",
+    "RESOLVED_EFFECTIVE_CAPACITY_OUTPUT",
+)
 
 CompatibilityStatus = Literal["COMPATIBLE", "INCOMPATIBLE"]
 
@@ -106,6 +140,10 @@ class V2CandidateCompatibility:
     currently_runnable_under_v4: bool
     status: CompatibilityStatus
     reason_code: str
+    canonical_parameter_path: tuple[str, ...] = ()
+    canonical_execution_functions: tuple[str, ...] = ()
+    canonical_source_domain: tuple[str, ...] = ()
+    explicit_total_override_exists: bool | None = None
 
     def payload(self) -> dict[str, object]:
         return {
@@ -130,6 +168,10 @@ class V2CandidateCompatibility:
             "currently_runnable_under_v4": self.currently_runnable_under_v4,
             "status": self.status,
             "reason_code": self.reason_code,
+            "canonical_parameter_path": self.canonical_parameter_path,
+            "canonical_execution_functions": self.canonical_execution_functions,
+            "canonical_source_domain": self.canonical_source_domain,
+            "explicit_total_override_exists": self.explicit_total_override_exists,
         }
 
 
@@ -154,6 +196,10 @@ def _audit(
     reason_code: str,
     currently_runnable_under_v2: bool | None = None,
     currently_runnable_under_v4: bool | None = None,
+    canonical_parameter_path: tuple[str, ...] = (),
+    canonical_execution_functions: tuple[str, ...] = (),
+    canonical_source_domain: tuple[str, ...] = (),
+    explicit_total_override_exists: bool | None = None,
 ) -> V2CandidateCompatibility:
     historical_only_execution_compatible = (
         historical_only_input_compatible
@@ -196,6 +242,10 @@ def _audit(
         currently_runnable_under_v4=runnable_under_v4,
         status=("COMPATIBLE" if historical_only_execution_compatible else "INCOMPATIBLE"),
         reason_code=reason_code,
+        canonical_parameter_path=canonical_parameter_path,
+        canonical_execution_functions=canonical_execution_functions,
+        canonical_source_domain=canonical_source_domain,
+        explicit_total_override_exists=explicit_total_override_exists,
     )
 
 
@@ -295,16 +345,24 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
         _audit(
             candidate_id=V2_CANDIDATE_05_ID,
             parameter_or_feature_path=("marketable_rate",),
-            actual_execution_function=(),
-            actual_data_sources_read=("NO_BOUND_CANDIDATE_SCORER",),
+            actual_execution_function=V2_C05_CANONICAL_EXECUTION_FUNCTIONS,
+            actual_data_sources_read=V2_C05_CANONICAL_SOURCE_DOMAIN,
             uses_source_002_train=False,
             uses_source_002_validation=False,
-            parameter_reaches_prediction_math=False,
-            parameter_change_can_change_prediction=False,
+            uses_production_plan=True,
+            uses_other_forward_looking_authority=True,
+            parameter_reaches_prediction_math=True,
+            parameter_change_can_change_prediction=True,
             v2_historical_only_scoring_path_exists=False,
-            historical_only_input_compatible=True,
+            historical_only_input_compatible=False,
             current_v0_3_execution_eligible=True,
-            reason_code="NO_BOUND_CANDIDATE_05_SCORING_PATH",
+            reason_code=(
+                "C05_CANONICAL_MARKETABLE_RATE_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+            ),
+            canonical_parameter_path=V2_C05_CANONICAL_PARAMETER_PATH,
+            canonical_execution_functions=V2_C05_CANONICAL_EXECUTION_FUNCTIONS,
+            canonical_source_domain=V2_C05_CANONICAL_SOURCE_DOMAIN,
+            explicit_total_override_exists=True,
         ),
         _audit(
             candidate_id=V2_CANDIDATE_06_ID,
@@ -324,16 +382,24 @@ def build_v2_candidate_compatibility_audit() -> tuple[V2CandidateCompatibility, 
         _audit(
             candidate_id=V2_CANDIDATE_07_ID,
             parameter_or_feature_path=("harvest_efficiency",),
-            actual_execution_function=(),
-            actual_data_sources_read=("NO_BOUND_CANDIDATE_SCORER",),
+            actual_execution_function=V2_C07_CANONICAL_EXECUTION_FUNCTIONS,
+            actual_data_sources_read=V2_C07_CANONICAL_SOURCE_DOMAIN,
             uses_source_002_train=False,
             uses_source_002_validation=False,
-            parameter_reaches_prediction_math=False,
-            parameter_change_can_change_prediction=False,
+            uses_weather=True,
+            uses_task9=True,
+            uses_other_forward_looking_authority=True,
+            parameter_reaches_prediction_math=True,
+            parameter_change_can_change_prediction=True,
             v2_historical_only_scoring_path_exists=False,
-            historical_only_input_compatible=True,
+            historical_only_input_compatible=False,
             current_v0_3_execution_eligible=True,
-            reason_code="NO_BOUND_CANDIDATE_07_SCORING_PATH",
+            reason_code=(
+                "C07_CANONICAL_HARVEST_EFFICIENCY_AUTHORITY_UNAVAILABLE_IN_SOURCE002_HISTORICAL_LANE"
+            ),
+            canonical_parameter_path=V2_C07_CANONICAL_PARAMETER_PATH,
+            canonical_execution_functions=V2_C07_CANONICAL_EXECUTION_FUNCTIONS,
+            canonical_source_domain=V2_C07_CANONICAL_SOURCE_DOMAIN,
         ),
         _audit(
             candidate_id=V2_CANDIDATE_08_ID,
@@ -491,6 +557,12 @@ __all__ = [
     "V2_CANDIDATE_AUDIT_ORDER",
     "V2_C03_CANONICAL_PATHS",
     "V2_C04_HISTORICAL_SCORER_PATH",
+    "V2_C05_CANONICAL_PARAMETER_PATH",
+    "V2_C05_CANONICAL_EXECUTION_FUNCTIONS",
+    "V2_C05_CANONICAL_SOURCE_DOMAIN",
+    "V2_C07_CANONICAL_PARAMETER_PATH",
+    "V2_C07_CANONICAL_EXECUTION_FUNCTIONS",
+    "V2_C07_CANONICAL_SOURCE_DOMAIN",
     "V2HistoricalEvaluationAuthority",
     "V2CandidateCompatibility",
     "V2HistoricalOnlyReadiness",
