@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date
 from decimal import Decimal
 from difflib import SequenceMatcher
@@ -9,6 +9,7 @@ from typing import Literal, cast
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.models.master_data import Farm
 from backend.app.models.planning import AgroClimateZone, LocationReference
 from backend.app.planning.config import ParameterInferenceRules
 from backend.app.planning.json_types import canonical_json_value
@@ -443,6 +444,37 @@ async def resolve_location_input(
     rules: ParameterInferenceRules,
 ) -> ResolvedLocation:
     location_reference_id = location.get("location_reference_id")
+    farm_id = location.get("farm_id")
+    if farm_id is not None:
+        if isinstance(farm_id, bool) or not isinstance(farm_id, int) or farm_id <= 0:
+            return _unresolved_location(
+                address_raw=None, address_normalized=None, warning="canonical_farm_invalid"
+            )
+        if any(value is not None for key, value in location.items() if key != "farm_id"):
+            return _unresolved_location(
+                address_raw=None, address_normalized=None, warning="canonical_farm_input_conflict"
+            )
+        farm = await session.get(Farm, farm_id)
+        if farm is None:
+            return _unresolved_location(
+                address_raw=None, address_normalized=None, warning="canonical_farm_not_found"
+            )
+        return replace(
+            _unresolved_location(
+                address_raw=None, address_normalized=None, warning="geographic_fallback_unavailable"
+            ),
+            status="resolved",
+            farm_id=farm.id,
+            farm_name=farm.name,
+            candidate_count=1,
+            confidence_score=Decimal("1"),
+            reproducibility_snapshot={
+                "canonical_farm_id": farm.id,
+                "canonical_farm_name": farm.name,
+                "resolution_method": "exact_canonical_farm_identity",
+                "geographic_fallback_available": False,
+            },
+        )
     address = location.get("address")
     latitude = location.get("latitude")
     longitude = location.get("longitude")
@@ -658,4 +690,7 @@ async def resolve_location_input(
 
 
 def resolved_location_payload(location: ResolvedLocation) -> dict[str, object]:
-    return cast(dict[str, object], canonical_json_value(asdict(location)))
+    payload = asdict(location)
+    if location.farm_id is None:
+        payload.pop("farm_id")  # Preserve existing address/reference payload identities.
+    return cast(dict[str, object], canonical_json_value(payload))

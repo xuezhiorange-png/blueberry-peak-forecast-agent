@@ -229,10 +229,11 @@ async def _load_candidates(
     resolved_altitude = coerce_optional_decimal(
         cast(Decimal | int | float | str | None, resolved_location.get("altitude_m"))
     )
-    latitude_value = resolved_location.get("latitude")
-    longitude_value = resolved_location.get("longitude")
-    if latitude_value is None or longitude_value is None:
-        return []
+    resolved_farm_id = resolved_location.get("farm_id")
+    has_geo = (
+        resolved_location.get("latitude") is not None
+        and resolved_location.get("longitude") is not None
+    )
 
     candidates: list[CandidateObservation] = []
     for row in rows:
@@ -288,10 +289,15 @@ async def _load_candidates(
         )
         season = season_lookup.get(row.season_id) if row.season_id is not None else None
         source_level = "literature_variety_prior"
-        if resolved_farm_name and farm_name and resolved_farm_name == farm_name:
+        if (
+            row.farm_id == resolved_farm_id
+            if resolved_farm_id is not None
+            else bool(resolved_farm_name and farm_name and resolved_farm_name == farm_name)
+        ):
             source_level = "same_farm_variety"
         elif (
-            resolved_township is not None
+            has_geo
+            and resolved_township is not None
             and candidate_township is not None
             and resolved_township == candidate_township
             and resolved_altitude is not None
@@ -301,7 +307,8 @@ async def _load_candidates(
         ):
             source_level = "same_township_altitude_variety"
         elif (
-            resolved_province is not None
+            has_geo
+            and resolved_province is not None
             and candidate_province is not None
             and resolved_province == candidate_province
             and resolved_county is not None
@@ -321,6 +328,15 @@ async def _load_candidates(
             source_level = "same_county_climate_zone_variety"
         elif resolved_province is not None and candidate_province == resolved_province:
             source_level = "same_province_variety"
+
+        # Unmatched historical observations are not literature priors. A farm-only
+        # request has no authority to infer geographic proximity or relabel history.
+        if (
+            not has_geo
+            and source_level == "literature_variety_prior"
+            and row.source_level != source_level
+        ):
+            continue
 
         candidate = CandidateObservation(
             observation_id=row.id,
@@ -763,7 +779,8 @@ async def create_minimal_planning_task(
         config_hash=config.config_hash,
         eligible_observation_ids=sorted(set(all_candidate_ids)),
         selected_location_version=str(
-            resolved_location_value.get("location_reference_id") or "unresolved"
+            resolved_location_value.get("location_reference_id")
+            or (f"farm:{resolved_location.farm_id}" if resolved_location.farm_id else "unresolved")
         ),
     )
     reproducibility_snapshot["eligible_observation_ids"] = sorted(set(all_candidate_ids))

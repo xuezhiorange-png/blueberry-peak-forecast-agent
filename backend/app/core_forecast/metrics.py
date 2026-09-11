@@ -5,6 +5,7 @@ import re
 from collections import defaultdict
 from datetime import date, timedelta
 from decimal import DecimalException
+from typing import Literal, cast
 
 from pydantic import ValidationError
 
@@ -275,6 +276,50 @@ def _validate_completed_curve(
     return tuple(parsed_rows), daily_curve.curve_hash, ordered_dates
 
 
+def compute_point_series_metrics(
+    totals: list[tuple[date, int]],
+    quantile: Literal["P50", "P80", "P90"],
+) -> QuantileCoreForecastMetrics:
+    """Canonical S3 point/7-day metrics for an already validated daily series.
+
+    Quantities are integer micro-kg, as in the existing Core metrics path.
+    Empirical callers need no fabricated Task8 row identifiers.
+    """
+    dates = [day for day, _ in totals]
+    if not totals or dates != sorted(set(dates)) or any(q < 0 for _, q in totals):
+        raise ValueError("invalid point series")
+    peak_quantity = max(q for _, q in totals)
+    peak_date = min(day for day, q in totals if q == peak_quantity)
+    windows = [
+        (dates[i], sum(q for _, q in totals[i : i + 7]))
+        for i in range(len(dates) - 6)
+        if all(dates[j + 1] == dates[j] + timedelta(days=1) for j in range(i, i + 6))
+    ]
+    if not windows:
+        raise _MetricsDataError(
+            "NO_COMPLETE_7DAY_WINDOW", "daily curve has no complete seven-day calendar window"
+        )
+    best_total = max(q for _, q in windows)
+    best_start = min(day for day, q in windows if q == best_total)
+    return QuantileCoreForecastMetrics(
+        forecast_quantile=quantile,
+        single_day_peak=SingleDayPeakMetric(
+            date=peak_date, quantity_kg=_format_micros(peak_quantity), tie_break="EARLIEST_DATE"
+        ),
+        sustained_7day_peak=SustainedSevenDayPeakMetric(
+            start_date=best_start,
+            end_date=best_start + timedelta(days=6),
+            cumulative_quantity_kg=_format_micros(best_total),
+            daily_average_kg_per_day=_format_micros(_divide_round_half_even(best_total, 7)),
+            window_days=7,
+            metric="ROLLING_CUMULATIVE",
+            date_continuity="STRICT_CALENDAR_DAYS",
+            tie_break="EARLIEST_START_DATE",
+        ),
+        season_cumulative_effective_marketable_kg=_format_micros(sum(q for _, q in totals)),
+    )
+
+
 def _compute_validated_metrics(
     daily_curve: CompleteDailyMarketableCurveResult,
 ) -> CompleteCoreForecastMetricsResult:
@@ -285,69 +330,22 @@ def _compute_validated_metrics(
             row.effective_marketable_quantity_kg
         )
 
-    metrics: list[QuantileCoreForecastMetrics] = []
-    for quantile in QUANTILES:
-        totals = [(current_date, daily_totals[(current_date, quantile)]) for current_date in dates]
-        peak_quantity = max(quantity for _, quantity in totals)
-        peak_date = min(
-            current_date for current_date, quantity in totals if quantity == peak_quantity
-        )
-
-        windows: list[tuple[date, int]] = []
-        for index in range(len(dates) - 6):
-            window_dates = dates[index : index + 7]
-            if any(
-                current != previous + timedelta(days=1)
-                for previous, current in zip(window_dates, window_dates[1:], strict=False)
-            ):
-                continue
-            windows.append(
-                (
-                    window_dates[0],
-                    sum(daily_totals[(window_date, quantile)] for window_date in window_dates),
-                )
+    try:
+        metrics = [
+            compute_point_series_metrics(
+                [(day, daily_totals[(day, quantile)]) for day in dates],
+                cast(Literal["P50", "P80", "P90"], quantile),
             )
-        if not windows:
-            raise _MetricsDataError(
-                "NO_COMPLETE_7DAY_WINDOW",
-                "daily curve has no complete seven-day calendar window",
-            )
-        best_total = max(total for _, total in windows)
-        best_start = min(start for start, total in windows if total == best_total)
-        best_end = best_start + timedelta(days=6)
-        average = _divide_round_half_even(best_total, 7)
-
-        try:
-            metrics.append(
-                QuantileCoreForecastMetrics(
-                    forecast_quantile=quantile,
-                    single_day_peak=SingleDayPeakMetric(
-                        date=peak_date,
-                        quantity_kg=_format_micros(peak_quantity),
-                        tie_break="EARLIEST_DATE",
-                    ),
-                    sustained_7day_peak=SustainedSevenDayPeakMetric(
-                        start_date=best_start,
-                        end_date=best_end,
-                        cumulative_quantity_kg=_format_micros(best_total),
-                        daily_average_kg_per_day=_format_micros(average),
-                        window_days=7,
-                        metric="ROLLING_CUMULATIVE",
-                        date_continuity="STRICT_CALENDAR_DAYS",
-                        tie_break="EARLIEST_START_DATE",
-                    ),
-                    season_cumulative_effective_marketable_kg=_format_micros(
-                        sum(quantity for _, quantity in totals)
-                    ),
-                )
-            )
-        except (ValidationError, ValueError, TypeError) as exc:
-            raise _MetricsDataError(
-                "PEAK_METRIC_INVARIANT_FAILED",
-                "computed metric does not satisfy its canonical schema",
-            ) from exc
-
-    metrics_tuple = tuple(metrics)
+            for quantile in QUANTILES
+        ]
+    except _MetricsDataError:
+        raise
+    except (ValidationError, ValueError, TypeError) as exc:
+        raise _MetricsDataError(
+            "PEAK_METRIC_INVARIANT_FAILED",
+            "computed metric does not satisfy its canonical schema",
+        ) from exc
+    metrics_tuple = (metrics[0], metrics[1], metrics[2])
     metrics_payload = {
         "schema_version": METRICS_SCHEMA_VERSION,
         "date_basis": "HARVEST_BUSINESS_DATE",

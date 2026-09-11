@@ -27,6 +27,59 @@ from backend.app.planning.service import (
 )
 
 
+async def test_farm_only_candidate_loader_preserves_exact_identity_and_literature() -> None:
+    from datetime import date
+    from decimal import Decimal
+    from pathlib import Path
+    from unittest.mock import AsyncMock, Mock
+
+    from backend.app.models.master_data import Farm
+    from backend.app.models.planning import ParameterObservation
+    from backend.app.planning.config import load_parameter_inference_config
+    from backend.app.planning.service import _load_candidates
+
+    rows = [
+        ParameterObservation(
+            id=i,
+            library_version_id=1,
+            variety_id=1,
+            farm_id=farm_id,
+            parameter_type="yield_kg_per_mu",
+            scalar_value=Decimal("100"),
+            sample_weight=Decimal("1"),
+            source_level=level,
+            source_version="synthetic-test",
+            valid_from=date(2024, 1, 1),
+            available_at=available,
+        )
+        for i, farm_id, level, available in (
+            (1, 1, "same_farm_variety", date(2025, 1, 1)),
+            (2, 2, "same_farm_variety", date(2025, 1, 1)),
+            (3, None, "literature_variety_prior", date(2025, 1, 1)),
+            (4, 1, "same_farm_variety", date(2027, 1, 1)),
+        )
+    ]
+    session = AsyncMock()
+    session.scalars.side_effect = [
+        Mock(all=Mock(return_value=[Farm(id=1, name="same"), Farm(id=2, name="other")])),
+        Mock(all=Mock(return_value=[])),
+        Mock(all=Mock(return_value=rows)),
+        Mock(all=Mock(return_value=[])),
+    ]
+    result = await _load_candidates(
+        session,
+        library_version_id=1,
+        variety_id=1,
+        as_of_date=date(2026, 9, 11),
+        resolved_location={"farm_id": 1, "farm_name": "same"},
+        rules=load_parameter_inference_config(Path("configs/parameter_inference.yaml")),
+    )
+    assert [(r.observation_id, r.source_level) for r in result] == [
+        (1, "same_farm_variety"),
+        (3, "literature_variety_prior"),
+    ]
+
+
 def _config() -> ParameterInferenceConfig:
     return ParameterInferenceConfig(
         rules=ParameterInferenceRules(
