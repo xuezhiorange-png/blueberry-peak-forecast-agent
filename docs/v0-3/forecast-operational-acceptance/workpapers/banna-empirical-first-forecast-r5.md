@@ -31,3 +31,8 @@ identical uncalibrated point scenarios, not coverage claims. No production
 rollout, S4 reopening, TEST read, validation scoring or budget mutation occurred.
 
 FINAL_STOP_GATE=COORDINATOR_FIRST_REAL_FORECAST_R5_REVIEW
+
+CI follow-up: initial run 34618539738 exposed current-head assertions still
+expecting migration 0032. Only those current-head test expectations were updated
+to 0033; historical revision/parent identities were retained. The focused head
+check passed. No forecast or calibration was rerun for this test-only correction.
