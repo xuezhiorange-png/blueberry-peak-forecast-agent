@@ -188,3 +188,25 @@ MODEL_QUALITY_CLAIM_ISSUED=false
 MODEL_APPROVED_FOR_PILOT=false
 FINAL_STOP_GATE=COORDINATOR_REAL_BUSINESS_INPUT_AND_FIRST_FORECAST_REVIEW
 ```
+
+## R2 current-live interpretation correction (append-only)
+
+The original R1 source lookup observation is retained for audit, but its
+interpretation as a current user-data absence claim is superseded. The current
+R2 evidence distinguishes repository historical receipts, header-only
+templates, unmounted previously supplied assets, and an empty acceptance
+runtime. It reports the first actionable gap as a missing current minimal
+scope row, not as proof that the user never supplied data.
+
+R1_SOURCE_ABSENCE_INTERPRETATION_SUPERSEDED=true
+USER_DATA_ABSENCE_CLAIM_ISSUED=false
+PREVIOUSLY_PROVIDED_ASSET_STATUS=MIXED
+CURRENT_RUNTIME_ASSET_STATUS=NOT_MOUNTED_IN_CODEX_RUNTIME
+REPOSITORY_HISTORICAL_RECEIPT_DATA_PRESENT=true
+FIRST_BROKEN_STAGE=MINIMAL_INPUT_SCOPE_ROW_BINDING
+MISSING_EXTERNAL_BUSINESS_FACTS=CURRENT_SCOPE_LOCATION,CURRENT_SCOPE_VARIETY_LOOKUP,CURRENT_SCOPE_PLANTED_AREA_MU
+CURRENT_REAL_FORECAST_CAPABILITY=BLOCKED_EXACT_EXTERNAL_FACT
+NEXT_REQUIRED_ACTION=LOAD_ONE_CURRENT_MINIMAL_SCOPE_ROW_WITH_LOCATION_VARIETY_PLANTED_AREA_MU
+
+See real-business-input-binding-and-minimal-forecast-r2.md and its evidence
+JSON for the current-live binding audit.
