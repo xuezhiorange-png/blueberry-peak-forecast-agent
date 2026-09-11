@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 from backend.app.planning.config import FallbackRule, SimilarityRules
 from backend.app.planning.schemas import (
@@ -14,6 +15,39 @@ from backend.app.planning.similarity import (
     rank_parameter_candidates,
     select_fallback_level,
 )
+
+
+def test_same_canonical_farm_without_geo_and_geo_fallback_closed() -> None:
+    from dataclasses import replace
+
+    from backend.app.planning.config import load_parameter_inference_config
+
+    location = replace(_location(), farm_id=1, latitude=None, longitude=None)
+    same = _candidate(observation_id=1, source_level="same_farm_variety")
+    geo = _candidate(observation_id=2, source_level="same_township_altitude_variety")
+    wrong = replace(same, observation_id=3, farm_id=2)
+    ranked = rank_parameter_candidates(
+        resolved_location=location,
+        candidates=[same, geo, wrong],
+        rules=load_parameter_inference_config(
+            Path("configs/parameter_inference.yaml")
+        ).rules.similarity,
+        as_of_date=date(2026, 9, 11),
+    )
+    assert [row.observation_id for row in ranked] == [1]
+    assert ranked[0].distance_km is None
+    from backend.app.planning.inference import infer_parameter
+
+    result = infer_parameter(
+        parameter_type="yield_kg_per_mu",
+        candidates=[same],
+        rules=load_parameter_inference_config(Path("configs/parameter_inference.yaml")).rules,
+        resolved_location=location,
+        as_of_date=date(2026, 9, 11),
+    )
+    assert result.p50_value == Decimal("1000")
+    assert result.source_level == "same_farm_variety"
+    assert result.source_observation_ids == (1,)
 
 
 def _location() -> ResolvedLocation:

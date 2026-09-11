@@ -19,6 +19,48 @@ from backend.app.planning.config import (
 from backend.app.planning.location import resolve_location_input
 
 
+@pytest.mark.asyncio
+async def test_canonical_farm_resolves_without_geography() -> None:
+    from unittest.mock import AsyncMock
+
+    from backend.app.models.master_data import Farm
+
+    session = AsyncMock()
+    session.get.return_value = Farm(id=12, name="农场A")
+    result = await resolve_location_input(
+        session, location={"farm_id": 12}, as_of_date=date(2026, 9, 11), rules=_rules()
+    )
+    assert result.status == "resolved"
+    assert result.farm_id == 12
+    assert result.latitude is None and result.longitude is None
+    assert result.climate_zone_id is None
+    assert result.reproducibility_snapshot["canonical_farm_id"] == 12
+
+
+@pytest.mark.asyncio
+async def test_unknown_canonical_farm_fails_closed() -> None:
+    from unittest.mock import AsyncMock
+
+    session = AsyncMock()
+    session.get.return_value = None
+    result = await resolve_location_input(
+        session, location={"farm_id": 999}, as_of_date=date(2026, 9, 11), rules=_rules()
+    )
+    assert result.status == "unresolved"
+    assert result.warnings == ("canonical_farm_not_found",)
+
+
+def test_farm_identity_input_rejects_conflicting_geography() -> None:
+    from pydantic import ValidationError
+
+    from backend.app.schemas.planning import LocationInput
+
+    assert LocationInput(farm_id=12).farm_id == 12
+    for payload in ({"address": "other"}, {"latitude": "20"}, {"farm_name": "other"}):
+        with pytest.raises(ValidationError):
+            LocationInput.model_validate({"farm_id": 12, **payload})
+
+
 def _rules() -> ParameterInferenceRules:
     return ParameterInferenceRules(
         resolver_version="task5-v1",

@@ -15,11 +15,21 @@ Task 5 的完成状态是 `parameters_ready`，不是最终预测完成。
 
 ## 最小输入
 
-位置输入三选一：
+位置输入四选一：
 
 1. `address`
 2. `latitude + longitude`
 3. `location_reference_id`
+4. `farm_id`（已存在的 canonical Farm 主键）
+
+`farm_id` 不能与地址、坐标或行政区覆盖字段混用。服务器读取 Farm 身份，
+在没有经纬度时仍允许 `SAME_FARM_VARIETY` 按同一 farm_id 匹配；
+不凭同名工厂建立农场，不自动分配分场面积，不伪造坐标。
+此农场级模式不启用距离、乡镇海拔或气候区回退。
+已明确标识且满足时间可见性的 literature prior 仍可使用，
+其他农场的历史 observation 不得重标为 literature prior。
+身份解析成功不代表参数库存在：无合法版本时 API 仍返回
+`422 / parameter library version not found`，不得建立空的假版本绕过此门。
 
 可选校正字段：
 
@@ -255,4 +265,3 @@ Task 5 不实现：
 
 如果本农场、同乡镇、同县/气候区和省级样本都不存在，系统只能返回 `unavailable`。  
 Task 5 不允许为了“给出一个答案”而伪造看似精确的亩产、商品果率或成熟参数。
-
