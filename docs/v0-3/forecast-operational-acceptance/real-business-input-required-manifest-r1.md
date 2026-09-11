@@ -155,3 +155,16 @@ Until that package is provided, the required next action is:
 ```text
 NEXT_REQUIRED_ACTION=COORDINATOR_PROVIDE_CURRENT_BUSINESS_INPUT_PACKAGE
 ```
+
+## R2 interpretation correction (append-only)
+
+This R1 manifest remains the field-level contract. Its prior broad next-action
+wording is superseded as a current conclusion by the narrower R2 binding
+result. The current next action is to load one authorized minimal scope row;
+no weather, Task8, Task9, or synthetic parameter values are requested as a
+substitute.
+
+R1_SOURCE_ABSENCE_INTERPRETATION_SUPERSEDED=true
+USER_DATA_ABSENCE_CLAIM_ISSUED=false
+NEXT_REQUIRED_ACTION=LOAD_ONE_CURRENT_MINIMAL_SCOPE_ROW_WITH_LOCATION_VARIETY_PLANTED_AREA_MU
+MISSING_EXTERNAL_BUSINESS_FACTS=CURRENT_SCOPE_LOCATION,CURRENT_SCOPE_VARIETY_LOOKUP,CURRENT_SCOPE_PLANTED_AREA_MU
