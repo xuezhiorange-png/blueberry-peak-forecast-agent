@@ -130,7 +130,7 @@ validation scorer, or candidate runner was called directly.
 The current S4 terminal closure was not reopened:
 
 ```text
-CURRENT_V0_3_S4_COMPLETE=false
+CURRENT_V0_3_S4_COMPLETE=true
 CURRENT_S4_EXECUTION_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
 CURRENT_S4_BLOCKER=NONE_CURRENT_PLAN_TERMINAL
 S4_REOPEN_AUTHORIZED=false
@@ -224,11 +224,16 @@ HTTP_STATUS=503
 RESPONSE_CODE=TRIAL_AUTHORIZATION_UNAVAILABLE
 FORECAST_INPUT_AUTHORITY_AVAILABLE=false
 FORECAST_INPUT_AUTHORITY_ITEM_COUNT=0
+R2_AUTHORITY_RESOLVER_REACHED=false
+R2_BLOCKED_AT_ACTOR_AUTHORIZATION_LAYER=true
 ```
 
-The acceptance database has no master-data, production-plan, active marketable
-policy, factory, or retained forecast-authority rows. The normal input path is
-therefore operational but correctly fails closed. The repository-owned
+R2 had no configured actor, so this response stopped at the actor-authorization
+layer. It is retained as historical probe evidence only and is not direct
+proof of business-authority absence. The acceptance database has no
+master-data, production-plan, active marketable-policy, factory, or retained
+forecast-authority rows. The normal input path is therefore operational but
+correctly fails closed. The repository-owned
 ingestion path remains
 `backend.app.planning.plan_importer.import_production_plans_csv`; the minimum
 business input must provide `farm_name`, `season_code`, `variety_code`,
@@ -276,4 +281,99 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 NO_STEP_IMPLIES_THE_NEXT=true
 FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_R2_REVIEW
+```
+
+## R3 authorized actor and canonical input-authority probe
+
+R3 corrected the authority-layer gap without reopening S4 or changing any
+production code. The same current-main acceptance runtime remains bound to
+PostgreSQL 16.15 on port 55437, at Alembic head
+`0032_s4_validation_budget_durable_persistence`, with `/health/live=200` and
+`/health/ready=200`. It remains explicitly non-production, non-TEST, and
+contains no business rows.
+
+The runtime was started with a non-production acceptance actor through the
+normal server-owned loader
+`backend.app.actual_harvest_import.api_auth.get_actual_harvest_actor`:
+
+```text
+ACCEPTANCE_ACTOR_CONFIGURED=true
+ACCEPTANCE_ACTOR_IS_PRODUCTION=false
+TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS=trial-api
+TRIAL_ACTOR_ALLOWED_CHANNELS=api
+TRIAL_ACTOR_PERMISSIONS=may_read_forecast_authority,may_create_forecast,may_read_forecast,may_export_forecast
+AUTHORIZATION_BYPASS_USED=false
+AUTHORIZATION_LAYER_PASSED=true
+R2_AUTHORITY_RESOLVER_REACHED=false
+R2_BLOCKED_AT_ACTOR_AUTHORIZATION_LAYER=true
+```
+
+The real API probe then reached the canonical authority resolver:
+
+```text
+CURRENT_MAIN_INPUT_AUTHORITY_PROBE_EXECUTED=true
+FORECAST_INPUT_AUTHORITY_HTTP_STATUS=503
+FORECAST_INPUT_AUTHORITY_RESPONSE_CODE=TRIAL_AUTHORITY_UNAVAILABLE
+FORECAST_INPUT_AUTHORITY_AVAILABLE=false
+FORECAST_INPUT_AUTHORITY_ITEM_COUNT=0
+CURRENT_ACCEPTANCE_RUNTIME_BUSINESS_INPUT_DATA_MISSING=true
+GLOBAL_REAL_BUSINESS_INPUT_ABSENCE_CLAIM_ISSUED=false
+```
+
+The empty result is limited to the current acceptance runtime. It does not
+claim that real business input is absent globally. The normal repository-owned
+ingestion path remains
+`backend.app.planning.plan_importer.import_production_plans_csv`, and the
+minimum lawful input set requires master data, a `FarmSeasonVarietyPlan`, an
+active marketable policy and entry, an active factory, and the required scope
+relationships. No input, forecast, or authority row was created.
+
+Because the canonical resolver reported no current business input, no
+`POST /api/v1/trial/forecasts` was sent. Therefore no real Forecast, authority
+capture, or PIT readback occurred:
+
+```text
+ENGINEERING_FORECAST_PATH_PROVEN=true
+REAL_NORMAL_FORECAST_EXECUTED=false
+FORECAST_RUN_STATUS=NOT_EXECUTED
+FORECAST_RESULT_PERSISTED=false
+FORECAST_AUTHORITY_CAPTURED=false
+FRESH_SESSION_PIT_READBACK=NOT_APPLICABLE_NO_CAPTURE
+CURRENT_REAL_FORECAST_CAPABILITY=BLOCKED_REAL_BUSINESS_INPUT_NOT_LOADED
+V0_3_CLOSEOUT_FORECAST_CAPABILITY_GATE=FAIL
+NEXT_REQUIRED_ACTION=LOAD_CURRENT_BUSINESS_FORECAST_INPUT
+```
+
+The current governance state remains the terminal S4 closure, not the old
+prospective-wait state:
+
+```text
+CURRENT_V0_3_S4_COMPLETE=true
+S4_FINAL_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+CURRENT_S4_EXECUTION_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+CURRENT_S4_BLOCKER=NONE_CURRENT_PLAN_TERMINAL
+S4_REOPEN_AUTHORIZED=false
+S4_CANDIDATE_EXECUTION_PERFORMED=false
+VALIDATION_SCORING_PERFORMED=false
+PROSPECTIVE_SCAN_PERFORMED=false
+```
+
+The S4 budget remains the last accepted durable snapshot; R3 performed no
+budget readback or write:
+
+```text
+BUDGET_STATE_CLASS=LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT
+LAST_ACCEPTED_CANONICAL_STARTED_COUNT=4
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+REMAINING_VALIDATION_BUDGET_UNUSED=24
+BUDGET_DELTA=0
+TEST_ACCESS_REQUESTED=false
+TEST_BYTES_READ=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_R3_REVIEW
 ```

@@ -83,7 +83,7 @@ accuracy or business-quality conclusion is made.
 ## Protected state
 
 ```text
-CURRENT_V0_3_S4_COMPLETE=false
+CURRENT_V0_3_S4_COMPLETE=true
 CURRENT_S4_EXECUTION_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
 CURRENT_S4_BLOCKER=NONE_CURRENT_PLAN_TERMINAL
 S4_CANDIDATE_EXECUTION_PERFORMED=false
@@ -131,10 +131,13 @@ CI, or a task-isolated production authority.
 
 The live current-main call to
 `GET /api/v1/trial/forecast-input-authority` returned HTTP 503 with
-`TRIAL_AUTHORIZATION_UNAVAILABLE`. The relevant master-data, production-plan,
-active marketable-policy, factory, and retained-authority row counts were all
-zero. This is a verified operationally available runtime with no real
-business input loaded, not a claim that a production authority was found.
+`TRIAL_AUTHORIZATION_UNAVAILABLE`. R2 had no configured actor, so the request
+stopped at the actor-authorization layer:
+`R2_AUTHORITY_RESOLVER_REACHED=false` and
+`R2_BLOCKED_AT_ACTOR_AUTHORIZATION_LAYER=true`. The R2 response is retained as
+historical probe evidence only; it is not direct proof of business-authority
+absence. The relevant master-data, production-plan, active marketable-policy,
+factory, and retained-authority row counts were all zero.
 
 The legitimate next input route was audited at
 `backend.app.planning.plan_importer.import_production_plans_csv`. A real
@@ -161,4 +164,82 @@ LAST_ACCEPTED_REMAINING=24
 BUDGET_DELTA=0
 TEST_REMAINS_SEALED=true
 FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_R2_REVIEW
+```
+
+## R3 authorized actor and canonical input-authority probe
+
+R3 used the same current-main acceptance runtime and did not change production
+code, reopen S4, or access TEST. PostgreSQL 16.15 remains on port 55437 at
+Alembic head `0032_s4_validation_budget_durable_persistence`; `/health/live`
+and `/health/ready` both returned HTTP 200. The runtime is non-production and
+contains no business rows.
+
+The non-production acceptance actor was loaded through
+`backend.app.actual_harvest_import.api_auth.get_actual_harvest_actor` with the
+server-owned environment contract:
+
+```text
+ACCEPTANCE_ACTOR_CONFIGURED=true
+ACCEPTANCE_ACTOR_IS_PRODUCTION=false
+TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS=trial-api
+TRIAL_ACTOR_ALLOWED_CHANNELS=api
+TRIAL_ACTOR_PERMISSIONS=may_read_forecast_authority,may_create_forecast,may_read_forecast,may_export_forecast
+AUTHORIZATION_BYPASS_USED=false
+AUTHORIZATION_LAYER_PASSED=true
+```
+
+The same endpoint then reached the canonical resolver and returned:
+
+```text
+CURRENT_MAIN_INPUT_AUTHORITY_PROBE_EXECUTED=true
+FORECAST_INPUT_AUTHORITY_HTTP_STATUS=503
+FORECAST_INPUT_AUTHORITY_RESPONSE_CODE=TRIAL_AUTHORITY_UNAVAILABLE
+FORECAST_INPUT_AUTHORITY_AVAILABLE=false
+FORECAST_INPUT_AUTHORITY_ITEM_COUNT=0
+CURRENT_ACCEPTANCE_RUNTIME_BUSINESS_INPUT_DATA_MISSING=true
+GLOBAL_REAL_BUSINESS_INPUT_ABSENCE_CLAIM_ISSUED=false
+```
+
+This proves only that the current acceptance runtime has not loaded business
+input; it does not prove global absence. The minimum lawful input remains the
+repository-owned `backend.app.planning.plan_importer.import_production_plans_csv`
+path plus master data, `FarmSeasonVarietyPlan`, active marketable policy and
+entry, active factory, and the required scope relationships. No rows were
+created.
+
+No Forecast POST was sent because the canonical resolver returned no input
+authority. Accordingly there was no real forecast, persistence, retention
+capture, or PIT readback:
+
+```text
+ENGINEERING_FORECAST_PATH_PROVEN=true
+REAL_NORMAL_FORECAST_EXECUTED=false
+FORECAST_RUN_STATUS=NOT_EXECUTED
+FORECAST_RESULT_PERSISTED=false
+FORECAST_AUTHORITY_CAPTURED=false
+FRESH_SESSION_PIT_READBACK=NOT_APPLICABLE_NO_CAPTURE
+CURRENT_REAL_FORECAST_CAPABILITY=BLOCKED_REAL_BUSINESS_INPUT_NOT_LOADED
+V0_3_CLOSEOUT_FORECAST_CAPABILITY_GATE=FAIL
+NEXT_REQUIRED_ACTION=LOAD_CURRENT_BUSINESS_FORECAST_INPUT
+```
+
+Current governance and budget remain unchanged:
+
+```text
+CURRENT_V0_3_S4_COMPLETE=true
+S4_FINAL_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+CURRENT_S4_EXECUTION_STATUS=CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED
+CURRENT_S4_BLOCKER=NONE_CURRENT_PLAN_TERMINAL
+S4_REOPEN_AUTHORIZED=false
+LAST_ACCEPTED_EFFECTIVE_CONSUMED=8
+LAST_ACCEPTED_REMAINING=24
+BUDGET_DELTA=0
+TEST_ACCESS_REQUESTED=false
+TEST_BYTES_READ=false
+TEST_EVALUATION_PERFORMED=false
+TEST_REMAINS_SEALED=true
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+NO_STEP_IMPLIES_THE_NEXT=true
+FINAL_STOP_GATE=COORDINATOR_CURRENT_REAL_FORECAST_R3_REVIEW
 ```
