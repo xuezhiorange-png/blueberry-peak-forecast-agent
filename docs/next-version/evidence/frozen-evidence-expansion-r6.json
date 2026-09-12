@@ -1,0 +1,234 @@
+{
+  "TASK_ID": "NEXT_VERSION_FROZEN_MODEL_EVIDENCE_EXPANSION_R6",
+  "RESULT": "EVIDENCE_EXPANSION_READY",
+  "BASE_SHA": "758f96954c4682607267cbbf024b3dd06f52c8d6",
+  "MODEL_SEARCH_STOPPED": true,
+  "MODEL_TUNING_STOPPED": true,
+  "CURRENT_TOTAL_VALIDATION_FARM_COUNT": 2,
+  "CURRENT_SHAPE_EXACT_COMPUTABLE_FARM_COUNT": 2,
+  "NEW_TOTAL_EVALUABLE_FARM_COUNT": 0,
+  "NEW_SHAPE_EXACT_COMPUTABLE_FARM_COUNT": 0,
+  "HUAXING_TOTAL_UNLOCK_STATUS": "AREA_REQUIRED",
+  "HUAXING_AREA_MU": "MISSING",
+  "EXACT_MISSING_AREA_FARMS": [
+    "保山华兴农场"
+  ],
+  "RENHE_TRAIN_STATUS": "GLOBAL_UNKNOWN_BLOCKED",
+  "RENHE_UNKNOWN_DAY_COUNT": 8,
+  "RENHE_UNKNOWN_DATES": [
+    "2023-09-19",
+    "2023-09-21",
+    "2023-09-27",
+    "2023-09-29",
+    "2023-09-30",
+    "2023-10-01",
+    "2023-10-02",
+    "2023-10-04"
+  ],
+  "PINGYUAN_TRAIN_STATUS": "GLOBAL_UNKNOWN_BLOCKED",
+  "PINGYUAN_UNKNOWN_DAY_COUNT": 6,
+  "PINGYUAN_UNKNOWN_DATES": [
+    "2023-09-27",
+    "2023-09-29",
+    "2023-09-30",
+    "2023-10-01",
+    "2023-10-02",
+    "2023-10-04"
+  ],
+  "TOTAL_RESEARCH_REOPEN_READY": false,
+  "SHAPE_RESEARCH_REOPEN_READY": false,
+  "FROZEN_TOTAL_MODEL_LOAD": "PASS",
+  "FROZEN_SHAPE_MODEL_LOAD": "PASS",
+  "NO_REFIT_CONFIRMED": true,
+  "VALIDATION_LABEL_LEAKAGE": false,
+  "QUALIFICATION_EXECUTION_COUNT": 1,
+  "PREDICTION_EXECUTION_COUNT": 1,
+  "EVALUATION_EXECUTION_COUNT": 1,
+  "NEW_SOURCE_SUPPLIED": false,
+  "NEW_INDEPENDENT_VALIDATION_EVIDENCE": false,
+  "VALIDATION_TYPE": "CROSS_SEASON_OUT_OF_TIME_RETROSPECTIVE",
+  "VALIDATION_BLINDNESS": "NOT_BLIND",
+  "FROZEN_R3B_SHAPE_PARITY": "EXACT_EQUAL",
+  "FROZEN_R5_DAILY_PREDICTION_PARITY": "EXACT_EQUAL",
+  "MASS_BALANCE_PASS": true,
+  "PREDICTION_HASH": "d23c52f8cb260332bb069f046b67ef73bb7eb54a00651e13c0d4a3b2cd9ee18d",
+  "PRIVATE_ARTIFACT_ROOT": "/Users/charles/Documents/blueberry-area-yield-artifacts/evidence-expansion-r6",
+  "artifact_hashes": {
+    "area_binding_status.csv": "8da18a45dc2075715264827993031d931a801a59c108403b96df92b30fa24d68",
+    "eligible_shape_farms.csv": "5c2e7419910d19a19baa138b142aad1c5487a7a3887ac8f289610fde3df872a0",
+    "eligible_total_farms.csv": "1fa6705ccfe62414aac007b9a5ea716480b5a4ee1afa845e1f4988184825bb7f",
+    "evaluated_qualification.json": "0e4fb30628d14f650dce520e9d601094b645fd482ef9ac555869b9f6b500bb63",
+    "evaluation_manifest.json": "172fa5b3f8c6577725fe91d34f5ffc05d6985cdfbab64f243fd2d3c189a6bfe9",
+    "evaluation_started.json": "2cc60a5474c1ee555a56d2de935f63cc470fd74871e448339ffd846b2bc44c48",
+    "frozen_prediction_manifest.json": "0bbbf878f7afb7f6cd41c295b6529fa7a6ad0b4045c07ecf9a7a72548652a00a",
+    "history.json": "83c8a4177ca86920ca57a3da7c2aaaae6721098fe10f75b97ff156a7915df6c4",
+    "implementation_hashes.json": "bc20b33db0e33358a6074eeaf6e8b19ccc87e56d912e03f41e3909a2d6c34cf8",
+    "missing_evidence.csv": "e0f80f34878768849ed055de45a05a59dce621132cb1ecec9033ff989fd5b6bb",
+    "old_artifact_hashes.json": "c5dd0695addbb6773acd3aee2b280673995e879e2b188a9639fbe2c077e43b97",
+    "prediction_freeze.json": "2d09dff63826223854988d618b8ef175ee8c94d83cca4d177b0cf74b5ad3b04f",
+    "qualification.json": "e8381838d4ce99a73789eda324f2eebba89a496cf8de7167c402cddfa58d38bf",
+    "qualification_freeze.json": "a879831028a587f229a346516999e3f2f0833df0644119537bc8aa00f68bc1ca",
+    "qualification_matrix.csv": "5a831535867c70f07e45a818e7b8a77e9ba60e05c06c1cd060c021501d15cf85",
+    "qualification_summary.json": "046164a6777856b8b27c704485baedc8c5eac4280536658ab9c3dba6b8770666",
+    "source_active_calendar_2023-2024.csv": "89767e833ae42482ce202780be0d39c44c2feae0aaaffb5b41ef161a2cdf8eb8",
+    "source_active_calendar_2024-2025.csv": "5d22b497a8878e32116b9ee916b40638c5ea5e8c1cc02a26f80043cc464aba8f",
+    "source_manifest.json": "f3d15b7a7a58b7ed43d5a86e9b14c1f43989704a7928757d43d33f45b7e39b0c",
+    "validation_labels.json": "a2a575ee1bed0ae0a4bf7ef5263624c78e1e6cd43d1a545aca1d2c78a120b5af"
+  },
+  "manifest_hash": "91d98345f325c7f9b78e30e49d069c2eb31827e08c4823e453aa51c399afdf51",
+  "huaxing": [
+    {
+      "farm": "保山华兴农场",
+      "model": "prior",
+      "predicted_peak_date": "2025-05-28",
+      "predicted_7day_start": "2025-05-24",
+      "peak_evaluation_status": "RIGHT_CENSORED",
+      "seven_day_evaluation_status": "RIGHT_CENSORED",
+      "peak_date_error_days": null
+    },
+    {
+      "farm": "保山华兴农场",
+      "model": "ridge",
+      "predicted_peak_date": "2025-04-09",
+      "predicted_7day_start": "2025-04-06",
+      "peak_evaluation_status": "EXACT_COMPUTABLE",
+      "seven_day_evaluation_status": "EXACT_COMPUTABLE",
+      "peak_date_error_days": 30
+    }
+  ],
+  "strict_validation_farms": [
+    "保山仁和农场",
+    "保山华兴农场",
+    "保山杨柳农场",
+    "建水南庄基地",
+    "砚山平远街一场"
+  ],
+  "matrix_row_count": 144,
+  "old_file_count": 130,
+  "total_macro": {
+    "global": {
+      "farm_count": "2",
+      "kg_weighted_wape_diagnostic": "0.196256",
+      "total_rel_mean": "0.456115",
+      "total_rel_median": "0.456115",
+      "total_rel_p90": "0.765042",
+      "yield_mae": "282.417506",
+      "yield_mape": "0.456115",
+      "yield_wape": "0.329050"
+    },
+    "prior": {
+      "farm_count": "2",
+      "kg_weighted_wape_diagnostic": "0.190218",
+      "total_rel_mean": "0.279952",
+      "total_rel_median": "0.279952",
+      "total_rel_p90": "0.386630",
+      "yield_mae": "202.618187",
+      "yield_mape": "0.279952",
+      "yield_wape": "0.236074"
+    }
+  },
+  "shape_common_macro": {
+    "prior": {
+      "farm_count": 2,
+      "known_support_mae": {
+        "computable_farms": 2,
+        "mean": 0.002832247660302814,
+        "median": 0.002832247660302814
+      },
+      "known_support_wape": {
+        "computable_farms": 2,
+        "mean": 0.9148159942778089,
+        "median": 0.9148159942778089
+      },
+      "peak_date_error_days": {
+        "computable_farms": 2,
+        "mean": 7.5,
+        "median": 7.5
+      },
+      "rolling_7day_window_shift_days": {
+        "computable_farms": 2,
+        "mean": 6,
+        "median": 6
+      },
+      "unknown_prediction_mass": {
+        "computable_farms": 2,
+        "mean": 0,
+        "median": 0
+      }
+    },
+    "ridge": {
+      "farm_count": 2,
+      "known_support_mae": {
+        "computable_farms": 2,
+        "mean": 0.004136219763666585,
+        "median": 0.004136219763666585
+      },
+      "known_support_wape": {
+        "computable_farms": 2,
+        "mean": 1.335998983664307,
+        "median": 1.335998983664307
+      },
+      "peak_date_error_days": {
+        "computable_farms": 2,
+        "mean": 12.5,
+        "median": 12.5
+      },
+      "rolling_7day_window_shift_days": {
+        "computable_farms": 2,
+        "mean": 13,
+        "median": 13
+      },
+      "unknown_prediction_mass": {
+        "computable_farms": 2,
+        "mean": 0.10022195162077745,
+        "median": 0.10022195162077745
+      }
+    }
+  },
+  "composite_macro": [
+    {
+      "composite": "A1",
+      "daily_wape": "1.478288",
+      "peak_date_error_days": "12.500000",
+      "seven_day_shift_days": "13.000000",
+      "total_rel_error": "0.456115"
+    },
+    {
+      "composite": "A2",
+      "daily_wape": "1.153052",
+      "peak_date_error_days": "7.500000",
+      "seven_day_shift_days": "6.000000",
+      "total_rel_error": "0.456115"
+    },
+    {
+      "composite": "B1",
+      "daily_wape": "1.404883",
+      "peak_date_error_days": "12.500000",
+      "seven_day_shift_days": "13.000000",
+      "total_rel_error": "0.279952"
+    },
+    {
+      "composite": "B2",
+      "daily_wape": "0.992975",
+      "peak_date_error_days": "7.500000",
+      "seven_day_shift_days": "6.000000",
+      "total_rel_error": "0.279952"
+    }
+  ],
+  "LOCAL_TESTS": "479_PASSED",
+  "R6_TARGETED_TEST_COUNT": 32,
+  "LOCAL_STATIC_CHECKS": "RUFF_FORMAT_MYPY_JSON_DIFF_PASS",
+  "MYPY_SOURCE_FILE_COUNT": 426,
+  "WEATHER_USED": false,
+  "FUTURE_PRODUCTION_PLAN_USED": false,
+  "LEGACY_TEST_ACCESSED": false,
+  "V0_3_BASELINE_CHANGED": false,
+  "R1_R5_ARTIFACT_CHANGED": false,
+  "PRODUCTION_READY": false,
+  "GENERALIZED_MODEL": false,
+  "BUSINESS_ACCURACY_APPROVED": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "RELEASE_AUTHORIZED": false,
+  "FINAL_STOP_GATE": "COORDINATOR_R6_EVIDENCE_EXPANSION_REVIEW"
+}
