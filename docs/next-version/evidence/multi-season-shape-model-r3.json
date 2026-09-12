@@ -1,0 +1,292 @@
+{
+  "TASK_ID": "NEXT_VERSION_MULTI_SEASON_SHAPE_MODEL_TRAINING_R3",
+  "RESULT": "BLOCKED_NO_CROSS_SEASON_MATCHED_SCOPE",
+  "BLOCKER": "NO_COMPLETENESS_QUALIFIED_PAIRED_FARM_SEASON",
+  "BASE_SHA": "f16d3a493f395ff019d33e9eb2da17cd5f8eb091",
+  "PR611_CI_RUN": 34675078550,
+  "PR611_CI_STATUS": "SUCCESS",
+  "INPUT_MANIFEST": {
+    "overlap": {
+      "canonical_source": "UPLOADED_24_25_ONLY",
+      "daily_difference_count": 130,
+      "daily_totals_equal": false,
+      "farm_difference_count": 1,
+      "farm_labels_equal": false,
+      "farm_total_differences": [
+        {
+          "farm": [
+            "格莱莓农场"
+          ],
+          "repo_kg": "0.000000",
+          "uploaded_kg": "211729.534000"
+        }
+      ],
+      "farm_totals_equal": false,
+      "reason": "Explicit new input; repository source comparison only, never concatenated",
+      "record_multiset_overlap_count": 177758,
+      "relation": "PARTIAL_OVERLAP",
+      "repo_only_rows": 23676,
+      "uploaded_only_rows": 24314
+    },
+    "sources": [
+      {
+        "arrival_equals_harvest": true,
+        "date_max": "2024-06-30",
+        "date_min": "2023-07-26",
+        "duplicate_row_count": 0,
+        "duplicate_semantics": "EXACT_SEVEN_FIELD_CONTENT_NOT_UNIQUE_TRANSACTION_ID",
+        "farm_label_count": 56,
+        "file_name": "23~24.xls",
+        "invalid_date_count": 0,
+        "negative_quantity_row_count": 0,
+        "null_quantity_row_count": 0,
+        "quantity_column": "入库公斤数",
+        "quantity_unit": "KG",
+        "row_count": 93761,
+        "sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+        "sheets": [
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数"
+            ],
+            "name": "Sheet1",
+            "row_count": 65535
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数"
+            ],
+            "name": "Sheet1(2)",
+            "row_count": 28226
+          }
+        ],
+        "subfarm_label_count": 3,
+        "variety_label_count": 26
+      },
+      {
+        "arrival_equals_harvest": true,
+        "date_max": "2025-05-27",
+        "date_min": "2024-07-01",
+        "duplicate_row_count": 0,
+        "duplicate_semantics": "EXACT_SEVEN_FIELD_CONTENT_NOT_UNIQUE_TRANSACTION_ID",
+        "farm_label_count": 88,
+        "file_name": "24~25.xls",
+        "invalid_date_count": 0,
+        "negative_quantity_row_count": 0,
+        "null_quantity_row_count": 0,
+        "quantity_column": "入库公斤数",
+        "quantity_unit": "KG",
+        "row_count": 202072,
+        "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+        "sheets": [
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数"
+            ],
+            "name": "Sheet1",
+            "row_count": 65535
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数"
+            ],
+            "name": "Sheet1(2)",
+            "row_count": 65535
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数"
+            ],
+            "name": "Sheet1(3)",
+            "row_count": 65535
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数"
+            ],
+            "name": "Sheet1(4)",
+            "row_count": 5467
+          }
+        ],
+        "subfarm_label_count": 132,
+        "variety_label_count": 25
+      },
+      {
+        "arrival_equals_harvest": true,
+        "date_max": "2025-05-27",
+        "date_min": "2024-07-01",
+        "duplicate_row_count": 4,
+        "duplicate_semantics": "EXACT_SEVEN_FIELD_CONTENT_NOT_UNIQUE_TRANSACTION_ID",
+        "farm_label_count": 87,
+        "file_name": "2024_2025_receipts.xls",
+        "invalid_date_count": 0,
+        "negative_quantity_row_count": 0,
+        "null_quantity_row_count": 0,
+        "quantity_column": "入库公斤数",
+        "quantity_unit": "KG",
+        "row_count": 201434,
+        "sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+        "sheets": [
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数",
+              "加工厂"
+            ],
+            "name": "Sheet1",
+            "row_count": 65535
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数",
+              "加工厂"
+            ],
+            "name": "Sheet1(2)",
+            "row_count": 64897
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数",
+              "加工厂"
+            ],
+            "name": "Sheet1(3)",
+            "row_count": 65535
+          },
+          {
+            "column_names": [
+              "时间",
+              "链路",
+              "农场",
+              "分场",
+              "品种",
+              "果径",
+              "入库公斤数",
+              ""
+            ],
+            "name": "Sheet1(4)",
+            "row_count": 5467
+          }
+        ],
+        "subfarm_label_count": 131,
+        "variety_label_count": 23
+      }
+    ]
+  },
+  "PRIVATE_ARTIFACT_DIRECTORY": "/Users/charles/Documents/blueberry-area-yield-artifacts/shape-r3",
+  "ARTIFACT_MANIFEST": {
+    "files": {
+      "canonical_daily_shape.csv": "21e4b6a6ddb9aa1bb2aaa813c95347827a6c2f55f29f109f651e11ba1c384998",
+      "cross_season_metrics.json": "7954e581bf1977eea6ca30c4c8baebfd9e927a4f6a42e373f0ac020842deb7cc",
+      "cross_season_predictions.csv": "0086e5aab3bc99079e6b073e0c89f62c0e5c7ec0dd10d918cde146cc4f02f2e9",
+      "experiment_config.json": "17fd6dec90f34c13d8ef9d5d5d0ef1cfe43f5b27058947e85ff08db60e7a3caf",
+      "farm_season_inventory.csv": "42fa9da436c3bd19b352dbe941bd0ad2780998b87dfee6ea83eeb5c7461b094a",
+      "input_manifest.json": "506b901fe467bd8dd1717293054ba40f6892df34620552d5af44a6566381a5b6",
+      "model_comparison_r3.json": "7954e581bf1977eea6ca30c4c8baebfd9e927a4f6a42e373f0ac020842deb7cc",
+      "paired_farm_seasons.csv": "ab8053a2841e3dee361f0cee65c47583125512ba59bf7c49d37f020bc9110f06",
+      "r1_r2_snapshot.json": "1c7d185a7c1d8d1cd6c796f553cb6bbe433be00df11e4abbe4f5960ab05040d4",
+      "selected_shape_model.json": "7954e581bf1977eea6ca30c4c8baebfd9e927a4f6a42e373f0ac020842deb7cc",
+      "train_manifest.json": "7954e581bf1977eea6ca30c4c8baebfd9e927a4f6a42e373f0ac020842deb7cc"
+    },
+    "status": {
+      "area_missing_is_blocker": false,
+      "blocker": "NO_COMPLETENESS_QUALIFIED_PAIRED_FARM_SEASON",
+      "eligible_cross_season_farm_count": 0,
+      "legacy_test_accessed": false,
+      "r1_r2_artifacts_changed": false,
+      "raw_exact_label_pair_count": 35,
+      "result": "BLOCKED_NO_CROSS_SEASON_MATCHED_SCOPE",
+      "selected_model": null,
+      "trained_models": [],
+      "training_executed": false,
+      "validation_blindness": "NOT_BLIND",
+      "validation_executed": false
+    }
+  },
+  "CROSS_SEASON_EXACT_LABEL_MATCH_COUNT": 35,
+  "ELIGIBLE_CROSS_SEASON_FARM_COUNT": 0,
+  "CANONICAL_FARM_IDENTITY_POLICY": "EXACT_TRIMMED_SOURCE_LABEL_NOT_MASTER_DATA_ASSERTION",
+  "TRAINING_EXECUTED": false,
+  "VALIDATION_EXECUTED": false,
+  "TRAINED_MODELS": [],
+  "SELECTED_SHAPE_MODEL": null,
+  "MODEL_ARTIFACT_AVAILABLE": false,
+  "METRICS_AVAILABLE": false,
+  "COMPLETENESS_STATUS": "UNKNOWN",
+  "UNKNOWN_MISSING_DAYS_MIN_23_24": 112,
+  "UNKNOWN_MISSING_DAYS_MIN_24_25": 110,
+  "REQUIRED_NEXT_AUTHORITY": "For specific paired farms, establish ledger completeness and valid season coverage; confirm which no-row days are zero. No new area source is required.",
+  "TOTAL_YIELD_MODEL_STATUS": "WAITING_FOR_HISTORICAL_AREA_DATA",
+  "AREA_MISSING_IS_BLOCKER": false,
+  "VALIDATION_TYPE": "CROSS_SEASON_OUT_OF_TIME_RETROSPECTIVE",
+  "VALIDATION_BLINDNESS": "NOT_BLIND",
+  "MULTI_SEASON_SHAPE_VALIDATED": false,
+  "MULTI_SEASON_TOTAL_YIELD_VALIDATED": false,
+  "AREA_SCALING_VALIDATED": false,
+  "ARRIVAL_EQUALS_HARVEST": true,
+  "WEATHER_USED": false,
+  "FUTURE_PRODUCTION_PLAN_USED": false,
+  "LEGACY_TEST_ACCESSED": false,
+  "R1_ARTIFACT_CHANGED": false,
+  "R2_ARTIFACT_CHANGED": false,
+  "V0_3_BASELINE_CHANGED": false,
+  "LOCAL_TESTS": "46 area-yield tests passed (15 R3, 31 R1/R2)",
+  "CI_STATUS": "PENDING",
+  "FULL_SUITE_CANARY": "PENDING",
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "RELEASE_AUTHORIZED": false,
+  "FINAL_STOP_GATE": "COORDINATOR_MULTI_SEASON_SHAPE_MODEL_R3_REVIEW"
+}
