@@ -1,0 +1,68 @@
+{
+  "task_id": "NEXT_VERSION_FROZEN_MODEL_EVIDENCE_EXPANSION_R6",
+  "train_season": "2023-2024",
+  "validation_season": "2024-2025",
+  "sources": [
+    {
+      "mode": "accepted_r3",
+      "season": "2023-2024",
+      "source_hash": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "coverage_start": "2023-07-26",
+      "coverage_end": "2024-06-30",
+      "complete_export": true,
+      "ledger_zero_semantics_authorized": true,
+      "authorization_reference": "USER_CONFIRMED_COMPLETE_EXPORT_SOURCE_ACTIVE_ZERO_R3A",
+      "legacy_sealed_test": false
+    },
+    {
+      "mode": "accepted_r3",
+      "season": "2024-2025",
+      "source_hash": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "coverage_start": "2024-07-01",
+      "coverage_end": "2025-05-27",
+      "complete_export": true,
+      "ledger_zero_semantics_authorized": true,
+      "authorization_reference": "USER_CONFIRMED_COMPLETE_EXPORT_SOURCE_ACTIVE_ZERO_R3A",
+      "legacy_sealed_test": false
+    }
+  ],
+  "bindings": [
+    {
+      "farm": "保山杨柳农场",
+      "value": "393.4",
+      "basis": "BUSINESS_CONFIRMED",
+      "source_reference": "user explicit confirmation based on existing PREVIOUS_SEASON_PROXY candidate",
+      "source_hash": "0473a0c4041bef5831e241a4510d57536eea6f48ec4e736d90f3b8074c410974",
+      "scope": "FARM",
+      "productive_semantics_confirmed": true
+    },
+    {
+      "farm": "建水南庄基地",
+      "value": "152.35",
+      "basis": "BUSINESS_CONFIRMED",
+      "source_reference": "user explicit confirmation of identity equivalence and productive area",
+      "source_hash": "fedf8eefebdfe010ba8de891c0b215ecbee1cd17b4b56deb8cf9a345a83d47bb",
+      "scope": "FARM",
+      "productive_semantics_confirmed": true
+    }
+  ],
+  "component_hashes": {
+    "prior_total": "d7d8b91ea728b51647676fa6b262bec3686b454f839bc6035d0393ee07d3b853",
+    "total": "c490c3c384e9d9ab6450b612e776ad2df1ad114ccd94f0e330f7a81ac1b71f5d",
+    "shape": "d92bf830d9c30956ac7627f8c8a4be0270a97143e96bd70d93ec09294c341807"
+  },
+  "preserve_directories": [
+    "area-yield-r1",
+    "area-curve-r2",
+    "shape-r3",
+    "shape-r3a",
+    "shape-r3a-confirmed",
+    "shape-r3b",
+    "shape-r3c",
+    "total-yield-r4",
+    "total-yield-r4-confirmed",
+    "end-to-end-r5"
+  ],
+  "model_search_stopped": true,
+  "model_tuning_stopped": true
+}
