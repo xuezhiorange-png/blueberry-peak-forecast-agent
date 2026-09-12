@@ -187,6 +187,7 @@ shards:
       # All directory contents owned by this shard (their tests have no
       # integration/postgres/postgres_concurrency marker; verified by manifest audit).
       - backend/tests/analytics/
+      - backend/tests/area_yield/
       - backend/tests/baseline/
       - backend/tests/etl/
       - backend/tests/maturity/
