@@ -1,0 +1,77 @@
+{
+  "TASK_ID": "NEXT_VERSION_MULTI_SEASON_LEDGER_QUALIFICATION_AND_SHAPE_TRAINING_R3A",
+  "BASE_SHA": "74881e8611cfea0eff3d1b5631520825c52e7018",
+  "PR_NUMBER": 612,
+  "RESULT": "NEEDS_SINGLE_SOURCE_SEMANTIC_CONFIRMATION",
+  "ACTUAL_QUALIFICATION": {
+    "confirmation_question": "这两个XLS是否为对应期间扫码称重系统的完整导出，某农场某日无记录时是否可解释为当天该农场入库/采摘量为0？",
+    "diagnostic_only_paired_farm_count": 35,
+    "eligible_cross_season_count": 0,
+    "global_no_record_day_counts": [
+      44,
+      8
+    ],
+    "matched_farm_count": 35,
+    "need_user_confirmation_no_record_semantics": true,
+    "paired_eligible_if_source_confirmed_count": 3,
+    "r3_input_hashes": {
+      "canonical_daily_shape.csv": "21e4b6a6ddb9aa1bb2aaa813c95347827a6c2f55f29f109f651e11ba1c384998",
+      "input_manifest.json": "506b901fe467bd8dd1717293054ba40f6892df34620552d5af44a6566381a5b6"
+    },
+    "result": "NEEDS_SINGLE_SOURCE_SEMANTIC_CONFIRMATION",
+    "selected_shape_model": null,
+    "source_audit_repeated": false,
+    "source_export_completeness_23_24": "NOT_ESTABLISHED",
+    "source_export_completeness_24_25": "NOT_ESTABLISHED",
+    "source_inputs": [
+      {
+        "file_end": "2024-06-30",
+        "file_start": "2023-07-26",
+        "hash": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20"
+      },
+      {
+        "file_end": "2025-05-27",
+        "file_start": "2024-07-01",
+        "hash": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6"
+      }
+    ],
+    "source_structural_evidence": {
+      "complete_unfiltered_export_proven_by_pagination": false,
+      "same_headers_across_pages": true,
+      "xls_pagination_65535_data_rows": true
+    },
+    "strict_eligible_counts": [
+      0,
+      0
+    ],
+    "task_id": "NEXT_VERSION_MULTI_SEASON_LEDGER_QUALIFICATION_AND_SHAPE_TRAINING_R3A",
+    "trained_models": [],
+    "training_executed": false
+  },
+  "PRIVATE_ARTIFACT_PATH": "/Users/charles/Documents/blueberry-area-yield-artifacts/shape-r3a",
+  "ARTIFACT_HASHES": {
+    "farm_season_qualification_r3a.csv": "483c463cdc348d6fe2d5377ade4a41e74086993195fc818d6d76caf0f3945d3f",
+    "paired_farm_qualification_r3a.csv": "2671b5de1a29502713997ea2b3bfe2a31ab2f120ca92e41f2fbb4247e86e7692",
+    "qualification_summary_r3a.json": "1c11253df477dfdf8742839ff9cdd6e8a78ff1929ca8d689e8d901a684cb7bd7",
+    "source_active_calendar_23_24.csv": "89767e833ae42482ce202780be0d39c44c2feae0aaaffb5b41ef161a2cdf8eb8",
+    "source_active_calendar_24_25.csv": "5d22b497a8878e32116b9ee916b40638c5ea5e8c1cc02a26f80043cc464aba8f"
+  },
+  "LOCAL_TESTS": "404 passed (area_yield, planning, maturity, core_forecast; non-PostgreSQL regression)",
+  "LOCAL_STATIC_CHECKS": "RUFF_FORMAT_MYPY_PASS",
+  "VALIDATION_TYPE": "CROSS_SEASON_OUT_OF_TIME_RETROSPECTIVE",
+  "VALIDATION_BLINDNESS": "NOT_BLIND",
+  "MULTI_SEASON_SHAPE_VALIDATED": false,
+  "TOTAL_YIELD_MODEL_STATUS": "WAITING_FOR_HISTORICAL_AREA_DATA",
+  "MULTI_SEASON_TOTAL_YIELD_VALIDATED": false,
+  "AREA_SCALING_VALIDATED": false,
+  "LEGACY_TEST_ACCESSED": false,
+  "WEATHER_USED": false,
+  "V0_3_BASELINE_CHANGED": false,
+  "R1_ARTIFACT_CHANGED": false,
+  "R2_ARTIFACT_CHANGED": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "RELEASE_AUTHORIZED": false,
+  "CI_STATUS": "PENDING_FINAL_EXACT_HEAD",
+  "FINAL_STOP_GATE": "COORDINATOR_R3A_LEDGER_AND_SHAPE_REVIEW"
+}
