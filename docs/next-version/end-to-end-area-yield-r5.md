@@ -119,6 +119,5 @@ FORECAST_EXAMPLE_ONLY=true。不是未来种植计划或准确率证据；完整
 已成功执行，排他目录与文件防覆盖。prepare校验源文件hash但不解析validation labels；无fit。
 本地447项相关测试PASS（R1–R4回归），Ruff/format/Mypy（424源文件）/JSON/diff PASS。
 所有源组件manifest多阶段hash校验，无R1–R4写入。没有S4重开/旧TEST/天气/未来计划/旧baseline变更/新训练。
-完成本地验证后一次push，GitHub standard/full-suite为最终exact-head验证，未结束报告PENDING。
+完成本地验证后push；随后补充一个文档末尾空行修正提交，未重跑或修改实验。GitHub standard/full-suite为最终exact-head验证，未结束报告PENDING。
 保持独立Draft PR，不Ready/Merge/Release。FINAL_STOP_GATE=COORDINATOR_END_TO_END_R5_REVIEW。
-
