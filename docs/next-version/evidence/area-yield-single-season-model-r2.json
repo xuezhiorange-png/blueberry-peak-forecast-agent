@@ -1,0 +1,274 @@
+{
+  "TASK_ID": "NEXT_VERSION_SINGLE_SEASON_AREA_CURVE_MODEL_IMPROVEMENT_R2",
+  "RESULT": "BASELINE_REMAINS_BEST",
+  "BASE_SHA": "9a09263977cf37f8bc49ec09c102fcefaeeddcbf",
+  "EXECUTION_CODE_SHA": "989a6bc00a420c703298e284b3ad6b828f76b11d",
+  "PR_NUMBER": 611,
+  "R1_ARTIFACT_CHANGED": false,
+  "TRAINING_DATA_SCOPE_COUNT": 1,
+  "TRAINING_SEASON_COUNT": 1,
+  "TRAINING_CALENDAR_ROW_COUNT": 207,
+  "R2_CANDIDATES": [
+    "SPLINE_RIDGE_KNOTS6_DEGREE3_ALPHA10_LINEAR"
+  ],
+  "SELECTED_MODEL": "RIDGE_ALPHA10_TWO_ANNUAL_HARMONICS",
+  "ROLLING_BACKTEST_WINDOW_COUNT": 9,
+  "MODEL_FIT_COUNT": 13,
+  "MODEL_WINDOW_EVALUATIONS": 30,
+  "MODEL_ENGINEERING_PASS": true,
+  "SINGLE_SEASON_BACKTEST_IMPROVED": false,
+  "PEAK_TIMING_IMPROVED": false,
+  "MULTI_SEASON_VALIDATED": false,
+  "AREA_SCALING_VALIDATED": false,
+  "BUSINESS_USABILITY": "LIMITED_SINGLE_SEASON_EVIDENCE",
+  "FORECAST": {
+    "area_mu": "736.000000",
+    "area_scaling_software_test": "PASS",
+    "area_scaling_validated": false,
+    "daily_rows_per_area": 207,
+    "extrapolated_rows": 0,
+    "fit_called": false,
+    "forecast_end": "2027-05-09",
+    "forecast_start": "2026-10-15",
+    "fresh_process_pid": 53029,
+    "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+    "model_kind": "ridge",
+    "model_version": "bf3e45c1d36912a1d090b3765dea1931dcae37c73a9a7e3609570e584106e149",
+    "outside_main_window": "NOT_PREDICTED_NOT_ZERO",
+    "rolling_7day_peak": {
+      "cumulative_quantity_kg": "73380.619109",
+      "daily_average_kg_per_day": "10482.945587",
+      "date_continuity": "STRICT_CALENDAR_DAYS",
+      "end_date": "2027-05-01",
+      "metric": "ROLLING_CUMULATIVE",
+      "start_date": "2027-04-25",
+      "tie_break": "EARLIEST_START_DATE",
+      "window_days": 7
+    },
+    "single_day_peak": {
+      "date": "2027-04-28",
+      "quantity_kg": "10488.041609",
+      "tie_break": "EARLIEST_DATE"
+    },
+    "total_kg": "968113.233005"
+  },
+  "BENCHMARK": {
+    "R1_artifact_changed": false,
+    "benchmark_status": "PREVIOUSLY_SEEN_REGRESSION_BENCHMARK_NOT_BLIND",
+    "metrics": {
+      "baseline": {
+        "actual": {
+          "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+          "rolling_7day_peak": {
+            "cumulative_quantity_kg": "88757.236000",
+            "daily_average_kg_per_day": "12679.605143",
+            "date_continuity": "STRICT_CALENDAR_DAYS",
+            "end_date": "2025-05-02",
+            "metric": "ROLLING_CUMULATIVE",
+            "start_date": "2025-04-26",
+            "tie_break": "EARLIEST_START_DATE",
+            "window_days": 7
+          },
+          "single_day_peak": {
+            "date": "2025-04-28",
+            "quantity_kg": "15117.032000",
+            "tie_break": "EARLIEST_DATE"
+          },
+          "total_kg": "562458.636000"
+        },
+        "comparable_rows": 55,
+        "daily_mae_kg": "7573.954420",
+        "daily_wape": "0.740619",
+        "full_season": false,
+        "missing_label_rows": 0,
+        "predicted": {
+          "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+          "rolling_7day_peak": {
+            "cumulative_quantity_kg": "18681.461701",
+            "daily_average_kg_per_day": "2668.780243",
+            "date_continuity": "STRICT_CALENDAR_DAYS",
+            "end_date": "2025-03-22",
+            "metric": "ROLLING_CUMULATIVE",
+            "start_date": "2025-03-16",
+            "tie_break": "EARLIEST_START_DATE",
+            "window_days": 7
+          },
+          "single_day_peak": {
+            "date": "2025-03-16",
+            "quantity_kg": "2668.780243",
+            "tie_break": "EARLIEST_DATE"
+          },
+          "total_kg": "146782.913365"
+        },
+        "rolling_7day_peak_absolute_error_kg": "70075.774299",
+        "rolling_7day_window_shift_days": 41,
+        "single_day_peak_absolute_error_kg": "12448.251757",
+        "single_day_peak_date_error_days": 43,
+        "wape_reason": "COMPUTED",
+        "window_metrics_status": "COMPUTED_COMPLETE_PARTIAL_SEASON_WINDOW",
+        "window_total_absolute_error_kg": "415675.722635",
+        "window_total_relative_error": "0.739033"
+      },
+      "ridge": {
+        "actual": {
+          "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+          "rolling_7day_peak": {
+            "cumulative_quantity_kg": "88757.236000",
+            "daily_average_kg_per_day": "12679.605143",
+            "date_continuity": "STRICT_CALENDAR_DAYS",
+            "end_date": "2025-05-02",
+            "metric": "ROLLING_CUMULATIVE",
+            "start_date": "2025-04-26",
+            "tie_break": "EARLIEST_START_DATE",
+            "window_days": 7
+          },
+          "single_day_peak": {
+            "date": "2025-04-28",
+            "quantity_kg": "15117.032000",
+            "tie_break": "EARLIEST_DATE"
+          },
+          "total_kg": "562458.636000"
+        },
+        "comparable_rows": 55,
+        "daily_mae_kg": "4368.218298",
+        "daily_wape": "0.427146",
+        "full_season": false,
+        "missing_label_rows": 0,
+        "predicted": {
+          "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+          "rolling_7day_peak": {
+            "cumulative_quantity_kg": "46584.567894",
+            "daily_average_kg_per_day": "6654.938271",
+            "date_continuity": "STRICT_CALENDAR_DAYS",
+            "end_date": "2025-03-30",
+            "metric": "ROLLING_CUMULATIVE",
+            "start_date": "2025-03-24",
+            "tie_break": "EARLIEST_START_DATE",
+            "window_days": 7
+          },
+          "single_day_peak": {
+            "date": "2025-03-27",
+            "quantity_kg": "6658.905910",
+            "tie_break": "EARLIEST_DATE"
+          },
+          "total_kg": "340952.862177"
+        },
+        "rolling_7day_peak_absolute_error_kg": "42172.668106",
+        "rolling_7day_window_shift_days": 33,
+        "single_day_peak_absolute_error_kg": "8458.126090",
+        "single_day_peak_date_error_days": 32,
+        "wape_reason": "COMPUTED",
+        "window_metrics_status": "COMPUTED_COMPLETE_PARTIAL_SEASON_WINDOW",
+        "window_total_absolute_error_kg": "221505.773823",
+        "window_total_relative_error": "0.393817"
+      },
+      "spline": {
+        "actual": {
+          "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+          "rolling_7day_peak": {
+            "cumulative_quantity_kg": "88757.236000",
+            "daily_average_kg_per_day": "12679.605143",
+            "date_continuity": "STRICT_CALENDAR_DAYS",
+            "end_date": "2025-05-02",
+            "metric": "ROLLING_CUMULATIVE",
+            "start_date": "2025-04-26",
+            "tie_break": "EARLIEST_START_DATE",
+            "window_days": 7
+          },
+          "single_day_peak": {
+            "date": "2025-04-28",
+            "quantity_kg": "15117.032000",
+            "tie_break": "EARLIEST_DATE"
+          },
+          "total_kg": "562458.636000"
+        },
+        "comparable_rows": 55,
+        "daily_mae_kg": "5337.816579",
+        "daily_wape": "0.521958",
+        "full_season": false,
+        "missing_label_rows": 0,
+        "predicted": {
+          "interpretation": "POINT_ONLY_NOT_CALIBRATED_QUANTILES",
+          "rolling_7day_peak": {
+            "cumulative_quantity_kg": "42786.906098",
+            "daily_average_kg_per_day": "6112.415157",
+            "date_continuity": "STRICT_CALENDAR_DAYS",
+            "end_date": "2025-03-22",
+            "metric": "ROLLING_CUMULATIVE",
+            "start_date": "2025-03-16",
+            "tie_break": "EARLIEST_START_DATE",
+            "window_days": 7
+          },
+          "single_day_peak": {
+            "date": "2025-03-16",
+            "quantity_kg": "6240.024825",
+            "tie_break": "EARLIEST_DATE"
+          },
+          "total_kg": "280034.579453"
+        },
+        "rolling_7day_peak_absolute_error_kg": "45970.329902",
+        "rolling_7day_window_shift_days": 41,
+        "single_day_peak_absolute_error_kg": "8877.007175",
+        "single_day_peak_date_error_days": 43,
+        "wape_reason": "COMPUTED",
+        "window_metrics_status": "COMPUTED_COMPLETE_PARTIAL_SEASON_WINDOW",
+        "window_total_absolute_error_kg": "282424.056547",
+        "window_total_relative_error": "0.502124"
+      }
+    },
+    "peak_date_improvement_days": 0,
+    "peak_timing_improved": false,
+    "quantity_errors_not_worse": true,
+    "result": "BASELINE_REMAINS_BEST",
+    "selected_before_benchmark": "ridge",
+    "seven_day_improvement_days": 0,
+    "single_season_backtest_improved": false,
+    "wape_improvement_pct": "0.000000"
+  },
+  "ARTIFACT_DIRECTORY": "/Users/charles/Documents/blueberry-area-yield-artifacts/area-curve-r2",
+  "ARTIFACT_FILE_SHA256": {
+    "benchmark_models.json": "c409fb917adf0293dc9caaac7aab85f42890a3df5d80459b467a189e2c3b91bf",
+    "benchmark_predictions.csv": "0945bde06baeac397cbda08bbea389b5d6359511bd073b452429bb15aca00780",
+    "benchmark_predictions_before_labels.json": "f31b78c8d9b516ce15d4b994ae6ce5cba3c7d0906a9ff9c9c2f471b60f46a4e3",
+    "benchmark_started.json": "058b0ae79fdfcce5b6bbf8608af08146b75b85e5f9c42068e4a3438efdb8d39e",
+    "forecast_example_r2.csv": "3fa02a0e0b0d556f49d485f8776b0e0a1830edd975da370fa1c1148bbdebf406",
+    "forecast_example_summary_r2.json": "28c15ec4be346e3493a762c8fc5793a81426765867fbf1bc8837b05142ceb601",
+    "full_history_fit_predictions.csv": "c84d9f61da33c7efdb2736c0f2f13889872c9ab327a3eecbf40ab45d79a636de",
+    "full_refit_started.json": "8c8064df5edb839eedcec627533c1a78f01ad0d661eb6aa725c0037cb48b941c",
+    "model_comparison_r2.json": "f2bd2afc8e586553b788a231e1a74ca5fdc866760abec1bbf025a9bd87b918e7",
+    "model_config_r2.json": "2ff6a5928f7cb4c3515d175dfbff8cc6527c025b6187fda1a9dcbd13ae26da9a",
+    "predictions_2024-12-01_14d.json": "fd0ee448999f671d64bfb30e4ad8ed097f6ed21ca01f3ef320bce70cf7adcc69",
+    "predictions_2024-12-01_28d.json": "16d3c4f77b7cf2c7755af8cbd8b112aa7b7c129bfc2754177dc5afb360490c28",
+    "predictions_2024-12-01_42d.json": "16b4614ec92df551d2cac815d91ad7cf862f3f12ea07c6cb1b4d4d50385d17ae",
+    "predictions_2025-01-01_14d.json": "e94fe9ce0775ee03e15e75f1f49503da085928a33fd8f96988f4ebbd97aa63ec",
+    "predictions_2025-01-01_28d.json": "0d78a0864c299a22ab709dda738fb8ad3464541f619f0b49fece94c0b4655705",
+    "predictions_2025-01-01_42d.json": "2a7408c60b7eadac4ab466721ec4a43a8fb2c27c84701a1529b5308d3a353ffe",
+    "predictions_2025-02-01_14d.json": "79ef9474e2d524516db0a95a8186df5fb8c8d98365a0932dc978aac8b91c62d8",
+    "predictions_2025-02-01_28d.json": "dd6c0dd8774411b2122f23fbadfedf8c9aee65e10dc8d032b1b72a6de2461281",
+    "predictions_2025-02-01_42d.json": "3e30ba2260e92f341b2406ab0851b049ba34b242b801d20feec959ef2bcfdd0f",
+    "r1_artifact_snapshot.json": "fa290e9b95d47a3e1c435328e2e0b18a5c1b37dfee9ebe054e4f62100c6b3e4c",
+    "rolling_backtest_metrics.json": "6e71f9271796e1c8d08960b85d023e8e9ecce643d1528d9131b5cc8d5b3823be",
+    "rolling_backtest_predictions.csv": "6ea244dd677beae2c4a439e6fa8420f4a8d24f6d6ab76a461f01af2ec4d1c814",
+    "rolling_models_2024-12-01.json": "e9fd3c73832dc2bcbd9270cb3e5559945330bd61c8a5e900fe651529ec7b7e6a",
+    "rolling_models_2025-01-01.json": "8951ba29249998881934faf50ab859a09926d1bdf6b25eb8d7e046c621e5c6da",
+    "rolling_models_2025-02-01.json": "eaffe430f359dcef897b10a6c8bc3be01c6d1ca0344b9419e14d33997cf02736",
+    "rolling_started.json": "b0dc8b898681fb202886c6da56a8cf52f9a9af063c6069a4cc8b28af0dccd6ee",
+    "selected_model_r2.json": "40c659b56406a791a2505c3817534c85d7543f77c70b9d776b988370b8919d9b",
+    "selection_freeze_r2.json": "018181862135f0f7d338fe34e26498effcccf4d404da3653aa75ecc1961d88b1",
+    "training_manifest_r2.json": "03a6204fe3b60c2b7899e16c1284026aa9fc5c874e8d7966b8d1348410c506ff"
+  },
+  "LOCAL_TESTS": "383 passed; area-yield/planning/maturity/core-forecast non-PostgreSQL regressions",
+  "ARRIVAL_EQUALS_HARVEST": true,
+  "WEATHER_USED": false,
+  "FUTURE_PRODUCTION_PLAN_USED": false,
+  "LEGACY_TEST_ACCESSED": false,
+  "LEGACY_S4_REOPENED": false,
+  "LEGACY_VALIDATION_BUDGET_DELTA": 0,
+  "V0_3_BASELINE_CHANGED": false,
+  "EXISTING_MODEL_REPLACED": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "RELEASE_AUTHORIZED": false,
+  "CI_STATUS": "PENDING_EXTERNAL_EXACT_HEAD_CHECK",
+  "FINAL_STOP_GATE": "COORDINATOR_SINGLE_SEASON_AREA_CURVE_R2_REVIEW"
+}

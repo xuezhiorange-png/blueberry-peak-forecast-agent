@@ -55,4 +55,54 @@ AREA_SCALING_POLICY=LINEAR_BUSINESS_ASSUMPTION，AREA_SCALING_VALIDATED=false。
 逐点 CSV、模型权重和全历史拟合行留在用户本地受控目录，不上传公开仓库。
 读表技能用于来源/单位/缺数核对，实际 CSV 由本轮要求的 Python 实验程序生成。
 
-实际运行结果将在下方追加，不预先填写改善或通过。
+## 实际结果：保留 Ridge，不宣称峰时改善
+
+执行代码 commit `989a6bc00a420c703298e284b3ad6b828f76b11d` 在真实拟合前冻结。
+共 9 个开发窗口、9 次开发拟合、3 次已知 benchmark 拟合、1 次全历史重拟合。
+模型-窗口评价 30 次；均为本轮隔离实验，不使用旧 S4 台账。
+
+| 开发九窗口等权宏平均 | 均值 | 固定 R1 Ridge | Spline |
+|---|---:|---:|---:|
+| 七日峰窗偏移/天 |14.222222|12.888889|9.888889|
+| 峰日误差/天 |18.111111|14.777778|13.777778|
+| WAPE |0.795067|0.724534|0.749385|
+| MAE kg/日 |2678.327466|2318.801526|2593.023862|
+| 窗口总量绝对误差 kg |68495.668878|57431.293041|64991.558453|
+
+Spline 未通过预先冻结的数量误差非恶化约束；只有 Ridge 合格，先冻结选择再读 benchmark 标签。
+
+| 已知 R1 final 窗口 | 均值 | 固定 R1 Ridge | Spline |
+|---|---:|---:|---:|
+| WAPE |0.740619|0.427146|0.521958|
+| MAE kg/日 |7573.954420|4368.218298|5337.816579|
+| 峰日误差/天 |43|32|43|
+| 七日峰窗偏移/天 |41|33|41|
+
+RESULT=BASELINE_REMAINS_BEST。两个旧基线逐字段复现 R1；未针对 final 再调参。
+这只表明本次唯一冻结 Spline 未改善，不证明所有模型都无法改善。
+
+全 207 行重拟合选中的 Ridge，模型文件 SHA256
+`40c659b56406a791a2505c3817534c85d7543f77c70b9d776b988370b8919d9b`。
+新进程 PID 53029 加载不 fit，未来例子 2026-10-15..2027-05-09，每档面积 207 行。
+736亩总量 968113.233005kg；峰日 2027-04-28，10488.041609kg；
+七日累计峰 2027-04-25..05-01，73380.619109kg。368/736/1104亩比例检查 PASS。
+训练覆盖外行数 0；训练覆盖不代表多产季泛化或面积外推精度已验证。
+全历史拟合后的峰日与历史接近不是独立回测成绩；总量也不是硬编码旧校准总量。
+
+私有持久目录：`/Users/charles/Documents/blueberry-area-yield-artifacts/area-curve-r2`。
+其中逐窗口 CSV/metrics、模型、训练清单、预测和 artifact_manifest.json 均已产生；
+[公开汇总与文件 hashes](evidence/area-yield-single-season-model-r2.json) 不包含逐条业务数据或模型权重。
+旧 R1 文件 hashes 执行后核对未变。
+
+运行命令（依次执行，各阶段排他写入新目录，不重跑既有目录）：
+
+```bash
+.venv/bin/python -m scripts.run_area_curve_r2 rolling --r1 /Users/charles/Documents/blueberry-area-yield-artifacts/area-yield-r1 --output /Users/charles/Documents/blueberry-area-yield-artifacts/area-curve-r2
+.venv/bin/python -m scripts.run_area_curve_r2 benchmark --r1 /Users/charles/Documents/blueberry-area-yield-artifacts/area-yield-r1 --output /Users/charles/Documents/blueberry-area-yield-artifacts/area-curve-r2
+.venv/bin/python -m scripts.run_area_curve_r2 refit --r1 /Users/charles/Documents/blueberry-area-yield-artifacts/area-yield-r1 --output /Users/charles/Documents/blueberry-area-yield-artifacts/area-curve-r2
+.venv/bin/python -m scripts.run_area_curve_r2 forecast --r1 /Users/charles/Documents/blueberry-area-yield-artifacts/area-yield-r1 --output /Users/charles/Documents/blueberry-area-yield-artifacts/area-curve-r2
+```
+
+本地 area-yield/planning/maturity/core-forecast 非 PostgreSQL 回归 383 passed。
+Ruff、format、Mypy 通过；真实精度评价与软件测试分别报告。
+推送后 exact-head required CI 仍需独立验证，不以本地测试代替 full-suite-canary。
