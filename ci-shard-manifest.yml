@@ -1,4 +1,7 @@
 # ci-shard-manifest.yml
+# Current override: V0.3 PR607 recovery requires full-suite-canary on every PR.
+# Historical single-shard ownership below still describes fast-feedback shards;
+# exhaustive canary overlap is intentional and authorized for pre-merge parity.
 #
 # TASK-011-INFRA Batch 2 + Batch 4 implementation: single-execution ownership
 # source of truth.
@@ -449,27 +452,26 @@ shards:
       PR #47 / Issue #23 Batch 1 is intact).
 
   # ------------------------------------------------------------------
-  # §4 — full-suite-canary (NOT pull_request)
-  # Push to main + schedule + workflow_dispatch ONLY.
+  # §4 — exhaustive full-suite-canary parity, including pull_request.
   # ------------------------------------------------------------------
   - name: full-suite-canary
     job: full-suite-canary
     event:
+      - pull_request
       - push
       - schedule
       - workflow_dispatch
     pytest_args:
-      - backend/tests
       - "-q"
-      - "--tb=short"
+      - "--tb=long"
+      - "--durations=30"
+      - "--junitxml=reports/test-results/full.xml"
     owner_files:
       # Canary owns EVERY test file (exhaustive coverage for the canary
-      # gate). Single-execution rule for PR events is unaffected because
-      # this job does not run on pull_request.
+      # gate). Pre-merge overlap with fast-feedback shards is intentional.
       - backend/tests/
     notes: |
-      PR #55 §4 full-suite canary gating. Runs ONLY on push to main,
-      nightly schedule, or manual workflow_dispatch. MUST NOT run on
-      pull_request events per §4. Canary is the single source of truth
-      for "no regression in the full pytest suite" and is the rollback
-      trigger per §11 (G-04 and the full_canary_on_pr_event blocker).
+      V0.3 PR607 recovery supersedes PR #55 event exclusion. Runs on every
+      pull_request, push to main, nightly schedule and manual workflow_dispatch.
+      Uses the same exhaustive command and migrated PostgreSQL environment.
+      Require the full-suite-canary check in branch protection separately.

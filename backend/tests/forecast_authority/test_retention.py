@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import os
+import sys
 from collections.abc import AsyncGenerator
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import cast
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import Table, func, select, update
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -498,34 +502,101 @@ async def test_test_fixture_authority_cannot_be_promoted(session: AsyncSession) 
         await capture_forecast_authority(session, source=source)
 
 
-@pytest.mark.postgres
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_postgres_session_boundary_is_opt_in() -> None:
-    """Exercise the same commit/readback contract when the PG profile is enabled."""
+@pytest.fixture
+async def migrated_retention_engine() -> AsyncGenerator[AsyncEngine, None]:
+    """Use real Alembic constraints without inheriting another test's parent rows."""
     if os.getenv("RUN_POSTGRES_INTEGRATION") != "1":
         pytest.skip("PostgreSQL integration profile is not enabled")
     from backend.app.core.config import get_settings
+    from backend.tests.db.migration import assert_safe_isolated_db_name
+    from backend.tests.db.profile import assert_safe_postgres_test_identity
 
-    engine = create_async_engine(get_settings().async_database_url)
+    assert_safe_postgres_test_identity()
+    database = "blueberry_peak_test_retention_" + uuid4().hex[:16]
+    assert_safe_isolated_db_name(database)
+    url = make_url(get_settings().async_database_url)
+    admin = create_async_engine(url, isolation_level="AUTOCOMMIT")
+    engine = create_async_engine(url.set(database=database))
+    created = False
     try:
-        capture_table = cast(Table, ForecastAuthorityCaptureModel.__table__)
-        daily_table = cast(Table, ForecastAuthorityDailyModel.__table__)
-        extension_table = cast(Table, ForecastAuthorityTask10ExtensionModel.__table__)
-        async with engine.begin() as connection:
-            await connection.run_sync(capture_table.create, checkfirst=True)
-            await connection.run_sync(daily_table.create, checkfirst=True)
-            await connection.run_sync(extension_table.create, checkfirst=True)
-        source = _source(identity="postgres-boundary")
-        async with AsyncSession(engine, expire_on_commit=False) as writer:
-            await capture_forecast_authority(writer, source=source)
-            await writer.commit()
-        async with AsyncSession(engine, expire_on_commit=False) as reader:
-            loaded = await load_pit_visible_forecast_authority(
-                reader,
-                forecast_identity=source.forecast_identity,
-                cutoff_at=_CUTOFF,
-            )
-            assert loaded.authority_hash
+        async with admin.connect() as connection:
+            await connection.exec_driver_sql(f'CREATE DATABASE "{database}"')
+        created = True
+        migration = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-m",
+            "alembic",
+            "-c",
+            "backend/alembic.ini",
+            "upgrade",
+            "head",
+            env={
+                **os.environ,
+                "POSTGRES_DB": database,
+                "DATABASE_URL": url.set(database=database).render_as_string(hide_password=False),
+            },
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await migration.communicate()
+        assert migration.returncode == 0, (stdout.decode(), stderr.decode())
+        yield engine
     finally:
         await engine.dispose()
+        if created:
+            async with admin.connect() as connection:
+                await connection.exec_driver_sql(f'DROP DATABASE "{database}"')
+        await admin.dispose()
+
+
+@pytest.mark.postgres
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_postgres_session_boundary_is_opt_in(
+    migrated_retention_engine: AsyncEngine,
+) -> None:
+    """Persist a real fixture parent before capture; read through a new connection."""
+    from backend.app.models.core_forecast import CoreForecastRunModel
+    from backend.tests.integration.test_core_forecast_persistence_postgres import _persist_core_run
+
+    engine = migrated_retention_engine
+    async with AsyncSession(engine, expire_on_commit=False) as writer:
+        assert await writer.scalar(select(func.count()).select_from(CoreForecastRunModel)) == 0
+        request_hash = await _persist_core_run(writer)
+        parent = (await writer.scalars(select(CoreForecastRunModel))).one()
+        source = _source(identity="postgres-boundary")
+        source = replace(
+            source,
+            core_forecast_run_id=parent.id,
+            forecast_identity=request_hash,
+            core_snapshot={
+                **source.core_snapshot,
+                "run_id": parent.id,
+                "request_hash": request_hash,
+                "run": {"id": parent.id, "request_hash": request_hash},
+            },
+        )
+        captured = await capture_forecast_authority(writer, source=source)
+        await writer.commit()
+    await engine.dispose()  # Force physical fresh-session readback, not a pooled connection.
+    async with AsyncSession(engine, expire_on_commit=False) as reader:
+        loaded = await load_pit_visible_forecast_authority(
+            reader,
+            forecast_identity=source.forecast_identity,
+            cutoff_at=_CUTOFF,
+        )
+        assert loaded.authority_hash == captured.authority_hash
+        assert await reader.get(CoreForecastRunModel, source.core_forecast_run_id) is not None
+
+
+@pytest.mark.postgres
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_postgres_retention_requires_persisted_core_parent(
+    migrated_retention_engine: AsyncEngine,
+) -> None:
+    """The fixture repair must not bypass the migration's referential-integrity gate."""
+    async with AsyncSession(migrated_retention_engine) as writer:
+        with pytest.raises(ForecastAuthorityConflictError) as error:
+            await capture_forecast_authority(writer, source=_source(identity="orphan-parent"))
+        assert "fk_forecast_authority_capture_core_run_id" in str(error.value.__cause__)
