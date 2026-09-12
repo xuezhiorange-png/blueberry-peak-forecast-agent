@@ -1,0 +1,14 @@
+{
+  "task_id": "NEXT_VERSION_SAME_FARM_PRIOR_SEASON_SHAPE_VALIDATION_R3B",
+  "farms": ["保山华兴农场", "保山杨柳农场", "建水南庄基地"],
+  "training_season": "2023-2024",
+  "validation_season": "2024-2025",
+  "models": ["ridge", "empirical", "prior"],
+  "mapping": "R3A_JULY_01_RELATIVE_INDEX_DIVIDED_BY_CALENDAR_LENGTH",
+  "unknown_training_policy": "PREDICTION_INTERPOLATION_NOT_LABEL_IMPUTATION",
+  "extrapolation": "R3A_CONSTANT_ENDPOINT_PREDICTION_ONLY",
+  "selection": "ALL_THREE_FARMS_COMPUTABLE_MEAN_PEAK_AND_7DAY_STRICTLY_LOWER_MAE_AND_WAPE_NOT_HIGHER",
+  "shape_regression_tolerance": 0,
+  "target_season_tuning": false,
+  "validation_blindness": "NOT_BLIND"
+}
