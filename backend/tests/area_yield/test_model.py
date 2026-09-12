@@ -123,8 +123,9 @@ def test_fit_and_hash_are_deterministic_and_scaler_is_train_only():
     first = fit_model(rows(), "ridge", date(2024, 11, 9), "scope")
     second = fit_model(rows(), "ridge", date(2024, 11, 9), "scope")
     assert first == second
-    from backend.app.area_yield.model import features
     import numpy as np
+
+    from backend.app.area_yield.model import features
 
     expected = np.mean([features(date.fromisoformat(r["date"])) for r in rows()], axis=0)
     assert first["scaler_mean"] == expected.tolist()
