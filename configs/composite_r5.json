@@ -1,0 +1,15 @@
+{
+  "task_id": "NEXT_VERSION_END_TO_END_AREA_YIELD_FORECAST_R5",
+  "farms": {"保山杨柳农场": "393.4", "建水南庄基地": "152.35"},
+  "composites": {"A1": ["global", "ridge"], "A2": ["global", "prior"], "B1": ["prior", "ridge"], "B2": ["prior", "prior"]},
+  "selection": "UNIQUE_PARETO_DOMINANT_TOTAL_REL_DAILY_WAPE_PEAK_DAYS_7DAY_DAYS_ELSE_NO_CLEAR_WINNER",
+  "validation_season": "2024-2025",
+  "validation_blindness": "NOT_BLIND",
+  "macro_weight": "EQUAL_FARM",
+  "rounding": "DECIMAL_6_HALF_EVEN",
+  "example_season": "2026-2027",
+  "example_composite": "B1",
+  "example_interpretation": "FROZEN_R4_PRIOR_TOTAL_AND_RETAINED_R3C_RIDGE_SHAPE_STRUCTURE_ONLY",
+  "no_refit": true,
+  "no_target_label_calibration": true
+}
