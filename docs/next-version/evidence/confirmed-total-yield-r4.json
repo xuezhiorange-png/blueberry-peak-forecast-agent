@@ -1,0 +1,216 @@
+{
+  "task_id": "NEXT_VERSION_FARM_AREA_YIELD_TOTAL_MODEL_R4_CONTINUE",
+  "base_sha": "0080a2b1565e8ead4a1556c0f8842d29cf406629",
+  "result": "SAME_FARM_PRIOR_YIELD_BEST",
+  "selected_kind": "prior",
+  "macro": {
+    "global": {
+      "farm_count": "2",
+      "yield_mae": "282.417506",
+      "yield_mape": "0.456115",
+      "yield_wape": "0.329050",
+      "total_rel_median": "0.456115",
+      "total_rel_mean": "0.456115",
+      "total_rel_p90": "0.765042",
+      "kg_weighted_wape_diagnostic": "0.196256"
+    },
+    "prior": {
+      "farm_count": "2",
+      "yield_mae": "202.618187",
+      "yield_mape": "0.279952",
+      "yield_wape": "0.236074",
+      "total_rel_median": "0.279952",
+      "total_rel_mean": "0.279952",
+      "total_rel_p90": "0.386630",
+      "kg_weighted_wape_diagnostic": "0.190218"
+    }
+  },
+  "per_farm": [
+    {
+      "kind": "global",
+      "farm": "保山杨柳农场",
+      "area_mu": "393.4",
+      "actual_yield": "1140.699672",
+      "predicted_yield": "1060.900353",
+      "yield_abs_error": "79.799319",
+      "yield_rel_error": "0.069956",
+      "actual_total": "448751.251",
+      "predicted_total": "417358.198870",
+      "total_abs_error": "31393.052130",
+      "total_rel_error": "0.069956"
+    },
+    {
+      "kind": "prior",
+      "farm": "保山杨柳农场",
+      "area_mu": "393.4",
+      "actual_yield": "1140.699672",
+      "predicted_yield": "1307.931037",
+      "yield_abs_error": "167.231365",
+      "yield_rel_error": "0.146604",
+      "actual_total": "448751.251",
+      "predicted_total": "514540.069956",
+      "total_abs_error": "65788.818956",
+      "total_rel_error": "0.146604"
+    },
+    {
+      "kind": "global",
+      "farm": "建水南庄基地",
+      "area_mu": "152.35",
+      "actual_yield": "575.864660",
+      "predicted_yield": "1060.900353",
+      "yield_abs_error": "485.035693",
+      "yield_rel_error": "0.842274",
+      "actual_total": "87732.981",
+      "predicted_total": "161628.168780",
+      "total_abs_error": "73895.187780",
+      "total_rel_error": "0.842274"
+    },
+    {
+      "kind": "prior",
+      "farm": "建水南庄基地",
+      "area_mu": "152.35",
+      "actual_yield": "575.864660",
+      "predicted_yield": "813.869669",
+      "yield_abs_error": "238.005009",
+      "yield_rel_error": "0.413300",
+      "actual_total": "87732.981",
+      "predicted_total": "123993.044072",
+      "total_abs_error": "36260.063072",
+      "total_rel_error": "0.413300"
+    }
+  ],
+  "evidence_strength": "LIMITED_TWO_FARM_CROSS_SEASON",
+  "validation_type": "CROSS_SEASON_OUT_OF_TIME_RETROSPECTIVE",
+  "validation_blindness": "NOT_BLIND",
+  "training": {
+    "config_hash": "c082688b794c31dca316d6b1fc6340d66535192b2302c0ccdb2b865b4d1849f5",
+    "training_rows": [
+      {
+        "farm": "保山杨柳农场",
+        "season": "2023-2024",
+        "total_kg": "514540.070",
+        "area_mu": "393.4",
+        "yield_kg_per_mu": "1307.931037",
+        "area_basis": "BUSINESS_CONFIRMED",
+        "source_hash": "0473a0c4041bef5831e241a4510d57536eea6f48ec4e736d90f3b8074c410974",
+        "completeness": "STRICT_ELIGIBLE"
+      },
+      {
+        "farm": "建水南庄基地",
+        "season": "2023-2024",
+        "total_kg": "123993.044",
+        "area_mu": "152.35",
+        "yield_kg_per_mu": "813.869669",
+        "area_basis": "BUSINESS_CONFIRMED",
+        "source_hash": "fedf8eefebdfe010ba8de891c0b215ecbee1cd17b4b56deb8cf9a345a83d47bb",
+        "completeness": "STRICT_ELIGIBLE"
+      }
+    ],
+    "training_row_count": 2,
+    "training_season": "2023-2024",
+    "validation_used_in_fit": false,
+    "training_called": true,
+    "model_hash": "a2fc23b668e002e123418a5a028ffa823198ea64a969caff92cc8d7f4287bc0c",
+    "source_qualification_hash": "920373b7ca8a4d66f5e3ccd818dd45ff9d46b40fe19d7d084a96283ae16c389a",
+    "model_files": {
+      "model_global_median.json": "c490c3c384e9d9ab6450b612e776ad2df1ad114ccd94f0e330f7a81ac1b71f5d",
+      "model_same_farm_prior.json": "d7d8b91ea728b51647676fa6b262bec3686b454f839bc6035d0393ee07d3b853"
+    },
+    "implementation_hashes": {
+      "scripts/run_confirmed_total_r4.py": "ec64c420e5942aa23e76c59a4b9e015c7c6c26942d14f60b0a02058d231ee0c7",
+      "backend/app/area_yield/total_yield_r4.py": "0d5e458d1dbae591c8bb24ac7f79a0631ed29cae8c7dbbef8c5cdce897ffe46b",
+      "backend/app/area_yield/total_evaluation_r4.py": "a1c5bd3a1f88f34c74b6c78f5d2e7da81cdb8e18d5c6bd8e378b2ed15a1ade09"
+    }
+  },
+  "examples": {
+    "examples": [
+      {
+        "farm": "保山杨柳农场",
+        "predicted_yield_kg_per_mu": "1307.931037",
+        "requested_area_mu": "393.4",
+        "predicted_season_total_kg": "514540.069956",
+        "model_version": "total-yield-r4-v1",
+        "model_basis": "prior",
+        "training_season": "2023-2024",
+        "limitations": "LINEAR_BUSINESS_ASSUMPTION_NOT_AREA_EXTRAPOLATION_VALIDATION"
+      },
+      {
+        "farm": "建水南庄基地",
+        "predicted_yield_kg_per_mu": "813.869669",
+        "requested_area_mu": "152.35",
+        "predicted_season_total_kg": "123993.044072",
+        "model_version": "total-yield-r4-v1",
+        "model_basis": "prior",
+        "training_season": "2023-2024",
+        "limitations": "LINEAR_BUSINESS_ASSUMPTION_NOT_AREA_EXTRAPOLATION_VALIDATION"
+      }
+    ],
+    "scaling_examples": [
+      {
+        "predicted_yield_kg_per_mu": "1307.931037",
+        "requested_area_mu": "100",
+        "predicted_season_total_kg": "130793.103700",
+        "model_version": "total-yield-r4-v1",
+        "model_basis": "prior",
+        "training_season": "2023-2024",
+        "limitations": "LINEAR_BUSINESS_ASSUMPTION_NOT_AREA_EXTRAPOLATION_VALIDATION"
+      },
+      {
+        "predicted_yield_kg_per_mu": "1307.931037",
+        "requested_area_mu": "500",
+        "predicted_season_total_kg": "653965.518500",
+        "model_version": "total-yield-r4-v1",
+        "model_basis": "prior",
+        "training_season": "2023-2024",
+        "limitations": "LINEAR_BUSINESS_ASSUMPTION_NOT_AREA_EXTRAPOLATION_VALIDATION"
+      },
+      {
+        "predicted_yield_kg_per_mu": "1307.931037",
+        "requested_area_mu": "1000",
+        "predicted_season_total_kg": "1307931.037000",
+        "model_version": "total-yield-r4-v1",
+        "model_basis": "prior",
+        "training_season": "2023-2024",
+        "limitations": "LINEAR_BUSINESS_ASSUMPTION_NOT_AREA_EXTRAPOLATION_VALIDATION"
+      }
+    ],
+    "scaling_pass": true,
+    "fresh_process_load": true,
+    "fit_called": false,
+    "composite_example": false
+  },
+  "area_bound_farm_count": 2,
+  "area_bound_complete_farm_season_count": 4,
+  "cross_season_area_bound_farm_count": 2,
+  "area_basis": "BUSINESS_CONFIRMED",
+  "same_farm_same_area_across_seasons": true,
+  "season_specific_area_required": false,
+  "nanzhuang_identity_equivalence_confirmed": true,
+  "multi_season_total_yield_validated": true,
+  "validation_scope": "R3A_STRICT_ENGINEERING_LEDGER_COMPLETENESS_NOT_PROOF_OF_UNOBSERVED_BIOLOGICAL_SEASON_TOTAL",
+  "business_usability": "LIMITED_CROSS_SEASON_EVIDENCE",
+  "model_business_approval": false,
+  "area_scaling_validated": false,
+  "shape_scoring": false,
+  "composite_example": false,
+  "private_artifact_directory": "/Users/charles/Documents/blueberry-area-yield-artifacts/total-yield-r4-confirmed",
+  "selected_model_file_hash": "d7d8b91ea728b51647676fa6b262bec3686b454f839bc6035d0393ee07d3b853",
+  "metric_file_hash": "4fb56ceb406de8a63fc23e2218f39933d0e388b335087e2ba68cb9c750e6c324",
+  "new_training_phase_count": 1,
+  "new_validation_phase_count": 1,
+  "model_comparison_count": 4,
+  "old_r4_blocker_evidence_preserved": true,
+  "old_area_package_changed": false,
+  "r1_r2_r3_artifacts_changed": false,
+  "legacy_test_accessed": false,
+  "weather_used": false,
+  "future_production_plan_used": false,
+  "legacy_validation_budget_delta": 0,
+  "local_tests": "438_PASSED",
+  "local_static_checks": "RUFF_FORMAT_MYPY_JSON_DIFF_PASS",
+  "old_artifact_hash_parity": "PASS",
+  "ci_status": "PENDING",
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "release_authorized": false
+}
