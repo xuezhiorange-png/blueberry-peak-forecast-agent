@@ -15,12 +15,12 @@ name: CI
 #     6. postgres-task11          — Task 11 evaluation / mask / canonical / hash / key / audit
 #     7. postgres-concurrency     — marker-driven @pytest.mark.postgres_concurrency
 #     8. compose-smoke            — Docker Compose smoke (no pytest)
-#   Non-PR (push / schedule / workflow_dispatch):
-#     9. full-suite-canary        — full pytest on main push / schedule / dispatch ONLY
+#   All events (pull_request / push / schedule / workflow_dispatch):
+#     9. full-suite-canary        — full pytest, including pre-merge validation
 #
-# PR CI MUST NOT include full-suite pytest (per design §3.2 / §4).
-# `if: github.event_name == 'pull_request'` on PR jobs and `!= 'pull_request'`
-# on canary enforces the split.
+# V0.3 PR607 recovery supersedes the historical canary-only exclusion:
+# shards remain fast feedback, while the exhaustive canary also runs on every PR.
+# No path filter may silently omit forecast/data/parameter regression coverage.
 
 on:
   pull_request:
@@ -1566,12 +1566,11 @@ jobs:
         run: docker compose down -v
 
   # ----------------------------------------------------------------
-  # §4 — full-suite-canary (NOT pull_request)
-  # Push / schedule / dispatch ONLY. Runs the full pytest suite.
+  # §4 — full-suite-canary (all events, including pull_request)
+  # Same command, dependencies, migrations and PostgreSQL service before/after merge.
   # ----------------------------------------------------------------
   full-suite-canary:
     name: full-suite-canary
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     env:
       ISOLATED_JOB_NAME: full-suite-canary
