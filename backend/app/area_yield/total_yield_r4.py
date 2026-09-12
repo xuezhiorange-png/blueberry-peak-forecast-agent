@@ -37,7 +37,12 @@ class Area:
     def validate(self, farm: str) -> Decimal:
         if self.farm != farm or self.scope != "FARM":
             raise ValueError("farm scope mismatch")
-        if self.basis not in {"MEASURED", "BUSINESS_REPORTED", "AUTHORIZED_CALIBRATION"}:
+        if self.basis not in {
+            "MEASURED",
+            "BUSINESS_REPORTED",
+            "AUTHORIZED_CALIBRATION",
+            "BUSINESS_CONFIRMED",
+        }:
             raise ValueError("unapproved area basis")
         if not self.productive_semantics_confirmed or not self.source_reference:
             raise ValueError("productive area authority not established")
@@ -82,7 +87,7 @@ def fit(rows: list[dict[str, str]]) -> dict[str, Any]:
         "training_season": "2023-2024",
         "global_yield": emit(median([Decimal(v) for v in yields.values()])),
         "farm_yields": yields,
-        "training_hash": digest(rows),
+        "training_hash": digest(sorted(rows, key=lambda r: r["farm"])),
         "unknown_farm_policy": "FAIL_CLOSED",
     }
     result["hash"] = digest(result)
