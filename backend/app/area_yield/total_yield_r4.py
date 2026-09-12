@@ -74,6 +74,17 @@ def sample(area: Area, farm: str, season: str, total: str, completeness: str) ->
 def fit(rows: list[dict[str, str]]) -> dict[str, Any]:
     if not rows or any(r["season"] != "2023-2024" for r in rows):
         raise ValueError("only 23~24 training allowed")
+    return _fit(rows, "2023-2024", "total-yield-r4-v1")
+
+
+def fit_rolling_r7(rows: list[dict[str, str]]) -> dict[str, Any]:
+    """Same median/prior rule; rolling past-season inputs, not retuned parameters."""
+    if not rows or any(r["season"] != "2024-2025" for r in rows):
+        raise ValueError("only 24~25 rolling training allowed")
+    return _fit(rows, "2024-2025", "total-yield-r7-rolling-v1")
+
+
+def _fit(rows: list[dict[str, str]], season: str, version: str) -> dict[str, Any]:
     if len({r["farm"] for r in rows}) != len(rows):
         raise ValueError("duplicate farm-season")
     if any(r["completeness"] not in {"STRICT_ELIGIBLE", "COMPLETE"} for r in rows):
@@ -83,8 +94,8 @@ def fit(rows: list[dict[str, str]]) -> dict[str, Any]:
         for r in sorted(rows, key=lambda r: r["farm"])
     }
     result: dict[str, Any] = {
-        "model_version": "total-yield-r4-v1",
-        "training_season": "2023-2024",
+        "model_version": version,
+        "training_season": season,
         "global_yield": emit(median([Decimal(v) for v in yields.values()])),
         "farm_yields": yields,
         "training_hash": digest(sorted(rows, key=lambda r: r["farm"])),

@@ -31,6 +31,17 @@ def labels(rows: list[dict[str, str]]) -> list[float | None]:
 def fit(curves: dict[str, list[dict[str, str]]], season: str, kind: str) -> dict[str, Any]:
     if season != "2023-2024" or not curves or kind not in {"ridge", "empirical"}:
         raise ValueError("unauthorized training season/model")
+    return _fit(curves, season, kind)
+
+
+def fit_rolling_r7(curves: dict[str, list[dict[str, str]]]) -> dict[str, Any]:
+    """R7 authorizes the identical rule on 2425, never on validation labels."""
+    if not curves:
+        raise ValueError("empty rolling training input")
+    return _fit(curves, "2024-2025", "ridge")
+
+
+def _fit(curves: dict[str, list[dict[str, str]]], season: str, kind: str) -> dict[str, Any]:
     calendar = season_calendar(season)
     index = {d: i / len(calendar) for i, d in enumerate(calendar)}
     positions, y, weights = [], [], []
