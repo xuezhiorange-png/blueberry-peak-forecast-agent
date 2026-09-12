@@ -1,0 +1,27 @@
+{
+  "task_id": "NEXT_VERSION_THREE_SEASON_ROLLING_OUT_OF_TIME_VALIDATION_R7",
+  "source": {
+    "mode": "authorized_xls",
+    "season": "2025-2026",
+    "source_hash": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "drive_file_id": "1L1WlljuU04dvkS8Owd8ekl9Vi1ZunlRa",
+    "coverage_start": "2025-07-22",
+    "coverage_end": "2026-04-16",
+    "complete_export": true,
+    "ledger_zero_semantics_authorized": true,
+    "authorization_reference": "USER_R7_SAME_SCAN_WEIGH_LEDGER_LINEAGE_CONFIRMED_BY_IDENTICAL_SEVEN_FIELDS",
+    "legacy_sealed_test": false
+  },
+  "train_season": "2024-2025",
+  "validation_season": "2025-2026",
+  "alpha": 10,
+  "annual_harmonics": 2,
+  "global_total_rule": "PREVIOUS_STRICT_AREA_BOUND_FARM_MEDIAN",
+  "prior_rule": "IMMEDIATELY_PREVIOUS_SAME_FARM_SEASON",
+  "calendar": "JULY_01_THROUGH_JUNE_30",
+  "tuning_allowed": false,
+  "validation_blindness": "NOT_BLIND_SOURCE_QUALIFICATION_PRECEDES_PREDICTION",
+  "historical_pit_availability_proven": false,
+  "strict_macro_excludes_diagnostic_only": true,
+  "composite_selection_rule": "R5_PARETO_UNIQUE_DOMINANCE_NO_FORCED_WINNER"
+}
