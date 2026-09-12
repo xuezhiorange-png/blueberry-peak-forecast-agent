@@ -132,3 +132,12 @@ git diff --check 均通过。真实落盘 CSV 日行连续、非负有限、总�
 与冻结清单一致。此只读校验没有重训或再评分。CI 状态以最终 exact-head PR checks 为准，
 保留所有现行 full-suite-canary，不修改 workflow。
 私有包 SHA256：`ac19bb27eac0a1f2827843a5d0deae9343c8e5c7869f4ad24d2114473384459f`。
+
+逐范围排除明细补件：
+`/Users/charles/Documents/blueberry-area-yield-artifacts/area-yield-r1-scope-inventory.csv`，
+SHA256 `4408be7da6533f43b0f747c92f6e0f998f8b36ad28a5a5ebf1f15088639a1a69`。
+按已核验同一 2024–2025 XLS 的 farm/factory 原始标签分组，记录各组行数和最早/最晚记录日期；
+共 201434 行元数据、88 个原始标签组合，**不是 88 个独立 canonical 农场或完整产季**。
+未擅自合并“基地/农场”等别名。逐组全农场面积均未对应，原版纳/Dx验收子范围是唯一例外。
+此只读元数据补件在训练后整理，未加入训练、修改配置或再评分；它作为私有包旁的独立补件，
+不改变已经记录的训练/模型/核心实验包 hash。
