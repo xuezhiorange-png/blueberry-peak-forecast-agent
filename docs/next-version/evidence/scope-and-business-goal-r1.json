@@ -1,0 +1,647 @@
+{
+  "TASK_ID": "NEXT_VERSION_SCOPE_AND_BUSINESS_GOAL_FREEZE_R1",
+  "TASK_CLASS": "READ_ONLY_AUDIT_AND_PLANNING_DOCUMENTATION",
+  "RESULT": "PROPOSAL_COMPLETE_WITH_DEPENDENCIES",
+  "BASE_MAIN_SHA": "80724b0171107c8b2bdeeea17ea4a8a9457903ec",
+  "BASELINE_VERSION": "v0.3.1",
+  "BASELINE_SHA": "80724b0171107c8b2bdeeea17ea4a8a9457903ec",
+  "PREFLIGHT": {
+    "initial_head": "5ebb5b4b8cf7f7bfe7c622dd0339c80f8b7af413",
+    "initial_branch": "fix/v0-3-full-suite-retention-ci-parity-r1",
+    "initial_tree_clean": true,
+    "origin": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent.git",
+    "fresh_fetch_performed": true,
+    "main_advanced_beyond_accepted_baseline": false,
+    "planning_branch": "docs/next-version-scope-r1",
+    "unknown_files_overwritten": false,
+    "codegraph_directory_present": false
+  },
+  "SCOPE_PROPOSAL_STATUS": "DRAFT_FOR_COORDINATOR_REVIEW",
+  "NEXT_VERSION_NUMBER": "NOT_ASSIGNED",
+  "PLANNING_AUTHORIZED": true,
+  "IMPLEMENTATION_AUTHORIZED": false,
+  "IMPLEMENTATION_STARTED": false,
+  "NEW_MODEL_EXPERIMENT_AUTHORIZED": false,
+  "CURRENT_CAPABILITY_AUDIT_COMPLETE": true,
+  "AUTHORIZED_DATA_INVENTORY_COMPLETE": true,
+  "INVENTORY_COMPLETENESS_BOUNDARY": "TRACKED_SOURCE_LIST_AND_EXISTING_AUTHORIZED_SUMMARIES_ONLY_NOT_ALL_EXTERNAL_SOURCES_OR_RUNTIME_CONTENTS",
+  "INSPECTION_METHOD": "READ_ONLY_CODE_AND_GOVERNANCE_DOCUMENTS_NO_RUNTIME_OR_DATABASE_PROBE_NO_RAW_XLS_OR_PARTITION_PAYLOAD_READ",
+  "SOURCE_REFERENCES": [
+    {
+      "path": "README.md",
+      "sha256": "96fd4c5ed61d38786277d010c4ee4fbd8198e3fe9ad0625fdc0e3e05e2c0a5e8"
+    },
+    {
+      "path": "docs/v0-3/development-plan.md",
+      "sha256": "5626877b42ebec12c52c2d1dc7bbe893d63fa1c316446dd1c1568ca684f874ef"
+    },
+    {
+      "path": "docs/v0-3/v0-3-version-closeout-and-acceptance-reconciliation-r1.md",
+      "sha256": "c3f07f112782ccac5592db1475a6eee55a567851bdcde7f79d8c511d73ed4faa"
+    },
+    {
+      "path": "docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json",
+      "sha256": "292e4e033b1cdf3194617326ce0de4dc3274b3846a3bc18efbf7ee09a51738ab"
+    },
+    {
+      "path": "docs/v0-3/pr607-main-full-suite-failure-recovery-r1.md",
+      "sha256": "f66bbc75a362b21f961e23bf2ce708aef98f2c4202a2512cb51cd3e36e59cace"
+    },
+    {
+      "path": "scripts/register_banna_empirical_authority_r5.py",
+      "sha256": "652febd58b0c375924889e0fe2dd310326b545254517d0145f78d5808dcc998f"
+    },
+    {
+      "path": "scripts/probe_banna_harvest_baseline_r4.py",
+      "sha256": "447ed2cea302ac48e3725a44c9c833e19f0320f9dea95f46c984e5ad06226454"
+    },
+    {
+      "path": "backend/app/planning/empirical_maturity.py",
+      "sha256": "7f935784c0dceaf276f14c2bfb625fb17d4c1419838b014e84e913c7a74a2756"
+    },
+    {
+      "path": "backend/app/planning/empirical_authority.py",
+      "sha256": "5511443eeb18d9bd510ebf92715cc628e8409551f487ec32ffc0b75d6bb1570a"
+    },
+    {
+      "path": "backend/app/planning/empirical_forecast.py",
+      "sha256": "be8aa21c0ae54caeb7981d039a90accb56dec08bbbe580010d85ff70e72c6fc1"
+    },
+    {
+      "path": "backend/app/api/trial.py",
+      "sha256": "c0be82151d4153fad807755c0fe7f07930fcbae2859abe752e67d9e44ee9c3b3"
+    },
+    {
+      "path": "backend/app/trial.py",
+      "sha256": "2f79ccb395dfe5cdcdd120f38dc1c8e03b36c791432cac2a0c7706a72498cd43"
+    },
+    {
+      "path": "frontend/src/pages/ForecastPage.tsx",
+      "sha256": "0ee87f76fc267a0672c4f8f646a5f824df4a2209372e893261ba425656374be8"
+    },
+    {
+      "path": "frontend/src/pages/QualityPage.tsx",
+      "sha256": "d896c034e1495a45174c6b87c2e29ec8f12ac369b0334f5920bfdb1bda0f84c7"
+    },
+    {
+      "path": "frontend/src/features/forecast/forecastApi.ts",
+      "sha256": "cb686a2680296f1f0d27c0f8a6a1b3696eef163ed89dd815a146c38b24598b73"
+    },
+    {
+      "path": "frontend/e2e/forecast-flow.spec.ts",
+      "sha256": "ce3ca96d5b2de99ac2c09a2e74ea52571eb925f274589867baf45f61a50f2c5f"
+    },
+    {
+      "path": "backend/tests/planning/test_empirical_forecast.py",
+      "sha256": "d00f86c309bc5d3e6e326ed12d24bb09068eea9279fcec0696b563ecbed5e224"
+    },
+    {
+      "path": "backend/tests/planning/test_empirical_maturity.py",
+      "sha256": "aab1f4977c5e5a3d67fc75b39aa3376bc0389d3d435c4814d82655be2423064c"
+    },
+    {
+      "path": "docs/v0-3/forecast-operational-acceptance/evidence/banna-scope-parameter-authority-r2.json",
+      "sha256": "d14542c275b95ddb50b171bb9dcb63fc2a23bb3ab7e6e6ef476989ee591c14b7"
+    },
+    {
+      "path": "docs/v0-3/s1/evidence/source-002-final-source-owner-attestation.json",
+      "sha256": "cfd2546954f440325deddf6fe3bf7afa71e8e5410768007965d61a4e0e9017f7"
+    },
+    {
+      "path": "docs/v0-3/s3/evidence/s3-final-closeout-and-s4-entry-authorization-r1.json",
+      "sha256": "1c60a40d7f9bf08efbb5d5b398d6e8e3d0b91e594bbe807730627e505d318a90"
+    },
+    {
+      "path": "docs/v0-3/s4/evidence/s4-incumbent-retention-final-closure-r1.json",
+      "sha256": "358fe85cdfae9a4d00328fa74eae647a1086f4718b2070f87c43c56981a723e6"
+    }
+  ],
+  "AUTHORITY_HIERARCHY": [
+    {
+      "class": "LONG_TERM_VISION",
+      "reference": "README.md",
+      "not_current_acceptance_or_next_scope": true
+    },
+    {
+      "class": "HISTORICAL_PLAN",
+      "reference": "docs/v0-3/development-plan.md",
+      "sections_read": [
+        "opening identity/baseline",
+        "4.7/4.8 S5/S6",
+        "4.58/4.59/4.60 current pointers"
+      ],
+      "whole_historical_log_audited": false
+    },
+    {
+      "class": "ACCEPTED_CLOSEOUT",
+      "reference": "docs/v0-3/v0-3-version-closeout-and-acceptance-reconciliation-r1.md"
+    },
+    {
+      "class": "REAL_EXECUTION_EVIDENCE",
+      "reference": "docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json"
+    },
+    {
+      "class": "IMPLEMENTED_CODE",
+      "reference": "backend/app/planning/empirical_forecast.py"
+    },
+    {
+      "class": "SYNTHETIC_ENGINEERING_TESTS_NOT_REAL_SCOPE_ACCEPTANCE",
+      "reference": "backend/tests/planning/test_empirical_forecast.py"
+    }
+  ],
+  "BASELINE_ACCEPTANCE": {
+    "scope": "BANNA_MENGWANG_DX_736MU_R1",
+    "farm": "版纳勐旺农场",
+    "factory": "勐旺加工厂",
+    "variety": "Dx",
+    "area_mu": "736.000000",
+    "source_hash": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+    "authority_hash": "723aac97a66e577a737c7fd62d42149e1d66d1108f1142709b13a83aeb9c6911",
+    "result_hash": "8cba604985f5229b31bf729b4503da2175cfb277c2a9950e1273a5d70059b9be",
+    "forecast_start": "2026-10-15",
+    "forecast_end": "2027-05-09",
+    "daily_rows": 207,
+    "total_kg": "968113.233000",
+    "single_day_peak_date": "2027-04-28",
+    "single_day_peak_kg": "15117.032000",
+    "seven_day_peak_start": "2027-04-26",
+    "seven_day_peak_end": "2027-05-02",
+    "seven_day_peak_kg": "88757.236000",
+    "empirical_authority_accepted": true,
+    "task9_accepted": true,
+    "normal_http_execution_accepted": true,
+    "persistence_readback_hash_parity_accepted": true,
+    "current_runtime_availability": "NOT_VERIFIED",
+    "uncertainty_status": "NOT_CALIBRATED_IDENTICAL_POINT_SCENARIOS",
+    "multi_season_generalization": "NOT_VERIFIED"
+  },
+  "CURRENT_CAPABILITY_INVENTORY": [
+    {
+      "ID": "CAP-01",
+      "BUSINESS_QUESTION": "给定农场、品种和期间能否出日预测",
+      "CURRENT_CAPABILITY": "预注册版纳empirical正常POST/GET",
+      "STATUS": "IMPLEMENTED_AND_ACCEPTED",
+      "CODE_OR_DOCUMENT_REFERENCE": [
+        "backend/app/planning/empirical_forecast.py:EmpiricalForecastCreateRequest",
+        "backend/app/api/trial.py:create_trial_forecast"
+      ],
+      "ACCEPTANCE_EVIDENCE": "docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json",
+      "BUSINESS_GAP": "request只接收authority hash；期间面积冻结在authority；任意范围调用NOT_VERIFIED；注册脚本固定版纳",
+      "SUBCAPABILITY_STATUS": {
+        "arbitrary_scope_period_area": "NOT_VERIFIED"
+      }
+    },
+    {
+      "ID": "CAP-02",
+      "BUSINESS_QUESTION": "总量、单日与连续七日累计峰值获取",
+      "CURRENT_CAPABILITY": "empirical JSON指标与fresh readback",
+      "STATUS": "IMPLEMENTED_AND_ACCEPTED",
+      "CODE_OR_DOCUMENT_REFERENCE": [
+        "backend/app/planning/empirical_forecast.py:create_empirical_forecast",
+        "backend/app/trial.py:_load_verified_forecast",
+        "backend/app/trial.py:export_forecast"
+      ],
+      "ACCEPTANCE_EVIDENCE": "docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json",
+      "BUSINESS_GAP": "旧CSV要求Core 64hex ID；empirical integer ID无专属CSV接线",
+      "SUBCAPABILITY_STATUS": {
+        "empirical_csv_connection": "NOT_IMPLEMENTED"
+      }
+    },
+    {
+      "ID": "CAP-03",
+      "BUSINESS_QUESTION": "另一有历史数据的农场或品种能否直接使用",
+      "CURRENT_CAPABILITY": "可参数化curve与Task9 primitives",
+      "STATUS": "IMPLEMENTED_NOT_ACCEPTED",
+      "CODE_OR_DOCUMENT_REFERENCE": [
+        "backend/app/planning/empirical_maturity.py:build_empirical_curve",
+        "scripts/register_banna_empirical_authority_r5.py"
+      ],
+      "ACCEPTANCE_EVIDENCE": "backend/tests/planning/test_empirical_forecast.py (synthetic only); R5 proves Banna only",
+      "BUSINESS_GAP": "其他真实scope的面积、完整性、日期政策与通用注册未验收",
+      "SUBCAPABILITY_STATUS": {
+        "another_real_scope_acceptance": "NOT_VERIFIED",
+        "scope_independent_end_to_end_registration": "NOT_VERIFIED"
+      }
+    },
+    {
+      "ID": "CAP-04",
+      "BUSINESS_QUESTION": "能否知道预测效果如何",
+      "CURRENT_CAPABILITY": "现有quality/import/comparison工程工具",
+      "STATUS": "IMPLEMENTED_NOT_ACCEPTED",
+      "CODE_OR_DOCUMENT_REFERENCE": [
+        "frontend/src/pages/QualityPage.tsx",
+        "backend/app/trial.py:create_quality_report",
+        "docs/v0-3/s3/evidence/s3-final-closeout-and-s4-entry-authorization-r1.json",
+        "docs/v0-3/s4/evidence/s4-incumbent-retention-final-closure-r1.json"
+      ],
+      "ACCEPTANCE_EVIDENCE": "S3 historical PIT NOT_COMPUTABLE; S4 no-selection; R5 sanity not scoring",
+      "BUSINESS_GAP": "empirical独立窗口和多季精度NOT_VERIFIED，不从工具或旧C04标量推断准确",
+      "SUBCAPABILITY_STATUS": {
+        "empirical_independent_accuracy": "NOT_VERIFIED",
+        "probability_calibration": "NOT_VERIFIED"
+      }
+    },
+    {
+      "ID": "CAP-05",
+      "BUSINESS_QUESTION": "业务人员能否直接操作",
+      "CURRENT_CAPABILITY": "旧Trial browser工程调用/查询/CSV链",
+      "STATUS": "IMPLEMENTED_NOT_ACCEPTED",
+      "CODE_OR_DOCUMENT_REFERENCE": [
+        "frontend/src/pages/ForecastPage.tsx",
+        "frontend/src/features/forecast/forecastApi.ts",
+        "backend/app/trial.py:_load_forecast_authority_snapshot"
+      ],
+      "ACCEPTANCE_EVIDENCE": "frontend/e2e/forecast-flow.spec.ts uses engineering fixture, not Banna",
+      "BUSINESS_GAP": "旧catalog不列empirical，旧summary parser/read namespace不兼容；本轮建议先API而非默认UI",
+      "SUBCAPABILITY_STATUS": {
+        "empirical_browser_wiring": "NOT_IMPLEMENTED",
+        "current_deployed_runtime": "NOT_VERIFIED"
+      }
+    }
+  ],
+  "AUTHORIZED_DATA_INVENTORY": [
+    {
+      "ID": "DATA-01",
+      "path": "data/raw/2024_2025_receipts.xls",
+      "tracked": true,
+      "payload_read_this_task": false,
+      "hash_source": "docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json",
+      "source_hash": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+      "accepted_scope": {
+        "farm": "版纳勐旺农场",
+        "factory": "勐旺加工厂",
+        "variety": "Dx",
+        "season": "2024-2025",
+        "start": "2024-10-15",
+        "end": "2025-05-09",
+        "matched_rows": 3420,
+        "observed_dates": 181,
+        "authorized_zero_days": 26,
+        "area_mu": "736.000000",
+        "area_semantic": "ACCEPTANCE_CALIBRATION_DENOMINATOR_NOT_SUBFARM_ALLOCATION"
+      },
+      "other_scope_completeness": "NOT_VERIFIED"
+    },
+    {
+      "ID": "DATA-02",
+      "path": "docs/v0-3/forecast-operational-acceptance/evidence/banna-scope-parameter-authority-r2.json",
+      "kind": "ACCEPTED_SCOPE_MAPPING_EVIDENCE",
+      "farm_factory_one_to_one_scope": "2024/25 accepted source only",
+      "subfarm_row_counts": [
+        1271,
+        1159,
+        990
+      ],
+      "subfarm_area_allocation_authorized": false,
+      "matched_relationship_file_recovered": false,
+      "annual_t_1145_used": false,
+      "late_r5_supersedes_parameter_blocker": true
+    },
+    {
+      "ID": "DATA-03",
+      "path": "docs/v0-3/forecast-operational-acceptance/evidence/banna-empirical-first-forecast-r5.json",
+      "kind": "ACCEPTED_EMPIRICAL_AUTHORITY_AND_RESULT_SUMMARY",
+      "full_persisted_payload_in_git_evidence": false,
+      "runtime_rechecked": false,
+      "sufficient_to_specify_regression": true,
+      "actual_execution_future_dependency": "lawfully bound acceptance runtime with existing verified authority"
+    },
+    {
+      "ID": "DATA-04",
+      "path": "data/raw/2025_2026_receipts.xls",
+      "tracked": true,
+      "payload_read_this_task": false,
+      "metadata_reference": "docs/v0-3/s1/evidence/source-002-final-source-owner-attestation.json",
+      "metadata_scope": {
+        "season": "2025~2026",
+        "farm_count": 84,
+        "subfarm_count": 192,
+        "variety_count": 20,
+        "start": "2025-08-05",
+        "end": "2026-04-16"
+      },
+      "metadata_label_examples": {
+        "farm": [
+          "版纳勐旺农场",
+          "保山杨柳农场"
+        ],
+        "variety": [
+          "蓝莓原果Dx",
+          "蓝莓原果D12"
+        ]
+      },
+      "label_examples_are_qualified_forecast_scopes": false,
+      "cross_product_is_eligible_scope_count": false,
+      "per_scope_two_complete_seasons_proven": false,
+      "per_scope_area_binding": "NOT_VERIFIED",
+      "new_business_reuse_authorized": false,
+      "sealed_interval_payload_not_read": true
+    },
+    {
+      "ID": "DATA-05",
+      "paths": [
+        "data/templates/farm_location_master.csv",
+        "data/templates/season_variety_planting.csv",
+        "data/templates/parameter_observations.csv"
+      ],
+      "kind": "TEMPLATES_NOT_BUSINESS_AUTHORITY",
+      "parameter_defaults_promoted": false,
+      "external_private_path_search_performed": false
+    }
+  ],
+  "DIRECTION_COMPARISON": [
+    {
+      "direction": "A",
+      "business_problem": "其他具备数据范围无需专用代码预测",
+      "reuse": [
+        "curve primitives",
+        "Task9",
+        "persistence"
+      ],
+      "data_support": "Banna accepted; other scope season/area/ledger policy NOT_VERIFIED",
+      "new_work": "通用scope registration与scope级政策验收",
+      "risk": "错误复制736/零填/日期映射；84x20不是可用范围数",
+      "separate_authorizations": [
+        "new scope use",
+        "source use",
+        "area and missing-day/date policies"
+      ],
+      "minimum_acceptance": "另一个实际合格scope同一入口通过，无专用分支",
+      "recommended": false
+    },
+    {
+      "direction": "B",
+      "business_problem": "合法独立窗口中效果如何",
+      "reuse": [
+        "canonical metrics",
+        "hardened cell evidence"
+      ],
+      "data_support": "independent comparable windows NOT_VERIFIED",
+      "new_work": "冻结独立calibration/evaluation边界、PIT/source权限及comparison方案",
+      "risk": "同窗拟合自证、TEST泄漏、沿用旧S4预算",
+      "separate_authorizations": [
+        "new evaluation/data use",
+        "new experiment only if required",
+        "threshold approval"
+      ],
+      "minimum_acceptance": "合法独立窗口比较报告，不承诺90%或概率校准",
+      "recommended": false
+    },
+    {
+      "direction": "C",
+      "business_problem": "已有已授权历史基线能否不查库经API完成调用与结果获取",
+      "reuse": [
+        "empirical create/read",
+        "authority verification",
+        "Task9",
+        "canonical metrics",
+        "actor permissions"
+      ],
+      "data_support": "Banna R5 authority/result accepted; runtime live availability NOT_VERIFIED",
+      "new_work": "empirical discovery and namespace-safe persisted CSV projection with operator HTTP instructions",
+      "risk": "误用Core namespace或把API当已交付UI/pilot；runtime依赖",
+      "separate_authorizations": [
+        "scope acceptance",
+        "implementation",
+        "controlled non-production acceptance"
+      ],
+      "minimum_acceptance": "Banna discovery→existing POST→fresh empirical read→CSV，无手工查库hash",
+      "recommended": true
+    }
+  ],
+  "NEXT_VERSION_PRIMARY_BUSINESS_GOAL": "让授权业务技术操作员通过正式API发现、调用、回读并下载已注册历史基线预测，不再查库拼凑authority hash。",
+  "RECOMMENDATION_REASON": "当前代码已证明empirical POST/read与旧Trial catalog/browser/export不衔接；版纳R5提供真实不变回归参照，A/B仍缺额外数据资格或评价授权。",
+  "TARGET_USER_AND_USE_CASE": "具备API调用能力的授权业务技术操作员，人工查看版纳基线总量和峰期；不承诺普通用户新UI。",
+  "IN_SCOPE": [
+    "actor-gated registered empirical scope discovery",
+    "reuse existing normal empirical create/read",
+    "verified persisted CSV projection",
+    "HTTP operator instructions and scoped acceptance"
+  ],
+  "OUT_OF_SCOPE": [
+    "new frontend",
+    "new Agent or MCP integration",
+    "new server or deployment platform",
+    "generic raw source registration",
+    "additional real farm/variety",
+    "arbitrary area/date calibration",
+    "weather",
+    "future production plan",
+    "future harvest arrangement",
+    "S4 reopening",
+    "new scoring or experiment",
+    "S5/S6",
+    "multi-factory routing",
+    "automatic peak shaving",
+    "transport optimization",
+    "production release"
+  ],
+  "DATA_OR_AUTHORIZATION_GAPS": [
+    {
+      "id": "DEP-01",
+      "disposition": "REQUIRES_COORDINATOR_APPROVAL",
+      "detail": "scope proposal and first implementation/controlled execution authorization"
+    },
+    {
+      "id": "DEP-02",
+      "disposition": "NOT_VERIFIED_THIS_TASK",
+      "detail": "existing authorized empirical authority/result in lawful non-production runtime plus actor binding; no recovery/registration inferred"
+    },
+    {
+      "id": "DEP-A",
+      "disposition": "OUT_OF_RECOMMENDED_SCOPE",
+      "detail": "other scope source-area-calendar completeness and reuse authority"
+    },
+    {
+      "id": "DEP-B",
+      "disposition": "OUT_OF_RECOMMENDED_SCOPE",
+      "detail": "independent evaluation data/PIT and approval; old budget not transferred"
+    }
+  ],
+  "ACCEPTANCE_CRITERIA": [
+    {
+      "id": "AC-01",
+      "criterion": "正常actor发现版纳/Dx/736/冻结period、authority identity与discriminator，无override"
+    },
+    {
+      "id": "AC-02",
+      "criterion": "服务端返回identity用于现有POST→empirical GET，不查库/拼hash"
+    },
+    {
+      "id": "AC-03",
+      "criterion": "207日日CSV与已存JSON同源，总量968113.233000、单日15117.032000、7日88757.236000；不重算metrics"
+    },
+    {
+      "id": "AC-04",
+      "criterion": "scope/source/authority/result hash及uncertainty label可追溯，fresh read一致，namespace明确"
+    },
+    {
+      "id": "AC-05",
+      "criterion": "新handler无Banna/Dx/736/日期分支；synthetic第二scope仅工程泛化测试，不当真实验收"
+    },
+    {
+      "id": "AC-06",
+      "criterion": "无权限/缺authority/错误namespace/损坏hash fail closed，无自动恢复/标定/注册"
+    },
+    {
+      "id": "AC-07",
+      "criterion": "旧tag/evidence/forecast math不变，旧Trial regression通过；同actor同authority遵循现有幂等"
+    },
+    {
+      "id": "AC-08",
+      "criterion": "exact-head CI含full-suite PASS，另行授权后non-production真实API与CSV验收，不涉及scoring/pilot"
+    }
+  ],
+  "ACCEPTANCE_CRITERIA_DEFINED": true,
+  "ACCURACY_THRESHOLD_PROPOSED": false,
+  "NEW_ACCURACY_THRESHOLD_APPROVED": false,
+  "KNOWN_LIMITATIONS": [
+    "single accepted Banna scope",
+    "historical shape replay",
+    "identical uncalibrated P50/P80/P90",
+    "no independent accuracy/generalization proof",
+    "no new UI",
+    "no pilot approval",
+    "no arbitrary period/area override"
+  ],
+  "STAGES": [
+    {
+      "stage": 1,
+      "business_output": "正式empirical API调用与CSV包，一个窄开发PR",
+      "reuse": "existing authority/create/read/Task9/metrics",
+      "changes": "discovery DTO/service/route, persisted CSV projection, tests/docs",
+      "acceptance": "AC-01..AC-08",
+      "dependencies": [
+        "DEP-01",
+        "DEP-02"
+      ],
+      "stop_gate": "COORDINATOR_EMPIRICAL_FORECAST_API_ACCESS_AND_EXPORT_REVIEW"
+    },
+    {
+      "stage": 2,
+      "business_output": "同范围操作员独立获取结果的交接记录",
+      "reuse": "stage1 API and instructions",
+      "changes": "documentation corrections only, no new capabilities",
+      "acceptance": "operator completes without engineer DB/hash lookup; evidence identities retained",
+      "dependencies": [
+        "stage1 reviewed",
+        "separate handoff authorization"
+      ],
+      "stop_gate": "COORDINATOR_EMPIRICAL_API_OPERATOR_HANDOFF_REVIEW"
+    }
+  ],
+  "FIRST_EXECUTABLE_TASK_DRAFTED": true,
+  "FIRST_TASK_DRAFT": {
+    "TASK_ID": "NEXT_VERSION_EMPIRICAL_FORECAST_API_ACCESS_AND_EXPORT_R1",
+    "STATUS": "DRAFT_NOT_AUTHORIZED",
+    "OBJECTIVE": "已授权操作员经正式API发现已注册empirical范围、调用预测、回读并下载CSV；首个真实范围仅版纳/Dx/736。",
+    "INPUTS": [
+      "separate coordinator scope/implementation/controlled-execution approval",
+      "verified current main and immutable v0.3.1 baseline",
+      "existing R5 authority in authorized acceptance runtime",
+      "normal actor configuration"
+    ],
+    "ALLOWED_CHANGES": [
+      "empirical discovery route and DTO under existing trial/planning",
+      "reuse POST /api/v1/trial/forecasts",
+      "reuse GET /api/v1/trial/empirical-forecasts/{run_id}",
+      "proposed empirical CSV route from persisted verified payload",
+      "tests and operator instructions"
+    ],
+    "PROPOSED_NEW_ROUTES": [
+      "GET /api/v1/trial/empirical-authorities",
+      "GET /api/v1/trial/empirical-forecasts/{run_id}/export.csv"
+    ],
+    "PROPOSED_ROUTES_EXIST_TODAY": false,
+    "FORBIDDEN_CHANGES": [
+      "forecast math/model/parameter changes",
+      "raw data reread/registration/calibration",
+      "scoring/S4/S5/S6",
+      "weather/future plans",
+      "new frontend/Agent/MCP/server",
+      "schema or new permission-policy change without separate approval",
+      "tag/evidence mutation",
+      "Ready/Merge/release"
+    ],
+    "ACCEPTANCE_TESTS": [
+      "AC-01",
+      "AC-02",
+      "AC-03",
+      "AC-04",
+      "AC-05",
+      "AC-06",
+      "AC-07",
+      "AC-08"
+    ],
+    "DELIVERABLES": [
+      "one narrow Draft PR",
+      "API and CSV projection tests",
+      "HTTP instructions",
+      "separate synthetic and authorized real acceptance evidence"
+    ],
+    "STOP_GATE": "COORDINATOR_EMPIRICAL_FORECAST_API_ACCESS_AND_EXPORT_REVIEW",
+    "NOT_EXECUTED_THIS_TASK": true
+  },
+  "ARRIVAL_EQUALS_HARVEST": true,
+  "FORECAST_INPUT_DIRECTION": "HISTORICAL_DATA_ONLY",
+  "WEATHER_WORK_AUTHORIZED": false,
+  "FUTURE_PRODUCTION_PLAN_INPUT_AUTHORIZED": false,
+  "S4_REOPEN_AUTHORIZED": false,
+  "S4_REOPENED": false,
+  "NEW_MODEL_EXPERIMENT_EXECUTED": false,
+  "FORECAST_EXECUTED": false,
+  "CALIBRATION_EXECUTED": false,
+  "MODEL_FIT_EXECUTED": false,
+  "VALIDATION_SCORING_PERFORMED": false,
+  "DATABASE_ACCESSED": false,
+  "BUDGET_STATE_CLASS": "LAST_ACCEPTED_DURABLE_BUDGET_SNAPSHOT",
+  "DURABLE_BUDGET_READBACK_AVAILABLE": false,
+  "LAST_ACCEPTED_EFFECTIVE_CONSUMED": 8,
+  "LAST_ACCEPTED_REMAINING": 24,
+  "VALIDATION_BUDGET_DELTA": 0,
+  "TEST_BYTES_READ": false,
+  "TEST_REMAINS_SEALED": true,
+  "S4_FINAL_STATUS": "CLOSED_NO_ADMISSIBLE_REPLACEMENT_SELECTED",
+  "MODEL_APPROVED_FOR_PILOT": false,
+  "S5_IMPLEMENTATION_STARTED": false,
+  "S6_IMPLEMENTATION_STARTED": false,
+  "V0_3_BASELINE_CHANGED": false,
+  "V0_3_0_TAG_CHANGED": false,
+  "V0_3_1_TAG_CHANGED": false,
+  "TAG_PROVENANCE": {
+    "v0_3_0": {
+      "tag_object": "404e50b1053b8fe6a429468e90384a5a747459d9",
+      "commit": "043f8f3e4e867b5d5f82437f7f8c9caa1c8d2fc6"
+    },
+    "v0_3_1": {
+      "tag_object": "e58c8c0d90bb5b673b932949352da358a386b91b",
+      "commit": "80724b0171107c8b2bdeeea17ea4a8a9457903ec"
+    }
+  },
+  "CODE_CHANGED": false,
+  "FORECAST_CODE_CHANGED": false,
+  "MODEL_CHANGED": false,
+  "PARAMETER_AUTHORITY_CHANGED": false,
+  "DATABASE_SCHEMA_CHANGED": false,
+  "API_CHANGED": false,
+  "CI_CONFIGURATION_CHANGED": false,
+  "HISTORICAL_EVIDENCE_REWRITTEN": false,
+  "VERIFICATION_CONTRACT": {
+    "checks": [
+      "JSON parse",
+      "documentation/evidence invariant consistency",
+      "all reference paths and source SHA256",
+      "two-file allowlist",
+      "git diff --check"
+    ],
+    "local_full_suite_executed": false,
+    "ci_required_check": "full-suite-canary",
+    "required_check_configuration_readback": true,
+    "ci_status_recording": "Final task response and exact-head GitHub checks; pending is not PASS",
+    "evidence_self_referential_head_omitted": true
+  },
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "NO_STEP_IMPLIES_THE_NEXT": true,
+  "FINAL_STOP_GATE": "COORDINATOR_NEXT_VERSION_SCOPE_R1_REVIEW"
+}
