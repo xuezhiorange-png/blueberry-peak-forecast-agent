@@ -2384,3 +2384,245 @@ jobs:
                   await conn.close()
           asyncio.run(main())
           PY
+
+  # ----------------------------------------------------------------
+  # Evidence-only SQLAlchemy provenance capture.  This job is deliberately
+  # branch-limited so it cannot change the semantics or cost of the normal
+  # PR and main CI jobs.
+  # ----------------------------------------------------------------
+  sqlalchemy-connection-provenance-evidence:
+    name: sqlalchemy-connection-provenance-evidence
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.ref ==
+      'chore/v0-2-sqlalchemy-connection-provenance-evidence'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: blueberry_peak
+          POSTGRES_USER: blueberry_app
+          POSTGRES_PASSWORD: change-me-in-local-env
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      ISOLATED_JOB_NAME: sqlalchemy_prov
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "55432"
+      POSTGRES_USER: blueberry_app
+      POSTGRES_PASSWORD: change-me-in-local-env
+      POSTGRES_DB: blueberry_peak
+      RUN_POSTGRES_INTEGRATION: "1"
+      FROZEN_BASE_SHA: e60f48a4e76b7f3ae38d771cb1af36262960d002
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            backend/constraints-ci.txt
+
+      - name: Install frozen backend dependencies
+        run: |
+          python -m pip install --upgrade --quiet pip
+          pip install --disable-pip-version-check --quiet \
+            -c backend/constraints-ci.txt -e ".[dev]"
+
+      - name: Validate frozen diagnostic base
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "$(git rev-parse "${FROZEN_BASE_SHA}^{commit}")" = "$FROZEN_BASE_SHA"
+          git merge-base --is-ancestor "$FROZEN_BASE_SHA" HEAD
+
+      - name: Wait for PostgreSQL service
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          async def main() -> None:
+              last_error: Exception | None = None
+              for _ in range(30):
+                  try:
+                      conn = await asyncpg.connect(
+                          host=os.environ["POSTGRES_HOST"],
+                          port=int(os.environ["POSTGRES_PORT"]),
+                          database=os.environ["POSTGRES_DB"],
+                          user=os.environ["POSTGRES_USER"],
+                          password=os.environ["POSTGRES_PASSWORD"],
+                      )
+                      if await conn.fetchval("SELECT 1") == 1:
+                          await conn.close()
+                          return
+                      await conn.close()
+                  except Exception as exc:
+                      last_error = exc
+                  await asyncio.sleep(1)
+              raise SystemExit(f"PostgreSQL service was not ready: {last_error}")
+
+          asyncio.run(main())
+          PY
+
+      - name: Resolve isolated provenance database
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import os
+
+          from backend.tests.migration_isolation_helpers import (
+              assert_safe_isolated_db_name,
+              resolve_isolated_db_name,
+          )
+
+          name = resolve_isolated_db_name(
+              os.environ["GITHUB_RUN_ID"],
+              os.environ["GITHUB_RUN_ATTEMPT"],
+              os.environ["ISOLATED_JOB_NAME"],
+          )
+          assert_safe_isolated_db_name(name)
+          print(f"ISOLATED_DB_NAME={name}")
+          PY
+
+      - name: Create isolated provenance database
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          async def main() -> None:
+              name = os.environ["ISOLATED_DB_NAME"]
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database=os.environ["POSTGRES_DB"],
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  exists = await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1", name
+                  )
+                  if exists:
+                      raise SystemExit(f"refusing to overwrite isolated database {name!r}")
+                  await conn.execute(f'CREATE DATABASE "{name}"')
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
+
+      - name: Validate isolated provenance database identity
+        env:
+          APP_ENV: test
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
+        run: |
+          python - <<'PY'
+          from backend.tests.db.profile import assert_safe_postgres_test_identity
+
+          identity = assert_safe_postgres_test_identity(env=None)
+          print(
+              "validated isolated PostgreSQL identity: "
+              f"database={identity.database_name!r} port={identity.port}"
+          )
+          PY
+
+      - name: Alembic upgrade head
+        env:
+          APP_ENV: test
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
+        run: alembic -c backend/alembic.ini upgrade head
+
+      - name: Run SQLAlchemy provenance matrix
+        env:
+          POSTGRES_DB: ${{ env.ISOLATED_DB_NAME }}
+          DATABASE_URL: postgresql+asyncpg://blueberry_app:change-me-in-local-env@localhost:55432/${{ env.ISOLATED_DB_NAME }}
+          PROVENANCE_ARTIFACT_DIR: reports/sqlalchemy-provenance
+        run: |
+          mkdir -p reports/sqlalchemy-provenance
+          python scripts/ci/sqlalchemy_connection_provenance/runner.py
+
+      - name: Verify provenance artifact checksums
+        if: always()
+        run: |
+          if [ -f reports/sqlalchemy-provenance/SHA256SUMS ]; then
+            (
+              cd reports/sqlalchemy-provenance
+              sha256sum -c SHA256SUMS
+            )
+          else
+            echo "SHA256SUMS was not produced" >&2
+            exit 1
+          fi
+
+      - name: Upload SQLAlchemy provenance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlalchemy-connection-provenance-evidence
+          path: reports/sqlalchemy-provenance/**
+          if-no-files-found: error
+
+      - name: Drop isolated provenance database
+        if: always()
+        run: |
+          set +e
+          if [ -z "${ISOLATED_DB_NAME:-}" ]; then
+            exit 0
+          fi
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          from backend.tests.migration_isolation_helpers import (
+              assert_safe_isolated_db_name,
+              resolve_isolated_db_name,
+          )
+
+          async def main() -> None:
+              expected = resolve_isolated_db_name(
+                  os.environ["GITHUB_RUN_ID"],
+                  os.environ["GITHUB_RUN_ATTEMPT"],
+                  os.environ["ISOLATED_JOB_NAME"],
+              )
+              assert_safe_isolated_db_name(expected)
+              if os.environ.get("ISOLATED_DB_NAME") != expected:
+                  raise SystemExit("isolated database cleanup identity mismatch")
+              conn = await asyncpg.connect(
+                  host=os.environ["POSTGRES_HOST"],
+                  port=int(os.environ["POSTGRES_PORT"]),
+                  database="blueberry_peak",
+                  user=os.environ["POSTGRES_USER"],
+                  password=os.environ["POSTGRES_PASSWORD"],
+              )
+              try:
+                  await conn.execute(
+                      "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                      "WHERE datname = $1 AND pid <> pg_backend_pid()",
+                      expected,
+                  )
+                  if await conn.fetchval(
+                      "SELECT 1 FROM pg_database WHERE datname = $1", expected
+                  ):
+                      await conn.execute(f'DROP DATABASE "{expected}"')
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
