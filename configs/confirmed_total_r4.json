@@ -1,0 +1,23 @@
+{
+  "task_id": "NEXT_VERSION_FARM_AREA_YIELD_TOTAL_MODEL_R4_CONTINUE",
+  "user_area_confirmation": true,
+  "historical_area_grain": "FARM",
+  "same_canonical_farm_same_area_across_seasons": true,
+  "season_specific_area_required": false,
+  "source_area_package_hash": "02fe4b00e35589578fa7fd7a7cc6550bf34c9bfb6cb4a8926770878bce2a66df",
+  "qualification_file_hash_required": true,
+  "bindings": [
+    {"farm": "保山杨柳农场", "productive_area_mu": "393.4", "area_basis": "BUSINESS_CONFIRMED", "original_source_label": "保山杨柳农场", "source_reference": "user explicit confirmation based on existing PREVIOUS_SEASON_PROXY candidate"},
+    {"farm": "建水南庄基地", "productive_area_mu": "152.35", "area_basis": "BUSINESS_CONFIRMED", "original_source_label": "建水南庄农场", "source_reference": "user explicit confirmation of identity equivalence and productive area"}
+  ],
+  "train_season": "2023-2024",
+  "validation_season": "2024-2025",
+  "validation_blindness": "NOT_BLIND",
+  "models": ["global", "prior"],
+  "selection": "PRIOR_STRICTLY_LOWER_MACRO_YIELD_MAE_YIELD_MAPE_TOTAL_REL_MEAN_ELSE_GLOBAL",
+  "unknown_farm_policy": "FAIL_CLOSED_FOR_PRIOR_NO_IMPLICIT_FALLBACK",
+  "p90_method": "LINEAR_INTERPOLATION",
+  "rounding": "DECIMAL_6_HALF_EVEN",
+  "shape_scoring": false,
+  "composite_example": false
+}
