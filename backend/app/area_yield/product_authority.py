@@ -40,8 +40,15 @@ def load_authority() -> dict[str, Any]:
 
 
 def forecast_area_product(request: AreaDrivenForecastRequest) -> AreaDrivenForecastResult:
+    return forecast_with_authority(request, load_authority())
+
+
+def forecast_with_authority(
+    request: AreaDrivenForecastRequest, authority: dict[str, Any]
+) -> AreaDrivenForecastResult:
+    """Internal snapshot boundary; never exposes authority to transport callers."""
     try:
-        return forecast_by_area(request, load_authority())
+        return forecast_by_area(request, authority)
     except (AreaForecastRequestError, AreaForecastAuthorityError):
         raise
     except (ValueError, KeyError, TypeError, ArithmeticError) as exc:
