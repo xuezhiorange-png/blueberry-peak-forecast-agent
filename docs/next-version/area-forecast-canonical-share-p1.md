@@ -10,9 +10,10 @@ BUG_CLASS=FLOAT_STRINGIFICATION_ULP_DRIFT
 The caller supplied forensic finding is five share strings differing by at most
 `2e-18`, plus result_hash, with no date/kg/peak/authority/identity differences.
 The local pre-fix execution independently reproduces the historical hash below.
-The **server's five exact share pairs have not yet been supplied/found locally**.
-Their pair-specific convergence regression remains a review dependency; synthetic
-neighbor-ULP tests are explicitly not presented as that missing forensic test.
+Initially the five exact server pairs were unavailable. The user subsequently supplied
+`BLUEBERRY_EXPORT_FIVE_FORENSIC_SHARE_PAIRS_R1` from GrokBot. All five original strings
+are preserved verbatim in `backend/tests/area_yield/forensic_share_pairs.json`.
+Dedicated pair convergence tests and the separate generic neighbor-ULP tests both pass.
 
 `canonical_share_text` is used only when constructing new `DailyAreaForecast.share`.
 It uses exact `Decimal.from_float`, finite/nonnegative validation, `ROUND_HALF_EVEN`,
@@ -28,7 +29,7 @@ is changed. The five MCP tool names remain unchanged.
 Quantization is not a mathematical guarantee that *all* neighboring floats round to
 the same decimal: values straddling a half-quantum boundary can differ. Tests cover
 representative neighbor ULPs and five synthetic output perturbations, with exact
-half-even ties tested separately. Do not claim the missing five server pairs passed.
+half-even ties tested separately. The five real pairs also cover both neighboring ULPs.
 For 366 rows, the serialization rounding bound `1.83e-13` stays below the existing
 `1e-12` share-sum integrity tolerance; that tolerance is not relaxed.
 
@@ -72,7 +73,7 @@ even after this fix. New execution IDs use the new serializer; historical IDs re
 their original result. This is intentional: request_hash semantics must not change.
 No rewrite, delete, migration, background job or implicit rerun is introduced.
 
-## Verification and remaining dependency
+## Verification and resolved forensic dependency
 
 Private new artifacts: `blueberry-area-yield-artifacts/canonical-share-p1/` contains
 before.json, after.json, request.json, legacy-readback.json and integration receipts.
@@ -88,11 +89,17 @@ Local result: **1018 passed / 140 warnings** (PostgreSQL enabled); Ruff check,
 format check (1025 files), Mypy (440 source files), JSON/artifact hash/diff PASS.
 The original authority, #621 saved-run and 179 earlier artifact hashes were rechecked.
 
-Required remaining input: the **five actual server share strings paired with dates
-and historical share strings**, or the original server result payload with hash 72b5… .
-Searched current repository docs/tests, historical artifact filenames and Downloads;
-only the historical #621 payload was found. A specific asynchronous request for this
-input was made. No guessed/reconstructed server artifact is used.
+The previously missing input is now supplied by the user. Locally, each historical
+string and date was checked against the original 207-row payload. Replacing only those
+five strings in memory reproduces the supplied server digest `72b5a9…`; this is an
+explicit reconstruction from supplied pairs, not a claim to possess the server file.
+Canonicalizing either payload produces the unchanged `869ace…` golden. All 207 dates
+and kg strings remain unchanged. No complete private payload is committed.
+New exact-head CI must pass before READY_ELIGIBLE becomes true; its terminal receipt
+is recorded on PR #622. The original local counts above describe the first revision.
+Follow-up local suite: **1023 passed / 140 warnings**, PostgreSQL enabled (127.91s).
+Ruff check, format, Mypy and diff validation pass. Production serializer is unchanged
+from `c67f982ad34180fa6e4d5c8c34ff308e7788fed0`.
 
 BUSINESS_FORECAST_CHANGED=false
 AUTHORITY_CHANGED=false
@@ -102,7 +109,7 @@ PEAK_CHANGED=false
 SHARE_SERIALIZATION_CHANGED=true
 SHARE_CANONICAL_SCALE=15
 SHARE_ROUNDING=ROUND_HALF_EVEN
-FORENSIC_PAIR_REGRESSION=AWAITING_ORIGINAL_SERVER_VALUES
-READY_ELIGIBLE=false
+FORENSIC_PAIR_REGRESSION=PASS_FIVE_USER_SUPPLIED_ORIGINAL_PAIRS
+READY_ELIGIBLE=PENDING_NEW_EXACT_HEAD_CI
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false

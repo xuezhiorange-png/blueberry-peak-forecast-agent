@@ -1,0 +1,10 @@
+{
+  "source": "USER_SUPPLIED_GROKBOT_BLUEBERRY_EXPORT_FIVE_FORENSIC_SHARE_PAIRS_R1",
+  "pairs": [
+    {"index": 16, "date": "2026-10-31", "historical": "0.0018694158365926354", "current": "0.0018694158365926352"},
+    {"index": 19, "date": "2026-11-03", "historical": "0.0017248086214528627", "current": "0.0017248086214528607"},
+    {"index": 24, "date": "2026-11-08", "historical": "0.0014385197649859648", "current": "0.0014385197649859631"},
+    {"index": 142, "date": "2027-03-06", "historical": "0.008174369913265984", "current": "0.008174369913265986"},
+    {"index": 147, "date": "2027-03-11", "historical": "0.009162902673931288", "current": "0.00916290267393129"}
+  ]
+}
