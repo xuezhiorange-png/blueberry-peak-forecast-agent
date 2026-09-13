@@ -16,6 +16,7 @@ class AppSettings(BaseSettings):
     app_name: str = "Blueberry Peak Forecast Agent"
     app_env: str = "local"
     log_level: str = "INFO"
+    blueberry_mcp_connector_shared_secret: SecretStr = Field(default=SecretStr(""))
 
     postgres_host: str = "localhost"
     postgres_port: int = 5432
