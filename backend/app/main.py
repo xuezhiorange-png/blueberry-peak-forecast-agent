@@ -26,6 +26,7 @@ from backend.app.api.weather import router as weather_router
 from backend.app.core.config import AppSettings, get_settings
 from backend.app.core.version import APP_VERSION
 from backend.app.db import session as db_session
+from backend.app.mcp.streamable_http import mount_blueberry_mcp
 from backend.app.schemas.harvest_state import HarvestStateErrorResponse
 from backend.app.trial import TrialErrorResponse, map_actual_harvest_error
 
@@ -198,6 +199,7 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         prefix="/api/v1/materialized-datasets",
         tags=["materialized-datasets"],
     )
+    mount_blueberry_mcp(app, app_settings)
     return app
 
 
