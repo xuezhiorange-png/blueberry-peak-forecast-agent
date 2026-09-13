@@ -1,0 +1,116 @@
+"""One read-only area forecast tool; stdio owns transport, product owns math."""
+
+import asyncio
+import json
+from typing import Any
+
+import anyio
+from mcp.server import Server, ServerRequestContext
+from mcp.server.stdio import stdio_server
+from mcp.types import (
+    CallToolRequestParams,
+    CallToolResult,
+    ListToolsResult,
+    PaginatedRequestParams,
+    TextContent,
+    Tool,
+    ToolAnnotations,
+)
+from pydantic import ValidationError
+
+from backend.app.area_yield.product import (
+    AreaDrivenForecastRequest,
+    AreaDrivenForecastResult,
+)
+from backend.app.area_yield.product_authority import forecast_area_product
+from backend.app.area_yield.product_errors import (
+    AreaForecastAuthorityError,
+    AreaForecastRequestError,
+)
+
+TOOL_NAME = "forecast_blueberry_by_area"
+SERVER_NAME = "blueberry-area-forecast"
+
+
+def input_schema() -> dict[str, Any]:
+    """Reuse the product schema, without exposing its fixed method discriminator."""
+    schema = AreaDrivenForecastRequest.model_json_schema()
+    schema["properties"].pop("forecast_method")
+    return schema
+
+
+def _result(payload: dict[str, Any], *, error: bool = False) -> CallToolResult:
+    return CallToolResult(
+        content=[
+            TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        ],
+        structured_content=payload,
+        is_error=error,
+    )
+
+
+def _error(code: str, reason: str) -> CallToolResult:
+    return _result({"status": "error", "code": code, "reason": reason}, error=True)
+
+
+async def _list_tools(
+    ctx: ServerRequestContext[Any], params: PaginatedRequestParams | None
+) -> ListToolsResult:
+    return ListToolsResult(
+        tools=[
+            Tool(
+                name=TOOL_NAME,
+                description=(
+                    "Forecast blueberry harvest (= arrival) by canonical farm, requested "
+                    "productive area (Decimal string), and season. Requires immediate prior-season "
+                    "farm history; no automatic fallback. Returns daily quantities and peaks. "
+                    "Point forecast only; no universal accuracy approval."
+                ),
+                input_schema=input_schema(),
+                output_schema=AreaDrivenForecastResult.model_json_schema(),
+                annotations=ToolAnnotations(
+                    read_only_hint=True,
+                    destructive_hint=False,
+                    idempotent_hint=True,
+                    open_world_hint=False,
+                ),
+            )
+        ]
+    )
+
+
+async def _call_tool(
+    ctx: ServerRequestContext[Any], params: CallToolRequestParams
+) -> CallToolResult:
+    if params.name != TOOL_NAME:
+        return _error("AREA_FORECAST_REQUEST_INVALID", "TOOL_NOT_SUPPORTED")
+    arguments = params.arguments or {}
+    if set(arguments) - set(input_schema()["properties"]):
+        return _error("AREA_FORECAST_REQUEST_INVALID", "INVALID_REQUEST_DOCUMENT")
+    try:
+        request = AreaDrivenForecastRequest.model_validate(arguments)
+    except ValidationError:
+        # ValidationError may contain caller values; never expose its text or input.
+        return _error("AREA_FORECAST_REQUEST_INVALID", "INVALID_REQUEST_DOCUMENT")
+    try:
+        result = await anyio.to_thread.run_sync(forecast_area_product, request)
+    except (AreaForecastRequestError, AreaForecastAuthorityError) as exc:
+        return _error(exc.code, exc.reason)
+    except Exception:
+        # Fail closed without leaking arbitrary exception messages or filesystem paths.
+        return _error("AREA_FORECAST_AUTHORITY_UNAVAILABLE", "AUTHORITY_PAYLOAD_INVALID")
+    return _result(result.model_dump(mode="json"))
+
+
+server: Server[Any] = Server(
+    SERVER_NAME, version="1.0.0", on_list_tools=_list_tools, on_call_tool=_call_tool
+)
+
+
+async def main() -> None:
+    async with stdio_server() as (read, write):
+        await server.run(read, write, server.create_initialization_options())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
