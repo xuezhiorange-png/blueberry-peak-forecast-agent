@@ -1,7 +1,7 @@
 """Single B1 product calculation. No fitting, labels, weather or evaluation calls."""
 
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Context, Decimal, localcontext
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -19,6 +19,23 @@ from backend.app.area_yield.shape_r3 import canonical_farm, normalize, season_ca
 from backend.app.area_yield.total_yield_r4 import emit, positive
 
 POLICY = "AREA_YIELD_B1_V1"
+_SHARE_QUANTUM = Decimal("0.000000000000001")
+
+
+def canonical_share_text(value: float) -> str:
+    """Serialize new public shares only; never feed quantized values back to compose.
+
+    An explicit local context isolates precision/traps from callers. Fixed scale
+    removes sub-quantum float noise away from rounding boundaries, not arbitrary
+    perturbations across a half-quantum boundary. Legacy persisted text is untouched.
+    """
+    exact = Decimal.from_float(value)
+    if not exact.is_finite() or exact < 0:
+        raise ValueError("share must be finite and nonnegative")
+    if exact.is_zero():
+        exact = exact.copy_abs()
+    with localcontext(Context(prec=max(32, exact.adjusted() + 16))):
+        return format(exact.quantize(_SHARE_QUANTUM, rounding=ROUND_HALF_EVEN), ".15f")
 
 
 class AreaDrivenForecastRequest(BaseModel):
@@ -178,7 +195,7 @@ def forecast_by_area(
         fallback_used=False,
         fallback_reason=None,
         daily_forecast=[
-            DailyAreaForecast(date=d, predicted_kg=emit(q), share=str(s))
+            DailyAreaForecast(date=d, predicted_kg=emit(q), share=canonical_share_text(s))
             for d, q, s in zip(days, quantities, shares, strict=True)
         ],
         single_day_peak={"date": peak["date"], "kg": peak["quantity_kg"]},
