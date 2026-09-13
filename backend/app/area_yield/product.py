@@ -2,7 +2,6 @@
 
 from datetime import date, timedelta
 from decimal import Decimal
-from statistics import median
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -11,6 +10,11 @@ from backend.app.area_yield.composite_r5 import compose
 from backend.app.area_yield.confirmed_shape_r3a import predict
 from backend.app.area_yield.data import digest
 from backend.app.area_yield.evaluation import summaries
+from backend.app.area_yield.product_errors import (
+    AreaForecastAuthorityError,
+    AreaForecastInputError,
+    AreaForecastRequestError,
+)
 from backend.app.area_yield.shape_r3 import canonical_farm, normalize, season_calendar
 from backend.app.area_yield.total_yield_r4 import emit, positive
 
@@ -41,7 +45,7 @@ class AreaDrivenForecastRequest(BaseModel):
     @field_validator("target_season")
     @classmethod
     def season(cls, value: str) -> str:
-        if int(value[5:]) != int(value[:4]) + 1:
+        if not 1 <= int(value[:4]) <= 9998 or int(value[5:]) != int(value[:4]) + 1:
             raise ValueError("consecutive season years required")
         return value
 
@@ -64,10 +68,10 @@ class AreaDrivenForecastResult(BaseModel):
     history_cutoff: date
     predicted_yield_kg_per_mu: str
     predicted_total_kg: str
-    total_model: str
+    total_model: Literal["SAME_FARM_PRIOR_SEASON_YIELD"]
     total_model_source_season: str
-    fallback_used: bool
-    fallback_reason: str | None
+    fallback_used: Literal[False]
+    fallback_reason: None
     shape_model: str = "GLOBAL_RIDGE_TWO_ANNUAL_HARMONICS"
     daily_forecast: list[DailyAreaForecast]
     single_day_peak: dict[str, str]
@@ -84,7 +88,7 @@ class AreaDrivenForecastResult(BaseModel):
 
 def check_hash(payload: dict[str, Any]) -> None:
     if payload.get("hash") != digest({k: v for k, v in payload.items() if k != "hash"}):
-        raise ValueError("authority hash mismatch")
+        raise AreaForecastAuthorityError("authority payload hash mismatch")
 
 
 def forecast_by_area(
@@ -95,14 +99,14 @@ def forecast_by_area(
     calendar = season_calendar(request.target_season)
     start, end = request.season_start or calendar[0], request.season_end or calendar[-1]
     if (request.season_start is None) != (request.season_end is None):
-        raise ValueError("both window bounds required")
+        raise AreaForecastInputError("BOTH_WINDOW_BOUNDS_REQUIRED")
     if start not in calendar or end not in calendar or (end - start).days < 6:
-        raise ValueError("window must contain at least seven days inside target season")
+        raise AreaForecastInputError("WINDOW_REQUIRES_SEVEN_DAYS_INSIDE_TARGET_SEASON")
     # Explicit bounds define the requested business season, not a rescaled sub-query.
     # The season-year guard below still excludes all target-season actual facts.
     cutoff = request.as_of or start - timedelta(days=1)
     if cutoff >= start:
-        raise ValueError("as_of must precede target season")
+        raise AreaForecastInputError("AS_OF_MUST_PRECEDE_TARGET_SEASON")
     shape = authority["shape"]
     check_hash(shape)
     if (
@@ -111,54 +115,43 @@ def forecast_by_area(
         or len(shape["coefficients"]) != 4
         or shape["calendar"] != "JULY_01_THROUGH_JUNE_30"
     ):
-        raise ValueError("frozen global shape required")
+        raise AreaForecastAuthorityError("frozen global shape required")
     if (
         date.fromisoformat(authority["shape_available_on"]) > cutoff
         or season_calendar(shape["training_season"])[-1] > cutoff
     ):
-        raise ValueError("shape history unavailable at cutoff")
+        raise AreaForecastInputError("SHAPE_HISTORY_UNAVAILABLE_AT_CUTOFF")
     farm = authority.get("aliases", {}).get(request.farm, request.farm)
     rows = authority["history"]
     if len({(r["farm"], r["season"]) for r in rows}) != len(rows):
-        raise ValueError("duplicate farm-season history")
-    usable = [
-        r
-        for r in rows
-        if r["completeness"] in {"COMPLETE", "STRICT_ELIGIBLE"}
-        and r["area_basis"]
-        in {"MEASURED", "BUSINESS_REPORTED", "BUSINESS_CONFIRMED", "AUTHORIZED_CALIBRATION"}
-        and date.fromisoformat(r["available_on"]) <= cutoff
-        and date.fromisoformat(r["end"]) <= cutoff
-        and int(r["season"][:4]) < int(request.target_season[:4])
-    ]
-    if not usable:
-        raise ValueError("no eligible history for global fallback")
-    for r in usable:
-        positive(r["yield_kg_per_mu"])
-        if len(r["source_hash"]) != 64:
-            raise ValueError("history source hash required")
-    own = [r for r in usable if r["farm"] == farm]
-    fallback = not own
-    if own:
-        selected = max(own, key=lambda r: r["season"])
-        source_season = selected["season"]
-        used = [selected]
-        value = positive(selected["yield_kg_per_mu"])
-        reason = None
-    else:
-        source_season = max(r["season"] for r in usable)
-        used = sorted([r for r in usable if r["season"] == source_season], key=lambda r: r["farm"])
-        value = median([positive(r["yield_kg_per_mu"]) for r in used])
-        history = [r for r in rows if r["farm"] == farm]
-        reason = "NO_PRIOR_SEASON" if not history else "OTHER"
-        if any(r["completeness"] not in {"COMPLETE", "STRICT_ELIGIBLE"} for r in history):
-            reason = "PRIOR_SEASON_INCOMPLETE"
-        elif any(
-            r["area_basis"]
-            not in {"MEASURED", "BUSINESS_REPORTED", "BUSINESS_CONFIRMED", "AUTHORIZED_CALIBRATION"}
-            for r in history
-        ):
-            reason = "NO_VALID_AREA_HISTORY"
+        raise AreaForecastAuthorityError("duplicate farm-season history")
+    own = [r for r in rows if r["farm"] == farm]
+    if not own:
+        raise AreaForecastRequestError("UNSUPPORTED_CANONICAL_FARM")
+    year = int(request.target_season[:4])
+    source_season = f"{year - 1:04d}-{year:04d}"
+    prior = [r for r in own if r["season"] == source_season]
+    if not prior:
+        raise AreaForecastRequestError("PRIOR_SEASON_HISTORY_MISSING")
+    selected = prior[0]
+    if selected["completeness"] not in {"COMPLETE", "STRICT_ELIGIBLE"}:
+        raise AreaForecastRequestError("PRIOR_SEASON_HISTORY_INCOMPLETE")
+    if selected["area_basis"] not in {
+        "MEASURED",
+        "BUSINESS_REPORTED",
+        "BUSINESS_CONFIRMED",
+        "AUTHORIZED_CALIBRATION",
+    }:
+        raise AreaForecastRequestError("PRIOR_SEASON_AREA_UNAUTHORIZED")
+    if (
+        date.fromisoformat(selected["available_on"]) > cutoff
+        or date.fromisoformat(selected["end"]) > cutoff
+    ):
+        raise AreaForecastRequestError("PRIOR_SEASON_HISTORY_UNAVAILABLE_AT_CUTOFF")
+    if len(selected["source_hash"]) != 64:
+        raise AreaForecastAuthorityError("history source hash required")
+    used = [selected]
+    value = positive(selected["yield_kg_per_mu"])
     total = emit(positive(request.productive_area_mu) * value)
     raw = predict(shape, request.target_season)
     indexes = [i for i, d in enumerate(calendar) if start <= d <= end]
@@ -171,9 +164,7 @@ def forecast_by_area(
     tolerance = Decimal("0.0000005") * len(days) + Decimal(total) * Decimal("1e-12")
     result = AreaDrivenForecastResult(
         canonical_farm=farm,
-        identity_status="EXACT_OR_AUTHORIZED_ALIAS"
-        if any(r["farm"] == farm for r in rows)
-        else "UNREGISTERED_EXACT_LABEL",
+        identity_status="EXACT_OR_AUTHORIZED_ALIAS",
         requested_productive_area_mu=request.productive_area_mu,
         target_season=request.target_season,
         season_start=start,
@@ -182,10 +173,10 @@ def forecast_by_area(
         history_cutoff=cutoff,
         predicted_yield_kg_per_mu=emit(value),
         predicted_total_kg=total,
-        total_model="GLOBAL_MEDIAN_YIELD_PER_MU" if fallback else "SAME_FARM_PRIOR_SEASON_YIELD",
+        total_model="SAME_FARM_PRIOR_SEASON_YIELD",
         total_model_source_season=source_season,
-        fallback_used=fallback,
-        fallback_reason=reason,
+        fallback_used=False,
+        fallback_reason=None,
         daily_forecast=[
             DailyAreaForecast(date=d, predicted_kg=emit(q), share=str(s))
             for d, q, s in zip(days, quantities, shares, strict=True)

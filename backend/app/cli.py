@@ -199,14 +199,24 @@ async def _dispatch(
     if args.resource == "area-forecast":
         from backend.app.area_yield.product import AreaDrivenForecastRequest
         from backend.app.area_yield.product_authority import forecast_area_product
+        from backend.app.area_yield.product_errors import (
+            AreaForecastAuthorityError,
+            AreaForecastRequestError,
+        )
 
         try:
             request = AreaDrivenForecastRequest.model_validate(_read_json_input(args.input, stdin))
             result = forecast_area_product(request)
+        except (AreaForecastRequestError, AreaForecastAuthorityError) as exc:
+            raise CoreForecastCliError(
+                exc.code,
+                exc.reason,
+                exit_code=3 if exc.status_code == 503 else 2,
+            ) from exc
         except (ValueError, OSError) as exc:
             raise CoreForecastCliError(
-                "AREA_FORECAST_UNAVAILABLE",
-                "Area forecast input or authority unavailable.",
+                "AREA_FORECAST_REQUEST_INVALID",
+                "INVALID_REQUEST_DOCUMENT",
                 exit_code=2,
             ) from exc
         _write_text_output(args.output, result.model_dump_json(indent=2) + "\n", stdout)

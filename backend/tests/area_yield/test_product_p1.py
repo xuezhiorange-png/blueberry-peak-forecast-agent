@@ -58,17 +58,16 @@ def test_known_prior_and_requested_area():
     assert r.total_model_source_season == "2025-2026"
 
 
-def test_unknown_explicit_fallback():
-    r = forecast_by_area(request("new"), bundle())
-    assert r.fallback_used and r.fallback_reason == "NO_PRIOR_SEASON"
-    assert r.predicted_yield_kg_per_mu == "150.000000"
-    assert r.total_model == "GLOBAL_MEDIAN_YIELD_PER_MU"
+def test_unknown_fails_closed():
+    with pytest.raises(ValueError, match="UNSUPPORTED_CANONICAL_FARM"):
+        forecast_by_area(request("new"), bundle())
 
 
 def test_alias_only_authorized_and_determinism():
     assert forecast_by_area(request("alias"), bundle()).canonical_farm == "known"
     assert forecast_by_area(request(), bundle()) == forecast_by_area(request(), bundle())
-    assert forecast_by_area(request("know"), bundle()).fallback_used
+    with pytest.raises(ValueError, match="UNSUPPORTED_CANONICAL_FARM"):
+        forecast_by_area(request("know"), bundle())
 
 
 @pytest.mark.parametrize("area", ["0", "-1", "NaN", "Infinity"])
@@ -102,7 +101,7 @@ def test_hash_and_future_guard():
     for row in b["history"]:
         row["available_on"] = "2027-01-01"
     b["hash"] = digest({k: v for k, v in b.items() if k != "hash"})
-    with pytest.raises(ValueError, match="history"):
+    with pytest.raises(ValueError, match="PRIOR_SEASON_HISTORY_UNAVAILABLE_AT_CUTOFF"):
         forecast_by_area(request(), b)
 
 
@@ -144,17 +143,16 @@ def test_no_fit_or_prior_shape_invocation(monkeypatch):
 @pytest.mark.parametrize(
     "field,value,reason",
     [
-        ("completeness", "RIGHT_CENSORED", "PRIOR_SEASON_INCOMPLETE"),
-        ("area_basis", "PREVIOUS_SEASON_PROXY", "NO_VALID_AREA_HISTORY"),
+        ("completeness", "RIGHT_CENSORED", "PRIOR_SEASON_HISTORY_INCOMPLETE"),
+        ("area_basis", "PREVIOUS_SEASON_PROXY", "PRIOR_SEASON_AREA_UNAUTHORIZED"),
     ],
 )
-def test_ineligible_own_history_fallback(field, value, reason):
+def test_ineligible_own_history_fails_closed(field, value, reason):
     b = bundle()
     b["history"][0][field] = value
     b["hash"] = digest({k: v for k, v in b.items() if k != "hash"})
-    r = forecast_by_area(request(), b)
-    assert r.fallback_reason == reason
-    assert r.predicted_yield_kg_per_mu == "200.000000"
+    with pytest.raises(ValueError, match=reason):
+        forecast_by_area(request(), b)
 
 
 def test_asof_target_and_short_window_rejected():
@@ -167,14 +165,14 @@ def test_asof_target_and_short_window_rejected():
             forecast_by_area(request(**kwargs), bundle())
 
 
-def test_default_calendar_leap_year_and_latest_eligible_history():
+def test_default_calendar_leap_year_and_immediate_prior_history():
     b = bundle()
     b["history"].append(
         {
             **b["history"][0],
-            "season": "2024-2025",
-            "end": "2025-05-27",
-            "available_on": "2025-06-01",
+            "season": "2026-2027",
+            "end": "2027-05-27",
+            "available_on": "2027-06-01",
             "yield_kg_per_mu": "999",
         }
     )
@@ -187,4 +185,27 @@ def test_default_calendar_leap_year_and_latest_eligible_history():
     )
     assert len(r.daily_forecast) == 366
     assert r.season_window_status == "FORECAST_ASSUMPTION"
-    assert r.predicted_yield_kg_per_mu == "100.000000"
+    assert r.predicted_yield_kg_per_mu == "999.000000"
+    assert r.total_model_source_season == "2026-2027"
+
+
+@pytest.mark.parametrize("incomplete", [False, True])
+def test_older_history_cannot_replace_immediate_prior(incomplete):
+    b = bundle()
+    if incomplete:
+        b["history"].append(
+            {
+                **b["history"][0],
+                "season": "2026-2027",
+                "completeness": "RIGHT_CENSORED",
+                "end": "2027-05-27",
+                "available_on": "2027-06-01",
+            }
+        )
+    b["hash"] = digest({k: v for k, v in b.items() if k != "hash"})
+    reason = "PRIOR_SEASON_HISTORY_INCOMPLETE" if incomplete else "PRIOR_SEASON_HISTORY_MISSING"
+    req = AreaDrivenForecastRequest(
+        farm="known", productive_area_mu="100", target_season="2027-2028"
+    )
+    with pytest.raises(ValueError, match=reason):
+        forecast_by_area(req, b)
