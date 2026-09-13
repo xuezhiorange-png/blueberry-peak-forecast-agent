@@ -22,6 +22,10 @@ from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.spreadsheet_policy import DEFAULT_SPREADSHEET_POLICY
 from backend.app.area_yield.product import AreaDrivenForecastRequest, AreaDrivenForecastResult
 from backend.app.area_yield.product_authority import forecast_area_product
+from backend.app.area_yield.product_errors import (
+    AreaForecastAuthorityError,
+    AreaForecastRequestError,
+)
 from backend.app.db.session import get_db_session
 from backend.app.planning.empirical_forecast import (
     EmpiricalForecastCreateRequest,
@@ -191,11 +195,12 @@ async def create_trial_forecast(
             _require_forecast_permission(actor, "may_create_forecast")
             try:
                 return forecast_area_product(body)
-            except (ValueError, OSError) as error:
+            except (AreaForecastRequestError, AreaForecastAuthorityError) as error:
                 raise TrialApiError(
-                    TrialApiErrorCode.REQUEST_INVALID,
-                    status_code=422,
-                    message="Area forecast input or server authority is unavailable.",
+                    TrialApiErrorCode(error.code),
+                    status_code=error.status_code,
+                    message=error.code,
+                    details={"reason": error.reason},
                 ) from error
         if isinstance(body, EmpiricalForecastCreateRequest):
             _require_forecast_permission(actor, "may_create_forecast")
