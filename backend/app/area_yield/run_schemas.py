@@ -1,11 +1,28 @@
 """Explicit saved-run contracts; stateless product contract is unchanged."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from backend.app.area_yield.product import AreaDrivenForecastRequest, AreaDrivenForecastResult
+
+
+def same_rerun_scope(
+    parent: AreaDrivenForecastResult,
+    *,
+    canonical_farm: str,
+    target_season: str,
+    season_start: date,
+    season_end: date,
+) -> bool:
+    """Area, cutoff and authority may change; the business scope may not."""
+    return (
+        parent.canonical_farm == canonical_farm
+        and parent.target_season == target_season
+        and parent.season_start == season_start
+        and parent.season_end == season_end
+    )
 
 
 class CreateAreaForecastRun(AreaDrivenForecastRequest):

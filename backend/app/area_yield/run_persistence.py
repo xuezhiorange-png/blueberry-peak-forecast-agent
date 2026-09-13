@@ -18,7 +18,12 @@ from backend.app.area_yield.product import (
     AreaDrivenForecastRequest,
     AreaDrivenForecastResult,
 )
-from backend.app.area_yield.run_schemas import AreaRunHistory, AreaRunSummary, SavedAreaForecastRun
+from backend.app.area_yield.run_schemas import (
+    AreaRunHistory,
+    AreaRunSummary,
+    SavedAreaForecastRun,
+    same_rerun_scope,
+)
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
 
 
@@ -30,6 +35,10 @@ class AreaForecastPersistenceIntegrityError(RuntimeError):
 class AreaForecastPersistenceConflictError(RuntimeError):
     code = "AREA_FORECAST_PERSISTENCE_CONFLICT"
     status_code = 409
+
+
+class AreaForecastRerunScopeMismatch(AreaForecastPersistenceConflictError):
+    code = "AREA_FORECAST_RERUN_SCOPE_MISMATCH"
 
 
 class AreaForecastWriteFailure(RuntimeError):
@@ -215,6 +224,16 @@ class AreaForecastRunRepository:
                         )
                     )
                     is not None
+                )
+                parent = await self.get(model.rerun_of_run_id)
+                _check(
+                    same_rerun_scope(
+                        parent.result,
+                        canonical_farm=result.canonical_farm,
+                        target_season=result.target_season,
+                        season_start=result.season_start,
+                        season_end=result.season_end,
+                    )
                 )
             summary = AreaRunSummary(
                 run_id=model.id,
