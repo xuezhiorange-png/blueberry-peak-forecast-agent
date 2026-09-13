@@ -20,6 +20,12 @@ from backend.app.actual_harvest_import.api_schemas import (
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.actual_harvest_import.spreadsheet_policy import DEFAULT_SPREADSHEET_POLICY
+from backend.app.area_yield.product import AreaDrivenForecastRequest, AreaDrivenForecastResult
+from backend.app.area_yield.product_authority import forecast_area_product
+from backend.app.area_yield.product_errors import (
+    AreaForecastAuthorityError,
+    AreaForecastRequestError,
+)
 from backend.app.db.session import get_db_session
 from backend.app.planning.empirical_forecast import (
     EmpiricalForecastCreateRequest,
@@ -166,18 +172,36 @@ async def get_trial_forecast_input_authority(
 
 @router.post(
     "/forecasts",
-    response_model=TrialForecastSummaryResponse | EmpiricalForecastResponse,
+    response_model=TrialForecastSummaryResponse
+    | EmpiricalForecastResponse
+    | AreaDrivenForecastResult,
     operation_id="createTrialForecast",
 )
 async def create_trial_forecast(
     request: Request,
-    body: TrialForecastCreateRequest | EmpiricalForecastCreateRequest,
+    body: TrialForecastCreateRequest | EmpiricalForecastCreateRequest | AreaDrivenForecastRequest,
     session: SessionDep,
     actor: TrialActorDep,
     service: TrialServiceDep,
-) -> TrialForecastSummaryResponse | EmpiricalForecastResponse | JSONResponse:
+) -> (
+    TrialForecastSummaryResponse
+    | EmpiricalForecastResponse
+    | AreaDrivenForecastResult
+    | JSONResponse
+):
     request_id = _request_id(request)
     try:
+        if isinstance(body, AreaDrivenForecastRequest):
+            _require_forecast_permission(actor, "may_create_forecast")
+            try:
+                return forecast_area_product(body)
+            except (AreaForecastRequestError, AreaForecastAuthorityError) as error:
+                raise TrialApiError(
+                    TrialApiErrorCode(error.code),
+                    status_code=error.status_code,
+                    message=error.code,
+                    details={"reason": error.reason},
+                ) from error
         if isinstance(body, EmpiricalForecastCreateRequest):
             _require_forecast_permission(actor, "may_create_forecast")
             result = await create_empirical_forecast(session, body, actor_identity=actor.identity)
