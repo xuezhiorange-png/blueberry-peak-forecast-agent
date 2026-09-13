@@ -59,7 +59,7 @@ MIGRATION_TASK10_AUTHORITY_BINDING_PATH = (
     _ALEMBIC_VERSIONS_DIR / "c1d4e8f2a9b3_core_forecast_task10_authority_binding.py"
 )
 MIGRATION_TASK10_AUTHORITY_BINDING_REVISION = "c1d4e8f2a9b3"
-MIGRATION_CURRENT_HEAD_REVISION = "0033_empirical_maturity_authority"
+MIGRATION_CURRENT_HEAD_REVISION = "0034_area_forecast_runs"
 
 
 def _migration_module() -> ModuleType:

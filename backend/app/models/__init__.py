@@ -233,7 +233,14 @@ __all__ = [
     "WeatherSourceLocation",
 ]
 
-__all__ += ["EmpiricalForecastRun", "EmpiricalMaturityAuthority"]
+from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
+
+__all__ += [
+    "EmpiricalForecastRun",
+    "EmpiricalMaturityAuthority",
+    "AreaForecastDailyRow",
+    "AreaForecastRun",
+]
 
 _S2_MODEL_EXPORTS = {
     "S2MaterializedDatasetModel",

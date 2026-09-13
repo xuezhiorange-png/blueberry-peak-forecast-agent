@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
 from backend.app.actual_harvest_import.api_policy import ActualHarvestRequestBodyLimitMiddleware
 from backend.app.api.actual_harvest_imports import router as actual_harvest_import_router
+from backend.app.api.area_forecast_runs import router as area_forecast_runs_router
 from backend.app.api.harvest_state import router as harvest_state_router
 from backend.app.api.health import router as health_router
 from backend.app.api.master_data import router as master_data_router
@@ -189,6 +190,9 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         tags=["rolling-backtest", "task-012"],
     )
     app.include_router(trial_router, prefix="/api/v1/trial", tags=["trial"])
+    app.include_router(
+        area_forecast_runs_router, prefix="/api/v1/area-forecast-runs", tags=["area-forecast-runs"]
+    )
     app.include_router(
         materialized_datasets_router,
         prefix="/api/v1/materialized-datasets",
