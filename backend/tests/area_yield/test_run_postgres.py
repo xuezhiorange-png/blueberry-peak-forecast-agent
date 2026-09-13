@@ -133,3 +133,22 @@ async def test_postgres_concurrent_idempotency(pg_engine):
     a, b = await asyncio.gather(create(), create())
     assert a.run.run_id == b.run.run_id
     assert sorted([a.reused_existing_run, b.reused_existing_run]) == [False, True]
+
+
+async def test_postgres_rerun_scope_before_reuse(pg_engine):
+    from backend.app.area_yield.run_persistence import AreaForecastPersistenceConflictError
+
+    async with AsyncSession(pg_engine) as s, s.begin():
+        a = await execute_area_forecast_run(s, bounded())
+        b = await execute_area_forecast_run(s, bounded(farm="other"))
+    async with AsyncSession(pg_engine) as s, s.begin():
+        with pytest.raises(AreaForecastPersistenceConflictError) as err:
+            await execute_area_forecast_run(s, bounded(), rerun_of_run_id=b.run.run_id)
+        assert err.value.code == "AREA_FORECAST_RERUN_SCOPE_MISMATCH"
+        child = await execute_area_forecast_run(
+            s, bounded(productive_area_mu="500"), rerun_of_run_id=a.run.run_id
+        )
+    async with AsyncSession(pg_engine) as s:
+        loaded = await AreaForecastRunRepository(s).get(child.run.run_id)
+        assert loaded.run.rerun_of_run_id == a.run.run_id
+        assert loaded.result == child.result
