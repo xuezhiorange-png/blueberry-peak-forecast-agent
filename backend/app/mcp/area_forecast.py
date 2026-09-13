@@ -1,4 +1,4 @@
-"""One read-only area forecast tool; stdio owns transport, product owns math."""
+"""Area forecast tools; stdio owns transport, product/repository own business rules."""
 
 import asyncio
 import json
@@ -27,6 +27,13 @@ from backend.app.area_yield.product_errors import (
     AreaForecastAuthorityError,
     AreaForecastRequestError,
 )
+from backend.app.area_yield.run_persistence import (
+    AreaForecastPersistenceConflictError,
+    AreaForecastPersistenceIntegrityError,
+    AreaForecastRunNotFoundError,
+    AreaForecastWriteFailure,
+)
+from backend.app.mcp.persisted_runs import CONTRACTS, call_run_tool, run_tools
 
 TOOL_NAME = "forecast_blueberry_by_area"
 SERVER_NAME = "blueberry-area-forecast"
@@ -74,7 +81,8 @@ async def _list_tools(
                     idempotent_hint=True,
                     open_world_hint=False,
                 ),
-            )
+            ),
+            *run_tools(),
         ]
     )
 
@@ -82,6 +90,25 @@ async def _list_tools(
 async def _call_tool(
     ctx: ServerRequestContext[Any], params: CallToolRequestParams
 ) -> CallToolResult:
+    if params.name in CONTRACTS:
+        try:
+            payload = await call_run_tool(params.name, params.arguments or {})
+        except ValidationError:
+            return _error("AREA_FORECAST_REQUEST_INVALID", "INVALID_REQUEST_DOCUMENT")
+        except (AreaForecastRequestError, AreaForecastAuthorityError) as exc:
+            return _error(exc.code, exc.reason)
+        except (
+            AreaForecastPersistenceConflictError,
+            AreaForecastPersistenceIntegrityError,
+            AreaForecastRunNotFoundError,
+            AreaForecastWriteFailure,
+        ) as exc:
+            return _error(exc.code, exc.code)
+        except Exception:
+            # SQLAlchemy/connection/commit and other infrastructure failures are not
+            # authority failures. Never expose exception text, SQL, URLs or secrets.
+            return _error("AREA_FORECAST_WRITE_FAILURE", "PERSISTENCE_SERVICE_UNAVAILABLE")
+        return _result(payload)
     if params.name != TOOL_NAME:
         return _error("AREA_FORECAST_REQUEST_INVALID", "TOOL_NOT_SUPPORTED")
     arguments = params.arguments or {}
