@@ -1,7 +1,10 @@
 """Public share serialization only; float composition and legacy reload stay unchanged."""
 
+import json
 import math
+from datetime import date, timedelta
 from decimal import ROUND_UP, Decimal, Inexact, localcontext
+from pathlib import Path
 
 import pytest
 from sqlalchemy import select
@@ -22,12 +25,28 @@ from backend.tests.area_yield.test_run_persistence import session as session
     "value", [0.000113281357, 0.0009676453321, 0.003928432123, 0.006789123456, 0.013305123456]
 )
 def test_representative_neighbor_ulps(value):
-    # Synthetic representative values, NOT the unavailable server forensic pairs.
+    # Generic synthetic coverage remains separate from the real server pairs below.
     expected = canonical_share_text(value)
     assert canonical_share_text(math.nextafter(value, math.inf)) == expected
     assert canonical_share_text(math.nextafter(value, -math.inf)) == expected
     assert len(expected.split(".")[1]) == 15
     assert "e" not in expected.lower()
+
+
+@pytest.mark.parametrize(
+    "pair",
+    json.loads(Path(__file__).with_name("forensic_share_pairs.json").read_text())["pairs"],
+    ids=lambda pair: pair["date"],
+)
+def test_real_server_forensic_pair_convergence(pair):
+    assert isinstance(pair["historical"], str) and isinstance(pair["current"], str)
+    assert date(2026, 10, 15) + timedelta(days=pair["index"]) == date.fromisoformat(pair["date"])
+    expected = canonical_share_text(float(pair["historical"]))
+    assert canonical_share_text(float(pair["current"])) == expected
+    for text in (pair["historical"], pair["current"]):
+        value = float(text)
+        assert canonical_share_text(math.nextafter(value, math.inf)) == expected
+        assert canonical_share_text(math.nextafter(value, -math.inf)) == expected
 
 
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, -0.001])
