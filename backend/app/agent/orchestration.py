@@ -39,6 +39,7 @@ from backend.app.agent.season_resolution import (
     ForecastSeasonResolver,
 )
 from backend.app.agent.slice_c.engine import build_slice_c_outputs
+from backend.app.area_yield.product import AreaDrivenForecastRequest, AreaDrivenForecastResult
 
 
 class UnsupportedToolError(ValueError):
@@ -62,6 +63,13 @@ class _AsyncAdapter(Protocol):
 
 class AgentOrchestrator:
     """Compose Slice A adapters in one fixed, side-effect-free order."""
+
+    @staticmethod
+    def forecast_by_area(request: AreaDrivenForecastRequest) -> AreaDrivenForecastResult:
+        """Explicit product path, without legacy Task8/9 or research selection."""
+        from backend.app.area_yield.product_authority import forecast_area_product
+
+        return forecast_area_product(request)
 
     def __init__(
         self,

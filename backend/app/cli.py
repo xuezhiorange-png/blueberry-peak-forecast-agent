@@ -72,6 +72,9 @@ def _parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--output", required=True)
     register_residual_model_parser(subparsers)
     register_core_forecast_parser(subparsers)
+    area_parser = subparsers.add_parser("area-forecast")
+    area_parser.add_argument("--input", required=True)
+    area_parser.add_argument("--output", default="-")
     return parser
 
 
@@ -193,6 +196,31 @@ async def _dispatch(
     stdout: TextIO,
     core_executor: CoreForecastExecutor | None = None,
 ) -> None:
+    if args.resource == "area-forecast":
+        from backend.app.area_yield.product import AreaDrivenForecastRequest
+        from backend.app.area_yield.product_authority import forecast_area_product
+        from backend.app.area_yield.product_errors import (
+            AreaForecastAuthorityError,
+            AreaForecastRequestError,
+        )
+
+        try:
+            request = AreaDrivenForecastRequest.model_validate(_read_json_input(args.input, stdin))
+            result = forecast_area_product(request)
+        except (AreaForecastRequestError, AreaForecastAuthorityError) as exc:
+            raise CoreForecastCliError(
+                exc.code,
+                exc.reason,
+                exit_code=3 if exc.status_code == 503 else 2,
+            ) from exc
+        except (ValueError, OSError) as exc:
+            raise CoreForecastCliError(
+                "AREA_FORECAST_REQUEST_INVALID",
+                "INVALID_REQUEST_DOCUMENT",
+                exit_code=2,
+            ) from exc
+        _write_text_output(args.output, result.model_dump_json(indent=2) + "\n", stdout)
+        return
     if args.resource == "core-forecast":
         await dispatch_core_forecast(
             args,
