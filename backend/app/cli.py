@@ -12,6 +12,7 @@ from typing import TextIO
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.app.area_yield.run_cli import dispatch_area_run, register_area_run_parser
 from backend.app.core_forecast.application import execute_core_forecast_run
 from backend.app.core_forecast.cli import (
     CoreForecastCliError,
@@ -72,6 +73,7 @@ def _parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--output", required=True)
     register_residual_model_parser(subparsers)
     register_core_forecast_parser(subparsers)
+    register_area_run_parser(subparsers)
     area_parser = subparsers.add_parser("area-forecast")
     area_parser.add_argument("--input", required=True)
     area_parser.add_argument("--output", default="-")
@@ -220,6 +222,9 @@ async def _dispatch(
                 exit_code=2,
             ) from exc
         _write_text_output(args.output, result.model_dump_json(indent=2) + "\n", stdout)
+        return
+    if args.resource == "area-forecast-run":
+        await dispatch_area_run(args, session_factory=session_factory, stdin=stdin, stdout=stdout)
         return
     if args.resource == "core-forecast":
         await dispatch_core_forecast(
