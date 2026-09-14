@@ -1,0 +1,18 @@
+{
+  "task_id": "V0_5_S1_CLIMATE_ZONE_AUTHORITY_ADJUDICATION_R3",
+  "k": 5,
+  "method": "kmeans",
+  "seed": 42,
+  "kmeans_n_init": 20,
+  "resamples": 200,
+  "resample_fraction": 0.8,
+  "sampling": "numpy.default_rng(42); sorted choice of floor(38*0.8)=30 without replacement; fit seed always 42",
+  "alignment": "Maximum overlap on sampled bases for resamples; full population otherwise. Hungarian optimum, lexicographically smallest optimal label permutation tie-break.",
+  "omitted_assignment": "Nearest standardized centroid; distance ties choose lowest original label; then apply sampled-base alignment",
+  "core_frequency_min": 0.9,
+  "core_lofo_min": 6,
+  "boundary_frequency_min": 0.7,
+  "boundary_lofo_min": 4,
+  "climate_zone_mapping_frozen": false,
+  "climate_zone_profile_authority_frozen": false
+}
