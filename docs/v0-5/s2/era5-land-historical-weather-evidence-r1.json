@@ -1,0 +1,21 @@
+{
+  "task_id": "V0_5_S2_ERA5_LAND_HISTORICAL_WEATHER_DATASET_R1",
+  "dataset_build_status": "IN_PROGRESS",
+  "base_sha": "3ac2bfcabe0fa409b1eaf3871b3b2ef1bd885cf4",
+  "location_crs_authorization": "GRANTED_WITH_WGS84_QUERY_ASSUMPTION",
+  "query_crs_assumption": "WGS84",
+  "crs_verification_status": "NOT_ESTABLISHED",
+  "source_coordinate_status": "RANGE_VALID_CRS_UNCONFIRMED",
+  "base_coordinate_authority_changed": false,
+  "base_crs_authority_changed": false,
+  "crs_authority_upgrade_authorized": false,
+  "cds_access_available": "NOT_VERIFIED",
+  "cds_requests_executed": 0,
+  "offline_replay": "NOT_EXECUTED",
+  "weather_model_training": false,
+  "weather_incremental_value_scoring": false,
+  "historical_as_issued_forecast_implementation": false,
+  "climate_zone_authority_used": false,
+  "ready_authorized": false,
+  "merge_authorized": false
+}
