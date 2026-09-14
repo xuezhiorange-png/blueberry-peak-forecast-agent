@@ -1,0 +1,195 @@
+{
+  "summary": {
+    "base_season_audit_count": 117,
+    "bases_post_cutoff_peak_exceeds_business_peak": [
+      "丘北天星基地",
+      "丘北曰者基地",
+      "乡丰蓝莓基地",
+      "保山杨柳基地",
+      "保山由旺基地",
+      "元江甘庄基地",
+      "大理巍山基地",
+      "广南旧莫基地",
+      "建水岔科基地",
+      "建水阿朋基地",
+      "建水面甸基地",
+      "弥勒朋普基地",
+      "永仁猛虎基地",
+      "永仁莲池基地",
+      "澜沧上允基地",
+      "澜沧东回基地",
+      "版纳勐旺基地",
+      "砚山回龙基地",
+      "砚山平远基地",
+      "砚山炭房基地",
+      "砚山盘龙基地",
+      "砚山黑鱼洞基地",
+      "腾冲中和基地",
+      "腾冲德宏基地",
+      "腾冲曲石基地"
+    ],
+    "climate_zone_mapping_frozen": false,
+    "coordinate_crs_status": "NOT_ESTABLISHED_DEM_QUERY_ASSUMPTION_REQUIRES_REVIEW",
+    "correction_task_id": "V0_5_S1_BASE_IDENTITY_ALIAS_CORRECTION_R2",
+    "coverage_counts": {
+      "BLOCKED": 35,
+      "PARTIAL": 82
+    },
+    "elevation_established_count": 39,
+    "elevation_pending_count": 0,
+    "historical_identity_count": 144,
+    "historical_mapping_counts": {
+      "AUTHORIZED_ALIAS": 2,
+      "EXACT": 73,
+      "UNRESOLVED": 69
+    },
+    "mapping_authority_hash": "6fb7212cc1edd090cf63ff2d938fc5e7b7a0c4b9020b7fdca14e499119b2496e",
+    "member_identity_count": 74,
+    "member_status_counts": {
+      "RESOLVED": 74
+    },
+    "model_execution": false,
+    "old_artifacts_unchanged": true,
+    "post_cutoff_ratio_all_bases": "0.181957",
+    "post_cutoff_total_kg_all_bases": "16549104.829000",
+    "pre_cutoff_total_kg_all_bases": "74401316.749000",
+    "region_counts": {
+      "OUT_OF_YUNNAN": 1,
+      "YUNNAN_CORE": 38
+    },
+    "registry_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "source_reconciliation": [
+      {
+        "excluded_unresolved_kg": "18491816.276000",
+        "season": "2023-2024",
+        "source_total_kg": "30148211.706000"
+      },
+      {
+        "excluded_unresolved_kg": "11849270.376000",
+        "season": "2024-2025",
+        "source_total_kg": "42440018.628000"
+      },
+      {
+        "excluded_unresolved_kg": "1691642.683000",
+        "season": "2025-2026",
+        "source_total_kg": "50394920.579000"
+      }
+    ],
+    "task_id": "V0_5_S1_BASE_REGISTRY_AND_BUSINESS_BOUNDARY_R1",
+    "total_base_count": 39,
+    "totals_semantics": "MAPPED_RECORDED_SUBTOTALS_INCLUDE_PARTIAL_BASES_NOT_COMPLETE_YIELD_LABELS",
+    "workbook_hash": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7"
+  },
+  "comparison": {
+    "registry_and_enrichment_byte_identical": true,
+    "by_season": [
+      {
+        "season": "2023-2024",
+        "newly_assigned_kg": "0.000000",
+        "excluded_reduction_kg": "0.000000",
+        "assigned_total_kg": "11656395.430000",
+        "source_total_kg": "30148211.706000",
+        "excluded_total_kg": "18491816.276000"
+      },
+      {
+        "season": "2024-2025",
+        "newly_assigned_kg": "0.000000",
+        "excluded_reduction_kg": "0.000000",
+        "assigned_total_kg": "30590748.252000",
+        "source_total_kg": "42440018.628000",
+        "excluded_total_kg": "11849270.376000"
+      },
+      {
+        "season": "2025-2026",
+        "newly_assigned_kg": "385882.423000",
+        "excluded_reduction_kg": "385882.423000",
+        "assigned_total_kg": "48703277.896000",
+        "source_total_kg": "50394920.579000",
+        "excluded_total_kg": "1691642.683000"
+      }
+    ],
+    "pre_cutoff_total_change_kg": "376045.802000",
+    "post_cutoff_total_change_kg": "9836.621000",
+    "post_cutoff_ratio_before": "0.182624",
+    "post_cutoff_ratio_after": "0.181957",
+    "post_cutoff_ratio_change_displayed": "-0.000667",
+    "affected_audit_rows": [
+      {
+        "base_id": "base_5d98f77f66280b5196f09ceb",
+        "season": "2025-2026",
+        "base_name": "腾冲德宏基地",
+        "changed_fields": {
+          "raw_first_harvest_date": {
+            "before": "2026-02-24",
+            "after": "2025-11-19"
+          },
+          "pre_cutoff_total_kg": {
+            "before": "16849.666000",
+            "after": "392895.468000"
+          },
+          "post_cutoff_total_kg": {
+            "before": "515.622000",
+            "after": "10352.243000"
+          },
+          "post_cutoff_ratio": {
+            "before": "0.029693",
+            "after": "0.025672"
+          },
+          "pre_cutoff_peak_date": {
+            "before": "2026-03-06",
+            "after": "2026-04-15"
+          },
+          "pre_cutoff_peak_kg": {
+            "before": "836.396000",
+            "after": "10072.467000"
+          },
+          "post_cutoff_peak_kg": {
+            "before": "515.622000",
+            "after": "10352.243000"
+          },
+          "post_cutoff_peak_exceeds_business_peak": {
+            "before": "False",
+            "after": "True"
+          },
+          "resolved_member_farm_count": {
+            "before": "1",
+            "after": "2"
+          },
+          "unresolved_member_farm_count": {
+            "before": "1",
+            "after": "0"
+          },
+          "unresolved_members": {
+            "before": "['腾冲德宏农场']",
+            "after": "[]"
+          },
+          "exclusion_reasons": {
+            "before": "['UNRESOLVED_MEMBER_FARMS', 'SOURCE_START_AFTER_SEASON_START', 'GLOBAL_UNKNOWN_IN_BUSINESS_WINDOW']",
+            "after": "['SOURCE_START_AFTER_SEASON_START', 'GLOBAL_UNKNOWN_IN_BUSINESS_WINDOW']"
+          }
+        }
+      }
+    ],
+    "new_tail_peak_exceeds_bases": [
+      "腾冲德宏基地"
+    ]
+  },
+  "artifact_hashes": {
+    "base-daily-ledger.csv": "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd",
+    "base-registry-normalized.csv": "2ebc7744a1384cd673bc1e9357b6092e8bcce9d0148d2d58f8a36406105eebfb",
+    "base-registry-v1.json": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "business-season-boundary-audit.csv": "dbb9a638ab9921d659c7cd6885606223592a89054124d9e0b517337e3280f182",
+    "elevation-enrichment.json": "f67b4e85ed80117c7895cc467b09c70aa7e88201edaf01f5d809ad4c58d70d43",
+    "mapping-authority.json": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086",
+    "member-coverage.csv": "dc1bdacdd441ab95d04a605fa282ed759f399f28c4459f5e99d57e6250145f3a",
+    "member-farm-mapping.csv": "d40dbc3a1328d79e10670999ee613fcef8fa3ee32659db16dfe67db3e6b91b5b",
+    "old_artifact_hashes.json": "8af02ccbdf29d52b7405a5ddad220dc96dc9e30aba67ec470cb3042be0607c6a",
+    "region-screen.json": "555d4e78edf409255711b9aac327013367eda4d4c631281fd88551108a207725",
+    "source-manifest.json": "ab00019ac97cc599ba33cf42451dabc96f2ffcf42e0dc3f97f9d6d4a83f92b39",
+    "summary.json": "5d16afd4698955e2a446a6f801b1bed8b2138731fa0ff67cf4a77afab5e65085"
+  },
+  "task_id": "V0_5_S1_BASE_IDENTITY_ALIAS_CORRECTION_R2",
+  "previous_head_sha": "046d558a856a6f923079004c9a31f9048c59e861",
+  "base_registry_hash_changed": false,
+  "private_artifact_directory": "blueberry-area-yield-artifacts/base-registry-s1-r2"
+}
