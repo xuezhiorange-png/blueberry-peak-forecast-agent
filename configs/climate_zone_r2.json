@@ -1,0 +1,20 @@
+{
+  "task_id": "V0_5_S1_CLIMATE_PROFILE_AND_YUNNAN_ZONE_STUDY_R2",
+  "seed": 42,
+  "candidate_k": [3, 4, 5, 6, 7, 8],
+  "methods": ["ward", "kmeans"],
+  "kmeans_n_init": 20,
+  "resamples": 30,
+  "resample_fraction": 0.8,
+  "correlation_exclusion_abs_r": 0.9,
+  "feature_priority": ["annual_mean_temperature_c", "annual_precipitation_mm", "annual_temperature_range_c", "precipitation_seasonality", "dewpoint_depression_c", "annual_radiation_mj_m2", "elevation_m", "monsoon_fraction", "coldest_month_mean_temperature_c"],
+  "selection_gate": {"minimum_cluster_size": 3, "resample_ari_mean": 0.75, "coordinate_agreement": 0.9, "method_ari": 0.6},
+  "selection_rule": "Eligible solutions: equal average rank of silhouette descending, Davies-Bouldin ascending, resample ARI descending, coordinate agreement descending, and elevation/temperature/precipitation within-cluster variance ratio ascending. Tie: smaller K then method lexical order. No eligibility means no recommendation.",
+  "recent_temporal_agreement_minimum": 0.85,
+  "coordinate_offsets_degrees": [-0.01, 0, 0.01],
+  "warm_season_months": [5, 6, 7, 8, 9, 10],
+  "drift_severity": "max absolute annual temperature/precipitation anomaly divided by baseline interannual sample SD: <1 LOW, <2 MODERATE, otherwise HIGH; descriptive statistical bands, not agronomic thresholds",
+  "climate_zone_mapping_frozen": false,
+  "climate_zone_profile_authority_frozen": false,
+  "production_features_allowed": false
+}

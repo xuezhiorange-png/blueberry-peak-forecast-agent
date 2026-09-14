@@ -36,6 +36,9 @@ uvicorn==0.50.2
 xlrd==2.0.2
 
 # dev extras
+h5netcdf==1.8.1
+h5py==3.16.0
+xarray==2026.7.0
 aiosqlite==0.22.1
 httpx==0.28.1
 mypy==2.1.0
