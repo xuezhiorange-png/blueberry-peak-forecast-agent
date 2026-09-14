@@ -1,0 +1,1064 @@
+{
+  "task_id": "V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R1",
+  "base_main_sha": "e47dc930198d96f8044058f45b9d228f84c9bc14",
+  "pr626_merged": true,
+  "config_hash": "4ebc373bb400e5ca16311682ea3e9d21818686e228fb7f751c950a8d9ba93f13",
+  "local_validation": {
+    "focused_tests": "33 passed",
+    "relevant_base_registry_tests_including_focused": "96 passed",
+    "ruff_check_repository": "PASS",
+    "ruff_format_repository": "1044 files unchanged",
+    "mypy_backend_app": "444 source files PASS",
+    "mypy_audit_script": "PASS",
+    "offline_document_snapshot_replay": "18 of 18 SHA256 match; socket disabled",
+    "json_and_local_references": "PASS",
+    "pit_gate_tests_are_synthetic_not_provider_qualification": true
+  },
+  "preserved_s1_reference": {
+    "path": "docs/v0-5/s1/climate-zone-evidence.json",
+    "source_hash": "ddb4e9beb6a68927de882186cd3cbb7efa6b3238d56fb4f20bb2d36b8655ac70",
+    "original_offline_source_replay": "PASS",
+    "reexecuted_climate_study": false,
+    "candidate_zone_authority_used": false
+  },
+  "official_evidence": [
+    {
+      "id": "era5_catalogue",
+      "source": "C1",
+      "official_document_url": "https://cds.climate.copernicus.eu/api/catalogue/v1/collections/reanalysis-era5-land",
+      "document_title": "ERA5-Land hourly catalogue",
+      "accessed_at": "2026-09-14T10:10:01.331333+00:00",
+      "documented_fact": "Current catalogue is reanalysis, 1950 onward, CC-BY-4.0; captured extent ends 2026-09-08.",
+      "project_interpretation": "Catalogue availability is verified, not delivery of hourly fields or an as-issued forecast.",
+      "verification_status": "PROJECT_VERIFIED",
+      "snapshot_sha256": "68460984ae05eee868a7fe35240c846b90b4d8887520b5b5c3cc0c0f8a51121a",
+      "snapshot_file": "era5_catalogue.raw",
+      "http_status": 200,
+      "bytes": 5537
+    },
+    {
+      "id": "era5_monthly_catalogue",
+      "source": "C1",
+      "official_document_url": "https://cds.climate.copernicus.eu/api/catalogue/v1/collections/reanalysis-era5-land-monthly-means",
+      "document_title": "ERA5-Land monthly catalogue",
+      "accessed_at": "2026-09-14T10:10:02.084370+00:00",
+      "documented_fact": "Monthly ERA5-Land catalogue is publicly accessible.",
+      "project_interpretation": "Suitable climatology candidate; existing S1 frozen study remains unchanged.",
+      "verification_status": "PROJECT_VERIFIED",
+      "snapshot_sha256": "40b6dabe4d6908928d5923884b4cc1682d9e7f141feef48d7fe020127ce0dd86",
+      "snapshot_file": "era5_monthly_catalogue.raw",
+      "http_status": 200,
+      "bytes": 4776
+    },
+    {
+      "id": "era5_documentation",
+      "source": "C1",
+      "official_document_url": "https://confluence.ecmwf.int/pages/viewpage.action?pageId=185075237",
+      "document_title": "ERA5-Land data documentation",
+      "accessed_at": "2026-09-14T10:10:03.551404+00:00",
+      "documented_fact": "Native ~9 km; CDS 0.1 degree. Accumulations reset from 00 UTC forecast start, steps 1–24; step24 covers previous UTC day.",
+      "project_interpretation": "Deaccumulate by run, then handle local-day edges; do not reuse ERA5 accumulation rules. Introductory 1981 coverage/old update-lag text conflicts with newer catalogue; catalogue used for current coverage.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "d09364a2a421fed2ed15c7b2d05a6f2cdbd8bd04930e4e3aef35736b22865d3e",
+      "snapshot_file": "era5_documentation.raw",
+      "http_status": 200,
+      "bytes": 145684
+    },
+    {
+      "id": "ecmwf_open",
+      "source": "C2",
+      "official_document_url": "https://www.ecmwf.int/en/forecasts/datasets/open-data",
+      "document_title": "ECMWF Open Data",
+      "accessed_at": "2026-09-14T10:10:04.411180+00:00",
+      "documented_fact": "Public IFS subset: 0.25 degree GRIB2, CC-BY-4.0 with terms; rolling 12 runs. 00/12 UTC control reaches 360h; 06/18 reaches 144h.",
+      "project_interpretation": "Preferred conditional live candidate, not multi-year archive or automatic W15. Data licence does not guarantee free archive delivery.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "0c64b5a38612cba2d0e17b5870cd5fdfb0086e4449e496774c5736b54d3c39e5",
+      "snapshot_file": "ecmwf_open.raw",
+      "http_status": 200,
+      "bytes": 104759
+    },
+    {
+      "id": "ecmwf_archive",
+      "source": "C2",
+      "official_document_url": "https://www.ecmwf.int/en/forecasts/datasets/operational-archive",
+      "document_title": "ECMWF operational archive",
+      "accessed_at": "2026-09-14T10:10:05.253403+00:00",
+      "documented_fact": "Operational forecasts are archived in MARS, with products and resolutions following operational changes.",
+      "project_interpretation": "Archive exists. Project-entitled years, variables, issued/available receipts and extraction are NOT_VERIFIED.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "21929c78cc26ff7704cbdd253dfce979ad61b8daef048a655bb826032ea3a18b",
+      "snapshot_file": "ecmwf_archive.raw",
+      "http_status": 200,
+      "bytes": 46577
+    },
+    {
+      "id": "ecmwf_access",
+      "source": "C2",
+      "official_document_url": "https://www.ecmwf.int/en/forecasts/access-forecasts/access-archive-datasets",
+      "document_title": "Access archive datasets",
+      "accessed_at": "2026-09-14T10:10:05.801218+00:00",
+      "documented_fact": "Archive access depends on user entitlement.",
+      "project_interpretation": "No project agreement demonstrated; stop before credentialed retrieval.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "df790f6cbdc9a6907e18c65b5da62aa6572e392fb0a024cf31c887f81911bfa1",
+      "snapshot_file": "ecmwf_access.raw",
+      "http_status": 200,
+      "bytes": 46887
+    },
+    {
+      "id": "ecmwf_service",
+      "source": "C2",
+      "official_document_url": "https://www.ecmwf.int/en/forecasts/accessing-forecasts/service-agreements",
+      "document_title": "ECMWF service agreements",
+      "accessed_at": "2026-09-14T10:10:06.348229+00:00",
+      "documented_fact": "Archive/advanced access requires service agreement unless included in an applicable package; service charges can apply.",
+      "project_interpretation": "No purchase or account creation. Exact project cost and entitlement NOT_VERIFIED.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "68022dffe88e7980d5f3b317dd60da61c9516e7d9548e28aa23c4c30d98a32cc",
+      "snapshot_file": "ecmwf_service.raw",
+      "http_status": 200,
+      "bytes": 62520
+    },
+    {
+      "id": "ecmwf_cycles",
+      "source": "C2",
+      "official_document_url": "https://www.ecmwf.int/en/forecasts/documentation-and-support/changes-ecmwf-model",
+      "document_title": "Changes to ECMWF model",
+      "accessed_at": "2026-09-14T10:10:07.411547+00:00",
+      "documented_fact": "Cycle49r1 implemented 2024-11-12; Cycle50r1 implemented 2026-05-12.",
+      "project_interpretation": "Pin historical cycles. Earlier 49r1 hindcasts cannot represent contemporaneous operational issue.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "8ba4d02ddffd9495bb5591594f5fa985ae10f727c974eed4e79dbb755381b0ed",
+      "snapshot_file": "ecmwf_cycles.raw",
+      "http_status": 200,
+      "bytes": 51437
+    },
+    {
+      "id": "ecmwf_medium_range",
+      "source": "C2",
+      "official_document_url": "https://www.ecmwf.int/en/forecasts/documentation-and-support/medium-range-forecasts",
+      "document_title": "Medium-range forecasts",
+      "accessed_at": "2026-09-14T10:10:07.958903+00:00",
+      "documented_fact": "Operational products become available after initialization according to dissemination scheduling.",
+      "project_interpretation": "A schedule is not proof of actual per-run historical accessibility.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "f09ee3682855b9d24936153c3aa82611f1a77b3e367792fc2501d2802902d151",
+      "snapshot_file": "ecmwf_medium_range.raw",
+      "http_status": 200,
+      "bytes": 49003
+    },
+    {
+      "id": "ecmwf_technical",
+      "source": "C2",
+      "official_document_url": "https://confluence.ecmwf.int/spaces/DAC/pages/272310539/ECMWF+open+data+real-time+forecasts+from+IFS+and+AIFS",
+      "document_title": "ECMWF open-data technical documentation",
+      "accessed_at": "2026-09-14T10:10:09.269176+00:00",
+      "documented_fact": "GRIB index metadata supports parameter/step selection; operational streams and products evolve.",
+      "project_interpretation": "Keep stream, member/control, step and parameter IDs; no unverified native-to-hourly conversion.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "79b70acafd1879792f32780b859054cb5d5534b94fedb376d31d3feb65113aa0",
+      "snapshot_file": "ecmwf_technical.raw",
+      "http_status": 200,
+      "bytes": 132499
+    },
+    {
+      "id": "om_historical",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/docs/historical-forecast-api",
+      "document_title": "Historical Forecast API",
+      "accessed_at": "2026-09-14T10:10:10.053951+00:00",
+      "documented_fact": "Historical Forecast concatenates short leads from successive runs into a continuous series, with coverage around 2022 onward.",
+      "project_interpretation": "Not eligible for single-origin operational PIT backtesting.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "ed569a8abd774b599668b4df91d1305c706ca5ea444bdfee39dd99364fcfbdd4",
+      "snapshot_file": "om_historical.raw",
+      "http_status": 200,
+      "bytes": 489686
+    },
+    {
+      "id": "om_single",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/docs/single-runs-api",
+      "document_title": "Single Runs API",
+      "accessed_at": "2026-09-14T10:10:10.812161+00:00",
+      "documented_fact": "Run selector uses UTC initialization. Most model archives begin 2026-04-02; early IFS archive from 2024-03-14 is labelled Cycle49r1 hindcast; model table lists 10-day IFS.",
+      "project_interpretation": "Single-run format is necessary but not sufficient. Hindcast era rejected; later genuine issue/availability still NOT_VERIFIED. W15 not established.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "6061df224a882cb3001b9cc7fddbde2fc8a23f4beace5cd8d1c173f33213e922",
+      "snapshot_file": "om_single.raw",
+      "http_status": 200,
+      "bytes": 473101
+    },
+    {
+      "id": "om_live",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/docs",
+      "document_title": "Forecast API documentation",
+      "accessed_at": "2026-09-14T10:10:11.555409+00:00",
+      "documented_fact": "Model auto-selection, elevation downscaling and interpolated hourly outputs are documented. Temperature/dewpoint use Celsius; precipitation previous-hour mm, shortwave previous-hour W/m2, wind default km/h.",
+      "project_interpretation": "Explicit model/grid/elevation policy required. generationtime_ms is processing duration, not issued_at.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "806acca393b4be3274f0d98712b28ebff758275ec2ed7cc8ae58375e2fdc6909",
+      "snapshot_file": "om_live.raw",
+      "http_status": 200,
+      "bytes": 515083
+    },
+    {
+      "id": "om_ecmwf",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/docs/ecmwf-api",
+      "document_title": "ECMWF Forecast API",
+      "accessed_at": "2026-09-14T10:10:12.340313+00:00",
+      "documented_fact": "Dedicated endpoint advertises native 9 km IFS with up to15 days; generic live service can default to IFS where regional models are absent.",
+      "project_interpretation": "Live endpoint horizon does not establish historical Single Runs horizon. Explicit model and processing version required.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "37c07c40fbdf1b92bd6280490d0ad02f4dbd741660edc5ab6e756f97a41297e7",
+      "snapshot_file": "om_ecmwf.raw",
+      "http_status": 200,
+      "bytes": 269651
+    },
+    {
+      "id": "om_pricing",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/pricing",
+      "document_title": "Open-Meteo pricing",
+      "accessed_at": "2026-09-14T10:10:12.854631+00:00",
+      "documented_fact": "Free API is noncommercial without SLA; historical/single-run access belongs to Professional or higher paid tier.",
+      "project_interpretation": "Project commercial entitlement and price NOT_VERIFIED; no weather API probe using free commercial-unqualified access.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "989bb4ae5f4134cd213a7677867feca4d5d01eeffe532046d4d42dc475ba873e",
+      "snapshot_file": "om_pricing.raw",
+      "http_status": 200,
+      "bytes": 47990
+    },
+    {
+      "id": "om_terms",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/terms",
+      "document_title": "Open-Meteo terms",
+      "accessed_at": "2026-09-14T10:10:13.367651+00:00",
+      "documented_fact": "Free API noncommercial restrictions apply, including undisclosed commercial research; underlying CC-BY licence does not waive service terms.",
+      "project_interpretation": "Read public documentation only. Obtain appropriate service entitlement before business API usage.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "e50523eecaedc802bc56d149c9ed68b222762748caad8e06678a266160c84ee0",
+      "snapshot_file": "om_terms.raw",
+      "http_status": 200,
+      "bytes": 37511
+    },
+    {
+      "id": "om_updates",
+      "source": "C3",
+      "official_document_url": "https://open-meteo.com/en/docs/model-updates",
+      "document_title": "Model Updates API documentation",
+      "accessed_at": "2026-09-14T10:10:13.892047+00:00",
+      "documented_fact": "last_run_modification_time does not indicate API availability.",
+      "project_interpretation": "Current metadata cannot prove historical per-origin available_at.",
+      "verification_status": "DOCUMENTED",
+      "snapshot_sha256": "a230f347a6933818b931f4e980f37c1808e91a9863337c298330d9f070927770",
+      "snapshot_file": "om_updates.raw",
+      "http_status": 200,
+      "bytes": 49570
+    },
+    {
+      "id": "ecmwf_public_index",
+      "source": "C2",
+      "official_document_url": "https://data.ecmwf.int/forecasts/",
+      "document_title": "ECMWF public forecast index",
+      "accessed_at": "2026-09-14T10:10:16.775278+00:00",
+      "documented_fact": "Public index returned HTTP200 without credentials and listed current dated directories.",
+      "project_interpretation": "PROJECT_VERIFIED index reachability only. No GRIB downloaded, no field/lead/timezone/PIT data probe success claimed.",
+      "verification_status": "PROJECT_VERIFIED",
+      "snapshot_sha256": "9696cedc772f520b7dd3b9054f460d029b559d1255a96b8276a35e2e8524687c",
+      "snapshot_file": "ecmwf_public_index.raw",
+      "http_status": 200,
+      "bytes": 246413
+    }
+  ],
+  "source_matrix": [
+    {
+      "license_status": "DOCUMENTED_CC_BY_4_0",
+      "commercial_use_status": "DOCUMENTED_WITH_ATTRIBUTION",
+      "access_status": "PROJECT_VERIFIED_CATALOGUE_AND_EXISTING_S1_STUDY",
+      "cost_status": "DOCUMENTED_NO_DATA_FEE_CDS_ACCESS_TERMS_APPLY",
+      "historical_actual_capable": "DOCUMENTED_REANALYSIS_REFERENCE_NOT_OBSERVATIONAL_TRUTH",
+      "historical_as_issued_capable": "NOT_SUPPORTED",
+      "live_forecast_capable": "NOT_APPLICABLE",
+      "w7_capable": "NOT_APPLICABLE",
+      "w15_capable": "NOT_APPLICABLE",
+      "issue_time_traceable": "NOT_APPLICABLE",
+      "availability_time_traceable": "NOT_APPLICABLE",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "native9km_CDS0.1degree",
+      "temporal_resolution": "MONTHLY",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "NOT_APPLICABLE",
+      "authority_candidate_status": "CANDIDATE_ONLY",
+      "blocking_reasons": [
+        "NO_OPERATIONAL_FORECAST_ROLE"
+      ],
+      "limitations": [
+        "Climatology only; must retain frozen raw hashes, dataset revision, processing and units."
+      ],
+      "evidence_ids": [
+        "era5_monthly_catalogue",
+        "era5_catalogue",
+        "era5_documentation"
+      ],
+      "source": "ERA5_LAND_MONTHLY",
+      "role": "LONG_TERM_CLIMATOLOGY"
+    },
+    {
+      "license_status": "DOCUMENTED_CC_BY_4_0",
+      "commercial_use_status": "DOCUMENTED_WITH_ATTRIBUTION",
+      "access_status": "PROJECT_VERIFIED_CATALOGUE_ONLY_HOURLY_EXTRACTION_NOT_VERIFIED",
+      "cost_status": "DOCUMENTED_NO_DATA_FEE_CDS_ACCESS_TERMS_APPLY",
+      "historical_actual_capable": "DOCUMENTED_REANALYSIS_REFERENCE",
+      "historical_as_issued_capable": "NOT_SUPPORTED",
+      "live_forecast_capable": "NOT_APPLICABLE",
+      "w7_capable": "NOT_APPLICABLE",
+      "w15_capable": "NOT_APPLICABLE",
+      "issue_time_traceable": "NOT_APPLICABLE",
+      "availability_time_traceable": "NOT_APPLICABLE",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "native9km_CDS0.1degree",
+      "temporal_resolution": "HOURLY",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "NOT_APPLICABLE",
+      "authority_candidate_status": "CANDIDATE_ONLY",
+      "blocking_reasons": [
+        "NOT_AS_ISSUED"
+      ],
+      "limitations": [
+        "1950 onward catalogue; captured end2026-09-08 is not guaranteed latency or historical availability."
+      ],
+      "evidence_ids": [
+        "era5_catalogue",
+        "era5_documentation"
+      ],
+      "source": "ERA5_LAND_HOURLY",
+      "role": "HISTORICAL_ACTUAL_WEATHER"
+    },
+    {
+      "license_status": "DOCUMENTED_DATA_TERMS_SERVICE_AGREEMENT_REQUIRED",
+      "commercial_use_status": "NOT_VERIFIED_PROJECT_ENTITLEMENT",
+      "access_status": "ACCESS_NOT_VERIFIED",
+      "cost_status": "NOT_VERIFIED_PROJECT_PACKAGE_AND_VOLUME",
+      "historical_actual_capable": "NOT_APPLICABLE",
+      "historical_as_issued_capable": "DOCUMENTED_ARCHIVE_EXISTS_PROJECT_PIT_NOT_VERIFIED",
+      "live_forecast_capable": "NOT_APPLICABLE",
+      "w7_capable": "DOCUMENTED_POTENTIAL_NOT_PROJECT_VERIFIED",
+      "w15_capable": "NOT_VERIFIED_LOCAL_DAY_HORIZON",
+      "issue_time_traceable": "NOT_VERIFIED",
+      "availability_time_traceable": "NOT_VERIFIED",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "CYCLE_PRODUCT_DEPENDENT_NOT_EQUIVALENT_TO_OPEN_0.25DEGREE",
+      "temporal_resolution": "CYCLE_STEP_DEPENDENT",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "PIT_NOT_ESTABLISHED",
+      "authority_candidate_status": "CANDIDATE_ONLY",
+      "blocking_reasons": [
+        "PROJECT_ACCESS_UNKNOWN",
+        "ENTITLED_YEARS_UNKNOWN",
+        "HISTORICAL_ISSUE_AVAILABILITY_UNKNOWN",
+        "W15_LOCAL_WINDOW_UNKNOWN"
+      ],
+      "limitations": [
+        "MARS has operational history but no qualified project sample. Do not use free rolling live archive as multi-year substitute."
+      ],
+      "evidence_ids": [
+        "ecmwf_archive",
+        "ecmwf_access",
+        "ecmwf_service",
+        "ecmwf_cycles",
+        "ecmwf_medium_range"
+      ],
+      "source": "ECMWF_OPERATIONAL_ARCHIVE",
+      "role": "HISTORICAL_FORECAST_ARCHIVE"
+    },
+    {
+      "license_status": "DOCUMENTED_CC_BY_4_0_AND_TERMS",
+      "commercial_use_status": "DOCUMENTED_WITH_ATTRIBUTION",
+      "access_status": "PROJECT_VERIFIED_PUBLIC_INDEX_ONLY",
+      "cost_status": "DOCUMENTED_FREE_PUBLIC_SUBSET_NO_SLA_GUARANTEE",
+      "historical_actual_capable": "NOT_APPLICABLE",
+      "historical_as_issued_capable": "NOT_SUPPORTED_MULTI_YEAR_ROLLING12RUNS_ONLY",
+      "live_forecast_capable": "DOCUMENTED_FIELDS_NOT_PROJECT_VERIFIED",
+      "w7_capable": "POTENTIAL_00_12UTC_LOCAL_AGGREGATION_UNVERIFIED",
+      "w15_capable": "NOT_SUPPORTED_ILLUSTRATED_SAME_ORIGIN_360H_CASE",
+      "issue_time_traceable": "NOT_VERIFIED",
+      "availability_time_traceable": "NOT_VERIFIED",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "0.25DEGREE_OPEN_GRID",
+      "temporal_resolution": "00_12UTC_3H_TO144_6H_TO360;06_18UTC_TO144",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "PIT_NOT_ESTABLISHED",
+      "authority_candidate_status": "CANDIDATE_ONLY",
+      "blocking_reasons": [
+        "LIVE_FIELD_PROBE_NOT_EXECUTED",
+        "LOCAL_ACCUMULATION_BOUNDARIES_UNVERIFIED",
+        "HISTORICAL_PIT_NOT_ESTABLISHED",
+        "W15_INCOMPLETE"
+      ],
+      "limitations": [
+        "Preferred conditional live candidate only. 06/18 six-day runs cannot W7. Preserve current cycle and oper/fc/control."
+      ],
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_public_index",
+        "ecmwf_cycles"
+      ],
+      "source": "ECMWF_OPEN_IFS_CONTROL",
+      "role": "LIVE_FORECAST"
+    },
+    {
+      "license_status": "DOCUMENTED_CC_BY_DATA_PLUS_API_TERMS",
+      "commercial_use_status": "NOT_VERIFIED_PAID_ENTITLEMENT",
+      "access_status": "ACCESS_NOT_VERIFIED_DOCS_ONLY",
+      "cost_status": "DOCUMENTED_PROFESSIONAL_OR_HIGHER_PROJECT_COST_UNKNOWN",
+      "historical_actual_capable": "NOT_APPLICABLE",
+      "historical_as_issued_capable": "NOT_SUPPORTED_STITCHED",
+      "live_forecast_capable": "NOT_APPLICABLE",
+      "w7_capable": "NOT_SUPPORTED_SINGLE_ORIGIN",
+      "w15_capable": "NOT_SUPPORTED_SINGLE_ORIGIN",
+      "issue_time_traceable": "NOT_VERIFIED",
+      "availability_time_traceable": "NOT_VERIFIED",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "UPSTREAM_AND_POSTPROCESSING_DEPENDENT",
+      "temporal_resolution": "HOURLY_OUTPUT_NOT_NATIVE_GUARANTEE",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "PIT_NOT_ESTABLISHED",
+      "authority_candidate_status": "REJECTED_OPERATIONAL_PIT_ROLE",
+      "blocking_reasons": [
+        "STITCHED_MULTIRUN",
+        "COMMERCIAL_ENTITLEMENT_UNKNOWN"
+      ],
+      "limitations": [
+        "Continuous historical output cannot reconstruct a contemporaneous full forecast."
+      ],
+      "evidence_ids": [
+        "om_historical",
+        "om_pricing",
+        "om_terms",
+        "om_live"
+      ],
+      "source": "OPEN_METEO_HISTORICAL_FORECAST",
+      "role": "HISTORICAL_FORECAST_ARCHIVE"
+    },
+    {
+      "license_status": "DOCUMENTED_CC_BY_DATA_PLUS_API_TERMS",
+      "commercial_use_status": "NOT_VERIFIED_PAID_ENTITLEMENT",
+      "access_status": "ACCESS_NOT_VERIFIED_DOCS_ONLY",
+      "cost_status": "DOCUMENTED_PROFESSIONAL_OR_HIGHER_PROJECT_COST_UNKNOWN",
+      "historical_actual_capable": "NOT_APPLICABLE",
+      "historical_as_issued_capable": "NOT_VERIFIED_LATER_ARCHIVE_EARLY_IFS_HINDCAST_REJECTED",
+      "live_forecast_capable": "NOT_APPLICABLE",
+      "w7_capable": "POTENTIAL_MODEL_RUN_DEPENDENT",
+      "w15_capable": "NOT_SUPPORTED_DOCUMENTED_IFS_10DAY;OTHER_MODELS_NOT_VERIFIED",
+      "issue_time_traceable": "NOT_VERIFIED",
+      "availability_time_traceable": "NOT_VERIFIED",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "MODEL_DEPENDENT_IFS9KM_PLUS_POSTPROCESSING",
+      "temporal_resolution": "HOURLY_API_INTERPOLATION_MODEL_DEPENDENT",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "PIT_NOT_ESTABLISHED",
+      "authority_candidate_status": "CANDIDATE_ONLY",
+      "blocking_reasons": [
+        "EARLY_IFS_HINDCAST",
+        "AVAILABLE_AT_UNKNOWN",
+        "ISSUED_AT_UNKNOWN",
+        "PROJECT_ENTITLEMENT_UNKNOWN"
+      ],
+      "limitations": [
+        "UTC run identifies initialization, not release. Most archives from2026-04-02; earlyIFS from2024-03-14 labelled49r1hindcasts."
+      ],
+      "evidence_ids": [
+        "om_single",
+        "om_updates",
+        "om_pricing",
+        "om_terms",
+        "ecmwf_cycles"
+      ],
+      "source": "OPEN_METEO_SINGLE_RUNS",
+      "role": "HISTORICAL_FORECAST_ARCHIVE"
+    },
+    {
+      "license_status": "DOCUMENTED_CC_BY_DATA_PLUS_API_TERMS",
+      "commercial_use_status": "NOT_VERIFIED_PAID_ENTITLEMENT",
+      "access_status": "ACCESS_NOT_VERIFIED_DOCS_ONLY",
+      "cost_status": "NOT_VERIFIED_PAID_PROJECT_PACKAGE",
+      "historical_actual_capable": "NOT_APPLICABLE",
+      "historical_as_issued_capable": "NOT_VERIFIED",
+      "live_forecast_capable": "DOCUMENTED",
+      "w7_capable": "POTENTIAL_PINNED_MODEL_RUN_REQUIRED",
+      "w15_capable": "NOT_VERIFIED_MARKETED_HORIZON_NOT_LOCAL_COMPLETE_RUN",
+      "issue_time_traceable": "NOT_VERIFIED",
+      "availability_time_traceable": "NOT_VERIFIED",
+      "version_traceable": "DOCUMENTED_MODEL_DEPENDENT",
+      "raw_artifact_hashable": "PROJECT_VERIFIED_DOCUMENT_SNAPSHOT_ONLY",
+      "normalized_payload_hashable": "PROJECT_VERIFIED_OFFLINE_CONTRACT_ONLY",
+      "variable_coverage": "See variable_matrix; data completeness NOT_VERIFIED",
+      "spatial_resolution": "PIN_MODEL_GRID;OPTIONAL90M_DEM_DOWNSCALING",
+      "temporal_resolution": "HOURLY_OUTPUT_MODEL_DEPENDENT_NATIVE_STEPS",
+      "china_yunnan_coverage": "DOCUMENTED_GLOBAL_GRID_NOT_BASE_EXTRACTION_VERIFIED",
+      "pit_status": "PIT_NOT_ESTABLISHED",
+      "authority_candidate_status": "SECONDARY_CONDITIONAL_CANDIDATE",
+      "blocking_reasons": [
+        "COMMERCIAL_ENTITLEMENT_UNKNOWN",
+        "AUTO_MODEL_DEFAULT_UNSAFE",
+        "RUN_LINEAGE_AND_AVAILABILITY_UNVERIFIED"
+      ],
+      "limitations": [
+        "Explicit model required; live IFS15day display does not override SingleRuns10day documentation. Downscaling is not base-elevation authority."
+      ],
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_updates",
+        "om_pricing",
+        "om_terms"
+      ],
+      "source": "OPEN_METEO_LIVE_PINNED_MODEL",
+      "role": "LIVE_FORECAST"
+    }
+  ],
+  "variable_matrix": [
+    {
+      "source": "ERA5_LAND",
+      "variable": "temperature_2m",
+      "native_variable_id": "2t/167",
+      "unit": "K",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY",
+      "conversion_formula_required": "K-273.15",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "tmin",
+      "native_variable_id": "DERIVED_FROM_2t/167",
+      "unit": "degC",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "DERIVED_LOCAL_MIN_OF_SAMPLES",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_INPUT",
+      "conversion_formula_required": "Local-day sample min; not continuous physical daily minimum",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "tmax",
+      "native_variable_id": "DERIVED_FROM_2t/167",
+      "unit": "degC",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "DERIVED_LOCAL_MAX_OF_SAMPLES",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_INPUT",
+      "conversion_formula_required": "Local-day sample max; not native extremum",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "precipitation",
+      "native_variable_id": "tp/228",
+      "unit": "m",
+      "height_or_depth": "surface",
+      "instantaneous_or_accumulated": "ACCUMULATED",
+      "accumulation_reset_semantics": "00UTC_INIT_STEPS1_24",
+      "native_temporal_resolution": "HOURLY",
+      "conversion_formula_required": "Same-run adjacent difference x1000 -> mm; reset-aware; no cross-run difference",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "dewpoint",
+      "native_variable_id": "2d/168",
+      "unit": "K",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY",
+      "conversion_formula_required": "K-273.15",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "relative_humidity",
+      "native_variable_id": "DERIVED_FROM_2t_2d",
+      "unit": "percent",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "DERIVED",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_INPUT",
+      "conversion_formula_required": "100*es(Td)/es(T); saturation phase/constants not authorized yet",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "solar_radiation",
+      "native_variable_id": "ssrd/169",
+      "unit": "J/m2",
+      "height_or_depth": "surface_downward",
+      "instantaneous_or_accumulated": "ACCUMULATED",
+      "accumulation_reset_semantics": "00UTC_INIT_STEPS1_24",
+      "native_temporal_resolution": "HOURLY",
+      "conversion_formula_required": "Same-run energy difference / interval seconds -> W/m2; monthly moda /86400 differs",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ERA5_LAND",
+      "variable": "wind_if_required",
+      "native_variable_id": "10u/165 + 10v/166",
+      "unit": "m/s",
+      "height_or_depth": "10m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY",
+      "conversion_formula_required": "sqrt(u^2+v^2); vector vs scalar averaging explicit",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "NOT_APPLICABLE_REANALYSIS_ONLY",
+      "live_available": "NOT_SUPPORTED",
+      "evidence_ids": [
+        "era5_documentation",
+        "era5_catalogue"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "temperature_2m",
+      "native_variable_id": "2t/167",
+      "unit": "K",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "OPEN3H_THEN6H_CYCLE_DEPENDENT",
+      "conversion_formula_required": "K-273.15",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "tmin",
+      "native_variable_id": "mn2t3/228027;mn2t6/122",
+      "unit": "K",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "PRECEDING3_OR6H_MIN",
+      "accumulation_reset_semantics": "PER_POSTPROCESS_INTERVAL",
+      "native_temporal_resolution": "PRODUCT_STEP_DEPENDENT",
+      "conversion_formula_required": "K-273.15; do not equate UTC interval extrema with Shanghai-day extrema",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "tmax",
+      "native_variable_id": "mx2t3/228026;mx2t6/121",
+      "unit": "K",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "PRECEDING3_OR6H_MAX",
+      "accumulation_reset_semantics": "PER_POSTPROCESS_INTERVAL",
+      "native_temporal_resolution": "PRODUCT_STEP_DEPENDENT",
+      "conversion_formula_required": "K-273.15; local-boundary crossing unverified",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "precipitation",
+      "native_variable_id": "tp/228 (IFS, not AIFS228228)",
+      "unit": "m",
+      "height_or_depth": "surface",
+      "instantaneous_or_accumulated": "ACCUMULATED",
+      "accumulation_reset_semantics": "VERIFY_GRIB_stepType_startStep_endStep_PER_PRODUCT",
+      "native_temporal_resolution": "OPEN3H_THEN6H",
+      "conversion_formula_required": "Convert m*1000; difference only verified same-run accumulation; no clipping across16UTC boundary",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "dewpoint",
+      "native_variable_id": "2d/168",
+      "unit": "K",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "OPEN3H_THEN6H",
+      "conversion_formula_required": "K-273.15",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "relative_humidity",
+      "native_variable_id": "DERIVED_FROM_2t_2d_NOT_PRESSURE_LEVEL_r",
+      "unit": "percent",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "DERIVED",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "INPUT_STEP_DEPENDENT",
+      "conversion_formula_required": "100*es(Td)/es(T); formula/phase review required, not pressure-level RH",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "solar_radiation",
+      "native_variable_id": "ssrd/169 NOT ssr/176",
+      "unit": "J/m2",
+      "height_or_depth": "surface_downward",
+      "instantaneous_or_accumulated": "ACCUMULATED",
+      "accumulation_reset_semantics": "VERIFY_GRIB_STEP_METADATA",
+      "native_temporal_resolution": "OPEN3H_THEN6H",
+      "conversion_formula_required": "Energy difference / seconds; ssrd vs net ssr never silently interchangeable",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "ECMWF_IFS",
+      "variable": "wind_if_required",
+      "native_variable_id": "10u/165 + 10v/166",
+      "unit": "m/s",
+      "height_or_depth": "10m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "OPEN3H_THEN6H",
+      "conversion_formula_required": "sqrt(u^2+v^2); exact archive cycle availability unverified",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "ecmwf_open",
+        "ecmwf_technical",
+        "ecmwf_archive"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "temperature_2m",
+      "native_variable_id": "temperature_2m",
+      "unit": "degC",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS_OR_INTERPOLATED",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_OUTPUT_NATIVE_MODEL_DEPENDENT",
+      "conversion_formula_required": "None if Celsius pinned; DEM downscaling must be recorded",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "tmin",
+      "native_variable_id": "temperature_2m_min",
+      "unit": "degC",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "DAILY_AGGREGATION",
+      "accumulation_reset_semantics": "LOCAL_DAY",
+      "native_temporal_resolution": "DAILY",
+      "conversion_formula_required": "Pin Asia/Shanghai; source sampling/derived extrema not native assumed",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "tmax",
+      "native_variable_id": "temperature_2m_max",
+      "unit": "degC",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "DAILY_AGGREGATION",
+      "accumulation_reset_semantics": "LOCAL_DAY",
+      "native_temporal_resolution": "DAILY",
+      "conversion_formula_required": "Pin Asia/Shanghai; source sampling/derived extrema not native assumed",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "precipitation",
+      "native_variable_id": "precipitation",
+      "unit": "mm",
+      "height_or_depth": "surface",
+      "instantaneous_or_accumulated": "PRECEDING_HOUR_AMOUNT",
+      "accumulation_reset_semantics": "UPSTREAM_DEACCUMULATION_PROVIDER_PROCESSED",
+      "native_temporal_resolution": "HOURLY_OUTPUT",
+      "conversion_formula_required": "Sum only full verified local-day intervals; preserve provider processing version",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "dewpoint",
+      "native_variable_id": "dew_point_2m",
+      "unit": "degC",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS_OR_DERIVED",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_OUTPUT",
+      "conversion_formula_required": "Pin upstream provenance; equality with raw IFS2d not proved",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "relative_humidity",
+      "native_variable_id": "relative_humidity_2m",
+      "unit": "percent",
+      "height_or_depth": "2m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS_OR_DERIVED",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_OUTPUT",
+      "conversion_formula_required": "Provider derivation/downscaling must be versioned",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "solar_radiation",
+      "native_variable_id": "shortwave_radiation",
+      "unit": "W/m2",
+      "height_or_depth": "surface_downward",
+      "instantaneous_or_accumulated": "PRECEDING_HOUR_MEAN_FLUX",
+      "accumulation_reset_semantics": "PROVIDER_PROCESSING",
+      "native_temporal_resolution": "HOURLY_OUTPUT",
+      "conversion_formula_required": "W/m2 *3600 -> J/m2 per hour; not shortwave_radiation_instant",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    },
+    {
+      "source": "OPEN_METEO",
+      "variable": "wind_if_required",
+      "native_variable_id": "wind_speed_10m",
+      "unit": "km/h_default_or_m/s_explicit",
+      "height_or_depth": "10m",
+      "instantaneous_or_accumulated": "INSTANTANEOUS_OR_INTERPOLATED",
+      "accumulation_reset_semantics": "NONE",
+      "native_temporal_resolution": "HOURLY_OUTPUT",
+      "conversion_formula_required": "Explicit wind_speed_unit=ms or divide km/h by3.6",
+      "timezone_aggregation_required": "YES_ASIA_SHANGHAI_FULL_D_PLUS_1_LOCAL_DAYS",
+      "forecast_archive_available": "DOCUMENTED_CANDIDATE;PROJECT_PER_RUN_VARIABLE_COVERAGE_NOT_VERIFIED",
+      "live_available": "DOCUMENTED_CANDIDATE;PROJECT_FIELD_PROBE_NOT_EXECUTED",
+      "evidence_ids": [
+        "om_live",
+        "om_ecmwf",
+        "om_single"
+      ]
+    }
+  ],
+  "recommendation": {
+    "climatology_authority_candidate": "ERA5_LAND_MONTHLY",
+    "historical_actual_authority_candidate": "ERA5_LAND_HOURLY_REANALYSIS_REFERENCE",
+    "historical_as_issued_authority_candidate": "NONE",
+    "live_forecast_authority_candidate": "ECMWF_OPEN_IFS_CONTROL_CONDITIONAL",
+    "historical_as_issued_verified": false,
+    "w7_pit_status": "PIT_NOT_ESTABLISHED",
+    "w15_pit_status": "PIT_NOT_ESTABLISHED",
+    "s2_operational_weather_backtest_blocked": true,
+    "s2_04_blocked": true,
+    "weather_source_authority_frozen": false,
+    "climate_zone_mapping_used_as_authority": false
+  },
+  "probe": {
+    "type": "PUBLIC_CATALOGUE_AND_DOCUMENT_INDEX_ONLY",
+    "http_200_count": 18,
+    "weather_field_requests": 0,
+    "bulk_download": false,
+    "credentials_used": false,
+    "paid_access_attempted": false,
+    "open_meteo_weather_probe": "NOT_EXECUTED_COMMERCIAL_ENTITLEMENT_NOT_VERIFIED",
+    "archive_probe": "NOT_EXECUTED_PROJECT_ENTITLEMENT_NOT_VERIFIED",
+    "public_artifact_content_committed": false,
+    "private_artifact_directory": "blueberry-area-yield-artifacts/weather-source-authority-r1",
+    "manifest": "capture-manifest.json",
+    "replay_command": "shasum -a 256 <private-artifact-directory>/*.raw; compare official_evidence[].snapshot_sha256",
+    "network_required_for_replay": false
+  },
+  "window_geometry": {
+    "origin_at": "2026-09-14T06:00:00Z",
+    "initialization_at": "2026-09-14T00:00:00Z",
+    "w7_start_inclusive": "2026-09-14T16:00:00Z",
+    "w7_end_exclusive": "2026-09-21T16:00:00Z",
+    "w15_end_exclusive": "2026-09-29T16:00:00Z",
+    "horizon_360h_end": "2026-09-29T00:00:00Z",
+    "w15_shortfall_hours": 16,
+    "verification_status": "PROJECT_VERIFIED_GEOMETRY_ONLY_SYNTHETIC_NOT_PROVIDER_PIT",
+    "native_3h_boundary_issue": "Shanghai midnight16UTC not on 3h UTC grid; normalized supports require independently verified aggregation, not fractional allocation invented by this audit."
+  },
+  "geo_policy": {
+    "entity": "BASE",
+    "location": "BASE_REPRESENTATIVE_LOCATION",
+    "base_elevation_authority_changed": false,
+    "elevation_external_verification_not_authorized": true,
+    "ecmwf": "Pin selected gridpoint, requested/returned coordinates, orography, extraction method; do not infer registry elevation from model orography.",
+    "open_meteo": "Default90mDEM downscaling and land/elevation cell selection not neutral. A candidate raw-grid study can explicitly use elevation=nan and cell_selection=nearest; this is a proposal, not authority or implemented ingestion.",
+    "candidate_zone_authority": false
+  },
+  "archive_live_compatibility": {
+    "ecmwf": "NOT_VERIFIED: pin provider/model/cycle/parameter/level/grid/step/accumulation/processing/interpolation and availability. MARS native historical output and 0.25degree live subset are not identical by name.",
+    "open_meteo": "NOT_VERIFIED: pin model, archive era (hindcast excluded), upstream cycle, output processing/downscaling and local time. No silent best_match.",
+    "compatible_by_brand": false
+  },
+  "boundaries": {
+    "weather_model_training": false,
+    "forecast_model_changed": false,
+    "database_schema_changed": false,
+    "mcp_changed": false,
+    "production_deployment_changed": false,
+    "climate_zone_mapping_changed": false,
+    "base_registry_membership_changed": false,
+    "weather_bulk_download": false,
+    "weather_ingestion_pipeline": false,
+    "s2_02_not_authorized": true,
+    "s2_03_not_authorized": true,
+    "s2_04_implementation_not_authorized": true,
+    "s2_05_not_authorized": true,
+    "s2_06_not_authorized": true,
+    "s2_07_not_authorized": true
+  }
+}
