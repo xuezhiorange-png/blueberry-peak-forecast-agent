@@ -229,3 +229,38 @@ def test_source_margin_and_cutoff_missing_do_not_create_complete_yield():
     assert "SOURCE_START_AFTER_SEASON_START" in audit["exclusion_reasons"]
     assert "SOURCE_END_BEFORE_CUTOFF" in audit["exclusion_reasons"]
     assert audit["yield_kg_per_mu"] is None
+
+
+def test_business_confirmed_dehong_alias_exact_direction_and_single_assignment():
+    import json
+    from pathlib import Path
+
+    config = json.loads(Path("configs/base_registry_s1.json").read_text())
+    aliases = {k: tuple(v) for k, v in config["aliases"].items()}
+    assert aliases["德宏盈江农场"] == ("腾冲德宏农场", "USER_EXPLICIT_CONFIRMATION_2026-09-14")
+    assert aliases["建水南庄基地"][0] == "建水南庄农场"
+    bases = registry(
+        [
+            record("腾冲德宏基地", "腾冲德宏农场"),
+            record("其他基地", "其他农场"),
+        ]
+    )
+    mapping = map_farms(bases, {"德宏盈江农场", "德宏盈江一场", "德宏盈江农场 "}, aliases)
+    accepted = [r for r in mapping if r["matched_base_id"] is not None]
+    assert len(accepted) == 1
+    assert accepted[0]["historical_farm_identity"] == "德宏盈江农场"
+    assert accepted[0]["normalized_identity"] == "腾冲德宏农场"
+    assert accepted[0]["canonical_base_name"] == "腾冲德宏基地"
+    assert accepted[0]["match_status"] == "AUTHORIZED_ALIAS"
+    assert all(r["match_status"] == "UNRESOLVED" for r in mapping if r not in accepted)
+    with pytest.raises(ValueError, match="alias evidence"):
+        map_farms(bases, {"德宏盈江农场"}, {"德宏盈江农场": ("腾冲德宏农场", "")})
+    result = audit_season(bases, source([day("2024-10-01", "德宏盈江农场", "12.5")]), aliases)
+    assert result["excluded_total_kg"] == "0.000000"
+    assert sum(Decimal(r["pre_cutoff_total_kg"]) for r in result["audit"]) == Decimal("12.5")
+    assert (
+        next(r for r in result["audit"] if r["canonical_base_name"] == "腾冲德宏基地")[
+            "resolved_member_farm_count"
+        ]
+        == 1
+    )

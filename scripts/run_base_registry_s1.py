@@ -105,6 +105,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     registry["enrichment_hashes"] = {"elevation": elevation["hash"], "region": region["hash"]}
     registry["hash"] = digest({k: v for k, v in registry.items() if k != "hash"})
+    mapping_authority = {
+        "version": config.get("mapping_authority_version", "BASE_MEMBER_MAPPING_R1"),
+        "workbook_hash": config["workbook_sha256"],
+        "aliases": config["aliases"],
+        "policy": "EXACT_FIRST_EXPLICIT_ALIAS_ONLY_NO_FUZZY_NO_MULTI_ASSIGNMENT",
+    }
+    mapping_authority_hash = digest(mapping_authority)
+    write_json(
+        args.output / "mapping-authority.json",
+        {**mapping_authority, "hash": mapping_authority_hash},
+    )
     write_json(args.output / "base-registry-v1.json", registry)
     write_csv(args.output / "base-registry-normalized.csv", registry["bases"])
     write_json(
@@ -150,6 +161,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 raise ValueError("source/assigned/excluded reconciliation failed")
         summary = {
             "task_id": config["task_id"],
+            "correction_task_id": config.get("correction_task_id"),
+            "mapping_authority_hash": mapping_authority_hash,
             "registry_hash": registry["hash"],
             "workbook_hash": config["workbook_sha256"],
             "total_base_count": len(registry["bases"]),
