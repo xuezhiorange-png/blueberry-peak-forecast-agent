@@ -8,7 +8,7 @@
 
 | 类别 | 业务用途 | 不可替代的边界 |
 | --- | --- | --- |
-| LONG_TERM_CLIMATOLOGY | 农场/气候带长期同期正常值及anomaly参照 | 正常期、版本、origin可得性需冻结 |
+| LONG_TERM_CLIMATOLOGY | 基地/气候带长期同期正常值及anomaly参照 | 正常期、版本、origin可得性需冻结 |
 | HISTORICAL_ACTUAL_WEATHER | 历史关系/机理研究与天气误差评价 | 重分析是估计，不是田间实测，也不自动PIT |
 | HISTORICAL_FORECAST_ARCHIVE | 按当时发布的完整forecast运行operational回测 | 必须as-issued；禁止事后actual、拼接近时效或后算hindcast冒充 |
 | LIVE_FORECAST | 未来完整7日/15日运营窗口 | lead、发布时间、延迟、缺失及版本需与archive可比 |
@@ -20,7 +20,7 @@
 ### C1 ERA5-Land / Copernicus
 
 官方目录描述：全球陆地重分析，1950年至今、小时，分发网格0.1°、原生9km，GRIB，CC-BY。
-其高程修正在驱动网格层面，不是对某农场实测海拔的保证。
+其高程修正在驱动网格层面，不是对某基地实测海拔的保证。
 **候选用途**是长期画像/历史关联，不满足as-issued operational预报门。
 变量、最终版/临时版延迟及重处理政策须S2逐项核对。
 [官方数据目录](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=overview)
@@ -68,8 +68,8 @@ C3必须记录上游owner与聚合处理链，不能仅用“Open-Meteo”作为
 | LIVE_FORECAST_AVAILABLE | NO，此产品不承担live | DOCUMENTED，待运行审核 | DOCUMENTED，需固定model/商业资格 |
 | TEMPORAL_RESOLUTION | 小时 | 分cycle/step变化；日聚合不得假装原生小时 | 因model变化，API小时输出不等于小时原生 |
 | SPATIAL_RESOLUTION | 0.1°分发/9km原生 | open子集0.25°；archive随版本 | 原生model及重采样分别记录 |
-| LAT_LON_QUERY_SUPPORT | 网格选择/区域提取策略待定 | GRIB网格采样，非farm点API | DOCUMENTED坐标请求；实际映射待核 |
-| ELEVATION_HANDLING | 网格驱动高程修正，不是farm测量 | 网格orography与farm高差待评 | elevation/降尺度选项需固定并留证 |
+| LAT_LON_QUERY_SUPPORT | 基地代表点对应网格策略待定 | GRIB网格采样，非基地点API | DOCUMENTED坐标请求；基地代表点映射待核 |
+| ELEVATION_HANDLING | 网格驱动高程修正，不是基地测量 | 网格orography与基地代表点高差待评 | elevation/降尺度选项需固定并留证 |
 | FORECAST_HORIZON | N/A | cycle-dependent；360h不自动等于15个当地日 | model-dependent；早期IFS档案10日不能冒充15日 |
 | ISSUE_TIME_TRACEABILITY | 数据版本/发布延迟，不是预报issue | init、release/availability、lead须同时保留 | run字段存在，真实as-issued仍待证 |
 | REPRODUCIBILITY | 保存原文件及精确提取/版本 | 固定产品、cycle、网格、成员、step | 固定API/model、run、后处理及返回快照 |
@@ -112,7 +112,7 @@ C3必须记录上游owner与聚合处理链，不能仅用“Open-Meteo”作为
    含后验数据只可作为明确标注的研究诊断，不能进入严格operational增益证据。
 5. 固定模型/特征/处理、预测快照与hash后才评分；对相同origin重复下载检查版本漂移，
    保存原版不覆盖。若档案缺失，该origin排除并报告，不能用未来actual替代。
-6. 分别给7日、15日、farm/zone/season可用数量与比例；无可靠archived forecast不得
+6. 分别给7日、15日、base/zone/season可用数量与比例；无可靠archived forecast不得
    声称 weather operational backtest 通过，不阻止诚实交付基础数据平台/no-weather路径。
 
 ## 6. 选择框架与下一步
@@ -121,9 +121,12 @@ C3必须记录上游owner与聚合处理链，不能仅用“Open-Meteo”作为
 只有逐run lineage、权限、变量和时效审计通过才可冻结，不选定唯一authority。
 当前四类数据平台整体没有候选通过全部PIT硬门。
 如后来引入中国/亚洲站点或其他全球源，应按同一全矩阵审计；不能用行政区/站点名称相近替代
-农场代表性证据。本轮不需要为尚未核对的机构伪填价格、档案或可用字段。
+基地代表性证据。本轮不需要为尚未核对的机构伪填价格、档案或可用字段。
 
-位置清单到位后，S2样本审计应覆盖山地高差与候选区域，比较原生网格、点采样与合法海拔处理，
+基地名称、成员、经纬度与总种植面积已由用户确认提供；海拔为PENDING_EXTERNAL_VERIFICATION。
+`WEATHER_GRAIN=BASE_REPRESENTATIVE_LOCATION`，首版不要求逐成员天气。仅后续证据确认明显
+海拔跨度/气候带差异/地理跨度时，才可审查升级MULTI_POINT_BASE_WEATHER，不默认多点。
+S1可开始输入核验；本轮不实施联网海拔核验或天气API。S2样本审计比较原生网格、代表点与合法海拔处理，
 记录时延/可用率/失败语义和许可快照；具体稳定性阈值与采购权限另行批准。
 live延迟/缺变量时：天气路径显式不可用；若后续已批准无天气baseline策略可显式降级，
 不得静默造天气或改变v0.4无农场fallback合同。
