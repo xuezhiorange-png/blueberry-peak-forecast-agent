@@ -1,9 +1,32 @@
 {
-  "task_id": "V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R1",
+  "task_id": "V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R2",
+  "revision_basis": {
+    "authority": "USER_EXPLICIT_R2_RESEARCH_PATH_CORRECTION",
+    "r1_head": "1e187f7cc3fbdb0fd90c3b9c379a7e52945142c5",
+    "official_evidence_and_source_facts_changed": false,
+    "strict_pit_verifier_changed": false,
+    "historical_weather_available_meaning": "ERA5-Land historical/reanalysis research source available; not a claim of newly downloaded or complete hourly base features",
+    "research_execution_in_this_revision": false,
+    "current_path": "Historical harvest + ERA5-Land at BASE_REPRESENTATIVE_LOCATION -> weather features -> yield/peak model -> incremental value validation",
+    "separate_future_path": "Historical origin + genuinely available as-issued forecast -> strict operational replay; currently blocked only for this path"
+  },
   "base_main_sha": "e47dc930198d96f8044058f45b9d228f84c9bc14",
   "pr626_merged": true,
-  "config_hash": "4ebc373bb400e5ca16311682ea3e9d21818686e228fb7f751c950a8d9ba93f13",
-  "local_validation": {
+  "config_hash": "b2825ae1e0bd80e9b9bb836eb480cf6b45004e0516223e0baa9f34e8901437ea",
+  "r2_local_validation": {
+    "focused_tests": "43 passed (original 33 plus 10 path-separation regressions)",
+    "relevant_base_registry_tests_including_focused": "106 passed",
+    "new_tests_fail_before_revision": "10 failed on missing research_paths contract",
+    "ruff_check_repository": "PASS",
+    "ruff_format_repository": "1044 files unchanged",
+    "mypy_backend_app_and_audit_script": "445 source files PASS",
+    "strict_pit_ast_parity_with_r1": "PASS",
+    "source_evidence_matrix_and_frozen_findings_parity_with_r1": "PASS",
+    "json_and_local_references": "PASS",
+    "weather_model_training_executed": false,
+    "new_source_probe_executed": false
+  },
+  "r1_local_validation": {
     "focused_tests": "33 passed",
     "relevant_base_registry_tests_including_focused": "96 passed",
     "ruff_check_repository": "PASS",
@@ -999,8 +1022,17 @@
     "historical_as_issued_verified": false,
     "w7_pit_status": "PIT_NOT_ESTABLISHED",
     "w15_pit_status": "PIT_NOT_ESTABLISHED",
-    "s2_operational_weather_backtest_blocked": true,
-    "s2_04_blocked": true,
+    "historical_weather_feature_research": true,
+    "historical_weather_source": "ERA5_LAND",
+    "historical_weather_role": "REANALYSIS_REFERENCE",
+    "historical_weather_available": true,
+    "weather_feature_research_allowed": true,
+    "weather_incremental_value_validation_allowed": true,
+    "historical_as_issued_forecast_required_for_current_model_research": false,
+    "historical_as_issued_forecast_blocks_s2": false,
+    "strict_operational_forecast_replay": false,
+    "strict_operational_forecast_replay_blocked": true,
+    "live_weather_forecast_authority_frozen": false,
     "weather_source_authority_frozen": false,
     "climate_zone_mapping_used_as_authority": false
   },
@@ -1045,6 +1077,8 @@
     "compatible_by_brand": false
   },
   "boundaries": {
+    "restriction_scope": "THIS_R2_REVISION_EXECUTION_ONLY_NOT_RESEARCH_PATH_ELIGIBILITY",
+    "live_forecast_authority_activated": false,
     "weather_model_training": false,
     "forecast_model_changed": false,
     "database_schema_changed": false,

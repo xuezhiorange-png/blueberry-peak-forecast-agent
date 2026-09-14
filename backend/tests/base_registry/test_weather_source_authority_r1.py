@@ -206,3 +206,66 @@ def test_checked_in_evidence_offline_replay(monkeypatch):
     config["candidate_zone_used_as_authority"] = True
     with pytest.raises(ValueError, match="CANDIDATE_ZONE"):
         validate_evidence(config, evidence)
+
+
+def research_audit():
+    config = json.loads(Path("configs/weather_source_authority_r1.json").read_text())
+    evidence = json.loads(
+        Path("docs/v0-5/s2/weather-source-authority-evidence-r1.json").read_text()
+    )
+    return config, evidence
+
+
+@pytest.mark.parametrize("missing", ["issued_at", "available_at"])
+def test_unestablished_pit_does_not_block_historical_weather_feature_research(missing):
+    strict = qualify(sample().model_copy(update={missing: None}))
+    assert strict["pit_status"] == "PIT_NOT_ESTABLISHED"
+    assert strict["w7_pit_status"] == strict["w15_pit_status"] == "BLOCKED"
+    config, evidence = research_audit()
+    paths = validate_evidence(config, evidence)["research_paths"]
+    assert paths["historical_weather_source"] == "ERA5_LAND"
+    assert paths["historical_weather_role"] == "REANALYSIS_REFERENCE"
+    assert paths["historical_weather_available"] is True
+    assert paths["historical_weather_feature_research"] is True
+    assert paths["weather_feature_research_allowed"] is True
+    assert paths["weather_incremental_value_validation_allowed"] is True
+    assert paths["historical_as_issued_forecast_required_for_current_model_research"] is False
+    assert paths["historical_as_issued_forecast_blocks_s2"] is False
+    assert paths["strict_operational_forecast_replay"] is False
+    assert paths["strict_operational_forecast_replay_blocked"] is True
+    assert paths["live_weather_forecast_authority_frozen"] is False
+    assert evidence["boundaries"]["weather_model_training"] is False
+    assert evidence["boundaries"]["weather_ingestion_pipeline"] is False
+
+
+@pytest.mark.parametrize("mode", ["REANALYSIS", "HINDCAST", "STITCHED"])
+def test_research_permission_does_not_promote_weather_to_as_issued(mode):
+    config, evidence = research_audit()
+    assert validate_evidence(config, evidence)["research_paths"]["weather_feature_research_allowed"]
+    strict = qualify(sample().model_copy(update={"generation_mode": mode}))
+    assert "NOT_AS_ISSUED_FORECAST" in strict["reasons"]
+    assert strict["w7_pit_status"] == strict["w15_pit_status"] == "BLOCKED"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("historical_as_issued_forecast_blocks_s2", True),
+        ("weather_feature_research_allowed", False),
+        ("strict_operational_forecast_replay_blocked", False),
+        ("live_weather_forecast_authority_frozen", True),
+    ],
+)
+def test_path_policy_cannot_recouple_research_to_pit_or_activate_live(field, value):
+    config, evidence = research_audit()
+    config["research_paths"][field] = value
+    evidence["config_hash"] = digest(config)
+    with pytest.raises(ValueError, match="RESEARCH_PATH_CONTRACT_CHANGED"):
+        validate_evidence(config, evidence)
+
+
+def test_recommendation_must_match_two_path_contract():
+    config, evidence = research_audit()
+    evidence["recommendation"]["weather_feature_research_allowed"] = False
+    with pytest.raises(ValueError, match="RESEARCH_PATH_EVIDENCE_MISMATCH"):
+        validate_evidence(config, evidence)
