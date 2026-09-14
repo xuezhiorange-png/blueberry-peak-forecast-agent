@@ -110,6 +110,17 @@ VPD, GDD, chilling, frost, heat-stress and ET0 are explicitly deferred, never im
             f"- {k}: min/median/max = {v['min']:.3f}/{v['median']:.3f}/{v['max']:.3f}"
             for k, v in z["climate"].items()
         )
+        + f"\n\n近期30年映射保持：{z['recent_normal_stability']['stable_count']}"
+        f"/{z['base_count']}。\n"
+        + "\n代表基地（距区内温度中位值最近）："
+        + "、".join(p["canonical_base_name"] for p in z["representative_bases"])
+        + "。\n\n"
+        + "\n".join(
+            f"- {period} {feature}: min/median/max = "
+            f"{v['min']:.3f}/{v['median']:.3f}/{v['max']:.3f}"
+            for period in ("recent_drift_summary", "ytd_2026_same_month_summary")
+            for feature, v in z[period].items()
+        )
         for z in zones
     )
     study_doc = (
