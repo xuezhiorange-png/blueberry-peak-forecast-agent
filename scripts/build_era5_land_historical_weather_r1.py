@@ -30,6 +30,23 @@ def utc_bounds(start: str, end: str) -> tuple[datetime, datetime]:
 
 
 def plan(registry: Path, config: dict[str, Any]) -> dict[str, Any]:
+    required = {
+        "dataset": "reanalysis-era5-land",
+        "query_crs_assumption": "WGS84",
+        "location_crs_authorization": "GRANTED_WITH_WGS84_QUERY_ASSUMPTION",
+        "crs_verification_status": "NOT_ESTABLISHED",
+        "source_coordinate_status": "RANGE_VALID_CRS_UNCONFIRMED",
+        "location_source": "BASE_REPRESENTATIVE_LOCATION",
+        "local_timezone": "Asia/Shanghai",
+        "climate_zone_authority_used": False,
+        "base_coordinate_authority_changed": False,
+        "base_crs_authority_changed": False,
+        "crs_authority_upgrade_authorized": False,
+        "weather_model_training": False,
+        "weather_incremental_value_scoring": False,
+    }
+    if any(config.get(k) != value for k, value in required.items()):
+        raise ValueError("FROZEN_RESEARCH_CONTRACT_MISMATCH")
     if file_hash(registry) != config["registry_file_sha256"]:
         raise ValueError("REGISTRY_FILE_HASH_MISMATCH")
     payload = json.loads(registry.read_text())
@@ -96,7 +113,9 @@ def plan(registry: Path, config: dict[str, Any]) -> dict[str, Any]:
         "base_identity_set_hash": digest([b["base_id"] for b in bases]),
         "requests": requests,
         "dataset": config["dataset"],
-        "utc_padding_policy": "Full UTC dates enclosing local days; extra hours excluded from output",
+        "utc_padding_policy": (
+            "Full UTC dates enclosing local days; extra hours excluded from output"
+        ),
     }
     return {**result, "manifest_hash": digest(result)}
 
