@@ -1,0 +1,102 @@
+{
+  "base_season_audit_count": 117,
+  "bases_post_cutoff_peak_exceeds_business_peak": [
+    "丘北天星基地",
+    "丘北曰者基地",
+    "乡丰蓝莓基地",
+    "保山杨柳基地",
+    "保山由旺基地",
+    "元江甘庄基地",
+    "大理巍山基地",
+    "广南旧莫基地",
+    "建水岔科基地",
+    "建水阿朋基地",
+    "建水面甸基地",
+    "弥勒朋普基地",
+    "永仁猛虎基地",
+    "永仁莲池基地",
+    "澜沧上允基地",
+    "澜沧东回基地",
+    "版纳勐旺基地",
+    "砚山回龙基地",
+    "砚山平远基地",
+    "砚山炭房基地",
+    "砚山盘龙基地",
+    "砚山黑鱼洞基地",
+    "腾冲中和基地",
+    "腾冲曲石基地"
+  ],
+  "climate_zone_mapping_frozen": false,
+  "coordinate_crs_status": "NOT_ESTABLISHED_DEM_QUERY_ASSUMPTION_REQUIRES_REVIEW",
+  "coverage_counts": {
+    "BLOCKED": 35,
+    "PARTIAL": 82
+  },
+  "elevation_established_count": 39,
+  "elevation_pending_count": 0,
+  "historical_identity_count": 144,
+  "historical_mapping_counts": {
+    "AUTHORIZED_ALIAS": 1,
+    "EXACT": 73,
+    "UNRESOLVED": 70
+  },
+  "member_identity_count": 74,
+  "member_status_counts": {
+    "RESOLVED": 73,
+    "UNRESOLVED": 1
+  },
+  "model_execution": false,
+  "old_artifacts_unchanged": true,
+  "post_cutoff_ratio_all_bases": "0.182624",
+  "post_cutoff_total_kg_all_bases": "16539268.208000",
+  "pre_cutoff_total_kg_all_bases": "74025270.947000",
+  "region_counts": {
+    "OUT_OF_YUNNAN": 1,
+    "YUNNAN_CORE": 38
+  },
+  "registry_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+  "source_reconciliation": [
+    {
+      "excluded_unresolved_kg": "18491816.276000",
+      "season": "2023-2024",
+      "source_total_kg": "30148211.706000"
+    },
+    {
+      "excluded_unresolved_kg": "11849270.376000",
+      "season": "2024-2025",
+      "source_total_kg": "42440018.628000"
+    },
+    {
+      "excluded_unresolved_kg": "2077525.106000",
+      "season": "2025-2026",
+      "source_total_kg": "50394920.579000"
+    }
+  ],
+  "task_id": "V0_5_S1_BASE_REGISTRY_AND_BUSINESS_BOUNDARY_R1",
+  "total_base_count": 39,
+  "totals_semantics": "MAPPED_RECORDED_SUBTOTALS_INCLUDE_PARTIAL_BASES_NOT_COMPLETE_YIELD_LABELS",
+  "workbook_hash": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+  "base_main_sha": "6baeb880ad88e7e277eacd696fe622c7ae721327",
+  "private_artifact_directory": "blueberry-area-yield-artifacts/base-registry-s1-final",
+  "artifact_file_hashes": {
+    "base-daily-ledger.csv": "39a98f79e8be9022e25b4f093ff773e35fe40784122fcfc0612595945b61d3ef",
+    "base-registry-normalized.csv": "2ebc7744a1384cd673bc1e9357b6092e8bcce9d0148d2d58f8a36406105eebfb",
+    "base-registry-v1.json": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "business-season-boundary-audit.csv": "3996b3bbb23a206f71377c7f3bd656574066ab8535a97f965df2286852160795",
+    "elevation-enrichment.json": "f67b4e85ed80117c7895cc467b09c70aa7e88201edaf01f5d809ad4c58d70d43",
+    "member-coverage.csv": "b2433766ea987343081e6f870d519c29937d923bb67349b1ba9dbe9a99d119fa",
+    "member-farm-mapping.csv": "469d1b2f7f05a0e605bc58dda3b5e6bfeda3b23d23b766170dd618e8b360b344",
+    "old_artifact_hashes.json": "1e66bc5448cf3de84c9fb862646cd510174b3319f535a19c43f33030a1914807",
+    "region-screen.json": "555d4e78edf409255711b9aac327013367eda4d4c631281fd88551108a207725",
+    "source-manifest.json": "6bf1dede2ea9aacf9d1964aafaebbc68b6ce32868bc0cad04da1373a1840cd10",
+    "summary.json": "e659e444b48850ba246185bc44d034f6f425f2f7ceec26bb8f99a4863f23fe32"
+  },
+  "completeness_policy": "WHOLE_JULY_01_TO_APRIL_15_KNOWN_NO_SOURCE_MARGIN_ZERO_FILL",
+  "fully_eligible_base_season_count": 0,
+  "model_changed": false,
+  "v0_4_authority_changed": false,
+  "database_schema_changed": false,
+  "mcp_changed": false,
+  "ready_authorized": false,
+  "merge_authorized": false
+}

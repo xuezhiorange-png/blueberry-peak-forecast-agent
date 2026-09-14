@@ -10,6 +10,7 @@ R2明确以基地为预测实体；原R1的 Multi-Farm 名称/任务ID仅用于�
 - [阶段和最终验收门槛](acceptance-gates.md)
 - [天气源候选评估](weather-source-evaluation.md)
 - [基地位置输入模板](base-registry-input-template.csv)
+- [S1实际基地登记与边界审计](s1/base-registry-source-audit.md)（新增执行记录；下文规划历史状态保留）
 
 ## 本次核验身份
 
