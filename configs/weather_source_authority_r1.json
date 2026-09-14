@@ -1,6 +1,19 @@
 {
-  "schema_version": "S2_SOURCE_AUDIT_R1",
-  "task_id": "V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R1",
+  "schema_version": "S2_SOURCE_AUDIT_R2",
+  "task_id": "V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R2",
+  "research_paths": {
+    "historical_weather_feature_research": true,
+    "historical_weather_source": "ERA5_LAND",
+    "historical_weather_role": "REANALYSIS_REFERENCE",
+    "historical_weather_available": true,
+    "weather_feature_research_allowed": true,
+    "weather_incremental_value_validation_allowed": true,
+    "historical_as_issued_forecast_required_for_current_model_research": false,
+    "historical_as_issued_forecast_blocks_s2": false,
+    "strict_operational_forecast_replay": false,
+    "strict_operational_forecast_replay_blocked": true,
+    "live_weather_forecast_authority_frozen": false
+  },
   "weather_source_authority_frozen": false,
   "candidate_zone_used_as_authority": false,
   "prediction_entity": "BASE",
@@ -66,6 +79,7 @@
     "live_available",
     "evidence_ids"
   ],
+  "forbidden_scope": "THIS_R2_REVISION_EXECUTION_ONLY_NOT_FUTURE_RESEARCH_PATH_ELIGIBILITY",
   "forbidden": [
     "bulk_download",
     "ingestion",

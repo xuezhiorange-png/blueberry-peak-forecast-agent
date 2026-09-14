@@ -1,8 +1,15 @@
-# V0.5 S2-01 — Weather source authority / PIT audit R1
+# V0.5 S2-01 — Weather source audit: R2 research-path correction
 
 ## 1. Decision and execution identity
 
-`TASK_ID=V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R1`
+`TASK_ID=V0_5_S2_WEATHER_SOURCE_AUTHORITY_AUDIT_R2`
+
+R2 continues Draft PR #627 from R1 HEAD
+`1e187f7cc3fbdb0fd90c3b9c379a7e52945142c5`. The user explicitly clarified that
+blueberry yield, harvest curve and peak prediction are the business target;
+weather is an input feature, not the prediction target. This revision changes
+research-path scope only. R1 official source facts, snapshots, PIT findings and
+the strict PIT verifier remain unchanged. No new source investigation was run.
 
 Actual base: `e47dc930198d96f8044058f45b9d228f84c9bc14` (PR #626 merge,
 verified on fetched `origin/main`). Branch: `codex/v0-5-s2-weather-source-authority-r1`.
@@ -12,15 +19,38 @@ Official sources were refreshed on **2026-09-14**, not copied from the earlier
 | Role | Recommendation | Qualification boundary |
 |---|---|---|
 | LONG_TERM_CLIMATOLOGY | ERA5-Land monthly | Candidate; reuse immutable S1 source evidence, not candidate zones |
-| HISTORICAL_ACTUAL_WEATHER | ERA5-Land hourly reanalysis reference | Candidate, not observed field truth; hourly extraction not executed here |
+| HISTORICAL_ACTUAL_WEATHER | ERA5-Land historical/reanalysis reference | Available for current feature research; not observed field truth or a claim of new hourly extraction |
 | HISTORICAL_FORECAST_ARCHIVE | **NONE qualified** | Historical issued/available evidence and project access not established |
 | LIVE_FORECAST | ECMWF Open IFS control, conditional | Public index verified; actual fields/local-day aggregation not verified; not a W15 guarantee |
 
-`S2_OPERATIONAL_WEATHER_BACKTEST_BLOCKED=true` and `S2_04_BLOCKED=true`.
-This is an **audit completed with an operational-data dependency**, not permission
-to substitute actual weather or hindcast. No source becomes active authority.
-Open-Meteo remains a secondary, entitlement-dependent live candidate, not a
-shortcut around the missing historical PIT evidence.
+### Two independent paths
+
+| Path | Inputs and purpose | Current scope |
+|---|---|---|
+| **A — HISTORICAL_WEATHER_FEATURE_RESEARCH** | Historical harvest + ERA5-Land at BASE_REPRESENTATIVE_LOCATION → weather features → yield/peak model → incremental value validation | **Allowed; no historical as-issued prerequisite** |
+| **B — STRICT_OPERATIONAL_FORECAST_REPLAY** | Historical forecast origin + genuinely visible as-issued forecast → strict simulation of online prediction | **Blocked; existing PIT gates unchanged** |
+
+`HISTORICAL_AS_ISSUED_FORECAST_BLOCKS_S2=false`.
+Only `STRICT_OPERATIONAL_FORECAST_REPLAY_BLOCKED=true` describes the remaining
+PIT dependency. R1's broad S2 blocking interpretation is superseded by this
+explicit user authorization; R1's missing as-issued evidence is not superseded.
+ECMWF archive access is **not** the current main task or a prerequisite for A.
+
+`HISTORICAL_WEATHER_AVAILABLE=true` means ERA5-Land is an available historical
+research source, supported by R1 catalogue evidence and the existing S1 snapshot;
+it does not assert that new per-base hourly features have already been downloaded,
+qualified or ingested. Source resolution, completeness, units and base-location
+provenance remain subject to the relevant research preparation checks.
+
+Path A may study weather-feature incremental value using historical/reanalysis
+weather and historical yield labels. Such results must be labelled **historical
+weather feature research**, not a PIT reproduction of what an operator knew.
+Reanalysis for a target period must not be described as an available future
+weather forecast at its earlier origin. Neither permission implies a proven
+weather gain, an active live source, or a frozen authority.
+
+This R2 revision implements no ingestion or training: permission for the research
+direction is separate from execution in this narrowly scoped review fix.
 
 ## 2. Evidence and minimum probe
 
@@ -94,7 +124,7 @@ A published dissemination schedule is not an actual historical availability rece
 ### C3 — Three different Open-Meteo services
 
 [Historical Forecast](https://open-meteo.com/en/docs/historical-forecast-api)
-stitches short leads from successive runs: rejected for this single-origin task.
+stitches short leads from successive runs: rejected for strict single-origin replay.
 [Single Runs](https://open-meteo.com/en/docs/single-runs-api) identifies UTC
 initialization, not publication/access time. The early IFS archive explicitly
 contains 49r1 hindcasts, including dates preceding operational49r1 deployment;
@@ -108,13 +138,16 @@ apply elevation downscaling. Explicit model and processing choices are required.
 file modification from API availability. `generationtime_ms` measures query
 processing; it is not `issued_at`. `OPEN_METEO_PIT_STATUS=PIT_NOT_ESTABLISHED`.
 
-## 4. Frozen research PIT contract
+## 4. Unchanged PIT contract — path B only
 
 [Configuration](../../../configs/weather_source_authority_r1.json) is located at
 repository `configs/weather_source_authority_r1.json` (see executable command below).
 The independent offline [verifier](../../../scripts/audit_weather_source_r1.py)
 is at repository `scripts/audit_weather_source_r1.py`.
 It does not implement ingestion, interpolation, model features or weather scoring.
+`qualify(sample)` continues to qualify **strict as-issued replay samples only**.
+It is not the eligibility gate for path A. The separate `research_paths` result
+reports the user-authorized research scope without promoting any sample to PIT PASS.
 
 Every sample binds `base_id`, `forecast_origin_at`, `forecast_origin_timezone`,
 `issued_at`, `available_at`, `retrieved_at`, `raw_artifact_hash`,
@@ -141,10 +174,10 @@ Hard gates:
 The verifier checks **evidence structure and declared normalized support**, not
 the authenticity of a publisher's receipt. A caller cannot turn synthetic tests
 into actual provider qualification. Raw weather-byte verification and independently
-reviewed timestamp/provenance evidence remain prerequisites before any later pipeline.
+reviewed timestamp/provenance evidence remain prerequisites for a strict replay pipeline.
 `PIT_CONTRACT_PASS` therefore is not authority activation.
 
-## 5. W7/W15 and interval semantics
+## 5. Strict-replay W7/W15 and interval semantics — unchanged
 
 For local origin date D, W7 is `[D+1 00:00,D+8 00:00)` and W15 is
 `[D+1 00:00,D+16 00:00)` in Asia/Shanghai. Every required variable must cover
@@ -196,10 +229,20 @@ From repository root, without network:
 git diff --check
 ```
 
-Local execution: **33 focused tests PASS; 96 base-registry tests including those
+R1 execution reference: **33 focused tests PASS; 96 base-registry tests including those
 33 PASS**. Repository-wide Ruff/format PASS (1044 files); Mypy backend/app PASS
 (444 files), audit-script Mypy PASS. JSON and relative references PASS. These are
 software/document checks, not successful provider PIT backtests.
+
+R2 execution: **43 focused tests PASS; 106 related tests including focused PASS**.
+The 10 new regressions first failed against the missing R1 path-separation contract.
+They now prove that missing issue/availability evidence does not block A, while
+reanalysis/hindcast/stitched inputs still fail B. They also reject permission drift,
+accidental live activation and config/evidence disagreement. Repository Ruff and
+format PASS (1044 files), Mypy app + audit script PASS (445 files), JSON/reference/
+diff checks PASS. AST comparison confirms R1 `qualify`, `coverage`, `window`,
+sample/run/support contracts and hash implementation are unchanged. R1 official
+evidence, source/variable matrices and frozen PIT findings compare exactly equal.
 
 Private document snapshot replay compares every raw SHA256 against both capture
 manifest and checked-in evidence, with no network. The unit replay additionally
@@ -208,17 +251,37 @@ forbids socket creation. Focused software gates cover timestamps, full W7/W15,
 licence, archive coverage, proof references, candidate zones and canonical hashes.
 Relevant S1 regressions must pass; GitHub full-suite remains required on new HEAD.
 
-Next evidence need, **not a new authorized task**: project-legal operational
-archive access plus original issue/availability provenance, exact years/cycles,
-full local W7/W15 parameter support and archive/live compatibility. If unavailable,
-weather operational backtesting stays blocked; weather is optional and must later
-prove incremental value. No new supplier account, purchase or S2-04 pipeline here.
+Current S2 research direction is path A: ERA5-Land historical weather features
+and historical harvest, evaluated for incremental yield/peak value. It does not
+wait for an operational forecast archive. No gain evaluation is executed in R2.
+
+Future path B alone still needs project-legal archive access, issue/availability
+provenance, local W7/W15 support and archive/live compatibility. Those unresolved
+conditions do not block A. No further ECMWF access investigation or procurement
+is undertaken in this revision. Weather remains optional and must prove value.
+
+The execution prohibitions below apply **to this R2 revision only**; they do not
+revoke the explicitly allowed historical-weather research direction.
 
 ```ini
 WEATHER_SOURCE_AUTHORITY_STATUS=CANDIDATE
 WEATHER_SOURCE_AUTHORITY_FROZEN=false
 HISTORICAL_AS_ISSUED_AUTHORITY_CANDIDATE=NONE
-S2_OPERATIONAL_WEATHER_BACKTEST_BLOCKED=true
+HISTORICAL_AS_ISSUED_VERIFIED=false
+W7_PIT_STATUS=PIT_NOT_ESTABLISHED
+W15_PIT_STATUS=PIT_NOT_ESTABLISHED
+HISTORICAL_WEATHER_FEATURE_RESEARCH=true
+HISTORICAL_WEATHER_SOURCE=ERA5_LAND
+HISTORICAL_WEATHER_ROLE=REANALYSIS_REFERENCE
+HISTORICAL_WEATHER_AVAILABLE=true
+WEATHER_FEATURE_RESEARCH_ALLOWED=true
+WEATHER_INCREMENTAL_VALUE_VALIDATION_ALLOWED=true
+HISTORICAL_AS_ISSUED_FORECAST_REQUIRED_FOR_CURRENT_MODEL_RESEARCH=false
+HISTORICAL_AS_ISSUED_FORECAST_BLOCKS_S2=false
+STRICT_OPERATIONAL_FORECAST_REPLAY=false
+STRICT_OPERATIONAL_FORECAST_REPLAY_BLOCKED=true
+LIVE_WEATHER_FORECAST_AUTHORITY_FROZEN=false
+LIVE_FORECAST_AUTHORITY_ACTIVATED=false
 CLIMATE_ZONE_MAPPING_REQUIRED=false
 CLIMATE_ZONE_MAPPING_USED_AS_AUTHORITY=false
 ELEVATION_EXTERNAL_VERIFICATION_NOT_AUTHORIZED=true
@@ -240,5 +303,5 @@ S2_07_NOT_AUTHORIZED=true
 READY_ELIGIBLE=false
 READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
-FINAL_STATUS=COORDINATOR_S2_WEATHER_SOURCE_R1_REVIEW
+FINAL_STATUS=COORDINATOR_S2_WEATHER_SOURCE_R2_REVIEW
 ```

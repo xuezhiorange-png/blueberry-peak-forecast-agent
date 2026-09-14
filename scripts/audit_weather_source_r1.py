@@ -199,6 +199,25 @@ def validate_evidence(config: dict[str, Any], evidence: dict[str, Any]) -> dict[
         raise ValueError("WINDOW_CONTRACT_CHANGED")
     if evidence["config_hash"] != digest(config):
         raise ValueError("CONFIG_HASH_MISMATCH")
+    # R2 business authorization is separate from the unchanged strict PIT gate.
+    # These are research-path permissions, not a training/ingestion execution.
+    paths = {
+        "historical_weather_feature_research": True,
+        "historical_weather_source": "ERA5_LAND",
+        "historical_weather_role": "REANALYSIS_REFERENCE",
+        "historical_weather_available": True,
+        "weather_feature_research_allowed": True,
+        "weather_incremental_value_validation_allowed": True,
+        "historical_as_issued_forecast_required_for_current_model_research": False,
+        "historical_as_issued_forecast_blocks_s2": False,
+        "strict_operational_forecast_replay": False,
+        "strict_operational_forecast_replay_blocked": True,
+        "live_weather_forecast_authority_frozen": False,
+    }
+    if config.get("research_paths") != paths:
+        raise ValueError("RESEARCH_PATH_CONTRACT_CHANGED")
+    if any(evidence["recommendation"].get(key) != value for key, value in paths.items()):
+        raise ValueError("RESEARCH_PATH_EVIDENCE_MISMATCH")
     ids: set[str] = set()
     for record in evidence["official_evidence"]:
         for field in (
@@ -242,6 +261,7 @@ def validate_evidence(config: dict[str, Any], evidence: dict[str, Any]) -> dict[
         "evidence_hash": digest(evidence),
         "network_used": False,
         "weather_source_authority_frozen": False,
+        "research_paths": paths,
     }
 
 
