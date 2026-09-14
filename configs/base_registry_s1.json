@@ -1,0 +1,17 @@
+{
+  "task_id": "V0_5_S1_BASE_REGISTRY_AND_BUSINESS_BOUNDARY_R1",
+  "workbook_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+  "expected_base_count": 39,
+  "prediction_entity": "BASE",
+  "area_grain": "BASE_TOTAL_PRODUCTIVE_AREA",
+  "business_cutoff_month_day": "04-15",
+  "season_start_policy": "EXISTING_JULY_01_CALENDAR_NO_SOURCE_MARGIN_ZERO_FILL",
+  "completeness_policy": "ALL_BUSINESS_WINDOW_LABELS_KNOWN_ALL_MEMBERS_RESOLVED",
+  "aliases": {
+    "建水南庄基地": ["建水南庄农场", "configs/confirmed_total_r4.json:user explicit confirmation of identity equivalence"]
+  },
+  "history_config": "configs/frozen_evidence_expansion_r6.json",
+  "third_season_config": "configs/three_season_r7.json",
+  "climate_zone_mapping_frozen": false,
+  "model_execution_authorized": false
+}
