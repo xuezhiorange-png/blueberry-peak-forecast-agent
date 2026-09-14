@@ -219,6 +219,42 @@ def run(source: Path, registry_root: Path, output: Path, config_path: Path) -> N
                         for c in ("latitude", "longitude")
                     },
                     "climate": summary,
+                    "recent_normal_stability": {
+                        "stable_count": sum(
+                            result["recent_labels"][i] == zone
+                            for i, label in enumerate(result["baseline_labels"])
+                            if label == zone
+                        ),
+                        "base_count": len(members),
+                    },
+                    "recent_drift_summary": {
+                        f: {
+                            "min": min(p["drift"][f] for p in members),
+                            "median": float(np.median([p["drift"][f] for p in members])),
+                            "max": max(p["drift"][f] for p in members),
+                        }
+                        for f in (
+                            "temperature_c",
+                            "precipitation_mm",
+                            "dewpoint_depression_c",
+                            "radiation_mj_m2",
+                        )
+                    },
+                    "ytd_2026_same_month_summary": {
+                        f: {
+                            "min": min(p["ytd"]["same_month_anomalies"][f] for p in members),
+                            "median": float(
+                                np.median([p["ytd"]["same_month_anomalies"][f] for p in members])
+                            ),
+                            "max": max(p["ytd"]["same_month_anomalies"][f] for p in members),
+                        }
+                        for f in (
+                            "temperature_c",
+                            "precipitation_mm",
+                            "dewpoint_depression_c",
+                            "radiation_mj_m2",
+                        )
+                    },
                     "descriptive_label": (
                         f"温度中位{summary['annual_mean_temperature_c']['median']:.1f}°C / "
                         f"年降水中位{summary['annual_precipitation_mm']['median']:.0f}mm / "

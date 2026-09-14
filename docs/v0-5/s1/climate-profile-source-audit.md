@@ -69,11 +69,14 @@ python -m scripts.run_climate_study_r2 --source /path/to/climate-zone-r2-source 
 
 Source replay was additionally executed with `socket.socket.connect` disabled; the complete study
 was replayed in a fresh process under the same network prohibition. Every file hash in the final
-study manifest matched. Final artifact directory: `blueberry-area-yield-artifacts/climate-zone-r2-final`;
-replay: `blueberry-area-yield-artifacts/climate-zone-r2-final-replay`.
+study manifest matched. Final artifact directory:
+`blueberry-area-yield-artifacts/climate-zone-r2-review-complete`;
+replay: `blueberry-area-yield-artifacts/climate-zone-r2-review-complete-replay`.
 The earlier `climate-zone-r2-study` is an intermediate snapshot preserved, not the final pointer.
 Only geographic extent diagnostics were subsequently added; scores, parameters and assignments did
-not change. Raw files and the frozen source manifest were never rewritten.
+not change. The final review-complete snapshot additionally aggregates the already-computed
+recent-normal stability, recent drift and Jan-Aug anomalies per zone. All other payload hashes
+match the preceding final snapshot. Raw files and the frozen source manifest were never rewritten.
 
 For a new authorized download, use `python -m scripts.retrieve_climate_zone_r2 --output <new-private-directory>`.
 Existing directories are refused. Five regional requests, never 38 separate per-base downloads.

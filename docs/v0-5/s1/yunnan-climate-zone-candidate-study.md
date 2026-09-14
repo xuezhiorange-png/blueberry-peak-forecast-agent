@@ -62,6 +62,19 @@
 - precipitation_seasonality: min/median/max = 0.634/0.684/0.801
 - warmest_month_mean_temperature_c: min/median/max = 20.929/21.797/22.768
 
+近期30年映射保持：8/8。
+
+代表基地（距区内温度中位值最近）：建水阿朋基地、弥勒朋普基地、弥勒巡检司基地。
+
+- recent_drift_summary dewpoint_depression_c: min/median/max = -0.291/-0.170/-0.076
+- recent_drift_summary precipitation_mm: min/median/max = -72.806/-57.547/-0.982
+- recent_drift_summary radiation_mj_m2: min/median/max = -437.782/-431.927/-417.914
+- recent_drift_summary temperature_c: min/median/max = 0.196/0.356/0.375
+- ytd_2026_same_month_summary dewpoint_depression_c: min/median/max = -0.188/0.096/0.297
+- ytd_2026_same_month_summary precipitation_mm: min/median/max = -42.641/-0.621/76.501
+- ytd_2026_same_month_summary radiation_mj_m2: min/median/max = 13.861/34.227/53.108
+- ytd_2026_same_month_summary temperature_c: min/median/max = 0.432/0.618/0.705
+
 ### Z2: 温度中位14.6°C / 年降水中位1860mm / 海拔中位1703m
 
 基地数：4；成员：保山由旺基地、腾冲曲石基地、腾冲中和基地、保山杨柳基地。
@@ -78,6 +91,19 @@
 - monsoon_fraction: min/median/max = 0.796/0.812/0.830
 - precipitation_seasonality: min/median/max = 0.697/0.749/0.813
 - warmest_month_mean_temperature_c: min/median/max = 18.009/18.547/19.567
+
+近期30年映射保持：4/4。
+
+代表基地（距区内温度中位值最近）：腾冲曲石基地、保山由旺基地、腾冲中和基地。
+
+- recent_drift_summary dewpoint_depression_c: min/median/max = 0.153/0.173/0.268
+- recent_drift_summary precipitation_mm: min/median/max = -483.554/-297.556/-248.978
+- recent_drift_summary radiation_mj_m2: min/median/max = -302.634/-283.711/-257.298
+- recent_drift_summary temperature_c: min/median/max = 0.382/0.610/0.656
+- ytd_2026_same_month_summary dewpoint_depression_c: min/median/max = -0.289/0.079/0.238
+- ytd_2026_same_month_summary precipitation_mm: min/median/max = -87.955/-72.619/-15.626
+- ytd_2026_same_month_summary radiation_mj_m2: min/median/max = -41.185/-32.463/-27.970
+- ytd_2026_same_month_summary temperature_c: min/median/max = 0.150/0.336/0.426
 
 ### Z3: 温度中位19.2°C / 年降水中位1742mm / 海拔中位949m
 
@@ -96,6 +122,19 @@
 - precipitation_seasonality: min/median/max = 0.556/0.756/0.899
 - warmest_month_mean_temperature_c: min/median/max = 21.900/22.096/25.179
 
+近期30年映射保持：5/5。
+
+代表基地（距区内温度中位值最近）：腾冲德宏基地、澜沧上允基地、版纳勐旺基地。
+
+- recent_drift_summary dewpoint_depression_c: min/median/max = -0.279/0.034/0.398
+- recent_drift_summary precipitation_mm: min/median/max = -706.816/-224.111/-176.681
+- recent_drift_summary radiation_mj_m2: min/median/max = -379.310/-336.110/-210.569
+- recent_drift_summary temperature_c: min/median/max = 0.061/0.449/0.660
+- ytd_2026_same_month_summary dewpoint_depression_c: min/median/max = -0.956/-0.126/0.012
+- ytd_2026_same_month_summary precipitation_mm: min/median/max = -27.205/124.316/263.140
+- ytd_2026_same_month_summary radiation_mj_m2: min/median/max = -71.616/-63.810/24.064
+- ytd_2026_same_month_summary temperature_c: min/median/max = -0.383/0.104/0.502
+
 ### Z4: 温度中位16.1°C / 年降水中位1192mm / 海拔中位1521m
 
 基地数：15；成员：广南旧莫基地、丘北曰者基地、砚山黑鱼洞基地、砚山阿猛基地、弥勒西三基地、丘北双龙营二基地、砚山回龙基地、丘北双龙营一基地、砚山炭房基地、砚山平远基地、泸西基地、丘北天星基地、曲靖潇湘基地、砚山维摩基地、砚山盘龙基地。
@@ -113,6 +152,19 @@
 - precipitation_seasonality: min/median/max = 0.658/0.707/0.777
 - warmest_month_mean_temperature_c: min/median/max = 18.298/20.749/22.390
 
+近期30年映射保持：14/15。
+
+代表基地（距区内温度中位值最近）：砚山黑鱼洞基地、砚山炭房基地、砚山维摩基地。
+
+- recent_drift_summary dewpoint_depression_c: min/median/max = -0.209/-0.133/0.102
+- recent_drift_summary precipitation_mm: min/median/max = -168.161/-20.152/11.101
+- recent_drift_summary radiation_mj_m2: min/median/max = -433.252/-412.020/-354.200
+- recent_drift_summary temperature_c: min/median/max = 0.265/0.293/0.547
+- ytd_2026_same_month_summary dewpoint_depression_c: min/median/max = -0.361/0.002/0.442
+- ytd_2026_same_month_summary precipitation_mm: min/median/max = -10.124/83.322/151.557
+- ytd_2026_same_month_summary radiation_mj_m2: min/median/max = -79.762/6.629/15.043
+- ytd_2026_same_month_summary temperature_c: min/median/max = 0.567/0.646/0.824
+
 ### Z5: 温度中位16.4°C / 年降水中位1298mm / 海拔中位1678m
 
 基地数：6；成员：永仁莲池基地、永仁猛虎基地、富民款庄基地、永仁麦拉基地、牟定民乐基地、大理巍山基地。
@@ -129,5 +181,18 @@
 - monsoon_fraction: min/median/max = 0.827/0.856/0.874
 - precipitation_seasonality: min/median/max = 0.749/0.789/0.869
 - warmest_month_mean_temperature_c: min/median/max = 18.907/20.722/23.623
+
+近期30年映射保持：4/6。
+
+代表基地（距区内温度中位值最近）：牟定民乐基地、永仁猛虎基地、富民款庄基地。
+
+- recent_drift_summary dewpoint_depression_c: min/median/max = 0.092/0.254/0.287
+- recent_drift_summary precipitation_mm: min/median/max = -254.225/-200.924/-184.020
+- recent_drift_summary radiation_mj_m2: min/median/max = -419.449/-379.771/-365.207
+- recent_drift_summary temperature_c: min/median/max = 0.157/0.475/0.631
+- ytd_2026_same_month_summary dewpoint_depression_c: min/median/max = -0.118/-0.007/0.488
+- ytd_2026_same_month_summary precipitation_mm: min/median/max = -47.561/2.162/71.257
+- ytd_2026_same_month_summary radiation_mj_m2: min/median/max = -55.142/-47.573/-19.078
+- ytd_2026_same_month_summary temperature_c: min/median/max = -0.130/0.249/0.557
 
 本报告只提出候选，不建立生产气候区 authority，不开启 S2。BASE_REGISTRY_V1 及 R2 alias authority 保持不变。不使用采摘量、亩产、面积、峰值或预测误差。
