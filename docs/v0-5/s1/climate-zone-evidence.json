@@ -1,0 +1,189 @@
+{
+  "area_weights_used": false,
+  "artifact_manifest": {
+    "config_hash": "ba3a1c59d22f166864e33462dec31732fb2ffd56bb5454bfd88a3716374119a6",
+    "dependencies": {
+      "h5netcdf": "1.8.1",
+      "h5py": "3.16.0",
+      "numpy": "2.4.6",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.18.0",
+      "xarray": "2026.7.0"
+    },
+    "file_hashes": {
+      "base-climate-profile-v1.csv": "7a008d6b59fb16b34db3d2a7a66beace14b8f9532a6ed147acfd2d9d498d3b31",
+      "base-climate-profile-v1.json": "b07cf3b7ccb526ec2adb89d4a106b6ffc1bfc09e4096de114479beb8e894d152",
+      "candidate-study.json": "f4d7d53dbf400666982a4c125aa0c47387b9506b0788620763021325c84d1ba2",
+      "candidate-zone-evaluation.csv": "8e61d158828a19237765bf0b577892588d4f77dad659da6875f194245a763d6d",
+      "candidate-zone-mapping.csv": "a880690a2cb77f85224f7dab03b98f33830da2ae3d9463e4a0bd397d8280b151",
+      "candidate-zone-profile.json": "ef384baff75b12cda6e9616fe201c9900fb8f9788a7235c2b058a376be626b69",
+      "climate-source-snapshot-manifest.json": "f3df04f2f977825ee7226cef6ec6ae5b4f85cce7104620d963d06e0feb08d9ee",
+      "coordinate-sensitivity.csv": "58cae81ce9c6feeeada82f2e4cc6ed93ad904e9b1be7e7bddc919bd18d3f8eb3",
+      "current-year-2026-ytd.csv": "306afdcb5bd88cad9fee0e6c0f90e123a6fe2ce6dc4e6d03274cad2c82752082",
+      "excluded-population.json": "31eb8389d200ec663df359214a82af7f92486cf9b29a8e4e7f0289a5eb9421af",
+      "recent-30y-zone-sensitivity.csv": "39a24495198b4b43fc63c722326a7ddff0a299c74f9165802edca98c45f23473",
+      "recent-climate-drift-2021-2025.csv": "5e94cd8862323fbde8926e0de976e87a44a3898100730f41f52a7afd449735e5",
+      "study-config.json": "01f443afd6d363b081d82f05d3a3e748c36415e8354be2b7c2b0e125b966e001"
+    },
+    "hash": "e71c4279131f810dfb94118f8dabb25584aeee403cfcaff6831c09f4c2091357",
+    "registry_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "source_hash": "ddb4e9beb6a68927de882186cd3cbb7efa6b3238d56fb4f20bb2d36b8655ac70",
+    "task_id": "V0_5_S1_CLIMATE_PROFILE_AND_YUNNAN_ZONE_STUDY_R2"
+  },
+  "base_main_sha": "7de37a0db5fdfef1504582090825483d7c97c52f",
+  "candidate_k": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "climate_zone_mapping_frozen": false,
+  "climate_zone_profile_authority_frozen": false,
+  "coordinate_stable": 38,
+  "database_changed": false,
+  "drift_counts": {
+    "LOW": 25,
+    "MODERATE": 13
+  },
+  "forecast_model_changed": false,
+  "harvest_features_used": false,
+  "mcp_changed": false,
+  "merge_authorized": false,
+  "offline_source_replay": "PASS",
+  "out_of_yunnan_excluded": 1,
+  "population": 38,
+  "private_artifact_directory": "blueberry-area-yield-artifacts/climate-zone-r2-review-complete",
+  "ready_authorized": false,
+  "recent_shift_bases": [
+    "弥勒西三基地",
+    "富民款庄基地",
+    "大理巍山基地"
+  ],
+  "recommendation_status": "CANDIDATE_FOR_REVIEW",
+  "registry_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+  "request_id_supplement_hash": "5658716d214b79fc47da1e2b168a14cb7b5bb26f12d6315bd87c8c9a1360eef0",
+  "request_ids": [
+    {
+      "batch": 0,
+      "exact_request_match": true,
+      "request_id": "345bfd42-15df-4c63-8132-ed007e2514a0",
+      "status": "successful"
+    },
+    {
+      "batch": 1,
+      "exact_request_match": true,
+      "request_id": "ee16a10b-90d2-42b0-8823-85efe120ef4c",
+      "status": "successful"
+    },
+    {
+      "batch": 2,
+      "exact_request_match": true,
+      "request_id": "6defe269-eb4a-41f1-a1ed-5bf6a9bdee58",
+      "status": "successful"
+    },
+    {
+      "batch": 3,
+      "exact_request_match": true,
+      "request_id": "ca5f3b1e-ffcf-421a-bcae-d2707647071c",
+      "status": "successful"
+    },
+    {
+      "batch": 4,
+      "exact_request_match": true,
+      "request_id": "952c8389-e991-47d7-9191-41d191d21601",
+      "status": "successful"
+    }
+  ],
+  "selected": {
+    "calinski_harabasz": 14.73116445525241,
+    "coherence": {
+      "annual_mean_temperature_c": 0.3615364637625148,
+      "annual_precipitation_mm": 0.348337736916641,
+      "annual_radiation_mj_m2": 0.2540432947860631,
+      "dewpoint_depression_c": 0.311765490687876,
+      "elevation_m": 0.39716716889035925
+    },
+    "combined_rank": 7.3,
+    "coordinate_agreement": 1,
+    "davies_bouldin": 1.042671713792136,
+    "eligible": true,
+    "geographic_extents": [
+      {
+        "latitude": [
+          23.68,
+          24.24
+        ],
+        "longitude": [
+          102.94,
+          103.44
+        ]
+      },
+      {
+        "latitude": [
+          24.88,
+          25.2
+        ],
+        "longitude": [
+          98.41,
+          99.1
+        ]
+      },
+      {
+        "latitude": [
+          22.41,
+          24.59
+        ],
+        "longitude": [
+          97.86,
+          101.95
+        ]
+      },
+      {
+        "latitude": [
+          23.51,
+          25.43
+        ],
+        "longitude": [
+          103.48,
+          104.97
+        ]
+      },
+      {
+        "latitude": [
+          25.26,
+          26.08
+        ],
+        "longitude": [
+          100.21,
+          102.67
+        ]
+      }
+    ],
+    "k": 5,
+    "method": "kmeans",
+    "method_ari": 0.7497359708559291,
+    "resample_ari_mean": 0.7684694793065919,
+    "resample_ari_min": 0.4291807440315084,
+    "silhouette": 0.28854849038035835,
+    "sizes": [
+      8,
+      4,
+      5,
+      15,
+      6
+    ],
+    "tiny_cluster_warning": false
+  },
+  "source_gate": "PASS",
+  "source_hash": "ddb4e9beb6a68927de882186cd3cbb7efa6b3238d56fb4f20bb2d36b8655ac70",
+  "study_replay": "PASS",
+  "task_id": "V0_5_S1_CLIMATE_PROFILE_AND_YUNNAN_ZONE_STUDY_R2",
+  "temporal_agreement": 0.9210526315789473,
+  "yield_features_used": false,
+  "local_focused_tests": "22 passed",
+  "local_relevant_tests": "352 passed, 9 skipped (base_registry, area_yield, mcp)",
+  "local_static_checks": "ruff check PASS; format 1038 files PASS; mypy backend/app 444 files and research scripts 6 files PASS; JSON/reference/diff PASS",
+  "ci_acceptance": "Exact-head CI and full-suite-canary required; reported separately after final SHA is known"
+}
