@@ -1,0 +1,126 @@
+{
+  "task_id": "V0_5_S4_LAGGED_WEATHER_INCREMENTAL_VALUE_R1",
+  "phase": "V0.5-S4-01-LAGGED-WEATHER-INCREMENTAL-VALUE",
+  "purpose": "Matched D to D+1..D+15 ablation of frozen no-weather and lagged ERA5-Land weather features.",
+  "s3_baseline_config": {
+    "path": "configs/v0_5_s3_known_support_no_weather_baseline_r1.json",
+    "sha256": "25b167bfe18099be9fb78697a605891bb0222ebb021daece8415ec967a612ea9"
+  },
+  "scope": {
+    "base_count": 38,
+    "base_ids_hash": "79c210ffc5a837b93ae12dce6bc853b8f4f92d8ad91ce7e6a5cbff3bdb12149f",
+    "scope_source": "EXACT_YUNNAN_CORE_IDS_FROM_FROZEN_BASE_REGISTRY",
+    "out_of_scope_base_retained": true,
+    "out_of_scope_reason": "乡丰蓝莓基地 has no accepted ERA5-Land weather projection"
+  },
+  "weather": {
+    "source": "ERA5_LAND",
+    "role": "REANALYSIS_REFERENCE",
+    "daily_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "local_timezone": "Asia/Shanghai",
+    "origin_weather_cutoff": "END_OF_LOCAL_DAY_D",
+    "trailing_windows_days": {
+      "7d": 7,
+      "14d": 14
+    },
+    "future_actual_weather_used": false,
+    "target_day_actual_weather_used": false,
+    "weather_dates_must_be_at_or_before_origin": true
+  },
+  "model": {
+    "control_model_id": "S4_MATCHED_NO_WEATHER_ORIGIN_HORIZON_HGBR_V1",
+    "weather_model_id": "S4_LAGGED_WEATHER_ORIGIN_HORIZON_HGBR_V1",
+    "model_family": "HistGradientBoostingRegressor",
+    "loss": "squared_error",
+    "learning_rate": 0.05,
+    "max_iter": 300,
+    "max_leaf_nodes": 31,
+    "max_depth": 6,
+    "min_samples_leaf": 10,
+    "l2_regularization": 0.1,
+    "early_stopping": false,
+    "random_state": 20260915,
+    "target": "observed_harvest_kg",
+    "fixed_parameters": true,
+    "model_search": false,
+    "model_tuning": false
+  },
+  "features": {
+    "structural_features": [
+      "productive_area_mu",
+      "target_business_season_day_index",
+      "target_business_season_progress",
+      "target_business_season_progress_sin",
+      "target_business_season_progress_cos",
+      "forecast_horizon_days"
+    ],
+    "weather_features": [
+      "tmean_7d_mean",
+      "tmean_14d_mean",
+      "tmin_7d_min",
+      "tmin_14d_min",
+      "tmax_7d_max",
+      "tmax_14d_max",
+      "precip_7d_sum",
+      "precip_14d_sum",
+      "solar_7d_sum",
+      "solar_14d_sum",
+      "wind_7d_mean",
+      "wind_14d_mean"
+    ],
+    "gdd": false,
+    "vpd": false,
+    "et0": false,
+    "rh_derived": false,
+    "weather_feature_search": false,
+    "target_day_weather": false,
+    "future_weather": false
+  },
+  "folds": [
+    {
+      "fold_id": "A",
+      "role": "SECONDARY_DIAGNOSTIC",
+      "train_seasons": ["2023-2024"],
+      "validation_seasons": ["2024-2025"]
+    },
+    {
+      "fold_id": "B",
+      "role": "PRIMARY_FORWARD_VALIDATION",
+      "train_seasons": ["2023-2024", "2024-2025"],
+      "validation_seasons": ["2025-2026"]
+    }
+  ],
+  "reference": {
+    "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "aggregation": "PER_BASE_7_DAY_BIN_MEAN_THEN_CROSS_BASE_MEDIAN",
+    "normalization": "HARVEST_KG_DIVIDED_BY_PRODUCTIVE_AREA_MU",
+    "uses_validation_labels": false
+  },
+  "evaluation": {
+    "primary_aggregation": "BASE_EQUAL_MACRO",
+    "daily_horizons": [1, 3, 7, 15],
+    "window_metrics": ["W7", "W15"],
+    "daily_metrics": ["MAE", "WAPE", "BIAS"],
+    "delta_definition": "WEATHER_MINUS_MATCHED_CONTROL",
+    "error_delta_negative_is_improvement": true,
+    "peak_tie_break": "EARLIEST_DATE",
+    "unknown_label_policy": "NOT_SCORED;NO_IMPUTATION",
+    "reference_is_benchmark_not_attribution_control": true
+  },
+  "authorization": {
+    "future_actual_weather_used": false,
+    "target_day_actual_weather_used": false,
+    "d_plus_1_to_d_plus_15_weather_used": false,
+    "strict_source_publication_pit_proven": false,
+    "production_weather_gain_proven": false,
+    "model_search": false,
+    "model_tuning": false,
+    "weather_feature_selection": false,
+    "weather_incremental_value_scoring": true,
+    "climate_zone_features": false,
+    "production_deployment": false,
+    "database_schema_changed": false,
+    "api_changed": false,
+    "mcp_changed": false
+  }
+}
