@@ -1,0 +1,16 @@
+{
+  "task_id": "V0_5_S2_ERA5_LAND_HISTORICAL_WEATHER_DATASET_R3",
+  "source_artifact_correction_version": "ERA5_LAND_TP_SSRD_SOURCE_ARTIFACT_R3_V1",
+  "tp_negative_artifact_envelope_min_m": "-3.0e-8",
+  "ssrd_negative_artifact_envelope_min_j_m2": "-4",
+  "tp_negative_within_envelope_to_zero": true,
+  "ssrd_negative_within_envelope_to_zero": true,
+  "positive_value_thresholding": false,
+  "automatic_tolerance_widening": false,
+  "native_temperature_unit": "K",
+  "normalized_temperature_unit": "degC",
+  "temperature_display_unit": "°C",
+  "request_failure_policy": "STOP_PRESERVE_RECEIPTS_NO_AUTOMATIC_RESUBMISSION",
+  "automatic_request_retry_count": 0,
+  "source_manifest_r2_hash": "026bb83a4d3a6d26350f0a78505feb701f81d4bc2d72ac90d187a2a467f303dc"
+}
