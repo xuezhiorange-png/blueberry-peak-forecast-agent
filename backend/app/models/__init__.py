@@ -67,6 +67,10 @@ from backend.app.models.maturity import (
     MaturityModelArtifact,
     MaturityModelRun,
 )
+from backend.app.models.operational_peak import (
+    OperationalPeakForecastDaily,
+    OperationalPeakForecastRun,
+)
 from backend.app.models.planning import (
     AgroClimateZone,
     ClimateZoneImportRun,
@@ -158,6 +162,8 @@ __all__ = [
     "CoreForecastRunModel",
     "ForecastAuthorityCaptureModel",
     "ForecastAuthorityDailyModel",
+    "OperationalPeakForecastDaily",
+    "OperationalPeakForecastRun",
     "ForecastAuthorityTask10ExtensionModel",
     "FactReceiptRaw",
     "FactReceiptDaily",

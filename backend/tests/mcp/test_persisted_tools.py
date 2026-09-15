@@ -28,15 +28,24 @@ NAMES = [
     "list_blueberry_area_forecast_runs",
     "get_blueberry_area_forecast_daily",
 ]
+OPERATIONAL_NAMES = [
+    "create_blueberry_operational_peak_forecast_run",
+    "get_blueberry_operational_peak_forecast_run",
+    "list_blueberry_operational_peak_forecast_runs",
+    "get_blueberry_operational_peak_forecast_daily",
+]
+ALL_NAMES = NAMES + OPERATIONAL_NAMES
 
 
-async def test_five_tools_discovery():
+async def test_all_tools_discovery():
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
-    assert [tool.name for tool in tools] == NAMES
+    assert [tool.name for tool in tools] == ALL_NAMES
     for tool in tools:
         assert tool.description and tool.input_schema and tool.output_schema
-        assert tool.annotations.read_only_hint == (tool.name != NAMES[1])
+        assert tool.annotations.read_only_hint == (
+            tool.name not in {NAMES[1], OPERATIONAL_NAMES[0]}
+        )
         assert tool.annotations.destructive_hint is False
         assert tool.annotations.idempotent_hint is True
         assert tool.annotations.open_world_hint is False
@@ -260,7 +269,7 @@ async def test_saved_tool_schema_hash():
     value = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    assert value == "9370ffdb47c00345c73a45ae980d11a5cfc5e6b504dda0615fa7e641e73abfef"
+    assert value == "34414f10e70ee8364d4ee47a92f78556b6c5a096c3b4c3a7cdb9d66b838161fb"
 
 
 async def test_failed_create_rolls_back_outer_transaction(configured, monkeypatch):
