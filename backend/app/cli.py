@@ -21,6 +21,10 @@ from backend.app.core_forecast.cli import (
     register_core_forecast_parser,
 )
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.forecast_quality.operational_peak_cli import (
+    dispatch_operational_peak,
+    register_operational_peak_parser,
+)
 from backend.app.harvest_state.application import (
     HarvestStateDeliveryConflictError,
     HarvestStateDeliveryError,
@@ -74,6 +78,7 @@ def _parser() -> argparse.ArgumentParser:
     register_residual_model_parser(subparsers)
     register_core_forecast_parser(subparsers)
     register_area_run_parser(subparsers)
+    register_operational_peak_parser(subparsers)
     area_parser = subparsers.add_parser("area-forecast")
     area_parser.add_argument("--input", required=True)
     area_parser.add_argument("--output", default="-")
@@ -225,6 +230,11 @@ async def _dispatch(
         return
     if args.resource == "area-forecast-run":
         await dispatch_area_run(args, session_factory=session_factory, stdin=stdin, stdout=stdout)
+        return
+    if args.resource == "operational-peak-run":
+        await dispatch_operational_peak(
+            args, session_factory=session_factory, stdin=stdin, stdout=stdout
+        )
         return
     if args.resource == "core-forecast":
         await dispatch_core_forecast(

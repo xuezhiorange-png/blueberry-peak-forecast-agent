@@ -33,6 +33,25 @@ from backend.app.area_yield.run_persistence import (
     AreaForecastRunNotFoundError,
     AreaForecastWriteFailure,
 )
+from backend.app.forecast_quality.operational_peak import OperationalPeakForecastError
+from backend.app.forecast_quality.operational_peak_authority import (
+    OperationalPeakAuthorityError,
+)
+from backend.app.forecast_quality.operational_peak_persistence import (
+    OperationalPeakPersistenceConflictError,
+    OperationalPeakPersistenceIntegrityError,
+    OperationalPeakRunNotFoundError,
+    OperationalPeakWriteFailure,
+)
+from backend.app.mcp.operational_peak_runs import (
+    CONTRACTS as OPERATIONAL_PEAK_CONTRACTS,
+)
+from backend.app.mcp.operational_peak_runs import (
+    call_operational_peak_tool,
+)
+from backend.app.mcp.operational_peak_runs import (
+    run_tools as operational_peak_run_tools,
+)
 from backend.app.mcp.persisted_runs import CONTRACTS, call_run_tool, run_tools
 
 TOOL_NAME = "forecast_blueberry_by_area"
@@ -83,6 +102,7 @@ async def _list_tools(
                 ),
             ),
             *run_tools(),
+            *operational_peak_run_tools(),
         ]
     )
 
@@ -108,6 +128,27 @@ async def _call_tool(
             # SQLAlchemy/connection/commit and other infrastructure failures are not
             # authority failures. Never expose exception text, SQL, URLs or secrets.
             return _error("AREA_FORECAST_WRITE_FAILURE", "PERSISTENCE_SERVICE_UNAVAILABLE")
+        return _result(payload)
+    if params.name in OPERATIONAL_PEAK_CONTRACTS:
+        try:
+            payload = await call_operational_peak_tool(params.name, params.arguments or {})
+        except ValidationError:
+            return _error("INVALID_REQUEST", "INVALID_REQUEST_DOCUMENT")
+        except OperationalPeakAuthorityError as exc:
+            return _error(exc.code, exc.reason)
+        except OperationalPeakForecastError as exc:
+            return _error(exc.code, exc.reason)
+        except ValueError:
+            return _error("INVALID_REQUEST", "INVALID_HISTORY_QUERY")
+        except (
+            OperationalPeakPersistenceConflictError,
+            OperationalPeakPersistenceIntegrityError,
+            OperationalPeakRunNotFoundError,
+            OperationalPeakWriteFailure,
+        ) as exc:
+            return _error(exc.code, exc.code)
+        except Exception:
+            return _error("OPERATIONAL_PEAK_WRITE_FAILURE", "PERSISTENCE_SERVICE_UNAVAILABLE")
         return _result(payload)
     if params.name != TOOL_NAME:
         return _error("AREA_FORECAST_REQUEST_INVALID", "TOOL_NOT_SUPPORTED")
