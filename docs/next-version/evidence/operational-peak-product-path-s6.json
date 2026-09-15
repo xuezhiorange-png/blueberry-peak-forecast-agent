@@ -11,6 +11,12 @@
   "registry_file_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
   "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
   "reference_profile_file_sha256": "a0a5cbc3c3ca5bd2b0b8860328eee73840499b38da89c11a104f83d02fd77c5b",
+  "authority_source_file_binding": {
+    "builder_verifies_raw_registry_sha256_before_parse": true,
+    "builder_verifies_raw_reference_profile_sha256_before_parse": true,
+    "semantically_same_byte_different_sources_rejected": true,
+    "real_authority_rebuild_byte_parity": true
+  },
   "real_e2e": {
     "base_id": "base_a96b297b126a8cab67c4755f",
     "canonical_base_name": "保山杨柳基地",
@@ -34,6 +40,8 @@
     "mcp_stdio": true,
     "mcp_streamable_http": true,
     "mcp_tool_count": 9,
+    "existing_mcp_tool_contracts_changed": false,
+    "mcp_tool_surface_extended": true,
     "new_operational_peak_tools": 4
   }
 }
