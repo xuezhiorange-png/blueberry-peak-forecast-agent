@@ -22,6 +22,12 @@ from scripts.era5_historical_dataset_r3 import (
     retrieve,
 )
 from scripts.era5_source_artifact_correction_r3 import VERSION, correct_value, validate_policy
+from scripts.era5_source_characterization_r1 import (
+    ValueStats,
+    _characterization_gate,
+    characterize,
+    compare_replays,
+)
 from scripts.normalize_era5_land_historical_weather_r1 import no_network
 from scripts.normalize_era5_land_historical_weather_r2 import verified_source
 from scripts.normalize_era5_land_historical_weather_r3 import corrected_day, replay
@@ -149,6 +155,59 @@ def test_submitted_recovery_stops_when_resubmission_would_be_required(tmp_path, 
     assert record["remote_request_id"] == receipt["remote_request_id"]
     assert record["cds_status"] == "server_failed"
     assert record["automatic_resubmission"] is False
+
+
+def test_characterization_does_not_apply_provisional_envelope():
+    _characterization_gate(
+        {
+            "provider_grid_selection_parity": "PASS",
+            "missing_interval_count": 0,
+            "unexpected_interval_count": 0,
+            "duplicate_interval_count": 0,
+            "nonfinite_value_count": 0,
+            "outside_envelope_negative_count": 1,
+        }
+    )
+
+
+def test_characterization_still_blocks_real_integrity_gates():
+    with pytest.raises(ValueError, match="HOURLY_COVERAGE_MISMATCH"):
+        _characterization_gate(
+            {
+                "provider_grid_selection_parity": "PASS",
+                "missing_interval_count": 1,
+                "unexpected_interval_count": 0,
+                "duplicate_interval_count": 0,
+            }
+        )
+
+
+def test_characterization_stats_keep_positive_values_and_negative_quantiles():
+    stats = ValueStats()
+    for value in (-3e-8, -1e-8, 0.0, 1e-20, 0.001):
+        stats.add(value)
+    result = stats.as_dict()
+    assert result["negative_count"] == 2
+    assert result["minimum"] == "-2.9999999999999997e-08"
+    assert result["minimum_positive"] == "9.9999999999999995e-21"
+    assert result["p01_negative"] is not None
+
+
+def test_characterization_replays_are_identical_and_do_not_generate_dataset(tmp_path, monkeypatch):
+    root, _, entry = r3_fixture(tmp_path, monkeypatch)
+    import scripts.era5_source_characterization_r1 as characterization
+
+    monkeypatch.setitem(characterization.SEASON_BY_START, entry["business_start"], "2024-2025")
+    first = characterize(root, tmp_path / "characterization-one")
+    second = characterize(root, tmp_path / "characterization-two")
+    comparison = compare_replays(
+        tmp_path / "characterization-one", tmp_path / "characterization-two"
+    )
+    assert first == second
+    assert comparison["raw_artifact_hash_replay"] is True
+    assert comparison["source_audit_replay"] is True
+    assert comparison["deterministic_replay"] is True
+    assert first["normalization_generated"] is False
 
 
 def test_retrieve_rejects_submitted_receipt_identity_before_cds_access(tmp_path, monkeypatch):
