@@ -1,0 +1,194 @@
+{
+  "task_id": "V0_5_0_RELEASE_QUALIFICATION_R1",
+  "result": "RELEASE_QUALIFICATION_PASS",
+  "target_release": "v0.5.0",
+  "base_release": "v0.4.0",
+  "base_main_sha": "ca025d3cfbbbb919b9853dd4fc2143efa539009b",
+  "main_tree_sha": "8bfa31ac4e938c5ea2c7d219d156a34fcbbf141a",
+  "app_version_changed": false,
+  "source_pr_chain": {
+    "623": {
+      "merged": true,
+      "merge_commit": "6baeb880ad88e7e277eacd696fe622c7ae721327"
+    },
+    "624": {
+      "merged": true,
+      "merge_commit": "7de37a0db5fdfef1504582090825483d7c97c52f"
+    },
+    "625": {
+      "merged": true,
+      "merge_commit": "f3a38630debe1328ede3f5782e08f5ca4e6db01a"
+    },
+    "626": {
+      "merged": true,
+      "merge_commit": "e47dc930198d96f8044058f45b9d228f84c9bc14"
+    },
+    "627": {
+      "merged": true,
+      "merge_commit": "64114bdf2579b7ecd39dc9f1ebcdce54dbf83e95"
+    },
+    "628": {
+      "merged": true,
+      "merge_commit": "7a42d91871373f624f69683c5972c70aededba62"
+    },
+    "629": {
+      "merged": true,
+      "merge_commit": "572529e629b35ddb4a48e18cdccd4905c848bdba"
+    },
+    "630": {
+      "merged": true,
+      "merge_commit": "f5c092f386860e191f9b0452eec4a81da67343b0"
+    },
+    "631": {
+      "merged": true,
+      "merge_commit": "43e881dc68469a7c79b8121edbc6ef6265c1943c"
+    },
+    "632": {
+      "merged": true,
+      "merge_commit": "8816dc8c63fadb4ae481ed6e884b698e4d97212c"
+    },
+    "633": {
+      "merged": true,
+      "merge_commit": "ca025d3cfbbbb919b9853dd4fc2143efa539009b"
+    }
+  },
+  "main_ci": {
+    "run_id": 35033071860,
+    "head_sha": "ca025d3cfbbbb919b9853dd4fc2143efa539009b",
+    "status": "SUCCESS",
+    "full_suite_canary": "SUCCESS"
+  },
+  "capability_freeze": {
+    "prediction_entity": "BASE",
+    "area_grain": "BASE_TOTAL_PRODUCTIVE_AREA",
+    "business_season_end": "04-15_INCLUSIVE",
+    "active_base_registry_count": 39,
+    "yunnan_core_weather_base_count": 38,
+    "registered_base_forecast": true,
+    "daily_operational_forecast": true,
+    "next_complete_7_day_window": true,
+    "next_complete_15_day_window": true,
+    "w7_total_kg": true,
+    "w7_peak_date": true,
+    "w7_peak_kg": true,
+    "w15_total_kg": true,
+    "w15_peak_date": true,
+    "w15_peak_kg": true,
+    "remaining_business_window_forecast": true,
+    "immutable_persisted_runs": true,
+    "idempotent_create": true,
+    "canonical_reload": true,
+    "rest_api": true,
+    "cli": true,
+    "mcp_stdio": true,
+    "mcp_streamable_http": true,
+    "mcp_tool_count": 9,
+    "new_operational_peak_tools": 4
+  },
+  "selected_operational_policy": {
+    "policy": "OPERATIONAL_PEAK_POLICY_V1",
+    "baseline_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "weather_used": false,
+    "weather_incremental_value_result": "MIXED_WEATHER_EFFECT_NO_CLEAR_GAIN",
+    "production_weather_gain_proven": false,
+    "w7": "D+1...D+7",
+    "w15": "D+1...D+15",
+    "peak_tie_break": "EARLIEST_DATE",
+    "business_cutoff": "04-15_INCLUSIVE",
+    "shortened_window_allowed": false,
+    "missing_daily_prediction_fail_closed": true,
+    "unregistered_base_fail_closed": true
+  },
+  "s3_evidence": {
+    "fold_b_validation_base_count": 39,
+    "fold_b_seen_base_count": 25,
+    "fold_b_natural_out_of_base_count": 14,
+    "hgb_daily_wape": 0.838297828753,
+    "reference_daily_wape": 0.825783879425,
+    "hgb_w7_total_wape": 0.694795552375,
+    "reference_w7_total_wape": 0.679262173997,
+    "hgb_w15_total_wape": 0.682695349371,
+    "reference_w15_total_wape": 0.681542288125,
+    "hgb_proven_superior": false,
+    "reference_retained": true,
+    "forecast_accuracy_approval": false,
+    "evidence": "../s3/known-support-no-weather-baseline-evidence-r1.json"
+  },
+  "s4_evidence": {
+    "common_weather_scope_base_count": 38,
+    "control_daily_wape": 0.75032488698,
+    "weather_daily_wape": 0.750618605576,
+    "control_w7_total_wape": 0.71249166912,
+    "weather_w7_total_wape": 0.708109505437,
+    "control_w15_total_wape": 0.682719257474,
+    "weather_w15_total_wape": 0.658896666944,
+    "strict_source_publication_pit_proven": false,
+    "future_actual_weather_used": false,
+    "weather_model_selected": false,
+    "result": "MIXED_WEATHER_EFFECT_NO_CLEAR_GAIN",
+    "evidence": "../s4/lagged-weather-incremental-value-evidence-r1.json"
+  },
+  "s6_authority": {
+    "authority_version": "OPERATIONAL_PEAK_AUTHORITY_V1",
+    "authority_file_sha256": "49dbacd7c3dba8c520b48dbd81019a728b8efccaa9579837f7a03b28b0ff04b6",
+    "authority_canonical_hash": "1ec9d27375915b37d0e1a9d77bcc315cddd8eff54f7f0b7bf923053dad0d5917",
+    "registry_file_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "reference_profile_file_sha256": "a0a5cbc3c3ca5bd2b0b8860328eee73840499b38da89c11a104f83d02fd77c5b",
+    "migration": "0035_operational_peak_forecast_runs",
+    "authority_source_file_binding": "PASS",
+    "caller_supplied_authority_allowed": false,
+    "immutable_persistence": true,
+    "idempotent_create": true,
+    "evidence": "../../next-version/evidence/operational-peak-product-path-s6.json"
+  },
+  "real_business_acceptance": {
+    "base_id": "base_a96b297b126a8cab67c4755f",
+    "canonical_base_name": "保山杨柳基地",
+    "productive_area_mu": "394.000000",
+    "target_season": "2026-2027",
+    "origin_date": "2027-03-31",
+    "w7_status": "COMPUTABLE_FULL_WINDOW",
+    "w7_total_kg": "25113.209490",
+    "w15_status": "COMPUTABLE_FULL_WINDOW",
+    "w15_total_kg": "58748.531480",
+    "daily_row_count": 15,
+    "result_hash": "20ee0152fbcce9ab84daa0aa24aef9a532d3c5bc2fe47c28b72bdfea56f4f138",
+    "direct_result_hash_parity": "PASS",
+    "persisted_result_hash_parity": "PASS",
+    "rest_result_hash_parity": "PASS",
+    "mcp_result_hash_parity": "PASS"
+  },
+  "limitations": {
+    "forecast_accuracy_approval": false,
+    "production_weather_gain_proven": false,
+    "strict_historical_as_issued_weather_pit_proven": false,
+    "climate_zone_mapping_frozen": false,
+    "cross_zone_validation_proven": false,
+    "full_season_complete_sample_count": 0,
+    "full_season_total_model_available": false,
+    "full_season_yield_model_available": false,
+    "season_peak_model_available": false,
+    "point_forecast_uncertainty_calibrated": false,
+    "climate_zone_authority_recommendation": "DO_NOT_FREEZE_MAPPING"
+  },
+  "qualification_gates": {
+    "source_pr_chain_merged": true,
+    "authority_hashes_match": true,
+    "s5_s6_result_parity_preserved": true,
+    "single_alembic_head": 1,
+    "mcp_tool_count": 9,
+    "private_artifact_committed": false,
+    "known_limitations_disclosed": true
+  },
+  "release_execution": {
+    "release_eligible": true,
+    "release_blocker": "NONE",
+    "tag_created": false,
+    "github_release_created": false,
+    "deployment_executed": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "release_authorized": false
+  }
+}
