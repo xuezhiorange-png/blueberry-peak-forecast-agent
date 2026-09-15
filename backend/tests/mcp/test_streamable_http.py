@@ -11,10 +11,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import AppSettings
 from backend.app.main import create_app
-from backend.app.mcp import persisted_runs
+from backend.app.mcp import operational_peak_runs, persisted_runs
 from backend.app.mcp.area_forecast import server
 from backend.tests.area_yield.test_run_persistence import authority  # noqa: F401
-from backend.tests.mcp.test_persisted_tools import NAMES, args
+from backend.tests.mcp.test_persisted_tools import ALL_NAMES, NAMES, args
 
 PATHS = ["/api/v1/blueberry/v1/mcp/sse", "/api/v1/blueberry/v1/mcp"]
 INITIALIZE = {
@@ -47,7 +47,7 @@ async def test_initialize_list_json_without_session_or_sse(path, accept):
         async with Client(server) as stdio_equivalent:
             expected = (await stdio_equivalent.list_tools()).tools
         assert [Tool.model_validate(t) for t in listed["tools"]] == expected
-        assert [t["name"] for t in listed["tools"]] == NAMES
+        assert [t["name"] for t in listed["tools"]] == ALL_NAMES
         assert (await c.get(path)).status_code == 405
 
 
@@ -105,3 +105,54 @@ async def test_secret_environment_configuration(monkeypatch):
         await rpc(
             c, "initialize", INITIALIZE, headers={"X-Blueberry-Connector-Key": "environment-secret"}
         )
+
+
+async def test_streamable_http_operational_peak_tools_use_same_server(
+    s6_factory, s6_authority, monkeypatch
+):
+    monkeypatch.setattr(operational_peak_runs, "AsyncSessionMaker", s6_factory)
+    body = {
+        "base_id": "base-yangliu",
+        "target_season": "2026-2027",
+        "origin_date": "2027-03-31",
+    }
+    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+        listed = await rpc(c, "tools/list", {})
+        assert [tool["name"] for tool in listed["tools"]] == ALL_NAMES
+        created = await rpc(
+            c,
+            "tools/call",
+            {
+                "name": "create_blueberry_operational_peak_forecast_run",
+                "arguments": body,
+            },
+        )
+        assert created["isError"] is False
+        run_id = created["structuredContent"]["run"]["run_id"]
+        loaded = await rpc(
+            c,
+            "tools/call",
+            {
+                "name": "get_blueberry_operational_peak_forecast_run",
+                "arguments": {"run_id": run_id},
+            },
+        )
+        daily = await rpc(
+            c,
+            "tools/call",
+            {
+                "name": "get_blueberry_operational_peak_forecast_daily",
+                "arguments": {"run_id": run_id},
+            },
+        )
+        history = await rpc(
+            c,
+            "tools/call",
+            {
+                "name": "list_blueberry_operational_peak_forecast_runs",
+                "arguments": {},
+            },
+        )
+    assert loaded["structuredContent"] == created["structuredContent"]
+    assert len(daily["structuredContent"]["daily_forecast"]) == 15
+    assert history["structuredContent"]["items"][0]["run_id"] == run_id

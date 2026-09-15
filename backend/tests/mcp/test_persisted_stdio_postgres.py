@@ -22,7 +22,7 @@ from backend.app.db.session import get_db_session
 from backend.app.main import create_app
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
 from backend.tests.area_yield.test_run_persistence import authority  # noqa: F401
-from backend.tests.mcp.test_persisted_tools import NAMES, args
+from backend.tests.mcp.test_persisted_tools import ALL_NAMES, NAMES, args
 
 pytestmark = [
     pytest.mark.postgres,
@@ -50,6 +50,9 @@ async def isolated_database():
                     importlib.import_module(
                         "backend.alembic.versions.0034_area_forecast_runs"
                     ).upgrade()
+                    importlib.import_module(
+                        "backend.alembic.versions.0035_operational_peak_forecast_runs"
+                    ).upgrade()
 
             await conn.run_sync(install)
         env = {**os.environ, "POSTGRES_DB": name}
@@ -68,7 +71,7 @@ async def test_actual_stdio_concurrent_create_and_read_parity(isolated_database,
         command=sys.executable, args=["-m", "backend.app.mcp.area_forecast"], env=env
     )
     async with Client(parameters) as c:
-        assert [t.name for t in (await c.list_tools()).tools] == NAMES
+        assert [t.name for t in (await c.list_tools()).tools] == ALL_NAMES
         a, b = await asyncio.gather(c.call_tool(NAMES[1], args()), c.call_tool(NAMES[1], args()))
         assert not a.is_error and not b.is_error
         payloads = [a.structured_content, b.structured_content]

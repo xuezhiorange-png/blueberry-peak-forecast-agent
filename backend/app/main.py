@@ -15,6 +15,7 @@ from backend.app.api.health import router as health_router
 from backend.app.api.master_data import router as master_data_router
 from backend.app.api.materialized_datasets import router as materialized_datasets_router
 from backend.app.api.maturity import router as maturity_router
+from backend.app.api.operational_peak_runs import router as operational_peak_runs_router
 from backend.app.api.planning import router as planning_router
 from backend.app.api.production_plans import router as production_plan_router
 from backend.app.api.residual_model import router as residual_model_router
@@ -193,6 +194,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     app.include_router(trial_router, prefix="/api/v1/trial", tags=["trial"])
     app.include_router(
         area_forecast_runs_router, prefix="/api/v1/area-forecast-runs", tags=["area-forecast-runs"]
+    )
+    app.include_router(
+        operational_peak_runs_router,
+        prefix="/api/v1/operational-peak-forecast-runs",
+        tags=["operational-peak-forecast-runs"],
     )
     app.include_router(
         materialized_datasets_router,
