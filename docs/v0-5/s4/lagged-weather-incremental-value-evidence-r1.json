@@ -1,0 +1,130 @@
+{
+  "task_id": "V0_5_S4_LAGGED_WEATHER_INCREMENTAL_VALUE_R1",
+  "result": "MIXED_WEATHER_EFFECT_NO_CLEAR_GAIN",
+  "base_pr": 630,
+  "base_sha": "12cddfc68f173f2153bedfb3c07e7f6e5b42bdbb",
+  "control_model_id": "S4_MATCHED_NO_WEATHER_ORIGIN_HORIZON_HGBR_V1",
+  "weather_model_id": "S4_LAGGED_WEATHER_ORIGIN_HORIZON_HGBR_V1",
+  "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "common_scope": {
+    "base_count": 38,
+    "base_ids_hash": "79c210ffc5a837b93ae12dce6bc853b8f4f92d8ad91ce7e6a5cbff3bdb12149f",
+    "weather_daily_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "excluded_extended_scope_base": "乡丰蓝莓基地"
+  },
+  "frozen_protocol": {
+    "origin": "D",
+    "target_horizons": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "weather_cutoff": "END_OF_LOCAL_DAY_D",
+    "weather_windows": {"7d": "D-6..D", "14d": "D-13..D"},
+    "local_timezone": "Asia/Shanghai",
+    "primary_aggregation": "BASE_EQUAL_MACRO",
+    "future_actual_weather_used": false,
+    "target_day_actual_weather_used": false,
+    "validation_labels_used_for_fit": false,
+    "validation_labels_used_for_candidate_selection": false,
+    "strict_source_publication_pit_proven": false,
+    "production_weather_gain_proven": false
+  },
+  "origin_filter": {
+    "experiment_origin_count": 18540,
+    "experiment_origin_ids_hash": "ab8653b6f87f41d0e89ab8c22bb89fb43ca403b747b6ba3fbf088c5534ba19b5",
+    "pre_filter_origin_count": {"W7": 20031, "W15": 19463},
+    "post_weather_history_filter_origin_count": {"W7": 19108, "W15": 18540},
+    "filtered_origin_count": {"W7": 923, "W15": 923},
+    "filtered_origin_ids_hash": "e670463d44157609789154c4899d4a1f3efb051ca9cb0ecf49b58339ee6d0a9f"
+  },
+  "folds": {
+    "A": {
+      "role": "SECONDARY_DIAGNOSTIC",
+      "train_origins": 2358,
+      "validation_origins": 6264,
+      "train_samples": 30591,
+      "train_base_count": 9,
+      "validation_base_count": 24,
+      "natural_oob_base_count": 15,
+      "control": {
+        "daily_overall_wape": 76.948675279322,
+        "W7_total_wape": 67.965340112226,
+        "W7_peak_date_mae_days": 2.13456284153,
+        "W15_total_wape": 72.343051178018,
+        "W15_peak_date_mae_days": 5.520567375887
+      },
+      "weather": {
+        "daily_overall_wape": 95.807214978737,
+        "W7_total_wape": 83.278890966206,
+        "W7_peak_date_mae_days": 2.130293715847,
+        "W15_total_wape": 88.955858980157,
+        "W15_peak_date_mae_days": 5.554078014184
+      }
+    },
+    "B": {
+      "role": "PRIMARY_FORWARD_VALIDATION",
+      "train_origins": 8622,
+      "validation_origins": 9918,
+      "train_samples": 123231,
+      "validation_prediction_rows": 148770,
+      "train_base_count": 24,
+      "validation_base_count": 38,
+      "natural_oob_base_count": 14,
+      "control": {
+        "daily": {
+          "overall": {"mae_kg": 3544.887183250124, "wape": 0.75032488698, "bias_kg": -2824.670085065588},
+          "H1": {"mae_kg": 3404.197815919212, "wape": 0.769792679792, "bias_kg": -2742.604805995744},
+          "H3": {"mae_kg": 3442.281360785503, "wape": 0.76443981345, "bias_kg": -2762.136082764308},
+          "H7": {"mae_kg": 3505.654304649615, "wape": 0.753498632457, "bias_kg": -2795.882071499011},
+          "H15": {"mae_kg": 3710.198994466733, "wape": 0.735365645524, "bias_kg": -2932.386152761806}
+        },
+        "W7": {"total_wape": 0.71249166912, "peak_date_mae_days": 2.424118548799, "peak_kg_wape": 0.715354369858},
+        "W15": {"total_wape": 0.682719257474, "peak_date_mae_days": 5.170413898825, "peak_kg_wape": 0.690307168716}
+      },
+      "weather": {
+        "daily": {
+          "overall": {"mae_kg": 3565.749119337196, "wape": 0.750618605576, "bias_kg": -2580.099547486537},
+          "H1": {"mae_kg": 3479.993267978826, "wape": 0.785914879458, "bias_kg": -2529.018321324227},
+          "H3": {"mae_kg": 3505.544395835903, "wape": 0.77530608825, "bias_kg": -2567.021505155685},
+          "H7": {"mae_kg": 3540.087817586696, "wape": 0.758614756922, "bias_kg": -2562.71069194636},
+          "H15": {"mae_kg": 3674.88013655714, "wape": 0.723597478398, "bias_kg": -2634.888492272279}
+        },
+        "W7": {"total_wape": 0.708109505437, "peak_date_mae_days": 2.512263668881, "peak_kg_wape": 0.694977750321},
+        "W15": {"total_wape": 0.658896666944, "peak_date_mae_days": 5.087506387328, "peak_kg_wape": 0.663095552759}
+      }
+    }
+  },
+  "weather_effects_fold_b": {
+    "daily_wape": {"control": 0.75032488698, "weather": 0.750618605576, "delta": 0.000293718596, "relative_delta": 0.000391455223, "improved": 23, "worsened": 15, "tied": 0, "median_base_delta": -0.007318833204},
+    "W7_total_wape": {"control": 0.71249166912, "weather": 0.708109505437, "delta": -0.004382163683, "relative_delta": -0.006150477083, "improved": 22, "worsened": 16, "tied": 0, "median_base_delta": -0.010285078478},
+    "W7_peak_date_mae_days": {"control": 2.424118548799, "weather": 2.512263668881, "delta": 0.088145120082, "relative_delta": 0.036361720067, "improved": 13, "worsened": 25, "tied": 0, "median_base_delta": 0.053398058253},
+    "W7_peak_kg_wape": {"control": 0.715354369858, "weather": 0.694977750321, "delta": -0.020376619537, "relative_delta": -0.028484650959, "improved": 20, "worsened": 18, "tied": 0, "median_base_delta": -0.005785322941},
+    "W15_total_wape": {"control": 0.682719257474, "weather": 0.658896666944, "delta": -0.02382259053, "relative_delta": -0.03489368473, "improved": 24, "worsened": 14, "tied": 0, "median_base_delta": -0.012706763283},
+    "W15_peak_date_mae_days": {"control": 5.170413898825, "weather": 5.087506387328, "delta": -0.082907511497, "relative_delta": -0.016034985423, "improved": 22, "worsened": 16, "tied": 0, "median_base_delta": -0.106796116505},
+    "W15_peak_kg_wape": {"control": 0.690307168716, "weather": 0.663095552759, "delta": -0.027211615957, "relative_delta": -0.039419576082, "improved": 21, "worsened": 17, "tied": 0, "median_base_delta": -0.003629522134}
+  },
+  "authorization_and_limits": {
+    "future_actual_weather_used": false,
+    "temporal_target_leakage_safe": true,
+    "strict_source_publication_pit_proven": false,
+    "production_weather_gain_proven": false,
+    "gdd_generated": false,
+    "vpd_generated": false,
+    "et0_generated": false,
+    "rh_derived": false,
+    "weather_feature_search": false,
+    "model_search": false,
+    "model_tuning": false,
+    "weather_incremental_value_research": true
+  },
+  "reproducibility": {
+    "private_artifact_root": "blueberry-area-yield-artifacts/s4-lagged-weather-incremental-value-r1-final/",
+    "artifact_file_count": 16,
+    "artifact_manifest_sha256": "9a398a2ca85ee7b74edf441ab199f1dd047d5db7cf010c72df1561520ae570d1",
+    "candidate_manifest_hash": "71f7c33b4dd8d9eb6600bb8db61232e5bfbbf3a309a36d0a29e960ebc993cfa8",
+    "prediction_file_sha256": "cf4610c3c06b8c96b64f20cb9a324474f4aa6225a70e371d72c7e2f312d2712f",
+    "scored_prediction_file_sha256": "b5998a5fab195c96dc7f1d4b3f5803440ffea6a719c24fd4e83af0c73ce30111",
+    "replay_comparison_sha256": "5b2249abeaed3e64a1100055034c3bd1e3c8824ad60829ed0d707f9dc3dda7dd",
+    "replay_1": "PASS",
+    "replay_2": "PASS",
+    "deterministic_replay": "PASS",
+    "validation_label_leakage": false
+  }
+}
