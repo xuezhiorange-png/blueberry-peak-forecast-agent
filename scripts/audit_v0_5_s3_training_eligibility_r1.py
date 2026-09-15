@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 from collections import Counter, defaultdict
+from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -51,6 +52,17 @@ EXPECTED_INPUT_HASHES = {
 
 def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def canonical_value_hash(value: Any) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def read_json(path: Path) -> Any:
@@ -403,6 +415,160 @@ def build_window_rows(
     return output
 
 
+def _support_identity_counts(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    base_ids = sorted({str(row["base_id"]) for row in rows})
+    base_season_pairs = sorted({f"{row['base_id']}|{row['season']}" for row in rows})
+    return {
+        "row_or_origin_count": len(rows),
+        "unique_base_count": len(base_ids),
+        "unique_base_season_count": len(base_season_pairs),
+        "base_season_ids_hash": canonical_value_hash(base_season_pairs),
+    }
+
+
+def build_support_count_evidence(
+    daily_by_season: dict[str, list[dict[str, Any]]],
+    window_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Report support counts without treating overlapping origins as samples."""
+
+    by_season: dict[str, Any] = {}
+    for season in SEASONS:
+        known_daily = [row for row in daily_by_season[season] if row["label_known"]]
+        season_windows = [row for row in window_rows if row["season"] == season]
+        by_season[season] = {
+            "daily_known_support": _support_identity_counts(known_daily),
+            "W7": _support_identity_counts(
+                [
+                    row
+                    for row in season_windows
+                    if row["window_days"] == 7
+                    and row["window_evaluation_status"] == "EXACT_COMPUTABLE"
+                ]
+            ),
+            "W15": _support_identity_counts(
+                [
+                    row
+                    for row in season_windows
+                    if row["window_days"] == 15
+                    and row["window_evaluation_status"] == "EXACT_COMPUTABLE"
+                ]
+            ),
+        }
+    return {
+        "contract": {
+            "daily_support_unit": "KNOWN_SUPPORT_DAILY_ROW",
+            "W7_support_unit": "COMPLETE_W7_FORWARD_ORIGIN",
+            "W15_support_unit": "COMPLETE_W15_FORWARD_ORIGIN",
+            "overlapping_origins_are_not_independent_base_samples": True,
+            "counts_are_reported_by_season": True,
+        },
+        "by_season": by_season,
+    }
+
+
+def _forward_support_population(
+    kind: str,
+    seasons: Sequence[str],
+    daily_by_season: dict[str, list[dict[str, Any]]],
+    window_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if kind == "daily_known_support":
+        return [row for season in seasons for row in daily_by_season[season] if row["label_known"]]
+    window_days = {"W7": 7, "W15": 15}[kind]
+    return [
+        row
+        for row in window_rows
+        if row["season"] in seasons
+        and row["window_days"] == window_days
+        and row["window_evaluation_status"] == "EXACT_COMPUTABLE"
+    ]
+
+
+def _forward_fold_metric(
+    kind: str,
+    train_seasons: Sequence[str],
+    validation_seasons: Sequence[str],
+    daily_by_season: dict[str, list[dict[str, Any]]],
+    window_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    train_rows = _forward_support_population(kind, train_seasons, daily_by_season, window_rows)
+    validation_rows = _forward_support_population(
+        kind, validation_seasons, daily_by_season, window_rows
+    )
+    train_bases = {str(row["base_id"]) for row in train_rows}
+    validation_bases = {str(row["base_id"]) for row in validation_rows}
+    train_pairs = {f"{row['base_id']}|{row['season']}" for row in train_rows}
+    validation_pairs = {f"{row['base_id']}|{row['season']}" for row in validation_rows}
+    intersection = sorted(train_bases & validation_bases)
+    is_daily = kind == "daily_known_support"
+    return {
+        "support_unit": (
+            "KNOWN_SUPPORT_DAILY_ROW" if is_daily else f"COMPLETE_{kind}_FORWARD_ORIGIN"
+        ),
+        "train_seasons": train_seasons,
+        "validation_seasons": validation_seasons,
+        "train_origin_or_row_count": len(train_rows),
+        "validation_origin_or_row_count": len(validation_rows),
+        "train_row_count": len(train_rows) if is_daily else None,
+        "validation_row_count": len(validation_rows) if is_daily else None,
+        "train_origin_count": len(train_rows) if not is_daily else None,
+        "validation_origin_count": len(validation_rows) if not is_daily else None,
+        "train_unique_base_count": len(train_bases),
+        "validation_unique_base_count": len(validation_bases),
+        "train_unique_base_season_count": len(train_pairs),
+        "validation_unique_base_season_count": len(validation_pairs),
+        "train_validation_base_intersection_count": len(intersection),
+        "train_validation_base_intersection_ids_hash": canonical_value_hash(intersection),
+    }
+
+
+def build_forward_fold_support(
+    daily_by_season: dict[str, list[dict[str, Any]]],
+    window_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    folds = [
+        {
+            "fold_id": "A",
+            "train_seasons": ["2023-2024"],
+            "validation_seasons": ["2024-2025"],
+        },
+        {
+            "fold_id": "B",
+            "train_seasons": ["2023-2024", "2024-2025"],
+            "validation_seasons": ["2025-2026"],
+        },
+    ]
+    output: list[dict[str, Any]] = []
+    for fold in folds:
+        train_seasons = fold["train_seasons"]
+        validation_seasons = fold["validation_seasons"]
+        output.append(
+            {
+                **fold,
+                "metrics": {
+                    kind: _forward_fold_metric(
+                        kind,
+                        train_seasons,
+                        validation_seasons,
+                        daily_by_season,
+                        window_rows,
+                    )
+                    for kind in ("daily_known_support", "W7", "W15")
+                },
+            }
+        )
+    return {
+        "contract": {
+            "split_direction": "EARLIER_SEASON_TO_LATER_SEASON",
+            "fold_selection_before_validation": True,
+            "validation_labels_not_used_for_training_or_selection": True,
+            "overlapping_origins_are_not_independent_base_samples": True,
+        },
+        "folds": output,
+    }
+
+
 def build_qualifications(
     inputs: dict[str, Any],
     source_calendars: dict[str, list[dict[str, Any]]],
@@ -647,6 +813,7 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
 
     source_manifest = {
         "task_id": config["task_id"],
+        "evidence_revision": config.get("evidence_revision", "R1"),
         "input_authority": "CURRENT_ACTIVE_BASE_REGISTRY_AND_REVIEWED_BASE_DAILY_LEDGER",
         "input_files": inputs["files"],
         "registry_payload_hash": inputs["registry"]["hash"],
@@ -715,6 +882,13 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
         write_csv(output / f"source-active-calendar-{season}.csv", rows, list(rows[0]))
     write_csv(output / "weather-join-audit.csv", weather_rows, list(weather_rows[0]))
 
+    support_counts = build_support_count_evidence(daily_by_season, all_window_rows)
+    forward_fold_support = build_forward_fold_support(daily_by_season, all_window_rows)
+    support_counts["evidence_revision"] = config.get("evidence_revision", "R1")
+    forward_fold_support["evidence_revision"] = config.get("evidence_revision", "R1")
+    write_json(output / "support-counts-by-season.json", support_counts)
+    write_json(output / "forward-fold-support.json", forward_fold_support)
+
     missing_rows: list[dict[str, Any]] = []
     for row in qualifications:
         for reason in row["exclusion_reasons"]:
@@ -749,6 +923,7 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
             ],
             "selection_before_holdout": True,
             "overlapping_origins_are_not_independent_samples": True,
+            "support_counts_file": "forward-fold-support.json",
         },
         "out_of_base_split": {
             "defined": True,
@@ -769,6 +944,8 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
             "defined": True,
             "research_only": True,
             "known_support_is_not_full_season": True,
+            "no_weather_extended_scope_max_base_count": EXPECTED_BASE_COUNT,
+            "weather_common_comparable_scope_max_base_count": EXPECTED_WEATHER_BASE_COUNT,
         },
     }
     write_json(output / "split-design.json", split_design)
@@ -811,8 +988,25 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
         )
         for season in SEASONS
     }
+    all_known_daily = [
+        row for season in SEASONS for row in daily_by_season[season] if row["label_known"]
+    ]
+    all_w7_origins = [
+        row
+        for row in all_window_rows
+        if row["window_days"] == 7 and row["window_evaluation_status"] == "EXACT_COMPUTABLE"
+    ]
+    all_w15_origins = [
+        row
+        for row in all_window_rows
+        if row["window_days"] == 15 and row["window_evaluation_status"] == "EXACT_COMPUTABLE"
+    ]
+    daily_support = _support_identity_counts(all_known_daily)
+    w7_support = _support_identity_counts(all_w7_origins)
+    w15_support = _support_identity_counts(all_w15_origins)
     summary = {
         "task_id": config["task_id"],
+        "evidence_revision": config.get("evidence_revision", "R1"),
         "current_active_base_count": len(inputs["bases"]),
         "current_base_registry_hash": inputs["registry"]["hash"],
         "active_base_universe_row_count": len(inputs["bases"]),
@@ -830,9 +1024,8 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
         "daily_known_support_row_count": daily_known,
         "daily_unknown_row_count": daily_unknown,
         "daily_known_support_research_eligible": daily_known > 0,
-        "daily_known_support_base_season_count": sum(
-            row["daily_known_support_research_eligible"] for row in qualifications
-        ),
+        "daily_known_support_unique_base_count": daily_support["unique_base_count"],
+        "daily_known_support_base_season_count": daily_support["unique_base_season_count"],
         "season_peak_label_eligible_count": sum(
             row["peak_label_evaluable"] for row in qualifications
         ),
@@ -846,12 +1039,20 @@ def build_outputs(config: dict[str, Any], inputs: dict[str, Any], output: Path) 
             for row in all_window_rows
             if row["window_days"] == 15
         ),
-        "unique_eligible_base_count": len(
+        "full_season_total_eligible_unique_base_count": len(
             {row["base_id"] for row in qualifications if row["total_label_evaluable"]}
         ),
-        "unique_eligible_base_season_count": sum(
+        "full_season_total_eligible_base_season_count": sum(
             row["total_label_evaluable"] for row in qualifications
         ),
+        "W7_eligible_unique_base_count": w7_support["unique_base_count"],
+        "W7_eligible_base_season_count": w7_support["unique_base_season_count"],
+        "W15_eligible_unique_base_count": w15_support["unique_base_count"],
+        "W15_eligible_base_season_count": w15_support["unique_base_season_count"],
+        "support_counts_by_season_file": "support-counts-by-season.json",
+        "forward_fold_support_file": "forward-fold-support.json",
+        "no_weather_extended_scope_max_base_count": EXPECTED_BASE_COUNT,
+        "weather_common_comparable_scope_max_base_count": EXPECTED_WEATHER_BASE_COUNT,
         "global_no_record_day_count_by_season": global_unknown_by_season,
         "source_not_covered_business_day_count_by_season": source_margin_by_season,
         "season_completeness_status_counts": dict(status_counts),

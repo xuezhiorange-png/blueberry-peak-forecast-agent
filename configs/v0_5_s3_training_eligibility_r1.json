@@ -1,5 +1,6 @@
 {
   "task_id": "V0_5_S3_TRAINING_ELIGIBILITY_AND_EVALUATION_FREEZE_R1",
+  "evidence_revision": "R2_SUPPORT_COUNT_CORRECTION",
   "phase": "V0.5-S3-00",
   "purpose": "FREEZE_LEGAL_SAMPLE_UNIVERSE_LABEL_AUTHORITY_AND_EVALUATION_DESIGN_BEFORE_MODEL_OR_WEATHER_ABLATION",
   "registry": {
@@ -60,7 +61,30 @@
     "w7_origin_semantics": "D_PLUS_1_THROUGH_D_PLUS_7",
     "w15_origin_semantics": "D_PLUS_1_THROUGH_D_PLUS_15",
     "peak_tie_break": "EARLIEST_DATE",
-    "unapproved_thresholds": true
+    "unapproved_thresholds": true,
+    "support_count_contract": {
+      "daily_known_support_unit": "KNOWN_SUPPORT_DAILY_ROW",
+      "w7_unit": "COMPLETE_W7_FORWARD_ORIGIN",
+      "w15_unit": "COMPLETE_W15_FORWARD_ORIGIN",
+      "overlapping_origins_are_not_independent_base_samples": true,
+      "forward_folds": [
+        {
+          "fold_id": "A",
+          "train_seasons": ["2023-2024"],
+          "validation_seasons": ["2024-2025"]
+        },
+        {
+          "fold_id": "B",
+          "train_seasons": ["2023-2024", "2024-2025"],
+          "validation_seasons": ["2025-2026"]
+        }
+      ]
+    },
+    "scope_limits": {
+      "no_weather_extended_scope_max_base_count": 39,
+      "weather_common_comparable_scope_max_base_count": 38,
+      "out_of_yunnan_registry_base_is_retained": true
+    }
   },
   "authorization": {
     "model_training": false,

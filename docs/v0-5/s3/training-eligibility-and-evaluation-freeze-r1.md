@@ -5,6 +5,10 @@ contract before any S3 model fit or S4 weather-ablation work.  It is an audit
 and evaluation-design deliverable.  It does not train a model, generate a
 weather feature, or authorize an experiment.
 
+The append-only R2 denominator correction is recorded in
+[`training-eligibility-support-count-correction-r2.md`](training-eligibility-support-count-correction-r2.md)
+and its companion evidence JSON; the R1 qualification rules remain unchanged.
+
 ## Decision
 
 The current active Base Registry contains 39 active identities.  The accepted

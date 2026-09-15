@@ -5,9 +5,12 @@ from decimal import Decimal
 
 from scripts.audit_v0_5_s3_training_eligibility_r1 import (
     KNOWN_STATUS,
+    build_forward_fold_support,
     build_peak_rows,
     build_source_calendar,
+    build_support_count_evidence,
     build_window_rows,
+    canonical_value_hash,
     dates_between,
     season_window,
 )
@@ -158,3 +161,74 @@ def test_window_rows_are_forward_only_and_require_every_label() -> None:
 
 def test_decimal_label_values_are_not_recomputed_from_area() -> None:
     assert Decimal("10.000000") / Decimal("2.000000") == Decimal("5.000000")
+
+
+def _support_rows(
+    season: str, base_id: str, dates: list[str], *, window: bool = False
+) -> list[dict[str, object]]:
+    if window:
+        return [
+            {
+                "base_id": base_id,
+                "season": season,
+                "window_days": 7,
+                "window_evaluation_status": "EXACT_COMPUTABLE",
+                "origin_date": day,
+            }
+            for day in dates
+        ]
+    return [
+        {"base_id": base_id, "season": season, "date": day, "label_known": True} for day in dates
+    ]
+
+
+def test_support_counts_scope_denominators_by_unit_and_season() -> None:
+    daily = {
+        "2023-2024": _support_rows("2023-2024", "base-a", ["2023-07-01"])
+        + _support_rows("2023-2024", "base-b", ["2023-07-02"]),
+        "2024-2025": _support_rows("2024-2025", "base-a", ["2024-07-01"]),
+        "2025-2026": [],
+    }
+    windows = _support_rows(
+        "2023-2024", "base-a", ["2023-07-01", "2023-07-02"], window=True
+    ) + _support_rows("2024-2025", "base-a", ["2024-07-01"], window=True)
+
+    result = build_support_count_evidence(daily, windows)
+
+    counts = result["by_season"]["2023-2024"]["daily_known_support"]
+    assert counts["row_or_origin_count"] == 2
+    assert counts["unique_base_count"] == 2
+    assert counts["unique_base_season_count"] == 2
+    assert counts["base_season_ids_hash"] == canonical_value_hash(
+        ["base-a|2023-2024", "base-b|2023-2024"]
+    )
+    assert result["by_season"]["2023-2024"]["W7"]["row_or_origin_count"] == 2
+    assert result["by_season"]["2025-2026"]["W15"]["unique_base_count"] == 0
+
+
+def test_forward_folds_are_explicit_and_count_base_intersection_separately() -> None:
+    daily = {
+        "2023-2024": _support_rows("2023-2024", "base-a", ["2023-07-01"]),
+        "2024-2025": _support_rows("2024-2025", "base-a", ["2024-07-01"])
+        + _support_rows("2024-2025", "base-b", ["2024-07-02"]),
+        "2025-2026": _support_rows("2025-2026", "base-b", ["2025-07-01"]),
+    }
+    windows = (
+        _support_rows("2023-2024", "base-a", ["2023-07-01"], window=True)
+        + _support_rows("2024-2025", "base-a", ["2024-07-01"], window=True)
+        + _support_rows("2024-2025", "base-b", ["2024-07-02"], window=True)
+        + _support_rows("2025-2026", "base-b", ["2025-07-01"], window=True)
+    )
+
+    result = build_forward_fold_support(daily, windows)
+    fold_a = result["folds"][0]
+    fold_b = result["folds"][1]
+
+    assert fold_a["train_seasons"] == ["2023-2024"]
+    assert fold_a["validation_seasons"] == ["2024-2025"]
+    assert fold_a["metrics"]["daily_known_support"]["train_origin_or_row_count"] == 1
+    assert fold_a["metrics"]["daily_known_support"]["validation_origin_or_row_count"] == 2
+    assert fold_a["metrics"]["daily_known_support"]["train_validation_base_intersection_count"] == 1
+    assert fold_b["metrics"]["W7"]["train_unique_base_count"] == 2
+    assert fold_b["metrics"]["W7"]["validation_unique_base_count"] == 1
+    assert fold_b["metrics"]["W7"]["train_validation_base_intersection_count"] == 1
