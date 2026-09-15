@@ -1,0 +1,152 @@
+{
+  "task_id": "V0_5_S3_KNOWN_SUPPORT_NO_WEATHER_BASELINE_R1",
+  "phase": "V0.5-S3-01-KNOWN-SUPPORT-NO-WEATHER-BASELINE",
+  "purpose": "Train and evaluate one frozen no-weather daily baseline on corrected R3 known-support forward folds.",
+  "legacy_audit_base_count": 39,
+  "registry": {
+    "expected_count": 39,
+    "payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293"
+  },
+  "sources": {
+    "2023-2024": {
+      "source_hash": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true
+    },
+    "2024-2025": {
+      "source_hash": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true
+    },
+    "2025-2026": {
+      "source_hash": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true
+    }
+  },
+  "input_hashes": {
+    "registry_artifact_manifest": "f454f7768584badea463f5e641aaf47e1f2e4e05e772511177bcfbcc824e3215",
+    "registry": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "ledger": "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd",
+    "season_audit": "dbb9a638ab9921d659c7cd6885606223592a89054124d9e0b517337e3280f182",
+    "registry_source_manifest": "ab00019ac97cc599ba33cf42451dabc96f2ffcf42e0dc3f97f9d6d4a83f92b39",
+    "registry_summary": "5d16afd4698955e2a446a6f801b1bed8b2138731fa0ff67cf4a77afab5e65085",
+    "weather_manifest": "708860fcc396552594ff6dc30c10fa758e94246f550e92a4567d4dc9ebf0b9a3",
+    "weather_daily": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "mapping_authority": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086"
+  },
+  "mapping_authority": {
+    "version": "BASE_MEMBER_MAPPING_R2",
+    "payload_hash": "6fb7212cc1edd090cf63ff2d938fc5e7b7a0c4b9020b7fdca14e499119b2496e"
+  },
+  "weather": {
+    "daily_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b"
+  },
+  "input_contract": {
+    "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "r3_support_artifact_manifest_sha256": "94089e00b45e5751e9a75c67f7549bf57647e0e36019acf2ffa592d52a4c7582",
+    "r3_support_summary_sha256": "c13ef4852401266726b24ce2d5a8a90cade6ea2c0eb3658e33dd593cf10d3d23",
+    "r3_support_counts_sha256": "f36199e1e59fa66584ded094399519f63f2a34057bc9555314f35fb68da41ed8",
+    "r3_forward_fold_support_sha256": "d5cfe9f698903faf2856947881300b055762ce38dbc62427ffe448f79ff36524",
+    "known_support_row_count": 18023,
+    "known_support_unique_base_count": 39,
+    "known_support_base_season_count": 73,
+    "known_support_base_ids_hash": "10b77dadb1f1e7b9dbfd6d6285e1adf65ddf62eb38dcbb635480db8c245834ed",
+    "w7_origin_count": 16374,
+    "w7_unique_base_count": 39,
+    "w7_base_season_count": 73,
+    "w15_origin_count": 15529,
+    "w15_unique_base_count": 39,
+    "w15_base_season_count": 73,
+    "weather_scope_base_count": 38,
+    "weather_scope_base_ids_hash": "79c210ffc5a837b93ae12dce6bc853b8f4f92d8ad91ce7e6a5cbff3bdb12149f",
+    "weather_scope_identity_policy": "EXACT_YUNNAN_CORE_IDS_FROM_FROZEN_REGISTRY"
+  },
+  "model": {
+    "model_id": "NO_WEATHER_HGBR_DAILY_V1",
+    "estimator": "sklearn.ensemble.HistGradientBoostingRegressor",
+    "loss": "squared_error",
+    "learning_rate": 0.05,
+    "max_iter": 300,
+    "max_leaf_nodes": 31,
+    "max_depth": 6,
+    "min_samples_leaf": 10,
+    "l2_regularization": 0.1,
+    "early_stopping": false,
+    "random_state": 20260915,
+    "target": "observed_harvest_kg",
+    "known_labels_only": true,
+    "negative_prediction_policy": "PROJECT_TO_ZERO_AND_AUDIT"
+  },
+  "features": {
+    "feature_names": [
+      "productive_area_mu",
+      "business_season_day_index",
+      "business_season_progress",
+      "business_season_progress_sin",
+      "business_season_progress_cos"
+    ],
+    "weather_features": false,
+    "future_target_features": false,
+    "feature_transform": "DIRECT_FIXED_CALENDAR_FEATURES"
+  },
+  "reference": {
+    "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "aggregation": "PER_BASE_7_DAY_BIN_MEAN_THEN_CROSS_BASE_MEDIAN",
+    "normalization": "HARVEST_KG_DIVIDED_BY_PRODUCTIVE_AREA_MU",
+    "missing_bin_policy": "NEAREST_AVAILABLE_TRAIN_BIN_EARLIER_TIE",
+    "uses_validation_labels": false
+  },
+  "folds": [
+    {
+      "fold_id": "A",
+      "role": "SECONDARY_STABILITY_DIAGNOSTIC",
+      "train_seasons": ["2023-2024"],
+      "validation_seasons": ["2024-2025"],
+      "expected_train_base_count": 9,
+      "expected_validation_base_count": 25,
+      "expected_intersection_base_count": 9,
+      "expected_natural_oob_base_count": 16
+    },
+    {
+      "fold_id": "B",
+      "role": "PRIMARY_FORWARD_VALIDATION",
+      "train_seasons": ["2023-2024", "2024-2025"],
+      "validation_seasons": ["2025-2026"],
+      "expected_train_base_count": 25,
+      "expected_validation_base_count": 39,
+      "expected_intersection_base_count": 25,
+      "expected_natural_oob_base_count": 14
+    }
+  ],
+  "evaluation": {
+    "primary_unit": "BASE",
+    "primary_aggregation": "BASE_EQUAL_MACRO",
+    "secondary_diagnostic": "ROW_POOLED_AND_KG_WEIGHTED_WAPE",
+    "daily_known_support_only": true,
+    "w7_semantics": "D_PLUS_1_THROUGH_D_PLUS_7",
+    "w15_semantics": "D_PLUS_1_THROUGH_D_PLUS_15",
+    "peak_tie_break": "EARLIEST_DATE",
+    "zero_denominator": "NOT_COMPUTABLE",
+    "validation_labels_used_only_after_prediction_freeze": true
+  },
+  "scope": {
+    "no_weather_extended_scope_max_base_count": 39,
+    "weather_common_comparable_scope_max_base_count": 38,
+    "out_of_yunnan_registry_base_retained": true
+  },
+  "authorization": {
+    "known_support_daily_model_training": true,
+    "known_support_w7_evaluation": true,
+    "known_support_w15_evaluation": true,
+    "full_season_total_or_yield_model": false,
+    "weather_features": false,
+    "weather_model_training": false,
+    "climate_zone_features": false,
+    "s4_weather_ablation": false,
+    "database_schema_changed": false,
+    "api_changed": false,
+    "mcp_changed": false,
+    "production_deployment_changed": false
+  }
+}
