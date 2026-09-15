@@ -15,6 +15,7 @@ from scripts.normalize_era5_land_historical_weather_r2 import verified_source
 
 CONFIG = Path("configs/era5_land_historical_weather_r3.json")
 GRID_REVIEW = "5204323324"
+SUBMISSION_REVIEW = "5204894375"
 RESUBMISSION_REQUIRED_STATUSES = {
     "cancelled",
     "dismissed",
@@ -324,14 +325,20 @@ def recover_submitted(root: Path) -> dict[str, Any]:
     }
 
 
-def retrieve(root: Path, max_active: int = 3) -> None:
+def retrieve(
+    root: Path,
+    max_active: int = 3,
+    *,
+    reviewed_resume: bool = False,
+) -> None:
     # Must finish raw, unit, grid, time, envelope checks BEFORE network activity.
-    if any(root.glob("stop-*.json")):
+    if any(root.glob("stop-*.json")) and not reviewed_resume:
         raise ValueError("PRIOR_RETRIEVAL_STOP_REQUIRES_REVIEW")
     print(json.dumps(preflight(root)), flush=True)
     import cdsapi
 
     m, _ = load(root)
+    submitted_receipts = _submitted_receipts(root, m)
     pending = [
         e for e in m["requests"] if not (root / f"{e['request_hash']}.completed.json").exists()
     ]
@@ -349,11 +356,20 @@ def retrieve(root: Path, max_active: int = 3) -> None:
                 phase = "SUBMIT_OR_RESUME"
                 receipt = root / f"{current}.submitted.json"
                 if receipt.exists():
-                    remote = client.client.get_remote(
-                        json.loads(receipt.read_text())["remote_request_id"]
-                    )
+                    receipt_data = submitted_receipts.get(current)
+                    if receipt_data is None:
+                        raise ValueError("SUBMITTED_RECEIPT_IDENTITY_MISMATCH")
+                    remote_id = receipt_data["remote_request_id"]
+                    try:
+                        remote = client.client.get_remote(remote_id)
+                    except Exception as exc:
+                        raise _recovery_failure_from_exception(exc, remote_id) from None
+                    if getattr(remote, "request_id", remote_id) != remote_id:
+                        raise ValueError("SUBMITTED_RECEIPT_IDENTITY_MISMATCH")
                 else:
                     remote = client.client.submit(m["source_product"], e["request"])
+                    if not isinstance(getattr(remote, "request_id", None), str):
+                        raise ValueError("SUBMITTED_RECEIPT_IDENTITY_MISMATCH")
                     write_json(
                         receipt, {"request_hash": current, "remote_request_id": remote.request_id}
                     )
@@ -361,9 +377,13 @@ def retrieve(root: Path, max_active: int = 3) -> None:
             for key, remote in list(active.items()):
                 current = key
                 phase = "POLL"
-                status = remote.status
-                if status in {"failed", "dismissed", "cancelled"}:
-                    raise ValueError("CDS_REQUEST_FAILED")
+                status = str(remote.status).lower()
+                if status in RESUBMISSION_REQUIRED_STATUSES:
+                    raise RecoveryFailure(
+                        "CDS_RESUBMISSION_AUTHORIZATION_REQUIRED",
+                        status=status,
+                        remote_id=remote.request_id,
+                    )
                 if status != "successful":
                     continue
                 phase = "DOWNLOAD"
@@ -392,13 +412,19 @@ def retrieve(root: Path, max_active: int = 3) -> None:
             if active:
                 time.sleep(15)
     except Exception as exc:
-        reason = str(exc) if isinstance(exc, ValueError) else "CDS_REQUEST_OR_DOWNLOAD_FAILED"
-        # No raw exception, credentials or signed download URL in the durable report.
-        if phase != "SOURCE_GATE" and reason not in {
-            "CDS_REQUEST_FAILED",
-            "UNRECEIPTED_RAW_FILE_REQUIRES_REVIEW",
-        }:
-            reason = "CDS_REQUEST_OR_DOWNLOAD_FAILED"
+        if isinstance(exc, RecoveryFailure):
+            reason = exc.reason
+            status = exc.status
+            remote_id = exc.remote_id
+        else:
+            reason = str(exc) if isinstance(exc, ValueError) else "CDS_REQUEST_OR_DOWNLOAD_FAILED"
+            status = None
+            remote_id = None
+            # No raw exception, credentials or signed download URL in the durable report.
+            if phase != "SOURCE_GATE" and reason not in {
+                "UNRECEIPTED_RAW_FILE_REQUIRES_REVIEW",
+            }:
+                reason = "CDS_REQUEST_OR_DOWNLOAD_FAILED"
         write_json(
             root / f"stop-{time.time_ns()}.json",
             {
@@ -406,21 +432,42 @@ def retrieve(root: Path, max_active: int = 3) -> None:
                 "blocker": reason,
                 "phase": phase,
                 "request_hash": current,
+                "remote_request_id": remote_id,
+                "cds_status": status,
                 "exception_type": type(exc).__name__,
                 "active_request_hashes": sorted(active),
                 "pending_count": len(pending),
                 "automatic_resubmission": False,
+                "reviewed_resume": reviewed_resume,
+                "authorization_review": SUBMISSION_REVIEW if reviewed_resume else None,
                 "partial_files_preserved": True,
             },
         )
         raise RuntimeError(reason) from None
 
 
+def submit_remaining_frozen(root: Path) -> None:
+    """Resume the frozen 105-request plan after explicit coordinator review."""
+    manifest, _ = load(root)
+    if manifest.get("explicit_grid_review") != GRID_REVIEW:
+        raise ValueError("FROZEN_GRID_REVIEW_REQUIRED")
+    if len(manifest["requests"]) != 105:
+        raise ValueError("FROZEN_REQUEST_PLAN_COUNT_MISMATCH")
+    retrieve(root, reviewed_resume=True)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
         "action",
-        choices=("prepare", "prepare-grid-review", "preflight", "retrieve", "recover-submitted"),
+        choices=(
+            "prepare",
+            "prepare-grid-review",
+            "preflight",
+            "retrieve",
+            "recover-submitted",
+            "submit-remaining-frozen",
+        ),
     )
     p.add_argument("--root", type=Path, required=True)
     p.add_argument("--prior-root", type=Path)
@@ -436,6 +483,8 @@ def main() -> None:
         print(json.dumps(preflight(args.root)))
     elif args.action == "recover-submitted":
         print(json.dumps(recover_submitted(args.root)))
+    elif args.action == "submit-remaining-frozen":
+        submit_remaining_frozen(args.root)
     else:
         retrieve(args.root)
 
