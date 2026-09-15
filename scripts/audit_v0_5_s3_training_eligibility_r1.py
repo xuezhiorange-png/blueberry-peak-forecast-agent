@@ -139,10 +139,21 @@ def load_inputs(config: dict[str, Any], registry_root: Path, weather_root: Path)
         "weather_manifest": weather_root / "dataset-manifest.json",
         "weather_daily": weather_root / "daily.jsonl",
     }
+    # R3 can pin a corrected S1 authority without changing the historical R1
+    # configuration.  The legacy constants remain the fallback for R1/R2
+    # replay compatibility.
+    expected_input_hashes = config.get("input_hashes", EXPECTED_INPUT_HASHES)
+    if not isinstance(expected_input_hashes, dict):
+        raise ValueError("input_hashes must be an object")
+    if "mapping_authority" in config:
+        required["mapping_authority"] = registry_root / "mapping-authority.json"
     for role, path in required.items():
         if not path.is_file():
             raise FileNotFoundError(f"missing authorized input {role}: {path.name}")
-        checked_hash(path, EXPECTED_INPUT_HASHES[role], role)
+        expected = expected_input_hashes.get(role)
+        if not isinstance(expected, str):
+            raise ValueError(f"missing pinned input hash: {role}")
+        checked_hash(path, expected, role)
 
     artifact_manifest = read_json(required["registry_artifact_manifest"])
     for name, expected in artifact_manifest.items():
@@ -204,7 +215,8 @@ def load_inputs(config: dict[str, Any], registry_root: Path, weather_root: Path)
         raise ValueError("historical quantity unit drift")
 
     weather_manifest = read_json(required["weather_manifest"])
-    if weather_manifest.get("daily_artifact_sha256") != EXPECTED_INPUT_HASHES["weather_daily"]:
+    expected_weather_daily_hash = expected_input_hashes.get("weather_daily")
+    if weather_manifest.get("daily_artifact_sha256") != expected_weather_daily_hash:
         raise ValueError("weather daily artifact hash is not pinned")
     if weather_manifest.get("daily_dataset_hash") != config["weather"]["daily_dataset_hash"]:
         raise ValueError("weather daily dataset hash drift")
@@ -212,6 +224,18 @@ def load_inputs(config: dict[str, Any], registry_root: Path, weather_root: Path)
         raise ValueError("weather complete-base count drift")
     if weather_manifest.get("local_timezone") != "Asia/Shanghai":
         raise ValueError("weather timezone drift")
+
+    mapping_authority: dict[str, Any] | None = None
+    if "mapping_authority" in required:
+        loaded_mapping = read_json(required["mapping_authority"])
+        if not isinstance(loaded_mapping, dict):
+            raise ValueError("mapping authority is not an object")
+        mapping_config = config["mapping_authority"]
+        if loaded_mapping.get("version") != mapping_config["version"]:
+            raise ValueError("mapping authority version drift")
+        if loaded_mapping.get("hash") != mapping_config["payload_hash"]:
+            raise ValueError("mapping authority payload hash drift")
+        mapping_authority = loaded_mapping
 
     return {
         "files": {role: file_hash(path) for role, path in required.items()},
@@ -224,6 +248,7 @@ def load_inputs(config: dict[str, Any], registry_root: Path, weather_root: Path)
         "audit_by_key": audit_by_key,
         "source_specs": specs,
         "weather_manifest": weather_manifest,
+        "mapping_authority": mapping_authority,
         "weather_root": weather_root,
         "registry_root": registry_root,
     }
