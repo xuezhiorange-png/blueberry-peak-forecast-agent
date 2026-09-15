@@ -323,3 +323,42 @@ READY_AUTHORIZED=false
 MERGE_AUTHORIZED=false
 FINAL_STOP_GATE=COORDINATOR_V0_5_PLAN_BASELINE_R1_REVIEW
 ```
+
+## v0.5.0 closeout qualification
+
+本节为 append-only 收尾记录，不回写前述规划语义，也不改变生产代码、模型、
+authority 或数据库。v0.5.0 的候选 release identity 为 `v0.5.0`，当前仍需
+Coordinator review；本次只生成 qualification 证据和 release-note draft。
+
+```ini
+TASK_ID=V0_5_0_RELEASE_QUALIFICATION_R1
+TARGET_RELEASE=v0.5.0
+BASE_RELEASE=v0.4.0
+BASE_MAIN_SHA=ca025d3cfbbbb919b9853dd4fc2143efa539009b
+MAIN_TREE_SHA=8bfa31ac4e938c5ea2c7d219d156a34fcbbf141a
+PREDICTION_ENTITY=BASE
+AREA_GRAIN=BASE_TOTAL_PRODUCTIVE_AREA
+BUSINESS_SEASON_END=04-15_INCLUSIVE
+ACTIVE_BASE_REGISTRY_COUNT=39
+YUNNAN_CORE_WEATHER_BASE_COUNT=38
+OPERATIONAL_PEAK_POLICY=OPERATIONAL_PEAK_POLICY_V1
+SELECTED_BASELINE_ID=AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1
+WEATHER_USED=false
+MCP_TOOL_COUNT=9
+APP_VERSION_CHANGED=false
+RELEASE_EXECUTION_AUTHORIZED=false
+TAG_CREATION_AUTHORIZED=false
+TAG_CREATED=false
+GITHUB_RELEASE_CREATED=false
+DEPLOYMENT_EXECUTED=false
+READY_AUTHORIZED=false
+MERGE_AUTHORIZED=false
+RELEASE_AUTHORIZED=false
+FINAL_STATUS=COORDINATOR_V0_5_0_RELEASE_QUALIFICATION_REVIEW
+```
+
+收尾证据见 [v0.5.0 release qualification](v0.5.0-release-qualification.md)
+及其 [machine-readable evidence](evidence/v0.5.0-release-qualification.json)；
+发布说明草稿见 [v0.5.0 release notes draft](v0.5.0-release-notes-draft.md)。
+上述文档中的限制声明优先于任何未来的发布宣传文本。
+```
