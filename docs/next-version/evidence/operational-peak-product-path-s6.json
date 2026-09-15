@@ -1,0 +1,39 @@
+{
+  "task_id": "V0_5_S6_OPERATIONAL_PRODUCT_PATH_R1",
+  "forecast_policy_version": "OPERATIONAL_PEAK_POLICY_V1",
+  "baseline_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "weather_used": false,
+  "forecast_math_changed": false,
+  "model_research": false,
+  "model_tuning": false,
+  "authority_file_sha256": "49dbacd7c3dba8c520b48dbd81019a728b8efccaa9579837f7a03b28b0ff04b6",
+  "authority_canonical_hash": "1ec9d27375915b37d0e1a9d77bcc315cddd8eff54f7f0b7bf923053dad0d5917",
+  "registry_file_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+  "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+  "reference_profile_file_sha256": "a0a5cbc3c3ca5bd2b0b8860328eee73840499b38da89c11a104f83d02fd77c5b",
+  "real_e2e": {
+    "base_id": "base_a96b297b126a8cab67c4755f",
+    "canonical_base_name": "保山杨柳基地",
+    "productive_area_mu": "394.000000",
+    "target_season": "2026-2027",
+    "origin_date": "2027-03-31",
+    "forecast_7d_total_kg": "25113.209490",
+    "forecast_15d_total_kg": "58748.531480",
+    "result_hash": "20ee0152fbcce9ab84daa0aa24aef9a532d3c5bc2fe47c28b72bdfea56f4f138"
+  },
+  "persistence": {
+    "immutable": true,
+    "idempotent_execution": true,
+    "canonical_reload": true,
+    "history_reforecasts": false,
+    "migration": "0035_operational_peak_forecast_runs"
+  },
+  "interfaces": {
+    "rest": true,
+    "cli": true,
+    "mcp_stdio": true,
+    "mcp_streamable_http": true,
+    "mcp_tool_count": 9,
+    "new_operational_peak_tools": 4
+  }
+}

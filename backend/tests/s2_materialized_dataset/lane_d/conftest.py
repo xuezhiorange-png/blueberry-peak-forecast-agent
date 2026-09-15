@@ -33,7 +33,7 @@ LANE_D_MIGRATION_PATH = (
 )
 LANE_D_MIGRATION_REVISION = "d4e8f1a2b3c5"
 LANE_D_MIGRATION_DOWN_REVISION = "8c6aead9f8e9"
-ALEMBIC_SINGLE_HEAD = "0034_area_forecast_runs"
+ALEMBIC_SINGLE_HEAD = "0035_operational_peak_forecast_runs"
 
 
 def _identity_hash(label: str) -> str:

@@ -40,7 +40,7 @@ async def test_discovery_without_authority(monkeypatch):
     monkeypatch.delenv("AREA_YIELD_AUTHORITY_PATH", raising=False)
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
-    assert len(tools) == 5 and tools[0].name == TOOL_NAME
+    assert len(tools) == 9 and tools[0].name == TOOL_NAME
     assert tools[0].description
     assert tools[0].input_schema == input_schema()
     assert set(tools[0].input_schema["required"]) == {"farm", "productive_area_mu", "target_season"}
