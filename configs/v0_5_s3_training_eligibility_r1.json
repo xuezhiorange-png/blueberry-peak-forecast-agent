@@ -1,0 +1,100 @@
+{
+  "task_id": "V0_5_S3_TRAINING_ELIGIBILITY_AND_EVALUATION_FREEZE_R1",
+  "evidence_revision": "R2_SUPPORT_COUNT_CORRECTION",
+  "phase": "V0.5-S3-00",
+  "purpose": "FREEZE_LEGAL_SAMPLE_UNIVERSE_LABEL_AUTHORITY_AND_EVALUATION_DESIGN_BEFORE_MODEL_OR_WEATHER_ABLATION",
+  "registry": {
+    "expected_count": 39,
+    "payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "source_hash": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "artifact_manifest_sha256": "e2c57ae300b98a8048e8c8ef73a852d6495ee52a94600c62ed1951298896cd88",
+    "active_only": true,
+    "identity_policy": "EXACT_OR_AUTHORIZED_ALIAS_ONLY_NO_FUZZY_NO_REGISTRY_MUTATION"
+  },
+  "legacy_audit_base_count": 39,
+  "business_window": {
+    "start_policy": "JULY_01_OF_SEASON_START_YEAR",
+    "end_policy": "APRIL_15_INCLUSIVE",
+    "post_cutoff": "APRIL_16_PLUS_TAIL_OUT_OF_BUSINESS_SCOPE",
+    "timezone": "Asia/Shanghai",
+    "arrival_equals_harvest": true,
+    "unknown_global_day_policy": "UNKNOWN_NOT_ZERO",
+    "active_source_missing_farm_policy": "AUTHORIZED_LEDGER_ZERO_ONLY_WHEN_SOURCE_ACTIVE"
+  },
+  "sources": {
+    "2023-2024": {
+      "file_name": "23~24.xls",
+      "source_hash": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true
+    },
+    "2024-2025": {
+      "file_name": "24~25.xls",
+      "source_hash": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true
+    },
+    "2025-2026": {
+      "file_name": "原果入库汇总表.xls",
+      "source_hash": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true
+    }
+  },
+  "weather": {
+    "join_only": true,
+    "source_product": "reanalysis-era5-land-timeseries",
+    "expected_base_count": 38,
+    "expected_unique_grid_cell_count": 35,
+    "expected_season_count": 3,
+    "daily_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "climate_zone_mapping_used_as_authority": false,
+    "weather_cannot_upgrade_label_eligibility": true
+  },
+  "evaluation_design": {
+    "primary_unit": "BASE",
+    "primary_aggregation": "BASE_EQUAL_MACRO",
+    "secondary_diagnostic": "KG_WEIGHTED_WAPE",
+    "split": "TIME_ORDERED_FORWARD_OUT_OF_SEASON_AND_OPTIONAL_OUT_OF_BASE_GROUPED",
+    "random_adjacent_day_split": false,
+    "overlapping_origins_are_not_independent": true,
+    "w7_origin_semantics": "D_PLUS_1_THROUGH_D_PLUS_7",
+    "w15_origin_semantics": "D_PLUS_1_THROUGH_D_PLUS_15",
+    "peak_tie_break": "EARLIEST_DATE",
+    "unapproved_thresholds": true,
+    "support_count_contract": {
+      "daily_known_support_unit": "KNOWN_SUPPORT_DAILY_ROW",
+      "w7_unit": "COMPLETE_W7_FORWARD_ORIGIN",
+      "w15_unit": "COMPLETE_W15_FORWARD_ORIGIN",
+      "overlapping_origins_are_not_independent_base_samples": true,
+      "forward_folds": [
+        {
+          "fold_id": "A",
+          "train_seasons": ["2023-2024"],
+          "validation_seasons": ["2024-2025"]
+        },
+        {
+          "fold_id": "B",
+          "train_seasons": ["2023-2024", "2024-2025"],
+          "validation_seasons": ["2025-2026"]
+        }
+      ]
+    },
+    "scope_limits": {
+      "no_weather_extended_scope_max_base_count": 39,
+      "weather_common_comparable_scope_max_base_count": 38,
+      "out_of_yunnan_registry_base_is_retained": true
+    }
+  },
+  "authorization": {
+    "model_training": false,
+    "weather_feature_generation": false,
+    "weather_model_training": false,
+    "s4_weather_ablation": false,
+    "database_schema_changed": false,
+    "api_changed": false,
+    "mcp_changed": false,
+    "production_deployment_changed": false,
+    "climate_zone_mapping_frozen": false
+  }
+}

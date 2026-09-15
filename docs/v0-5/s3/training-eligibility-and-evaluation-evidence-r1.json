@@ -1,0 +1,145 @@
+{
+  "task_id": "V0_5_S3_TRAINING_ELIGIBILITY_AND_EVALUATION_FREEZE_R1",
+  "result": "ELIGIBILITY_FREEZE_COMPLETE_WITH_LIMITATIONS",
+  "baseline_main_sha": "7a42d91871373f624f69683c5972c70aededba62",
+  "current_active_base_count": 39,
+  "current_base_registry_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+  "current_base_registry_file_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+  "legacy_audit_base_count": 39,
+  "base_universe_reconciliation": {
+    "status": "PASS_39_ACTIVE_REGISTRY_EQUALS_LEGACY_AUDIT;_38_YUNNAN_CORE_WEATHER_SCOPE_EXPLICITLY_EXCLUDES_1_OUT_OF_YUNNAN_BASE",
+    "weather_scope_base_count": 38,
+    "excluded_from_weather_scope": [
+      {
+        "base_id": "base_36bc109841061a7798ed99a3",
+        "canonical_base_name": "乡丰蓝莓基地",
+        "registry_region_scope": "OUT_OF_YUNNAN",
+        "reason": "explicit_registry_region_scope;_not_identity_loss"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "season": "2023-2024",
+      "file_name": "23~24.xls",
+      "sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "row_count": 93761,
+      "date_min": "2023-07-26",
+      "date_max": "2024-06-30",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true,
+      "arrival_equals_harvest": true
+    },
+    {
+      "season": "2024-2025",
+      "file_name": "24~25.xls",
+      "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "row_count": 202072,
+      "date_min": "2024-07-01",
+      "date_max": "2025-05-27",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true,
+      "arrival_equals_harvest": true
+    },
+    {
+      "season": "2025-2026",
+      "file_name": "原果入库汇总表.xls",
+      "sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+      "row_count": 233171,
+      "date_min": "2025-07-22",
+      "date_max": "2026-04-16",
+      "source_complete": true,
+      "ledger_zero_semantics_authorized": true,
+      "arrival_equals_harvest": true
+    }
+  ],
+  "business_window": {
+    "start_policy": "JULY_01_OF_SEASON_START_YEAR",
+    "end_policy": "APRIL_15_INCLUSIVE",
+    "timezone": "Asia/Shanghai",
+    "post_cutoff": "APRIL_16_PLUS_TAIL_OUT_OF_BUSINESS_SCOPE",
+    "global_unknown_day_policy": "UNKNOWN_NOT_ZERO"
+  },
+  "qualification": {
+    "base_season_candidate_count": 117,
+    "full_season_complete_count": 0,
+    "full_season_partial_count": 82,
+    "full_season_blocked_count": 35,
+    "full_season_total_label_eligible_count": 0,
+    "full_season_yield_label_eligible_count": 0,
+    "daily_known_support_row_count": 17795,
+    "daily_unknown_row_count": 16057,
+    "daily_known_support_base_season_count": 72,
+    "daily_known_support_research_eligible": true,
+    "season_peak_label_eligible_count": 0,
+    "w7_eligible_origin_count": 16160,
+    "w15_eligible_origin_count": 15323,
+    "global_no_record_day_count_by_season": {
+      "2023-2024": 31,
+      "2024-2025": 8,
+      "2025-2026": 40
+    },
+    "source_not_covered_business_day_count_by_season": {
+      "2023-2024": 25,
+      "2024-2025": 0,
+      "2025-2026": 21
+    },
+    "peak_status": "117_NOT_COMPUTABLE_INCOMPLETE_LABEL_DOMAIN"
+  },
+  "evaluation_design": {
+    "primary_unit": "BASE",
+    "primary_aggregation": "BASE_EQUAL_MACRO",
+    "secondary_diagnostic": "KG_WEIGHTED_WAPE",
+    "time_ordered_origin_split_defined": true,
+    "out_of_season_split_defined": true,
+    "out_of_base_split_defined": true,
+    "random_adjacent_day_split_allowed": false,
+    "overlapping_origins_are_not_independent": true,
+    "common_comparable_set_defined": true,
+    "extended_coverage_set_defined": true,
+    "peak_tie_break": "EARLIEST_DATE",
+    "w7": "D+1..D+7",
+    "w15": "D+1..D+15",
+    "zero_denominator": "NOT_COMPUTABLE",
+    "approved_absolute_thresholds": false
+  },
+  "weather_join": {
+    "weather_data_join_feasible": true,
+    "weather_base_id_parity": "PASS_38_YUNNAN_CORE_EXACT_IDS",
+    "weather_business_date_coverage": "PASS_38_BASES_3_SEASONS_868_DAYS",
+    "weather_daily_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "weather_used_to_upgrade_label_eligibility": false,
+    "climate_zone_mapping_frozen": false
+  },
+  "private_artifacts": {
+    "root": "blueberry-area-yield-artifacts/s3-training-eligibility-r1-accepted-v2",
+    "replay_1": "replay-1",
+    "replay_2": "replay-2",
+    "replay_comparison": "replay-comparison.json",
+    "artifact_manifest_hash": "7832d0418377253fc8709c29793b90a7b3085759c09247288aedadab96161df1",
+    "active_base_universe_sha256": "e48b2a73c0db080ca39fa489929f2e499d8a31efeea317f42fd04c08f365643e",
+    "qualification_matrix_sha256": "52a4a11274e35280294a4cb1ce7f18f9c30850697c4dfa9b5213035b1d96a5de",
+    "daily_label_eligibility_sha256": "17d6c1e2e0526cbe53959f0028a237a037272800965dac28eea31cb0a8b5e52a",
+    "window_label_eligibility_sha256": "4e905a0af5fe19f3ff48e3a8d5b9865f7c261df5d61fefb54995ebba75b741fa",
+    "summary_sha256": "b5ebddbfa45d9770deada6a22beb2003c95b297bcc3b688cd4010facb161eb90"
+  },
+  "replay": {
+    "offline_network_used": false,
+    "replay_1": "PASS",
+    "replay_2": "PASS",
+    "deterministic_replay": "PASS",
+    "artifact_manifest_equal": true,
+    "summary_equal": true
+  },
+  "authorization": {
+    "model_training": false,
+    "weather_feature_generation": false,
+    "weather_model_training": false,
+    "s4_weather_ablation": false,
+    "database_schema_changed": false,
+    "api_changed": false,
+    "mcp_changed": false,
+    "production_deployment_changed": false,
+    "legacy_test_accessed": false
+  }
+}

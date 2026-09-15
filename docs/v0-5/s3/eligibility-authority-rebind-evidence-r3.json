@@ -1,0 +1,187 @@
+{
+  "task_id": "V0_5_S3_ELIGIBILITY_AUTHORITY_REBIND_R3",
+  "result": "S3_ELIGIBILITY_AUTHORITY_REBOUND",
+  "pr_number": 629,
+  "base_main_sha": "7a42d91871373f624f69683c5972c70aededba62",
+  "base_r1_head": "a1d3025402f5d6252c91df7419b48fb00179fbf9",
+  "authority_rebind": {
+    "status": "S1_R2_ALIAS_CORRECTED_AUTHORITY_LOADED",
+    "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "mapping_authority_version": "BASE_MEMBER_MAPPING_R2",
+    "mapping_authority_payload_hash": "6fb7212cc1edd090cf63ff2d938fc5e7b7a0c4b9020b7fdca14e499119b2496e",
+    "mapping_authority_file_sha256": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086",
+    "required_alias": {
+      "source": "德宏盈江农场",
+      "target": "腾冲德宏农场",
+      "canonical_base_id": "base_5d98f77f66280b5196f09ceb",
+      "canonical_base_name": "腾冲德宏基地",
+      "evidence": "USER_EXPLICIT_CONFIRMATION_2026-09-14"
+    },
+    "verified_season": "2025-2026",
+    "unresolved_member_farm_count": 0,
+    "pre_cutoff_total_kg": "392895.468000"
+  },
+  "input_hashes": {
+    "registry_artifact_manifest": "f454f7768584badea463f5e641aaf47e1f2e4e05e772511177bcfbcc824e3215",
+    "registry": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "ledger": "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd",
+    "season_audit": "dbb9a638ab9921d659c7cd6885606223592a89054124d9e0b517337e3280f182",
+    "registry_source_manifest": "ab00019ac97cc599ba33cf42451dabc96f2ffcf42e0dc3f97f9d6d4a83f92b39",
+    "registry_summary": "5d16afd4698955e2a446a6f801b1bed8b2138731fa0ff67cf4a77afab5e65085",
+    "mapping_authority": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086",
+    "weather_manifest": "708860fcc396552594ff6dc30c10fa758e94246f550e92a4567d4dc9ebf0b9a3",
+    "weather_daily": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b"
+  },
+  "scope": {
+    "active_registry_base_count": 39,
+    "active_registry_ids_hash": "10b77dadb1f1e7b9dbfd6d6285e1adf65ddf62eb38dcbb635480db8c245834ed",
+    "known_support_base_count": 39,
+    "known_support_ids_hash": "10b77dadb1f1e7b9dbfd6d6285e1adf65ddf62eb38dcbb635480db8c245834ed",
+    "yunnan_core_base_count": 38,
+    "yunnan_core_ids_hash": "79c210ffc5a837b93ae12dce6bc853b8f4f92d8ad91ce7e6a5cbff3bdb12149f",
+    "known_support_weather_intersection_count": 38,
+    "known_support_weather_intersection_ids_hash": "79c210ffc5a837b93ae12dce6bc853b8f4f92d8ad91ce7e6a5cbff3bdb12149f",
+    "known_support_only_count": 1,
+    "known_support_only_ids": ["base_36bc109841061a7798ed99a3"],
+    "weather_only_count": 0,
+    "weather_only_ids": [],
+    "sets_equal": false,
+    "no_weather_extended_scope_max_base_count": 39,
+    "weather_common_comparable_scope_max_base_count": 38
+  },
+  "support_counts": {
+    "full_season_total_eligible_unique_base_count": 0,
+    "full_season_total_eligible_base_season_count": 0,
+    "daily_known_support_row_count": 18023,
+    "daily_known_support_unique_base_count": 39,
+    "daily_known_support_base_season_count": 73,
+    "W7_eligible_origin_count": 16374,
+    "W7_eligible_unique_base_count": 39,
+    "W7_eligible_base_season_count": 73,
+    "W15_eligible_origin_count": 15529,
+    "W15_eligible_unique_base_count": 39,
+    "W15_eligible_base_season_count": 73,
+    "by_season": {
+      "2023-2024": {
+        "daily_known_support": {"row_count": 2106, "unique_base_count": 9, "unique_base_season_count": 9},
+        "W7": {"origin_count": 1728, "unique_base_count": 9, "unique_base_season_count": 9},
+        "W15": {"origin_count": 1620, "unique_base_count": 9, "unique_base_season_count": 9}
+      },
+      "2024-2025": {
+        "daily_known_support": {"row_count": 7025, "unique_base_count": 25, "unique_base_season_count": 25},
+        "W7": {"origin_count": 6300, "unique_base_count": 25, "unique_base_season_count": 25},
+        "W15": {"origin_count": 5875, "unique_base_count": 25, "unique_base_season_count": 25}
+      },
+      "2025-2026": {
+        "daily_known_support": {"row_count": 8892, "unique_base_count": 39, "unique_base_season_count": 39},
+        "W7": {"origin_count": 8346, "unique_base_count": 39, "unique_base_season_count": 39},
+        "W15": {"origin_count": 8034, "unique_base_count": 39, "unique_base_season_count": 39}
+      }
+    }
+  },
+  "forward_folds": {
+    "A": {
+      "train_seasons": ["2023-2024"],
+      "validation_seasons": ["2024-2025"],
+      "daily_known_support": {
+        "train_origin_or_row_count": 2106,
+        "validation_origin_or_row_count": 7025,
+        "train_unique_base_count": 9,
+        "validation_unique_base_count": 25,
+        "train_unique_base_season_count": 9,
+        "validation_unique_base_season_count": 25,
+        "train_validation_base_intersection_count": 9,
+        "train_validation_base_intersection_ids_hash": "8d1b5006ddb75dce650517b8d86b9064ae4cfceca894c30e39082bcd95d20052"
+      },
+      "W7": {
+        "train_origin_or_row_count": 1728,
+        "validation_origin_or_row_count": 6300,
+        "train_unique_base_count": 9,
+        "validation_unique_base_count": 25,
+        "train_unique_base_season_count": 9,
+        "validation_unique_base_season_count": 25,
+        "train_validation_base_intersection_count": 9,
+        "train_validation_base_intersection_ids_hash": "8d1b5006ddb75dce650517b8d86b9064ae4cfceca894c30e39082bcd95d20052"
+      },
+      "W15": {
+        "train_origin_or_row_count": 1620,
+        "validation_origin_or_row_count": 5875,
+        "train_unique_base_count": 9,
+        "validation_unique_base_count": 25,
+        "train_unique_base_season_count": 9,
+        "validation_unique_base_season_count": 25,
+        "train_validation_base_intersection_count": 9,
+        "train_validation_base_intersection_ids_hash": "8d1b5006ddb75dce650517b8d86b9064ae4cfceca894c30e39082bcd95d20052"
+      }
+    },
+    "B": {
+      "train_seasons": ["2023-2024", "2024-2025"],
+      "validation_seasons": ["2025-2026"],
+      "daily_known_support": {
+        "train_origin_or_row_count": 9131,
+        "validation_origin_or_row_count": 8892,
+        "train_unique_base_count": 25,
+        "validation_unique_base_count": 39,
+        "train_unique_base_season_count": 34,
+        "validation_unique_base_season_count": 39,
+        "train_validation_base_intersection_count": 25,
+        "train_validation_base_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a"
+      },
+      "W7": {
+        "train_origin_or_row_count": 8028,
+        "validation_origin_or_row_count": 8346,
+        "train_unique_base_count": 25,
+        "validation_unique_base_count": 39,
+        "train_unique_base_season_count": 34,
+        "validation_unique_base_season_count": 39,
+        "train_validation_base_intersection_count": 25,
+        "train_validation_base_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a"
+      },
+      "W15": {
+        "train_origin_or_row_count": 7495,
+        "validation_origin_or_row_count": 8034,
+        "train_unique_base_count": 25,
+        "validation_unique_base_count": 39,
+        "train_unique_base_season_count": 34,
+        "validation_unique_base_season_count": 39,
+        "train_validation_base_intersection_count": 25,
+        "train_validation_base_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a"
+      }
+    }
+  },
+  "full_season_status": {"complete": 0, "partial": 82, "blocked": 35},
+  "weather_join": {
+    "weather_base_id_parity": "PASS_38_YUNNAN_CORE_EXACT_IDS",
+    "weather_business_date_coverage": "PASS_38_BASES_3_SEASONS_868_DAYS",
+    "weather_used_to_upgrade_label_eligibility": false
+  },
+  "private_artifacts": {
+    "root": "blueberry-area-yield-artifacts/s3-eligibility-authority-rebind-r3",
+    "replay_artifact_file_count": 18,
+    "artifact_manifest_sha256": "94089e00b45e5751e9a75c67f7549bf57647e0e36019acf2ffa592d52a4c7582",
+    "summary_sha256": "c13ef4852401266726b24ce2d5a8a90cade6ea2c0eb3658e33dd593cf10d3d23",
+    "support_counts_sha256": "f36199e1e59fa66584ded094399519f63f2a34057bc9555314f35fb68da41ed8",
+    "forward_fold_support_sha256": "d5cfe9f698903faf2856947881300b055762ce38dbc62427ffe448f79ff36524",
+    "authority_rebind_sha256": "e2860758526bc0ca6c5ebda822701e60a2804c31297bd73ed5c67708e2af8c98",
+    "scope_reconciliation_sha256": "5c5c9a5a19fe208839cc920672a82af6969891d54bc41f38e4b92d9b0bc69091",
+    "replay_comparison_sha256": "4ecdd07ff3fbd64cffa3a87461aa8e53ffdd2c34c57f78c65f26ebe712af48af",
+    "replay_1_vs_replay_2": {
+      "artifact_manifest_equal": true,
+      "summary_equal": true,
+      "deterministic_replay": true
+    }
+  },
+  "authorization": {
+    "model_training": false,
+    "weather_features_generated": false,
+    "s4_weather_ablation": false,
+    "climate_zone_mapping_frozen": false,
+    "database_schema_changed": false,
+    "api_changed": false,
+    "mcp_changed": false,
+    "production_deployment_changed": false,
+    "old_r1_r2_evidence_preserved": true,
+    "old_r1_r2_evidence_overwritten": false
+  },
+  "final_status": "COORDINATOR_S3_ELIGIBILITY_AUTHORITY_REBIND_R3_REVIEW"
+}
