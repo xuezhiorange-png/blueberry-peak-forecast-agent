@@ -164,5 +164,6 @@ gaps/duplicates. These are not full-dataset acceptance statistics. No real
 normalized dataset or full replay result is claimed until the remaining planned
 requests receive separate authorization. The earlier ProxyError stop record is
 preserved as transport history. Local tests: 50 focused / 215 related passed;
-lint, format and mypy passed. Exact-head CI `34915123025` completed
-successfully, including full-suite-canary.
+lint, format and mypy passed. Exact-head CI `34915123025` passed on the
+recovery implementation head, and final head CI `34917284629` passed on the
+evidence update, including full-suite-canary.
