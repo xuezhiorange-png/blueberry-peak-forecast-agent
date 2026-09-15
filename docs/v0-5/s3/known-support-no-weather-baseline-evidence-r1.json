@@ -1,0 +1,172 @@
+{
+  "task_id": "V0_5_S3_KNOWN_SUPPORT_NO_WEATHER_BASELINE_R1",
+  "result": "KNOWN_SUPPORT_BASELINE_COMPLETED_WITH_LIMITATIONS",
+  "base_r3_head": "bb1b37dcecdbc4e2c3172878d9f5278da274e39d",
+  "model_training": true,
+  "model_id": "NO_WEATHER_HGBR_DAILY_V1",
+  "model_family": "HistGradientBoostingRegressor",
+  "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "known_support_only": true,
+  "unknown_to_zero": false,
+  "weather_features_used": false,
+  "climate_zone_used": false,
+  "full_season_total_model": false,
+  "scope": {
+    "active_registry_base_count": 39,
+    "known_support_base_count": 39,
+    "known_support_base_season_count": 73,
+    "no_weather_extended_scope_base_count": 39,
+    "weather_common_scope_base_count": 38,
+    "weather_common_scope_ids_hash": "79c210ffc5a837b93ae12dce6bc853b8f4f92d8ad91ce7e6a5cbff3bdb12149f",
+    "known_support_ids_hash": "10b77dadb1f1e7b9dbfd6d6285e1adf65ddf62eb38dcbb635480db8c245834ed",
+    "full_season_total_eligible_unique_base_count": 0,
+    "full_season_total_eligible_base_season_count": 0
+  },
+  "inputs": {
+    "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "registry_file_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "ledger_sha256": "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd",
+    "weather_daily_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "support_artifact_manifest_sha256": "94089e00b45e5751e9a75c67f7549bf57647e0e36019acf2ffa592d52a4c7582",
+    "support_summary_sha256": "c13ef4852401266726b24ce2d5a8a90cade6ea2c0eb3658e33dd593cf10d3d23",
+    "support_counts_sha256": "f36199e1e59fa66584ded094399519f63f2a34057bc9555314f35fb68da41ed8",
+    "forward_fold_support_sha256": "d5cfe9f698903faf2856947881300b055762ce38dbc62427ffe448f79ff36524"
+  },
+  "fixed_model_parameters": {
+    "loss": "squared_error",
+    "learning_rate": 0.05,
+    "max_iter": 300,
+    "max_leaf_nodes": 31,
+    "max_depth": 6,
+    "min_samples_leaf": 10,
+    "l2_regularization": 0.1,
+    "early_stopping": false,
+    "random_state": 20260915
+  },
+  "features": [
+    "productive_area_mu",
+    "business_season_day_index",
+    "business_season_progress",
+    "business_season_progress_sin",
+    "business_season_progress_cos"
+  ],
+  "folds": {
+    "A": {
+      "role": "SECONDARY_STABILITY_DIAGNOSTIC",
+      "train_seasons": ["2023-2024"],
+      "validation_seasons": ["2024-2025"],
+      "train_known_row_count": 2106,
+      "validation_known_row_count": 7025,
+      "train_unique_base_count": 9,
+      "validation_unique_base_count": 25,
+      "intersection_base_count": 9,
+      "natural_oob_base_count": 16
+    },
+    "B": {
+      "role": "PRIMARY_FORWARD_VALIDATION",
+      "train_seasons": ["2023-2024", "2024-2025"],
+      "validation_seasons": ["2025-2026"],
+      "train_known_row_count": 9131,
+      "validation_known_row_count": 8892,
+      "train_unique_base_count": 25,
+      "validation_unique_base_count": 39,
+      "intersection_base_count": 25,
+      "natural_oob_base_count": 14,
+      "train_validation_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a",
+      "validation_ids_hash": "10b77dadb1f1e7b9dbfd6d6285e1adf65ddf62eb38dcbb635480db8c245834ed",
+      "support_origins": {
+        "W7": 8346,
+        "W15": 8034
+      },
+      "models": {
+        "NO_WEATHER_HGBR_DAILY_V1": {
+          "all": {
+            "daily_wape": 0.838297828753,
+            "daily_mae_kg": 3200.752718903354,
+            "daily_bias_kg": -1843.913950625608,
+            "W7_total_wape": 0.694795552375,
+            "W7_peak_date_mae_days": 2.391924275102,
+            "W7_peak_kg_wape": 0.698179749731,
+            "W15_total_wape": 0.682695349371,
+            "W15_peak_date_mae_days": 5.228030868808,
+            "W15_peak_kg_wape": 0.693669727091
+          },
+          "seen": {
+            "base_count": 25,
+            "daily_wape": 0.895537851998,
+            "W7_total_wape": 0.691522898647,
+            "W15_total_wape": 0.680502445489
+          },
+          "natural_oob": {
+            "base_count": 14,
+            "daily_wape": 0.736083501531,
+            "W7_total_wape": 0.70063957689,
+            "W15_total_wape": 0.686611249161
+          },
+          "common_weather_scope": {
+            "base_count": 38,
+            "daily_wape": 0.842484715152,
+            "W7_total_wape": 0.700264874618,
+            "W15_total_wape": 0.688424558592
+          }
+        },
+        "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1": {
+          "all": {
+            "daily_wape": 0.825783879425,
+            "daily_mae_kg": 3207.929790381826,
+            "daily_bias_kg": -2173.528377570322,
+            "W7_total_wape": 0.679262173997,
+            "W7_peak_date_mae_days": 2.480589503954,
+            "W7_peak_kg_wape": 0.721037636886,
+            "W15_total_wape": 0.681542288125,
+            "W15_peak_date_mae_days": 5.229773462783,
+            "W15_peak_kg_wape": 0.73635015366
+          },
+          "seen": {
+            "base_count": 25,
+            "daily_wape": 0.919263929453,
+            "W7_total_wape": 0.706474711309,
+            "W15_total_wape": 0.709510733496
+          },
+          "natural_oob": {
+            "base_count": 14,
+            "daily_wape": 0.65885521866,
+            "W7_total_wape": 0.630668357369,
+            "W15_total_wape": 0.631598635678
+          },
+          "common_weather_scope": {
+            "base_count": 38,
+            "daily_wape": 0.831101101998,
+            "W7_total_wape": 0.683434480221,
+            "W15_total_wape": 0.685596291013
+          }
+        }
+      }
+    }
+  },
+  "reproducibility": {
+    "private_artifact_root": "blueberry-area-yield-artifacts/s3-known-support-no-weather-baseline-r1/",
+    "artifact_file_count": 14,
+    "artifact_manifest_sha256": "5a6b1e574d0477a057f6f42b0db9a37ddf1213d645d8a0cb6175fc83e5c6dfeb",
+    "candidate_manifest_hash": "7e2bb9a47f1267f1c9f683220a7501d1f60a6b190a39b32cf36f8d123887dfc6",
+    "prediction_file_sha256": "ee0e0afa9a78c5725a053eb2ece81391d0745e9a0b9cec786c2663e45b746b80",
+    "scored_prediction_file_sha256": "1a6d3c11a863d6ef5468531abad7114cfc4ac7c0954a5660c828f60d16aa6630",
+    "replay_comparison_sha256": "0b4d5ea3b6fa865ecb33ce47fdd1d48fcf2200abce38bec2c813010bf8a0b3ad",
+    "replay_1": "PASS",
+    "replay_2": "PASS",
+    "deterministic_replay": "PASS",
+    "metrics_equal": true,
+    "prediction_freeze_equal": true,
+    "validation_label_leakage": false,
+    "fit_on_validation_season": false
+  },
+  "authorization_and_limits": {
+    "weather_features_used": false,
+    "weather_model_training": false,
+    "s4_weather_ablation": false,
+    "climate_zone_features": false,
+    "full_season_total_or_yield_model": false,
+    "production_ready": false,
+    "business_accuracy_approved": false
+  }
+}
