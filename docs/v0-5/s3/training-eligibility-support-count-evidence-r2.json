@@ -1,0 +1,155 @@
+{
+  "task_id": "V0_5_S3_TRAINING_ELIGIBILITY_AND_EVALUATION_FREEZE_R2",
+  "action": "COMPLETE_SUPPORT_COUNT_EVIDENCE",
+  "base_r1_head": "9e7d92e0269eb6a85e9d3462b43aeef3a0531797",
+  "result": "SUPPORT_COUNT_EVIDENCE_COMPLETE",
+  "scope_correction_only": true,
+  "qualification_rules_changed": false,
+  "deprecated_fields": [
+    "unique_eligible_base_count",
+    "unique_eligible_base_season_count"
+  ],
+  "replacement_fields": [
+    "full_season_total_eligible_unique_base_count",
+    "full_season_total_eligible_base_season_count",
+    "daily_known_support_unique_base_count",
+    "daily_known_support_base_season_count",
+    "W7_eligible_unique_base_count",
+    "W7_eligible_base_season_count",
+    "W15_eligible_unique_base_count",
+    "W15_eligible_base_season_count"
+  ],
+  "base_universe": {
+    "active_registry_base_count": 39,
+    "weather_common_comparable_scope_max_base_count": 38,
+    "no_weather_extended_scope_max_base_count": 39,
+    "registry_out_of_weather_scope_retained": true,
+    "registry_payload_hash": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293"
+  },
+  "aggregate_support_counts": {
+    "full_season_total_eligible_unique_base_count": 0,
+    "full_season_total_eligible_base_season_count": 0,
+    "daily_known_support_row_count": 17795,
+    "daily_known_support_unique_base_count": 38,
+    "daily_known_support_base_season_count": 72,
+    "W7_eligible_origin_count": 16160,
+    "W7_eligible_unique_base_count": 38,
+    "W7_eligible_base_season_count": 72,
+    "W15_eligible_origin_count": 15323,
+    "W15_eligible_unique_base_count": 38,
+    "W15_eligible_base_season_count": 72
+  },
+  "support_counts_by_season": {
+    "2023-2024": {
+      "daily_known_support": {"row_count": 2106, "unique_base_count": 9, "unique_base_season_count": 9},
+      "W7": {"origin_count": 1728, "unique_base_count": 9, "unique_base_season_count": 9},
+      "W15": {"origin_count": 1620, "unique_base_count": 9, "unique_base_season_count": 9}
+    },
+    "2024-2025": {
+      "daily_known_support": {"row_count": 7025, "unique_base_count": 25, "unique_base_season_count": 25},
+      "W7": {"origin_count": 6300, "unique_base_count": 25, "unique_base_season_count": 25},
+      "W15": {"origin_count": 5875, "unique_base_count": 25, "unique_base_season_count": 25}
+    },
+    "2025-2026": {
+      "daily_known_support": {"row_count": 8664, "unique_base_count": 38, "unique_base_season_count": 38},
+      "W7": {"origin_count": 8132, "unique_base_count": 38, "unique_base_season_count": 38},
+      "W15": {"origin_count": 7828, "unique_base_count": 38, "unique_base_season_count": 38}
+    }
+  },
+  "forward_folds": {
+    "A": {
+      "train_seasons": ["2023-2024"],
+      "validation_seasons": ["2024-2025"],
+      "daily_known_support": {
+        "train_origin_or_row_count": 2106,
+        "validation_origin_or_row_count": 7025,
+        "train_unique_base_count": 9,
+        "validation_unique_base_count": 25,
+        "train_unique_base_season_count": 9,
+        "validation_unique_base_season_count": 25,
+        "train_validation_base_intersection_count": 9,
+        "train_validation_base_intersection_ids_hash": "8d1b5006ddb75dce650517b8d86b9064ae4cfceca894c30e39082bcd95d20052"
+      },
+      "W7": {
+        "train_origin_or_row_count": 1728,
+        "validation_origin_or_row_count": 6300,
+        "train_unique_base_count": 9,
+        "validation_unique_base_count": 25,
+        "train_unique_base_season_count": 9,
+        "validation_unique_base_season_count": 25,
+        "train_validation_base_intersection_count": 9,
+        "train_validation_base_intersection_ids_hash": "8d1b5006ddb75dce650517b8d86b9064ae4cfceca894c30e39082bcd95d20052"
+      },
+      "W15": {
+        "train_origin_or_row_count": 1620,
+        "validation_origin_or_row_count": 5875,
+        "train_unique_base_count": 9,
+        "validation_unique_base_count": 25,
+        "train_unique_base_season_count": 9,
+        "validation_unique_base_season_count": 25,
+        "train_validation_base_intersection_count": 9,
+        "train_validation_base_intersection_ids_hash": "8d1b5006ddb75dce650517b8d86b9064ae4cfceca894c30e39082bcd95d20052"
+      }
+    },
+    "B": {
+      "train_seasons": ["2023-2024", "2024-2025"],
+      "validation_seasons": ["2025-2026"],
+      "daily_known_support": {
+        "train_origin_or_row_count": 9131,
+        "validation_origin_or_row_count": 8664,
+        "train_unique_base_count": 25,
+        "validation_unique_base_count": 38,
+        "train_unique_base_season_count": 34,
+        "validation_unique_base_season_count": 38,
+        "train_validation_base_intersection_count": 25,
+        "train_validation_base_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a"
+      },
+      "W7": {
+        "train_origin_or_row_count": 8028,
+        "validation_origin_or_row_count": 8132,
+        "train_unique_base_count": 25,
+        "validation_unique_base_count": 38,
+        "train_unique_base_season_count": 34,
+        "validation_unique_base_season_count": 38,
+        "train_validation_base_intersection_count": 25,
+        "train_validation_base_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a"
+      },
+      "W15": {
+        "train_origin_or_row_count": 7495,
+        "validation_origin_or_row_count": 7828,
+        "train_unique_base_count": 25,
+        "validation_unique_base_count": 38,
+        "train_unique_base_season_count": 34,
+        "validation_unique_base_season_count": 38,
+        "train_validation_base_intersection_count": 25,
+        "train_validation_base_intersection_ids_hash": "884ec44fb74e89019aa4f1068f89f82af91cf87e619a4a493283f4d4e375975a"
+      }
+    }
+  },
+  "authorization": {
+    "model_training": false,
+    "weather_features_generated": false,
+    "weather_model_training": false,
+    "s4_weather_ablation": false,
+    "climate_zone_mapping_frozen": false,
+    "database_schema_changed": false,
+    "api_changed": false,
+    "mcp_changed": false,
+    "production_deployment_changed": false
+  },
+  "private_artifacts": {
+    "root": "blueberry-area-yield-artifacts/s3-training-eligibility-r2-support-count-correction",
+    "artifact_manifest_hash": "3850e492ad4f8ce2c5a49cda4f7cd491d7db2d7356ee57c63c905490af62138a",
+    "summary_hash": "01995fb5650762003c0343ce313b1a60c5e140afa8e11b355aa00bc0a60d9267",
+    "support_counts_by_season_sha256": "4efe1d0e802bbb868a375c67d91fa2b535eb4a905271063303075b5525b50c39",
+    "forward_fold_support_sha256": "c9f9761afa7da7472c6a8d49c9c878cca8816a081040ee58825d1c2c615d8e68",
+    "replay_comparison": {
+      "artifact_file_count": 16,
+      "artifact_manifest_equal": true,
+      "summary_equal": true,
+      "deterministic_replay": true
+    }
+  },
+  "r1_artifact_changed": false,
+  "final_status": "COORDINATOR_S3_SUPPORT_COUNT_EVIDENCE_R2_REVIEW"
+}
