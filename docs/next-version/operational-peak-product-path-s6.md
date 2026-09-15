@@ -34,6 +34,12 @@ authority canonical hash: 1ec9d27375915b37d0e1a9d77bcc315cddd8eff54f7f0b7bf92305
 These values identify the private operator artifact; the registry and reference
 profile payloads are not committed to the repository.
 
+The authority builder reads the Registry and Fold-B profile as raw bytes and
+checks each approved source-file SHA256 before parsing or embedding either
+payload. A semantically equivalent file with different bytes is rejected, so
+the embedded source identity cannot be asserted independently of the approved
+input files.
+
 ## Application and persistence
 
 `execute_operational_peak_forecast_run` owns the create boundary:
@@ -75,10 +81,11 @@ python -m backend.app.cli operational-peak-run list
 python -m backend.app.cli operational-peak-run daily --run-id <id>
 ```
 
-The existing `area-forecast` CLI, stateless area API, and existing MCP tools are
-unchanged. S6's four persisted-run tools are added to the same MCP server and
-share the application/repository implementation; MCP does not duplicate peak,
-window, hash, or authority logic.
+The existing `area-forecast` CLI, stateless area API, and five existing MCP tool
+contracts are unchanged. The shared MCP tool surface is extended by S6's four
+persisted-run tools (nine tools total), which share the same
+application/repository implementation. MCP does not duplicate peak, window,
+hash, or authority logic.
 
 ## Acceptance snapshot
 

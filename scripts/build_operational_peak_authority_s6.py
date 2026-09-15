@@ -23,16 +23,28 @@ from backend.app.forecast_quality.operational_peak_authority import (
 )
 
 
-def _read_object(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+def _read_object(path: Path, *, expected_sha256: str, label: str) -> dict[str, Any]:
+    raw = path.read_bytes()
+    actual_sha256 = hashlib.sha256(raw).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise ValueError(f"{label} source file hash is not the approved SHA256")
+    value = json.loads(raw)
     if not isinstance(value, dict):
         raise ValueError(f"{path} must contain an object")
     return value
 
 
 def build(registry_path: Path, profile_path: Path) -> dict[str, Any]:
-    registry = _read_object(registry_path)
-    profile = _read_object(profile_path)
+    registry = _read_object(
+        registry_path,
+        expected_sha256=REGISTRY_FILE_SHA256,
+        label="registry",
+    )
+    profile = _read_object(
+        profile_path,
+        expected_sha256=REFERENCE_PROFILE_FILE_SHA256,
+        label="reference profile",
+    )
     if registry.get("hash") != REGISTRY_PAYLOAD_HASH:
         raise ValueError("registry payload hash is not the approved S1 hash")
     payload: dict[str, Any] = {
