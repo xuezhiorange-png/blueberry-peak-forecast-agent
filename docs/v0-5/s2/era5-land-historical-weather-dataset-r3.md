@@ -163,5 +163,6 @@ were not submitted. The partial offline source audit now covers 18 raw sources:
 gaps/duplicates. These are not full-dataset acceptance statistics. No real
 normalized dataset or full replay result is claimed until the remaining planned
 requests receive separate authorization. The earlier ProxyError stop record is
-preserved as transport history. Local tests: 50 focused / 213 related passed;
-lint, format and mypy passed. New exact-head CI has not been executed.
+preserved as transport history. Local tests: 50 focused / 215 related passed;
+lint, format and mypy passed. Exact-head CI `34915123025` completed
+successfully, including full-suite-canary.
