@@ -151,6 +151,23 @@ def test_submitted_recovery_stops_when_resubmission_would_be_required(tmp_path, 
     assert record["automatic_resubmission"] is False
 
 
+def test_retrieve_rejects_submitted_receipt_identity_before_cds_access(tmp_path, monkeypatch):
+    root, _, entry = r3_fixture(tmp_path, monkeypatch)
+    (root / f"{entry['request_hash']}.completed.json").unlink()
+    (root / f"{entry['request_hash']}.raw").unlink()
+    write_json(
+        root / f"{entry['request_hash']}.submitted.json",
+        {"request_hash": "different-request", "remote_request_id": "synthetic-job-id"},
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "cdsapi",
+        SimpleNamespace(Client=lambda **k: pytest.fail("CDS_ACCESS_BEFORE_RECEIPT_GATE")),
+    )
+    with pytest.raises(ValueError, match="SUBMITTED_RECEIPT_IDENTITY_MISMATCH"):
+        retrieve(root, reviewed_resume=True)
+
+
 @pytest.mark.parametrize("var,edge", [("tp", -3e-8), ("ssrd", -4.0)])
 def test_frozen_envelope_inclusive_and_next_float_outside(var, edge):
     assert correct_value(var, edge) == 0.0

@@ -157,13 +157,32 @@ the reviewed grid change itself is working.
 
 The authorized recovery of all 18 existing submitted receipts completed without
 resubmission: 15 were already complete and 3 were downloaded after querying the
-original jobs. The recovery scope is closed at this point; 87 planned requests
-were not submitted. The partial offline source audit now covers 18 raw sources:
-1,677 tp and 1,688 ssrd negatives, all within the frozen envelope, with zero
-gaps/duplicates. These are not full-dataset acceptance statistics. No real
-normalized dataset or full replay result is claimed until the remaining planned
-requests receive separate authorization. The earlier ProxyError stop record is
-preserved as transport history. Local tests: 50 focused / 215 related passed;
-lint, format and mypy passed. Exact-head CI `34915123025` passed on the
-recovery implementation head, and final head CI `34917284629` passed on the
-evidence update, including full-suite-canary.
+original jobs. The recovery scope was then followed by a separate explicit
+authorization (review `5204894375`) to submit only the 87 remaining entries in
+this exact 105-request frozen overlay. No manifest regeneration, request-plan
+expansion, date/variable/grid change or replacement request ID was authorized.
+
+That submission run stopped at the source gate after four new receipts had been
+created: two new raw sources passed, one raw source was retained but rejected,
+and one submitted job had no downloaded result when the stop gate fired. The rejected
+request is `ddaa6ec8c86cb663d67376d6ed0c2018e289c0b634fd5369a1f97f1804bce347`;
+its raw artifact contains one `tp` value
+`-3.3391188480891287e-08` at `2026-01-16T21:00:00+00:00`, which is below the
+frozen `-3.0e-8 m` envelope. It therefore stops the build with
+`NEGATIVE_VALUE_OUTSIDE_CERTIFIED_ARTIFACT_ENVELOPE`; no tolerance expansion,
+clipping or further submission was performed. Its raw SHA256 is
+`21d23b0131f301b6a67d4351d382732d91c7cc093ce8b23071823a29574ccfa6`.
+
+The private overlay now has 22 submitted receipts and 21 downloaded raw files;
+20 downloaded sources pass the current source gate, while the rejected raw and
+all receipts/stop records remain preserved for review. The downloaded-only
+inventory is 21 raw sources, with 1,960 tp negatives, 1,978 ssrd negatives,
+one outside-envelope negative, and zero missing or duplicate intervals. These
+counts are not full-dataset acceptance statistics. No normalized dataset or
+offline replay is claimed, and 84 planned entries remain incomplete (83 were
+not submitted and one submitted job was not queried after the quality stop).
+The earlier ProxyError and the current quality-stop records are both preserved.
+The current blocker is `NEGATIVE_VALUE_OUTSIDE_CERTIFIED_ARTIFACT_ENVELOPE`;
+continuation would require a separately authorized disposition for that source
+quality failure. Local tests and static checks from the prior checkpoint remain
+valid; this submission attempt did not run normalization or replay.
