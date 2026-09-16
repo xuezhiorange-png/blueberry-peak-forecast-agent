@@ -66,7 +66,7 @@ async def running_backend(env, port=0):
         await asyncio.wait_for(process.wait(), 10)
 
 
-async def test_network_five_tools_and_transport_parity(isolated_database, monkeypatch):
+async def test_network_all_tools_and_transport_parity(isolated_database, monkeypatch):
     engine, env = isolated_database
     env.update(
         {

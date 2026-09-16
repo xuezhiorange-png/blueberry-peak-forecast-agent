@@ -5,9 +5,20 @@
 
 ## 后端与地址
 
-复用 `backend.app.mcp.area_forecast.server`（`blueberry-area-forecast`）的五个工具。
+复用 `backend.app.mcp.area_forecast.server`（`blueberry-area-forecast`）的十个工具。
 stdio 与 HTTP 使用同一个 server、schemas、annotations、错误映射及业务服务。
 不增加预测数学、训练、数据库表或迁移。
+
+当前正式工具包括：
+
+- `forecast_blueberry_by_area`（无副作用的 stateless forecast）
+- `create_blueberry_area_forecast_run`、`get_blueberry_area_forecast_run`、
+  `list_blueberry_area_forecast_runs`、`get_blueberry_area_forecast_daily`
+- `create_blueberry_operational_peak_forecast_run`、
+  `get_blueberry_operational_peak_forecast_run`、
+  `list_blueberry_operational_peak_forecast_runs`、
+  `get_blueberry_operational_peak_forecast_daily`
+- `search_blueberry_operational_bases`（只读基地发现）
 
 安装仓库锁定依赖，按已有数据库配置与迁移流程准备 PostgreSQL，然后启动：
 
@@ -81,7 +92,7 @@ curl -sS http://127.0.0.1:8000/api/v1/blueberry/v1/mcp/sse \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"forecast_blueberry_by_area","arguments":{"farm":"保山杨柳农场","productive_area_mu":"393.4","target_season":"2026-2027","season_start":"2026-10-15","season_end":"2027-05-09","as_of":"2026-09-12"}}}'
 ```
 
-initialize/list 均应 HTTP 200，list 含五个工具。call 通过 `result.structuredContent`
+initialize/list 均应 HTTP 200，list 含十个工具。call 通过 `result.structuredContent`
 读取原有业务 payload；工具错误仍在 HTTP 200 JSON-RPC result 内带 `isError=true`，
 不可仅根据 HTTP 200 判断预测成功。
 
@@ -91,6 +102,7 @@ initialize/list 均应 HTTP 200，list 含五个工具。call 通过 `result.str
 | --- | --- |
 | 只要求预测 | `forecast_blueberry_by_area`（不写库） |
 | 明确要求预测并保存/正式留档 | `create_blueberry_area_forecast_run` |
+| 基地名称或 ID 不完整/不确定 | `search_blueberry_operational_bases` |
 | 问历史列表 | `list_blueberry_area_forecast_runs` |
 | 指定 run_id 查完整结果 | `get_blueberry_area_forecast_run` |
 | 指定 run_id 查每日曲线 | `get_blueberry_area_forecast_daily` |
@@ -103,6 +115,10 @@ fail closed，不恢复 Global fallback。list 的 filters、opaque cursor、20/
 请求错误、unsupported history、authority unavailable、not found、rerun scope conflict、
 integrity failure、persistence failure 保持原机器码。数据库故障不会被称为 authority
 错误；不向客户端暴露 SQL、连接串、文件路径、密钥或原始异常。历史工具不重新预测。
+operational peak create 接受精确注册 `base_id` 或精确 canonical base name；部分名称或
+未知名称应先调用 `search_blueberry_operational_bases`，搜索只返回候选，不自动选择。
+搜索仅覆盖 server-owned authority 中的 active bases，采用 NFKC、trim、casefold 后的
+精确/子串匹配，不做 fuzzy、拼音、地理或 LLM 匹配。
 
 ## 架构来源与验收
 

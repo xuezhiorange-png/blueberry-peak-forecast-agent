@@ -43,6 +43,15 @@ from backend.app.forecast_quality.operational_peak_persistence import (
     OperationalPeakRunNotFoundError,
     OperationalPeakWriteFailure,
 )
+from backend.app.mcp.operational_base_search import (
+    SEARCH as OPERATIONAL_BASE_SEARCH,
+)
+from backend.app.mcp.operational_base_search import (
+    call_operational_base_search_tool,
+)
+from backend.app.mcp.operational_base_search import (
+    run_tools as operational_base_search_tools,
+)
 from backend.app.mcp.operational_peak_runs import (
     CONTRACTS as OPERATIONAL_PEAK_CONTRACTS,
 )
@@ -104,6 +113,7 @@ async def _list_tools(
             ),
             *run_tools(),
             *operational_peak_run_tools(),
+            *operational_base_search_tools(),
         ]
     )
 
@@ -129,6 +139,17 @@ async def _call_tool(
             # SQLAlchemy/connection/commit and other infrastructure failures are not
             # authority failures. Never expose exception text, SQL, URLs or secrets.
             return _error("AREA_FORECAST_WRITE_FAILURE", "PERSISTENCE_SERVICE_UNAVAILABLE")
+        return _result(payload)
+    if params.name == OPERATIONAL_BASE_SEARCH:
+        try:
+            payload = call_operational_base_search_tool(params.name, params.arguments or {})
+        except ValidationError:
+            return _error("AREA_FORECAST_REQUEST_INVALID", "INVALID_REQUEST_DOCUMENT")
+        except OperationalPeakAuthorityError as exc:
+            return _error(exc.code, exc.reason)
+        except Exception:
+            # Search is authority-backed but never exposes registry payload or paths.
+            return _error("AUTHORITY_PAYLOAD_INVALID", "AUTHORITY_PAYLOAD_INVALID")
         return _result(payload)
     if params.name in OPERATIONAL_PEAK_CONTRACTS:
         try:
