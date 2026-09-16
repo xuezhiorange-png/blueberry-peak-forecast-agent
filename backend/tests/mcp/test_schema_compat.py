@@ -26,6 +26,7 @@ ALL_TOOL_NAMES = {
     "get_blueberry_operational_peak_forecast_run",
     "list_blueberry_operational_peak_forecast_runs",
     "get_blueberry_operational_peak_forecast_daily",
+    "search_blueberry_operational_bases",
 }
 POSITIVE_ID_TOOL_NAMES = {
     "create_blueberry_area_forecast_run",
@@ -92,11 +93,11 @@ def test_projection_fails_closed_on_conflicting_minimum() -> None:
 
 
 @pytest.mark.asyncio
-async def test_all_nine_tools_expose_projected_input_schemas() -> None:
+async def test_all_ten_tools_expose_projected_input_schemas() -> None:
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
 
-    assert len(tools) == 9
+    assert len(tools) == 10
     assert {tool.name for tool in tools} == ALL_TOOL_NAMES
     assert all(not _contains_key(tool.input_schema, "exclusiveMinimum") for tool in tools)
 
@@ -134,7 +135,7 @@ async def test_all_tool_input_schema_hash_is_frozen() -> None:
     schema_hash = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    assert schema_hash == "a634d7fd4cc3c88ced801bdef4e5d41123c55d841b212998f94d26313294d36e"
+    assert schema_hash == "6a4e09c734a3a4675bc377bfc53e56db1cd62b3721d94ee846232cad9cc487df"
 
 
 @pytest.mark.asyncio

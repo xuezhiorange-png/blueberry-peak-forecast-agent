@@ -15,6 +15,7 @@ from backend.app.db.session import get_db_session
 from backend.app.main import create_app
 from backend.app.mcp import persisted_runs
 from backend.app.mcp.area_forecast import server
+from backend.app.mcp.operational_base_search import SEARCH as OPERATIONAL_BASE_SEARCH
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
 from backend.tests.area_yield.test_run_persistence import authority, bounded  # noqa: F401
 from backend.tests.area_yield.test_run_transport import factory as factory
@@ -34,7 +35,7 @@ OPERATIONAL_NAMES = [
     "list_blueberry_operational_peak_forecast_runs",
     "get_blueberry_operational_peak_forecast_daily",
 ]
-ALL_NAMES = NAMES + OPERATIONAL_NAMES
+ALL_NAMES = NAMES + OPERATIONAL_NAMES + [OPERATIONAL_BASE_SEARCH]
 
 
 async def test_all_tools_discovery():
@@ -269,7 +270,7 @@ async def test_saved_tool_schema_hash():
     value = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    assert value == "2deef74fbe79823e5005f37ca44d5581ab1efc1a95cc9c4c6a00a5eafe0cba48"
+    assert value == "351027bb46294fe7daba035d4020037a1aeaa5b5620c6e5e307427d888bea2ab"
 
 
 async def test_failed_create_rolls_back_outer_transaction(configured, monkeypatch):

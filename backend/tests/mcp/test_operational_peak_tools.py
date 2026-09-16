@@ -31,6 +31,7 @@ async def test_operational_tools_discovery_and_roundtrip(s6_factory, s6_authorit
             "get_blueberry_operational_peak_forecast_run",
             "list_blueberry_operational_peak_forecast_runs",
             "get_blueberry_operational_peak_forecast_daily",
+            "search_blueberry_operational_bases",
         ]
         new_tools = tools[5:]
         assert new_tools[0].annotations.read_only_hint is False
@@ -45,6 +46,19 @@ async def test_operational_tools_discovery_and_roundtrip(s6_factory, s6_authorit
         repeat = await client.call_tool("create_blueberry_operational_peak_forecast_run", _body())
         assert repeat.structured_content["reused_existing_run"] is True
         assert repeat.structured_content["run"]["run_id"] == run_id
+        by_name = await client.call_tool(
+            "create_blueberry_operational_peak_forecast_run",
+            {**_body(), "base_id": "保山杨柳基地"},
+        )
+        assert not by_name.is_error
+        assert by_name.structured_content["reused_existing_run"] is True
+        assert by_name.structured_content["run"]["run_id"] == run_id
+        partial = await client.call_tool(
+            "create_blueberry_operational_peak_forecast_run",
+            {**_body(), "base_id": "杨柳"},
+        )
+        assert partial.is_error
+        assert partial.structured_content["code"] == "UNREGISTERED_BASE"
         got = await client.call_tool(
             "get_blueberry_operational_peak_forecast_run", {"run_id": run_id}
         )
