@@ -15,6 +15,7 @@ from backend.app.area_yield.run_schemas import (
     SavedAreaForecastRun,
 )
 from backend.app.db.session import AsyncSessionMaker
+from backend.app.mcp.schema_compat import project_mcp_input_schema
 
 CREATE = "create_blueberry_area_forecast_run"
 GET = "get_blueberry_area_forecast_run"
@@ -74,6 +75,7 @@ def run_tools() -> list[Tool]:
         schema = input_type.model_json_schema()
         if name == CREATE:
             schema["properties"].pop("forecast_method")
+        schema = project_mcp_input_schema(schema)
         tools.append(
             Tool(
                 name=name,
