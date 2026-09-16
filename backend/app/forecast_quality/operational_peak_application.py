@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.forecast_quality.operational_peak import (
     OperationalPeakForecastRequest,
     OperationalPeakForecastResult,
     forecast_operational_peak,
+    resolve_registered_base,
 )
 from backend.app.forecast_quality.operational_peak_authority import (
     load_operational_peak_authority,
@@ -33,7 +36,12 @@ async def execute_operational_peak_forecast_run(
     if not isinstance(request, OperationalPeakForecastRequest):
         raise ValueError("INVALID_REQUEST")
     authority = load_operational_peak_authority()
-    snapshot = request_snapshot(request)
+    # Persist the canonical identity even when the caller supplied the exact
+    # canonical name. This keeps ID and exact-name requests on one execution
+    # identity and preserves the existing exact-only domain resolution rules.
+    canonical_base = resolve_registered_base(authority.registry, request.base_id)
+    canonical_request = replace(request, base_id=canonical_base.base_id)
+    snapshot = request_snapshot(canonical_request)
     execution_id = execution_hash(snapshot, authority.authority_hash, authority.policy_version)
     repository = OperationalPeakRunRepository(session)
 
@@ -42,9 +50,9 @@ async def execute_operational_peak_forecast_run(
     if rerun_of_run_id is not None:
         parent = await repository.get(rerun_of_run_id)
         if (
-            parent.result.get("base_id") != request.base_id
-            or parent.result.get("target_season") != request.target_season
-            or parent.result.get("origin_date") != request.origin_date.isoformat()
+            parent.result.get("base_id") != canonical_request.base_id
+            or parent.result.get("target_season") != canonical_request.target_season
+            or parent.result.get("origin_date") != canonical_request.origin_date.isoformat()
         ):
             raise OperationalPeakRerunScopeMismatch("RERUN_SCOPE_MISMATCH")
 
@@ -55,7 +63,7 @@ async def execute_operational_peak_forecast_run(
         return existing
 
     result: OperationalPeakForecastResult = forecast_operational_peak(
-        request,
+        canonical_request,
         authority.registry,
         authority.reference_profile,
     )

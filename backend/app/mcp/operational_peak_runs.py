@@ -67,16 +67,25 @@ CONTRACTS: dict[str, tuple[type[BaseModel], type[BaseModel], str]] = {
 
 
 def run_tools() -> list[Tool]:
-    return [
-        Tool(
-            name=name,
-            description=description,
-            input_schema=project_mcp_input_schema(input_type.model_json_schema()),
-            output_schema=output_type.model_json_schema(),
-            annotations=_annotations(name != CREATE),
+    tools: list[Tool] = []
+    for name, (input_type, output_type, description) in CONTRACTS.items():
+        schema = project_mcp_input_schema(input_type.model_json_schema())
+        if name == CREATE:
+            schema["properties"]["base_id"]["description"] = (
+                "Exact registered base_id or exact canonical base name. If the name is partial "
+                "or unknown, call search_blueberry_operational_bases first; this tool does not "
+                "perform fuzzy matching."
+            )
+        tools.append(
+            Tool(
+                name=name,
+                description=description,
+                input_schema=schema,
+                output_schema=output_type.model_json_schema(),
+                annotations=_annotations(name != CREATE),
+            )
         )
-        for name, (input_type, output_type, description) in CONTRACTS.items()
-    ]
+    return tools
 
 
 async def call_operational_peak_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
