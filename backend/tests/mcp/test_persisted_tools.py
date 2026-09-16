@@ -269,7 +269,7 @@ async def test_saved_tool_schema_hash():
     value = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    assert value == "34414f10e70ee8364d4ee47a92f78556b6c5a096c3b4c3a7cdb9d66b838161fb"
+    assert value == "2deef74fbe79823e5005f37ca44d5581ab1efc1a95cc9c4c6a00a5eafe0cba48"
 
 
 async def test_failed_create_rolls_back_outer_transaction(configured, monkeypatch):

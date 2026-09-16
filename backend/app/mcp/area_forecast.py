@@ -53,6 +53,7 @@ from backend.app.mcp.operational_peak_runs import (
     run_tools as operational_peak_run_tools,
 )
 from backend.app.mcp.persisted_runs import CONTRACTS, call_run_tool, run_tools
+from backend.app.mcp.schema_compat import project_mcp_input_schema
 
 TOOL_NAME = "forecast_blueberry_by_area"
 SERVER_NAME = "blueberry-area-forecast"
@@ -62,7 +63,7 @@ def input_schema() -> dict[str, Any]:
     """Reuse the product schema, without exposing its fixed method discriminator."""
     schema = AreaDrivenForecastRequest.model_json_schema()
     schema["properties"].pop("forecast_method")
-    return schema
+    return project_mcp_input_schema(schema)
 
 
 def _result(payload: dict[str, Any], *, error: bool = False) -> CallToolResult:
