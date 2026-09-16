@@ -23,6 +23,7 @@ from backend.app.forecast_quality.operational_peak_schemas import (
     OperationalPeakRunIdentity,
     SavedOperationalPeakRun,
 )
+from backend.app.mcp.schema_compat import project_mcp_input_schema
 
 CREATE = "create_blueberry_operational_peak_forecast_run"
 GET = "get_blueberry_operational_peak_forecast_run"
@@ -70,7 +71,7 @@ def run_tools() -> list[Tool]:
         Tool(
             name=name,
             description=description,
-            input_schema=input_type.model_json_schema(),
+            input_schema=project_mcp_input_schema(input_type.model_json_schema()),
             output_schema=output_type.model_json_schema(),
             annotations=_annotations(name != CREATE),
         )
