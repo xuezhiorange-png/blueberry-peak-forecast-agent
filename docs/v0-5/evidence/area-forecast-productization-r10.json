@@ -1,0 +1,53 @@
+{
+  "task_id": "V0_5_AREA_FORECAST_PRODUCTIZATION_R10",
+  "research_status": "CLOSED",
+  "total_model": "BASE_AWARE_BASELINE_R1",
+  "temporal_reference_model": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+  "model_status": "EXPERIMENTAL",
+  "weather_used": false,
+  "future_plan_used": false,
+  "reference_area": {
+    "source": "基地位置亩数.xlsx",
+    "source_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "base_count": 39,
+    "total_mu": "41335.000000",
+    "registry_artifact_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85",
+    "registry_payload_hash": "5e52493160f9e11bc9980ab7601be85d0aef43240f0cb2d3917d66afa958810b"
+  },
+  "model_artifact": {
+    "file": "configs/v0_5_area_forecast_model_v1.json",
+    "file_sha256": "b265900703e95a442a9172869ba0025c6a078131ef40c4bf6612cf88397ca388",
+    "canonical_hash": "45512d7d830e8e4623159582f5412bb8587d54de09e450fb6af707a656a0662b",
+    "training_manifest_sha256": "74aed78652513cd8a0a8828a0654dddf01d2cd0926f4261ee139317e3b157c89"
+  },
+  "real_forecast": {
+    "base_id": "base_a96b297b126a8cab67c4755f",
+    "base_name": "保山杨柳基地",
+    "target_area_mu": "394.000000",
+    "target_season": "2025-2026",
+    "predicted_season_total_kg": "223540.014148",
+    "daily_row_count": 289,
+    "single_day_peak": {"date": "2026-04-15", "quantity_kg": "5771.185798"},
+    "rolling_7day_peak": {
+      "start_date": "2026-04-09",
+      "end_date": "2026-04-15",
+      "cumulative_quantity_kg": "38625.006568"
+    },
+    "result_hash": "be5fdd4b196a60f38a69b5e47c1feb101c11fd2faae916a8b4830245d8ba2ec7"
+  },
+  "frozen_validation_evidence": {
+    "known_base_total_wape": "0.379265725",
+    "stable_history_total_wape": "0.251107822",
+    "best_daily_wape": "0.694130360",
+    "best_peak_date_mae_days": "22.230769",
+    "best_7day_peak_start_mae_days": "20.769231"
+  },
+  "change_flags": {
+    "model_retrained": false,
+    "model_tuned": false,
+    "weather_changed": false,
+    "future_plan_changed": false,
+    "database_schema_changed": false,
+    "legacy_product_changed": false
+  }
+}
