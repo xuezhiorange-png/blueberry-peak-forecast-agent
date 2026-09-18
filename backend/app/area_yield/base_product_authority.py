@@ -48,6 +48,17 @@ HISTORY_SOURCE_FILES = {
         "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
     },
 }
+EXPERIMENTAL_PRIOR_HISTORY_ARTIFACT_VERSION = "AREA_FORECAST_EXPERIMENTAL_PRIOR_HISTORY_V1"
+EXPERIMENTAL_PRIOR_HISTORY_SEASON = "2025-2026"
+EXPERIMENTAL_PRIOR_HISTORY_SOURCE_SHA256 = (
+    "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+)
+EXPERIMENTAL_PRIOR_HISTORY_IDENTITY_MAPPING_SHA256 = (
+    "6fb7212cc1edd090cf63ff2d938fc5e7b7a0c4b9020b7fdca14e499119b2496e"
+)
+EXPERIMENTAL_PRIOR_HISTORY_IDENTITY_MAPPING_FILE_SHA256 = (
+    "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086"
+)
 
 
 class BaseAreaForecastError(RuntimeError):
@@ -94,6 +105,8 @@ class BaseProductAuthority:
     registry_file_sha256: str
     model_file_sha256: str
     authority_hash: str
+    experimental_prior_history: dict[str, Any]
+    experimental_prior_history_file_sha256: str
 
     @property
     def bases_by_id(self) -> dict[str, dict[str, Any]]:
@@ -118,6 +131,10 @@ def _default_registry_path() -> Path:
 
 def _default_model_path() -> Path:
     return _repo_root() / "configs" / "v0_5_area_forecast_model_v1.json"
+
+
+def _default_experimental_prior_history_path() -> Path:
+    return _repo_root() / "configs" / "v0_5_area_forecast_experimental_prior_history_v1.json"
 
 
 def _read_json(path: Path) -> tuple[dict[str, Any], str]:
@@ -353,23 +370,130 @@ def _validate_model(
         raise BaseAreaForecastAuthorityError("TOTAL_MODEL_SOURCE_HASH_MISMATCH")
 
 
+def _validate_experimental_prior_history(
+    snapshot: dict[str, Any], registry: dict[str, Any]
+) -> None:
+    """Validate the explicitly incomplete prior snapshot used only by experiments."""
+
+    if snapshot.get("artifact_version") != EXPERIMENTAL_PRIOR_HISTORY_ARTIFACT_VERSION:
+        raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_ARTIFACT_VERSION_INVALID")
+    if snapshot.get("artifact_hash") != digest(
+        {key: value for key, value in snapshot.items() if key != "artifact_hash"}
+    ):
+        raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_ARTIFACT_HASH_MISMATCH")
+    if snapshot.get("season") != EXPERIMENTAL_PRIOR_HISTORY_SEASON:
+        raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_SEASON_INVALID")
+    source = snapshot.get("source_artifact")
+    mapping = snapshot.get("identity_mapping")
+    coverage = snapshot.get("coverage")
+    if (
+        not isinstance(source, dict)
+        or source.get("source_hash") != EXPERIMENTAL_PRIOR_HISTORY_SOURCE_SHA256
+        or source.get("source_date_start") != "2025-07-22"
+        or source.get("source_date_end") != "2026-04-16"
+        or not isinstance(mapping, dict)
+        or mapping.get("authority_version") != "BASE_MEMBER_MAPPING_R2"
+        or mapping.get("payload_hash") != EXPERIMENTAL_PRIOR_HISTORY_IDENTITY_MAPPING_SHA256
+        or mapping.get("file_sha256") != EXPERIMENTAL_PRIOR_HISTORY_IDENTITY_MAPPING_FILE_SHA256
+        or not isinstance(coverage, dict)
+        or coverage.get("status") != "INCOMPLETE"
+        or coverage.get("unknown_global_no_record_date_count") != 40
+        or coverage.get("source_start_gap") is not True
+        or coverage.get("source_start_gap_start") != "2025-07-01"
+        or coverage.get("source_start_gap_end") != "2025-07-21"
+        or coverage.get("quantity_semantics") != "MAPPED_RECORDED_SUBTOTAL"
+        or coverage.get("strict_complete_season_authority") is not False
+        or coverage.get("production_authority") is not False
+        or snapshot.get("quantity_semantics") != "MAPPED_RECORDED_SUBTOTAL"
+    ):
+        raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_PROVENANCE_INVALID")
+
+    bases = registry.get("bases")
+    rows = snapshot.get("bases")
+    if (
+        not isinstance(bases, list)
+        or not isinstance(rows, list)
+        or snapshot.get("base_count") != len(bases)
+        or len(rows) != len(bases)
+    ):
+        raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_PAYLOAD_INVALID")
+    registry_by_id = {str(row["base_id"]): row for row in bases}
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_PAYLOAD_INVALID")
+        try:
+            base_id = str(row["base_id"])
+            harvest = Decimal(str(row["mapped_harvest_quantity_kg"]))
+            duplicate_harvest = Decimal(str(row["harvest_total_kg"]))
+            area = Decimal(str(row["reference_area_mu"]))
+            yield_value = Decimal(str(row["yield_kg_per_mu"]))
+        except (KeyError, InvalidOperation) as exc:
+            raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_PAYLOAD_INVALID") from exc
+        base = registry_by_id.get(base_id)
+        expected_yield = (
+            (harvest / area).quantize(Decimal("0.000001"), rounding=ROUND_HALF_EVEN)
+            if area.is_finite() and area > 0
+            else Decimal("-1")
+        )
+        if (
+            base is None
+            or base_id in seen
+            or row.get("base_name") != base["canonical_base_name"]
+            or row.get("season") != EXPERIMENTAL_PRIOR_HISTORY_SEASON
+            or area != Decimal(str(base["productive_area_mu"]))
+            or harvest != duplicate_harvest
+            or not harvest.is_finite()
+            or harvest <= 0
+            or not yield_value.is_finite()
+            or yield_value <= 0
+            or yield_value != expected_yield
+            or row.get("source_sha256") != EXPERIMENTAL_PRIOR_HISTORY_SOURCE_SHA256
+            or row.get("identity_mapping_sha256")
+            != EXPERIMENTAL_PRIOR_HISTORY_IDENTITY_MAPPING_SHA256
+            or row.get("identity_mapping_file_sha256")
+            != EXPERIMENTAL_PRIOR_HISTORY_IDENTITY_MAPPING_FILE_SHA256
+            or row.get("coverage_status") != "INCOMPLETE"
+            or row.get("unknown_global_no_record_date_count") != 40
+            or row.get("source_start_gap") is not True
+            or row.get("quantity_semantics") != "MAPPED_RECORDED_SUBTOTAL"
+            or not isinstance(row.get("source_farm_labels"), list)
+            or not row["source_farm_labels"]
+        ):
+            raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_PAYLOAD_INVALID")
+        seen.add(base_id)
+    if seen != set(registry_by_id):
+        raise BaseAreaForecastAuthorityError("EXPERIMENTAL_PRIOR_BASE_SET_MISMATCH")
+
+
 def load_base_product_authority(
-    *, registry_path: Path | None = None, model_path: Path | None = None
+    *,
+    registry_path: Path | None = None,
+    model_path: Path | None = None,
+    experimental_prior_history_path: Path | None = None,
 ) -> BaseProductAuthority:
     """Load and validate the two server-owned snapshots exactly once."""
 
     configured_registry = os.environ.get("AREA_FORECAST_REGISTRY_ARTIFACT_PATH")
     configured_model = os.environ.get("AREA_FORECAST_MODEL_ARTIFACT_PATH")
+    configured_experimental_prior = os.environ.get("AREA_FORECAST_EXPERIMENTAL_PRIOR_ARTIFACT_PATH")
     registry_file = registry_path or (
         Path(configured_registry) if configured_registry else _default_registry_path()
     )
     model_file = model_path or (
         Path(configured_model) if configured_model else _default_model_path()
     )
+    experimental_prior_file = experimental_prior_history_path or (
+        Path(configured_experimental_prior)
+        if configured_experimental_prior
+        else _default_experimental_prior_history_path()
+    )
     registry, registry_file_sha256 = _read_json(registry_file)
     model, model_file_sha256 = _read_json(model_file)
+    experimental_prior, experimental_prior_file_sha256 = _read_json(experimental_prior_file)
     _validate_registry(registry)
     _validate_model(model, registry, registry_file_sha256)
+    _validate_experimental_prior_history(experimental_prior, registry)
     authority_hash = digest(
         {
             "registry_file_sha256": registry_file_sha256,
@@ -385,4 +509,6 @@ def load_base_product_authority(
         registry_file_sha256=registry_file_sha256,
         model_file_sha256=model_file_sha256,
         authority_hash=authority_hash,
+        experimental_prior_history=experimental_prior,
+        experimental_prior_history_file_sha256=experimental_prior_file_sha256,
     )

@@ -86,6 +86,9 @@ def _parser() -> argparse.ArgumentParser:
     area_parser.add_argument("--season", dest="target_season")
     area_parser.add_argument("--forecast-start-date")
     area_parser.add_argument("--forecast-end-date")
+    area_parser.add_argument(
+        "--forecast-mode", choices=("STRICT", "EXPERIMENTAL"), default="STRICT"
+    )
     area_parser.add_argument("--output", default="-")
     return parser
 
@@ -236,6 +239,7 @@ async def _dispatch(
                 base_payload["forecast_start_date"] = args.forecast_start_date
             if args.forecast_end_date is not None:
                 base_payload["forecast_end_date"] = args.forecast_end_date
+            base_payload["forecast_mode"] = args.forecast_mode
         elif args.input is None:
             raise CoreForecastCliError(
                 "AREA_FORECAST_REQUEST_INVALID",

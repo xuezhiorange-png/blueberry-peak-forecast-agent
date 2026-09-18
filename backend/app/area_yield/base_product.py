@@ -14,7 +14,7 @@ from collections.abc import Mapping
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, model_validator
 
@@ -52,6 +52,7 @@ class AreaForecastProductRequest(BaseModel):
     target_season: StrictStr = Field(pattern=r"^\d{4}-\d{4}$")
     forecast_start_date: date | None = None
     forecast_end_date: date | None = None
+    forecast_mode: Literal["STRICT", "EXPERIMENTAL"] = "STRICT"
 
     @model_validator(mode="after")
     def validate_request(self) -> AreaForecastProductRequest:
@@ -152,7 +153,10 @@ def _resolve_base(
 
 
 def _prior_history(
-    base_id: str, target_season: str, authority: BaseProductAuthority
+    base_id: str,
+    target_season: str,
+    authority: BaseProductAuthority,
+    forecast_mode: Literal["STRICT", "EXPERIMENTAL"],
 ) -> dict[str, Any]:
     year = int(target_season[:4])
     required_season = f"{year - 1:04d}-{year:04d}"
@@ -162,6 +166,16 @@ def _prior_history(
         if row.get("base_id") == base_id and row.get("season") == required_season
     ]
     if not matches:
+        if forecast_mode == "EXPERIMENTAL" and required_season == "2025-2026":
+            experimental_matches = [
+                row
+                for row in authority.experimental_prior_history["bases"]
+                if row.get("base_id") == base_id
+            ]
+            if len(experimental_matches) == 1:
+                return cast(dict[str, Any], experimental_matches[0])
+            if len(experimental_matches) > 1:
+                raise BaseAreaForecastAuthorityError("DUPLICATE_EXPERIMENTAL_PRIOR_SEASON_HISTORY")
         raise BaseAreaForecastUnsupportedError("PRIOR_SEASON_HISTORY_MISSING")
     if len(matches) != 1:
         raise BaseAreaForecastAuthorityError("DUPLICATE_PRIOR_SEASON_HISTORY")
@@ -294,7 +308,9 @@ def forecast_base_area(
         or (requested_end - requested_start).days < 6
     ):
         raise BaseAreaForecastRequestError("FORECAST_WINDOW_MUST_BE_SEVEN_DAYS_INSIDE_SEASON")
-    history = _prior_history(base["base_id"], request.target_season, authority)
+    history = _prior_history(
+        base["base_id"], request.target_season, authority, request.forecast_mode
+    )
     try:
         yield_value = positive(str(history["yield_kg_per_mu"]))
         target_area = positive(request.target_area_mu)
@@ -343,7 +359,7 @@ def forecast_base_area(
         "training_data_manifest_sha256": authority.model["training_data_manifest_sha256"],
         "authority_hash": authority.authority_hash,
         "history_source_season": history["season"],
-        "history_quantity_semantics": HISTORY_QUANTITY_SEMANTICS,
+        "history_quantity_semantics": history.get("quantity_semantics", HISTORY_QUANTITY_SEMANTICS),
         "history_source_file": history["source_file"],
         "history_source_sha256": history["source_sha256"],
         "history_source_farm_labels": history["source_farm_labels"],
@@ -366,6 +382,51 @@ def forecast_base_area(
         ),
         "research_evidence": authority.model["model_evidence"],
     }
+    if request.forecast_mode == "EXPERIMENTAL":
+        metadata.update(
+            {
+                "forecast_mode": "EXPERIMENTAL",
+                "forecast_status": "EXPERIMENTAL_DATA_COVERAGE_LIMITED",
+                "forecast_warning": "PRIOR_SEASON_HISTORY_COVERAGE_INCOMPLETE",
+                "prior_history_season": history["season"],
+                "prior_history_quantity_kg": history["mapped_harvest_quantity_kg"],
+                "prior_history_coverage_status": history["coverage_status"],
+                "prior_history_unknown_date_count": history["unknown_global_no_record_date_count"],
+                "prior_history_source_start_gap": history["source_start_gap"],
+                "prior_history_source_start_gap_start": history["source_start_gap_start"],
+                "prior_history_source_start_gap_end": history["source_start_gap_end"],
+                "prior_history_source_hash": history["source_sha256"],
+                "prior_history_identity_mapping_hash": history["identity_mapping_sha256"],
+                "prior_history_identity_mapping_file_sha256": history[
+                    "identity_mapping_file_sha256"
+                ],
+                "prior_history_artifact_hash": authority.experimental_prior_history[
+                    "artifact_hash"
+                ],
+                "prior_history_artifact_file_sha256": (
+                    authority.experimental_prior_history_file_sha256
+                ),
+                "forecast_input_snapshot": {
+                    "base_id": base["base_id"],
+                    "target_area_mu": emit(target_area),
+                    "target_season": request.target_season,
+                    "forecast_start_date": requested_start.isoformat(),
+                    "forecast_end_date": requested_end.isoformat(),
+                    "forecast_mode": "EXPERIMENTAL",
+                    "prior_history": {
+                        "season": history["season"],
+                        "quantity_kg": history["mapped_harvest_quantity_kg"],
+                        "coverage_status": history["coverage_status"],
+                        "unknown_global_no_record_date_count": history[
+                            "unknown_global_no_record_date_count"
+                        ],
+                        "source_start_gap": history["source_start_gap"],
+                        "source_hash": history["source_sha256"],
+                        "identity_mapping_hash": history["identity_mapping_sha256"],
+                    },
+                },
+            }
+        )
     result = AreaForecastProductResult(
         canonical_base_id=base["base_id"],
         canonical_base_name=base["canonical_base_name"],
@@ -432,6 +493,43 @@ def _check_result_integrity(result: AreaForecastProductResult) -> None:
     ):
         raise BaseAreaForecastPersistenceError(
             "AREA_FORECAST_PERSISTENCE_INTEGRITY_ERROR", "MODEL_ID_OR_STATUS_INVALID"
+        )
+    forecast_mode = result.metadata.get("forecast_mode", "STRICT")
+    if forecast_mode == "EXPERIMENTAL":
+        required_experimental_metadata = {
+            "forecast_status": "EXPERIMENTAL_DATA_COVERAGE_LIMITED",
+            "forecast_warning": "PRIOR_SEASON_HISTORY_COVERAGE_INCOMPLETE",
+            "prior_history_coverage_status": "INCOMPLETE",
+            "prior_history_unknown_date_count": 40,
+            "prior_history_source_start_gap": True,
+        }
+        if any(
+            result.metadata.get(key) != value
+            for key, value in required_experimental_metadata.items()
+        ):
+            raise BaseAreaForecastPersistenceError(
+                "AREA_FORECAST_PERSISTENCE_INTEGRITY_ERROR",
+                "EXPERIMENTAL_PRIOR_COVERAGE_METADATA_INVALID",
+            )
+        snapshot = result.metadata.get("forecast_input_snapshot")
+        if (
+            not isinstance(snapshot, dict)
+            or snapshot.get("forecast_mode") != "EXPERIMENTAL"
+            or not isinstance(snapshot.get("prior_history"), dict)
+            or snapshot["prior_history"].get("coverage_status") != "INCOMPLETE"
+            or snapshot["prior_history"].get("unknown_global_no_record_date_count") != 40
+        ):
+            raise BaseAreaForecastPersistenceError(
+                "AREA_FORECAST_PERSISTENCE_INTEGRITY_ERROR",
+                "EXPERIMENTAL_PRIOR_INPUT_SNAPSHOT_INVALID",
+            )
+    elif forecast_mode != "STRICT" or any(
+        key in result.metadata
+        for key in ("forecast_warning", "forecast_input_snapshot", "prior_history_coverage_status")
+    ):
+        raise BaseAreaForecastPersistenceError(
+            "AREA_FORECAST_PERSISTENCE_INTEGRITY_ERROR",
+            "FORECAST_MODE_METADATA_INVALID",
         )
     rows = result.daily_curve
     if len(rows) < 7:
