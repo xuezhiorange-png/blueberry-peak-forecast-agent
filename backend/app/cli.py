@@ -80,7 +80,12 @@ def _parser() -> argparse.ArgumentParser:
     register_area_run_parser(subparsers)
     register_operational_peak_parser(subparsers)
     area_parser = subparsers.add_parser("area-forecast")
-    area_parser.add_argument("--input", required=True)
+    area_parser.add_argument("--input")
+    area_parser.add_argument("--base", help="BASE id or exact canonical BASE name")
+    area_parser.add_argument("--area-mu", dest="target_area_mu")
+    area_parser.add_argument("--season", dest="target_season")
+    area_parser.add_argument("--forecast-start-date")
+    area_parser.add_argument("--forecast-end-date")
     area_parser.add_argument("--output", default="-")
     return parser
 
@@ -211,9 +216,99 @@ async def _dispatch(
             AreaForecastRequestError,
         )
 
+        # V0.5 BASE product mode is additive.  The existing farm-grain JSON
+        # contract remains the default whenever --input contains its legacy
+        # forecast_method field.
+        base_payload: dict[str, object] | None = None
+        if args.base is not None:
+            if args.target_area_mu is None or args.target_season is None:
+                raise CoreForecastCliError(
+                    "AREA_FORECAST_REQUEST_INVALID",
+                    "BASE_MODE_REQUIRES_AREA_AND_SEASON",
+                    exit_code=2,
+                )
+            base_payload = {
+                "base_id" if args.base.startswith("base_") else "base_name": args.base,
+                "target_area_mu": args.target_area_mu,
+                "target_season": args.target_season,
+            }
+            if args.forecast_start_date is not None:
+                base_payload["forecast_start_date"] = args.forecast_start_date
+            if args.forecast_end_date is not None:
+                base_payload["forecast_end_date"] = args.forecast_end_date
+        elif args.input is None:
+            raise CoreForecastCliError(
+                "AREA_FORECAST_REQUEST_INVALID",
+                "INPUT_OR_BASE_REQUIRED",
+                exit_code=2,
+            )
+
+        if base_payload is not None:
+            from backend.app.area_yield.base_product import (
+                AreaForecastProductRequest,
+                run_base_area_forecast,
+                save_base_forecast_result,
+            )
+            from backend.app.area_yield.base_product_authority import BaseAreaForecastError
+
+            try:
+                base_request = AreaForecastProductRequest.model_validate(base_payload)
+                base_result = run_base_area_forecast(base_request)
+                if args.output == "-":
+                    _write_text_output(
+                        args.output, base_result.model_dump_json(indent=2) + "\n", stdout
+                    )
+                else:
+                    save_base_forecast_result(Path(args.output), base_result)
+            except BaseAreaForecastError as exc:
+                raise CoreForecastCliError(
+                    exc.code,
+                    exc.reason,
+                    exit_code=3 if exc.status_code == 503 else 2,
+                ) from exc
+            except (ValidationError, ValueError, OSError) as exc:
+                raise CoreForecastCliError(
+                    "AREA_FORECAST_REQUEST_INVALID",
+                    "INVALID_BASE_FORECAST_REQUEST",
+                    exit_code=2,
+                ) from exc
+            return
+
+        payload = _read_json_input(args.input, stdin)
+        if "target_area_mu" in payload and ("base_id" in payload or "base_name" in payload):
+            from backend.app.area_yield.base_product import (
+                AreaForecastProductRequest,
+                run_base_area_forecast,
+                save_base_forecast_result,
+            )
+            from backend.app.area_yield.base_product_authority import BaseAreaForecastError
+
+            try:
+                base_request = AreaForecastProductRequest.model_validate(payload)
+                base_result = run_base_area_forecast(base_request)
+                if args.output == "-":
+                    _write_text_output(
+                        args.output, base_result.model_dump_json(indent=2) + "\n", stdout
+                    )
+                else:
+                    save_base_forecast_result(Path(args.output), base_result)
+            except BaseAreaForecastError as exc:
+                raise CoreForecastCliError(
+                    exc.code,
+                    exc.reason,
+                    exit_code=3 if exc.status_code == 503 else 2,
+                ) from exc
+            except (ValidationError, ValueError, OSError) as exc:
+                raise CoreForecastCliError(
+                    "AREA_FORECAST_REQUEST_INVALID",
+                    "INVALID_BASE_FORECAST_REQUEST",
+                    exit_code=2,
+                ) from exc
+            return
+
         try:
-            request = AreaDrivenForecastRequest.model_validate(_read_json_input(args.input, stdin))
-            result = forecast_area_product(request)
+            legacy_request = AreaDrivenForecastRequest.model_validate(payload)
+            legacy_result = forecast_area_product(legacy_request)
         except (AreaForecastRequestError, AreaForecastAuthorityError) as exc:
             raise CoreForecastCliError(
                 exc.code,
@@ -226,7 +321,7 @@ async def _dispatch(
                 "INVALID_REQUEST_DOCUMENT",
                 exit_code=2,
             ) from exc
-        _write_text_output(args.output, result.model_dump_json(indent=2) + "\n", stdout)
+        _write_text_output(args.output, legacy_result.model_dump_json(indent=2) + "\n", stdout)
         return
     if args.resource == "area-forecast-run":
         await dispatch_area_run(args, session_factory=session_factory, stdin=stdin, stdout=stdout)

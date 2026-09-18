@@ -1,0 +1,1151 @@
+{
+  "artifact_version": "AREA_FORECAST_PRODUCT_ARTIFACT_V1",
+  "total_model_id": "BASE_AWARE_BASELINE_R1",
+  "temporal_model_id": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+  "model_status": "EXPERIMENTAL",
+  "reference_area_source": {
+    "workbook_name": "基地位置亩数.xlsx",
+    "workbook_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "base_count": 39,
+    "total_area_mu": "41335.000000",
+    "registry_artifact_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85"
+  },
+  "training_data_manifest_sha256": "74aed78652513cd8a0a8828a0654dddf01d2cd0926f4261ee139317e3b157c89",
+  "model_evidence": {
+    "research_closeout_task": "V0_5_MODEL_RESEARCH_CLOSEOUT_AND_VERSION_FREEZE_R9",
+    "known_base_total_wape": "0.379265725",
+    "stable_history_total_wape": "0.251107822",
+    "best_daily_wape": "0.694130360",
+    "best_peak_date_mae_days": "22.230769",
+    "best_7day_peak_start_mae_days": "20.769231"
+  },
+  "history_policy": "IMMEDIATE_PRIOR_SEASON_ONLY_FAIL_CLOSED_NO_GLOBAL_FALLBACK",
+  "history_quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL",
+  "weather_used": false,
+  "future_plan_used": false,
+  "base_yield_history": [
+    {
+      "season": "2023-2024",
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "base_name": "丘北天星基地",
+      "reference_area_mu": "979.000000",
+      "harvest_total_kg": "1798685.304000",
+      "yield_kg_per_mu": "1837.267931",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "丘北天星农场"
+      ],
+      "source_observed_day_counts": [
+        163
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "base_name": "保山杨柳基地",
+      "reference_area_mu": "394.000000",
+      "harvest_total_kg": "514540.070000",
+      "yield_kg_per_mu": "1305.939264",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "保山杨柳农场"
+      ],
+      "source_observed_day_counts": [
+        135
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "base_name": "元江甘庄基地",
+      "reference_area_mu": "1490.000000",
+      "harvest_total_kg": "240875.368000",
+      "yield_kg_per_mu": "161.661321",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "新平扬武农场"
+      ],
+      "source_observed_day_counts": [
+        114
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "base_name": "大理巍山基地",
+      "reference_area_mu": "216.000000",
+      "harvest_total_kg": "601117.997000",
+      "yield_kg_per_mu": "2782.953690",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "大理巍山农场"
+      ],
+      "source_observed_day_counts": [
+        109
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "base_name": "建水岔科基地",
+      "reference_area_mu": "922.000000",
+      "harvest_total_kg": "123993.044000",
+      "yield_kg_per_mu": "134.482694",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "AUTHORIZED_ALIAS"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "建水南庄基地"
+      ],
+      "source_observed_day_counts": [
+        47
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "base_name": "建水面甸基地",
+      "reference_area_mu": "975.000000",
+      "harvest_total_kg": "1490866.740000",
+      "yield_kg_per_mu": "1529.094092",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "建水面甸农场"
+      ],
+      "source_observed_day_counts": [
+        123
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "base_name": "弥勒五山基地",
+      "reference_area_mu": "827.000000",
+      "harvest_total_kg": "1273019.480000",
+      "yield_kg_per_mu": "1539.322225",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "弥勒五山农场"
+      ],
+      "source_observed_day_counts": [
+        188
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_319779873190a57608b59b4e",
+      "base_name": "永仁猛虎基地",
+      "reference_area_mu": "588.000000",
+      "harvest_total_kg": "21101.160000",
+      "yield_kg_per_mu": "35.886327",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "永仁猛虎农场"
+      ],
+      "source_observed_day_counts": [
+        46
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "base_name": "永仁莲池基地",
+      "reference_area_mu": "1399.000000",
+      "harvest_total_kg": "1630705.933000",
+      "yield_kg_per_mu": "1165.622540",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "永仁莲池一场",
+        "永仁莲池二场"
+      ],
+      "source_observed_day_counts": [
+        168,
+        161
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "base_name": "版纳勐旺基地",
+      "reference_area_mu": "735.000000",
+      "harvest_total_kg": "125.463000",
+      "yield_kg_per_mu": "0.170698",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "版纳勐旺农场"
+      ],
+      "source_observed_day_counts": [
+        1
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "base_name": "砚山回龙基地",
+      "reference_area_mu": "1786.000000",
+      "harvest_total_kg": "1070760.996000",
+      "yield_kg_per_mu": "599.530233",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "砚山回龙农场"
+      ],
+      "source_observed_day_counts": [
+        170
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "base_name": "砚山平远基地",
+      "reference_area_mu": "1470.000000",
+      "harvest_total_kg": "2243273.499000",
+      "yield_kg_per_mu": "1526.036394",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "砚山平远一场",
+        "砚山平远三场",
+        "砚山平远二场"
+      ],
+      "source_observed_day_counts": [
+        140,
+        112,
+        142
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2023-2024",
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "base_name": "砚山盘龙基地",
+      "reference_area_mu": "1301.000000",
+      "harvest_total_kg": "647330.376000",
+      "yield_kg_per_mu": "497.563702",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/23~24.xls",
+      "source_sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_farm_labels": [
+        "砚山盘龙农场"
+      ],
+      "source_observed_day_counts": [
+        150
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "base_name": "丘北天星基地",
+      "reference_area_mu": "979.000000",
+      "harvest_total_kg": "1534146.331000",
+      "yield_kg_per_mu": "1567.054475",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "丘北天星农场"
+      ],
+      "source_observed_day_counts": [
+        255
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "base_name": "丘北曰者基地",
+      "reference_area_mu": "278.000000",
+      "harvest_total_kg": "176060.456000",
+      "yield_kg_per_mu": "633.310993",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "丘北曰者农场"
+      ],
+      "source_observed_day_counts": [
+        72
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "base_name": "乡丰蓝莓基地",
+      "reference_area_mu": "1398.000000",
+      "harvest_total_kg": "1322603.516000",
+      "yield_kg_per_mu": "946.068323",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "乡丰蓝莓一分场",
+        "乡丰蓝莓三分场",
+        "乡丰蓝莓二分场",
+        "乡丰蓝莓五分场",
+        "乡丰蓝莓四分场"
+      ],
+      "source_observed_day_counts": [
+        141,
+        146,
+        144,
+        116,
+        152
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "base_name": "保山杨柳基地",
+      "reference_area_mu": "394.000000",
+      "harvest_total_kg": "448751.251000",
+      "yield_kg_per_mu": "1138.962566",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "保山杨柳农场"
+      ],
+      "source_observed_day_counts": [
+        43
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "base_name": "保山由旺基地",
+      "reference_area_mu": "1129.000000",
+      "harvest_total_kg": "534731.356000",
+      "yield_kg_per_mu": "473.632733",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "保山由旺农场"
+      ],
+      "source_observed_day_counts": [
+        49
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "base_name": "元江甘庄基地",
+      "reference_area_mu": "1490.000000",
+      "harvest_total_kg": "795652.161000",
+      "yield_kg_per_mu": "533.994739",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "元江甘庄农场",
+        "新平扬武农场"
+      ],
+      "source_observed_day_counts": [
+        38,
+        174
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "base_name": "大理巍山基地",
+      "reference_area_mu": "216.000000",
+      "harvest_total_kg": "513770.567000",
+      "yield_kg_per_mu": "2378.567440",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "大理巍山农场"
+      ],
+      "source_observed_day_counts": [
+        119
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "base_name": "广南旧莫基地",
+      "reference_area_mu": "637.000000",
+      "harvest_total_kg": "396540.524000",
+      "yield_kg_per_mu": "622.512597",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "广南旧莫农场"
+      ],
+      "source_observed_day_counts": [
+        62
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "base_name": "建水岔科基地",
+      "reference_area_mu": "922.000000",
+      "harvest_total_kg": "607310.762000",
+      "yield_kg_per_mu": "658.688462",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "AUTHORIZED_ALIAS",
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "建水南庄基地",
+        "建水岔科农场"
+      ],
+      "source_observed_day_counts": [
+        33,
+        58
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "base_name": "建水阿朋基地",
+      "reference_area_mu": "483.000000",
+      "harvest_total_kg": "424285.014000",
+      "yield_kg_per_mu": "878.436882",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "建水阿朋农场"
+      ],
+      "source_observed_day_counts": [
+        55
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "base_name": "建水面甸基地",
+      "reference_area_mu": "975.000000",
+      "harvest_total_kg": "1744338.074000",
+      "yield_kg_per_mu": "1789.064691",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "建水面甸农场"
+      ],
+      "source_observed_day_counts": [
+        238
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "base_name": "弥勒五山基地",
+      "reference_area_mu": "827.000000",
+      "harvest_total_kg": "1437672.710000",
+      "yield_kg_per_mu": "1738.419238",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "弥勒五山农场"
+      ],
+      "source_observed_day_counts": [
+        191
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "base_name": "弥勒巡检司基地",
+      "reference_area_mu": "296.000000",
+      "harvest_total_kg": "450508.667000",
+      "yield_kg_per_mu": "1521.988740",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "弥勒巡检司农场"
+      ],
+      "source_observed_day_counts": [
+        54
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "base_name": "弥勒朋普基地",
+      "reference_area_mu": "525.000000",
+      "harvest_total_kg": "334757.659000",
+      "yield_kg_per_mu": "637.633636",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "弥勒朋普农场"
+      ],
+      "source_observed_day_counts": [
+        53
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "base_name": "弥勒西三基地",
+      "reference_area_mu": "349.000000",
+      "harvest_total_kg": "465482.276000",
+      "yield_kg_per_mu": "1333.760103",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "弥勒西三农场"
+      ],
+      "source_observed_day_counts": [
+        171
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_319779873190a57608b59b4e",
+      "base_name": "永仁猛虎基地",
+      "reference_area_mu": "588.000000",
+      "harvest_total_kg": "1355126.456000",
+      "yield_kg_per_mu": "2304.636830",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "永仁猛虎农场"
+      ],
+      "source_observed_day_counts": [
+        195
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "base_name": "永仁莲池基地",
+      "reference_area_mu": "1399.000000",
+      "harvest_total_kg": "2983728.981000",
+      "yield_kg_per_mu": "2132.758385",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "永仁莲池一场",
+        "永仁莲池二场"
+      ],
+      "source_observed_day_counts": [
+        209,
+        200
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_b30634ab6020391a3923849b",
+      "base_name": "永仁麦拉基地",
+      "reference_area_mu": "794.000000",
+      "harvest_total_kg": "1489817.881000",
+      "yield_kg_per_mu": "1876.344938",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "永仁麦拉农场"
+      ],
+      "source_observed_day_counts": [
+        206
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "base_name": "澜沧上允基地",
+      "reference_area_mu": "1271.000000",
+      "harvest_total_kg": "1345563.980000",
+      "yield_kg_per_mu": "1058.665602",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "澜沧上允一场",
+        "澜沧上允农场"
+      ],
+      "source_observed_day_counts": [
+        45,
+        154
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "base_name": "澜沧东回基地",
+      "reference_area_mu": "2548.000000",
+      "harvest_total_kg": "1810506.418000",
+      "yield_kg_per_mu": "710.559819",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "澜沧东回一场",
+        "澜沧东回三场",
+        "澜沧东回二场",
+        "澜沧东回四场"
+      ],
+      "source_observed_day_counts": [
+        48,
+        48,
+        49,
+        46
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "base_name": "版纳勐旺基地",
+      "reference_area_mu": "735.000000",
+      "harvest_total_kg": "968113.233000",
+      "yield_kg_per_mu": "1317.160861",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "版纳勐旺农场"
+      ],
+      "source_observed_day_counts": [
+        181
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "base_name": "砚山回龙基地",
+      "reference_area_mu": "1786.000000",
+      "harvest_total_kg": "1945228.934000",
+      "yield_kg_per_mu": "1089.153938",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "回龙中心实验站",
+        "砚山回龙农场"
+      ],
+      "source_observed_day_counts": [
+        166,
+        222
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "base_name": "砚山平远基地",
+      "reference_area_mu": "1470.000000",
+      "harvest_total_kg": "2736328.699000",
+      "yield_kg_per_mu": "1861.448095",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "砚山平远一场",
+        "砚山平远三场",
+        "砚山平远二场"
+      ],
+      "source_observed_day_counts": [
+        247,
+        166,
+        228
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "base_name": "砚山炭房基地",
+      "reference_area_mu": "615.000000",
+      "harvest_total_kg": "339534.214000",
+      "yield_kg_per_mu": "552.088153",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "砚山炭房农场"
+      ],
+      "source_observed_day_counts": [
+        60
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "base_name": "砚山盘龙基地",
+      "reference_area_mu": "1301.000000",
+      "harvest_total_kg": "523856.590000",
+      "yield_kg_per_mu": "402.656872",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "砚山盘龙农场"
+      ],
+      "source_observed_day_counts": [
+        146
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "base_name": "砚山维摩基地",
+      "reference_area_mu": "1905.000000",
+      "harvest_total_kg": "1398196.275000",
+      "yield_kg_per_mu": "733.961299",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "砚山维摩一场",
+        "砚山维摩二场",
+        "维摩联农幕菲勒",
+        "维摩联农长塘子"
+      ],
+      "source_observed_day_counts": [
+        195,
+        101,
+        20,
+        118
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "base_name": "砚山阿猛基地",
+      "reference_area_mu": "1342.000000",
+      "harvest_total_kg": "235.823000",
+      "yield_kg_per_mu": "0.175725",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "砚山阿猛农场"
+      ],
+      "source_observed_day_counts": [
+        1
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "base_name": "砚山黑鱼洞基地",
+      "reference_area_mu": "979.000000",
+      "harvest_total_kg": "410265.322000",
+      "yield_kg_per_mu": "419.065702",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "砚山黑鱼洞农场"
+      ],
+      "source_observed_day_counts": [
+        57
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "base_name": "腾冲中和基地",
+      "reference_area_mu": "1936.000000",
+      "harvest_total_kg": "458850.208000",
+      "yield_kg_per_mu": "237.009405",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "腾冲樊家营农场"
+      ],
+      "source_observed_day_counts": [
+        57
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    },
+    {
+      "season": "2024-2025",
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "base_name": "腾冲曲石基地",
+      "reference_area_mu": "1429.000000",
+      "harvest_total_kg": "1638783.914000",
+      "yield_kg_per_mu": "1146.804698",
+      "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "identity_mapping_status": "ACCEPTED_FROZEN_IDENTITY_MAPPING",
+      "identity_match_types": [
+        "EXACT"
+      ],
+      "source_file": "historical-primary-source-replay-r1/24~25.xls",
+      "source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_farm_labels": [
+        "腾冲曲石农场",
+        "腾冲高黎贡农场"
+      ],
+      "source_observed_day_counts": [
+        58,
+        55
+      ],
+      "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL"
+    }
+  ],
+  "temporal_model": {
+    "model_id": "AREA_DAILY_RIDGE_V1",
+    "model_family": "RIDGE_LEAST_SQUARES",
+    "alpha": "10.000000",
+    "coefficients": [
+      "2671.9500269559508",
+      "1021.7905000567915",
+      "3150.8979442105824",
+      "2561.1086701091217",
+      "350.05193542799748",
+      "750.65332524755604",
+      "293.14911627738525",
+      "-2029.2089922293299",
+      "1505.3027667049125",
+      "-968.64408896943314",
+      "144.08340943425063"
+    ],
+    "feature_mean": [
+      "1.0063076923076879",
+      "0.55027842527842574",
+      "-0.077802876910105456",
+      "-0.079870941457214004",
+      "-0.068693413087950433",
+      "-0.0080874001974077167",
+      "-0.078293633518307773",
+      "-0.080374742780251862",
+      "-0.069126710001274336",
+      "-0.00813841302942204"
+    ],
+    "feature_scale": [
+      "0.44609595115079659",
+      "0.26932220655178724",
+      "0.7056843575163172",
+      "0.69969774375228122",
+      "0.71100461752375377",
+      "0.6997772808660504",
+      "0.7775590448083155",
+      "0.77101796914278109",
+      "0.78324002917408264",
+      "0.77029026355518249"
+    ],
+    "features": [
+      "reference_area_mu_div_1000",
+      "season_progress",
+      "sin_1",
+      "cos_1",
+      "sin_2",
+      "cos_2",
+      "area_x_sin_1",
+      "area_x_cos_1",
+      "area_x_sin_2",
+      "area_x_cos_2"
+    ],
+    "fit_base_count": 13,
+    "fit_daily_row_count": 3042,
+    "fit_season": "2023-2024",
+    "intercept_unpenalized": true,
+    "nonnegative_output_clip": true,
+    "random_seed": null,
+    "solver": "numpy.linalg.solve",
+    "target": "daily_harvest_kg_mapped_observed_subtotal",
+    "calendar": "JULY_01_THROUGH_APRIL_15",
+    "progress_denominator": "TARGET_SEASON_START_TO_END_EXCLUSIVE"
+  },
+  "research_artifacts": {
+    "r1_model_artifact_sha256": "d75d691a74f393ed789da2300a2f3194170115d8b4f89cc78c8e5b1fc3a628af",
+    "r1_artifact_manifest_sha256": "6d7a97369b17c77454d84ed9fc02bac3a791fef283512f3266f8bc7ed352185b",
+    "r9_closeout_manifest_sha256": "782bb9d33eb100c9ff0c2ac79b46c1d75455cd4d73ea0c142904aedf7082eeb6",
+    "temporal_model_artifact_sha256": "d75d691a74f393ed789da2300a2f3194170115d8b4f89cc78c8e5b1fc3a628af",
+    "temporal_model_canonical_hash": "ee9d9d7384fac086e45539836d48dc5a7433ea441d9f4633bca702f5c55a812b",
+    "total_model_source_canonical_hash": "76698d128074021117c764a77fa224768a8803fb57ac90ef8a8804dd3213f3e4"
+  },
+  "history_provenance": {
+    "artifact_version": "AREA_FORECAST_HISTORY_PROVENANCE_V1",
+    "dataset": "HISTORICAL_IDENTITY_RECONSTRUCTION_R1",
+    "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+    "identity_reconstruction_manifest_sha256": "b95454505a12f22509f871f5430e35a088521f8d6a5fe85cc2ff4212f4ba895c",
+    "source_files": {
+      "2023-2024": {
+        "file": "historical-primary-source-replay-r1/23~24.xls",
+        "sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20"
+      },
+      "2024-2025": {
+        "file": "historical-primary-source-replay-r1/24~25.xls",
+        "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6"
+      }
+    },
+    "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL",
+    "base_count": 39,
+    "base_ids": [
+      "base_05c82656e3dcb06cac487039",
+      "base_10a4048aaf973fce65f5df40",
+      "base_1921620f6f595d3dc489dfa9",
+      "base_1abf75fac2a2b1d7ccd74528",
+      "base_213507022f5779b1ed8ec255",
+      "base_2158646aee6000e2dd75afec",
+      "base_319779873190a57608b59b4e",
+      "base_32a8489fdfad1a0ef0bad5ae",
+      "base_33c9a0e6037e5e33bb59f154",
+      "base_34fde1e05c1763f5b91499bb",
+      "base_36bc109841061a7798ed99a3",
+      "base_3926ad631cbd8f5c7dc5f269",
+      "base_4028dc91aa8b73415aca41ba",
+      "base_40bc2a61ee14280aacf2e3fa",
+      "base_4fd002ff555f93b3f509789e",
+      "base_5596fbcc710d9dccb56afbec",
+      "base_59be02a586e9c15be0d2694b",
+      "base_5d98f77f66280b5196f09ceb",
+      "base_68dad09f2a52dc180294119c",
+      "base_7092a05c3796a2582b5df9f8",
+      "base_7a0a9068b49251f4bc2228a5",
+      "base_80961ce21621aacbcaa509f7",
+      "base_817f6981ac6c56d3fa476451",
+      "base_92a1023ab04011d53e8ab83c",
+      "base_99bf5a30de037767b4ec1023",
+      "base_a21676b04cd2f64e8b297033",
+      "base_a7b76749d14a0f6bde410169",
+      "base_a96b297b126a8cab67c4755f",
+      "base_b30634ab6020391a3923849b",
+      "base_bd88aa28f73dde00eb3c3392",
+      "base_be13e722e3d26160c1f04dbc",
+      "base_c51783e2ec7c16bba447d64e",
+      "base_c8353bffd0cc9318d7d64520",
+      "base_c8ab16ef1fae69899640eedb",
+      "base_d89ace7e18ae7a2d012939be",
+      "base_e24b268ad72d59adc8b8a7fe",
+      "base_e63d30015dd3676c280e0e08",
+      "base_f10df3ac242e4dbbf6c20b98",
+      "base_ffdc1ebe359436aa3f0fa834"
+    ],
+    "history_row_count": 43,
+    "correction": "REPLACED_STALE_ACTIVE_DATE_PARTIAL_SUBTOTALS_WITH_ACCEPTED_IDENTITY_MAPPED_SUBTOTALS_NO_REFIT"
+  },
+  "artifact_hash": "399c38f81abdea0122097cd5a68bc25147cc55f58dc51e1393b9282e5bc4cbad"
+}

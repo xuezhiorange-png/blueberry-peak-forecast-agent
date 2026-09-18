@@ -1,0 +1,111 @@
+{
+  "task_id": "V0_5_AREA_FORECAST_PRODUCTIZATION_PROVENANCE_CORRECTION_R10A",
+  "result": "P0_PROVENANCE_CORRECTED_NO_MODEL_REFIT",
+  "research_evidence_unchanged": true,
+  "pre_fix_forensic": {
+    "product_artifact_file_sha256": "b265900703e95a442a9172869ba0025c6a078131ef40c4bf6612cf88397ca388",
+    "product_artifact_canonical_hash": "45512d7d830e8e4623159582f5412bb8587d54de09e450fb6af707a656a0662b",
+    "yangliu_history_season": "2024-2025",
+    "yangliu_history_quantity_kg": "223540.014000",
+    "yangliu_result_hash": "be5fdd4b196a60f38a69b5e47c1feb101c11fd2faae916a8b4830245d8ba2ec7",
+    "status": "RETAINED_FOR_FORENSIC_COMPARISON_NOT_ACCEPTED_AUTHORITY"
+  },
+  "corrected_history_authority": {
+    "dataset": "HISTORICAL_IDENTITY_RECONSTRUCTION_R1",
+    "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+    "identity_reconstruction_manifest_sha256": "b95454505a12f22509f871f5430e35a088521f8d6a5fe85cc2ff4212f4ba895c",
+    "source_files": {
+      "2023-2024": {
+        "file": "historical-primary-source-replay-r1/23~24.xls",
+        "sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20"
+      },
+      "2024-2025": {
+        "file": "historical-primary-source-replay-r1/24~25.xls",
+        "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6"
+      }
+    },
+    "quantity_semantics": "ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL",
+    "registry_base_count": 39,
+    "history_row_count": 43,
+    "total_model_source_canonical_hash": "76698d128074021117c764a77fa224768a8803fb57ac90ef8a8804dd3213f3e4",
+    "correction": "REPLACED_STALE_ACTIVE_DATE_PARTIAL_SUBTOTALS_WITH_ACCEPTED_IDENTITY_MAPPED_SUBTOTALS_NO_REFIT"
+  },
+  "base_artifact_provenance": {
+    "row_count": 39,
+    "history_rows_checked": 43,
+    "stale_row_count": 0,
+    "mismatch_base_ids": [],
+    "source_and_identity_hashes_verified": true
+  },
+  "yangliu": {
+    "base_id": "base_a96b297b126a8cab67c4755f",
+    "base_name": "保山杨柳基地",
+    "history_quantity_used_kg": "448751.251000",
+    "history_season_used": "2024-2025",
+    "history_source_sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+    "identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+    "reference_area_mu": "394.000000",
+    "predicted_season_total_kg": "448751.251004",
+    "daily_row_count": 289,
+    "single_day_peak": {
+      "date": "2026-04-15",
+      "quantity_kg": "11585.517951"
+    },
+    "rolling_7day_peak": {
+      "start_date": "2026-04-09",
+      "end_date": "2026-04-15",
+      "cumulative_quantity_kg": "77538.780175"
+    },
+    "result_hash": "7b7ba71ab01b3a34559ec65740811a025569de8234949bf711676d70fcf01aad"
+  },
+  "temporal_artifact": {
+    "model_id": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "source_model_artifact_sha256": "d75d691a74f393ed789da2300a2f3194170115d8b4f89cc78c8e5b1fc3a628af",
+    "source_model_canonical_hash": "ee9d9d7384fac086e45539836d48dc5a7433ea441d9f4633bca702f5c55a812b",
+    "coefficients_reused_without_refit": true,
+    "peak_at_forecast_end_boundary": true,
+    "temporal_curve_truncated": false,
+    "normalized_share_sum_pre_window": "1.000000000000000",
+    "normalized_share_sum_in_window": "1.000000000000000",
+    "renormalization_applied": false,
+    "clipped_mass_reallocated": false
+  },
+  "representative_inference": {
+    "target_season": "2025-2026",
+    "forecast_start_date": "2025-07-01",
+    "forecast_end_date": "2026-04-15",
+    "forecast_executed_at": "2026-09-18T08:56:44+08:00",
+    "real_forecast_executed": false,
+    "representative_inference_executed": true
+  },
+  "reference_area": {
+    "workbook_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "registry_artifact_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85"
+  },
+  "r10b_acceptance": {
+    "area_scale_sensitivity_pass": true,
+    "scale_reference_base_id": "base_a96b297b126a8cab67c4755f",
+    "scale_cases": ["0.5", "1.0", "1.5"],
+    "normalized_shape_unchanged": true,
+    "peak_dates_unchanged": true,
+    "result_hash_changes_with_target_area": true,
+    "future_season_target": "2026-2027",
+    "future_season_inference_pass": false,
+    "future_season_blocker": "PRIOR_SEASON_HISTORY_MISSING",
+    "future_season_fallback_used": false,
+    "peak_boundary_metadata_exposed": true,
+    "daily_conservation_tolerance_pass": true,
+    "daily_conservation_exact": false,
+    "deterministic_replay_pass": true
+  },
+  "flags": {
+    "model_retrained": false,
+    "model_tuned": false,
+    "authority_research_artifacts_modified": false,
+    "weather_used": false,
+    "future_plan_used": false,
+    "local_absolute_path_dependency": false,
+    "commit_authorized": false,
+    "pr_authorized": false
+  }
+}
