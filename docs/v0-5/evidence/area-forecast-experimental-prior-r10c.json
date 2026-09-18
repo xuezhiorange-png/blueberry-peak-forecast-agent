@@ -1,0 +1,39 @@
+{
+  "task_id": "V0_5_EXPERIMENTAL_PRIOR_HISTORY_AND_FUTURE_INFERENCE_R10C",
+  "artifact_version": "AREA_FORECAST_EXPERIMENTAL_PRIOR_HISTORY_V1",
+  "artifact_path": "configs/v0_5_area_forecast_experimental_prior_history_v1.json",
+  "artifact_file_sha256": "8603026734d6ead0069e4bf560f8fd66175ab5144b8211150311d4920548dbad",
+  "artifact_canonical_hash": "78760a3f48f0659cda409e89dd911414725ff33c942f99e55d6ffdda7a064b11",
+  "season": "2025-2026",
+  "base_count": 39,
+  "source_artifact": {
+    "file_name": "原果入库汇总表.xls",
+    "source_hash": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "source_date_start": "2025-07-22",
+    "source_date_end": "2026-04-16"
+  },
+  "identity_mapping": {
+    "authority_version": "BASE_MEMBER_MAPPING_R2",
+    "payload_hash": "6fb7212cc1edd090cf63ff2d938fc5e7b7a0c4b9020b7fdca14e499119b2496e",
+    "file_sha256": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086"
+  },
+  "coverage": {
+    "status": "INCOMPLETE",
+    "unknown_global_no_record_date_count": 40,
+    "source_start_gap": true,
+    "source_start_gap_start": "2025-07-01",
+    "source_start_gap_end": "2025-07-21",
+    "quantity_semantics": "MAPPED_RECORDED_SUBTOTAL",
+    "strict_complete_season_authority": false,
+    "production_authority": false
+  },
+  "strict_mode": {
+    "incomplete_prior_allowed": false,
+    "fallback_to_older_season": false
+  },
+  "experimental_mode": {
+    "incomplete_prior_allowed": true,
+    "warning": "PRIOR_SEASON_HISTORY_COVERAGE_INCOMPLETE",
+    "forecast_status": "EXPERIMENTAL_DATA_COVERAGE_LIMITED"
+  }
+}

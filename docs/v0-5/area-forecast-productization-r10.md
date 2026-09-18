@@ -141,3 +141,42 @@ does not mark V0.5 complete.
 The product now exposes `peak_at_forecast_boundary` metadata. A boundary peak
 is retained as computed; no quantity is moved to the final day. Daily
 serialization continues to use the existing mass-balance tolerance.
+
+## R10C experimental immediate-prior coverage gate
+
+R10C adds a separate, versioned snapshot for the frozen 2025-2026 source and
+identity mapping. It is deliberately not a strict complete-season or
+production authority:
+
+```ini
+EXPERIMENTAL_PRIOR_HISTORY_ARTIFACT_VERSION=AREA_FORECAST_EXPERIMENTAL_PRIOR_HISTORY_V1
+EXPERIMENTAL_PRIOR_HISTORY_SEASON=2025-2026
+EXPERIMENTAL_PRIOR_HISTORY_COVERAGE=INCOMPLETE
+UNKNOWN_GLOBAL_NO_RECORD_DATE_COUNT=40
+SOURCE_START_GAP=2025-07-01..2025-07-21
+QUANTITY_SEMANTICS=MAPPED_RECORDED_SUBTOTAL
+```
+
+The snapshot file SHA256 is
+`8603026734d6ead0069e4bf560f8fd66175ab5144b8211150311d4920548dbad` and its
+canonical payload hash is
+`78760a3f48f0659cda409e89dd911414725ff33c942f99e55d6ffdda7a064b11`. It binds
+the 2025-2026 source hash
+`fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a` and the
+`BASE_MEMBER_MAPPING_R2` payload hash
+`6fb7212cc1edd090cf63ff2d938fc5e7b7a0c4b9020b7fdca14e499119b2496e`.
+
+Strict mode still fails closed when the immediate prior is not present in the
+strict history authority. Experimental mode can use this snapshot without
+filling missing days or falling back to an older season, and must expose
+`PRIOR_SEASON_HISTORY_COVERAGE_INCOMPLETE` plus the coverage metadata in the
+canonical result. The model remains experimental.
+
+The formal future-season CLI replay used `保山杨柳基地`, target area
+`394.000000` mu, and `2026-2027` in `EXPERIMENTAL` mode. It produced 289 rows
+for `2026-07-01..2027-04-15`, predicted season total `484802.055974` kg,
+single-day peak `2027-04-15` / `12516.250171` kg, and rolling-7-day peak
+`2027-04-09..2027-04-15` / `83767.922569` kg. The result hash is
+`9ce6e9df7336be54cb043b6e35813c7741b932005fea3bd4d8a77d2521b559cb`. The peak
+is retained at the forecast-end boundary and is reported as metadata; no
+quantity is moved or artificially renormalized.
