@@ -689,3 +689,19 @@ def run_base_area_forecast(
 
     authority = load_base_product_authority()
     return forecast_base_area(request, authority)
+
+
+def resolve_prior_history(
+    base_id: str,
+    target_season: str,
+    authority: BaseProductAuthority,
+    forecast_mode: Literal["STRICT", "EXPERIMENTAL"],
+) -> dict[str, Any]:
+    """Expose the frozen immediate-prior selector to PIT orchestration.
+
+    S2 must bind the exact same history row used by the V0.5 product.  This
+    small public wrapper prevents the shadow application from implementing a
+    second fallback or season-selection policy.
+    """
+
+    return _prior_history(base_id, target_season, authority, forecast_mode)

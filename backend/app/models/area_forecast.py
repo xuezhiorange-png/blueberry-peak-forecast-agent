@@ -12,32 +12,14 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    Numeric,
     Text,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.engine import Dialect
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import TypeDecorator
 
 from backend.app.db.base import Base
-
-
-class ExactDecimal(TypeDecorator[Decimal]):
-    """PostgreSQL unbounded NUMERIC; SQLite text avoids binary-float round trips."""
-
-    impl = Numeric
-    cache_ok = True
-
-    def load_dialect_impl(self, dialect: Dialect) -> Any:
-        return dialect.type_descriptor(Text() if dialect.name == "sqlite" else Numeric())
-
-    def process_bind_param(self, value: Decimal | None, dialect: Dialect) -> Any:
-        return str(value) if value is not None and dialect.name == "sqlite" else value
-
-    def process_result_value(self, value: Any, dialect: Dialect) -> Decimal | None:
-        return None if value is None else Decimal(str(value))
+from backend.app.db.types import ExactDecimal
 
 
 class AreaForecastRun(Base):

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.actual_harvest_import.models import UTCDateTime
 from backend.app.db.base import Base
-from backend.app.models.area_forecast import ExactDecimal
+from backend.app.db.types import ExactDecimal
 
 
 def _sqlite_bigint() -> Any:
