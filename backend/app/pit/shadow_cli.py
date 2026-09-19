@@ -10,9 +10,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.core_forecast.cli import CoreForecastCliError
+from backend.app.pit.ecmwf_open_data_provider import configured_weather_forecast_provider
 from backend.app.pit.shadow_forecast import (
     ShadowForecastError,
     ShadowForecastRequest,
+    WeatherForecastProviderError,
     run_shadow_forecast,
     run_shadow_forecast_batch,
     shadow_execution_payload,
@@ -58,12 +60,14 @@ async def dispatch_shadow_forecast(
     stdout: TextIO,
 ) -> None:
     try:
+        weather_provider = configured_weather_forecast_provider()
         async with session_factory() as session:
             async with session.begin():
                 if args.resource == "shadow-forecast-batch":
                     result = await run_shadow_forecast_batch(
                         session,
                         target_season=args.season,
+                        weather_provider=weather_provider,
                     )
                     payload = {
                         "target_season": args.season,
@@ -92,7 +96,11 @@ async def dispatch_shadow_forecast(
                         target_area_mu=args.area_mu,
                         target_season=args.season,
                     )
-                    execution = await run_shadow_forecast(session, request)
+                    execution = await run_shadow_forecast(
+                        session,
+                        request,
+                        weather_provider=weather_provider,
+                    )
                     payload = shadow_execution_payload(execution)
         _write(payload, output=args.output, stdout=stdout)
     except ShadowForecastError as exc:
@@ -100,6 +108,12 @@ async def dispatch_shadow_forecast(
             exc.code,
             exc.reason,
             exit_code=3 if exc.status_code >= 500 else 2,
+        ) from exc
+    except WeatherForecastProviderError as exc:
+        raise CoreForecastCliError(
+            str(exc),
+            "WEATHER_PROVIDER_CONFIGURATION_OR_CAPTURE_UNAVAILABLE",
+            exit_code=3,
         ) from exc
     except (ValueError, OSError) as exc:
         raise CoreForecastCliError(

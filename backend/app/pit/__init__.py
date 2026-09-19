@@ -22,6 +22,7 @@ from backend.app.pit.schemas import (
     ForecastRunSnapshotInput,
     PhenologyObservationInput,
     RealizedWeatherObservationInput,
+    WeatherCaptureStatus,
     WeatherForecastSnapshotInput,
 )
 from backend.app.pit.visibility import (
@@ -44,6 +45,7 @@ __all__ = [
     "PhenologyObservationInput",
     "RealizedWeatherObservationInput",
     "WeatherForecastSnapshotInput",
+    "WeatherCaptureStatus",
     "build_input_snapshot",
     "hash_payload",
     "record_visible_at",
