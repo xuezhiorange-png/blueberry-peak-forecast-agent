@@ -1,0 +1,99 @@
+{
+  "task_id": "V0_6_VERSION_PLAN_AND_SCOPE_FREEZE_R1",
+  "version": "0.6.0",
+  "version_name": "POINT_IN_TIME_FORECAST_VALIDATION",
+  "version_name_cn": "预测时点数据闭环与真实预测验证版",
+  "plan_status": "FROZEN_FOR_COORDINATOR_REVIEW",
+  "implementation_started": false,
+  "base_release": "v0.5.3",
+  "base_main_sha": "c0daf23b3d8d5c3b43733824b95024c44b9c220b",
+  "total_slices": 4,
+  "slice_order": ["S1", "S2", "S3", "S4", "V0.6_RELEASE"],
+  "slices": [
+    {
+      "id": "S1",
+      "task_id": "V0_6_S1_POINT_IN_TIME_DATA_FOUNDATION",
+      "name": "POINT_IN_TIME_DATA_FOUNDATION",
+      "depends_on": ["v0.5.3"]
+    },
+    {
+      "id": "S2",
+      "task_id": "V0_6_S2_SHADOW_FORECAST_AND_WEATHER_CAPTURE",
+      "name": "SHADOW_FORECAST_AND_WEATHER_CAPTURE",
+      "depends_on": ["S1"]
+    },
+    {
+      "id": "S3",
+      "task_id": "V0_6_S3_FORECAST_ACTUAL_EVALUATION",
+      "name": "FORECAST_ACTUAL_EVALUATION",
+      "depends_on": ["S2"]
+    },
+    {
+      "id": "S4",
+      "task_id": "V0_6_S4_PROSPECTIVE_VALIDATION_AND_WEATHER_VALUE_ASSESSMENT",
+      "name": "PROSPECTIVE_VALIDATION_AND_WEATHER_VALUE_ASSESSMENT",
+      "depends_on": ["S3"]
+    }
+  ],
+  "weather_scope": {
+    "name": "POINT_IN_TIME_FORECAST_WEATHER_CAPTURE_AND_INCREMENTAL_VALUE_EVALUATION",
+    "forecast_time_weather_capture": true,
+    "realized_weather_capture": true,
+    "weather_forecast_vs_realized_evaluation": true,
+    "weather_incremental_value_ablation": true,
+    "weather_model_retraining": false,
+    "weather_model_promotion": false,
+    "weather_aware_production_model": false,
+    "realized_weather_as_forecast_input": false
+  },
+  "pit_contract": {
+    "append_only": true,
+    "immutable_forecast_snapshot": true,
+    "deterministic_hash": true,
+    "visibility_rule": "record.known_at <= forecast_created_at",
+    "weather_rule": "weather.issued_at <= forecast_created_at AND snapshot_available_before_forecast_created_at",
+    "hindsight_weather_allowed": false,
+    "hindsight_phenology_allowed": false,
+    "hindsight_area_revision_allowed": false,
+    "future_actual_harvest_allowed": false
+  },
+  "frozen_v05_models": {
+    "total_model": "BASE_AWARE_BASELINE_R1",
+    "temporal_reference_model": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "model_retraining_in_plan": false,
+    "model_tuning_in_plan": false
+  },
+  "required_s1_contracts": [
+    "forecast_run_snapshot",
+    "area_revision",
+    "weather_forecast_snapshot",
+    "realized_weather_observation",
+    "phenology_observation",
+    "actual_harvest"
+  ],
+  "production_readiness_is_not_automatic": true,
+  "out_of_scope": [
+    "boosting",
+    "deep_learning",
+    "automatic_weather_aware_model_training",
+    "automatic_model_promotion",
+    "automatic_phenology_model_training",
+    "multi_factory_routing",
+    "peak_shaving",
+    "factory_capacity_optimization",
+    "cold_storage_integration",
+    "commercial_ui",
+    "recommendation_engine",
+    "multi_agent_expansion",
+    "historical_area_archaeology",
+    "v05_model_modification",
+    "production_deployment"
+  ],
+  "implementation_authorized": {
+    "s1": false,
+    "s2": false,
+    "s3": false,
+    "s4": false
+  },
+  "version_complete": false
+}
