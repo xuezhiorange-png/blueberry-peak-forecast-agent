@@ -44,6 +44,7 @@ __all__ = [
     "PITWriteFailure",
     "PhenologyObservationInput",
     "RealizedWeatherObservationInput",
+    "RealizedWeatherPoint",
     "WeatherForecastSnapshotInput",
     "WeatherCaptureStatus",
     "build_input_snapshot",
