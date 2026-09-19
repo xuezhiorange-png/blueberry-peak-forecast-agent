@@ -17,10 +17,14 @@ from backend.app.pit.evaluation import (
     EvaluationIntegrityError,
 )
 from backend.app.pit.evaluation_models import ForecastEvaluation, ForecastEvaluationDaily
-from backend.app.rolling_backtest.canonical import canonical_json_value
 
 
 def _json_payload(value: object) -> dict[str, Any]:
+    # Keep the shared rolling-backtest canonicalizer behind a function boundary.
+    # The ORM registry imports this module while rolling_backtest.canonical is
+    # still being initialized; a module-level import would recreate that cycle.
+    from backend.app.rolling_backtest.canonical import canonical_json_value
+
     normalized = canonical_json_value(value)
     if not isinstance(normalized, dict):
         raise EvaluationIntegrityError("EVALUATION_PAYLOAD_NOT_OBJECT")
