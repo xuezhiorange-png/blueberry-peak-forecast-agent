@@ -1,0 +1,35 @@
+{
+  "task_id": "V0_6_S3_FORECAST_ACTUAL_EVALUATION_R1",
+  "policy_version": "V0_6_S3_FORECAST_ACTUAL_EVALUATION_V1",
+  "base_sha_at_execution": "a7f05dce73d09aded6e6d4b9927cacd98275835e",
+  "s2_merge_commit": "a7f05dce73d09aded6e6d4b9927cacd98275835e",
+  "alembic_revision": "0038_v06_s3_forecast_actual_evaluation",
+  "actual_harvest_reused": true,
+  "forecast_snapshot_mutated": false,
+  "weather_forecast_semantics": "persisted_as_issued_ecmwf_only",
+  "gdd_evaluation_status": "NOT_EVALUATED_DEFINITION_NOT_FROZEN",
+  "metric_policy": {
+    "error_sign_convention": "FORECAST_MINUS_ACTUAL",
+    "wape_denominator_policy": "SUM_ABSOLUTE_ACTUAL",
+    "mape_zero_actual_policy": "EXCLUDED_WITH_COUNT",
+    "date_error_unit": "CALENDAR_DAYS_SIGNED_FORECAST_MINUS_ACTUAL",
+    "partial_season_policy": "AS_OF_CLIPPED_RANGE_ONLY",
+    "missing_day_policy": "NOT_ZERO_NOT_COMPARABLE"
+  },
+  "real_evaluated_forecast_run_count": 0,
+  "real_evaluated_base_count": 0,
+  "real_actual_coverage_status": "INSUFFICIENT_MATURED_ACTUAL_EVIDENCE",
+  "fixture_acceptance": {
+    "alignment": "PASS",
+    "as_of_and_future_exclusion": "PASS",
+    "revision_winner": "PASS",
+    "season_metrics": "PASS",
+    "daily_metrics": "PASS",
+    "single_day_peak": "PASS",
+    "rolling_7day_peak": "PASS",
+    "weather_d1_d3_d7_d15": "PASS",
+    "persistence_reload_and_hash": "PASS",
+    "migration_round_trip": "PASS"
+  },
+  "s4_authorized": false
+}
