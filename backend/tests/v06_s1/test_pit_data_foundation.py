@@ -106,6 +106,7 @@ def _weather_input(
     issued_at: datetime | None = None,
     fetched_at: datetime | None = None,
     known_at: datetime = NOW,
+    temperature_mean: Decimal = Decimal("18.2"),
 ) -> WeatherForecastSnapshotInput:
     issued_at = issued_at or NOW - timedelta(hours=3)
     fetched_at = fetched_at or NOW - timedelta(hours=2)
@@ -119,7 +120,7 @@ def _weather_input(
         known_at=known_at,
         valid_at=NOW + timedelta(days=1),
         forecast_horizon_hours=24,
-        temperature_mean=Decimal("18.2"),
+        temperature_mean=temperature_mean,
         raw_payload_hash="a" * 64,
         normalized_payload_hash="b" * 64,
     )
@@ -185,6 +186,8 @@ def _forecast_input(
             "identity_mapping_hash": "d" * 64,
         },
         weather_snapshot_ids=weather_ids,
+        weather_capture_status="CAPTURED",
+        weather_provider="test-provider",
         phenology_observation_ids=phenology_ids,
         model={
             "total_model_id": "BASE_AWARE_BASELINE_R1",
@@ -217,6 +220,8 @@ def _forecast_input(
             "prior_history_identity_mapping_hash": "d" * 64,
             "area_revision_id": area_revision_id,
             "weather_snapshot_ids": weather_ids,
+            "weather_capture_status": "CAPTURED",
+            "weather_provider": "test-provider",
             "phenology_observation_ids": phenology_ids,
             "input_snapshot_json": input_json,
             "input_snapshot_hash": input_hash,
@@ -269,6 +274,8 @@ def test_canonical_input_snapshot_is_deterministic_and_binds_sources() -> None:
         area_revision_id="area-rev-1",
         prior_history={"source_hash": "a" * 64},
         weather_snapshot_ids=["weather-2", "weather-1"],
+        weather_capture_status="CAPTURED",
+        weather_provider="test-provider",
         phenology_observation_ids=["phenology-1"],
         model={"artifact": "b" * 64},
         forecast_mode="SHADOW",
@@ -282,6 +289,8 @@ def test_canonical_input_snapshot_is_deterministic_and_binds_sources() -> None:
         area_revision_id="area-rev-1",
         prior_history={"source_hash": "a" * 64},
         weather_snapshot_ids=["weather-1", "weather-2"],
+        weather_capture_status="CAPTURED",
+        weather_provider="test-provider",
         phenology_observation_ids=["phenology-1"],
         model={"artifact": "b" * 64},
         forecast_mode="SHADOW",
@@ -296,6 +305,8 @@ def test_canonical_input_snapshot_is_deterministic_and_binds_sources() -> None:
         area_revision_id="area-rev-1",
         prior_history={"source_hash": "c" * 64},
         weather_snapshot_ids=["weather-1", "weather-2"],
+        weather_capture_status="CAPTURED",
+        weather_provider="test-provider",
         phenology_observation_ids=["phenology-1"],
         model={"artifact": "b" * 64},
         forecast_mode="SHADOW",
@@ -346,6 +357,8 @@ async def test_foundation_persists_and_reloads_without_commit(sqlite_session: As
         (("prior_history", "quantity_kg"), "101"),
         (("prior_history", "source_hash"), "a" * 64),
         (("coverage", "prior_history_coverage_status"), "COMPLETE"),
+        (("weather_capture_status",), "UNAVAILABLE"),
+        (("weather_provider",), "other-provider"),
         (("warnings",), ["DIFFERENT_WARNING"]),
     ),
 )
@@ -559,6 +572,34 @@ async def test_area_revision_supersede_preserves_history(sqlite_session: AsyncSe
     assert visible is not None
     assert visible.area_revision_id == second.area_revision_id
     assert (await repository.get_area_revision(first.area_revision_id)).area_mu == Decimal("394")
+
+
+@pytest.mark.unit
+async def test_area_revision_same_id_is_idempotent_but_payload_conflict_fails(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    first = await repository.add_area_revision(_area_input())
+    same = await repository.add_area_revision(_area_input())
+    assert same.area_revision_id == first.area_revision_id
+    with pytest.raises(PITConflictError, match="AREA_REVISION_ID_CONFLICT"):
+        await repository.add_area_revision(
+            _area_input().model_copy(update={"area_mu": Decimal("395")})
+        )
+
+
+@pytest.mark.unit
+async def test_weather_snapshot_same_id_is_idempotent_but_payload_conflict_fails(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    first = await repository.add_weather_forecast_snapshot(_weather_input())
+    same = await repository.add_weather_forecast_snapshot(_weather_input())
+    assert same.weather_snapshot_id == first.weather_snapshot_id
+    with pytest.raises(PITConflictError, match="WEATHER_SNAPSHOT_ID_CONFLICT"):
+        await repository.add_weather_forecast_snapshot(
+            _weather_input(temperature_mean=Decimal("19"))
+        )
 
 
 @pytest.mark.unit

@@ -99,6 +99,11 @@ class PITDataFoundationRepository:
         payload_hash = item.computed_payload_hash()
         if item.payload_hash is not None:
             _sha_match(item.payload_hash, payload_hash, "payload_hash")
+        existing = await self.session.get(AreaRevision, item.area_revision_id)
+        if existing is not None:
+            if existing.payload_hash == payload_hash:
+                return existing
+            raise PITConflictError("AREA_REVISION_ID_CONFLICT")
         if item.supersedes_revision_id is not None:
             parent = await self.session.get(AreaRevision, item.supersedes_revision_id)
             if parent is None:
@@ -222,6 +227,11 @@ class PITDataFoundationRepository:
         payload_hash = item.computed_payload_hash()
         if item.payload_hash is not None:
             _sha_match(item.payload_hash, payload_hash, "payload_hash")
+        existing = await self.session.get(WeatherForecastSnapshot, item.weather_snapshot_id)
+        if existing is not None:
+            if existing.payload_hash == payload_hash:
+                return existing
+            raise PITConflictError("WEATHER_SNAPSHOT_ID_CONFLICT")
         model = WeatherForecastSnapshot(
             **item.model_dump(exclude={"payload_hash"}),
             payload_hash=payload_hash,
@@ -391,6 +401,8 @@ class PITDataFoundationRepository:
             "area_revision_id",
             "prior_history",
             "weather_snapshot_ids",
+            "weather_capture_status",
+            "weather_provider",
             "phenology_observation_ids",
             "model",
             "forecast_mode",
@@ -412,6 +424,10 @@ class PITDataFoundationRepository:
             raise PITIntegrityError("INPUT_AREA_REVISION_MISMATCH")
         if sorted(snapshot["weather_snapshot_ids"]) != sorted(item.weather_snapshot_ids):
             raise PITIntegrityError("INPUT_WEATHER_IDS_MISMATCH")
+        if snapshot["weather_capture_status"] != item.weather_capture_status:
+            raise PITIntegrityError("INPUT_WEATHER_CAPTURE_STATUS_MISMATCH")
+        if snapshot["weather_provider"] != item.weather_provider:
+            raise PITIntegrityError("INPUT_WEATHER_PROVIDER_MISMATCH")
         if sorted(snapshot["phenology_observation_ids"]) != sorted(item.phenology_observation_ids):
             raise PITIntegrityError("INPUT_PHENOLOGY_IDS_MISMATCH")
         if snapshot["forecast_mode"] != item.forecast_mode:
@@ -472,6 +488,8 @@ class PITDataFoundationRepository:
             area_revision_id=item.area_revision_id,
             prior_history=formal_prior_history,
             weather_snapshot_ids=item.weather_snapshot_ids,
+            weather_capture_status=item.weather_capture_status,
+            weather_provider=item.weather_provider,
             phenology_observation_ids=item.phenology_observation_ids,
             model={
                 "total_model_id": item.total_model_id,
@@ -664,6 +682,10 @@ class PITDataFoundationRepository:
                 "prior_history_identity_mapping_hash": model.prior_history_identity_mapping_hash,
                 "area_revision_id": model.area_revision_id,
                 "weather_snapshot_ids": model.weather_snapshot_ids,
+                "weather_capture_status": model.input_snapshot_json.get(
+                    "weather_capture_status", "UNAVAILABLE"
+                ),
+                "weather_provider": model.input_snapshot_json.get("weather_provider"),
                 "phenology_observation_ids": model.phenology_observation_ids,
                 "input_snapshot_json": model.input_snapshot_json,
                 "input_snapshot_hash": model.input_snapshot_hash,

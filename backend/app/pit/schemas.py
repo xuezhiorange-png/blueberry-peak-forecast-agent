@@ -16,6 +16,7 @@ AreaType = Literal[
     "PLANTED_AREA",
     "PLANNED_AREA",
 ]
+WeatherCaptureStatus = Literal["CAPTURED", "UNAVAILABLE", "FAILED"]
 
 
 def _aware(value: datetime) -> datetime:
@@ -222,6 +223,8 @@ class ForecastRunSnapshotInput(_FrozenInput):
     prior_history_identity_mapping_hash: str | None = None
     area_revision_id: str = Field(min_length=1)
     weather_snapshot_ids: list[str] = Field(default_factory=list)
+    weather_capture_status: WeatherCaptureStatus = "UNAVAILABLE"
+    weather_provider: str | None = None
     phenology_observation_ids: list[str] = Field(default_factory=list)
     input_snapshot_json: dict[str, Any]
     input_snapshot_hash: str
@@ -239,6 +242,15 @@ class ForecastRunSnapshotInput(_FrozenInput):
             raise ValueError("forecast_end_date must not precede forecast_start_date")
         if len(self.weather_snapshot_ids) != len(set(self.weather_snapshot_ids)):
             raise ValueError("weather_snapshot_ids must not contain duplicates")
+        if self.weather_provider is not None and not self.weather_provider.strip():
+            raise ValueError("weather_provider must not be blank")
+        if self.weather_capture_status == "CAPTURED":
+            if not self.weather_snapshot_ids:
+                raise ValueError("CAPTURED requires at least one weather snapshot")
+            if self.weather_provider is None:
+                raise ValueError("CAPTURED requires weather_provider")
+        elif self.weather_snapshot_ids:
+            raise ValueError(f"{self.weather_capture_status} must not contain weather snapshots")
         if len(self.phenology_observation_ids) != len(set(self.phenology_observation_ids)):
             raise ValueError("phenology_observation_ids must not contain duplicates")
         _sha(self.input_snapshot_hash, "input_snapshot_hash")
@@ -269,6 +281,8 @@ class ForecastRunSnapshotInput(_FrozenInput):
             "prior_history_identity_mapping_hash": self.prior_history_identity_mapping_hash,
             "area_revision_id": self.area_revision_id,
             "weather_snapshot_ids": sorted(self.weather_snapshot_ids),
+            "weather_capture_status": self.weather_capture_status,
+            "weather_provider": self.weather_provider,
             "phenology_observation_ids": sorted(self.phenology_observation_ids),
             "predicted_season_total_kg": self.predicted_season_total_kg,
             "daily_curve": [row.model_dump(mode="python") for row in self.daily_curve],
@@ -301,4 +315,5 @@ __all__ = [
     "PhenologyObservationInput",
     "RealizedWeatherObservationInput",
     "WeatherForecastSnapshotInput",
+    "WeatherCaptureStatus",
 ]

@@ -33,10 +33,8 @@ from backend.app.area_yield.base_product_authority import (
 from backend.app.pit.canonical import build_input_snapshot
 from backend.app.pit.models import AreaRevision, PhenologyObservation
 from backend.app.pit.persistence import (
-    PITConflictError,
     PITDataFoundationError,
     PITDataFoundationRepository,
-    PITNotFoundError,
 )
 from backend.app.pit.schemas import (
     AreaRevisionInput,
@@ -105,6 +103,23 @@ class WeatherForecastCaptureResult:
     provider: str | None
     snapshots: tuple[WeatherForecastSnapshotInput, ...] = ()
     reason: str | None = None
+    capture_completed_at: datetime | None = None
+
+
+def _validate_capture_result(capture: WeatherForecastCaptureResult) -> None:
+    """Reject impossible provider-result combinations before persistence."""
+
+    if capture.status == WEATHER_CAPTURED:
+        if not capture.provider or not capture.snapshots:
+            raise ShadowForecastBlocked("WEATHER_CAPTURE_RESULT_INVALID")
+        if any(snapshot.provider != capture.provider for snapshot in capture.snapshots):
+            raise ShadowForecastBlocked("WEATHER_CAPTURE_RESULT_INVALID")
+        return
+    if capture.status in {WEATHER_UNAVAILABLE, WEATHER_FAILED}:
+        if capture.snapshots:
+            raise ShadowForecastBlocked("WEATHER_CAPTURE_RESULT_INVALID")
+        return
+    raise ShadowForecastBlocked("WEATHER_CAPTURE_RESULT_INVALID")
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,10 +286,6 @@ async def _ensure_reference_area_revision(
 ) -> AreaRevision:
     base_id = str(base["base_id"])
     revision_id = f"v06-reference-area-{base_id}-{authority.registry_file_sha256[:16]}"
-    try:
-        return await repository.get_area_revision(revision_id)
-    except PITNotFoundError:
-        pass
     if forecast_created_at < _utc_now() - timedelta(seconds=5):
         raise ShadowForecastBlocked("AREA_NOT_AVAILABLE")
     try:
@@ -294,10 +305,7 @@ async def _ensure_reference_area_revision(
         source_reference="configs/v0_5_base_reference_registry_v1.json",
         basis=REFERENCE_AREA_BASIS,
     )
-    try:
-        return await repository.add_area_revision(item)
-    except PITConflictError:
-        return await repository.get_area_revision(revision_id)
+    return await repository.add_area_revision(item)
 
 
 def _forecast_created_at(request: ShadowForecastRequest) -> datetime:
@@ -328,10 +336,7 @@ async def _persist_weather_snapshots(
             raise ShadowForecastBlocked("WEATHER_SCOPE_UNBOUND")
         if not weather_forecast_visible_at(snapshot, forecast_created_at):
             raise ShadowForecastBlocked("INPUT_VISIBILITY_FAILED")
-        try:
-            stored = await repository.add_weather_forecast_snapshot(snapshot)
-        except PITConflictError:
-            stored = await repository.get_weather_forecast_snapshot(snapshot.weather_snapshot_id)
+        stored = await repository.add_weather_forecast_snapshot(snapshot)
         persisted_ids.append(stored.weather_snapshot_id)
     return sorted(set(persisted_ids))
 
@@ -376,19 +381,21 @@ def _snapshot_input(
     target_area_mu: Decimal,
     prior_history: Mapping[str, object],
     weather_snapshot_ids: Sequence[str],
+    weather_capture_status: WeatherCaptureStatus,
+    weather_provider: str | None,
     phenology_observation_ids: Sequence[str],
     model_artifact_hashes: Mapping[str, str],
     warnings: Sequence[str],
     product_result: AreaForecastProductResult,
 ) -> ForecastRunSnapshotInput:
-    weather_status = WEATHER_CAPTURED if weather_snapshot_ids else WEATHER_UNAVAILABLE
     request_snapshot = {
         "base_id": str(base["base_id"]),
         "canonical_base_name": str(base["canonical_base_name"]),
         "target_season": request.target_season,
         "target_area_mu": _decimal_text(target_area_mu),
         "forecast_mode": request.forecast_mode,
-        "weather_capture_status": weather_status,
+        "weather_capture_status": weather_capture_status,
+        "weather_provider": weather_provider,
     }
     input_json, input_hash = build_input_snapshot(
         request=request_snapshot,
@@ -398,6 +405,8 @@ def _snapshot_input(
         area_revision_id=area_revision.area_revision_id,
         prior_history=prior_history,
         weather_snapshot_ids=weather_snapshot_ids,
+        weather_capture_status=weather_capture_status,
+        weather_provider=weather_provider,
         phenology_observation_ids=phenology_observation_ids,
         model={
             "total_model_id": product_result.total_model_id,
@@ -438,6 +447,8 @@ def _snapshot_input(
             "prior_history_identity_mapping_hash": prior_history["identity_mapping_hash"],
             "area_revision_id": area_revision.area_revision_id,
             "weather_snapshot_ids": list(weather_snapshot_ids),
+            "weather_capture_status": weather_capture_status,
+            "weather_provider": weather_provider,
             "phenology_observation_ids": list(phenology_observation_ids),
             "input_snapshot_json": input_json,
             "input_snapshot_hash": input_hash,
@@ -462,7 +473,7 @@ async def run_shadow_forecast(
     """Resolve PIT inputs, execute the frozen V0.5 product, and persist once."""
 
     authority_snapshot = authority or load_base_product_authority()
-    created_at = _forecast_created_at(request)
+    initial_created_at = _forecast_created_at(request)
     if request.base_id is not None:
         base = authority_snapshot.bases_by_id.get(request.base_id)
     else:
@@ -470,6 +481,30 @@ async def run_shadow_forecast(
     if base is None:
         raise ShadowForecastBlocked("UNREGISTERED_BASE")
     base_id = str(base["base_id"])
+    provider = weather_provider or UnavailableWeatherForecastProvider()
+    try:
+        capture = provider.capture(
+            base=base,
+            forecast_created_at=initial_created_at,
+            target_season=request.target_season,
+        )
+    except WeatherForecastProviderError:
+        capture = WeatherForecastCaptureResult(
+            status=WEATHER_FAILED,
+            provider=getattr(provider, "provider_name", None),
+            reason="WEATHER_PROVIDER_ERROR",
+        )
+    _validate_capture_result(capture)
+    created_at = initial_created_at
+    if capture.capture_completed_at is not None:
+        completed_at = capture.capture_completed_at.astimezone(UTC)
+        if completed_at < initial_created_at:
+            completed_at = initial_created_at
+        created_at = completed_at
+    if request.forecast_mode == FORECAST_MODE_SHADOW and created_at > _utc_now() + timedelta(
+        seconds=5
+    ):
+        raise ShadowForecastBlocked("SHADOW_FORECAST_CREATED_AT_MUST_NOT_BE_FUTURE")
     repository = PITDataFoundationRepository(session)
     area_revision = await repository.visible_area_revision_for_forecast(
         base_id=base_id,
@@ -489,19 +524,6 @@ async def run_shadow_forecast(
         target_season=request.target_season,
         authority=authority_snapshot,
     )
-    provider = weather_provider or UnavailableWeatherForecastProvider()
-    try:
-        capture = provider.capture(
-            base=base,
-            forecast_created_at=created_at,
-            target_season=request.target_season,
-        )
-    except WeatherForecastProviderError:
-        capture = WeatherForecastCaptureResult(
-            status=WEATHER_FAILED,
-            provider=getattr(provider, "provider_name", None),
-            reason="WEATHER_PROVIDER_ERROR",
-        )
     weather_ids = await _persist_weather_snapshots(
         repository,
         snapshots=capture.snapshots,
@@ -537,6 +559,8 @@ async def run_shadow_forecast(
         target_area_mu=target_area_mu,
         prior_history=prior_history,
         weather_snapshot_ids=weather_ids,
+        weather_capture_status=capture.status,
+        weather_provider=capture.provider,
         phenology_observation_ids=phenology_ids,
         model_artifact_hashes=_model_artifact_hashes(authority_snapshot),
         warnings=warnings,

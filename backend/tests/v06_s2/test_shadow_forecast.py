@@ -321,6 +321,119 @@ async def test_weather_scope_mismatch_fails_closed(
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    ("status", "provider", "snapshots"),
+    (
+        ("CAPTURED", "test-as-issued", ()),
+        (
+            "FAILED",
+            "test-as-issued",
+            (
+                WeatherForecastSnapshotInput(
+                    weather_snapshot_id="invalid-failed-weather",
+                    provider="test-as-issued",
+                    base_id=BASE_A,
+                    issued_at=NOW - timedelta(hours=2),
+                    fetched_at=NOW - timedelta(hours=1),
+                    known_at=NOW,
+                    valid_at=NOW + timedelta(days=1),
+                    forecast_horizon_hours=24,
+                    temperature_mean=Decimal("18"),
+                    raw_payload_hash="5" * 64,
+                    normalized_payload_hash="6" * 64,
+                ),
+            ),
+        ),
+        (
+            "UNAVAILABLE",
+            "test-as-issued",
+            (
+                WeatherForecastSnapshotInput(
+                    weather_snapshot_id="invalid-unavailable-weather",
+                    provider="test-as-issued",
+                    base_id=BASE_A,
+                    issued_at=NOW - timedelta(hours=2),
+                    fetched_at=NOW - timedelta(hours=1),
+                    known_at=NOW,
+                    valid_at=NOW + timedelta(days=1),
+                    forecast_horizon_hours=24,
+                    temperature_mean=Decimal("18"),
+                    raw_payload_hash="7" * 64,
+                    normalized_payload_hash="8" * 64,
+                ),
+            ),
+        ),
+    ),
+)
+async def test_invalid_capture_result_contract_fails_closed(
+    sqlite_session: AsyncSession,
+    fake_product: None,
+    status: str,
+    provider: str,
+    snapshots: tuple[WeatherForecastSnapshotInput, ...],
+) -> None:
+    class InvalidProvider:
+        provider_name = provider
+
+        def capture(self, *, base, forecast_created_at, target_season):
+            del base, forecast_created_at, target_season
+            return WeatherForecastCaptureResult(
+                status=status,
+                provider=provider,
+                snapshots=snapshots,
+            )
+
+    with pytest.raises(ShadowForecastBlocked, match="WEATHER_CAPTURE_RESULT_INVALID"):
+        async with sqlite_session.begin():
+            await run_shadow_forecast(
+                sqlite_session,
+                ShadowForecastRequest(base_id=BASE_A, target_season="2026-2027"),
+                authority=_authority(),
+                weather_provider=InvalidProvider(),
+            )
+
+
+@pytest.mark.unit
+async def test_capture_result_rejects_snapshot_provider_mismatch(
+    sqlite_session: AsyncSession,
+    fake_product: None,
+) -> None:
+    class MismatchedProvider:
+        provider_name = "test-as-issued"
+
+        def capture(self, *, base, forecast_created_at, target_season):
+            del target_season
+            return WeatherForecastCaptureResult(
+                status="CAPTURED",
+                provider=self.provider_name,
+                snapshots=(
+                    WeatherForecastSnapshotInput(
+                        weather_snapshot_id="provider-mismatch-weather",
+                        provider="different-provider",
+                        base_id=base["base_id"],
+                        issued_at=forecast_created_at - timedelta(hours=2),
+                        fetched_at=forecast_created_at - timedelta(hours=1),
+                        known_at=forecast_created_at,
+                        valid_at=forecast_created_at + timedelta(days=1),
+                        forecast_horizon_hours=24,
+                        temperature_mean=Decimal("18"),
+                        raw_payload_hash="9" * 64,
+                        normalized_payload_hash="a" * 64,
+                    ),
+                ),
+            )
+
+    with pytest.raises(ShadowForecastBlocked, match="WEATHER_CAPTURE_RESULT_INVALID"):
+        async with sqlite_session.begin():
+            await run_shadow_forecast(
+                sqlite_session,
+                ShadowForecastRequest(base_id=BASE_A, target_season="2026-2027"),
+                authority=_authority(),
+                weather_provider=MismatchedProvider(),
+            )
+
+
+@pytest.mark.unit
 async def test_same_pit_input_is_idempotent_and_no_older_history_fallback(
     sqlite_session: AsyncSession,
     fake_product: None,

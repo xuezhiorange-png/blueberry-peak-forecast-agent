@@ -1,0 +1,73 @@
+{
+  "schema_version": "V0_6_S2_WEATHER_PROVIDER_QUALIFICATION_R2",
+  "task_id": "V0_6_S2_WEATHER_PROVIDER_QUALIFICATION_AND_INTEGRATION_R2",
+  "provider_selected": "ECMWF_IFS_OPEN_DATA",
+  "provider_model": "IFS|stream=oper|resolution=0p25",
+  "provider_use_eligible": true,
+  "license_and_use_eligibility": {
+    "eligible": true,
+    "provider_terms": "https://www.ecmwf.int/en/forecasts/datasets/open-data",
+    "licence_terms": "https://apps.ecmwf.int/datasets/licences/general/",
+    "attribution_required": true,
+    "attribution_recorded_in_raw_metadata": true
+  },
+  "weather_source_authority_frozen": true,
+  "blocker": null,
+  "base_location_authority": {
+    "required": true,
+    "available": true,
+    "registry_artifact": "base-registry-s1/base-registry-v1.json",
+    "file_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "base_count": 39,
+    "registry_contains_coordinates": true,
+    "coordinate_review_status": "RANGE_VALID_CRS_UNCONFIRMED",
+    "query_crs_assumption": "WGS84",
+    "crs_verification_status": "NOT_ESTABLISHED",
+    "provider_location_binding": "BASE_ID_BOUND"
+  },
+  "raw_payload_preservation": {
+    "required": true,
+    "available": true,
+    "repository_contract": "RAW_INDEX_AND_GRIB_RANGE_BYTES_PLUS_CANONICAL_MANIFEST",
+    "authorized_artifact_store": true,
+    "raw_artifact_manifest_sha256": "aad170103e156a11424c2d487fff27c0b7a263223d7552b155f3c275317477f0"
+  },
+  "candidates": {
+    "C1_ERA5_LAND": {
+      "role": "REALIZED_REANALYSIS",
+      "forecast_provider_eligible": false,
+      "status": "REJECTED_FOR_FORECAST_CAPTURE"
+    },
+    "C2_ECMWF_OPERATIONAL_OPEN_DATA": {
+      "role": "PRIMARY_AS_ISSUED_CANDIDATE",
+      "status": "SELECTED",
+      "blocking_gates": []
+    },
+    "C3_OPEN_METEO": {
+      "role": "ENGINEERING_AGGREGATOR_CANDIDATE",
+      "status": "NOT_SELECTED",
+      "blocking_gates": [
+        "PROVIDER_NATIVE_ISSUE_RUN_SEMANTICS_NOT_FROZEN",
+        "USE_ELIGIBILITY_NOT_FROZEN"
+      ]
+    }
+  },
+  "run_id": "20260919000000",
+  "issued_at": "2026-09-19T00:00:00Z",
+  "requests_executed": 28,
+  "weather_capture_status": "CAPTURED",
+  "d1_available": true,
+  "d3_available": true,
+  "d7_available": true,
+  "d15_available": true,
+  "provider_max_forecast_horizon_hours": 360,
+  "weather_capture_base_count": 39,
+  "weather_snapshot_count": 156,
+  "provider_grid_selection_parity": "PASS",
+  "unique_selected_grid_point_count": 30,
+  "real_weather_capture_executed": true,
+  "model_output_unchanged_by_weather_capture": true,
+  "input_snapshot_hash_changes_with_weather": true,
+  "final_pit_result_hash_changes_with_weather": true,
+  "v0_6_s2_complete": true
+}
