@@ -40,6 +40,10 @@ from backend.app.harvest_state.reports import (
     render_harvest_state_csv_report,
     render_harvest_state_json_report,
 )
+from backend.app.pit.shadow_cli import (
+    dispatch_shadow_forecast,
+    register_shadow_forecast_parsers,
+)
 from backend.app.residual_model.cli_support import (
     ResidualModelCliError,
     dispatch_residual_model,
@@ -79,6 +83,7 @@ def _parser() -> argparse.ArgumentParser:
     register_core_forecast_parser(subparsers)
     register_area_run_parser(subparsers)
     register_operational_peak_parser(subparsers)
+    register_shadow_forecast_parsers(subparsers)
     area_parser = subparsers.add_parser("area-forecast")
     area_parser.add_argument("--input")
     area_parser.add_argument("--base", help="BASE id or exact canonical BASE name")
@@ -333,6 +338,13 @@ async def _dispatch(
     if args.resource == "operational-peak-run":
         await dispatch_operational_peak(
             args, session_factory=session_factory, stdin=stdin, stdout=stdout
+        )
+        return
+    if args.resource in {"shadow-forecast", "shadow-forecast-batch"}:
+        await dispatch_shadow_forecast(
+            args,
+            session_factory=session_factory,
+            stdout=stdout,
         )
         return
     if args.resource == "core-forecast":
