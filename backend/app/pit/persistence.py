@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
@@ -297,6 +297,7 @@ class PITDataFoundationRepository:
 
     @staticmethod
     def _validate_input_snapshot(item: ForecastRunSnapshotInput) -> None:
+        from backend.app.pit.canonical import build_input_snapshot
         from backend.app.rolling_backtest.canonical import canonical_json_value
 
         _sha_match(
@@ -324,6 +325,11 @@ class PITDataFoundationRepository:
         if not required.issubset(item.input_snapshot_json):
             raise PITIntegrityError("INPUT_SNAPSHOT_INCOMPLETE")
         snapshot = item.input_snapshot_json
+        base_identity = snapshot["base_identity"]
+        if not isinstance(base_identity, Mapping):
+            raise PITIntegrityError("INPUT_BASE_IDENTITY_INVALID")
+        if base_identity.get("base_id") != item.base_id:
+            raise PITIntegrityError("INPUT_BASE_ID_MISMATCH")
         if snapshot["target_season"] != item.target_season:
             raise PITIntegrityError("INPUT_TARGET_SEASON_MISMATCH")
         if snapshot["area_revision_id"] != item.area_revision_id:
@@ -336,11 +342,74 @@ class PITDataFoundationRepository:
             raise PITIntegrityError("INPUT_FORECAST_MODE_MISMATCH")
         if snapshot["forecast_created_at"] != canonical_json_value(item.forecast_created_at):
             raise PITIntegrityError("INPUT_FORECAST_CREATED_AT_MISMATCH")
-        target_area_value = snapshot["target_area"].get("target_area_mu")
+
+        target_area = snapshot["target_area"]
+        if not isinstance(target_area, Mapping):
+            raise PITIntegrityError("INPUT_TARGET_AREA_INVALID")
+        target_area_value = target_area.get("target_area_mu")
         if target_area_value is None:
             raise PITIntegrityError("INPUT_TARGET_AREA_MISSING")
         if Decimal(str(target_area_value)) != item.target_area_mu:
             raise PITIntegrityError("INPUT_TARGET_AREA_MISMATCH")
+
+        model = snapshot["model"]
+        if not isinstance(model, Mapping):
+            raise PITIntegrityError("INPUT_MODEL_INVALID")
+        if model.get("total_model_id") != item.total_model_id:
+            raise PITIntegrityError("INPUT_TOTAL_MODEL_ID_MISMATCH")
+        if model.get("temporal_model_id") != item.temporal_model_id:
+            raise PITIntegrityError("INPUT_TEMPORAL_MODEL_ID_MISMATCH")
+        if canonical_json_value(model.get("artifact_hashes")) != canonical_json_value(
+            item.model_artifact_hashes
+        ):
+            raise PITIntegrityError("INPUT_MODEL_ARTIFACT_HASHES_MISMATCH")
+
+        prior_history = snapshot["prior_history"]
+        if not isinstance(prior_history, Mapping):
+            raise PITIntegrityError("INPUT_PRIOR_HISTORY_INVALID")
+        formal_prior_history = {
+            "season": item.prior_history_season,
+            "quantity_kg": item.prior_history_quantity_kg,
+            "coverage_status": item.prior_history_coverage_status,
+            "source_hash": item.prior_history_source_hash,
+            "identity_mapping_hash": item.prior_history_identity_mapping_hash,
+        }
+        if canonical_json_value(prior_history) != canonical_json_value(formal_prior_history):
+            raise PITIntegrityError("INPUT_PRIOR_HISTORY_MISMATCH")
+
+        coverage = snapshot["coverage"]
+        formal_coverage = {
+            "prior_history_coverage_status": item.prior_history_coverage_status,
+        }
+        if canonical_json_value(coverage) != canonical_json_value(formal_coverage):
+            raise PITIntegrityError("INPUT_COVERAGE_MISMATCH")
+        if canonical_json_value(snapshot["warnings"]) != canonical_json_value(
+            sorted(set(item.warnings))
+        ):
+            raise PITIntegrityError("INPUT_WARNINGS_MISMATCH")
+
+        expected_snapshot, expected_hash = build_input_snapshot(
+            request=snapshot["request"],
+            base_identity=base_identity,
+            target_season=item.target_season,
+            target_area={"target_area_mu": item.target_area_mu},
+            area_revision_id=item.area_revision_id,
+            prior_history=formal_prior_history,
+            weather_snapshot_ids=item.weather_snapshot_ids,
+            phenology_observation_ids=item.phenology_observation_ids,
+            model={
+                "total_model_id": item.total_model_id,
+                "temporal_model_id": item.temporal_model_id,
+                "artifact_hashes": item.model_artifact_hashes,
+            },
+            forecast_mode=item.forecast_mode,
+            coverage=formal_coverage,
+            forecast_created_at=item.forecast_created_at,
+            warnings=item.warnings,
+        )
+        if canonical_json_value(snapshot) != canonical_json_value(expected_snapshot):
+            raise PITIntegrityError("INPUT_SNAPSHOT_CROSS_FIELD_MISMATCH")
+        _sha_match(item.input_snapshot_hash, expected_hash, "input_snapshot")
         if item.computed_result_hash() != item.result_hash:
             raise PITIntegrityError("RESULT_HASH_MISMATCH")
 
@@ -350,6 +419,8 @@ class PITDataFoundationRepository:
             raise PITIntegrityError("AREA_REVISION_REFERENCE_NOT_FOUND")
         if area.base_id != item.base_id:
             raise PITIntegrityError("AREA_REVISION_BASE_MISMATCH")
+        if area.area_type != "REFERENCE_AREA" and area.season != item.target_season:
+            raise PITIntegrityError("AREA_REVISION_SEASON_MISMATCH")
         if (
             not record_visible_at(area, item.forecast_created_at)
             or _utc(area.effective_from) > _utc(item.forecast_created_at)
@@ -401,6 +472,8 @@ class PITDataFoundationRepository:
         if existing is not None:
             if existing.input_snapshot_hash != item.input_snapshot_hash:
                 raise PITConflictError("FORECAST_RUN_ID_CONFLICT")
+            if existing.result_hash != item.result_hash:
+                raise PITConflictError("FORECAST_RUN_RESULT_CONFLICT")
             return await self.get_forecast_run_snapshot(item.forecast_run_id)
         now = datetime.now(UTC)
         try:
