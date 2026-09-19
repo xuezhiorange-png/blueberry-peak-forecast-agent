@@ -1,0 +1,122 @@
+{
+  "version": "0.6.0",
+  "version_name": "POINT_IN_TIME_FORECAST_VALIDATION",
+  "version_name_cn": "预测时点数据闭环与真实预测验证版",
+  "base_main_sha": "59ec365b8e5939fb16a7fdc76cd6a370c84e64a9",
+  "base_main_tree_sha": "0c40f4d863b23fda06074576b687af138307bfec",
+  "engineering_complete": true,
+  "feature_development_frozen": true,
+  "slices": {
+    "plan": {
+      "pr_number": 638,
+      "accepted_head_sha": "85bef4f67abe11d5f6a5dea8f1ecd65759a2af08",
+      "merge_sha": "1a5af0931d2c639c2bf3a4a759bf3598108d1bbc",
+      "ci_run_id": 35417718787,
+      "ci_head_sha": "85bef4f67abe11d5f6a5dea8f1ecd65759a2af08",
+      "ci_conclusion": "success",
+      "full_suite_canary": "success",
+      "complete": true
+    },
+    "s1": {
+      "task_id": "V0_6_S1_POINT_IN_TIME_DATA_FOUNDATION",
+      "pr_number": 639,
+      "accepted_head_sha": "6b41b41afe9dc539d544f0e28c210fc0a6d000ca",
+      "merge_sha": "e7284dacca47b8d0d7fc57aa2a03b149ed622992",
+      "ci_run_id": 35431692389,
+      "ci_head_sha": "6b41b41afe9dc539d544f0e28c210fc0a6d000ca",
+      "ci_conclusion": "success",
+      "full_suite_canary": "success",
+      "complete": true
+    },
+    "s2": {
+      "task_id": "V0_6_S2_SHADOW_FORECAST_AND_WEATHER_CAPTURE",
+      "pr_number": 640,
+      "accepted_head_sha": "a8fb4c31dbb4c5ebc144bf19548449194fa929fe",
+      "merge_sha": "a7f05dce73d09aded6e6d4b9927cacd98275835e",
+      "ci_run_id": 35442118458,
+      "ci_head_sha": "a8fb4c31dbb4c5ebc144bf19548449194fa929fe",
+      "ci_conclusion": "success",
+      "full_suite_canary": "success",
+      "complete": true,
+      "weather_provider": "ECMWF_IFS_OPEN_DATA",
+      "weather_captured_base_count": 39,
+      "weather_used_by_model": false
+    },
+    "s3": {
+      "task_id": "V0_6_S3_FORECAST_ACTUAL_EVALUATION",
+      "pr_number": 641,
+      "accepted_head_sha": "b38085c522dea126273c13593c3f3d244e8d224b",
+      "merge_sha": "d52e0b7e8220acfdab0d572362a4d89cdce0b097",
+      "ci_run_id": 35450610382,
+      "ci_head_sha": "b38085c522dea126273c13593c3f3d244e8d224b",
+      "ci_conclusion": "success",
+      "full_suite_canary": "success",
+      "complete": true,
+      "real_evaluated_forecast_run_count": 0,
+      "real_evaluated_base_count": 0,
+      "real_actual_coverage_status": "INSUFFICIENT_MATURED_ACTUAL_EVIDENCE"
+    },
+    "s4": {
+      "task_id": "V0_6_S4_PROSPECTIVE_VALIDATION_AND_WEATHER_VALUE_ASSESSMENT",
+      "pr_number": 642,
+      "accepted_head_sha": "710d7260180a75833db1e735b9b5e28d1fe710ea",
+      "merge_sha": "59ec365b8e5939fb16a7fdc76cd6a370c84e64a9",
+      "ci_run_id": 35461591986,
+      "ci_head_sha": "710d7260180a75833db1e735b9b5e28d1fe710ea",
+      "ci_conclusion": "success",
+      "full_suite_canary": "success",
+      "complete": true,
+      "real_prospective_eligible_run_count": 0,
+      "real_prospective_eligible_base_count": 0,
+      "real_prospective_evidence_sufficient": false,
+      "real_prospective_validation_status": "INSUFFICIENT_MATURED_PIT_EVIDENCE",
+      "weather_incremental_value": "INCONCLUSIVE",
+      "v07_weather_model_recommendation": "INSUFFICIENT_EVIDENCE"
+    }
+  },
+  "model": {
+    "total_model": "BASE_AWARE_BASELINE_R1",
+    "temporal_model": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "model_status": "EXPERIMENTAL",
+    "retrained_in_v06": false,
+    "tuned_in_v06": false,
+    "weather_used_by_model": false,
+    "weather_model_trained": false,
+    "model_accuracy_validated": false
+  },
+  "historical_evidence": {
+    "historical_harvest_data_available": true,
+    "multi_season_historical_data_available": true,
+    "three_season_historical_data_available": true,
+    "seasons": ["2023-2024", "2024-2025", "2025-2026"],
+    "formal_three_season_independent_model_acceptance_complete": false,
+    "historical_data_semantics": "AVAILABLE_BUT_COVERAGE_AND_ACCEPTANCE_MUST_BE_REPORTED_SEPARATELY",
+    "evidence_documents": [
+      "docs/v0-5/s1/evidence.json",
+      "docs/v0-5/s3/training-eligibility-support-count-evidence-r2.json",
+      "docs/next-version/evidence/three-season-rolling-validation-r7.json",
+      "docs/next-version/evidence/three-season-business-boundary-r7b.json"
+    ]
+  },
+  "prospective_evidence": {
+    "real_prospective_eligible_run_count": 0,
+    "real_prospective_eligible_base_count": 0,
+    "real_complete_season_count": 0,
+    "real_partial_season_count": 0,
+    "real_prospective_evidence_sufficient": false,
+    "real_prospective_validation_complete": false,
+    "status": "INSUFFICIENT_MATURED_PIT_EVIDENCE",
+    "fixture_acceptance_is_not_real_business_evidence": true
+  },
+  "weather_incremental_value": "INCONCLUSIVE",
+  "gdd_incremental_value_status": "NOT_EVALUATED_DEFINITION_NOT_FROZEN",
+  "v07_weather_model_recommendation": "INSUFFICIENT_EVIDENCE",
+  "v07_implementation_authorized": false,
+  "next_phase": "FORMAL_MULTI_SEASON_MODEL_VALIDATION_AND_WEATHER_AWARE_MODEL_EXPERIMENT",
+  "tag_authorized": false,
+  "release_authorized": false,
+  "tag_created": false,
+  "release_created": false,
+  "ready_authorized": false,
+  "merge_authorized": false
+}
