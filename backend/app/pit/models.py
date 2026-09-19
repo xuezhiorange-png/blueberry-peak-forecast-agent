@@ -47,6 +47,10 @@ class AreaRevision(Base):
             "effective_to IS NULL OR effective_to >= effective_from",
             name="ck_area_revision_effective_range",
         ),
+        CheckConstraint(
+            "recorded_at <= known_at",
+            name="ck_area_revision_recorded_known",
+        ),
         UniqueConstraint("payload_hash", name="uq_area_revision_payload_hash"),
         Index("ix_area_revision_base_season_known", "base_id", "season", "known_at"),
     )
@@ -77,6 +81,14 @@ class WeatherForecastSnapshot(Base):
             name="ck_weather_forecast_horizon_nonnegative",
         ),
         CheckConstraint("issued_at <= known_at", name="ck_weather_forecast_issued_known"),
+        CheckConstraint(
+            "issued_at <= fetched_at",
+            name="ck_weather_forecast_issued_fetched",
+        ),
+        CheckConstraint(
+            "fetched_at <= known_at",
+            name="ck_weather_forecast_fetched_known",
+        ),
         CheckConstraint(
             "base_id IS NOT NULL OR location_id IS NOT NULL",
             name="ck_weather_forecast_scope",
@@ -119,6 +131,14 @@ class RealizedWeatherObservation(Base):
             "base_id IS NOT NULL OR location_id IS NOT NULL",
             name="ck_realized_weather_scope",
         ),
+        CheckConstraint(
+            "observation_time <= known_at",
+            name="ck_realized_weather_observation_known",
+        ),
+        CheckConstraint(
+            "recorded_at <= known_at",
+            name="ck_realized_weather_recorded_known",
+        ),
         UniqueConstraint("payload_hash", name="uq_realized_weather_payload_hash"),
         Index("ix_realized_weather_scope_time", "base_id", "location_id", "observation_time"),
         Index("ix_realized_weather_known", "known_at"),
@@ -143,6 +163,14 @@ class RealizedWeatherObservation(Base):
 class PhenologyObservation(Base):
     __tablename__ = "phenology_observation"
     __table_args__ = (
+        CheckConstraint(
+            "observed_at <= known_at",
+            name="ck_phenology_observed_known",
+        ),
+        CheckConstraint(
+            "recorded_at <= known_at",
+            name="ck_phenology_recorded_known",
+        ),
         UniqueConstraint("payload_hash", name="uq_phenology_observation_payload_hash"),
         Index("ix_phenology_base_season_known", "base_id", "season", "known_at"),
     )
@@ -172,6 +200,10 @@ class ForecastRunSnapshot(Base):
         CheckConstraint("CAST(target_area_mu AS NUMERIC) > 0", name="ck_forecast_snapshot_area"),
         CheckConstraint("daily_row_count >= 1", name="ck_forecast_snapshot_daily_count"),
         CheckConstraint("model_status <> ''", name="ck_forecast_snapshot_model_status"),
+        CheckConstraint(
+            "forecast_created_at <= created_at",
+            name="ck_forecast_snapshot_created_order",
+        ),
         Index("ix_forecast_snapshot_base_season", "base_id", "target_season"),
         Index("ix_forecast_snapshot_created", "forecast_created_at", "forecast_run_id"),
     )
