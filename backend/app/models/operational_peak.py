@@ -22,7 +22,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.db.base import Base
-from backend.app.models.area_forecast import ExactDecimal
+from backend.app.db.types import ExactDecimal
 
 _JSON_VARIANT = JSON().with_variant(JSONB(), "postgresql")
 

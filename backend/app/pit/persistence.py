@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
 
-from sqlalchemy import or_, select
+from sqlalchemy import case, or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -75,11 +75,6 @@ def _sha_match(expected: str, actual: str, field: str) -> None:
         raise PITIntegrityError(f"{field.upper()}_MISMATCH")
 
 
-def _decimal_close(left: Decimal, right: Decimal) -> bool:
-    tolerance = Decimal("0.000001") + max(abs(left), abs(right)) * Decimal("1e-12")
-    return abs(left - right) <= tolerance
-
-
 def _daily_payload(rows: Iterable[ForecastDailySnapshotInput]) -> list[dict[str, Any]]:
     return [row.model_dump(mode="python") for row in rows]
 
@@ -104,6 +99,11 @@ class PITDataFoundationRepository:
         payload_hash = item.computed_payload_hash()
         if item.payload_hash is not None:
             _sha_match(item.payload_hash, payload_hash, "payload_hash")
+        existing = await self.session.get(AreaRevision, item.area_revision_id)
+        if existing is not None:
+            if existing.payload_hash == payload_hash:
+                return existing
+            raise PITConflictError("AREA_REVISION_ID_CONFLICT")
         if item.supersedes_revision_id is not None:
             parent = await self.session.get(AreaRevision, item.supersedes_revision_id)
             if parent is None:
@@ -169,12 +169,69 @@ class PITDataFoundationRepository:
         )
         return models[0] if models else None
 
+    async def visible_area_revision_for_forecast(
+        self,
+        *,
+        base_id: str,
+        target_season: str,
+        forecast_created_at: datetime,
+    ) -> AreaRevision | None:
+        """Resolve the single S2 area-revision precedence order.
+
+        Season-specific actual/planted revisions are preferred over the
+        current reference revision.  Planned area is deliberately excluded:
+        S2 has no contract authorizing it as a forecast input.  The method is
+        kept in the S1 repository so transports and future slices do not
+        invent their own PIT visibility query.
+        """
+
+        cutoff = _utc(forecast_created_at)
+        priority = case(
+            (AreaRevision.area_type == "ACTUAL_PRODUCTIVE_AREA", 0),
+            (AreaRevision.area_type == "PLANTED_AREA", 1),
+            (AreaRevision.area_type == "REFERENCE_AREA", 2),
+            else_=99,
+        )
+        models = list(
+            await self.session.scalars(
+                select(AreaRevision)
+                .where(
+                    AreaRevision.base_id == base_id,
+                    AreaRevision.area_type.in_(
+                        ("ACTUAL_PRODUCTIVE_AREA", "PLANTED_AREA", "REFERENCE_AREA")
+                    ),
+                    or_(
+                        AreaRevision.season == target_season,
+                        AreaRevision.area_type == "REFERENCE_AREA",
+                    ),
+                    AreaRevision.known_at <= cutoff,
+                    AreaRevision.effective_from <= cutoff,
+                    or_(
+                        AreaRevision.effective_to.is_(None),
+                        AreaRevision.effective_to >= cutoff,
+                    ),
+                )
+                .order_by(
+                    priority,
+                    AreaRevision.known_at.desc(),
+                    AreaRevision.recorded_at.desc(),
+                    AreaRevision.area_revision_id.desc(),
+                )
+            )
+        )
+        return models[0] if models else None
+
     async def add_weather_forecast_snapshot(
         self, item: WeatherForecastSnapshotInput
     ) -> WeatherForecastSnapshot:
         payload_hash = item.computed_payload_hash()
         if item.payload_hash is not None:
             _sha_match(item.payload_hash, payload_hash, "payload_hash")
+        existing = await self.session.get(WeatherForecastSnapshot, item.weather_snapshot_id)
+        if existing is not None:
+            if existing.payload_hash == payload_hash:
+                return existing
+            raise PITConflictError("WEATHER_SNAPSHOT_ID_CONFLICT")
         model = WeatherForecastSnapshot(
             **item.model_dump(exclude={"payload_hash"}),
             payload_hash=payload_hash,
@@ -295,6 +352,35 @@ class PITDataFoundationRepository:
             raise PITVisibilityRejected("PHENOLOGY_NOT_VISIBLE")
         return [by_id[item] for item in ids]
 
+    async def visible_phenology_observations_for_scope(
+        self,
+        *,
+        base_id: str,
+        season: str,
+        forecast_created_at: datetime,
+    ) -> list[PhenologyObservation]:
+        """Return all known, same-season observations for optional S2 binding."""
+
+        cutoff = _utc(forecast_created_at)
+        models = list(
+            await self.session.scalars(
+                select(PhenologyObservation)
+                .where(
+                    PhenologyObservation.base_id == base_id,
+                    PhenologyObservation.season == season,
+                    PhenologyObservation.known_at <= cutoff,
+                )
+                .order_by(
+                    PhenologyObservation.observed_at,
+                    PhenologyObservation.recorded_at,
+                    PhenologyObservation.observation_id,
+                )
+            )
+        )
+        if not all(record_visible_at(model, forecast_created_at) for model in models):
+            raise PITVisibilityRejected("PHENOLOGY_NOT_VISIBLE")
+        return models
+
     @staticmethod
     def _validate_input_snapshot(item: ForecastRunSnapshotInput) -> None:
         from backend.app.pit.canonical import build_input_snapshot
@@ -315,6 +401,8 @@ class PITDataFoundationRepository:
             "area_revision_id",
             "prior_history",
             "weather_snapshot_ids",
+            "weather_capture_status",
+            "weather_provider",
             "phenology_observation_ids",
             "model",
             "forecast_mode",
@@ -336,6 +424,10 @@ class PITDataFoundationRepository:
             raise PITIntegrityError("INPUT_AREA_REVISION_MISMATCH")
         if sorted(snapshot["weather_snapshot_ids"]) != sorted(item.weather_snapshot_ids):
             raise PITIntegrityError("INPUT_WEATHER_IDS_MISMATCH")
+        if snapshot["weather_capture_status"] != item.weather_capture_status:
+            raise PITIntegrityError("INPUT_WEATHER_CAPTURE_STATUS_MISMATCH")
+        if snapshot["weather_provider"] != item.weather_provider:
+            raise PITIntegrityError("INPUT_WEATHER_PROVIDER_MISMATCH")
         if sorted(snapshot["phenology_observation_ids"]) != sorted(item.phenology_observation_ids):
             raise PITIntegrityError("INPUT_PHENOLOGY_IDS_MISMATCH")
         if snapshot["forecast_mode"] != item.forecast_mode:
@@ -396,6 +488,8 @@ class PITDataFoundationRepository:
             area_revision_id=item.area_revision_id,
             prior_history=formal_prior_history,
             weather_snapshot_ids=item.weather_snapshot_ids,
+            weather_capture_status=item.weather_capture_status,
+            weather_provider=item.weather_provider,
             phenology_observation_ids=item.phenology_observation_ids,
             model={
                 "total_model_id": item.total_model_id,
@@ -465,7 +559,14 @@ class PITDataFoundationRepository:
         ):
             raise PITIntegrityError("NORMALIZED_SHARE_SUM_MISMATCH")
         daily_total = sum((row.predicted_quantity_kg for row in item.daily_curve), Decimal(0))
-        if not _decimal_close(daily_total, item.predicted_season_total_kg):
+        # V0.5 publishes daily quantities at six decimal places.  Preserve
+        # that product-level conservation contract when the snapshot reloads
+        # the serialized rows instead of applying a stricter, unrelated
+        # absolute tolerance to the PIT envelope.
+        tolerance = Decimal("0.0000005") * len(item.daily_curve) + (
+            item.predicted_season_total_kg * Decimal("1e-12")
+        )
+        if abs(daily_total - item.predicted_season_total_kg) > tolerance:
             raise PITIntegrityError("DAILY_TOTAL_CONSERVATION_MISMATCH")
 
     async def save_forecast_run_snapshot(
@@ -581,6 +682,10 @@ class PITDataFoundationRepository:
                 "prior_history_identity_mapping_hash": model.prior_history_identity_mapping_hash,
                 "area_revision_id": model.area_revision_id,
                 "weather_snapshot_ids": model.weather_snapshot_ids,
+                "weather_capture_status": model.input_snapshot_json.get(
+                    "weather_capture_status", "UNAVAILABLE"
+                ),
+                "weather_provider": model.input_snapshot_json.get("weather_provider"),
                 "phenology_observation_ids": model.phenology_observation_ids,
                 "input_snapshot_json": model.input_snapshot_json,
                 "input_snapshot_hash": model.input_snapshot_hash,
