@@ -27,6 +27,10 @@ FORECAST_TIME_WEATHER_ONLY: Final[bool] = True
 REALIZED_WEATHER_AS_MODEL_INPUT: Final[bool] = False
 GDD_INCREMENTAL_VALUE_STATUS: Final[str] = "NOT_EVALUATED_DEFINITION_NOT_FROZEN"
 EVIDENCE_SUFFICIENCY_POLICY: Final[str] = "DESCRIPTIVE_NO_FROZEN_MINIMUM_SAMPLE_THRESHOLD"
+STABLE_HISTORY_COHORT_STATUS: Final[str] = "NOT_COMPUTABLE_NO_FROZEN_COHORT_AUTHORITY"
+HISTORICAL_MODEL_COVERAGE_COHORT_SOURCE: Final[str] = (
+    "FORECAST_SNAPSHOT_PRIOR_HISTORY_COVERAGE_STATUS"
+)
 WEATHER_HORIZONS: Final[tuple[int, ...]] = (24, 72, 168, 360)
 WEATHER_INCREMENTAL_CONCLUSIONS: Final[tuple[str, ...]] = (
     "INCONCLUSIVE",
@@ -119,6 +123,18 @@ class WeatherDiagnosticRow:
 
 
 @dataclass(frozen=True, slots=True)
+class EvaluationDailyEvidence:
+    """Persisted S3 child row used for exact pooled daily aggregation."""
+
+    evaluation_date: Any
+    predicted_quantity_kg: Decimal
+    actual_quantity_kg: Decimal | None
+    actual_status: str
+    error_kg: Decimal | None
+    absolute_error_kg: Decimal | None
+
+
+@dataclass(frozen=True, slots=True)
 class EvaluationEvidence:
     """Read-only projection of one persisted S3 evaluation."""
 
@@ -131,6 +147,8 @@ class EvaluationEvidence:
     single_day_peak_metrics: Mapping[str, Any]
     rolling_7day_peak_metrics: Mapping[str, Any]
     weather_metrics: Mapping[str, Any]
+    historical_model_coverage_status: str | None = None
+    daily_rows: tuple[EvaluationDailyEvidence, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -475,14 +493,63 @@ def _metric_value(metrics: Mapping[str, Any], key: str) -> Decimal | None:
     return None if raw is None else _decimal(raw)
 
 
-def _mean_metric(values: Sequence[Decimal], sample_count: int) -> dict[str, Any]:
+def _mean_metric(
+    values: Sequence[Decimal],
+    sample_count: int,
+    *,
+    aggregation: str = "MEAN_RUN_METRIC",
+) -> dict[str, Any]:
     if not values:
-        return {"status": "NOT_COMPUTABLE", "value": None, "sample_count": sample_count}
+        return {
+            "status": "NOT_COMPUTABLE",
+            "value": None,
+            "sample_count": sample_count,
+            "aggregation": aggregation,
+        }
     return {
         "status": "COMPUTABLE",
         "value": sum(values, Decimal("0")) / Decimal(len(values)),
         "sample_count": len(values),
+        "aggregation": aggregation,
     }
+
+
+def _pooled_ratio(
+    numerator: Decimal,
+    denominator: Decimal,
+    *,
+    sample_count: int,
+    aggregation: str,
+    evaluation_count: int,
+) -> dict[str, Any]:
+    if denominator == 0:
+        return {
+            "status": "UNDEFINED_ZERO_DENOMINATOR",
+            "value": None,
+            "sample_count": sample_count,
+            "evaluation_count": evaluation_count,
+            "numerator": numerator,
+            "denominator": denominator,
+            "aggregation": aggregation,
+        }
+    return {
+        "status": "COMPUTABLE",
+        "value": numerator / denominator,
+        "sample_count": sample_count,
+        "evaluation_count": evaluation_count,
+        "numerator": numerator,
+        "denominator": denominator,
+        "aggregation": aggregation,
+    }
+
+
+def _metric_scalar(metrics: Mapping[str, Any], key: str) -> Decimal | None:
+    value = metrics.get(key)
+    if isinstance(value, Mapping):
+        if value.get("status") != "COMPUTABLE":
+            return None
+        value = value.get("value")
+    return None if value is None else _decimal(value)
 
 
 def _peak_quantity_wape(metrics: Mapping[str, Any]) -> Decimal | None:
@@ -501,50 +568,98 @@ def _rolling_quantity_wape(metrics: Mapping[str, Any]) -> Decimal | None:
     return abs(_decimal(forecast) - _decimal(actual)) / abs(_decimal(actual))
 
 
+def _season_total_pair(evaluation: EvaluationEvidence) -> tuple[Decimal, Decimal] | None:
+    forecast = _metric_scalar(evaluation.season_total_metrics, "predicted_total_kg")
+    actual = _metric_scalar(evaluation.season_total_metrics, "actual_total_kg")
+    if forecast is None or actual is None:
+        return None
+    return forecast, actual
+
+
+def _daily_pooled_totals(
+    evaluations: Sequence[EvaluationEvidence],
+) -> tuple[Decimal, Decimal, int]:
+    numerator = Decimal("0")
+    denominator = Decimal("0")
+    row_count = 0
+    for evaluation in evaluations:
+        for row in evaluation.daily_rows:
+            if row.actual_quantity_kg is None or row.actual_status == "MISSING":
+                continue
+            error = row.error_kg
+            if error is None:
+                error = row.predicted_quantity_kg - row.actual_quantity_kg
+            numerator += abs(error)
+            denominator += abs(row.actual_quantity_kg)
+            row_count += 1
+    return numerator, denominator, row_count
+
+
 def _summarize_group(evaluations: Sequence[EvaluationEvidence]) -> dict[str, Any]:
     sample_count = len(evaluations)
     daily_rows = sum(
-        int((evaluation.daily_metrics.get("wape") or {}).get("comparable_row_count", 0))
+        len(evaluation.daily_rows)
+        if evaluation.daily_rows
+        else int((evaluation.daily_metrics.get("wape") or {}).get("comparable_row_count", 0))
         for evaluation in evaluations
     )
     complete = sum(evaluation.actual_coverage_status == "COMPLETE" for evaluation in evaluations)
     partial = sum(evaluation.actual_coverage_status == "PARTIAL" for evaluation in evaluations)
-    metric_sources: dict[str, list[Decimal]] = {
-        "season_total_wape": [],
-        "daily_wape": [],
-        "single_day_peak_quantity_wape": [],
-        "single_day_peak_date_mae": [],
-        "rolling_7day_peak_wape": [],
-        "rolling_7day_start_date_mae": [],
-        "bias": [],
-    }
-    for evaluation in evaluations:
-        values = {
-            "season_total_wape": _metric_value(evaluation.season_total_metrics, "wape"),
-            "daily_wape": _metric_value(evaluation.daily_metrics, "wape"),
-            "single_day_peak_quantity_wape": _peak_quantity_wape(
-                evaluation.single_day_peak_metrics
-            ),
-            "single_day_peak_date_mae": (
-                _decimal(evaluation.single_day_peak_metrics["peak_absolute_date_error_days"])
-                if evaluation.single_day_peak_metrics.get("status") == "COMPUTABLE"
-                else None
-            ),
-            "rolling_7day_peak_wape": _rolling_quantity_wape(evaluation.rolling_7day_peak_metrics),
-            "rolling_7day_start_date_mae": (
-                _decimal(
-                    evaluation.rolling_7day_peak_metrics[
-                        "rolling_7day_absolute_start_date_error_days"
-                    ]
-                )
-                if evaluation.rolling_7day_peak_metrics.get("status") == "COMPUTABLE"
-                else None
-            ),
-            "bias": _metric_value(evaluation.season_total_metrics, "bias_kg"),
-        }
-        for name, value in values.items():
-            if value is not None:
-                metric_sources[name].append(value)
+    season_pairs = [
+        pair for evaluation in evaluations if (pair := _season_total_pair(evaluation)) is not None
+    ]
+    season_numerator = sum(
+        (abs(forecast - actual) for forecast, actual in season_pairs), Decimal("0")
+    )
+    season_denominator = sum((abs(actual) for _forecast, actual in season_pairs), Decimal("0"))
+    season_signed_error = sum(
+        (forecast - actual for forecast, actual in season_pairs), Decimal("0")
+    )
+    daily_numerator, daily_denominator, comparable_daily_rows = _daily_pooled_totals(evaluations)
+
+    peak_quantity_pairs = [
+        (
+            _decimal(item.single_day_peak_metrics["forecast_peak_quantity_kg"]),
+            _decimal(item.single_day_peak_metrics["actual_peak_quantity_kg"]),
+        )
+        for item in evaluations
+        if item.single_day_peak_metrics.get("status") == "COMPUTABLE"
+        and item.single_day_peak_metrics.get("forecast_peak_quantity_kg") is not None
+        and item.single_day_peak_metrics.get("actual_peak_quantity_kg") is not None
+    ]
+    peak_numerator = sum(
+        (abs(forecast - actual) for forecast, actual in peak_quantity_pairs), Decimal("0")
+    )
+    peak_denominator = sum((abs(actual) for _forecast, actual in peak_quantity_pairs), Decimal("0"))
+    rolling_quantity_pairs = [
+        (
+            _decimal(item.rolling_7day_peak_metrics["forecast_7day_cumulative_kg"]),
+            _decimal(item.rolling_7day_peak_metrics["actual_7day_cumulative_kg"]),
+        )
+        for item in evaluations
+        if item.rolling_7day_peak_metrics.get("status") == "COMPUTABLE"
+        and item.rolling_7day_peak_metrics.get("forecast_7day_cumulative_kg") is not None
+        and item.rolling_7day_peak_metrics.get("actual_7day_cumulative_kg") is not None
+    ]
+    rolling_numerator = sum(
+        (abs(forecast - actual) for forecast, actual in rolling_quantity_pairs), Decimal("0")
+    )
+    rolling_denominator = sum(
+        (abs(actual) for _forecast, actual in rolling_quantity_pairs), Decimal("0")
+    )
+    peak_date_errors = [
+        _decimal(item.single_day_peak_metrics["peak_absolute_date_error_days"])
+        for item in evaluations
+        if item.single_day_peak_metrics.get("status") == "COMPUTABLE"
+        and item.single_day_peak_metrics.get("peak_absolute_date_error_days") is not None
+    ]
+    rolling_date_errors = [
+        _decimal(item.rolling_7day_peak_metrics["rolling_7day_absolute_start_date_error_days"])
+        for item in evaluations
+        if item.rolling_7day_peak_metrics.get("status") == "COMPUTABLE"
+        and item.rolling_7day_peak_metrics.get("rolling_7day_absolute_start_date_error_days")
+        is not None
+    ]
     return {
         "eligible_forecast_run_count": sample_count,
         "eligible_base_count": len({evaluation.base_id for evaluation in evaluations}),
@@ -552,7 +667,64 @@ def _summarize_group(evaluations: Sequence[EvaluationEvidence]) -> dict[str, Any
         "complete_season_count": complete,
         "partial_season_count": partial,
         "metrics": {
-            name: _mean_metric(values, sample_count) for name, values in metric_sources.items()
+            "season_total_wape": _pooled_ratio(
+                season_numerator,
+                season_denominator,
+                sample_count=len(season_pairs),
+                evaluation_count=sample_count,
+                aggregation="POOLED_ABSOLUTE_SEASON_TOTAL_ERROR_OVER_ABSOLUTE_ACTUAL",
+            ),
+            "daily_wape": _pooled_ratio(
+                daily_numerator,
+                daily_denominator,
+                sample_count=comparable_daily_rows,
+                evaluation_count=sample_count,
+                aggregation="POOLED_ABSOLUTE_DAILY_ERROR_OVER_ABSOLUTE_ACTUAL",
+            ),
+            "single_day_peak_quantity_wape": _pooled_ratio(
+                peak_numerator,
+                peak_denominator,
+                sample_count=len(peak_quantity_pairs),
+                evaluation_count=sample_count,
+                aggregation="POOLED_ABSOLUTE_PEAK_QUANTITY_ERROR_OVER_ABSOLUTE_ACTUAL_PEAK",
+            ),
+            "single_day_peak_date_mae": _mean_metric(
+                peak_date_errors,
+                sample_count,
+                aggregation="MEAN_ABSOLUTE_DATE_ERROR_OVER_COMPUTABLE_RUNS",
+            ),
+            "rolling_7day_peak_wape": _pooled_ratio(
+                rolling_numerator,
+                rolling_denominator,
+                sample_count=len(rolling_quantity_pairs),
+                evaluation_count=sample_count,
+                aggregation="POOLED_ABSOLUTE_7DAY_ERROR_OVER_ABSOLUTE_ACTUAL_7DAY_PEAK",
+            ),
+            "rolling_7day_start_date_mae": _mean_metric(
+                rolling_date_errors,
+                sample_count,
+                aggregation="MEAN_ABSOLUTE_DATE_ERROR_OVER_COMPUTABLE_RUNS",
+            ),
+            "bias": (
+                {
+                    "status": "COMPUTABLE",
+                    "value": season_signed_error / Decimal(len(season_pairs)),
+                    "sample_count": len(season_pairs),
+                    "aggregation": "MEAN_SIGNED_SEASON_TOTAL_ERROR_OVER_RUNS",
+                }
+                if season_pairs
+                else {
+                    "status": "NOT_COMPUTABLE",
+                    "value": None,
+                    "sample_count": 0,
+                    "aggregation": "MEAN_SIGNED_SEASON_TOTAL_ERROR_OVER_RUNS",
+                }
+            ),
+        },
+        "actual_coverage": {
+            "status_semantics": "CURRENT_SEASON_ACTUAL_COVERAGE",
+            "complete_count": complete,
+            "partial_count": partial,
         },
     }
 
@@ -607,8 +779,26 @@ def build_assessment(
     """Build the deterministic S4 result without fitting a weather model."""
 
     created_at = _utc(created_at)
+    requested_stable_ids = tuple(sorted(set(stable_history_base_ids)))
+    if requested_stable_ids:
+        raise ValueError("STABLE_HISTORY_COHORT_AUTHORITY_REQUIRED")
     eligibility = tuple(sorted(eligibility, key=lambda item: item.forecast_run_id))
     eligible_ids = {item.forecast_run_id for item in eligibility if item.prospective_eligible}
+    eligibility_by_run = {item.forecast_run_id: item for item in eligibility}
+    enriched_evaluations: list[EvaluationEvidence] = []
+    for evaluation in evaluations:
+        eligibility_record = eligibility_by_run.get(evaluation.forecast_run_id)
+        enriched_evaluations.append(
+            replace(
+                evaluation,
+                historical_model_coverage_status=(
+                    eligibility_record.prior_history_identity.get("coverage_status")
+                    if eligibility_record is not None
+                    else evaluation.historical_model_coverage_status
+                ),
+            )
+        )
+    evaluations = tuple(enriched_evaluations)
     eligible_evaluations = tuple(
         sorted(
             (
@@ -625,20 +815,26 @@ def build_assessment(
             key=lambda row: (row.forecast_run_id, row.horizon_hours, row.base_id),
         )
     )
-    stable_ids = set(stable_history_base_ids)
+    limited_run_ids = {
+        evaluation.forecast_run_id
+        for evaluation in eligible_evaluations
+        if evaluation.historical_model_coverage_status != "COMPLETE"
+    }
     coverage_limited = tuple(
         evaluation
         for evaluation in eligible_evaluations
-        if evaluation.actual_coverage_status != "COMPLETE"
+        if evaluation.historical_model_coverage_status != "COMPLETE"
     )
-    stable = tuple(
-        evaluation for evaluation in eligible_evaluations if evaluation.base_id in stable_ids
-    )
+    stable: tuple[EvaluationEvidence, ...] = ()
     all_metrics = _summarize_group(eligible_evaluations)
+    stable_metrics = _summarize_group(stable)
+    stable_metrics["cohort_status"] = STABLE_HISTORY_COHORT_STATUS
+    coverage_limited_metrics = _summarize_group(coverage_limited)
+    coverage_limited_metrics["cohort_status"] = "HISTORICAL_MODEL_COVERAGE"
     baseline_metrics = {
         "ALL_ELIGIBLE_BASES": all_metrics,
-        "STABLE_HISTORY_BASES": _summarize_group(stable),
-        "COVERAGE_LIMITED_BASES": _summarize_group(coverage_limited),
+        "STABLE_HISTORY_BASES": stable_metrics,
+        "COVERAGE_LIMITED_BASES": coverage_limited_metrics,
     }
     diagnostic = compute_weather_diagnostic(eligible_weather_rows)
     weather_quality = _weather_quality(eligible_evaluations)
@@ -671,12 +867,14 @@ def build_assessment(
         "D15_SAMPLE_COUNT": sum(row.horizon_hours == 360 for row in eligible_weather_rows),
         "complete_actual_coverage": bool(eligible_evaluations)
         and all(item.actual_coverage_status == "COMPLETE" for item in eligible_evaluations),
+        "stable_history_cohort_status": STABLE_HISTORY_COHORT_STATUS,
+        "coverage_limited_semantics": "HISTORICAL_MODEL_COVERAGE",
         "policy": EVIDENCE_SUFFICIENCY_POLICY,
     }
     coverage_summary = {
         "eligible": _summarize_group(eligible_evaluations),
-        "stable_history": _summarize_group(stable),
-        "coverage_limited": _summarize_group(coverage_limited),
+        "stable_history": stable_metrics,
+        "coverage_limited": coverage_limited_metrics,
     }
     actual_weather_hashes = tuple(
         sorted(
@@ -695,11 +893,79 @@ def build_assessment(
             "temporal_model_id": MODEL_A_TEMPORAL_MODEL,
         }
     )
+    history_coverage_records = tuple(
+        sorted(
+            (
+                {
+                    "run_id": item.forecast_run_id,
+                    "base_id": item.base_id,
+                    "status": item.prior_history_identity.get("coverage_status") or "UNKNOWN",
+                    "source_hash": item.prior_history_identity.get("source_hash"),
+                    "identity_mapping_hash": item.prior_history_identity.get(
+                        "identity_mapping_hash"
+                    ),
+                }
+                for item in eligibility
+                if item.prospective_eligible
+            ),
+            key=lambda item: str(item["run_id"]),
+        )
+    )
     sample_scope = {
         "all_eligible": sorted(
             item.forecast_run_id for item in eligibility if item.prospective_eligible
         ),
-        "stable_history_base_ids": sorted(stable_ids),
+        "stable_history_cohort": {
+            "status": STABLE_HISTORY_COHORT_STATUS,
+            "base_ids": [],
+            "policy_version": None,
+            "policy_hash": None,
+            "source_identity": None,
+            "source_hash": None,
+        },
+        "historical_model_coverage_cohort": {
+            "semantic": "HISTORICAL_MODEL_COVERAGE",
+            "source": HISTORICAL_MODEL_COVERAGE_COHORT_SOURCE,
+            "records": list(history_coverage_records),
+        },
+        "coverage_limited_cohort": {
+            "semantic": "HISTORICAL_MODEL_COVERAGE",
+            "source": HISTORICAL_MODEL_COVERAGE_COHORT_SOURCE,
+            "run_ids": sorted(item.forecast_run_id for item in coverage_limited),
+            "base_ids": sorted({item.base_id for item in coverage_limited}),
+            "prior_history_statuses": sorted(
+                {
+                    item.prior_history_identity.get("coverage_status") or "UNKNOWN"
+                    for item in eligibility
+                    if item.forecast_run_id in limited_run_ids
+                }
+            ),
+            "source_hashes": sorted(
+                {
+                    str(value)
+                    for item in eligibility
+                    if item.forecast_run_id in limited_run_ids
+                    for value in (
+                        item.prior_history_identity.get("source_hash"),
+                        item.prior_history_identity.get("identity_mapping_hash"),
+                    )
+                    if value
+                }
+            ),
+        },
+        "actual_coverage": {
+            "semantic": "CURRENT_SEASON_ACTUAL_COVERAGE",
+            "complete_run_ids": sorted(
+                item.forecast_run_id
+                for item in eligible_evaluations
+                if item.actual_coverage_status == "COMPLETE"
+            ),
+            "partial_run_ids": sorted(
+                item.forecast_run_id
+                for item in eligible_evaluations
+                if item.actual_coverage_status == "PARTIAL"
+            ),
+        },
         "coverage_limited": sorted(item.forecast_run_id for item in coverage_limited),
     }
     warnings = ("INSUFFICIENT_MATURED_PIT_EVIDENCE",) if not eligible_evaluations else ()
@@ -741,6 +1007,7 @@ def build_assessment(
 
 __all__ = [
     "EVIDENCE_SUFFICIENCY_POLICY",
+    "EvaluationDailyEvidence",
     "EvaluationEvidence",
     "FORECAST_TIME_WEATHER_ONLY",
     "GDD_INCREMENTAL_VALUE_STATUS",
@@ -751,6 +1018,7 @@ __all__ = [
     "ProspectiveEligibilityRecord",
     "REALIZED_WEATHER_AS_MODEL_INPUT",
     "S4AssessmentComputation",
+    "STABLE_HISTORY_COHORT_STATUS",
     "V0_7_RECOMMENDATIONS",
     "WEATHER_HORIZONS",
     "WeatherDiagnosticRow",

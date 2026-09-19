@@ -135,7 +135,9 @@ class ProspectiveValidationRepository:
                 if item.prospective_eligible
             ),
             s3_evaluation_ids=list(computation.s3_evaluation_ids),
-            eligibility_registry_json=[item.payload() for item in computation.eligibility],
+            eligibility_registry_json=_json_payload(
+                [item.payload() for item in computation.eligibility]
+            ),
             sample_scope=_json_payload(computation.sample_scope),
             coverage_summary=_json_payload(computation.coverage_summary),
             baseline_metrics=_json_payload(computation.baseline_metrics),

@@ -12,7 +12,15 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from backend.app.pit.canonical import hash_payload
 from backend.app.pit.evaluation import ActualDailyRecord
+from backend.app.pit.evaluation_models import ForecastEvaluation, ForecastEvaluationDaily
+from backend.app.pit.models import (
+    AreaRevision,
+    ForecastRunSnapshot,
+    PhenologyObservation,
+    WeatherForecastSnapshot,
+)
 from backend.app.pit.prospective_models import (
     ProspectiveValidationRun,
     WeatherIncrementalValueAssessment,
@@ -21,7 +29,10 @@ from backend.app.pit.prospective_validation import (
     GDD_INCREMENTAL_VALUE_STATUS,
     MODEL_A_IDENTITY,
     PROSPECTIVE_POLICY_VERSION,
+    EvaluationDailyEvidence,
+    EvaluationEvidence,
     WeatherDiagnosticRow,
+    _summarize_group,
     build_assessment,
     build_prospective_eligibility,
     compute_weather_diagnostic,
@@ -89,6 +100,238 @@ def _actual(
         recorded_at=observed_at,
         authority_id="actual-authority-s4",
     )
+
+
+def _application_fixture_models(
+    *,
+    phenology_base_id: str = BASE_ID,
+    phenology_season: str = SEASON,
+    phenology_known_at: datetime = NOW - timedelta(hours=3),
+) -> tuple[
+    ForecastRunSnapshot,
+    AreaRevision,
+    WeatherForecastSnapshot,
+    PhenologyObservation,
+    ForecastEvaluation,
+    list[ForecastEvaluationDaily],
+]:
+    run_id = "forecast-s4-application"
+    area_id = "area-s4-application"
+    weather_id = "weather-s4-application"
+    observation_id = "phenology-s4-application"
+    evaluation_id = "evaluation-s4-application"
+    forecast_date_1 = date(2026, 10, 1)
+    forecast_date_2 = date(2026, 10, 2)
+    evaluation_metrics = {
+        "wape": {
+            "status": "COMPUTABLE",
+            "value": "0.500000",
+            "comparable_row_count": 2,
+        },
+        "bias_kg": {
+            "status": "COMPUTABLE",
+            "value": "5.000000",
+            "comparable_row_count": 2,
+        },
+        "predicted_total_kg": {
+            "status": "COMPUTABLE",
+            "value": "30.000000",
+            "comparable_row_count": 2,
+        },
+        "actual_total_kg": {
+            "status": "COMPUTABLE",
+            "value": "20.000000",
+            "comparable_row_count": 2,
+        },
+    }
+    snapshot = ForecastRunSnapshot(
+        forecast_run_id=run_id,
+        forecast_created_at=NOW,
+        base_id=BASE_ID,
+        target_season=SEASON,
+        forecast_start_date=forecast_date_1,
+        forecast_end_date=forecast_date_2,
+        target_area_mu=Decimal("100"),
+        forecast_mode="SHADOW",
+        model_status="EXPERIMENTAL",
+        total_model_id="BASE_AWARE_BASELINE_R1",
+        temporal_model_id="AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+        model_artifact_hashes={"total": "1" * 64, "temporal": "2" * 64},
+        prior_history_season="2025-2026",
+        prior_history_quantity_kg=Decimal("100"),
+        prior_history_coverage_status="INCOMPLETE",
+        prior_history_source_hash="3" * 64,
+        prior_history_identity_mapping_hash="4" * 64,
+        area_revision_id=area_id,
+        weather_snapshot_ids=[weather_id],
+        phenology_observation_ids=[observation_id],
+        input_snapshot_json={"fixture": "s4-application"},
+        input_snapshot_hash="5" * 64,
+        predicted_season_total_kg=Decimal("30"),
+        single_day_peak={"date": forecast_date_1.isoformat(), "quantity_kg": "15"},
+        rolling_7day_peak={"status": "NOT_COMPUTABLE"},
+        result_hash="6" * 64,
+        warnings=["PRIOR_SEASON_HISTORY_COVERAGE_INCOMPLETE"],
+        daily_row_count=2,
+        created_at=NOW + timedelta(seconds=1),
+    )
+    area = AreaRevision(
+        area_revision_id=area_id,
+        base_id=BASE_ID,
+        season=SEASON,
+        area_mu=Decimal("100"),
+        area_type="REFERENCE_AREA",
+        effective_from=NOW - timedelta(days=30),
+        effective_to=None,
+        recorded_at=NOW - timedelta(days=2),
+        known_at=NOW - timedelta(days=1),
+        source="s4-fixture",
+        source_reference="s4-fixture-area",
+        basis="fixture",
+        payload_hash="7" * 64,
+    )
+    weather = WeatherForecastSnapshot(
+        weather_snapshot_id=weather_id,
+        provider="ECMWF_IFS_OPEN_DATA",
+        base_id=BASE_ID,
+        location_id=None,
+        issued_at=NOW - timedelta(hours=2),
+        fetched_at=NOW - timedelta(hours=1),
+        known_at=NOW - timedelta(minutes=30),
+        valid_at=NOW + timedelta(days=1),
+        forecast_horizon_hours=24,
+        temperature_min=Decimal("10"),
+        temperature_max=Decimal("20"),
+        temperature_mean=Decimal("15"),
+        precipitation=Decimal("1"),
+        relative_humidity=None,
+        solar_radiation=None,
+        wind_speed=None,
+        raw_payload_reference="s4-fixture-weather",
+        raw_payload_hash="8" * 64,
+        normalized_payload_hash="9" * 64,
+        payload_hash="a" * 64,
+    )
+    phenology = PhenologyObservation(
+        observation_id=observation_id,
+        base_id=phenology_base_id,
+        farm_id=None,
+        season=phenology_season,
+        phenology_stage="FLOWERING",
+        observed_at=NOW - timedelta(days=5),
+        recorded_at=NOW - timedelta(days=4),
+        known_at=phenology_known_at,
+        source="s4-fixture",
+        source_reference="s4-fixture-phenology",
+        quality_status="OBSERVED",
+        notes=None,
+        payload_hash="b" * 64,
+    )
+    evaluation = ForecastEvaluation(
+        evaluation_id=evaluation_id,
+        forecast_run_id=run_id,
+        base_id=BASE_ID,
+        target_season=SEASON,
+        evaluation_mode="FULL_AVAILABLE_RANGE",
+        as_of_date=None,
+        evaluation_created_at=NOW + timedelta(days=3),
+        forecast_input_hash=snapshot.input_snapshot_hash,
+        forecast_result_hash=snapshot.result_hash,
+        actual_authority_ids=["actual-authority-s4"],
+        actual_authority_hashes=["c" * 64],
+        realized_weather_authority_ids=[],
+        realized_weather_authority_hashes=[],
+        evaluated_start_date=forecast_date_1,
+        evaluated_end_date=forecast_date_2,
+        actual_coverage_status="COMPLETE",
+        season_total_metrics=evaluation_metrics,
+        daily_metrics={"wape": evaluation_metrics["wape"]},
+        single_day_peak_metrics={
+            "status": "COMPUTABLE",
+            "forecast_peak_quantity_kg": "15",
+            "actual_peak_quantity_kg": "10",
+            "peak_absolute_date_error_days": 1,
+        },
+        rolling_7day_peak_metrics={"status": "NOT_COMPUTABLE"},
+        weather_metrics={
+            "D1": {
+                "temperature_mae": {"status": "COMPUTABLE", "value": "1"},
+                "temperature_bias": {"status": "COMPUTABLE", "value": "0"},
+                "precipitation_error": {"status": "COMPUTABLE", "value": "0"},
+            }
+        },
+        warnings=[],
+        evaluation_payload_json={"fixture": "s4-application"},
+        evaluation_identity_hash="d" * 64,
+        evaluation_payload_hash="e" * 64,
+        evaluation_result_hash="f" * 64,
+        daily_row_count=2,
+        created_at=NOW + timedelta(days=3, seconds=1),
+    )
+    rows = [
+        ForecastEvaluationDaily(
+            evaluation_id=evaluation_id,
+            row_index=0,
+            evaluation_date=forecast_date_1,
+            predicted_quantity_kg=Decimal("15"),
+            actual_quantity_kg=Decimal("10"),
+            actual_status="CONFIRMED_QUANTITY",
+            actual_revision_id="actual-1#1",
+            actual_source_hash="1" * 64,
+            error_kg=Decimal("5"),
+            absolute_error_kg=Decimal("5"),
+            evaluation_as_of=None,
+            row_hash=hash_payload({"fixture": "row-1"}),
+        ),
+        ForecastEvaluationDaily(
+            evaluation_id=evaluation_id,
+            row_index=1,
+            evaluation_date=forecast_date_2,
+            predicted_quantity_kg=Decimal("15"),
+            actual_quantity_kg=Decimal("10"),
+            actual_status="CONFIRMED_QUANTITY",
+            actual_revision_id="actual-2#1",
+            actual_source_hash="2" * 64,
+            error_kg=Decimal("5"),
+            absolute_error_kg=Decimal("5"),
+            evaluation_as_of=None,
+            row_hash=hash_payload({"fixture": "row-2"}),
+        ),
+    ]
+    return snapshot, area, weather, phenology, evaluation, rows
+
+
+def _application_actuals() -> dict[str, tuple[ActualDailyRecord, ...]]:
+    return {
+        "forecast-s4-application": (
+            ActualDailyRecord(
+                base_id=BASE_ID,
+                target_season=SEASON,
+                harvest_date=date(2026, 10, 1),
+                quantity_kg=Decimal("10"),
+                source="fixture-authority",
+                revision_id="actual-1#1",
+                source_hash="1" * 64,
+                known_at=NOW + timedelta(days=2),
+                observed_at=NOW + timedelta(days=1),
+                recorded_at=NOW + timedelta(days=1),
+                authority_id="actual-authority-s4",
+            ),
+            ActualDailyRecord(
+                base_id=BASE_ID,
+                target_season=SEASON,
+                harvest_date=date(2026, 10, 2),
+                quantity_kg=Decimal("10"),
+                source="fixture-authority",
+                revision_id="actual-2#1",
+                source_hash="2" * 64,
+                known_at=NOW + timedelta(days=2),
+                observed_at=NOW + timedelta(days=1),
+                recorded_at=NOW + timedelta(days=1),
+                authority_id="actual-authority-s4",
+            ),
+        )
+    }
 
 
 def _upgrade_schema(connection: object) -> None:
@@ -315,6 +558,169 @@ async def test_application_empty_authority_is_explicitly_insufficient(
     assert result.validation_run_id.startswith("prospective_validation_")
     assert result.warnings == ("INSUFFICIENT_MATURED_PIT_EVIDENCE",)
     assert result.evidence_sufficiency["eligible_forecast_run_count"] == 0
+
+
+@pytest.mark.unit
+async def test_application_loads_and_binds_forecast_time_phenology(
+    sqlite_session: AsyncSession,
+) -> None:
+    from backend.app.pit.prospective_application import (
+        run_prospective_validation_assessment,
+    )
+    from backend.app.pit.prospective_persistence import ProspectiveValidationRepository
+
+    snapshot, area, weather, phenology, evaluation, daily_rows = _application_fixture_models()
+    async with sqlite_session.begin():
+        sqlite_session.add_all([snapshot, area, weather, phenology, evaluation, *daily_rows])
+        await sqlite_session.flush()
+        result = await run_prospective_validation_assessment(
+            sqlite_session,
+            evaluation_created_at=NOW + timedelta(days=3),
+            actual_records_by_run=_application_actuals(),
+        )
+
+    assert result.eligibility[0].prospective_eligible is True
+    assert result.eligibility[0].phenology_observation_ids == (phenology.observation_id,)
+    assert result.baseline_metrics["COVERAGE_LIMITED_BASES"]["eligible_base_count"] == 1
+    assert (
+        result.sample_scope["stable_history_cohort"]["status"]
+        == "NOT_COMPUTABLE_NO_FROZEN_COHORT_AUTHORITY"
+    )
+    pooled_daily = result.baseline_metrics["ALL_ELIGIBLE_BASES"]["metrics"]["daily_wape"]
+    assert pooled_daily["aggregation"] == "POOLED_ABSOLUTE_DAILY_ERROR_OVER_ABSOLUTE_ACTUAL"
+    assert pooled_daily["value"] == Decimal("0.5")
+
+    stored = await ProspectiveValidationRepository(sqlite_session).get_assessment(
+        result.validation_run_id
+    )
+    assert stored.result_hash == result.result_hash
+    assert stored.payload_hash == result.payload_hash
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("phenology_base_id", "phenology_season", "phenology_known_at"),
+    (
+        ("base_wrong", SEASON, NOW - timedelta(hours=3)),
+        (BASE_ID, "2025-2026", NOW - timedelta(hours=3)),
+        (BASE_ID, SEASON, NOW + timedelta(minutes=1)),
+    ),
+)
+async def test_application_rejects_unbound_or_hindsight_phenology(
+    sqlite_session: AsyncSession,
+    phenology_base_id: str,
+    phenology_season: str,
+    phenology_known_at: datetime,
+) -> None:
+    from backend.app.pit.prospective_application import (
+        run_prospective_validation_assessment,
+    )
+
+    snapshot, area, weather, phenology, evaluation, daily_rows = _application_fixture_models(
+        phenology_base_id=phenology_base_id,
+        phenology_season=phenology_season,
+        phenology_known_at=phenology_known_at,
+    )
+    async with sqlite_session.begin():
+        sqlite_session.add_all([snapshot, area, weather, phenology, evaluation, *daily_rows])
+        await sqlite_session.flush()
+        result = await run_prospective_validation_assessment(
+            sqlite_session,
+            evaluation_created_at=NOW + timedelta(days=3),
+            actual_records_by_run=_application_actuals(),
+        )
+
+    eligibility = result.eligibility[0]
+    assert eligibility.prospective_eligible is False
+    assert "HINDSIGHT_OR_SCOPE_MISMATCH_PHENOLOGY" in eligibility.ineligibility_reasons
+
+
+@pytest.mark.unit
+async def test_application_missing_phenology_reference_fails_closed(
+    sqlite_session: AsyncSession,
+) -> None:
+    from backend.app.pit.prospective_application import (
+        run_prospective_validation_assessment,
+    )
+
+    snapshot, area, weather, _phenology, evaluation, daily_rows = _application_fixture_models()
+    async with sqlite_session.begin():
+        sqlite_session.add_all([snapshot, area, weather, evaluation, *daily_rows])
+        await sqlite_session.flush()
+        result = await run_prospective_validation_assessment(
+            sqlite_session,
+            evaluation_created_at=NOW + timedelta(days=3),
+            actual_records_by_run=_application_actuals(),
+        )
+
+    assert result.eligibility[0].prospective_eligible is False
+    assert "HINDSIGHT_OR_SCOPE_MISMATCH_PHENOLOGY" in result.eligibility[0].ineligibility_reasons
+
+
+@pytest.mark.unit
+def test_cohort_caller_cannot_supply_unfrozen_stable_history_membership() -> None:
+    with pytest.raises(ValueError, match="STABLE_HISTORY_COHORT_AUTHORITY_REQUIRED"):
+        build_assessment(
+            eligibility=(),
+            evaluations=(),
+            weather_diagnostic_rows=(),
+            created_at=NOW,
+            stable_history_base_ids=(BASE_ID,),
+        )
+
+
+@pytest.mark.unit
+def test_cohort_wape_uses_pooled_numerator_and_denominator() -> None:
+    def evidence(
+        evaluation_id: str,
+        base_id: str,
+        predicted_total: str,
+        actual_total: str,
+    ) -> EvaluationEvidence:
+        predicted = Decimal(predicted_total)
+        actual = Decimal(actual_total)
+        error = predicted - actual
+        return EvaluationEvidence(
+            evaluation_id=evaluation_id,
+            forecast_run_id=f"run-{evaluation_id}",
+            base_id=base_id,
+            actual_coverage_status="COMPLETE",
+            season_total_metrics={
+                "predicted_total_kg": {
+                    "status": "COMPUTABLE",
+                    "value": predicted,
+                },
+                "actual_total_kg": {
+                    "status": "COMPUTABLE",
+                    "value": actual,
+                },
+            },
+            daily_metrics={},
+            single_day_peak_metrics={"status": "NOT_COMPUTABLE"},
+            rolling_7day_peak_metrics={"status": "NOT_COMPUTABLE"},
+            weather_metrics={},
+            daily_rows=(
+                EvaluationDailyEvidence(
+                    evaluation_date=date(2026, 10, 1),
+                    predicted_quantity_kg=predicted,
+                    actual_quantity_kg=actual,
+                    actual_status="CONFIRMED_QUANTITY",
+                    error_kg=error,
+                    absolute_error_kg=abs(error),
+                ),
+            ),
+        )
+
+    result = _summarize_group(
+        (
+            evidence("one", "base-one", "20", "10"),
+            evidence("two", "base-two", "110", "100"),
+        )
+    )
+    # Macro mean is (1.0 + 0.1) / 2 = 0.55; pooled WAPE is 20 / 110.
+    assert result["metrics"]["season_total_wape"]["value"] == Decimal(20) / Decimal(110)
+    assert result["metrics"]["daily_wape"]["value"] == Decimal(20) / Decimal(110)
+    assert result["metrics"]["season_total_wape"]["aggregation"].startswith("POOLED_")
 
 
 @pytest.mark.migration
