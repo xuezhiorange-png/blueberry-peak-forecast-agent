@@ -22,7 +22,9 @@ weather provider, score a forecast, or start the S2 shadow-forecast process.
 
 ## Persistence contract
 
-The Alembic revision `0036_v06_pit_data_foundation` creates:
+The Alembic revision `0036_v06_pit_data_foundation` creates the tables below;
+the follow-up `0037_v06_pit_scope_time_integrity` revision adds the scope and
+timestamp-ordering constraints described after the table list:
 
 - `area_revision`: append-only area versions. The current Base Registry is
   represented only as `REFERENCE_AREA`; it is never promoted automatically to
@@ -57,6 +59,17 @@ revision, weather snapshot, or phenology observation. Input snapshot hashes
 bind the request, base identity, target area/revision, prior-history coverage
 and source hashes, weather/phenology IDs, model artifact hashes, mode, and
 warnings. Changing any of those identities changes `input_snapshot_hash`.
+
+Forecast phenology references must match both the forecast Base and its target
+season. A weather snapshot with a Base scope must match the forecast Base;
+location-only weather may be stored as an unbound snapshot, but cannot be
+attached to a forecast without a later, explicit Base-to-location authority.
+The persistence boundary also enforces `recorded_at <= known_at` for area
+revisions, `observed_at <= known_at` and `recorded_at <= known_at` for
+phenology, `observation_time <= known_at` and `recorded_at <= known_at` for
+realized weather, and `issued_at <= fetched_at <= known_at` for forecast
+weather. A forecast's `forecast_created_at` cannot be later than its
+persistence time.
 
 ## Explicit non-scope
 

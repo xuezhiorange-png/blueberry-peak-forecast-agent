@@ -47,9 +47,13 @@ NOW = datetime(2026, 9, 19, 4, 0, tzinfo=UTC)
 def _upgrade_pit_schema(connection: object) -> None:
     context = MigrationContext.configure(connection)  # type: ignore[arg-type]
     operations = Operations(context)
-    migration = importlib.import_module("backend.alembic.versions.0036_v06_pit_data_foundation")
-    migration.op = operations
-    migration.upgrade()
+    for revision in (
+        "0036_v06_pit_data_foundation",
+        "0037_v06_pit_scope_time_integrity",
+    ):
+        migration = importlib.import_module(f"backend.alembic.versions.{revision}")
+        migration.op = operations
+        migration.upgrade()
 
 
 @pytest.fixture
@@ -74,9 +78,11 @@ def _area_input(
     *,
     area_id: str = "area-rev-1",
     known_at: datetime = NOW,
+    recorded_at: datetime | None = None,
     season: str = "REFERENCE",
     area_type: str = "REFERENCE_AREA",
 ) -> AreaRevisionInput:
+    recorded_at = recorded_at or NOW - timedelta(days=2)
     return AreaRevisionInput(
         area_revision_id=area_id,
         base_id="base-1",
@@ -84,7 +90,7 @@ def _area_input(
         area_mu=Decimal("394"),
         area_type=area_type,
         effective_from=NOW - timedelta(days=30),
-        recorded_at=NOW - timedelta(days=2),
+        recorded_at=recorded_at,
         known_at=known_at,
         source="base-registry",
         source_reference="registry.json",
@@ -93,14 +99,23 @@ def _area_input(
 
 
 def _weather_input(
-    *, weather_id: str = "weather-1", known_at: datetime = NOW
+    *,
+    weather_id: str = "weather-1",
+    base_id: str | None = "base-1",
+    location_id: str | None = None,
+    issued_at: datetime | None = None,
+    fetched_at: datetime | None = None,
+    known_at: datetime = NOW,
 ) -> WeatherForecastSnapshotInput:
+    issued_at = issued_at or NOW - timedelta(hours=3)
+    fetched_at = fetched_at or NOW - timedelta(hours=2)
     return WeatherForecastSnapshotInput(
         weather_snapshot_id=weather_id,
         provider="test-provider",
-        base_id="base-1",
-        issued_at=NOW - timedelta(hours=3),
-        fetched_at=NOW - timedelta(hours=2),
+        base_id=base_id,
+        location_id=location_id,
+        issued_at=issued_at,
+        fetched_at=fetched_at,
         known_at=known_at,
         valid_at=NOW + timedelta(days=1),
         forecast_horizon_hours=24,
@@ -111,15 +126,23 @@ def _weather_input(
 
 
 def _phenology_input(
-    *, observation_id: str = "phenology-1", known_at: datetime = NOW
+    *,
+    observation_id: str = "phenology-1",
+    base_id: str = "base-1",
+    season: str = "2026-2027",
+    observed_at: datetime | None = None,
+    recorded_at: datetime | None = None,
+    known_at: datetime = NOW,
 ) -> PhenologyObservationInput:
+    observed_at = observed_at or NOW - timedelta(days=1)
+    recorded_at = recorded_at or NOW - timedelta(hours=1)
     return PhenologyObservationInput(
         observation_id=observation_id,
-        base_id="base-1",
-        season="2026-2027",
+        base_id=base_id,
+        season=season,
         phenology_stage="flowering",
-        observed_at=NOW - timedelta(days=1),
-        recorded_at=NOW - timedelta(hours=1),
+        observed_at=observed_at,
+        recorded_at=recorded_at,
         known_at=known_at,
         source="business-observation",
         source_reference="observation-1",
@@ -132,6 +155,7 @@ def _forecast_input(
     area_revision_id: str = "area-rev-1",
     weather_ids: list[str] | None = None,
     phenology_ids: list[str] | None = None,
+    forecast_created_at: datetime = NOW,
 ) -> ForecastRunSnapshotInput:
     weather_ids = weather_ids or ["weather-1"]
     phenology_ids = phenology_ids or ["phenology-1"]
@@ -169,13 +193,13 @@ def _forecast_input(
         },
         forecast_mode="SHADOW",
         coverage={"prior_history_coverage_status": "INCOMPLETE"},
-        forecast_created_at=NOW,
+        forecast_created_at=forecast_created_at,
         warnings=["PRIOR_SEASON_HISTORY_COVERAGE_INCOMPLETE"],
     )
     candidate = ForecastRunSnapshotInput.model_validate(
         {
             "forecast_run_id": "forecast-1",
-            "forecast_created_at": NOW,
+            "forecast_created_at": forecast_created_at,
             "base_id": "base-1",
             "target_season": "2026-2027",
             "forecast_start_date": date(2026, 10, 1),
@@ -390,6 +414,57 @@ async def test_forecast_run_idempotency_and_result_conflicts(
 
 
 @pytest.mark.unit
+async def test_phenology_target_season_must_match_forecast(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    await repository.add_area_revision(_area_input())
+    await repository.add_weather_forecast_snapshot(_weather_input())
+    await repository.add_phenology_observation(_phenology_input(season="2025-2026"))
+    with pytest.raises(PITIntegrityError, match="PHENOLOGY_SEASON_MISMATCH"):
+        await repository.save_forecast_run_snapshot(_forecast_input())
+
+
+@pytest.mark.unit
+async def test_weather_base_scope_must_match_forecast(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    await repository.add_area_revision(_area_input())
+    await repository.add_weather_forecast_snapshot(_weather_input(base_id="base-other"))
+    await repository.add_phenology_observation(_phenology_input())
+    with pytest.raises(PITIntegrityError, match="WEATHER_SNAPSHOT_BASE_MISMATCH"):
+        await repository.save_forecast_run_snapshot(_forecast_input())
+
+
+@pytest.mark.unit
+async def test_location_only_weather_is_persisted_but_not_bindable(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    await repository.add_area_revision(_area_input())
+    stored = await repository.add_weather_forecast_snapshot(
+        _weather_input(base_id=None, location_id="location-X")
+    )
+    assert stored.weather_snapshot_id == "weather-1"
+    await repository.add_phenology_observation(_phenology_input())
+    with pytest.raises(PITIntegrityError, match="WEATHER_LOCATION_SCOPE_UNBOUND"):
+        await repository.save_forecast_run_snapshot(_forecast_input())
+
+
+@pytest.mark.unit
+async def test_matching_weather_base_can_bind_to_forecast(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    await repository.add_area_revision(_area_input())
+    await repository.add_weather_forecast_snapshot(_weather_input(base_id="base-1"))
+    await repository.add_phenology_observation(_phenology_input(season="2026-2027"))
+    saved = await repository.save_forecast_run_snapshot(_forecast_input())
+    assert saved.forecast_run_id == "forecast-1"
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize("area_type", ("ACTUAL_PRODUCTIVE_AREA", "PLANTED_AREA", "PLANNED_AREA"))
 async def test_non_reference_area_revision_must_match_target_season(
     sqlite_session: AsyncSession,
@@ -490,6 +565,89 @@ async def test_area_revision_supersede_preserves_history(sqlite_session: AsyncSe
 def test_weather_snapshot_requires_fetched_at_before_known_at() -> None:
     with pytest.raises(ValueError, match="fetched_at must be <= known_at"):
         _weather_input(known_at=NOW - timedelta(hours=2, minutes=30))
+
+
+@pytest.mark.unit
+def test_weather_snapshot_requires_issued_at_before_fetched_at() -> None:
+    with pytest.raises(ValueError, match="issued_at must be <= fetched_at"):
+        _weather_input(issued_at=NOW, fetched_at=NOW - timedelta(hours=1))
+
+
+@pytest.mark.unit
+def test_area_revision_requires_recorded_at_before_known_at() -> None:
+    with pytest.raises(ValueError, match="recorded_at must be <= known_at"):
+        _area_input(recorded_at=NOW + timedelta(seconds=1))
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("field", ("observed_at", "recorded_at"))
+def test_phenology_requires_internal_timestamp_order(field: str) -> None:
+    with pytest.raises(ValueError, match=f"{field} must be <= known_at"):
+        if field == "observed_at":
+            _phenology_input(observed_at=NOW + timedelta(seconds=1))
+        else:
+            _phenology_input(recorded_at=NOW + timedelta(seconds=1))
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("field", ("observation_time", "recorded_at"))
+def test_realized_weather_requires_internal_timestamp_order(field: str) -> None:
+    values = {
+        "weather_observation_id": "realized-ordering",
+        "base_id": "base-1",
+        "observation_time": NOW,
+        "recorded_at": NOW,
+        "known_at": NOW,
+        "source": "era5-land",
+        "source_reference": "raw-artifact",
+    }
+    values[field] = NOW + timedelta(seconds=1)
+    with pytest.raises(ValueError, match=f"{field} must be <= known_at"):
+        RealizedWeatherObservationInput(**values)
+
+
+@pytest.mark.unit
+async def test_future_forecast_created_at_is_rejected(
+    sqlite_session: AsyncSession,
+) -> None:
+    repository = PITDataFoundationRepository(sqlite_session)
+    await _seed_forecast_dependencies(repository)
+    with pytest.raises(PITIntegrityError, match="FORECAST_CREATED_AT_IN_FUTURE"):
+        await repository.save_forecast_run_snapshot(
+            _forecast_input(forecast_created_at=NOW + timedelta(days=1))
+        )
+
+
+@pytest.mark.unit
+async def test_historical_forecast_created_at_is_allowed(
+    sqlite_session: AsyncSession,
+) -> None:
+    historical_cutoff = NOW - timedelta(days=1)
+    repository = PITDataFoundationRepository(sqlite_session)
+    await repository.add_area_revision(
+        _area_input(
+            known_at=historical_cutoff,
+            recorded_at=historical_cutoff - timedelta(hours=2),
+        )
+    )
+    await repository.add_weather_forecast_snapshot(
+        _weather_input(
+            issued_at=historical_cutoff - timedelta(hours=3),
+            fetched_at=historical_cutoff - timedelta(hours=2),
+            known_at=historical_cutoff,
+        )
+    )
+    await repository.add_phenology_observation(
+        _phenology_input(
+            observed_at=historical_cutoff - timedelta(days=1),
+            recorded_at=historical_cutoff - timedelta(hours=1),
+            known_at=historical_cutoff,
+        )
+    )
+    saved = await repository.save_forecast_run_snapshot(
+        _forecast_input(forecast_created_at=historical_cutoff)
+    )
+    assert saved.forecast_created_at == historical_cutoff
 
 
 @pytest.mark.unit

@@ -55,6 +55,8 @@ class AreaRevisionInput(_FrozenInput):
         self.effective_from = _aware(self.effective_from)
         self.recorded_at = _aware(self.recorded_at)
         self.known_at = _aware(self.known_at)
+        if self.recorded_at > self.known_at:
+            raise ValueError("recorded_at must be <= known_at")
         if self.effective_to is not None:
             self.effective_to = _aware(self.effective_to)
             if self.effective_to < self.effective_from:
@@ -98,6 +100,10 @@ class WeatherForecastSnapshotInput(_FrozenInput):
         self.fetched_at = _aware(self.fetched_at)
         self.known_at = _aware(self.known_at)
         self.valid_at = _aware(self.valid_at)
+        if self.base_id is None and self.location_id is None:
+            raise ValueError("base_id or location_id is required")
+        if self.issued_at > self.fetched_at:
+            raise ValueError("issued_at must be <= fetched_at")
         if self.issued_at > self.known_at:
             raise ValueError("issued_at must be <= known_at")
         if self.fetched_at < self.issued_at:
@@ -140,6 +146,10 @@ class RealizedWeatherObservationInput(_FrozenInput):
         self.known_at = _aware(self.known_at)
         if self.base_id is None and self.location_id is None:
             raise ValueError("base_id or location_id is required")
+        if self.observation_time > self.known_at:
+            raise ValueError("observation_time must be <= known_at")
+        if self.recorded_at > self.known_at:
+            raise ValueError("recorded_at must be <= known_at")
         if self.payload_hash is not None:
             _sha(self.payload_hash, "payload_hash")
         return self
@@ -171,6 +181,10 @@ class PhenologyObservationInput(_FrozenInput):
         self.observed_at = _aware(self.observed_at)
         self.recorded_at = _aware(self.recorded_at)
         self.known_at = _aware(self.known_at)
+        if self.observed_at > self.known_at:
+            raise ValueError("observed_at must be <= known_at")
+        if self.recorded_at > self.known_at:
+            raise ValueError("recorded_at must be <= known_at")
         if self.payload_hash is not None:
             _sha(self.payload_hash, "payload_hash")
         return self

@@ -434,14 +434,20 @@ class PITDataFoundationRepository:
             weather_snapshot_ids=item.weather_snapshot_ids,
             forecast_created_at=item.forecast_created_at,
         )
-        if any(snapshot.base_id not in (None, item.base_id) for snapshot in weather):
-            raise PITIntegrityError("WEATHER_SNAPSHOT_BASE_MISMATCH")
+        for snapshot in weather:
+            if snapshot.base_id is None:
+                raise PITIntegrityError("WEATHER_LOCATION_SCOPE_UNBOUND")
+            if snapshot.base_id != item.base_id:
+                raise PITIntegrityError("WEATHER_SNAPSHOT_BASE_MISMATCH")
         phenology = await self.visible_phenology_observations(
             observation_ids=item.phenology_observation_ids,
             forecast_created_at=item.forecast_created_at,
         )
-        if any(observation.base_id != item.base_id for observation in phenology):
-            raise PITIntegrityError("PHENOLOGY_BASE_MISMATCH")
+        for observation in phenology:
+            if observation.base_id != item.base_id:
+                raise PITIntegrityError("PHENOLOGY_BASE_MISMATCH")
+            if observation.season != item.target_season:
+                raise PITIntegrityError("PHENOLOGY_SEASON_MISMATCH")
 
     @staticmethod
     def _validate_daily(item: ForecastRunSnapshotInput) -> None:
@@ -465,6 +471,9 @@ class PITDataFoundationRepository:
     async def save_forecast_run_snapshot(
         self, item: ForecastRunSnapshotInput
     ) -> ForecastRunSnapshot:
+        persistence_time = datetime.now(UTC)
+        if _utc(item.forecast_created_at) > persistence_time:
+            raise PITIntegrityError("FORECAST_CREATED_AT_IN_FUTURE")
         self._validate_input_snapshot(item)
         self._validate_daily(item)
         await self._validate_forecast_dependencies(item)
@@ -475,7 +484,6 @@ class PITDataFoundationRepository:
             if existing.result_hash != item.result_hash:
                 raise PITConflictError("FORECAST_RUN_RESULT_CONFLICT")
             return await self.get_forecast_run_snapshot(item.forecast_run_id)
-        now = datetime.now(UTC)
         try:
             model = ForecastRunSnapshotModel(
                 forecast_run_id=item.forecast_run_id,
@@ -506,7 +514,7 @@ class PITDataFoundationRepository:
                 result_hash=item.result_hash,
                 warnings=sorted(set(item.warnings)),
                 daily_row_count=len(item.daily_curve),
-                created_at=now,
+                created_at=persistence_time,
             )
             self.session.add(model)
             await self.session.flush()
