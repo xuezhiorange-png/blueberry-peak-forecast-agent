@@ -53,6 +53,12 @@ async def isolated_database():
                     importlib.import_module(
                         "backend.alembic.versions.0035_operational_peak_forecast_runs"
                     ).upgrade()
+                    importlib.import_module(
+                        "backend.alembic.versions.0036_v06_pit_data_foundation"
+                    ).upgrade()
+                    importlib.import_module(
+                        "backend.alembic.versions.0037_v06_pit_scope_time_integrity"
+                    ).upgrade()
 
             await conn.run_sync(install)
         env = {**os.environ, "POSTGRES_DB": name}
