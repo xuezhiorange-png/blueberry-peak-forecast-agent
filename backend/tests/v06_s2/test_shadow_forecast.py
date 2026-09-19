@@ -280,6 +280,50 @@ async def test_weather_evidence_changes_pit_hash_not_frozen_model_output(
 
 
 @pytest.mark.unit
+async def test_ecmwf_fixture_capture_reaches_shadow_persistence_path(
+    sqlite_session: AsyncSession,
+    fake_product: None,
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from backend.tests.v06_s2.test_ecmwf_open_data_provider import (
+        _fixture_provider,
+        _freeze_fixture_fetch_time,
+    )
+
+    provider, _, _ = _fixture_provider(
+        tmp_path,
+        monkeypatch,
+        supported_runs={"20260919000000"},
+        base_ids=[BASE_A],
+        base_names=["Alpha Base"],
+    )
+    created = datetime.now(UTC).replace(microsecond=0)
+    _freeze_fixture_fetch_time(provider, "20260919000000", created)
+    async with sqlite_session.begin():
+        execution = await run_shadow_forecast(
+            sqlite_session,
+            ShadowForecastRequest(
+                base_id=BASE_A,
+                target_season="2026-2027",
+                target_area_mu=Decimal("100"),
+                forecast_created_at=created,
+                forecast_run_id="shadow-ecmwf-fixture",
+            ),
+            authority=_authority(),
+            weather_provider=provider,
+        )
+    assert execution.weather_capture_status == "CAPTURED"
+    assert len(execution.snapshot.weather_snapshot_ids) == 4
+    stored = await sqlite_session.get(
+        ForecastRunSnapshot,
+        "shadow-ecmwf-fixture",
+    )
+    assert stored is not None
+    assert stored.weather_snapshot_ids == execution.snapshot.weather_snapshot_ids
+
+
+@pytest.mark.unit
 async def test_weather_scope_mismatch_fails_closed(
     sqlite_session: AsyncSession,
     fake_product: None,
