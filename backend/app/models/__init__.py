@@ -140,6 +140,10 @@ from backend.app.pit.models import (
     RealizedWeatherObservation,
     WeatherForecastSnapshot,
 )
+from backend.app.pit.prospective_models import (
+    ProspectiveValidationRun,
+    WeatherIncrementalValueAssessment,
+)
 
 __all__ = [
     "ActualHarvestCommitManifestModel",
@@ -181,6 +185,8 @@ __all__ = [
     "PhenologyObservation",
     "RealizedWeatherObservation",
     "WeatherForecastSnapshot",
+    "ProspectiveValidationRun",
+    "WeatherIncrementalValueAssessment",
     "ForecastAuthorityTask10ExtensionModel",
     "FactReceiptRaw",
     "FactReceiptDaily",

@@ -1,0 +1,31 @@
+{
+  "task_id": "V0_6_S4_PROSPECTIVE_VALIDATION_AND_WEATHER_VALUE_ASSESSMENT_R1",
+  "policy_version": "V0_6_S4_PROSPECTIVE_VALIDATION_AND_WEATHER_VALUE_V1",
+  "model_a": {
+    "identity": "AREA_PLUS_HISTORICAL_HARVEST",
+    "total_model": "BASE_AWARE_BASELINE_R1",
+    "temporal_reference_model": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "retrained": false,
+    "tuned": false
+  },
+  "weather": {
+    "forecast_time_only": true,
+    "realized_weather_as_model_input": false,
+    "horizons_hours": [24, 72, 168, 360],
+    "gdd_incremental_value_status": "NOT_EVALUATED_DEFINITION_NOT_FROZEN"
+  },
+  "evidence_sufficiency_policy": "DESCRIPTIVE_NO_FROZEN_MINIMUM_SAMPLE_THRESHOLD",
+  "implementation_evidence": {
+    "fixture_acceptance": "TARGETED_TESTS",
+    "real_prospective_evidence": "RUNTIME_AUTHORITY_REQUIRED"
+  },
+  "insufficient_evidence_state": {
+    "prospective_validation_status": "INSUFFICIENT_MATURED_PIT_EVIDENCE",
+    "weather_incremental_value": "INCONCLUSIVE",
+    "v0_7_weather_model_recommendation": "INSUFFICIENT_EVIDENCE"
+  },
+  "promotion": {
+    "weather_model_production_ready": false,
+    "v0_7_implementation_authorized": false
+  }
+}
