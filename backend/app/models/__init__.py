@@ -131,6 +131,7 @@ from backend.app.models.weather import (
     WeatherImportRun,
     WeatherSourceLocation,
 )
+from backend.app.pit.evaluation_models import ForecastEvaluation, ForecastEvaluationDaily
 from backend.app.pit.models import (
     AreaRevision,
     ForecastRunSnapshot,
@@ -172,6 +173,8 @@ __all__ = [
     "ForecastAuthorityDailyModel",
     "OperationalPeakForecastDaily",
     "OperationalPeakForecastRun",
+    "ForecastEvaluation",
+    "ForecastEvaluationDaily",
     "AreaRevision",
     "ForecastRunSnapshot",
     "ForecastRunSnapshotDaily",
