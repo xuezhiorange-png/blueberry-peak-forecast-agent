@@ -131,6 +131,14 @@ from backend.app.models.weather import (
     WeatherImportRun,
     WeatherSourceLocation,
 )
+from backend.app.pit.models import (
+    AreaRevision,
+    ForecastRunSnapshot,
+    ForecastRunSnapshotDaily,
+    PhenologyObservation,
+    RealizedWeatherObservation,
+    WeatherForecastSnapshot,
+)
 
 __all__ = [
     "ActualHarvestCommitManifestModel",
@@ -164,6 +172,12 @@ __all__ = [
     "ForecastAuthorityDailyModel",
     "OperationalPeakForecastDaily",
     "OperationalPeakForecastRun",
+    "AreaRevision",
+    "ForecastRunSnapshot",
+    "ForecastRunSnapshotDaily",
+    "PhenologyObservation",
+    "RealizedWeatherObservation",
+    "WeatherForecastSnapshot",
     "ForecastAuthorityTask10ExtensionModel",
     "FactReceiptRaw",
     "FactReceiptDaily",

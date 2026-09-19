@@ -57,7 +57,7 @@ LANE_B_MIGRATION_PATH = (
 )
 LANE_B_MIGRATION_REVISION = "2af278a20e2a"
 LANE_B_MIGRATION_DOWN_REVISION = "0029_s2_lane_a_raw_ingestion_lineage"
-ALEMBIC_SINGLE_HEAD = "0035_operational_peak_forecast_runs"
+ALEMBIC_SINGLE_HEAD = "0036_v06_pit_data_foundation"
 
 
 def _lane_b_migration_module():
