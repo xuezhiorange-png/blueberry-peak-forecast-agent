@@ -9,6 +9,8 @@
   "v06_release_commit": "bfcf2009423b5db8b0d2316c35023db202783dc5",
   "base_sha": "bfcf2009423b5db8b0d2316c35023db202783dc5",
   "plan_status": "FROZEN_FOR_COORDINATOR_REVIEW",
+  "correction_task_id": "V0_7_VERSION_PLAN_FORECAST_ORIGIN_AND_HORIZON_CONTRACT_R2",
+  "plan_correction_status": "CONTRACT_ADDED_FOR_COORDINATOR_REVIEW",
   "implementation_started": false,
   "three_season_scope_frozen": true,
   "historical_scope": {
@@ -45,6 +47,19 @@
     "hyperparameter_search": false,
     "validation_season_used_for_tuning": false
   },
+  "forecast_task_contract": {
+    "forecast_origin_policy_required": true,
+    "target_horizon_policy_required": true,
+    "information_cutoff_policy_required": true,
+    "forecast_origin_policy_freeze_slice": "S2",
+    "target_horizon_policy_freeze_slice": "S2",
+    "information_cutoff_policy_freeze_slice": "S2",
+    "exact_cadence_deferred_to_s2_evidence": true,
+    "same_forecast_origins_required": true,
+    "same_target_horizons_required": true,
+    "same_information_cutoff_required": true,
+    "season_ahead_vs_rolling_comparison_forbidden": true
+  },
   "model_a": {
     "identity": "AREA_PLUS_HISTORICAL_HARVEST",
     "total_model": "BASE_AWARE_BASELINE_R1",
@@ -64,6 +79,9 @@
     "same_daily_rows_required": true,
     "same_metrics_required": true,
     "same_business_boundary_required": true,
+    "same_forecast_origins_required": true,
+    "same_target_horizons_required": true,
+    "same_information_cutoff_required": true,
     "only_weather_information_changes": true,
     "test_tuning_forbidden": true
   },
@@ -75,6 +93,13 @@
     "future_realized_weather_as_production_input": false,
     "oracle_diagnostic_allowed": true,
     "oracle_result_production_eligible": false,
+    "historical_as_issued_weather_archive_audit_required": true,
+    "no_as_issued_archive_fail_closed_policy_required": true,
+    "production_like_historical_comparison_without_archive": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE",
+    "oracle_weather_experiment": true,
+    "oracle_weather_result_research_only": true,
+    "oracle_weather_result_production_like": false,
+    "oracle_weather_result_excluded_from_primary_incremental_value": true,
     "gdd_status": "NOT_IN_MODEL_UNTIL_DEFINITION_FROZEN",
     "feature_policy_frozen": false,
     "feature_policy_freeze_slice": "S2"
@@ -135,6 +160,11 @@
         "WEATHER_TIME_VISIBILITY_PASS",
         "FEATURE_LEAKAGE_GATE_PASS",
         "REALIZED_FUTURE_WEATHER_REJECTED_AS_PRODUCTION_INPUT",
+        "FORECAST_ORIGIN_POLICY_FROZEN",
+        "TARGET_HORIZON_POLICY_FROZEN",
+        "INFORMATION_CUTOFF_POLICY_FROZEN",
+        "HISTORICAL_AS_ISSUED_WEATHER_ARCHIVE_AUDITED",
+        "NO_AS_ISSUED_ARCHIVE_FAIL_CLOSED_POLICY_FROZEN",
         "WEATHER_FEATURE_POLICY_FROZEN"
       ]
     },
@@ -147,6 +177,9 @@
         "FOLD_B_BACKTEST_PASS",
         "MODEL_A_B_SAME_SCOPE_PASS",
         "MODEL_A_B_SAME_METRIC_PASS",
+        "MODEL_A_B_SAME_FORECAST_ORIGIN_PASS",
+        "MODEL_A_B_SAME_TARGET_HORIZON_PASS",
+        "MODEL_A_B_SAME_INFORMATION_CUTOFF_PASS",
         "MODEL_A_B_NO_TEST_TUNING_PASS",
         "MODEL_B_ARTIFACT_DETERMINISM_PASS",
         "PREDICTION_DETERMINISM_PASS"
@@ -161,6 +194,16 @@
         "UNSTABLE_ACROSS_SEASONS",
         "INCONCLUSIVE"
       ],
+      "primary_conclusion_requires": [
+        "SAME_FORECAST_ORIGINS",
+        "SAME_TARGET_HORIZONS",
+        "SAME_INFORMATION_CUTOFF",
+        "SAME_TRAIN_FOLDS",
+        "SAME_VALIDATION_FOLDS",
+        "SAME_DAILY_ROWS",
+        "SAME_METRICS"
+      ],
+      "oracle_weather_excluded_from_primary_conclusion": true,
       "v08_or_production_promotion_authorized": false
     }
   },
