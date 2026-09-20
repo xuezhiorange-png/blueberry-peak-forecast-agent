@@ -1,0 +1,256 @@
+{
+  "task_id": "V0_7_VERSION_PLAN_AND_SCOPE_FREEZE_R1",
+  "version": "0.7.0",
+  "version_name": "MULTI_SEASON_MODEL_VALIDATION_AND_WEATHER_AWARE_EXPERIMENT",
+  "version_name_cn": "多产季模型正式验证与天气增强实验版",
+  "previous_version": "v0.6.0",
+  "v06_released": true,
+  "v06_release_tag": "v0.6.0",
+  "v06_release_commit": "bfcf2009423b5db8b0d2316c35023db202783dc5",
+  "base_sha": "bfcf2009423b5db8b0d2316c35023db202783dc5",
+  "plan_status": "FROZEN_FOR_COORDINATOR_REVIEW",
+  "correction_task_id": "V0_7_VERSION_PLAN_FORECAST_ORIGIN_AND_HORIZON_CONTRACT_R2",
+  "plan_correction_status": "CONTRACT_ADDED_FOR_COORDINATOR_REVIEW",
+  "implementation_started": false,
+  "three_season_scope_frozen": true,
+  "historical_scope": {
+    "three_season_historical_harvest_available": true,
+    "seasons": ["2023-2024", "2024-2025", "2025-2026"],
+    "formal_three_season_independent_model_acceptance_complete": false,
+    "reuse_existing_historical_authority": true,
+    "missing_is_not_zero": true,
+    "unresolved_identity_preserved": true,
+    "partial_coverage_preserved": true,
+    "unknown_dates_preserved": true,
+    "business_boundary_preserved": true,
+    "right_truncation_preserved": true
+  },
+  "validation": {
+    "method": "ROLLING_OUT_OF_TIME",
+    "random_split_allowed": false,
+    "future_to_past_leakage_allowed": false,
+    "folds": {
+      "A": {
+        "train_seasons": ["2023-2024"],
+        "validation_seasons": ["2024-2025"],
+        "role": "FORWARD_DIAGNOSTIC"
+      },
+      "B": {
+        "train_seasons": ["2023-2024", "2024-2025"],
+        "validation_seasons": ["2025-2026"],
+        "role": "FORWARD_VALIDATION"
+      }
+    },
+    "three_seasons_are_not_symmetric_leave_one_season_out": true,
+    "rolling_refit_on_past_data_allowed": true,
+    "algorithm_changed": false,
+    "hyperparameter_search": false,
+    "validation_season_used_for_tuning": false
+  },
+  "forecast_task_contract": {
+    "forecast_origin_policy_required": true,
+    "target_horizon_policy_required": true,
+    "information_cutoff_policy_required": true,
+    "forecast_origin_policy_freeze_slice": "S2",
+    "target_horizon_policy_freeze_slice": "S2",
+    "information_cutoff_policy_freeze_slice": "S2",
+    "exact_cadence_deferred_to_s2_evidence": true,
+    "same_forecast_origins_required": true,
+    "same_target_horizons_required": true,
+    "same_information_cutoff_required": true,
+    "season_ahead_vs_rolling_comparison_forbidden": true
+  },
+  "model_a": {
+    "identity": "AREA_PLUS_HISTORICAL_HARVEST",
+    "total_model": "BASE_AWARE_BASELINE_R1",
+    "temporal_model": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "identity_frozen": true,
+    "retraining_in_plan": false,
+    "tuning_in_plan": false
+  },
+  "model_b": {
+    "identity": "AREA_PLUS_HISTORICAL_HARVEST_PLUS_WEATHER",
+    "boundary_frozen": true,
+    "first_candidate": "AREA_DAILY_RIDGE_V1_PLUS_LEAKAGE_SAFE_WEATHER_FEATURES",
+    "max_new_model_family_count": 1,
+    "same_train_folds_required": true,
+    "same_validation_folds_required": true,
+    "same_base_scope_required": true,
+    "same_daily_rows_required": true,
+    "same_metrics_required": true,
+    "same_business_boundary_required": true,
+    "same_forecast_origins_required": true,
+    "same_target_horizons_required": true,
+    "same_information_cutoff_required": true,
+    "only_weather_information_changes": true,
+    "test_tuning_forbidden": true
+  },
+  "weather": {
+    "source_semantics_frozen": true,
+    "leakage_policy_frozen": true,
+    "past_observed_weather_as_input": true,
+    "forecast_time_weather_as_input": "ONLY_WITH_ARCHIVED_AS_ISSUED_SNAPSHOT",
+    "future_realized_weather_as_production_input": false,
+    "oracle_diagnostic_allowed": true,
+    "oracle_result_production_eligible": false,
+    "historical_as_issued_weather_archive_audit_required": true,
+    "no_as_issued_archive_fail_closed_policy_required": true,
+    "production_like_historical_comparison_without_archive": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE",
+    "oracle_weather_experiment": true,
+    "oracle_weather_result_research_only": true,
+    "oracle_weather_result_production_like": false,
+    "oracle_weather_result_excluded_from_primary_incremental_value": true,
+    "gdd_status": "NOT_IN_MODEL_UNTIL_DEFINITION_FROZEN",
+    "feature_policy_frozen": false,
+    "feature_policy_freeze_slice": "S2"
+  },
+  "metrics": {
+    "primary_metrics_frozen": true,
+    "levels": [
+      "GLOBAL",
+      "PER_BASE",
+      "PER_SEASON",
+      "MATCHED_HISTORICAL_BASES",
+      "COVERAGE_LIMITED_BASES"
+    ],
+    "season_total": ["MAE", "WAPE", "BIAS", "RELATIVE_ERROR"],
+    "daily": ["DAILY_MAE", "DAILY_WAPE", "DAILY_BIAS"],
+    "single_day_peak": [
+      "PEAK_QUANTITY_ERROR",
+      "PEAK_QUANTITY_WAPE",
+      "PEAK_DATE_ERROR_DAYS",
+      "PEAK_ABSOLUTE_DATE_ERROR_DAYS"
+    ],
+    "rolling_7day_peak": [
+      "SEVEN_DAY_CUMULATIVE_QUANTITY_ERROR",
+      "SEVEN_DAY_CUMULATIVE_WAPE",
+      "SEVEN_DAY_START_DATE_ERROR_DAYS",
+      "SEVEN_DAY_ABSOLUTE_START_DATE_ERROR_DAYS"
+    ],
+    "wape_policy": "SUM_ABSOLUTE_ERROR_DIVIDED_BY_SUM_ABSOLUTE_ACTUAL",
+    "missing_day_policy": "NOT_ZERO_NOT_COMPARABLE",
+    "business_accuracy_threshold_status": "NOT_FROZEN",
+    "production_accuracy_approved": false
+  },
+  "slices": {
+    "total": 4,
+    "order": ["S1", "S2", "S3", "S4", "V0.7_CLOSEOUT"],
+    "skip_allowed": false,
+    "S1": {
+      "id": "FORMAL_MULTI_SEASON_BASELINE_VALIDATION",
+      "implementation_authorized": false,
+      "acceptance_requirements": [
+        "THREE_SEASON_DATA_AUTHORITY_PASS",
+        "ROLLING_OOT_FOLD_A_PASS",
+        "ROLLING_OOT_FOLD_B_PASS",
+        "VALIDATION_LEAKAGE_PASS",
+        "TOTAL_METRICS_PASS",
+        "DAILY_METRICS_PASS",
+        "SINGLE_DAY_PEAK_METRICS_PASS",
+        "ROLLING_7DAY_METRICS_PASS",
+        "PER_BASE_REPORTING_PASS",
+        "MODEL_A_FORMAL_HISTORICAL_BASELINE_ESTABLISHED"
+      ]
+    },
+    "S2": {
+      "id": "WEATHER_DATASET_AND_LEAKAGE_SAFE_FEATURE_FREEZE",
+      "implementation_authorized": false,
+      "acceptance_requirements": [
+        "WEATHER_SOURCE_AUTHORITY_PASS",
+        "WEATHER_TIME_VISIBILITY_PASS",
+        "FEATURE_LEAKAGE_GATE_PASS",
+        "REALIZED_FUTURE_WEATHER_REJECTED_AS_PRODUCTION_INPUT",
+        "FORECAST_ORIGIN_POLICY_FROZEN",
+        "TARGET_HORIZON_POLICY_FROZEN",
+        "INFORMATION_CUTOFF_POLICY_FROZEN",
+        "HISTORICAL_AS_ISSUED_WEATHER_ARCHIVE_AUDITED",
+        "NO_AS_ISSUED_ARCHIVE_FAIL_CLOSED_POLICY_FROZEN",
+        "WEATHER_FEATURE_POLICY_FROZEN"
+      ]
+    },
+    "S3": {
+      "id": "WEATHER_AWARE_MODEL_TRAINING_AND_OOT_BACKTEST",
+      "implementation_authorized": false,
+      "acceptance_requirements": [
+        "MODEL_B_TRAINED",
+        "FOLD_A_BACKTEST_PASS",
+        "FOLD_B_BACKTEST_PASS",
+        "MODEL_A_B_SAME_SCOPE_PASS",
+        "MODEL_A_B_SAME_METRIC_PASS",
+        "MODEL_A_B_SAME_FORECAST_ORIGIN_PASS",
+        "MODEL_A_B_SAME_TARGET_HORIZON_PASS",
+        "MODEL_A_B_SAME_INFORMATION_CUTOFF_PASS",
+        "MODEL_A_B_NO_TEST_TUNING_PASS",
+        "MODEL_B_ARTIFACT_DETERMINISM_PASS",
+        "PREDICTION_DETERMINISM_PASS"
+      ]
+    },
+    "S4": {
+      "id": "MODEL_A_B_COMPARISON_AND_VERSION_CONCLUSION",
+      "implementation_authorized": false,
+      "allowed_weather_conclusions": [
+        "SUPPORTED_BY_HISTORICAL_OOT_EVIDENCE",
+        "NOT_DEMONSTRATED",
+        "UNSTABLE_ACROSS_SEASONS",
+        "INCONCLUSIVE"
+      ],
+      "primary_conclusion_requires": [
+        "SAME_FORECAST_ORIGINS",
+        "SAME_TARGET_HORIZONS",
+        "SAME_INFORMATION_CUTOFF",
+        "SAME_TRAIN_FOLDS",
+        "SAME_VALIDATION_FOLDS",
+        "SAME_DAILY_ROWS",
+        "SAME_METRICS"
+      ],
+      "oracle_weather_excluded_from_primary_conclusion": true,
+      "v08_or_production_promotion_authorized": false
+    }
+  },
+  "completion_requirements": [
+    "S1_COMPLETE",
+    "S2_COMPLETE",
+    "S3_COMPLETE",
+    "S4_COMPLETE",
+    "MODEL_A_FORMAL_BASELINE_ESTABLISHED",
+    "MODEL_B_EXPERIMENT_COMPLETED",
+    "A_B_OOT_COMPARISON_COMPLETED",
+    "FULL_SUITE_PASS",
+    "EXACT_HEAD_CI_PASS",
+    "V0_7_ENGINEERING_COMPLETE"
+  ],
+  "implementation_status": "NOT_STARTED",
+  "out_of_scope": [
+    "REAL_TIME_PRODUCTION_DEPLOYMENT",
+    "AUTOMATIC_MODEL_RETRAINING",
+    "AUTOMATIC_MODEL_SELECTION",
+    "LARGE_SCALE_HYPERPARAMETER_SEARCH",
+    "MULTI_CROP",
+    "MULTI_ORGANIZATION",
+    "MULTI_FACTORY_ROUTING",
+    "PEAK_SHAVING",
+    "UI_REFACTOR",
+    "MCP_EXPANSION",
+    "WEATHER_PRODUCTION_MODEL_PROMOTION",
+    "V0.8_IMPLEMENTATION"
+  ],
+  "authorizations": {
+    "v07_s1_implementation_authorized": false,
+    "v07_s2_implementation_authorized": false,
+    "v07_s3_implementation_authorized": false,
+    "v07_s4_implementation_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deployment_authorized": false
+  },
+  "evidence_documents": [
+    "docs/v0-6/v0.6.0-closeout.md",
+    "docs/v0-6/evidence/v0.6.0-closeout.json",
+    "docs/v0-5/s1/evidence.json",
+    "docs/v0-5/s3/training-eligibility-support-count-evidence-r2.json",
+    "docs/next-version/evidence/three-season-rolling-validation-r7.json",
+    "docs/next-version/evidence/three-season-business-boundary-r7b.json",
+    "docs/v0-6/evidence/s3-forecast-actual-evaluation-r1.json",
+    "docs/v0-6/evidence/s4-prospective-validation-evidence.json"
+  ]
+}
