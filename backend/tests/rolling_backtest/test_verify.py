@@ -387,7 +387,8 @@ def test_repeated_export_is_byte_identical(
     tmp_path: Path,
 ) -> None:
     """§7.5: re-running the export with identical inputs MUST produce
-    byte-identical JSON / CSV outputs (determinism binding to Phase 4b).
+    byte-identical JSON / CSV outputs (determinism binding to Phase 4b),
+    excluding the export-time ``written_at_utc`` field in the JSON payload.
     The manifest carries a ``written_at_utc`` timestamp and the audit
     file is allowed to differ; both are excluded from the byte-identity
     check, mirroring the 4c-2 ``test_repeated_export_byte_identical_for_identical_inputs``
@@ -400,8 +401,15 @@ def test_repeated_export_is_byte_identical(
     out_b.mkdir()
     _write_artifacts(golden_rows_single_node, rows_by_run_mask, out_a)
     _write_artifacts(golden_rows_single_node, rows_by_run_mask, out_b)
-    # JSON and CSV MUST be byte-identical.
-    for sub in ("json", "csv"):
+    # CSV has no runtime timestamp and MUST be byte-identical. JSON carries
+    # the export-time ``written_at_utc`` field, so compare its deterministic
+    # payload after excluding that explicitly non-semantic field.
+    json_a = json.loads(next((out_a / "json").iterdir()).read_text(encoding="utf-8"))
+    json_b = json.loads(next((out_b / "json").iterdir()).read_text(encoding="utf-8"))
+    json_a.pop("written_at_utc")
+    json_b.pop("written_at_utc")
+    assert json_a == json_b
+    for sub in ("csv",):
         a_files = sorted((out_a / sub).iterdir())
         b_files = sorted((out_b / sub).iterdir())
         assert len(a_files) == len(b_files) == 1

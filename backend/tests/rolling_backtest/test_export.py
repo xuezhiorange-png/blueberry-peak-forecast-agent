@@ -614,7 +614,7 @@ def test_repeated_export_byte_identical_for_identical_inputs(
     """§6.1 / §8: 'A CLI run with identical inputs produces a
     deterministic outcome.' Two writers with identical inputs but
     different overwrite policies (missing → never) must produce
-    byte-identical JSON / CSV / manifest content (the audit file
+    deterministic JSON payload / byte-identical CSV / manifest content (the audit file
     carries a timestamp so we exclude it from this assertion).
     """
     rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = golden_rows_single_node
@@ -626,9 +626,14 @@ def test_repeated_export_byte_identical_for_identical_inputs(
     artifacts2 = write_export_artifacts(
         _make_export_request(result, tmp_path / "b", overwrite_policy=ExportOverwritePolicy.NEVER)
     )
-    # The JSON / CSV / manifest files must be byte-identical for
-    # identical inputs (modulo file system metadata).
-    assert artifacts1.json_path.read_bytes() == artifacts2.json_path.read_bytes()
+    # JSON carries an export-time ``written_at_utc`` field. Compare the
+    # semantic JSON payload after removing that runtime-only field; CSV is
+    # fully byte-deterministic for identical inputs.
+    json1 = json.loads(artifacts1.json_path.read_text(encoding="utf-8"))
+    json2 = json.loads(artifacts2.json_path.read_text(encoding="utf-8"))
+    json1.pop("written_at_utc")
+    json2.pop("written_at_utc")
+    assert json1 == json2
     assert artifacts1.csv_path.read_bytes() == artifacts2.csv_path.read_bytes()
     # Manifest: written_at_utc is the same timestamp because the
     # two writes happen back-to-back within the same second. If
