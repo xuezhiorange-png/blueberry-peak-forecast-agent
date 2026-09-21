@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import socket
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -23,8 +23,13 @@ from scripts.run_v07_s2_weather_feature_freeze import audit_ecmwf_archive
 TZ = ZoneInfo("Asia/Shanghai")
 
 
-def _manifest(*, issued_at: str, provider: str = "ECMWF_IFS_OPEN_DATA") -> dict[str, object]:
-    return {
+def _manifest(
+    *,
+    issued_at: str,
+    provider: str = "ECMWF_IFS_OPEN_DATA",
+    known_at: str | None = "AUTO",
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "provider": provider,
         "model": "IFS",
         "run_id": issued_at.replace("-", "").replace(":", "")[:10],
@@ -37,6 +42,12 @@ def _manifest(*, issued_at: str, provider: str = "ECMWF_IFS_OPEN_DATA") -> dict[
         ],
         "index_artifacts": [{"step": 24, "sha256": "c" * 64}],
     }
+    if known_at == "AUTO":
+        issued = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
+        known_at = (issued + timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+    if known_at is not None:
+        payload["known_at"] = known_at
+    return payload
 
 
 def _write_manifest(root: Path, payload: dict[str, object]) -> None:
@@ -62,6 +73,7 @@ def test_issued_manifest_is_assigned_to_2024_2025(tmp_path: Path) -> None:
     result = audit_ecmwf_archive(tmp_path)
     season = result["requested_seasons"]["2024-2025"]
     assert season["status"] == "FOUND_AS_ISSUED_ELIGIBLE"
+    assert season["manifest_details"][0]["archive_provenance_eligible"] is True
     assert season["available_origin_dates"] == ["2024-08-01"]
     assert season["available_horizons"] == ["D1", "D7"]
 
@@ -84,6 +96,79 @@ def test_provider_mismatch_is_rejected(tmp_path: Path) -> None:
     result = audit_ecmwf_archive(tmp_path)
     assert result["requested_seasons"]["2024-2025"]["status"] == "NOT_FOUND"
     assert result["rejected_manifests"][0]["qualification_reasons"] == ["PROVIDER_MISMATCH"]
+
+
+@pytest.mark.unit
+def test_missing_known_at_is_found_but_not_as_issued_eligible(tmp_path: Path) -> None:
+    _write_manifest(
+        tmp_path,
+        _manifest(issued_at="2024-08-01T00:00:00Z", known_at=None),
+    )
+    result = audit_ecmwf_archive(tmp_path)
+    manifest = result["requested_seasons"]["2024-2025"]["manifest_details"][0]
+    assert result["requested_seasons"]["2024-2025"]["status"] == (
+        "FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE"
+    )
+    assert manifest["qualification_reasons"] == ["KNOWN_AT_MISSING"]
+    assert manifest["archive_provenance_eligible"] is False
+
+
+@pytest.mark.unit
+def test_fetched_at_does_not_substitute_for_known_at(tmp_path: Path) -> None:
+    payload = _manifest(issued_at="2024-08-01T00:00:00Z", known_at=None)
+    payload["fetched_at"] = "2024-08-01T00:05:00Z"
+    _write_manifest(tmp_path, payload)
+    result = audit_ecmwf_archive(tmp_path)
+    manifest = result["requested_seasons"]["2024-2025"]["manifest_details"][0]
+    assert manifest["qualification_reasons"] == ["KNOWN_AT_MISSING"]
+    assert manifest["archive_provenance_eligible"] is False
+
+
+@pytest.mark.unit
+def test_known_at_naive_is_not_as_issued_eligible(tmp_path: Path) -> None:
+    _write_manifest(
+        tmp_path,
+        _manifest(issued_at="2024-08-01T00:00:00Z", known_at="2024-08-01T00:05:00"),
+    )
+    result = audit_ecmwf_archive(tmp_path)
+    manifest = result["requested_seasons"]["2024-2025"]["manifest_details"][0]
+    assert manifest["qualification_status"] == "FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE"
+    assert "known_at_MISSING_TIMEZONE" in manifest["qualification_reasons"]
+
+
+@pytest.mark.unit
+def test_known_at_before_issued_is_not_as_issued_eligible(tmp_path: Path) -> None:
+    _write_manifest(
+        tmp_path,
+        _manifest(issued_at="2024-08-01T00:05:00Z", known_at="2024-08-01T00:00:00Z"),
+    )
+    result = audit_ecmwf_archive(tmp_path)
+    manifest = result["requested_seasons"]["2024-2025"]["manifest_details"][0]
+    assert manifest["qualification_status"] == "FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE"
+    assert manifest["qualification_reasons"] == ["ISSUED_AFTER_KNOWN"]
+
+
+@pytest.mark.unit
+def test_missing_issued_at_is_not_as_issued_eligible(tmp_path: Path) -> None:
+    payload = _manifest(issued_at="2024-08-01T00:00:00Z")
+    payload.pop("issued_at")
+    _write_manifest(tmp_path, payload)
+    result = audit_ecmwf_archive(tmp_path)
+    manifest = result["saved_ecmwf_manifests"][0]
+    assert manifest["qualification_status"] == "FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE"
+    assert "ISSUED_AT_MISSING" in manifest["qualification_reasons"]
+
+
+@pytest.mark.unit
+def test_complete_ordered_known_at_is_archive_provenance_eligible(tmp_path: Path) -> None:
+    _write_manifest(
+        tmp_path,
+        _manifest(issued_at="2024-08-01T00:00:00Z", known_at="2024-08-01T00:05:00Z"),
+    )
+    result = audit_ecmwf_archive(tmp_path)
+    manifest = result["requested_seasons"]["2024-2025"]["manifest_details"][0]
+    assert manifest["qualification_status"] == "FOUND_AS_ISSUED_ELIGIBLE"
+    assert manifest["archive_provenance_eligible"] is True
 
 
 @pytest.mark.unit

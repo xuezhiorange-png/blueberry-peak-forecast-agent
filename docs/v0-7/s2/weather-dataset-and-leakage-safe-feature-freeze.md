@@ -1,6 +1,6 @@
 # V0.7-S2 — Leakage-safe weather dataset and feature freeze
 
-`TASK_ID=V0_7_S2_ARCHIVE_AUDIT_AND_TARGET_SEMANTICS_CORRECTION_R2`
+`TASK_ID=V0_7_S2_AS_ISSUED_KNOWN_AT_GATE_CORRECTION_R3`
 
 ## Decision boundary
 
@@ -105,10 +105,31 @@ downloads or reconstructs a historical forecast.
 The controlled artifact audit found only the saved prospective run
 `20260919000000`, with manifest SHA256
 `aad170103e156a11424c2d487fff27c0b7a263223d7552b155f3c275317477f0`.
-It is not a 2024–2025 or 2025–2026 historical archive. No retrospective
-download or reconstruction was performed. The current run is retained in the
-discovered-manifest evidence but is explicitly outside both historical issue
-periods.
+It is not a 2024–2025 or 2025–2026 historical archive. Its manifest is
+retained in the discovered-manifest evidence, but it is
+`FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE` because `known_at` is missing. No
+retrospective download or reconstruction was performed, and the run is
+explicitly outside both historical issue periods.
+
+The archive parser now has a hard known-at gate. A manifest is archive
+provenance eligible only when all of the following are present and valid:
+
+```ini
+provider identity
+model/run identity
+issued_at (timezone-aware)
+known_at (timezone-aware)
+issued_at <= known_at
+raw forecast artifact identity
+forecast horizon identity
+Base/grid coverage identity
+```
+
+`known_at` is required. A missing, invalid, or naive value fails closed with
+`FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE`; `fetched_at` is never promoted to
+`known_at`. This is the archive-provenance layer only. A future S3/Lane-B
+consumer must still independently verify `issued_at <= forecast_origin` and
+`known_at <= forecast_origin` for each target forecast origin.
 
 ```ini
 RETROSPECTIVE_FORECAST_RECONSTRUCTION_ALLOWED=false
@@ -278,6 +299,9 @@ FUTURE_EVENT_TIME_LEAKAGE_PASS=PASS
 ERA5_EVENT_TIME_VISIBILITY_PASS=PASS
 ERA5_KNOWN_AT_VISIBILITY_STATUS=NOT_ESTABLISHED
 AS_ISSUED_FORECAST_VISIBILITY_POLICY_PASS=PASS
+AS_ISSUED_KNOWN_AT_REQUIRED=true
+KNOWN_AT_MISSING_FAIL_CLOSED_PASS=PASS
+ARCHIVE_PROVENANCE_ELIGIBILITY_GATE_PASS=PASS
 FEATURE_LEAKAGE_GATE_PASS=PASS
 REALIZED_FUTURE_WEATHER_REJECTED_AS_PRODUCTION_INPUT=PASS
 FORECAST_ORIGIN_POLICY_FROZEN=true
