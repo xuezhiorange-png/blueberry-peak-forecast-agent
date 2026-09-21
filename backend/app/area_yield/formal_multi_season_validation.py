@@ -17,8 +17,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import Decimal, InvalidOperation
-from statistics import median
+from decimal import ROUND_HALF_EVEN, Decimal, InvalidOperation
 from typing import Any
 
 from backend.app.area_yield.base_product import _ridge_raw_value
@@ -29,6 +28,15 @@ MODEL_A = "AREA_PLUS_HISTORICAL_HARVEST"
 TOTAL_MODEL = "BASE_AWARE_BASELINE_R1"
 TEMPORAL_MODEL = "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE"
 BUSINESS_CUTOFF = "04-15_INCLUSIVE_PER_SEASON"
+HISTORY_POLICY = "IMMEDIATE_PRIOR_SEASON_ONLY_FAIL_CLOSED_NO_GLOBAL_FALLBACK"
+AREA_TYPE = "REFERENCE_AREA"
+DEFAULT_BOUNDARY_AUTHORITY_SOURCE = (
+    "configs/v0_5_area_forecast_model_v1.json:temporal_model.calendar"
+)
+DEFAULT_BOUNDARY_AUTHORITY_HASH = "cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf"
+R7B_BOUNDARY_AUTHORITY_SOURCE = "docs/next-version/evidence/three-season-business-boundary-r7b.json"
+R7B_BOUNDARY_AUTHORITY_HASH = "e8ccfc929f301690511e09601bb544ffe94c3b805a87ca498297ccf098af8cc4"
+R7B_BOUNDARY_POLICY = "USER_CONFIRMED_2526_BUSINESS_WINDOW_R7B"
 KNOWN_STATUSES = frozenset({"KNOWN_MAPPED_SUBTOTAL", "CONFIRMED_ZERO"})
 
 
@@ -47,25 +55,45 @@ class ActualDay:
 
 
 @dataclass(frozen=True, slots=True)
+class BusinessBoundary:
+    """A frozen season window selected before validation labels are read."""
+
+    season: str
+    start: date
+    end: date
+    authority_source: str
+    authority_hash: str
+    policy: str
+
+    def payload(self) -> dict[str, str]:
+        return {
+            "season": self.season,
+            "business_start": self.start.isoformat(),
+            "business_end": self.end.isoformat(),
+            "authority_source": self.authority_source,
+            "authority_hash": self.authority_hash,
+            "policy": self.policy,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class TotalModel:
     """Frozen Model A total rule fitted only on past samples."""
 
-    global_yield_kg_per_mu: Decimal
     base_yields_kg_per_mu: Mapping[str, Decimal]
-    training_seasons: tuple[str, ...]
+    prior_season: str
     training_sample_hash: str
     model_id: str = TOTAL_MODEL
 
     def payload(self) -> dict[str, Any]:
         return {
             "model_id": self.model_id,
-            "rule": "LATEST_PAST_BASE_YIELD_ELSE_GLOBAL_MEDIAN_YIELD",
-            "global_yield_kg_per_mu": _decimal_text(self.global_yield_kg_per_mu),
+            "rule": HISTORY_POLICY,
+            "prior_season": self.prior_season,
             "base_yields_kg_per_mu": {
                 key: _decimal_text(self.base_yields_kg_per_mu[key])
                 for key in sorted(self.base_yields_kg_per_mu)
             },
-            "training_seasons": list(self.training_seasons),
             "training_sample_hash": self.training_sample_hash,
         }
 
@@ -80,8 +108,7 @@ def _decimal_text(value: Decimal) -> str:
     return format(value, "f")
 
 
-def business_calendar(season: str) -> list[date]:
-    """Return the frozen July 1 through April 15 inclusive calendar."""
+def _season_years(season: str) -> tuple[int, int]:
 
     try:
         start_year = int(season[:4])
@@ -90,6 +117,48 @@ def business_calendar(season: str) -> list[date]:
         raise FormalValidationError("INVALID_SEASON") from exc
     if end_year != start_year + 1:
         raise FormalValidationError("INVALID_SEASON")
+    return start_year, end_year
+
+
+def business_boundary(season: str) -> BusinessBoundary:
+    """Resolve the pre-sealed business window from frozen authority."""
+
+    start_year, end_year = _season_years(season)
+    if season == "2025-2026":
+        return BusinessBoundary(
+            season=season,
+            start=date(2025, 7, 22),
+            end=date(2026, 4, 15),
+            authority_source=R7B_BOUNDARY_AUTHORITY_SOURCE,
+            authority_hash=R7B_BOUNDARY_AUTHORITY_HASH,
+            policy=R7B_BOUNDARY_POLICY,
+        )
+    return BusinessBoundary(
+        season=season,
+        start=date(start_year, 7, 1),
+        end=date(end_year, 4, 15),
+        authority_source=DEFAULT_BOUNDARY_AUTHORITY_SOURCE,
+        authority_hash=DEFAULT_BOUNDARY_AUTHORITY_HASH,
+        policy="EXISTING_JULY_01_THROUGH_APRIL_15_MODEL_AUTHORITY",
+    )
+
+
+def business_calendar(season: str, boundary: BusinessBoundary | None = None) -> list[date]:
+    """Return the authority-selected inclusive business calendar."""
+
+    resolved = boundary or business_boundary(season)
+    if resolved.season != season or resolved.end < resolved.start:
+        raise FormalValidationError("INVALID_BUSINESS_BOUNDARY")
+    return [
+        resolved.start + timedelta(days=index)
+        for index in range((resolved.end - resolved.start).days + 1)
+    ]
+
+
+def model_calendar(season: str) -> list[date]:
+    """Return the frozen temporal artifact's full July-01..April-15 axis."""
+
+    start_year, end_year = _season_years(season)
     start = date(start_year, 7, 1)
     end = date(end_year, 4, 15)
     return [start + timedelta(days=index) for index in range((end - start).days + 1)]
@@ -101,7 +170,9 @@ def _positive(value: Decimal) -> Decimal:
     return value
 
 
-def fit_total_model(samples: Sequence[Mapping[str, Any]]) -> TotalModel:
+def fit_total_model(
+    samples: Sequence[Mapping[str, Any]], *, prior_season: str | None = None
+) -> TotalModel:
     """Fit the unchanged Base-aware historical-yield rule on past data.
 
     ``samples`` are mapped observed subtotals with a frozen reference area.
@@ -110,7 +181,8 @@ def fit_total_model(samples: Sequence[Mapping[str, Any]]) -> TotalModel:
     """
 
     normalized: list[dict[str, str]] = []
-    by_base: dict[str, tuple[str, Decimal]] = {}
+    by_base: dict[str, Decimal] = {}
+    seasons: set[str] = set()
     for item in samples:
         try:
             base_id = str(item["base_id"])
@@ -119,29 +191,36 @@ def fit_total_model(samples: Sequence[Mapping[str, Any]]) -> TotalModel:
             area = _positive(Decimal(str(item["reference_area_mu"])))
         except (KeyError, InvalidOperation, TypeError) as exc:
             raise FormalValidationError("TRAINING_SAMPLE_INVALID") from exc
-        yield_value = quantity / area
+        seasons.add(season)
+        if prior_season is not None and season != prior_season:
+            raise FormalValidationError("NON_IMMEDIATE_PRIOR_TRAINING_SAMPLE")
+        if base_id in by_base:
+            raise FormalValidationError("DUPLICATE_IMMEDIATE_PRIOR_BASE_HISTORY")
+        yield_value = (quantity / area).quantize(Decimal("0.000001"), rounding=ROUND_HALF_EVEN)
         normalized.append(
             {
                 "base_id": base_id,
                 "season": season,
                 "quantity_kg": _decimal_text(quantity),
                 "reference_area_mu": _decimal_text(area),
-                "area_status": str(item.get("area_status", "FROZEN_ACCEPTED_PROXY")),
+                "area_status": str(item.get("area_status", AREA_TYPE)),
                 "quantity_semantics": str(
                     item.get("quantity_semantics", "MAPPED_OBSERVED_SUBTOTAL")
                 ),
             }
         )
-        previous = by_base.get(base_id)
-        if previous is None or season > previous[0]:
-            by_base[base_id] = (season, yield_value)
+        by_base[base_id] = yield_value
     if not normalized:
         raise FormalValidationError("NO_TRAINING_SAMPLES")
-    yields = [Decimal(row["quantity_kg"]) / Decimal(row["reference_area_mu"]) for row in normalized]
+    if prior_season is None:
+        if len(seasons) != 1:
+            raise FormalValidationError("PRIOR_SEASON_REQUIRED")
+        prior_season = next(iter(seasons))
+    if not prior_season or seasons != {prior_season}:
+        raise FormalValidationError("NON_IMMEDIATE_PRIOR_TRAINING_SAMPLE")
     return TotalModel(
-        global_yield_kg_per_mu=median(yields),
-        base_yields_kg_per_mu={base: value for base, (_, value) in by_base.items()},
-        training_seasons=tuple(sorted({row["season"] for row in normalized})),
+        base_yields_kg_per_mu=by_base,
+        prior_season=prior_season,
         training_sample_hash=digest(
             sorted(normalized, key=lambda row: (row["season"], row["base_id"]))
         ),
@@ -152,13 +231,11 @@ def predict_total(model: TotalModel, base_id: str, reference_area_mu: Decimal) -
     """Predict one Base total without reading validation labels."""
 
     area = _positive(reference_area_mu)
-    if base_id in model.base_yields_kg_per_mu:
-        yield_value = model.base_yields_kg_per_mu[base_id]
-        basis = "BASE_HISTORY"
-    else:
-        yield_value = model.global_yield_kg_per_mu
-        basis = "GLOBAL_MEDIAN_UNSEEN_BASE"
-    total = area * yield_value
+    if base_id not in model.base_yields_kg_per_mu:
+        raise FormalValidationError("PRIOR_SEASON_HISTORY_MISSING")
+    yield_value = model.base_yields_kg_per_mu[base_id]
+    basis = "IMMEDIATE_PRIOR_BASE_HISTORY"
+    total = (area * yield_value).quantize(Decimal("0.000001"), rounding=ROUND_HALF_EVEN)
     return {
         "base_id": base_id,
         "reference_area_mu": _decimal_text(area),
@@ -174,24 +251,31 @@ def predict_daily_curve(
     reference_area_mu: Decimal,
     predicted_total_kg: Decimal,
     temporal_model: Mapping[str, Any],
+    boundary: BusinessBoundary | None = None,
 ) -> list[dict[str, str]]:
     """Use the existing frozen temporal implementation and deterministic peaks."""
 
-    days = business_calendar(season)
-    season_start = days[0]
-    denominator = (days[-1] - season_start).days
+    resolved_boundary = boundary or business_boundary(season)
+    days = business_calendar(season, resolved_boundary)
+    full_days = model_calendar(season)
+    season_start = full_days[0]
+    denominator = (full_days[-1] - season_start).days
     raw = [
         _ridge_raw_value(
             temporal_model,
             reference_area_mu,
             (day - season_start).days / denominator,
         )
-        for day in days
+        for day in full_days
     ]
-    raw_total = sum(raw)
-    if not raw or not raw_total or not all(value >= 0 for value in raw):
+    if not raw or not all(value >= 0 for value in raw):
         raise FormalValidationError("TEMPORAL_SHAPE_NOT_NORMALIZABLE")
-    shares = [value / raw_total for value in raw]
+    day_to_raw = dict(zip(full_days, raw, strict=True))
+    window_raw = [day_to_raw[day] for day in days]
+    raw_total = sum(window_raw)
+    if not raw_total:
+        raise FormalValidationError("TEMPORAL_SHAPE_NOT_NORMALIZABLE")
+    shares = [value / raw_total for value in window_raw]
     if abs(sum(shares) - 1.0) > 1e-12:
         raise FormalValidationError("TEMPORAL_SHARE_NOT_NORMALIZED")
     quantities = compose(_decimal_text(predicted_total_kg), shares)
@@ -262,10 +346,12 @@ def seal_prediction_rows(
     registry_file_sha256: str,
     temporal_artifact_sha256: str,
     training_input_hash: str,
+    boundary: BusinessBoundary | None = None,
 ) -> dict[str, Any]:
     """Generate and seal predictions without accepting a target-label loader."""
 
     predictions: list[dict[str, Any]] = []
+    resolved_boundary = boundary or business_boundary(validation_season)
     for base in sorted(base_scope, key=lambda row: str(row["base_id"])):
         base_id = str(base["base_id"])
         area = _positive(Decimal(str(base["productive_area_mu"])))
@@ -275,6 +361,7 @@ def seal_prediction_rows(
             reference_area_mu=area,
             predicted_total_kg=Decimal(total["predicted_season_total_kg"]),
             temporal_model=temporal_model,
+            boundary=resolved_boundary,
         )
         predictions.append(
             {
@@ -292,7 +379,8 @@ def seal_prediction_rows(
                 "temporal_model_artifact_hash": temporal_artifact_sha256,
                 "area_identity": {
                     "reference_area_mu": format(area, "f"),
-                    "area_status": "FROZEN_ACCEPTED_PROXY",
+                    "area_type": AREA_TYPE,
+                    "area_semantics": "REFERENCE_AREA_ONLY",
                     "registry_file_sha256": registry_file_sha256,
                 },
                 "prediction_eligibility_status": "ELIGIBLE_REFERENCE_AREA",
@@ -307,6 +395,8 @@ def seal_prediction_rows(
         "temporal_model_id": TEMPORAL_MODEL,
         "train_seasons": list(train_seasons),
         "validation_season": validation_season,
+        "business_boundary": resolved_boundary.payload(),
+        "history_policy": HISTORY_POLICY,
         "base_scope": [
             str(row["base_id"]) for row in sorted(base_scope, key=lambda row: row["base_id"])
         ],
@@ -367,6 +457,8 @@ def score_daily_series(
     *,
     predicted_daily: Sequence[Mapping[str, str]],
     actual_daily: Sequence[ActualDay],
+    total_evaluable: bool | None = None,
+    shape_evaluable: bool | None = None,
 ) -> dict[str, Any]:
     """Score known daily rows and refuse full-season/peak claims on gaps."""
 
@@ -413,7 +505,9 @@ def score_daily_series(
         actual.status in KNOWN_STATUSES and actual.quantity_kg is not None
         for actual in actual_daily
     )
-    if not complete:
+    total_ready = complete if total_evaluable is None else total_evaluable
+    shape_ready = complete if shape_evaluable is None else shape_evaluable
+    if not total_ready and not shape_ready:
         return {
             "daily": daily_metrics,
             "coverage_status": "PARTIAL",
@@ -424,75 +518,140 @@ def score_daily_series(
             "rolling7": {"status": "NOT_COMPUTABLE_PARTIAL_ACTUAL_COVERAGE"},
         }
 
-    # This branch is deliberately separate: a complete authority is required
-    # before total and peak truth is derived.
-    actual_values_full: list[Decimal] = []
-    for row in actual_daily:
-        if row.quantity_kg is None:
-            raise FormalValidationError("COMPLETE_AUTHORITY_INTERNAL_ERROR")
-        actual_values_full.append(row.quantity_kg)
+    # R7B explicitly permits business-total and shape evaluation on the known
+    # recorded ledger rows when the unknown global dates are outside the
+    # active span.  No unknown row is converted to zero.
+    actual_values_full = [row.quantity_kg for row in actual_daily]
     predicted_values = [Decimal(row["predicted_quantity_kg"]) for row in predicted_daily]
-    actual_total = sum(actual_values_full, Decimal(0))
+    actual_total = sum(
+        (row.quantity_kg for row in actual_daily if row.quantity_kg is not None),
+        Decimal(0),
+    )
     predicted_total = sum(predicted_values, Decimal(0))
     total_abs = abs(predicted_total - actual_total)
-    total_metrics: dict[str, Any] = {
-        "status": "COMPUTABLE",
-        "actual_total_kg": _decimal_text(actual_total),
-        "predicted_total_kg": _decimal_text(predicted_total),
-        "mae_kg": _decimal_text(total_abs),
-        "pooled_wape": (
-            _decimal_text(total_abs / actual_total)
-            if actual_total > 0
-            else "NOT_COMPUTABLE_ZERO_ACTUAL_DENOMINATOR"
-        ),
-        "bias_kg": _decimal_text(predicted_total - actual_total),
-        "relative_error": (
-            _decimal_text((predicted_total - actual_total) / actual_total)
-            if actual_total > 0
-            else "NOT_COMPUTABLE_ZERO_ACTUAL_DENOMINATOR"
-        ),
-    }
+    total_metrics: dict[str, Any] = (
+        {
+            "status": "COMPUTABLE",
+            "actual_total_kg": _decimal_text(actual_total),
+            "predicted_total_kg": _decimal_text(predicted_total),
+            "mae_kg": _decimal_text(total_abs),
+            "pooled_wape": (
+                _decimal_text(total_abs / actual_total)
+                if actual_total > 0
+                else "NOT_COMPUTABLE_ZERO_ACTUAL_DENOMINATOR"
+            ),
+            "bias_kg": _decimal_text(predicted_total - actual_total),
+            "relative_error": (
+                _decimal_text((predicted_total - actual_total) / actual_total)
+                if actual_total > 0
+                else "NOT_COMPUTABLE_ZERO_ACTUAL_DENOMINATOR"
+            ),
+        }
+        if total_ready
+        else {"status": "NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY"}
+    )
+    known_indices = [
+        index
+        for index, row in enumerate(actual_daily)
+        if row.status in KNOWN_STATUSES and row.quantity_kg is not None
+    ]
+
+    def known_quantity(index: int) -> Decimal:
+        value = actual_values_full[index]
+        if value is None:
+            raise FormalValidationError("KNOWN_ACTUAL_QUANTITY_MISSING")
+        return value
+
+    if not shape_ready or not known_indices:
+        return {
+            "daily": daily_metrics,
+            "coverage_status": "COMPLETE" if complete else "PARTIAL",
+            "known_row_count": len(known),
+            "unknown_row_count": len(actual_daily) - len(known),
+            "season_total": total_metrics
+            if total_ready
+            else {"status": "NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY"},
+            "single_day_peak": {"status": "NOT_COMPUTABLE_PARTIAL_ACTUAL_COVERAGE"},
+            "rolling7": {"status": "NOT_COMPUTABLE_PARTIAL_ACTUAL_COVERAGE"},
+        }
     actual_peak_index = max(
-        range(len(actual_daily)),
-        key=lambda index: (actual_values_full[index], -index),
+        known_indices,
+        key=lambda index: (known_quantity(index), -index),
     )
     predicted_peak_index = max(
         range(len(predicted_daily)),
         key=lambda index: (predicted_values[index], -index),
     )
-    actual_windows = [
-        sum(actual_values_full[index : index + 7], Decimal(0))
-        for index in range(len(actual_daily) - 6)
-    ]
+    predicted_dates = [date.fromisoformat(row["date"]) for row in predicted_daily]
+    actual_windows: list[Decimal] = []
+    actual_window_indices: list[int] = []
+    for index in range(len(actual_daily) - 6):
+        window_rows = actual_daily[index : index + 7]
+        if all(row.status in KNOWN_STATUSES and row.quantity_kg is not None for row in window_rows):
+            actual_window_indices.append(index)
+            actual_windows.append(
+                sum(
+                    (known_quantity(position) for position in range(index, index + 7)),
+                    Decimal(0),
+                )
+            )
+    if not actual_windows:
+        return {
+            "daily": daily_metrics,
+            "coverage_status": "COMPLETE" if complete else "PARTIAL",
+            "known_row_count": len(known),
+            "unknown_row_count": len(actual_daily) - len(known),
+            "season_total": total_metrics
+            if total_ready
+            else {"status": "NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY"},
+            "single_day_peak": {
+                "status": "COMPUTABLE",
+                "actual_date": actual_daily[actual_peak_index].day.isoformat(),
+                "predicted_date": predicted_dates[predicted_peak_index].isoformat(),
+                "actual_quantity_kg": _decimal_text(known_quantity(actual_peak_index)),
+                "predicted_quantity_kg": _decimal_text(predicted_values[predicted_peak_index]),
+                "quantity_abs_error_kg": _decimal_text(
+                    abs(predicted_values[predicted_peak_index] - known_quantity(actual_peak_index))
+                ),
+                "date_abs_error_days": abs(
+                    (
+                        predicted_dates[predicted_peak_index] - actual_daily[actual_peak_index].day
+                    ).days
+                ),
+            },
+            "rolling7": {"status": "NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_WINDOW"},
+        }
     predicted_windows = [
         sum(predicted_values[index : index + 7], Decimal(0))
         for index in range(len(predicted_daily) - 6)
     ]
-    actual_window_index = max(
-        range(len(actual_windows)), key=lambda index: (actual_windows[index], -index)
+    actual_window_position = max(
+        range(len(actual_windows)), key=lambda position: (actual_windows[position], -position)
     )
+    actual_window_index = actual_window_indices[actual_window_position]
     predicted_window_index = max(
         range(len(predicted_windows)), key=lambda index: (predicted_windows[index], -index)
     )
-    predicted_dates = [date.fromisoformat(row["date"]) for row in predicted_daily]
     actual_peak_date = predicted_dates[actual_peak_index]
     predicted_peak_date = predicted_dates[predicted_peak_index]
     actual_window_date = predicted_dates[actual_window_index]
     predicted_window_date = predicted_dates[predicted_window_index]
     return {
         "daily": daily_metrics,
-        "coverage_status": "COMPLETE",
+        "coverage_status": (
+            "COMPLETE" if complete else "BUSINESS_AUTHORITY_SHAPE_ELIGIBLE_WITH_UNKNOWN_ROWS"
+        ),
         "known_row_count": len(known),
-        "unknown_row_count": 0,
+        "unknown_row_count": len(actual_daily) - len(known),
         "season_total": total_metrics,
         "single_day_peak": {
             "status": "COMPUTABLE",
             "actual_date": actual_peak_date.isoformat(),
             "predicted_date": predicted_peak_date.isoformat(),
-            "actual_quantity_kg": _decimal_text(actual_values_full[actual_peak_index]),
+            "actual_quantity_kg": _decimal_text(known_quantity(actual_peak_index)),
             "predicted_quantity_kg": _decimal_text(predicted_values[predicted_peak_index]),
             "quantity_abs_error_kg": _decimal_text(
-                abs(predicted_values[predicted_peak_index] - actual_values_full[actual_peak_index])
+                abs(predicted_values[predicted_peak_index] - known_quantity(actual_peak_index))
             ),
             "date_abs_error_days": abs((predicted_peak_date - actual_peak_date).days),
         },
@@ -500,10 +659,13 @@ def score_daily_series(
             "status": "COMPUTABLE",
             "actual_start_date": actual_window_date.isoformat(),
             "predicted_start_date": predicted_window_date.isoformat(),
-            "actual_quantity_kg": _decimal_text(actual_windows[actual_window_index]),
+            "actual_quantity_kg": _decimal_text(actual_windows[actual_window_position]),
             "predicted_quantity_kg": _decimal_text(predicted_windows[predicted_window_index]),
             "quantity_abs_error_kg": _decimal_text(
-                abs(predicted_windows[predicted_window_index] - actual_windows[actual_window_index])
+                abs(
+                    predicted_windows[predicted_window_index]
+                    - actual_windows[actual_window_position]
+                )
             ),
             "start_date_abs_error_days": abs((predicted_window_date - actual_window_date).days),
         },
@@ -530,12 +692,10 @@ def aggregate_fold_scores(base_scores: Sequence[Mapping[str, Any]]) -> dict[str,
         for row in base_scores
         if row["season_total"].get("status") == "COMPUTABLE"
     ]
-    total_abs = [Decimal(row["season_total"]["mae_kg"]) for row in total_rows]
-    total_actual = [Decimal(row["season_total"]["actual_total_kg"]) for row in total_rows]
+    total_abs = [Decimal(row["mae_kg"]) for row in total_rows]
+    total_actual = [Decimal(row["actual_total_kg"]) for row in total_rows]
     total_signed = [
-        Decimal(row["season_total"]["predicted_total_kg"])
-        - Decimal(row["season_total"]["actual_total_kg"])
-        for row in total_rows
+        Decimal(row["predicted_total_kg"]) - Decimal(row["actual_total_kg"]) for row in total_rows
     ]
     peak_rows = [
         row["single_day_peak"]
@@ -622,8 +782,10 @@ def aggregate_fold_scores(base_scores: Sequence[Mapping[str, Any]]) -> dict[str,
                 )
             ),
             "date_abs_error_days_mean": (
-                sum(Decimal(str(row["date_abs_error_days"])) for row in peak_rows)
-                / Decimal(len(peak_rows))
+                _decimal_text(
+                    sum(Decimal(str(row["date_abs_error_days"])) for row in peak_rows)
+                    / Decimal(len(peak_rows))
+                )
                 if peak_rows
                 else None
             ),
@@ -644,8 +806,10 @@ def aggregate_fold_scores(base_scores: Sequence[Mapping[str, Any]]) -> dict[str,
                 )
             ),
             "date_abs_error_days_mean": (
-                sum(Decimal(str(row["start_date_abs_error_days"])) for row in rolling_rows)
-                / Decimal(len(rolling_rows))
+                _decimal_text(
+                    sum(Decimal(str(row["start_date_abs_error_days"])) for row in rolling_rows)
+                    / Decimal(len(rolling_rows))
+                )
                 if rolling_rows
                 else None
             ),
@@ -662,10 +826,11 @@ def actual_rows_from_mapping(
     candidate_bases_by_label: Mapping[tuple[str, str], Sequence[str]],
     base_scope: Sequence[Mapping[str, Any]],
     source_hash: str,
+    boundary: BusinessBoundary | None = None,
 ) -> dict[str, list[ActualDay]]:
     """Build a mapped actual authority without filling missing days."""
 
-    calendar = business_calendar(season)
+    calendar = business_calendar(season, boundary)
     global_dates = {
         row["date"]
         for row in raw_rows
@@ -722,6 +887,7 @@ def fold_input_hash(
     validation_season: str,
     registry_file_sha256: str,
     temporal_artifact_sha256: str,
+    boundary: BusinessBoundary | None = None,
 ) -> str:
     return digest(
         {
@@ -730,6 +896,8 @@ def fold_input_hash(
             "temporal_model": TEMPORAL_MODEL,
             "train_seasons": list(train_seasons),
             "validation_season": validation_season,
+            "business_boundary": (boundary or business_boundary(validation_season)).payload(),
+            "history_policy": HISTORY_POLICY,
             "registry_file_sha256": registry_file_sha256,
             "temporal_artifact_sha256": temporal_artifact_sha256,
             "train_samples": sorted(

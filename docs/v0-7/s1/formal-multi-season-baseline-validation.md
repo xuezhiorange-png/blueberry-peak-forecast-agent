@@ -1,151 +1,166 @@
-# V0.7-S1 Formal Multi-Season Baseline Validation
+# V0.7-S1 Frozen Model and Business Boundary Correction
 
 ## Status
 
-`TASK_ID=V0_7_S1_FORMAL_MULTI_SEASON_BASELINE_VALIDATION_R1`
+`TASK_ID=V0_7_S1_FROZEN_MODEL_AND_BUSINESS_BOUNDARY_CORRECTION_R2`
 
-This is the formal historical out-of-time validation of the frozen V0.5
-Model A. It is an engineering and evidence result, not a production-accuracy
-approval.
+This document supersedes the original S1 report. The original all-39
+prediction scope and its metrics are not an accepted baseline: the correction
+restores the frozen immediate-prior Model A contract and the existing
+season-boundary authority.
 
-The run was based on `origin/main=9eda9dffdcb5f88195f511c7802c831724fcc73c`.
-The V0.7 plan is present in `docs/v0-7/`, and the PR #644 merge is in the
-main ancestry.
+The correction is implemented on PR #645. It does not add weather, create
+Model B, tune the model, or change the Model A mathematics.
 
-## Frozen model and scope
+## Frozen model contract
 
 | Item | Frozen value |
 | --- | --- |
 | Model A | `AREA_PLUS_HISTORICAL_HARVEST` |
 | Total model | `BASE_AWARE_BASELINE_R1` |
 | Temporal model | `AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE` |
-| Rolling refit | Past seasons only; same algorithm and objective |
-| Weather | Not used; no weather feature generated |
-| Model B | Not created |
-| Hyperparameter/model-family search | Disabled |
-| Business accuracy threshold | `NOT_FROZEN` |
+| History policy | `IMMEDIATE_PRIOR_SEASON_ONLY_FAIL_CLOSED_NO_GLOBAL_FALLBACK` |
+| Fold A prior | `2023-2024` |
+| Fold B prior | `2024-2025` |
+| Weather | `false` |
+| Model B | not created |
+| Model tuning/search | disabled |
 | Production accuracy approval | `false` |
 
-No validation-season label was used to choose a Base, date scope, model,
-feature, objective, or parameter before prediction sealing.
+Only Bases with a mapped, legal immediate-prior history enter prediction
+scope. A Base without that history is recorded as
+`NOT_ELIGIBLE_PRIOR_SEASON_HISTORY_MISSING`; it is not predicted with a
+global median, an older season, or any latest-available fallback.
 
-## Authorities
+The rolling adapter uses the same immediate-prior yield-times-area rule as the
+frozen product contract. Product parity is covered by the unit regression
+against `AreaForecastProduct` and by the fold parity check.
 
-The validation reuses the existing source and identity authorities. The
-reference area is explicitly retained as the frozen Model A proxy; it is not
-upgraded to season-specific actual productive area by this task.
+## Business-season authority
 
-| Authority | SHA256 / value |
-| --- | --- |
-| 2023-2024 source | `8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20` |
-| 2024-2025 source | `f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6` |
-| 2025-2026 source | `fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a` |
-| Versioned Base Registry file | `0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85` |
-| Base Registry source workbook | `73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7` |
-| Historical identity mapping | `8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044` |
-| Current Base member mapping for 2025-2026 | `d40dbc3a1328d79e10670999ee613fcef8fa3ee32659db16dfe67db3e6b91b5b` |
-| Combined identity authority | `c46e198cda2e6c4296db184af5c2e1f3b200a944309aa43039fa3be42a0bbd0e` |
-| Frozen temporal config | `cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf` |
+The boundary is selected and hashed before validation labels are loaded.
 
-Coverage semantics are fail-closed: confirmed zero is comparable, while
-unknown/missing/unresolved rows are not converted to zero. Complete
-season-total, single-day peak, and rolling-seven-day metrics require complete
-actual coverage.
+| Season | Business start | Business end | Authority |
+| --- | --- | --- | --- |
+| 2023-2024 | 2023-07-01 | 2024-04-15 | existing model calendar authority |
+| 2024-2025 | 2024-07-01 | 2025-04-15 | existing model calendar authority |
+| 2025-2026 | 2025-07-22 | 2026-04-15 | `USER_CONFIRMED_2526_BUSINESS_WINDOW_R7B` |
+
+The 2025-2026 boundary authority is
+`docs/next-version/evidence/three-season-business-boundary-r7b.json`, SHA256
+`e8ccfc929f301690511e09601bb544ffe94c3b805a87ca498297ccf098af8cc4`.
+July 1-21 is outside that business window, and post-April-15 data is outside
+scope. The 40 in-window global unknown dates remain unknown; they are never
+zero-filled. R7B's business-total and shape/peak eligibility are intersected
+with prediction eligibility rather than replaced by a new all-calendar rule.
+
+## Area semantics
+
+All areas in this validation are:
+
+```ini
+AREA_TYPE=REFERENCE_AREA
+AREA_SEMANTICS=REFERENCE_AREA_ONLY
+HISTORICAL_ACTUAL_PRODUCTIVE_AREA_AUTHORITY=false
+```
+
+`REFERENCE_AREA` is a frozen Model A input. It is not an assertion that the
+historical season had that actual productive area.
 
 ## Label-blind protocol
 
-Each fold follows the same boundary:
+Each fold executes in this order:
 
-1. Load only past training authorities and frozen model configuration.
-2. Generate and persist prediction rows and the prediction manifest.
-3. Seal prediction, training-input, artifact-manifest, and model identities.
-4. Only then load the validation source and score it.
+1. qualify prediction scope from registry, identity, area, model, and the
+   immediate-prior history only;
+2. seal prediction rows, training identity, business boundary, and hashes;
+3. load validation actuals and score only after the seal.
 
-The generated manifests record:
+The validation quantity labels cannot change prediction scope, model identity,
+prediction rows, or prediction hash. Confirmed zero remains comparable;
+unknown/missing remains non-comparable and is not converted to zero.
 
 ```ini
-PREDICTIONS_SEALED_BEFORE_VALIDATION_LABEL_SCORING=true
 VALIDATION_LABEL_LEAKAGE=false
 VALIDATION_BLINDNESS=PASS
+PREDICTIONS_SEALED_BEFORE_VALIDATION_LABEL_SCORING=true
 POST_PREDICTION_SCORING_ONLY=true
 ```
 
-Changing validation actuals after sealing changes score evidence only; it does
-not change the prediction hash. A fresh Python process reproduced both fold
-prediction and metric hashes.
+## Corrected fold scope and metrics
 
-## Fold results
+WAPE is always pooled absolute error divided by pooled actual, not an average
+of run-level WAPEs. Negative bias means underprediction.
 
-WAPE values below are pooled absolute error divided by pooled actual, never an
-arithmetic mean of Base-level or fold-level WAPEs. Bias is predicted minus
-actual; negative means underprediction.
+| Fold | Declared train | Model prior used | Validate | Registry | Eligible | Ineligible | Comparable daily rows | Complete total rows | Non-complete rows |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| A | 2023-2024 | 2023-2024 | 2024-2025 | 39 | 13 | 26 | 1,909 | 0 | 13 |
+| B | 2023-2024 + 2024-2025 | 2024-2025 | 2025-2026 | 39 | 30 | 9 | 5,077 | 1 | 29 |
 
-| Fold | Train | Validate | Predicted Base count | Actual Base count | Comparable daily rows | Unknown rows | Complete Base-season rows |
-| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| A | 2023-2024 | 2024-2025 | 39 | 30 | 2,968 | 8,303 | 0 |
-| B | 2023-2024 + 2024-2025 | 2025-2026 | 39 | 39 | 6,368 | 4,903 | 0 |
-
-All 39 validation Base-seasons in both folds are `PARTIAL`; none qualifies for
-complete season-total or peak truth under the frozen authority policy.
+All ineligible rows use the single reason
+`NOT_ELIGIBLE_PRIOR_SEASON_HISTORY_MISSING`.
 
 | Metric | Fold A | Fold B | Combined OOT |
 | --- | ---: | ---: | ---: |
-| Season-total WAPE | `NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY` |
-| Daily WAPE | 0.6198167169628233647543879985 | 0.7168968026307904576336715891 | 0.6902328745020899423136283210 |
-| Daily Bias (kg/row) | -1649.135154259770889487870620 | -4227.739054537374371859296482 | -3407.977231912703513281919452 |
-| Single-day peak quantity WAPE | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` |
-| Single-day peak date absolute error | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` |
-| Rolling-7 quantity WAPE | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` |
-| Rolling-7 start-date absolute error | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` |
+| Season-total WAPE | `NOT_COMPUTABLE_NO_COMPLETE_TOTAL_AUTHORITY` | 0.5389045665598414871408878679 (1 Base) | 0.5389045665598414871408878679 (pooled computable rows) |
+| Daily WAPE | 0.6384665136922065255391352980 | 0.7507992930315132720520321240 | 0.7245703036857014811985535015 |
+| Daily Bias kg/row | -2479.389925403352540597171294 | -4429.695973961985424463265708 | -3896.753768594331520183223590 |
+| Single-day peak quantity WAPE | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` | 0.8361096255097708003558018616 (2 Bases) | 0.8361096255097708003558018616 |
+| Single-day peak date MAE days | `NOT_COMPUTABLE_NO_COMPLETE_PEAK_AUTHORITY` | 24 | 24 |
+| Rolling-7 quantity WAPE | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` | 0.8155329607742376504592426572 (2 Bases) | 0.8155329607742376504592426572 |
+| Rolling-7 start-date MAE days | `NOT_COMPUTABLE_NO_COMPLETE_ROLLING7_AUTHORITY` | 23 | 23 |
 
-Combined daily WAPE uses 9,336 comparable rows, with pooled actual
-`66,273,244.767 kg` and pooled absolute error `45,743,972.238107 kg`.
+The combined daily result contains 6,986 comparable rows, pooled actual
+`51,641,502.295 kg`, and pooled absolute error `37,417,899.000674 kg`.
+Combined totals/peaks are deliberately limited to the computable authority
+intersection; they are not extrapolated to all eligible Bases.
 
-Daily absolute-error distributions are:
+Daily absolute-error distributions (median / P75 / P90 / max kg) are:
 
-| View | Median kg | P75 kg | P90 kg | Max kg |
+| View | Median | P75 | P90 | Max |
 | --- | ---: | ---: | ---: | ---: |
-| Fold A | 2,748.7083275 | 5,341.92389150 | 9,015.2017915 | 25,528.179851 |
-| Fold B | 3,350.0872365 | 7,583.53006875 | 13,475.5605327 | 51,414.621936 |
-| Combined | 3,126.8383665 | 6,725.42738700 | 11,817.9435415 | 51,414.621936 |
+| Fold A | 2,959.7757190 | 5,923.69708800 | 9,497.4734714 | 18,677.533468 |
+| Fold B | 3,898.8123440 | 8,437.39232000 | 14,021.4906918 | 51,380.735465 |
+| Combined | 3,594.7019630 | 7,686.77707775 | 12,615.8046435 | 51,380.735465 |
 
-## Area and coverage report
+Per-Base daily, total, peak, rolling-7, coverage, and unknown-status rows are
+retained in the private generated evidence set. The repository evidence file
+records the scope counts, metric hashes, and private artifact hashes without
+committing raw business data.
 
-Every prediction uses the versioned 39-Base reference-area registry with
-`area_status=FROZEN_ACCEPTED_PROXY` and `area_semantics=REFERENCE_AREA`.
-No new historical area proxy was accepted.
+## Authority identities
 
-| Fold | Train area-eligible | Train proxy | Validation area-eligible | Validation proxy | Area missing | Area conflicting |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| A | 13 | 13 | 39 | 39 | 0 | 0 |
-| B | 30 unique Base / 43 Base-season samples | 43 | 39 | 39 | 0 | 0 |
-
-Unknown actual status counts are retained in the machine-readable evidence:
-
-- Fold A: `UNKNOWN_GLOBAL_NO_RECORD=312`, `UNKNOWN_MEMBER_COVERAGE=4563`,
-  `UNKNOWN_MISSING=3428`.
-- Fold B: `UNKNOWN_GLOBAL_NO_RECORD=2379`, `UNKNOWN_MISSING=2524`.
-
-The full 78 Base-season per-Base diagnostics contain predicted totals and
-daily rows, coverage status, known/unknown row counts, unknown status counts,
-and the computable/not-computable metric objects. They remain in the private
-generated artifact set; this repository commits only manifests, hashes, and
-summary evidence.
-
-## Sealed artifacts
-
-| Artifact | Prediction/score identity |
+| Authority | SHA256 |
 | --- | --- |
-| Fold A prediction hash | `72b2d5fa21fc0fab84d6e3c054576c66353899c1526a2b219272d54737c8ab73` |
-| Fold A artifact manifest hash | `3642d39bb8ad479964b588b2350dc11fd5738d48a3003957d39ba39a75aa9a85` |
-| Fold A score hash | `a86da0536c3ee18274cc73b664d847f6944c25cc9e844e37381ea100f6a0a356` |
-| Fold B prediction hash | `1a3fede069dcf53ae8631428d000466bfffb904a5d3efb9cd7fae3f8ca4332ed` |
-| Fold B artifact manifest hash | `3993ee942d135b99287bab386b5c1fe8ce91e3b93d51aaf02184ad69ef9bfaf2` |
-| Fold B score hash | `a1adc38b19923a636bb355aa68567a4b469c21e5d4dfbd98f2ee0d18c63f5a11` |
-| Private replay evidence canonical hash | `a215cd45a7521c54b700527f7f5ba3169641a99186d88e563660323f00b9356d` |
+| 2023-2024 primary source | `8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20` |
+| 2024-2025 primary source | `f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6` |
+| 2025-2026 primary source | `fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a` |
+| Base Registry config | `0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85` |
+| Historical identity mapping | `8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044` |
+| Base member mapping | `d40dbc3a1328d79e10670999ee613fcef8fa3ee32659db16dfe67db3e6b91b5b` |
+| Combined identity authority | `c46e198cda2e6c4296db184af5c2e1f3b200a944309aa43039fa3be42a0bbd0e` |
+| Temporal model config | `cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf` |
+| R7B coverage qualification | `2bd4bfdfa53c5ad17bda7817e5a2ee09d25c0ab7650903ee3924d2d7bba2da24` |
 
-The complete machine-readable summary is
-[`s1-formal-multi-season-baseline-validation.json`](../evidence/s1-formal-multi-season-baseline-validation.json).
+## Determinism and correction acceptance
+
+```ini
+IMMEDIATE_PRIOR_POLICY_PASS=PASS
+NO_GLOBAL_FALLBACK_PASS=PASS
+FROZEN_MODEL_A_PARITY_PASS=PASS
+DATASET_MANIFEST_DETERMINISM_PASS=PASS
+SPLIT_MANIFEST_DETERMINISM_PASS=PASS
+MODEL_ARTIFACT_DETERMINISM_PASS=PASS
+PREDICTION_DETERMINISM_PASS=PASS
+METRIC_DETERMINISM_PASS=PASS
+FRESH_PROCESS_REPLAY_PASS=PASS
+```
+
+The fresh-process replay evidence hash is
+`c9ac7c7a891f4185a7acd9566c32dd1a0c5ca14520675af168f0abd29a053986`.
+The fold prediction and score identities are listed in the machine-readable
+evidence file. Changing validation actuals after sealing changes score output
+only, not prediction output or prediction hash.
 
 ## Formal conclusion
 
@@ -153,18 +168,17 @@ The complete machine-readable summary is
 THREE_SEASON_DATA_AUTHORITY_PASS=PASS
 ROLLING_OOT_FOLD_A_PASS=PASS
 ROLLING_OOT_FOLD_B_PASS=PASS
-VALIDATION_LABEL_LEAKAGE=false
-VALIDATION_BLINDNESS=PASS
-PREDICTIONS_SEALED_BEFORE_VALIDATION_LABEL_SCORING=true
+BUSINESS_BOUNDARY_AUTHORITY_PASS=PASS
 MODEL_A_FORMAL_HISTORICAL_BASELINE_ESTABLISHED=true
-CURRENT_AREA_MODEL_VALIDATION_STATUS=VALIDATED_WITH_MEASURED_DAILY_ERROR;COMPLETE_TOTAL_AND_PEAK_METRICS_COVERAGE_LIMITED
+CURRENT_AREA_MODEL_VALIDATION_STATUS=VALIDATED_WITH_MEASURED_ERROR;TOTAL_PEAK_COVERAGE_LIMITED
+BUSINESS_ACCURACY_THRESHOLD_STATUS=NOT_FROZEN
 PRODUCTION_ACCURACY_APPROVED=false
 WEATHER_USED=false
 MODEL_B_CREATED=false
+V0_7_S2_IMPLEMENTATION_AUTHORIZED=false
 ```
 
-This establishes a reproducible, label-blind historical baseline and exposes
-the measured daily error. It does not establish a complete-season accuracy
-approval because the supplied actual authority has no complete Base-season
-coverage for either validation fold. It also does not authorize S2, weather
-features, Model B, tuning, Ready, or Merge.
+This correction establishes an honest, label-blind historical baseline under
+the frozen product policy. It does not approve production accuracy, does not
+make the partial/unknown actual authority complete, and does not authorize
+S2 or weather work.
