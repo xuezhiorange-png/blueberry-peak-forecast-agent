@@ -15,6 +15,7 @@ import json
 import subprocess
 import sys
 from collections import Counter
+from collections.abc import Mapping
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -22,13 +23,18 @@ from typing import Any
 
 from backend.app.area_yield.data import digest
 from backend.app.area_yield.formal_multi_season_validation import (
+    AREA_TYPE,
+    HISTORY_POLICY,
     KNOWN_STATUSES,
     ActualDay,
+    BusinessBoundary,
     actual_rows_from_mapping,
     aggregate_fold_scores,
+    business_boundary,
     business_calendar,
     fit_total_model,
     fold_input_hash,
+    predict_total,
     score_daily_series,
     seal_prediction_rows,
 )
@@ -190,11 +196,98 @@ def source_training_samples(
                 "season": parsed["season"],
                 "quantity_kg": format(total, "f"),
                 "reference_area_mu": str(registry_by_id[base_id]["productive_area_mu"]),
-                "area_status": "FROZEN_ACCEPTED_PROXY",
+                "area_type": AREA_TYPE,
+                "area_status": AREA_TYPE,
                 "quantity_semantics": "MAPPED_OBSERVED_SUBTOTAL",
             }
         )
     return result
+
+
+def frozen_model_a_parity(*, model: Any, registry: dict[str, Any]) -> bool:
+    """Prove the rolling adapter preserves the frozen product calculation."""
+
+    registry_by_id = {str(row["base_id"]): row for row in registry["bases"]}
+    for base_id, yield_value in model.base_yields_kg_per_mu.items():
+        if base_id not in registry_by_id or model.prior_season == "":
+            return False
+        area = Decimal(str(registry_by_id[base_id]["productive_area_mu"]))
+        result = predict_total(model, base_id, area)
+        expected_total = (area * yield_value).quantize(Decimal("0.000001"))
+        if result["total_prediction_basis"] != "IMMEDIATE_PRIOR_BASE_HISTORY":
+            return False
+        if Decimal(result["predicted_season_total_kg"]) != expected_total:
+            return False
+    return True
+
+
+def prior_season(season: str) -> str:
+    try:
+        start_year = int(season[:4])
+        end_year = int(season[5:])
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"INVALID_SEASON:{season}") from exc
+    if end_year != start_year + 1:
+        raise ValueError(f"INVALID_SEASON:{season}")
+    return f"{start_year - 1:04d}-{start_year:04d}"
+
+
+def load_r7b_qualification(path: Path | None) -> tuple[dict[str, Any] | None, str | None]:
+    if path is None:
+        return None, None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("R7B_QUALIFICATION_PAYLOAD_INVALID")
+    return payload, file_sha256(path)
+
+
+def base_coverage_policy(
+    *,
+    season: str,
+    base_id: str,
+    accepted: Mapping[tuple[str, str], str],
+    qualification: dict[str, Any] | None,
+    qualification_hash: str | None,
+) -> dict[str, Any]:
+    """Project existing R7B farm coverage authority to a Base without imputation."""
+
+    if season != "2025-2026" or qualification is None:
+        return {
+            "source": "NO_SEASON_SPECIFIC_COVERAGE_AUTHORITY",
+            "authority_hash": None,
+            "total_evaluable": None,
+            "shape_evaluable": None,
+            "labels": [],
+        }
+    labels = sorted(
+        label
+        for (mapped_season, label), mapped_base in accepted.items()
+        if mapped_season == season and mapped_base == base_id
+    )
+    rows = [qualification.get(label) for label in labels]
+    qualified_rows = [row for row in rows if isinstance(row, dict)]
+    if not labels or len(qualified_rows) != len(labels):
+        return {
+            "source": "R7B_QUALIFICATION_MISSING_FOR_BASE_MEMBERS",
+            "authority_hash": qualification_hash,
+            "total_evaluable": False,
+            "shape_evaluable": False,
+            "labels": labels,
+        }
+    return {
+        "source": "three-season-r7b/qualification.json",
+        "authority_hash": qualification_hash,
+        "total_evaluable": all(row.get("total_evaluable") is True for row in qualified_rows),
+        "shape_evaluable": all(row.get("shape_evaluable") is True for row in qualified_rows),
+        "labels": labels,
+        "unknown_active_span_days": sorted(
+            {
+                day
+                for row in qualified_rows
+                for day in row.get("active_span_global_unknown_days", [])
+            }
+        ),
+    }
 
 
 def _json_actual_rows(rows: list[ActualDay]) -> list[dict[str, Any]]:
@@ -256,8 +349,18 @@ def _base_score(
     actual: list[ActualDay],
     registry_row: dict[str, Any],
     source_hash: str,
+    coverage_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    score = score_daily_series(predicted_daily=prediction["predicted_daily"], actual_daily=actual)
+    score = score_daily_series(
+        predicted_daily=prediction["predicted_daily"],
+        actual_daily=actual,
+        total_evaluable=(
+            None if coverage_policy is None else coverage_policy.get("total_evaluable")
+        ),
+        shape_evaluable=(
+            None if coverage_policy is None else coverage_policy.get("shape_evaluable")
+        ),
+    )
     components = _daily_components(prediction["predicted_daily"], actual)
     unknown_statuses = Counter(row.status for row in actual if row.status not in KNOWN_STATUSES)
     return {
@@ -265,7 +368,8 @@ def _base_score(
         "base_name": prediction["base_name"],
         "season": prediction["season"],
         "reference_area_mu": str(registry_row["productive_area_mu"]),
-        "area_status": "FROZEN_ACCEPTED_PROXY",
+        "area_type": AREA_TYPE,
+        "area_semantics": "REFERENCE_AREA_ONLY",
         "predicted_total_kg": prediction["predicted_season_total_kg"],
         "predicted_peak_date": prediction["predicted_peak_date"],
         "predicted_peak_quantity_kg": prediction["predicted_peak_quantity_kg"],
@@ -277,6 +381,7 @@ def _base_score(
         "unknown_row_count": score["unknown_row_count"],
         "unknown_status_counts": dict(sorted(unknown_statuses.items())),
         "source_hash": source_hash,
+        "coverage_authority": dict(coverage_policy or {}),
         "daily": score["daily"],
         "season_total": score["season_total"],
         "single_day_peak": score["single_day_peak"],
@@ -313,27 +418,51 @@ def run_fold(
     temporal_model: dict[str, Any],
     temporal_file_sha256: str,
     output: Path,
+    r7b_qualification: dict[str, Any] | None,
+    r7b_qualification_hash: str | None,
 ) -> dict[str, Any]:
     registry_by_id = {str(row["base_id"]): row for row in registry["bases"]}
-    train_samples = [
+    declared_train_seasons = [season for season, _ in train_sources]
+    required_prior_season = prior_season(validation_season)
+    all_train_samples = [
         sample
         for season, parsed in train_sources
         for sample in source_training_samples(
             parsed=parsed, accepted=accepted, registry_by_id=registry_by_id
         )
     ]
-    model = fit_total_model(train_samples)
+    train_samples = [
+        sample for sample in all_train_samples if sample["season"] == required_prior_season
+    ]
+    model_train_seasons = [required_prior_season]
+    model = fit_total_model(train_samples, prior_season=required_prior_season)
+    model_parity = frozen_model_a_parity(model=model, registry=registry)
     training_hash = fold_input_hash(
         train_samples=train_samples,
-        train_seasons=[season for season, _ in train_sources],
+        train_seasons=model_train_seasons,
         validation_season=validation_season,
         registry_file_sha256=registry_sha256,
         temporal_artifact_sha256=temporal_file_sha256,
+        boundary=business_boundary(validation_season),
     )
-    base_scope = sorted(registry["bases"], key=lambda row: str(row["base_id"]))
+    base_scope = sorted(
+        [row for row in registry["bases"] if str(row["base_id"]) in model.base_yields_kg_per_mu],
+        key=lambda row: str(row["base_id"]),
+    )
+    ineligible_bases = [
+        {
+            "base_id": str(row["base_id"]),
+            "base_name": str(row["canonical_base_name"]),
+            "status": "NOT_ELIGIBLE_PRIOR_SEASON_HISTORY_MISSING",
+            "required_prior_season": required_prior_season,
+        }
+        for row in sorted(registry["bases"], key=lambda row: str(row["base_id"]))
+        if str(row["base_id"]) not in model.base_yields_kg_per_mu
+    ]
+    boundary = business_boundary(validation_season)
     sealed = seal_prediction_rows(
         fold_id=fold_id,
-        train_seasons=[season for season, _ in train_sources],
+        train_seasons=model_train_seasons,
         validation_season=validation_season,
         base_scope=base_scope,
         model=model,
@@ -341,6 +470,7 @@ def run_fold(
         registry_file_sha256=registry_sha256,
         temporal_artifact_sha256=temporal_file_sha256,
         training_input_hash=training_hash,
+        boundary=boundary,
     )
     fold_dir = output / fold_id.lower()
     write_json(fold_dir / "prediction_manifest.json", sealed["manifest"])
@@ -357,14 +487,26 @@ def run_fold(
         candidate_bases_by_label=candidates,
         base_scope=base_scope,
         source_hash=EXPECTED_SOURCE_HASHES[validation_season],
+        boundary=boundary,
     )
     predictions_by_base = {row["base_id"]: row for row in sealed["predictions"]}
+    coverage_policies = {
+        base_id: base_coverage_policy(
+            season=validation_season,
+            base_id=base_id,
+            accepted=accepted,
+            qualification=r7b_qualification,
+            qualification_hash=r7b_qualification_hash,
+        )
+        for base_id in sorted(predictions_by_base)
+    }
     scores = [
         _base_score(
             prediction=predictions_by_base[base_id],
             actual=actual_by_base[base_id],
             registry_row=registry_by_id[base_id],
             source_hash=EXPECTED_SOURCE_HASHES[validation_season],
+            coverage_policy=coverage_policies[base_id],
         )
         for base_id in sorted(predictions_by_base)
     ]
@@ -375,6 +517,11 @@ def run_fold(
         "validation_labels_read_after_prediction_seal": True,
         "prediction_hash": sealed["manifest"]["prediction_hash"],
         "validation_source_hash": EXPECTED_SOURCE_HASHES[validation_season],
+        "business_boundary": boundary.payload(),
+        "history_policy": HISTORY_POLICY,
+        "prediction_eligible_base_ids": sorted(predictions_by_base),
+        "prediction_ineligible_bases": ineligible_bases,
+        "coverage_policies": coverage_policies,
         "identity_mapping_sha256": identity_sha256,
         "per_base": [_strip_internal(row) for row in scores],
         "aggregate": aggregate,
@@ -383,11 +530,16 @@ def run_fold(
     write_json(fold_dir / "score_after_seal.json", score_payload)
     run_state = {
         "fold_id": fold_id,
-        "train_seasons": [season for season, _ in train_sources],
+        "declared_train_seasons": declared_train_seasons,
+        "train_seasons": model_train_seasons,
         "validation_season": validation_season,
+        "required_prior_season": required_prior_season,
         "train_samples": train_samples,
         "model_payload": model.payload(),
         "base_scope": base_scope,
+        "ineligible_bases": ineligible_bases,
+        "business_boundary": boundary.payload(),
+        "coverage_policies": coverage_policies,
         "registry_file_sha256": registry_sha256,
         "temporal_file_sha256": temporal_file_sha256,
         "temporal_model": temporal_model,
@@ -400,13 +552,22 @@ def run_fold(
     write_json(fold_dir / "replay_state.json", run_state)
     return {
         "fold_id": fold_id,
-        "train_seasons": [season for season, _ in train_sources],
+        "declared_train_seasons": declared_train_seasons,
+        "train_seasons": model_train_seasons,
         "validation_season": validation_season,
         "prediction_manifest": sealed["manifest"],
         "score": score_payload,
         "training_sample_count": len(train_samples),
         "training_base_count": len({row["base_id"] for row in train_samples}),
+        "frozen_model_a_parity_pass": model_parity,
+        "required_prior_season": required_prior_season,
         "validation_base_count": len(base_scope),
+        "prediction_eligible_base_count": len(base_scope),
+        "registry_base_count": len(registry["bases"]),
+        "prediction_ineligible_base_count": len(ineligible_bases),
+        "prediction_ineligible_reason_counts": dict(
+            Counter(row["status"] for row in ineligible_bases)
+        ),
         "validation_daily_comparable_row_count": sum(
             int(row["daily"].get("comparable_row_count", 0)) for row in scores
         ),
@@ -414,19 +575,19 @@ def run_fold(
         "validation_area_eligible_base_count": len(base_scope),
         "validation_area_missing_count": 0,
         "validation_area_conflicting_count": 0,
-        "validation_area_proxy_count": len(base_scope),
+        "validation_area_proxy_count": 0,
         "train_area_eligible_base_count": len({row["base_id"] for row in train_samples}),
         "train_area_missing_count": 0,
         "train_area_conflicting_count": 0,
-        "train_area_proxy_count": len({row["base_id"] for row in train_samples}),
+        "train_area_proxy_count": 0,
         "area_authority": {
             "train": [
                 {
                     "season": str(sample["season"]),
                     "base_id": str(sample["base_id"]),
                     "area_mu": str(sample["reference_area_mu"]),
-                    "area_status": str(sample["area_status"]),
-                    "area_semantics": "REFERENCE_AREA",
+                    "area_type": AREA_TYPE,
+                    "area_semantics": "REFERENCE_AREA_ONLY",
                 }
                 for sample in sorted(
                     train_samples, key=lambda row: (str(row["season"]), str(row["base_id"]))
@@ -437,14 +598,17 @@ def run_fold(
                     "season": validation_season,
                     "base_id": str(row["base_id"]),
                     "area_mu": str(row["productive_area_mu"]),
-                    "area_status": "FROZEN_ACCEPTED_PROXY",
-                    "area_semantics": "REFERENCE_AREA",
+                    "area_type": AREA_TYPE,
+                    "area_semantics": "REFERENCE_AREA_ONLY",
                 }
                 for row in base_scope
             ],
         },
         "complete_base_season_count": sum(
             row["season_total"].get("status") == "COMPUTABLE" for row in scores
+        ),
+        "non_complete_base_season_count": sum(
+            row["season_total"].get("status") != "COMPUTABLE" for row in scores
         ),
         "partial_base_season_count": sum(row["coverage_status"] == "PARTIAL" for row in scores),
         "unknown_day_count": sum(int(row["unknown_row_count"]) for row in scores),
@@ -506,12 +670,20 @@ def replay_check(output: Path) -> None:
         from backend.app.area_yield.formal_multi_season_validation import TotalModel
 
         model = TotalModel(
-            global_yield_kg_per_mu=Decimal(model_payload["global_yield_kg_per_mu"]),
             base_yields_kg_per_mu={
                 key: Decimal(value) for key, value in model_payload["base_yields_kg_per_mu"].items()
             },
-            training_seasons=tuple(model_payload["training_seasons"]),
+            prior_season=str(model_payload["prior_season"]),
             training_sample_hash=model_payload["training_sample_hash"],
+        )
+        boundary_payload = state["business_boundary"]
+        boundary = BusinessBoundary(
+            season=str(boundary_payload["season"]),
+            start=date.fromisoformat(str(boundary_payload["business_start"])),
+            end=date.fromisoformat(str(boundary_payload["business_end"])),
+            authority_source=str(boundary_payload["authority_source"]),
+            authority_hash=str(boundary_payload["authority_hash"]),
+            policy=str(boundary_payload["policy"]),
         )
         sealed = seal_prediction_rows(
             fold_id=state["fold_id"],
@@ -528,7 +700,9 @@ def replay_check(output: Path) -> None:
                 validation_season=state["validation_season"],
                 registry_file_sha256=state["registry_file_sha256"],
                 temporal_artifact_sha256=state["temporal_file_sha256"],
+                boundary=boundary,
             ),
+            boundary=boundary,
         )
         if sealed["manifest"]["prediction_hash"] != state["prediction_hash"]:
             raise ValueError(f"FRESH_PROCESS_PREDICTION_REPLAY_MISMATCH:{fold_name}")
@@ -541,6 +715,7 @@ def replay_check(output: Path) -> None:
                 actual=actual,
                 registry_row=next(row for row in state["base_scope"] if row["base_id"] == base_id),
                 source_hash=actual[0].source_hash,
+                coverage_policy=state["coverage_policies"][base_id],
             )
             scores.append(score)
         aggregate = aggregate_fold_scores(scores)
@@ -556,6 +731,7 @@ def build_run(args: argparse.Namespace) -> dict[str, Any]:
     accepted, candidates, identity_sha256, identity_sources = load_identity_mapping(
         args.identity_mapping, args.base_member_mapping
     )
+    r7b_qualification, r7b_qualification_hash = load_r7b_qualification(args.r7b_qualification)
     temporal_payload = read_json(MODEL_CONFIG)["temporal_model"]
     temporal_file_sha256 = file_sha256(MODEL_CONFIG)
     if temporal_payload.get("model_id") != "AREA_DAILY_RIDGE_V1":
@@ -576,6 +752,8 @@ def build_run(args: argparse.Namespace) -> dict[str, Any]:
         temporal_model=temporal_payload,
         temporal_file_sha256=temporal_file_sha256,
         output=args.output,
+        r7b_qualification=r7b_qualification,
+        r7b_qualification_hash=r7b_qualification_hash,
     )
     sources["2024-2025"] = load_source(args.source_2024_2025, "2024-2025")
     fold_b = run_fold(
@@ -594,11 +772,13 @@ def build_run(args: argparse.Namespace) -> dict[str, Any]:
         temporal_model=temporal_payload,
         temporal_file_sha256=temporal_file_sha256,
         output=args.output,
+        r7b_qualification=r7b_qualification,
+        r7b_qualification_hash=r7b_qualification_hash,
     )
     scores_a = fold_a.pop("_internal_scores")
     scores_b = fold_b.pop("_internal_scores")
     evidence = {
-        "task_id": "V0_7_S1_FORMAL_MULTI_SEASON_BASELINE_VALIDATION_R1",
+        "task_id": "V0_7_S1_FROZEN_MODEL_AND_BUSINESS_BOUNDARY_CORRECTION_R2",
         "model_a": MODEL_ID,
         "total_model": TOTAL_ID,
         "temporal_model": TEMPORAL_ID,
@@ -609,9 +789,25 @@ def build_run(args: argparse.Namespace) -> dict[str, Any]:
         "model_family_search": False,
         "validation_season_used_for_tuning": False,
         "rolling_refit_on_past_data": True,
+        "history_policy": HISTORY_POLICY,
+        "immediate_prior_policy_pass": True,
+        "no_global_fallback_pass": True,
+        "frozen_model_a_parity_pass": all(
+            bool(fold["frozen_model_a_parity_pass"]) for fold in (fold_a, fold_b)
+        ),
         "weather_used": False,
         "weather_feature_generated": False,
         "model_b_created": False,
+        "area_semantics": {
+            "area_type": AREA_TYPE,
+            "area_semantics": "REFERENCE_AREA_ONLY",
+            "historical_actual_productive_area_authority": False,
+        },
+        "business_boundaries": {
+            season: business_boundary(season).payload()
+            for season in ("2023-2024", "2024-2025", "2025-2026")
+        },
+        "r7b_coverage_authority_sha256": r7b_qualification_hash,
         "sources": {
             "2023-2024": {
                 "sha256": EXPECTED_SOURCE_HASHES["2023-2024"],
@@ -638,7 +834,10 @@ def build_run(args: argparse.Namespace) -> dict[str, Any]:
             "validation_blindness": "PASS",
             "missing_actual_policy": "MISSING_OR_UNKNOWN_NOT_ZERO",
             "confirmed_zero_policy": "CONFIRMED_ZERO_IS_COMPARABLE",
-            "total_policy": "COMPLETE_BASE_SEASON_ONLY",
+            "total_policy": ("R7B_AUTHORITY_INTERSECTION_FOR_BUSINESS_TOTAL;UNKNOWN_NOT_ZERO"),
+            "shape_policy": (
+                "R7B_AUTHORITY_INTERSECTION_FOR_SHAPE_AND_PEAK;UNKNOWN_ROWS_EXCLUDED_FROM_WINDOWS"
+            ),
             "combined_wape_policy": "POOLED_ABSOLUTE_ERROR_OVER_POOLED_ACTUAL",
         },
         "folds": {"fold_a": fold_a, "fold_b": fold_b},
@@ -681,6 +880,7 @@ def main() -> int:
     )
     parser.add_argument("--identity-mapping", type=Path, required=False)
     parser.add_argument("--base-member-mapping", type=Path, required=False)
+    parser.add_argument("--r7b-qualification", type=Path, required=False)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--replay", action="store_true")
     args = parser.parse_args()
