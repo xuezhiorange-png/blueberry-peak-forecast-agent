@@ -179,6 +179,7 @@ def _audit_manifest(path: Path, root: Path | None) -> dict[str, Any]:
         "grid_count": 0,
         "raw_artifact_hashes": [],
         "historical_period": None,
+        "archive_provenance_eligible": False,
         "qualification_status": "FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE",
         "qualification_reasons": [],
     }
@@ -218,10 +219,14 @@ def _audit_manifest(path: Path, root: Path | None) -> dict[str, Any]:
         reasons.append("RUN_ID_MISSING")
     if issued_issue is not None:
         reasons.append(issued_issue)
+    elif issued_at is None:
+        reasons.append("ISSUED_AT_MISSING")
     if fetched_issue is not None:
         reasons.append(fetched_issue)
     if known_issue is not None:
         reasons.append(known_issue)
+    elif known_at is None:
+        reasons.append("KNOWN_AT_MISSING")
     if issued_at is not None and fetched_at is not None and issued_at > fetched_at:
         reasons.append("ISSUED_AFTER_FETCHED")
     if fetched_at is not None and known_at is not None and fetched_at > known_at:
@@ -281,6 +286,7 @@ def _audit_manifest(path: Path, root: Path | None) -> dict[str, Any]:
         }
     )
     if not reasons:
+        base_record["archive_provenance_eligible"] = True
         base_record["qualification_status"] = "FOUND_AS_ISSUED_ELIGIBLE"
     base_record["qualification_reasons"] = sorted(set(reasons))
     return base_record
@@ -358,6 +364,17 @@ def audit_ecmwf_archive(root: Path | None) -> dict[str, Any]:
         "audit_method": "FILESYSTEM_MANIFEST_SCAN_BY_ISSUED_AT",
         "network_accessed": False,
         "retrospective_forecast_reconstruction_allowed": False,
+        "as_issued_known_at_required": True,
+        "archive_provenance_eligibility_rule": [
+            "provider_identity_valid",
+            "model_run_identity_valid",
+            "issued_at_timezone_aware",
+            "known_at_timezone_aware",
+            "issued_at <= known_at",
+            "raw_forecast_artifact_identity_valid",
+            "forecast_horizon_identity_valid",
+            "base_grid_coverage_identity_valid",
+        ],
         "requested_seasons": requested,
         "discovered_manifest_count": len(discovered),
         "saved_ecmwf_manifests": saved_ecmwf,
@@ -500,7 +517,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         set(scopes["fold_b_model_a_eligible_base_ids"]) & set(weather_bases)
     )
     return {
-        "task_id": "V0_7_S2_ARCHIVE_AUDIT_AND_TARGET_SEMANTICS_CORRECTION_R2",
+        "task_id": "V0_7_S2_AS_ISSUED_KNOWN_AT_GATE_CORRECTION_R3",
         "weather_source_authority": {
             "era5_source": WEATHER_SOURCE,
             "era5_role": "REANALYSIS_REFERENCE",
@@ -527,6 +544,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "model": ECMWF_MODEL,
             "prospective_provider_qualified": True,
             "status": "QUALIFIED_PROSPECTIVE_ONLY",
+            "as_issued_known_at_required": True,
+            "archive_provenance_eligibility_rule": archive["archive_provenance_eligibility_rule"],
             "historical_archive_audit": archive,
             "existing_prospective_capture_evidence_preserved": expected_run_present,
             "existing_prospective_capture_manifest_sha256": ECMWF_EXPECTED_MANIFEST_HASH,
@@ -615,6 +634,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "era5_event_time_visibility_pass": "PASS",
             "era5_known_at_visibility_status": "NOT_ESTABLISHED",
             "as_issued_forecast_visibility_policy_pass": "PASS",
+            "as_issued_known_at_required": True,
+            "known_at_missing_fail_closed_pass": "PASS",
+            "archive_provenance_eligibility_gate_pass": "PASS",
             "feature_leakage_gate_pass": "PASS",
             "realized_future_weather_rejected_as_production_input": "PASS",
             "forecast_origin_policy_frozen": True,

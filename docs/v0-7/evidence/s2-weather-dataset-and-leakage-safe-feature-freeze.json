@@ -1,5 +1,5 @@
 {
-  "task_id": "V0_7_S2_ARCHIVE_AUDIT_AND_TARGET_SEMANTICS_CORRECTION_R2",
+  "task_id": "V0_7_S2_AS_ISSUED_KNOWN_AT_GATE_CORRECTION_R3",
   "slice": "S2",
   "status": "CONTRACT_AND_OFFLINE_REPLAY_READY_FOR_DRAFT_REVIEW",
   "scope_boundary": {
@@ -76,11 +76,26 @@
     "historical_archive_audit_method": "FILESYSTEM_MANIFEST_SCAN_BY_ISSUED_AT",
     "historical_archive_audit_network_accessed": false,
     "retrospective_forecast_reconstruction_allowed": false,
+    "as_issued_known_at_required": true,
+    "archive_provenance_eligibility_rule": [
+      "provider_identity_valid",
+      "model_run_identity_valid",
+      "issued_at_timezone_aware",
+      "known_at_timezone_aware",
+      "issued_at <= known_at",
+      "raw_forecast_artifact_identity_valid",
+      "forecast_horizon_identity_valid",
+      "base_grid_coverage_identity_valid"
+    ],
     "existing_prospective_capture": {
       "run_id": "20260919000000",
       "issued_at": "2026-09-19T00:00:00Z",
+      "known_at": null,
       "base_count": 39,
-      "artifact_manifest_sha256": "aad170103e156a11424c2d487fff27c0b7a263223d7552b155f3c275317477f0"
+      "artifact_manifest_sha256": "aad170103e156a11424c2d487fff27c0b7a263223d7552b155f3c275317477f0",
+      "qualification_status": "FOUND_BUT_NOT_AS_ISSUED_ELIGIBLE",
+      "qualification_reasons": ["KNOWN_AT_MISSING"],
+      "archive_provenance_eligible": false
     },
     "requested_historical_seasons": {
       "2024-2025": {
@@ -242,6 +257,9 @@
     "era5_event_time_visibility_pass": "PASS",
     "era5_known_at_visibility_status": "NOT_ESTABLISHED",
     "as_issued_forecast_visibility_policy_pass": "PASS",
+    "as_issued_known_at_required": true,
+    "known_at_missing_fail_closed_pass": "PASS",
+    "archive_provenance_eligibility_gate_pass": "PASS",
     "feature_leakage_gate_pass": "PASS",
     "realized_future_weather_rejected_as_production_input": "PASS",
     "forecast_origin_policy_frozen": true,
