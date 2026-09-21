@@ -1,0 +1,205 @@
+{
+  "task_id": "V0_7_S2_WEATHER_DATASET_AND_LEAKAGE_SAFE_FEATURE_FREEZE_R1",
+  "slice": "S2",
+  "status": "CONTRACT_AND_OFFLINE_REPLAY_READY_FOR_DRAFT_REVIEW",
+  "scope_boundary": {
+    "model_b_created": false,
+    "model_b_trained": false,
+    "model_a_b_comparison_executed": false,
+    "weather_incremental_value_scored": false,
+    "gdd_generated": false,
+    "vpd_generated": false,
+    "et0_generated": false,
+    "v0_7_s3_implementation_authorized": false,
+    "production_deployment": false
+  },
+  "authority_inputs": {
+    "s1_evidence_path": "docs/v0-7/evidence/s1-formal-multi-season-baseline-validation.json",
+    "s1_evidence_sha256": "93d636d04bafa642d53481901e5358d1529c41ad15bd59e63089386d79b5d10d",
+    "s1_report_path": "docs/v0-7/s1/formal-multi-season-baseline-validation.md",
+    "s1_report_sha256": "1903ce4027504adfbbcc342da56886e634e8eec05a281f3b7f02d6240484e3ea",
+    "era5_evidence_path": "docs/v0-5/s2/era5-land-historical-weather-dataset-final-r1-evidence.json",
+    "era5_evidence_sha256": "a2249cdd107153e265e60e8a8eab7fc67ed972f0aa0c25d9a7511ba11f20b2b0",
+    "era5_config_path": "configs/era5_land_historical_weather_final_r1.json",
+    "era5_config_sha256": "827c16bb2aa9d12d0b29452e2861ebf5456cf7f7758c7d7e2978f26e3010832e",
+    "weather_source_audit_path": "docs/v0-5/s2/weather-source-authority-audit-r1.md",
+    "weather_source_audit_sha256": "fa970bab310c0679effb3a4bb3662b44f6aa5ecad60bf8f7bb8b08fcf5263340",
+    "ecmwf_qualification_path": "docs/v0-6/s2-weather-provider-qualification-r2.md",
+    "ecmwf_qualification_sha256": "30b3f78c861f53288709c8993a7ba87d7b9c8dda83a0dcd73178cdf674b2522b",
+    "ecmwf_deterministic_acceptance_path": "docs/v0-6/s2-weather-provider-deterministic-acceptance-r3.md",
+    "ecmwf_deterministic_acceptance_sha256": "3971ae8f88819fb619d7aa750dd41e04bdfd3bfcd10c7d9aab3552d73af53786"
+  },
+  "era5_historical_dataset": {
+    "source": "ERA5_LAND",
+    "role": "REANALYSIS_REFERENCE",
+    "source_product": "reanalysis-era5-land-timeseries",
+    "source_manifest_sha256": "2bd5f909945f0ba677d9818c9cb23a3eb80119cb9e03407707cbbe83880bddb1",
+    "daily_layer": "BASE_WEATHER_DAILY_V1",
+    "daily_dataset_sha256": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "season_count": 3,
+    "weather_base_count": 38,
+    "daily_row_count": 32984,
+    "date_min": "2023-07-01",
+    "date_max": "2026-04-15",
+    "local_timezone": "Asia/Shanghai",
+    "spatial_extraction": "CDS_0P1_NEAREST_GRID_CELL_V1",
+    "interpolation": false,
+    "dem_downscaling": false,
+    "query_crs": "WGS84",
+    "crs_verification_status": "NOT_ESTABLISHED",
+    "historical_as_issued_pit_status": "PIT_NOT_ESTABLISHED",
+    "weather_base_set_hash": "55a87a63e1e68d24057bb32c62f53a2987895661aea18400a9a8ff57b217161a",
+    "non_weather_base_count": 1,
+    "non_weather_base_ids": ["base_36bc109841061a7798ed99a3"],
+    "non_weather_base_set_hash": "8e8a4a5578ae6e8416c2677251d3c00acfc5825f438b06780d7cc4f0c20d866c"
+  },
+  "source_primitive_audit": {
+    "t2m": "REPRESENTED_BY_DAILY_TEMPERATURE_FIELDS",
+    "d2m": "HOURLY_SOURCE_PRESENT_BUT_NO_HUMIDITY_DERIVED",
+    "tp": "REPRESENTED_BY_DAILY_PRECIPITATION_MM",
+    "ssrd": "REPRESENTED_BY_DAILY_SOLAR_ENERGY_J_M2",
+    "u10": "ACCEPTED_DAILY_WIND_SPEED_PROJECTION",
+    "v10": "ACCEPTED_DAILY_WIND_SPEED_PROJECTION",
+    "new_vector_wind_derivation": false,
+    "relative_humidity_authority": "NOT_AUTHORIZED"
+  },
+  "ecmwf_forecast_authority": {
+    "provider": "ECMWF_IFS_OPEN_DATA",
+    "model": "IFS",
+    "status": "QUALIFIED_PROSPECTIVE_ONLY",
+    "d1_available": true,
+    "d3_available": true,
+    "d7_available": true,
+    "d15_available": true,
+    "max_forecast_horizon_hours": 360,
+    "historical_as_issued_archive_audited": "PASS",
+    "retrospective_forecast_reconstruction_allowed": false,
+    "existing_prospective_capture": {
+      "run_id": "20260919000000",
+      "issued_at": "2026-09-19T00:00:00Z",
+      "base_count": 39,
+      "artifact_manifest_sha256": "aad170103e156a11424c2d487fff27c0b7a263223d7552b155f3c275317477f0"
+    },
+    "requested_historical_seasons": {
+      "2024-2025": {
+        "status": "NOT_FOUND_IN_REPOSITORY_OR_CONTROLLED_ARTIFACT_ROOTS",
+        "available_origin_dates": [],
+        "available_base_count": 0,
+        "available_issue_cycles": [],
+        "available_horizons": [],
+        "provider_identity": null,
+        "raw_artifact_identity": null,
+        "missing_date_ranges": ["ENTIRE_REQUESTED_SEASON_ARCHIVE"]
+      },
+      "2025-2026": {
+        "status": "NOT_FOUND_IN_REPOSITORY_OR_CONTROLLED_ARTIFACT_ROOTS",
+        "available_origin_dates": [],
+        "available_base_count": 0,
+        "available_issue_cycles": [],
+        "available_horizons": [],
+        "provider_identity": null,
+        "raw_artifact_identity": null,
+        "missing_date_ranges": ["ENTIRE_REQUESTED_SEASON_ARCHIVE"]
+      }
+    },
+    "production_like_historical_forecast_weather_comparison_status": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE"
+  },
+  "weather_lanes": {
+    "lane_a": {
+      "name": "PAST_OBSERVED_WEATHER",
+      "source": "ERA5_LAND",
+      "role": "HISTORICAL_REALIZED_OBSERVATION",
+      "primary_historical_experiment_eligible": true
+    },
+    "lane_b": {
+      "name": "AS_ISSUED_FORECAST_WEATHER",
+      "source": "ECMWF_IFS_OPEN_DATA",
+      "visibility": ["issued_at <= forecast_origin", "known_at <= forecast_origin"],
+      "historical_status": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE",
+      "future_prospective_allowed": true
+    },
+    "lane_c": {
+      "name": "FUTURE_REALIZED_ORACLE",
+      "source": "ERA5_LAND",
+      "role": "RESEARCH_UPPER_BOUND_ONLY",
+      "research_only": true,
+      "production_like": false,
+      "excluded_from_primary_incremental_value": true
+    }
+  },
+  "time_policy": {
+    "forecast_origin_policy": "ROLLING_DAILY_LOCAL_DAY_START",
+    "forecast_origin_timezone": "Asia/Shanghai",
+    "information_cutoff_policy": "MAX_SOURCE_OBSERVATION_LOCAL_DATE=ORIGIN_LOCAL_DATE_MINUS_1;MAX_SOURCE_OBSERVATION_TIME<FORECAST_ORIGIN",
+    "target_horizon_policy": {
+      "H1": "NEXT_1_CALENDAR_DAY",
+      "H7": "NEXT_7_CALENDAR_DAYS",
+      "H15": "NEXT_15_CALENDAR_DAYS"
+    },
+    "same_forecast_origins_required": true,
+    "same_target_dates_required": true,
+    "same_information_cutoff_required": true
+  },
+  "feature_policy": {
+    "version": "V0_7_S2_LEAKAGE_SAFE_PAST_OBSERVED_V1",
+    "windows_days": [7, 14, 30],
+    "feature_count": 18,
+    "features": [
+      "w7_mean_temperature_c",
+      "w7_mean_tmin_c",
+      "w7_mean_tmax_c",
+      "w7_precipitation_sum_mm",
+      "w7_solar_radiation_mean_mj_m2",
+      "w7_wind_speed_mean_m_s",
+      "w14_mean_temperature_c",
+      "w14_mean_tmin_c",
+      "w14_mean_tmax_c",
+      "w14_precipitation_sum_mm",
+      "w14_solar_radiation_mean_mj_m2",
+      "w14_wind_speed_mean_m_s",
+      "w30_mean_temperature_c",
+      "w30_mean_tmin_c",
+      "w30_mean_tmax_c",
+      "w30_precipitation_sum_mm",
+      "w30_solar_radiation_mean_mj_m2",
+      "w30_wind_speed_mean_m_s"
+    ],
+    "relative_humidity_status": "NOT_AUTHORIZED",
+    "gdd_status": "NOT_IN_MODEL_UNTIL_DEFINITION_FROZEN",
+    "automatic_feature_search": false
+  },
+  "s1_model_scope_intersection": {
+    "fold_a_model_a_eligible_base_count": 13,
+    "fold_a_weather_intersection_base_count": 13,
+    "fold_a_weather_intersection_base_hash": "3920793284c625eedd16f44f2bff2f8d1bac1fdc7a54bed88f344b274f2eed57",
+    "fold_b_model_a_eligible_base_count": 30,
+    "fold_b_weather_intersection_base_count": 29,
+    "fold_b_weather_intersection_base_hash": "45fc4b929b669360211825bed6d904bed9717575f609d32032320642ff1c2327",
+    "fold_b_non_weather_model_eligible_base_ids": ["base_36bc109841061a7798ed99a3"]
+  },
+  "feature_dataset": {
+    "row_count": 342,
+    "base_count": 38,
+    "season_count": 3,
+    "horizon_count": 3,
+    "manifest_hash": "72f70c927bfbfcea36532c81c6832f12c4f4d32cf9fa64d594193271f5788312",
+    "replay_manifest_hash": "72f70c927bfbfcea36532c81c6832f12c4f4d32cf9fa64d594193271f5788312",
+    "rows_file_sha256": "1c9c409fe587f95026d0c656f7976d7a72607c2414ace5bf1492d54c2808ac58",
+    "offline_replay": "PASS",
+    "full_rows_commit_policy": "PRIVATE_CONTROLLED_ARTIFACT_ONLY"
+  },
+  "acceptance": {
+    "weather_source_authority_pass": "PASS",
+    "weather_time_visibility_pass": "PASS",
+    "feature_leakage_gate_pass": "PASS",
+    "realized_future_weather_rejected_as_production_input": "PASS",
+    "forecast_origin_policy_frozen": true,
+    "target_horizon_policy_frozen": true,
+    "information_cutoff_policy_frozen": true,
+    "historical_as_issued_weather_archive_audited": "PASS",
+    "no_as_issued_archive_fail_closed_policy_frozen": true,
+    "weather_feature_policy_frozen": true,
+    "weather_feature_dataset_determinism_pass": "PASS",
+    "offline_replay_pass": "PASS"
+  }
+}
