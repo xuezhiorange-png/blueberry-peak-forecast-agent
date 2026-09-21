@@ -1,5 +1,5 @@
 {
-  "task_id": "V0_7_S2_WEATHER_DATASET_AND_LEAKAGE_SAFE_FEATURE_FREEZE_R1",
+  "task_id": "V0_7_S2_ARCHIVE_AUDIT_AND_TARGET_SEMANTICS_CORRECTION_R2",
   "slice": "S2",
   "status": "CONTRACT_AND_OFFLINE_REPLAY_READY_FOR_DRAFT_REVIEW",
   "scope_boundary": {
@@ -73,6 +73,8 @@
     "d15_available": true,
     "max_forecast_horizon_hours": 360,
     "historical_as_issued_archive_audited": "PASS",
+    "historical_archive_audit_method": "FILESYSTEM_MANIFEST_SCAN_BY_ISSUED_AT",
+    "historical_archive_audit_network_accessed": false,
     "retrospective_forecast_reconstruction_allowed": false,
     "existing_prospective_capture": {
       "run_id": "20260919000000",
@@ -82,7 +84,11 @@
     },
     "requested_historical_seasons": {
       "2024-2025": {
-        "status": "NOT_FOUND_IN_REPOSITORY_OR_CONTROLLED_ARTIFACT_ROOTS",
+        "status": "NOT_FOUND",
+        "period_start": "2024-07-01",
+        "period_end": "2025-04-15",
+        "candidate_manifest_count": 0,
+        "eligible_manifest_count": 0,
         "available_origin_dates": [],
         "available_base_count": 0,
         "available_issue_cycles": [],
@@ -92,7 +98,11 @@
         "missing_date_ranges": ["ENTIRE_REQUESTED_SEASON_ARCHIVE"]
       },
       "2025-2026": {
-        "status": "NOT_FOUND_IN_REPOSITORY_OR_CONTROLLED_ARTIFACT_ROOTS",
+        "status": "NOT_FOUND",
+        "period_start": "2025-07-22",
+        "period_end": "2026-04-15",
+        "candidate_manifest_count": 0,
+        "eligible_manifest_count": 0,
         "available_origin_dates": [],
         "available_base_count": 0,
         "available_issue_cycles": [],
@@ -102,6 +112,8 @@
         "missing_date_ranges": ["ENTIRE_REQUESTED_SEASON_ARCHIVE"]
       }
     },
+    "discovered_manifest_count": 1,
+    "rejected_manifests": [],
     "production_like_historical_forecast_weather_comparison_status": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE"
   },
   "weather_lanes": {
@@ -109,7 +121,10 @@
       "name": "PAST_OBSERVED_WEATHER",
       "source": "ERA5_LAND",
       "role": "HISTORICAL_REALIZED_OBSERVATION",
-      "primary_historical_experiment_eligible": true
+      "primary_historical_experiment_eligible": true,
+      "event_time_cutoff_pass": true,
+      "forecast_time_known_at_status": "NOT_ESTABLISHED",
+      "production_like_pit_eligible": false
     },
     "lane_b": {
       "name": "AS_ISSUED_FORECAST_WEATHER",
@@ -126,6 +141,26 @@
       "production_like": false,
       "excluded_from_primary_incremental_value": true
     }
+  },
+  "target_semantics": {
+    "target_granularity": "DAILY",
+    "target_label": "ACTUAL_DAILY_HARVEST_KG",
+    "target_row_identity": "base_id+forecast_origin+target_date",
+    "duplicate_target_label_weighting_allowed": false,
+    "horizon_target_types": {
+      "H1": "DAILY_VECTOR_LENGTH_1",
+      "H7": "DAILY_VECTOR_LENGTH_7",
+      "H15": "DAILY_VECTOR_LENGTH_15"
+    },
+    "horizon_views": {
+      "H1": "lead_day_0;target_dates=D",
+      "H7": "lead_days_0..6;target_dates=D..D+6",
+      "H15": "lead_days_0..14;target_dates=D..D+14"
+    },
+    "same_target_row_keys": true,
+    "same_target_dates": true,
+    "same_lead_days": true,
+    "same_actual_label_authority": true
   },
   "time_policy": {
     "forecast_origin_policy": "ROLLING_DAILY_LOCAL_DAY_START",
@@ -166,6 +201,10 @@
     ],
     "relative_humidity_status": "NOT_AUTHORIZED",
     "gdd_status": "NOT_IN_MODEL_UNTIL_DEFINITION_FROZEN",
+    "era5_event_time_cutoff_pass": true,
+    "era5_forecast_time_known_at_status": "NOT_ESTABLISHED",
+    "lane_a_historical_oot_research_eligible": true,
+    "lane_a_production_like_pit_eligible": false,
     "automatic_feature_search": false
   },
   "s1_model_scope_intersection": {
@@ -178,19 +217,31 @@
     "fold_b_non_weather_model_eligible_base_ids": ["base_36bc109841061a7798ed99a3"]
   },
   "feature_dataset": {
+    "artifact_type": "OFFLINE_CONTRACT_FIXTURE",
+    "offline_contract_fixture_row_count": 342,
+    "offline_contract_fixture_base_count": 38,
+    "offline_contract_fixture_origin_count": 3,
+    "offline_contract_fixture_horizon_count": 3,
     "row_count": 342,
     "base_count": 38,
+    "origin_count": 3,
     "season_count": 3,
     "horizon_count": 3,
+    "full_rolling_training_feature_dataset_built": false,
     "manifest_hash": "72f70c927bfbfcea36532c81c6832f12c4f4d32cf9fa64d594193271f5788312",
     "replay_manifest_hash": "72f70c927bfbfcea36532c81c6832f12c4f4d32cf9fa64d594193271f5788312",
     "rows_file_sha256": "1c9c409fe587f95026d0c656f7976d7a72607c2414ace5bf1492d54c2808ac58",
     "offline_replay": "PASS",
-    "full_rows_commit_policy": "PRIVATE_CONTROLLED_ARTIFACT_ONLY"
+    "full_rows_commit_policy": "PRIVATE_CONTROLLED_ARTIFACT_ONLY",
+    "fixture_semantics": "CONTRACT_AND_OFFLINE_REPLAY_EVIDENCE_ONLY;NOT_A_COMPLETE_S3_TRAINING_FEATURE_DATASET"
   },
   "acceptance": {
     "weather_source_authority_pass": "PASS",
-    "weather_time_visibility_pass": "PASS",
+    "weather_time_visibility_pass": "PASS_WITH_ERA5_RESEARCH_ONLY_KNOWN_AT_LIMITATION",
+    "future_event_time_leakage_pass": "PASS",
+    "era5_event_time_visibility_pass": "PASS",
+    "era5_known_at_visibility_status": "NOT_ESTABLISHED",
+    "as_issued_forecast_visibility_policy_pass": "PASS",
     "feature_leakage_gate_pass": "PASS",
     "realized_future_weather_rejected_as_production_input": "PASS",
     "forecast_origin_policy_frozen": true,
@@ -200,6 +251,7 @@
     "no_as_issued_archive_fail_closed_policy_frozen": true,
     "weather_feature_policy_frozen": true,
     "weather_feature_dataset_determinism_pass": "PASS",
-    "offline_replay_pass": "PASS"
+    "offline_replay_pass": "PASS",
+    "full_rolling_training_feature_dataset_built": false
   }
 }

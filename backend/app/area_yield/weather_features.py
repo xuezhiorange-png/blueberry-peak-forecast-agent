@@ -27,6 +27,15 @@ ORIGIN_POLICY = "ROLLING_DAILY_LOCAL_DAY_START"
 ORIGIN_TIMEZONE = "Asia/Shanghai"
 PRIMARY_WINDOWS_DAYS = (7, 14, 30)
 PRIMARY_HORIZONS = {"H1": 1, "H7": 7, "H15": 15}
+TARGET_GRANULARITY = "DAILY"
+TARGET_LABEL = "ACTUAL_DAILY_HARVEST_KG"
+TARGET_ROW_IDENTITY = "base_id+forecast_origin+target_date"
+DUPLICATE_TARGET_LABEL_WEIGHTING_ALLOWED = False
+HORIZON_TARGET_TYPES = {
+    "H1": "DAILY_VECTOR_LENGTH_1",
+    "H7": "DAILY_VECTOR_LENGTH_7",
+    "H15": "DAILY_VECTOR_LENGTH_15",
+}
 PRIMARY_FEATURE_COUNT = len(PRIMARY_WINDOWS_DAYS) * 6
 ORACLE_LANE = "FUTURE_REALIZED_ORACLE"
 LANE_A = "PAST_OBSERVED_WEATHER"
@@ -185,6 +194,42 @@ def _local_origin(value: datetime) -> datetime:
     if local.time() != time.min:
         raise WeatherFeatureError("FORECAST_ORIGIN_NOT_LOCAL_DAY_START")
     return local
+
+
+def target_dates_for_horizon(*, forecast_origin: datetime, horizon: str) -> tuple[date, ...]:
+    """Return the one daily target vector for a frozen horizon view.
+
+    H1/H7/H15 are evaluation views over the same daily target-row identity;
+    they are not three differently weighted training-label populations.
+    """
+
+    local_origin = _local_origin(forecast_origin)
+    if horizon not in PRIMARY_HORIZONS:
+        raise WeatherFeatureError("UNSUPPORTED_TARGET_HORIZON")
+    return tuple(
+        local_origin.date() + timedelta(days=offset) for offset in range(PRIMARY_HORIZONS[horizon])
+    )
+
+
+def target_row_key(*, base_id: str, forecast_origin: datetime, target_date: date) -> str:
+    """Build the canonical daily target-row identity used by future S3 work."""
+
+    if not base_id:
+        raise WeatherFeatureError("TARGET_BASE_ID_REQUIRED")
+    local_origin = _local_origin(forecast_origin)
+    if target_date < local_origin.date():
+        raise WeatherFeatureError("TARGET_DATE_BEFORE_FORECAST_ORIGIN")
+    return "+".join((base_id, local_origin.isoformat(), target_date.isoformat()))
+
+
+def target_lead_day(*, forecast_origin: datetime, target_date: date) -> int:
+    """Return the non-negative daily lead for a target row."""
+
+    local_origin = _local_origin(forecast_origin)
+    lead_day = (target_date - local_origin.date()).days
+    if lead_day < 0:
+        raise WeatherFeatureError("TARGET_DATE_BEFORE_FORECAST_ORIGIN")
+    return lead_day
 
 
 def validate_observation_visibility(
@@ -452,6 +497,11 @@ __all__ = [
     "PRIMARY_FEATURES",
     "PRIMARY_HORIZONS",
     "PRIMARY_WINDOWS_DAYS",
+    "TARGET_GRANULARITY",
+    "TARGET_LABEL",
+    "TARGET_ROW_IDENTITY",
+    "DUPLICATE_TARGET_LABEL_WEIGHTING_ALLOWED",
+    "HORIZON_TARGET_TYPES",
     "WEATHER_FEATURE_POLICY_VERSION",
     "WEATHER_ROLE",
     "WEATHER_SOURCE",
@@ -464,6 +514,9 @@ __all__ = [
     "observation_from_daily_payload",
     "replay_feature_manifest",
     "season_to_date_visible_observations",
+    "target_dates_for_horizon",
+    "target_lead_day",
+    "target_row_key",
     "validate_feature_row",
     "validate_observation_visibility",
     "validate_weather_lane",
