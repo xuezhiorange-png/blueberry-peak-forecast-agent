@@ -655,7 +655,7 @@ async def test_future_forecast_created_at_is_rejected(
     await _seed_forecast_dependencies(repository)
     with pytest.raises(PITIntegrityError, match="FORECAST_CREATED_AT_IN_FUTURE"):
         await repository.save_forecast_run_snapshot(
-            _forecast_input(forecast_created_at=NOW + timedelta(days=1))
+            _forecast_input(forecast_created_at=datetime.now(UTC) + timedelta(days=1))
         )
 
 
