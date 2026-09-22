@@ -5,6 +5,15 @@
   "version_name_cn": "多产季模型正式验证与天气增强实验版",
   "base_main_sha": "381b7010c36a0b4069eea0142f0fcebe27f2e009",
   "base_main_tree_sha": "5bea50bdf893b5d8aa893fa66bbf234e751a200e",
+  "closeout_pr": {
+    "pr_number": 649,
+    "base_branch": "main",
+    "base_sha": "381b7010c36a0b4069eea0142f0fcebe27f2e009",
+    "state": "OPEN",
+    "draft": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
   "engineering_complete": true,
   "feature_development_frozen": true,
   "slices": {
