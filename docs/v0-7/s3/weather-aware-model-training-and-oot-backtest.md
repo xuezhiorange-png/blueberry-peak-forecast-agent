@@ -1,0 +1,51 @@
+# V0.7-S3 Weather-Aware Model Training and Rolling OOT Backtest
+
+This is a historical OOT weather-signal experiment using Lane-A ERA5-Land past-observed weather. It is not production-like PIT weather validation and does not promote Model B.
+
+## Frozen contract
+
+- Model A: `AREA_DAILY_RIDGE_V1_ROLLING_OOT_NO_WEATHER` (10 features)
+- Model B1: `AREA_DAILY_RIDGE_V1_PLUS_LEAKAGE_SAFE_WEATHER_FEATURES` (28 features; 18 weather features)
+- Ridge: alpha `10.000000`, solver `numpy.linalg.solve`, nonnegative clip `True`
+- Folds: 2023-2024 -> 2024-2025; 2023-2024 + 2024-2025 -> 2025-2026
+- Target: one daily row per `base_id+forecast_origin+target_date`; H1/H7/H15 are views
+- Missing/unknown actual is not zero-filled; validation labels are loaded after prediction seal
+
+## Fold metrics
+
+### FOLD_A
+- H1: A WAPE `0.5735007172166231354939150247`, B WAPE `0.5712674368698074356303994552`, B-A `-0.002233280347`
+- H7: A WAPE `0.5740635012743079200397000277`, B WAPE `0.5598280551919795726817188018`, B-A `-0.014235446082`
+- H15: A WAPE `0.5766585085673582207236496244`, B WAPE `0.5668383352648546388586439127`, B-A `-0.009820173303`
+
+### FOLD_B
+- H1: A WAPE `0.5353785100212518009093563999`, B WAPE `0.5270941105936877811007125420`, B-A `-0.008284399428`
+- H7: A WAPE `0.5228899179358368129482200790`, B WAPE `0.5035973330809727732919925954`, B-A `-0.019292584855`
+- H15: A WAPE `0.5242647222257295327448299625`, B WAPE `0.5032230970616741330430591370`, B-A `-0.021041625164`
+
+## Combined rolling views
+
+- H1: A WAPE `0.5444649243638447728953130494`, B WAPE `0.5376228069878489890305679374`, delta `-0.0068421173759957838647451120`
+- H7: A WAPE `0.5347506341910098593067011251`, B WAPE `0.5166301636211149439149827418`, delta `-0.0181204705698949153917183833`
+- H15: A WAPE `0.5361813512430062990109994014`, B WAPE `0.5176919729808530068973419994`, delta `-0.0184893782621532921136574020`
+
+## Weather sensitivity acceptance
+
+Sensitivity is evaluated by reusing each fitted artifact over the complete sealed validation row set and mutating `w7_mean_temperature_c` by +1.0 C. No validation labels are read and no model is refit.
+
+- Fold A: Model A invariance `True`, Model B sensitivity `True`, rows `49140`
+- Fold B: Model A invariance `True`, Model B sensitivity `True`, rows `109620`
+- Fold A weather coefficients: nonzero `18`, max abs `13261.418088666886`, L1 `46426.293795416441133`
+- Fold B weather coefficients: nonzero `18`, max abs `7866.6205629090564`, L1 `24774.159939194710878`
+- Primary metric parity after correction: `True`
+
+## Per-Base horizon denominator
+
+Per-Base H1/H7/H15 diagnostics use the same complete-horizon row policy as the global primary views. Known-support lead-day diagnostics are not labelled as primary horizon metrics.
+
+## Scope boundary
+
+- `LANE_B_EXECUTED=false`
+- `ORACLE_WEATHER_EXPERIMENT_EXECUTED=false`
+- `WEATHER_INCREMENTAL_VALUE_FINAL_CLASSIFICATION=DEFERRED_TO_S4`
+- S3 does not claim production weather value or model promotion.
