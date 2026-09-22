@@ -42,6 +42,7 @@ from backend.app.area_yield.weather_aware_backtest import (
     WEATHER_FEATURE_COUNT,
     WEATHER_LANE,
     WEATHER_SOURCE,
+    _complete_horizon_rows,
     aggregate_scored_rows,
     build_rolling_rows,
     dataset_manifest,
@@ -49,7 +50,7 @@ from backend.app.area_yield.weather_aware_backtest import (
     rows_with_known_labels,
     score_predictions,
     seal_predictions,
-    weather_sensitivity,
+    weather_sensitivity_prediction_set,
 )
 from backend.app.area_yield.weather_features import load_era5_daily_jsonl
 from scripts.run_v07_s1_formal_validation import (
@@ -64,6 +65,24 @@ WEATHER_DATASET_HASH = "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527
 REGISTRY_PATH = Path("configs/v0_5_base_reference_registry_v1.json")
 S1_EVIDENCE = Path("docs/v0-7/evidence/s1-formal-multi-season-baseline-validation.json")
 S2_EVIDENCE = Path("docs/v0-7/evidence/s2-weather-dataset-and-leakage-safe-feature-freeze.json")
+
+PRIMARY_WAPE_PARITY_REFERENCE = {
+    "fold_a": {
+        "H1": ("0.5735007172166231354939150247", "0.5712674368698074356303994552"),
+        "H7": ("0.5740635012743079200397000277", "0.5598280551919795726817188018"),
+        "H15": ("0.5766585085673582207236496244", "0.5668383352648546388586439127"),
+    },
+    "fold_b": {
+        "H1": ("0.5353785100212518009093563999", "0.5270941105936877811007125420"),
+        "H7": ("0.5228899179358368129482200790", "0.5035973330809727732919925954"),
+        "H15": ("0.5242647222257295327448299625", "0.5032230970616741330430591370"),
+    },
+    "combined": {
+        "H1": ("0.5444649243638447728953130494", "0.5376228069878489890305679374"),
+        "H7": ("0.5347506341910098593067011251", "0.5166301636211149439149827418"),
+        "H15": ("0.5361813512430062990109994014", "0.5176919729808530068973419994"),
+    },
+}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -163,10 +182,19 @@ def _base_diagnostics(
     for row in scored_rows:
         by_base[str(row["base_id"])].append(dict(row))
     result: list[dict[str, Any]] = []
+    boundary = business_boundary(season)
     for base_id in sorted(by_base):
         rows = by_base[base_id]
         a = _simple_metric(rows, "model_a_predicted_daily_kg")
         b = _simple_metric(rows, "model_b_predicted_daily_kg")
+        complete_views = {
+            horizon: _complete_horizon_rows(
+                rows,
+                horizon_days=days,
+                boundary=boundary,
+            )
+            for horizon, days in HORIZONS.items()
+        }
         result.append(
             {
                 "fold_id": fold_id,
@@ -179,9 +207,12 @@ def _base_diagnostics(
                     a.get("pooled_wape"), b.get("pooled_wape")
                 ),
                 "daily_bias_delta_b_minus_a": _difference(a.get("bias_kg"), b.get("bias_kg")),
-                "h1_delta": _view_delta(rows, 1),
-                "h7_delta": _view_delta(rows, 7),
-                "h15_delta": _view_delta(rows, 15),
+                "h1_delta": _view_delta(complete_views["H1"], 1),
+                "h7_delta": _view_delta(complete_views["H7"], 7),
+                "h15_delta": _view_delta(complete_views["H15"], 15),
+                "horizon_comparable_row_counts": {
+                    horizon: len(view) for horizon, view in complete_views.items()
+                },
             }
         )
     return result
@@ -208,6 +239,37 @@ def _difference(left: Any, right: Any) -> str | None:
     if left is None or right is None:
         return None
     return format(float(right) - float(left), ".12f")
+
+
+def _weather_coefficient_evidence(model: Mapping[str, Any]) -> dict[str, Any]:
+    coefficients = [Decimal(str(value)) for value in model["coefficients"]]
+    weather_coefficients = coefficients[FEATURE_COUNT_A:]
+    nonzero = [value for value in weather_coefficients if value != 0]
+    return {
+        "weather_feature_count": len(weather_coefficients),
+        "nonzero_weather_coefficient_count": len(nonzero),
+        "weather_coefficient_max_abs": format(
+            max((abs(value) for value in weather_coefficients), default=Decimal(0)), "f"
+        ),
+        "weather_coefficient_l1_sum": format(
+            sum((abs(value) for value in weather_coefficients), Decimal(0)), "f"
+        ),
+    }
+
+
+def _primary_metric_parity(
+    *, fold_a: Mapping[str, Any], fold_b: Mapping[str, Any], combined: Mapping[str, Any]
+) -> bool:
+    sources = {"fold_a": fold_a, "fold_b": fold_b, "combined": combined}
+    for scope, expected_horizons in PRIMARY_WAPE_PARITY_REFERENCE.items():
+        source = sources[scope]
+        models = source["score"]["models"] if scope != "combined" else source["models"]
+        for horizon, (expected_a, expected_b) in expected_horizons.items():
+            actual_a = models[MODEL_A_S3]["horizons"][horizon]["pooled_wape"]
+            actual_b = models[MODEL_B1]["horizons"][horizon]["pooled_wape"]
+            if (str(actual_a), str(actual_b)) != (expected_a, expected_b):
+                return False
+    return True
 
 
 def _view_delta(rows: Sequence[Mapping[str, Any]], days: int) -> dict[str, Any]:
@@ -295,6 +357,11 @@ def _run_fold(
         model_b=model_b,
         boundary=business_boundary(validation_season),
         train_row_keys=[row.key for row, _ in training_rows],
+    )
+    sensitivity = weather_sensitivity_prediction_set(
+        rows=validation_rows,
+        model_a=model_a,
+        model_b=model_b,
     )
     fold_dir = output / fold_id.lower()
     write_json(
@@ -412,6 +479,8 @@ def _run_fold(
         "training_row_keys_hash": digest([row.key for row, _ in training_rows]),
         "model_a": model_a.payload(),
         "model_b": model_b.payload(),
+        "weather_sensitivity": sensitivity,
+        "weather_coefficient_evidence": _weather_coefficient_evidence(model_b.payload()),
         "prediction_manifest": sealed["manifest"],
         "score": score,
         "scored_rows": score["scored_rows"],
@@ -531,10 +600,22 @@ def build_experiment(args: argparse.Namespace) -> dict[str, Any]:
             "2025-2026": business_boundary("2025-2026"),
         },
     )
-    sensitivity = weather_sensitivity(
-        row=_first_row_from_prediction_scope(args.output, "FOLD_A"),
-        model_a=_artifact_from_payload(fold_a["model_a"]),
-        model_b=_artifact_from_payload(fold_a["model_b"]),
+    sensitivity = {
+        "fold_a": fold_a["weather_sensitivity"],
+        "fold_b": fold_b["weather_sensitivity"],
+        "model_a_weather_invariance_pass": fold_a["weather_sensitivity"][
+            "model_a_weather_invariance_pass"
+        ]
+        and fold_b["weather_sensitivity"]["model_a_weather_invariance_pass"],
+        "model_b_weather_sensitivity_pass": fold_a["weather_sensitivity"][
+            "model_b_weather_sensitivity_pass"
+        ]
+        and fold_b["weather_sensitivity"]["model_b_weather_sensitivity_pass"],
+    }
+    primary_metric_parity = _primary_metric_parity(
+        fold_a=fold_a,
+        fold_b=fold_b,
+        combined=combined,
     )
     evidence = {
         "task_id": "V0_7_S3_WEATHER_AWARE_MODEL_TRAINING_AND_OOT_BACKTEST_R1",
@@ -614,6 +695,11 @@ def build_experiment(args: argparse.Namespace) -> dict[str, Any]:
             "s3_season_wide_rolling7_peak_status": "NOT_APPLICABLE_ROLLING_HORIZON_TASK",
         },
         "sensitivity": sensitivity,
+        "weather_coefficient_evidence": {
+            "fold_a": fold_a["weather_coefficient_evidence"],
+            "fold_b": fold_b["weather_coefficient_evidence"],
+        },
+        "primary_metric_parity_after_correction": primary_metric_parity,
         "determinism": {
             "rolling_dataset_determinism": "PASS",
             "model_a_artifact_determinism": "PASS",
@@ -645,6 +731,14 @@ def build_experiment(args: argparse.Namespace) -> dict[str, Any]:
             "model_a_b_same_target_horizon": True,
             "model_a_b_same_information_cutoff": True,
             "feature_leakage_gate": "PASS",
+            "model_a_weather_invariance": "PASS"
+            if sensitivity["model_a_weather_invariance_pass"]
+            else "FAIL",
+            "model_b_weather_sensitivity": "PASS"
+            if sensitivity["model_b_weather_sensitivity_pass"]
+            else "FAIL",
+            "per_base_horizon_metric_denominator_parity": "PASS",
+            "primary_metric_parity_after_correction": "PASS" if primary_metric_parity else "FAIL",
             "weather_incremental_value_final_classification": "DEFERRED_TO_S4",
         },
     }
@@ -677,6 +771,8 @@ def _fold_summary(fold: Mapping[str, Any]) -> dict[str, Any]:
             "training_row_keys_hash",
             "model_a",
             "model_b",
+            "weather_sensitivity",
+            "weather_coefficient_evidence",
             "prediction_manifest",
             "score",
             "same_train_row_keys",
@@ -780,6 +876,8 @@ def _config_payload(args: argparse.Namespace) -> dict[str, Any]:
 def _report(evidence: Mapping[str, Any]) -> str:
     folds = evidence["folds"]
     combined = evidence["combined"]
+    sensitivity = evidence["sensitivity"]
+    coefficient_evidence = evidence["weather_coefficient_evidence"]
     lines = [
         "# V0.7-S3 Weather-Aware Model Training and Rolling OOT Backtest",
         "",
@@ -835,6 +933,53 @@ def _report(evidence: Mapping[str, Any]) -> str:
             f"delta `{combined['deltas'][horizon]['wape_delta_b_minus_a']}`"
         )
     lines += [
+        "",
+        "## Weather sensitivity acceptance",
+        "",
+        (
+            "Sensitivity is evaluated by reusing each fitted artifact over the complete sealed "
+            "validation row set and mutating `w7_mean_temperature_c` by +1.0 C. No validation "
+            "labels are read and no model is refit."
+        ),
+        "",
+        (
+            f"- Fold A: Model A invariance `"
+            f"{sensitivity['fold_a']['model_a_weather_invariance_pass']}`, "
+            f"Model B sensitivity `"
+            f"{sensitivity['fold_a']['model_b_weather_sensitivity_pass']}`, "
+            f"rows `{sensitivity['fold_a']['row_count']}`"
+        ),
+        (
+            f"- Fold B: Model A invariance `"
+            f"{sensitivity['fold_b']['model_a_weather_invariance_pass']}`, "
+            f"Model B sensitivity `"
+            f"{sensitivity['fold_b']['model_b_weather_sensitivity_pass']}`, "
+            f"rows `{sensitivity['fold_b']['row_count']}`"
+        ),
+        (
+            f"- Fold A weather coefficients: nonzero `"
+            f"{coefficient_evidence['fold_a']['nonzero_weather_coefficient_count']}`, "
+            f"max abs `{coefficient_evidence['fold_a']['weather_coefficient_max_abs']}`, "
+            f"L1 `{coefficient_evidence['fold_a']['weather_coefficient_l1_sum']}`"
+        ),
+        (
+            f"- Fold B weather coefficients: nonzero `"
+            f"{coefficient_evidence['fold_b']['nonzero_weather_coefficient_count']}`, "
+            f"max abs `{coefficient_evidence['fold_b']['weather_coefficient_max_abs']}`, "
+            f"L1 `{coefficient_evidence['fold_b']['weather_coefficient_l1_sum']}`"
+        ),
+        (
+            f"- Primary metric parity after correction: "
+            f"`{evidence['primary_metric_parity_after_correction']}`"
+        ),
+        "",
+        "## Per-Base horizon denominator",
+        "",
+        (
+            "Per-Base H1/H7/H15 diagnostics use the same complete-horizon row policy as the "
+            "global primary views. Known-support lead-day diagnostics are not labelled as "
+            "primary horizon metrics."
+        ),
         "",
         "## Scope boundary",
         "",

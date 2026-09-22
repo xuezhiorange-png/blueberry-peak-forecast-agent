@@ -860,6 +860,102 @@ def weather_sensitivity(
     }
 
 
+def weather_sensitivity_prediction_set(
+    *,
+    rows: Sequence[RollingTargetRow],
+    model_a: RidgeArtifact,
+    model_b: RidgeArtifact,
+    weather_feature: str = PRIMARY_FEATURES[0],
+    delta: Decimal = Decimal("1.0"),
+) -> dict[str, Any]:
+    """Prove weather sensitivity on a complete sealed prediction row set.
+
+    This is an inference-only acceptance probe. It reuses the already fitted
+    artifacts and mutates one frozen weather feature on every validation row;
+    it never reads validation labels and never refits either model. Hashing
+    the complete prediction set avoids a false negative caused by a single
+    row's non-negative output clipping.
+    """
+
+    if not rows:
+        raise WeatherAwareBacktestError("NO_PREDICTION_ROWS_FOR_SENSITIVITY")
+    if weather_feature not in PRIMARY_FEATURES:
+        raise WeatherAwareBacktestError("WEATHER_FEATURE_NOT_IN_FROZEN_SCHEMA")
+    ordered = tuple(sorted(rows, key=lambda row: row.key))
+
+    def mutate(row: RollingTargetRow) -> RollingTargetRow:
+        original = row.features
+        if weather_feature not in original:
+            raise WeatherAwareBacktestError("WEATHER_FEATURE_MISSING_FROM_ROW")
+        replacement = dict(original)
+        replacement[weather_feature] = format(
+            _finite_float(replacement[weather_feature], weather_feature)
+            + _finite_float(delta, "weather_mutation_delta"),
+            ".17g",
+        )
+        return RollingTargetRow(
+            key=row.key,
+            base_id=row.base_id,
+            base_name=row.base_name,
+            season=row.season,
+            forecast_origin=row.forecast_origin,
+            target_date=row.target_date,
+            lead_day=row.lead_day,
+            reference_area_mu=row.reference_area_mu,
+            feature_values=tuple(sorted(replacement.items())),
+            weather_feature_hash=digest(replacement),
+            weather_source=row.weather_source,
+            weather_lane=row.weather_lane,
+            feature_policy_version=row.feature_policy_version,
+        )
+
+    mutated = tuple(mutate(row) for row in ordered)
+    for original, changed in zip(ordered, mutated, strict=True):
+        if (
+            original.key,
+            original.base_id,
+            original.forecast_origin,
+            original.target_date,
+            original.lead_day,
+        ) != (
+            changed.key,
+            changed.base_id,
+            changed.forecast_origin,
+            changed.target_date,
+            changed.lead_day,
+        ):
+            raise WeatherAwareBacktestError("SENSITIVITY_TARGET_IDENTITY_CHANGED")
+        if any(original.features[name] != changed.features[name] for name in FEATURE_NAMES_A):
+            raise WeatherAwareBacktestError("SENSITIVITY_BASE_FEATURE_CHANGED")
+
+    def prediction_hash(model: RidgeArtifact, prediction_rows: Sequence[RollingTargetRow]) -> str:
+        return digest(
+            [
+                {
+                    "target_row_key": row.key,
+                    "prediction": _text(model.predict(row)),
+                }
+                for row in prediction_rows
+            ]
+        )
+
+    model_a_baseline_hash = prediction_hash(model_a, ordered)
+    model_a_mutated_hash = prediction_hash(model_a, mutated)
+    model_b_baseline_hash = prediction_hash(model_b, ordered)
+    model_b_mutated_hash = prediction_hash(model_b, mutated)
+    return {
+        "row_count": len(ordered),
+        "mutated_weather_feature": weather_feature,
+        "mutation_delta": _text(delta),
+        "model_a_baseline_prediction_hash": model_a_baseline_hash,
+        "model_a_mutated_weather_prediction_hash": model_a_mutated_hash,
+        "model_b_baseline_prediction_hash": model_b_baseline_hash,
+        "model_b_mutated_weather_prediction_hash": model_b_mutated_hash,
+        "model_a_weather_invariance_pass": model_a_baseline_hash == model_a_mutated_hash,
+        "model_b_weather_sensitivity_pass": model_b_baseline_hash != model_b_mutated_hash,
+    }
+
+
 def dataset_manifest(
     rows: Iterable[RollingTargetRow], *, source_dataset_hash: str
 ) -> dict[str, Any]:
@@ -924,4 +1020,5 @@ __all__ = [
     "seal_predictions",
     "target_row_key",
     "weather_sensitivity",
+    "weather_sensitivity_prediction_set",
 ]

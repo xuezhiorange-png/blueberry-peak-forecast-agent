@@ -26,6 +26,7 @@ from backend.app.area_yield.weather_aware_backtest import (
     score_predictions,
     seal_predictions,
     weather_sensitivity,
+    weather_sensitivity_prediction_set,
 )
 from backend.app.area_yield.weather_features import WeatherDailyObservation, build_feature_row
 
@@ -198,6 +199,42 @@ def test_only_model_b_reacts_to_legal_weather_feature_mutation() -> None:
         "model_b_weather_sensitivity_pass": True,
         "model_a_weather_invariance_pass": True,
     }
+
+
+@pytest.mark.unit
+def test_prediction_set_weather_sensitivity_uses_all_rows_and_hashes() -> None:
+    rows, actual = _dataset()
+    training = rows_with_known_labels(rows, actual)
+    model_a = fit_ridge_artifact(
+        model_id=MODEL_A_S3,
+        fold_id="FOLD_A",
+        rows=training,
+        feature_names=FEATURE_NAMES_A,
+        training_input_hash="j" * 64,
+    )
+    model_b = fit_ridge_artifact(
+        model_id=MODEL_B1,
+        fold_id="FOLD_A",
+        rows=training,
+        feature_names=FEATURE_NAMES_B,
+        training_input_hash="k" * 64,
+    )
+    result = weather_sensitivity_prediction_set(
+        rows=rows,
+        model_a=model_a,
+        model_b=model_b,
+    )
+    assert result["row_count"] == len(rows)
+    assert result["model_a_weather_invariance_pass"] is True
+    assert result["model_b_weather_sensitivity_pass"] is True
+    assert (
+        result["model_a_baseline_prediction_hash"]
+        == result["model_a_mutated_weather_prediction_hash"]
+    )
+    assert (
+        result["model_b_baseline_prediction_hash"]
+        != result["model_b_mutated_weather_prediction_hash"]
+    )
 
 
 @pytest.mark.unit
