@@ -1,0 +1,268 @@
+{
+  "task_id": "V0_7_VERSION_CLOSEOUT_R1",
+  "version": "0.7.0",
+  "version_name": "MULTI_SEASON_MODEL_VALIDATION_AND_WEATHER_AWARE_EXPERIMENT",
+  "version_name_cn": "多产季模型正式验证与天气增强实验版",
+  "base_main_sha": "381b7010c36a0b4069eea0142f0fcebe27f2e009",
+  "base_main_tree_sha": "5bea50bdf893b5d8aa893fa66bbf234e751a200e",
+  "closeout_pr": {
+    "pr_number": 649,
+    "base_branch": "main",
+    "base_sha": "381b7010c36a0b4069eea0142f0fcebe27f2e009",
+    "state": "OPEN",
+    "draft": true,
+    "ready_authorized": false,
+    "merge_authorized": false
+  },
+  "engineering_complete": true,
+  "feature_development_frozen": true,
+  "slices": {
+    "plan": {
+      "pr_number": 644,
+      "accepted_head_sha": "8dc3e4077e610b57714ab21c1e650456142108a7",
+      "merge_sha": "9eda9dffdcb5f88195f511c7802c831724fcc73c",
+      "exact_head_ci_run": 35483735892,
+      "ci_head_sha": "8dc3e4077e610b57714ab21c1e650456142108a7",
+      "ci_conclusion": "success",
+      "complete": true
+    },
+    "s1": {
+      "pr_number": 645,
+      "accepted_head_sha": "9189070fc3accfcc99c83f42076cdd25d86eafa9",
+      "merge_sha": "6d8f449c04bc145fb227d0ab6711d3930e1faa98",
+      "exact_head_ci_run": 35596495133,
+      "ci_head_sha": "9189070fc3accfcc99c83f42076cdd25d86eafa9",
+      "ci_conclusion": "success",
+      "task_id": "V0_7_S1_FROZEN_MODEL_AND_BUSINESS_BOUNDARY_CORRECTION_R2",
+      "complete": true
+    },
+    "s2": {
+      "pr_number": 646,
+      "accepted_head_sha": "8a7070960301a0773f9ae8e1d41df6d6d2371d38",
+      "merge_sha": "f33e92d38c19aea0ea68d53dacccb118f5de2e5c",
+      "exact_head_ci_run": 35622085143,
+      "ci_head_sha": "8a7070960301a0773f9ae8e1d41df6d6d2371d38",
+      "ci_conclusion": "success",
+      "task_id": "V0_7_S2_AS_ISSUED_KNOWN_AT_GATE_CORRECTION_R3",
+      "complete": true
+    },
+    "s3": {
+      "pr_number": 647,
+      "accepted_head_sha": "817bbed30e296bc01fb2af9560e66c272ec27247",
+      "merge_sha": "3c43e84717174cd48bccd62dde2b97eedf76da15",
+      "exact_head_ci_run": 35711372812,
+      "ci_head_sha": "817bbed30e296bc01fb2af9560e66c272ec27247",
+      "ci_conclusion": "success",
+      "task_id": "V0_7_S3_WEATHER_AWARE_MODEL_TRAINING_AND_OOT_BACKTEST_R1",
+      "complete": true
+    },
+    "s4": {
+      "pr_number": 648,
+      "accepted_head_sha": "e48913b1601514a4b9d66400a327fa903912327d",
+      "merge_sha": "381b7010c36a0b4069eea0142f0fcebe27f2e009",
+      "exact_head_ci_run": 35748710195,
+      "ci_head_sha": "e48913b1601514a4b9d66400a327fa903912327d",
+      "ci_conclusion": "success",
+      "task_id": "V0_7_S4_MODEL_A_B_COMPARISON_AND_VERSION_CONCLUSION_R1",
+      "complete": true
+    }
+  },
+  "plan": {
+    "pr_number": 644,
+    "accepted_head_sha": "8dc3e4077e610b57714ab21c1e650456142108a7",
+    "merge_sha": "9eda9dffdcb5f88195f511c7802c831724fcc73c",
+    "exact_head_ci_run": 35483735892,
+    "ci_head_sha": "8dc3e4077e610b57714ab21c1e650456142108a7",
+    "ci_conclusion": "success"
+  },
+  "s1": {
+    "pr_number": 645,
+    "accepted_head_sha": "9189070fc3accfcc99c83f42076cdd25d86eafa9",
+    "merge_sha": "6d8f449c04bc145fb227d0ab6711d3930e1faa98",
+    "exact_head_ci_run": 35596495133,
+    "ci_head_sha": "9189070fc3accfcc99c83f42076cdd25d86eafa9",
+    "ci_conclusion": "success"
+  },
+  "s2": {
+    "pr_number": 646,
+    "accepted_head_sha": "8a7070960301a0773f9ae8e1d41df6d6d2371d38",
+    "merge_sha": "f33e92d38c19aea0ea68d53dacccb118f5de2e5c",
+    "exact_head_ci_run": 35622085143,
+    "ci_head_sha": "8a7070960301a0773f9ae8e1d41df6d6d2371d38",
+    "ci_conclusion": "success"
+  },
+  "s3": {
+    "pr_number": 647,
+    "accepted_head_sha": "817bbed30e296bc01fb2af9560e66c272ec27247",
+    "merge_sha": "3c43e84717174cd48bccd62dde2b97eedf76da15",
+    "exact_head_ci_run": 35711372812,
+    "ci_head_sha": "817bbed30e296bc01fb2af9560e66c272ec27247",
+    "ci_conclusion": "success"
+  },
+  "s4": {
+    "pr_number": 648,
+    "accepted_head_sha": "e48913b1601514a4b9d66400a327fa903912327d",
+    "merge_sha": "381b7010c36a0b4069eea0142f0fcebe27f2e009",
+    "exact_head_ci_run": 35748710195,
+    "ci_head_sha": "e48913b1601514a4b9d66400a327fa903912327d",
+    "ci_conclusion": "success"
+  },
+  "all_slice_merge_ancestry_pass": true,
+  "model_a": {
+    "identity": "AREA_PLUS_HISTORICAL_HARVEST",
+    "total_model": "BASE_AWARE_BASELINE_R1",
+    "temporal_model": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "history_policy": "IMMEDIATE_PRIOR_SEASON_ONLY_FAIL_CLOSED_NO_GLOBAL_FALLBACK",
+    "formal_baseline_established": true,
+    "validation_status": "VALIDATED_WITH_MEASURED_ERROR;TOTAL_PEAK_COVERAGE_LIMITED",
+    "production_accuracy_approved": false,
+    "business_accuracy_threshold_status": "NOT_FROZEN"
+  },
+  "s1_formal_baseline": {
+    "combined_daily_wape": "0.7245703036857014811985535015",
+    "season_total_authority_coverage_limited": true,
+    "peak_authority_coverage_limited": true,
+    "rolling7_authority_coverage_limited": true,
+    "task_semantics": "FROZEN_HISTORICAL_BASELINE_TASK",
+    "direct_attribution_to_s3_forbidden": true
+  },
+  "weather_source_authority": {
+    "era5_status": "FINAL_HISTORICAL_DATASET_COMPLETE",
+    "era5_weather_base_count": 38,
+    "era5_season_count": 3,
+    "era5_role": "REANALYSIS_REFERENCE",
+    "era5_forecast_time_known_at_status": "NOT_ESTABLISHED",
+    "lane_a_historical_oot_research_eligible": true,
+    "lane_a_production_like_pit_eligible": false,
+    "ecmwf_provider_status": "QUALIFIED_PROSPECTIVE_ONLY",
+    "historical_as_issued_archive_2024_2025": "NOT_FOUND",
+    "historical_as_issued_archive_2025_2026": "NOT_FOUND",
+    "production_like_historical_forecast_weather_comparison_status": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE"
+  },
+  "weather_feature_contract": {
+    "forecast_origin_policy": "ROLLING_DAILY_LOCAL_DAY_START",
+    "forecast_origin_timezone": "Asia/Shanghai",
+    "target_granularity": "DAILY",
+    "target_label": "ACTUAL_DAILY_HARVEST_KG",
+    "target_row_identity": "base_id+forecast_origin+target_date",
+    "horizons": {
+      "H1": "DAILY_VECTOR_LENGTH_1",
+      "H7": "DAILY_VECTOR_LENGTH_7",
+      "H15": "DAILY_VECTOR_LENGTH_15"
+    },
+    "primary_weather_feature_count": 18,
+    "windows_days": [7, 14, 30],
+    "relative_humidity_status": "NOT_AUTHORIZED",
+    "gdd_status": "NOT_IN_MODEL_UNTIL_DEFINITION_FROZEN",
+    "vpd_generated": false,
+    "et0_generated": false,
+    "offline_contract_fixture_row_count": 342,
+    "full_rolling_training_feature_dataset_built": true
+  },
+  "model_b": {
+    "identity": "AREA_DAILY_RIDGE_V1_PLUS_LEAKAGE_SAFE_WEATHER_FEATURES",
+    "model_family": "RIDGE_LEAST_SQUARES",
+    "alpha": "10.000000",
+    "model_a_feature_count": 10,
+    "model_b_feature_count": 28,
+    "weather_feature_count": 18,
+    "experiment_completed": true,
+    "production_promotion_authorized": false
+  },
+  "s3_ab_results": {
+    "model_a_b_fairness_pass": true,
+    "model_a_b_no_test_tuning_pass": true,
+    "validation_label_leakage": false,
+    "fold_a": {
+      "H1_delta_b_minus_a": "-0.0022332803468156998635155695",
+      "H7_delta_b_minus_a": "-0.0142354460823283473579812259",
+      "H15_delta_b_minus_a": "-0.0098201733025035818650057117"
+    },
+    "fold_b": {
+      "H1_delta_b_minus_a": "-0.0082843994275640198086438579",
+      "H7_delta_b_minus_a": "-0.0192925848548640396562274836",
+      "H15_delta_b_minus_a": "-0.0210416251640553997017708255"
+    },
+    "combined": {
+      "H1_delta_b_minus_a": "-0.0068421173759957838647451120",
+      "H7_delta_b_minus_a": "-0.0181204705698949153917183833",
+      "H15_delta_b_minus_a": "-0.0184893782621532921136574020"
+    },
+    "delta_definition": "MODEL_B_MINUS_MODEL_A; NEGATIVE_MEANS_MODEL_B_IMPROVES"
+  },
+  "s4_robustness": {
+    "combined_relative_improvement": {
+      "H1": "0.01256668165353377737969290691",
+      "H7": "0.03388583278130790816354667265",
+      "H15": "0.03448344150591988533398567765"
+    },
+    "combined_h1": {
+      "original_delta": "-0.0068421173759957838647451120",
+      "leave_top1_delta": "-0.0010525577361120777848942486",
+      "leave_top2_delta": "0.0047995251801890429250544798"
+    },
+    "combined_h7": {
+      "leave_top2_delta": "-0.0067708840558050069958798238"
+    },
+    "combined_h15": {
+      "leave_top2_delta": "-0.0052172714142282015235711299"
+    },
+    "fold_a_h15_improved_actual_kg_share": "0.7471409909519334235321255744",
+    "fold_b_h15_improved_actual_kg_share": "0.7073196327799868655009855839",
+    "classification": "INCONCLUSIVE",
+    "classification_reason": "LEAVE_TOP2_ROBUSTNESS_REVERSES_OR_LOSES_IMPROVEMENT:H1"
+  },
+  "weather_incremental_value": "INCONCLUSIVE",
+  "weather_incremental_value_reason": "LEAVE_TOP2_ROBUSTNESS_REVERSES_OR_LOSES_IMPROVEMENT:H1",
+  "historical_ecmwf_archive_status": {
+    "2024_2025": "NOT_FOUND",
+    "2025_2026": "NOT_FOUND",
+    "comparison": "NOT_COMPUTABLE_NO_AS_ISSUED_ARCHIVE"
+  },
+  "engineering": {
+    "v0_7_engineering_complete": true,
+    "v0_7_feature_development_frozen": true,
+    "model_a_formal_baseline_established": true,
+    "model_b_experiment_completed": true,
+    "a_b_oot_comparison_completed": true,
+    "v0_7_version_closeout_complete": true
+  },
+  "next_phase_recommendation": "PROSPECTIVE_AS_ISSUED_WEATHER_VALIDATION_AND_ROBUSTNESS_EVIDENCE",
+  "production_accuracy_approved": false,
+  "model_b_production_promotion_authorized": false,
+  "v0_8_implementation_authorized": false,
+  "tag_authorized": false,
+  "release_authorized": false,
+  "tag_created": false,
+  "release_created": false,
+  "v0_7_released": false,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "oracle_weather_experiment_executed": false,
+  "source_identities": [
+    {
+      "path": "docs/v0-7/v0.7.0-version-plan-and-scope-freeze.md",
+      "sha256": "ce56dd24466ee263159efbbcfcc7451a9c7f252c791a51c93f796f38523f3fc2"
+    },
+    {
+      "path": "docs/v0-7/evidence/v0.7.0-version-plan-and-scope-freeze.json",
+      "sha256": "e8646edb8877cd8811bd6a1cdcccc4f5b9c3073385137db1a49726ba7c2d1912"
+    },
+    {
+      "path": "docs/v0-7/evidence/s1-formal-multi-season-baseline-validation.json",
+      "sha256": "93d636d04bafa642d53481901e5358d1529c41ad15bd59e63089386d79b5d10d"
+    },
+    {
+      "path": "docs/v0-7/evidence/s2-weather-dataset-and-leakage-safe-feature-freeze.json",
+      "sha256": "3cc983ddec935e4cef9b608277706def957df0d844580c591fe6617357d0ec4a"
+    },
+    {
+      "path": "docs/v0-7/evidence/s3-weather-aware-model-training-and-oot-backtest.json",
+      "sha256": "cc3e81003463377dd4fe8d0adc792dc453e68c5391c8fcf98a9ceb038a4d121b"
+    },
+    {
+      "path": "docs/v0-7/evidence/s4-model-a-b-comparison-and-version-conclusion.json",
+      "sha256": "4d2c83cabadec5af875307e338fc7567563ba27fd42c69fc08cbfa66488f57dc"
+    }
+  ]
+}
