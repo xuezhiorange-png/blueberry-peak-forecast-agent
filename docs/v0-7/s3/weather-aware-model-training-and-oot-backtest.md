@@ -29,6 +29,20 @@ This is a historical OOT weather-signal experiment using Lane-A ERA5-Land past-o
 - H7: A WAPE `0.5347506341910098593067011251`, B WAPE `0.5166301636211149439149827418`, delta `-0.0181204705698949153917183833`
 - H15: A WAPE `0.5361813512430062990109994014`, B WAPE `0.5176919729808530068973419994`, delta `-0.0184893782621532921136574020`
 
+## Weather sensitivity acceptance
+
+Sensitivity is evaluated by reusing each fitted artifact over the complete sealed validation row set and mutating `w7_mean_temperature_c` by +1.0 C. No validation labels are read and no model is refit.
+
+- Fold A: Model A invariance `True`, Model B sensitivity `True`, rows `49140`
+- Fold B: Model A invariance `True`, Model B sensitivity `True`, rows `109620`
+- Fold A weather coefficients: nonzero `18`, max abs `13261.418088666886`, L1 `46426.293795416441133`
+- Fold B weather coefficients: nonzero `18`, max abs `7866.6205629090564`, L1 `24774.159939194710878`
+- Primary metric parity after correction: `True`
+
+## Per-Base horizon denominator
+
+Per-Base H1/H7/H15 diagnostics use the same complete-horizon row policy as the global primary views. Known-support lead-day diagnostics are not labelled as primary horizon metrics.
+
 ## Scope boundary
 
 - `LANE_B_EXECUTED=false`

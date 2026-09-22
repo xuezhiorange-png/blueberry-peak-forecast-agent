@@ -298,7 +298,11 @@ async def test_ecmwf_fixture_capture_reaches_shadow_persistence_path(
         base_ids=[BASE_A],
         base_names=["Alpha Base"],
     )
-    created = datetime.now(UTC).replace(microsecond=0)
+    # Keep the offline fixture aligned with its fixed 2026-09-19 ECMWF run.
+    # The production provider retains its dynamic three-day lookback; this
+    # test must not depend on the wall clock moving through that window.
+    created = datetime(2026, 9, 19, 11, tzinfo=UTC)
+    monkeypatch.setattr("backend.app.pit.shadow_forecast._utc_now", lambda: created)
     _freeze_fixture_fetch_time(provider, "20260919000000", created)
     async with sqlite_session.begin():
         execution = await run_shadow_forecast(
