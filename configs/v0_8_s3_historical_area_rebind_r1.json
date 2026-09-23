@@ -1,0 +1,46 @@
+{
+  "task_id": "V0_8_S3_EXISTING_HISTORICAL_AREA_RECOVERY_AND_CANONICAL_REBIND_R1",
+  "identity_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+  "seasons": [
+    "2023-2024",
+    "2024-2025",
+    "2025-2026"
+  ],
+  "training_seasons": [
+    "2023-2024",
+    "2024-2025"
+  ],
+  "oot_seasons": [
+    "2025-2026"
+  ],
+  "accepted_identity_statuses": [
+    "EXACT",
+    "AUTHORIZED_ALIAS",
+    "HISTORICALLY_PROVEN_ALIAS",
+    "BUSINESS_CONFIRMED_MAPPING",
+    "BUSINESS_CONFIRMED_REASSIGNMENT"
+  ],
+  "expected_sha256": {
+    "source_inventory": "81341ce629a479db82ad4f02539afd9759c8eacfe29a311683dd38ef63c681cf",
+    "source_manifest": "c66dffe275741b7c985920fed4cf32c8af43420650873b59f6a2bdb2fbfea2f1",
+    "identity": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "quality": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "area_authority": "231e769ebd004f02267eb4d2402f5745a8cb690ac873bb871f3db0bdb311eed2",
+    "r7b_manifest": "611507ab99c697ab72921bc478c598cee3315ca4ec103632d6ea158d320efbea",
+    "r7b_qualification": "90baea303d97e2d2db2f0b99a7a3706e6f71f1130d6b743d6289d2fb18a6d9b7",
+    "area_confirmation_2023": "d83cff3f544b0650eebba3fef4c606183fb92738d8d19b552cd8886defc33437",
+    "area_confirmation_2024": "f2be4358c3913f6f7061db15ae9ab1bc094a4334d1c799d99b2865f024bdabd2"
+  },
+  "rules": {
+    "area_authority_acceptance": "BUSINESS_CONFIRMED_SEASON_BOUND_SOURCE_PLUS_CURRENT_CANONICAL_IDENTITY_BINDING",
+    "reference_area_promotion": false,
+    "cross_season_area_propagation": false,
+    "unresolved_identity_binding": "FAIL_CLOSED",
+    "conflicting_area_evidence": "RETAIN_CONFLICT_DO_NOT_AVERAGE_OR_SELECT",
+    "quantity_authority_mutation": false,
+    "model_training": false,
+    "model_refit": false,
+    "backtest": false,
+    "forecast_replay": false
+  }
+}
