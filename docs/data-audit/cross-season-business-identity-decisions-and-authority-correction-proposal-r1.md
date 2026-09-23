@@ -1,6 +1,7 @@
 # Cross-season business identity decisions and authority correction proposal
 
 Task: `CROSS_SEASON_BUSINESS_IDENTITY_DECISION_CAPTURE_AND_AUTHORITY_CORRECTION_PROPOSAL_R1`
+Semantic correction: `CROSS_SEASON_BUSINESS_IDENTITY_DECISION_CAPTURE_Q14_SEMANTICS_CORRECTION_R1`
 Audit baseline: `e6c2c797c8b31c0709d793f32f5ff65aae8e6fb7`
 
 ## Decision capture
@@ -30,7 +31,8 @@ The private proposal is a simulation only. Existing mapping authority, Base Regi
 
 ## Decision-specific safeguards
 
-- Q14 remains season-scoped: the 2024-2025 rejection does not propagate into 2025-2026.
+- Q14 remains season-scoped: the 2024-2025 candidate is rejected; the row remains UNRESOLVED with no proposed Base, while the 2025-2026 candidate is accepted only for that season.
+- NO_CANDIDATE_IS_OUT_OF_SCOPE=false. Q14_2024_2025_OUT_OF_SCOPE=false; OUT_OF_CURRENT_39_BASE_SCOPE=false and OUT_OF_SCOPE_NOT_ESTABLISHED=true. The rejection does not establish whether the row belongs to another current Base or is outside the 39-Base scope.
 - Q17 uses exact label split rules. Any unlisted label remains unresolved and makes the result partial.
 - Q26 is season-scoped; 2024-2025 is not rewritten as a later-season Base.
 - Q07/Q10 correct only the confirmed parent relation for the exact subfarm row. Parent totals are not copied into subfarm quantities.

@@ -368,9 +368,39 @@ def test_q14_season_specific_decision_does_not_flow_between_seasons() -> None:
     q14_current = _find(proposal, "2025-2026", "Seasonal Farm")
     assert q14_prior["proposed_status"] == "UNRESOLVED"
     assert q14_prior["proposed_base_id"] == ""
-    assert q14_prior["change_type"] == "OUT_OF_SCOPE"
+    assert q14_prior["proposed_base_name"] == ""
+    assert q14_prior["change_type"] == "REJECT_CANDIDATE_KEEP_UNRESOLVED"
     assert q14_current["proposed_base_id"] == "base-seasonal"
     assert q14_current["proposed_status"] == "EXACT"
+
+
+def test_no_candidate_rejects_candidate_without_declaring_out_of_scope() -> None:
+    identity, priority, decisions, base_names = _fixture()
+    next(row for row in decisions if row["question_number"] == "Q12")["decision_2024_2025"] = (
+        "NO_CANDIDATE"
+    )
+
+    proposal, _ = build_proposal(identity, priority, decisions, base_names)
+
+    row = _find(proposal, "2024-2025", "Candidate Farm")
+    assert row["proposed_status"] == "UNRESOLVED"
+    assert row["proposed_base_id"] == ""
+    assert row["proposed_base_name"] == ""
+    assert row["change_type"] == "REJECT_CANDIDATE_KEEP_UNRESOLVED"
+
+
+def test_explicit_out_of_scope_is_distinct_from_no_candidate() -> None:
+    identity, priority, decisions, base_names = _fixture()
+    next(row for row in decisions if row["question_number"] == "Q12")["decision_2024_2025"] = (
+        "OUT_OF_SCOPE"
+    )
+
+    proposal, _ = build_proposal(identity, priority, decisions, base_names)
+
+    row = _find(proposal, "2024-2025", "Candidate Farm")
+    assert row["proposed_status"] == "UNRESOLVED"
+    assert row["proposed_base_id"] == ""
+    assert row["change_type"] == "OUT_OF_SCOPE"
 
 
 def test_q17_exact_split_and_unlisted_label_fail_closed() -> None:
@@ -522,6 +552,16 @@ def test_public_evidence_contains_aggregates_and_hashes_not_private_labels() -> 
         },
         s3_evidence_sha256="s3-hash",
     )
+    q14_rules = evidence["question_specific_rules"]
+    assert evidence["semantic_correction_task_id"] == (
+        "CROSS_SEASON_BUSINESS_IDENTITY_DECISION_CAPTURE_Q14_SEMANTICS_CORRECTION_R1"
+    )
+    assert q14_rules["no_candidate_is_out_of_scope"] is False
+    assert q14_rules["q14_2024_2025_candidate_rejected"] is True
+    assert q14_rules["q14_2024_2025_remains_unresolved"] is True
+    assert q14_rules["q14_2024_2025_out_of_scope"] is False
+    assert q14_rules["q14_out_of_current_39_base_scope"] is False
+    assert q14_rules["q14_out_of_scope_not_established"] is True
     text = json.dumps(evidence, ensure_ascii=False)
     assert evidence["business_decision_count"] == 40
     assert evidence["all_40_business_questions_captured"] is True
