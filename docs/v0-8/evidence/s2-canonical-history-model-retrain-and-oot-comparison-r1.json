@@ -1,0 +1,198 @@
+{
+  "task_id": "V0_8_S2_CANONICAL_HISTORY_MODEL_RETRAIN_AND_OOT_COMPARISON_R1",
+  "correction_task_id": "V0_8_S2_QUANTITY_COMPLETENESS_TRAINING_AND_SCORING_CORRECTION_R1",
+  "correction_result": "PASS_WITH_INSUFFICIENT_EVIDENCE",
+  "version": "0.8.0",
+  "base_main_sha": "91d9d8a04be05576fc8c3ae8fec0fbad899057d8",
+  "authority": {
+    "authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "s1_evidence_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7",
+    "s1_config_sha256": "957a84ecdb6ab25da51230a14d90e8eb6bfb6eb299aeb73e312b9421d3a77824",
+    "raw_total_kg": "122983150.913",
+    "mapped_total_kg": "109010615.352",
+    "unresolved_total_kg": "10573929.816",
+    "excluded_total_kg": "3398605.745",
+    "unresolved_source_farm_label_count": 44,
+    "private_artifact_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+    "private_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "private_canonical_daily_ledger_sha256": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+    "private_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd"
+  },
+  "strict_area_lane": {
+    "required_status": "BUSINESS_CONFIRMED_SOURCE_LABEL_BOUND",
+    "training_feasible": false,
+    "training_base_season_count": 0,
+    "oot_area_qualified_base_season_count": 1,
+    "reason": "NO_HISTORICAL_ACTUAL_PRODUCTIVE_AREA_AUTHORITY_IN_TRAINING_SEASONS"
+  },
+  "exploratory_lane": {
+    "lane": "EXPLORATORY_REFERENCE_AREA",
+    "execution_status": "EVALUATED_NO_CANDIDATE_FIT",
+    "production_eligible": false,
+    "model_architecture_changed": false,
+    "weather_used": false,
+    "total_model_training_feasible": false,
+    "complete_training_base_season_count": 0,
+    "complete_training_base_season_count_by_fold": {
+      "FOLD_A": 0,
+      "FOLD_B": 0
+    },
+    "blocker": "INSUFFICIENT_COMPLETE_SEASON_TOTAL_AUTHORITY",
+    "partial_daily_subtotals_used_as_season_training_labels": false,
+    "candidate_model_trained": false
+  },
+  "models": {
+    "baseline": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "v07": "BASE_AWARE_BASELINE_R1+AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "v07_model_config_sha256": "cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf",
+    "v07_frozen_product_artifact_sha256": "399c38f81abdea0122097cd5a68bc25147cc55f58dc51e1393b9282e5bc4cbad",
+    "v07_model_artifacts_modified": false,
+    "v08_candidate": "BASE_AWARE_BASELINE_R1+AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE;CANONICAL_S1_HISTORY",
+    "v08_candidate_trained": false,
+    "v08_fold_artifact_sha256": {
+      "FOLD_A": "NOT_GENERATED",
+      "FOLD_B": "NOT_GENERATED"
+    }
+  },
+  "folds": {
+    "FOLD_A": {
+      "train_seasons": ["2023-2024"],
+      "immediate_prior_season": "2023-2024",
+      "oot_season": "2024-2025",
+      "common_base_count": 13,
+      "complete_daily_training_input_row_count": 2326,
+      "complete_training_base_season_count": 0,
+      "v07_complete_daily_wape": "0.7469702528745901004938638113",
+      "baseline_complete_daily_wape": "0.6659547393760524178926438681",
+      "complete_daily_scored_row_count": 2291,
+      "partial_daily_row_count": 483,
+      "unknown_daily_row_count": 983,
+      "v08_candidate_status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+      "season_total_status": "NOT_COMPUTABLE_NO_COMPLETE_ACTUAL_TOTAL_AUTHORITY_IN_COMMON_SCOPE",
+      "single_day_peak_status": "NOT_COMPUTABLE_NO_FROZEN_PEAK_AUTHORITY",
+      "rolling_7day_peak_status": "NOT_COMPUTABLE_NO_FROZEN_ROLLING7_AUTHORITY"
+    },
+    "FOLD_B": {
+      "train_seasons": ["2023-2024", "2024-2025"],
+      "immediate_prior_season": "2024-2025",
+      "oot_season": "2025-2026",
+      "common_base_count": 30,
+      "complete_daily_training_input_row_count": 5705,
+      "complete_training_base_season_count": 0,
+      "baseline_complete_daily_wape": "0.5724112744748603264376977376",
+      "v07_complete_daily_wape": "0.7113477828712286637245014624",
+      "complete_daily_scored_row_count": 5685,
+      "partial_daily_row_count": 1235,
+      "unknown_daily_row_count": 1120,
+      "v08_candidate_status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+      "complete_actual_base_season_count": 1,
+      "actual_total_kg": "484802.056",
+      "v07_predicted_total_kg": "448751.251004",
+      "v07_total_absolute_error_kg": "36050.804996",
+      "v07_total_wape": "0.07436190616320323526020689978",
+      "single_day_peak_status": "NOT_COMPUTABLE_NO_FROZEN_PEAK_AUTHORITY",
+      "rolling_7day_peak_status": "NOT_COMPUTABLE_NO_FROZEN_ROLLING7_AUTHORITY"
+    }
+  },
+  "common_oot": {
+    "base_season_count": 43,
+    "candidate_daily_row_count": 11797,
+    "complete_daily_scored_row_count": 7976,
+    "partial_known_subtotal_row_count": 1718,
+    "unknown_daily_row_count": 2103,
+    "authorized_zero_rows_are_in_complete_daily_count": true,
+    "common_oot_dataset_sha256": "6ce3dc420fcdf96f586d6f1fb395dd35eb6b21eb7fe0d01bb8fae0bdeebca5f1",
+    "complete_daily_evaluation_dataset_sha256": "f5dc421b4346514fef0e5f9fded42cd56f69e0cdf8a3807dca86e026d016f080",
+    "candidate_paired_complete_daily_row_count": 0
+  },
+  "daily_actual_eligibility_policy": {
+    "scored_complete_mapped": "quantity_status=KNOWN_MAPPED_SUBTOTAL AND quantity_completeness_status=COMPLETE_MAPPED_MEMBERS",
+    "scored_authorized_zero_completeness_statuses": [
+      "COMPLETE_SOURCE_ROWS_ZERO",
+      "AUTHORIZED_ZERO"
+    ],
+    "excluded_partial": "quantity_status=KNOWN_MAPPED_SUBTOTAL AND quantity_completeness_status=PARTIAL_KNOWN_SUBTOTAL",
+    "excluded_unknown": "quantity_status=UNKNOWN; numeric quantity remains null",
+    "missing_or_unknown_filled_as_zero": false
+  },
+  "combined_oot": {
+    "daily": {
+      "scored_row_count": 7976,
+      "partial_row_count": 1718,
+      "unknown_row_count": 2103,
+      "baseline_wape": "0.5940263968383673651008089173",
+      "baseline_mae_kg": "2910.083841285062581363640923",
+      "v07_wape": "0.7195790799353937948127680318",
+      "v07_mae_kg": "3525.155555699222668004012036",
+      "v08_status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+      "v08_wape": "NOT_COMPUTABLE",
+      "v08_minus_v07_wape": "NOT_COMPUTABLE"
+    },
+    "season_total": {
+      "complete_actual_base_season_count": 1,
+      "actual_total_kg": "484802.056",
+      "baseline_wape": "0.2464007334629170554920253886",
+      "v07_predicted_total_kg": "448751.251004",
+      "v07_wape": "0.07436190616320323526020689978",
+      "v08_status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+      "v08_wape": "NOT_COMPUTABLE",
+      "v08_minus_v07_wape": "NOT_COMPUTABLE"
+    },
+    "single_day_peak": "NOT_COMPUTABLE_NO_FROZEN_PEAK_AUTHORITY",
+    "rolling_7day_peak": "NOT_COMPUTABLE_NO_FROZEN_ROLLING7_AUTHORITY"
+  },
+  "superseded_prior_results": {
+    "previous_exploratory_daily_wape_comparison_status": "PREVIOUS_EXPLORATORY_DAILY_WAPE_COMPARISON_INVALIDATED",
+    "previous_daily_improvement_claim_valid": false,
+    "previous_v08_season_total_status": "SUPERSEDED_NONAUTHORITATIVE_PRIOR_EXPLORATORY_RESULT",
+    "previous_v08_predicted_total_kg": "223540.014148"
+  },
+  "integrity": {
+    "predictions_sealed_before_validation_actual_load": true,
+    "validation_label_leakage": false,
+    "unknown_is_zero": false,
+    "partial_daily_subtotals_scored_as_complete": false,
+    "partial_daily_subtotals_used_as_season_training_labels": false,
+    "weather_used": false,
+    "v07_artifacts_modified": false,
+    "production_promotion_authorized": false
+  },
+  "determinism": {
+    "independent_replay_count": 2,
+    "run_ids": ["run-bt_2hbdk", "run-bdxijs2a"],
+    "private_artifact_manifest_sha256": "087db9d41fc1271adb36eab9374a37697edfd883674f0939c0cee3a8c793d843",
+    "comparison_summary_sha256": "c9abd5164dd2f7690de54ace4769eb35e40f3f3b870972b3ecad9ac986bc313d",
+    "complete_daily_evaluation_dataset_hash_match": true,
+    "private_manifest_hash_match": true,
+    "v08_candidate_prediction_hash": "NOT_GENERATED"
+  },
+  "private_artifact": {
+    "controlled_root_name": "v0-8-s2-quantity-completeness-correction-r1",
+    "row_level_artifacts_committed_to_git": false,
+    "row_counts": {
+      "common_oot_evaluation_set.csv": 11797,
+      "training-sample-qualification.csv": 117,
+      "v0-7-replay-predictions.csv": 11797,
+      "v0-8-candidate-predictions.csv": 0
+    }
+  },
+  "result": "INSUFFICIENT_STRICT_AUTHORITY_FOR_COMPARISON",
+  "correction_conclusion": {
+    "daily_curve_improved_strict": "INSUFFICIENT_EVIDENCE",
+    "daily_curve_improved_exploratory": "INSUFFICIENT_EVIDENCE",
+    "season_total_improved_strict": "INSUFFICIENT_EVIDENCE",
+    "season_total_improved_exploratory": "INSUFFICIENT_EVIDENCE",
+    "single_day_peak_improved": "INSUFFICIENT_EVIDENCE",
+    "rolling_7day_peak_improved": "INSUFFICIENT_EVIDENCE"
+  },
+  "constraints": {
+    "model_architecture_changed": false,
+    "weather_used": false,
+    "identity_authority_changed": false,
+    "area_authority_changed": false,
+    "v07_model_changed": false,
+    "model_promotion_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  }
+}
