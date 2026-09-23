@@ -1,0 +1,123 @@
+{
+  "task_id": "V0_8_S3_EXISTING_HISTORICAL_AREA_RECOVERY_AND_CANONICAL_REBIND_R1",
+  "result": "PARTIAL_AREA_AUTHORITY_RECOVERED",
+  "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "preconditions": {
+    "v08_s1_merge_present": true,
+    "current_identity_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "user_area_reentry_requested": false,
+    "new_area_estimation_executed": false,
+    "reference_area_promoted_automatically": false,
+    "cross_season_area_propagation": false
+  },
+  "input_authorities": {
+    "area_source_inventory_sha256": "81341ce629a479db82ad4f02539afd9759c8eacfe29a311683dd38ef63c681cf",
+    "area_source_inventory_manifest_sha256": "c66dffe275741b7c985920fed4cf32c8af43420650873b59f6a2bdb2fbfea2f1",
+    "current_identity_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "current_canonical_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "frozen_historical_area_authority_sha256": "231e769ebd004f02267eb4d2402f5745a8cb690ac873bb871f3db0bdb311eed2",
+    "r7b_artifact_manifest_sha256": "611507ab99c697ab72921bc478c598cee3315ca4ec103632d6ea158d320efbea",
+    "r7b_qualification_sha256": "90baea303d97e2d2db2f0b99a7a3706e6f71f1130d6b743d6289d2fb18a6d9b7",
+    "area_confirmation_2023_2024_sha256": "d83cff3f544b0650eebba3fef4c606183fb92738d8d19b552cd8886defc33437",
+    "area_confirmation_2024_2025_sha256": "f2be4358c3913f6f7061db15ae9ab1bc094a4334d1c799d99b2865f024bdabd2"
+  },
+  "recovery": {
+    "area_source_record_count": 2018,
+    "area_source_files_hash_verified": 42,
+    "canonical_base_count": 39,
+    "season_count": 3,
+    "base_season_row_count": 117,
+    "historical_actual_area_base_season_count_before": 1,
+    "historical_actual_area_base_season_count_in_rebind_candidate": 2,
+    "additional_canonical_binding_recovered": 1,
+    "base_count_with_at_least_one_historical_actual_area": 2,
+    "authorized_or_business_confirmed_by_season": {
+      "2023-2024": 0,
+      "2024-2025": 0,
+      "2025-2026": 2
+    },
+    "base_season_candidate_status_counts": {
+      "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 2,
+      "CONFLICTING_EVIDENCE": 12,
+      "REFERENCE_AREA_ONLY": 17,
+      "NOT_FOUND": 86
+    },
+    "area_conflict_base_season_count": 12,
+    "identity_unresolved_season_scoped_source_record_count": 1350,
+    "season_unresolved_source_record_count": 562,
+    "prior_binding_failure_reason_source_record_counts": {
+      "ALREADY_IN_V08_S1": 1,
+      "OLD_AREA_AUTHORITY_NOT_REBOUND_TO_CANONICAL_BASE_SEASON": 1,
+      "SOURCE_EXISTED_ONLY_AS_PREVIOUS_SEASON_PROXY": 95,
+      "SOURCE_EXISTED_ONLY_AS_REFERENCE_AREA": 109,
+      "SOURCE_EXISTED_ONLY_AS_REPORT_OR_PLAN_CANDIDATE": 10,
+      "SEASON_BINDING_MISSING": 6,
+      "IDENTITY_UNRESOLVED_IN_PRIOR_INVENTORY": 1791,
+      "AREA_SEMANTICS_NOT_HISTORICAL_ACTUAL": 5
+    },
+    "source_area_semantics_record_counts": {
+      "ACTUAL_PRODUCTIVE_AREA": 2,
+      "CURRENT_AREA": 109,
+      "PLANNED_AREA": 734,
+      "PLANTED_AREA": 585,
+      "PREVIOUS_SEASON_PROXY": 98,
+      "PROCESSING_FACTORY_STATISTICAL_AREA": 271,
+      "UNKNOWN": 219
+    },
+    "source_season_row_counts": {
+      "2023-2024": 0,
+      "2024-2025": 921,
+      "2025-2026": 535
+    },
+    "reason_summary": {
+      "2023-2024": "No season-bound actual-area source rows in the audited area inventory; the prior priority recovery matrix is NOT_FOUND for all 13 priority Bases.",
+      "2024-2025": "Only proxies, analysis reports, processing statistics, and plans were inventoried; 12 Base-season groups are explicitly conflicting and one remains business-confirmation-required. No area was promoted.",
+      "2025-2026": "Two BUSINESS_CONFIRMED season-bound area records exist in the frozen area authority and R7B qualification. One was already in S1; one was absent from the S1 canonical quality area field and was rebound using the current accepted identity authority."
+    }
+  },
+  "strict_training_potential": {
+    "training_seasons": [
+      "2023-2024",
+      "2024-2025"
+    ],
+    "oot_season": "2025-2026",
+    "strict_training_area_qualified_base_season_count": 0,
+    "strict_oot_area_qualified_base_season_count": 2,
+    "strict_training_eligible_if_rebind_candidate_applied": 0,
+    "strict_oot_eligible_if_rebind_candidate_applied": 1,
+    "quantity_total_authority_still_blocking": true,
+    "model_training_executed": false,
+    "model_refit_executed": false,
+    "backtest_executed": false,
+    "forecast_replay_executed": false
+  },
+  "private_artifacts": {
+    "path_policy": "CONTROLLED_PRIVATE_ARTIFACT_ROOT_NOT_COMMITTED",
+    "private_artifact_manifest_sha256": "69715f0b3abf24fc8ff357602a42e12b8aa10971dd2ec7f4cd14acabf128580d",
+    "historical_area_source_recovery_ledger_sha256": "b7229e9c579f8548cc83119709c6fb965cd0644fd2be0b1d6a9fb7832726bd54",
+    "canonical_historical_area_authority_candidate_sha256": "f054ec75ef540bc644638ddaa75c2932cd5ff93765e337c8a779b5c453b8514d",
+    "area_conflict_ledger_sha256": "16190a502bba188364a74ccc872d033c955853a45539803b1e2d5222d29406a9",
+    "old_vs_new_area_authority_diff_sha256": "e4f2afb709c61b0484bd3b99795d99c27959c944b7d26fc1042f524fb094dec6",
+    "area_training_eligibility_sha256": "8066b5966cf6e9958ceff26fcbefc131b9efd9f46728cd1ba8e4bf88048d6abb",
+    "recovery_summary_sha256": "aad99b788e47dec06a062f5353fc2d7279fd62589afa2f389dd0d10af174cc91",
+    "deterministic_replay_pass": true,
+    "artifact_bytes_equal_on_replay": true,
+    "directory_permissions": "0700",
+    "file_permissions": "0600",
+    "private_detail_committed": false
+  },
+  "existing_authority_mutation": {
+    "identity_authority_changed": false,
+    "base_registry_changed": false,
+    "area_authority_changed": false,
+    "quantity_authority_changed": false,
+    "v07_evidence_changed": false
+  },
+  "ci_and_git": {
+    "branch_from_latest_origin_main": true,
+    "draft_pr_required": true,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "tag_release_deploy_authorized": false
+  }
+}
