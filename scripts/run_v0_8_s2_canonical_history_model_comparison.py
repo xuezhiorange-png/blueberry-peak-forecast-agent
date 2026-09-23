@@ -24,7 +24,6 @@ from typing import Any, cast
 
 from backend.app.area_yield.data import digest
 from backend.app.area_yield.formal_multi_season_validation import (
-    KNOWN_STATUSES,
     business_boundary,
     fit_total_model,
 )
@@ -32,7 +31,9 @@ from backend.app.area_yield.v08_s2_model_comparison import (
     AREA_SEMANTICS_REFERENCE_ONLY,
     actual_total_metric,
     common_base_scope,
+    complete_season_training_totals,
     daily_metrics,
+    daily_quantity_eligibility,
     decimal_value,
     seal_daily_predictions,
     strict_historical_area_authorized,
@@ -125,6 +126,8 @@ COMMON_FIELDS = (
     "actual_status",
     "actual_quantity_kg",
     "quantity_completeness_status",
+    "daily_scoring_eligibility",
+    "daily_scoring_exclusion_reason",
     "source_sha256",
     "identity_authority_id",
     "identity_authority_sha256",
@@ -134,7 +137,8 @@ QUALIFICATION_FIELDS = (
     "base_name",
     "season",
     "quantity_authority_status",
-    "known_mapped_subtotal_kg",
+    "complete_daily_mapped_quantity_kg",
+    "complete_business_total_kg",
     "quantity_coverage_status",
     "area_value_mu",
     "reference_area_mu",
@@ -145,6 +149,7 @@ QUALIFICATION_FIELDS = (
     "training_eligible",
     "backtest_eligible",
     "exploratory_training_eligible",
+    "business_total_training_authorized",
     "exclusion_reason",
 )
 
@@ -354,8 +359,12 @@ def _canonical_training_rows(
 ) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     for row in daily_rows:
-        status = str(row["quantity_status"])
-        if status not in KNOWN_STATUSES:
+        eligibility, _ = daily_quantity_eligibility(
+            status=row.get("quantity_status"),
+            completeness_status=row.get("quantity_completeness_status"),
+            raw_quantity=row.get("mapped_observed_subtotal_kg"),
+        )
+        if eligibility != "SCORED_COMPLETE":
             continue
         base_id = str(row["base_id"])
         if base_id not in registry_by_id:
@@ -514,6 +523,11 @@ def _reveal_and_score(
                 raise ValueError(f"VALIDATION_CALENDAR_AUTHORITY_MISMATCH:{fold_id}:{base_id}")
             for key in target_keys:
                 actual = actual_by_key[key]
+                scoring_eligibility, scoring_reason = daily_quantity_eligibility(
+                    status=actual["quantity_status"],
+                    completeness_status=actual["quantity_completeness_status"],
+                    raw_quantity=actual["mapped_observed_subtotal_kg"],
+                )
                 joined = {
                     "fold_id": fold_id,
                     "base_id": base_id,
@@ -526,6 +540,8 @@ def _reveal_and_score(
                     "actual_status": str(actual["quantity_status"]),
                     "actual_quantity_kg": str(actual["mapped_observed_subtotal_kg"] or ""),
                     "quantity_completeness_status": str(actual["quantity_completeness_status"]),
+                    "daily_scoring_eligibility": scoring_eligibility,
+                    "daily_scoring_exclusion_reason": scoring_reason,
                     "source_sha256": str(actual["source_sha256"]),
                     "identity_authority_id": str(actual["identity_authority_id"]),
                     "identity_authority_sha256": str(actual["identity_authority_sha256"]),
@@ -536,7 +552,9 @@ def _reveal_and_score(
                     ("V0_7_PRODUCTION_MODEL", v07_rows_for_fold),
                     ("V0_8_CANONICAL_HISTORY_CANDIDATE", v08_rows_for_fold),
                 ):
-                    prediction = predictions_by_model[model_id][key]
+                    prediction = predictions_by_model[model_id].get(key)
+                    if prediction is None:
+                        continue
                     bucket.append(
                         {
                             **joined,
@@ -558,7 +576,27 @@ def _reveal_and_score(
             ("V0_7_PRODUCTION_MODEL", v07_rows_for_fold),
             ("V0_8_CANONICAL_HISTORY_CANDIDATE", v08_rows_for_fold),
         ):
-            dmetrics = daily_metrics(rows)
+            candidate_not_trained = model_id == "V0_8_CANONICAL_HISTORY_CANDIDATE" and not rows
+            dmetrics: dict[str, str | int]
+            if candidate_not_trained:
+                dmetrics = {
+                    "status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+                    "scored_row_count": 0,
+                    "partial_row_count": sum(
+                        1
+                        for row in common_rows
+                        if row["fold_id"] == fold_id
+                        and row["daily_scoring_eligibility"] == "EXCLUDED_PARTIAL"
+                    ),
+                    "unknown_row_count": sum(
+                        1
+                        for row in common_rows
+                        if row["fold_id"] == fold_id
+                        and row["daily_scoring_eligibility"] == "EXCLUDED_UNKNOWN"
+                    ),
+                }
+            else:
+                dmetrics = daily_metrics(rows)
             eligible_total_rows = [
                 (key, row)
                 for key, row in quality_by_key.items()
@@ -569,6 +607,8 @@ def _reveal_and_score(
             pred_index = predictions_by_model[model_id]
             for (base_id, target_season), quality in eligible_total_rows:
                 if base_id not in base_ids:
+                    continue
+                if candidate_not_trained:
                     continue
                 prediction_rows = [
                     pred_index[(base_id, target_season, day.isoformat())]
@@ -587,8 +627,15 @@ def _reveal_and_score(
                         quality["business_window_mapped_quantity_kg"], field="actual_total"
                     )
                 )
-            tmetrics = actual_total_metric(
-                predicted_totals=predicted_total_list, actual_totals=actual_total_list
+            tmetrics = (
+                {
+                    "status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+                    "base_season_count": 0,
+                }
+                if candidate_not_trained
+                else actual_total_metric(
+                    predicted_totals=predicted_total_list, actual_totals=actual_total_list
+                )
             )
             fold_metrics[model_id] = {
                 "daily": dmetrics,
@@ -641,6 +688,9 @@ def _reveal_and_score(
                 "unknown_day_count": str(quality["unknown_day_count"]),
             }
             for model_id in metric_names:
+                candidate_not_trained = (
+                    model_id == "V0_8_CANONICAL_HISTORY_CANDIDATE" and not v08_rows_for_fold
+                )
                 selected_rows = [
                     item
                     for item in (
@@ -652,23 +702,64 @@ def _reveal_and_score(
                     )
                     if item["base_id"] == base_id
                 ]
-                base_metric_row[f"{model_id}_daily"] = daily_metrics(selected_rows)
-                predictions_for_base = [
-                    predictions_by_model[model_id][(base_id, season, day.isoformat())]
-                    for day in _business_days(season, business_boundary(season))
-                ]
-                predicted_base_total = (
-                    Decimal(predictions_for_base[0]["predicted_season_total_kg"])
-                    if model_id != "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1"
-                    else sum(
-                        (Decimal(item["predicted_quantity_kg"]) for item in predictions_for_base),
-                        Decimal(0),
+                base_metric_row[f"{model_id}_daily"] = (
+                    {
+                        "status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+                        "scored_row_count": 0,
+                        "partial_row_count": sum(
+                            1
+                            for item in common_rows
+                            if item["fold_id"] == fold_id
+                            and item["base_id"] == base_id
+                            and item["daily_scoring_eligibility"] == "EXCLUDED_PARTIAL"
+                        ),
+                        "unknown_row_count": sum(
+                            1
+                            for item in common_rows
+                            if item["fold_id"] == fold_id
+                            and item["base_id"] == base_id
+                            and item["daily_scoring_eligibility"] == "EXCLUDED_UNKNOWN"
+                        ),
+                    }
+                    if candidate_not_trained
+                    else daily_metrics(selected_rows)
+                )
+                predictions_for_base = (
+                    []
+                    if candidate_not_trained
+                    else [
+                        predictions_by_model[model_id][(base_id, season, day.isoformat())]
+                        for day in _business_days(season, business_boundary(season))
+                    ]
+                )
+                if predictions_for_base:
+                    predicted_base_total = (
+                        Decimal(predictions_for_base[0]["predicted_season_total_kg"])
+                        if model_id != "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1"
+                        else sum(
+                            (
+                                Decimal(item["predicted_quantity_kg"])
+                                for item in predictions_for_base
+                            ),
+                            Decimal(0),
+                        )
                     )
-                )
-                base_metric_row[f"{model_id}_predicted_total_kg"] = format(
-                    predicted_base_total, "f"
-                )
+                    base_metric_row[f"{model_id}_predicted_total_kg"] = format(
+                        predicted_base_total, "f"
+                    )
+                else:
+                    base_metric_row[f"{model_id}_predicted_total_kg"] = (
+                        "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY"
+                    )
                 if total_authorized:
+                    if candidate_not_trained:
+                        base_metric_row[f"{model_id}_season_total_absolute_error_kg"] = (
+                            "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY"
+                        )
+                        base_metric_row[f"{model_id}_season_total_absolute_percentage_error"] = (
+                            "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY"
+                        )
+                        continue
                     predicted_total = Decimal(base_metric_row[f"{model_id}_predicted_total_kg"])
                     actual_total = decimal_value(
                         quality["business_window_mapped_quantity_kg"],
@@ -694,21 +785,26 @@ def _reveal_and_score(
 
     for model_id in metric_names:
         combined_rows = []
+        model_predictions = predictions_by_model[model_id]
+        candidate_not_trained = (
+            model_id == "V0_8_CANONICAL_HISTORY_CANDIDATE" and not model_predictions
+        )
         for fold in FOLDS:
             fold_id = str(fold["fold_id"])
             season = str(fold["oot_season"])
             base_id_set = set(fold_scopes[fold_id]["common_base_scope"])
-            model_predictions = predictions_by_model[model_id]
             for (base_id, target_season, target_date), actual in actual_by_key.items():
                 if target_season != season or base_id not in base_id_set:
+                    continue
+                prediction = model_predictions.get((base_id, target_season, target_date))
+                if prediction is None:
                     continue
                 combined_rows.append(
                     {
                         "actual_status": actual["quantity_status"],
                         "actual_quantity_kg": actual["mapped_observed_subtotal_kg"],
-                        "predicted_quantity_kg": model_predictions[
-                            (base_id, target_season, target_date)
-                        ]["predicted_quantity_kg"],
+                        "quantity_completeness_status": actual["quantity_completeness_status"],
+                        "predicted_quantity_kg": prediction["predicted_quantity_kg"],
                     }
                 )
         combined_predicted_totals: list[Decimal] = []
@@ -723,6 +819,8 @@ def _reveal_and_score(
                     != "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE"
                     or str(quality.get("season_total_complete", "")).lower() != "true"
                 ):
+                    continue
+                if candidate_not_trained:
                     continue
                 prediction_rows = [
                     predictions_by_model[model_id][(str(base_id), season, day.isoformat())]
@@ -744,10 +842,34 @@ def _reveal_and_score(
                     )
                 )
         aggregate["combined"][model_id] = {
-            "daily": daily_metrics(combined_rows),
-            "season_total": actual_total_metric(
-                predicted_totals=combined_predicted_totals,
-                actual_totals=combined_actual_totals,
+            "daily": (
+                {
+                    "status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+                    "scored_row_count": 0,
+                    "partial_row_count": sum(
+                        1
+                        for row in common_rows
+                        if row["daily_scoring_eligibility"] == "EXCLUDED_PARTIAL"
+                    ),
+                    "unknown_row_count": sum(
+                        1
+                        for row in common_rows
+                        if row["daily_scoring_eligibility"] == "EXCLUDED_UNKNOWN"
+                    ),
+                }
+                if candidate_not_trained
+                else daily_metrics(combined_rows)
+            ),
+            "season_total": (
+                {
+                    "status": "NOT_COMPUTABLE_NO_COMPLETE_SEASON_TOTAL_TRAINING_AUTHORITY",
+                    "base_season_count": 0,
+                }
+                if candidate_not_trained
+                else actual_total_metric(
+                    predicted_totals=combined_predicted_totals,
+                    actual_totals=combined_actual_totals,
+                )
             ),
             "single_day_peak": {
                 "status": "NOT_COMPUTABLE_NO_FROZEN_PEAK_AUTHORITY",
@@ -758,17 +880,27 @@ def _reveal_and_score(
                 "eligible_base_season_count": 0,
             },
         }
+    complete_daily_rows = [
+        row for row in common_rows if row["daily_scoring_eligibility"] == "SCORED_COMPLETE"
+    ]
     aggregate["coverage"] = {
         "common_oot_base_season_count": sum(
             len(scope["common_base_scope"]) for scope in fold_scopes.values()
         ),
         "common_oot_daily_row_count": len(common_rows),
-        "known_daily_row_count": sum(
-            1 for row in common_rows if row["actual_status"] in KNOWN_STATUSES
+        "complete_daily_scored_row_count": len(complete_daily_rows),
+        "partial_daily_row_count": sum(
+            1 for row in common_rows if row["daily_scoring_eligibility"] == "EXCLUDED_PARTIAL"
         ),
         "unknown_daily_row_count": sum(
-            1 for row in common_rows if row["actual_status"] == "UNKNOWN"
+            1 for row in common_rows if row["daily_scoring_eligibility"] == "EXCLUDED_UNKNOWN"
         ),
+        "candidate_paired_complete_daily_row_count": (
+            len(complete_daily_rows)
+            if predictions_by_model["V0_8_CANONICAL_HISTORY_CANDIDATE"]
+            else 0
+        ),
+        "complete_daily_evaluation_dataset_sha256": digest(complete_daily_rows),
         "common_oot_dataset_sha256": digest(common_rows),
     }
     return common_rows, per_base_rows, aggregate
@@ -785,6 +917,8 @@ def _area_qualification_rows(
     private_root: Path,
     registry_by_id: Mapping[str, Mapping[str, Any]],
     daily_totals: Mapping[tuple[str, str], Decimal],
+    complete_totals: Mapping[tuple[str, str], Decimal],
+    training_seasons: set[str],
 ) -> list[dict[str, str]]:
     # This is called only after sealed OOT prediction files have been written.
     all_seasons = {"2023-2024", "2024-2025", "2025-2026"}
@@ -798,9 +932,13 @@ def _area_qualification_rows(
         registry = registry_by_id[base_id]
         area_ok = strict_historical_area_authorized(row)
         actual_area = str(row.get("historical_actual_productive_area_mu", ""))
-        known_total = daily_totals.get((base_id, season), Decimal(0))
-        positive_history = known_total > 0
-        strict_train = area_ok and positive_history
+        key = (base_id, season)
+        known_total = daily_totals.get(key, Decimal(0))
+        complete_total = complete_totals.get(key)
+        total_authorized = complete_total is not None
+        positive_complete_history = complete_total is not None and complete_total > 0
+        in_training_season = season in training_seasons
+        strict_train = area_ok and positive_complete_history and in_training_season
         strict_backtest = (
             area_ok
             and row.get("business_total_coverage_status") == "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE"
@@ -809,8 +947,12 @@ def _area_qualification_rows(
         reasons: list[str] = []
         if not area_ok:
             reasons.append("AREA_NOT_HISTORICAL_ACTUAL_AUTHORITY")
-        if not positive_history:
-            reasons.append("NO_POSITIVE_CANONICAL_KNOWN_MAPPED_SUBTOTAL")
+        if not total_authorized:
+            reasons.append("NO_COMPLETE_BUSINESS_SEASON_TOTAL_AUTHORITY")
+        elif not positive_complete_history:
+            reasons.append("NO_POSITIVE_COMPLETE_SEASON_TOTAL")
+        elif not in_training_season:
+            reasons.append("SEASON_NOT_IN_ANY_TRAINING_FOLD")
         if not strict_backtest:
             reasons.append("NO_STRICT_COMPLETE_TOTAL_BACKTEST_AUTHORITY")
         chosen_area = actual_area if area_ok else str(registry["productive_area_mu"])
@@ -825,7 +967,10 @@ def _area_qualification_rows(
                 "base_name": str(row["canonical_base_name"]),
                 "season": season,
                 "quantity_authority_status": str(row["quantity_coverage_status"]),
-                "known_mapped_subtotal_kg": format(known_total, "f"),
+                "complete_daily_mapped_quantity_kg": format(known_total, "f"),
+                "complete_business_total_kg": (
+                    format(complete_total, "f") if complete_total is not None else ""
+                ),
                 "quantity_coverage_status": str(row["quantity_coverage_status"]),
                 "area_value_mu": chosen_area,
                 "reference_area_mu": str(registry["productive_area_mu"]),
@@ -837,7 +982,10 @@ def _area_qualification_rows(
                 "historical_actual_area_authorized": str(area_ok).lower(),
                 "training_eligible": str(strict_train).lower(),
                 "backtest_eligible": str(strict_backtest).lower(),
-                "exploratory_training_eligible": str(positive_history).lower(),
+                "exploratory_training_eligible": str(
+                    positive_complete_history and in_training_season
+                ).lower(),
+                "business_total_training_authorized": str(total_authorized).lower(),
                 "exclusion_reason": ";".join(reasons),
             }
         )
@@ -940,9 +1088,31 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
     (run_dir / "model-artifact").mkdir(mode=0o700)
     (run_dir / "model-artifact").chmod(0o700)
 
-    # Strict eligibility uses only actual-area authority. The frozen S1 quality
-    # evidence states there are no such training-season rows, so only the
-    # separately labelled exploratory reference-area lane can proceed.
+    # A candidate season-yield fit is eligible only from S1 complete business
+    # season totals. Daily subtotal sums are never promoted to season labels.
+    all_training_seasons = {
+        str(season) for fold in FOLDS for season in fold["declared_train_seasons"]
+    }
+    all_training_quality = _read_season_csv(
+        private_root / "canonical-base-season-quality-r1.csv", all_training_seasons
+    )
+    complete_training_totals_by_fold: dict[str, dict[tuple[str, str], Decimal]] = {}
+    for fold in FOLDS:
+        fold_id = str(fold["fold_id"])
+        prior_season = str(fold["prior_season"])
+        complete_training_totals_by_fold[fold_id] = complete_season_training_totals(
+            all_training_quality, included_seasons={prior_season}
+        )
+    exploratory_total_model_training_feasible = all(
+        any(quantity > 0 for quantity in totals.values())
+        for totals in complete_training_totals_by_fold.values()
+    )
+    exploratory_complete_training_base_season_count = sum(
+        sum(1 for quantity in totals.values() if quantity > 0)
+        for totals in complete_training_totals_by_fold.values()
+    )
+
+    # Strict eligibility continues to require business-confirmed actual area.
     folds_scope: dict[str, dict[str, Any]] = {}
     all_predictions: dict[str, list[dict[str, str]]] = {
         "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1": [],
@@ -960,24 +1130,31 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
         train_daily = _read_season_csv(
             private_root / "canonical-base-daily-ledger-r1.csv", train_seasons
         )
-        prior_aggregate = sum_known_mapped_subtotals(train_daily, included_seasons={prior_season})
+        complete_prior_totals = complete_training_totals_by_fold[fold_id]
         prior_v08_totals = {
             base_id: quantity
-            for (base_id, season), quantity in prior_aggregate.items()
+            for (base_id, season), quantity in complete_prior_totals.items()
             if season == prior_season and quantity > 0
         }
-        candidate_model, candidate_yields = _candidate_model(
-            prior_season=prior_season,
-            training_totals={
-                (base_id, prior_season): total for base_id, total in prior_v08_totals.items()
-            },
-            registry_by_id=registry_by_id,
-        )
+        candidate_model = None
+        candidate_yields: dict[str, Decimal] = {}
+        if exploratory_total_model_training_feasible:
+            candidate_model, candidate_yields = _candidate_model(
+                prior_season=prior_season,
+                training_totals={
+                    (base_id, prior_season): total for base_id, total in prior_v08_totals.items()
+                },
+                registry_by_id=registry_by_id,
+            )
         v07_yields = _history_yields(frozen_model, prior_season)
-        common_bases = common_base_scope(
-            v07_yield_by_base=v07_yields,
-            canonical_history_by_base=candidate_yields,
-            registry_base_ids=set(registry_by_id),
+        common_bases = (
+            common_base_scope(
+                v07_yield_by_base=v07_yields,
+                canonical_history_by_base=candidate_yields,
+                registry_base_ids=set(registry_by_id),
+            )
+            if candidate_model is not None
+            else sorted(set(v07_yields) & set(registry_by_id))
         )
         if not common_bases:
             raise ValueError(f"EMPTY_COMMON_OOT_SCOPE:{fold_id}")
@@ -994,17 +1171,20 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
             temporal_model=frozen_model["temporal_model"],
             boundary=boundary,
         )
-        v08_rows, _, v08_prediction_hash = seal_daily_predictions(
-            fold_id=fold_id,
-            model_id="V0_8_CANONICAL_HISTORY_CANDIDATE",
-            season=oot_season,
-            prior_season=prior_season,
-            base_scope=common_bases,
-            yield_by_base=candidate_yields,
-            registry_by_id=registry_by_id,
-            temporal_model=frozen_model["temporal_model"],
-            boundary=boundary,
-        )
+        v08_rows: list[dict[str, str]] = []
+        v08_prediction_hash = "NOT_GENERATED"
+        if candidate_model is not None:
+            v08_rows, _, v08_prediction_hash = seal_daily_predictions(
+                fold_id=fold_id,
+                model_id="V0_8_CANONICAL_HISTORY_CANDIDATE",
+                season=oot_season,
+                prior_season=prior_season,
+                base_scope=common_bases,
+                yield_by_base=candidate_yields,
+                registry_by_id=registry_by_id,
+                temporal_model=frozen_model["temporal_model"],
+                boundary=boundary,
+            )
         baseline_rows, baseline_totals = _baseline_rows(
             fold_id=fold_id,
             season=oot_season,
@@ -1016,30 +1196,51 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
         all_predictions["V0_7_PRODUCTION_MODEL"].extend(v07_rows)
         all_predictions["V0_8_CANONICAL_HISTORY_CANDIDATE"].extend(v08_rows)
         all_predictions["AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1"].extend(baseline_rows)
-        model_artifact = {
-            "model_id": "V0_8_CANONICAL_HISTORY_CANDIDATE",
-            "total_model_id": "BASE_AWARE_BASELINE_R1",
-            "temporal_model_id": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
-            "fold_id": fold_id,
-            "declared_train_seasons": list(fold["declared_train_seasons"]),
-            "immediate_prior_season": prior_season,
-            "training_total_model_artifact": candidate_model.payload(),
-            "training_total_model_hash": candidate_model.artifact_hash,
-            "temporal_artifact_sha256": config["model"]["temporal_artifact_sha256"],
-            "area_semantics": "REFERENCE_AREA_ONLY_EXPLORATORY_NOT_PRODUCTION_ELIGIBLE",
-            "authority_id": EXPECTED_AUTHORITY_ID,
-            "private_authority_sha256": verified["private_file_hashes"][
-                "cross-season-base-identity-authority-r1.csv"
-            ],
-            "private_daily_ledger_sha256": verified["private_file_hashes"][
-                "canonical-base-daily-ledger-r1.csv"
-            ],
-            "strict_area_model_training_feasible": False,
-            "production_eligible": False,
-        }
-        model_artifact["artifact_hash"] = digest(model_artifact)
+        candidate_artifact_hash = "NOT_GENERATED"
+        candidate_training_hash = "NOT_GENERATED"
+        if candidate_model is not None:
+            model_artifact = {
+                "model_id": "V0_8_CANONICAL_HISTORY_CANDIDATE",
+                "total_model_id": "BASE_AWARE_BASELINE_R1",
+                "temporal_model_id": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+                "fold_id": fold_id,
+                "declared_train_seasons": list(fold["declared_train_seasons"]),
+                "immediate_prior_season": prior_season,
+                "complete_training_base_season_count": len(prior_v08_totals),
+                "training_total_model_artifact": candidate_model.payload(),
+                "training_total_model_hash": candidate_model.artifact_hash,
+                "temporal_artifact_sha256": config["model"]["temporal_artifact_sha256"],
+                "area_semantics": "REFERENCE_AREA_ONLY_EXPLORATORY_NOT_PRODUCTION_ELIGIBLE",
+                "authority_id": EXPECTED_AUTHORITY_ID,
+                "private_authority_sha256": verified["private_file_hashes"][
+                    "cross-season-base-identity-authority-r1.csv"
+                ],
+                "private_daily_ledger_sha256": verified["private_file_hashes"][
+                    "canonical-base-daily-ledger-r1.csv"
+                ],
+                "strict_area_model_training_feasible": False,
+                "production_eligible": False,
+            }
+            model_artifact["artifact_hash"] = digest(model_artifact)
+            candidate_artifact_hash = model_artifact["artifact_hash"]
+            candidate_training_hash = candidate_model.training_sample_hash
+            _write_json(
+                run_dir / "model-artifact" / f"{fold_id.lower()}-v0-8-candidate.json",
+                model_artifact,
+            )
+        else:
+            _write_json(
+                run_dir / "model-artifact" / f"{fold_id.lower()}-v0-8-candidate-status.json",
+                {
+                    "model_id": "V0_8_CANONICAL_HISTORY_CANDIDATE",
+                    "status": "NOT_TRAINED",
+                    "reason": "INSUFFICIENT_COMPLETE_SEASON_TOTAL_AUTHORITY",
+                    "immediate_prior_season": prior_season,
+                    "eligible_complete_training_base_season_count": len(prior_v08_totals),
+                    "partial_daily_subtotals_used_as_season_labels": False,
+                },
+            )
         fit_artifacts[fold_id] = {
-            "candidate_model": candidate_model,
             "candidate_yields": candidate_yields,
             "v07_yields": v07_yields,
             "common_base_scope": common_bases,
@@ -1051,7 +1252,7 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
                 "v08": v08_prediction_hash,
                 "baseline": digest(baseline_rows),
             },
-            "candidate_artifact_hash": model_artifact["artifact_hash"],
+            "candidate_artifact_hash": candidate_artifact_hash,
             "baseline_profile": {
                 "baseline_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
                 "bin_width_days": 7,
@@ -1066,7 +1267,7 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
                 "predicted_totals": baseline_totals,
             },
             "training_row_hash": digest(train_rows),
-            "candidate_training_hash": candidate_model.training_sample_hash,
+            "candidate_training_hash": candidate_training_hash,
             "target_boundary": boundary.payload(),
         }
         folds_scope[fold_id] = {
@@ -1079,12 +1280,11 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
             "prior_season": prior_season,
             "oot_season": oot_season,
             "prediction_hashes": fit_artifacts[fold_id]["prediction_hashes"],
-            "candidate_training_hash": candidate_model.training_sample_hash,
-            "candidate_artifact_hash": model_artifact["artifact_hash"],
+            "candidate_training_hash": candidate_training_hash,
+            "candidate_artifact_hash": candidate_artifact_hash,
+            "candidate_training_feasible": candidate_model is not None,
+            "complete_training_base_season_count": len(prior_v08_totals),
         }
-        _write_json(
-            run_dir / "model-artifact" / f"{fold_id.lower()}-v0-8-candidate.json", model_artifact
-        )
 
     # Seal artifacts before any validation quantity is loaded.
     pred_files = {
@@ -1095,7 +1295,7 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
     for filename, rows in pred_files.items():
         _write_csv(run_dir / filename, rows, PREDICTION_FIELDS)
     sealed_prediction_hashes = {
-        model_id: digest(rows) for model_id, rows in all_predictions.items()
+        model_id: digest(rows) for model_id, rows in all_predictions.items() if rows
     }
     sealed_prediction_file_hashes = {
         filename: file_sha256(run_dir / filename) for filename in pred_files
@@ -1109,6 +1309,8 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
         fold_scopes=folds_scope,
         registry_by_id=registry_by_id,
     )
+    training_seasons = {str(season) for fold in FOLDS for season in fold["declared_train_seasons"]}
+    oot_seasons = {str(fold["oot_season"]) for fold in FOLDS}
     daily_totals = sum_known_mapped_subtotals(
         _read_season_csv(
             private_root / "canonical-base-daily-ledger-r1.csv",
@@ -1116,10 +1318,19 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
         ),
         included_seasons={"2023-2024", "2024-2025", "2025-2026"},
     )
+    all_quality_rows = _read_season_csv(
+        private_root / "canonical-base-season-quality-r1.csv",
+        {"2023-2024", "2024-2025", "2025-2026"},
+    )
+    complete_totals = complete_season_training_totals(
+        all_quality_rows, included_seasons={"2023-2024", "2024-2025", "2025-2026"}
+    )
     qualification_rows = _area_qualification_rows(
         private_root=private_root,
         registry_by_id=registry_by_id,
         daily_totals=daily_totals,
+        complete_totals=complete_totals,
+        training_seasons=training_seasons,
     )
     _write_csv(
         run_dir / "training-sample-qualification.csv", qualification_rows, QUALIFICATION_FIELDS
@@ -1146,8 +1357,6 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
         ),
     )
 
-    training_seasons = {str(season) for fold in FOLDS for season in fold["declared_train_seasons"]}
-    oot_seasons = {str(fold["oot_season"]) for fold in FOLDS}
     strict_train_rows = [
         row
         for row in qualification_rows
@@ -1185,6 +1394,16 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
             "training_data_authority_changed": True,
             "model_architecture_changed": False,
             "weather_used": False,
+            "total_model_training_feasible": exploratory_total_model_training_feasible,
+            "complete_training_base_season_count": (
+                exploratory_complete_training_base_season_count
+            ),
+            "total_model_training_blocker": (
+                "NONE"
+                if exploratory_total_model_training_feasible
+                else "INSUFFICIENT_COMPLETE_SEASON_TOTAL_AUTHORITY"
+            ),
+            "partial_daily_subtotals_used_as_season_training_labels": False,
         },
         "models": {
             "baseline": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
@@ -1197,6 +1416,7 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
                 fold_id: values["candidate_artifact_hash"]
                 for fold_id, values in folds_scope.items()
             },
+            "v08_candidate_trained": exploratory_total_model_training_feasible,
         },
         "folds": folds_scope,
         "predictions": {
@@ -1206,8 +1426,17 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
             "prediction_file_sha256": sealed_prediction_file_hashes,
             "common_oot_base_season_count": aggregate["coverage"]["common_oot_base_season_count"],
             "common_oot_daily_row_count": aggregate["coverage"]["common_oot_daily_row_count"],
-            "common_oot_known_daily_row_count": aggregate["coverage"]["known_daily_row_count"],
+            "complete_daily_scored_row_count": aggregate["coverage"][
+                "complete_daily_scored_row_count"
+            ],
+            "partial_daily_row_count": aggregate["coverage"]["partial_daily_row_count"],
             "common_oot_unknown_daily_row_count": aggregate["coverage"]["unknown_daily_row_count"],
+            "candidate_paired_complete_daily_row_count": aggregate["coverage"][
+                "candidate_paired_complete_daily_row_count"
+            ],
+            "complete_daily_evaluation_dataset_sha256": aggregate["coverage"][
+                "complete_daily_evaluation_dataset_sha256"
+            ],
             "common_oot_dataset_sha256": aggregate["coverage"]["common_oot_dataset_sha256"],
         },
         "metrics": aggregate,
@@ -1218,9 +1447,53 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
             "unknown_actual_is_zero": False,
         },
         "result": "INSUFFICIENT_STRICT_AUTHORITY_FOR_COMPARISON",
+        "quantity_completeness_correction": {
+            "daily_scoring_eligibility_policy": {
+                "complete_mapped_status": "KNOWN_MAPPED_SUBTOTAL+COMPLETE_MAPPED_MEMBERS",
+                "authorized_zero_completeness_statuses": sorted(
+                    {"COMPLETE_SOURCE_ROWS_ZERO", "AUTHORIZED_ZERO"}
+                ),
+                "partial_status": "KNOWN_MAPPED_SUBTOTAL+PARTIAL_KNOWN_SUBTOTAL",
+                "unknown_status": "UNKNOWN",
+            },
+            "partial_known_subtotal_excluded_from_daily_scoring": True,
+            "partial_known_subtotal_excluded_from_season_training": True,
+            "unknown_is_zero": False,
+            "confirmed_zero_completeness_statuses": [
+                "COMPLETE_SOURCE_ROWS_ZERO",
+                "AUTHORIZED_ZERO",
+            ],
+            "exploratory_total_model_training_feasible": (
+                exploratory_total_model_training_feasible
+            ),
+            "exploratory_complete_training_base_season_count": (
+                exploratory_complete_training_base_season_count
+            ),
+            "v08_candidate_comparison_status": (
+                "NOT_COMPUTABLE_NO_COMPLETE_TRAINING_SEASON_TOTAL_AUTHORITY"
+                if not exploratory_total_model_training_feasible
+                else "COMPUTABLE"
+            ),
+            "previous_exploratory_daily_wape_comparison_invalidated": True,
+            "previous_v08_season_total_candidate_status": (
+                "SUPERSEDED_NONAUTHORITATIVE_PRIOR_EXPLORATORY_RESULT"
+            ),
+        },
+        "business_answers": {
+            "daily_curve_improved_strict": "INSUFFICIENT_EVIDENCE",
+            "daily_curve_improved_exploratory": "INSUFFICIENT_EVIDENCE",
+            "daily_curve_exploratory_basis": (
+                "V0.8 candidate not trained: no complete prior-season total authority"
+            ),
+            "season_total_improved_strict": "INSUFFICIENT_EVIDENCE",
+            "season_total_improved_exploratory": "INSUFFICIENT_EVIDENCE",
+            "single_day_peak_improved": "INSUFFICIENT_EVIDENCE",
+            "rolling_7day_peak_improved": "INSUFFICIENT_EVIDENCE",
+        },
         "production_promotion_authorized": False,
         "v07_artifacts_modified": False,
     }
+    _write_json(run_dir / "comparison-summary.json", comparison_payload)
     output_files = {
         path.relative_to(run_dir).as_posix(): file_sha256(path)
         for path in sorted(run_dir.rglob("*"))
@@ -1237,13 +1510,16 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
     }
     private_manifest = {
         "task_id": TASK_ID,
-        "artifact_version": "V0_8_S2_MODEL_COMPARISON_PRIVATE_ARTIFACTS_V1",
-        "policy": "PRIVATE_ROW_LEVEL_MODEL_PREDICTIONS_AND_OOT_LABELS",
+        "artifact_version": "V0_8_S2_MODEL_COMPARISON_PRIVATE_ARTIFACTS_V2",
+        "policy": "PRIVATE_ROW_LEVEL_PREDICTIONS_WITH_QUANTITY_COMPLETENESS_QUALIFICATION",
         "input_authority_hashes": comparison_payload["authority_hashes"],
         "output_files_sha256": output_files,
         "row_counts": row_counts,
         "prediction_hashes": sealed_prediction_hashes,
         "common_oot_dataset_sha256": comparison_payload["predictions"]["common_oot_dataset_sha256"],
+        "complete_daily_evaluation_dataset_sha256": comparison_payload["predictions"][
+            "complete_daily_evaluation_dataset_sha256"
+        ],
         "candidate_model_artifact_hashes": comparison_payload["models"]["v08_fold_artifact_sha256"],
         "result": comparison_payload["result"],
     }
@@ -1262,9 +1538,22 @@ def run(*, repo_root: Path, private_root: Path, output_root: Path) -> dict[str, 
         ),
         "private_artifact_row_counts": row_counts,
         "strict_area_model_training_feasible": False,
+        "exploratory_total_model_training_feasible": exploratory_total_model_training_feasible,
+        "exploratory_complete_training_base_season_count": (
+            exploratory_complete_training_base_season_count
+        ),
+        "complete_daily_scored_row_count": aggregate["coverage"]["complete_daily_scored_row_count"],
+        "partial_daily_row_count": aggregate["coverage"]["partial_daily_row_count"],
+        "unknown_daily_row_count": aggregate["coverage"]["unknown_daily_row_count"],
         "business_answers_strict_lane": {
             "season_total_improved": "INSUFFICIENT_EVIDENCE",
             "daily_curve_improved": "INSUFFICIENT_EVIDENCE",
+            "single_day_peak_improved": "INSUFFICIENT_EVIDENCE",
+            "rolling_7day_peak_improved": "INSUFFICIENT_EVIDENCE",
+        },
+        "business_answers_exploratory_lane": {
+            "daily_curve_improved": "INSUFFICIENT_EVIDENCE",
+            "season_total_improved": "INSUFFICIENT_EVIDENCE",
             "single_day_peak_improved": "INSUFFICIENT_EVIDENCE",
             "rolling_7day_peak_improved": "INSUFFICIENT_EVIDENCE",
         },

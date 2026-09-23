@@ -22,6 +22,9 @@ from backend.app.area_yield.formal_multi_season_validation import (
 
 KNOWN_QUANTITY_STATUSES = frozenset({"KNOWN_MAPPED_SUBTOTAL", "CONFIRMED_ZERO"})
 UNKNOWN_QUANTITY_STATUS = "UNKNOWN"
+COMPLETE_MAPPED_MEMBERS = "COMPLETE_MAPPED_MEMBERS"
+PARTIAL_KNOWN_SUBTOTAL = "PARTIAL_KNOWN_SUBTOTAL"
+AUTHORIZED_ZERO_COMPLETENESS = frozenset({"COMPLETE_SOURCE_ROWS_ZERO", "AUTHORIZED_ZERO"})
 STRICT_HISTORICAL_AREA_STATUS = "BUSINESS_CONFIRMED_SOURCE_LABEL_BOUND"
 AREA_SEMANTICS_REFERENCE_ONLY = "REFERENCE_AREA_ONLY"
 
@@ -45,10 +48,11 @@ def decimal_value(value: Any, *, field: str) -> Decimal:
 def sum_known_mapped_subtotals(
     rows: Iterable[Mapping[str, Any]], *, included_seasons: set[str]
 ) -> dict[tuple[str, str], Decimal]:
-    """Sum only S1 known mapped subtotals and authorized confirmed zeros.
+    """Sum complete daily quantities for descriptive history only.
 
-    UNKNOWN rows must have no numeric value. They are never materialized as
-    zero and never contribute to training aggregates.
+    Partial mapped subtotals and unknowns are excluded. This daily sum is not
+    itself a season-total training label; callers need the separate S1 business
+    total authority gate in :func:`complete_season_training_totals`.
     """
 
     totals: dict[tuple[str, str], Decimal] = defaultdict(Decimal)
@@ -57,23 +61,88 @@ def sum_known_mapped_subtotals(
         if season not in included_seasons:
             continue
         base_id = str(row.get("base_id", ""))
-        status = str(row.get("quantity_status", ""))
-        raw_quantity = row.get("mapped_observed_subtotal_kg")
         if not base_id:
             raise ModelComparisonContractError("CANONICAL_ROW_BASE_ID_MISSING")
-        if status == UNKNOWN_QUANTITY_STATUS:
-            if raw_quantity not in (None, ""):
-                raise ModelComparisonContractError("UNKNOWN_QUANTITY_MUST_REMAIN_NULL")
+        eligibility, _ = daily_quantity_eligibility(
+            status=row.get("quantity_status"),
+            completeness_status=row.get("quantity_completeness_status"),
+            raw_quantity=row.get("mapped_observed_subtotal_kg"),
+        )
+        if eligibility != "SCORED_COMPLETE":
             continue
-        if status not in KNOWN_QUANTITY_STATUSES:
-            raise ModelComparisonContractError(f"UNAUTHORIZED_QUANTITY_STATUS:{status}")
-        quantity = decimal_value(raw_quantity, field="mapped_observed_subtotal_kg")
-        if quantity < 0:
-            raise ModelComparisonContractError("NEGATIVE_CANONICAL_QUANTITY")
-        if status == "CONFIRMED_ZERO" and quantity != 0:
-            raise ModelComparisonContractError("CONFIRMED_ZERO_HAS_NONZERO_QUANTITY")
+        quantity = decimal_value(
+            row.get("mapped_observed_subtotal_kg"), field="mapped_observed_subtotal_kg"
+        )
         totals[(base_id, season)] += quantity
     return dict(totals)
+
+
+def daily_quantity_eligibility(
+    *, status: Any, completeness_status: Any, raw_quantity: Any
+) -> tuple[str, str]:
+    """Classify one daily actual using both S1 status dimensions, fail closed."""
+
+    normalized_status = str(status or "")
+    normalized_completeness = str(completeness_status or "")
+    if normalized_status == UNKNOWN_QUANTITY_STATUS:
+        if raw_quantity not in (None, ""):
+            raise ModelComparisonContractError("UNKNOWN_QUANTITY_MUST_REMAIN_NULL")
+        if normalized_completeness != "UNKNOWN_NOT_ZERO_FILLED":
+            raise ModelComparisonContractError("UNKNOWN_COMPLETENESS_STATUS_INVALID")
+        return "EXCLUDED_UNKNOWN", "UNKNOWN_NOT_ZERO"
+    if normalized_status not in KNOWN_QUANTITY_STATUSES:
+        raise ModelComparisonContractError(f"UNAUTHORIZED_QUANTITY_STATUS:{normalized_status}")
+
+    quantity = decimal_value(raw_quantity, field="actual_quantity_kg")
+    if quantity < 0:
+        raise ModelComparisonContractError("NEGATIVE_CANONICAL_QUANTITY")
+    if normalized_status == "KNOWN_MAPPED_SUBTOTAL":
+        if normalized_completeness == COMPLETE_MAPPED_MEMBERS:
+            return "SCORED_COMPLETE", COMPLETE_MAPPED_MEMBERS
+        if normalized_completeness == PARTIAL_KNOWN_SUBTOTAL:
+            return "EXCLUDED_PARTIAL", "PARTIAL_KNOWN_SUBTOTAL_NOT_COMPLETE_ACTUAL"
+        raise ModelComparisonContractError(
+            f"KNOWN_QUANTITY_COMPLETENESS_STATUS_INVALID:{normalized_completeness}"
+        )
+
+    if quantity != 0:
+        raise ModelComparisonContractError("CONFIRMED_ZERO_HAS_NONZERO_QUANTITY")
+    if normalized_completeness not in AUTHORIZED_ZERO_COMPLETENESS:
+        raise ModelComparisonContractError(
+            f"CONFIRMED_ZERO_COMPLETENESS_STATUS_UNAUTHORIZED:{normalized_completeness}"
+        )
+    return "SCORED_COMPLETE", normalized_completeness
+
+
+def complete_season_training_totals(
+    rows: Iterable[Mapping[str, Any]], *, included_seasons: set[str]
+) -> dict[tuple[str, str], Decimal]:
+    """Return totals only when S1 explicitly authorizes a complete business total."""
+
+    totals: dict[tuple[str, str], Decimal] = {}
+    for row in rows:
+        season = str(row.get("season", ""))
+        if season not in included_seasons:
+            continue
+        if (
+            row.get("business_total_coverage_status") != "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE"
+            or str(row.get("season_total_complete", "")).lower() != "true"
+        ):
+            continue
+        base_id = str(row.get("base_id", ""))
+        if not base_id:
+            raise ModelComparisonContractError("SEASON_TOTAL_BASE_ID_MISSING")
+        key = (base_id, season)
+        if key in totals:
+            raise ModelComparisonContractError("DUPLICATE_COMPLETE_SEASON_TOTAL_AUTHORITY")
+        quantity = decimal_value(
+            row.get("business_window_mapped_quantity_kg"),
+            field="business_window_mapped_quantity_kg",
+        )
+        if quantity < 0:
+            raise ModelComparisonContractError("NEGATIVE_COMPLETE_SEASON_TOTAL")
+        totals[key] = quantity
+    return totals
 
 
 def strict_historical_area_authorized(row: Mapping[str, Any]) -> bool:
@@ -159,30 +228,34 @@ def seal_daily_predictions(
 
 
 def daily_metrics(rows: Sequence[Mapping[str, Any]]) -> dict[str, str | int]:
-    """Compute pooled known-support daily metrics; unknown rows remain excluded."""
+    """Compute metrics only over completeness-qualified full daily actuals."""
 
     scored: list[tuple[Decimal, Decimal]] = []
     unknown_count = 0
+    partial_count = 0
     for row in rows:
-        status = str(row.get("actual_status", ""))
-        actual_raw = row.get("actual_quantity_kg")
-        if status == UNKNOWN_QUANTITY_STATUS:
-            if actual_raw not in (None, ""):
-                raise ModelComparisonContractError("UNKNOWN_ACTUAL_MUST_REMAIN_NULL")
+        eligibility, _ = daily_quantity_eligibility(
+            status=row.get("actual_status"),
+            completeness_status=row.get("quantity_completeness_status"),
+            raw_quantity=row.get("actual_quantity_kg"),
+        )
+        if eligibility == "EXCLUDED_UNKNOWN":
             unknown_count += 1
             continue
-        if status not in KNOWN_QUANTITY_STATUSES:
-            raise ModelComparisonContractError(f"UNAUTHORIZED_ACTUAL_STATUS:{status}")
-        actual = decimal_value(actual_raw, field="actual_quantity_kg")
+        if eligibility == "EXCLUDED_PARTIAL":
+            partial_count += 1
+            continue
+        actual = decimal_value(row.get("actual_quantity_kg"), field="actual_quantity_kg")
         predicted = decimal_value(row["predicted_quantity_kg"], field="predicted_quantity_kg")
         if actual < 0 or predicted < 0:
             raise ModelComparisonContractError("NEGATIVE_SCORE_INPUT")
         scored.append((predicted, actual))
     if not scored:
         return {
-            "status": "NOT_COMPUTABLE_NO_KNOWN_ACTUAL_ROWS",
+            "status": "NOT_COMPUTABLE_NO_COMPLETE_ACTUAL_ROWS",
             "scored_row_count": 0,
             "unknown_row_count": unknown_count,
+            "partial_row_count": partial_count,
         }
     absolute_errors = [abs(predicted - actual) for predicted, actual in scored]
     signed_errors = [predicted - actual for predicted, actual in scored]
@@ -197,6 +270,7 @@ def daily_metrics(rows: Sequence[Mapping[str, Any]]) -> dict[str, str | int]:
         "status": "COMPUTABLE",
         "scored_row_count": len(scored),
         "unknown_row_count": unknown_count,
+        "partial_row_count": partial_count,
         "actual_kg": format(actual_total, "f"),
         "absolute_error_kg": format(absolute_error_total, "f"),
         "daily_wape": wape,
