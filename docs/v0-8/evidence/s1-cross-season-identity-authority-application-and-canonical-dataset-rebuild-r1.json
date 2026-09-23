@@ -1,0 +1,240 @@
+{
+  "all_season_totals_kg": {
+    "current_mapping_mapped": "90950421.578",
+    "excluded": "3398605.745",
+    "mapped": "109010615.352",
+    "mapped_gain": "18060193.774",
+    "raw": "122983150.913",
+    "reconciliation_delta": "0",
+    "unresolved": "10573929.816"
+  },
+  "authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+  "base_daily_ledger_authority_sha256": "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd",
+  "base_season_quality_summary": {
+    "2023-2024": {
+      "base_season_rows": 39,
+      "business_confirmed_historical_area_base_season_count": 0,
+      "business_total_coverage_status_counts": {
+        "NOT_ESTABLISHED_NO_FROZEN_TOTAL_AUTHORITY": 39
+      },
+      "business_total_evaluable_base_season_count": 0,
+      "daily_quantity_coverage_status_counts": {
+        "KNOWN_SUPPORT_PARTIAL_OR_UNKNOWN": 39
+      },
+      "daily_rows": 11310,
+      "reference_area_only_base_season_count": 39,
+      "rolling_7day_coverage_status_counts": {
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 39
+      },
+      "rolling_7day_evaluable_base_season_count": 0,
+      "single_day_peak_coverage_status_counts": {
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 39
+      },
+      "single_day_peak_evaluable_base_season_count": 0
+    },
+    "2024-2025": {
+      "base_season_rows": 39,
+      "business_confirmed_historical_area_base_season_count": 0,
+      "business_total_coverage_status_counts": {
+        "NOT_ESTABLISHED_NO_FROZEN_TOTAL_AUTHORITY": 39
+      },
+      "business_total_evaluable_base_season_count": 0,
+      "daily_quantity_coverage_status_counts": {
+        "KNOWN_SUPPORT_PARTIAL_OR_UNKNOWN": 39
+      },
+      "daily_rows": 11271,
+      "reference_area_only_base_season_count": 39,
+      "rolling_7day_coverage_status_counts": {
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 39
+      },
+      "rolling_7day_evaluable_base_season_count": 0,
+      "single_day_peak_coverage_status_counts": {
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 39
+      },
+      "single_day_peak_evaluable_base_season_count": 0
+    },
+    "2025-2026": {
+      "base_season_rows": 39,
+      "business_confirmed_historical_area_base_season_count": 1,
+      "business_total_coverage_status_counts": {
+        "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE": 1,
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 38
+      },
+      "business_total_evaluable_base_season_count": 1,
+      "daily_quantity_coverage_status_counts": {
+        "KNOWN_SUPPORT_NO_UNKNOWN_DAYS": 2,
+        "KNOWN_SUPPORT_PARTIAL_OR_UNKNOWN": 37
+      },
+      "daily_rows": 10452,
+      "reference_area_only_base_season_count": 39,
+      "rolling_7day_coverage_status_counts": {
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 39
+      },
+      "rolling_7day_evaluable_base_season_count": 0,
+      "single_day_peak_coverage_status_counts": {
+        "NOT_COMPUTABLE_FROZEN_AUTHORITY_OR_BASE_SCOPE": 39
+      },
+      "single_day_peak_evaluable_base_season_count": 0
+    }
+  },
+  "base_sha": "ec0cbfe134b6eee1159f8bad851664d1c7174b21",
+  "business_decision_application": {
+    "all_decisions_exact_identity_and_season_scoped": true,
+    "changed_base_assignment_rows": 59,
+    "overlapping_question_scope_deduplicated_by_exact_identity": true,
+    "q07_q10_parent_correction_rows": 2,
+    "q07_q10_parent_corrections_reallocate_quantity": false,
+    "q14_prior_no_candidate_rows_remain_unresolved": 3,
+    "q14_target_season_rows_with_candidate": 10,
+    "q17_split_relation_rows": 20,
+    "q17_unhandled_source_label_count": 0,
+    "q26_decisions_are_season_scoped": true,
+    "question_count": 40
+  },
+  "business_decision_capture_manifest_sha256": "d4414c70bdb1ad92cd2c9d54f63485579979686344c59047619e8348a364f327",
+  "business_decisions_by_question_sha256": "8d5424f048a111d33d9644d247cce59b9cde3ff18df9840af3ffc965d831b402",
+  "business_decisions_sha256": "8730b4f3be9a33b86db4f057c31259ec0302d525d8a635aa4f98893558101089",
+  "confirmation_package_manifest_sha256": "bb38dbea3748948f0b72d7f5e192591805155eda79c46541c992b6a1d88cc0fd",
+  "counts": {
+    "base_season_quality_rows": 117,
+    "canonical_base_count": 39,
+    "canonical_daily_rows": 33033,
+    "conflicting_source_farm_labels": 0,
+    "excluded_source_farm_labels": 15,
+    "identity_mapping_status_counts": {
+      "AUTHORIZED_ALIAS": 3,
+      "BUSINESS_CONFIRMED_MAPPING": 31,
+      "EXACT": 135,
+      "EXCLUDED": 15,
+      "UNRESOLVED": 44
+    },
+    "mapped_source_farm_labels": 169,
+    "season_count": 3,
+    "season_farm_subfarm_pairs": 466,
+    "season_source_farm_labels": 228,
+    "unresolved_or_conflicting_source_farm_labels_remaining": 44,
+    "unresolved_source_farm_labels": 44
+  },
+  "determinism": {
+    "authority_bytes_deterministic": true,
+    "canonical_daily_bytes_deterministic": true,
+    "manifest_deterministic": true,
+    "quality_ledger_bytes_deterministic": true
+  },
+  "historical_area_authority_sha256": "231e769ebd004f02267eb4d2402f5745a8cb690ac873bb871f3db0bdb311eed2",
+  "previous_authority_hashes": {
+    "base_member_mapping": "d40dbc3a1328d79e10670999ee613fcef8fa3ee32659db16dfe67db3e6b91b5b",
+    "base_registry": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "combined_identity_authority": "c46e198cda2e6c4296db184af5c2e1f3b200a944309aa43039fa3be42a0bbd0e",
+    "historical_identity_mapping": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+    "mapping_authority": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086"
+  },
+  "private_artifact_directory_mode": "0700",
+  "private_artifact_file_sha256": {
+    "canonical-base-daily-ledger-r1.csv": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+    "canonical-base-season-quality-r1.csv": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "cross-season-base-identity-authority-r1.csv": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "cross-season-subfarm-parent-authority-r1.csv": "ca5e949301f981c92c3e9d95375e5f0bef58627854c2ff054527cc5a57308f49",
+    "old-vs-new-identity-diff-r1.csv": "c958d5d35146b7fc2ea16c2a34848974d62f8c38de6a44c2526c4c28d148a2f1",
+    "unresolved-identity-ledger-r1.csv": "d28efd9dceb0717c7303962666b3ec74fa98ed0715896df46a54ae1da9f7389d"
+  },
+  "private_artifact_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+  "private_artifact_row_counts": {
+    "canonical-base-daily-ledger-r1.csv": 33033,
+    "canonical-base-season-quality-r1.csv": 117,
+    "cross-season-base-identity-authority-r1.csv": 228,
+    "cross-season-subfarm-parent-authority-r1.csv": 466,
+    "old-vs-new-identity-diff-r1.csv": 228,
+    "unresolved-identity-ledger-r1.csv": 60
+  },
+  "private_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+  "private_canonical_daily_ledger_sha256": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+  "private_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+  "r7b_boundary_authority_sha256": "ca7965f92102d09a8494dce146a3c951cbb6e4a86c98214c7631d47dbd9bdc6a",
+  "r7b_qualification_sha256": "90baea303d97e2d2db2f0b99a7a3706e6f71f1130d6b743d6289d2fb18a6d9b7",
+  "result": "PASS_DATA_AUTHORITY_REBUILT_MODEL_NOT_REPLAYED",
+  "season_totals": {
+    "2023-2024": {
+      "business_boundary_authority": "FROZEN_CROSS_SEASON_AUDIT_WINDOW_R1",
+      "business_end": "2024-04-15",
+      "business_start": "2023-07-01",
+      "business_window_mapped_kg": "15135214.482",
+      "conflicting_subset_kg": "0",
+      "explicitly_excluded_kg": "1638683.465",
+      "mapped_kg": "23551840.401",
+      "mapped_rate": "0.7812019044669501432882103299",
+      "raw_source_kg": "30148211.706",
+      "unresolved_kg": "4957687.84"
+    },
+    "2024-2025": {
+      "business_boundary_authority": "FROZEN_CROSS_SEASON_AUDIT_WINDOW_R1",
+      "business_end": "2025-04-15",
+      "business_start": "2024-07-01",
+      "business_window_mapped_kg": "23758908.16",
+      "conflicting_subset_kg": "0",
+      "explicitly_excluded_kg": "1759922.28",
+      "mapped_kg": "36755290.292",
+      "mapped_rate": "0.866052642770296194036816623",
+      "raw_source_kg": "42440018.628",
+      "unresolved_kg": "3924806.056"
+    },
+    "2025-2026": {
+      "business_boundary_authority": "USER_CONFIRMED_2526_BUSINESS_WINDOW_R7B",
+      "business_end": "2026-04-15",
+      "business_start": "2025-07-22",
+      "business_window_mapped_kg": "48070902.334",
+      "conflicting_subset_kg": "0",
+      "explicitly_excluded_kg": "0",
+      "mapped_kg": "48703484.659",
+      "mapped_rate": "0.9664363808779403850958095981",
+      "raw_source_kg": "50394920.579",
+      "unresolved_kg": "1691435.92"
+    }
+  },
+  "semantics": {
+    "backtest_executed": false,
+    "confirmed_zero_requires_authority": true,
+    "historical_actual_area_only_when_business_confirmed_and_identity_bound": true,
+    "model_refit_executed": false,
+    "model_replay_executed": false,
+    "model_training_eligibility_evaluated": false,
+    "model_training_executed": false,
+    "reference_area_only": true,
+    "unknown_is_not_zero": true,
+    "unresolved_is_not_zero": true,
+    "v0_7_artifacts_modified": false,
+    "weather_experiment_executed": false
+  },
+  "source_audit_manifest_sha256": "04e540ffa019dcfd07d4140dc498800f4df11e74184ff6db853fd4f2d9deb17b",
+  "source_hashes": {
+    "2023-2024": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+    "2024-2025": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+    "2025-2026": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "task_id": "V0_8_S1_CROSS_SEASON_IDENTITY_AUTHORITY_APPLICATION_AND_CANONICAL_DATASET_REBUILD_R1",
+  "verified_input_hashes": {
+    "base_daily_ledger": "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd",
+    "base_registry_artifact_manifest": "f454f7768584badea463f5e641aaf47e1f2e4e05e772511177bcfbcc824e3215",
+    "business_confirmation_package_manifest": "bb38dbea3748948f0b72d7f5e192591805155eda79c46541c992b6a1d88cc0fd",
+    "business_decision_capture_manifest": "d4414c70bdb1ad92cd2c9d54f63485579979686344c59047619e8348a364f327",
+    "business_decisions": "8730b4f3be9a33b86db4f057c31259ec0302d525d8a635aa4f98893558101089",
+    "frozen_proposal": "69ee6067ae6c70ee0691abf85a6346b8a569257a407cebe09a3ef3ed81725424",
+    "historical_area_authority": "231e769ebd004f02267eb4d2402f5745a8cb690ac873bb871f3db0bdb311eed2",
+    "previous_identity_authorities": {
+      "base_member_mapping": "d40dbc3a1328d79e10670999ee613fcef8fa3ee32659db16dfe67db3e6b91b5b",
+      "base_registry": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+      "combined_identity_authority": "c46e198cda2e6c4296db184af5c2e1f3b200a944309aa43039fa3be42a0bbd0e",
+      "historical_identity_mapping": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+      "mapping_authority": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086"
+    },
+    "r7b_artifact_manifest": "611507ab99c697ab72921bc478c598cee3315ca4ec103632d6ea158d320efbea",
+    "r7b_boundary_authority": "ca7965f92102d09a8494dce146a3c951cbb6e4a86c98214c7631d47dbd9bdc6a",
+    "raw_sources": {
+      "2023-2024": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "2024-2025": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "2025-2026": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+    },
+    "source_audit_manifest": "04e540ffa019dcfd07d4140dc498800f4df11e74184ff6db853fd4f2d9deb17b"
+  },
+  "version": "0.8.0"
+}

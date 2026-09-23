@@ -1,0 +1,49 @@
+{
+  "all_season_totals_kg": {
+    "current_mapping_mapped": "90950421.578",
+    "excluded": "3398605.745",
+    "mapped": "109010615.352",
+    "mapped_gain": "18060193.774",
+    "raw": "122983150.913",
+    "reconciliation_delta": "0",
+    "unresolved": "10573929.816"
+  },
+  "authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+  "business_decisions_sha256": "8730b4f3be9a33b86db4f057c31259ec0302d525d8a635aa4f98893558101089",
+  "counts": {
+    "base_season_quality_rows": 117,
+    "canonical_base_count": 39,
+    "canonical_daily_rows": 33033,
+    "conflicting_source_farm_labels": 0,
+    "excluded_source_farm_labels": 15,
+    "identity_mapping_status_counts": {
+      "AUTHORIZED_ALIAS": 3,
+      "BUSINESS_CONFIRMED_MAPPING": 31,
+      "EXACT": 135,
+      "EXCLUDED": 15,
+      "UNRESOLVED": 44
+    },
+    "mapped_source_farm_labels": 169,
+    "season_count": 3,
+    "season_farm_subfarm_pairs": 466,
+    "season_source_farm_labels": 228,
+    "unresolved_or_conflicting_source_farm_labels_remaining": 44,
+    "unresolved_source_farm_labels": 44
+  },
+  "policy": {
+    "cross_season_propagation": false,
+    "exact_identity_only": true,
+    "model_eligibility_automatic": false,
+    "reference_area_only": true,
+    "season_scoped": true,
+    "unknown_is_not_zero": true
+  },
+  "private_artifact_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+  "source_hashes": {
+    "2023-2024": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+    "2024-2025": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+    "2025-2026": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+  },
+  "task_id": "V0_8_S1_CROSS_SEASON_IDENTITY_AUTHORITY_APPLICATION_AND_CANONICAL_DATASET_REBUILD_R1",
+  "version": "0.8.0"
+}
