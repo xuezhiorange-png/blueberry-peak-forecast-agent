@@ -1,0 +1,246 @@
+{
+  "task_id": "CROSS_SEASON_DATA_MAPPING_AND_QUALITY_AUDIT_R1",
+  "result": "PARTIAL",
+  "audit_status": "REQUIRES_BUSINESS_CONFIRMATION",
+  "base_ref": "main",
+  "base_sha": "3c0ae295dfbd327fcbc9dcd92dea7511b5030e8b",
+  "v0_7_target_in_main_ancestry": true,
+  "v0_7_artifacts_modified": false,
+  "model_changed": false,
+  "model_retrained": false,
+  "model_refit": false,
+  "backtest_executed": false,
+  "weather_experiment_executed": false,
+  "existing_mapping_authority_modified": false,
+  "existing_model_config_modified": false,
+  "fuzzy_auto_mapping_used": false,
+  "missing_to_zero": false,
+  "unresolved_to_zero": false,
+  "raw_sources": {
+    "2023-2024": {
+      "filename": "23~24.xls",
+      "sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20"
+    },
+    "2024-2025": {
+      "filename": "24~25.xls",
+      "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6"
+    },
+    "2025-2026": {
+      "filename": "原果入库汇总表.xls",
+      "sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+    }
+  },
+  "identity_authorities": {
+    "historical_identity_reconstruction_r1_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+    "historical_identity_matrix_sha256": "4bdc98f60c99450f9d03e66cd58922d0f1ea3897f5881d22fb4a44629c4645a2",
+    "historical_identity_coverage_sha256": "b4d02661147454f05be78d4020e2e43271f0498b21b84b5db37ecd2b6b2d14e6",
+    "base_member_mapping_r2_sha256": "d40dbc3a1328d79e10670999ee613fcef8fa3ee32659db16dfe67db3e6b91b5b",
+    "base_registry_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "mapping_authority_sha256": "319d5adbd51aba71dbcdbcc05d1dfd3ff8e5602d621988230a45c5930c23c086",
+    "v07_s1_combined_identity_authority_sha256_declared": "c46e198cda2e6c4296db184af5c2e1f3b200a944309aa43039fa3be42a0bbd0e",
+    "combined_identity_authority_preimage_available": false,
+    "combined_authority_replay_basis": "Parsed season-scoped R1 mapping + R2 member map + 39-Base registry",
+    "season_authority": {
+      "2023-2024": "HISTORICAL_IDENTITY_RECONSTRUCTION_R1 season decisions, cross-checked against BASE_MEMBER_MAPPING_R2",
+      "2024-2025": "HISTORICAL_IDENTITY_RECONSTRUCTION_R1 season decisions, cross-checked against BASE_MEMBER_MAPPING_R2",
+      "2025-2026": "BASE_MEMBER_MAPPING_R2 + Base Registry; R1 contains no rows for this season"
+    },
+    "fuzzy_or_similarity_acceptance": false,
+    "multi_assignment_policy": "EXACT_FIRST_EXPLICIT_ALIAS_ONLY_NO_FUZZY_NO_MULTI_ASSIGNMENT"
+  },
+  "inventory": {
+    "raw_row_count": 529004,
+    "source_label_total_season_scoped": 228,
+    "unique_source_label_text_count_across_seasons": 144,
+    "farm_subfarm_pair_count": 466,
+    "all_39_bases_by_3_seasons_matrix_rows": 117,
+    "per_season": {
+      "2023-2024": {
+        "raw_rows": 93761,
+        "source_farm_labels": 56,
+        "nonempty_subfarm_labels": 2,
+        "farm_subfarm_pairs": 58,
+        "date_range": ["2023-07-26", "2024-06-30"],
+        "business_window": ["2023-07-01", "2024-04-15"],
+        "raw_total_kg": "30148211.706",
+        "raw_in_business_window_kg": "19314330.605",
+        "raw_outside_business_window_kg": "10833881.101",
+        "mapped_kg": "11656395.430",
+        "unresolved_kg": "16853132.811",
+        "explicitly_excluded_kg": "1638683.465",
+        "mapped_rate_of_full_raw_total": "0.3866363797518438455667649742",
+        "mapped_labels": 16,
+        "unresolved_labels": 33,
+        "explicitly_excluded_labels": 7,
+        "conflicting_labels": 0,
+        "exact_duplicate_raw_rows": 0
+      },
+      "2024-2025": {
+        "raw_rows": 202072,
+        "source_farm_labels": 88,
+        "nonempty_subfarm_labels": 132,
+        "farm_subfarm_pairs": 194,
+        "date_range": ["2024-07-01", "2025-05-27"],
+        "business_window": ["2024-07-01", "2025-04-15"],
+        "raw_total_kg": "42440018.628",
+        "raw_in_business_window_kg": "28179279.134",
+        "raw_outside_business_window_kg": "14260739.494",
+        "mapped_kg": "30590748.252",
+        "unresolved_kg": "10089348.096",
+        "explicitly_excluded_kg": "1759922.280",
+        "mapped_rate_of_full_raw_total": "0.7207995953097346505716995559",
+        "mapped_labels": 48,
+        "unresolved_labels": 32,
+        "explicitly_excluded_labels": 8,
+        "conflicting_labels": 0,
+        "exact_duplicate_raw_rows": 0
+      },
+      "2025-2026": {
+        "raw_rows": 233171,
+        "source_farm_labels": 84,
+        "nonempty_subfarm_labels": 192,
+        "farm_subfarm_pairs": 214,
+        "date_range": ["2025-07-22", "2026-04-16"],
+        "business_window": ["2025-07-22", "2026-04-15"],
+        "raw_total_kg": "50394920.579",
+        "raw_in_business_window_kg": "49735888.794",
+        "raw_outside_business_window_kg": "659031.785",
+        "mapped_kg": "48703277.896",
+        "unresolved_kg": "1691642.683",
+        "explicitly_excluded_kg": "0",
+        "mapped_rate_of_full_raw_total": "0.9664322780239696982180256409",
+        "mapped_labels": 74,
+        "unresolved_labels": 10,
+        "explicitly_excluded_labels": 0,
+        "conflicting_labels": 0,
+        "exact_duplicate_raw_rows": 0,
+        "in_window_global_unknown_no_record_days": 40,
+        "unknown_days_zero_filled": false
+      }
+    }
+  },
+  "mapping_counts": {
+    "mapped_labels": 138,
+    "unresolved_labels": 75,
+    "conflicting_labels": 0,
+    "explicitly_excluded_labels": 15,
+    "same_label_different_accepted_base_count": 0,
+    "same_season_authority_conflict_count": 0,
+    "raw_source_row_assigned_to_multiple_bases_count": 0,
+    "authority_visible_member_or_candidate_set_changed_base_count": 35,
+    "adjacent_season_membership_change_records": 55,
+    "reused_subfarm_label_under_multiple_parent_count": 79,
+    "unresolved_includes_conflicting": true
+  },
+  "quantity_reconciliation": {
+    "raw_total_kg": "122983150.913",
+    "mapped_kg": "90950421.578",
+    "unresolved_kg": "28634123.590",
+    "explicitly_excluded_kg": "3398605.745",
+    "reconciliation_delta_kg": "0",
+    "pass": true,
+    "farm_aggregate_equals_raw": true,
+    "farm_subfarm_pair_aggregate_equals_raw": true,
+    "farm_and_pair_views_added_together": false,
+    "exact_duplicate_raw_rows": 0
+  },
+  "coverage_and_area": {
+    "identity_and_quantity_coverage_reported_separately": true,
+    "accepted_identity_implies_complete_season_total": false,
+    "base_registry_area_semantics": "REFERENCE_AREA_ONLY",
+    "all_39_reference_areas_promoted_to_historical_actual_productive_area": false,
+    "source_label_level_historical_actual_area_authorities_verified": 2,
+    "base_aggregate_completeness_inferred_from_r7b_source_label_qualifier": false,
+    "low_observed_day_base_season_count_1_to_29": 15,
+    "no_accepted_mapped_business_day_count": 35,
+    "low_day_buckets": {
+      "1-29": 15,
+      "30-59": 2,
+      "60-89": 2,
+      "90+": 63,
+      "NO_ACCEPTED_MAPPED_DAY": 35
+    },
+    "reference_area_yields_are_diagnostic_only": true
+  },
+  "anomalies": {
+    "P0_CRITICAL": 0,
+    "P1_HIGH": 114,
+    "P2_REVIEW": 149,
+    "INFO": 177,
+    "extreme_adjacent_season_yield_jump_pairs": 20,
+    "yield_flag_rule": "ratio > 2.5 or ratio < 0.4",
+    "yield_is_actual_productive_area_based": false,
+    "yield_flags_infer_real_production_change": false,
+    "manual_business_confirmation_count": 263,
+    "manual_business_decision_prefilled": false,
+    "high_risk_review_groups": [
+      {
+        "id": "JIANSHUI_CHAKE_NANZHUANG",
+        "status": "NEEDS_BUSINESS_CONFIRMATION",
+        "finding": "Frozen alias and unresolved Chake source labels coexist; the audit does not decide whether the operations are one Base or separate Bases."
+      },
+      {
+        "id": "YUANJIANG_GANZHUANG_YANGWU",
+        "status": "NEEDS_BUSINESS_CONFIRMATION",
+        "finding": "Accepted source-label composition changes by season and reference-area yield jumps are flagged; coverage, mapping, area, and real change remain alternatives."
+      },
+      {
+        "id": "TENGCHONG_DEHONG_YINGJIANG",
+        "status": "NEEDS_BUSINESS_CONFIRMATION",
+        "finding": "Current R2 accepts the source label to Tengchong Dehong, but the business relationship is not independently established."
+      },
+      {
+        "id": "YANSHAN_HUILONG_CENTER_STATION",
+        "status": "NEEDS_BUSINESS_CONFIRMATION",
+        "finding": "Historical unresolved label, later accepted member, and a very short latest-season record leave addition/rename/omission/duplicate semantics unresolved."
+      }
+    ]
+  },
+  "private_artifacts": {
+    "artifact_id": "cross-season-data-mapping-and-quality-audit-r1",
+    "row_level_details_committed_to_repository": false,
+    "directory_mode": "0700",
+    "files_mode": "0600",
+    "deterministic_replay_manifest_sha256": "04e540ffa019dcfd07d4140dc498800f4df11e74184ff6db853fd4f2d9deb17b",
+    "audit_summary_sha256": "8ff76d1bb5cfb9fa13c040a2bfa3c09fde6a9b044e1ebc1529833d80615ea209",
+    "artifacts": {
+      "cross-season-source-identity-ledger.csv": {
+        "rows": 466,
+        "sha256": "de630b413b21e0a989d67a12b1c74db4501d2a1e7258d0f98f8a8f893da34930"
+      },
+      "cross-season-source-farm-label-ledger.csv": {
+        "rows": 228,
+        "sha256": "05eb756a7655543f0fdc02cf5ea5efb978f2049aa3b06343690172a527e61b5f"
+      },
+      "cross-season-base-membership-matrix.csv": {
+        "rows": 117,
+        "sha256": "325788371fe20adb502c09599ab219284e8f9382c06dfeee4ba04112b8c28b4a"
+      },
+      "cross-season-base-member-change-ledger.csv": {
+        "rows": 55,
+        "sha256": "a32209b9618d328aefb1e6e234a2d531f7fe28c81d79815fdc5cf7649619facd"
+      },
+      "cross-season-base-season-quality.csv": {
+        "rows": 117,
+        "sha256": "73938ff996b9fff75f41f64a6943a81736f3c9a652ea7d7773be05cee4a5eff0"
+      },
+      "cross-season-anomaly-ledger.csv": {
+        "rows": 440,
+        "sha256": "c530b8ff0100705e354851a0a2fa0bbf17bc78a990e123fe758ef530fa30d118"
+      },
+      "manual_business_confirmation.csv": {
+        "rows": 263,
+        "sha256": "4e4fc6b8bbbd81bb325f3327931a358cfca9927a5f10ced808a99bb16dc56856",
+        "business_decision_blank": true
+      }
+    }
+  },
+  "conclusion": {
+    "can_we_prove_all_three_season_mappings_correct": false,
+    "cross_season_mapping_status": "REQUIRES_BUSINESS_CONFIRMATION",
+    "quantity_reconciliation_pass": true,
+    "existing_v07_changed": false,
+    "mapping_correction_proposed_or_applied": false,
+    "next_action": "Business review of private manual confirmation ledger; any authority changes require a separate correction task."
+  }
+}
