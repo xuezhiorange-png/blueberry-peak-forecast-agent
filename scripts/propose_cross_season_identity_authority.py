@@ -22,6 +22,9 @@ from pathlib import Path
 from typing import Any, Protocol, cast
 
 TASK_ID = "CROSS_SEASON_BUSINESS_IDENTITY_DECISION_CAPTURE_AND_AUTHORITY_CORRECTION_PROPOSAL_R1"
+SEMANTIC_CORRECTION_TASK_ID = (
+    "CROSS_SEASON_BUSINESS_IDENTITY_DECISION_CAPTURE_Q14_SEMANTICS_CORRECTION_R1"
+)
 DECISION_SOURCE = "USER_BUSINESS_CONFIRMATION_2026_09_23"
 SEASONS = ("2023-2024", "2024-2025", "2025-2026")
 ACCEPTED_STATUSES = {"EXACT", "AUTHORIZED_ALIAS", "HISTORICALLY_PROVEN_ALIAS"}
@@ -315,7 +318,7 @@ def build_proposal(
                 )
                 continue
 
-            if question == "Q14" and season_decision == "NO_CANDIDATE":
+            if season_decision in {"NO_CANDIDATE", "OUT_OF_SCOPE"}:
                 continue
             if question == "Q26":
                 if season_decision.startswith("CORRECT_BASE:"):
@@ -426,6 +429,8 @@ def build_proposal(
         elif target or old_status in ACCEPTED_STATUSES:
             change_type = "KEEP_EXISTING"
         elif any(item.endswith(":NO_CANDIDATE") for item in row_decisions.get(key, [])):
+            change_type = "REJECT_CANDIDATE_KEEP_UNRESOLVED"
+        elif any(item.endswith(":OUT_OF_SCOPE") for item in row_decisions.get(key, [])):
             change_type = "OUT_OF_SCOPE"
         else:
             change_type = "NO_CHANGE"
@@ -712,6 +717,25 @@ def build_public_evidence(
 ) -> dict[str, Any]:
     current, proposed = reconciliation["current"], reconciliation["proposed"]
     questions = {row["question_number"]: row for row in decision_rows}
+    q14_prior_rows = [
+        row
+        for row in proposal_rows
+        if row["season"] == "2024-2025"
+        and "Q14" in row["decision_question"].split(";")
+        and "Q14:NO_CANDIDATE" in row["business_decision"].split(";")
+    ]
+    if not q14_prior_rows:
+        raise ValueError("Q14_PRIOR_SEASON_REJECTION_ROW_MISSING")
+    q14_candidate_rejected = all(bool(row["old_candidate_base_id"]) for row in q14_prior_rows)
+    q14_remains_unresolved = all(
+        row["proposed_status"] == "UNRESOLVED"
+        and not row["proposed_base_id"]
+        and not row["proposed_base_name"]
+        for row in q14_prior_rows
+    )
+    q14_is_out_of_scope = any(row["change_type"] == "OUT_OF_SCOPE" for row in q14_prior_rows)
+    if not q14_candidate_rejected or not q14_remains_unresolved or q14_is_out_of_scope:
+        raise ValueError("Q14_PRIOR_SEASON_SEMANTICS_INVALID")
     mapping_changes = [
         row
         for row in proposal_rows
@@ -797,6 +821,7 @@ def build_public_evidence(
     total_proposed_unresolved = sum((proposed[s]["unresolved"] for s in SEASONS), Decimal(0))
     return {
         "task_id": TASK_ID,
+        "semantic_correction_task_id": SEMANTIC_CORRECTION_TASK_ID,
         "result": "PARTIAL_BUSINESS_SCOPE_REQUIRES_CONFIRMATION"
         if build_info["q17_unhandled_source_label_keys"]
         else "PASS",
@@ -832,10 +857,16 @@ def build_public_evidence(
         "all_40_business_questions_captured": len(decision_rows) == 40,
         "no_business_decision_inferred": True,
         "question_specific_rules": {
+            "no_candidate_is_out_of_scope": False,
             "q14_season_specific_rule_preserved": (
                 questions["Q14"]["decision_2024_2025"] == "NO_CANDIDATE"
                 and questions["Q14"]["decision_2025_2026"] == "YES_CANDIDATE"
             ),
+            "q14_2024_2025_candidate_rejected": q14_candidate_rejected,
+            "q14_2024_2025_remains_unresolved": q14_remains_unresolved,
+            "q14_2024_2025_out_of_scope": q14_is_out_of_scope,
+            "q14_out_of_current_39_base_scope": False,
+            "q14_out_of_scope_not_established": True,
             "q17_split_mapping_rule_preserved": bool(questions["Q17"].get("split_rule")),
             "q17_unhandled_label_count": len(build_info["q17_unhandled_source_label_keys"]),
             "q07_parent_correction_preserved": any(
@@ -927,6 +958,7 @@ def render_report(evidence: dict[str, Any]) -> str:
         "# Cross-season business identity decisions and authority correction proposal",
         "",
         f"Task: `{TASK_ID}`",
+        f"Semantic correction: `{SEMANTIC_CORRECTION_TASK_ID}`",
         f"Audit baseline: `{evidence['base_sha']}`",
         "",
         "## Decision capture",
@@ -962,7 +994,17 @@ def render_report(evidence: dict[str, Any]) -> str:
         "",
         "## Decision-specific safeguards",
         "",
-        "- Q14 remains season-scoped: the 2024-2025 rejection does not propagate into 2025-2026.",
+        (
+            "- Q14 remains season-scoped: the 2024-2025 candidate is rejected; the row remains "
+            "UNRESOLVED with no proposed Base, while the 2025-2026 candidate is accepted only "
+            "for that season."
+        ),
+        (
+            "- NO_CANDIDATE_IS_OUT_OF_SCOPE=false. Q14_2024_2025_OUT_OF_SCOPE=false; "
+            "OUT_OF_CURRENT_39_BASE_SCOPE=false and OUT_OF_SCOPE_NOT_ESTABLISHED=true. The "
+            "rejection does not establish whether the row belongs to another current Base or is "
+            "outside the 39-Base scope."
+        ),
         (
             "- Q17 uses exact label split rules. Any unlisted label remains unresolved and makes "
             "the result partial."
