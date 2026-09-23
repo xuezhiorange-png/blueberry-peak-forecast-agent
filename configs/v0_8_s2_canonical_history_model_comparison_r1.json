@@ -1,0 +1,69 @@
+{
+  "artifact_version": "V0_8_S2_CANONICAL_HISTORY_MODEL_COMPARISON_V1",
+  "task_id": "V0_8_S2_CANONICAL_HISTORY_MODEL_RETRAIN_AND_OOT_COMPARISON_R1",
+  "version": "0.8.0",
+  "authority": {
+    "authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "s1_evidence_path": "docs/v0-8/evidence/s1-cross-season-identity-authority-application-and-canonical-dataset-rebuild-r1.json",
+    "s1_evidence_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7",
+    "s1_config_path": "configs/v0_8_cross_season_identity_authority_r1.json",
+    "s1_config_sha256": "957a84ecdb6ab25da51230a14d90e8eb6bfb6eb299aeb73e312b9421d3a77824",
+    "private_artifact_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+    "private_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "private_daily_ledger_sha256": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+    "private_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "accepted_mapping_statuses": [
+      "EXACT",
+      "AUTHORIZED_ALIAS",
+      "BUSINESS_CONFIRMED_MAPPING"
+    ],
+    "unresolved_source_farm_label_count": 44,
+    "raw_total_kg": "122983150.913",
+    "mapped_total_kg": "109010615.352",
+    "unresolved_total_kg": "10573929.816",
+    "excluded_total_kg": "3398605.745"
+  },
+  "model": {
+    "v07_model_config_path": "configs/v0_5_area_forecast_model_v1.json",
+    "v07_model_config_sha256": "cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf",
+    "base_registry_path": "configs/v0_5_base_reference_registry_v1.json",
+    "base_registry_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85",
+    "total_model_id": "BASE_AWARE_BASELINE_R1",
+    "temporal_model_id": "AREA_DAILY_RIDGE_V1_FROZEN_REFERENCE",
+    "history_policy": "IMMEDIATE_PRIOR_SEASON_ONLY_FAIL_CLOSED_NO_GLOBAL_FALLBACK",
+    "temporal_artifact_sha256": "d75d691a74f393ed789da2300a2f3194170115d8b4f89cc78c8e5b1fc3a628af",
+    "weather_used": false,
+    "model_architecture_changed": false,
+    "strict_area_status": "BUSINESS_CONFIRMED_SOURCE_LABEL_BOUND",
+    "exploratory_area_semantics": "REFERENCE_AREA_ONLY"
+  },
+  "folds": [
+    {
+      "fold_id": "FOLD_A",
+      "declared_train_seasons": ["2023-2024"],
+      "immediate_prior_season": "2023-2024",
+      "oot_season": "2024-2025"
+    },
+    {
+      "fold_id": "FOLD_B",
+      "declared_train_seasons": ["2023-2024", "2024-2025"],
+      "immediate_prior_season": "2024-2025",
+      "oot_season": "2025-2026"
+    }
+  ],
+  "contracts": {
+    "unknown_is_not_zero": true,
+    "confirmed_zero_is_comparable": true,
+    "unresolved_excluded_from_training": true,
+    "same_oot_rows_for_all_models": true,
+    "validation_labels_loaded_after_prediction_seal": true,
+    "strict_area_training_required": true,
+    "exploratory_reference_area_lane_allowed": true,
+    "peak_metrics_require_frozen_authority": true,
+    "rolling7_metrics_require_frozen_authority": true,
+    "weather_used": false,
+    "v07_model_modified": false,
+    "v07_artifacts_overwritten": false,
+    "production_promotion_authorized": false
+  }
+}
