@@ -46,6 +46,10 @@ BUSINESS_DECISIONS_BY_QUESTION_SHA256 = (
     "8d5424f048a111d33d9644d247cce59b9cde3ff18df9840af3ffc965d831b402"
 )
 R7B_MANIFEST_SHA256 = "611507ab99c697ab72921bc478c598cee3315ca4ec103632d6ea158d320efbea"
+BASE_REGISTRY_ARTIFACT_MANIFEST_SHA256 = (
+    "f454f7768584badea463f5e641aaf47e1f2e4e05e772511177bcfbcc824e3215"
+)
+BASE_DAILY_LEDGER_SHA256 = "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd"
 HISTORICAL_AREA_AUTHORITY_SHA256 = (
     "231e769ebd004f02267eb4d2402f5745a8cb690ac873bb871f3db0bdb311eed2"
 )
@@ -439,6 +443,27 @@ def _read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def _verify_frozen_base_registry_inputs(
+    registry_dir: Path,
+) -> tuple[dict[str, Any], str, str]:
+    manifest_path = registry_dir / "artifact-manifest.json"
+    actual_manifest_sha256 = sha256_file(manifest_path)
+    if actual_manifest_sha256 != BASE_REGISTRY_ARTIFACT_MANIFEST_SHA256:
+        raise ValueError("BASE_REGISTRY_ARTIFACT_MANIFEST_HASH_MISMATCH")
+
+    manifest = _read_json(manifest_path)
+    daily_ledger_path = registry_dir / "base-daily-ledger.csv"
+    actual_daily_ledger_sha256 = sha256_file(daily_ledger_path)
+    manifest_daily_ledger_sha256 = manifest.get(daily_ledger_path.name)
+    if (
+        not isinstance(manifest_daily_ledger_sha256, str)
+        or manifest_daily_ledger_sha256 != actual_daily_ledger_sha256
+        or actual_daily_ledger_sha256 != BASE_DAILY_LEDGER_SHA256
+    ):
+        raise ValueError("BASE_DAILY_LEDGER_FROZEN_HASH_MISMATCH")
+    return manifest, actual_manifest_sha256, actual_daily_ledger_sha256
+
+
 def _verify_flat_hash_manifest(
     directory: Path, filename: str, expected_sha256: str
 ) -> dict[str, Any]:
@@ -546,8 +571,11 @@ def _load_and_verify_inputs(root: Path, repository_root: Path) -> dict[str, Any]
     registry_path = registry_dir / "base-registry-v1.json"
     member_path = registry_dir / "member-farm-mapping.csv"
     daily_path = registry_dir / "base-daily-ledger.csv"
-    registry_manifest_path = registry_dir / "artifact-manifest.json"
-    registry_manifest = _read_json(registry_manifest_path)
+    (
+        registry_manifest,
+        registry_manifest_sha256,
+        base_daily_ledger_sha256,
+    ) = _verify_frozen_base_registry_inputs(registry_dir)
     registry_entries = registry_manifest
     for path in (registry_path, member_path, daily_path):
         entry = registry_entries.get(path.name)
@@ -570,8 +598,8 @@ def _load_and_verify_inputs(root: Path, repository_root: Path) -> dict[str, Any]
         "source_audit_manifest": AUDIT_MANIFEST_SHA256,
         "business_confirmation_package_manifest": BUSINESS_PACKAGE_MANIFEST_SHA256,
         "previous_identity_authorities": frozen["authority_hashes"],
-        "base_registry_artifact_manifest": proposal_module.sha256_file(registry_manifest_path),
-        "base_daily_ledger": proposal_module.sha256_file(daily_path),
+        "base_registry_artifact_manifest": registry_manifest_sha256,
+        "base_daily_ledger": base_daily_ledger_sha256,
         "r7b_artifact_manifest": proposal_module.sha256_file(r7b_dir / "artifact_manifest.json"),
         "r7b_boundary_authority": proposal_module.sha256_file(r7b_dir / "boundary_authority.json"),
         "historical_area_authority": area_sha,
@@ -596,8 +624,8 @@ def _load_and_verify_inputs(root: Path, repository_root: Path) -> dict[str, Any]
         "base_registry_sha256": proposal_module.sha256_file(registry_path),
         "base_member_mapping_sha256": proposal_module.sha256_file(member_path),
         "base_daily_ledger": _read_csv(daily_path),
-        "base_daily_ledger_sha256": proposal_module.sha256_file(daily_path),
-        "base_registry_manifest_sha256": proposal_module.sha256_file(registry_manifest_path),
+        "base_daily_ledger_sha256": base_daily_ledger_sha256,
+        "base_registry_manifest_sha256": registry_manifest_sha256,
         "r7b_qualification": _read_csv(r7b_dir / "qualification_r7b.csv"),
         "r7b_qualification_sha256": proposal_module.sha256_file(r7b_dir / "qualification_r7b.csv"),
         "r7b_manifest_sha256": proposal_module.sha256_file(r7b_dir / "artifact_manifest.json"),

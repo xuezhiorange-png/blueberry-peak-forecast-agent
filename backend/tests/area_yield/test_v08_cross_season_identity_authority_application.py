@@ -296,6 +296,85 @@ def test_flat_hash_manifest_verifies_every_artifact_and_fails_on_change(tmp_path
         authority._verify_flat_hash_manifest(tmp_path, manifest.name, manifest_hash)
 
 
+def _frozen_registry_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Path, Path, Path, str, str]:
+    registry_dir = tmp_path / "base-registry-s1-r2"
+    registry_dir.mkdir()
+    registry_path = registry_dir / "base-registry-v1.json"
+    member_path = registry_dir / "member-farm-mapping.csv"
+    daily_path = registry_dir / "base-daily-ledger.csv"
+    registry_path.write_bytes(b'{"bases":[]}\n')
+    member_path.write_bytes(b"base_id,farm\n")
+    daily_path.write_bytes(b"base_id,date,quantity_kg\n")
+    manifest_path = registry_dir / "artifact-manifest.json"
+    manifest = {
+        path.name: authority.sha256_file(path) for path in (registry_path, member_path, daily_path)
+    }
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+    )
+    manifest_sha256 = authority.sha256_file(manifest_path)
+    daily_sha256 = authority.sha256_file(daily_path)
+    monkeypatch.setattr(authority, "BASE_REGISTRY_ARTIFACT_MANIFEST_SHA256", manifest_sha256)
+    monkeypatch.setattr(authority, "BASE_DAILY_LEDGER_SHA256", daily_sha256)
+    return registry_dir, manifest_path, daily_path, manifest_sha256, daily_sha256
+
+
+def test_frozen_base_registry_hash_pins_match_accepted_authority() -> None:
+    assert authority.BASE_REGISTRY_ARTIFACT_MANIFEST_SHA256 == (
+        "f454f7768584badea463f5e641aaf47e1f2e4e05e772511177bcfbcc824e3215"
+    )
+    assert authority.BASE_DAILY_LEDGER_SHA256 == (
+        "0830ae2574f3f0eea899c958c5a36b54ffca2d0107e5ef3767c6a2991eb02cbd"
+    )
+
+
+def test_modified_registry_manifest_is_rejected_even_when_ledger_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry_dir, manifest_path, daily_path, _, _ = _frozen_registry_bundle(tmp_path, monkeypatch)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["base-daily-ledger.csv"] == authority.sha256_file(daily_path)
+    manifest["base-registry-v1.json"] = "0" * 64
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="BASE_REGISTRY_ARTIFACT_MANIFEST_HASH_MISMATCH"):
+        authority._verify_frozen_base_registry_inputs(registry_dir)
+
+
+def test_modified_base_daily_ledger_is_rejected_with_original_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry_dir, _, daily_path, _, _ = _frozen_registry_bundle(tmp_path, monkeypatch)
+    daily_path.write_bytes(b"base_id,date,quantity_kg\nchanged,2025-01-01,1\n")
+
+    with pytest.raises(ValueError, match="BASE_DAILY_LEDGER_FROZEN_HASH_MISMATCH"):
+        authority._verify_frozen_base_registry_inputs(registry_dir)
+
+
+def test_joint_ledger_and_manifest_replacement_is_rejected_by_frozen_manifest_pin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry_dir, manifest_path, daily_path, _, frozen_daily_sha256 = _frozen_registry_bundle(
+        tmp_path, monkeypatch
+    )
+    daily_path.write_bytes(b"base_id,date,quantity_kg\nreplacement,2025-01-01,99\n")
+    replacement_daily_sha256 = authority.sha256_file(daily_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["base-daily-ledger.csv"] = replacement_daily_sha256
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+    )
+
+    assert replacement_daily_sha256 == manifest["base-daily-ledger.csv"]
+    assert replacement_daily_sha256 != frozen_daily_sha256
+    with pytest.raises(ValueError, match="BASE_REGISTRY_ARTIFACT_MANIFEST_HASH_MISMATCH"):
+        authority._verify_frozen_base_registry_inputs(registry_dir)
+
+
 def test_business_season_windows_are_fixed_and_2025_start_is_r7b() -> None:
     assert authority.SEASON_WINDOWS["2023-2024"] == (
         authority.date(2023, 7, 1),
