@@ -1,0 +1,154 @@
+{
+  "task_id": "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_PROVENANCE_R1",
+  "target_pr": 655,
+  "expected_head_sha": "0a772d3d4cae8dba67f526b5e1125fdd183cd5e1",
+  "expected_base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "expected_old_area_source_inventory_sha256": "81341ce629a479db82ad4f02539afd9759c8eacfe29a311683dd38ef63c681cf",
+  "expected_old_area_source_manifest_sha256": "c66dffe275741b7c985920fed4cf32c8af43420650873b59f6a2bdb2fbfea2f1",
+  "expected_legacy_inventory_builder_sha256": "d9a4a1d214e68ffaa00e46f74842001480b0b2aee29d3f9e56ab2240a60376f9",
+  "search_roots": [
+    {
+      "root_id": "repository_configs",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "configs"
+    },
+    {
+      "root_id": "repository_docs",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "docs"
+    },
+    {
+      "root_id": "repository_scripts",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "scripts"
+    },
+    {
+      "root_id": "repository_backend",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "backend"
+    },
+    {
+      "root_id": "repository_fixtures",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "fixtures"
+    },
+    {
+      "root_id": "repository_tests",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "tests"
+    },
+    {
+      "root_id": "repository_evidence",
+      "root_type": "GIT_REPOSITORY_SCOPE",
+      "repo_relative_path": "evidence"
+    },
+    {
+      "root_id": "downloads",
+      "root_type": "USER_SOURCE_ROOT",
+      "path": "/Users/charles/Downloads"
+    },
+    {
+      "root_id": "desktop",
+      "root_type": "USER_SOURCE_ROOT",
+      "path": "/Users/charles/Desktop"
+    },
+    {
+      "root_id": "controlled_private_artifacts",
+      "root_type": "CONTROLLED_PRIVATE_ARTIFACT_ROOT",
+      "path": "/Users/charles/Documents/blueberry-area-yield-artifacts"
+    },
+    {
+      "root_id": "home_blueberry_project_clones",
+      "root_type": "PROJECT_CHECKOUT_GLOB",
+      "glob": "/Users/charles/blueberry-peak-forecast-agent*",
+      "subdirectories": [
+        "configs",
+        "docs",
+        "scripts",
+        "backend",
+        "fixtures",
+        "tests",
+        "evidence",
+        "data",
+        "models",
+        "reports"
+      ]
+    },
+    {
+      "root_id": "documents_blueberry_project_clones",
+      "root_type": "PROJECT_CHECKOUT_GLOB",
+      "glob": "/Users/charles/Documents/blueberry-peak-forecast-agent*",
+      "subdirectories": [
+        "configs",
+        "docs",
+        "scripts",
+        "backend",
+        "fixtures",
+        "tests",
+        "evidence",
+        "data",
+        "models",
+        "reports"
+      ]
+    }
+  ],
+  "ignored_directory_names": [
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox"
+  ],
+  "file_extensions_scanned": [
+    ".csv",
+    ".tsv",
+    ".json",
+    ".jsonl",
+    ".yaml",
+    ".yml",
+    ".md",
+    ".txt",
+    ".py",
+    ".toml",
+    ".xml",
+    ".html",
+    ".xls",
+    ".xlsx",
+    ".xlsm",
+    ".ods",
+    ".doc",
+    ".docx",
+    ".pdf",
+    ".parquet",
+    ".joblib",
+    ".pkl",
+    ".npz",
+    ".npy"
+  ],
+  "search_keywords": [
+    "area",
+    "area_mu",
+    "productive_area",
+    "productive_area_mu",
+    "historical_area",
+    "historical_actual",
+    "planting_area",
+    "planted_area",
+    "亩",
+    "亩数",
+    "面积",
+    "投产面积",
+    "种植面积"
+  ],
+  "scan_timestamp_policy": "OMITTED_FOR_DETERMINISTIC_OUTPUT",
+  "deduplication_policy": "CONTENT_SHA256_PLUS_LOGICAL_SOURCE_IDENTITY; IDENTICAL_BYTE_COPIES_RETAIN_PROVENANCE_BUT_COUNT_ONCE",
+  "inventory_semantics_policy": "DISCOVERY_AND_SOURCE_SEMANTICS_ONLY; NO_AREA_AUTHORITY_PROMOTION",
+  "legacy_builder_path": "/Users/charles/Documents/blueberry-area-yield-artifacts/full-historical-area-inventory-reconstruction-r1/build_inventory.py",
+  "old_inventory_path": "/Users/charles/Documents/blueberry-area-yield-artifacts/full-historical-area-inventory-reconstruction-r1/area_source_records.csv",
+  "old_manifest_path": "/Users/charles/Documents/blueberry-area-yield-artifacts/full-historical-area-inventory-reconstruction-r1/source_inventory_manifest.json",
+  "private_output_path": "/Users/charles/Documents/blueberry-area-yield-artifacts/v0-8-s3-area-source-inventory-completeness-r1"
+}

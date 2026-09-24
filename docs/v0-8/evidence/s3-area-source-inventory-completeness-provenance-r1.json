@@ -1,0 +1,104 @@
+{
+  "task_id": "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_PROVENANCE_R1",
+  "result": "BLOCKED_INVENTORY_COMPLETENESS_NOT_PROVEN",
+  "target_pr": 655,
+  "expected_head_sha": "0a772d3d4cae8dba67f526b5e1125fdd183cd5e1",
+  "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "search": {
+    "expanded_search_root_count": 253,
+    "existing_search_root_count": 94,
+    "enumerated_file_count": 46416,
+    "candidate_file_count": 4134,
+    "scan_error_count": 0,
+    "candidate_classification_counts": {
+      "INCLUDED_AREA_SOURCE": 34,
+      "EXCLUDED_DUPLICATE": 2982,
+      "EXCLUDED_NO_AREA_FIELD": 2,
+      "EXCLUDED_REFERENCE_ONLY": 77,
+      "EXCLUDED_GENERATED_DERIVATIVE": 160,
+      "EXCLUDED_TEST_FIXTURE": 147,
+      "EXCLUDED_REPORT_ONLY": 211,
+      "EXCLUDED_OTHER": 421,
+      "UNCLASSIFIED_CANDIDATE": 100
+    },
+    "review_required_candidate_count": 521,
+    "deterministic_path_ordering": true,
+    "scan_timestamp_omitted": true
+  },
+  "pinned_prior_inventory": {
+    "old_source_file_count": 42,
+    "old_source_record_count": 2018,
+    "old_inventory_sha256": "81341ce629a479db82ad4f02539afd9759c8eacfe29a311683dd38ef63c681cf",
+    "old_manifest_sha256": "c66dffe275741b7c985920fed4cf32c8af43420650873b59f6a2bdb2fbfea2f1",
+    "legacy_parser_sha256": "d9a4a1d214e68ffaa00e46f74842001480b0b2aee29d3f9e56ab2240a60376f9"
+  },
+  "rebuild_comparison": {
+    "new_canonical_source_file_count": 41,
+    "new_deduplicated_record_count": 1973,
+    "new_files_not_in_old": 0,
+    "old_files_not_rediscovered": 7,
+    "new_records_not_in_old": 0,
+    "old_records_not_reproduced": 45,
+    "removed_exact_logical_duplicate_records": 45,
+    "removed_duplicate_record_groups_by_source_hash": [40, 5],
+    "physical_old_source_path_count": 42,
+    "distinct_old_source_file_hash_count": 41,
+    "old_source_paths_missing_from_keyword_discovery": 7,
+    "source_discovery_completeness_proven": false,
+    "record_inventory_exact_parity": false,
+    "parser_dedup_replay_bytes_equal": true,
+    "replay_record_inventory_sha256": "636e8a58e6e7eab6bdec0bfd08c12fd62a2455bbd58d51e9865604ded9629b25"
+  },
+  "private_artifacts": {
+    "path_policy": "CONTROLLED_PRIVATE_ARTIFACT_ROOT_NOT_COMMITTED",
+    "directory_permissions": "0700",
+    "file_permissions": "0600",
+    "discovery_manifest_sha256": "217743b3b146cbe6ad18a3abf82dd0b2b6d706c8aee1e51e42ba280148ed4285",
+    "file_inventory_sha256": "e962b1f11a05ac5c9e865f4d12b3d7e5d8d1d9f478a49e75280fd890eb690160",
+    "record_inventory_sha256": "636e8a58e6e7eab6bdec0bfd08c12fd62a2455bbd58d51e9865604ded9629b25",
+    "file_diff_sha256": "13de8674a13af0c8180abe121b8b87f5033d0b8cff97ef6f5364182e3e1dd0b8",
+    "record_diff_sha256": "4e0085c329f091bbede7e7a2841a098cf199c798456544709228af6de8e808b7",
+    "artifact_manifest_sha256": "8c90bd5f0095cc8cabfe22bbca160fb680d9e7ad57d1e51bb72d77438dae1cea"
+  },
+  "previous_user_area_source_search": {
+    "business_confirmed_historical_actual_source_file_count": 1,
+    "business_confirmed_historical_actual_record_count": 2,
+    "business_confirmed_historical_actual_source_sha256": "231e769ebd004f02267eb4d2402f5745a8cb690ac873bb871f3db0bdb311eed2",
+    "business_confirmed_review_only_source_file_count": 1,
+    "business_confirmed_review_only_record_count": 3,
+    "review_only_source_sha256": "465765cb28c3d7d3e6560978471aef99bb8dd2f8f6592e90126ddb249b581795",
+    "historical_area_authority_source_season_hashes": {
+      "2023-2024": "d83cff3f544b0650eebba3fef4c606183fb92738d8d19b552cd8886defc33437",
+      "2024-2025": "f2be4358c3913f6f7061db15ae9ab1bc094a4334d1c799d99b2865f024bdabd2"
+    },
+    "user_area_reentry_requested": false,
+    "new_area_estimation_executed": false
+  },
+  "s3_recovery_candidate": {
+    "historical_actual_area_base_season_count_before": 1,
+    "historical_actual_area_base_season_count_after_candidate": 2,
+    "authorized_area_by_season": {
+      "2023-2024": 0,
+      "2024-2025": 0,
+      "2025-2026": 2
+    },
+    "training_area_authority_still_blocking": true,
+    "quantity_total_authority_still_blocking": true,
+    "business_result_reaccepted": false,
+    "s3_recovery_rerun_executed": false,
+    "existing_authority_modified": false,
+    "model_training_executed": false,
+    "model_refit_executed": false,
+    "backtest_executed": false,
+    "forecast_replay_executed": false
+  },
+  "acceptance": {
+    "area_source_inventory_rebuild_deterministic": true,
+    "area_source_inventory_completeness_proven": false,
+    "area_recovery_results_unchanged": false,
+    "previous_area_inventory_incomplete": true,
+    "inventory_rebuild_found_previously_missed_sources": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  }
+}
