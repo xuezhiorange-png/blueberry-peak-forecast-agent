@@ -1,5 +1,20 @@
 # V0.8-S3 Existing Historical Area Recovery and Canonical Rebind R1
 
+## Inventory provenance correction
+
+The later source-completeness audit is `BLOCKED_INVENTORY_COMPLETENESS_NOT_PROVEN`.
+It enumerated 46,416 files and 4,134 area-keyword candidates, but seven
+previously listed source paths were not rediscovered by the configured
+keyword scan, 45 rows were removed by logical deduplication (2,018 → 1,973),
+and 521 candidates remain unresolved for classification. The parser replay
+itself is deterministic, but these differences mean the 2,018-row inventory
+and the area-recovery conclusions below are not re-accepted as complete.
+
+No S3 rebind was rerun, and no area authority or business result was changed.
+The source-level diff and aggregate hashes are in
+[`s3-area-source-inventory-completeness-provenance-r1.json`](../evidence/s3-area-source-inventory-completeness-provenance-r1.json);
+private row-level paths and records remain outside Git.
+
 ## Executive result
 
 Existing, season-bound business-confirmed area evidence was found; no area was
@@ -17,11 +32,12 @@ rows, and 86 rows with no bindable season-specific area source. These are
 candidate/recovery findings only: the existing V0.8-S1 authority, Base
 Registry, identity authority, and quantity authority remain unchanged.
 
-The additional area binding does not unblock training. The two recovered
-areas are both in the 2025-2026 OOT season; training-season area-qualified
-Base-seasons remain zero. Intersecting area evidence with the unchanged S1
-complete-season-total authority gives zero strict training rows and one strict
-OOT Base-season. Quantity-total authority remains a separate blocker.
+The additional area binding does not unblock training. The two previously
+reported candidate areas are both in the 2025-2026 OOT season;
+training-season area-qualified Base-seasons remain zero. These counts remain
+provisional because source inventory completeness was not established.
+Training is independently blocked by both zero training-season historical
+actual-area authority and zero complete-season-total quantity authority.
 
 ## Scope and safeguards
 
@@ -87,10 +103,12 @@ Base-seasons intersects the frozen complete season-total authority.
 | Strict training Base-seasons if the candidate were applied now | 0 |
 | Strict OOT Base-seasons if the candidate were applied now | 1 |
 
-Therefore the area blocker is reduced for one OOT Base-season, but area
-recovery does not increase the strict training sample from zero. The remaining
-training blocker is complete season-total quantity authority; no quantity
-records were changed in this task.
+The prior candidate therefore reported one additional OOT Base-season, but
+area recovery did not increase the strict training sample from zero. The two
+independent training blockers remain: training-season historical actual-area
+authority is zero, and complete season-total quantity authority is zero. No
+quantity records were changed. These candidate results are not re-accepted
+until source-inventory completeness is resolved.
 
 ## Replay and artifact integrity
 
