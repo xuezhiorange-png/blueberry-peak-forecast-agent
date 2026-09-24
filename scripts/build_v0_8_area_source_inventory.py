@@ -299,9 +299,7 @@ def discover_area_candidates(
                 "file_sha256": file_digest,
                 "source_category": "UNCLASSIFIED_CANDIDATE",
                 "candidate_reason": (
-                    "CONTENT_SCAN_FAILED"
-                    if scan_failed
-                    else "KEYWORD_MATCH:" + ",".join(hits)
+                    "CONTENT_SCAN_FAILED" if scan_failed else "KEYWORD_MATCH:" + ",".join(hits)
                 ),
                 "included_in_inventory": False,
                 "exclusion_reason": "",
