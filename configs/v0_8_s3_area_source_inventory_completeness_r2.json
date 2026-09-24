@@ -1,0 +1,53 @@
+{
+  "task_id": "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_CLOSURE_R2",
+  "target_pr": 655,
+  "expected_head_sha": "a9aee406d8218273d86b2fb2b453c340cdb62395",
+  "expected_base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "base_config_path": "configs/v0_8_s3_area_source_inventory_completeness_r1.json",
+  "prior_discovery_manifest_path": "/Users/charles/Documents/blueberry-area-yield-artifacts/v0-8-s3-area-source-inventory-completeness-r1/area-source-discovery-manifest-r1.json",
+  "expected_prior_discovery_manifest_sha256": "217743b3b146cbe6ad18a3abf82dd0b2b6d706c8aee1e51e42ba280148ed4285",
+  "private_output_path": "/Users/charles/Documents/blueberry-area-yield-artifacts/v0-8-s3-area-source-inventory-completeness-r2",
+  "ignored_repository_relative_file_paths": [
+    "docs/v0-8/s3/area-source-inventory-completeness-closure-r2.md",
+    "docs/v0-8/evidence/s3-area-source-inventory-completeness-closure-r2.json"
+  ],
+  "prior_review_git_blob_provenance": [
+    {
+      "repo_relative_path": "docs/v0-8/evidence/s3-existing-historical-area-recovery-and-canonical-rebind-r1.json",
+      "expected_sha256": "70e6387ca010a837d16aea3ecb1db1dc8fd610ff8cafbf38bff66430c434b022",
+      "git_revision": "0a772d3d4cae8dba67f526b5e1125fdd183cd5e1",
+      "expected_task_id": "V0_8_S3_EXISTING_HISTORICAL_AREA_RECOVERY_AND_CANONICAL_REBIND_R1",
+      "required_top_level_keys": [
+        "task_id",
+        "result",
+        "recovery",
+        "private_artifacts"
+      ],
+      "classification_rule_id": "R2-004"
+    }
+  ],
+  "ignored_directory_name_prefixes": [
+    "v0-8-s3-area-source-inventory-completeness-r2"
+  ],
+  "search_keywords": [
+    "area",
+    "area_mu",
+    "farm_area",
+    "farm_area_mu",
+    "productive_area",
+    "productive_area_mu",
+    "historical_area",
+    "historical_area_mu",
+    "historical_actual",
+    "planting_area",
+    "planted_area",
+    "亩",
+    "亩数",
+    "历史亩数",
+    "基地亩数",
+    "面积",
+    "投产面积",
+    "种植面积"
+  ],
+  "deduplication_policy": "BOTH_OLD_AND_NEW_RAW_INVENTORIES_NORMALIZED_THEN_DEDUPED_WITH_THE_SAME_RECORD_KEY_AND_SORT_POLICY;BYTE_IDENTICAL_COPIES_RETAIN_PATH_PROVENANCE_BUT_COUNT_ONCE"
+}
