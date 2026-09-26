@@ -1,0 +1,51 @@
+{
+  "task_id": "V0_8_S9_SCALE_SHAPE_ERROR_DECOMPOSITION_AND_MODEL_DIAGNOSIS_R1",
+  "s8_baseline_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "s8_repository_evidence_sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15",
+  "s8_repository_config_sha256": "204973cb4293f5881dd50dca01edc63327861790c097ec65191c4b77fd914849",
+  "s8_private_manifest_sha256": "6561ac984de2b3ac1a7ba86e8fee91f888b641478a19af67355e4dba8cc8216e",
+  "s8_private_directory": "v0-8-s8-canonical-training-oot-backtest-r1-replay-3",
+  "expected_s8_artifacts": {
+    "v0-8-canonical-training-dataset-r1.csv": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "v0-8-canonical-oot-dataset-r1.csv": "2637b16bb384ce8ef96858ca66640b4db9be61b60d5ed8339b1162c97be57f5a",
+    "v0-8-model-config-r1.json": "204973cb4293f5881dd50dca01edc63327861790c097ec65191c4b77fd914849",
+    "model-artifact/training-replay-1/v0-8-model-artifact-r1.json": "8a2e596c7f9c27841624e6267aa4a9a520ea12405a3a81e189156793305ab3a0",
+    "v0-8-oot-season-total-predictions-r1.csv": "4f13b45c3405d6ebfbb54cd9483b6564aa26ee2e4b8337a6fc149fab85dab3dc",
+    "v0-8-oot-daily-predictions-r1.csv": "2151f46998d14870ff77220e12f2b5992aa523a74884e7fc33d208c0d430e2d0",
+    "baseline-oot-predictions-r1.csv": "443b78d96698570a5280d9e21c976c292e9cdff258d80f745ca340f2ed0ea142",
+    "baseline-oot-daily-predictions-r1.csv": "76ae1d691df49c0afa4c8b5c1d90ee5b0e4ab6ef6edd5a0b490b88c3fd4a3f78",
+    "v0-7-oot-predictions-r1.csv": "d24bfdd69c07179ebe6828e4e398d47313d498272493eed25f69d50bea69ff8d",
+    "v0-7-oot-daily-predictions-r1.csv": "b3fe9a3d852e327e27c1d25f4f599f069bbb51acc1ce23b91e5930c765a31fab",
+    "model-comparison-by-base-r1.csv": "b1e7c04a54bcb1dfdb1bd3b2745ff8714f32cc4560b1b894897103e28341e44d",
+    "season-total-metrics-r1.json": "22fafdaac3444dcaffe86f68b67f7e8b577da399e2653f57cd9985fb33a9aca4",
+    "daily-curve-metrics-r1.json": "d8c7af16d247136c4b63465b35a30405eccdf476e75ced0bf0c2f90f704d9ce5",
+    "single-day-peak-metrics-r1.json": "9f049573f2d0def81d3e5e2cc3718deda497ab0b06f41c6e31f26286ac153775",
+    "rolling7-peak-metrics-r1.json": "0c1609a68a80277d83a7b3fc9e631a89611760057eb5f315626aed1c8bde2c02",
+    "area-extrapolation-audit-r1.csv": "549419d6073f013328062b1e488a327d487f16557c3c8b4fa92173580256b0fd",
+    "train-oot-distribution-audit-r1.json": "2337a8d488a76523e53704ddb244678bec2b6e987728e922864ae1094784b5b3"
+  },
+  "frozen_s8_metrics": {
+    "training_rows": 37,
+    "oot_rows": 39,
+    "common_comparator_rows": 30,
+    "baseline_season_total_wape_full39": "0.3429935582924604063039679242",
+    "v08_season_total_wape_full39": "0.3925893218351959883557945280",
+    "baseline_daily_wape_full39": "0.5812862592207732948356517114",
+    "v08_daily_wape_full39": "0.6292132974633544144280801218",
+    "v07_season_total_wape_common30": "0.3565703507552211518045530094",
+    "v07_daily_wape_common30": "0.7391211072773783730171586934",
+    "v08_v07_season_total_wape_delta_common30": "0.0729382316222436699283272932",
+    "v08_v07_daily_wape_delta_common30": "-0.1015724913846574946905459998",
+    "model_production_ready": false
+  },
+  "analysis_contract": {
+    "daily_share_basis": "PREDICTED_DAILY_QUANTITY_DIVIDED_BY_SUM_OF_PREDICTED_DAILY_QUANTITIES",
+    "area_tertile_cutpoints": ["0.3333333333333333333333333333", "0.6666666666666666666666666667"],
+    "area_tertile_source": "37_FROZEN_TRAINING_BASE_SEASON_AREA_ROWS",
+    "percentile_method": "LINEAR_INTERPOLATION_N_MINUS_1",
+    "rolling7_policy": "CONSECUTIVE_7_CALENDAR_DAYS",
+    "rolling7_tie_break": "EARLIEST_START_DATE",
+    "primary_failure_mode_vocabulary": ["SEASON_TOTAL_SCALE", "DAILY_SHAPE", "BOTH", "INSUFFICIENT_EVIDENCE"],
+    "future_2025_2026_tuning_allowed": false
+  }
+}

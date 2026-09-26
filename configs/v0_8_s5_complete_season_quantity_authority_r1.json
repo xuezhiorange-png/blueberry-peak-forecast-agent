@@ -1,0 +1,80 @@
+{
+  "task_id": "V0_8_S5_EXISTING_HISTORICAL_QUANTITY_COMPLETE_SEASON_AUTHORITY_CLOSURE_R1",
+  "policy_version": "V0_8_S5_QUANTITY_COMPLETENESS_R1",
+  "quantity_authority_id": "V0_8_COMPLETE_SEASON_QUANTITY_AUTHORITY_OVERLAY_R1",
+  "input_authorities": {
+    "s1_identity_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "s1_evidence_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7",
+    "s1_private_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+    "s1_daily_ledger_sha256": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+    "s1_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "s1_unresolved_identity_ledger_sha256": "d28efd9dceb0717c7303962666b3ec74fa98ed0715896df46a54ae1da9f7389d",
+    "s2_evidence_sha256": "311bcc3e057dab953b422fb0144a57adde5ad608c513efae918023456efe320c",
+    "s2_quantity_policy_module_sha256": "8c028d06c395ede1e323eb0052fa4180552913cc0babf96bd47126431b2b5f72",
+    "area_authority_id": "V0_8_THREE_SEASON_HISTORICAL_AREA_AUTHORITY_R1",
+    "area_private_manifest_sha256": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+    "area_authority_sha256": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9"
+  },
+  "scope": {
+    "canonical_base_count": 39,
+    "season_count": 3,
+    "base_season_row_count": 117,
+    "training_seasons": ["2023-2024", "2024-2025"],
+    "oot_season": "2025-2026",
+    "area_qualified_training_rows": 78,
+    "area_qualified_oot_rows": 39
+  },
+  "season_boundaries": {
+    "2023-2024": {
+      "start": "2023-07-01",
+      "end": "2024-04-15",
+      "authority_id": "FROZEN_CROSS_SEASON_AUDIT_WINDOW_R1",
+      "authority_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7"
+    },
+    "2024-2025": {
+      "start": "2024-07-01",
+      "end": "2025-04-15",
+      "authority_id": "FROZEN_CROSS_SEASON_AUDIT_WINDOW_R1",
+      "authority_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7"
+    },
+    "2025-2026": {
+      "start": "2025-07-22",
+      "end": "2026-04-15",
+      "authority_id": "USER_CONFIRMED_2526_BUSINESS_WINDOW_R7B",
+      "authority_sha256": "ca7965f92102d09a8494dce146a3c951cbb6e4a86c98214c7631d47dbd9bdc6a"
+    }
+  },
+  "daily_completeness_policy": {
+    "complete_mapped_status": "KNOWN_MAPPED_SUBTOTAL+COMPLETE_MAPPED_MEMBERS",
+    "authorized_zero_statuses": [
+      "CONFIRMED_ZERO+COMPLETE_SOURCE_ROWS_ZERO",
+      "CONFIRMED_ZERO+AUTHORIZED_ZERO"
+    ],
+    "partial_known_subtotal_eligible": false,
+    "unknown_or_missing_is_zero": false,
+    "daily_curve_requires_every_business_window_day": true
+  },
+  "season_total_policy": {
+    "existing_business_total": "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE AND season_total_complete=true",
+    "daily_derived_total": "all dates in frozen business window complete, member coverage complete, identity confirmed, and mapped sum reconciled",
+    "business_total_compared_to_daily_sum_only_when_daily_window_complete": true,
+    "business_total_with_incomplete_daily_coverage_may_remain_season_total_eligible": true,
+    "partial_or_unknown_daily_values_aggregated_as_total": false,
+    "daily_curve_eligibility_is_separate": true
+  },
+  "execution_boundaries": {
+    "new_harvest_search": false,
+    "raw_harvest_reimport": false,
+    "full_filesystem_rescan": false,
+    "area_authority_mutated": false,
+    "identity_authority_mutated": false,
+    "canonical_quantity_ledger_mutated": false,
+    "model_training": false,
+    "model_refit": false,
+    "backtest": false,
+    "forecast_replay": false,
+    "pr_creation": false,
+    "ready": false,
+    "merge": false
+  }
+}
