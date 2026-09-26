@@ -135,8 +135,7 @@ def _canonical_bases(identity_rows: list[dict[str, str]]) -> list[dict[str, str]
     if len(by_id) != BASE_COUNT:
         raise ValueError("IDENTITY_AUTHORITY_CANONICAL_BASE_COUNT_MISMATCH")
     return [
-        {"base_id": base_id, "canonical_base_name": by_id[base_id]}
-        for base_id in sorted(by_id)
+        {"base_id": base_id, "canonical_base_name": by_id[base_id]} for base_id in sorted(by_id)
     ]
 
 
@@ -271,9 +270,7 @@ def build_artifacts(args: argparse.Namespace) -> dict[str, Any]:
         overlay["prior_historical_area_status"] = quantity.get(
             "historical_actual_productive_area_status", ""
         )
-        overlay["quantity_authority_reference_sha256"] = input_hashes[
-            "quantity_quality_ledger"
-        ]
+        overlay["quantity_authority_reference_sha256"] = input_hashes["quantity_quality_ledger"]
         overlay["overlay_only"] = "true"
         overlay_rows.append(overlay)
 
@@ -369,8 +366,7 @@ def build_artifacts(args: argparse.Namespace) -> dict[str, Any]:
         "authority-application-summary-r1.json": _json_bytes(summary),
     }
     output_hashes = {
-        name: hashlib.sha256(payload).hexdigest()
-        for name, payload in sorted(outputs.items())
+        name: hashlib.sha256(payload).hexdigest() for name, payload in sorted(outputs.items())
     }
     manifest = {
         "task_id": TASK_ID,
