@@ -34,7 +34,7 @@
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
       "path": "backend/app/area_yield/v08_s4_three_season_area_authority.py",
       "role": "SOURCE_AUTHORITY",
-      "sha256": "4d288fdf1a9a0d2de5d49428352c2251c3cf3640661d97620531e9e23753776c"
+      "sha256": "31821c9c4d78cf40d70f2675df99fc3a2cc40c73cf99cbb3abdeed1fd260de04"
     },
     {
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
@@ -100,7 +100,7 @@
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
       "path": "backend/tests/area_yield/test_v08_s4_three_season_area_authority.py",
       "role": "SOURCE_AUTHORITY",
-      "sha256": "29b8be1948a4735b399862901d2540553b754660c5f044999c9533c30e291740"
+      "sha256": "aa482a7f6632c602487664c568fb2115ba25ce54a8bc8b72a7404a51dc331dba"
     },
     {
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
@@ -136,7 +136,7 @@
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
       "path": "backend/tests/area_yield/test_v08_version_closeout.py",
       "role": "INTERMEDIATE_EVIDENCE",
-      "sha256": "6e96d6bad5a14f20311ca4e3e166f026477787bbe7f74222240da3e480321f90"
+      "sha256": "3a69a7925fc9f547b09713e89457cfa0eab7e20fa0ea0ef0853add42e70f6168"
     },
     {
       "lifecycle": "MERGED_MAIN",
@@ -382,7 +382,7 @@
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
       "path": "scripts/apply_v0_8_three_season_area_authority.py",
       "role": "SOURCE_AUTHORITY",
-      "sha256": "549cb8c30c153bda81754880d31218bbb67e6dcd0d95abb369fa2356f44567da"
+      "sha256": "27bedcc1868b61fa973069b58dcd49cf106fcf2fecfbb15fb8df4d73c0e3babd"
     },
     {
       "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
@@ -458,18 +458,6 @@
     },
     {
       "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
-      "path": "docs/v0-8/evidence/s8-canonical-training-and-independent-oot-backtest-r1.json",
-      "role": "INTERMEDIATE_EVIDENCE",
-      "sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15"
-    },
-    {
-      "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
-      "path": "docs/v0-8/evidence/s9-scale-shape-error-decomposition-and-model-diagnosis-r1.json",
-      "role": "INTERMEDIATE_EVIDENCE",
-      "sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd"
-    },
-    {
-      "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
       "path": "docs/v0-8/evidence/s9-scale-shape-error-decomposition-and-model-diagnosis-r1.json",
       "role": "INTERMEDIATE_EVIDENCE",
       "sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd"
@@ -494,7 +482,8 @@
       "backend/tests/area_yield/test_v08_s4_original_user_area_source_recovery.py",
       "scripts/recover_v0_8_original_user_area_sources.py",
       "scripts/run_v0_8_r2c_frozen_shrinkage.py"
-    ]
+    ],
+    "external_reference_duplicate_count": 0
   },
   "private_artifact_references": [
     {

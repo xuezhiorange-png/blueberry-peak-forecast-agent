@@ -4,20 +4,14 @@ from pathlib import Path
 from typing import Any, cast
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CLOSEOUT_EVIDENCE_PATH = (
-    REPOSITORY_ROOT / "docs/v0-8/evidence/v0.8.0-research-closeout.json"
-)
+CLOSEOUT_EVIDENCE_PATH = REPOSITORY_ROOT / "docs/v0-8/evidence/v0.8.0-research-closeout.json"
 R2C_EVIDENCE_PATH = (
-    REPOSITORY_ROOT
-    / "docs/v0-8/evidence/r2c-frozen-shrinkage-model-and-benchmark-replay-r1.json"
+    REPOSITORY_ROOT / "docs/v0-8/evidence/r2c-frozen-shrinkage-model-and-benchmark-replay-r1.json"
 )
 STAGE_A_EVIDENCE_PATH = (
-    REPOSITORY_ROOT
-    / "docs/v0-8/evidence/stage-a-decision-freeze-and-r2c-review-closeout-r1.json"
+    REPOSITORY_ROOT / "docs/v0-8/evidence/stage-a-decision-freeze-and-r2c-review-closeout-r1.json"
 )
-PUBLIC_MANIFEST_PATH = (
-    REPOSITORY_ROOT / "docs/v0-8/evidence/v0.8.0-public-artifact-manifest.json"
-)
+PUBLIC_MANIFEST_PATH = REPOSITORY_ROOT / "docs/v0-8/evidence/v0.8.0-public-artifact-manifest.json"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -44,9 +38,7 @@ def test_v08_closeout_freezes_supported_stage_a_decision() -> None:
     assert closeout["benchmark_lifecycle"]["allowed_for_new_model_selection"] is False
     assert closeout["authorization"]["ready_authorized"] is False
     assert closeout["authorization"]["merge_authorized"] is False
-    assert r2c["full39"]["season_total"]["v0_8_r2c"]["wape"] == (
-        "0.3585864322241786026216929885"
-    )
+    assert r2c["full39"]["season_total"]["v0_8_r2c"]["wape"] == ("0.3585864322241786026216929885")
     assert stage_a["stage_a_decision"]["decision"] == (
         "RETAIN_GLOBAL_POOLED_YIELD_AS_REFERENCE_BASELINE"
     )
@@ -55,9 +47,7 @@ def test_v08_closeout_freezes_supported_stage_a_decision() -> None:
 def test_v08_closeout_pins_required_prior_public_artifacts() -> None:
     closeout = _load_json(CLOSEOUT_EVIDENCE_PATH)
     task_by_id = {
-        item.get("task_id"): item
-        for item in closeout["task_chain"]
-        if item.get("task_id")
+        item.get("task_id"): item for item in closeout["task_chain"] if item.get("task_id")
     }
 
     assert _sha256(R2C_EVIDENCE_PATH) == (
@@ -66,12 +56,16 @@ def test_v08_closeout_pins_required_prior_public_artifacts() -> None:
     assert _sha256(STAGE_A_EVIDENCE_PATH) == (
         "af09d206343abe29d8f55e666f1b1d91467ffe10f473cc8278712e7e9d00c518"
     )
-    assert task_by_id[
-        "V0_8_S2_CANONICAL_HISTORY_MODEL_RETRAIN_AND_OOT_COMPARISON_R1"
-    ]["at_the_time_conclusion_remains_valid"] is True
-    assert task_by_id[
-        "V0_8_S7_TRAINING_SEASON_SOURCE_IDENTITY_CLOSURE_R1"
-    ]["newly_released_samples"] == 0
+    assert (
+        task_by_id["V0_8_S2_CANONICAL_HISTORY_MODEL_RETRAIN_AND_OOT_COMPARISON_R1"][
+            "at_the_time_conclusion_remains_valid"
+        ]
+        is True
+    )
+    assert (
+        task_by_id["V0_8_S7_TRAINING_SEASON_SOURCE_IDENTITY_CLOSURE_R1"]["newly_released_samples"]
+        == 0
+    )
 
 
 def test_v08_public_manifest_hashes_only_public_file_artifacts() -> None:

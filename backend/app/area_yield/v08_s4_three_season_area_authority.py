@@ -92,8 +92,7 @@ def _validate_confirmation(confirmation: Mapping[str, object] | None) -> None:
     if not isinstance(seasons, (list, tuple)):
         raise ValueError("BUSINESS_CONFIRMATION_CONTRACT_MISMATCH")
     if (
-        confirmation.get("decision")
-        != "USE_RECOVERED_39_BASE_41335_MU_FOR_ALL_THREE_SEASONS"
+        confirmation.get("decision") != "USE_RECOVERED_39_BASE_41335_MU_FOR_ALL_THREE_SEASONS"
         or confirmation.get("decision_type") != "EXPLICIT_BUSINESS_CONFIRMATION"
         or confirmation.get("base_count") != BASE_COUNT
         or str(confirmation.get("total_area_mu")) != str(CONFIRMED_TOTAL_AREA_MU)
@@ -227,9 +226,7 @@ def build_quantity_eligibility_rows(
     quality_rows: Sequence[Mapping[str, str]],
 ) -> list[dict[str, str]]:
     area_index = {(row.get("base_id", ""), row.get("season", "")): row for row in area_rows}
-    quantity_index = {
-        (row.get("base_id", ""), row.get("season", "")): row for row in quality_rows
-    }
+    quantity_index = {(row.get("base_id", ""), row.get("season", "")): row for row in quality_rows}
     if (
         len(area_index) != len(area_rows)
         or len(quantity_index) != len(quality_rows)
@@ -250,9 +247,7 @@ def build_quantity_eligibility_rows(
         )
         q_status = quantity.get("business_total_coverage_status", "")
         total_complete = quantity.get("season_total_complete", "").lower() == "true"
-        quantity_eligible = (
-            q_status == "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE" and total_complete
-        )
+        quantity_eligible = q_status == "BUSINESS_TOTAL_AUTHORITY_ELIGIBLE" and total_complete
         season = key[1]
         strict_training = area_eligible and quantity_eligible and season in TRAINING_SEASONS
         strict_oot = area_eligible and quantity_eligible and season == OOT_SEASON

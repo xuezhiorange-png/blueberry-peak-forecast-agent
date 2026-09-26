@@ -33,9 +33,7 @@ BUSINESS_CONFIRMATION = {
 
 
 def _source_rows() -> list[dict[str, str]]:
-    areas = [Decimal("394"), Decimal("922")] + [Decimal("1000")] * 36 + [
-        Decimal("4019")
-    ]
+    areas = [Decimal("394"), Decimal("922")] + [Decimal("1000")] * 36 + [Decimal("4019")]
     assert len(areas) == BASE_COUNT
     rows: list[dict[str, str]] = []
     for index, area in enumerate(areas):
@@ -54,10 +52,7 @@ def _source_rows() -> list[dict[str, str]]:
 
 
 def _canonical_bases(rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [
-        {"base_id": row["base_id"], "canonical_base_name": row["base_name"]}
-        for row in rows
-    ]
+    return [{"base_id": row["base_id"], "canonical_base_name": row["base_name"]} for row in rows]
 
 
 def _area_rows(
@@ -161,9 +156,7 @@ def test_area_snapshot_sum_mismatch_fails_closed() -> None:
 def test_member_area_is_supporting_detail_not_base_area_override() -> None:
     area_rows = _area_rows()
     base = next(
-        row
-        for row in area_rows
-        if row["base_id"] == "base-01" and row["season"] == "2025-2026"
+        row for row in area_rows if row["base_id"] == "base-01" and row["season"] == "2025-2026"
     )
     legacy = [
         {
@@ -259,9 +252,7 @@ def test_incomplete_quantity_authority_blocks_strict_training() -> None:
     area_rows = _area_rows()
     eligibility = build_quantity_eligibility_rows(area_rows, _quantity_rows(area_rows))
     row = next(
-        row
-        for row in eligibility
-        if row["base_id"] == "base-00" and row["season"] == "2023-2024"
+        row for row in eligibility if row["base_id"] == "base-00" and row["season"] == "2023-2024"
     )
     assert row["area_eligible"] == "true"
     assert row["quantity_eligible"] == "false"
@@ -276,9 +267,7 @@ def test_complete_quantity_authority_intersects_with_area_for_training_and_oot()
     quantity_rows[0]["season_total_complete"] = "true"
     eligibility = build_quantity_eligibility_rows(area_rows, quantity_rows)
     row = next(
-        row
-        for row in eligibility
-        if row["base_id"] == "base-00" and row["season"] == "2023-2024"
+        row for row in eligibility if row["base_id"] == "base-00" and row["season"] == "2023-2024"
     )
     assert row["strict_training_eligible"] == "true"
     assert row["strict_oot_eligible"] == "false"
@@ -296,9 +285,7 @@ def test_expected_oot_quantity_row_is_not_mislabeled_as_training() -> None:
     area_rows = _area_rows()
     eligibility = build_quantity_eligibility_rows(area_rows, _quantity_rows(area_rows))
     row = next(
-        row
-        for row in eligibility
-        if row["base_id"] == "base-00" and row["season"] == "2025-2026"
+        row for row in eligibility if row["base_id"] == "base-00" and row["season"] == "2025-2026"
     )
     assert row["quantity_eligible"] == "true"
     assert row["strict_oot_eligible"] == "true"
