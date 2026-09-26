@@ -1,0 +1,156 @@
+{
+  "task_id": "V0_8_S7_TRAINING_SEASON_SOURCE_IDENTITY_CLOSURE_R1",
+  "result": "BLOCKED_TRAINING_SOURCE_IDENTITY_CLOSURE",
+  "baseline_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "head_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "branch": "codex/v0-8-s7-training-season-source-identity-closure-r1",
+  "pr_number": null,
+  "pr_state": "LOCAL_ONLY",
+  "frozen_s6_inputs_verified": true,
+  "s6_inputs": {
+    "zero_business_confirmation_sha256": "51e4afba778efde0754534a57a4c05e74397ee0057d343b3759caf2c7c263607",
+    "daily_zero_overlay_sha256": "d0f94ea143cc44c555cc3299a8ea0b3073ab96173fa7927b53104a45c904a8e0",
+    "season_total_authority_sha256": "e774fd3254e965bcccbc5f18b67446c65f52e19ded8509c5c250e017fc1cbfcb",
+    "training_eligibility_sha256": "22ea38dac6afa917677fb87d555a3f53b1894096ec257ae4310aad96d121b494",
+    "conservation_sha256": "d9fe0def1f51df6c4f71d36ff13d029b0136fbc87fb0a8e89a2c914662c88d0e",
+    "private_manifest_sha256": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7"
+  },
+  "scope": {
+    "targeted_identity_closure_only": true,
+    "training_seasons": ["2023-2024", "2024-2025"],
+    "training_base_season_count": 78,
+    "target_base_season_count": 41,
+    "target_no_accepted_source_identity_count": 21,
+    "target_unresolved_source_identity_count": 20,
+    "target_identity_status_breakdown": {
+      "NO_ACCEPTED_SOURCE_ROWS": 21,
+      "IDENTITY_CONFIRMED_WITH_UNRESOLVED_CANDIDATES": 15,
+      "IDENTITY_UNRESOLVED": 5
+    },
+    "target_source_identity_ledger_row_count": 44,
+    "target_unique_source_farm_season_count": 33,
+    "business_yes_all_rows_without_explicit_base_target": 10
+  },
+  "identity_resolution": {
+    "accepted_overlay_row_count": 0,
+    "resolved_source_quantity_kg": "0",
+    "candidate_source_quantity_kg_not_reassigned": "6285398.971",
+    "candidate_quantity_is_not_base_allocation": true,
+    "candidate_only_identity_promoted": false,
+    "yes_all_without_explicit_target_applied": false,
+    "historical_candidate_proposals_accepted": false,
+    "current_identity_status_counts": {
+      "UNRESOLVED": 44
+    },
+    "historical_identity_status_counts": {
+      "PROPOSED_CANDIDATE_NOT_AUTHORIZED": 44
+    },
+    "resolution_basis_counts": {
+      "NO_AUTHORIZED_EXACT_SEASON_IDENTITY_EVIDENCE": 20,
+      "BUSINESS_DECISION_YES_ALL_HAS_NO_EXPLICIT_TARGET": 10,
+      "SOURCE_REPORTED_PARENT_WITHOUT_CANONICAL_BASE_ASSIGNMENT": 14
+    },
+    "exact_parent_relation_matches": 22,
+    "exact_parent_matches_with_canonical_quantity_assignment": 0,
+    "fuzzy_mapping_used": false,
+    "cross_season_propagation": false,
+    "source_labels_published": false,
+    "blocked_reason_codes": [
+      "NO_ACCEPTED_SOURCE_IDENTITY_FOR_BASE_SEASON",
+      "UNRESOLVED_SOURCE_IDENTITY_MAY_CONFLICT_WITH_BASE_DAY",
+      "FROZEN_DAILY_SOURCE_DETAIL_UNAVAILABLE_FOR_REBUILD"
+    ]
+  },
+  "training_and_oot_eligibility": {
+    "strict_training_before": 37,
+    "strict_training_after": 37,
+    "newly_released_training_base_season_count": 0,
+    "remaining_blocked_training_base_season_count": 41,
+    "season_2023_2024_before_after": 15,
+    "season_2024_2025_before_after": 22,
+    "strict_oot_before": 39,
+    "strict_oot_after": 39,
+    "previously_eligible_regression_count": 0,
+    "oot_regression_count": 0,
+    "training_dataset_candidate_generated": false,
+    "training_dataset_candidate_row_count": 0,
+    "ready_for_v0_8_retrain_technical_gate": true
+  },
+  "daily_completeness": {
+    "unknown_days_before_after": 10642,
+    "unknown_resolved_by_identity": 0,
+    "unknown_day_identity_status_breakdown": {
+      "NO_ACCEPTED_SOURCE_ROWS": 6082,
+      "IDENTITY_CONFIRMED_WITH_UNRESOLVED_CANDIDATES": 3110,
+      "IDENTITY_UNRESOLVED": 1450
+    },
+    "partial_days_before_after": 1231,
+    "partial_resolved_by_identity": 0,
+    "partial_identity_status_breakdown": {
+      "IDENTITY_CONFIRMED_WITH_UNRESOLVED_CANDIDATES": 1231
+    },
+    "partial_base_season_count_before_after": 15
+  },
+  "quantity_conservation": {
+    "raw_kg": "122983150.913",
+    "mapped_before_kg": "109010615.352",
+    "mapped_after_kg": "109010615.352",
+    "unresolved_before_kg": "10573929.816",
+    "unresolved_resolved_kg": "0",
+    "unresolved_after_kg": "10573929.816",
+    "excluded_before_kg": "3398605.745",
+    "excluded_after_kg": "3398605.745",
+    "conservation_delta_kg": "0",
+    "mapped_increase_equals_unresolved_decrease": true,
+    "excluded_bucket_unchanged": true
+  },
+  "private_artifacts": {
+    "directory": "v0-8-s7-training-season-source-identity-closure-r1",
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "manifest_sha256": "7946ff4439e9cd6a41525f55a9978543a2581b1a929a013fb1ca54b07b7c3ab6",
+    "artifact_hashes": {
+      "s7-target-base-season-ledger-r1.csv": "1f41e8db1349dbbbb62032bc8adcb9af37eaa1da49c0f7d10594139fb684ad1c",
+      "target-source-identity-resolution-ledger-r1.csv": "22572594188fe185acb037b32cf0a1d7c07f4c6cac161efe8199cf610f2a0e75",
+      "training-season-source-identity-overlay-r1.csv": "2c5dc07b28cdf376c791c17c1e80bd719468591d0b590406af00efef5bb1ec28",
+      "identity-closure-impact-summary-r1.csv": "efac73ab48eb1c25da383e9f25cc1a9893f2c9d677107ef5c9e89c91e43fc3d2",
+      "unknown-identity-resolution-r1.csv": "496891ec89c933bbd744b3cd9f2b026c39e09f6048cb26d61d8a2a7b9dbce3c0",
+      "partial-identity-resolution-r1.csv": "66da425684a978d4cbceccd570752f4f14ec423fef2688ad075ae164947e703a",
+      "training-base-season-quantity-completeness-s7-r1.csv": "a40a9f1739e8f108909a325a39993e614c2441f24479828ec4f04640562b12c1",
+      "strict-training-eligibility-s7-r1.csv": "8a80e3179969c4ac0c80259714cd772527dec7fb6c8521689ff20e52175030db",
+      "yield-distribution-audit-r1.csv": "1195063eb4f2796a55dfb38ce34fc07790b8fe444a2b9d490396dfe89ca82ca3",
+      "quantity-conservation-s7-r1.csv": "adea2aff4222dff89a17b638c2c05786f4f00b46f29b781502591dd5a1d06edd",
+      "closure-summary-r1.json": "80f49ed7079ac3520fbcf283d6d380af9b35e8dfb908dfdfc006380a56c94dd6"
+    },
+    "row_counts": {
+      "target_base_seasons": 41,
+      "identity_resolution_ledger": 65,
+      "identity_overlay": 0,
+      "unknown_identity_resolution": 10642,
+      "partial_identity_resolution": 1231,
+      "training_completeness": 78,
+      "strict_training_eligibility": 78,
+      "quantity_conservation": 3
+    }
+  },
+  "validation": {
+    "deterministic_fresh_process_replay": "PASS_BYTE_IDENTICAL",
+    "focused_tests": "PASS_30",
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "full_ci": "NOT_RUN_LOCAL_ONLY"
+  },
+  "non_actions": {
+    "area_authority_modified": false,
+    "identity_authority_modified": false,
+    "canonical_quantity_ledger_modified": false,
+    "model_training_executed": false,
+    "model_refit_executed": false,
+    "backtest_executed": false,
+    "forecast_replay_executed": false,
+    "pr_created": false,
+    "ready_action_taken": false,
+    "merge_action_taken": false
+  },
+  "next_stage_recommendation": "A separate authorized V0.8 retrain/OOT task may proceed on the unchanged 37 strict training Base-seasons and 39 strict OOT Base-seasons; this S7 identity-closure task itself remains blocked and does not authorize execution."
+}

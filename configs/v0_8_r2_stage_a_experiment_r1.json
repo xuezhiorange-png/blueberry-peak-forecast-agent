@@ -1,0 +1,84 @@
+{
+  "task_id": "V0_8_R2_STAGE_A_SHRINKAGE_MODEL_EXPERIMENT_R1",
+  "baseline_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "training": {
+    "expected_row_count": 37,
+    "expected_sha256": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "expected_season_counts": {"2023-2024": 15, "2024-2025": 22},
+    "blocked_rows_allowed": false,
+    "grouped_cv": "LEAVE_ONE_BASE_OUT",
+    "group_column": "base_id",
+    "primary_metric": "GROUPED_CV_SEASON_TOTAL_WAPE",
+    "tie_tolerance": "0.000000000001"
+  },
+  "benchmark": {
+    "season": "2025-2026",
+    "row_count": 39,
+    "role": "FROZEN_BENCHMARK_REPLAY",
+    "pristine_oot": false,
+    "use_for_selection": false,
+    "use_for_tuning": false
+  },
+  "s8": {
+    "private_directory": "v0-8-s8-canonical-training-oot-backtest-r1-replay-3",
+    "private_manifest_sha256": "6561ac984de2b3ac1a7ba86e8fee91f888b641478a19af67355e4dba8cc8216e",
+    "repository_evidence_sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15",
+    "repository_config_sha256": "204973cb4293f5881dd50dca01edc63327861790c097ec65191c4b77fd914849",
+    "training_dataset_sha256": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "oot_dataset_sha256": "2637b16bb384ce8ef96858ca66640b4db9be61b60d5ed8339b1162c97be57f5a",
+    "r1_model_artifact_sha256": "8a2e596c7f9c27841624e6267aa4a9a520ea12405a3a81e189156793305ab3a0",
+    "stage_b_shape_sha256": "7ae53f5888947053057071f9b097e38b03bb8112a41de972b8e2d51fd311cb2e",
+    "stage_b_shape_source": "S9 frozen baseline/V0.8 R1 predicted-share matrix, 39 Bases x 268 dates",
+    "s9_evidence_sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd",
+    "s9_private_manifest_sha256": "02f69ce570182577fe6aebf8b59a90c98ff7cf6db81bf8af2833839a3d296ba9",
+    "frozen_artifacts": {
+      "oot-area-input-r1.csv": "713da3f58212139f045fa619afd8ea8eed486d282a087a94bf235504accee476",
+      "training-daily-curves-r1.csv": "0b1d9bd4ca9c4cc36386f8b5ea76006604e40accfd80fb5bf1e7a3d869b6001a",
+      "v0-8-canonical-oot-dataset-r1.csv": "2637b16bb384ce8ef96858ca66640b4db9be61b60d5ed8339b1162c97be57f5a",
+      "v0-8-oot-season-total-predictions-r1.csv": "4f13b45c3405d6ebfbb54cd9483b6564aa26ee2e4b8337a6fc149fab85dab3dc",
+      "v0-8-oot-daily-predictions-r1.csv": "2151f46998d14870ff77220e12f2b5992aa523a74884e7fc33d208c0d430e2d0",
+      "baseline-oot-predictions-r1.csv": "443b78d96698570a5280d9e21c976c292e9cdff258d80f745ca340f2ed0ea142",
+      "baseline-oot-daily-predictions-r1.csv": "76ae1d691df49c0afa4c8b5c1d90ee5b0e4ab6ef6edd5a0b490b88c3fd4a3f78",
+      "v0-7-oot-predictions-r1.csv": "d24bfdd69c07179ebe6828e4e398d47313d498272493eed25f69d50bea69ff8d",
+      "v0-7-oot-daily-predictions-r1.csv": "b3fe9a3d852e327e27c1d25f4f599f069bbb51acc1ce23b91e5930c765a31fab",
+      "model-comparison-by-base-r1.csv": "b1e7c04a54bcb1dfdb1bd3b2745ff8714f32cc4560b1b894897103e28341e44d",
+      "season-total-metrics-r1.json": "22fafdaac3444dcaffe86f68b67f7e8b577da399e2653f57cd9985fb33a9aca4",
+      "daily-curve-metrics-r1.json": "d8c7af16d247136c4b63465b35a30405eccdf476e75ced0bf0c2f90f704d9ce5",
+      "single-day-peak-metrics-r1.json": "9f049573f2d0def81d3e5e2cc3718deda497ab0b06f41c6e31f26286ac153775",
+      "rolling7-peak-metrics-r1.json": "0c1609a68a80277d83a7b3fc9e631a89611760057eb5f315626aed1c8bde2c02"
+    }
+  },
+  "candidate_specs": [
+    {"model_candidate": "GLOBAL_POOLED_YIELD", "hyperparameters": [null], "complexity_rank": 0},
+    {"model_candidate": "SHRINKAGE_BASE_YIELD", "hyperparameters": ["0.25", "0.5", "1", "2", "4", "8"], "complexity_rank": 1},
+    {"model_candidate": "REGULARIZED_BASE_EFFECT", "hyperparameters": ["0.1", "1", "10", "100"], "complexity_rank": 2}
+  ],
+  "selection_policy": {
+    "primary_metric": "GROUPED_CV_SEASON_TOTAL_WAPE",
+    "tie_break_order": ["SIMPLER_MODEL", "LOWER_ABSOLUTE_BIAS", "STABLE_MODEL_CANDIDATE_AND_HYPERPARAMETER_ORDER"],
+    "same_candidate_hyperparameter_tie": "STRONGER_REGULARIZATION_FIRST",
+    "tie_tolerance": "0.000000000001"
+  },
+  "candidate_c_specification": {
+    "name": "REGULARIZED_BASE_EFFECT",
+    "formula": "log(yield_kg_per_mu)=unpenalized_intercept+ridge_penalized_base_one_hot_effect",
+    "area_feature": false,
+    "area_output_role": "MULTIPLICATIVE_SCALE_ONLY",
+    "area_weighting": "area_mu/mean_training_area_mu",
+    "solver": "numpy.linalg.solve",
+    "alpha_grid": ["0.1", "1", "10", "100"]
+  },
+  "fixed_rules": {
+    "global_pooled_yield_kg_per_mu": "855.5593226284052977280068914",
+    "nonnegative_area_scale": true,
+    "stage_b_shape_hash": "7ae53f5888947053057071f9b097e38b03bb8112a41de972b8e2d51fd311cb2e",
+    "stage_b_source": "EXACT_COPY_FROM_FROZEN_R1_MODEL_ARTIFACT",
+    "daily_rounding": "DECIMAL_0.000001_HALF_EVEN_WITH_LAST_DAY_RESIDUAL",
+    "peak_tie_break": "EARLIEST_DATE",
+    "rolling7": "CONSECUTIVE_7_CALENDAR_DAYS_EARLIEST_START_ON_TIE",
+    "production_ready": false,
+    "business_acceptance_threshold": "NOT_DEFINED"
+  },
+  "private_output_directory": "v0-8-r2-stage-a-shrinkage-experiment-r1",
+  "no_overwrite": true
+}

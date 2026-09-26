@@ -1,0 +1,59 @@
+{
+  "task_id": "V0_8_S6_NO_RECORD_ZERO_SEMANTICS_APPLICATION_AND_SEASON_TOTAL_REBUILD_R1",
+  "policy_version": "V0_8_S6_NO_RECORD_ZERO_SEMANTICS_R1",
+  "business_rule": {
+    "decision": "NO_HARVEST_RECORD_MEANS_ZERO",
+    "quantity_kg": "0",
+    "scope": "EXPECTED_BASE_DAY_WITHIN_FROZEN_HISTORICAL_HARVEST_WINDOW_AND_IDENTITY_CONFIRMED",
+    "decision_type": "EXPLICIT_BUSINESS_CONFIRMATION",
+    "verified_frozen_source_required": true,
+    "identity_unresolved_rows_are_not_zero": true,
+    "partial_source_rows_are_not_automatically_zero": true,
+    "source_unavailable_or_missing_canonical_day_is_not_zero": true
+  },
+  "season_total_policy": {
+    "derive_total_only_after_daily_classification": true,
+    "require_all_expected_days_complete": true,
+    "require_confirmed_identity_without_unresolved_candidates": true,
+    "require_frozen_boundary_complete": true,
+    "require_exact_reconciliation_to_frozen_mapped_quantity": true,
+    "daily_curve_eligibility_is_separate_from_season_total_eligibility": true,
+    "identity_unresolved_quantity_is_never_zero_filled": true
+  },
+  "input_authorities": {
+    "s1_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "s1_evidence_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7",
+    "s1_private_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+    "s1_daily_ledger_sha256": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+    "s1_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "s1_identity_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "s1_unresolved_identity_ledger_sha256": "d28efd9dceb0717c7303962666b3ec74fa98ed0715896df46a54ae1da9f7389d",
+    "s2_evidence_sha256": "311bcc3e057dab953b422fb0144a57adde5ad608c513efae918023456efe320c",
+    "s2_quantity_policy_module_sha256": "8c028d06c395ede1e323eb0052fa4180552913cc0babf96bd47126431b2b5f72",
+    "area_authority_id": "V0_8_THREE_SEASON_HISTORICAL_AREA_AUTHORITY_R1",
+    "area_private_manifest_sha256": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+    "area_authority_sha256": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9"
+  },
+  "scope": {
+    "canonical_base_count": 39,
+    "season_count": 3,
+    "base_season_count": 117,
+    "training_seasons": ["2023-2024", "2024-2025"],
+    "oot_season": "2025-2026"
+  },
+  "execution_boundaries": {
+    "new_harvest_search": false,
+    "raw_harvest_reimport": false,
+    "full_filesystem_rescan": false,
+    "area_authority_mutated": false,
+    "identity_authority_mutated": false,
+    "canonical_quantity_ledger_mutated": false,
+    "model_training": false,
+    "model_refit": false,
+    "backtest": false,
+    "forecast_replay": false,
+    "pr_creation": false,
+    "ready": false,
+    "merge": false
+  }
+}

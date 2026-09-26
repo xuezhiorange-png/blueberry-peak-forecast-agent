@@ -1,0 +1,126 @@
+{
+  "task_id": "V0_8_S4_USER_CONFIRMED_THREE_SEASON_AREA_AUTHORITY_APPLICATION_R1",
+  "result": "PASS_THREE_SEASON_AREA_AUTHORITY_APPLIED",
+  "execution": {
+    "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+    "head_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+    "branch": "codex/v0-8-s4-original-user-area-source-recovery-r1",
+    "pr_number": null,
+    "pr_state": "LOCAL_ONLY",
+    "full_ci": "NOT_RUN"
+  },
+  "business_confirmation": {
+    "confirmation_record_id": "V0_8_S4_USER_CONFIRMED_THREE_SEASON_AREA_AUTHORITY_APPLICATION_R1",
+    "decision": "USE_RECOVERED_39_BASE_41335_MU_FOR_ALL_THREE_SEASONS",
+    "decision_type": "EXPLICIT_BUSINESS_CONFIRMATION",
+    "base_count": 39,
+    "total_area_mu": "41335",
+    "seasons": [
+      "2023-2024",
+      "2024-2025",
+      "2025-2026"
+    ],
+    "same_area_values_across_seasons": true,
+    "area_estimation": false,
+    "cross_season_inference": false,
+    "business_confirmation_sha256": "c8287557035c58a2f72a9fee5b4c600798f66e65d024a5d6c3366fe9ff8bed83"
+  },
+  "source_and_identity": {
+    "recovered_area_lineage_sha256": "63265f1d1f2ac7b009d3612a3fcdbc7df93415d94b5b774b2c3c9c1c6c31e0c7",
+    "recovery_manifest_sha256": "87fc729ef90d1f6f8a8a6c5a55136a1a4a4e26b6a3e2ef34981143dd944d4bf3",
+    "original_user_area_source_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "identity_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "identity_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "identity_resolved_base_count": 39,
+    "identity_unresolved_base_count": 0,
+    "original_season_scope": "CURRENT/UNSPECIFIED",
+    "resolved_season_scope": [
+      "2023-2024",
+      "2024-2025",
+      "2025-2026"
+    ],
+    "season_binding_basis": "EXPLICIT_BUSINESS_CONFIRMATION"
+  },
+  "area_authority": {
+    "authority_id": "V0_8_THREE_SEASON_HISTORICAL_AREA_AUTHORITY_R1",
+    "status": "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL",
+    "basis": "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT",
+    "area_authority_row_count": 117,
+    "unique_base_count": 39,
+    "unique_season_count": 3,
+    "season_base_counts": {
+      "2023-2024": 39,
+      "2024-2025": 39,
+      "2025-2026": 39
+    },
+    "season_area_totals_mu": {
+      "2023-2024": "41335",
+      "2024-2025": "41335",
+      "2025-2026": "41335"
+    },
+    "historical_actual_area_base_season_count": 117,
+    "training_season_area_qualified_count": 78,
+    "oot_season_area_qualified_count": 39,
+    "training_area_authority_still_blocking": false,
+    "overlay_only": true,
+    "canonical_ledger_modified": false,
+    "area_authority_csv_sha256": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9"
+  },
+  "quantity_intersection": {
+    "quantity_authority_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "eligibility_rule": "business_total_coverage_status=BUSINESS_TOTAL_AUTHORITY_ELIGIBLE AND season_total_complete=true",
+    "complete_season_quantity_training_eligible_count": 0,
+    "complete_season_quantity_oot_eligible_count": 1,
+    "strict_training_eligible_count": 0,
+    "strict_oot_eligible_count": 1,
+    "quantity_total_authority_still_blocking": true,
+    "partial_or_unknown_quantity_promoted": false,
+    "eligibility_csv_sha256": "9d0a00f99973ee20e5fb0c91f661b3eb21fe38ed4c9bf7eb8129d9fdb327e5b6"
+  },
+  "legacy_area_reconciliation": {
+    "legacy_record_count": 2,
+    "superseded_base_grain_record_count": 1,
+    "member_supporting_detail_count": 1,
+    "member_area_exceeds_base_count": 0,
+    "prior_area_evidence_mutated": false,
+    "reconciliation_csv_sha256": "a02359bee79e8ed3a755ef00bef733457e179719b0c8eabe95ffc52c39b1f727"
+  },
+  "supersession": {
+    "superseded_prior_area_blocker": true,
+    "scope": "area-side eligibility only; prior S1/S2 quantity completeness and metrics remain unchanged"
+  },
+  "determinism": {
+    "independent_run_count": 2,
+    "byte_for_byte_identical": true,
+    "private_artifact_manifest_sha256": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+    "directory_mode": "0700",
+    "file_mode": "0600"
+  },
+  "boundary": {
+    "reference_area_auto_promotion": false,
+    "area_estimation_executed": false,
+    "cross_season_inference_executed": false,
+    "quantity_authority_modified": false,
+    "identity_authority_modified": false,
+    "model_training_executed": false,
+    "model_refit_executed": false,
+    "backtest_executed": false,
+    "forecast_replay_executed": false,
+    "pr_creation_authorized": false,
+    "ready_action_taken": false,
+    "merge_action_taken": false
+  },
+  "validation": {
+    "focused_tests": "PASS_39_TESTS",
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "full_ci": "NOT_RUN"
+  },
+  "private_artifacts": {
+    "artifact_manifest_sha256": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+    "business_confirmation_sha256": "c8287557035c58a2f72a9fee5b4c600798f66e65d024a5d6c3366fe9ff8bed83",
+    "area_authority_sha256": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9",
+    "eligibility_sha256": "9d0a00f99973ee20e5fb0c91f661b3eb21fe38ed4c9bf7eb8129d9fdb327e5b6",
+    "overlay_sha256": "842ad2ffc5f53f2bc295448bb68084a1daf49f788796a8c5f83519f1a6631c7a"
+  }
+}
