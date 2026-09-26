@@ -1,0 +1,84 @@
+{
+  "task_id": "V0_8_R2B_TEMPORAL_FORWARD_SHRINKAGE_IDENTIFIABILITY_R1",
+  "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "canonical_training_dataset": {
+    "relative_path": "v0-8-s8-canonical-training-oot-backtest-r1-replay-3/v0-8-canonical-training-dataset-r1.csv",
+    "sha256": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "row_count": 37
+  },
+  "temporal_split": {
+    "train_season": "2023-2024",
+    "expected_train_row_count": 15,
+    "validation_season": "2024-2025",
+    "expected_validation_row_count": 22,
+    "expected_unique_base_count": 26,
+    "expected_support_1_count": 11,
+    "expected_support_0_count": 11,
+    "forbidden_season": "2025-2026",
+    "forbidden_season_access": false
+  },
+  "candidate_set": [
+    "GLOBAL_POOLED_YIELD",
+    "BASE_SPECIFIC_NO_SHRINKAGE",
+    "SHRINKAGE_BASE_YIELD"
+  ],
+  "global_yield": {
+    "aggregation_policy": "sum(quantity_kg for 2023-2024) / sum(area_mu for 2023-2024)",
+    "scope": "2023-2024 strict training rows only",
+    "s8_two_season_pooled_yield_reused": false
+  },
+  "shrinkage": {
+    "weight_formula": "n / (n + lambda)",
+    "allowed_lambda_values": ["0.25", "0.5", "1", "2", "4", "8"],
+    "support_zero_weight": "0",
+    "support_zero_fallback": "2023-2024 global pooled yield"
+  },
+  "selection": {
+    "primary_cohort": "SUPPORT_1_ONLY",
+    "primary_metric": "SUPPORT_1_SEASON_TOTAL_WAPE",
+    "all_22_role": "AUXILIARY_ONLY",
+    "tie_break": [
+      "exact primary WAPE",
+      "simpler model",
+      "lower absolute signed bias",
+      "stronger shrinkage"
+    ],
+    "near_tie_tolerance": null
+  },
+  "prediction_freeze": {
+    "validation_target_access_before_prediction_hash": false,
+    "required_order": [
+      "read 2023-2024 labels and 2024-2025 area covariates",
+      "generate all candidate predictions",
+      "hash prediction artifact and candidate specification",
+      "load 2024-2025 labels for scoring"
+    ]
+  },
+  "scope": {
+    "stage_b": false,
+    "daily_shape": false,
+    "peak_metrics": false,
+    "rolling7_metrics": false,
+    "2025_2026_model_selection": false,
+    "production_promotion": false,
+    "pr_creation": false,
+    "ready": false,
+    "merge": false
+  },
+  "private_artifact_filenames": [
+    "temporal-train-2023-2024-r1.csv",
+    "temporal-validation-2024-2025-r1.csv",
+    "temporal-validation-support-ledger-r1.csv",
+    "candidate-specification-r1.json",
+    "temporal-validation-predictions-r1.csv",
+    "prediction-freeze-manifest-r1.json",
+    "temporal-validation-scoring-r1.csv",
+    "candidate-support1-summary-r1.csv",
+    "candidate-all22-summary-r1.csv",
+    "base-history-vs-global-diagnosis-r1.csv",
+    "yield-direction-persistence-r1.csv",
+    "yield-cross-season-correlation-r1.json",
+    "experiment-summary-r1.json",
+    "artifact-manifest.json"
+  ]
+}

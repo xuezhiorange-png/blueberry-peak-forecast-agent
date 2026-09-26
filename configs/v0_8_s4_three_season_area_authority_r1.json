@@ -1,0 +1,56 @@
+{
+  "task_id": "V0_8_S4_USER_CONFIRMED_THREE_SEASON_AREA_AUTHORITY_APPLICATION_R1",
+  "authority_id": "V0_8_THREE_SEASON_HISTORICAL_AREA_AUTHORITY_R1",
+  "business_confirmation": {
+    "confirmation_record_id": "V0_8_S4_USER_CONFIRMED_THREE_SEASON_AREA_AUTHORITY_APPLICATION_R1",
+    "decision": "USE_RECOVERED_39_BASE_41335_MU_FOR_ALL_THREE_SEASONS",
+    "decision_type": "EXPLICIT_BUSINESS_CONFIRMATION",
+    "base_count": 39,
+    "total_area_mu": "41335",
+    "seasons": [
+      "2023-2024",
+      "2024-2025",
+      "2025-2026"
+    ],
+    "same_area_values_across_seasons": true,
+    "original_season_scope": "CURRENT/UNSPECIFIED",
+    "season_binding_basis": "EXPLICIT_BUSINESS_CONFIRMATION",
+    "area_estimation": false,
+    "cross_season_inference": false
+  },
+  "source_snapshot": {
+    "recovered_area_lineage_sha256": "63265f1d1f2ac7b009d3612a3fcdbc7df93415d94b5b774b2c3c9c1c6c31e0c7",
+    "recovery_manifest_sha256": "87fc729ef90d1f6f8a8a6c5a55136a1a4a4e26b6a3e2ef34981143dd944d4bf3",
+    "original_user_area_source_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "required_base_count": 39,
+    "required_decimal_sum_mu": "41335"
+  },
+  "identity_authority": {
+    "authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "resolved_base_count_required": 39
+  },
+  "quantity_eligibility": {
+    "authority_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "eligible_rule": "business_total_coverage_status=BUSINESS_TOTAL_AUTHORITY_ELIGIBLE AND season_total_complete=true",
+    "training_seasons": [
+      "2023-2024",
+      "2024-2025"
+    ],
+    "oot_season": "2025-2026",
+    "partial_or_unknown_quantity_promoted": false
+  },
+  "materialization_boundary": {
+    "canonical_ledger_modified": false,
+    "quantity_authority_modified": false,
+    "identity_authority_modified": false,
+    "overlay_only": true,
+    "model_training": false,
+    "model_refit": false,
+    "backtest": false,
+    "forecast_replay": false,
+    "pr_creation_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false
+  }
+}
