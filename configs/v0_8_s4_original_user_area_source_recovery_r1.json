@@ -1,0 +1,53 @@
+{
+  "task_id": "V0_8_S4_ORIGINAL_USER_AREA_SOURCE_OF_TRUTH_RECOVERY_R1",
+  "version": "0.8.0",
+  "scope": "SOURCE_RECOVERY_AND_CANDIDATE_REBIND_ONLY",
+  "area_authority_mutation": false,
+  "quantity_authority_mutation": false,
+  "identity_authority_mutation": false,
+  "base_registry_mutation": false,
+  "model_training": false,
+  "model_refit": false,
+  "backtest": false,
+  "forecast_replay": false,
+  "user_area_reentry_requested": false,
+  "new_area_estimation": false,
+  "reference_area_promotion": false,
+  "previous_season_proxy_promotion": false,
+  "cross_season_area_copy": false,
+  "canonical_base_count": 39,
+  "season_count": 3,
+  "base_season_matrix_row_count": 117,
+  "source_inventory": {
+    "manifest_sha256": "a98b58b1ae8b00e60b51cdb148b96cabc4074352c5de4200ab0f24e5d2914b99",
+    "enumerated_file_count": 46429,
+    "area_candidate_file_count": 4152,
+    "included_area_source_file_count": 41,
+    "recovery_source_path_count": 42,
+    "exact_duplicate_paths_separately_excluded": 1,
+    "scan_errors": 0
+  },
+  "current_user_input": {
+    "source_sha256": "73329a1f7315f81ce7cf24d59dc7b3a49507520cd179a205b7267a5b430db7d7",
+    "row_count": 39,
+    "total_mu": "41335",
+    "season_scope": "CURRENT/UNSPECIFIED",
+    "historical_actual_candidate": false
+  },
+  "existing_confirmed_historical_records": {
+    "count": 2,
+    "season": "2025-2026",
+    "full_base_scope_count": 1,
+    "member_only_scope_count": 1,
+    "raw_area_bearing_document_recovered": false
+  },
+  "training_seasons": ["2023-2024", "2024-2025"],
+  "strict_training_area_eligible_base_season_count_after_recovery": 0,
+  "authority_promotion_requires_separate_approval": true,
+  "output_privacy": {
+    "private_artifact_directory_mode": "0700",
+    "private_artifact_file_mode": "0600",
+    "public_evidence_contains_row_level_base_names": false,
+    "public_evidence_contains_row_level_area_values": false
+  }
+}

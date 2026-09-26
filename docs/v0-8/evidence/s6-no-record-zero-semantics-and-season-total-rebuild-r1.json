@@ -1,0 +1,145 @@
+{
+  "task_id": "V0_8_S6_NO_RECORD_ZERO_SEMANTICS_APPLICATION_AND_SEASON_TOTAL_REBUILD_R1",
+  "policy_version": "V0_8_S6_NO_RECORD_ZERO_SEMANTICS_R1",
+  "result": "PASS_NO_RECORD_ZERO_SEMANTICS_APPLIED",
+  "business_rule": {
+    "decision": "NO_HARVEST_RECORD_MEANS_ZERO",
+    "quantity_kg": "0",
+    "scope": "EXPECTED_BASE_DAY_WITHIN_FROZEN_HISTORICAL_HARVEST_WINDOW_AND_IDENTITY_CONFIRMED",
+    "decision_type": "EXPLICIT_BUSINESS_CONFIRMATION",
+    "verified_frozen_source_required": true,
+    "identity_unresolved_rows_are_not_zero": true,
+    "partial_source_rows_are_not_automatically_zero": true,
+    "source_unavailable_or_missing_canonical_day_is_not_zero": true
+  },
+  "baseline": {
+    "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+    "base_main_tree_sha": "e215758b42b2ccc0b654d5975e9715a5ab0746dd",
+    "branch": "codex/v0-8-s6-no-record-zero-semantics-application-r1",
+    "head_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+    "pr_number": null,
+    "pr_state": "LOCAL_ONLY"
+  },
+  "scope": {
+    "canonical_base_count": 39,
+    "season_count": 3,
+    "base_season_count": 117,
+    "training_seasons": ["2023-2024", "2024-2025"],
+    "training_base_season_count": 78,
+    "oot_season": "2025-2026",
+    "oot_base_season_count": 39,
+    "expected_base_day_count": 33033,
+    "season_boundaries": {
+      "2023-2024": ["2023-07-01", "2024-04-15"],
+      "2024-2025": ["2024-07-01", "2025-04-15"],
+      "2025-2026": ["2025-07-22", "2026-04-15"]
+    }
+  },
+  "zero_semantics_counts": {
+    "unknown_day_count_before": 15345,
+    "unknown_no_record_day_count": 4703,
+    "zero_converted_from_no_record_count": 4703,
+    "unknown_identity_unresolved_day_count": 4560,
+    "unknown_source_row_present_partial_day_count": 0,
+    "unknown_source_date_not_covered_day_count": 0,
+    "unknown_source_unavailable_day_count": 0,
+    "unknown_other_day_count": 6082,
+    "unknown_other_day_reason_counts": {
+      "NO_ACCEPTED_SOURCE_IDENTITY_FOR_BASE_SEASON": 6082
+    },
+    "unknown_no_accepted_identity_affected_base_season_count": 21,
+    "unknown_unresolved_identity_affected_base_season_count": 20,
+    "unknown_day_count_after": 10642,
+    "confirmed_zero_day_count_before": 4704,
+    "confirmed_zero_day_count_after": 9407,
+    "partial_day_count_before": 4673,
+    "partial_resolved_by_zero_count": 3442,
+    "partial_still_identity_unresolved_count": 1231,
+    "partial_still_source_coverage_incomplete_count": 0,
+    "partial_day_count_after": 1231,
+    "missing_canonical_daily_row_count_before": 0
+  },
+  "season_total_and_daily_curve_eligibility": {
+    "2023-2024": {
+      "season_total_eligible_base_count": 15,
+      "daily_curve_eligible_base_count": 15
+    },
+    "2024-2025": {
+      "season_total_eligible_base_count": 22,
+      "daily_curve_eligible_base_count": 22
+    },
+    "2025-2026": {
+      "season_total_eligible_base_count": 39,
+      "daily_curve_eligible_base_count": 39
+    },
+    "strict_training_eligible_count": 37,
+    "strict_oot_eligible_count": 39,
+    "training_data_authority_available": true,
+    "quantity_authority_still_blocks_some_training_samples": true,
+    "business_total_record_count": 1,
+    "business_total_reconciled_count": 1,
+    "business_total_mismatch_count": 0
+  },
+  "remaining_overlapping_training_blockers": {
+    "NO_ACCEPTED_SOURCE_IDENTITY_FOR_BASE_SEASON": 21,
+    "UNRESOLVED_SOURCE_IDENTITY_MAY_CONFLICT_WITH_BASE_DAY": 20,
+    "BUSINESS_TOTAL_AUTHORITY_MISSING": 41,
+    "MEMBER_COVERAGE_INCOMPLETE": 41,
+    "SOURCE_COVERAGE_INCOMPLETE": 41,
+    "UNKNOWN_DAYS_PRESENT": 41,
+    "IDENTITY_UNRESOLVED": 20,
+    "UNRESOLVED_MEMBER_COVERAGE": 20,
+    "PARTIAL_KNOWN_SUBTOTAL_DAYS_PRESENT": 15
+  },
+  "quantity_conservation": {
+    "raw_quantity_kg": "122983150.913",
+    "mapped_quantity_kg": "109010615.352",
+    "unresolved_quantity_kg": "10573929.816",
+    "excluded_quantity_kg": "3398605.745",
+    "delta_kg": "0.000",
+    "identity_unresolved_quantity_kg_unchanged": true,
+    "nonzero_harvest_quantity_before_kg_equals_after": true,
+    "nonzero_harvest_quantity_before_kg": "86965024.976",
+    "nonzero_harvest_quantity_after_kg": "86965024.976",
+    "nonzero_quantity_delta_kg": "0.000"
+  },
+  "pinned_authorities": {
+    "s1_private_manifest_sha256": "acc3104a3dcef8224905a45b1f7f3d74d9b5ac36916d3e377acd8310742644d6",
+    "s1_daily_ledger_sha256": "be948dee9a7789e90ee60fc42277e8e978ecdc897c519686f3cc36d798d5bd75",
+    "s1_quality_ledger_sha256": "64a0a41afcde4ffe3c8713f62ca5cc03ee0f36599289bafd409e641df0a2f2fd",
+    "s1_identity_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "area_private_manifest_sha256": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+    "area_authority_sha256": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9"
+  },
+  "private_artifacts": {
+    "manifest_sha256": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7",
+    "policy_sha256": "63030def0492a2bf7158d0f0c495983c46709bdac25687c4df81b6ccf0b5237d",
+    "artifact_bytes_identical_across_two_fresh_replays": true,
+    "private_directory_mode": "0700",
+    "private_file_mode": "0600",
+    "row_level_harvest_data_committed": false
+  },
+  "supersession": {
+    "supersedes_s5_no_record_unknown_semantics": true,
+    "s5_evidence_modified": false,
+    "supersession_scope": "NO_RECORD_UNKNOWN_AND_PARTIAL_MEMBER_ZERO_SEMANTICS_ONLY"
+  },
+  "execution_boundary": {
+    "new_harvest_search": false,
+    "raw_harvest_reimported": false,
+    "area_authority_modified": false,
+    "identity_authority_modified": false,
+    "canonical_ledger_modified": false,
+    "model_training_executed": false,
+    "model_refit_executed": false,
+    "backtest_executed": false,
+    "forecast_replay_executed": false,
+    "focused_tests": "PASS:17",
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "full_ci": "NOT_RUN",
+    "pr_created": false,
+    "ready_action_taken": false,
+    "merge_action_taken": false
+  }
+}

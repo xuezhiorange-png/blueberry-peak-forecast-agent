@@ -1,0 +1,59 @@
+{
+  "task_id": "V0_8_S7_TRAINING_SEASON_SOURCE_IDENTITY_CLOSURE_R1",
+  "baseline_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "training_seasons": ["2023-2024", "2024-2025"],
+  "oot_season": "2025-2026",
+  "scope": {
+    "target_only_s6_ineligible_training_base_seasons": true,
+    "expected_target_base_season_count": 41,
+    "strict_training_eligible_before": 37,
+    "strict_oot_eligible_before": 39
+  },
+  "identity_policy": {
+    "accepted_evidence_types": [
+      "EXACT_SOURCE_LABEL_MATCH",
+      "AUTHORIZED_ALIAS",
+      "HISTORICALLY_PROVEN_ALIAS",
+      "BUSINESS_CONFIRMED_MAPPING",
+      "BUSINESS_CONFIRMED_REASSIGNMENT",
+      "SAME_SOURCE_ID_STABLE_ACROSS_REVISIONS",
+      "EXPLICIT_PARENT_BASE_MAPPING",
+      "EXPLICIT_MEMBER_TO_BASE_MAPPING"
+    ],
+    "candidate_only_is_authority": false,
+    "yes_all_without_explicit_target_is_authority": false,
+    "cross_season_propagation": false,
+    "fuzzy_or_similarity_mapping": false,
+    "quantity_conservation_used_to_infer_identity": false,
+    "area_used_to_infer_identity": false
+  },
+  "frozen_inputs": {
+    "s6_zero_business_confirmation_sha256": "51e4afba778efde0754534a57a4c05e74397ee0057d343b3759caf2c7c263607",
+    "s6_daily_zero_overlay_sha256": "d0f94ea143cc44c555cc3299a8ea0b3073ab96173fa7927b53104a45c904a8e0",
+    "s6_season_total_authority_sha256": "e774fd3254e965bcccbc5f18b67446c65f52e19ded8509c5c250e017fc1cbfcb",
+    "s6_training_eligibility_sha256": "22ea38dac6afa917677fb87d555a3f53b1894096ec257ae4310aad96d121b494",
+    "s6_conservation_sha256": "d9fe0def1f51df6c4f71d36ff13d029b0136fbc87fb0a8e89a2c914662c88d0e",
+    "s1_identity_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "s1_unresolved_identity_ledger_sha256": "d28efd9dceb0717c7303962666b3ec74fa98ed0715896df46a54ae1da9f7389d",
+    "historical_identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044",
+    "business_decisions_sha256": "8730b4f3be9a33b86db4f057c31259ec0302d525d8a635aa4f98893558101089",
+    "business_confirmation_group_sha256": "953a0cb8e779513cc2b73d8d673dc27cf1055357bbd8d41b7bf4a75eeed8b15e"
+  },
+  "execution": {
+    "raw_harvest_reimport": false,
+    "full_filesystem_rescan": false,
+    "daily_rows_rebuilt": false,
+    "identity_authority_modified": false,
+    "canonical_quantity_ledger_modified": false,
+    "model_training": false,
+    "model_refit": false,
+    "backtest": false,
+    "forecast_replay": false,
+    "pr_creation": false,
+    "ready": false,
+    "merge": false
+  },
+  "private_artifact_directory": "v0-8-s7-training-season-source-identity-closure-r1",
+  "private_artifact_directory_mode": "0700",
+  "private_artifact_file_mode": "0600"
+}

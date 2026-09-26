@@ -1,0 +1,120 @@
+{
+  "artifact_version": "V0_8_S8_CANONICAL_TRAINING_AND_INDEPENDENT_OOT_BACKTEST_R1",
+  "task_id": "V0_8_S8_CANONICAL_TRAINING_AND_INDEPENDENT_OOT_BACKTEST_R1",
+  "version": "0.8.0",
+  "baseline_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "cohort": {
+    "canonical_base_count": 39,
+    "training_seasons": ["2023-2024", "2024-2025"],
+    "training_base_season_count": 37,
+    "blocked_training_rows_included": 0,
+    "oot_season": "2025-2026",
+    "oot_base_season_count": 39,
+    "season_boundaries": {
+      "2023-2024": ["2023-07-01", "2024-04-15"],
+      "2024-2025": ["2024-07-01", "2025-04-15"],
+      "2025-2026": ["2025-07-22", "2026-04-15"]
+    }
+  },
+  "private_input_roots": {
+    "s4": "v0-8-s4-user-confirmed-three-season-area-authority-r1",
+    "s6": "v0-8-s6-no-record-zero-season-total-rebuild-r1-final-r2",
+    "s7": "v0-8-s7-training-season-source-identity-closure-r1"
+  },
+  "pinned_private_inputs": {
+    "s4_artifact_manifest": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+    "s4_area_authority": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9",
+    "s4_business_confirmation": "c8287557035c58a2f72a9fee5b4c600798f66e65d024a5d6c3366fe9ff8bed83",
+    "s4_area_overlay": "842ad2ffc5f53f2bc295448bb68084a1daf49f788796a8c5f83519f1a6631c7a",
+    "s6_artifact_manifest": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7",
+    "s6_zero_confirmation": "51e4afba778efde0754534a57a4c05e74397ee0057d343b3759caf2c7c263607",
+    "s6_daily_zero_overlay": "d0f94ea143cc44c555cc3299a8ea0b3073ab96173fa7927b53104a45c904a8e0",
+    "s6_season_total_authority": "e774fd3254e965bcccbc5f18b67446c65f52e19ded8509c5c250e017fc1cbfcb",
+    "s6_season_completeness": "9e8ea52f1257b347ec462259f0bddd74fcc3890299744f467dc027d04a5430ed",
+    "s6_strict_eligibility": "22ea38dac6afa917677fb87d555a3f53b1894096ec257ae4310aad96d121b494",
+    "s6_quantity_conservation": "d9fe0def1f51df6c4f71d36ff13d029b0136fbc87fb0a8e89a2c914662c88d0e",
+    "s7_artifact_manifest": "7946ff4439e9cd6a41525f55a9978543a2581b1a929a013fb1ca54b07b7c3ab6",
+    "s7_training_eligibility": "8a80e3179969c4ac0c80259714cd772527dec7fb6c8521689ff20e52175030db",
+    "s7_identity_overlay": "2c5dc07b28cdf376c791c17c1e80bd719468591d0b590406af00efef5bb1ec28",
+    "s7_quantity_conservation": "adea2aff4222dff89a17b638c2c05786f4f00b46f29b781502591dd5a1d06edd"
+  },
+  "pinned_repository_evidence": {
+    "s4_evidence": "08beedc4d20415038e788efcc4bdc95ec2f6c73a860fc073a181149e8bdae4a9",
+    "s6_evidence": "4296c487819a169e0083f92ca4981ebfe780cb59137ba9e22ae176d46e2ae5bf",
+    "s7_evidence": "c819c2ae9aa500d6c13ad2ab24fe46cd572e54b747a76e736ccd0008fda22a6d",
+    "s4_config": "caf4d46eb81db14c4a2f3fedb5b09f8eb5ec93f70d9f84ea980886e96bbdfddd",
+    "s6_config": "e56d0f073122e92d5c48a5dd68f1d15a4fc3e1e63f7156a9db25427a7561a6c8",
+    "s7_config": "f89a574b141533ead0666e9ee970fea3f5b615c79d82f35f8b9c0a0ae5a75c0d"
+  },
+  "identity_authority": {
+    "identity_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "identity_authority_sha256": "7054c4168fac8342022527ab3ba017eb8e0b2c57409eb0e6dba166e6f181c61b",
+    "area_authority_id": "V0_8_THREE_SEASON_HISTORICAL_AREA_AUTHORITY_R1",
+    "quantity_authority_id": "V0_8_S6_NO_RECORD_ZERO_SEASON_TOTAL_AUTHORITY_R1"
+  },
+  "v07_frozen_comparator": {
+    "config_path": "configs/v0_5_area_forecast_model_v1.json",
+    "config_sha256": "cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf",
+    "artifact_sha256": "399c38f81abdea0122097cd5a68bc25147cc55f58dc51e1393b9282e5bc4cbad",
+    "registry_path": "configs/v0_5_base_reference_registry_v1.json",
+    "registry_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85",
+    "prior_season": "2024-2025",
+    "history_policy": "IMMEDIATE_PRIOR_SEASON_ONLY_FAIL_CLOSED_NO_GLOBAL_FALLBACK",
+    "temporal_artifact_sha256": "d75d691a74f393ed789da2300a2f3194170115d8b4f89cc78c8e5b1fc3a628af",
+    "temporal_artifact_canonical_hash": "ee9d9d7384fac086e45539836d48dc5a7433ea441d9f4633bca702f5c55a812b",
+    "expected_prior_yield_base_count": 30
+  },
+  "model_specification": {
+    "model_id": "V0_8_AREA_SCALED_BASE_YIELD_AND_SHARED_DAILY_SHAPE_R1",
+    "model_family": "BASE_SPECIFIC_MEAN_HISTORICAL_YIELD_SCALED_BY_TARGET_AREA",
+    "architecture": "TWO_STAGE_TOTAL_AND_NORMALIZED_DAILY_SHAPE",
+    "stage_a": {
+      "target": "SEASON_TOTAL_KG",
+      "base_yield_estimator": "ARITHMETIC_MEAN_OF_ELIGIBLE_BASE_SEASON_YIELDS_KG_PER_MU",
+      "unseen_base_fallback": "POOLED_TRAINING_TOTAL_KG_DIVIDED_BY_POOLED_TRAINING_AREA_MU",
+      "prediction": "TARGET_AREA_MU_TIMES_ESTIMATED_YIELD",
+      "rounding": "DECIMAL_0.000001_HALF_EVEN"
+    },
+    "stage_b": {
+      "target": "NORMALIZED_DAILY_HARVEST_SHARE",
+      "profile": "EQUAL_WEIGHT_MEAN_OF_STRICT_TRAINING_BASE_SEASON_SHARES_BY_CALENDAR_MONTH_DAY",
+      "target_window": "FROZEN_2025_2026_BUSINESS_WINDOW",
+      "target_window_renormalization": "SUM_TO_ONE_AFTER_WINDOW_FILTER",
+      "missing_profile_date": "FAIL_CLOSED",
+      "daily_rounding": "DECIMAL_0.000001_HALF_EVEN_WITH_LAST_DAY_RESIDUAL"
+    },
+    "hyperparameter_search": false,
+    "feature_search": false,
+    "cross_validation": false,
+    "randomness": "NONE",
+    "weather_used": false,
+    "future_production_plan_used": false,
+    "blocked_training_rows_used": false
+  },
+  "baseline": {
+    "model_id": "AREA_PROPORTIONAL_POOLED_TRAINING_YIELD_R1",
+    "yield": "SUM_STRICT_TRAINING_SEASON_TOTAL_KG_DIVIDED_BY_SUM_STRICT_TRAINING_AREA_MU",
+    "daily_shape": "SAME_FROZEN_TRAINING_NORMALIZED_SHAPE_AS_V0_8_FOR_DAILY_COMPARISON",
+    "no_oot_fit_or_calibration": true
+  },
+  "metric_policy": {
+    "wape": "SUM_ABSOLUTE_ERROR_DIVIDED_BY_SUM_ACTUAL",
+    "mae": "MEAN_ABSOLUTE_ERROR_OVER_FIXED_COHORT_ROWS",
+    "bias": "MEAN_PREDICTED_MINUS_ACTUAL",
+    "zero_actual_daily_ape": "NOT_REPORTED",
+    "percentile_method": "LINEAR_INTERPOLATION_N_MINUS_1",
+    "peak_tie_break": "EARLIEST_DATE",
+    "rolling7": "CONSECUTIVE_7_CALENDAR_DAYS;EARLIEST_START_ON_TIE",
+    "business_acceptance_threshold": "NOT_DEFINED"
+  },
+  "output_policy": {
+    "private_artifact_directory": "v0-8-s8-canonical-training-oot-backtest-r1",
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "training_dataset_row_count": 37,
+    "oot_dataset_row_count": 39,
+    "oot_daily_rows_per_base": 268,
+    "private_row_level_data_committed": false,
+    "production_promotion_authorized": false
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "task_id": "V0_8_R2C_FROZEN_SHRINKAGE_MODEL_AND_2025_2026_BENCHMARK_REPLAY_R1",
+  "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "benchmark_role": "FROZEN_BENCHMARK_REPLAY",
+  "benchmark_season": "2025-2026",
+  "pristine_oot": false,
+  "training": {
+    "dataset_sha256": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "row_count": 37,
+    "season_counts": {
+      "2023-2024": 15,
+      "2024-2025": 22
+    },
+    "blocked_rows_included": 0,
+    "global_yield_aggregation_policy": "SUM_TRAINING_SEASON_TOTAL_KG_DIVIDED_BY_SUM_TRAINING_AREA_MU",
+    "base_mean_yield_policy": "ARITHMETIC_MEAN_OF_ELIGIBLE_BASE_SEASON_YIELDS_KG_PER_MU"
+  },
+  "stage_a": {
+    "model_family": "SHRINKAGE_BASE_YIELD",
+    "lambda": "1",
+    "formula": "w=n/(n+lambda); predicted_yield=w*base_mean+(1-w)*global_yield",
+    "support_zero_fallback": "GLOBAL_POOLED_YIELD",
+    "model_selection": false,
+    "hyperparameter_tuning": false,
+    "benchmark_aware_fallback": false
+  },
+  "stage_b": {
+    "policy": "FROZEN_S8_NORMALIZED_DAILY_SHAPE_REUSED_UNCHANGED",
+    "expected_shape_sha256": "7ae53f5888947053057071f9b097e38b03bb8112a41de972b8e2d51fd311cb2e",
+    "shape_source_sha256": "ad2e19b1136b859856057b7ff868a1cd21d28877f427db7d0b186400ab351372",
+    "source_contains_benchmark_actuals": false
+  },
+  "frozen_selection_provenance": {
+    "task_id": "V0_8_R2B_TEMPORAL_FORWARD_SHRINKAGE_IDENTIFIABILITY_R1",
+    "selected_model": "SHRINKAGE_BASE_YIELD",
+    "selected_lambda": "1",
+    "selection_evidence_sha256": "fdec3d80256293baa946ea218521cd492be9d919169f2046e63395c1f342ae69",
+    "selection_private_manifest_sha256": "b29065d3c115a687ef1c5151db5e2180e85c96511c5dd56059593730e76ce64d",
+    "selection_prediction_sha256": "93847b480710572ec33388eb661f9debbfd0f6926b52b3c97ac046db97afaa56"
+  },
+  "s8_frozen_sources": {
+    "artifact_manifest_sha256": "6561ac984de2b3ac1a7ba86e8fee91f888b641478a19af67355e4dba8cc8216e",
+    "training_dataset_sha256": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "training_daily_curves_sha256": "0b1d9bd4ca9c4cc36386f8b5ea76006604e40accfd80fb5bf1e7a3d869b6001a",
+    "oot_area_input_sha256": "713da3f58212139f045fa619afd8ea8eed486d282a087a94bf235504accee476",
+    "model_config_sha256": "204973cb4293f5881dd50dca01edc63327861790c097ec65191c4b77fd914849",
+    "model_artifact_sha256": "8a2e596c7f9c27841624e6267aa4a9a520ea12405a3a81e189156793305ab3a0",
+    "s4_area_authority_sha256": "40a0e1e6a96cb9d612c51fe7790c03bf9bf7ffe9f865f96d710e4d8c2e96d4d9",
+    "s6_zero_semantics_sha256": "51e4afba778efde0754534a57a4c05e74397ee0057d343b3759caf2c7c263607",
+    "s6_daily_zero_overlay_sha256": "d0f94ea143cc44c555cc3299a8ea0b3073ab96173fa7927b53104a45c904a8e0",
+    "s6_season_total_authority_sha256": "e774fd3254e965bcccbc5f18b67446c65f52e19ded8509c5c250e017fc1cbfcb",
+    "s7_identity_overlay_sha256": "2c5dc07b28cdf376c791c17c1e80bd719468591d0b590406af00efef5bb1ec28",
+    "s7_training_eligibility_sha256": "8a80e3179969c4ac0c80259714cd772527dec7fb6c8521689ff20e52175030db"
+  },
+  "benchmark_scoring_sources_after_freeze": {
+    "oot_season_truth_sha256": "2637b16bb384ce8ef96858ca66640b4db9be61b60d5ed8339b1162c97be57f5a",
+    "oot_daily_truth_and_v08_predictions_sha256": "2151f46998d14870ff77220e12f2b5992aa523a74884e7fc33d208c0d430e2d0",
+    "baseline_season_predictions_sha256": "443b78d96698570a5280d9e21c976c292e9cdff258d80f745ca340f2ed0ea142",
+    "baseline_daily_predictions_sha256": "76ae1d691df49c0afa4c8b5c1d90ee5b0e4ab6ef6edd5a0b490b88c3fd4a3f78",
+    "v07_season_predictions_common30_sha256": "d24bfdd69c07179ebe6828e4e398d47313d498272493eed25f69d50bea69ff8d",
+    "v07_daily_predictions_common30_sha256": "b3fe9a3d852e327e27c1d25f4f599f069bbb51acc1ce23b91e5930c765a31fab"
+  },
+  "metric_policy": {
+    "wape": "SUM_ABSOLUTE_ERROR_DIVIDED_BY_SUM_ACTUAL",
+    "mae": "MEAN_ABSOLUTE_ERROR_OVER_FIXED_COHORT",
+    "bias": "SUM_PREDICTED_MINUS_ACTUAL_KG",
+    "median_ape": "LINEAR_INTERPOLATION_N_MINUS_1_EXCLUDING_ZERO_ACTUAL",
+    "rolling7": "CONSECUTIVE_7_CALENDAR_DAYS_EARLIEST_START_ON_TIE"
+  },
+  "authorization": {
+    "model_selection": false,
+    "hyperparameter_tuning": false,
+    "stage_b_change": false,
+    "data_governance_reopen": false,
+    "model_production_ready": false,
+    "pr_creation_authorized": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deployment_authorized": false
+  }
+}

@@ -1,0 +1,592 @@
+{
+  "artifacts": [
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_r2_stage_a.py",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "b0b109b35e39ef8ea101457f795af03d8168e9116dc5734bd7706c3d37a54d15"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_r2b_temporal_shrinkage.py",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "e4f0a09fe50b11dc0814ceedb0f0a24a10776eb474f5edf80a0f36171bff2185"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_r2c_frozen_shrinkage.py",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "39675598fbe0528cc074389be98be9446ff8cc7db4987c789ad32a17b137ece5"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "backend/app/area_yield/v08_s2_model_comparison.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "8c028d06c395ede1e323eb0052fa4180552913cc0babf96bd47126431b2b5f72"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s4_original_area_recovery.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "f52834cf71ec3f88a1067b7ea6125aeb2e7ded78b8c7ae70895fd7f8e8be03c9"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s4_three_season_area_authority.py",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "4d288fdf1a9a0d2de5d49428352c2251c3cf3640661d97620531e9e23753776c"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s5_quantity_completeness.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "26b280d73e55b996e5b922c672b5829df2471f0f5e8c3ee5fc20309f7954b7fb"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s6_no_record_zero.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "ba8549e31d41997854a6cdc2a262aa325e1c0207493a4655841db1ee449f80a8"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s7_training_source_identity_closure.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "5c7ba657ef61d5f422b1b97b3ca10d4ace8330b5209716901d9dbec20def23a4"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s8_training_backtest.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "14c2121d84c8b8ea4b95b4a5b08fa0a730670d11dec925b3e65f8d5f59ab0746"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/app/area_yield/v08_s9_scale_shape_diagnosis.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "721afc34fa14b6578874defa3a55b574d7dacf9925329c2ccdcc333e67587590"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "backend/tests/area_yield/test_v08_cross_season_identity_authority_application.py",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "f8825d66b6cf8406d3d752f895e33ddb47e678538c9e62fc0ede003df3723d8c"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_r2_stage_a_experiment.py",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "f9d360ec937d43627300ebf0fc88e62112ad4804770d2a56f272366a4ec43164"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_r2b_temporal_shrinkage.py",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "5be7031c36268ac9c10e789851030d8e99c48a6cfe679ae900eb373265677780"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_r2c_frozen_shrinkage.py",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "5dbfffafcebfb509ca6959b90a290b6a499b51f636d487f9f32b1d8a6d240346"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "backend/tests/area_yield/test_v08_s2_canonical_history_model_comparison.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "fde728e5641a2a6265efe37d8462b5bda7960c31340fb825a76819e75bfc2ec5"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_s4_three_season_area_authority.py",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "29b8be1948a4735b399862901d2540553b754660c5f044999c9533c30e291740"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_s5_complete_season_quantity_authority.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "ee71c107f652fee31e26317058f7c31ef0e41e315fc497a74be2948603729f30"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_s6_no_record_zero_semantics.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "5d3e993973b5467a68d1a844c7322ba23f8d7f6ce7471263830fab044aec6cd9"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_s7_training_source_identity_closure.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "f0878c742601425e8df35ef2677034e34fc6173cbcd7476191fabeec8722925e"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_s8_training_backtest.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "ebc3ea3b482b33d460d281dd8f5dd1fe8f18d0587b5ba3702a4b5d3be546b85c"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_s9_scale_shape_diagnosis.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "bf4b134122cdbe7c0ce4a80c316232929523f1c41d7d2072a8bd5733852530a0"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "backend/tests/area_yield/test_v08_version_closeout.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "6e96d6bad5a14f20311ca4e3e166f026477787bbe7f74222240da3e480321f90"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "configs/v0_8_cross_season_identity_authority_r1.json",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "957a84ecdb6ab25da51230a14d90e8eb6bfb6eb299aeb73e312b9421d3a77824"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_r2_stage_a_experiment_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "ba49d28afeef414562df8952dba93be107e9062f597020bb81a7b79b1103ec4f"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_r2b_temporal_forward_shrinkage_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "c0d1cf5dc183f69be5e93332856eb59a13d80ee94b1f1f7cb8657aeef58e3782"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_r2c_frozen_shrinkage_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "12c79617db5f4c1d1ce59b2812e9cdb467ca1ff47e3ad28273795ee5a6a2f6d2"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "configs/v0_8_s2_canonical_history_model_comparison_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "a2b4248fee89155d27e619fd69ee7429a28e6f55a70608954548b138361c4d10"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s4_original_user_area_source_recovery_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "9b72dac4b742c32e04a06e84dc049a0fe9c7cdb5993cc7dbb9ed322092fba865"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s4_three_season_area_authority_r1.json",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "caf4d46eb81db14c4a2f3fedb5b09f8eb5ec93f70d9f84ea980886e96bbdfddd"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s5_complete_season_quantity_authority_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "f294624f24c685d396fc1cb5cdc7044fdd9b573794862b2c8712bef35cbc7745"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s6_no_record_zero_semantics_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "e56d0f073122e92d5c48a5dd68f1d15a4fc3e1e63f7156a9db25427a7561a6c8"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s7_training_source_identity_closure_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "f89a574b141533ead0666e9ee970fea3f5b615c79d82f35f8b9c0a0ae5a75c0d"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s8_training_backtest_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "204973cb4293f5881dd50dca01edc63327861790c097ec65191c4b77fd914849"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "configs/v0_8_s9_scale_shape_diagnosis_r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "a7a359ae58203b7d9ebf8e764943e13c3a828d47e0b860e42557d1bf5c4218e5"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/r2-stage-a-shrinkage-model-experiment-r1.json",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "59e39bebf58f00831ffd5b09d55288b9846f6a68110bf0bcd01ede28afbf499a"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/r2b-temporal-forward-shrinkage-identifiability-r1.json",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "fdec3d80256293baa946ea218521cd492be9d919169f2046e63395c1f342ae69"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/r2c-frozen-shrinkage-model-and-benchmark-replay-r1.json",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "ece8cdd7fc5112c1ced831e8820fe99a68e5ed1194c029efd86b85469beba04e"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "docs/v0-8/evidence/s1-cross-season-identity-authority-application-and-canonical-dataset-rebuild-r1.json",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "docs/v0-8/evidence/s2-canonical-history-model-retrain-and-oot-comparison-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "311bcc3e057dab953b422fb0144a57adde5ad608c513efae918023456efe320c"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/s4-original-user-area-source-of-truth-recovery-r1.json",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "1b772762d33ebdc8ad8249718f6d14b031167ac3186cbd6bad3c3f1c96f2b12d"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/s4-user-confirmed-three-season-area-authority-application-r1.json",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "08beedc4d20415038e788efcc4bdc95ec2f6c73a860fc073a181149e8bdae4a9"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/s5-complete-season-quantity-authority-closure-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "01cab007f2833263b5787fcf8e6e474207a3f4cd3d8d54bcbc4728b3864d4a35"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/s6-no-record-zero-semantics-and-season-total-rebuild-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "4296c487819a169e0083f92ca4981ebfe780cb59137ba9e22ae176d46e2ae5bf"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/s7-training-season-source-identity-closure-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "c819c2ae9aa500d6c13ad2ab24fe46cd572e54b747a76e736ccd0008fda22a6d"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/stage-a-decision-freeze-and-r2c-review-closeout-r1.json",
+      "role": "DECISION_FREEZE",
+      "sha256": "af09d206343abe29d8f55e666f1b1d91467ffe10f473cc8278712e7e9d00c518"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/evidence/v0.8.0-research-closeout.json",
+      "role": "VERSION_CLOSEOUT",
+      "sha256": "e0b83f0f229cd422f719094f4b6930650bfa1a62f05853f460c76258ce5018ce"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/r2/stage-a-shrinkage-model-experiment-r1.md",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "911a229de7b6760545a92e3fd4e7b8ecd2769e87a9814ecc8bdd7441bd73d3b6"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/r2b/temporal-forward-shrinkage-identifiability-r1.md",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "3f877f5d26c23d8827f267701ce096e5cd94c5064c14b59bfb090ac62a06b4dc"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/r2c/frozen-shrinkage-model-and-2025-2026-benchmark-replay-r1.md",
+      "role": "MODEL_SELECTION_EVIDENCE",
+      "sha256": "faf28e704c3a12e86b77ef96d6c1b15481571180248680a98fdde22e8e027541"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/r2c/stage-a-decision-freeze-and-r2c-review-closeout-r1.md",
+      "role": "DECISION_FREEZE",
+      "sha256": "294145c0b5b6678d1bb87b97b31d044adc1be5f4135ac58def5ce0683832e307"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "docs/v0-8/s1/cross-season-identity-authority-application-and-canonical-dataset-rebuild-r1.md",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "ce57cd9ef995fdce55cb4b01011628dbd7042e5bc8a676bfb979e77e77c5548f"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "docs/v0-8/s2/canonical-history-model-retrain-and-oot-comparison-r1.md",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "7a59e48a21c866d927ef710f699f30b732797cc883da24289d1b71029b3d9f27"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s4/original-user-area-source-of-truth-recovery-r1.md",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "7757088112d92c96a923310d04576cb69c7750e174efb5065f250ce4ab43d4a2"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s4/user-confirmed-three-season-area-authority-application-r1.md",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "910f4a9b9b2a28e873c48215b6c8dcd558c93b5ad387abcb401e145b8f1cc42d"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s5/complete-season-quantity-authority-closure-r1.md",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "e54989860951372928ffc1db698e891d55b2f420a2b64ce8b2bddebfab5aa989"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s6/no-record-zero-semantics-and-season-total-rebuild-r1.md",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "b049221e7b4231861f5a3ee74122da637518b6d827f6d5feb102c833a627f50b"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s7/training-season-source-identity-closure-r1.md",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "5bade1888d4dc82d2cf27736d00bf426b4af410bcb05abcfbd5e9746f880283c"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s8/canonical-training-and-independent-oot-backtest-r1.md",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "f4c2f4664bafcfe0228160800928d87859585408f9a73b546a2371f665edb682"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/s9/scale-shape-error-decomposition-and-model-diagnosis-r1.md",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "60d45f0d3d0f2158255234b703c3510e4b54b2658646ac8ffbc3f8b3c40140ef"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "docs/v0-8/v0.8.0-research-closeout.md",
+      "role": "VERSION_CLOSEOUT",
+      "sha256": "9d30962d8f0b883387b5322199f1832fe97f5ecac6320f2a199f21e78985988e"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "scripts/apply_v0_8_cross_season_identity_authority.py",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "8c424e453aa44e5378c1c6299abf90f47b261a1f7d5cf10fc3744f0b27273da7"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/apply_v0_8_no_record_zero_semantics.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "605c2714d242d34c563ff040f24962fb387bebee5abcb0f14985c18c09690c02"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/apply_v0_8_three_season_area_authority.py",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "549cb8c30c153bda81754880d31218bbb67e6dcd0d95abb369fa2356f44567da"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/close_v0_8_complete_season_quantity_authority.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "aa8a09859b2c6cf238c05076e3f39600c59dffbe756c58f6e94e2395148c66ab"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/close_v0_8_training_source_identity.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "ce02ae587e43096e2402474ced0111f7b5349474f19b3db117cebaffa4904b67"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/diagnose_v0_8_scale_shape_error.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "04d842bc1458c4a5a008956f2e4706ef06efc10b1e6069abb1477609f9bdd174"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/run_v0_8_r2b_temporal_shrinkage.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "c4ba0973a811266b512f270360bd79658c2862c20b2bde33d90b4fd9a4e24a18"
+    },
+    {
+      "lifecycle": "MERGED_MAIN",
+      "path": "scripts/run_v0_8_s2_canonical_history_model_comparison.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "d1897cc1808ce59522e17c42288a3517200f6b8700f083196cd2d7a914a9a6f8"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/train_v0_8_canonical_area_yield_model.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "8e8c2b4151323ac73a6cd980819f3e319b0a6c079dec19dc74c7b69b259b90a7"
+    },
+    {
+      "lifecycle": "CLOSEOUT_DRAFT_PR_CONTENT",
+      "path": "scripts/train_v0_8_r2_stage_a.py",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "8f06d777de3a5365695998bd88a7ecbf542d0d38d4d5face5904da4c726c9827"
+    }
+  ],
+  "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+  "external_references": [
+    {
+      "lifecycle": "EXTERNAL_OPEN_DRAFT_PR_655",
+      "path": "docs/v0-8/evidence/s3-area-source-inventory-completeness-closure-r2.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "9c854aff280bab009552e0f5279a43d38096a320f5eb1c6b9ca361149c2eee75",
+      "source_head_sha": "0aa764bc3ef53a7a5dfab52fabc4ea930f74ba51"
+    },
+    {
+      "lifecycle": "EXTERNAL_OPEN_DRAFT_PR_655",
+      "path": "docs/v0-8/evidence/s3-area-source-inventory-completeness-provenance-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "9e3ee54901ef09bb99f57559e0ab7adfcb1f02adab472cdbc896916ab6b8a3ab",
+      "source_head_sha": "0aa764bc3ef53a7a5dfab52fabc4ea930f74ba51"
+    },
+    {
+      "lifecycle": "EXTERNAL_OPEN_DRAFT_PR_655",
+      "path": "docs/v0-8/evidence/s3-existing-historical-area-recovery-and-canonical-rebind-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "eeb99ef5c79293290393d1ec9de26b7fa0f9506b0b319862e19472e7a778dbd8",
+      "source_head_sha": "0aa764bc3ef53a7a5dfab52fabc4ea930f74ba51"
+    },
+    {
+      "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
+      "path": "docs/v0-8/evidence/s8-canonical-training-and-independent-oot-backtest-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15"
+    },
+    {
+      "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
+      "path": "docs/v0-8/evidence/s8-canonical-training-and-independent-oot-backtest-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15"
+    },
+    {
+      "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
+      "path": "docs/v0-8/evidence/s9-scale-shape-error-decomposition-and-model-diagnosis-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd"
+    },
+    {
+      "lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
+      "path": "docs/v0-8/evidence/s9-scale-shape-error-decomposition-and-model-diagnosis-r1.json",
+      "role": "INTERMEDIATE_EVIDENCE",
+      "sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd"
+    }
+  ],
+  "manifest_id": "V0_8_PUBLIC_ARTIFACT_MANIFEST_R1",
+  "manifest_scope": {
+    "path_bound_local_recovery_driver_excluded": [
+      "backend/tests/area_yield/test_v08_s4_original_user_area_source_recovery.py",
+      "scripts/recover_v0_8_original_user_area_sources.py"
+    ],
+    "private_files_remain_outside_git": true,
+    "private_row_level_data_included": false,
+    "public_v0_8_artifacts_only": true,
+    "self_hash_excluded": true,
+    "self_hash_exclusion_reason": "A manifest cannot include its own digest; its SHA-256 is returned separately.",
+    "local_path_bearing_evidence_not_republished": [
+      "docs/v0-8/evidence/s8-canonical-training-and-independent-oot-backtest-r1.json",
+      "docs/v0-8/evidence/s9-scale-shape-error-decomposition-and-model-diagnosis-r1.json"
+    ],
+    "local_path_bound_replay_drivers_not_republished": [
+      "backend/tests/area_yield/test_v08_s4_original_user_area_source_recovery.py",
+      "scripts/recover_v0_8_original_user_area_sources.py",
+      "scripts/run_v0_8_r2c_frozen_shrinkage.py"
+    ]
+  },
+  "private_artifact_references": [
+    {
+      "business_rows": 117,
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 6,
+      "manifest_sha256": "a52a8342693eb9ce1731e2487e8c23fcf029c198d3fe66193552e4d7f58a27ff",
+      "root_identifier": "v0-8-s4-user-confirmed-three-season-area-authority-r1"
+    },
+    {
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 8,
+      "manifest_sha256": "e1dd88b8579ab8c431fe280fb457136fa978c05a6d25685ccccdf6d834f1602a",
+      "root_identifier": "v0-8-s5-complete-season-quantity-authority-closure-r1"
+    },
+    {
+      "business_rows": 33033,
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 11,
+      "manifest_sha256": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7",
+      "root_identifier": "v0-8-s6-no-record-zero-season-total-rebuild-r1-final-r2"
+    },
+    {
+      "business_rows": 33033,
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 11,
+      "manifest_sha256": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7",
+      "root_identifier": "v0-8-s6-no-record-zero-season-total-rebuild-r1-final-r2-replay"
+    },
+    {
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 11,
+      "manifest_sha256": "7946ff4439e9cd6a41525f55a9978543a2581b1a929a013fb1ca54b07b7c3ab6",
+      "root_identifier": "v0-8-s7-training-season-source-identity-closure-r1",
+      "target_base_season_rows": 41
+    },
+    {
+      "benchmark_base_season_rows": 39,
+      "benchmark_daily_rows": 10452,
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 59,
+      "manifest_sha256": "6561ac984de2b3ac1a7ba86e8fee91f888b641478a19af67355e4dba8cc8216e",
+      "root_identifier": "v0-8-s8-canonical-training-oot-backtest-r1-replay-3",
+      "training_rows": 37
+    },
+    {
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 12,
+      "manifest_sha256": "02f69ce570182577fe6aebf8b59a90c98ff7cf6db81bf8af2833839a3d296ba9",
+      "root_identifier": "v0-8-s9-scale-shape-diagnosis-r1"
+    },
+    {
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 12,
+      "manifest_sha256": "02f69ce570182577fe6aebf8b59a90c98ff7cf6db81bf8af2833839a3d296ba9",
+      "root_identifier": "v0-8-s9-scale-shape-diagnosis-r1-replay-2"
+    },
+    {
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 13,
+      "manifest_sha256": "b29065d3c115a687ef1c5151db5e2180e85c96511c5dd56059593730e76ce64d",
+      "root_identifier": "v0-8-r2b-temporal-forward-shrinkage-identifiability-r1/replay-1"
+    },
+    {
+      "benchmark_base_season_rows": 39,
+      "committed": false,
+      "directory_mode": "0700",
+      "file_mode": "0600",
+      "manifest_artifact_count": 36,
+      "manifest_sha256": "d431875bde9a1028fca19d764a569c1ba0e7a792df911dcf3df5a0918ddff962",
+      "root_identifier": "v0-8-r2c-frozen-shrinkage-benchmark-r1-replay-4",
+      "training_rows": 37
+    }
+  ],
+  "task_id": "V0_8_VERSION_CLOSEOUT_R1",
+  "version": "0.8.0"
+}

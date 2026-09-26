@@ -1,0 +1,405 @@
+{
+  "task_id": "V0_8_VERSION_CLOSEOUT_R1",
+  "result": "PASS_V0_8_RESEARCH_CLOSEOUT",
+  "version": "0.8.0",
+  "repository": {
+    "base_main_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+    "pre_closeout_head_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+    "branch": "codex/v0-8-r2c-frozen-shrinkage-benchmark-r1",
+    "target_base": "main"
+  },
+  "task_chain_verified": true,
+  "task_chain": [
+    {
+      "task_id": "V0_8_S1_CROSS_SEASON_IDENTITY_AUTHORITY_APPLICATION_AND_CANONICAL_DATASET_REBUILD_R1",
+      "result": "PASS_DATA_AUTHORITY_REBUILT_MODEL_NOT_REPLAYED",
+      "evidence_path": "docs/v0-8/evidence/s1-cross-season-identity-authority-application-and-canonical-dataset-rebuild-r1.json",
+      "evidence_sha256": "fea7741e85b86d84f2d7beab9f89d458c4fe32e0cfd7fd141da2a8ca5dc70aa7",
+      "lifecycle": "MERGED_MAIN_PR_653",
+      "merge_sha": "91d9d8a04be05576fc8c3ae8fec0fbad899057d8"
+    },
+    {
+      "task_id": "V0_8_S2_CANONICAL_HISTORY_MODEL_RETRAIN_AND_OOT_COMPARISON_R1",
+      "result": "INSUFFICIENT_STRICT_AUTHORITY_FOR_COMPARISON",
+      "correction_task_id": "V0_8_S2_QUANTITY_COMPLETENESS_TRAINING_AND_SCORING_CORRECTION_R1",
+      "correction_result": "PASS_WITH_INSUFFICIENT_EVIDENCE",
+      "evidence_path": "docs/v0-8/evidence/s2-canonical-history-model-retrain-and-oot-comparison-r1.json",
+      "evidence_sha256": "311bcc3e057dab953b422fb0144a57adde5ad608c513efae918023456efe320c",
+      "lifecycle": "MERGED_MAIN_PR_654",
+      "merge_sha": "5c66d8d8565eb87e1434e61de2939dcce4d7df75",
+      "at_the_time_conclusion_remains_valid": true,
+      "previous_exploratory_daily_comparison_invalidated": true
+    },
+    {
+      "task_ids": [
+        "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_PROVENANCE_R1",
+        "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_CLOSURE_R2",
+        "V0_8_S3_EXISTING_HISTORICAL_AREA_RECOVERY_AND_CANONICAL_REBIND_R1"
+      ],
+      "results": [
+        "BLOCKED_INVENTORY_COMPLETENESS_NOT_PROVEN",
+        "PASS_INVENTORY_COMPLETENESS_PROVEN",
+        "PARTIAL_AREA_AUTHORITY_RECOVERED"
+      ],
+      "source_pr": {
+        "number": 655,
+        "state": "OPEN",
+        "is_draft": true,
+        "head_sha": "0aa764bc3ef53a7a5dfab52fabc4ea930f74ba51",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/655",
+        "modified_by_this_closeout": false
+      },
+      "external_evidence": [
+        {
+          "task_id": "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_PROVENANCE_R1",
+          "path": "docs/v0-8/evidence/s3-area-source-inventory-completeness-provenance-r1.json",
+          "sha256": "9e3ee54901ef09bb99f57559e0ab7adfcb1f02adab472cdbc896916ab6b8a3ab"
+        },
+        {
+          "task_id": "V0_8_S3_AREA_SOURCE_INVENTORY_COMPLETENESS_CLOSURE_R2",
+          "path": "docs/v0-8/evidence/s3-area-source-inventory-completeness-closure-r2.json",
+          "sha256": "9c854aff280bab009552e0f5279a43d38096a320f5eb1c6b9ca361149c2eee75"
+        },
+        {
+          "task_id": "V0_8_S3_EXISTING_HISTORICAL_AREA_RECOVERY_AND_CANONICAL_REBIND_R1",
+          "path": "docs/v0-8/evidence/s3-existing-historical-area-recovery-and-canonical-rebind-r1.json",
+          "sha256": "eeb99ef5c79293290393d1ec9de26b7fa0f9506b0b319862e19472e7a778dbd8"
+        }
+      ],
+      "lifecycle": "EXTERNAL_OPEN_DRAFT_PR_NOT_MERGED"
+    },
+    {
+      "task_id": "V0_8_S4_ORIGINAL_USER_AREA_SOURCE_OF_TRUTH_RECOVERY_R1",
+      "result": "PARTIAL_ORIGINAL_USER_AREA_SOURCE_RECOVERED",
+      "evidence_path": "docs/v0-8/evidence/s4-original-user-area-source-of-truth-recovery-r1.json",
+      "evidence_sha256": "1b772762d33ebdc8ad8249718f6d14b031167ac3186cbd6bad3c3f1c96f2b12d",
+      "user_snapshot_base_count": 39,
+      "user_snapshot_total_area_mu": "41335",
+      "original_season_scope": "CURRENT/UNSPECIFIED"
+    },
+    {
+      "task_id": "V0_8_S4_USER_CONFIRMED_THREE_SEASON_AREA_AUTHORITY_APPLICATION_R1",
+      "result": "PASS_THREE_SEASON_AREA_AUTHORITY_APPLIED",
+      "evidence_path": "docs/v0-8/evidence/s4-user-confirmed-three-season-area-authority-application-r1.json",
+      "evidence_sha256": "08beedc4d20415038e788efcc4bdc95ec2f6c73a860fc073a181149e8bdae4a9",
+      "area_authority_rows": 117,
+      "area_mu_per_season": "41335",
+      "binding_basis": "EXPLICIT_BUSINESS_CONFIRMATION"
+    },
+    {
+      "task_id": "V0_8_S5_EXISTING_HISTORICAL_QUANTITY_COMPLETE_SEASON_AUTHORITY_CLOSURE_R1",
+      "result": "PARTIAL_COMPLETE_SEASON_QUANTITY_AUTHORITY_RECOVERED",
+      "evidence_path": "docs/v0-8/evidence/s5-complete-season-quantity-authority-closure-r1.json",
+      "evidence_sha256": "01cab007f2833263b5787fcf8e6e474207a3f4cd3d8d54bcbc4728b3864d4a35",
+      "strict_training_eligible_at_that_time": 0
+    },
+    {
+      "task_id": "V0_8_S6_NO_RECORD_ZERO_SEMANTICS_APPLICATION_AND_SEASON_TOTAL_REBUILD_R1",
+      "result": "PASS_NO_RECORD_ZERO_SEMANTICS_APPLIED",
+      "evidence_path": "docs/v0-8/evidence/s6-no-record-zero-semantics-and-season-total-rebuild-r1.json",
+      "evidence_sha256": "4296c487819a169e0083f92ca4981ebfe780cb59137ba9e22ae176d46e2ae5bf",
+      "strict_training_eligible": 37,
+      "strict_benchmark_eligible": 39
+    },
+    {
+      "task_id": "V0_8_S7_TRAINING_SEASON_SOURCE_IDENTITY_CLOSURE_R1",
+      "result": "BLOCKED_TRAINING_SOURCE_IDENTITY_CLOSURE",
+      "evidence_path": "docs/v0-8/evidence/s7-training-season-source-identity-closure-r1.json",
+      "evidence_sha256": "c819c2ae9aa500d6c13ad2ab24fe46cd572e54b747a76e736ccd0008fda22a6d",
+      "newly_released_samples": 0,
+      "strict_training_before_after": [37, 37],
+      "blocked_training_base_seasons_after": 41,
+      "strict_benchmark_after": 39
+    },
+    {
+      "task_id": "V0_8_S8_CANONICAL_TRAINING_AND_INDEPENDENT_OOT_BACKTEST_R1",
+      "result": "PASS_V0_8_TRAINING_AND_OOT_BACKTEST_COMPLETED",
+      "evidence_path": "docs/v0-8/evidence/s8-canonical-training-and-independent-oot-backtest-r1.json",
+      "evidence_sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15",
+      "evidence_lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
+      "training_row_count": 37,
+      "training_season_counts": {
+        "2023-2024": 15,
+        "2024-2025": 22
+      },
+      "benchmark_season": "2025-2026",
+      "benchmark_base_count": 39,
+      "benchmark_later_consumed": true
+    },
+    {
+      "task_id": "V0_8_S9_SCALE_SHAPE_ERROR_DECOMPOSITION_AND_MODEL_DIAGNOSIS_R1",
+      "result": "PASS_SCALE_SHAPE_DIAGNOSIS_COMPLETED",
+      "evidence_path": "docs/v0-8/evidence/s9-scale-shape-error-decomposition-and-model-diagnosis-r1.json",
+      "evidence_sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd",
+      "evidence_lifecycle": "REVIEWED_NOT_REPUBLISHED_LOCAL_PRIVATE_PATHS",
+      "primary_failure_mode": "SEASON_TOTAL_SCALE",
+      "stage_b_shape_reused_for_stage_a_experiment": true
+    },
+    {
+      "task_id": "V0_8_R2_STAGE_A_SHRINKAGE_MODEL_EXPERIMENT_R1",
+      "result": "PASS_EXPERIMENT_COMPLETED_NO_STAGE_A_IMPROVEMENT",
+      "evidence_path": "docs/v0-8/evidence/r2-stage-a-shrinkage-model-experiment-r1.json",
+      "evidence_sha256": "59e39bebf58f00831ffd5b09d55288b9846f6a68110bf0bcd01ede28afbf499a"
+    },
+    {
+      "task_id": "V0_8_R2B_TEMPORAL_FORWARD_SHRINKAGE_IDENTIFIABILITY_R1",
+      "result": "PASS_SHRINKAGE_SIGNAL_IDENTIFIED",
+      "evidence_path": "docs/v0-8/evidence/r2b-temporal-forward-shrinkage-identifiability-r1.json",
+      "evidence_sha256": "fdec3d80256293baa946ea218521cd492be9d919169f2046e63395c1f342ae69",
+      "selected_model": "SHRINKAGE_BASE_YIELD",
+      "selected_lambda": "1",
+      "selection_used_2025_2026": false,
+      "best_support_1_wape": "0.302782961397559568419654371030744204094146089631995360973140"
+    },
+    {
+      "task_id": "V0_8_R2C_FROZEN_SHRINKAGE_MODEL_AND_2025_2026_BENCHMARK_REPLAY_R1",
+      "result": "PASS_R2C_BENCHMARK_REPLAY_COMPLETED",
+      "evidence_path": "docs/v0-8/evidence/r2c-frozen-shrinkage-model-and-benchmark-replay-r1.json",
+      "evidence_sha256": "ece8cdd7fc5112c1ced831e8820fe99a68e5ed1194c029efd86b85469beba04e",
+      "report_path": "docs/v0-8/r2c/frozen-shrinkage-model-and-2025-2026-benchmark-replay-r1.md",
+      "report_sha256": "faf28e704c3a12e86b77ef96d6c1b15481571180248680a98fdde22e8e027541"
+    },
+    {
+      "task_id": "V0_8_STAGE_A_DECISION_FREEZE_AND_R2C_REVIEW_CLOSEOUT_R1",
+      "result": "PASS_STAGE_A_DECISION_FROZEN",
+      "evidence_path": "docs/v0-8/evidence/stage-a-decision-freeze-and-r2c-review-closeout-r1.json",
+      "evidence_sha256": "af09d206343abe29d8f55e666f1b1d91467ffe10f473cc8278712e7e9d00c518",
+      "report_path": "docs/v0-8/r2c/stage-a-decision-freeze-and-r2c-review-closeout-r1.md",
+      "report_sha256": "294145c0b5b6678d1bb87b97b31d044adc1be5f4135ac58def5ce0683832e307"
+    }
+  ],
+  "canonical_history": {
+    "identity_authority_id": "CROSS_SEASON_BASE_IDENTITY_AUTHORITY_R1",
+    "canonical_identity_authority_verified": true,
+    "canonical_base_count": 39,
+    "season_count": 3,
+    "canonical_daily_row_count": 33033,
+    "source_farm_label_count": 228,
+    "mapped_source_farm_label_count": 169,
+    "unresolved_source_farm_label_count": 44,
+    "identity_mapping_status_counts": {
+      "EXACT": 135,
+      "AUTHORIZED_ALIAS": 3,
+      "BUSINESS_CONFIRMED_MAPPING": 31,
+      "EXCLUDED": 15,
+      "UNRESOLVED": 44
+    }
+  },
+  "training_and_benchmark": {
+    "training_dataset_row_count": 37,
+    "training_2023_2024_count": 15,
+    "training_2024_2025_count": 22,
+    "training_unique_base_count": 26,
+    "blocked_training_base_season_count": 41,
+    "blocked_training_rows_included": 0,
+    "training_dataset_sha256": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba",
+    "benchmark_season": "2025-2026",
+    "benchmark_base_count": 39,
+    "benchmark_role": "FROZEN_MODEL_SELECTION_CONFIRMATION_BENCHMARK",
+    "canonical_history_work_complete": true
+  },
+  "global_reference_baseline": {
+    "aggregation_policy": "SUM_TRAINING_SEASON_TOTAL_KG_DIVIDED_BY_SUM_TRAINING_AREA_MU",
+    "yield_kg_per_mu": "855.5593226284052977280068913535048993216",
+    "recomputed_from_37_training_rows_with_decimal": true,
+    "reference_baseline": true,
+    "production_approved": false
+  },
+  "stage_a_benchmark": {
+    "global_baseline_season_total_wape_full39": "0.3429935582924604063039679242",
+    "r1_season_total_wape_full39": "0.3925893218351959883557945280",
+    "r2c_season_total_wape_full39": "0.3585864322241786026216929885",
+    "r2c_minus_global_wape_delta": "0.0155928739317181963177250643",
+    "r2c_minus_r1_wape_delta": "-0.0340028896110173857341015395",
+    "r2c_beats_r1": true,
+    "r2c_beats_global_baseline": false,
+    "r2b_temporal_validation_signal_retained": true,
+    "r2b_r2c_direction_consistent": false,
+    "base_history_signal_identified": true,
+    "base_history_signal_generalization_proven": false,
+    "selected_experimental_lambda": "1",
+    "shrinkage_lambda_1_promoted": false,
+    "retrospective_search_closed": true,
+    "reference_baseline": "GLOBAL_POOLED_YIELD"
+  },
+  "support_diagnostics": {
+    "counts": {
+      "support_0": 13,
+      "support_1": 15,
+      "support_2": 11
+    },
+    "results": {
+      "support_0": "GLOBAL_PARITY",
+      "support_1": "R2C_WORSE_THAN_GLOBAL",
+      "support_2": "R2C_BETTER_THAN_GLOBAL"
+    },
+    "support_gated_policy_selected": false,
+    "support_gated_policy_authorized": false
+  },
+  "stage_b_and_other_metrics": {
+    "stage_b_shape_hash_r1": "7ae53f5888947053057071f9b097e38b03bb8112a41de972b8e2d51fd311cb2e",
+    "stage_b_shape_hash_r2c": "7ae53f5888947053057071f9b097e38b03bb8112a41de972b8e2d51fd311cb2e",
+    "stage_b_shape_unchanged": true,
+    "stage_b_shape_improvement_proven": false,
+    "r1_r2c_single_day_peak_date_changed_count": 0,
+    "r1_r2c_rolling7_start_date_changed_count": 0,
+    "global_daily_wape_full39": "0.5812862592207732948356517114",
+    "r2c_daily_wape_full39": "0.5871408241634609795631468040",
+    "global_single_day_peak_quantity_wape_full39": "0.3022025958947355416785549739",
+    "r2c_single_day_peak_quantity_wape_full39": "0.2954285405168558428809517302",
+    "global_rolling7_quantity_wape_full39": "0.2831406887616327543355090948",
+    "r2c_rolling7_quantity_wape_full39": "0.2770877685043859274695617846",
+    "peak_quantity_differences_are_scale_effects": true,
+    "season_total_model_improvement_proven": false,
+    "daily_model_improvement_proven": false,
+    "generalized_peak_improvement_proven": false
+  },
+  "benchmark_lifecycle": {
+    "benchmark_2025_2026_consumed": true,
+    "allowed_for_audit": true,
+    "allowed_for_replay": true,
+    "allowed_for_reporting": true,
+    "allowed_for_new_model_selection": false,
+    "allowed_for_lambda_retuning": false,
+    "allowed_for_support_rule_selection": false,
+    "allowed_for_hybrid_selection": false,
+    "pristine_future_validation_pending": true
+  },
+  "final_version_conclusion": {
+    "v0_8_research_execution_complete": true,
+    "v0_8_canonical_history_work_complete": true,
+    "v0_8_stage_a_comparison_complete": true,
+    "v0_8_stage_a_retrospective_search_closed": true,
+    "global_pooled_yield_reference_baseline": true,
+    "shrinkage_lambda_1_promoted": false,
+    "stage_b_shape_frozen": true,
+    "stage_b_shape_improvement_proven": false,
+    "season_total_model_improvement_proven": false,
+    "daily_model_improvement_proven": false,
+    "generalized_peak_improvement_proven": false,
+    "production_accuracy_approved": false,
+    "model_production_ready": false,
+    "v0_8_release_authorized": false,
+    "v0_8_tag_authorized": false,
+    "v0_8_deployment_authorized": false,
+    "next_stage_a_research_auto_authorized": false,
+    "next_version_auto_started": false
+  },
+  "future_reopening_gate": {
+    "conditions": [
+      "PRISTINE_FUTURE_SEASON_ACTUALS_NOT_USED_IN_CURRENT_MODEL_OR_SELECTION",
+      "NEW_AUTHORITATIVE_HISTORICAL_PRODUCTIVE_AREA_AND_COMPLETE_SEASON_TOTAL_EVIDENCE_NOT_USED_IN_CURRENT_SELECTION_MATERIALLY_EXPANDS_TRAINING_SET"
+    ],
+    "automatic_authorization": false
+  },
+  "artifact_integrity": {
+    "r2c_report_sha256_verified": true,
+    "r2c_evidence_sha256_verified": true,
+    "stage_a_decision_report_sha256_verified": true,
+    "stage_a_decision_evidence_sha256_verified": true,
+    "r2c_private_manifest_sha256": "d431875bde9a1028fca19d764a569c1ba0e7a792df911dcf3df5a0918ddff962",
+    "r2c_replay_manifest_sha256": "782a9ed0b9b4511987d1b25e10db4f4f8e410525d96987b542774cb0cd5b0973",
+    "s6_private_manifest_sha256": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7",
+    "s8_private_manifest_sha256": "6561ac984de2b3ac1a7ba86e8fee91f888b641478a19af67355e4dba8cc8216e",
+    "s9_private_manifest_sha256": "02f69ce570182577fe6aebf8b59a90c98ff7cf6db81bf8af2833839a3d296ba9",
+    "private_root_identifier_only": "v0-8-r2c-frozen-shrinkage-benchmark-r1-replay-4",
+    "private_artifact_permissions": {
+      "directory": "0700",
+      "files": "0600"
+    },
+    "private_artifact_roots": [
+      {
+        "root_identifier": "v0-8-s6-no-record-zero-season-total-rebuild-r1-final-r2",
+        "manifest_sha256": "d23ed98beccb98b11d7ca43800d19a6491deed6ff705513531a927139bab7cd7",
+        "manifest_artifact_count": 11,
+        "directory_mode": "0700",
+        "file_mode": "0600"
+      },
+      {
+        "root_identifier": "v0-8-s8-canonical-training-oot-backtest-r1-replay-3",
+        "manifest_sha256": "6561ac984de2b3ac1a7ba86e8fee91f888b641478a19af67355e4dba8cc8216e",
+        "manifest_artifact_count": 59,
+        "training_rows": 37,
+        "benchmark_base_season_rows": 39,
+        "benchmark_daily_rows": 10452,
+        "directory_mode": "0700",
+        "file_mode": "0600"
+      },
+      {
+        "root_identifier": "v0-8-r2c-frozen-shrinkage-benchmark-r1-replay-4",
+        "manifest_sha256": "d431875bde9a1028fca19d764a569c1ba0e7a792df911dcf3df5a0918ddff962",
+        "manifest_artifact_count": 36,
+        "training_rows": 37,
+        "benchmark_base_season_rows": 39,
+        "directory_mode": "0700",
+        "file_mode": "0600"
+      }
+    ],
+    "private_row_level_artifacts_committed": false,
+    "public_manifest_path": "docs/v0-8/evidence/v0.8.0-public-artifact-manifest.json",
+    "manifest_hash_is_reported_in_task_receipt": true
+  },
+  "publication_scope": {
+    "public_v0_8_files_only": true,
+    "reviewed_evidence_not_republished": [
+      {
+        "task_id": "V0_8_S8_CANONICAL_TRAINING_AND_INDEPENDENT_OOT_BACKTEST_R1",
+        "sha256": "98213f283d7366f2bbdad7b5001e0ed60c842dabc4d2f030a727221116780b15",
+        "reason": "Original machine evidence contains an absolute private artifact path; content is preserved locally and its hash is retained in the task chain."
+      },
+      {
+        "task_id": "V0_8_S9_SCALE_SHAPE_ERROR_DECOMPOSITION_AND_MODEL_DIAGNOSIS_R1",
+        "sha256": "a714ede1ba3ecfeb5dd48896f3f3dbcf72843409d82d9a539f74c87f4ffe29fd",
+        "reason": "Original machine evidence contains absolute private artifact paths; content is preserved locally and its hash is retained in the task chain."
+      }
+    ],
+    "local_path_bound_replay_drivers_not_republished": [
+      "scripts/run_v0_8_r2c_frozen_shrinkage.py",
+      "scripts/recover_v0_8_original_user_area_sources.py",
+      "backend/tests/area_yield/test_v08_s4_original_user_area_source_recovery.py"
+    ],
+    "excluded_local_path_bound_files": [
+      "scripts/recover_v0_8_original_user_area_sources.py",
+      "backend/tests/area_yield/test_v08_s4_original_user_area_source_recovery.py"
+    ],
+    "exclusion_reason": "Local source-recovery driver embeds machine-specific user attachment and workbook paths; those are not needed in the public closeout package.",
+    "private_row_level_artifacts_committed": false,
+    "unrelated_or_unknown_files_staged": false
+  },
+  "authorization": {
+    "commit_authorized": true,
+    "push_authorized": true,
+    "draft_pr_authorized": true,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "tag_authorized": false,
+    "release_authorized": false,
+    "deployment_authorized": false,
+    "model_training_authorized": false,
+    "model_refit_authorized": false,
+    "lambda_search_authorized": false,
+    "r2d_authorized": false,
+    "v0_9_authorized": false,
+    "actions_taken": {
+      "model_training": false,
+      "model_refit": false,
+      "lambda_search": false,
+      "r2d": false,
+      "v0_9": false,
+      "tag": false,
+      "release": false,
+      "deployment": false,
+      "ready": false,
+      "merge": false
+    }
+  },
+  "validation": {
+    "artifact_and_input_hash_verification": "PASS",
+    "decimal_metric_recomputation": "PASS",
+    "evidence_contract_test": "PASS",
+    "focused_v0_8_tests": "PASS_222_TESTS",
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "full_ci": "NOT_RUN_BEFORE_DRAFT_PR"
+  }
+}
