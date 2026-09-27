@@ -1,0 +1,1 @@
+{"scenario_id":"evergreen","production_system":"EVERGREEN","parameter_overrides":{"day_neutral_genotype":1.0},"events":[{"day_offset":20,"event_type":"LEAF_RETENTION_MANAGEMENT","intensity":0.95}]}

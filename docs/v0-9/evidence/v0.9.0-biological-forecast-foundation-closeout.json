@@ -1,0 +1,275 @@
+{
+  "task_id": "V0_9_VERSION_CLOSEOUT_AND_DRAFT_PR_R1",
+  "result": "PASS_V0_9_RESEARCH_CLOSEOUT",
+  "version": "0.9.0",
+  "version_name": "BLUEBERRY_FORECAST_AGENT_V0_9_BIOLOGICAL_FORECAST_FOUNDATION",
+  "base_main_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "theory_first_scope_clarification": {
+    "theory_first": true,
+    "real_world_data_readiness_is_model_scope_gate": false,
+    "s2_role": "CURRENT_ENTERPRISE_DATA_AVAILABILITY_AUDIT",
+    "s2_controls_theoretical_model_scope": false
+  },
+  "task_lineage": [
+    {
+      "stage": "VERSION_PLAN",
+      "task_id": "V0_9_VERSION_PLAN_AND_SCOPE_FREEZE_R1",
+      "path": "docs/v0-9/evidence/v0.9.0-version-plan-and-scope-freeze.json",
+      "result": "PASS_V0_9_VERSION_SCOPE_FROZEN"
+    },
+    {
+      "stage": "S0",
+      "task_id": "V0_9_S0_GLOBAL_PROTECTED_BLUEBERRY_BIOLOGY_AND_MANAGEMENT_AUTHORITY_REVIEW_R1",
+      "path": "docs/v0-9/evidence/s0-global-protected-blueberry-biology-and-management-authority-review-r1.json",
+      "result": "PASS_V0_9_S0_SCIENTIFIC_AUTHORITY_REVIEW_COMPLETED",
+      "sha256": "530106f7291ab3d92fe4b0a0d682efc0fc154149218acda71369f76e785449cf"
+    },
+    {
+      "stage": "S1",
+      "task_id": "V0_9_S1_BIOLOGICAL_STATE_AND_MANAGEMENT_EVENT_CONTRACT_R1",
+      "path": "docs/v0-9/evidence/s1-biological-state-and-management-event-contract-r1.json",
+      "result": "PASS_V0_9_S1_BIOLOGICAL_CONTRACT_FROZEN",
+      "sha256": "6b15a765e0d64643ebd657dc4bc6b254e416389e223a8b5ac8459275ed7f60b6"
+    },
+    {
+      "stage": "S2",
+      "task_id": "V0_9_S2_EXISTING_DATA_OBSERVABILITY_AND_GAP_AUDIT_R1",
+      "path": "docs/v0-9/evidence/s2-existing-data-observability-and-gap-audit-r1.json",
+      "result": "PASS_V0_9_S2_DATA_OBSERVABILITY_AUDIT_COMPLETED",
+      "sha256": "18133476e96cb33308762bb7466dd05d1aa51dacde31f6c2924d5435db347cad"
+    },
+    {
+      "stage": "S3",
+      "task_id": "V0_9_S3_THEORETICAL_BLUEBERRY_GROWTH_MODEL_AND_DETERMINISTIC_SIMULATOR_R1",
+      "path": "docs/v0-9/evidence/s3-theoretical-blueberry-growth-model-r1.json",
+      "result": "PASS_V0_9_S3_THEORETICAL_GROWTH_MODEL_IMPLEMENTED",
+      "sha256": "c74c956650f4e5751083ffed3d40e9cbff68c3f53fc8e1ad661c234003d3e441"
+    },
+    {
+      "stage": "S4",
+      "task_id": "V0_9_S4_THEORETICAL_MODEL_VALIDATION_PARAMETER_IDENTIFIABILITY_AND_PROSPECTIVE_READINESS_R1",
+      "path": "docs/v0-9/evidence/s4-theoretical-model-validation-and-identifiability-r1.json",
+      "result": "PASS_V0_9_S4_THEORETICAL_MODEL_VALIDATED_AND_PROSPECTIVE_READY",
+      "sha256": "04aa371419b08856ee6b363e67590fb7ebcb038b5a75e563200c4fe1401f0a17"
+    }
+  ],
+  "s0": {
+    "scientific_source_count": 47,
+    "peer_reviewed_source_count": 41,
+    "country_or_region_count": 11,
+    "authority_tier_counts": {"A": 37, "A2": 4, "B": 1, "C": 5, "D": 0, "X": 0},
+    "contract_ready_mechanism_count": 24,
+    "not_ready_mechanism_count": 6,
+    "universal_mechanism_count": 0,
+    "context_dependent_mechanism_count": 22,
+    "plausible_model_abstraction_count": 4,
+    "insufficient_evidence_count": 3,
+    "conflicting_evidence_count": 1,
+    "zero_universal_mechanisms_interpretation": "Review did not support unconditional generalization across all cultivars, blueberry types, climates, and production systems."
+  },
+  "s1": {
+    "biological_state_count": 33,
+    "phenology_state_count": 21,
+    "management_event_type_count": 29,
+    "causal_edge_count": 33,
+    "parameter_authority_type_count": 6,
+    "unauthorized_mechanism_promotion_count": 0,
+    "literature_prior_promoted_to_production_count": 0,
+    "production_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"]
+  },
+  "s2": {
+    "role": "CURRENT_ENTERPRISE_DATA_AVAILABILITY_AUDIT",
+    "controls_theoretical_model_scope": false,
+    "total_contract_variables_audited": 213,
+    "actual_observability_status_counts": {
+      "AVAILABLE": 3,
+      "DERIVABLE": 3,
+      "PROXY_AVAILABLE": 9,
+      "BUSINESS_CONFIRMATION_REQUIRED": 35,
+      "NEW_COLLECTION_REQUIRED": 99,
+      "UNOBSERVABLE": 64
+    },
+    "management_event_types_with_existing_actual_data": 0,
+    "phenology_states_directly_observable": 0,
+    "greenhouse_hourly_temperature_status": "NEW_COLLECTION_REQUIRED",
+    "chilling_derivability": "CANNOT_DERIVE",
+    "forcing_derivability": "CANNOT_DERIVE",
+    "current_max_feasible_level": "LEVEL_1_HISTORICAL_PROXY_MODEL"
+  },
+  "s3": {
+    "model_module_count": 16,
+    "equation_count": 30,
+    "equation_authority_counts": {
+      "DIRECT_LITERATURE_EQUATION": 3,
+      "LITERATURE_DERIVED_STRUCTURE": 7,
+      "STANDARD_AGRONOMIC_MODEL": 2,
+      "EXPLICIT_MODEL_ABSTRACTION": 18
+    },
+    "production_system_count": 3,
+    "chilling_model_count": 3,
+    "fruit_growth_model_count": 3,
+    "reference_scenario_count": 11,
+    "golden_scenario_count": 11,
+    "production_parameter_count": 0,
+    "season_yield_is_emergent_output": true,
+    "model_role": "MECHANISTIC_RESEARCH_MODEL",
+    "v0_8_role": "EMPIRICAL_REFERENCE_MODEL",
+    "irrigation_stress_physiological_effect_implemented": false,
+    "nutrition_intervention_physiological_effect_implemented": false,
+    "unsupported_management_event_effect_policy": "EXPLICIT_NO_EFFECT_TRACE"
+  },
+  "s4": {
+    "equation_count_reviewed": 30,
+    "untraceable_equation_count": 0,
+    "unsupported_equation_branch_count": 1,
+    "unsupported_branch_interpretation": "Registered IRRIGATION_STRESS and NUTRITION_INTERVENTION events emit explicit no-effect traces; no physiological effect is claimed or simulated.",
+    "dimensional_validation": "PASS",
+    "dimensional_error_count": 0,
+    "state_update_order_valid": true,
+    "algebraic_loop_count": 0,
+    "state_bound_validation": "PASS",
+    "conservation_validation": "PASS",
+    "numerical_stability": "PASS",
+    "time_step_continuation_parity": "PASS_IN_MEMORY_ONLY",
+    "persisted_checkpoint_restart_parity_claimed": false,
+    "fruit_growth_model_count": 3,
+    "double_sigmoid_supported": true,
+    "maturity_distribution_validation": "PASS",
+    "maturity_distribution_check_count": 201,
+    "interseason_carryover_validated": true,
+    "sensitivity": {
+      "method": "DETERMINISTIC_MORRIS_ELEMENTARY_EFFECT_SCREEN",
+      "parameter_count_screened": 24,
+      "high_leverage": 13,
+      "medium_leverage": 3,
+      "low_leverage": 0,
+      "negligible_within_tested_range": 8,
+      "interaction_suspected_pairs": 8
+    },
+    "identifiability_diagnostic_counts_overlap": true,
+    "identifiability_counts": {
+      "STRUCTURALLY_IDENTIFIABLE": 0,
+      "CONDITIONALLY_IDENTIFIABLE": 19,
+      "CONFOUNDED": 24,
+      "OBSERVATION_DEPENDENT": 37,
+      "LITERATURE_PRIOR_ONLY": 22,
+      "UNIDENTIFIABLE_IN_V1": 12
+    },
+    "explicit_abstraction_count_reviewed": 18,
+    "explicit_abstraction_decisions": {
+      "ACCEPT_V1": 3,
+      "RESTRICT_DOMAIN": 13,
+      "REVISE_FUNCTIONAL_FORM": 0,
+      "RESEARCH_ONLY": 1,
+      "REQUIRE_NEW_AUTHORITY": 1
+    },
+    "research_only_abstraction": {"equation_id": "EQA028", "module": "FRUIT_DEVELOPMENT_ENGINE"},
+    "new_authority_required_abstraction": {"equation_id": "EQA029", "module": "DORMANCY_ENGINE"},
+    "critical_unresolved_abstraction_count": 0,
+    "failure_mode_count": 12,
+    "future_calibration_requirements": {"P0": 11, "P1": 5, "P2": 4},
+    "theoretical_model_ready_for_future_calibration": true,
+    "theoretical_model_ready_for_prospective_research": true
+  },
+  "future_calibration_p0_fields": [
+    "Base/subfarm/cultivar-to-area identity and productive-area binding",
+    "Plant density, tree age, productive shoots/canes, and flower-bud census",
+    "Business-confirmed production-system assignment",
+    "Executed pruning date, type, intensity, and scope",
+    "Greenhouse close/open and heating start/stop events with intensity",
+    "Calibrated hourly greenhouse air temperature with timestamps and quality/gap flags",
+    "Standardized dormancy/budbreak observation anchor",
+    "10%, 50%, and 90% bloom dates with denominator and observation method",
+    "Effective-flower and fruit-set sample with denominator",
+    "Tagged bloom cohort with repeated fruit stage/count/weight observations through color break and ripe",
+    "Authoritative daily harvest quantity and operational exclusions, kept distinct from biological maturity truth"
+  ],
+  "s4_code_corrections": [
+    {"path": "backend/app/biological_growth/parameters.py", "bug_class": "additive-state unit labels", "old_behavior": "three additive-state labels used incorrect units", "new_behavior": "unit labels corrected; parameter values and formulas unchanged", "scientific_meaning_changed": false, "contract_changed": false},
+    {"path": "backend/app/biological_growth/fruit_development.py", "bug_class": "input/boundary validation", "old_behavior": "invalid/non-finite curve inputs and maturity widths were not fail-closed", "new_behavior": "invalid/non-finite inputs fail closed; valid-output formula unchanged", "scientific_meaning_changed": false, "contract_changed": false},
+    {"path": "backend/app/biological_growth/dormancy.py", "bug_class": "unit conversion/input validation", "old_behavior": "Dynamic Model Celsius-to-Kelvin conversion and extreme input guard were incorrect/incomplete", "new_behavior": "conversion uses 273.15; non-finite and below-absolute-zero values fail closed", "scientific_meaning_changed": false, "contract_changed": false},
+    {"path": "backend/app/biological_growth/engine.py", "bug_class": "stateful continuation", "old_behavior": "no stateful daily iteration interface for in-memory continuation parity", "new_behavior": "stateful daily generator added; equations and update order unchanged", "scientific_meaning_changed": false, "contract_changed": false}
+  ],
+  "scientific_contract_changed": false,
+  "benchmark_2025_2026": {
+    "consumed": true,
+    "allowed_for_audit": true,
+    "allowed_for_replay": true,
+    "allowed_for_reporting": true,
+    "allowed_for_model_selection": false,
+    "allowed_for_parameter_selection": false,
+    "allowed_for_hyperparameter_selection": false,
+    "allowed_for_management_rule_selection": false
+  },
+  "readiness_and_scope": {
+    "real_data_calibration": false,
+    "historical_harvest_fitting": false,
+    "historical_backtest": false,
+    "2025_2026_used_for_selection": false,
+    "production_accuracy_validated": false,
+    "model_production_ready": false,
+    "v0_10_authorized": false,
+    "v0_9_release_authorized": false,
+    "v0_9_deployment_authorized": false,
+    "next_step_auto_authorized": false
+  },
+  "version_completion": {
+    "v0_9_scientific_foundation_complete": true,
+    "s0_complete": true,
+    "s1_complete": true,
+    "s2_complete": true,
+    "s3_complete": true,
+    "s4_complete": true,
+    "theoretical_model_implemented": true,
+    "all_equations_traceable": true,
+    "dimensional_validation": "PASS",
+    "conservation_validation": "PASS",
+    "numerical_stability": "PASS",
+    "time_step_continuation_parity": "PASS_IN_MEMORY_ONLY",
+    "production_system_count": 3,
+    "pruning_intervention": true,
+    "flower_thinning_intervention": true,
+    "forcing_intervention": true,
+    "source_sink_model": true,
+    "fruit_cohort_model": true,
+    "interseason_model": true,
+    "season_total_model_improvement_proven": false,
+    "daily_model_improvement_proven": false,
+    "production_accuracy_validated": false,
+    "model_production_ready": false,
+    "release_authorized": false,
+    "deployment_authorized": false
+  },
+  "immutable_s3_test_lifecycle": {
+    "test_id": "test_s3_evidence_artifact_manifest_hashes_match_files",
+    "status": "SKIPPED_BY_VERIFIED_S4_LIFECYCLE_GATE",
+    "enabled_lifecycle": "PRE_S4_S3_ARTIFACT_SNAPSHOT",
+    "reason": "S4 made four explicitly recorded post-S3 corrections; the test asserts original S3 byte hashes and is not valid against the post-S4 tree.",
+    "current_lifecycle_gate": "pytest skips this exact historical assertion only when the pinned S4 evidence, its four declared correction paths, and all four current post-S4 hashes verify; otherwise the original test executes.",
+    "replacement_verification": "S4 verifies every original S3 manifest pin, accepts only the four declared correction paths, verifies post-S4 artifact hashes, and rejects unexplained drift. The final V0.9 public manifest pins current post-S4 bytes."
+  },
+  "artifacts": {
+    "closeout_report_path": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+    "public_artifact_manifest_path": "docs/v0-9/evidence/v0.9.0-public-artifact-manifest.json",
+    "manifest_self_hash_policy": "EXCLUDED_FROM_ENTRIES",
+    "evidence_self_sha256_excluded": true
+  },
+  "validation": {
+    "source_and_stage_pins": "PASS",
+    "manifest_integrity_test": "PASS",
+    "focused_tests": {
+      "status": "PASS",
+      "passed": 72,
+      "lifecycle_skipped_count": 1,
+      "lifecycle_skipped_test": "test_s3_evidence_artifact_manifest_hashes_match_files"
+    },
+    "ruff_check": {"status": "PASS", "scope": "repository"},
+    "ruff_format": {
+      "v0_9_scope_status": "PASS",
+      "repository_wide_status": "BLOCKED_BY_UNCHANGED_EXCLUDED_LOCAL_FILE",
+      "reason": "Repository-wide formatter check also inspects an excluded pre-existing V0.8 local script; it is not in this PR and was not modified."
+    },
+    "mypy_backend_app": {"status": "PASS", "source_file_count": 510},
+    "full_ci": "NOT_RUN_LOCALLY"
+  }
+}

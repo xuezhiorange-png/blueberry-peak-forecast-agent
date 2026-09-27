@@ -1,0 +1,1 @@
+{"scenario_id":"deciduous-forcing","production_system":"DECIDUOUS_FORCING","parameter_overrides":{},"events":[{"day_offset":100,"event_type":"GREENHOUSE_CLOSE","intensity":null},{"day_offset":115,"event_type":"HEATING_START","intensity":null}]}

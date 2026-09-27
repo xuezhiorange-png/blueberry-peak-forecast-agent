@@ -1,0 +1,545 @@
+{
+  "artifact_count": 89,
+  "entries": [
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/__init__.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "8d561f789467fa8a89f54213cfa5bf8e1f59128a906463d7e52ef0448d11edb0"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/canonical.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "c3ded2e62e9de83e6073a9a09297350b1d24316bc59824e8ab6446740bd8b4bc"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/crop_load.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "7a13eba50dc5b710cd523294d536e2bc7c6d6108c6758bcb1e219d829de38309"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/dormancy.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "da86890c762662636de88ed73ae5ac4137550ae167e7a9f31f6fc0dd3a61c7f2"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/engine.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "900e7dff6c37a86cfeffdcc779d5b121324f5396dfb39559f6028a506b5d29b9"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/flower_bud.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "36762277011cf5277326eb3ab77faef50db13143ee2f555db0680a58c5901f14"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/forcing.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "918cb4e17e1f8d2516a6fed0cc6e003a3857e45e34387b84ae6d7265e81b8981"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/fruit_development.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "f359003f31b66c3c187362c6fbb595b4f376eedf95ecd52a54da2a27e1a0d8a3"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/fruit_set.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "18d629511deea7aebe04c005cc605a524fa2f532c5d42e9637e386f77c1971a7"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/interseason.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "70c0738d577dd7deb5c4edab697fe8217cd4f95990dbe5e5178a9c706d2fba2a"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/management.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "1c28f9d052e87dca5561fb7360f1cadbcd2b0208dcd04ca0184ae4de917c250f"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/maturity.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "45397ea9ebecfe5115be682228755a7a46d4cb9439ecc026d0918e108e0eec5d"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/parameters.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "89e8512ff820c5472065586abc4382de2e921cc40ff763c5650a552d62d483bb"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/phenology.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "59a779d3d1f92d16d24eabb7c6b1820174033973482677cc67dde6df70c9bfca"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/pollination.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "932d89247e9916773b9ae11b17348c0f96aa1427170b3063926de4cbdf980fbd"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/postharvest.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "a9907339066c443236648f6defc685306e356de3023b0ea1930622ef57d09386"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/schemas.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "bb5dcdec704675d59e1d94fb8d12c6dfa3e4047f24a2218c328f9ce021830368"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/source_sink.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "5b00db2a40b720df62d3215e3504ece603e93fb416f97aa9008a330c66bb9df7"
+    },
+    {
+      "lifecycle": "S3_IMPLEMENTED_S4_VALIDATED",
+      "path": "backend/app/biological_growth/structure.py",
+      "role": "MODEL_IMPLEMENTATION",
+      "sha256": "3d357adfe2be2d64ee2c61751ff306558315d3ed1ea7dcb158b52595f51c7ec5"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/area_yield/test_v09_s1_contract_integrity.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "0d00d9d1dc86be36dc99883eaa3430fa76378acd42b38b484d49d2315a73297a"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/area_yield/test_v09_s2_data_observability.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "d769d09bbce720542b03aaa994c93db0f36cd7079a2028dc5ac64afa6dcd13a4"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/conftest.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "f7a4dae5e9ab2865057512863e48be46e2b912a568aaef6f13fe03511fdd482d"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/crop-load-high.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "f184161396024ed453e31500e92afb592d9097a73ca4b86a9d79611cfe8a6400"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/crop-load-low.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "634bc9f3ac0909d955fdadfd5e65ed45a9f6cb8b1864adab8f5b3e1c62915831"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/deciduous-forcing.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "71c6acbe85935d6c141b2cbf66f24054605f9c44995761045615ac5f5c5fbcb9"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/deciduous-natural.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "2c1024270bb9b3fe4e8e3e5457f24ba137cdf8ef4dfe9bda6a181bd6110a1c94"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/evergreen.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "e2ee68bde73ebd676b9e8831d3838c7e8c177e80af44771999a9f67997b4616e"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/flower-thinning-moderate.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "9472fbaf77e61ba7972e19bf99b0a9eea8e91cabc72ed3df056d6255dd0cb6f9"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/flower-thinning-none.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "f4b756315478ef5c08208e24f8dbd04a971ac52e3810d8ecaae9cb8102115738"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/manifest.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "f2bde546c89eb6a632e300a5fe8224b2f7d08df03214e972d2afdd6f77efaf0c"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/pollination-high.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "5b0c093c7cce8824dfb28a6a85cfacacc44840f2101d22505a62bfb3531b7629"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/pollination-low.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "2c31fcaf96182e123074e8ca3db4f1de3305c545a749885c938c842ec3179792"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/pruning-heavy.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "e0e2cd4ff02d9b750aa9d04298273df3fd38630c032d29d22239eea47b8f1a4d"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/golden/pruning-light.json",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "23342415346e768592b4824aa0b2c9f832b380f3c8139aa6e6ac3a01ef44b62c"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/s4_validation.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "5a9fa739cd681709d4b4688e2721d5ecaa083545271fdb57448823446554b1a5"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/scenario_factory.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "4b8ff65e5eeb36dd9004e5d4df3c7e542ba58883cb42f637fb09db798fb8b9e0"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/test_v09_closeout_manifest.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "fb4108f515cc4e7f8a2b776c0fcaaf60e802f2422c19e3c4e931b1b8c343e40a"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/test_v09_s3_theoretical_simulator.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "7e931245d38c6080c0ad787c372f8523d01bfa9f5b4ba5cf694c15a1a8c8dbdb"
+    },
+    {
+      "lifecycle": "FOCUSED_VALIDATION",
+      "path": "backend/tests/biological_growth/test_v09_s4_validation.py",
+      "role": "TESTS_AND_SYNTHETIC_GOLDENS",
+      "sha256": "f9fde6878cb99f928754a9d0edea8575b3ce874e74b7191082dc7794e71a70d8"
+    },
+    {
+      "lifecycle": "SCIENTIFIC_AUTHORITY_REVIEW",
+      "path": "docs/v0-9/evidence/s0-global-protected-blueberry-biology-and-management-authority-review-r1.json",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "530106f7291ab3d92fe4b0a0d682efc0fc154149218acda71369f76e785449cf"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/evidence/s1-biological-contract-artifact-manifest-r1.json",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "8ea4d508010e55c4996142ec96c389a91a356f78966e8f5d4fb4e449ef611381"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/evidence/s1-biological-state-and-management-event-contract-r1.json",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "6b15a765e0d64643ebd657dc4bc6b254e416389e223a8b5ac8459275ed7f60b6"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/evidence/s2-existing-data-observability-and-gap-audit-r1.json",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "18133476e96cb33308762bb7466dd05d1aa51dacde31f6c2924d5435db347cad"
+    },
+    {
+      "lifecycle": "SYNTHETIC_RESEARCH_MODEL",
+      "path": "docs/v0-9/evidence/s3-theoretical-blueberry-growth-model-r1.json",
+      "role": "THEORETICAL_MODEL",
+      "sha256": "c74c956650f4e5751083ffed3d40e9cbff68c3f53fc8e1ad661c234003d3e441"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/evidence/s4-theoretical-model-validation-and-identifiability-r1.json",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "04aa371419b08856ee6b363e67590fb7ebcb038b5a75e563200c4fe1401f0a17"
+    },
+    {
+      "lifecycle": "FINAL_CLOSEOUT",
+      "path": "docs/v0-9/evidence/v0.9.0-biological-forecast-foundation-closeout.json",
+      "role": "VERSION_CLOSEOUT",
+      "sha256": "bb548c5946a9d2f1092571baf4ea8c8daf69d57e09b085be4128f778b106b648"
+    },
+    {
+      "lifecycle": "VERSION_PLAN_FROZEN",
+      "path": "docs/v0-9/evidence/v0.9.0-version-plan-and-scope-freeze.json",
+      "role": "VERSION_SCOPE",
+      "sha256": "dda083bd25adf40af47253b12671b6bf4130ca3719a3ca052cb998536d5f76e5"
+    },
+    {
+      "lifecycle": "SCIENTIFIC_AUTHORITY_REVIEW",
+      "path": "docs/v0-9/s0/biological-causal-claim-register-r1.csv",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "0ee8959db03f1ac28b226df06c00bf08c2427949b2f1e9de69a772bbd805d55a"
+    },
+    {
+      "lifecycle": "SCIENTIFIC_AUTHORITY_REVIEW",
+      "path": "docs/v0-9/s0/evidence-conflict-and-uncertainty-register-r1.csv",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "e5c17df1d33e3ef9dcc1d5d149598fa6a602a5c65a09f99d47e8040d42d94a91"
+    },
+    {
+      "lifecycle": "SCIENTIFIC_AUTHORITY_REVIEW",
+      "path": "docs/v0-9/s0/global-protected-blueberry-biology-and-management-authority-review-r1.md",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "827725a44094e5e15643186fe8f82095adbff0bfc2b2ac549aca6600d06a4c13"
+    },
+    {
+      "lifecycle": "SCIENTIFIC_AUTHORITY_REVIEW",
+      "path": "docs/v0-9/s0/literature-parameter-candidate-register-r1.csv",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "2d28f90e42eafeea14f252e96ed0c26e2bc6b78b1c8273263b5d2d32b1410325"
+    },
+    {
+      "lifecycle": "SCIENTIFIC_AUTHORITY_REVIEW",
+      "path": "docs/v0-9/s0/scientific-authority-matrix-r1.csv",
+      "role": "SOURCE_AUTHORITY",
+      "sha256": "1fecd24c4aa537d5617a960e15ab74ace260ad35e30e63d9fdbe89e59bf88294"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/biological-engine-harvest-state-interface-r1.md",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "e63e225786c9bcd0523de054eaf1018f70ca23f9a06fdfd5397d99c1183d2175"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/biological-state-contract-r1.md",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "69449e6604afe2488eb4ad1658dbf591813941442400feaf51137c0c6fc17122"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/biological-state-registry-r1.json",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "86f09a78565f06b73304d9e4f8232c96d7a91173ce8b5787d2b219c0baec719f"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/causal-edge-registry-r1.json",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "24cbae1e8e369067836cb5352a552875c90183eb161eefadab879ac345a4c7f9"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/management-event-contract-r1.md",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "0a16270673bf389272997b70d0c80c64acd38877c1f1995ac66f29482d6ab2fc"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/management-event-registry-r1.json",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "49a29e972191e67f04a32d3f50c27705b44a6a2f5dca97f2400eef0aab1b0729"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/parameter-authority-contract-r1.md",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "b8a2623bb32a9483cfae010ec55542868206a708a7367f86dc465762f6965c50"
+    },
+    {
+      "lifecycle": "CONTRACT_FROZEN",
+      "path": "docs/v0-9/s1/phenology-state-machine-r1.md",
+      "role": "BIOLOGICAL_CONTRACT",
+      "sha256": "7e555d6098858cbde3d72802982ecf13e20d9243b278cce95d2bc755f10b773e"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/s2/biological-data-observability-matrix-r1.csv",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "4ea8d9928e95de6b774ae4a4dd5cc7b1b06c7d736411443d707ab6503cf3b35a"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/s2/data-source-authority-register-r1.csv",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "48fe452729f5f57d946e7e4fc31973ecc3bf7f8824c9cce5d88e1ad53049bd3f"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/s2/existing-data-observability-and-gap-audit-r1.md",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "0c1bc1c11c5130a90a510359951e37af04183c92d3ee5bd4e7f5432ca4cf53de"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/s2/minimum-new-data-collection-plan-r1.csv",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "c2624d3b3476c56860ac96e35203b35cbb428cc9bca68850a3c8c7f912d470c1"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/s2/minimum-viable-biological-input-set-r1.csv",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "8486fcbe9d222235eddc0228c75478189a6ee867fc7d946ce58b1b8e3e05bf78"
+    },
+    {
+      "lifecycle": "CURRENT_DATA_AUDIT",
+      "path": "docs/v0-9/s2/s3-prototype-readiness-matrix-r1.csv",
+      "role": "DATA_OBSERVABILITY",
+      "sha256": "052f7150d7c21894dbd0d709305c31acf303eabc5590c9bef4f53fefece3f58d"
+    },
+    {
+      "lifecycle": "SYNTHETIC_RESEARCH_MODEL",
+      "path": "docs/v0-9/s3/literature-model-parameter-registry-r1.csv",
+      "role": "THEORETICAL_MODEL",
+      "sha256": "9fbbcad8211b9cfac4e4284d7b6581c3aa2169a2cfb8224065d60225a2aa97ef"
+    },
+    {
+      "lifecycle": "SYNTHETIC_RESEARCH_MODEL",
+      "path": "docs/v0-9/s3/model-equation-authority-register-r1.csv",
+      "role": "THEORETICAL_MODEL",
+      "sha256": "d1edb7b3a1642b9be2dcd9991fbfa846cd4046860d439a54caf18013fa2c2863"
+    },
+    {
+      "lifecycle": "SYNTHETIC_RESEARCH_MODEL",
+      "path": "docs/v0-9/s3/reference-scenario-manifest-r1.json",
+      "role": "THEORETICAL_MODEL",
+      "sha256": "1f997fa8f5e601598abcf4164c1ecd767e07655b8ae2c3334da997b110a5623d"
+    },
+    {
+      "lifecycle": "SYNTHETIC_RESEARCH_MODEL",
+      "path": "docs/v0-9/s3/scientific-model-source-register-r1.csv",
+      "role": "THEORETICAL_MODEL",
+      "sha256": "cb0146b17e1098d89cf3a063ae4d00a67a7dba78a8d3d79080f78f34519a2d67"
+    },
+    {
+      "lifecycle": "SYNTHETIC_RESEARCH_MODEL",
+      "path": "docs/v0-9/s3/theoretical-blueberry-growth-model-r1.md",
+      "role": "THEORETICAL_MODEL",
+      "sha256": "a68f8d475c36742852bbd3bdad888e95c44df35c0a98b55d49b943430ec31dbd"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/equation-dimensional-validation-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "9b7da3df8eb1d1dbe0f7b34431b2cfd6a9aaf3567afdbce583e28b6ffc2a8c6d"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/equation-implementation-traceability-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "c788ec193033baaaf3e074984bcafdad7cb88dd02aacd87ad16e5b9bcbf23116"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/explicit-abstraction-review-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "690ae12051622d8af3f190b3371a762d9d3a30b2f552b83982e6f4936d36c45f"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/future-calibration-data-requirements-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "d3c3c687c9922f542e8bd1404220aa0bf038515c327efd26abf8a19f3b7fff10"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/parameter-confounding-register-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "9fee480b66f1b997dc5182753140a586f0148b1a7e4f98cbe88e497c61460f2a"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/parameter-identifiability-register-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "ce2dd361bf22abe39cc85f917b82c53f6ad89fbffda821d61f9a044a120b8707"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/parameter-sensitivity-register-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "d4c2e4d102ff7b67635bedc58bf9aec5feb22a0ff767882e4da32411dc362a6c"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/parameter-to-observation-requirement-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "be42e4614086b6e8d10a6c8e0582ede64516ef4c3e5a809e5ec808f36617129f"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/prospective-validation-protocol-r1.md",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "cd6b7cc70bde3baa22a31ed27b0341b0db3c8527b1d7d62f045a0b54aa5a784f"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/s0-not-ready-mechanism-quarantine-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "81b1b91a232ff36aaad48420481423cb6e0bcfe2a3e168e019de43f2e6bf1493"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/state-update-order-r1.json",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "e5cb36f84dba17bcfe903f8324cee73db3c4d30ee0ed186790c4841392d7862d"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/theoretical-model-failure-mode-register-r1.csv",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "9c1419e36de773c4cd50fb47af766c3afcdcc332b8139b53a6f6ab1e028b40b3"
+    },
+    {
+      "lifecycle": "THEORETICAL_VALIDATION",
+      "path": "docs/v0-9/s4/theoretical-model-structural-validation-r1.md",
+      "role": "STRUCTURAL_VALIDATION",
+      "sha256": "b846bc24f32872a117b7d72b0fcd1356dc36ab7976f3019f7e39f01384bc8367"
+    },
+    {
+      "lifecycle": "REPRODUCIBILITY_SUPPORT",
+      "path": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+      "role": "AUDIT_OR_VALIDATION_TOOL",
+      "sha256": "f6e3564cb0f34425e71aba6dd6373b115dcbdfda0a5d9dc484e2fe0e093e67e2"
+    },
+    {
+      "lifecycle": "VERSION_PLAN_FROZEN",
+      "path": "docs/v0-9/v0.9.0-version-plan-and-scope-freeze.md",
+      "role": "VERSION_SCOPE",
+      "sha256": "b9899cc2ef0dc5b673a4d48db8f8b96e19fe1373f4d41420fa0a146c6a2b47c3"
+    },
+    {
+      "lifecycle": "REPRODUCIBILITY_SUPPORT",
+      "path": "scripts/audit_v0_9_s2_data_observability.py",
+      "role": "AUDIT_OR_VALIDATION_TOOL",
+      "sha256": "d912d39cebf659a0511510de307eee922bdc468ecfa7ac8408a5c43db625f23c"
+    },
+    {
+      "lifecycle": "REPRODUCIBILITY_SUPPORT",
+      "path": "scripts/build_v0_9_public_artifact_manifest.py",
+      "role": "AUDIT_OR_VALIDATION_TOOL",
+      "sha256": "583ceda7405c4f68b368a23934913df1c68c56a8dea939cc1e09b0686f572956"
+    },
+    {
+      "lifecycle": "REPRODUCIBILITY_SUPPORT",
+      "path": "scripts/run_v0_9_s4_validation.py",
+      "role": "AUDIT_OR_VALIDATION_TOOL",
+      "sha256": "b973cf45785896b0145d745eae4677e157454e188ec61f8c3157af51e7930466"
+    }
+  ],
+  "machine_specific_private_paths_included": false,
+  "manifest_self_sha256_excluded": true,
+  "private_row_level_artifacts_included": false,
+  "schema_version": "V0_9_PUBLIC_ARTIFACT_MANIFEST_R1",
+  "task_id": "V0_9_VERSION_CLOSEOUT_AND_DRAFT_PR_R1",
+  "version": "0.9.0"
+}

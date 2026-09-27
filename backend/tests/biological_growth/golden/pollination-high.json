@@ -1,0 +1,1 @@
+{"scenario_id":"pollination-high","production_system":"DECIDUOUS_NATURAL","parameter_overrides":{"pollination_baseline_index":0.9},"events":[{"day_offset":185,"event_type":"POLLINATOR_INTRODUCTION","intensity":null}]}
