@@ -1,0 +1,137 @@
+{
+  "base_main_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "benchmark_2025_2026": {
+    "audit_allowed": true,
+    "consumed": true,
+    "hyperparameter_selection_allowed": false,
+    "management_rule_selection_allowed": false,
+    "metrics_read_in_this_task": false,
+    "model_selection_allowed": false,
+    "parameter_selection_allowed": false,
+    "replay_allowed": true,
+    "reporting_allowed": true
+  },
+  "branch": "codex/v0-9-version-plan-scope-freeze-r1",
+  "contract_versions": {
+    "biological_harvest_interface": "V0_9_S1_R1",
+    "biological_state_contract": "V0_9_S1_R1",
+    "management_event_contract": "V0_9_S1_R1",
+    "parameter_authority_contract": "V0_9_S1_R1",
+    "phenology_state_machine": "V0_9_S1_R1"
+  },
+  "counts": {
+    "biological_state_count": 33,
+    "causal_edge_count": 33,
+    "interseason_state_field_count": 3,
+    "management_event_type_count": 29,
+    "parameter_authority_type_count": 6,
+    "phenology_state_count": 21,
+    "plant_state_field_count": 27,
+    "production_system_count": 3,
+    "source_sink_state_field_count": 3
+  },
+  "deliverables": [
+    {
+      "path": "docs/v0-9/s1/biological-state-contract-r1.md",
+      "sha256": "69449e6604afe2488eb4ad1658dbf591813941442400feaf51137c0c6fc17122"
+    },
+    {
+      "path": "docs/v0-9/s1/management-event-contract-r1.md",
+      "sha256": "0a16270673bf389272997b70d0c80c64acd38877c1f1995ac66f29482d6ab2fc"
+    },
+    {
+      "path": "docs/v0-9/s1/phenology-state-machine-r1.md",
+      "sha256": "7e555d6098858cbde3d72802982ecf13e20d9243b278cce95d2bc755f10b773e"
+    },
+    {
+      "path": "docs/v0-9/s1/parameter-authority-contract-r1.md",
+      "sha256": "b8a2623bb32a9483cfae010ec55542868206a708a7367f86dc465762f6965c50"
+    },
+    {
+      "path": "docs/v0-9/s1/biological-engine-harvest-state-interface-r1.md",
+      "sha256": "e63e225786c9bcd0523de054eaf1018f70ca23f9a06fdfd5397d99c1183d2175"
+    },
+    {
+      "path": "docs/v0-9/s1/biological-state-registry-r1.json",
+      "sha256": "86f09a78565f06b73304d9e4f8232c96d7a91173ce8b5787d2b219c0baec719f"
+    },
+    {
+      "path": "docs/v0-9/s1/management-event-registry-r1.json",
+      "sha256": "49a29e972191e67f04a32d3f50c27705b44a6a2f5dca97f2400eef0aab1b0729"
+    },
+    {
+      "path": "docs/v0-9/s1/causal-edge-registry-r1.json",
+      "sha256": "24cbae1e8e369067836cb5352a552875c90183eb161eefadab879ac345a4c7f9"
+    }
+  ],
+  "evidence_self_sha256_excluded": true,
+  "frozen_contracts": {
+    "biological_harvest_interface_frozen": true,
+    "bloom_cohort_contract_frozen": true,
+    "environment_input_contract_frozen": true,
+    "evergreen_pathway_frozen": true,
+    "flower_thinning_event_semantics_frozen": true,
+    "forcing_event_semantics_frozen": true,
+    "fruit_cohort_contract_frozen": true,
+    "interseason_state_contract_frozen": true,
+    "management_event_contract_frozen": true,
+    "parameter_authority_contract_frozen": true,
+    "phenology_state_machine_frozen": true,
+    "plant_state_contract_frozen": true,
+    "production_system_contract_frozen": true,
+    "pruning_event_semantics_frozen": true,
+    "source_sink_proxy_contract_frozen": true
+  },
+  "head_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "mechanism_admission": {
+    "admission_rule_note": "S0-established mechanisms are admitted only as qualitative edges; context-dependent claims keep scope guards; accepted abstractions are labeled; insufficient/conflicting/not-ready mechanisms remain quarantined. No numeric response formula is admitted.",
+    "contract_ready_mechanism_count": 24,
+    "quarantined_claim_ids": [
+      "C005",
+      "C009",
+      "C011",
+      "C016",
+      "C024",
+      "C027"
+    ],
+    "quarantined_mechanism_count": 6,
+    "s0_claim_count": 30,
+    "unauthorized_mechanism_promotion_count": 0
+  },
+  "parameter_lifecycle": {
+    "forcing_parameters": "UNBOUND",
+    "literature_prior_promoted_to_production_count": 0,
+    "parameter_selection_performed": false,
+    "production_default_chill_model": "UNBOUND",
+    "production_parameter_created": false,
+    "source_sink_exact_formula": "UNBOUND"
+  },
+  "result": "PASS_V0_9_S1_BIOLOGICAL_CONTRACT_FROZEN",
+  "s0_authority_sha256": {
+    "authority_matrix": "1fecd24c4aa537d5617a960e15ab74ace260ad35e30e63d9fdbe89e59bf88294",
+    "causal_claim_register": "0ee8959db03f1ac28b226df06c00bf08c2427949b2f1e9de69a772bbd805d55a",
+    "conflict_register": "e5c17df1d33e3ef9dcc1d5d149598fa6a602a5c65a09f99d47e8040d42d94a91",
+    "evidence": "530106f7291ab3d92fe4b0a0d682efc0fc154149218acda71369f76e785449cf",
+    "parameter_candidate_register": "2d28f90e42eafeea14f252e96ed0c26e2bc6b78b1c8273263b5d2d32b1410325",
+    "report": "827725a44094e5e15643186fe8f82095adbff0bfc2b2ac549aca6600d06a4c13"
+  },
+  "s0_authority_verified": true,
+  "task_boundary": {
+    "V0_9_S2_STARTED": false,
+    "V0_9_S3_STARTED": false,
+    "V0_9_S4_STARTED": false,
+    "backtest_executed": false,
+    "commit_created": false,
+    "deployment_performed": false,
+    "merge_action_taken": false,
+    "model_code_changed": false,
+    "model_refit": false,
+    "model_trained": false,
+    "production_parameter_created": false,
+    "pull_request_created": false,
+    "ready_action_taken": false
+  },
+  "task_id": "V0_9_S1_BIOLOGICAL_STATE_AND_MANAGEMENT_EVENT_CONTRACT_R1",
+  "version": "0.9.0",
+  "version_name": "BLUEBERRY_FORECAST_AGENT_V0_9_BIOLOGICAL_FORECAST_FOUNDATION"
+}

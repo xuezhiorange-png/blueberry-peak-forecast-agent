@@ -1,0 +1,1548 @@
+{
+  "admission_rule": {
+    "allowed_statuses": [
+      "CONTRACT_READY",
+      "LATENT_ONLY",
+      "PROXY_ONLY",
+      "RESEARCH_ONLY",
+      "BLOCKED_CONFLICT"
+    ],
+    "default_for_conflicting_evidence": "BLOCKED_CONFLICT",
+    "default_for_insufficient_evidence": "LATENT_ONLY_OR_RESEARCH_ONLY",
+    "evidence_policy": "S0 ESTABLISHED_MECHANISM is admitted only as a qualitative edge (stronger evidence than supported); SUPPORTED_BUT_CONTEXT_DEPENDENT retains all scope guards; S0-accepted PLAUSIBLE_MODEL_ABSTRACTION is admitted only when marked abstraction. No numeric response formula follows from qualitative admission.",
+    "unauthorized_promotion_count": 0
+  },
+  "causal_edges": [
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S028",
+        "S045"
+      ],
+      "claim_ids": [
+        "C001"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "postharvest plant condition and observed regrowth",
+      "edge_id": "E001",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "POSTHARVEST_PRUNING",
+        "IRRIGATION_STRESS",
+        "NUTRITION_INTERVENTION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Scope has entered the postharvest interval and new vegetative activity is observed, derived under a declared method, or left latent.",
+      "source_state": "POSTHARVEST",
+      "target_state": "VEGETATIVE_REGROWTH"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S028",
+        "S045"
+      ],
+      "claim_ids": [
+        "C001",
+        "C003"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "shoot growth cessation and bud formation evidence",
+      "edge_id": "E002",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "photoperiod",
+        "air_temperature",
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "SUMMER_PRUNING",
+        "POSTHARVEST_PRUNING"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Flower-bud initiation/differentiation evidence or an explicitly latent state with source lineage exists.",
+      "source_state": "VEGETATIVE_REGROWTH",
+      "target_state": "FLOWER_BUD_FORMATION"
+    },
+    {
+      "abstraction": true,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S001",
+        "S004",
+        "S008",
+        "S013",
+        "S016",
+        "S018",
+        "S024",
+        "S043"
+      ],
+      "claim_ids": [
+        "C028"
+      ],
+      "confidence_class": "ABSTRACTION_ONLY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "seasonal adaptation evidence",
+      "edge_id": "E003",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "photoperiod"
+      ],
+      "evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "management_drivers": [
+        "DEFOLIATION",
+        "LEAF_RETENTION_MANAGEMENT"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "A system-appropriate seasonal adaptation state is observed or represented as a labeled causal-skeleton abstraction.",
+      "source_state": "FLOWER_BUD_FORMATION",
+      "target_state": "ACCLIMATION"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S001",
+        "S004",
+        "S008",
+        "S013",
+        "S016",
+        "S017",
+        "S018",
+        "S020",
+        "S024",
+        "S043",
+        "S046"
+      ],
+      "claim_ids": [
+        "C010",
+        "C028"
+      ],
+      "confidence_class": "QUALITATIVE_STATE_EDGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "dormancy-state evidence",
+      "edge_id": "E004",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "DEFOLIATION",
+        "LEAF_RETENTION_MANAGEMENT"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "DECIDUOUS_PATH_ONLY",
+      "required_condition": "Deciduous system is explicit and dormancy state is observed or inferred under a cited, versioned method; calendar date alone is insufficient.",
+      "source_state": "ACCLIMATION",
+      "target_state": "DORMANT"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S017",
+        "S018",
+        "S020",
+        "S046"
+      ],
+      "claim_ids": [
+        "C010"
+      ],
+      "confidence_class": "QUALITATIVE_EXPOSURE_EDGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "valid chill exposure observation",
+      "edge_id": "E005",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "DECIDUOUS_PATH_ONLY",
+      "required_condition": "A deciduous dormancy pathway and valid timestamped temperature inputs exist; accumulated exposure is typed by a named model.",
+      "source_state": "DORMANT",
+      "target_state": "CHILL_ACCUMULATING"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S017",
+        "S018",
+        "S020",
+        "S022",
+        "S023",
+        "S029",
+        "S031",
+        "S034"
+      ],
+      "claim_ids": [
+        "C012",
+        "C013"
+      ],
+      "confidence_class": "CULTIVAR_BOUND_WITH_UNCERTAINTY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "cultivar-bound release assessment",
+      "edge_id": "E006",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "DORMANCY_BREAK_TREATMENT"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "DECIDUOUS_PATH_ONLY",
+      "required_condition": "A cultivar-scoped authority/assessment or direct release observation supports the state; exposure total alone records only possible satisfaction.",
+      "source_state": "CHILL_ACCUMULATING",
+      "target_state": "CHILL_SATISFIED"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S017",
+        "S023",
+        "S029",
+        "S031",
+        "S034"
+      ],
+      "claim_ids": [
+        "C013"
+      ],
+      "confidence_class": "QUALITATIVE_PHASE_SEPARATION",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "forcing environment or event",
+      "edge_id": "E007",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "root_zone_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "HEATING_START",
+        "GREENHOUSE_CLOSE",
+        "DORMANCY_BREAK_TREATMENT"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "DECIDUOUS_FORCING_OR_NATURAL",
+      "required_condition": "Release status is separately supported and post-release thermal forcing or an authorized forcing event is recorded.",
+      "source_state": "CHILL_SATISFIED",
+      "target_state": "FORCING"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S015",
+        "S017",
+        "S023",
+        "S027",
+        "S029",
+        "S030",
+        "S031",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ],
+      "claim_ids": [
+        "C013",
+        "C022"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "bud development evidence",
+      "edge_id": "E008",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "root_zone_temperature"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "HEATING_START",
+        "HEATING_STOP",
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Bud development is observed or inferred by a versioned method under the declared production system.",
+      "source_state": "FORCING",
+      "target_state": "BUD_SWELL"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S015",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ],
+      "claim_ids": [
+        "C022"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "budbreak evidence",
+      "edge_id": "E009",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "root_zone_temperature",
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "HEATING_START",
+        "HEATING_STOP",
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Declared budbreak observation or authorized inferred state is present; no calendar-only rule.",
+      "source_state": "BUD_SWELL",
+      "target_state": "BUD_BREAK"
+    },
+    {
+      "abstraction": true,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S001",
+        "S004",
+        "S008",
+        "S013",
+        "S016",
+        "S018",
+        "S024",
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041",
+        "S043"
+      ],
+      "claim_ids": [
+        "C017",
+        "C028"
+      ],
+      "confidence_class": "OBSERVATION_CONTRACT_ABSTRACTION",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "declared bloom sampling threshold",
+      "edge_id": "E010",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "relative_humidity"
+      ],
+      "evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "management_drivers": [
+        "POLLINATION_WINDOW_START"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Sampling protocol reports at least the named proportion of open flowers for the scoped cohort.",
+      "source_state": "BUD_BREAK",
+      "target_state": "BLOOM_10"
+    },
+    {
+      "abstraction": true,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S001",
+        "S004",
+        "S008",
+        "S013",
+        "S016",
+        "S018",
+        "S024",
+        "S043"
+      ],
+      "claim_ids": [
+        "C028"
+      ],
+      "confidence_class": "OBSERVATION_CONTRACT_ABSTRACTION",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "declared bloom sampling threshold",
+      "edge_id": "E011",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Same declared sampling frame observes bloom progress at the named proportion; no fixed day lag.",
+      "source_state": "BLOOM_10",
+      "target_state": "BLOOM_50"
+    },
+    {
+      "abstraction": true,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S001",
+        "S004",
+        "S008",
+        "S013",
+        "S016",
+        "S018",
+        "S024",
+        "S043"
+      ],
+      "claim_ids": [
+        "C028"
+      ],
+      "confidence_class": "OBSERVATION_CONTRACT_ABSTRACTION",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "declared bloom sampling threshold",
+      "edge_id": "E012",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Same declared sampling frame observes bloom progress at the named proportion; no fixed day lag.",
+      "source_state": "BLOOM_50",
+      "target_state": "BLOOM_90"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "confidence_class": "QUALITATIVE_CAUSAL_EDGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "fruit-set evidence",
+      "edge_id": "E013",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "relative_humidity"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "POLLINATION_WINDOW_START",
+        "POLLINATION_WINDOW_END",
+        "POLLINATOR_INTRODUCTION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Fruit set is observed or estimated from a declared sample; bloom or pollinator presence alone does not assert fruit set.",
+      "source_state": "BLOOM_90",
+      "target_state": "FRUIT_SET"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S003",
+        "S016",
+        "S040",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C019",
+        "C021"
+      ],
+      "confidence_class": "QUALITATIVE_COHORT_EDGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "lineage-linked fruit development",
+      "edge_id": "E014",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "FRUITLET_THINNING",
+        "FRUIT_THINNING"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Fruit cohort resolves to an origin bloom cohort and its fruit-set record; quantity may remain a proxy or latent estimate.",
+      "source_state": "FRUIT_SET",
+      "target_state": "GREEN_FRUIT"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S003",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C021"
+      ],
+      "confidence_class": "THEORETICAL_STAGE_BOUNDARY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "fruit development evidence",
+      "edge_id": "E015",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Stage-I state is observed or carried as an internal theoretical state with method/version provenance.",
+      "source_state": "GREEN_FRUIT",
+      "target_state": "STAGE_I"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S003",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C021"
+      ],
+      "confidence_class": "THEORETICAL_STAGE_BOUNDARY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "fruit development evidence",
+      "edge_id": "E016",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Stage progression is supported by declared observation or represented as an internal theoretical state; universal threshold is unbound.",
+      "source_state": "STAGE_I",
+      "target_state": "STAGE_II"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S003",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C021"
+      ],
+      "confidence_class": "THEORETICAL_STAGE_BOUNDARY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "fruit development evidence",
+      "edge_id": "E017",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Stage progression is supported by declared observation or represented as an internal theoretical state; universal threshold is unbound.",
+      "source_state": "STAGE_II",
+      "target_state": "STAGE_III"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S003",
+        "S016",
+        "S029",
+        "S034",
+        "S036",
+        "S042",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C020",
+        "C021"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "development and color transition evidence",
+      "edge_id": "E018",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "SHADE_APPLICATION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Color transition is observed or inferred only under a declared, cultivar-scoped criterion.",
+      "source_state": "STAGE_III",
+      "target_state": "COLOR_BREAK"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S016",
+        "S029",
+        "S034",
+        "S036",
+        "S042",
+        "S043"
+      ],
+      "claim_ids": [
+        "C020"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "ripeness evidence",
+      "edge_id": "E019",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Declared ripeness observation/criterion and fruit-cohort lineage exist; no bloom-date-plus-fixed-days rule.",
+      "source_state": "COLOR_BREAK",
+      "target_state": "RIPE"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S001",
+        "S015",
+        "S024",
+        "S025",
+        "S026",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ],
+      "claim_ids": [
+        "C015",
+        "C022"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "active bud development evidence",
+      "edge_id": "E020",
+      "edge_type": "PHENOLOGY_TRANSITION",
+      "environment_drivers": [
+        "air_temperature",
+        "root_zone_temperature",
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "LEAF_RETENTION_MANAGEMENT",
+        "DEFOLIATION",
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "EVERGREEN_PATH_ONLY",
+      "required_condition": "Evergreen system path is explicit and active bud development is observed or authorized; dormancy/chill is not set to zero.",
+      "source_state": "EVERGREEN_CONTINUATION",
+      "target_state": "BUD_SWELL"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S008",
+        "S009",
+        "S013",
+        "S014"
+      ],
+      "claim_ids": [
+        "C030"
+      ],
+      "confidence_class": "SUPPORTED_WITH_UNCERTAINTY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "previous-season crop load",
+      "edge_id": "E021",
+      "edge_type": "CROSS_SEASON_STATE_EDGE",
+      "environment_drivers": [],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Prior-season scope and crop-load lineage are linked; next-season potential may remain latent.",
+      "source_state": "crop_load_index",
+      "target_state": "next_season_flower_bud_potential"
+    },
+    {
+      "abstraction": false,
+      "additional_target_states": [
+        "flower_bud_density",
+        "canopy_retention_ratio",
+        "shoot_growth_state"
+      ],
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "PRUNING or CANE_RENEWAL",
+      "edge_id": "E022",
+      "edge_type": "MANAGEMENT_CAUSAL_EDGE",
+      "environment_drivers": [
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "PRUNING",
+        "POSTHARVEST_PRUNING",
+        "SUMMER_PRUNING",
+        "WINTER_PRUNING",
+        "DORMANT_PRUNING",
+        "CANE_RENEWAL",
+        "FRUITING_WOOD_THINNING"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "A sourced, scoped pruning event exists; only its declared targets and observed intensity are carried forward.",
+      "source_state": "MANAGEMENT_EVENT",
+      "target_state": "fruiting_wood_index"
+    },
+    {
+      "abstraction": false,
+      "additional_target_states": [
+        "fruit_number_proxy",
+        "crop_load_index"
+      ],
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S008",
+        "S009",
+        "S012"
+      ],
+      "claim_ids": [
+        "C006",
+        "C007"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "flower or fruit thinning",
+      "edge_id": "E023",
+      "edge_type": "MANAGEMENT_CAUSAL_EDGE",
+      "environment_drivers": [],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "FLOWER_BUD_THINNING",
+        "FLOWER_REMOVAL",
+        "FLOWER_THINNING",
+        "FRUITLET_THINNING",
+        "FRUIT_THINNING"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Event stage and reproductive target are explicit; do not change fruiting wood unless a separate pruning event is recorded.",
+      "source_state": "MANAGEMENT_EVENT",
+      "target_state": "effective_flower_load"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "confidence_class": "QUALITATIVE_CAUSAL_EDGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "effective pollination and fertilization evidence",
+      "edge_id": "E024",
+      "edge_type": "BIOLOGICAL_CAUSAL_EDGE",
+      "environment_drivers": [
+        "air_temperature",
+        "relative_humidity"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "POLLINATION_WINDOW_START",
+        "POLLINATION_WINDOW_END",
+        "POLLINATION_START",
+        "POLLINATION_END",
+        "POLLINATOR_INTRODUCTION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Pollination/fertilization evidence and sampled flower denominator are explicit; pollinator presence alone is insufficient.",
+      "source_state": "pollination_state",
+      "target_state": "fruit_set_ratio"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S016",
+        "S040",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C019"
+      ],
+      "confidence_class": "QUALITATIVE_COHORT_LINEAGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "fruit set and cohort formation",
+      "edge_id": "E025",
+      "edge_type": "COHORT_LINEAGE_EDGE",
+      "environment_drivers": [],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Fruit cohort references one origin bloom cohort and preserves scope, source, representation, and authority hash.",
+      "source_state": "BloomCohort",
+      "target_state": "FruitCohort"
+    },
+    {
+      "abstraction": false,
+      "additional_target_states": [
+        "mean_berry_weight_proxy",
+        "berry_size_proxy"
+      ],
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S008",
+        "S009",
+        "S013",
+        "S042"
+      ],
+      "claim_ids": [
+        "C008"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "current source availability",
+      "edge_id": "E026",
+      "edge_type": "BIOLOGICAL_CAUSAL_EDGE",
+      "environment_drivers": [
+        "radiation_or_light_proxy",
+        "air_temperature",
+        "root_zone_temperature"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "IRRIGATION_STRESS",
+        "NUTRITION_INTERVENTION",
+        "SHADE_APPLICATION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Source capacity representation, fruit cohort scope, and observation/proxy units are explicit; source is not leaf area alone.",
+      "source_state": "source_capacity_proxy",
+      "target_state": "green_fruit_quantity_proxy"
+    },
+    {
+      "abstraction": false,
+      "additional_target_states": [
+        "fruit_number_proxy",
+        "mean_berry_weight_proxy",
+        "berry_size_proxy"
+      ],
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S008",
+        "S009",
+        "S012",
+        "S013",
+        "S042"
+      ],
+      "claim_ids": [
+        "C007",
+        "C008"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "crop load and competing growth sinks",
+      "edge_id": "E027",
+      "edge_type": "BIOLOGICAL_CAUSAL_EDGE",
+      "environment_drivers": [],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "FLOWER_THINNING",
+        "FRUITLET_THINNING",
+        "FRUIT_THINNING"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Fruit, flower, shoot, and root demand components retain their declared scopes; no exact source-sink equation is applied.",
+      "source_state": "sink_demand_proxy",
+      "target_state": "crop_load_index"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S003",
+        "S016",
+        "S029",
+        "S034",
+        "S036",
+        "S042",
+        "S043",
+        "S044"
+      ],
+      "claim_ids": [
+        "C020",
+        "C021"
+      ],
+      "confidence_class": "STRUCTURE_SUPPORTED_PARAMETER_UNBOUND",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "temperature-dependent development",
+      "edge_id": "E028",
+      "edge_type": "COHORT_DEVELOPMENT_EDGE",
+      "environment_drivers": [
+        "air_temperature",
+        "root_zone_temperature"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN",
+        "HEATING_START",
+        "HEATING_STOP"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Thermal age model, cultivar scope, units, and source lineage are bound by a later authorized model; S1 supplies no kernel or rate.",
+      "source_state": "FruitCohort.thermal_age",
+      "target_state": "expected_maturity_distribution and ripe_quantity"
+    },
+    {
+      "abstraction": false,
+      "additional_target_states": [
+        "STAGE_I",
+        "STAGE_II",
+        "STAGE_III",
+        "COLOR_BREAK",
+        "RIPE"
+      ],
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S015",
+        "S027",
+        "S029",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ],
+      "claim_ids": [
+        "C022",
+        "C023"
+      ],
+      "confidence_class": "SUPPORTED_CONTEXT_BOUNDED",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "greenhouse microclimate and protected-management events",
+      "edge_id": "E029",
+      "edge_type": "PROTECTED_ENVIRONMENT_EDGE",
+      "environment_drivers": [
+        "air_temperature",
+        "min_temperature",
+        "max_temperature",
+        "root_zone_temperature",
+        "relative_humidity",
+        "radiation_or_light_proxy"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN",
+        "HEATING_START",
+        "HEATING_STOP",
+        "SHADE_APPLICATION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Timestamped environment and event observations retain source priority, QC, and scope; response is mediated through state, not date offset.",
+      "source_state": "EnvironmentInput",
+      "target_state": "phenology_stage"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S021",
+        "S022",
+        "S023",
+        "S029"
+      ],
+      "claim_ids": [
+        "C014"
+      ],
+      "confidence_class": "EVENT_CONTRACT_ONLY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "DORMANCY_BREAK_TREATMENT",
+      "edge_id": "E030",
+      "edge_type": "MANAGEMENT_CAUSAL_EDGE",
+      "environment_drivers": [],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "DORMANCY_BREAK_TREATMENT"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "DECIDUOUS_PATH_ONLY",
+      "required_condition": "Treatment is recorded as its own event with method, date, scope, and source; response remains unbound.",
+      "source_state": "MANAGEMENT_EVENT",
+      "target_state": "dormancy_state and phenology_stage"
+    },
+    {
+      "abstraction": true,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S002",
+        "S016",
+        "S043"
+      ],
+      "claim_ids": [
+        "C026"
+      ],
+      "confidence_class": "INTERFACE_ABSTRACTION_NOT_VALIDATION",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "biological output handoff",
+      "edge_id": "E031",
+      "edge_type": "INTERFACE",
+      "environment_drivers": [],
+      "evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "management_drivers": [],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "ALL_WITH_SCOPE",
+      "required_condition": "Typed maturity quantity/distribution and cohort/date/scope lineage are provided; harvest inventory/capacity remain owned downstream.",
+      "source_state": "daily_newly_mature_quantity",
+      "target_state": "HARVEST_STATE_ENGINE"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S005",
+        "S028",
+        "S045"
+      ],
+      "claim_ids": [
+        "C003"
+      ],
+      "confidence_class": "QUALITATIVE_DRIVER_EDGE",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "daylength and temperature context",
+      "edge_id": "E032",
+      "edge_type": "ENVIRONMENT_TO_STATE_EDGE",
+      "environment_drivers": [
+        "photoperiod",
+        "air_temperature"
+      ],
+      "evidence_class": "ESTABLISHED_MECHANISM",
+      "management_drivers": [
+        "SHADE_APPLICATION",
+        "GREENHOUSE_CLOSE",
+        "GREENHOUSE_OPEN"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Photoperiod/date/location and temperature scope are explicit; no universal critical day length is imposed.",
+      "source_state": "photoperiod",
+      "target_state": "flower_bud_density"
+    },
+    {
+      "abstraction": false,
+      "admission_status": "CONTRACT_READY",
+      "authority_source_ids": [
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S008",
+        "S009",
+        "S013",
+        "S014",
+        "S028",
+        "S045"
+      ],
+      "claim_ids": [
+        "C001",
+        "C030"
+      ],
+      "confidence_class": "SUPPORTED_WITH_UNCERTAINTY",
+      "cultivar_dependency": "HIGH",
+      "driver_or_event": "prior-season vegetative and reproductive state",
+      "edge_id": "E033",
+      "edge_type": "CROSS_SEASON_STATE_EDGE",
+      "environment_drivers": [
+        "air_temperature",
+        "photoperiod"
+      ],
+      "evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT",
+      "management_drivers": [
+        "POSTHARVEST_PRUNING",
+        "CANE_RENEWAL",
+        "NUTRITION_INTERVENTION"
+      ],
+      "numeric_effect_authorized": false,
+      "production_system_dependency": "HIGH",
+      "required_condition": "Interseason lineage references source state and scope; uncertain carryover stays latent and unquantified.",
+      "source_state": "postharvest_vigor_proxy",
+      "target_state": "next_season_flower_bud_potential"
+    }
+  ],
+  "contract_kind": "CAUSAL_EDGE_AND_MECHANISM_ADMISSION_REGISTRY",
+  "contract_version": "V0_9_S1_R1",
+  "counts": {
+    "causal_edge_count": 33,
+    "contract_ready_mechanism_count": 24,
+    "quarantined_mechanism_count": 6,
+    "unauthorized_mechanism_promotion_count": 0
+  },
+  "mechanism_admission": [
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C001",
+      "contract_scope": "qualitative cross-season state lineage; no carryover coefficient",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C002",
+      "contract_scope": "bud/canopy state and scope-specific observations",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C003",
+      "contract_scope": "qualitative photoperiod/temperature drivers; no universal induction threshold",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C004",
+      "contract_scope": "pruning event affects structural/reproductive state; no multiplier",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "RESEARCH_ONLY",
+      "claim_id": "C005",
+      "contract_scope": "timing-specific cross-year pruning response is not parameterized",
+      "s0_readiness": "NOT_READY_FOR_PARAMETERIZATION",
+      "source_evidence_class": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C006",
+      "contract_scope": "flower-bud/flower sink intervention distinct from pruning",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C007",
+      "contract_scope": "thinning affects reproductive load and berry traits qualitatively",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C008",
+      "contract_scope": "source availability relates to fruit growth; composite states remain scoped",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "PROXY_ONLY",
+      "claim_id": "C009",
+      "contract_scope": "source-sink balance may be a declared proxy; exact ratio/equation prohibited",
+      "s0_readiness": "NOT_READY_FOR_PARAMETERIZATION",
+      "source_evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C010",
+      "contract_scope": "separate cold exposure from dormancy state",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "BLOCKED_CONFLICT",
+      "claim_id": "C011",
+      "contract_scope": "retain chill-hours, Utah, and Dynamic as unselected alternatives",
+      "s0_readiness": "NOT_READY_FOR_MODEL_SELECTION",
+      "source_evidence_class": "CONFLICTING_EVIDENCE"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C012",
+      "contract_scope": "cultivar binding and uncertainty required",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C013",
+      "contract_scope": "chill/release and forcing are distinct qualitative phases",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C014",
+      "contract_scope": "event semantics only; no guaranteed release or dose response",
+      "s0_readiness": "READY_FOR_EVENT_CONTRACT_ONLY",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C015",
+      "contract_scope": "separate evergreen pathway; no zero-chill assumption",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "LATENT_ONLY",
+      "claim_id": "C016",
+      "contract_scope": "evergreen dormancy/chill requirement remains unbound; zero is not assumed",
+      "s0_readiness": "NOT_READY_FOR_PARAMETERIZATION",
+      "source_evidence_class": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C017",
+      "contract_scope": "pollination, fertilization, and fruit set remain distinct states",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C018",
+      "contract_scope": "seed state optional; cultivar-scoped",
+      "s0_readiness": "READY_AS_OPTIONAL_STATE",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C019",
+      "contract_scope": "bloom-to-fruit cohort lineage; does not specify a maturity kernel",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C020",
+      "contract_scope": "thermal development is a scoped driver; parameters unbound",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C021",
+      "contract_scope": "three-phase fruit growth as theoretical states; transition thresholds unbound",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C022",
+      "contract_scope": "protected microclimate acts through measured environment/state, not date shift",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C023",
+      "contract_scope": "forbid fixed harvest-date-offset abstraction",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "ESTABLISHED_MECHANISM"
+    },
+    {
+      "admission_status": "PROXY_ONLY",
+      "claim_id": "C024",
+      "contract_scope": "light/CO2 may be represented as source-capacity context; no production coefficient",
+      "s0_readiness": "NOT_READY_FOR_PRODUCTION_PARAMETER",
+      "source_evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C025",
+      "contract_scope": "pruning is multi-state structural intervention, not one yield factor",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C026",
+      "contract_scope": "accepted interface abstraction; explicitly not a validated engine",
+      "s0_readiness": "READY_FOR_INTERFACE_CONTRACT",
+      "source_evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION"
+    },
+    {
+      "admission_status": "RESEARCH_ONLY",
+      "claim_id": "C027",
+      "contract_scope": "universal staging thresholds not selected; stages may remain internal theoretical states",
+      "s0_readiness": "NOT_READY_FOR_THRESHOLD_SELECTION",
+      "source_evidence_class": "INSUFFICIENT_EVIDENCE"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C028",
+      "contract_scope": "causal skeleton abstraction only; every edge separately cited and no predictive validity claim",
+      "s0_readiness": "READY_AS_CAUSAL_SKELETON_NOT_AS_VALIDATED_MODEL",
+      "source_evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C029",
+      "contract_scope": "early bloom is not equivalent to early commercial harvest",
+      "s0_readiness": "READY_FOR_CAUSAL_CONTRACT",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    },
+    {
+      "admission_status": "CONTRACT_READY",
+      "claim_id": "C030",
+      "contract_scope": "crop-load carryover state only; retain uncertainty and no penalty coefficient",
+      "s0_readiness": "READY_FOR_STATE_CONTRACT_WITH_UNCERTAINTY",
+      "source_evidence_class": "SUPPORTED_BUT_CONTEXT_DEPENDENT"
+    }
+  ],
+  "prohibited_inferences": [
+    {
+      "claim_ids": [
+        "C020",
+        "C023",
+        "C029"
+      ],
+      "rule_id": "PI001",
+      "source_ids": [
+        "S007",
+        "S015",
+        "S016",
+        "S029",
+        "S033",
+        "S034",
+        "S036",
+        "S042",
+        "S043"
+      ],
+      "statement": "Bloom date does not determine commercial harvest date by a fixed calendar offset."
+    },
+    {
+      "claim_ids": [
+        "C010",
+        "C012",
+        "C013"
+      ],
+      "rule_id": "PI002",
+      "source_ids": [
+        "S017",
+        "S018",
+        "S020",
+        "S022",
+        "S023",
+        "S029",
+        "S031",
+        "S034",
+        "S046"
+      ],
+      "statement": "Chill accumulation is not equivalent to observed dormancy release."
+    },
+    {
+      "claim_ids": [
+        "C006",
+        "C007",
+        "C025"
+      ],
+      "rule_id": "PI003",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ],
+      "statement": "Flower thinning is not pruning and does not directly set season yield."
+    },
+    {
+      "claim_ids": [
+        "C026"
+      ],
+      "rule_id": "PI004",
+      "source_ids": [
+        "S002",
+        "S016",
+        "S043"
+      ],
+      "statement": "Daily newly mature fruit is not harvested quantity or factory arrival."
+    }
+  ],
+  "quarantined_mechanisms": [
+    {
+      "admission_status": "RESEARCH_ONLY",
+      "claim_id": "C005",
+      "reason": "Timing-specific pruning cross-year response is not parameter-ready; no event-timing coefficient.",
+      "source_evidence_class": "INSUFFICIENT_EVIDENCE",
+      "source_ids": [
+        "S007",
+        "S010",
+        "S011",
+        "S014"
+      ]
+    },
+    {
+      "admission_status": "PROXY_ONLY",
+      "claim_id": "C009",
+      "reason": "Source/sink state can be represented only as a declared proxy; exact ratio/formula remains unbound.",
+      "source_evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "source_ids": [
+        "S008",
+        "S013",
+        "S014"
+      ]
+    },
+    {
+      "admission_status": "BLOCKED_CONFLICT",
+      "claim_id": "C011",
+      "reason": "No chilling formulation is selected; keep all candidate types unbound.",
+      "source_evidence_class": "CONFLICTING_EVIDENCE",
+      "source_ids": [
+        "S017",
+        "S018",
+        "S019",
+        "S020"
+      ]
+    },
+    {
+      "admission_status": "LATENT_ONLY",
+      "claim_id": "C016",
+      "reason": "Evergreen dormancy/chilling physiology cannot be parameterized as zero; state remains latent/unbound.",
+      "source_evidence_class": "INSUFFICIENT_EVIDENCE",
+      "source_ids": [
+        "S024",
+        "S025",
+        "S026"
+      ]
+    },
+    {
+      "admission_status": "PROXY_ONLY",
+      "claim_id": "C024",
+      "reason": "Light/CO2-to-source-capacity relation is a proxy context only; no production coefficient.",
+      "source_evidence_class": "PLAUSIBLE_MODEL_ABSTRACTION",
+      "source_ids": [
+        "S030"
+      ]
+    },
+    {
+      "admission_status": "RESEARCH_ONLY",
+      "claim_id": "C027",
+      "reason": "Universal fruit-stage labels/thresholds are not established; stage names may be internal theoretical labels only.",
+      "source_evidence_class": "INSUFFICIENT_EVIDENCE",
+      "source_ids": [
+        "S002",
+        "S003",
+        "S043",
+        "S044"
+      ]
+    }
+  ],
+  "s0_authority": {
+    "authority_matrix_sha256": "1fecd24c4aa537d5617a960e15ab74ace260ad35e30e63d9fdbe89e59bf88294",
+    "causal_claim_register_sha256": "0ee8959db03f1ac28b226df06c00bf08c2427949b2f1e9de69a772bbd805d55a",
+    "conflict_register_sha256": "e5c17df1d33e3ef9dcc1d5d149598fa6a602a5c65a09f99d47e8040d42d94a91",
+    "evidence_sha256": "530106f7291ab3d92fe4b0a0d682efc0fc154149218acda71369f76e785449cf",
+    "parameter_candidate_register_sha256": "2d28f90e42eafeea14f252e96ed0c26e2bc6b78b1c8273263b5d2d32b1410325",
+    "report_sha256": "827725a44094e5e15643186fe8f82095adbff0bfc2b2ac549aca6600d06a4c13"
+  },
+  "serialization": {
+    "encoding": "UTF-8",
+    "final_newline": true,
+    "indent_spaces": 2,
+    "json_key_order": "LEXICOGRAPHIC",
+    "line_ending": "LF",
+    "non_finite_numbers_allowed": false
+  }
+}

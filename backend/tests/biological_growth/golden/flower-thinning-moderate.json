@@ -1,0 +1,1 @@
+{"scenario_id":"flower-thinning-moderate","production_system":"DECIDUOUS_NATURAL","parameter_overrides":{},"events":[{"day_offset":165,"event_type":"FLOWER_THINNING","intensity":0.35}]}

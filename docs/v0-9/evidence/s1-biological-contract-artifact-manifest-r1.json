@@ -1,0 +1,61 @@
+{
+  "contract_version": "V0_9_S1_R1",
+  "files": [
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/biological-state-registry-r1.json",
+      "role": "BIOLOGICAL_STATE_REGISTRY",
+      "sha256": "86f09a78565f06b73304d9e4f8232c96d7a91173ce8b5787d2b219c0baec719f"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/management-event-registry-r1.json",
+      "role": "MANAGEMENT_EVENT_REGISTRY",
+      "sha256": "49a29e972191e67f04a32d3f50c27705b44a6a2f5dca97f2400eef0aab1b0729"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/causal-edge-registry-r1.json",
+      "role": "CAUSAL_EDGE_REGISTRY",
+      "sha256": "24cbae1e8e369067836cb5352a552875c90183eb161eefadab879ac345a4c7f9"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/biological-state-contract-r1.md",
+      "role": "BIOLOGICAL_STATE_CONTRACT",
+      "sha256": "69449e6604afe2488eb4ad1658dbf591813941442400feaf51137c0c6fc17122"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/management-event-contract-r1.md",
+      "role": "MANAGEMENT_EVENT_CONTRACT",
+      "sha256": "0a16270673bf389272997b70d0c80c64acd38877c1f1995ac66f29482d6ab2fc"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/phenology-state-machine-r1.md",
+      "role": "PHENOLOGY_STATE_MACHINE",
+      "sha256": "7e555d6098858cbde3d72802982ecf13e20d9243b278cce95d2bc755f10b773e"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/parameter-authority-contract-r1.md",
+      "role": "PARAMETER_AUTHORITY_CONTRACT",
+      "sha256": "b8a2623bb32a9483cfae010ec55542868206a708a7367f86dc465762f6965c50"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/s1/biological-engine-harvest-state-interface-r1.md",
+      "role": "BIOLOGICAL_HARVEST_STATE_INTERFACE",
+      "sha256": "e63e225786c9bcd0523de054eaf1018f70ca23f9a06fdfd5397d99c1183d2175"
+    },
+    {
+      "contract_version": "V0_9_S1_R1",
+      "path": "docs/v0-9/evidence/s1-biological-state-and-management-event-contract-r1.json",
+      "role": "S1_MACHINE_EVIDENCE",
+      "sha256": "6b15a765e0d64643ebd657dc4bc6b254e416389e223a8b5ac8459275ed7f60b6"
+    }
+  ],
+  "manifest_self_sha256_excluded": true,
+  "task_id": "V0_9_S2_EXISTING_DATA_OBSERVABILITY_AND_GAP_AUDIT_R1"
+}

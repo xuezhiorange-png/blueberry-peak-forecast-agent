@@ -1,0 +1,9 @@
+module,contract_status,data_status,readiness,reason
+Phenology Engine,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,"S1 transitions exist, but no direct bloom/bud phenology history and no accepted continuous temperature series; no chill/forcing model selected."
+Crop Load Engine,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,"No authorized flower-load, pollination, fruit-set or fruit-number observations; thinning execution not recorded."
+Source-Sink Proxy,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,Composite states have no validated observed proxy bundle; carbohydrate reserve is latent and exact formula unbound.
+Bloom Cohort,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,No bloom cohort date/quantity/provenance rows or lineage.
+Fruit Cohort,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,No bloom→fruit-set→color-break→ripe cohort linkage; harvest is not a maturity cohort observation.
+Maturity Engine,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,No color-break or ripe observations and no cohort calibration; only harvest output is available.
+InterSeason Carryover,CONTRACT_READY,BLOCKED,SYNTHETIC_ONLY,No postharvest vigor/reserve/bud-potential observations; cross-season yield is not a substitute.
+Biological→Harvest Interface,CONTRACT_READY,PROXY_READY,CONTRACT_READY,"S1 interface is frozen and historical daily harvest output exists, but daily newly mature biological supply is not observed; interface test inputs must be synthetic/proxy-labeled."

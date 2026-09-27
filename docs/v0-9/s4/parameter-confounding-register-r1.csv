@@ -1,0 +1,10 @@
+confounding_id,enterprise_data_used,mechanism,minimum_disambiguating_observations,parameter_group,status
+CF001,false,Only resulting fruit count is observed,flower-bud cohort count; effective flowers; fruit-set sample with denominator,FLOWER_BUD_COUNT_X_FRUIT_SET_PROBABILITY,CONDITIONALLY_IDENTIFIABLE
+CF002,false,Pollination opportunity and cultivar fruit-set response can produce the same set count,pollination window/opportunity plus matched flower and fruit-set observations,POLLINATION_SUFFICIENCY_X_FRUIT_SET_RESPONSE,CONFOUNDED
+CF003,false,Area-level mass is their product,plant density census and per-plant cohort/ripe-mass observation,PLANT_DENSITY_X_PER_PLANT_PRODUCTIVITY,CONDITIONALLY_IDENTIFIABLE
+CF004,false,Composite supply and response coefficient can compensate,leaf/canopy/radiation proxy plus repeated fruit growth and crop-load observations,SOURCE_CAPACITY_X_SOURCE_SINK_MODIFIER,CONFOUNDED
+CF005,false,Same phenology date shift can be produced by threshold or microclimate change,inside hourly temperature plus independent budbreak/bloom anchors,THERMAL_REQUIREMENT_X_GREENHOUSE_TEMPERATURE_EFFECT,CONDITIONALLY_IDENTIFIABLE
+CF006,false,Alternative response curves and cultivar threshold may explain similar release timing,same hourly record across winters and direct dormancy/budbreak anchors; keep candidate family identity,CHILL_MODEL_FAMILY_X_CULTIVAR_CHILL_REQUIREMENT,CONFOUNDED
+CF007,false,Mature mass observes the product unless size and grade are separately sampled,cohort berry-weight sample plus independent marketable-grade sample,BERRY_WEIGHT_X_MARKETABLE_FRACTION,CONDITIONALLY_IDENTIFIABLE
+CF008,false,Final fruit quantity alone does not isolate initial bloom from losses,tagged bloom cohort and repeated set/retention counts,BLOOM_COHORT_SIZE_X_FRUIT_RETENTION,CONFOUNDED
+CF009,false,Both latent carryover indices contribute to next-season bud potential,"postharvest reserve proxy/assay, vigor, and next-season bud census",RESERVE_CARRYOVER_X_VIGOR_CARRYOVER,OBSERVATION_DEPENDENT

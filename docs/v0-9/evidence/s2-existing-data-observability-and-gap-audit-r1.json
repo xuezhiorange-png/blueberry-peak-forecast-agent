@@ -1,0 +1,300 @@
+{
+  "asset_findings": {
+    "accepted_area_base_season_rows": 117,
+    "accepted_area_mu_per_season": 41335,
+    "benchmark_2025_2026_consumed": true,
+    "benchmark_2025_2026_leakage_class": "AUDIT_ONLY",
+    "benchmark_reuse_for_selection_allowed": false,
+    "canonical_base_count": 39,
+    "canonical_daily_harvest_rows": 33033,
+    "chilling_derivability": "CANNOT_DERIVE",
+    "complete_daily_curves_by_season": {
+      "2023-2024": 15,
+      "2024-2025": 22,
+      "2025-2026": 39
+    },
+    "cultivar_area_grain": "CULTIVAR_GRAIN_LIMITATION",
+    "ecmwf_forecast_snapshots": {
+      "base_count": 39,
+      "count": 156,
+      "horizons": 4,
+      "indoor_microclimate": false,
+      "role": "PROSPECTIVE_ONLY"
+    },
+    "era5_accepted_normalized_hourly_or_daily_rows": 0,
+    "era5_crs_established": false,
+    "era5_r3_pending_requests": 91,
+    "forcing_derivability": "CANNOT_DERIVE",
+    "greenhouse_hourly_temperature": "NEW_COLLECTION_REQUIRED",
+    "harvest_is_maturity_observation": false,
+    "live_database_content": "NOT_ASSESSED_BY_SCOPE",
+    "management_event_types_with_executed_records": 0,
+    "phenology_direct_observations": 0,
+    "production_system_assignments": {
+      "candidate_base_season_count": 117,
+      "inference_from_region_or_cultivar": false,
+      "observed_assignments": 0,
+      "status": "BUSINESS_CONFIRMATION_REQUIRED"
+    },
+    "raw_receipts": {
+      "HARVEST_RAW_2024_2025": {
+        "date_max": "2025-05-27",
+        "date_min": "2024-07-01",
+        "dates_beyond_frozen_season_end": 42,
+        "frozen_season_end": "2025-04-15",
+        "rows": 201434,
+        "sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+        "unique_dates": 323
+      },
+      "HARVEST_RAW_2025_2026": {
+        "date_max": "2026-04-16",
+        "date_min": "2025-07-22",
+        "dates_beyond_frozen_season_end": 1,
+        "frozen_season_end": "2026-04-15",
+        "rows": 232527,
+        "sha256": "66c4de6ddab4d8e3962eaaba0aab1b6ddcefff9f2605b36c950af3848e2a9c0b",
+        "unique_dates": 229
+      }
+    },
+    "training_rows": 37,
+    "training_split": {
+      "2023-2024": 15,
+      "2024-2025": 22
+    }
+  },
+  "authority_pins": {
+    "s0_authority_pinned": true,
+    "s0_hashes": {
+      "docs/v0-9/evidence/s0-global-protected-blueberry-biology-and-management-authority-review-r1.json": "530106f7291ab3d92fe4b0a0d682efc0fc154149218acda71369f76e785449cf",
+      "docs/v0-9/s0/biological-causal-claim-register-r1.csv": "0ee8959db03f1ac28b226df06c00bf08c2427949b2f1e9de69a772bbd805d55a",
+      "docs/v0-9/s0/evidence-conflict-and-uncertainty-register-r1.csv": "e5c17df1d33e3ef9dcc1d5d149598fa6a602a5c65a09f99d47e8040d42d94a91",
+      "docs/v0-9/s0/global-protected-blueberry-biology-and-management-authority-review-r1.md": "827725a44094e5e15643186fe8f82095adbff0bfc2b2ac549aca6600d06a4c13",
+      "docs/v0-9/s0/literature-parameter-candidate-register-r1.csv": "2d28f90e42eafeea14f252e96ed0c26e2bc6b78b1c8273263b5d2d32b1410325",
+      "docs/v0-9/s0/scientific-authority-matrix-r1.csv": "1fecd24c4aa537d5617a960e15ab74ace260ad35e30e63d9fdbe89e59bf88294"
+    },
+    "s1_contract_version": "V0_9_S1_R1",
+    "s1_files": {
+      "docs/v0-9/evidence/s1-biological-state-and-management-event-contract-r1.json": "6b15a765e0d64643ebd657dc4bc6b254e416389e223a8b5ac8459275ed7f60b6",
+      "docs/v0-9/s1/biological-engine-harvest-state-interface-r1.md": "e63e225786c9bcd0523de054eaf1018f70ca23f9a06fdfd5397d99c1183d2175",
+      "docs/v0-9/s1/biological-state-contract-r1.md": "69449e6604afe2488eb4ad1658dbf591813941442400feaf51137c0c6fc17122",
+      "docs/v0-9/s1/biological-state-registry-r1.json": "86f09a78565f06b73304d9e4f8232c96d7a91173ce8b5787d2b219c0baec719f",
+      "docs/v0-9/s1/causal-edge-registry-r1.json": "24cbae1e8e369067836cb5352a552875c90183eb161eefadab879ac345a4c7f9",
+      "docs/v0-9/s1/management-event-contract-r1.md": "0a16270673bf389272997b70d0c80c64acd38877c1f1995ac66f29482d6ab2fc",
+      "docs/v0-9/s1/management-event-registry-r1.json": "49a29e972191e67f04a32d3f50c27705b44a6a2f5dca97f2400eef0aab1b0729",
+      "docs/v0-9/s1/parameter-authority-contract-r1.md": "b8a2623bb32a9483cfae010ec55542868206a708a7367f86dc465762f6965c50",
+      "docs/v0-9/s1/phenology-state-machine-r1.md": "7e555d6098858cbde3d72802982ecf13e20d9243b278cce95d2bc755f10b773e"
+    },
+    "s1_manifest_path": "docs/v0-9/evidence/s1-biological-contract-artifact-manifest-r1.json",
+    "s1_manifest_sha256": "8ea4d508010e55c4996142ec96c389a91a356f78966e8f5d4fb4e449ef611381"
+  },
+  "base_main_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "branch": "codex/v0-9-version-plan-scope-freeze-r1",
+  "coverage": {
+    "actual_observability_status_counts": {
+      "AVAILABLE": 3,
+      "BUSINESS_CONFIRMATION_REQUIRED": 35,
+      "DERIVABLE": 3,
+      "NEW_COLLECTION_REQUIRED": 99,
+      "PROXY_AVAILABLE": 9,
+      "UNOBSERVABLE": 64
+    },
+    "biological_state_field_count": 33,
+    "bloom_and_fruit_cohort_field_count": 26,
+    "causal_edge_count": 33,
+    "environment_input_count": 10,
+    "management_event_metadata_field_count": 18,
+    "management_event_type_count": 29,
+    "management_event_types_with_existing_actual_data": 0,
+    "management_event_types_without_existing_actual_data": 29,
+    "matrix_contract_coverage": {
+      "biological_state_fields": 33,
+      "bloom_fruit_cohort_fields": 26,
+      "causal_edges": 33,
+      "environment_inputs": 10,
+      "environment_observation_metadata": 6,
+      "literature_parameter_candidates": 25,
+      "management_event_metadata_fields": 18,
+      "management_event_types": 29,
+      "parameter_authority_types": 6,
+      "parameter_contract_fields": 13,
+      "phenology_states": 21,
+      "production_systems": 3,
+      "quarantined_mechanisms": 6
+    },
+    "matrix_duplicate_variable_id_count": 0,
+    "matrix_row_count": 252,
+    "non_variable_evidence_items_audited": 39,
+    "phenology_state_count": 21,
+    "phenology_states_derivable": 0,
+    "phenology_states_directly_observable": 0,
+    "phenology_states_proxy_only": 2,
+    "phenology_states_unobservable": 1,
+    "production_system_count": 3,
+    "total_contract_variables_audited": 213
+  },
+  "data_source_authority_register_summary": {
+    "NOT_ASSESSED_BY_SCOPE": 1,
+    "PARTIAL_NOT_ACCEPTED": 1,
+    "PRESENT": 11,
+    "SCHEMA_ONLY": 2,
+    "TEMPLATE_ONLY": 5
+  },
+  "deliverables": [
+    {
+      "path": "docs/v0-9/s2/existing-data-observability-and-gap-audit-r1.md",
+      "role": "S2_REPORT",
+      "sha256": "0c1bc1c11c5130a90a510359951e37af04183c92d3ee5bd4e7f5432ca4cf53de"
+    },
+    {
+      "path": "docs/v0-9/s2/biological-data-observability-matrix-r1.csv",
+      "role": "OBSERVABILITY_MATRIX",
+      "sha256": "4ea8d9928e95de6b774ae4a4dd5cc7b1b06c7d736411443d707ab6503cf3b35a"
+    },
+    {
+      "path": "docs/v0-9/s2/data-source-authority-register-r1.csv",
+      "role": "SOURCE_AUTHORITY_REGISTER",
+      "sha256": "48fe452729f5f57d946e7e4fc31973ecc3bf7f8824c9cce5d88e1ad53049bd3f"
+    },
+    {
+      "path": "docs/v0-9/s2/minimum-viable-biological-input-set-r1.csv",
+      "role": "MINIMUM_VIABLE_INPUT_SET",
+      "sha256": "8486fcbe9d222235eddc0228c75478189a6ee867fc7d946ce58b1b8e3e05bf78"
+    },
+    {
+      "path": "docs/v0-9/s2/minimum-new-data-collection-plan-r1.csv",
+      "role": "DATA_COLLECTION_PLAN",
+      "sha256": "c2624d3b3476c56860ac96e35203b35cbb428cc9bca68850a3c8c7f912d470c1"
+    },
+    {
+      "path": "docs/v0-9/s2/s3-prototype-readiness-matrix-r1.csv",
+      "role": "S3_READINESS_MATRIX",
+      "sha256": "052f7150d7c21894dbd0d709305c31acf303eabc5590c9bef4f53fefece3f58d"
+    },
+    {
+      "path": "docs/v0-9/evidence/s1-biological-contract-artifact-manifest-r1.json",
+      "role": "S1_ARTIFACT_MANIFEST",
+      "sha256": "8ea4d508010e55c4996142ec96c389a91a356f78966e8f5d4fb4e449ef611381"
+    }
+  ],
+  "evidence_self_sha256_excluded": true,
+  "head_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "leakage_policy": {
+    "2023_2024_and_2024_2025": "TRAINING_ELIGIBLE only for previously authorized historical target/calibration scope; this task performs no parameter selection",
+    "2025_2026": "AUDIT_ONLY",
+    "benchmark_2025_2026_consumed": true,
+    "benchmark_reuse_for_selection_allowed": false,
+    "ecmwf_snapshots": "PROSPECTIVE_ONLY"
+  },
+  "private_artifact_policy": {
+    "absolute_paths_in_public_outputs": false,
+    "private_roots_disclosed_as": "logical source IDs and SHA-256 only",
+    "private_row_level_data_republished": false
+  },
+  "readiness": {
+    "current_max_feasible_level": "LEVEL_1_HISTORICAL_PROXY_MODEL",
+    "interpretation": "Only coarse historical harvest/yield proxy modeling has real data support; biological state transitions and maturity cohorts remain synthetic-only, not an S3 biological model readiness claim.",
+    "minimum_collection_priority_counts": {
+      "P0": 8,
+      "P1": 5,
+      "P2": 4
+    },
+    "s3_modules": [
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "Phenology Engine",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "S1 transitions exist, but no direct bloom/bud phenology history and no accepted continuous temperature series; no chill/forcing model selected."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "Crop Load Engine",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "No authorized flower-load, pollination, fruit-set or fruit-number observations; thinning execution not recorded."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "Source-Sink Proxy",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "Composite states have no validated observed proxy bundle; carbohydrate reserve is latent and exact formula unbound."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "Bloom Cohort",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "No bloom cohort date/quantity/provenance rows or lineage."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "Fruit Cohort",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "No bloom→fruit-set→color-break→ripe cohort linkage; harvest is not a maturity cohort observation."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "Maturity Engine",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "No color-break or ripe observations and no cohort calibration; only harvest output is available."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "BLOCKED",
+        "module": "InterSeason Carryover",
+        "readiness": "SYNTHETIC_ONLY",
+        "reason": "No postharvest vigor/reserve/bud-potential observations; cross-season yield is not a substitute."
+      },
+      {
+        "contract_status": "CONTRACT_READY",
+        "data_status": "PROXY_READY",
+        "module": "Biological→Harvest Interface",
+        "readiness": "CONTRACT_READY",
+        "reason": "S1 interface is frozen and historical daily harvest output exists, but daily newly mature biological supply is not observed; interface test inputs must be synthetic/proxy-labeled."
+      }
+    ],
+    "top_data_gaps": [
+      "production system and cultivar-area binding",
+      "direct phenology anchors",
+      "greenhouse hourly temperature and forcing event history",
+      "pruning/thinning executed-event logs",
+      "fruit-set and color-break observations",
+      "source/crop-load observation proxies"
+    ]
+  },
+  "result": "PASS_V0_9_S2_DATA_OBSERVABILITY_AUDIT_COMPLETED",
+  "scope": {
+    "backtest_executed": false,
+    "bounded_inventory_only": true,
+    "deployment_performed": false,
+    "full_filesystem_rescan": false,
+    "live_database_queried": false,
+    "model_code_changed": false,
+    "model_refit": false,
+    "model_trained": false,
+    "parameter_fitting": false,
+    "parameter_selection": false,
+    "s3_started": false,
+    "s4_started": false
+  },
+  "task_id": "V0_9_S2_EXISTING_DATA_OBSERVABILITY_AND_GAP_AUDIT_R1",
+  "validation": {
+    "all_authority_statuses_valid": true,
+    "all_observability_statuses_valid": true,
+    "data_source_authority_register_complete": true,
+    "full_s1_contract_coverage": true,
+    "matrix_duplicate_variable_id_count": 0,
+    "matrix_missing_source_hash_count": 0,
+    "no_absolute_private_paths": true,
+    "s0_hash_pins": "PASS",
+    "s1_manifest_hashes": "PASS",
+    "s1_not_ready_mechanisms_quarantined": 6,
+    "source_register_duplicate_id_count": 0,
+    "unauthorized_mechanism_promotion_count": 0
+  },
+  "version": "0.9.0",
+  "version_name": "BLUEBERRY_FORECAST_AGENT_V0_9_BIOLOGICAL_FORECAST_FOUNDATION"
+}
