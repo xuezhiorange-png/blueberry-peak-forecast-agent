@@ -1,0 +1,21 @@
+{
+  "manifest_version": "V0_9_S3_GOLDEN_SCENARIOS_R1",
+  "lifecycle": "SYNTHETIC_REFERENCE_ONLY",
+  "production_parameter": false,
+  "scenarios": [
+    "deciduous-natural",
+    "deciduous-forcing",
+    "evergreen",
+    "pruning-light",
+    "pruning-heavy",
+    "flower-thinning-none",
+    "flower-thinning-moderate",
+    "crop-load-low",
+    "crop-load-high",
+    "pollination-low",
+    "pollination-high"
+  ],
+  "parameter_authority": "MODEL_ASSUMPTION_OR_LITERATURE_PRIOR; NEVER_PRODUCTION_ELIGIBLE",
+  "explicit_chill_model_candidate": "CHILL_HOURS",
+  "chill_model_candidate_lifecycle": "TEST_FIXTURE_ONLY_NOT_A_PRODUCTION_DEFAULT"
+}

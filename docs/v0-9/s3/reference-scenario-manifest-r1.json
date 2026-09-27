@@ -1,0 +1,111 @@
+{
+  "manifest_version": "V0_9_S3_REFERENCE_SCENARIOS_R1",
+  "lifecycle": "SYNTHETIC_THEORETICAL_REFERENCE_ONLY",
+  "golden_scenario_chill_model_candidate": "CHILL_HOURS",
+  "golden_scenario_chill_model_lifecycle": "FIXTURE_ONLY; SIMULATOR_REQUIRES_EXPLICIT_MODEL_SELECTION",
+  "production_parameter": false,
+  "business_data_used": false,
+  "historical_harvest_used_for_fitting": false,
+  "benchmark_2025_2026_read": false,
+  "scenarios": [
+    {
+      "scenario_id": "deciduous-natural",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/deciduous-natural.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M001", "M006", "M012"]
+    },
+    {
+      "scenario_id": "deciduous-forcing",
+      "production_system": "DECIDUOUS_FORCING",
+      "golden_fixture": "backend/tests/biological_growth/golden/deciduous-forcing.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M001", "M015", "M016"]
+    },
+    {
+      "scenario_id": "evergreen",
+      "production_system": "EVERGREEN",
+      "cultivar_pathway_binding": "EVERBEARING; evergreen_dormancy_bypass=true; fixture-specific only",
+      "golden_fixture": "backend/tests/biological_growth/golden/evergreen.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M005"]
+    },
+    {
+      "scenario_id": "pruning-light",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/pruning-light.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M008"]
+    },
+    {
+      "scenario_id": "pruning-heavy",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/pruning-heavy.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M008"]
+    },
+    {
+      "scenario_id": "flower-thinning-none",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/flower-thinning-none.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M007", "M017"]
+    },
+    {
+      "scenario_id": "flower-thinning-moderate",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/flower-thinning-moderate.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M007", "M017"]
+    },
+    {
+      "scenario_id": "crop-load-low",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/crop-load-low.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M007", "M010", "M017"]
+    },
+    {
+      "scenario_id": "crop-load-high",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/crop-load-high.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M007", "M010", "M017"]
+    },
+    {
+      "scenario_id": "pollination-low",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/pollination-low.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M013", "M020"]
+    },
+    {
+      "scenario_id": "pollination-high",
+      "production_system": "DECIDUOUS_NATURAL",
+      "golden_fixture": "backend/tests/biological_growth/golden/pollination-high.json",
+      "synthetic_climate_source": "backend.tests.biological_growth.scenario_factory",
+      "mechanism_sources": ["M013", "M020"]
+    }
+  ],
+  "parameter_authority": "MODEL_ASSUMPTION_OR_GENERIC_LITERATURE_PRIOR",
+  "fruit_growth_curve_default": "DOUBLE_LOGISTIC",
+  "fruit_growth_curve_alternatives": [
+    "DOUBLE_GOMPERTZ",
+    "STAGEWISE_THERMAL"
+  ],
+  "fruit_growth_curve_lifecycle": "THEORETICAL_REFERENCE_ONLY_NOT_SELECTED_BY_ENTERPRISE_OR_BENCHMARK_DATA",
+  "dormancy_treatment_parameter_lifecycle": "EXPLICIT_SYNTHETIC_SCENARIO_ASSUMPTION_NOT_PRODUCTION_EFFICACY",
+  "s0_not_ready_claims_quarantined_from_production_parameterization": [
+    "C005",
+    "C009",
+    "C011",
+    "C016",
+    "C024",
+    "C027"
+  ],
+  "unauthorized_mechanism_promotion_count": 0,
+  "parameter_policy": "No production defaults; every numerical value is scoped to a synthetic reference simulation",
+  "temperature_generation": "Deterministic analytic seasonal daily mean plus hourly sinusoidal variation; not weather data",
+  "random_seed": null,
+  "randomness_used": false
+}

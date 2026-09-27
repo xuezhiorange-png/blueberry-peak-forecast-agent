@@ -1,0 +1,957 @@
+{
+  "contract_kind": "MANAGEMENT_EVENT_REGISTRY",
+  "contract_version": "V0_9_S1_R1",
+  "counts": {
+    "management_event_type_count": 29
+  },
+  "event_authority_levels": [
+    "BUSINESS_CONFIRMED",
+    "DIRECT_OBSERVED",
+    "DERIVED_FROM_RECORD",
+    "USER_REPORTED_UNVERIFIED",
+    "PLANNED_AUTHORIZED",
+    "UNVERIFIED"
+  ],
+  "event_types": [
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "PRUNING",
+      "family": "PRUNING",
+      "primary_targets": [
+        "fruiting_wood_index",
+        "flower_bud_density",
+        "canopy_retention_ratio",
+        "shoot_growth_state"
+      ],
+      "prohibited_shortcut": "yield_multiplier",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "POSTHARVEST_PRUNING",
+      "family": "PRUNING",
+      "primary_targets": [
+        "fruiting_wood_index",
+        "flower_bud_density",
+        "canopy_retention_ratio",
+        "shoot_growth_state"
+      ],
+      "prohibited_shortcut": "next_season_yield_penalty",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "SUMMER_PRUNING",
+      "family": "PRUNING",
+      "primary_targets": [
+        "fruiting_wood_index",
+        "canopy_retention_ratio",
+        "shoot_growth_state"
+      ],
+      "prohibited_shortcut": "fixed_ripening_date_offset",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "WINTER_PRUNING",
+      "family": "PRUNING",
+      "primary_targets": [
+        "fruiting_wood_index",
+        "flower_bud_density",
+        "canopy_retention_ratio"
+      ],
+      "prohibited_shortcut": "universal_crop_load_ratio",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "DORMANT_PRUNING",
+      "family": "PRUNING",
+      "primary_targets": [
+        "fruiting_wood_index",
+        "flower_bud_density",
+        "canopy_retention_ratio"
+      ],
+      "prohibited_shortcut": "assumed_dormancy_in_evergreen",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "CANE_RENEWAL",
+      "family": "PRUNING",
+      "primary_targets": [
+        "cane_age_structure",
+        "productive_shoot_density",
+        "fruiting_wood_index"
+      ],
+      "prohibited_shortcut": "immediate_yield_multiplier",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C004",
+        "C025"
+      ],
+      "event_type": "FRUITING_WOOD_THINNING",
+      "family": "PRUNING",
+      "primary_targets": [
+        "fruiting_wood_index",
+        "flower_bud_density",
+        "canopy_retention_ratio"
+      ],
+      "prohibited_shortcut": "flower_thinning_equivalence",
+      "source_ids": [
+        "S008",
+        "S010",
+        "S011",
+        "S012",
+        "S014"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C006",
+        "C007"
+      ],
+      "event_type": "FLOWER_BUD_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT",
+      "primary_targets": [
+        "flower_bud_density",
+        "effective_flower_load"
+      ],
+      "prohibited_shortcut": "fruiting_wood_removal_by_implication",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S012"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C006",
+        "C007"
+      ],
+      "event_type": "FLOWER_REMOVAL",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT",
+      "primary_targets": [
+        "effective_flower_load"
+      ],
+      "prohibited_shortcut": "pruning_equivalence",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S012"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C006",
+        "C007"
+      ],
+      "event_type": "FLOWER_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT",
+      "primary_targets": [
+        "effective_flower_load"
+      ],
+      "prohibited_shortcut": "direct_proportional_yield_reduction",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S012"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C007"
+      ],
+      "event_type": "FRUITLET_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT",
+      "primary_targets": [
+        "fruit_number_proxy",
+        "crop_load_index"
+      ],
+      "prohibited_shortcut": "flower_bud_or_canopy_change_by_implication",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S012"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C007"
+      ],
+      "event_type": "FRUIT_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT",
+      "primary_targets": [
+        "fruit_number_proxy",
+        "crop_load_index"
+      ],
+      "prohibited_shortcut": "exact_berry_weight_increase_without_calibration",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S012"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C022",
+        "C023"
+      ],
+      "event_type": "GREENHOUSE_CLOSE",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "air_temperature",
+        "relative_humidity",
+        "radiation_or_light_proxy",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "harvest_date_shift",
+      "source_ids": [
+        "S015",
+        "S027",
+        "S029",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C022",
+        "C023"
+      ],
+      "event_type": "GREENHOUSE_OPEN",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "air_temperature",
+        "relative_humidity",
+        "radiation_or_light_proxy",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "direct_harvest_output",
+      "source_ids": [
+        "S015",
+        "S027",
+        "S029",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C013",
+        "C022"
+      ],
+      "event_type": "HEATING_START",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "air_temperature",
+        "root_zone_temperature",
+        "forcing_accumulation",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "assumed_chill_satisfaction",
+      "source_ids": [
+        "S015",
+        "S017",
+        "S023",
+        "S027",
+        "S029",
+        "S030",
+        "S031",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C013",
+        "C022"
+      ],
+      "event_type": "HEATING_STOP",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "air_temperature",
+        "root_zone_temperature",
+        "forcing_accumulation",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "fixed_phenology_end",
+      "source_ids": [
+        "S015",
+        "S017",
+        "S023",
+        "S027",
+        "S029",
+        "S030",
+        "S031",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING"
+      ],
+      "claim_ids": [
+        "C014"
+      ],
+      "event_type": "DORMANCY_BREAK_TREATMENT",
+      "family": "DORMANCY_MANAGEMENT",
+      "primary_targets": [
+        "dormancy_state",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "equivalent_to_chill_accumulation_or_guaranteed_release",
+      "source_ids": [
+        "S021",
+        "S022",
+        "S023",
+        "S029"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C022"
+      ],
+      "event_type": "SHADE_START",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "radiation_or_light_proxy",
+        "leaf_area_proxy",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "direct_yield_scalar",
+      "source_ids": [
+        "S015",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C022"
+      ],
+      "event_type": "SHADE_STOP",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "radiation_or_light_proxy",
+        "leaf_area_proxy",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "automatic_canopy_recovery",
+      "source_ids": [
+        "S015",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C022"
+      ],
+      "event_type": "SHADE_APPLICATION",
+      "family": "PROTECTED_ENVIRONMENT",
+      "primary_targets": [
+        "radiation_or_light_proxy",
+        "leaf_area_proxy",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "same_semantics_as_heating_or_dormancy_treatment",
+      "source_ids": [
+        "S015",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "EVERGREEN",
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING"
+      ],
+      "claim_ids": [
+        "C015"
+      ],
+      "event_type": "LEAF_RETENTION_MANAGEMENT",
+      "family": "CANOPY_MANAGEMENT",
+      "primary_targets": [
+        "canopy_retention_ratio",
+        "shoot_growth_state",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "automatic_evergreen_system_assignment",
+      "source_ids": [
+        "S001",
+        "S024",
+        "S025",
+        "S026"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "EVERGREEN",
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING"
+      ],
+      "claim_ids": [
+        "C015"
+      ],
+      "event_type": "DEFOLIATION",
+      "family": "CANOPY_MANAGEMENT",
+      "primary_targets": [
+        "canopy_retention_ratio",
+        "leaf_area_proxy",
+        "phenology_stage"
+      ],
+      "prohibited_shortcut": "assumed_dormancy_or_zero_chill",
+      "source_ids": [
+        "S001",
+        "S024",
+        "S025",
+        "S026"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "event_type": "POLLINATION_WINDOW_START",
+      "family": "POLLINATION",
+      "primary_targets": [
+        "pollination_state"
+      ],
+      "prohibited_shortcut": "fertilization_assertion",
+      "source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "event_type": "POLLINATION_WINDOW_END",
+      "family": "POLLINATION",
+      "primary_targets": [
+        "pollination_state"
+      ],
+      "prohibited_shortcut": "fruit_set_assertion",
+      "source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "event_type": "POLLINATION_START",
+      "family": "POLLINATION",
+      "primary_targets": [
+        "pollination_state"
+      ],
+      "prohibited_shortcut": "pollinator_optimization",
+      "source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "event_type": "POLLINATION_END",
+      "family": "POLLINATION",
+      "primary_targets": [
+        "pollination_state"
+      ],
+      "prohibited_shortcut": "fruit_set_assertion",
+      "source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C017"
+      ],
+      "event_type": "POLLINATOR_INTRODUCTION",
+      "family": "POLLINATION",
+      "primary_targets": [
+        "pollination_state"
+      ],
+      "prohibited_shortcut": "pollination_success_from_presence_alone",
+      "source_ids": [
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C008",
+        "C022"
+      ],
+      "event_type": "IRRIGATION_STRESS",
+      "family": "WATER_NUTRITION",
+      "primary_targets": [
+        "source_capacity_proxy",
+        "shoot_growth_state",
+        "fruit_set_ratio",
+        "crop_load_index"
+      ],
+      "prohibited_shortcut": "exact_fruit_drop_or_yield_coefficient",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S013",
+        "S015",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "claim_ids": [
+        "C008",
+        "C022"
+      ],
+      "event_type": "NUTRITION_INTERVENTION",
+      "family": "WATER_NUTRITION",
+      "primary_targets": [
+        "source_capacity_proxy",
+        "shoot_growth_state",
+        "fruit_set_ratio",
+        "crop_load_index"
+      ],
+      "prohibited_shortcut": "exact_source_capacity_or_yield_coefficient",
+      "source_ids": [
+        "S008",
+        "S009",
+        "S013",
+        "S015",
+        "S027",
+        "S030",
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S042"
+      ]
+    }
+  ],
+  "generic_fields": [
+    {
+      "constraint": "unique_and_immutable",
+      "field_id": "event_id",
+      "required": true,
+      "type": "string"
+    },
+    {
+      "constraint": "exactly_one_canonical_type_per_event",
+      "field_id": "event_type",
+      "required": true,
+      "type": "registered_event_type"
+    },
+    {
+      "constraint": "no_time_precision_invention",
+      "field_id": "event_date",
+      "required": true,
+      "type": "local_date"
+    },
+    {
+      "constraint": "if_present_interval_must_be_ordered",
+      "field_id": "start_datetime",
+      "required": false,
+      "type": "timezone_aware_datetime_or_null"
+    },
+    {
+      "constraint": "if_present_interval_must_be_ordered",
+      "field_id": "end_datetime",
+      "required": false,
+      "type": "timezone_aware_datetime_or_null"
+    },
+    {
+      "constraint": "null_requires_unresolved_scope_status",
+      "field_id": "farm_id",
+      "required": true,
+      "type": "string_or_null"
+    },
+    {
+      "constraint": "preserve_source_grain",
+      "field_id": "subfarm_id",
+      "required": false,
+      "type": "string_or_null"
+    },
+    {
+      "constraint": "no_name_similarity_inference",
+      "field_id": "cultivar_id",
+      "required": false,
+      "type": "string_or_null"
+    },
+    {
+      "constraint": "explicit_source_or_confirmation",
+      "field_id": "production_system",
+      "required": true,
+      "type": "registered_system_or_UNBOUND"
+    },
+    {
+      "constraint": "must_not_be_harvest_date_or_yield_multiplier",
+      "field_id": "target_state",
+      "required": true,
+      "type": "array_of_registered_state_or_driver_ids"
+    },
+    {
+      "field_id": "intensity_mode",
+      "required": true,
+      "type": "enum",
+      "values": [
+        "OBSERVED_VALUE",
+        "BUSINESS_GRADE",
+        "PRESENCE_ONLY",
+        "PLANNED_VALUE"
+      ]
+    },
+    {
+      "constraint": "numeric_value_requires_denominator_method_and_unit",
+      "field_id": "intensity_value",
+      "required": false,
+      "type": "typed_scalar_or_null"
+    },
+    {
+      "constraint": "must_match_intensity_value_representation",
+      "field_id": "intensity_unit",
+      "required": false,
+      "type": "unit_id_or_null"
+    },
+    {
+      "field_id": "source_type",
+      "required": true,
+      "type": "registered_source_type"
+    },
+    {
+      "field_id": "source_reference",
+      "required": true,
+      "type": "stable_reference"
+    },
+    {
+      "field_id": "authority_level",
+      "required": true,
+      "type": "event_authority_enum",
+      "values": [
+        "BUSINESS_CONFIRMED",
+        "DIRECT_OBSERVED",
+        "DERIVED_FROM_RECORD",
+        "USER_REPORTED_UNVERIFIED",
+        "PLANNED_AUTHORIZED",
+        "UNVERIFIED"
+      ]
+    },
+    {
+      "field_id": "observed_or_planned",
+      "required": true,
+      "type": "enum",
+      "values": [
+        "OBSERVED",
+        "PLANNED",
+        "UNKNOWN"
+      ]
+    },
+    {
+      "constraint": "non_authoritative_context_only",
+      "field_id": "notes",
+      "required": false,
+      "type": "string_or_null"
+    }
+  ],
+  "intensity_contract": {
+    "allowed_modes": [
+      "OBSERVED_VALUE",
+      "BUSINESS_GRADE",
+      "PRESENCE_ONLY",
+      "PLANNED_VALUE"
+    ],
+    "business_grade_mapping_status": "UNBOUND_REQUIRES_CALIBRATION",
+    "business_grades": [
+      "LIGHT",
+      "MODERATE",
+      "HEAVY"
+    ],
+    "numeric_intensity_requires": [
+      "value",
+      "unit",
+      "denominator",
+      "method",
+      "scope",
+      "source_reference"
+    ],
+    "numeric_response_authorized": false
+  },
+  "non_inference_rules": [
+    "MANAGEMENT_EVENT_DOES_NOT_DIRECTLY_SET_HARVEST_DATE",
+    "MANAGEMENT_EVENT_DOES_NOT_DIRECTLY_SET_SEASON_YIELD",
+    "FLOWER_THINNING_DOES_NOT_TARGET_FRUITING_WOOD_BY_IMPLICATION",
+    "POLLINATOR_PRESENCE_DOES_NOT_ASSERT_FERTILIZATION",
+    "PLANNED_EVENT_IS_NOT_OBSERVED_HISTORY"
+  ],
+  "optional_pruning_measurements": [
+    {
+      "field_id": "fruiting_wood_removed_ratio",
+      "nullable": true,
+      "required_metadata": [
+        "before_after_denominator",
+        "scope",
+        "method",
+        "source_reference"
+      ],
+      "unit": "ratio_0_1"
+    },
+    {
+      "field_id": "flower_bud_removed_ratio",
+      "nullable": true,
+      "required_metadata": [
+        "before_after_denominator",
+        "scope",
+        "method",
+        "source_reference"
+      ],
+      "unit": "ratio_0_1"
+    }
+  ],
+  "serialization": {
+    "encoding": "UTF-8",
+    "final_newline": true,
+    "indent_spaces": 2,
+    "json_key_order": "LEXICOGRAPHIC",
+    "line_ending": "LF",
+    "non_finite_numbers_allowed": false
+  }
+}

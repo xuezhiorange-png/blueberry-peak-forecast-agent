@@ -1,0 +1,7 @@
+admission_status,claim_id,reason,source_evidence_class,source_ids
+RESEARCH_ONLY,C005,Timing-specific pruning cross-year response is not parameter-ready; no event-timing coefficient.,INSUFFICIENT_EVIDENCE,"[""S007"",""S010"",""S011"",""S014""]"
+PROXY_ONLY,C009,Source/sink state can be represented only as a declared proxy; exact ratio/formula remains unbound.,PLAUSIBLE_MODEL_ABSTRACTION,"[""S008"",""S013"",""S014""]"
+BLOCKED_CONFLICT,C011,No chilling formulation is selected; keep all candidate types unbound.,CONFLICTING_EVIDENCE,"[""S017"",""S018"",""S019"",""S020""]"
+LATENT_ONLY,C016,Evergreen dormancy/chilling physiology cannot be parameterized as zero; state remains latent/unbound.,INSUFFICIENT_EVIDENCE,"[""S024"",""S025"",""S026""]"
+PROXY_ONLY,C024,Light/CO2-to-source-capacity relation is a proxy context only; no production coefficient.,PLAUSIBLE_MODEL_ABSTRACTION,"[""S030""]"
+RESEARCH_ONLY,C027,Universal fruit-stage labels/thresholds are not established; stage names may be internal theoretical labels only.,INSUFFICIENT_EVIDENCE,"[""S002"",""S003"",""S043"",""S044""]"

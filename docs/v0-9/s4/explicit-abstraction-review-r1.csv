@@ -1,0 +1,19 @@
+equation_id,module,production_use,required_restriction,review_decision,risk_level,s0_claim_ids,unresolved_critical
+EQA001,STRUCTURAL_ENGINE,PROHIBITED,Synthetic age-bin bookkeeping only; no universal cane-age productivity coefficient.,RESTRICT_DOMAIN,LOW,C002;C004,false
+EQA004,POSTHARVEST_RECOVERY,PROHIBITED,Normalized reserve bookkeeping; not carbon mass balance or a calibrated reserve law.,RESTRICT_DOMAIN,HIGH,C001;C008;C009,false
+EQA005,FLOWER_BUD_ENGINE,PROHIBITED,"Weighted induction is a genotype-scoped scenario response, not a validated universal bud-initiation equation.",RESTRICT_DOMAIN,HIGH,C001;C003;C009;C015;C016,false
+EQA012,BLOOM_ENGINE,PROHIBITED,Continuous forcing-progress interpolation is retained as a deterministic cohort-generation abstraction.,ACCEPT_V1,MEDIUM,C017;C019;C020,false
+EQA013,POLLINATION_ENGINE,PROHIBITED,Pollination opportunity proxy only; it is not fertilization or observed pollinator efficacy.,RESTRICT_DOMAIN,HIGH,C017;C018,false
+EQA016,SOURCE_SINK_ENGINE,PROHIBITED,Dimensionless source proxy only; no photosynthetic flux claim.,RESTRICT_DOMAIN,HIGH,C008;C009,false
+EQA017,SOURCE_SINK_ENGINE,PROHIBITED,Relative sink weights remain explicit scenario assumptions.,RESTRICT_DOMAIN,HIGH,C008;C009,false
+EQA018,SOURCE_SINK_ENGINE,PROHIBITED,"Bounded source/sink sufficiency is a proxy, not a universal ratio law.",RESTRICT_DOMAIN,HIGH,C008;C009,false
+EQA019,FRUIT_DEVELOPMENT_ENGINE,PROHIBITED,Double-logistic reference curve is selectable and synthetic; not a blueberry-wide fit.,RESTRICT_DOMAIN,HIGH,C021;C022,false
+EQA021,MATURITY_ENGINE,PROHIBITED,Logistic maturity distribution spreads ripening; no universal kernel is asserted.,RESTRICT_DOMAIN,HIGH,C019;C020;C021,false
+EQA023,INTERSEASON_ENGINE,PROHIBITED,Carryover outputs are normalized latent indices; no empirical coefficient or buds/plant scale is claimed.,RESTRICT_DOMAIN,HIGH,C001;C007;C009,false
+EQA024,MICROCLIMATE,PROHIBITED,"Greenhouse/heating/shade deltas are explicit synthetic scenario inputs, not defaults.",RESTRICT_DOMAIN,HIGH,C020;C023;C024,false
+EQA025,TEMPERATURE_RESPONSE,PROHIBITED,Piecewise temperature suitability is an uncalibrated scenario response.,RESTRICT_DOMAIN,HIGH,C013;C018;C020,false
+EQA026,POLLINATION_ENGINE,PROHIBITED,Event windows gate a synthetic opportunity index only; no bee behavior simulation.,ACCEPT_V1,LOW,C017;C018,false
+EQA027,FRUIT_DEVELOPMENT_ENGINE,PROHIBITED,Seed/source modifiers are latent scenario effects; no seed count is fabricated.,RESTRICT_DOMAIN,HIGH,C008;C018;C020,false
+EQA028,FRUIT_DEVELOPMENT_ENGINE,PROHIBITED,Three curve families remain theoretical alternatives; no production winner is selected.,RECLASSIFY_RESEARCH_ONLY,HIGH,C020;C021;C022,false
+EQA029,DORMANCY_ENGINE,PROHIBITED,"Treatment event semantics are supported, efficacy/dose response is not; keep effect synthetic-only.",REQUIRE_NEW_AUTHORITY,HIGH,C014,false
+EQA030,BIOLOGICAL_ENGINE,PROHIBITED,"Modular causal skeleton is accepted as simulator architecture, not as a validated predictive law.",ACCEPT_V1,MEDIUM,C001;C008;C010;C013;C015;C020;C021,false

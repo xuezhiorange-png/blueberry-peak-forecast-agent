@@ -1,0 +1,179 @@
+{
+  "task_id": "V0_9_S0_GLOBAL_PROTECTED_BLUEBERRY_BIOLOGY_AND_MANAGEMENT_AUTHORITY_REVIEW_R1",
+  "result": "PASS_V0_9_S0_SCIENTIFIC_AUTHORITY_REVIEW_COMPLETED",
+  "version": "0.9.0",
+  "version_name": "BLUEBERRY_FORECAST_AGENT_V0_9_BIOLOGICAL_FORECAST_FOUNDATION",
+  "base_main_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "head_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+  "branch": "codex/v0-9-version-plan-scope-freeze-r1",
+  "research_access_date": "2026-09-26",
+  "primary_goal": "ESTABLISH_A_SCIENTIFICALLY_GROUNDED_AND_AUDITABLE_BLUEBERRY_BIOLOGICAL_FORECAST_FOUNDATION",
+  "model_paradigm": "MECHANISTIC_SKELETON_PLUS_DATA_CALIBRATED_PARAMETERS",
+  "research_scope": {
+    "type": "SCIENTIFIC_AUTHORITY_REVIEW",
+    "external_scientific_sources_accessed": true,
+    "full_text_copied": false,
+    "source_authority_classified": true,
+    "source_authority_tiers": {
+      "A": 37,
+      "A2": 4,
+      "B": 1,
+      "C": 5,
+      "D": 0,
+      "X": 0
+    },
+    "scientific_source_count": 47,
+    "peer_reviewed_source_count_minimum_verified": 41,
+    "peer_reviewed_count_basis": "Tier A and A2 only; B and C excluded from the minimum",
+    "country_or_region_count": 11,
+    "countries_or_regions": [
+      "Argentina",
+      "Brazil",
+      "Canada",
+      "Chile",
+      "China",
+      "Japan",
+      "New Zealand",
+      "Portugal",
+      "Slovenia",
+      "Spain",
+      "United States"
+    ],
+    "required_regions_covered": [
+      "China",
+      "United States",
+      "Japan",
+      "Spain",
+      "Portugal",
+      "Chile"
+    ],
+    "required_region_coverage_complete": true,
+    "blueberry_types_separated": true,
+    "blueberry_types_reviewed": [
+      "Southern Highbush",
+      "Northern Highbush",
+      "Rabbiteye as a mechanism supplement",
+      "Other Vaccinium types only where explicitly marked"
+    ],
+    "source_quality_note": "Spain and Portugal protected-production examples include peer-reviewed proceedings; they support regional production-system context and are not used as primary universal mechanism authority."
+  },
+  "causal_review": {
+    "annual_cycle_starts_postharvest": true,
+    "production_systems_separated": [
+      "DECIDUOUS_NATURAL",
+      "DECIDUOUS_FORCING",
+      "EVERGREEN"
+    ],
+    "chill_models_compared_not_selected": [
+      "CHILL_HOURS",
+      "UTAH_CHILL_UNITS",
+      "DYNAMIC_MODEL_CHILL_PORTIONS"
+    ],
+    "dormancy_state_separated_from_low_temperature_exposure": true,
+    "pruning_separated_from_flower_and_fruit_thinning": true,
+    "source_sink_reviewed": true,
+    "pollination_separated_from_fertilization_and_fruit_set": true,
+    "fruit_cohort_maturity_reviewed": true,
+    "protected_environment_not_reduced_to_calendar_offset": true,
+    "biological_engine_output": "DAILY_NEWLY_MATURE_QUANTITY",
+    "harvest_state_engine_boundary": "BIOLOGICAL_ENGINE -> DAILY_NEWLY_MATURE_QUANTITY -> HARVEST_STATE_ENGINE",
+    "harvest_capacity_in_biological_causal_graph": false
+  },
+  "evidence_classification_counts": {
+    "ESTABLISHED_MECHANISM": 8,
+    "SUPPORTED_BUT_CONTEXT_DEPENDENT": 14,
+    "PLAUSIBLE_MODEL_ABSTRACTION": 4,
+    "INSUFFICIENT_EVIDENCE": 3,
+    "CONFLICTING_EVIDENCE": 1
+  },
+  "generalization_summary": {
+    "universal_mechanism_count_promoted": 0,
+    "context_dependent_mechanism_count": 22,
+    "rule": "No mechanism was promoted to universal across all blueberry types, cultivars, climates, and production systems; broader biological sequence claims retain explicit scope limits."
+  },
+  "register_counts": {
+    "causal_claim_count": 30,
+    "conflict_and_uncertainty_item_count": 15,
+    "literature_parameter_candidate_count": 25,
+    "s1_contract_ready_mechanism_count": 24,
+    "s1_not_ready_mechanism_count": 6
+  },
+  "topic_review_status": {
+    "PRUNING_CAUSAL_PATH_REVIEWED": true,
+    "FLOWER_THINNING_CAUSAL_PATH_REVIEWED": true,
+    "FLOWER_BUD_FORMATION_REVIEWED": true,
+    "CHILLING_REVIEWED": true,
+    "FORCING_REVIEWED": true,
+    "EVERGREEN_REVIEWED": true,
+    "SOURCE_SINK_REVIEWED": true,
+    "POLLINATION_FRUIT_SET_REVIEWED": true,
+    "FRUIT_DEVELOPMENT_REVIEWED": true,
+    "FRUIT_COHORT_MODEL_SUPPORT_REVIEWED": true,
+    "PROTECTED_CULTIVATION_REVIEWED": true,
+    "CONFLICT_REGISTER_COMPLETE": true,
+    "UNCERTAINTY_REGISTER_COMPLETE": true,
+    "BIOLOGICAL_CAUSAL_GRAPH_CREATED": true
+  },
+  "literature_parameter_policy": {
+    "values_are_literature_observed_or_prior_candidates_only": true,
+    "production_default_parameter_created": false,
+    "yunnan_default_created": false,
+    "parameter_selection_performed": false,
+    "proxy_selected": false
+  },
+  "benchmark_lifecycle": {
+    "benchmark_2025_2026_consumed": true,
+    "allowed_for_audit": true,
+    "allowed_for_replay": true,
+    "allowed_for_reporting": true,
+    "allowed_for_model_selection": false,
+    "allowed_for_parameter_selection": false,
+    "allowed_for_hyperparameter_selection": false,
+    "allowed_for_management_rule_selection": false,
+    "benchmark_metrics_read_in_this_task": false
+  },
+  "task_boundary": {
+    "version_plan_preserved": true,
+    "V0_9_S0_AUTHORIZED": true,
+    "V0_9_S1_STARTED": false,
+    "V0_9_S2_STARTED": false,
+    "V0_9_S3_STARTED": false,
+    "V0_9_S4_STARTED": false,
+    "model_code_changed": false,
+    "model_trained": false,
+    "model_refit": false,
+    "backtest_executed": false,
+    "production_parameter_created": false,
+    "production_deployment": false,
+    "commit_created": false,
+    "push_performed": false,
+    "pull_request_created": false,
+    "ready_action_taken": false,
+    "merge_action_taken": false
+  },
+  "deliverables": {
+    "report_path": "docs/v0-9/s0/global-protected-blueberry-biology-and-management-authority-review-r1.md",
+    "authority_matrix_path": "docs/v0-9/s0/scientific-authority-matrix-r1.csv",
+    "causal_claim_register_path": "docs/v0-9/s0/biological-causal-claim-register-r1.csv",
+    "conflict_register_path": "docs/v0-9/s0/evidence-conflict-and-uncertainty-register-r1.csv",
+    "parameter_candidate_register_path": "docs/v0-9/s0/literature-parameter-candidate-register-r1.csv",
+    "sha256": {
+      "report": "827725a44094e5e15643186fe8f82095adbff0bfc2b2ac549aca6600d06a4c13",
+      "authority_matrix": "1fecd24c4aa537d5617a960e15ab74ace260ad35e30e63d9fdbe89e59bf88294",
+      "causal_claim_register": "0ee8959db03f1ac28b226df06c00bf08c2427949b2f1e9de69a772bbd805d55a",
+      "conflict_register": "e5c17df1d33e3ef9dcc1d5d149598fa6a602a5c65a09f99d47e8040d42d94a91",
+      "parameter_candidate_register": "2d28f90e42eafeea14f252e96ed0c26e2bc6b78b1c8273263b5d2d32b1410325"
+    },
+    "evidence_self_sha256_excluded": true
+  },
+  "validation": {
+    "csv_parse": "PASS",
+    "csv_column_counts": "PASS",
+    "source_reference_integrity": "PASS",
+    "unique_source_ids": "PASS",
+    "minimum_source_count_gate": "PASS",
+    "peer_reviewed_source_count_gate": "PASS",
+    "required_region_gate": "PASS",
+    "model_or_code_validation": "NOT_APPLICABLE_NO_CODE_CHANGE"
+  }
+}

@@ -1,0 +1,375 @@
+{
+  "task_id": "V0_9_VERSION_PLAN_AND_SCOPE_FREEZE_R1",
+  "result": "PASS_V0_9_VERSION_SCOPE_FROZEN",
+  "version": "0.9.0",
+  "version_name": "BLUEBERRY_FORECAST_AGENT_V0_9_BIOLOGICAL_FORECAST_FOUNDATION",
+  "repository": {
+    "base_main_sha": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+    "head_sha_at_plan_creation": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+    "branch": "codex/v0-9-version-plan-scope-freeze-r1",
+    "publication_state": "LOCAL_ONLY"
+  },
+  "primary_goal": "ESTABLISH_A_SCIENTIFICALLY_GROUNDED_AND_AUDITABLE_BLUEBERRY_BIOLOGICAL_FORECAST_FOUNDATION",
+  "model_paradigm": "MECHANISTIC_SKELETON_PLUS_DATA_CALIBRATED_PARAMETERS",
+  "causal_path": [
+    "post_harvest_plant_state",
+    "branch_leaf_canopy_and_carbohydrate_reserve",
+    "pruning_and_post_harvest_management",
+    "flower_bud_induction_and_differentiation",
+    "production_system_specific_winter_physiology",
+    "chill_or_leaf_retention_pathway",
+    "forcing_and_greenhouse_management",
+    "bud_swell_and_bud_break",
+    "bloom_10_50_90_cohorts",
+    "flower_removal_or_thinning",
+    "effective_flower_load",
+    "pollination_and_fertilization",
+    "fruit_set_and_fruit_cohort_formation",
+    "fruit_development_stage_i_ii_iii",
+    "color_break_and_ripe_fruit",
+    "daily_newly_mature_quantity",
+    "harvest_state_inventory_loss_and_capacity",
+    "daily_harvest",
+    "single_day_and_rolling_7_peak"
+  ],
+  "v0_8_inherited_decisions": {
+    "released": true,
+    "tag": "v0.8.0",
+    "global_pooled_yield_reference_baseline": true,
+    "global_pooled_yield_production_approved": false,
+    "global_yield_kg_per_mu": "855.5593226284052977280068913535048993216",
+    "shrinkage_lambda_1_promoted": false,
+    "base_history_signal_identified": true,
+    "base_history_signal_generalization_proven": false,
+    "benchmark_2025_2026_consumed": true,
+    "benchmark_reuse_for_selection_allowed": false,
+    "model_production_ready": false,
+    "production_accuracy_approved": false
+  },
+  "task_count": 5,
+  "task_sequence": [
+    {
+      "stage": "V0.9-S0",
+      "task_id": "GLOBAL_PROTECTED_BLUEBERRY_BIOLOGY_AND_MANAGEMENT_AUTHORITY_REVIEW",
+      "objective": "Establish evidence-bounded global authority for protected blueberry biology and management.",
+      "deliverables": [
+        "scientific_authority_matrix",
+        "causal_graph",
+        "term_glossary",
+        "evidence_hierarchy",
+        "uncertainty_register"
+      ],
+      "regions": ["China", "United States", "Japan", "Spain", "Portugal", "Chile"],
+      "production_code": false,
+      "authorized": false
+    },
+    {
+      "stage": "V0.9-S1",
+      "task_id": "BIOLOGICAL_STATE_AND_MANAGEMENT_EVENT_CONTRACT",
+      "objective": "Freeze biological state, environment, management-event, production-system contracts and causal directions.",
+      "contracts": [
+        "PlantState",
+        "PhenologyState",
+        "FruitCohort",
+        "EnvironmentInput",
+        "ManagementEvent",
+        "ProductionSystem"
+      ],
+      "contract_only": true,
+      "authorized": false
+    },
+    {
+      "stage": "V0.9-S2",
+      "task_id": "EXISTING_DATA_OBSERVABILITY_AND_GAP_AUDIT",
+      "objective": "Classify existing evidence observability and produce a minimum-cost next-season collection plan.",
+      "observability_statuses": [
+        "AVAILABLE",
+        "DERIVABLE",
+        "PROXY_AVAILABLE",
+        "BUSINESS_CONFIRMATION_REQUIRED",
+        "NEW_COLLECTION_REQUIRED",
+        "UNOBSERVABLE"
+      ],
+      "minimum_collection_candidates": [
+        "pruning_date_type_intensity",
+        "greenhouse_close_open",
+        "heating_or_forcing_start",
+        "bloom_10_percent",
+        "bloom_50_percent",
+        "bloom_90_percent",
+        "flower_thinning",
+        "fruit_set_sample",
+        "color_break_10_percent",
+        "first_harvest",
+        "50_percent_cumulative_harvest",
+        "indoor_hourly_temperature",
+        "area",
+        "cultivar",
+        "tree_age"
+      ],
+      "large_iot_program": false,
+      "authorized": false
+    },
+    {
+      "stage": "V0.9-S3",
+      "task_id": "BIOLOGICAL_HYBRID_MODEL_CONTRACT_AND_DETERMINISTIC_PROTOTYPE",
+      "objective": "After S0-S2 acceptance, implement the smallest deterministic, auditable biological prototype.",
+      "engines": [
+        "Phenology Engine",
+        "Crop Load Engine",
+        "Fruit Cohort Maturity Engine"
+      ],
+      "source_sink_model_level": "SIMPLIFIED_PROXY",
+      "initial_test_data": ["synthetic", "golden", "training-only"],
+      "authorized": false
+    },
+    {
+      "stage": "V0.9-S4",
+      "task_id": "BIOLOGICAL_MODEL_PARAMETER_IDENTIFIABILITY_AND_PROSPECTIVE_READINESS",
+      "objective": "Classify parameter identifiability and define 2026-2027 prospective input and issuance requirements.",
+      "may_issue_prospective_forecast": false,
+      "authorized": false
+    }
+  ],
+  "production_systems": [
+    {
+      "id": "DECIDUOUS_NATURAL",
+      "path": ["natural_leaf_fall", "chill_accumulation", "dormancy_release", "natural_forcing", "bud_break"]
+    },
+    {
+      "id": "DECIDUOUS_FORCING",
+      "path": ["leaf_fall", "chill_accumulation", "chill_satisfied", "greenhouse_or_heating_management", "forcing_accumulation", "bud_development"]
+    },
+    {
+      "id": "EVERGREEN",
+      "path": ["leaf_retention", "continued_activity", "system_specific_phenology"],
+      "deciduous_chill_model_may_be_applied_by_default": false
+    }
+  ],
+  "plant_state_groups": {
+    "structural": [
+      "plant_density",
+      "cane_age_structure",
+      "productive_shoot_density",
+      "fruiting_wood_amount",
+      "pruning_state"
+    ],
+    "vegetative": [
+      "leaf_area_proxy",
+      "canopy_retention_ratio",
+      "shoot_growth_state",
+      "vegetative_vigor",
+      "carbohydrate_reserve_proxy"
+    ],
+    "reproductive": [
+      "flower_bud_density",
+      "flower_number_proxy",
+      "effective_flower_number",
+      "fruit_set_ratio",
+      "fruit_number",
+      "crop_load"
+    ],
+    "phenology_deciduous_states": [
+      "DORMANT",
+      "CHILL_ACCUMULATING",
+      "CHILL_SATISFIED",
+      "FORCING",
+      "BUD_SWELL",
+      "BUD_BREAK",
+      "BLOOM_10",
+      "BLOOM_50",
+      "BLOOM_90",
+      "FRUIT_SET",
+      "GREEN_FRUIT",
+      "COLOR_BREAK",
+      "RIPE"
+    ],
+    "fruit_cohort": [
+      "cohort_id",
+      "origin_bloom_date",
+      "flower_quantity_proxy",
+      "fruit_set_quantity",
+      "fruit_stage",
+      "thermal_age",
+      "expected_ripe_distribution",
+      "ripe_quantity"
+    ]
+  },
+  "environment": {
+    "source_priority": ["GREENHOUSE_SENSOR", "FARM_LOCAL_SENSOR", "NEAREST_WEATHER_SOURCE"],
+    "candidate_inputs": [
+      "air_temperature_hourly",
+      "minimum_temperature",
+      "maximum_temperature",
+      "root_zone_temperature",
+      "relative_humidity",
+      "radiation_or_light_proxy",
+      "soil_or_substrate_moisture_optional",
+      "ec_optional",
+      "irrigation_optional"
+    ],
+    "value_statuses": ["OBSERVED", "PROXY", "LATENT", "UNAVAILABLE"]
+  },
+  "management_event_types": [
+    "PRUNING",
+    "SUMMER_PRUNING",
+    "WINTER_PRUNING",
+    "FLOWER_REMOVAL",
+    "FLOWER_THINNING",
+    "FRUIT_THINNING",
+    "DEFOLIATION",
+    "LEAF_RETENTION",
+    "GREENHOUSE_CLOSE",
+    "GREENHOUSE_OPEN",
+    "HEATING_START",
+    "HEATING_STOP",
+    "DORMANCY_BREAK_TREATMENT",
+    "POLLINATION_START",
+    "POLLINATION_END",
+    "SHADE_APPLICATION",
+    "IRRIGATION_STRESS",
+    "NUTRITION_INTERVENTION"
+  ],
+  "management_event_required_fields": [
+    "event_id",
+    "date_or_datetime",
+    "type",
+    "intensity",
+    "target",
+    "scope",
+    "source",
+    "authority"
+  ],
+  "causal_relationships_to_contract": [
+    "pruning -> fruiting_wood_and_flower_buds",
+    "pruning -> future_productive_shoots_and_canopy_renewal",
+    "flower_thinning -> effective_flower_load",
+    "forcing_and_environment -> phenology_rate",
+    "pollination_and_fertilization -> fruit_set",
+    "fruit_set -> fruit_number_and_crop_load",
+    "crop_load_and_source_capacity -> berry_weight_and_fruit_development",
+    "bloom_cohort_and_thermal_age -> maturity_cohort"
+  ],
+  "mechanism_contracts": {
+    "pruning_is_simple_yield_multiplier": false,
+    "pruning_tracks_date_type_intensity_and_removed_ratios": true,
+    "flower_thinning_is_distinct_from_pruning": true,
+    "flower_thinning_can_change_fruit_number_and_mean_berry_weight": true,
+    "season_yield_components": ["FruitNumber", "MeanBerryWeight", "MarketableRate"],
+    "forcing_components": ["CHILLING", "FORCING", "GREENHOUSE_MANAGEMENT"],
+    "deciduous_chill_accumulation": "C(t+1) = C(t) + ChillResponse(T)",
+    "deciduous_chill_threshold": "C >= cultivar_applicable_C_critical",
+    "forcing_accumulation": "F(t+1) = F(t) + ForcingResponse(T)",
+    "source_sink_model_level": "SIMPLIFIED_PROXY"
+  },
+  "engine_boundary": {
+    "biological_engine_output": "daily_newly_mature_quantity",
+    "harvest_state_engine_inputs": [
+      "daily_newly_mature_quantity",
+      "opening_mature_inventory",
+      "loss",
+      "harvest_capacity"
+    ],
+    "harvest_state_engine_outputs": [
+      "harvested_quantity",
+      "closing_mature_inventory"
+    ],
+    "biological_maturity_is_harvest": false,
+    "harvest_is_arrival": false
+  },
+  "global_yield_reference": {
+    "value_kg_per_mu": "855.5593226284052977280068913535048993216",
+    "v0_9_role": "BAYESIAN_OR_EMPIRICAL_PRIOR_REFERENCE",
+    "production_approved": false
+  },
+  "benchmark_2025_2026": {
+    "consumed": true,
+    "allowed_for_audit": true,
+    "allowed_for_replay": true,
+    "allowed_for_reporting": true,
+    "allowed_for_model_selection": false,
+    "allowed_for_parameter_selection": false,
+    "allowed_for_hyperparameter_selection": false,
+    "allowed_for_management_rule_selection": false,
+    "allowed_for_support_rule_selection": false,
+    "allowed_for_hybrid_policy_selection": false
+  },
+  "calibration_and_validation_boundary": {
+    "calibration_evidence_may_include": ["2023-2024", "2024-2025"],
+    "2025-2026_is_pristine_validation": false,
+    "2025-2026_actuals_may_select_parameters": false,
+    "2026-2027_prospective_forecast_is_issued_in_v0_9": false,
+    "2026-2027_prospective_validation_reserved_for": "V0.10"
+  },
+  "v0_10_boundary": {
+    "reserved_for": "2026-2027 prospective forecast issuance, prediction sealing, future actual scoring, and locked model-vs-baseline comparison",
+    "auto_authorized": false
+  },
+  "v0_9_exclusions": {
+    "production_model_approval": false,
+    "production_deployment": false,
+    "automatic_irrigation_control": false,
+    "automatic_pruning_recommendation": false,
+    "image_recognition": false,
+    "drone_model": false,
+    "full_digital_twin": false,
+    "full_photosynthesis_simulator": false,
+    "root_hydraulic_model": false,
+    "new_weather_ml_model": false,
+    "retrospective_lambda_search": false,
+    "support_gated_hybrid_search": false,
+    "use_2025_2026_for_selection": false,
+    "multi_factory_routing": false,
+    "factory_peak_shaving": false,
+    "ui_redesign": false
+  },
+  "version_completion_gate": {
+    "completion_identifier": "BLUEBERRY_FORECAST_AGENT_V0_9_BIOLOGICAL_FORECAST_FOUNDATION_COMPLETE",
+    "all_criteria_required": true,
+    "criteria_count": 16,
+    "equivalent_to_production_readiness": false,
+    "closeout_is_sixth_research_task": false
+  },
+  "completion_criteria": [
+    "GLOBAL_SCIENTIFIC_AUTHORITY_REVIEW_COMPLETE",
+    "PLANT_STATE_CONTRACT_FROZEN",
+    "THREE_PRODUCTION_SYSTEMS_DISTINGUISHED",
+    "MANAGEMENT_EVENT_CONTRACT_FIELDS_AND_PROVENANCE_FROZEN",
+    "PRUNING_REPRODUCTIVE_SINK_AND_FUTURE_VEGETATIVE_SOURCE_EXPLICIT",
+    "FLOWER_THINNING_DISTINCT_FROM_PRUNING_AND_SOURCE_SINK_EFFECTS_EXPLICIT",
+    "CHILL_FORCING_THEORY_STATE_TRANSITIONS_AND_UNCERTAINTY_EXPLICIT",
+    "SIMPLIFIED_SOURCE_SINK_MODEL_EXPLICIT",
+    "FRUIT_COHORT_MATURITY_STAGES_AND_PARAMETER_SOURCES_TRACEABLE",
+    "BIOLOGICAL_ENGINE_HARVEST_STATE_BOUNDARY_TESTED",
+    "DATA_OBSERVABILITY_AUDIT_COMPLETE",
+    "MINIMUM_COST_NEW_DATA_COLLECTION_PLAN_COMPLETE",
+    "DETERMINISTIC_BIOLOGICAL_PROTOTYPE_EXECUTABLE",
+    "PARAMETER_AUTHORITY_VERSION_AND_PROVENANCE_TRACEABLE",
+    "BENCHMARK_REUSE_GATE_TESTED",
+    "PROSPECTIVE_ISSUANCE_PROTOCOL_COMPLETE_AND_FOCUSED_TESTS_APPLICABLE_CI_PASS"
+  ],
+  "authorization": {
+    "v0_9_version_plan_authorized": true,
+    "s0_authorized": false,
+    "s1_authorized": false,
+    "s2_authorized": false,
+    "s3_authorized": false,
+    "s4_authorized": false,
+    "v0_10_authorized": false,
+    "production_approval_authorized": false,
+    "deployment_authorized": false,
+    "pr_creation_authorized": false,
+    "actions_taken": {
+      "model_code_changed": false,
+      "model_trained": false,
+      "historical_benchmark_scored": false,
+      "prospective_forecast_issued": false,
+      "deployment_performed": false,
+      "pr_created": false
+    }
+  },
+  "artifacts": {
+    "markdown_path": "docs/v0-9/v0.9.0-version-plan-and-scope-freeze.md",
+    "evidence_path": "docs/v0-9/evidence/v0.9.0-version-plan-and-scope-freeze.json"
+  }
+}
