@@ -1,0 +1,963 @@
+{
+  "cohort_contracts": {
+    "BloomCohort": {
+      "lineage_rule": "A cohort remains distinguishable by origin bloom date/interval and scoped source; absolute flower count is not required.",
+      "optional_fields": [
+        "subfarm_id",
+        "cultivar_id",
+        "effective_flower_quantity_proxy",
+        "pollination_state",
+        "fruit_set_ratio",
+        "resulting_fruit_quantity_proxy"
+      ],
+      "quantity_representations": [
+        "ABSOLUTE_COUNT",
+        "AREA_NORMALIZED_INDEX",
+        "PROPORTIONAL_SHARE",
+        "OBSERVATION_SCORE",
+        "LATENT_ESTIMATE"
+      ],
+      "required_fields": [
+        "cohort_id",
+        "origin_date_or_interval",
+        "farm_id",
+        "production_system",
+        "flower_quantity_proxy",
+        "flower_quantity_representation",
+        "source_reference",
+        "authority_hash"
+      ]
+    },
+    "FruitCohort": {
+      "lineage_rule": "origin_bloom_cohort_id must resolve to exactly one BloomCohort within the same declared scope; no unlinked fruit cohort is eligible for cohort-maturity output.",
+      "optional_fields": [
+        "thermal_age",
+        "thermal_model_id",
+        "source_sink_modifier_reference",
+        "expected_maturity_distribution",
+        "ripe_quantity"
+      ],
+      "required_fields": [
+        "cohort_id",
+        "origin_bloom_cohort_id",
+        "fruit_set_date_or_interval",
+        "fruit_quantity_proxy",
+        "quantity_representation",
+        "development_stage",
+        "authority"
+      ]
+    }
+  },
+  "contract_kind": "BIOLOGICAL_STATE_REGISTRY",
+  "contract_version": "V0_9_S1_R1",
+  "counts": {
+    "biological_state_field_count_including_interseason_and_source_sink": 33,
+    "interseason_state_field_count": 3,
+    "phenology_state_count": 21,
+    "plant_state_field_count": 27,
+    "production_system_count": 3,
+    "source_sink_state_field_count": 3
+  },
+  "environment_input_contract": {
+    "optional_variables": [
+      "substrate_moisture",
+      "electrical_conductivity",
+      "irrigation_observation"
+    ],
+    "priority_rule": "Priority resolves competing valid observations for a matching variable, scope, and time; it never silently fills a source gap.",
+    "required_observation_metadata": [
+      "timestamp",
+      "source",
+      "source_priority",
+      "quality_status",
+      "missing_status",
+      "unit"
+    ],
+    "source_priority_descending": [
+      "GREENHOUSE_SENSOR",
+      "FARM_LOCAL_SENSOR",
+      "EXTERNAL_WEATHER_SOURCE"
+    ],
+    "variables": [
+      {
+        "semantic_class": "ENVIRONMENT_DRIVER",
+        "temporal_resolution": "hourly_or_finer",
+        "unit": "degC",
+        "variable_id": "air_temperature"
+      },
+      {
+        "semantic_class": "ENVIRONMENT_DRIVER",
+        "temporal_resolution": "daily_with_window_definition",
+        "unit": "degC",
+        "variable_id": "min_temperature"
+      },
+      {
+        "semantic_class": "ENVIRONMENT_DRIVER",
+        "temporal_resolution": "daily_with_window_definition",
+        "unit": "degC",
+        "variable_id": "max_temperature"
+      },
+      {
+        "semantic_class": "ENVIRONMENT_DRIVER",
+        "temporal_resolution": "hourly_or_finer",
+        "unit": "percent_0_100",
+        "variable_id": "relative_humidity"
+      },
+      {
+        "semantic_class": "ENVIRONMENT_DRIVER",
+        "temporal_resolution": "hourly_or_finer",
+        "unit": "degC",
+        "variable_id": "root_zone_temperature"
+      },
+      {
+        "semantic_class": "ENVIRONMENT_DRIVER",
+        "temporal_resolution": "timestamped",
+        "unit": "declared_sensor_unit_or_versioned_index",
+        "variable_id": "radiation_or_light_proxy"
+      },
+      {
+        "semantic_class": "DERIVED_VARIABLE",
+        "temporal_resolution": "daily_derived_from_location_and_date",
+        "unit": "hours_light_per_day",
+        "variable_id": "photoperiod"
+      }
+    ]
+  },
+  "interseason_state_fields": [
+    {
+      "applies_to": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "postharvest_vigor_proxy",
+      "meaning": "Carry-over postharvest vigor state from season N to N+1.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "LATENT_STATE",
+      "unit": "versioned_index"
+    },
+    {
+      "applies_to": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "carbohydrate_reserve_proxy",
+      "meaning": "Carry-over stored reserve state; not inferred from season yield alone.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "LATENT_STATE",
+      "unit": "assay_unit or versioned_index"
+    },
+    {
+      "applies_to": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "next_season_flower_bud_potential",
+      "meaning": "Season N+1 potential flower-bud state with prior-season lineage.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "LATENT_STATE",
+      "unit": "buds/plant or declared_index"
+    }
+  ],
+  "observability_classes": [
+    "DIRECT_OBSERVATION",
+    "DERIVED",
+    "PROXY",
+    "LATENT",
+    "UNBOUND"
+  ],
+  "parameter_authority_types": [
+    "BUSINESS_CONFIRMED",
+    "DIRECT_OBSERVED",
+    "DATA_CALIBRATED",
+    "LITERATURE_PRIOR",
+    "MODEL_ASSUMPTION",
+    "UNBOUND"
+  ],
+  "phenology_state_machine": {
+    "bloom_progress_semantics": "Method-defined observed/derived proportions; no fixed calendar interval.",
+    "chilling_model_types": [
+      "CHILL_HOURS",
+      "UTAH_CHILL_UNITS",
+      "DYNAMIC_CHILL_PORTIONS"
+    ],
+    "dormancy_state_enum": [
+      "NOT_APPLICABLE",
+      "ENDO_DORMANT",
+      "CHILL_ACCUMULATING",
+      "CHILL_REQUIREMENT_POSSIBLY_SATISFIED",
+      "RELEASED"
+    ],
+    "forcing_state_fields": [
+      "forcing_accumulation",
+      "forcing_model_type",
+      "base_temperature",
+      "upper_temperature"
+    ],
+    "fruit_stage_semantics": "STAGE_I/STAGE_II/STAGE_III may be internal theoretical states; universal field thresholds are not selected.",
+    "production_default_chill_model": "UNBOUND",
+    "production_default_forcing_parameters": "UNBOUND",
+    "state_ids": [
+      "POSTHARVEST",
+      "VEGETATIVE_REGROWTH",
+      "FLOWER_BUD_FORMATION",
+      "ACCLIMATION",
+      "DORMANT",
+      "CHILL_ACCUMULATING",
+      "CHILL_SATISFIED",
+      "FORCING",
+      "BUD_SWELL",
+      "BUD_BREAK",
+      "BLOOM_10",
+      "BLOOM_50",
+      "BLOOM_90",
+      "FRUIT_SET",
+      "GREEN_FRUIT",
+      "STAGE_I",
+      "STAGE_II",
+      "STAGE_III",
+      "COLOR_BREAK",
+      "RIPE",
+      "EVERGREEN_CONTINUATION"
+    ],
+    "transition_records_path": "causal-edge-registry-r1.json#causal_edges",
+    "version": "V0_9_S1_R1"
+  },
+  "plant_state_fields": [
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "LOW; planting configuration is site-specific",
+      "default_authority_type": "UNBOUND",
+      "field_id": "plant_density",
+      "group": "STRUCTURAL",
+      "meaning": "Plant population per declared land or production area.",
+      "nullable": true,
+      "observability_class": "DIRECT_OBSERVATION",
+      "semantic_class": "OBSERVED_VARIABLE",
+      "unit": "plants/ha or plants/m2 (one unit per value required)"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "MEDIUM; architecture and renewal differ",
+      "default_authority_type": "UNBOUND",
+      "field_id": "cane_age_structure",
+      "group": "STRUCTURAL",
+      "meaning": "Cane count or proportion by declared age class and scope.",
+      "nullable": true,
+      "observability_class": "DIRECT_OBSERVATION",
+      "semantic_class": "OBSERVED_VARIABLE",
+      "unit": "count/plant by age class or declared proportion"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "productive_shoot_density",
+      "group": "STRUCTURAL",
+      "meaning": "Count of declared productive shoots per declared plant or area denominator.",
+      "nullable": true,
+      "observability_class": "DIRECT_OBSERVATION",
+      "semantic_class": "OBSERVED_VARIABLE",
+      "unit": "shoots/plant or shoots/m2 (one unit per value required)"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "fruiting_wood_index",
+      "group": "STRUCTURAL",
+      "meaning": "Versioned representation of fruiting wood; not a universal biological unit.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "MEDIUM",
+      "default_authority_type": "UNBOUND",
+      "field_id": "pruning_state",
+      "group": "STRUCTURAL",
+      "meaning": "State summary derived only from lineage-linked pruning events.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "registered_event_state"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "leaf_area_proxy",
+      "group": "VEGETATIVE",
+      "meaning": "Leaf area or declared area-normalized/index representation of photosynthetic canopy.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "m2/plant or versioned_index (one representation per value)"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "canopy_retention_ratio",
+      "group": "VEGETATIVE",
+      "meaning": "Declared retained-canopy proportion against an explicit reference/denominator.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "ratio_0_1"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "shoot_growth_state",
+      "group": "VEGETATIVE",
+      "meaning": "Observed, derived, proxy, or latent shoot-growth condition under a versioned state vocabulary.",
+      "nullable": true,
+      "observability_class": "DIRECT_OBSERVATION",
+      "semantic_class": "BIOLOGICAL_STATE",
+      "unit": "registered_state_id"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "vegetative_vigor_proxy",
+      "group": "VEGETATIVE",
+      "meaning": "Declared method-specific vegetative vigor score/index.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "carbohydrate_reserve_proxy",
+      "group": "VEGETATIVE",
+      "meaning": "Stored carbohydrate reserve state; proxy/assay representation must be declared and cannot be inferred from yield alone.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "LATENT_STATE",
+      "unit": "assay_unit or versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "flower_bud_density",
+      "group": "REPRODUCTIVE",
+      "meaning": "Potential flower-bud count at a declared plant/shoot/area denominator.",
+      "nullable": true,
+      "observability_class": "DIRECT_OBSERVATION",
+      "semantic_class": "OBSERVED_VARIABLE",
+      "unit": "buds/plant or buds/shoot or buds/m2 (one unit per value required)"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "flower_number_proxy",
+      "group": "REPRODUCTIVE",
+      "meaning": "Flower-number representation after bud development; distinct from bud count, effective flower load, fruit number, and crop load.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "flowers/plant or declared_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "effective_flower_load",
+      "group": "REPRODUCTIVE",
+      "meaning": "Reproductive flower sink remaining after observed flower-removal/thinning events; does not assert successful pollination.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "flowers/plant or declared_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "pollination_state",
+      "group": "REPRODUCTIVE",
+      "meaning": "Pollination/fertilization evidence state; pollinator presence alone is not successful fertilization.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "BIOLOGICAL_STATE",
+      "unit": "registered_state_id"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "fruit_set_ratio",
+      "group": "REPRODUCTIVE",
+      "meaning": "Fruit set measure with explicit sampled flowers and denominator; not whole-plant fruit number by implication.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "ratio_0_1"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "fruit_number_proxy",
+      "group": "REPRODUCTIVE",
+      "meaning": "Fruit number or declared count/index representation for a stated scope.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "fruits/plant or versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "crop_load_index",
+      "group": "REPRODUCTIVE",
+      "meaning": "Versioned crop-load representation; not equivalent to flower number, fruit number, or season yield.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "phenology_stage",
+      "group": "PHENOLOGY",
+      "meaning": "State-machine stage under the versioned production-system path.",
+      "nullable": true,
+      "observability_class": "DIRECT_OBSERVATION",
+      "semantic_class": "BIOLOGICAL_STATE",
+      "unit": "registered_state_id"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "dormancy_state",
+      "group": "PHENOLOGY",
+      "meaning": "Dormancy condition, separate from measured/derived low-temperature exposure.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "BIOLOGICAL_STATE",
+      "unit": "dormancy_state_id"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "chill_accumulation",
+      "group": "PHENOLOGY",
+      "meaning": "Typed low-temperature response accumulation under a named chilling model; in evergreen it is optional exposure context only, never a dormancy-state assertion or zero-requirement shortcut.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "model_typed_chill_unit"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "forcing_accumulation",
+      "group": "PHENOLOGY",
+      "meaning": "Typed post-release forcing accumulation under an explicitly versioned response model.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "model_typed_thermal_unit"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "bloom_progress",
+      "group": "PHENOLOGY",
+      "meaning": "Bloom proportion under a declared sampling frame and method; not a fixed-duration clock.",
+      "nullable": true,
+      "observability_class": "DERIVED",
+      "semantic_class": "DERIVED_VARIABLE",
+      "unit": "percent_0_100"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "green_fruit_quantity_proxy",
+      "group": "FRUIT",
+      "meaning": "Green-fruit cohort quantity in an explicit count, mass, normalized, or latent representation.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "declared_cohort_quantity_unit"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "color_break_quantity_proxy",
+      "group": "FRUIT",
+      "meaning": "Color-break cohort quantity in an explicit count, mass, normalized, or latent representation.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "declared_cohort_quantity_unit"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "mean_berry_weight_proxy",
+      "group": "FRUIT",
+      "meaning": "Sampled or estimated mean berry mass with sample size, cohort, maturity stage, and method.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "g/berry or versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "berry_size_proxy",
+      "group": "FRUIT",
+      "meaning": "Sampled berry size/diameter or declared size index with method and maturity stage.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "mm or versioned_index"
+    },
+    {
+      "applicable_systems": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "ripe_quantity",
+      "group": "FRUIT",
+      "meaning": "Ripe fruit available biologically in a declared cohort/scope representation; not harvested quantity.",
+      "nullable": true,
+      "observability_class": "UNBOUND",
+      "semantic_class": "MODEL_OUTPUT",
+      "unit": "declared_cohort_quantity_unit"
+    }
+  ],
+  "production_systems": [
+    {
+      "allowed_state_path": [
+        "POSTHARVEST",
+        "VEGETATIVE_REGROWTH",
+        "FLOWER_BUD_FORMATION",
+        "ACCLIMATION",
+        "DORMANT",
+        "CHILL_ACCUMULATING",
+        "CHILL_SATISFIED",
+        "FORCING",
+        "BUD_SWELL",
+        "BUD_BREAK",
+        "BLOOM_10",
+        "BLOOM_50",
+        "BLOOM_90",
+        "FRUIT_SET",
+        "GREEN_FRUIT",
+        "STAGE_I",
+        "STAGE_II",
+        "STAGE_III",
+        "COLOR_BREAK",
+        "RIPE"
+      ],
+      "definition": "Deciduous adaptation/dormancy, cultivar-scoped chilling assessment, natural warming/forcing, and bud development.",
+      "invalid_transitions": [
+        "CHILL_ACCUMULATION_ALONE_TO_RELEASED",
+        "FIXED_CALENDAR_DATE_TO_STATE",
+        "FORCING_TO_CHILL_SATISFIED"
+      ],
+      "optional_inputs": [
+        "cultivar_id",
+        "temperature_observations",
+        "photoperiod_observations",
+        "management_events",
+        "direct_dormancy_observation"
+      ],
+      "production_system_specific_parameters": [
+        {
+          "parameter_name": "chill_model_type",
+          "value": "UNBOUND"
+        },
+        {
+          "parameter_name": "cultivar_chill_requirement",
+          "value": "UNBOUND"
+        },
+        {
+          "parameter_name": "forcing_response",
+          "value": "UNBOUND"
+        }
+      ],
+      "required_inputs": [
+        "production_system",
+        "scope_identity",
+        "state_time_or_interval",
+        "state_provenance"
+      ],
+      "system_id": "DECIDUOUS_NATURAL"
+    },
+    {
+      "allowed_state_path": [
+        "POSTHARVEST",
+        "VEGETATIVE_REGROWTH",
+        "FLOWER_BUD_FORMATION",
+        "ACCLIMATION",
+        "DORMANT",
+        "CHILL_ACCUMULATING",
+        "CHILL_SATISFIED",
+        "FORCING",
+        "BUD_SWELL",
+        "BUD_BREAK",
+        "BLOOM_10",
+        "BLOOM_50",
+        "BLOOM_90",
+        "FRUIT_SET",
+        "GREEN_FRUIT",
+        "STAGE_I",
+        "STAGE_II",
+        "STAGE_III",
+        "COLOR_BREAK",
+        "RIPE"
+      ],
+      "definition": "Deciduous chilling/dormancy path followed by explicit forcing/greenhouse events and measured or sourced microclimate.",
+      "invalid_transitions": [
+        "CHILL_ACCUMULATION_ALONE_TO_RELEASED",
+        "FIXED_CALENDAR_DATE_TO_STATE",
+        "GREENHOUSE_EVENT_TO_HARVEST_DATE_SHIFT",
+        "FORCING_TO_CHILL_SATISFIED"
+      ],
+      "optional_inputs": [
+        "cultivar_id",
+        "temperature_observations",
+        "photoperiod_observations",
+        "greenhouse_events",
+        "heating_events",
+        "dormancy_treatment_event",
+        "direct_dormancy_observation"
+      ],
+      "production_system_specific_parameters": [
+        {
+          "parameter_name": "chill_model_type",
+          "value": "UNBOUND"
+        },
+        {
+          "parameter_name": "cultivar_chill_requirement",
+          "value": "UNBOUND"
+        },
+        {
+          "parameter_name": "forcing_base_temperature",
+          "value": "UNBOUND"
+        },
+        {
+          "parameter_name": "forcing_upper_temperature",
+          "value": "UNBOUND"
+        }
+      ],
+      "required_inputs": [
+        "production_system",
+        "scope_identity",
+        "state_time_or_interval",
+        "state_provenance"
+      ],
+      "system_id": "DECIDUOUS_FORCING"
+    },
+    {
+      "allowed_state_path": [
+        "POSTHARVEST",
+        "VEGETATIVE_REGROWTH",
+        "FLOWER_BUD_FORMATION",
+        "EVERGREEN_CONTINUATION",
+        "BUD_SWELL",
+        "BUD_BREAK",
+        "BLOOM_10",
+        "BLOOM_50",
+        "BLOOM_90",
+        "FRUIT_SET",
+        "GREEN_FRUIT",
+        "STAGE_I",
+        "STAGE_II",
+        "STAGE_III",
+        "COLOR_BREAK",
+        "RIPE"
+      ],
+      "definition": "Independent leaf-retention/continued-activity pathway; complete dormancy and chill-satisfied sequence may be bypassed where observed or authorized.",
+      "invalid_transitions": [
+        "EVERGREEN_IMPLIED_CHILL_REQUIREMENT_ZERO",
+        "EVERGREEN_LABEL_IMPLIED_DORMANCY_RELEASE",
+        "FIXED_CALENDAR_DATE_TO_STATE",
+        "GREENHOUSE_EVENT_TO_HARVEST_DATE_SHIFT"
+      ],
+      "optional_inputs": [
+        "cultivar_id",
+        "leaf_retention_observation",
+        "temperature_observations",
+        "photoperiod_observations",
+        "management_events",
+        "dormancy_observation_if_relevant"
+      ],
+      "production_system_specific_parameters": [
+        {
+          "parameter_name": "evergreen_dormancy_pathway",
+          "value": "UNBOUND"
+        },
+        {
+          "parameter_name": "cultivar_flowering_pathway",
+          "value": "UNBOUND"
+        }
+      ],
+      "required_inputs": [
+        "production_system",
+        "scope_identity",
+        "state_time_or_interval",
+        "state_provenance"
+      ],
+      "system_id": "EVERGREEN"
+    }
+  ],
+  "semantic_classes": [
+    "BIOLOGICAL_STATE",
+    "OBSERVED_VARIABLE",
+    "DERIVED_VARIABLE",
+    "LATENT_STATE",
+    "MANAGEMENT_EVENT",
+    "ENVIRONMENT_DRIVER",
+    "MODEL_PARAMETER",
+    "LITERATURE_PRIOR",
+    "BUSINESS_INPUT",
+    "MODEL_OUTPUT"
+  ],
+  "serialization": {
+    "encoding": "UTF-8",
+    "final_newline": true,
+    "indent_spaces": 2,
+    "json_key_order": "LEXICOGRAPHIC",
+    "line_ending": "LF",
+    "non_finite_numbers_allowed": false
+  },
+  "source_sink_contract": {
+    "exact_formula": "UNBOUND",
+    "missing_component_semantics": "UNKNOWN_NOT_ZERO",
+    "sink_demand_not_fruit_number_only": true,
+    "source_capacity_not_leaf_area_only": true,
+    "status": "SIMPLIFIED_PROXY_CONTRACT"
+  },
+  "source_sink_state_fields": [
+    {
+      "applies_to": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "source_capacity_proxy",
+      "meaning": "Composite representation of current photosynthetic leaf area/function, light and environment, water/nutrition context, and stored reserves; not leaf area alone.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "versioned_index_or_declared_physical_measure"
+    },
+    {
+      "applies_to": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "sink_demand_proxy",
+      "meaning": "Composite representation of flowers, fruit development, shoot tips, and root-growth demands; not fruit number alone.",
+      "nullable": true,
+      "observability_class": "PROXY",
+      "semantic_class": "PROXY",
+      "unit": "versioned_index_or_declared_physical_measure"
+    },
+    {
+      "applies_to": [
+        "DECIDUOUS_NATURAL",
+        "DECIDUOUS_FORCING",
+        "EVERGREEN"
+      ],
+      "cultivar_dependency": "HIGH",
+      "default_authority_type": "UNBOUND",
+      "field_id": "source_sink_balance_index",
+      "meaning": "Unbound balance representation between source capacity and sink demand; no exact numeric formula is authorized.",
+      "nullable": true,
+      "observability_class": "LATENT",
+      "semantic_class": "LATENT_STATE",
+      "unit": "versioned_index_or_UNBOUND"
+    }
+  ],
+  "unit_vocabulary": [
+    "plants/ha",
+    "plants/m2",
+    "count/plant",
+    "count/plant by age class",
+    "declared proportion",
+    "shoots/plant",
+    "shoots/m2",
+    "buds/plant",
+    "buds/shoot",
+    "buds/m2",
+    "flowers/plant",
+    "fruits/plant",
+    "m2/plant",
+    "g/berry",
+    "mm",
+    "ratio_0_1",
+    "percent_0_100",
+    "degC",
+    "hours_light_per_day",
+    "declared_index",
+    "count/plant or declared proportion",
+    "count/plant or versioned_index",
+    "flowers/plant or declared_index",
+    "fruits/plant or versioned_index",
+    "m2/plant or versioned_index",
+    "g/berry or versioned_index",
+    "mm or versioned_index",
+    "versioned_index",
+    "versioned_index_or_declared_physical_measure",
+    "versioned_index_or_UNBOUND",
+    "assay_unit",
+    "assay_unit or versioned_index",
+    "declared_cohort_quantity_unit",
+    "model_typed_chill_unit",
+    "model_typed_thermal_unit",
+    "registered_event_state",
+    "registered_state_id",
+    "dormancy_state_id",
+    "declared_sensor_unit_or_versioned_index"
+  ]
+}

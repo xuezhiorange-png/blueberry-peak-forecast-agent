@@ -1,0 +1,31 @@
+dimensional_rule,equation_id,inputs_and_dimensions,module,outputs_and_dimensions,pinned_s3_registry_unit_mismatches,status,unit_correction_applied_in_s4_code
+count/plant × fraction; weighted count divided by count,EQA001,cane_count=count/plant; productive_fraction=fraction,STRUCTURAL_ENGINE,productive_canes=count/plant; productivity_index=fraction,NONE,PASS,false
+season age increment is 1 year; counts and fractions retain dimension,EQA002,age=year; cane_count=count/plant; productive_fraction=fraction,STRUCTURAL_ENGINE,age=year; count=count/plant; fraction=fraction,NONE,PASS,false
+multipliers are dimensionless; regrowth increment is shoots/plant per event intensity,EQA003,event_intensity=fraction; fruiting_wood=index; leaf_area_index=m² leaf/m² ground; shoot_potential=shoots/plant,PRUNING,structural indices; flower_buds=buds/plant; shoot_potential=shoots/plant,pruning_regrowth_gain:S3=index|runtime=shoots_per_plant,PASS,true
+"daily rate × one-day step; bounded normalized latent index, not carbon mass",EQA004,reserve=index; source=index; demand=count/plant or index; rates=index/day or index/(count·day),POSTHARVEST_RECOVERY,reserve=index,NONE,PASS,false
+signal-day accumulator × buds/(plant·signal-day) gives buds/plant,EQA005,photoperiod=hour; temperature=°C; vigor/reserve/load=fraction or index,FLOWER_BUD_ENGINE,induction_signal=dimensionless; bud_potential=buds/plant,flower_bud_increment_per_signal:S3=index_per_signal_day|runtime=buds_per_plant_per_signal_day,PASS,true
+one dimensionless response unit per eligible one-hour observation,EQA006,"hourly temperature=°C; interval=[0,7.2] °C",DORMANCY_ENGINE,chill_hours=hour,NONE,PASS,false
+piecewise chill_unit/hour weight summed over one-hour intervals,EQA007,hourly temperature=°C; piecewise temperature bands=°C,DORMANCY_ENGINE,Utah chill units=chill_unit,NONE,PASS,false
+stateful kinetic response; model-specific unit retained without cross-model averaging,EQA008,temperature=°C converted to K; dynamic constants=declared literature-prior units,DORMANCY_ENGINE,dynamic chill portions=portion,NONE,PASS,false
+"only like-typed exposure and threshold compare; state is inferred, not observed",EQA009,chill_exposure=model-typed chill unit; threshold=same model unit,DORMANCY_ENGINE,dormancy_state=categorical,NONE,PASS,false
+temperature difference × hour/24 hours per day,EQA010,temperature/base/upper=°C; time=hour,FORCING_ENGINE,forcing=°C·day,NONE,PASS,false
+explicit system path; no numeric unit or zero-chill inference,EQA011,cultivar and production-system identity=categorical,EVERGREEN_PHENOLOGY_ENGINE,pathway/state=categorical,evergreen_flower_bud_rate:S3=fraction_per_day|runtime=buds_per_plant_per_day,PASS,true
+normalized forcing fraction increment × flower load,EQA012,forcing/start/duration=°C·day,BLOOM_ENGINE,bloom_progress=fraction; cohort_flowers=flowers/plant,NONE,PASS,false
+bounded product of dimensionless fractions,EQA013,event opportunity=fraction; temperature_suitability=fraction,POLLINATION_ENGINE,pollination_sufficiency=fraction,NONE,PASS,false
+count × dimensionless probability; bounded by input count,EQA014,pollinated_flowers=flowers/plant; set_probability=fraction,FRUIT_SET_ENGINE,fruit_count=fruits/plant,NONE,PASS,false
+dimensionless removal fraction cannot create reproductive units,EQA015,flower/fruitlet/fruit counts=count/plant; thinning=intensity fraction,CROP_LOAD_ENGINE,scoped counts=count/plant,NONE,PASS,false
+all terms are dimensionless proxies; not carbon flux,EQA016,leaf_area_index=m²/m²; health/light/temp/reserve=index,SOURCE_SINK_ENGINE,source_supply=normalized index,NONE,PASS,false
+stage weights are dimensionless; coefficient carries inverse count representation,EQA017,fruit count=fruits/plant × inverse-count coefficient; other demands=normalized index,SOURCE_SINK_ENGINE,sink_demand=normalized index,NONE,PASS,false
+same-dimension ratio is dimensionless then bounded,EQA018,source_supply=index; sink_demand=index,SOURCE_SINK_ENGINE,sufficiency=fraction,NONE,PASS,false
+normalized sum of two dimensionless logistic increments,EQA019,thermal_age/midpoints/width=°C·day,FRUIT_DEVELOPMENT_ENGINE,growth_fraction=fraction,NONE,PASS,false
+positive temperature difference × hour/24 hours per day,EQA020,temperature/base=°C; time=hour,FRUIT_DEVELOPMENT_ENGINE,thermal_age=°C·day,NONE,PASS,false
+bounded logistic fraction; nonnegative first difference,EQA021,thermal_age/median/width=°C·day,MATURITY_ENGINE,cumulative_ripe_fraction=fraction; delta=fraction/day step,NONE,PASS,false
+berries × g/berry × kg/1000g; area(mu) × density(plants/mu) = plants,EQA022,fruit_count=berries/plant; berry_weight=g/berry; ripe/marketable=fraction; plant_count=plants,BIOLOGICAL_HARVEST_INTERFACE,kg/plant/day and kg/day,NONE,PASS,false
+only dimensionless normalized states combine; not buds/plant without an explicit scale,EQA023,reserve/vigor/crop_load=fraction or normalized index,INTERSEASON_ENGINE,carryover reserve/vigor/bud potential=normalized latent index,NONE,PASS,false
+add like-temperature units; shade multiplies a dimensionless light proxy,EQA024,temperature/offset=°C; radiation=index; shade=fraction,MICROCLIMATE,effective temperature=°C; effective radiation=index,NONE,PASS,false
+temperature differences divide like-temperature differences,EQA025,temperature/low/high=°C,TEMPERATURE_RESPONSE,temperature_suitability=fraction,NONE,PASS,false
+time gates dimensionless scenario opportunity,EQA026,event window/time=categorical/datetime; opportunity=fraction,POLLINATION_ENGINE,pollination index=fraction,NONE,PASS,false
+g/berry × dimensionless response factors,EQA027,potential_weight=g/berry; modifiers=fraction/index,FRUIT_DEVELOPMENT_ENGINE,berry_weight=g/berry,NONE,PASS,false
+all three curve families return normalized fraction,EQA028,thermal_age/stage boundaries/width=°C·day,FRUIT_DEVELOPMENT_ENGINE,growth_fraction=fraction,NONE,PASS,false
+chill unit × dimensionless reduction fraction,EQA029,chill requirement=model-typed chill unit; treatment intensity/reduction=fraction,DORMANCY_ENGINE,effective threshold=same chill unit; dormancy gate=categorical,NONE,PASS,false
+typed module transitions; mass output reconciles from cohorts,EQA030,"PlantState, Environment, Management, scoped parameters",BIOLOGICAL_ENGINE,next PlantState and daily newly mature kg,NONE,PASS,false

@@ -1,0 +1,224 @@
+{
+  "algebraic_loop_count": 0,
+  "continuation_policy": "IN_MEMORY_STATEFUL_DAILY_GENERATOR; no serialized/process-restart checkpoint API is claimed",
+  "feedback_break_policy": "same-day fruit-set/crop-load feedback uses pre-set snapshot and becomes next-day sink input; reserve/vigor are next-step outputs",
+  "model_module_count": 16,
+  "module_coverage": [
+    {
+      "module": "STRUCTURAL_ENGINE",
+      "sequence_references": [
+        1
+      ]
+    },
+    {
+      "module": "POSTHARVEST_RECOVERY_ENGINE",
+      "sequence_references": [
+        11
+      ]
+    },
+    {
+      "module": "FLOWER_BUD_ENGINE",
+      "sequence_references": [
+        4
+      ]
+    },
+    {
+      "module": "DORMANCY_ENGINE",
+      "sequence_references": [
+        5
+      ]
+    },
+    {
+      "module": "CHILLING_ENGINE",
+      "sequence_references": [
+        3
+      ]
+    },
+    {
+      "module": "FORCING_ENGINE",
+      "sequence_references": [
+        6
+      ]
+    },
+    {
+      "module": "EVERGREEN_PHENOLOGY_ENGINE",
+      "sequence_references": [
+        6
+      ]
+    },
+    {
+      "module": "BLOOM_ENGINE",
+      "sequence_references": [
+        7
+      ]
+    },
+    {
+      "module": "POLLINATION_ENGINE",
+      "sequence_references": [
+        9
+      ]
+    },
+    {
+      "module": "FRUIT_SET_ENGINE",
+      "sequence_references": [
+        9
+      ]
+    },
+    {
+      "module": "CROP_LOAD_ENGINE",
+      "sequence_references": [
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "module": "SOURCE_SINK_ENGINE",
+      "sequence_references": [
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "module": "FRUIT_DEVELOPMENT_ENGINE",
+      "sequence_references": [
+        10
+      ]
+    },
+    {
+      "module": "MATURITY_ENGINE",
+      "sequence_references": [
+        10
+      ]
+    },
+    {
+      "module": "INTERSEASON_ENGINE",
+      "sequence_references": [
+        13
+      ]
+    },
+    {
+      "module": "BIOLOGICAL_TO_HARVEST_INTERFACE",
+      "sequence_references": [
+        14
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "module": "STRUCTURE_AND_EVENT_APPLICATION",
+      "next_state_outputs": "current structural state",
+      "previous_state_inputs": "prior structural state",
+      "same_step_inputs": "same-day events",
+      "sequence": 1,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "MICROCLIMATE_AGGREGATION",
+      "next_state_outputs": "effective environment drivers",
+      "previous_state_inputs": "raw hourly environment",
+      "same_step_inputs": "active greenhouse/heating/shade events",
+      "sequence": 2,
+      "time_scale": "HOURLY_TO_DAILY"
+    },
+    {
+      "module": "CHILLING_AND_THERMAL_DRIVERS",
+      "next_state_outputs": "chill/forcing/thermal increments",
+      "previous_state_inputs": "chill accumulator and dormancy state",
+      "same_step_inputs": "effective hourly temperature",
+      "sequence": 3,
+      "time_scale": "HOURLY"
+    },
+    {
+      "module": "FLOWER_BUD_AND_ACCLIMATION",
+      "next_state_outputs": "updated bud potential and acclimation signal",
+      "previous_state_inputs": "prior reserve/vigor/bud state",
+      "same_step_inputs": "daily environment and prior crop-load index",
+      "sequence": 4,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "DORMANCY_RELEASE_GATE",
+      "next_state_outputs": "inferred release state",
+      "previous_state_inputs": "prior dormancy state and accumulated chill",
+      "same_step_inputs": "scoped chill threshold/treatment event",
+      "sequence": 5,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "FORCING_AND_PHENOLOGY",
+      "next_state_outputs": "forcing, bloom progress, phenology stage",
+      "previous_state_inputs": "prior forcing/progress",
+      "same_step_inputs": "post-release forcing increment",
+      "sequence": 6,
+      "time_scale": "HOURLY_TO_DAILY"
+    },
+    {
+      "module": "BLOOM_COHORT_CREATION",
+      "next_state_outputs": "new bloom cohort",
+      "previous_state_inputs": "prior bloom progress",
+      "same_step_inputs": "same-day progress increment and flower load",
+      "sequence": 7,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "SOURCE_SINK_SNAPSHOT",
+      "next_state_outputs": "source/sink sufficiency snapshot",
+      "previous_state_inputs": "pre-fruit-set cohort load, reserve, structure",
+      "same_step_inputs": "same-day radiation/temperature",
+      "sequence": 8,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "POLLINATION_AND_FRUIT_SET",
+      "next_state_outputs": "fruit-set cohorts",
+      "previous_state_inputs": "un-set bloom cohorts",
+      "same_step_inputs": "pollination window/opportunity and source snapshot",
+      "sequence": 9,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "FRUIT_DEVELOPMENT_AND_MATURITY",
+      "next_state_outputs": "updated fruit cohorts and newly mature mass",
+      "previous_state_inputs": "existing fruit cohorts and prior ripe fractions",
+      "same_step_inputs": "thermal age and source snapshot",
+      "sequence": 10,
+      "time_scale": "HOURLY_TO_DAILY"
+    },
+    {
+      "module": "POSTHARVEST_RESERVE_AND_VIGOR",
+      "next_state_outputs": "next-day reserve/vigor",
+      "previous_state_inputs": "prior reserve/vigor and pre-set sink snapshot",
+      "same_step_inputs": "daily source/demand",
+      "sequence": 11,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "DAILY_STATE_SNAPSHOT",
+      "next_state_outputs": "auditable state point",
+      "previous_state_inputs": "all previous/current state outputs",
+      "same_step_inputs": "daily aggregates",
+      "sequence": 12,
+      "time_scale": "DAILY"
+    },
+    {
+      "module": "INTERSEASON_CARRYOVER",
+      "next_state_outputs": "next-season latent state",
+      "previous_state_inputs": "final reserve/vigor/crop load/structure",
+      "same_step_inputs": "declared carryover coefficients",
+      "sequence": 13,
+      "time_scale": "SEASONAL"
+    },
+    {
+      "module": "BIOLOGICAL_TO_HARVEST_INTERFACE",
+      "next_state_outputs": "daily_newly_mature_quantity only",
+      "previous_state_inputs": "fruit cohorts and maturity distribution",
+      "same_step_inputs": "daily maturity increments",
+      "sequence": 14,
+      "time_scale": "DAILY"
+    }
+  ],
+  "order_semantics": "hourly physiology; daily immutable snapshot; seasonal carryover",
+  "schema_version": "V0_9_S4_STATE_UPDATE_ORDER_R1"
+}

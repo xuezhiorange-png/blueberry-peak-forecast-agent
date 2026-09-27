@@ -1,0 +1,1 @@
+{"scenario_id":"pruning-heavy","production_system":"DECIDUOUS_NATURAL","parameter_overrides":{},"events":[{"day_offset":15,"event_type":"POSTHARVEST_PRUNING","intensity":0.75}]}
