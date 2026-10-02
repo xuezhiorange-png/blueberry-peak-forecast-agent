@@ -1,0 +1,32 @@
+{
+  "artifact_hash": "1a05a0930a88465c1264292b8c99287ceed749a9a13f165ac9c8abd115722f23",
+  "training_manifest_sha256": "36f6c37222a5df5cdf7e59c53f232039c60d0ff07d7530ab67c2d2aea0d4d158",
+  "training_cutoff": "2026-04-15",
+  "training_base_season_count": 76,
+  "config": {
+    "boundary_variant": "B2_LOCAL_EMPIRICAL_TAIL_DERIVATIVE",
+    "canonical_axis": "JULY_01_INTEGER_DAY",
+    "extrapolation": "constant",
+    "fit_intercept": true,
+    "include_bias": false,
+    "normalization": "EXISTING_TASK8_AND_CORRECTED_SIX_DECIMAL_CONTRACT",
+    "quantity_serialization": "EXISTING_MICRO_KG_LAST_DAY_RESIDUAL",
+    "random_state": 0,
+    "ridge_alpha": 0.1,
+    "sample_weighting": "TASK8_OFFICIAL_EQUAL_DAILY_ROW",
+    "spline_degree": 3,
+    "spline_knots": 6,
+    "support_days": 290,
+    "support_extension": false,
+    "total": "TOTAL_T0_AREA_WEIGHTED_MEAN_YIELD"
+  },
+  "model_id": "M0-ALL-HISTORY-REFERENCE-R1",
+  "model_family": "M0_CORRECTED_TASK8_SHARED_SPLINE",
+  "model_role": "REFERENCE_BASELINE",
+  "approval_status": "RESEARCH_ONLY",
+  "artifact_file_sha256": "aa9601b833374801298a680f51fdc1a81f953c4726cc459670b7ddaeddb1d4ce",
+  "artifact_locator": "artifacts/v0-11/m0-baseline-delivery-r1/model-artifact/M0_ALL_HISTORY_RESEARCH_ARTIFACT.json",
+  "artifact_distribution": "PRIVATE_LOCAL_ONLY_MANIFEST_REFERENCE",
+  "timing_limitation": "All 61 accepted forward requests have their predicted single peak on the output-window final day",
+  "climate_and_cultivar_used": false
+}

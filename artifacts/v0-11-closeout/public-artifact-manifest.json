@@ -1,0 +1,84 @@
+{
+  "task_id": "V0_11_RESEARCH_ENGINEERING_CLOSEOUT_EXTRACTION_R1",
+  "level": "ENGINEERING_CLOSEOUT_REPLAY",
+  "base_sha": "327a942815da4fbb9424f8996f6ffa158a738d2e",
+  "source_head": "72839ab35195464096d0057c79631aa3998c978e",
+  "files": [
+    {
+      "path": "artifacts/v0-11-closeout/engineering-retention-lineage.json",
+      "sha256": "24d4bd14d026dfa4b4fbc66902822899261207b0bcb6f5b436d2d8298acc4e88"
+    },
+    {
+      "path": "artifacts/v0-11-closeout/extraction-manifest.json",
+      "sha256": "a2060a69f4055476a0ad2bcd214e3afb2d37111dbb4ed1f6ddd69ff25fd14db0"
+    },
+    {
+      "path": "artifacts/v0-11-closeout/m0-model-identity.json",
+      "sha256": "fb0bbd986a9fff3514d44dc10ba7fe435e2897ff6ddaf53b1d9bc177902db80b"
+    },
+    {
+      "path": "backend/app/area_yield/m0_baseline.py",
+      "sha256": "abd54781857f607970c591195a6156c35f37b7dd4b8057f42e636f0931dfacb6"
+    },
+    {
+      "path": "backend/app/area_yield/m0_baseline_cli.py",
+      "sha256": "75d54ca992ec015ea240eae682ef600fdd7435cc2aedcc74bd5b2c3f97c59ab4"
+    },
+    {
+      "path": "backend/app/area_yield/m0_frozen_kernels.py",
+      "sha256": "15e12541341a90cda72aa784626a5e6a96282ec127c2f7e941b4ebb8a7dbc9a5"
+    },
+    {
+      "path": "backend/app/area_yield/research_records.py",
+      "sha256": "d1fc61df5f8f1cb4314669a7acb1304619896cc7dd0b622f59be06ffef9a9d07"
+    },
+    {
+      "path": "backend/app/area_yield/research_records_r2.py",
+      "sha256": "869ed63c49a3bf582d15098f5e30376e60ade27144cc6c8a41e6c2b389238825"
+    },
+    {
+      "path": "backend/app/cli.py",
+      "sha256": "bf85ba28e8c74663b137d9a5692f3524649918738869267c276ceba7aad02f39"
+    },
+    {
+      "path": "backend/tests/area_yield/test_m0_baseline_delivery_r1.py",
+      "sha256": "94da6c2bb81e05ac73f09998389111244389a0979570b68c67dd8b877f9af974"
+    },
+    {
+      "path": "backend/tests/area_yield/test_research_records.py",
+      "sha256": "6d3e0d6400c4535d29bc181c24e6841c9f4a86d81ccd1b0bc3081d0e40804e58"
+    },
+    {
+      "path": "backend/tests/area_yield/test_research_records_r2.py",
+      "sha256": "91211a93e27e718ce5304091dfcc20f9c5158e7acef0a41802de93d5c74e0270"
+    },
+    {
+      "path": "backend/tests/area_yield/test_v0_11_closeout_boundary.py",
+      "sha256": "6e3c294636a866ae3b76b1f8e5926ed390ef121f56f33902e2d244a40ca029bb"
+    },
+    {
+      "path": "backend/tests/fixtures/m0-synthetic-test-only.json",
+      "sha256": "418f03751fd28cd9837ba817f54025ce768690cc9f9f9778e4629dbbd5f115d5"
+    },
+    {
+      "path": "docs/v0-11/evidence/v0.11.0-research-engineering-closeout.json",
+      "sha256": "07d9113631aa1eef154e90287bae6c74739b6d2e28c65fc63873e1eceed73ce7"
+    },
+    {
+      "path": "docs/v0-11/v0.11-research-issuance-and-locked-evaluation-scope-r1.md",
+      "sha256": "b0feb05b548eff46d2576ea3bbf7312128455e44d0a64bcdab9d1f6abe4b16e1"
+    },
+    {
+      "path": "docs/v0-11/v0.11.0-research-engineering-closeout.md",
+      "sha256": "0f7a2ab58dcc8ce3c72fed7095f91f88aa794e474f5e2644e04778110635384f"
+    },
+    {
+      "path": "scripts/replay_v0_11_closeout.py",
+      "sha256": "d7621bd19fac3075d37d3119b3b608a8c79ef2ba038f8974ab0c203fb6502ba0"
+    }
+  ],
+  "private_row_level_data_included": false,
+  "real_model_artifact_included": false,
+  "only_model_fixture": "SYNTHETIC_TEST_ONLY",
+  "historical_training_reproduced": false
+}
