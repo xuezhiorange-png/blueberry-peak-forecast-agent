@@ -1,0 +1,300 @@
+{
+  "TASK_ID": "V0_12_VERSION_SCOPE_FREEZE_AND_PR659_ADMISSION_R1",
+  "MODE": "DOCS_ONLY_SCOPE_FREEZE_AND_EXISTING_RESEARCH_ADMISSION",
+  "VERSION": "0.12.0",
+  "VERSION_NAME": "AREA_BASED_YIELD_MODEL_RESEARCH_AND_VALIDATION",
+  "RELEASE_CLASS": "RESEARCH_VERSION",
+  "V0_12_SCOPE_FROZEN": true,
+  "SCOPE_AUTHORITY": "CURRENT_OWNER_S0_TASK_NOT_RETROACTIVE_VERSION_APPROVAL",
+  "BASE_SHA": "fb99dabcf4257886a7e6b47df5c455d43d9d0205",
+  "LATEST_FORMAL_RELEASE_AT_FREEZE": "v0.11.0",
+  "V0_12_IS_V0_11_CONTINUATION": false,
+  "V0_11_REOPEN_AUTHORIZED": false,
+  "prior_versions": {
+    "V0_10_LIFECYCLE": "CLOSED_WITH_ORIGINAL_GATE_INCOMPLETE",
+    "V0_11_LIFECYCLE": "CLOSED_ENGINEERING_DELIVERED_NOT_ISSUED",
+    "V0_11_LIFECYCLE_CLOSED": true,
+    "V0_11_VERSION_COMPLETE": false
+  },
+  "PRIMARY_SCALE_INPUT": "target_area_mu",
+  "inputs": [
+    "target_area_mu",
+    "target_season",
+    "applicable_base_or_farm_context"
+  ],
+  "BASE_CONTEXT_USES": [
+    "DATA_ASSOCIATION",
+    "APPLICABILITY",
+    "COVERAGE_EXTRAPOLATION"
+  ],
+  "COPY_HISTORICAL_FARM_TOTAL_AS_FORECAST": false,
+  "ARRIVAL_EQUALS_HARVEST": true,
+  "DIRECT_PHYSIOLOGICAL_MATURITY_OBSERVED": false,
+  "OUTPUT_SEASON_TOTAL": true,
+  "OUTPUT_DAILY_CURVE": true,
+  "OUTPUT_SINGLE_DAY_PEAK": true,
+  "OUTPUT_ROLLING_7DAY_PEAK": true,
+  "TARGET_WINDOW": "JULY_01_TO_APRIL_15_FROZEN_BUSINESS_WINDOW",
+  "NATURAL_FULL_SEASON_CLAIM": false,
+  "ROLLING_7DAY_DEFINITION": "MAX_CUMULATIVE_COMPLETE_7_CONSECUTIVE_CALENDAR_DAYS",
+  "PEAK_TIE_RULE": "EARLIEST_DATE",
+  "MISSING_IS_ZERO": false,
+  "QUANTITY_PRECISION_KG": "0.000001",
+  "V0_10_V0_11_REFERENCE_BASELINE": "M0-ALL-HISTORY-REFERENCE-R1",
+  "comparator": {
+    "id": "V0_12_COMPARATOR_BASELINE",
+    "total_formula": "target_area_mu * sum(train_total_kg) / sum(train_area_mu)",
+    "shape_rule": "EQUAL_BASE_SEASON_MEAN_NORMALIZED_DAILY_SHARE_BY_MONTH_DAY",
+    "statistics_source": "CORRESPONDING_TRAINING_FOLD_ONLY",
+    "calendar_rule": "TARGET_MONTH_DAY_SUPPORTED_BY_TRAINING_PROFILE_NO_MISSING_DAY_IMPUTATION",
+    "daily_normalization": "LEGAL_FULL_BUSINESS_WINDOW_ONLY",
+    "daily_rounding": "HALF_EVEN_RESIDUAL_TO_LARGEST_SHARE_EARLIEST_TIE",
+    "artifact_renamed_this_task": false,
+    "meaning": "V0.12 comparator designation, not an artifact identity rewrite or the legacy M0"
+  },
+  "PR_659_STATE_AT_REVIEW": "OPEN_DRAFT",
+  "PR_659_HEAD": "76b9e86c24cdd99be23b20e15eb895173ac26671",
+  "PR_659_MODIFIED": false,
+  "PR_659_ADMISSION_STATUS": "ADMITTED_AS_EXISTING_R1_RESEARCH_EVIDENCE",
+  "PR_659_PROPOSED_ROLE": "V0_12_R1_AREA_MODEL_RESEARCH_BASELINE",
+  "PR_659_ENGINEERING_PASS": true,
+  "PR_659_SINGLE_FOLD_GAIN_OBSERVED": true,
+  "PR_659_TEMPORAL_SHAPE_GAIN": false,
+  "PR_659_SINGLE_PEAK_DATE_GAIN": false,
+  "PR_659_ROLLING_7DAY_PEAK_DATE_GAIN": false,
+  "PR_659_STABLE_GAIN": false,
+  "PR_659_NEW_BLIND_VALIDATION": false,
+  "PR_659_PROSPECTIVE_VALIDATION": false,
+  "PR_659_IS_VERSION_COMPLETION_EVIDENCE": false,
+  "admitted_evidence": {
+    "new_execution": false,
+    "verification_level": "READ_ONLY_PINNED_SOURCE_AND_AGGREGATE_EVIDENCE_REVIEW_NOT_NEW_TRAINING_OR_RAW_METRIC_REPLAY",
+    "execution_id": "NEXT_AREA_SIZE_20261002_R1",
+    "engineering": {
+      "train_save_load_predict": "PASS_RECORDED_IN_SOURCE_EVIDENCE",
+      "fresh_process": "PASS_RECORDED_IN_SOURCE_EVIDENCE",
+      "deterministic_replay": "PASS_RECORDED_IN_SOURCE_EVIDENCE"
+    },
+    "fold": {
+      "train_seasons": [
+        "2023-2024"
+      ],
+      "train_count": 15,
+      "test_season": "2024-2025",
+      "test_count": 22,
+      "fold_count": 1
+    },
+    "candidate_formula": "Qhat=A_target*exp(alpha+beta*(log(A_target)-mean_log_A_train))",
+    "candidate_objective": "sum((log(Q/A)-alpha-beta*(log(A)-mean_log_A_train))^2)+beta^2",
+    "candidate_penalty": "1.0",
+    "candidate_shape": "SAME_AS_COMPARATOR",
+    "training_area_range_mu": [
+      "216",
+      "2548"
+    ],
+    "area_authority": "EXPLICIT_BUSINESS_CONFIRMATION_NOT_INDEPENDENT_MEASURED_AREA_VERIFICATION",
+    "historical_pit_availability": "NOT_PROVEN",
+    "eligible_base_season_count": 37,
+    "excluded_sample_count": 41,
+    "raw_receipts_reconstructed": false,
+    "holdout_in_final_artifact_training": false,
+    "candidate_original_model_id": "NEXT_AREA_SIZE_20261002_R1_CANDIDATE",
+    "candidate_artifact_file_sha256": "5aecb3fbbedfdb3b4eb0db20e444446c1fde65e5c787d1e117f9428c56a2d352",
+    "candidate_artifact_content_hash": "be265f1bce5829350873da871c067c8b44e6af76cf5039a9648bcc34e1391371",
+    "private_artifact_accessed_this_task": false,
+    "sources": [
+      {
+        "path": "docs/next-version/evidence/next-area-size-20261002-r1.json",
+        "sha256": "fa348381ea1f20e8ff535099d5b70272225e69dd9b679da8e5d848981aeb4508"
+      },
+      {
+        "path": "configs/next_area_size_experiment_20261002_r1.json",
+        "sha256": "eee3bc94ff6f9f3598fc320f00ea9ff5117a9384d336bc47855a162508ccfed5"
+      },
+      {
+        "path": "docs/next-version/next-area-size-training-backtest-20261002-r1.md",
+        "sha256": "957b90ddc5739d99504ea46870cf3099626ba9f4af4278755e0ab37534cb1586"
+      },
+      {
+        "path": "backend/app/area_yield/area_size_r1.py",
+        "sha256": "cb3b8d2043b1b932c207b4011151cf0744872cc5c8605edc0f61c5746d238a8f"
+      }
+    ],
+    "source_ci": {
+      "run_id": 36956811488,
+      "status": "SUCCESS",
+      "head": "76b9e86c24cdd99be23b20e15eb895173ac26671",
+      "not_scientific_validation": true
+    },
+    "metrics": {
+      "season_total_wape_percent": {
+        "baseline": "45.0910",
+        "candidate": "41.7458"
+      },
+      "daily_wape_percent": {
+        "baseline": "77.0660",
+        "candidate": "73.1543"
+      },
+      "single_peak_quantity_mae_kg": {
+        "baseline": "7233.920555",
+        "candidate": "6572.139398"
+      },
+      "rolling_7day_peak_quantity_mae_kg": {
+        "baseline": "48318.586215",
+        "candidate": "45003.802717"
+      },
+      "shape_micro_wape": {
+        "baseline": "0.632252",
+        "candidate": "0.632252"
+      },
+      "single_peak_date_mae_days": {
+        "baseline": "21.818182",
+        "candidate": "21.818182"
+      },
+      "rolling_7day_start_date_mae_days": {
+        "baseline": "22.318182",
+        "candidate": "22.318182"
+      }
+    },
+    "interpretation": "Single reused historical fold amplitude/total association gain; no new temporal shape, cross-fold stability, blind or prospective evidence",
+    "completion_evidence_rejection_reasons": [
+      "ONE_FOLD_ONLY",
+      "HOLDOUT_PREVIOUSLY_CONSUMED",
+      "NOT_NEW_BLIND_VALIDATION",
+      "NO_TEMPORAL_SHAPE_GAIN",
+      "NO_REAL_FUTURE_ISSUANCE",
+      "NO_PROSPECTIVE_ACTUAL",
+      "NO_CROSS_FOLD_STABILITY"
+    ]
+  },
+  "AREA_EXTRAPOLATION_VALIDATED": false,
+  "WEATHER_IN_SCOPE": false,
+  "FUTURE_PRODUCTION_PLAN_IN_SCOPE": false,
+  "VARIETY_LEVEL_FORECAST_REQUIRED": false,
+  "MULTI_FACTORY_ROUTING_IN_SCOPE": false,
+  "FACTORY_CAPACITY_OPTIMIZATION_IN_SCOPE": false,
+  "PEAK_SHAVING_IN_SCOPE": false,
+  "TRANSPORT_SCHEDULING_IN_SCOPE": false,
+  "UI_IN_SCOPE": false,
+  "NO_FURTHER_UNBOUNDED_SEARCH_ON_CONSUMED_2023_2025": true,
+  "NEW_INFORMATION_REQUIRED_FOR_FURTHER_MODEL_RESEARCH": true,
+  "new_information": {
+    "qualifying_categories": [
+      "NEW_AUTHORITATIVE_UNCONSUMED_HISTORICAL_SEASON",
+      "NEW_BUSINESS_OR_SCIENTIFIC_FEATURE_INFORMATION_NOT_OLD_REENCODING",
+      "REAL_FUTURE_REQUEST_AREA_ARTIFACT_AND_PREDICTION_FROZEN_BEFORE_OUTCOME",
+      "INDEPENDENT_EXTERNAL_VALIDATION_COHORT"
+    ],
+    "nonqualifying_categories": [
+      "NEW_ALGORITHM_SAME_CONSUMED_DATA",
+      "NEW_FOLD_SAME_CONSUMED_DATA",
+      "NEW_HYPERPARAMETER",
+      "NEW_METRIC",
+      "DIFFERENT_FILTER_SAME_TEST_SEASON"
+    ]
+  },
+  "prohibited_searches_without_new_information": [
+    "L2_PENALTY_SWEEP",
+    "RIDGE_LASSO_SEARCH",
+    "POLYNOMIAL_DEGREE_SEARCH",
+    "PIECEWISE_AREA_MODEL_SEARCH",
+    "KNN_SEARCH",
+    "TREE_FOREST_SEARCH",
+    "BOOSTING_SEARCH",
+    "NEURAL_NETWORK_SEARCH",
+    "BASE_COEFFICIENT_SEARCH",
+    "METRIC_DRIVEN_CHERRY_PICKING"
+  ],
+  "V0_12_S0_AUTHORIZED": true,
+  "V0_12_S1_AUTHORIZED": false,
+  "V0_12_S2_AUTHORIZED": false,
+  "stages": [
+    {
+      "id": "V0.12-S0",
+      "scope": "VERSION_SCOPE_AND_EXISTING_R1_EVIDENCE_ADMISSION",
+      "authorized": true
+    },
+    {
+      "id": "V0.12-S1",
+      "scope": "INTEGRATE_PR659_AS_FROZEN_R1_RESEARCH_BASELINE",
+      "authorized": false,
+      "no_retraining": true,
+      "no_model_search": true,
+      "no_scientific_result_change": true
+    },
+    {
+      "id": "V0.12-S2",
+      "scope": "NEW_INFORMATION_OR_REAL_PROSPECTIVE_VALIDATION",
+      "authorized": false,
+      "new_information_required": true
+    }
+  ],
+  "completion_requirements": [
+    "VERSION_SCOPE_FROZEN",
+    "COMPARATOR_FROZEN",
+    "CANDIDATE_REPRODUCIBLE_TRAIN_SAVE_LOAD_PREDICT",
+    "TRAIN_EVALUATION_COHORT_IDENTITIES",
+    "EXISTING_CONSUMED_DATA_RESULTS_RETAINED",
+    "AREA_APPLICABILITY_RANGE",
+    "NO_HIDDEN_MODEL_SEARCH",
+    "NEW_INFORMATION_OR_PROSPECTIVE_STATUS_EXPLICIT",
+    "STABLE_GAIN_FORMAL_EVIDENCE_DECISION",
+    "LIFECYCLE_CLOSEOUT"
+  ],
+  "research_closeout_options": [
+    "RESEARCH_CLOSEOUT_STABLE_GAIN",
+    "RESEARCH_CLOSEOUT_NO_STABLE_GAIN"
+  ],
+  "stable_gain_decision": "Separate authorized evidence review of predeclared same-cohort baseline/candidate metrics, absolute and relative deltas and per-fold consistency; one consumed fold or CI cannot establish stable gain",
+  "future_issuance_required_fields": [
+    "request_id",
+    "target_area_mu",
+    "target_season",
+    "Base/Farm",
+    "model_id",
+    "artifact_hash",
+    "config_hash",
+    "issued_at",
+    "daily_curve",
+    "season_total",
+    "single_peak",
+    "rolling_7day_peak",
+    "prediction_hash"
+  ],
+  "future_issuance_timing": "Freeze request, area, artifact, config, prediction before outcome; issued_at cannot be backfilled; no real issuance authorized by S0",
+  "locked_scoring_forbids": [
+    "retrain",
+    "retune",
+    "switch_model",
+    "reshape_prediction",
+    "rewrite_issued_result"
+  ],
+  "BUSINESS_ACCURACY_THRESHOLD_STATUS": "NOT_ESTABLISHED",
+  "V0_12_VERSION_COMPLETE": false,
+  "V0_12_LIFECYCLE": "S0_SCOPE_FROZEN_EXISTING_EVIDENCE_ADMITTED_NOT_COMPLETE",
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "PROBABILITY_CALIBRATION_ESTABLISHED": false,
+  "PRODUCTION_USE_APPROVED": false,
+  "REAL_FORECAST_COUNT_CREATED": 0,
+  "REPOSITORY_PRODUCTION_CODE_CHANGED": false,
+  "MODEL_TRAINING_EXECUTED": false,
+  "NEW_BACKTEST_EXECUTED": false,
+  "NEW_PREDICTION_EXECUTED": false,
+  "PRIVATE_ROW_LEVEL_DATA_ACCESSED": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "TAG_CREATED": false,
+  "RELEASE_CREATED": false,
+  "AUTO_MERGE": false,
+  "namespace_preflight": {
+    "formal_scope_found": false,
+    "code_docs_namespace_found": false,
+    "branch_found": false,
+    "tag_found": false,
+    "release_found": false,
+    "github_issue_pr_records_scanned": 661,
+    "nonowning_reference_pr": 661,
+    "classification": "PR661 exclusion statement only; no preexisting formal V0.12 owner"
+  },
+  "general_project_requirements": "Current owner task narrows this research scope only; general production/probabilistic requirements are neither implemented nor waived by S0"
+}
