@@ -1,0 +1,328 @@
+{
+  "task_id": "V0_10_V0_11_RELEASE_LIFECYCLE_NORMALIZATION_R1",
+  "base_sha": "8e886b45984a358125d00e80f4f5d662fab3d8e9",
+  "source_pr": 658,
+  "source_head": "72839ab35195464096d0057c79631aa3998c978e",
+  "files": [
+    {
+      "source_path": "artifacts/version-reconciliation/baseline-metrics.csv",
+      "source_sha256": "3434a8e755ac0dba644646888d52ad6208afce6141a1cde54b8e64d4c644107a",
+      "classification": "SHARED_EVIDENCE_REQUIRED_FOR_V0_10",
+      "destination": "artifacts/v0-10-closeout/baseline-metrics.csv",
+      "extraction_mode": "EXACT_COPY",
+      "reason": "Minimum frozen aggregate/task-result evidence for no-promotion conclusion; no engineering data"
+    },
+    {
+      "source_path": "artifacts/version-reconciliation/engineering-retention-lineage.json",
+      "source_sha256": "24d4bd14d026dfa4b4fbc66902822899261207b0bcb6f5b436d2d8298acc4e88",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "artifacts/version-reconciliation/m0-model-identity.json",
+      "source_sha256": "fb0bbd986a9fff3514d44dc10ba7fe435e2897ff6ddaf53b1d9bc177902db80b",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "artifacts/version-reconciliation/public-artifact-manifest.json",
+      "source_sha256": "15df7209b65db83165c5b368572e6a51a82aa6e520c6e76e4f1a51a6a0d9e6d6",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    },
+    {
+      "source_path": "artifacts/version-reconciliation/risk-coverage-width.csv",
+      "source_sha256": "5de08bc8c2609fb3cbf3ac74a749d5489a5800fdfd379f04abfbdd0b170691a3",
+      "classification": "SHARED_EVIDENCE_REQUIRED_FOR_V0_10",
+      "destination": "artifacts/v0-10-closeout/risk-coverage-width.csv",
+      "extraction_mode": "EXACT_COPY",
+      "reason": "Minimum frozen aggregate/task-result evidence for no-promotion conclusion; no engineering data"
+    },
+    {
+      "source_path": "artifacts/version-reconciliation/risk-distribution-scores.csv",
+      "source_sha256": "dbfbe4591fdfeddc992d3fb38a649b083844ecff2e2f7599babb24c254c545af",
+      "classification": "SHARED_EVIDENCE_REQUIRED_FOR_V0_10",
+      "destination": "artifacts/v0-10-closeout/risk-distribution-scores.csv",
+      "extraction_mode": "EXACT_COPY",
+      "reason": "Minimum frozen aggregate/task-result evidence for no-promotion conclusion; no engineering data"
+    },
+    {
+      "source_path": "artifacts/version-reconciliation/version-reconciliation-matrix.json",
+      "source_sha256": "cfc896733ab80ab4b0faef7e4bcda750200dd841d39a7f144105815af28b4270",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    },
+    {
+      "source_path": "backend/app/area_yield/conditional_growth.py",
+      "source_sha256": "b4bbe7b88c858fc4f953db46692d68d99f72347f50e0af18b3dc176a4e2a3d8f",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/conditional_growth_cli.py",
+      "source_sha256": "fa70d2d19207b08d15137b6df74089c7cf79ec84ed60584272872227eda9218b",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/conditional_growth_r2.py",
+      "source_sha256": "d948e8447bee24204a41f44a1557180e7e0072552871a15010d9a556f4893842",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/conditional_growth_r2_cli.py",
+      "source_sha256": "1faa5c3dd30d70e34cf8827e8511256df3db5435558019cbe24c4dc94986e6af",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/m0_baseline.py",
+      "source_sha256": "11f2b0468a66c1a9375382e8a59e57c2fb0f87e18ca0ceb55538d7e9783edfbb",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/m0_baseline_cli.py",
+      "source_sha256": "75d54ca992ec015ea240eae682ef600fdd7435cc2aedcc74bd5b2c3f97c59ab4",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/m0_frozen_kernels.py",
+      "source_sha256": "23012db01e1204db99cfc35f737f26d2d550590659b844bedfa87c40c02c8a9b",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/research_records.py",
+      "source_sha256": "2726ec6d44d1222af54494d9bad2e27b08ae6290ba1df859f2002dc801e34d66",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/research_records_r2.py",
+      "source_sha256": "95a6b1731f587f74bc07d4c70d649e2de85a8d395b3fb910a7d3d3b2bec59fef",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/app/area_yield/v0_10_mechanism_informed_model.py",
+      "source_sha256": "ebc3454b3c8f08b85c48acdf6926513a8e9571b3efd44534e4bfbfdc5cd3da8f",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    },
+    {
+      "source_path": "backend/app/area_yield/v0_10_model_simplification.py",
+      "source_sha256": "cb5ff4cf615eb5b5b45322b41b3679a866eb2cbafa75c83739f8aed6b1b548e7",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    },
+    {
+      "source_path": "backend/app/cli.py",
+      "source_sha256": "86c3106e2ec7663b846ebe1ddcd11fbf17539f26ddc4bb288a971e9ec4584bf0",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/tests/area_yield/test_conditional_growth_r1.py",
+      "source_sha256": "59fa0cfea633c2605f81e2805e9b34949f3aaf45243595a4b099ede84e0ef292",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/tests/area_yield/test_conditional_growth_r2.py",
+      "source_sha256": "83b8810d35e0ced53b6ae75d301c2dda362d5a7483e3f40ccf5fd2332f349567",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/tests/area_yield/test_m0_baseline_delivery_r1.py",
+      "source_sha256": "94da6c2bb81e05ac73f09998389111244389a0979570b68c67dd8b877f9af974",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/tests/area_yield/test_research_records.py",
+      "source_sha256": "d125520767d48b25e3eb008b8dc9962e186701409a93b1aaa0d82a385cca68b4",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/tests/area_yield/test_research_records_r2.py",
+      "source_sha256": "91211a93e27e718ce5304091dfcc20f9c5158e7acef0a41802de93d5c74e0270",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "backend/tests/area_yield/test_version_reconciliation.py",
+      "source_sha256": "91265719c157d8eac7bbcf8d40f48cc9258fb1a66caabcf2e875aeb18db5d1c6",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    },
+    {
+      "source_path": "backend/tests/fixtures/m0-synthetic-test-only.json",
+      "source_sha256": "418f03751fd28cd9837ba817f54025ce768690cc9f9f9778e4629dbbd5f115d5",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/v0.10.0-research-closeout.json",
+      "source_sha256": "0fabb573f7b9052ced65e655cd0a21dd57570e30081c6f19d061e055b8568e4e",
+      "classification": "V0_10_RELEASE_REQUIRED",
+      "destination": "docs/v0-10/evidence/v0.10.0-research-closeout.json",
+      "extraction_mode": "EXACT_COPY",
+      "reason": "Preserve original scope and explicit incomplete-gate closeout"
+    },
+    {
+      "source_path": "docs/v0-10/v0.10-research-experiment-index.md",
+      "source_sha256": "a9cd537595944eb80189424dacd5e21d19c9faa71ebf7cdca582e7ff978e3dc4",
+      "classification": "V0_10_RELEASE_REQUIRED",
+      "destination": "docs/v0-10/v0.10-research-experiment-index.md",
+      "extraction_mode": "ADAPT_V0_10_INDEX_ONLY",
+      "reason": "Preserve original scope and explicit incomplete-gate closeout"
+    },
+    {
+      "source_path": "docs/v0-10/v0.10.0-scope-history-and-research-closeout.md",
+      "source_sha256": "40d06a3e7a289fdd6a637dba5e45ff02a95163b1d5deb0ccb98dd2495801b81a",
+      "classification": "V0_10_RELEASE_REQUIRED",
+      "destination": "docs/v0-10/v0.10.0-scope-history-and-research-closeout.md",
+      "extraction_mode": "EXACT_COPY",
+      "reason": "Preserve original scope and explicit incomplete-gate closeout"
+    },
+    {
+      "source_path": "docs/v0-10/v0.10.0-version-plan-and-scope-freeze.md",
+      "source_sha256": "3ed3c8c5f6c9dd58f5d1656faef46e9818c76b42ab360467cad978832d826cae",
+      "classification": "V0_10_RELEASE_REQUIRED",
+      "destination": "docs/v0-10/v0.10.0-version-plan-and-scope-freeze.md",
+      "extraction_mode": "EXACT_COPY",
+      "reason": "Preserve original scope and explicit incomplete-gate closeout"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "source_sha256": "9c2dd78bc9d74f02262e3f84fbcec15adf707537acf6cb10eb125ca666fdff36",
+      "classification": "SHARED_EVIDENCE_REQUIRED_FOR_V0_10",
+      "destination": "artifacts/v0-10-closeout/research-summary.json",
+      "extraction_mode": "PUBLIC_RESEARCH_PROJECTION_ONLY",
+      "reason": "Minimum frozen aggregate/task-result evidence for no-promotion conclusion; no engineering data"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/v0.11.0-current-status-and-handoff.json",
+      "source_sha256": "c77715bce56d332b4d4f32e6d48dc8a412253bad26001c1b7fa2990dc9486658",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "docs/v0-11/v0.11-research-issuance-and-locked-evaluation-scope-r1.md",
+      "source_sha256": "b0feb05b548eff46d2576ea3bbf7312128455e44d0a64bcdab9d1f6abe4b16e1",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "docs/v0-11/v0.11.0-current-status-and-handoff.md",
+      "source_sha256": "47d9224d26df0ed631f411f97fe84c4c23c1ab63d3a08a735fd6adf2f06ff392",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "docs/v0-11/v0.11.0-research-and-prospective-readiness-scope.md",
+      "source_sha256": "1980ed1c0961b9b68a7d8b9a33ab77be49e2aec42cc9bf556bc177064f1f2bb4",
+      "classification": "V0_11_ONLY",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Exclude executable models, inference, records, readiness and V0.11 documentation"
+    },
+    {
+      "source_path": "docs/v0.10-v0.11-version-reconciliation-matrix.md",
+      "source_sha256": "506e04a115c730077f7f81b81814e8b7a4cb3b992591491e3caceea1cf6d26ff",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    },
+    {
+      "source_path": "scripts/replay_v0_10_v0_11_closeout.py",
+      "source_sha256": "7e31d6db0f384e6e52a66d153ae425a3d5610f2bc75ea30f2748a32d70d5637b",
+      "classification": "NOT_REQUIRED",
+      "destination": null,
+      "extraction_mode": null,
+      "reason": "Not necessary to prove lifecycle closure; do not retain implementation or mixed verifier"
+    }
+  ],
+  "source_changed_file_count": 37,
+  "extracted_file_count": 8,
+  "v0_11_only_file_count_excluded": 22,
+  "not_required_file_count_excluded": 7,
+  "release_branch_file_count": 15,
+  "release_branch_files": [
+    "artifacts/v0-10-closeout/baseline-metrics.csv",
+    "artifacts/v0-10-closeout/extraction-manifest.json",
+    "artifacts/v0-10-closeout/public-artifact-manifest.json",
+    "artifacts/v0-10-closeout/release-chain-audit.json",
+    "artifacts/v0-10-closeout/research-summary.json",
+    "artifacts/v0-10-closeout/risk-coverage-width.csv",
+    "artifacts/v0-10-closeout/risk-distribution-scores.csv",
+    "backend/tests/area_yield/test_v0_10_release_boundary.py",
+    "docs/v0-10/evidence/release-lifecycle-boundary-r1.json",
+    "docs/v0-10/evidence/v0.10.0-research-closeout.json",
+    "docs/v0-10/v0.10-research-experiment-index.md",
+    "docs/v0-10/v0.10.0-release-closeout.md",
+    "docs/v0-10/v0.10.0-scope-history-and-research-closeout.md",
+    "docs/v0-10/v0.10.0-version-plan-and-scope-freeze.md",
+    "scripts/replay_v0_10_closeout.py"
+  ],
+  "private_row_level_data_required": false,
+  "scope": "Minimal lifecycle evidence extraction, not whole-branch copy; no V0.11 engineering delivery"
+}

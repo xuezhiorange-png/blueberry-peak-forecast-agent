@@ -1,0 +1,69 @@
+{
+  "task_id": "V0_10_V0_11_RELEASE_LIFECYCLE_NORMALIZATION_R1",
+  "scope": "PUBLIC_AGGREGATE_CLOSEOUT_REPLAY_ONLY",
+  "base_sha": "8e886b45984a358125d00e80f4f5d662fab3d8e9",
+  "source_head": "72839ab35195464096d0057c79631aa3998c978e",
+  "files": [
+    {
+      "path": "artifacts/v0-10-closeout/baseline-metrics.csv",
+      "sha256": "3434a8e755ac0dba644646888d52ad6208afce6141a1cde54b8e64d4c644107a"
+    },
+    {
+      "path": "artifacts/v0-10-closeout/extraction-manifest.json",
+      "sha256": "f17bd4c214bd1666a056ff8fbd2c8a6532997546a4437145a8ef5c4cdc07424c"
+    },
+    {
+      "path": "artifacts/v0-10-closeout/release-chain-audit.json",
+      "sha256": "5db78ec9db5c3154e5c63babf5c2ef21907ec3da2a2dbd7b6901c5db9a6639c6"
+    },
+    {
+      "path": "artifacts/v0-10-closeout/research-summary.json",
+      "sha256": "95a9724cf8f90ede9fac5cc7558f0c8e7f8ff00b6b1796d0d3f14ae606901724"
+    },
+    {
+      "path": "artifacts/v0-10-closeout/risk-coverage-width.csv",
+      "sha256": "5de08bc8c2609fb3cbf3ac74a749d5489a5800fdfd379f04abfbdd0b170691a3"
+    },
+    {
+      "path": "artifacts/v0-10-closeout/risk-distribution-scores.csv",
+      "sha256": "dbfbe4591fdfeddc992d3fb38a649b083844ecff2e2f7599babb24c254c545af"
+    },
+    {
+      "path": "backend/tests/area_yield/test_v0_10_release_boundary.py",
+      "sha256": "6b780219c2a445a322a8447cc0d0b8d3843b06f5c124191ae13d851dcffd9d10"
+    },
+    {
+      "path": "docs/v0-10/evidence/release-lifecycle-boundary-r1.json",
+      "sha256": "6e992c234d503d8b8ff3504d09774aaa206dddb04a6a9b44de0f8345d306e901"
+    },
+    {
+      "path": "docs/v0-10/evidence/v0.10.0-research-closeout.json",
+      "sha256": "0fabb573f7b9052ced65e655cd0a21dd57570e30081c6f19d061e055b8568e4e"
+    },
+    {
+      "path": "docs/v0-10/v0.10-research-experiment-index.md",
+      "sha256": "818f54597ff5660600c5951c6f204405ab7fd0530f4382e9d749e5fb3e666d8e"
+    },
+    {
+      "path": "docs/v0-10/v0.10.0-release-closeout.md",
+      "sha256": "70514eea1d197f05ec28a0a186e460725e464bd658d548516f6794cb84746629"
+    },
+    {
+      "path": "docs/v0-10/v0.10.0-scope-history-and-research-closeout.md",
+      "sha256": "40d06a3e7a289fdd6a637dba5e45ff02a95163b1d5deb0ccb98dd2495801b81a"
+    },
+    {
+      "path": "docs/v0-10/v0.10.0-version-plan-and-scope-freeze.md",
+      "sha256": "3ed3c8c5f6c9dd58f5d1656faef46e9818c76b42ab360467cad978832d826cae"
+    },
+    {
+      "path": "scripts/replay_v0_10_closeout.py",
+      "sha256": "0853864173baa98cb0e7462d58a95bb2c29b0e1808183aa9a71bff358cf82fb1"
+    }
+  ],
+  "private_rows_included": false,
+  "model_artifacts_included": false,
+  "model_training_reproduced": false,
+  "private_row_level_data_required": false,
+  "content_hash_limitation": "Manifest is a reviewed identity snapshot, not an external signature; Git commit binds its identity"
+}
