@@ -1,0 +1,135 @@
+{
+  "scope": "V0_10_CLOSEOUT_MINIMUM_PUBLIC_RESEARCH_CONCLUSIONS",
+  "source_pr": 658,
+  "source_head": "72839ab35195464096d0057c79631aa3998c978e",
+  "sources": [
+    {
+      "source_path": "docs/v0-10/evidence/base-cultivar-production-share-prior-and-timing-value-r1.json",
+      "source_sha256": "70ebaf0236084d015022290b9b30c35a42422debead82706934dab48b42572cd",
+      "task_id": "V0_10_BASE_CULTIVAR_PRODUCTION_SHARE_PRIOR_AND_TIMING_VALUE_R1",
+      "result": "PASS_FORWARD_CULTIVAR_SHARE_AND_TIMING_VALUE_EVALUATED",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/cultivar-specific-timing-heterogeneity-and-model-r1.json",
+      "source_sha256": "4cd8e12ae9dba7eca0f9760a3e441aa54fc28a04435bc241a73472aaa3a433b5",
+      "task_id": "V0_10_CULTIVAR_SPECIFIC_TIMING_HETEROGENEITY_AND_MODEL_R1",
+      "result": "PASS_CULTIVAR_TIMING_NOT_SUFFICIENT",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/effective-thermal-progress-model-identification-and-backtest-r1.json",
+      "source_sha256": "0f67829583add694019145dbb49de2a1cb4eb1c969d89646e94a389547ed6d46",
+      "task_id": "V0_10_EFFECTIVE_THERMAL_PROGRESS_MODEL_IDENTIFICATION_AND_BACKTEST_R1",
+      "result": "PASS_EXPERIMENT_COMPLETED",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/historical-calibration-path-reassessment-r1.json",
+      "source_sha256": "ee3e0884bbec38b80fff8408e9a15c044ceb38d52e8cba8dc5f16d669b168d1b",
+      "task_id": "V0_10_HISTORICAL_CALIBRATION_PATH_REASSESSMENT_R1",
+      "result": "PASS",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/mechanism-informed-yield-training-backtest-r2.json",
+      "source_sha256": "fdda69b6fdb5f866f0e4111d7e7b5e74673658300230d005dee15c2003dcdb21",
+      "task_id": "V0_10_MECHANISM_INFORMED_YIELD_FORECAST_TRAINING_AND_BACKTEST_R2",
+      "result": "PASS_MODEL_TRAINED_BACKTEST_UNDERPERFORMS",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/mechanism-model-simplification-and-grouped-validation-r1.json",
+      "source_sha256": "aad1f751e16169ff3b7098e508b460abfd97780087c5191a431b4be7e9a66df6",
+      "task_id": "V0_10_MECHANISM_MODEL_SIMPLIFICATION_AND_GROUPED_VALIDATION_R1",
+      "result": "PASS_V0_10_MECHANISM_MODEL_SIMPLIFICATION_AND_GROUPED_VALIDATION_COMPLETED",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s0-historical-validation-protocol-and-parameter-admission-freeze-r1.json",
+      "source_sha256": "a7b144388e8c76343eac4d47ff0bde1e8f709fec0411fc17c6ffd95b0952e003",
+      "task_id": "V0_10_S0_HISTORICAL_VALIDATION_PROTOCOL_AND_PARAMETER_ADMISSION_FREEZE_R1",
+      "result": "PASS_V0_10_S0_HISTORICAL_VALIDATION_PROTOCOL_FROZEN",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-d-safe-input-projection-and-parameter-reassessment-r1.json",
+      "source_sha256": "2bcc393d0cc0e6f2396f5fd0eca75f30a2165920ebbd11b7decff3268e7a4aa8",
+      "task_id": "V0_10_S1B_D_AUTHORIZED_SAFE_INPUT_PROJECTION_AND_PARAMETER_INFORMATION_REASSESSMENT_R1",
+      "result": "BLOCKED_TARGET_INDEPENDENT_COHORT_AUTHORITY_UNAVAILABLE",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/thermal-axis-origin-and-support-alignment-r1.json",
+      "source_sha256": "f113a8fe17e5ca7a1714ec20713bf029b0f1a4f422c8ef55c2546e32511af146",
+      "task_id": "V0_10_THERMAL_AXIS_ORIGIN_AND_SUPPORT_ALIGNMENT_R1",
+      "result": "PASS_THERMAL_AXIS_ALIGNMENT_REPLAY_COMPLETED",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/three-season-rotating-backtest-and-factor-stability-r1.json",
+      "source_sha256": "483a9c6e63eb156b0d290db21b967f1ab2700416f35a833bbabee6942c2418cc",
+      "task_id": "V0_10_THREE_SEASON_ROTATING_BACKTEST_AND_FACTOR_STABILITY_R1",
+      "result": "PASS_ROTATING_VALIDATION_COMPLETED",
+      "research_status": null,
+      "archive_role": "V0_10_RESEARCH_OR_ORIGINAL_GATE_HISTORY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/conditional-growth-curve-model-end-to-end-r1.json",
+      "source_sha256": "a9fde87093d5b6f09e7e43a57ed6f6cdea25e76791f531e9193399ac30594bf3",
+      "task_id": "V0_11_CONDITIONAL_GROWTH_CURVE_MODEL_END_TO_END_R1",
+      "result": "NO_STABLE_CONDITIONAL_GAIN",
+      "research_status": "NO_STABLE_CONDITIONAL_GAIN",
+      "archive_role": "SHARED_RETROSPECTIVE_CONCLUSION_ONLY_NOT_V0_11_DELIVERY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/conditional-growth-curve-r2-plan-aligned-validation-and-delivery.json",
+      "source_sha256": "25787de0df72ee881c56afc7cff437acf664d653dbd886a03d878001099dbc80",
+      "task_id": "V0_11_CONDITIONAL_GROWTH_CURVE_MODEL_END_TO_END_R2",
+      "result": "NO_STABLE_CONDITIONAL_GAIN",
+      "research_status": "NO_STABLE_CONDITIONAL_GAIN",
+      "archive_role": "SHARED_RETROSPECTIVE_CONCLUSION_ONLY_NOT_V0_11_DELIVERY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/historical-trajectory-scenario-and-peak-risk-validation-r1.json",
+      "source_sha256": "446d2a0a2b3d82eab1946cc87e04255b0eaacf480645e0691c27aa8bdce326f3",
+      "task_id": "V0_11_HISTORICAL_TRAJECTORY_SCENARIO_AND_PEAK_RISK_VALIDATION_R1",
+      "result": "PASS_PARTIAL_SCENARIO_RISK_VALUE",
+      "research_status": null,
+      "archive_role": "SHARED_RETROSPECTIVE_CONCLUSION_ONLY_NOT_V0_11_DELIVERY",
+      "source_limit": "Referenced original evidence identity; not original-row or original-runner independent reproduction"
+    }
+  ],
+  "training_reproduced": false,
+  "private_row_level_data_required": false,
+  "limitations": [
+    "Historical generation runner identity not fully restored",
+    "Original workbooks not independently rebuilt",
+    "Six inner and one outer numerical evidence gaps preserved",
+    "Retrospective development seasons repeatedly consumed; not unseen external validation",
+    "Local system clock and content hash are not external trusted timestamp",
+    "M0 boundary peaks and shared timing persist",
+    "Business interval width/accuracy tolerances not established"
+  ]
+}
