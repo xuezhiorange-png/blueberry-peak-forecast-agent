@@ -81,6 +81,7 @@ def test_tamper_rejected(exported: Path) -> None:
         "V0_11_TAG_CREATE",
         "V0_11_GITHUB_RELEASE_CREATE",
         "GITHUB_RELEASE_CREATED",
+        "REFERENCE_BASELINE_CHANGED",
     ],
 )
 def test_lifecycle_promotion_rejected(exported: Path, key: str) -> None:
@@ -89,6 +90,32 @@ def test_lifecycle_promotion_rejected(exported: Path, key: str) -> None:
     update(exported, BOUNDARY, payload)
     with pytest.raises(ValueError, match="LIFECYCLE"):
         verify(exported)
+
+
+@pytest.mark.parametrize(
+    ("key", "wrong_value"),
+    [
+        ("CURRENT_REFERENCE_BASELINE_ID", "M0_CORRECTED_TASK8_SHARED_SPLINE"),
+        ("CURRENT_REFERENCE_BASELINE_FAMILY", "OTHER_FAMILY"),
+        ("CURRENT_REFERENCE_BASELINE_ROLE", "PRODUCTION_APPROVED"),
+    ],
+)
+def test_reference_baseline_identity_rejected(exported: Path, key: str, wrong_value: str) -> None:
+    payload = json.loads((exported / BOUNDARY).read_text())
+    payload[key] = wrong_value
+    update(exported, BOUNDARY, payload)
+    with pytest.raises(ValueError, match="REFERENCE_BASELINE_IDENTITY"):
+        verify(exported)
+
+
+def test_reference_baseline_metadata() -> None:
+    payload = json.loads((ROOT / BOUNDARY).read_text())
+    assert payload["CURRENT_REFERENCE_BASELINE_ID"] == "M0-ALL-HISTORY-REFERENCE-R1"
+    assert payload["CURRENT_REFERENCE_BASELINE_FAMILY"] == "M0_CORRECTED_TASK8_SHARED_SPLINE"
+    assert payload["CURRENT_REFERENCE_BASELINE_ROLE"] == "REFERENCE_BASELINE"
+    assert payload["REFERENCE_BASELINE_CHANGED"] is False
+    assert "CURRENT_CHAMPION" not in payload
+    assert "CHAMPION_CHANGED" not in payload
 
 
 def test_v11_extraction_rejected(exported: Path) -> None:

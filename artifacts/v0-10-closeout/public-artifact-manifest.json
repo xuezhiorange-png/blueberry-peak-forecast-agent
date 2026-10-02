@@ -30,11 +30,11 @@
     },
     {
       "path": "backend/tests/area_yield/test_v0_10_release_boundary.py",
-      "sha256": "6b780219c2a445a322a8447cc0d0b8d3843b06f5c124191ae13d851dcffd9d10"
+      "sha256": "2e69cac8f578054af6b225d4584a275451fd673cc621fbb4b9ed6f987edf7385"
     },
     {
       "path": "docs/v0-10/evidence/release-lifecycle-boundary-r1.json",
-      "sha256": "6e992c234d503d8b8ff3504d09774aaa206dddb04a6a9b44de0f8345d306e901"
+      "sha256": "1520b220f0d71ecb8a3bf05350f403e07d588deddeaca39f5f9bed9f63b8b009"
     },
     {
       "path": "docs/v0-10/evidence/v0.10.0-research-closeout.json",
@@ -46,7 +46,7 @@
     },
     {
       "path": "docs/v0-10/v0.10.0-release-closeout.md",
-      "sha256": "70514eea1d197f05ec28a0a186e460725e464bd658d548516f6794cb84746629"
+      "sha256": "f0267f707137d5bc1cfb7bdca6f937bc566ae6f592e97200e0f57b5feb4326ca"
     },
     {
       "path": "docs/v0-10/v0.10.0-scope-history-and-research-closeout.md",
@@ -58,7 +58,7 @@
     },
     {
       "path": "scripts/replay_v0_10_closeout.py",
-      "sha256": "0853864173baa98cb0e7462d58a95bb2c29b0e1808183aa9a71bff358cf82fb1"
+      "sha256": "ec5d8d56434709c154ce697515771b88ff28dced6d076e136b131bd8d76b67ac"
     }
   ],
   "private_rows_included": false,
