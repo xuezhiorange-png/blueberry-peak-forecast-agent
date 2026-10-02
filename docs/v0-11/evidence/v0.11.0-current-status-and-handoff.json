@@ -1,0 +1,36 @@
+{
+  "task_id": "V0_10_V0_11_VERSION_RECONCILIATION_RESEARCH_CLOSEOUT_AND_DRAFT_PR_R1",
+  "version": "0.11",
+  "scope": "V0_11_RESEARCH_FORECAST_AND_PROSPECTIVE_READINESS",
+  "original_formal_v0_11_plan_found": false,
+  "preexisting_authority": "EXECUTION_APPENDIX_NOT_ORIGINAL_COMPLETE_VERSION_PLAN",
+  "current_scope_authorization": "V0_10_V0_11_VERSION_RECONCILIATION_RESEARCH_CLOSEOUT_AND_DRAFT_PR_R1",
+  "statistical_model_research": "COMPLETE_NO_STABLE_GAIN",
+  "m0_baseline_implementation": "DELIVERED",
+  "train_save_load_predict": "DELIVERED",
+  "prospective_research_pipeline": "ENGINEERING_READY_FILE_MODE_REAL_PATH_DEFAULT_DENY",
+  "real_forecast_count": 0,
+  "lifecycle": "READY_NOT_ISSUED",
+  "real_issuance_status": "WAITING_FOR_EXPLICIT_FUTURE_REQUEST",
+  "prospective_accuracy": false,
+  "probability_calibration": false,
+  "production_use_approved": false,
+  "version_complete": false,
+  "current_champion": "M0-ALL-HISTORY-REFERENCE-R1",
+  "model_role": "REFERENCE_BASELINE",
+  "conditional_models": "DIAGNOSTIC_ONLY",
+  "next_retrospective_search_authorized": false,
+  "next_stage": [
+    "REAL_PROSPECTIVE_RESEARCH_WITH_EXPLICIT_AUTHORIZATION",
+    "NEW_VERSION_WITH_NEW_INFORMATION_AND_SCOPE_AUTHORIZATION"
+  ],
+  "limitations": [
+    "Historical generation runner identity not fully restored",
+    "Original workbooks not independently rebuilt",
+    "Six inner and one outer numerical evidence gaps preserved",
+    "Retrospective development seasons repeatedly consumed; not unseen external validation",
+    "Local system clock and content hash are not external trusted timestamp",
+    "M0 boundary peaks and shared timing persist",
+    "Business interval width/accuracy tolerances not established"
+  ]
+}

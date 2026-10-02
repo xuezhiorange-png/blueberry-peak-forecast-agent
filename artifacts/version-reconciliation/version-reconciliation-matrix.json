@@ -1,0 +1,223 @@
+{
+  "task_id": "V0_10_V0_11_VERSION_RECONCILIATION_RESEARCH_CLOSEOUT_AND_DRAFT_PR_R1",
+  "states": [
+    "SATISFIED",
+    "PARTIALLY_SATISFIED",
+    "NOT_ESTABLISHED",
+    "NOT_EXECUTED",
+    "OUT_OF_SCOPE",
+    "SUPERSEDED"
+  ],
+  "requirements": [
+    {
+      "requirement": "scientific authority",
+      "v0_9": "FOUNDATION",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "DOES_NOT_RETROACTIVELY_CLOSE_V0_10",
+      "evidence": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+      "status": "SATISFIED",
+      "reason": "S0 scientific foundation; no universal production coefficients"
+    },
+    {
+      "requirement": "biological state contracts",
+      "v0_9": "FOUNDATION",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "DOES_NOT_RETROACTIVELY_CLOSE_V0_10",
+      "evidence": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+      "status": "SATISFIED",
+      "reason": "V0.9 S1 contracts"
+    },
+    {
+      "requirement": "mechanistic prototype",
+      "v0_9": "FOUNDATION",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "DOES_NOT_RETROACTIVELY_CLOSE_V0_10",
+      "evidence": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+      "status": "SATISFIED",
+      "reason": "V0.9 deterministic synthetic prototype"
+    },
+    {
+      "requirement": "observability audit",
+      "v0_9": "FOUNDATION",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "DOES_NOT_RETROACTIVELY_CLOSE_V0_10",
+      "evidence": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+      "status": "SATISFIED",
+      "reason": "V0.9 S2; missing observations remain"
+    },
+    {
+      "requirement": "mechanistic calibration",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "ORIGINAL_GATE_INCOMPLETE",
+      "v0_11": "DOES_NOT_RETROACTIVELY_CLOSE_V0_10",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "NOT_ESTABLISHED",
+      "reason": "V0.10 original S2-S4 not satisfied by proxy research"
+    },
+    {
+      "requirement": "historical proxy research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "DOES_NOT_RETROACTIVELY_CLOSE_V0_10",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Extensive later authorized research closed; no stable gain"
+    },
+    {
+      "requirement": "M0 executable baseline",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Train/save/load/inference validated; research only"
+    },
+    {
+      "requirement": "weather conditional research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "PARTIALLY_SATISFIED",
+      "reason": "R2 estimability correction; no stable gain, no causal assertion"
+    },
+    {
+      "requirement": "cultivar conditional research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "PARTIALLY_SATISFIED",
+      "reason": "Historical production shares; coverage/estimability limitations"
+    },
+    {
+      "requirement": "Base history research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Direct shape and conditioned model diagnostics; no stable gain"
+    },
+    {
+      "requirement": "total-layer research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Mean/median/history/log-link evaluated, no promotion"
+    },
+    {
+      "requirement": "daily shape research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Shared and conditional shape evaluated, no stable new candidate"
+    },
+    {
+      "requirement": "risk scenario research",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "LATER_PROXY_RESEARCH",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "PARTIALLY_SATISFIED",
+      "reason": "CRPS value limited; undercoverage/width limits"
+    },
+    {
+      "requirement": "train/save/load/predict",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Existing CLI retained, fresh-process tests"
+    },
+    {
+      "requirement": "model identity",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Explicit ID/hash/role binding, SELECTED is not approval"
+    },
+    {
+      "requirement": "research issuance sealing",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "File-mode TEST_ONLY boundary implementation; real path denied"
+    },
+    {
+      "requirement": "actual snapshot",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Immutable actual revisions with source identity"
+    },
+    {
+      "requirement": "locked scoring",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "SATISFIED",
+      "reason": "Seal-bound metric version/spec/implementation"
+    },
+    {
+      "requirement": "real prospective issuance",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "NOT_EXECUTED",
+      "reason": "No explicit eligible future request; count zero"
+    },
+    {
+      "requirement": "prospective actual scoring",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "NOT_EXECUTED",
+      "reason": "No real sealed prediction/future actual cohort"
+    },
+    {
+      "requirement": "probability calibration",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "NOT_ESTABLISHED",
+      "reason": "Nominal coverage unreliable"
+    },
+    {
+      "requirement": "production accuracy",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "NOT_ESTABLISHED",
+      "reason": "No authorized business acceptance or stable forward gain"
+    },
+    {
+      "requirement": "production approval",
+      "v0_9": "NOT_AN_ACCURACY_APPROVAL",
+      "v0_10": "NOT_PROSPECTIVE_APPROVAL",
+      "v0_11": "RESEARCH_AND_ENGINEERING_ONLY",
+      "evidence": "docs/v0-11/evidence/reconciled-research-source-summary.json",
+      "status": "OUT_OF_SCOPE",
+      "reason": "No production promotion authorized"
+    }
+  ],
+  "v0_10": "CLOSED_WITH_ORIGINAL_GATE_INCOMPLETE",
+  "v0_11": "READY_NOT_ISSUED",
+  "approval": false
+}
