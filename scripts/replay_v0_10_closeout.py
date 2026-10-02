@@ -177,6 +177,14 @@ def verify(root: Path) -> dict[str, Any]:
     )
     require(boundary["V0_10_HISTORICAL_PROXY_RESEARCH"] == "CLOSED", "LIFECYCLE_RESEARCH")
     require(
+        boundary["CURRENT_REFERENCE_BASELINE_ID"] == "M0-ALL-HISTORY-REFERENCE-R1"
+        and boundary["CURRENT_REFERENCE_BASELINE_FAMILY"] == "M0_CORRECTED_TASK8_SHARED_SPLINE"
+        and boundary["CURRENT_REFERENCE_BASELINE_ROLE"] == "REFERENCE_BASELINE"
+        and "CURRENT_CHAMPION" not in boundary
+        and "CHAMPION_CHANGED" not in boundary,
+        "REFERENCE_BASELINE_IDENTITY",
+    )
+    require(
         boundary["V0_11_LIFECYCLE"] == "READY_NOT_ISSUED"
         and boundary["V0_11_RELEASE_ACTION"] == "DEFER",
         "LIFECYCLE_V11",
@@ -195,7 +203,7 @@ def verify(root: Path) -> dict[str, Any]:
         "PROBABILITY_CALIBRATION_ESTABLISHED",
         "VERSION_COMPLETE",
         "PROSPECTIVE_ACCURACY_VALIDATED",
-        "CHAMPION_CHANGED",
+        "REFERENCE_BASELINE_CHANGED",
         "V0_11_TAG_CREATE",
         "V0_11_GITHUB_RELEASE_CREATE",
         "V0_11_CODE_OR_DELIVERY_DOCUMENTS_EXTRACTED",
