@@ -1,0 +1,232 @@
+{
+  "TASK_ID": "V0_12_S1_INTEGRATE_PR659_FROZEN_R1",
+  "PARENT_TASK_ID": "V0_12_S0_MERGE_AND_S1_FROZEN_R1_INTEGRATION",
+  "VERSION": "0.12.0",
+  "STAGE": "V0.12-S1",
+  "SCOPE": "INTEGRATE_PR659_AS_FROZEN_R1_RESEARCH_BASELINE",
+  "SOURCE_PR": 659,
+  "SOURCE_HEAD": "76b9e86c24cdd99be23b20e15eb895173ac26671",
+  "SOURCE_COMMIT_1": "fd0ed2c7789d6ab0f240e0e4b5995724cbb549f7",
+  "SOURCE_COMMIT_2": "76b9e86c24cdd99be23b20e15eb895173ac26671",
+  "SOURCE_COMMIT_COUNT": 2,
+  "RESEARCH_EXECUTION_ID": "NEXT_AREA_SIZE_20261002_R1",
+  "RESEARCH_EXECUTION_BASE_SHA": "8e886b45984a358125d00e80f4f5d662fab3d8e9",
+  "V0_12_S1_INTEGRATION_BASE_SHA": "1b4da8f95e96fde69db1b5b2afe6dfe6681adac1",
+  "S0_MERGE_COMMIT_SHA": "1b4da8f95e96fde69db1b5b2afe6dfe6681adac1",
+  "S0_MERGED_TREE_PARITY": "PASS",
+  "S0_POST_MERGE_CI_RUN": 36993293292,
+  "S0_POST_MERGE_CI": "SUCCESS",
+  "S0_POST_MERGE_JOB_SUCCESS_COUNT": 4,
+  "S0_POST_MERGE_JOB_SKIPPED_COUNT": 8,
+  "cherry_pick_lineage": [
+    {
+      "source": "fd0ed2c7789d6ab0f240e0e4b5995724cbb549f7",
+      "integrated": "9447a94f73a2b40c3d1fb90442f6d0b2202e9e76"
+    },
+    {
+      "source": "76b9e86c24cdd99be23b20e15eb895173ac26671",
+      "integrated": "f903dc0b64758da80fba284ad92ac571f62ec94f"
+    }
+  ],
+  "SOURCE_FILE_COUNT": 6,
+  "SOURCE_FILE_HASH_PARITY": "PASS",
+  "COMPATIBILITY_ADAPTATION_COUNT": 0,
+  "CONFLICT_COUNT": 0,
+  "source_files": [
+    {
+      "path": "backend/app/area_yield/area_size_r1.py",
+      "source_blob": "1428b6f2031485a5b613eb02b0debd51a85c96df",
+      "integrated_blob": "1428b6f2031485a5b613eb02b0debd51a85c96df",
+      "source_sha256": "cb3b8d2043b1b932c207b4011151cf0744872cc5c8605edc0f61c5746d238a8f",
+      "integrated_sha256": "cb3b8d2043b1b932c207b4011151cf0744872cc5c8605edc0f61c5746d238a8f",
+      "parity": "PASS"
+    },
+    {
+      "path": "backend/tests/test_next_area_size_r1.py",
+      "source_blob": "e1a70c3160d60bec586cdadf1dee9542058e553d",
+      "integrated_blob": "e1a70c3160d60bec586cdadf1dee9542058e553d",
+      "source_sha256": "409c8fc3ec2fd72464cbaa7cd93a96da81852c2293414009bd408e61ac933c64",
+      "integrated_sha256": "409c8fc3ec2fd72464cbaa7cd93a96da81852c2293414009bd408e61ac933c64",
+      "parity": "PASS"
+    },
+    {
+      "path": "configs/next_area_size_experiment_20261002_r1.json",
+      "source_blob": "2f1662112c5c7d90f8c4efbc36033e73e6849b6b",
+      "integrated_blob": "2f1662112c5c7d90f8c4efbc36033e73e6849b6b",
+      "source_sha256": "eee3bc94ff6f9f3598fc320f00ea9ff5117a9384d336bc47855a162508ccfed5",
+      "integrated_sha256": "eee3bc94ff6f9f3598fc320f00ea9ff5117a9384d336bc47855a162508ccfed5",
+      "parity": "PASS"
+    },
+    {
+      "path": "docs/next-version/evidence/next-area-size-20261002-r1.json",
+      "source_blob": "f56e66f5b0fefa6c2991bef5758dee8fbf4daf0a",
+      "integrated_blob": "f56e66f5b0fefa6c2991bef5758dee8fbf4daf0a",
+      "source_sha256": "fa348381ea1f20e8ff535099d5b70272225e69dd9b679da8e5d848981aeb4508",
+      "integrated_sha256": "fa348381ea1f20e8ff535099d5b70272225e69dd9b679da8e5d848981aeb4508",
+      "parity": "PASS"
+    },
+    {
+      "path": "docs/next-version/next-area-size-training-backtest-20261002-r1.md",
+      "source_blob": "4f4f747337f60e5aad7cf63f35f1f3b5682162eb",
+      "integrated_blob": "4f4f747337f60e5aad7cf63f35f1f3b5682162eb",
+      "source_sha256": "957b90ddc5739d99504ea46870cf3099626ba9f4af4278755e0ab37534cb1586",
+      "integrated_sha256": "957b90ddc5739d99504ea46870cf3099626ba9f4af4278755e0ab37534cb1586",
+      "parity": "PASS"
+    },
+    {
+      "path": "scripts/run_next_area_size_r1.py",
+      "source_blob": "fe4a13837aed2c3e4c7db4aa93f13cd75956379f",
+      "integrated_blob": "fe4a13837aed2c3e4c7db4aa93f13cd75956379f",
+      "source_sha256": "1769c4e09754f2a9f9c0e7d530c26818f095382705edfdbdad26481d92f18d65",
+      "integrated_sha256": "1769c4e09754f2a9f9c0e7d530c26818f095382705edfdbdad26481d92f18d65",
+      "parity": "PASS"
+    }
+  ],
+  "artifact_file_hashes": {
+    "baseline": "39117e6a9ce2d07062831f24e3541e9589bb55a33e6b01aa41791ca48ef58e2d",
+    "candidate": "5aecb3fbbedfdb3b4eb0db20e444446c1fde65e5c787d1e117f9428c56a2d352"
+  },
+  "artifact_content_hash": "be265f1bce5829350873da871c067c8b44e6af76cf5039a9648bcc34e1391371",
+  "ARTIFACT_IDENTITY_REWRITTEN": false,
+  "ORIGINAL_CANDIDATE_MODEL_ID": "NEXT_AREA_SIZE_20261002_R1_CANDIDATE",
+  "V0_12_R1_MODEL_ROLE": "RESEARCH_CANDIDATE",
+  "V0_12_COMPARATOR_BASELINE": "V0_12_COMPARATOR_BASELINE",
+  "comparator_original_model_id": "NEXT_AREA_SIZE_20261002_R1_BASELINE",
+  "CANDIDATE_PROMOTED": false,
+  "LEGACY_M0_IDENTITY_REUSED": false,
+  "TRAIN_SEASON": "2023-2024",
+  "TEST_SEASON": "2024-2025",
+  "TRAIN_COUNT": 15,
+  "TEST_COUNT": 22,
+  "BACKTEST_FOLD_COUNT": 1,
+  "training_area_range_mu": [
+    "216",
+    "2548"
+  ],
+  "AREA_EXTRAPOLATION_VALIDATED": false,
+  "BASELINE_SEASON_TOTAL_WAPE": "45.0910%",
+  "CANDIDATE_SEASON_TOTAL_WAPE": "41.7458%",
+  "BASELINE_DAILY_WAPE": "77.0660%",
+  "CANDIDATE_DAILY_WAPE": "73.1543%",
+  "BASELINE_SINGLE_PEAK_QUANTITY_MAE_KG": "7233.920555",
+  "CANDIDATE_SINGLE_PEAK_QUANTITY_MAE_KG": "6572.139398",
+  "BASELINE_7DAY_PEAK_QUANTITY_MAE_KG": "48318.586215",
+  "CANDIDATE_7DAY_PEAK_QUANTITY_MAE_KG": "45003.802717",
+  "frozen_metrics": {
+    "baseline": {
+      "actual_total_kg": "19805668.000",
+      "cohort_count": 22,
+      "daily_wape": "0.770660",
+      "rolling_7day_peak_absolute_error_kg_mae": "48318.586215",
+      "rolling_7day_window_shift_days_mae": "22.318182",
+      "shape_micro_wape": "0.632252",
+      "single_day_peak_absolute_error_kg_mae": "7233.920555",
+      "single_day_peak_date_error_days_mae": "21.818182",
+      "window_total_mae_kg": "405935.417387",
+      "window_total_wape": "0.450910"
+    },
+    "candidate": {
+      "actual_total_kg": "19805668.000",
+      "cohort_count": 22,
+      "daily_wape": "0.731543",
+      "rolling_7day_peak_absolute_error_kg_mae": "45003.802717",
+      "rolling_7day_window_shift_days_mae": "22.318182",
+      "shape_micro_wape": "0.632252",
+      "single_day_peak_absolute_error_kg_mae": "6572.139398",
+      "single_day_peak_date_error_days_mae": "21.818182",
+      "window_total_mae_kg": "375819.915438",
+      "window_total_wape": "0.417458"
+    }
+  },
+  "frozen_metric_deltas": {
+    "daily_wape": {
+      "candidate_minus_baseline": -0.039117,
+      "relative_delta_pct": -5.075779
+    },
+    "rolling_7day_peak_absolute_error_kg_mae": {
+      "candidate_minus_baseline": -3314.783498,
+      "relative_delta_pct": -6.860266
+    },
+    "rolling_7day_window_shift_days_mae": {
+      "candidate_minus_baseline": 0,
+      "relative_delta_pct": 0
+    },
+    "shape_micro_wape": {
+      "candidate_minus_baseline": 0,
+      "relative_delta_pct": 0
+    },
+    "single_day_peak_absolute_error_kg_mae": {
+      "candidate_minus_baseline": -661.781157,
+      "relative_delta_pct": -9.148306
+    },
+    "single_day_peak_date_error_days_mae": {
+      "candidate_minus_baseline": 0,
+      "relative_delta_pct": 0
+    },
+    "window_total_mae_kg": {
+      "candidate_minus_baseline": -30115.501949,
+      "relative_delta_pct": -7.418791
+    },
+    "window_total_wape": {
+      "candidate_minus_baseline": -0.033452,
+      "relative_delta_pct": -7.418775
+    }
+  },
+  "METRIC_RECORD_ROLE": "COPIED_FROZEN_PUBLIC_AGGREGATE_EVIDENCE_NOT_NEW_SCORE",
+  "SCIENTIFIC_RESULT_CHANGED": false,
+  "SCIENTIFIC_CONCLUSION": "Single reused fold total/amplitude association gain; shared shape and timing unchanged; no stable gain",
+  "MODEL_RETRAINED": false,
+  "NEW_BACKTEST_EXECUTED": false,
+  "NEW_FOLD_EXECUTED": false,
+  "NEW_MODEL_SEARCH_EXECUTED": false,
+  "NEW_HYPERPARAMETER_SEARCH_EXECUTED": false,
+  "NEW_PRIVATE_DATA_READ": false,
+  "NEW_REAL_PREDICTION": false,
+  "PRIVATE_MODEL_ARTIFACT_OPENED": false,
+  "PRIVATE_ROW_LEVEL_DATA_COMMITTED": false,
+  "SCIENTIFIC_TRAIN_BACKTEST_ENTRY_EXECUTED": false,
+  "SYNTHETIC_UNIT_REGRESSION_TESTS_ALLOWED": true,
+  "synthetic_test_scope": "Existing public fixtures only; any test-local synthetic fitting is engineering regression, not R1 research retraining",
+  "PR_659_SINGLE_FOLD_GAIN_OBSERVED": true,
+  "TEMPORAL_SHAPE_GAIN": false,
+  "SINGLE_PEAK_DATE_GAIN": false,
+  "ROLLING_7DAY_PEAK_DATE_GAIN": false,
+  "PR_659_STABLE_GAIN": false,
+  "STABLE_GAIN_ESTABLISHED": false,
+  "PR_659_NEW_BLIND_VALIDATION": false,
+  "NEW_BLIND_VALIDATION": false,
+  "PR_659_PROSPECTIVE_VALIDATION": false,
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "PROBABILITY_CALIBRATION_ESTABLISHED": false,
+  "PRODUCTION_USE_APPROVED": false,
+  "V0_12_S0_COMPLETE": true,
+  "V0_12_S1_AUTHORIZED": true,
+  "V0_12_S1_COMPLETE": true,
+  "INTEGRATION_DELIVERY_STATUS": "DRAFT_REVIEW_PENDING_NOT_MERGED",
+  "V0_12_S2_AUTHORIZED": false,
+  "V0_12_VERSION_COMPLETE": false,
+  "S0_SCOPE_SNAPSHOT_UNCHANGED": true,
+  "s1_authority": "Current owner two-phase task after successful S0 post-merge CI; S0 snapshot S1=false remains a historical authorization state, not rewritten",
+  "PR_659_MODIFIED": false,
+  "PR_659_STATE": "OPEN_DRAFT",
+  "PR_659_READY": false,
+  "PR_659_MERGED": false,
+  "PR_659_CLOSED": false,
+  "NEXT_GATE": "V0.12-S2_REQUIRES_NEW_INFORMATION_AND_SEPARATE_AUTHORIZATION",
+  "NO_FURTHER_UNBOUNDED_SEARCH_ON_CONSUMED_2023_2025": true,
+  "S1_READY_AUTHORIZED": false,
+  "S1_MERGE_AUTHORIZED": false,
+  "TAG_CREATED": false,
+  "RELEASE_CREATED": false,
+  "AUTO_MERGE": false,
+  "limitations": [
+    "One already consumed historical holdout, not new blind or prospective evidence",
+    "No temporal shape or peak-date gain and no cross-fold stability",
+    "Historical area confirmed by business but not independently measured",
+    "Historical point-in-time visibility NOT_PROVEN and raw receipts not rebuilt",
+    "41 legacy identity-excluded samples remain excluded",
+    "Private artifacts and raw input correctness not independently replayed by S1",
+    "Frozen source report and JSON retain original preparation-time CI wording",
+    "V0.10 and V0.11 closeouts and their known numerical/source limitations are not reopened"
+  ]
+}
