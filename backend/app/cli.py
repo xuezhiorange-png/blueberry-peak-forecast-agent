@@ -12,6 +12,7 @@ from typing import TextIO
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.app.area_yield.m0_baseline_cli import dispatch_m0, register_m0_parser
 from backend.app.area_yield.run_cli import dispatch_area_run, register_area_run_parser
 from backend.app.core_forecast.application import execute_core_forecast_run
 from backend.app.core_forecast.cli import (
@@ -84,6 +85,7 @@ def _parser() -> argparse.ArgumentParser:
     register_area_run_parser(subparsers)
     register_operational_peak_parser(subparsers)
     register_shadow_forecast_parsers(subparsers)
+    register_m0_parser(subparsers)
     area_parser = subparsers.add_parser("area-forecast")
     area_parser.add_argument("--input")
     area_parser.add_argument("--base", help="BASE id or exact canonical BASE name")
@@ -216,6 +218,9 @@ async def _dispatch(
     stdout: TextIO,
     core_executor: CoreForecastExecutor | None = None,
 ) -> None:
+    if args.resource == "m0-baseline":
+        dispatch_m0(args, stdout)
+        return
     if args.resource == "area-forecast":
         from backend.app.area_yield.product import AreaDrivenForecastRequest
         from backend.app.area_yield.product_authority import forecast_area_product
