@@ -1,0 +1,33 @@
+{
+  "task_id": "V0_10_V0_11_VERSION_RECONCILIATION_RESEARCH_CLOSEOUT_AND_DRAFT_PR_R1",
+  "version": "0.10",
+  "original_reserved_scope": "PROSPECTIVE_VALIDATION_RESERVED_BY_V0_9_NOT_EXECUTED",
+  "local_frozen_plan_scope": "CALIBRATE_FROZEN_V0_9_MECHANISTIC_MODEL",
+  "later_owner_authorized_scope": "HISTORICAL_PROXY_STATISTICAL_RESEARCH",
+  "historical_proxy_research": "CLOSED_AFTER_EXTENSIVE_RESEARCH",
+  "original_mechanistic_gate": "NOT_ESTABLISHED",
+  "stable_predictive_gain": false,
+  "production_accuracy": false,
+  "prospective_validation": "NOT_EXECUTED_AS_ORIGINALLY_RESERVED",
+  "lifecycle": "CLOSED_WITH_ORIGINAL_GATE_INCOMPLETE",
+  "complete": false,
+  "no_further_retrospective_search": true,
+  "closed_routes": [
+    "HU7_TWO_PARAMETER_TUNING",
+    "TIME_WARP",
+    "MORE_TIMING_QUANTILES",
+    "K_DISTANCE_MIXTURE_SEARCH",
+    "HISTORICAL_YIELD_WEIGHT_SEARCH",
+    "MORE_SMOOTHNESS_PARAMETERS",
+    "CONDITIONAL_MODEL_SELECTION_ON_CONSUMED_BENCHMARK"
+  ],
+  "limitations": [
+    "Historical generation runner identity not fully restored",
+    "Original workbooks not independently rebuilt",
+    "Six inner and one outer numerical evidence gaps preserved",
+    "Retrospective development seasons repeatedly consumed; not unseen external validation",
+    "Local system clock and content hash are not external trusted timestamp",
+    "M0 boundary peaks and shared timing persist",
+    "Business interval width/accuracy tolerances not established"
+  ]
+}

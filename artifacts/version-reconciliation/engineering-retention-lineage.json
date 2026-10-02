@@ -1,0 +1,26 @@
+{
+  "task": "V0_10_V0_11_VERSION_RECONCILIATION_RESEARCH_CLOSEOUT_AND_DRAFT_PR_R1",
+  "extraction": "M0_FROZEN_KERNELS_NO_PRIVATE_LOCATORS",
+  "original_sources": [
+    {
+      "path": "scripts/v0_10_three_season_rotating_backtest_and_factor_stability_r1.py",
+      "sha256": "c6b49f6f435737ea6daeb9298611f11c915db22bf855b106a732eb53143da277"
+    },
+    {
+      "path": "scripts/v0_10_shared_spline_boundary_correction_and_oot_revalidation_r1.py",
+      "sha256": "c5f486c49cd1a408ec50cde3641de1b54caba36384326435184d14d60820a3c3"
+    },
+    {
+      "path": "scripts/v0_10_mechanism_informed_yield_training_backtest_r2.py",
+      "sha256": "b7a9dcb1618ad3927bacf0ea955615148ce670603d13fa853bc264d0a17c9214"
+    }
+  ],
+  "synthetic_fixed_input_shape_and_details_exact_parity": "PASS_EXECUTED_LOCALLY",
+  "scientific_math_changed": false,
+  "parameter_search_executed": false,
+  "public_tests": "Synthetic model fixtures replace private model dependency; numerical/identity assertions retained",
+  "original_private_artifacts_overwritten": false,
+  "baseline_frozen_output_metric_replay": "PASS_3_BASELINE_36_COVERAGE_36_DISTRIBUTION_TABLES",
+  "replay_level": "PUBLIC_CLOSEOUT_EVIDENCE_REPLAY",
+  "limitations": "This public package does not retrain all old experiments; raw workbook and runner identity limits preserved"
+}

@@ -1,0 +1,656 @@
+{
+  "scope": "PUBLIC_TASK_RESULT_EXPORT_ONLY",
+  "sources": [
+    {
+      "source_path": "docs/v0-10/evidence/base-cultivar-production-share-prior-and-timing-value-r1.json",
+      "source_sha256": "70ebaf0236084d015022290b9b30c35a42422debead82706934dab48b42572cd",
+      "task_id": "V0_10_BASE_CULTIVAR_PRODUCTION_SHARE_PRIOR_AND_TIMING_VALUE_R1",
+      "result": "PASS_FORWARD_CULTIVAR_SHARE_AND_TIMING_VALUE_EVALUATED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/base-identity-and-production-system-recovery-r1.json",
+      "source_sha256": "727d319b4530ff65dbb300a0c5549e180adced3d3bf611889d29d758fe7da4e6",
+      "task_id": "V0_10_BASE_IDENTITY_AND_PRODUCTION_SYSTEM_RECOVERY_R1",
+      "result": "PASS_BASE_IDENTITY_RECOVERED_WITH_STATIC_SCOPE_GAPS",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/base-specific-timing-support-and-historical-phase-prior-r1.json",
+      "source_sha256": "e3e6052afe6701a13f7b639ac9d07564f46894c3ba1b18130176ccc45a0327cf",
+      "task_id": "V0_10_BASE_SPECIFIC_TIMING_SUPPORT_AND_HISTORICAL_PHASE_PRIOR_R1",
+      "result": "PASS_BASE_PRIOR_SELECTED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/biological-mechanism-timing-model-r1.json",
+      "source_sha256": "d4ce6d39b383717143c9ba36870900004c409110bde835aa6c6adb4ecdeebc8f",
+      "task_id": "V0_10_BIOLOGICAL_MECHANISM_TIMING_MODEL_OPERATIONALIZATION_R1",
+      "result": "PASS_BIOLOGICAL_MECHANISM_NOT_YET_SUPERIOR",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/blueberry-thermal-phenology-authority-binding-and-minimal-mechanism-r2.json",
+      "source_sha256": "996923d9de6f3e8ecd47c320b07ec66355d7e54cdfeecea29e832ce92b1c8744",
+      "task_id": "V0_10_BLUEBERRY_THERMAL_PHENOLOGY_AUTHORITY_BINDING_AND_MINIMAL_MECHANISM_R2",
+      "result": "PASS_AUTHORITY_GAP_CONFIRMED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/blueberry-thermal-phenology-numeric-authority-recovery-r1.json",
+      "source_sha256": "18823516e7da1da715587a7b67520fb87f2147684ad53e16c7ab1384d7971b25",
+      "task_id": "V0_10_BLUEBERRY_THERMAL_PHENOLOGY_NUMERIC_AUTHORITY_RECOVERY_R1",
+      "result": "NOT_RECORDED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/confirmed-greenhouse-forcing-cultivar-scope-and-thermal-authority-r1.json",
+      "source_sha256": "04a01946d9d3fa74c58a071e1de84659b48eab2ca2eb469576e122cf4606d5bc",
+      "task_id": "V0_10_CONFIRMED_SCOPE_CLIMATE_BINDING_AND_TARGETED_THERMAL_AUTHORITY_R1",
+      "result": "NOT_RECORDED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/cultivar-specific-timing-heterogeneity-and-model-r1.json",
+      "source_sha256": "4cd8e12ae9dba7eca0f9760a3e441aa54fc28a04435bc241a73472aaa3a433b5",
+      "task_id": "V0_10_CULTIVAR_SPECIFIC_TIMING_HETEROGENEITY_AND_MODEL_R1",
+      "result": "PASS_CULTIVAR_TIMING_NOT_SUFFICIENT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/current-season-phase-signal-and-support-completeness-r1.json",
+      "source_sha256": "492aa51f695694cd8b355a6b092d38ac585f13241b8ed485edc31e9a682fe351",
+      "task_id": "V0_10_CURRENT_SEASON_PHASE_SIGNAL_AND_SUPPORT_COMPLETENESS_R1",
+      "result": "PASS_NO_CURRENT_SEASON_SIGNAL_AVAILABLE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/effective-thermal-progress-model-identification-and-backtest-r1.json",
+      "source_sha256": "0f67829583add694019145dbb49de2a1cb4eb1c969d89646e94a389547ed6d46",
+      "task_id": "V0_10_EFFECTIVE_THERMAL_PROGRESS_MODEL_IDENTIFICATION_AND_BACKTEST_R1",
+      "result": "PASS_EXPERIMENT_COMPLETED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/harvest-state-runtime-input-authority-binding-r1.json",
+      "source_sha256": "388fa59113dc6b2b992e63ac3702837d1f8ff299545d7a126818aba008e90a9d",
+      "task_id": "V0_10_S1_HARVEST_STATE_RUNTIME_INPUT_AUTHORITY_BINDING_R1",
+      "result": "NOT_RECORDED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/historical-calibration-path-reassessment-r1.json",
+      "source_sha256": "ee3e0884bbec38b80fff8408e9a15c044ceb38d52e8cba8dc5f16d669b168d1b",
+      "task_id": "V0_10_HISTORICAL_CALIBRATION_PATH_REASSESSMENT_R1",
+      "result": "PASS",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/historical-observation-source-recovery-and-runtime-binding-plan-r1.json",
+      "source_sha256": "7ef5ad56019aa2aad31c13d6721c614050641eec74af8d9570c16647a151ca02",
+      "task_id": "V0_10_S1_HISTORICAL_OBSERVATION_SOURCE_RECOVERY_AND_RUNTIME_INPUT_BINDING_PLAN_R1",
+      "result": "NOT_RECORDED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/mechanism-informed-yield-training-backtest-r2.json",
+      "source_sha256": "fdda69b6fdb5f866f0e4111d7e7b5e74673658300230d005dee15c2003dcdb21",
+      "task_id": "V0_10_MECHANISM_INFORMED_YIELD_FORECAST_TRAINING_AND_BACKTEST_R2",
+      "result": "PASS_MODEL_TRAINED_BACKTEST_UNDERPERFORMS",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/mechanism-model-simplification-and-grouped-validation-r1.json",
+      "source_sha256": "aad1f751e16169ff3b7098e508b460abfd97780087c5191a431b4be7e9a66df6",
+      "task_id": "V0_10_MECHANISM_MODEL_SIMPLIFICATION_AND_GROUPED_VALIDATION_R1",
+      "result": "PASS_V0_10_MECHANISM_MODEL_SIMPLIFICATION_AND_GROUPED_VALIDATION_COMPLETED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/pre-origin-weather-phase-signal-retrospective-value-r1.json",
+      "source_sha256": "82a61d99e20cdc2bd4a8aec824f61a21e1818734a45926dcf892bad1069c64d0",
+      "task_id": "V0_10_PRE_ORIGIN_WEATHER_PHASE_SIGNAL_RETROSPECTIVE_VALUE_R1",
+      "result": "PASS_NO_CURRENT_SEASON_SIGNAL_AVAILABLE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s0-historical-validation-protocol-and-parameter-admission-freeze-r1.json",
+      "source_sha256": "a7b144388e8c76343eac4d47ff0bde1e8f709fec0411fc17c6ffd95b0952e003",
+      "task_id": "V0_10_S0_HISTORICAL_VALIDATION_PROTOCOL_AND_PARAMETER_ADMISSION_FREEZE_R1",
+      "result": "PASS_V0_10_S0_HISTORICAL_VALIDATION_PROTOCOL_FROZEN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1-r1-target-firewall-breach-and-remediation-r1.json",
+      "source_sha256": "c84da15cc384b7e160133a0e5d4d0fa7f100179e1380b724774eb66111f37ab3",
+      "task_id": "V0_10_S1A_TARGET_FIREWALL_REMEDIATION_AND_CLEAN_ROOM_SOURCE_FREEZE_R1",
+      "result": "PASS_V0_10_S1A_TARGET_FIREWALL_REMEDIATED_CLEAN_ROOM_READY",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-a-source-locator-and-projection-contract-r1.json",
+      "source_sha256": "a7f9409171f097e1e3d7047ac97fd50d967305bc21a8d6e7d058a45b46a2636b",
+      "task_id": "V0_10_S1B_A_SOURCE_LOCATOR_AND_SAFE_PROJECTION_CONTRACT_FREEZE_R1",
+      "result": "BLOCKED_SOURCE_LOCATOR_NOT_RESOLVED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-b-locator-verification-and-final-authorization-contract-r1.json",
+      "source_sha256": "d8b22e57e326138167de6ceccc74bdbc96a57d2c70c69aa7c7d318fb7ed3048a",
+      "task_id": "V0_10_S1B_B_LOCATOR_VERIFICATION_AND_FINAL_ROW_LEVEL_AUTHORIZATION_CONTRACT_R1",
+      "result": "BLOCKED_ERA5_ACCEPTED_ARTIFACT_NOT_FOUND_OR_HASH_MISMATCH",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-c-era5-replay-locator-correction-r1.json",
+      "source_sha256": "f2aead6104f353e0449978b1519389048cbf3a6b6803474bfe4f76f306ac9533",
+      "task_id": "V0_10_S1B_C_ERA5_REPLAY_LOCATOR_CORRECTION_AND_AUTHORIZATION_FINALIZATION_R1",
+      "result": "PASS_V0_10_S1B_C_ERA5_LOCATOR_CORRECTED_AUTHORIZATION_READY",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-d-safe-input-projection-and-parameter-reassessment-r1.json",
+      "source_sha256": "2bcc393d0cc0e6f2396f5fd0eca75f30a2165920ebbd11b7decff3268e7a4aa8",
+      "task_id": "V0_10_S1B_D_AUTHORIZED_SAFE_INPUT_PROJECTION_AND_PARAMETER_INFORMATION_REASSESSMENT_R1",
+      "result": "BLOCKED_TARGET_INDEPENDENT_COHORT_AUTHORITY_UNAVAILABLE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f0-mechanized-clean-room-runner-freeze-r1.json",
+      "source_sha256": "3c9a0a05e19c0d9350d6c76a612f8c99b2df27e51d07a25be9146ef77d5f568b",
+      "task_id": "NOT_RECORDED",
+      "result": "PASS_V0_10_S1B_F0_MECHANIZED_CLEAN_ROOM_RUNNER_FROZEN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f0a-source-c-schema-contract-correction-r1.json",
+      "source_sha256": "b6f7a9de76828955e714488037fcb70b8063dc39d08c9e8e260d042bd7002ad2",
+      "task_id": "NOT_RECORDED",
+      "result": "PASS_V0_10_S1B_F0A_SOURCE_C_SCHEMA_CONTRACT_CORRECTED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f0b-evidence-output-contract-correction-r1.json",
+      "source_sha256": "762ca66fd454b775652a7e3e82736db71d13019e23ca0283f13f542fdabf3190",
+      "task_id": "NOT_RECORDED",
+      "result": "PASS_V0_10_S1B_F0B_EVIDENCE_OUTPUT_CONTRACT_CORRECTED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f0c-bundle-provenance-contract-correction-r1.json",
+      "source_sha256": "37ba01fbc235169a5061303c6a69a8f2aeefd47d3d126308269784700adef8ff",
+      "task_id": "V0_10_S1B_F0C_BUNDLE_PROVENANCE_CONTRACT_CORRECTION_R1",
+      "result": "PASS_V0_10_S1B_F0C_BUNDLE_PROVENANCE_CONTRACT_CORRECTED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f0d-era5-hourly-time-field-contract-correction-r1.json",
+      "source_sha256": "963cb504fd17de4fdcd520c17e48d02ea35bc48248cb848a213e401e6b11ab93",
+      "task_id": "V0_10_S1B_F0D_ERA5_HOURLY_TIME_FIELD_CONTRACT_CORRECTION_R1",
+      "result": "PASS_V0_10_S1B_F0D_ERA5_HOURLY_TIME_FIELD_CONTRACT_CORRECTED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f1-r5-mechanized-input-materialization-r1.json",
+      "source_sha256": "1b212c2af1c3b864c8f3ca90e9b8ed4b6aae1d3361acb901ac9efb3042ac905d",
+      "task_id": "V0_10_S1B_F1_R4_MECHANIZED_REAL_INPUT_MATERIALIZATION",
+      "result": "NOT_RECORDED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f2a-r2-parameter-information-contract-freeze-r1.json",
+      "source_sha256": "652dac10b3fc2d80c14582873172bcd7e0a4e958a61b5db4eccb90b40bafa1c5",
+      "task_id": "V0_10_S1B_F2A_R2_PARAMETER_INFORMATION_REASSESSMENT_CONTRACT_FREEZE_R1",
+      "result": "PASS_V0_10_S1B_F2A_R2_PARAMETER_INFORMATION_REASSESSMENT_CONTRACT_FROZEN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f2a-r3-validation-season-isolation-correction-r1.json",
+      "source_sha256": "ab96bceb27f32253bdbe9c213289c6276dedd79647baadd7dbbaf5021f86a941",
+      "task_id": "V0_10_S1B_F2A_R3_VALIDATION_SEASON_ISOLATION_CONTRACT_CORRECTION_R1",
+      "result": "PASS_V0_10_S1B_F2A_R3_VALIDATION_SEASON_ISOLATION_CORRECTED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f2a0-safe-parameter-authority-projection-r1.json",
+      "source_sha256": "9ada616c83983056f168b7ad94c40ca1be660962395b41a56d8931d19bedcf78",
+      "task_id": "V0_10_S1B_F2A0_SAFE_PARAMETER_AUTHORITY_PROJECTION_R1",
+      "result": "PASS_V0_10_S1B_F2A0_SAFE_PARAMETER_AUTHORITY_PROJECTION_COMPLETED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-f2b-r2-real-parameter-information-reassessment-r1.json",
+      "source_sha256": "4cef00950ec2488f89bfb756825267eff80032c9e2407638157beb77810e60f8",
+      "task_id": "V0_10_S1B_F2B_R2_REAL_PARAMETER_INFORMATION_REASSESSMENT_R1",
+      "result": "NOT_RECORDED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/s1b-safe-historical-input-projection-r1.json",
+      "source_sha256": "eccac1c072424bffee99fda5e1c1b6937a0197cd0efabc52e67ae9f3482671a1",
+      "task_id": "V0_10_S1B_SAFE_HISTORICAL_INPUT_PROJECTION_AND_AUTHORITY_RECOVERY_R1",
+      "result": "BLOCKED_ROW_LEVEL_INPUT_AUTHORIZATION_REQUIRED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/shared-spline-boundary-correction-and-oot-revalidation-r1.json",
+      "source_sha256": "847bd1c1f204cf2d8b90f8425389efff474c73c3beb3fb5c36743456a051ee01",
+      "task_id": "V0_10_SHARED_SPLINE_BOUNDARY_CORRECTION_AND_OOT_REVALIDATION_R1",
+      "result": "PASS_SPLINE_CORRECTION_NOT_SUFFICIENT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/shared-spline-support-and-timing-shape-root-cause-r1.json",
+      "source_sha256": "8dfcade2eb67addc85da03a3138f0dc449efeaf0285a7b519ff4626342fa51b2",
+      "task_id": "V0_10_SHARED_SPLINE_SUPPORT_AND_TIMING_SHAPE_ROOT_CAUSE_R1",
+      "result": "PASS_ROOT_CAUSE_IDENTIFIED_NO_PRODUCTION_FIX",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/target-blueberry-system-scope-resolution-r1.json",
+      "source_sha256": "a426236acce16ed563b81b6e1cc134a113633cb803878d09e9ba87d27040a726",
+      "task_id": "V0_10_TARGET_SYSTEM_SCOPE_RESOLUTION_FROM_EXISTING_DATA_R1",
+      "result": "PASS_SCOPE_CLASSIFIED_WITH_AUTHORITY_GAPS",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/thermal-axis-origin-and-support-alignment-r1.json",
+      "source_sha256": "f113a8fe17e5ca7a1714ec20713bf029b0f1a4f422c8ef55c2546e32511af146",
+      "task_id": "V0_10_THERMAL_AXIS_ORIGIN_AND_SUPPORT_ALIGNMENT_R1",
+      "result": "PASS_THERMAL_AXIS_ALIGNMENT_REPLAY_COMPLETED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/three-season-rotating-backtest-and-factor-stability-r1.json",
+      "source_sha256": "483a9c6e63eb156b0d290db21b967f1ab2700416f35a833bbabee6942c2418cc",
+      "task_id": "V0_10_THREE_SEASON_ROTATING_BACKTEST_AND_FACTOR_STABILITY_R1",
+      "result": "PASS_ROTATING_VALIDATION_COMPLETED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/timing-phase-alignment-and-peak-bias-correction-r1.json",
+      "source_sha256": "85cd16a9b1072874d26af659e83824e32cbd6a74c10edd065313810fdc1a6b8c",
+      "task_id": "V0_10_TIMING_PHASE_ALIGNMENT_AND_PEAK_BIAS_CORRECTION_R1",
+      "result": "PASS_PHASE_CORRECTION_NOT_SUFFICIENT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/timing-target-label-alignment-and-proxy-validity-r1.json",
+      "source_sha256": "1291d8389d7bc36b79d6c54e1fe042c39bdf7f63059381446a41564286565bc6",
+      "task_id": "V0_10_TIMING_TARGET_LABEL_ALIGNMENT_AND_PROXY_VALIDITY_R1",
+      "result": "PASS",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-10/evidence/v0.10.0-version-plan-and-scope-freeze.json",
+      "source_sha256": "7288c1dd2d9a1ac63762f9352cf5bc425679bb5aa41a926263a2aaa041f76f5a",
+      "task_id": "V0_10_VERSION_PLAN_AND_SCOPE_FREEZE_R1",
+      "result": "PASS_V0_10_VERSION_SCOPE_FROZEN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/base-historical-yield-and-total-layer-controlled-trial-r1.json",
+      "source_sha256": "5fdcde2bd9cd4265702892a8f8a73f7c3c6cb0c95b51506de8b933674177df2c",
+      "task_id": "V0_11_BASE_HISTORICAL_YIELD_AND_TOTAL_LAYER_CONTROLLED_TRIAL_R1",
+      "result": "PASS_PARTIAL_TOTAL_LAYER_VALUE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/base-historical-yield-history-depth-and-shrinkage-isolation-r1.json",
+      "source_sha256": "85b758d23cc886538ec84bb4bc1e85afe67f34d7cf676f333850be020b116209",
+      "task_id": "V0_11_BASE_HISTORICAL_YIELD_AND_TOTAL_LAYER_CONTROLLED_TRIAL_R1",
+      "result": "MIXED_OR_NO_CLEAR_INCREMENT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/base-history-week-scale-transfer-controlled-trial-r1.json",
+      "source_sha256": "191b78f2c335b4be594f686ed27c252e9362d4f1588a2e466665ad4423bf57e1",
+      "task_id": "V0_11_BASE_HISTORY_WEEK_SCALE_TRANSFER_CONTROLLED_TRIAL_R1",
+      "result": "PASS_INTRAWEEK_DETAIL_REMOVAL_HELPS_BUT_BASELINE_NOT_BEATEN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/base-last-season-full-shape-benchmark-r1.json",
+      "source_sha256": "ecc8cded65cbfe39fe70da18c4035a055dbdde7a121001f97b1ae14949803a23",
+      "task_id": "V0_11_BASE_LAST_SEASON_FULL_SHAPE_BENCHMARK_R1",
+      "result": "PASS_NO_STABLE_BASE_LAST_SHAPE_GAIN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/base-total-loss-aligned-weighted-median-control-r1.json",
+      "source_sha256": "fbb7ca17b33e4f11b50b1eb3eedeb28e285661e0fec53b9a0105b6a8eb602afc",
+      "task_id": "V0_11_BASE_HISTORICAL_YIELD_AND_TOTAL_LAYER_CONTROLLED_TRIAL_R1",
+      "result": "PASS_NO_STABLE_LOSS_ALIGNMENT_GAIN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/blueberry-growth-cycle-model-candidate-bakeoff-r1.json",
+      "source_sha256": "feff5a095792f3b7416408b345035164ff58f00d4067bafa6805f2730bdb1cc5",
+      "task_id": "V0_11_BLUEBERRY_GROWTH_CYCLE_MODEL_CANDIDATE_BAKEOFF_R1",
+      "result": "PASS_GROWTH_CYCLE_CANDIDATES_FOUND",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/c1-monotone-quantile-transport-validation-r1.json",
+      "source_sha256": "31d679a0392805eeb9338e4631668090b9e1d7882834c2e89ba8eb42de2201c2",
+      "task_id": "V0_11_C1_MONOTONE_QUANTILE_TRANSPORT_VALIDATION_R1",
+      "result": "PASS_C1_TRANSPORT_ORACLE_VALUE_REMAINS_BUT_QUALITY_GATE_FAILS",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/climate-cultivar-conditioned-history-retrieval-trial-r1.json",
+      "source_sha256": "c3ff863b204bb9936e54e925facaffac279094345afe7693bddc0e44bcb2f940",
+      "task_id": "V0_11_CLIMATE_CULTIVAR_CONDITIONED_HISTORY_RETRIEVAL_TRIAL_R1",
+      "result": "PASS_PARTIAL_CONDITIONED_HISTORY_VALUE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/conditional-growth-curve-model-end-to-end-r1.json",
+      "source_sha256": "a9fde87093d5b6f09e7e43a57ed6f6cdea25e76791f531e9193399ac30594bf3",
+      "task_id": "V0_11_CONDITIONAL_GROWTH_CURVE_MODEL_END_TO_END_R1",
+      "result": {
+        "ENGINEERING_STATUS": "PASS_END_TO_END_IMPLEMENTED_AND_REPRODUCIBLE",
+        "RESEARCH_STATUS": "NO_STABLE_CONDITIONAL_GAIN"
+      },
+      "research_status": "NO_STABLE_CONDITIONAL_GAIN",
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/conditional-growth-curve-r2-plan-aligned-validation-and-delivery.json",
+      "source_sha256": "25787de0df72ee881c56afc7cff437acf664d653dbd886a03d878001099dbc80",
+      "task_id": "V0_11_CONDITIONAL_GROWTH_CURVE_MODEL_END_TO_END_R2",
+      "result": {
+        "ENGINEERING_STATUS": "PASS_END_TO_END_IMPLEMENTED_AND_REPRODUCIBLE",
+        "RESEARCH_STATUS": "NO_STABLE_CONDITIONAL_GAIN",
+        "VERSION_ACCEPTANCE_STATUS": "PARTIAL_WITH_EXPLICIT_VERSION_GAPS"
+      },
+      "research_status": "NO_STABLE_CONDITIONAL_GAIN",
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/conditioned-history-size-matched-selection-value-audit-r1.json",
+      "source_sha256": "75cf804ae7b823d2beed9489dade8146b9fac635feed7074673b33d8cdeaad4a",
+      "task_id": "NOT_RECORDED",
+      "result": "PASS_SELECTION_SIGNAL_WITHOUT_STABLE_BASELINE_GAIN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/curve-information-sufficiency-oracle-bakeoff-r1.json",
+      "source_sha256": "6d2943ed0cc9732888898366c3e238ed5d8d6bb0027b6b7ef378c8d62b313fbe",
+      "task_id": "V0_11_CURVE_INFORMATION_SUFFICIENCY_ORACLE_BAKEOFF_R1",
+      "result": "PASS_LOW_DIMENSION_CURVE_INFORMATION_STILL_INSUFFICIENT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/curve-quality-standard-applicability-review-r1.json",
+      "source_sha256": "69c956cd147d878ea6c1dad7e614195212c22a2f8cb30a8a100807b4f73c09cb",
+      "task_id": "V0_11_CURVE_QUALITY_STANDARD_APPLICABILITY_REVIEW_R1",
+      "result": "PASS_DRAFT_STANDARD_WITH_APPLICABILITY_EVIDENCE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/fixed-full-pool-temperature-shrinkage-trial-r1.json",
+      "source_sha256": "8e5a8ab2aad0a28f5128d9f192f17591f39b4ef2323183982c681b2ee5cc914c",
+      "task_id": "V0_11_CLIMATE_CULTIVAR_CONDITIONED_HISTORY_RETRIEVAL_TRIAL_R1",
+      "result": "PASS_NO_STABLE_FIXED_SHRINKAGE_GAIN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/historical-trajectory-scenario-and-peak-risk-validation-r1.json",
+      "source_sha256": "446d2a0a2b3d82eab1946cc87e04255b0eaacf480645e0691c27aa8bdce326f3",
+      "task_id": "V0_11_HISTORICAL_TRAJECTORY_SCENARIO_AND_PEAK_RISK_VALIDATION_R1",
+      "result": "PASS_PARTIAL_SCENARIO_RISK_VALUE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/joint-timing-quantile-outer-case-impact-closeout-r1.json",
+      "source_sha256": "4929e04db1f98a59038dbf1da120aa344a4efa7a3cb151597aef1754fa65fffb",
+      "task_id": "V0_11_JOINT_TIMING_QUANTILE_PREDICTION_CONTROLLED_TRIAL_R1",
+      "result": "PARTIAL_NUMERICAL_COVERAGE_WITH_CERTIFIED_DECISION_SCOPE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/joint-timing-quantile-prediction-controlled-trial-r1.json",
+      "source_sha256": "fbda2797ad07577b8caec91f85afae8e04db9807afb01bb41f9c6cdb03f87322",
+      "task_id": "V0_11_JOINT_TIMING_QUANTILE_PREDICTION_CONTROLLED_TRIAL_R1",
+      "result": "PASS_NO_STABLE_FORWARD_GAIN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/joint-timing-quantile-reconstruction-numerical-correction-r1.json",
+      "source_sha256": "3805e8fdad1b4c66645b57e97d7afcaa9774a379410904c0f0948d5a9d7a0508",
+      "task_id": "V0_11_JOINT_TIMING_QUANTILE_PREDICTION_CONTROLLED_TRIAL_R1",
+      "result": "PASS_NUMERICAL_TERMINATION_FIXED_REPLAY_COMPLETED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/joint-timing-quantile-reconstruction-response-audit-r1.json",
+      "source_sha256": "5206aa9609b49f6e0c0b74eb0bc9173bc1284e77d786b207ba213cd22d7f4c15",
+      "task_id": "V0_11_JOINT_TIMING_QUANTILE_PREDICTION_CONTROLLED_TRIAL_R1",
+      "result": "PASS_NUMERICAL_TERMINATION_DEFECT_EVIDENCED_CORRECTION_REQUIRES_AUTHORIZATION",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/joint-timing-quantile-reconstruction-selection-revalidation-r1.json",
+      "source_sha256": "b2de7f5cb249f988f0a7b64475d642ebc4e5c22169597c9fea25d472463a479a",
+      "task_id": "V0_11_JOINT_TIMING_QUANTILE_PREDICTION_CONTROLLED_TRIAL_R1",
+      "result": "PARTIAL_SELECTION_NUMERICAL_COVERAGE_INCOMPLETE",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/joint-timing-quantile-residual-numerical-closure-r1.json",
+      "source_sha256": "0deba9d9677a9163984abaa8dd0a7ce9923113e39a0d8cc8a98b5eb28cf9d766",
+      "task_id": "V0_11_JOINT_TIMING_QUANTILE_PREDICTION_CONTROLLED_TRIAL_R1",
+      "result": "PARTIAL_SELECTION_IMPACT_UNRESOLVED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/m3-guided-shared-spline-quantile-warp-r1.json",
+      "source_sha256": "04da92407a11afccec467916566d6684c5171a09e45dd49603d7fb564fec864e",
+      "task_id": "V0_11_M3_GUIDED_SHARED_SPLINE_QUANTILE_WARP_R1",
+      "result": "PASS_TIMING_WARP_DIAGNOSTIC_VALUE_ONLY",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/peak-concentration-and-direct-peak-quantity-controlled-trial-r1.json",
+      "source_sha256": "77abc212cb00694a172848b7abb32614d78f5262a1150f062516022f3a666fa3",
+      "task_id": "V0_11_PEAK_CONCENTRATION_AND_DIRECT_PEAK_QUANTITY_CONTROLLED_TRIAL_R1",
+      "result": "PASS_NO_STABLE_PEAK_CONCENTRATION_GAIN",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/regularized-quantile-constrained-density-reconstruction-r1.json",
+      "source_sha256": "99c92fb3a27754207a70616c45e6b40e5db58f7428a88cc8d15f99227442db20",
+      "task_id": "V0_11_REGULARIZED_QUANTILE_CONSTRAINED_DENSITY_RECONSTRUCTION_R1",
+      "result": "PASS_THREE_QUANTILE_SIGNAL_CONFIRMED_RECONSTRUCTION_STILL_INSUFFICIENT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/research-stage-review-and-reproducible-delivery-r1.json",
+      "source_sha256": "e96182ba1679d5333e80fcc095f4db2d4548b41b2bc51c84742f1ea9b34c9be3",
+      "task_id": "V0_11_RESEARCH_STAGE_REVIEW_AND_REPRODUCIBLE_DELIVERY_R1",
+      "result": "PASS_STAGE_REVIEW_AND_REPLAY_BUNDLE_DELIVERED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/roughness-gate-validity-and-quantile-feasibility-r1.json",
+      "source_sha256": "309f4b69c9ffee4167e97ebbe04c5e93878e7c655bba86aa4b493ef2a761e890",
+      "task_id": "V0_11_ROUGHNESS_GATE_VALIDITY_AND_QUANTILE_FEASIBILITY_AUDIT_R1",
+      "result": "PASS_FROZEN_GATE_CERTIFIED_FEASIBILITY_AUDIT",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    },
+    {
+      "source_path": "docs/v0-11/evidence/smooth-cdf-quantile-transport-and-oracle-validation-r1.json",
+      "source_sha256": "0269b9f508faa4abb83ef63bce3947a27fa37c1aac75b4cdef6b075d0bebcf81",
+      "task_id": "V0_11_SMOOTH_CDF_QUANTILE_TRANSPORT_AND_ORACLE_VALIDATION_R1",
+      "result": "PASS_ORACLE_GAIN_WITH_CURVE_ARTIFACT_QUALITY_GATE_FAILED",
+      "research_status": null,
+      "source_role": "OWNER_AUTHORIZED_TASK_EVIDENCE",
+      "public_export_scope": "TASK_AND_RESULT_ONLY_NO_ROW_LEVEL_DATA"
+    }
+  ],
+  "training_reproduced": false,
+  "independent_audits": [
+    {
+      "task": "CONDITIONAL_R2",
+      "result": "PASS_INDEPENDENT_R2_REPLAY_WITH_NO_STABLE_CONDITIONAL_GAIN",
+      "zip_sha256": "dcc683576eb2bf65fe5e6a5220f452a2f7f927739eef7eee281be48a29ae4a7d",
+      "scope_limits": "No full grid selection, full repository tests, raw workbook reconstruction or old M0 spline retrain"
+    },
+    {
+      "task": "FILE_BOUNDARY_R2",
+      "result": "PASS_INDEPENDENT_FILE_RESEARCH_BOUNDARY_REPLAY_WITH_SCOPE_LIMITS",
+      "zip_sha256": "b57a8d99fc3c8dd6b4038d8773082759e164684281c97a82f5e17297cfbf48bb",
+      "scope_limits": [
+        "Historical generation runner identity not fully restored",
+        "Original workbooks not independently rebuilt",
+        "Six inner and one outer numerical evidence gaps preserved",
+        "Retrospective development seasons repeatedly consumed; not unseen external validation",
+        "Local system clock and content hash are not external trusted timestamp",
+        "M0 boundary peaks and shared timing persist",
+        "Business interval width/accuracy tolerances not established"
+      ]
+    }
+  ],
+  "limitations": [
+    "Historical generation runner identity not fully restored",
+    "Original workbooks not independently rebuilt",
+    "Six inner and one outer numerical evidence gaps preserved",
+    "Retrospective development seasons repeatedly consumed; not unseen external validation",
+    "Local system clock and content hash are not external trusted timestamp",
+    "M0 boundary peaks and shared timing persist",
+    "Business interval width/accuracy tolerances not established"
+  ]
+}
