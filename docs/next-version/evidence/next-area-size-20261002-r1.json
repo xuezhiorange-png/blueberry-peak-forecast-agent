@@ -1,0 +1,175 @@
+{
+  "task_id": "NEXT_VERSION_AREA_BASED_YIELD_MODEL_TRAINING_AND_BACKTEST_R1",
+  "execution_id": "NEXT_AREA_SIZE_20261002_R1",
+  "base_sha": "8e886b45984a358125d00e80f4f5d662fab3d8e9",
+  "result": "PARTIAL",
+  "engineering": "TRAIN_SAVE_FRESH_LOAD_PREDICT_AND_METRIC_REPLAY_PASS",
+  "scientific_result": "RESEARCH_CANDIDATE_NO_STABLE_GAIN",
+  "stability_limitation": "One reused historical forward fold; improvements within that fold do not establish cross-fold stability.",
+  "coverage": {
+    "AREA_MATCHED_ROWS": 10708,
+    "AREA_MATCHED_SAMPLE_COUNT": 37,
+    "AREA_UNMATCHED_ROWS": 0,
+    "AREA_UNMATCHED_SAMPLE_COUNT": 0,
+    "AUTHORIZED_ZERO_ROW_COUNT": 5327,
+    "EXCLUDED_SAMPLE_COUNT": 41,
+    "EXCLUSION_REASONS": "Existing S7 identity-blocked 41/78 training-pool samples stay excluded; counts cited from frozen S7 report, no unsafe source reread",
+    "FARM_OR_BASE_COUNT": 26,
+    "MISSING_QUANTITY_ROW_COUNT": 0,
+    "ROW_GRAIN": "CANONICAL_BASE_SEASON_DAY_NOT_RAW_RECEIPT_ROW",
+    "SEASON_COUNT": 2,
+    "TOTAL_HARVEST_ROWS": 10708,
+    "VALID_TRAINING_SAMPLE_COUNT": 37,
+    "ZERO_QUANTITY_ROW_COUNT": 5327,
+    "historical_pit_availability": "NOT_PROVEN",
+    "raw_receipt_row_count": "NOT_RECONSTRUCTED",
+    "scope": "only supplied eligible nonsealed training-pool files; not all raw business data",
+    "source_hashes": {
+      "daily_source": "0b1d9bd4ca9c4cc36386f8b5ea76006604e40accfd80fb5bf1e7a3d869b6001a",
+      "training_source": "72363ec56dae682fba80ccf984a6fedb2c57425e1fbdcea8b8fca10aca0b5aba"
+    }
+  },
+  "deterministic_training": "PASS",
+  "example": {
+    "applicability_notes": [
+      "RESEARCH_ONLY",
+      "NOT_FULL_NATURAL_SEASON",
+      "ONE_REUSED_FORWARD_SEASON_NOT_UNSEEN_VALIDATION",
+      "LINEAR_BASELINE_AREA_SCALING_NOT_BUSINESS_VALIDATED",
+      "BASE_OUTSIDE_TRAINING_COVERAGE"
+    ],
+    "area_position": "INTERPOLATION",
+    "artifact_hash": "be265f1bce5829350873da871c067c8b44e6af76cf5039a9648bcc34e1391371",
+    "base_id": "TEST_ONLY_UNSEEN_BASE",
+    "mode": "TEST_ONLY",
+    "model_id": "NEXT_AREA_SIZE_20261002_R1_CANDIDATE",
+    "peaks": {
+      "rolling7_end_date": "2027-04-14",
+      "rolling7_peak_quantity_kg": "82455.663078",
+      "rolling7_start_date": "2027-04-08",
+      "single_day_peak_date": "2027-04-08",
+      "single_day_peak_quantity_kg": "12240.367844"
+    },
+    "predicted_season_total_kg": "635015.338054",
+    "production_use_approved": false,
+    "prospective_accuracy_validated": false,
+    "result_hash": "98f60e32241d20ecd5f5a4d087307d863499533fa91af0451ba5fded9b9b3119",
+    "target_area_mu": "736.000000",
+    "target_season": "2026-2027",
+    "training_area_range_mu": [
+      "216",
+      "2548"
+    ]
+  },
+  "fold": {
+    "DATA_LEAKAGE_CHECK": "PASS",
+    "NEW_UNSEEN_VALIDATION": false,
+    "artifact_file_hashes": {
+      "baseline": "39117e6a9ce2d07062831f24e3541e9589bb55a33e6b01aa41791ca48ef58e2d",
+      "candidate": "5aecb3fbbedfdb3b4eb0db20e444446c1fde65e5c787d1e117f9428c56a2d352"
+    },
+    "created_at": "2026-10-02T02:32:09.140307+00:00",
+    "prediction_file_sha256": "d0bcfd5a359864ac3970c281337c3dcf53bd803cc8ad7843d824141af2162846",
+    "test_sample_count": 22,
+    "test_season": "2024-2025",
+    "train_sample_count": 15,
+    "train_seasons": [
+      "2023-2024"
+    ]
+  },
+  "fresh_process": "PASS",
+  "metrics": {
+    "baseline": {
+      "actual_total_kg": "19805668.000",
+      "cohort_count": 22,
+      "daily_wape": "0.770660",
+      "rolling_7day_peak_absolute_error_kg_mae": "48318.586215",
+      "rolling_7day_window_shift_days_mae": "22.318182",
+      "shape_micro_wape": "0.632252",
+      "single_day_peak_absolute_error_kg_mae": "7233.920555",
+      "single_day_peak_date_error_days_mae": "21.818182",
+      "window_total_mae_kg": "405935.417387",
+      "window_total_wape": "0.450910"
+    },
+    "candidate": {
+      "actual_total_kg": "19805668.000",
+      "cohort_count": 22,
+      "daily_wape": "0.731543",
+      "rolling_7day_peak_absolute_error_kg_mae": "45003.802717",
+      "rolling_7day_window_shift_days_mae": "22.318182",
+      "shape_micro_wape": "0.632252",
+      "single_day_peak_absolute_error_kg_mae": "6572.139398",
+      "single_day_peak_date_error_days_mae": "21.818182",
+      "window_total_mae_kg": "375819.915438",
+      "window_total_wape": "0.417458"
+    }
+  },
+  "new_unseen_validation": false,
+  "stable_gain": false,
+  "test_area_range": [
+    "216",
+    "2548"
+  ],
+  "training_area_range": [
+    "216",
+    "2548"
+  ],
+  "metric_deltas_candidate_minus_baseline": {
+    "daily_wape": {
+      "candidate_minus_baseline": -0.039117,
+      "relative_delta_pct": -5.075779
+    },
+    "rolling_7day_peak_absolute_error_kg_mae": {
+      "candidate_minus_baseline": -3314.783498,
+      "relative_delta_pct": -6.860266
+    },
+    "rolling_7day_window_shift_days_mae": {
+      "candidate_minus_baseline": 0,
+      "relative_delta_pct": 0
+    },
+    "shape_micro_wape": {
+      "candidate_minus_baseline": 0,
+      "relative_delta_pct": 0
+    },
+    "single_day_peak_absolute_error_kg_mae": {
+      "candidate_minus_baseline": -661.781157,
+      "relative_delta_pct": -9.148306
+    },
+    "single_day_peak_date_error_days_mae": {
+      "candidate_minus_baseline": 0,
+      "relative_delta_pct": 0
+    },
+    "window_total_mae_kg": {
+      "candidate_minus_baseline": -30115.501949,
+      "relative_delta_pct": -7.418791
+    },
+    "window_total_wape": {
+      "candidate_minus_baseline": -0.033452,
+      "relative_delta_pct": -7.418775
+    }
+  },
+  "protected_local_artifacts_preserved": true,
+  "unmerged_pr_658_dependency": false,
+  "pr_658_modified": false,
+  "model_configuration_count": 2,
+  "actual_fit_count": 4,
+  "metric_replay": {
+    "status": "PASS",
+    "loaded_requests": 44,
+    "refit": false
+  },
+  "local_checks": {
+    "area_model_tests": "580 passed; 7 deselected",
+    "ruff": "PASS",
+    "format": "PASS_3_FILES",
+    "mypy": "PASS_2_SOURCE_FILES",
+    "compile": "PASS_3_FILES",
+    "full_repository_ci": "PENDING_EXACT_HEAD"
+  },
+  "training_area_authority": "EXPLICIT_BUSINESS_CONFIRMATION_NOT_INDEPENDENT_MEASURED_AREA_VERIFICATION",
+  "business_target": "FROZEN_JULY01_APRIL15_WINDOW_NOT_UNTRUNCATED_NATURAL_SEASON",
+  "real_forecast_count": 0,
+  "production_use_approved": false,
+  "prospective_accuracy_validated": false,
+  "version_complete": false
+}
