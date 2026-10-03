@@ -54,6 +54,44 @@ FROZEN = {
         "validation_hash": "e4568d3f61c1368f059c46b2240af8c4f455cce8731a4409a0bc43b3fd071869",
     },
 }
+FROZEN_BOUNDARIES = {
+    "FOLD_A": {
+        "season": "2024-2025",
+        "business_start": "2024-07-01",
+        "business_end": "2025-04-15",
+        "policy": "EXISTING_JULY_01_THROUGH_APRIL_15_MODEL_AUTHORITY",
+        "authority_hash": "cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf",
+    },
+    "FOLD_B": {
+        "season": "2025-2026",
+        "business_start": "2025-07-22",
+        "business_end": "2026-04-15",
+        "policy": "USER_CONFIRMED_2526_BUSINESS_WINDOW_R7B",
+        "authority_hash": "e8ccfc929f301690511e09601bb544ffe94c3b805a87ca498297ccf098af8cc4",
+    },
+}
+
+
+def frozen_business_boundary(fold: dict[str, Any]) -> dict[str, str]:
+    """Read the prediction-manifest authority; pinned values only verify it.
+
+    They are never a missing-authority fallback or a calendar generator.
+    """
+    manifest = fold.get("prediction_manifest")
+    boundary = manifest.get("business_boundary") if isinstance(manifest, dict) else None
+    if not isinstance(boundary, dict) or not all(
+        key in boundary
+        for key in ("season", "business_start", "business_end", "policy", "authority_hash")
+    ):
+        raise g.GDDError("MISSING_FROZEN_BUSINESS_BOUNDARY")
+    expected = FROZEN_BOUNDARIES.get(fold.get("fold_id"))
+    if (
+        expected is None
+        or boundary["season"] != fold.get("validation_season")
+        or any(boundary[key] != value for key, value in expected.items())
+    ):
+        raise g.GDDError("FROZEN_BUSINESS_BOUNDARY_MISMATCH")
+    return {key: boundary[key] for key in expected}
 
 
 def verify_v0_7_s3_legacy_model_a_artifact(
@@ -120,10 +158,10 @@ def file_identity(p: Path) -> dict[str, Any]:
 
 
 def reconstruct_validation(fold: dict[str, Any], daily: list[dict[str, Any]]) -> list[str]:
-    """Calendar + public scope + accepted weather presence, no actual authority."""
-    season = fold["validation_season"]
-    year = int(season[:4])
-    start, end = date(year, 7, 1), date(year + 1, 4, 15)
+    """Frozen fold boundary + public scope + weather presence, no actual labels."""
+    boundary = frozen_business_boundary(fold)
+    start = date.fromisoformat(boundary["business_start"])
+    end = date.fromisoformat(boundary["business_end"])
     bases = sorted(fold["validation_dataset_meta"]["incomplete_origin_count_by_base"])
     if len(bases) != fold["validation_base_count"]:
         raise g.GDDError("VALIDATION_SCOPE_MISMATCH")
@@ -187,7 +225,7 @@ def execute(
             len(validation) != frozen["validation_count"]
             or digest(validation) != frozen["validation_hash"]
         ):
-            raise g.GDDError("FROZEN_VALIDATION_ROW_KEYS_MISMATCH")
+            raise g.GDDError("BOUNDARY_CORRECTION_CHANGED_FROZEN_ROW_UNIVERSE")
         row_sets[name]["validation"] = validation
     index = g.index_daily(daily)
     identities = sorted(
@@ -227,6 +265,10 @@ def execute(
         },
         "source_immutability": {"before": before, "after": after, "unchanged": True},
         "EVENT_TIME_LEAKAGE_GATE": "PASS",
+        "VALIDATION_BOUNDARY_AUTHORITY_BINDING": "PASS",
+        "validation_business_boundaries": {
+            name: frozen_business_boundary(public["folds"][name]) for name in row_sets
+        },
         "GDD_INCREMENTAL_VALUE": "NOT_EVALUATED",
         "MODEL_TRAINING_EXECUTED": False,
         "SCORING_EXECUTED": False,
