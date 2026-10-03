@@ -1,0 +1,887 @@
+{
+  "BACKTEST_EXECUTED": false,
+  "BASE_SHA": "4f0caedaf7a4f9942371f1fd92dc5132c3c671b5",
+  "AREA_YIELD_REGRESSION": "924 passed, 7 skipped (synthetic/unit engineering regression only)",
+  "BYTE_EQUAL": true,
+  "COMMON_COMPARABLE_COHORT_REQUIRED": true,
+  "COMMON_HORIZON_VIEW_IDENTITIES_ESTABLISHED": true,
+  "COMMON_TRAIN_COHORT_ESTABLISHED": true,
+  "COMMON_VALIDATION_COHORT_ESTABLISHED": true,
+  "DETERMINISTIC_REPLAY": "PASS",
+  "EVENT_TIME_LEAKAGE_GATE": "PASS",
+  "EXACT_HEAD_CI": "RECORDED_EXTERNALLY_ON_EXACT_PR_HEAD",
+  "FAILURE_INJECTION_CASE_COUNT": 76,
+  "FAILURE_INJECTION_PASS_COUNT": 76,
+  "FEATURE_VALUE_DECISION_EXECUTED": false,
+  "FINAL_HEAD_SHA": null,
+  "FOCUSED_TESTS": "151 passed including S0/S1, V0.7 weather and V0.9 contract regression",
+  "BOUNDARY_CORRECTION_TASK_ID": "V0_13_S2_GDD_FEATURE_BUILD_AND_DATA_COVERAGE_AUDIT_R3",
+  "VALIDATION_BOUNDARY_AUTHORITY_BINDING": "PASS",
+  "FOLD_A_VALIDATION_BUSINESS_START": "2024-07-01",
+  "FOLD_A_VALIDATION_BUSINESS_END": "2025-04-15",
+  "FOLD_B_VALIDATION_BUSINESS_START": "2025-07-22",
+  "FOLD_B_VALIDATION_BUSINESS_END": "2026-04-15",
+  "FOLD_B_HARDCODED_JULY1_USED": false,
+  "BOUNDARY_CORRECTION_CHANGED_ROW_UNIVERSE": false,
+  "BOUNDARY_CORRECTION_CHANGED_GDD_IDENTITIES": false,
+  "GDD_CONTEXT_BUILD_PASS": true,
+  "GDD_DEFINITION_COUNT": 1,
+  "GDD_DEFINITION_PARITY": true,
+  "GDD_INCREMENTAL_VALUE": "NOT_EVALUATED",
+  "GDD_WINDOW_FAMILY_COUNT": 3,
+  "LEGACY_ARTIFACT_RETRAINED": false,
+  "LEGACY_ARTIFACT_REWRITE": false,
+  "LEGACY_FROZEN_STANDARDIZATION": "TRAIN_ONLY_STANDARD_SCALER_POPULATION_STD",
+  "LEGACY_GAP_CLASSIFICATION": "STANDARDIZATION_PRESENT_IN_HASH_INPUT_BUT_OMITTED_FROM_SERIALIZED_ARTIFACT",
+  "LEGACY_GAP_SOURCE_HEAD": "817bbed30e296bc01fb2af9560e66c272ec27247",
+  "LEGACY_OMITTED_FIELD": "standardization",
+  "LEGACY_V0_7_S3_SERIALIZATION_GAP_CONFIRMED": true,
+  "LOCAL_LEGACY_FAILURE_INJECTION_CASE_COUNT": 26,
+  "LOCAL_LEGACY_FAILURE_INJECTION_PASS_COUNT": 26,
+  "LOCAL_SOURCE_COPY_USED": "ERA5_REPLAY_1",
+  "MAX_GDD_SOURCE_DATE": "FORECAST_ORIGIN_MINUS_1_DAY",
+  "MERGE_AUTHORIZED": false,
+  "MISSINGNESS_FAIL_CLOSED": "PASS",
+  "MISSING_DAY_POLICY": "FAIL_CLOSED",
+  "MODEL_COEFFICIENTS_FIT": false,
+  "MODEL_MODULE_BLOCKED_DURING_RUN_2": true,
+  "MODEL_PREDICTIONS_GENERATED": false,
+  "MODEL_TRAINING_EXECUTED": false,
+  "NO_MODEL_SPECIFIC_COHORT": true,
+  "ORACLE_EXECUTED": false,
+  "PEAK_AUDIT_ROLE": "STRUCTURAL_H15_COMPLETENESS_NOT_ACTUAL_AUTHORITY_OR_PEAK_ACCURACY",
+  "PREVIOUS_BLOCKERS_CLOSED": true,
+  "PREVIOUS_S2_RESULT": "BLOCKED",
+  "PRIVATE_ABSOLUTE_PATH_COMMITTED": false,
+  "PRIVATE_HARVEST_ROW_READ": false,
+  "PRIVATE_ROW_LEVEL_OUTPUT_COMMITTED": false,
+  "PRIVATE_WEATHER_DATA_READ": true,
+  "PRODUCTION_USE_APPROVED": false,
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "READY_AUTHORIZED": false,
+  "REAL_PROSPECTIVE_ENABLED": false,
+  "RELEASE_CREATED": false,
+  "REPLAY_COMMON_COHORT_HASH_PARITY": "PASS",
+  "REPLAY_CONTEXT_HASH_PARITY": "PASS",
+  "REPLAY_FEATURE_HASH_PARITY": "PASS",
+  "S0_CONTRACT_CHANGED": false,
+  "S1_CONTRACT_CHANGED": false,
+  "SCORING_EXECUTED": false,
+  "SEASON_TO_DATE_ENABLED": false,
+  "SYNTHETIC_FAILURE_INJECTION_CASE_COUNT": 50,
+  "SYNTHETIC_FAILURE_INJECTION_PASS_COUNT": 50,
+  "TAG_CREATED": false,
+  "TASK_ID": "V0_13_S2_GDD_FEATURE_BUILD_AND_DATA_COVERAGE_AUDIT_R2",
+  "V0_12_R1_ARTIFACT_CHANGED": false,
+  "V0_12_REOPENED": false,
+  "V0_13_S0_COMPLETE": true,
+  "V0_13_S1_COMPLETE": true,
+  "V0_13_S2_AUTHORIZED": true,
+  "V0_13_S2_COMPLETE": true,
+  "V0_13_S3_AUTHORIZED": false,
+  "V0_13_S4_AUTHORIZED": false,
+  "V0_13_S5_AUTHORIZED": false,
+  "V0_13_VERSION_COMPLETE": false,
+  "V0_7_FILES_MODIFIED": false,
+  "V0_7_SCIENTIFIC_RESULT_CHANGED": false,
+  "VALIDATION_ACTUAL_LABEL_READ": false,
+  "VALIDATION_IDENTITY_METHOD": "PUBLIC_FROZEN_BASE_SCOPE_FOLD_SPECIFIC_PREDICTION_MANIFEST_BUSINESS_BOUNDARY_WEATHER_PRESENCE_THEN_EXACT_FROZEN_ROW_HASH",
+  "WEATHER_INCREMENTAL_VALUE": "PRIOR_V0_7_INCONCLUSIVE_UNCHANGED",
+  "folds": {
+    "fold_a": {
+      "legacy": {
+        "direct_self_hash": "596e9fdccdba2030f185386db655c7a676754f9dfc7501a7cc3979640c9108c8",
+        "direct_self_hash_valid": false,
+        "legacy_compatibility_hash": "3b6704a639501b097a1104d5f92b03ded8dc242230615544d48e1929b310f9ee",
+        "legacy_compatibility_hash_valid": true,
+        "public_evidence_parity": "PASS",
+        "training_input_hash_match": true,
+        "training_label_hash_match": true,
+        "training_row_keys_hash_match": true
+      },
+      "train": {
+        "common_row_count": 17460,
+        "common_row_keys_hash": "90e9fdf84b45eeb7cfb819bd9384f776eaf5e94ca541eef99cded43904e1d036",
+        "coverage": [
+          {
+            "base_id": "base_2158646aee6000e2dd75afec",
+            "candidate": 2175,
+            "eligible": 2175,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_319779873190a57608b59b4e",
+            "candidate": 690,
+            "eligible": 690,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_34fde1e05c1763f5b91499bb",
+            "candidate": 1185,
+            "eligible": 1185,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_4fd002ff555f93b3f509789e",
+            "candidate": 1950,
+            "eligible": 1950,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_59be02a586e9c15be0d2694b",
+            "candidate": 15,
+            "eligible": 15,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_80961ce21621aacbcaa509f7",
+            "candidate": 1500,
+            "eligible": 1500,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_a21676b04cd2f64e8b297033",
+            "candidate": 1770,
+            "eligible": 1770,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_a96b297b126a8cab67c4755f",
+            "candidate": 1410,
+            "eligible": 1410,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_c8353bffd0cc9318d7d64520",
+            "candidate": 1440,
+            "eligible": 1440,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_c8ab16ef1fae69899640eedb",
+            "candidate": 2295,
+            "eligible": 2295,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_e24b268ad72d59adc8b8a7fe",
+            "candidate": 345,
+            "eligible": 345,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_f10df3ac242e4dbbf6c20b98",
+            "candidate": 1020,
+            "eligible": 1020,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_ffdc1ebe359436aa3f0fa834",
+            "candidate": 1665,
+            "eligible": 1665,
+            "season": "2023-2024"
+          }
+        ],
+        "gdd_eligible_row_count": 17460,
+        "gdd_eligible_row_keys_hash": "90e9fdf84b45eeb7cfb819bd9384f776eaf5e94ca541eef99cded43904e1d036",
+        "gdd_ineligible_row_count": 0,
+        "gdd_projection_hash": "210c936d1de26ea47d5cb80cf4f4f8af185f11a553a725b4e565604511672ec5",
+        "ineligible_reason_counts": {},
+        "original_row_count": 17460,
+        "original_row_keys_hash": "90e9fdf84b45eeb7cfb819bd9384f776eaf5e94ca541eef99cded43904e1d036",
+        "projected_target_row_count": 17460,
+        "projected_target_row_keys_hash": "90e9fdf84b45eeb7cfb819bd9384f776eaf5e94ca541eef99cded43904e1d036",
+        "structural_h15_not_actual_authority": true,
+        "views": {
+          "H1": {
+            "count": 1164,
+            "identity_hash": "33cd5cf092bacc43490dc85451278a9217e69a989fa53cada1204b60e99a7925"
+          },
+          "H15": {
+            "count": 613,
+            "identity_hash": "3b90ed81bdb4bf8129140975730f800ca77b58bff3ae37be0dd26b268c28a202"
+          },
+          "H7": {
+            "count": 831,
+            "identity_hash": "b0fb89f83448a36f3d8e8c694a3738b39f028a43b4d9f2b60a71f94e77d3fd64"
+          }
+        }
+      },
+      "validation": {
+        "common_row_count": 49140,
+        "common_row_keys_hash": "85654a3b60c05c7e028825d9fa96f67681a0985bd991c86e4bbdb73652108788",
+        "coverage": [
+          {
+            "base_id": "base_2158646aee6000e2dd75afec",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_319779873190a57608b59b4e",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_34fde1e05c1763f5b91499bb",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_4fd002ff555f93b3f509789e",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_59be02a586e9c15be0d2694b",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_80961ce21621aacbcaa509f7",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_a21676b04cd2f64e8b297033",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_a96b297b126a8cab67c4755f",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_c8353bffd0cc9318d7d64520",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_c8ab16ef1fae69899640eedb",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_e24b268ad72d59adc8b8a7fe",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_f10df3ac242e4dbbf6c20b98",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_ffdc1ebe359436aa3f0fa834",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2024-2025"
+          }
+        ],
+        "gdd_eligible_row_count": 49140,
+        "gdd_eligible_row_keys_hash": "85654a3b60c05c7e028825d9fa96f67681a0985bd991c86e4bbdb73652108788",
+        "gdd_ineligible_row_count": 0,
+        "gdd_projection_hash": "8cf1441df47b955c49bfdc1a11d3ff74dc40ca83c313a0bebe34e55213459153",
+        "ineligible_reason_counts": {},
+        "original_row_count": 49140,
+        "original_row_keys_hash": "85654a3b60c05c7e028825d9fa96f67681a0985bd991c86e4bbdb73652108788",
+        "projected_target_row_count": 49140,
+        "projected_target_row_keys_hash": "85654a3b60c05c7e028825d9fa96f67681a0985bd991c86e4bbdb73652108788",
+        "structural_h15_not_actual_authority": true,
+        "views": {
+          "H1": {
+            "count": 3367,
+            "identity_hash": "56834f6ab51eaa8f4dac282d0ac8dff48840548763e5f27dfbe78f63e0164a3e"
+          },
+          "H15": {
+            "count": 3185,
+            "identity_hash": "3d348a29409130b41765ccf874a54e274d6a99f4ea83843a645bdb3238bdb1f3"
+          },
+          "H7": {
+            "count": 3289,
+            "identity_hash": "16f962c44ad306a8200190650b7373f91de93b989811037774cf1df506cc54eb"
+          }
+        }
+      }
+    },
+    "fold_b": {
+      "legacy": {
+        "direct_self_hash": "55aff34f34f65231664f3b3f46e78ca7b7b4481e1cda9fb91aeba811eccea033",
+        "direct_self_hash_valid": false,
+        "legacy_compatibility_hash": "361eb893e6b0aaed89044df5163b6ebeb48a7459c1addcaac8414986aa64114d",
+        "legacy_compatibility_hash_valid": true,
+        "public_evidence_parity": "PASS",
+        "training_input_hash_match": true,
+        "training_label_hash_match": true,
+        "training_row_keys_hash_match": true
+      },
+      "train": {
+        "common_row_count": 59471,
+        "common_row_keys_hash": "5ee82a037b7c8a0d1cc396ad69ffb92421e44b40d57d8a89c87567b8027a97d4",
+        "coverage": [
+          {
+            "base_id": "base_05c82656e3dcb06cac487039",
+            "candidate": 315,
+            "eligible": 315,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_10a4048aaf973fce65f5df40",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_1921620f6f595d3dc489dfa9",
+            "candidate": 285,
+            "eligible": 285,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_1abf75fac2a2b1d7ccd74528",
+            "candidate": 510,
+            "eligible": 510,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_213507022f5779b1ed8ec255",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_2158646aee6000e2dd75afec",
+            "candidate": 2175,
+            "eligible": 2175,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_2158646aee6000e2dd75afec",
+            "candidate": 2887,
+            "eligible": 2887,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_319779873190a57608b59b4e",
+            "candidate": 690,
+            "eligible": 690,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_319779873190a57608b59b4e",
+            "candidate": 2520,
+            "eligible": 2520,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+            "candidate": 15,
+            "eligible": 15,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_33c9a0e6037e5e33bb59f154",
+            "candidate": 315,
+            "eligible": 315,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_34fde1e05c1763f5b91499bb",
+            "candidate": 1185,
+            "eligible": 1185,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_34fde1e05c1763f5b91499bb",
+            "candidate": 2355,
+            "eligible": 2355,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_3926ad631cbd8f5c7dc5f269",
+            "candidate": 2040,
+            "eligible": 2040,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_40bc2a61ee14280aacf2e3fa",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_4fd002ff555f93b3f509789e",
+            "candidate": 1950,
+            "eligible": 1950,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_4fd002ff555f93b3f509789e",
+            "candidate": 2775,
+            "eligible": 2775,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_59be02a586e9c15be0d2694b",
+            "candidate": 15,
+            "eligible": 15,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_59be02a586e9c15be0d2694b",
+            "candidate": 2355,
+            "eligible": 2355,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_7092a05c3796a2582b5df9f8",
+            "candidate": 315,
+            "eligible": 315,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_7a0a9068b49251f4bc2228a5",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_80961ce21621aacbcaa509f7",
+            "candidate": 1500,
+            "eligible": 1500,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_80961ce21621aacbcaa509f7",
+            "candidate": 3151,
+            "eligible": 3151,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_817f6981ac6c56d3fa476451",
+            "candidate": 2610,
+            "eligible": 2610,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_a21676b04cd2f64e8b297033",
+            "candidate": 1770,
+            "eligible": 1770,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_a21676b04cd2f64e8b297033",
+            "candidate": 3195,
+            "eligible": 3195,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_a96b297b126a8cab67c4755f",
+            "candidate": 1410,
+            "eligible": 1410,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_a96b297b126a8cab67c4755f",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_b30634ab6020391a3923849b",
+            "candidate": 2760,
+            "eligible": 2760,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_be13e722e3d26160c1f04dbc",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_c51783e2ec7c16bba447d64e",
+            "candidate": 300,
+            "eligible": 300,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_c8353bffd0cc9318d7d64520",
+            "candidate": 1440,
+            "eligible": 1440,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_c8353bffd0cc9318d7d64520",
+            "candidate": 3138,
+            "eligible": 3138,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_c8ab16ef1fae69899640eedb",
+            "candidate": 2295,
+            "eligible": 2295,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_c8ab16ef1fae69899640eedb",
+            "candidate": 2475,
+            "eligible": 2475,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_e24b268ad72d59adc8b8a7fe",
+            "candidate": 345,
+            "eligible": 345,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_e24b268ad72d59adc8b8a7fe",
+            "candidate": 345,
+            "eligible": 345,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_e63d30015dd3676c280e0e08",
+            "candidate": 2505,
+            "eligible": 2505,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_f10df3ac242e4dbbf6c20b98",
+            "candidate": 1020,
+            "eligible": 1020,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_f10df3ac242e4dbbf6c20b98",
+            "candidate": 1410,
+            "eligible": 1410,
+            "season": "2024-2025"
+          },
+          {
+            "base_id": "base_ffdc1ebe359436aa3f0fa834",
+            "candidate": 1665,
+            "eligible": 1665,
+            "season": "2023-2024"
+          },
+          {
+            "base_id": "base_ffdc1ebe359436aa3f0fa834",
+            "candidate": 1635,
+            "eligible": 1635,
+            "season": "2024-2025"
+          }
+        ],
+        "gdd_eligible_row_count": 59471,
+        "gdd_eligible_row_keys_hash": "5ee82a037b7c8a0d1cc396ad69ffb92421e44b40d57d8a89c87567b8027a97d4",
+        "gdd_ineligible_row_count": 0,
+        "gdd_projection_hash": "34f66d6073e6efaea31d0bc36aaf15cf49e972abfd6d680c6c223904b6d14e68",
+        "ineligible_reason_counts": {},
+        "original_row_count": 59471,
+        "original_row_keys_hash": "5ee82a037b7c8a0d1cc396ad69ffb92421e44b40d57d8a89c87567b8027a97d4",
+        "projected_target_row_count": 59471,
+        "projected_target_row_keys_hash": "5ee82a037b7c8a0d1cc396ad69ffb92421e44b40d57d8a89c87567b8027a97d4",
+        "structural_h15_not_actual_authority": true,
+        "views": {
+          "H1": {
+            "count": 3968,
+            "identity_hash": "21d5a7cfcdd071fb063c1c8bff42342697f862cba7e0bfdee473ecd134788826"
+          },
+          "H15": {
+            "count": 1999,
+            "identity_hash": "10c11dc9ea00c8d2889b49ffb484edd9f86b208d577b99ef6d661163bad1f8e5"
+          },
+          "H7": {
+            "count": 2741,
+            "identity_hash": "f2729e55a4807e8cd51cdf7354acd7e11a050ae1eb37a415d1988f1b20162b6e"
+          }
+        }
+      },
+      "validation": {
+        "common_row_count": 109620,
+        "common_row_keys_hash": "e4568d3f61c1368f059c46b2240af8c4f455cce8731a4409a0bc43b3fd071869",
+        "coverage": [
+          {
+            "base_id": "base_05c82656e3dcb06cac487039",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_10a4048aaf973fce65f5df40",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_1921620f6f595d3dc489dfa9",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_1abf75fac2a2b1d7ccd74528",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_213507022f5779b1ed8ec255",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_2158646aee6000e2dd75afec",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_319779873190a57608b59b4e",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_33c9a0e6037e5e33bb59f154",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_34fde1e05c1763f5b91499bb",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_3926ad631cbd8f5c7dc5f269",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_40bc2a61ee14280aacf2e3fa",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_4fd002ff555f93b3f509789e",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_59be02a586e9c15be0d2694b",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_7092a05c3796a2582b5df9f8",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_7a0a9068b49251f4bc2228a5",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_80961ce21621aacbcaa509f7",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_817f6981ac6c56d3fa476451",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_a21676b04cd2f64e8b297033",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_a96b297b126a8cab67c4755f",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_b30634ab6020391a3923849b",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_be13e722e3d26160c1f04dbc",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_c51783e2ec7c16bba447d64e",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_c8353bffd0cc9318d7d64520",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_c8ab16ef1fae69899640eedb",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_e24b268ad72d59adc8b8a7fe",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_e63d30015dd3676c280e0e08",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_f10df3ac242e4dbbf6c20b98",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          },
+          {
+            "base_id": "base_ffdc1ebe359436aa3f0fa834",
+            "candidate": 3780,
+            "eligible": 3780,
+            "season": "2025-2026"
+          }
+        ],
+        "gdd_eligible_row_count": 109620,
+        "gdd_eligible_row_keys_hash": "e4568d3f61c1368f059c46b2240af8c4f455cce8731a4409a0bc43b3fd071869",
+        "gdd_ineligible_row_count": 0,
+        "gdd_projection_hash": "f987ee362282e22c67adba59b04c23022d74c5eecbbdd69a417bc53e2c28b2f2",
+        "ineligible_reason_counts": {},
+        "original_row_count": 109620,
+        "original_row_keys_hash": "e4568d3f61c1368f059c46b2240af8c4f455cce8731a4409a0bc43b3fd071869",
+        "projected_target_row_count": 109620,
+        "projected_target_row_keys_hash": "e4568d3f61c1368f059c46b2240af8c4f455cce8731a4409a0bc43b3fd071869",
+        "structural_h15_not_actual_authority": true,
+        "views": {
+          "H1": {
+            "count": 7511,
+            "identity_hash": "038a45407a3e33f2bc300ccbd7ccc9b138541cdd0b6aaeed83d753f029ad0444"
+          },
+          "H15": {
+            "count": 7105,
+            "identity_hash": "7bf3f2a8866eddf953c99bc150fe8bf9a5661dc54237fa1e56f147cdf5a33edd"
+          },
+          "H7": {
+            "count": 7337,
+            "identity_hash": "8acc38bdf37500d14427f656e8e4c500f99bd51d225753b7f3cf3f0e81020cf4"
+          }
+        }
+      }
+    }
+  },
+  "manifest": {
+    "base_count": 29,
+    "candidate_context_count": 14023,
+    "context_count": 14023,
+    "context_identity_hash": "9b84828d74579e0d23d735476dbec8f92f98245e0d7f1b21f2d70088638bbc35",
+    "feature_ids": [
+      "GDD_W7",
+      "GDD_W14",
+      "GDD_W30"
+    ],
+    "feature_value_hash": "bf777313de5a7b1f0581afc220296a29fe23f09f578b07c048eb423ddae8bedb",
+    "formula": "(TMAX+TMIN)/2",
+    "gdd_definition_id": "V0_13_GDD_7C_SIMPLE_MEAN_R1",
+    "ineligible_context_count": 0,
+    "ineligible_reason_counts": {},
+    "manifest_hash": "0ebfd32070d6479a470d340ccf7265cd7402644da7e5b4e5b8fb3b77222df41c",
+    "origin_count": 749,
+    "policy_version": "V0_13_S2_GDD_7C_ROLLING_V1",
+    "rounding": "ROUND_HALF_EVEN",
+    "schema": "V0_13_GDD_CONTEXT_MANIFEST_V1",
+    "source_artifact_sha256": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "source_dataset_hash": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "tbase_c": "7.0",
+    "upper_clip": "NONE"
+  },
+  "schema": "V0_13_S2_GDD_AUDIT_R2",
+  "source_immutability": {
+    "after": {
+      "era5": {
+        "mtime_ns": 1789447418494479417,
+        "sha256": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+        "size_bytes": 23135019
+      },
+      "fold_a": {
+        "mtime_ns": 1790069672201429844,
+        "sha256": "f58656b8bb66cd55d9b580b58e418142494bc050746c2199ceaf03a0a8c16f8f",
+        "size_bytes": 1293688
+      },
+      "fold_b": {
+        "mtime_ns": 1790069714609488545,
+        "sha256": "9bce0dfa8c49f1d20927660d2d831cbb11308b96859a77764656256b3b456bfa",
+        "size_bytes": 4402499
+      }
+    },
+    "before": {
+      "era5": {
+        "mtime_ns": 1789447418494479417,
+        "sha256": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+        "size_bytes": 23135019
+      },
+      "fold_a": {
+        "mtime_ns": 1790069672201429844,
+        "sha256": "f58656b8bb66cd55d9b580b58e418142494bc050746c2199ceaf03a0a8c16f8f",
+        "size_bytes": 1293688
+      },
+      "fold_b": {
+        "mtime_ns": 1790069714609488545,
+        "sha256": "9bce0dfa8c49f1d20927660d2d831cbb11308b96859a77764656256b3b456bfa",
+        "size_bytes": 4402499
+      }
+    },
+    "unchanged": true
+  },
+  "weather": {
+    "base_count": 38,
+    "date_max": "2026-04-15",
+    "date_min": "2023-07-01",
+    "row_count": 32984
+  }
+}
