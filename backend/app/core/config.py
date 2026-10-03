@@ -17,6 +17,9 @@ class AppSettings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
     blueberry_mcp_connector_shared_secret: SecretStr = Field(default=SecretStr(""))
+    v0_12_research_mcp_enabled: bool = False
+    v0_12_research_runtime_registry_path: str = ""
+    v0_12_research_test_store_path: str = ""
 
     postgres_host: str = "localhost"
     postgres_port: int = 5432

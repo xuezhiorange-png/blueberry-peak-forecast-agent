@@ -43,6 +43,7 @@ from backend.app.forecast_quality.operational_peak_persistence import (
     OperationalPeakRunNotFoundError,
     OperationalPeakWriteFailure,
 )
+from backend.app.mcp import v0_12_research
 from backend.app.mcp.operational_base_search import (
     SEARCH as OPERATIONAL_BASE_SEARCH,
 )
@@ -114,6 +115,7 @@ async def _list_tools(
             *run_tools(),
             *operational_peak_run_tools(),
             *operational_base_search_tools(),
+            *v0_12_research.run_tools(),
         ]
     )
 
@@ -121,6 +123,9 @@ async def _list_tools(
 async def _call_tool(
     ctx: ServerRequestContext[Any], params: CallToolRequestParams
 ) -> CallToolResult:
+    if params.name in v0_12_research.CONTRACTS:
+        payload, error = await v0_12_research.call_tool(params.name, params.arguments or {})
+        return _result(payload, error=error)
     if params.name in CONTRACTS:
         try:
             payload = await call_run_tool(params.name, params.arguments or {})
