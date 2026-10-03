@@ -24,6 +24,26 @@ def register_e1_parser(parsers: argparse._SubParsersAction[argparse.ArgumentPars
     registration.add_argument("--baseline", required=True)
     registration.add_argument("--public-evidence", required=True)
     registration.add_argument("--output", required=True)
+    for operation in ("pack-recovery", "verify-bundle", "restore-bundle", "audit-export"):
+        recovery = operations.add_parser(operation, help="E3 local custody; never real issuance")
+        if operation == "pack-recovery":
+            for argument in (
+                "candidate",
+                "baseline",
+                "receipt",
+                "seal",
+                "execution-contract",
+                "public-evidence",
+                "output",
+            ):
+                recovery.add_argument(f"--{argument}", required=True)
+        else:
+            recovery.add_argument("--bundle", required=True)
+            if operation == "restore-bundle":
+                recovery.add_argument("--output", required=True)
+            if operation == "audit-export":
+                for argument in ("restored", "registry", "drill-result", "store", "output"):
+                    recovery.add_argument(f"--{argument}", required=True)
     for name in (
         "issue",
         "verify-seal",
@@ -55,6 +75,37 @@ def register_e1_parser(parsers: argparse._SubParsersAction[argparse.ArgumentPars
 
 
 def dispatch_e1(args: argparse.Namespace, stdout: TextIO) -> None:
+    if args.command in {"pack-recovery", "verify-bundle", "restore-bundle", "audit-export"}:
+        from backend.app.area_yield import recovery_bundle as recovery
+
+        try:
+            if args.command == "pack-recovery":
+                result = recovery.pack(
+                    Path(args.candidate),
+                    Path(args.baseline),
+                    Path(args.receipt),
+                    Path(args.seal),
+                    Path(args.execution_contract),
+                    Path(args.public_evidence),
+                    Path(args.output),
+                )
+            elif args.command == "verify-bundle":
+                result = recovery.verify(Path(args.bundle))
+            elif args.command == "restore-bundle":
+                result = recovery.restore(Path(args.bundle), Path(args.output))
+            else:
+                result = recovery.audit_export(
+                    Path(args.bundle),
+                    Path(args.restored),
+                    Path(args.registry),
+                    Path(args.drill_result),
+                    Path(args.store),
+                    Path(args.output),
+                )
+            stdout.write(json.dumps(result, sort_keys=True) + "\n")
+            return
+        except (ValueError, KeyError, OSError, TypeError) as exc:
+            raise CoreForecastCliError("V0_12_E3_REJECTED", str(exc), exit_code=2) from exc
     if args.command == "register-artifacts":
         from backend.app.area_yield.artifact_registration import register_pair
 
