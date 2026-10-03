@@ -17,6 +17,13 @@ from backend.app.core_forecast.cli import CoreForecastCliError
 def register_e1_parser(parsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     resource = parsers.add_parser("v0-12-research", help="E1 TEST_ONLY; real issuance disabled")
     operations = resource.add_subparsers(dest="command", required=True)
+    registration = operations.add_parser(
+        "register-artifacts", help="E2 frozen R1 read-only verification"
+    )
+    registration.add_argument("--candidate", required=True)
+    registration.add_argument("--baseline", required=True)
+    registration.add_argument("--public-evidence", required=True)
+    registration.add_argument("--output", required=True)
     for name in (
         "issue",
         "verify-seal",
@@ -48,6 +55,20 @@ def register_e1_parser(parsers: argparse._SubParsersAction[argparse.ArgumentPars
 
 
 def dispatch_e1(args: argparse.Namespace, stdout: TextIO) -> None:
+    if args.command == "register-artifacts":
+        from backend.app.area_yield.artifact_registration import register_pair
+
+        try:
+            result = register_pair(
+                Path(args.candidate),
+                Path(args.baseline),
+                Path(args.public_evidence),
+                Path(args.output),
+            )
+            stdout.write(json.dumps(result, sort_keys=True) + "\n")
+            return
+        except (ValueError, KeyError, OSError) as exc:
+            raise CoreForecastCliError("V0_12_E2_REJECTED", str(exc), exit_code=2) from exc
     root = Path(args.store)
     clock = datetime.fromisoformat(args.test_clock) if getattr(args, "test_clock", None) else None
     try:
