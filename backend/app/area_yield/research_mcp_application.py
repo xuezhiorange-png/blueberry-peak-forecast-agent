@@ -97,6 +97,12 @@ def runtime() -> tuple[Path, Path, Record, Record]:
                 raise ValueError("E2_REGISTRY_PAIR_MISMATCH")
         elif candidate[1]["synthetic"] is not True:
             raise ValueError("SYNTHETIC_CLASS_INVALID")
+        elif not all(
+            entry[key].startswith("SYNTHETIC_")
+            for entry in (candidate[1], comparator[1])
+            for key in ("model_id", "registry_id")
+        ):
+            raise ValueError("SYNTHETIC_CANNOT_IMPERSONATE_ORIGINAL_IDENTITY")
         return store, path, candidate[1], comparator[1]
     except Exception:
         raise ValueError("V0_12_RESEARCH_RUNTIME_NOT_READY") from None
@@ -144,6 +150,7 @@ def _sanitized(record: Record, *, daily: bool) -> Record:
         "forecast_id": record["id"],
         "request_id": request["request_id"],
         "test_only": True,
+        "synthetic_artifacts": record["artifact_entries"]["candidate"]["synthetic"],
         "prospective_class": "TEST_NOT_PROSPECTIVE",
         "target_area_mu": request["target_area_mu"],
         "target_season": request["target_season"],

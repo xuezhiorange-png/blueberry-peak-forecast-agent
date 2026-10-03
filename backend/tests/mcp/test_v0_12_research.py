@@ -403,6 +403,29 @@ async def test_original_namespace_cannot_bypass_e2_authority(runtime: Any) -> No
     assert refused.structured_content["code"] == "V0_12_RESEARCH_RUNTIME_NOT_READY"
 
 
+async def test_synthetic_entry_cannot_impersonate_original_r1(runtime: Any) -> None:
+    registry = legacy.read(runtime["registry"])
+    entry = registry["entries"][0]
+    path = Path(entry["artifact_path"])
+    model = legacy.read(path)
+    model["model_id"] = "NEXT_AREA_SIZE_20261002_R1_CANDIDATE"
+    model["artifact_hash"] = digest({k: v for k, v in model.items() if k != "artifact_hash"})
+    await anyio.to_thread.run_sync(path.write_text, json.dumps(model))
+    reseal(
+        runtime["registry"],
+        lambda r: r["entries"][0].update(
+            model_id=model["model_id"],
+            registry_id=model["model_id"],
+            artifact_hash=model["artifact_hash"],
+            artifact_file_hash=legacy.file_hash(path),
+        ),
+    )
+    async with Client(server) as client:
+        result = await client.call_tool(tools.CREATE, business())
+    assert result.is_error
+    assert result.structured_content["code"] == "V0_12_RESEARCH_RUNTIME_NOT_READY"
+
+
 async def test_missing_record_and_invalid_identity(runtime: Any) -> None:
     async with Client(server) as client:
         missing = await client.call_tool(
