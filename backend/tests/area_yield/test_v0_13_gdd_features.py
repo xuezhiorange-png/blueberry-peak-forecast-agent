@@ -186,17 +186,68 @@ def test_pipeline_does_not_depend_on_model_or_actuals(monkeypatch) -> None:
     assert g.build_gdd_manifest([c], "a" * 64)["context_count"] == 1
 
 
-def test_validation_calendar_reconstruction_without_labels() -> None:
+def frozen_validation_fold(name: str) -> dict:
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    fold = json.loads(
+        (
+            root / "docs/v0-7/evidence/s3-weather-aware-model-training-and-oot-backtest.json"
+        ).read_text()
+    )["folds"][name]
+    fold["validation_base_count"] = 1
+    fold["validation_dataset_meta"] = {"incomplete_origin_count_by_base": {"synthetic": 0}}
+    return fold
+
+
+@pytest.mark.parametrize(
+    "name,start,end",
+    [("fold_a", "2024-07-01", "2025-04-15"), ("fold_b", "2025-07-22", "2026-04-15")],
+)
+def test_validation_calendar_reconstruction_without_labels(name: str, start: str, end: str) -> None:
     from scripts.run_v0_13_s2_gdd_feature_audit import reconstruct_validation
 
-    fold = {
-        "validation_season": "2028-2029",
-        "validation_base_count": 1,
-        "validation_dataset_meta": {"incomplete_origin_count_by_base": {"synthetic": 30}},
-    }
-    keys = reconstruct_validation(fold, rows())
-    assert keys[0] == "synthetic+2028-07-31T00:00:00+08:00+2028-07-31"
-    assert len(keys) == 15
+    # Complete prior weather makes the FIRST candidate origin observable.
+    # A hardcoded July-1 calendar therefore cannot hide behind weather coverage.
+    first, last = date.fromisoformat(start), date.fromisoformat(end)
+    day = first.replace(day=1) - timedelta(days=30)
+    daily = []
+    while day <= last:
+        daily.append({"base_id": "synthetic", "local_date": day.isoformat()})
+        day += timedelta(days=1)
+    keys = reconstruct_validation(frozen_validation_fold(name), daily)
+    assert keys[0] == f"synthetic+{start}T00:00:00+08:00+{start}"
+    assert keys[-1] == f"synthetic+{end}T00:00:00+08:00+{end}"
+    if name == "fold_b":
+        assert not any("2025-07-01T" in key for key in keys)
+
+
+@pytest.mark.parametrize("name", ["fold_a", "fold_b"])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("business_start", "2025-07-01"),
+        ("business_end", "2026-04-14"),
+        ("season", "2028-2029"),
+        ("policy", "INFERRED_CALENDAR"),
+        ("authority_hash", "0" * 64),
+        ("business_boundary", None),
+        ("business_start", None),
+    ],
+)
+def test_failure_frozen_business_boundary(name: str, field: str, value: object) -> None:
+    from scripts.run_v0_13_s2_gdd_feature_audit import reconstruct_validation
+
+    fold = frozen_validation_fold(name)
+    if field == "business_boundary":
+        del fold["prediction_manifest"][field]
+    elif value is None:
+        del fold["prediction_manifest"]["business_boundary"][field]
+    else:
+        fold["prediction_manifest"]["business_boundary"][field] = value
+    with pytest.raises(g.GDDError, match="FROZEN_BUSINESS_BOUNDARY"):
+        reconstruct_validation(fold, [])
 
 
 def test_frozen_s1_and_public_s2_evidence() -> None:
@@ -228,6 +279,17 @@ def test_frozen_s1_and_public_s2_evidence() -> None:
     ):
         assert s2[key] is False
     assert s2["GDD_INCREMENTAL_VALUE"] == "NOT_EVALUATED"
+    assert s2["VALIDATION_BOUNDARY_AUTHORITY_BINDING"] == "PASS"
+    assert s2["FOLD_A_VALIDATION_BUSINESS_START"] == "2024-07-01"
+    assert s2["FOLD_A_VALIDATION_BUSINESS_END"] == "2025-04-15"
+    assert s2["FOLD_B_VALIDATION_BUSINESS_START"] == "2025-07-22"
+    assert s2["FOLD_B_VALIDATION_BUSINESS_END"] == "2026-04-15"
+    for key in (
+        "FOLD_B_HARDCODED_JULY1_USED",
+        "BOUNDARY_CORRECTION_CHANGED_ROW_UNIVERSE",
+        "BOUNDARY_CORRECTION_CHANGED_GDD_IDENTITIES",
+    ):
+        assert s2[key] is False
     assert s2["manifest"]["ineligible_context_count"] == 0
     expected_mtime_ns = {
         "era5": 1789447418494479417,
