@@ -1,0 +1,589 @@
+{
+  "TASK_ID": "V0_13_S0_VERSION_SCOPE_AND_EXPERIMENT_CONTRACT_R1",
+  "BASE_SHA": "2759b184b09440d35c9872a8241519a8e8a26f2b",
+  "FINAL_HEAD_SHA": null,
+  "HEAD_IDENTITY_POLICY": "PR and final receipt bind exact Head and terminal CI; no self-reference or post-CI rewrite.",
+  "VERSION": "0.13.0",
+  "VERSION_NAME": "WEATHER_AND_GDD_INCREMENTAL_VALUE_RESEARCH",
+  "VERSION_NAME_CN": "天气与积温增量价值研究版",
+  "RELEASE_CLASS": "RESEARCH_VERSION",
+  "V0_13_SCOPE_FROZEN": true,
+  "V0_13_IS_V0_12_CONTINUATION": false,
+  "V0_12_REOPEN_AUTHORIZED": false,
+  "V0_12_R1_ARTIFACT_UNCHANGED": true,
+  "V0_12_R1_MODEL_ROLE": "RESEARCH_CANDIDATE",
+  "namespace_audit": {
+    "base_sha": "2759b184b09440d35c9872a8241519a8e8a26f2b",
+    "docs_found": false,
+    "branches_found": false,
+    "tags_found": false,
+    "releases_found": false,
+    "issues_found": false,
+    "prs_found": false,
+    "query_terms": [
+      "V0.13",
+      "V0_13",
+      "v0-13",
+      "v0.13.0",
+      "v0.13"
+    ],
+    "ordinary_numeric_literals_not_ownership": true
+  },
+  "V0_13_NAMESPACE_CLEAR": true,
+  "sources": [
+    {
+      "path": "docs/v0-7/evidence/s2-weather-dataset-and-leakage-safe-feature-freeze.json",
+      "sha256": "3cc983ddec935e4cef9b608277706def957df0d844580c591fe6617357d0ec4a"
+    },
+    {
+      "path": "docs/v0-7/evidence/s3-weather-aware-model-training-and-oot-backtest.json",
+      "sha256": "cc3e81003463377dd4fe8d0adc792dc453e68c5391c8fcf98a9ceb038a4d121b"
+    },
+    {
+      "path": "docs/v0-7/evidence/s4-model-a-b-comparison-and-version-conclusion.json",
+      "sha256": "4d2c83cabadec5af875307e338fc7567563ba27fd42c69fc08cbfa66488f57dc"
+    },
+    {
+      "path": "docs/v0-7/v0.7.0-closeout.md",
+      "sha256": "6f54c56afdc5130982ed823b79b2d34598ae40c667d6922b48a9bbc5a29d0305"
+    },
+    {
+      "path": "backend/app/area_yield/weather_aware_backtest.py",
+      "sha256": "aae66403ddbc285c55c4133cf1379dfec00aaff17f22cf8f5f43bb9ab6e685f6"
+    },
+    {
+      "path": "backend/app/area_yield/research_records.py",
+      "sha256": "d1fc61df5f8f1cb4314669a7acb1304619896cc7dd0b622f59be06ffef9a9d07"
+    },
+    {
+      "path": "docs/v0-9/v0.9.0-biological-forecast-foundation-closeout.md",
+      "sha256": "f6e3564cb0f34425e71aba6dd6373b115dcbdfda0a5d9dc484e2fe0e093e67e2"
+    }
+  ],
+  "actual_label_authorities": {
+    "identity_mapping_sha256": "850f89d0286825fc61c8165a6b0ef0e23e5fb50a323cfebcb956bc60dd0818b8",
+    "identity_mapping_sources": {
+      "base_registry_member_mapping_sha256": "469d1b2f7f05a0e605bc58dda3b5e6bfeda3b23d23b766170dd618e8b360b344",
+      "historical_identity_mapping_sha256": "8d17880141485c407d2e011d70c12d1f828b1966abba32a42b201c33bc4a5044"
+    },
+    "registry_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85",
+    "s1_evidence_path": "docs/v0-7/evidence/s1-formal-multi-season-baseline-validation.json",
+    "s2_evidence_path": "docs/v0-7/evidence/s2-weather-dataset-and-leakage-safe-feature-freeze.json",
+    "source_hashes": {
+      "2023-2024": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "2024-2025": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "2025-2026": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"
+    }
+  },
+  "research_questions": {
+    "RQ1": "Does leakage-safe past observed weather add reproducible predictive value beyond the frozen non-weather comparator?",
+    "RQ2": "Does predeclared GDD add reproducible predictive value beyond the same comparator?",
+    "RQ3": "Does WEATHER+GDD provide incremental value beyond WEATHER-only and GDD-only?",
+    "RQ4": "Do WEATHER and/or GDD improve temporal shape and peak timing, not merely aggregate daily WAPE?"
+  },
+  "result_fields": [
+    "WEATHER_INCREMENTAL_VALUE",
+    "GDD_INCREMENTAL_VALUE",
+    "WEATHER_PLUS_GDD_INCREMENTAL_VALUE",
+    "PEAK_TIMING_INCREMENTAL_VALUE"
+  ],
+  "decision_labels": [
+    "SUPPORTED",
+    "INCONCLUSIVE",
+    "NOT_SUPPORTED"
+  ],
+  "DECISIONS_EXECUTED": false,
+  "models": [
+    {
+      "id": "V0_13_M0_BASE",
+      "features": [
+        "BASE_FEATURES"
+      ]
+    },
+    {
+      "id": "V0_13_M1_WEATHER",
+      "features": [
+        "BASE_FEATURES",
+        "WEATHER"
+      ]
+    },
+    {
+      "id": "V0_13_M2_GDD",
+      "features": [
+        "BASE_FEATURES",
+        "GDD"
+      ]
+    },
+    {
+      "id": "V0_13_M3_WEATHER_GDD",
+      "features": [
+        "BASE_FEATURES",
+        "WEATHER",
+        "GDD"
+      ]
+    }
+  ],
+  "MODEL_ROLE": "FEATURE_VALUE_EXPERIMENT_MODELS",
+  "MODEL_FAMILY": "RIDGE_LEAST_SQUARES",
+  "ALPHA": "10.000000",
+  "INTERCEPT_UNPENALIZED": true,
+  "NONNEGATIVE_OUTPUT_CLIP": true,
+  "SOLVER": "numpy.linalg.solve",
+  "STANDARDIZATION": "TRAIN_ONLY_STANDARD_SCALER_POPULATION_STD",
+  "ZERO_STD_POLICY": "SCALE_1",
+  "ONLY_EXPERIMENTAL_DIFFERENCE": "FEATURE_SET",
+  "invariants": [
+    "target_rows",
+    "training_labels",
+    "validation_labels",
+    "folds",
+    "forecast_origins",
+    "target_horizons",
+    "algorithm_family",
+    "regularization",
+    "standardization_policy",
+    "nonnegative_clipping",
+    "scoring"
+  ],
+  "base_features": [
+    "reference_area_mu_div_1000",
+    "season_progress",
+    "sin_1",
+    "cos_1",
+    "sin_2",
+    "cos_2",
+    "area_x_sin_1",
+    "area_x_cos_1",
+    "area_x_sin_2",
+    "area_x_cos_2"
+  ],
+  "weather": {
+    "ERA5_ROLE": "HISTORICAL_REALIZED_OBSERVATION",
+    "ERA5_SOURCE_PRODUCT": "reanalysis-era5-land-timeseries",
+    "WEATHER_LANE_A": "PAST_OBSERVED_WEATHER",
+    "WEATHER_BASE_COUNT": 38,
+    "WEATHER_SEASON_COUNT": 3,
+    "WINDOWS": [
+      7,
+      14,
+      30
+    ],
+    "VARIABLES": [
+      "mean_temperature",
+      "mean_tmin",
+      "mean_tmax",
+      "precipitation_sum",
+      "solar_radiation_mean",
+      "wind_speed_mean"
+    ],
+    "WEATHER_FEATURE_COUNT": 18,
+    "FEATURE_POLICY_VERSION": "V0_7_S2_LEAKAGE_SAFE_PAST_OBSERVED_V1",
+    "SOURCE_DATASET_HASH": "5ad49f11895c76e6aadd01d240ada3ba93d599d25138a2609887e527e58dad3b",
+    "FORECAST_ORIGIN_POLICY": "ROLLING_DAILY_LOCAL_DAY_START",
+    "FORECAST_ORIGIN_TIMEZONE": "Asia/Shanghai",
+    "MAX_REALIZED_WEATHER_SOURCE_DATE": "FORECAST_ORIGIN_LOCAL_DATE_MINUS_1",
+    "MAX_SOURCE_OBSERVATION_TIME": "STRICTLY_BEFORE_FORECAST_ORIGIN",
+    "AS_ISSUED_KNOWN_AT_STATUS": "NOT_ESTABLISHED",
+    "PRODUCTION_LIKE_PIT_ELIGIBLE": false,
+    "FUTURE_REALIZED_WEATHER_ALLOWED": false,
+    "FUTURE_FORECAST_FEATURES_IN_LANE_A": false
+  },
+  "v0_7_history": {
+    "V0_7_WEATHER_EXPERIMENT_COMPLETED": true,
+    "relative_improvement_percent_approx": {
+      "H1": "1.26",
+      "H7": "3.39",
+      "H15": "3.45"
+    },
+    "V0_7_WEATHER_INCREMENTAL_VALUE": "INCONCLUSIVE",
+    "H1_LEAVE_TOP2_DIRECTION_REVERSED": true,
+    "HISTORICAL_EVIDENCE_REMAINS_CONSUMED": true,
+    "NEW_BLIND_VALIDATION": false
+  },
+  "cohort": {
+    "V0_13_REUSES_V0_7_S3_COHORT": true,
+    "COMMON_COMPARABLE_COHORT_REQUIRED": true,
+    "folds": [
+      {
+        "fold_id": "FOLD_A",
+        "train_seasons": [
+          "2023-2024"
+        ],
+        "validation_season": "2024-2025",
+        "training_row_count": 17460,
+        "training_row_keys_hash": "90e9fdf84b45eeb7cfb819bd9384f776eaf5e94ca541eef99cded43904e1d036",
+        "validation_base_count": 13,
+        "validation_prediction_row_count": 49140,
+        "validation_scored_row_count": 28541,
+        "validation_unscored_row_count": 20599,
+        "eligible_base_ids": [
+          "base_2158646aee6000e2dd75afec",
+          "base_319779873190a57608b59b4e",
+          "base_34fde1e05c1763f5b91499bb",
+          "base_4fd002ff555f93b3f509789e",
+          "base_59be02a586e9c15be0d2694b",
+          "base_80961ce21621aacbcaa509f7",
+          "base_a21676b04cd2f64e8b297033",
+          "base_a96b297b126a8cab67c4755f",
+          "base_c8353bffd0cc9318d7d64520",
+          "base_c8ab16ef1fae69899640eedb",
+          "base_e24b268ad72d59adc8b8a7fe",
+          "base_f10df3ac242e4dbbf6c20b98",
+          "base_ffdc1ebe359436aa3f0fa834"
+        ],
+        "validation_row_keys_hash": "85654a3b60c05c7e028825d9fa96f67681a0985bd991c86e4bbdb73652108788",
+        "business_boundary": {
+          "authority_hash": "cf0e1c4bffc4acc404dd0479c36b02f78df893ef25dda819359eaa317157dabf",
+          "authority_source": "configs/v0_5_area_forecast_model_v1.json:temporal_model.calendar",
+          "business_end": "2025-04-15",
+          "business_start": "2024-07-01",
+          "policy": "EXISTING_JULY_01_THROUGH_APRIL_15_MODEL_AUTHORITY",
+          "season": "2024-2025"
+        }
+      },
+      {
+        "fold_id": "FOLD_B",
+        "train_seasons": [
+          "2023-2024",
+          "2024-2025"
+        ],
+        "validation_season": "2025-2026",
+        "training_row_count": 59471,
+        "training_row_keys_hash": "5ee82a037b7c8a0d1cc396ad69ffb92421e44b40d57d8a89c87567b8027a97d4",
+        "validation_base_count": 29,
+        "validation_prediction_row_count": 109620,
+        "validation_scored_row_count": 74286,
+        "validation_unscored_row_count": 35334,
+        "eligible_base_ids": [
+          "base_05c82656e3dcb06cac487039",
+          "base_10a4048aaf973fce65f5df40",
+          "base_1921620f6f595d3dc489dfa9",
+          "base_1abf75fac2a2b1d7ccd74528",
+          "base_213507022f5779b1ed8ec255",
+          "base_2158646aee6000e2dd75afec",
+          "base_319779873190a57608b59b4e",
+          "base_32a8489fdfad1a0ef0bad5ae",
+          "base_33c9a0e6037e5e33bb59f154",
+          "base_34fde1e05c1763f5b91499bb",
+          "base_3926ad631cbd8f5c7dc5f269",
+          "base_40bc2a61ee14280aacf2e3fa",
+          "base_4fd002ff555f93b3f509789e",
+          "base_59be02a586e9c15be0d2694b",
+          "base_7092a05c3796a2582b5df9f8",
+          "base_7a0a9068b49251f4bc2228a5",
+          "base_80961ce21621aacbcaa509f7",
+          "base_817f6981ac6c56d3fa476451",
+          "base_a21676b04cd2f64e8b297033",
+          "base_a96b297b126a8cab67c4755f",
+          "base_b30634ab6020391a3923849b",
+          "base_be13e722e3d26160c1f04dbc",
+          "base_c51783e2ec7c16bba447d64e",
+          "base_c8353bffd0cc9318d7d64520",
+          "base_c8ab16ef1fae69899640eedb",
+          "base_e24b268ad72d59adc8b8a7fe",
+          "base_e63d30015dd3676c280e0e08",
+          "base_f10df3ac242e4dbbf6c20b98",
+          "base_ffdc1ebe359436aa3f0fa834"
+        ],
+        "validation_row_keys_hash": "e4568d3f61c1368f059c46b2240af8c4f455cce8731a4409a0bc43b3fd071869",
+        "business_boundary": {
+          "authority_hash": "e8ccfc929f301690511e09601bb544ffe94c3b805a87ca498297ccf098af8cc4",
+          "authority_source": "docs/next-version/evidence/three-season-business-boundary-r7b.json",
+          "business_end": "2026-04-15",
+          "business_start": "2025-07-22",
+          "policy": "USER_CONFIRMED_2526_BUSINESS_WINDOW_R7B",
+          "season": "2025-2026"
+        }
+      }
+    ],
+    "training_base_scope": "Fold A train/validate=A 13 IDs; Fold B 2023-2024=A 13 IDs, 2024-2025=train/2025-2026 validate=B 29 IDs.",
+    "eligibility": "Immediate-prior history eligible Base intersect accepted weather Base; canonical keys unique; origins local midnight in frozen business calendar; lead 0..14; complete 30-day weather window ending origin-1; known/confirmed-zero labels only.",
+    "common_cohort": "Before scoring, hash common M0/M1/M2/M3 training and validation row-key intersections by fold and horizon, coverage exclusions and reasons. GDD coverage may only reduce all four equally; score-independent audit required; unexplained identity conflict blocks S3.",
+    "NO_MODEL_SPECIFIC_COHORT": true,
+    "MISSING_IS_ZERO": false,
+    "RANDOM_SPLIT_ALLOWED": false,
+    "VALIDATION_LABELS_AFTER_PREDICTION_SEAL": true,
+    "TRAIN_TARGET_ROWS_DEDUPLICATED": true,
+    "FUTURE_LABELS_FOR_PREPROCESSING": false,
+    "REFERENCE_AREA_IS_NOT_NEW_HISTORICAL_AREA_AUTHORITY": true,
+    "NEW_INDEPENDENT_VALIDATION_CLAIM": false
+  },
+  "targets": {
+    "TARGET_GRANULARITY": "DAILY",
+    "TARGET_LABEL": "ACTUAL_DAILY_HARVEST_KG",
+    "TARGET_ROW_IDENTITY": "base_id+forecast_origin+target_date",
+    "LABEL_PROXY": "ARRIVAL_EQUALS_HARVEST_EQUALS_MATURITY_PROXY",
+    "horizons": {
+      "H1": 1,
+      "H7": 7,
+      "H15": 15
+    },
+    "PRIMARY_HORIZONS": [
+      "H7",
+      "H15"
+    ],
+    "SECONDARY_HORIZON": "H1",
+    "TARGET_START": "FORECAST_ORIGIN_LOCAL_DATE",
+    "TARGET_END": "ORIGIN_PLUS_H_MINUS_1",
+    "HORIZONS_ARE_VIEWS_NOT_DUPLICATED_TRAINING_LABELS": true
+  },
+  "gdd": {
+    "GDD_DEFINITION_SELECTED": false,
+    "GDD_BASE_TEMPERATURE_C": null,
+    "GDD_SWEEP_AUTHORIZED": false,
+    "HISTORICAL_PHENOLOGY_AUTHORITY_AVAILABLE": false,
+    "definition_process": [
+      "LITERATURE_OR_BUSINESS_AGRONOMIC_EVIDENCE",
+      "ONE_PREDECLARED_DEFINITION",
+      "FREEZE_BEFORE_SCORE_VISIBILITY",
+      "FEATURE_GENERATION_ONLY_AFTER_AUTHORIZATION"
+    ],
+    "S1_REQUIRED_FIELDS": [
+      "GDD_BASE_TEMPERATURE_C",
+      "DAILY_TEMPERATURE_FORMULA",
+      "LOWER_CLIP_POLICY",
+      "UPPER_CLIP_POLICY",
+      "MISSING_DAY_POLICY",
+      "LOCAL_DAY_TIMEZONE",
+      "ACCUMULATION_START_POLICY",
+      "PRECISION_AND_ROUNDING",
+      "SOURCE_TEMPERATURE_FIELDS"
+    ],
+    "required_family": [
+      "GDD_W7",
+      "GDD_W14",
+      "GDD_W30"
+    ],
+    "optional_family": [
+      "GDD_SEASON_TO_DATE"
+    ],
+    "SEASON_TO_DATE_ENABLED": null,
+    "OPTIONAL_FAMILY_DECIDED_BEFORE_RESULTS": true,
+    "forbidden_windows": [
+      3,
+      5,
+      10,
+      21,
+      45,
+      60
+    ],
+    "MAX_GDD_SOURCE_DATE": "FORECAST_ORIGIN_LOCAL_DATE_MINUS_1",
+    "FLOWERING_TO_HARVEST_CLAIM_ALLOWED": false,
+    "PHENOLOGY_ANCHORED_GDD_IN_SCOPE": false,
+    "permitted_names": [
+      "ROLLING_GDD",
+      "BUSINESS_SEASON_TO_DATE_GDD"
+    ],
+    "AMBIGUOUS_DEFINITION_ACTION": "BLOCKED_OR_INCONCLUSIVE_DEFINITION_NO_SWEEP",
+    "S1_LITERATURE_RESEARCH_AUTHORIZED_BY_S0": false
+  },
+  "metrics": {
+    "METRIC_CONTRACT_VERSION": "V0_13_S0_METRIC_PROTOCOL_R1",
+    "daily": [
+      "DAILY_WAPE",
+      "DAILY_MAE_KG",
+      "BIAS_KG"
+    ],
+    "cumulative": [
+      "H7_CUMULATIVE_WAPE",
+      "H15_CUMULATIVE_WAPE"
+    ],
+    "distribution": [
+      "MEDIAN_ABS_ERROR",
+      "P75_ABS_ERROR",
+      "P90_ABS_ERROR"
+    ],
+    "temporal": [
+      "SINGLE_DAY_PEAK_DATE_MAE_DAYS",
+      "SINGLE_DAY_PEAK_QUANTITY_MAE_KG",
+      "ROLLING_7DAY_PEAK_START_DATE_MAE_DAYS",
+      "ROLLING_7DAY_PEAK_QUANTITY_MAE_KG",
+      "CURVE_SHAPE_ERROR"
+    ],
+    "DAILY_WAPE": "sum(abs(p-a))/sum(a) over complete horizon views only",
+    "DAILY_MAE_KG": "sum(abs(p-a))/row_count",
+    "BIAS_KG": "sum(p-a)/row_count; positive=overprediction; also report total signed bias kg",
+    "CUMULATIVE_WAPE": "sum_window(abs(sum_window(p)-sum_window(a)))/sum_window(sum_window(a)); full consecutive H calendar days, same origin, never abs daily errors mislabeled cumulative",
+    "distribution_rule": "Decimal sorted absolute daily errors, linear interpolation index (n-1)*q; reuse V0.7 quantile policy",
+    "ZERO_DENOMINATOR_POLICY": "NOT_COMPUTABLE_NO_POSITIVE_ACTUAL_DENOMINATOR",
+    "PREDICTION_PRECISION": "REUSE_V0_7_S3_FLOAT_SOLVE_THEN_DECIMAL_FORMAT_12_PLACES",
+    "SCORING_PRECISION": "DECIMAL_NO_EARLY_DISPLAY_ROUNDING; exact sign on canonical values",
+    "combined_rule": "Sum error numerators and actual denominators, not mean fold WAPEs; MAE weighted by count",
+    "PEAK_EVALUATION_UNIT": "COMPLETE_AUTHORITATIVE_H15_BASE_ORIGIN_WINDOW_SAME_ORIGIN_NO_ROLLING_ORIGIN_STITCHING",
+    "SEASON_WIDE_PEAK_CLAIM": false,
+    "PEAK_METRIC_STATUS_IF_INCOMPLETE": "NOT_COMPUTABLE",
+    "PEAK_TIE_RULE": "EARLIEST_DATE",
+    "ROLLING7_RULE": "MAX_CUMULATIVE_COMPLETE_7_CONSECUTIVE_CALENDAR_DAYS",
+    "CURVE_SHAPE_DEFINITION_STATUS": "REUSED_FROZEN_NORMALIZED_TOTAL_SHAPE_MICRO_WAPE",
+    "CURVE_SHAPE_AUTHORITY": "backend/app/area_yield/research_records.py:score_curve",
+    "CURVE_SHAPE_FORMULA": "Q=sum(a),P=sum(p),E=sum(abs(p*Q/P-a)); pooled CURVE_SHAPE_ERROR=sum(E)/sum(Q), Q>0 and P>0; same complete H15 windows as peak metrics",
+    "ZERO_SHAPE_MASS_POLICY": "NOT_COMPUTABLE; report counts; no epsilon, zero-fill or selective exclusion"
+  },
+  "comparisons": [
+    {
+      "name": "WEATHER_VALUE",
+      "new": "V0_13_M1_WEATHER",
+      "reference": "V0_13_M0_BASE"
+    },
+    {
+      "name": "GDD_VALUE",
+      "new": "V0_13_M2_GDD",
+      "reference": "V0_13_M0_BASE"
+    },
+    {
+      "name": "COMBINED_VALUE",
+      "new": "V0_13_M3_WEATHER_GDD",
+      "reference": "V0_13_M0_BASE"
+    },
+    {
+      "name": "GDD_ON_TOP_OF_WEATHER",
+      "new": "V0_13_M3_WEATHER_GDD",
+      "reference": "V0_13_M1_WEATHER"
+    },
+    {
+      "name": "WEATHER_ON_TOP_OF_GDD",
+      "new": "V0_13_M3_WEATHER_GDD",
+      "reference": "V0_13_M2_GDD"
+    }
+  ],
+  "deltas": {
+    "absolute": "new_error-reference_error",
+    "relative": "(new_error-reference_error)/reference_error",
+    "NEGATIVE_DELTA": "IMPROVEMENT",
+    "POSITIVE_DELTA": "DEGRADATION",
+    "ZERO_REFERENCE": "NOT_COMPUTABLE_RELATIVE_DELTA; absolute still reported"
+  },
+  "breadth": [
+    "COMPARABLE_BASE_COUNT",
+    "IMPROVED_BASE_COUNT",
+    "DEGRADED_BASE_COUNT",
+    "UNCHANGED_BASE_COUNT",
+    "IMPROVED_BASE_SHARE",
+    "DEGRADED_BASE_SHARE",
+    "IMPROVED_ACTUAL_KG_SHARE",
+    "DEGRADED_ACTUAL_KG_SHARE"
+  ],
+  "robustness": {
+    "required": [
+      "LEAVE_TOP1",
+      "LEAVE_TOP2"
+    ],
+    "horizons": [
+      "H1",
+      "H7",
+      "H15"
+    ],
+    "primary_gate_horizons": [
+      "H7",
+      "H15"
+    ],
+    "contributor_definition": "POSITIVE_ABSOLUTE_ERROR_REDUCTION_KG_REFERENCE_MINUS_NEW_ON_COMPLETE_HORIZON_DAILY_ROWS",
+    "sort": "DESCENDING_POSITIVE_REDUCTION_THEN_BASE_ID_ASCENDING",
+    "removal": "Remove the ranked Base's entire comparable row set from both models; recompute pooled numerators/denominators separately per fold and Combined.",
+    "FEWER_THAN_TWO_CONTRIBUTORS": "REMOVE_ALL_AVAILABLE_REPORT_COUNT; no remaining positive denominator => INCONCLUSIVE"
+  },
+  "support_rule": {
+    "metric": "DAILY_WAPE_IN_COMPLETE_H7_AND_H15_VIEWS_NOT_CUMULATIVE_WAPE",
+    "conditions": [
+      "H7_COMBINED_DELTA_LT_0",
+      "H15_COMBINED_DELTA_LT_0",
+      "H7_EVERY_PREDECLARED_FOLD_DELTA_LT_0",
+      "H15_EVERY_PREDECLARED_FOLD_DELTA_LT_0",
+      "H7_COMBINED_LEAVE_TOP2_DELTA_LT_0",
+      "H15_COMBINED_LEAVE_TOP2_DELTA_LT_0",
+      "H7_EVERY_FOLD_IMPROVED_ACTUAL_KG_SHARE_GT_0_50",
+      "H15_EVERY_FOLD_IMPROVED_ACTUAL_KG_SHARE_GT_0_50",
+      "NO_CONTRACT_VIOLATION",
+      "NO_LEAKAGE",
+      "NO_POST_RESULT_TUNING"
+    ],
+    "SUPPORTED": "ALL_CONDITIONS_REQUIRED",
+    "INCONCLUSIVE": "Overall improvement but any stability condition fails; mixed signs, incomplete required evidence or unavailable denominator also inconclusive.",
+    "NOT_SUPPORTED": "H7 and H15 Combined deltas >=0 AND no stable fold/robustness improvement evidence.",
+    "INVALID_EXPERIMENT": "BLOCKED_CONTRACT_VIOLATION_NOT_A_FEATURE_VALUE_CLASSIFICATION",
+    "REQUIRED_EVIDENCE_COMPLETENESS": "All primary fold/Combined/leave-top2 denominators positive and values finite; missing evidence => INCONCLUSIVE, never NOT_SUPPORTED",
+    "STABLE_FOLD_ROBUSTNESS_EVIDENCE": "Both H7/H15 deltas negative in every predeclared fold AND both Combined leave-top2 deltas negative; missing evidence is not evidence of no value",
+    "H1_CAN_ESTABLISH_SUPPORT": false,
+    "ANY_CUMULATIVE_SIGN_DISAGREEMENT": "REPORT_EXPLICITLY_NOT_OVERRIDE_PRIMARY_GATE",
+    "JOINT_INCREMENTAL_CLAIM": "M3 vs M0 classification reported, but reproducible incremental value beyond BOTH families requires M3 vs M1 and M3 vs M2 each SUPPORTED; never infer complementarity from M3 vs M0 alone."
+  },
+  "peak_timing_rule": {
+    "reference": "V0_13_M0_BASE",
+    "SUPPORTED_ALL": [
+      "BOTH_DATE_MAE_COMBINED_DELTAS_LT_0",
+      "BOTH_DATE_MAE_DELTAS_LT_0_EVERY_EVALUABLE_PREDECLARED_FOLD",
+      "CURVE_SHAPE_COMBINED_DELTA_LE_0",
+      "NO_CONTRACT_VIOLATION_LEAKAGE_OR_TUNING"
+    ],
+    "INSUFFICIENT_COMPLETE_AUTHORITY": "INCONCLUSIVE; no evaluable windows in any predeclared fold forbids SUPPORTED",
+    "AMPLITUDE_ONLY_SUPPORTS_TIMING": false,
+    "INCONCLUSIVE": "mixed, partial improvement or insufficient authority",
+    "NOT_SUPPORTED": "both Combined date deltas >=0 and no stable fold timing improvement evidence",
+    "per_family_reporting_required": true,
+    "summary_rule": "SUPPORTED only with a named family satisfying every condition; no choosing different families for different date metrics"
+  },
+  "oracle": {
+    "LANE_C": "FUTURE_REALIZED_ORACLE",
+    "RESEARCH_ONLY": true,
+    "DEPLOYABLE": false,
+    "PROSPECTIVE_EQUIVALENT": false,
+    "PRIMARY_LANE_RANKING_ALLOWED": false,
+    "CANDIDATE_PROMOTION_ALLOWED": false,
+    "EXECUTION_AUTHORIZED": false
+  },
+  "BUSINESS_ACCURACY_THRESHOLD_STATUS": "NOT_ESTABLISHED",
+  "MINIMUM_PERCENT_IMPROVEMENT_THRESHOLD": null,
+  "prohibited_search": [
+    "RIDGE_ALPHA_SWEEP",
+    "LASSO",
+    "ELASTIC_NET_SEARCH",
+    "XGBOOST",
+    "LIGHTGBM",
+    "RANDOM_FOREST",
+    "KNN",
+    "POLYNOMIAL_SEARCH",
+    "NEURAL_NETWORK",
+    "FEATURE_SELECTION_SEARCH",
+    "POST_RESULT_GDD_WINDOW_ADDITION",
+    "TBASE_SWEEP"
+  ],
+  "slices": {
+    "S0": "VERSION_SCOPE_AND_EXPERIMENT_CONTRACT",
+    "S1": "GDD_SCIENTIFIC_DEFINITION_FREEZE",
+    "S2": "GDD_FEATURE_BUILD_AND_DATA_COVERAGE_AUDIT",
+    "S3": "M0_M1_M2_M3_CONTROLLED_HISTORICAL_OOT_EXPERIMENT",
+    "S4": "TEMPORAL_PEAK_AND_ORACLE_UPPER_BOUND_EXPERIMENT",
+    "S5": "FEATURE_VALUE_DECISION_AND_VERSION_CLOSEOUT"
+  },
+  "V0_13_S0_AUTHORIZED": true,
+  "V0_13_S1_AUTHORIZED": false,
+  "V0_13_S2_AUTHORIZED": false,
+  "V0_13_S3_AUTHORIZED": false,
+  "V0_13_S4_AUTHORIZED": false,
+  "V0_13_S5_AUTHORIZED": false,
+  "MODEL_TRAINING_EXECUTED": false,
+  "BACKTEST_EXECUTED": false,
+  "SCORING_EXECUTED": false,
+  "GDD_FEATURE_GENERATION_EXECUTED": false,
+  "WEATHER_FEATURE_REGENERATION_EXECUTED": false,
+  "PRIVATE_WEATHER_DATA_READ": false,
+  "PRIVATE_HARVEST_ROW_READ": false,
+  "NEW_MODEL_ARTIFACT": false,
+  "NEW_PREDICTION": false,
+  "HYPERPARAMETER_SEARCH": false,
+  "FEATURE_SEARCH": false,
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "PRODUCTION_USE_APPROVED": false,
+  "REAL_PROSPECTIVE_ENABLED": false,
+  "V0_13_VERSION_COMPLETE": false,
+  "closeout_options": [
+    "RESEARCH_CLOSEOUT_FEATURE_SUPPORTED",
+    "RESEARCH_CLOSEOUT_FEATURE_INCONCLUSIVE",
+    "RESEARCH_CLOSEOUT_FEATURE_NOT_SUPPORTED"
+  ],
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "AUTO_MERGE": false,
+  "TAG_CREATED": false,
+  "RELEASE_CREATED": false
+}
