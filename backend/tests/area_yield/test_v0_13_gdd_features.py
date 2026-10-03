@@ -229,6 +229,14 @@ def test_frozen_s1_and_public_s2_evidence() -> None:
         assert s2[key] is False
     assert s2["GDD_INCREMENTAL_VALUE"] == "NOT_EVALUATED"
     assert s2["manifest"]["ineligible_context_count"] == 0
+    expected_mtime_ns = {
+        "era5": 1789447418494479417,
+        "fold_a": 1790069672201429844,
+        "fold_b": 1790069714609488545,
+    }
+    for phase in ("before", "after"):
+        identities = s2["source_immutability"][phase]
+        assert {key: value["mtime_ns"] for key, value in identities.items()} == expected_mtime_ns
     for name in ("fold_a", "fold_b"):
         legacy = s2["folds"][name]["legacy"]
         assert legacy["direct_self_hash_valid"] is False
