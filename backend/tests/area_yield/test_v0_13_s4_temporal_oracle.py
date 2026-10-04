@@ -302,6 +302,51 @@ def test_shape_unknown_prevents_support_even_with_dates_improved():
     assert summary != "SUPPORTED"
 
 
+def degrading_timing_scopes():
+    return {
+        s: {
+            m: dict(
+                single_date_mae="2" if m == "M0" else "3",
+                rolling7_date_mae="2" if m == "M0" else "3",
+                shape_error=None,
+                window_count=2,
+                shape_not_computable_window_count=1,
+            )
+            for m in ("M0", "M1", "M2", "M3")
+        }
+        for s in ("fold_a", "fold_b", "combined")
+    }
+
+
+def test_shape_unavailable_does_not_block_not_supported_when_both_dates_degrade():
+    gates, summary, family = t.timing_gates(degrading_timing_scopes())
+    assert all(g["status"] == "NOT_SUPPORTED" for g in gates.values())
+    assert summary == "NOT_SUPPORTED"
+    assert family == "NONE"
+
+
+@pytest.mark.parametrize("case", ["all_degrade", "mixed", "named_support"])
+def test_overall_timing_summary(case):
+    scopes = degrading_timing_scopes()
+    if case == "mixed":
+        scopes["combined"]["M1"]["single_date_mae"] = "1"
+    if case == "named_support":
+        for scope in scopes.values():
+            scope["M0"].update(shape_error="1", shape_not_computable_window_count=0)
+            scope["M1"].update(
+                single_date_mae="1",
+                rolling7_date_mae="1",
+                shape_error="1",
+                shape_not_computable_window_count=0,
+            )
+    _, summary, family = t.timing_gates(scopes)
+    assert (summary, family) == {
+        "all_degrade": ("NOT_SUPPORTED", "NONE"),
+        "mixed": ("INCONCLUSIVE", "NONE"),
+        "named_support": ("SUPPORTED", "M1"),
+    }[case]
+
+
 def test_synthetic_oracle_fit_predict_seal_score(tmp_path):
     from datetime import datetime
 

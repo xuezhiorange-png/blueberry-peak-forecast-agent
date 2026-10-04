@@ -1,9 +1,9 @@
 {
-  "TASK_ID": "V0_13_S4_TEMPORAL_PEAK_AND_ORACLE_UPPER_BOUND_EXPERIMENT_R2",
+  "TASK_ID": "V0_13_S4_TEMPORAL_PEAK_AND_ORACLE_UPPER_BOUND_EXPERIMENT_R3",
   "BASE_SHA": "eaaf9f592d9fa6793a206dd22e8823c96e36f977",
   "RESULT": "PASS",
-  "PREVIOUS_TASK": "V0_13_S4_TEMPORAL_PEAK_AND_ORACLE_UPPER_BOUND_EXPERIMENT_R1",
-  "PREVIOUS_RESULT": "BLOCKED",
+  "PREVIOUS_TASK": "V0_13_S4_TEMPORAL_PEAK_AND_ORACLE_UPPER_BOUND_EXPERIMENT_R2",
+  "PREVIOUS_RESULT": "PASS_WITH_REVIEW_BLOCKER",
   "PREVIOUS_BLOCKER": "S3_LABEL_BEARING_ARTIFACT_OPENED_BEFORE_ORACLE_SEALS",
   "PREVIOUS_BLOCKER_CLOSED": true,
   "CUSTODY_CORRECTION": "REMOVE_S3_SCORED_ROWS_FROM_PRESEAL_FILE_IDENTITY_INVENTORY",
@@ -63,15 +63,15 @@
   "ORACLE_DEPLOYABLE": false,
   "ORACLE_PROSPECTIVE_EQUIVALENT": false,
   "ORACLE_SUPPORT_CLASSIFICATION": "NOT_APPLICABLE_RESEARCH_UPPER_BOUND_ONLY",
-  "PEAK_TIMING_INCREMENTAL_VALUE": "INCONCLUSIVE",
+  "PEAK_TIMING_INCREMENTAL_VALUE": "NOT_SUPPORTED",
   "PEAK_TIMING_SUPPORTED_FAMILY": "NONE",
   "DETERMINISTIC_REPLAY": "PASS",
   "FRESH_PROCESS_REPLAY": true,
   "BYTE_EQUAL": true,
-  "FOCUSED_TESTS": "72 passed",
+  "FOCUSED_TESTS": "76 passed",
   "FAILURE_INJECTION_CASE_COUNT": 63,
   "FAILURE_INJECTION_PASS_COUNT": 63,
-  "AREA_YIELD_REGRESSION": "1057 passed, 7 skipped",
+  "AREA_YIELD_REGRESSION": "1061 passed, 7 skipped",
   "RUFF": "PASS",
   "FORMAT": "PASS",
   "MYPY": "526 source files PASS",
@@ -92,7 +92,7 @@
     "fresh_process": true,
     "byte_equal": true,
     "file_count": 9,
-    "result_hash": "b986b912a9036bbb39dd92d6b25df5d843741386887e3a6b435331cdd61a3751",
+    "result_hash": "68512137796966df398949b6d6cc5294021330d967ddc6057cd0f278c71b800a",
     "run1_events": [
       "READ_TRAIN_LABELS:2023-2024",
       "ORACLE_SEALED:fold_a",
@@ -283,7 +283,7 @@
     },
     "oracle_prospective_equivalent": false,
     "oracle_temporal_hash": "e3c73be95c09526019002993ccd500c3830b3a78a0d7bc841377923be958a195",
-    "peak_timing_incremental_value": "INCONCLUSIVE",
+    "peak_timing_incremental_value": "NOT_SUPPORTED",
     "peak_timing_supported_family": "NONE",
     "preseal_label_bearing_artifact_access_count": 0,
     "previous_blocker": "S3_LABEL_BEARING_ARTIFACT_OPENED_BEFORE_ORACLE_SEALS",
@@ -293,7 +293,7 @@
     "prior_unaccepted_diagnostic_results_existed": true,
     "production_use_approved": false,
     "prospective_accuracy_validated": false,
-    "result_hash": "b986b912a9036bbb39dd92d6b25df5d843741386887e3a6b435331cdd61a3751",
+    "result_hash": "68512137796966df398949b6d6cc5294021330d967ddc6057cd0f278c71b800a",
     "schema": "V0_13_S4_TEMPORAL_ORACLE_V1",
     "scientific_contract_changed_after_diagnostic": false,
     "scored_rows_identity": {
@@ -830,7 +830,7 @@
         "every_fold_and_combined_dates_improve": false,
         "model": "M3",
         "shape_computable": false,
-        "status": "INCONCLUSIVE",
+        "status": "NOT_SUPPORTED",
         "sufficient_authority": true
       },
       "GDD_TIMING": {
@@ -860,7 +860,7 @@
         "every_fold_and_combined_dates_improve": false,
         "model": "M2",
         "shape_computable": false,
-        "status": "INCONCLUSIVE",
+        "status": "NOT_SUPPORTED",
         "sufficient_authority": true
       },
       "WEATHER_TIMING": {
@@ -890,11 +890,28 @@
         "every_fold_and_combined_dates_improve": false,
         "model": "M1",
         "shape_computable": false,
-        "status": "INCONCLUSIVE",
+        "status": "NOT_SUPPORTED",
         "sufficient_authority": true
       }
     },
     "version_complete": false
   },
-  "CI_STRATEGY": "Synthetic fixtures only; exact-head terminal CI is independently recorded by GitHub and the final receipt."
+  "CI_STRATEGY": "Synthetic fixtures only; exact-head terminal CI is independently recorded by GitHub and the final receipt.",
+  "REVIEW_BLOCKER": "TIMING_NOT_SUPPORTED_RULE_INCORRECTLY_REQUIRES_SHAPE_COMPUTABLE",
+  "REVIEW_BLOCKER_CLOSED": true,
+  "SHAPE_REQUIRED_FOR_SUPPORTED": true,
+  "SHAPE_REQUIRED_FOR_NOT_SUPPORTED": false,
+  "R3_CHANGE_CLASS": "FROZEN_DECISION_RULE_IMPLEMENTATION_CORRECTION",
+  "MODEL_CHANGED": false,
+  "FEATURE_CHANGED": false,
+  "COHORT_CHANGED": false,
+  "PREDICTION_CHANGED": false,
+  "METRIC_CHANGED": false,
+  "ORACLE_CHANGED": false,
+  "LANE_A_RAW_TEMPORAL_METRICS_PARITY_WITH_R2": "PASS",
+  "ORACLE_RAW_METRICS_PARITY_WITH_R2": "PASS",
+  "ORACLE_ARTIFACT_HASH_PARITY_WITH_R2": "PASS",
+  "ORACLE_PREDICTION_HASH_PARITY_WITH_R2": "PASS",
+  "ORACLE_SEAL_HASH_PARITY_WITH_R2": "PASS",
+  "R2_RESULT_HASH": "b986b912a9036bbb39dd92d6b25df5d843741386887e3a6b435331cdd61a3751"
 }

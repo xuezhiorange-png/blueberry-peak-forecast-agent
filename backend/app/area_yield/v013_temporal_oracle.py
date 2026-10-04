@@ -454,12 +454,15 @@ def timing_gates(scopes: Mapping[str, Any]) -> tuple[dict[str, Any], str, str]:
         )
         not_supported = (
             enough
-            and shape
             and all(
                 combined[k] is not None and Decimal(combined[k]) >= 0
                 for k in ("single_date_mae", "rolling7_date_mae")
             )
-            and not all_dates
+            and not all(
+                deltas[s][k] is not None and Decimal(deltas[s][k]) < 0
+                for s in ("fold_a", "fold_b")
+                for k in ("single_date_mae", "rolling7_date_mae")
+            )
         )
         gates[family] = dict(
             model=model,
