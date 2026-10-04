@@ -1,0 +1,528 @@
+{
+  "TASK_ID": "V0_14_S0_VERSION_SCOPE_AND_PROSPECTIVE_PROTOCOL_FREEZE_R1",
+  "MODE": "PUBLIC_CONTRACT_AND_VERSION_PLAN_FREEZE_ONLY",
+  "BASE_SHA": "837bb5cf9674ca2f5bdbb2f082dc9092e86e9ca0",
+  "VERSION": "0.14.0",
+  "VERSION_NAME": "AS_ISSUED_WEATHER_SHADOW_ISSUANCE_AND_PROSPECTIVE_COHORT",
+  "VERSION_NAME_CN": "真实天气影子发报与前瞻队列版",
+  "RELEASE_CLASS": "PROSPECTIVE_RESEARCH_VERSION",
+  "PRIMARY_GOAL": "ESTABLISH_PRISTINE_AS_ISSUED_WEATHER_SHADOW_FORECAST_COHORT_BEFORE_TARGET_ACTUAL_SCORING",
+  "V0_13_VERSION_COMPLETE": true,
+  "V0_13_VERSION_CLOSEOUT_COMPLETE": true,
+  "V0_13_FEATURE_DEVELOPMENT_FROZEN": true,
+  "V0_13_WEATHER_QUANTITY_VALUE": "SUPPORTED",
+  "V0_13_WEATHER_TIMING_VALUE": "NOT_SUPPORTED",
+  "V0_13_closeout_lineage": {
+    "pr": 673,
+    "head": "2ea3ee736b8ded06269ace768d249497d70b791a",
+    "merge": "837bb5cf9674ca2f5bdbb2f082dc9092e86e9ca0",
+    "exact_head_ci_run": 37178547066,
+    "exact_head_ci": "SUCCESS",
+    "post_merge_ci_run": 37180837114,
+    "post_merge_ci": "SUCCESS",
+    "state": "MERGED",
+    "verification": "LIVE_GITHUB_AND_FRESH_FETCH",
+    "historical_unauthorized_next_version_fields": "Preserved historical S5 snapshot; this independently authorized S0 does not backfill it."
+  },
+  "public_sources": [
+    {
+      "path": "docs/v0-13/evidence/v0.13-s5-feature-value-decision-and-version-closeout-r1.json",
+      "sha256": "f066c01527992938d0f043d9e46793ab9dcbe3d4c31992890c60754f4bb0123b"
+    },
+    {
+      "path": "docs/v0-13/v0.13.0-closeout.md",
+      "sha256": "0da03a64eb04547ea3d97cea5748251e70de3e8df22d94515c9b0a294faf088d"
+    },
+    {
+      "path": "backend/app/pit/ecmwf_open_data_provider.py",
+      "sha256": "e2257acbd386e11440d176ab7064d277bcba4a555e3a1995895c5154958d262b"
+    },
+    {
+      "path": "docs/next-version/evidence/area-forecast-run-persistence-p1.json",
+      "sha256": "68ed973c97f260c873481b425083fe4773342c7b03af1d18ad94951107e1dfce"
+    }
+  ],
+  "CURRENT_SEASON_ACTUAL_REQUIRED_FOR_V0_14": false,
+  "FUTURE_PROSPECTIVE_SCORING_VERSION": "V0.15",
+  "WEATHER_AS_ISSUED_INCREMENTAL_VALUE": "NOT_EVALUATED",
+  "research_questions": {
+    "RQ1": "Can ECMWF IFS Open Data provide immutable as-issued weather snapshots with auditable issued_at, fetched_at, known_at, valid_at and source bytes?",
+    "RQ2": "Can one deterministic future-weather feature representation be frozen from the qualified provider surface without looking at harvest-model results?",
+    "RQ3": "Can one frozen weather candidate and one fair no-future-weather comparator be issued and sealed on real 2026-2027 shadow requests before target actual scoring?",
+    "RQ4": "Can a prospective cohort be accumulated under immutable forecast/weather identity so that a later version can perform locked future-actual scoring?"
+  },
+  "provider": {
+    "source_file": "backend/app/pit/ecmwf_open_data_provider.py",
+    "PROVIDER_NAME": "ECMWF_IFS_OPEN_DATA",
+    "MODEL_ID": "IFS",
+    "STREAM": "oper",
+    "RESOLUTION": "0p25",
+    "REQUIRED_HORIZONS": [
+      24,
+      72,
+      168
+    ],
+    "OPTIONAL_HORIZONS": [
+      360
+    ],
+    "PARAMETERS": [
+      "2t",
+      "tp",
+      "ssrd",
+      "10u",
+      "10v"
+    ],
+    "OPTIONAL_PARAMETERS": [
+      "mn2t3",
+      "mx2t3"
+    ],
+    "BASE_LOCATION_COUNT": 39,
+    "BASE_LOCATION_AUTHORITY_SHA256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "BASE_LOCATION_AUTHORITY_PAYLOAD_HASH": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "coordinate_review_status": "RANGE_VALID_CRS_UNCONFIRMED",
+    "coordinate_reference_system": "NOT_ESTABLISHED",
+    "PERMANENT_BUSINESS_COVERAGE_CLAIM": false,
+    "existing_surface": [
+      "issued_at",
+      "fetched_at",
+      "known_at",
+      "valid_at",
+      "forecast_horizon_hours",
+      "raw_index_bytes",
+      "raw_GRIB_byte_ranges",
+      "artifact_manifest_hash",
+      "base_grid_binding"
+    ],
+    "reuse_existing_provider": true,
+    "second_provider_required": false,
+    "real_surface_qualified_in_s0": false,
+    "limitations": [
+      "39 is an existing code authority count, not permanent quantity-forecast coverage.",
+      "Coordinate range validity does not establish WGS84.",
+      "Code normalization labels do not qualify meteorological point/interval semantics.",
+      "Provider code exposes timestamps and selects issued cycles; S1 must qualify availability and end-to-end PIT cutoff, not assume it.",
+      "Required endpoints are a code contract, not evidence of stable real retrieval or complete weather windows."
+    ],
+    "S1_qualification_questions": [
+      "Which forecast steps are stably available?",
+      "Is 360h stably available?",
+      "What is the instantaneous or interval semantic of 2t?",
+      "What are tp accumulation intervals and reset semantics?",
+      "What are ssrd accumulation intervals and reset semantics?",
+      "What are 10u/10v point-in-time semantics?",
+      "What coverage is available for mn2t3/mx2t3?",
+      "Does the existing provider need additional forecast steps?",
+      "Which fields admit a deterministic historical-proxy semantic mapping?",
+      "Which fields cannot be mapped defensibly?"
+    ],
+    "qualification_selection_basis": [
+      "provider_semantics",
+      "availability",
+      "coverage",
+      "physical_meaning",
+      "proxy_compatibility"
+    ],
+    "location_revalidation_required": [
+      "location_authority_hash",
+      "base_identity",
+      "coordinate_status",
+      "provider_grid_binding"
+    ]
+  },
+  "H7_PROVIDER_SURFACE_PRESENT_BY_CONTRACT": true,
+  "H15_PROVIDER_SURFACE_GUARANTEED": false,
+  "ENDPOINT_SNAPSHOTS_FORM_COMPLETE_FUTURE_WEATHER_WINDOW": false,
+  "FUTURE_WEATHER_FEATURE_SCHEMA_FROZEN": false,
+  "FUTURE_WEATHER_FEATURE_COUNT": null,
+  "FUTURE_WEATHER_FEATURES_R1": null,
+  "CANDIDATE_ID": "V0_14_W1_AS_ISSUED_WEATHER_PROSPECTIVE_CANDIDATE",
+  "COMPARATOR_ID": "V0_14_C0_BASE_ONLY_PROSPECTIVE_COMPARATOR",
+  "CANDIDATE_COUNT": 1,
+  "models": {
+    "C0": {
+      "id": "V0_14_C0_BASE_ONLY_PROSPECTIVE_COMPARATOR",
+      "features": [
+        "BASE_FEATURES"
+      ],
+      "future_weather": false,
+      "algorithm_contract": "algorithm"
+    },
+    "W1": {
+      "id": "V0_14_W1_AS_ISSUED_WEATHER_PROSPECTIVE_CANDIDATE",
+      "features": [
+        "BASE_FEATURES",
+        "FUTURE_WEATHER_FEATURES_R1"
+      ],
+      "future_weather": true,
+      "feature_schema_status": "TO_BE_FROZEN_IN_S2_AFTER_S1",
+      "algorithm_contract": "algorithm"
+    }
+  },
+  "algorithm": {
+    "MODEL_FAMILY": "RIDGE_LEAST_SQUARES",
+    "ALPHA": "10.000000",
+    "INTERCEPT_UNPENALIZED": true,
+    "NONNEGATIVE_OUTPUT_CLIP": true,
+    "STANDARDIZATION": "TRAIN_ONLY_STANDARD_SCALER_POPULATION_STD",
+    "ZERO_STD_POLICY": "SCALE_1",
+    "SOLVER": "numpy.linalg.solve"
+  },
+  "fair_comparison": {
+    "SAME_TRAIN_ROWS": true,
+    "SAME_TRAIN_LABELS": true,
+    "SAME_TARGET_ROWS": true,
+    "SAME_MODEL_FAMILY": true,
+    "SAME_ALPHA": true,
+    "SAME_STANDARDIZATION": true,
+    "SAME_CLIP": true
+  },
+  "PRIMARY_EXPERIMENTAL_DIFFERENCE": "AS_ISSUED_FUTURE_WEATHER_INFORMATION",
+  "HISTORICAL_DATA_ROLE": "TRAINING_FOR_FUTURE_PROSPECTIVE_CANDIDATE",
+  "HISTORICAL_PROXY_IS_AS_ISSUED_FORECAST": false,
+  "PROXY_TO_REAL_FORECAST_DOMAIN_SHIFT_EXISTS": true,
+  "FINAL_TRAINING_COHORT_AUTHORITY": "TO_BE_AUDITED_AND_FROZEN_BEFORE_S2_FIT",
+  "training_contract": {
+    "proxy_role": "HISTORICAL_REALIZED_WEATHER_PROXY",
+    "proxy_allowed_only_for": "S1_QUALIFIED_PROVIDER_TO_PROXY_FIELDS",
+    "cohort_revalidation": [
+      "consumed_history_lifecycle",
+      "label_authority",
+      "area_authority",
+      "row_identity",
+      "weather_proxy_coverage"
+    ],
+    "allowed_diagnostics": [
+      "engineering_parity",
+      "training_residual_diagnostics",
+      "feature_matrix_integrity",
+      "numerical_stability"
+    ],
+    "historical_performance_candidate_selection": false,
+    "historical_diagnostics_prove_better_candidate": false,
+    "all_three_historical_seasons_automatically_authorized": false
+  },
+  "WEATHER_CAPTURE_AUTHORITY_EQUALS_QUANTITY_FORECAST_SCOPE_AUTHORITY": false,
+  "PREVIOUS_SEASON_AREA_AS_CURRENT_SEASON_FALLBACK": false,
+  "WEATHER_CAPTURE_CAN_BEGIN_WITHOUT_CURRENT_SEASON_HARVEST": true,
+  "FIRST_ISSUANCE_SCOPE_CANDIDATE": "YANG_LIU_2026_2027",
+  "FIRST_ISSUANCE_SCOPE_AUTHORIZED": false,
+  "CURRENT_SCOPE_AUTHORITY_REVALIDATED": false,
+  "scope_gate": {
+    "required_current_authority": [
+      "target_season",
+      "base_farm_identity",
+      "target_productive_planted_reference_area_authority",
+      "effective_date_as_of",
+      "forecast_target_window"
+    ],
+    "candidate_public_source": "docs/next-version/evidence/area-forecast-run-persistence-p1.json",
+    "candidate_request": {
+      "farm": "保山杨柳农场",
+      "productive_area_mu": "393.4",
+      "target_season": "2026-2027",
+      "as_of": "2026-09-12"
+    },
+    "candidate_is_current_scope_authority": false,
+    "revalidate_before": "S3_REAL_SHADOW_ISSUANCE",
+    "other_scope_allowed_only_with": "VALID_CURRENT_SEASON_AUTHORITY",
+    "missing_current_season_authority": {
+      "WEATHER_CAPTURE_ALLOWED": true,
+      "SHADOW_QUANTITY_ISSUANCE": "BLOCKED",
+      "V0_14_VERSION_COMPLETE": false
+    },
+    "blocked_readiness_state": {
+      "ENGINEERING_AND_WEATHER_CAPTURE_READY": true,
+      "REAL_SHADOW_QUANTITY_ISSUANCE_BLOCKED": true,
+      "V0_14_VERSION_COMPLETE": false
+    },
+    "readiness_state_is_conditional_not_s0_execution": true
+  },
+  "capture_contract": {
+    "pit_order": [
+      "issued_at",
+      "fetched_at",
+      "known_at",
+      "forecast_created_at"
+    ],
+    "ordering_operator": "<=",
+    "ordering_violation": "FAIL_CLOSED",
+    "run_selection": "SELECT_LATEST_COMPLETE_QUALIFIED_PROVIDER_RUN_AT_OR_BEFORE_FORECAST_CREATED_AT",
+    "future_provider_cycle": false,
+    "backdated_known_at": false,
+    "retrospective_replacement_with_newer_run": false,
+    "required_preservation": [
+      "provider_run_id",
+      "issued_at",
+      "index_bytes_hash",
+      "GRIB_byte_range_hashes",
+      "grid_mapping",
+      "decoded_values",
+      "artifact_manifest_hash",
+      "fetched_at",
+      "known_at"
+    ],
+    "accepted_artifact_immutable": true,
+    "same_run_same_bytes": "REUSE_ALLOWED",
+    "same_run_different_bytes": "CONFLICT_FAIL_CLOSED",
+    "qualified_run_unavailable": "WEATHER_CAPTURE_UNAVAILABLE",
+    "newer_run_backfill_old_origin": false,
+    "H15_if_360_unavailable": "NOT_AVAILABLE_MAY_BE_FROZEN_BY_S1_S2",
+    "H15_harvest_target_can_still_exist": true,
+    "H8_H15_weather_fabrication": false,
+    "horizon_feature_mapping": "S2_PREDECLARATION_REQUIRED",
+    "interpolation_carry_forward_decay_ERA5_blend": "NOT_SELECTED_OR_AUTHORIZED_IN_S0"
+  },
+  "COHORT_ID": "V0_14_AS_ISSUED_WEATHER_PROSPECTIVE_COHORT_R1",
+  "cohort_entry_grain": [
+    "forecast_id",
+    "base_scope",
+    "target_season",
+    "forecast_created_at",
+    "provider_run_id",
+    "provider_issued_at",
+    "provider_known_at",
+    "weather_manifest_hash",
+    "C0_artifact_hash",
+    "W1_artifact_hash",
+    "C0_prediction_hash",
+    "W1_prediction_hash",
+    "seal_hash"
+  ],
+  "seal_contract": {
+    "required_fields": [
+      "forecast_id",
+      "request_snapshot",
+      "scope_authority_hash",
+      "C0_artifact_hash",
+      "W1_artifact_hash",
+      "weather_snapshot_ids",
+      "weather_snapshot_hashes",
+      "provider_manifest_hash",
+      "forecast_created_at",
+      "prediction_hashes",
+      "metric_contract"
+    ],
+    "simultaneous_pair_same": [
+      "forecast_created_at",
+      "scope",
+      "target_window",
+      "area_authority"
+    ],
+    "seal_immediately": true,
+    "target_actual_read_before_seal": false,
+    "target_actual_score_before_seal": false,
+    "prospective_pristine_if_target_actual_used_for_decisions": "INVALID_FOR_NEW_VALIDATION",
+    "claims_no_actual_exists_in_external_world": false,
+    "isolation_scope": "MODEL_SELECTION_TRAINING_ISSUANCE_PROCESS_BEFORE_SEAL"
+  },
+  "future_scoring": {
+    "primary": [
+      "H7_DAILY_WAPE",
+      "H15_DAILY_WAPE"
+    ],
+    "secondary": [
+      "DAILY_MAE",
+      "BIAS",
+      "SINGLE_DAY_PEAK_DATE",
+      "SINGLE_DAY_PEAK_QUANTITY",
+      "ROLLING7_PEAK_DATE",
+      "ROLLING7_PEAK_QUANTITY",
+      "SHAPE_IF_COMPUTABLE"
+    ],
+    "metric_contract_bound_before_issuance": true,
+    "changed_metric_contract": "NOT_COMPARABLE_TO_ORIGINAL_PROSPECTIVE_COHORT",
+    "required_reporting": [
+      "C0_VS_W1",
+      "SAME_SEALED_COHORT",
+      "SAME_ACTUAL_DENOMINATOR",
+      "PER_SCOPE",
+      "COMBINED",
+      "COVERAGE",
+      "COMPLETENESS"
+    ],
+    "promotion_threshold": null,
+    "arbitrary_5_or_10_percent_threshold": false,
+    "promotion_requires_separate_authorization": true,
+    "execution_version": "V0.15",
+    "execution_authorized": false,
+    "precise_scoring_contract_binding": "Before S3 issuance, bind immutable metric definitions, horizon completeness and actual-authority rules; S0 reserves primary names, not an execution authorization."
+  },
+  "operations": {
+    "shadow_mode": {
+      "TEST_ONLY": false,
+      "SHADOW": true,
+      "PRODUCTION": false
+    },
+    "issuance_class": "REAL_PROSPECTIVE_RESEARCH_ISSUANCE",
+    "post_closeout_accumulation_role": "DATA_ACCUMULATION_UNDER_FROZEN_PROTOCOL",
+    "accumulation_authorized_by_s0": false,
+    "post_closeout_accumulation_requires": "Accepted frozen protocol and separately authorized operational scope/cadence; no automatic next-slice execution.",
+    "protocol_change_requires": "NEW_PROTOCOL_VERSION_OR_NEW_MODEL_COHORT",
+    "immutable_protocol_dimensions": [
+      "weather_feature_schema",
+      "algorithm",
+      "alpha",
+      "provider",
+      "scope_rules",
+      "forecast_cadence",
+      "candidate_comparator"
+    ],
+    "existing_started_cohort_mutation": false
+  },
+  "slice_plan": [
+    {
+      "id": "S0",
+      "name": "VERSION_SCOPE_AND_PROSPECTIVE_PROTOCOL_FREEZE",
+      "authorized": true
+    },
+    {
+      "id": "S1",
+      "name": "ECMWF_AS_ISSUED_PROVIDER_SURFACE_AND_METEOROLOGICAL_SEMANTICS_QUALIFICATION",
+      "authorized": false
+    },
+    {
+      "id": "S2",
+      "name": "FUTURE_WEATHER_FEATURE_CONTRACT_AND_PROSPECTIVE_MODEL_ARTIFACT_FREEZE",
+      "authorized": false
+    },
+    {
+      "id": "S3",
+      "name": "REAL_AS_ISSUED_WEATHER_SHADOW_FORECAST_AND_PREDICTION_SEAL",
+      "authorized": false
+    },
+    {
+      "id": "S4",
+      "name": "PROSPECTIVE_COHORT_OPERATIONS_AND_VERSION_CLOSEOUT",
+      "authorized": false
+    }
+  ],
+  "completion": {
+    "required_slices": [
+      "S0",
+      "S1",
+      "S2",
+      "S3",
+      "S4"
+    ],
+    "minimum_valid_real_shadow_seals": 1,
+    "future_actual_required": false,
+    "accuracy_validation_required": false,
+    "conditions": [
+      "S0_PROTOCOL_FREEZE",
+      "S1_REAL_PROVIDER_SURFACE_QUALIFICATION",
+      "S2_ONE_FROZEN_CANDIDATE_AND_COMPARATOR_ARTIFACTS",
+      "S3_AT_LEAST_ONE_VALID_REAL_PROSPECTIVE_SHADOW_SEAL",
+      "S4_COHORT_OPERATIONS_CLOSEOUT"
+    ],
+    "version_complete_distinct_from_accuracy_validated": true
+  },
+  "V0_14_S0_AUTHORIZED": true,
+  "V0_14_S0_COMPLETE": true,
+  "V0_14_VERSION_COMPLETE": false,
+  "NEW_PROSPECTIVE_FORECAST_COUNT": 0,
+  "LATEST_FORMAL_RELEASE": "v0.11.0",
+  "CI_STRATEGY": "Public contracts and synthetic provider/PIT regression only; no live provider capture or private real artifacts. Exact-head CI is external to this immutable snapshot.",
+  "HEAD_CI_BINDING": "Final PR/head/terminal CI are verified in the final receipt, not self-referenced in the committed contract.",
+  "forbidden_true_fields": [
+    "V0_13_REOPENED",
+    "V0_13_FEATURE_SEARCH_REOPENED",
+    "V0_13_GDD_SEARCH_REOPENED",
+    "REAL_PROSPECTIVE_SCORING_IN_V0_14",
+    "PROSPECTIVE_ACCURACY_DECISION_IN_V0_14",
+    "S1_HARVEST_MODEL_SCORING",
+    "S1_FEATURE_SELECTION_BY_WAPE",
+    "WEATHER_FEATURE_SEARCH_BY_RESULT",
+    "HORIZON_SEARCH",
+    "WEATHER_VARIABLE_SEARCH",
+    "INTERACTION_SEARCH",
+    "HYPERPARAMETER_SEARCH",
+    "GDD_IN_V0_14_CANDIDATE",
+    "TARGET_ACTUAL_READ_BEFORE_SEAL",
+    "TARGET_ACTUAL_SCORE_BEFORE_SEAL",
+    "REAL_TARGET_ACTUAL_IMPORT_IN_V0_14",
+    "PROSPECTIVE_METRICS_COMPUTED",
+    "CANDIDATE_WINNER_SELECTED",
+    "MISSING_WEATHER_IS_ZERO",
+    "WEATHER_INTERPOLATION_NOT_PREDECLARED",
+    "V0_14_S1_AUTHORIZED",
+    "V0_14_S2_AUTHORIZED",
+    "V0_14_S3_AUTHORIZED",
+    "V0_14_S4_AUTHORIZED",
+    "V0_15_AUTHORIZED",
+    "REAL_ECMWF_CAPTURE_EXECUTED",
+    "PRIVATE_HARVEST_ROW_READ",
+    "PRIVATE_WEATHER_ARTIFACT_READ",
+    "PRIVATE_AREA_ARTIFACT_READ",
+    "MODEL_TRAINING_EXECUTED",
+    "MODEL_PREDICTION_EXECUTED",
+    "BACKTEST_EXECUTED",
+    "SCORING_EXECUTED",
+    "PROSPECTIVE_ACCURACY_VALIDATED",
+    "PRODUCTION_ACCURACY_VALIDATED",
+    "PRODUCTION_LIKE_WEATHER_VALIDATION",
+    "PRODUCTION_USE_APPROVED",
+    "NEW_BLIND_VALIDATION",
+    "READY_AUTHORIZED",
+    "MERGE_AUTHORIZED",
+    "AUTO_MERGE",
+    "TAG_AUTHORIZED",
+    "RELEASE_AUTHORIZED",
+    "TAG_CREATED",
+    "RELEASE_CREATED",
+    "AUTO_START_NEXT_SLICE",
+    "PRIVATE_DATA_REQUIRED_FOR_CI",
+    "NETWORK_REQUIRED_FOR_S0_CI",
+    "SECOND_PROVIDER_CREATED",
+    "V0_12_REOPENED"
+  ],
+  "V0_13_REOPENED": false,
+  "V0_13_FEATURE_SEARCH_REOPENED": false,
+  "V0_13_GDD_SEARCH_REOPENED": false,
+  "REAL_PROSPECTIVE_SCORING_IN_V0_14": false,
+  "PROSPECTIVE_ACCURACY_DECISION_IN_V0_14": false,
+  "S1_HARVEST_MODEL_SCORING": false,
+  "S1_FEATURE_SELECTION_BY_WAPE": false,
+  "WEATHER_FEATURE_SEARCH_BY_RESULT": false,
+  "HORIZON_SEARCH": false,
+  "WEATHER_VARIABLE_SEARCH": false,
+  "INTERACTION_SEARCH": false,
+  "HYPERPARAMETER_SEARCH": false,
+  "GDD_IN_V0_14_CANDIDATE": false,
+  "TARGET_ACTUAL_READ_BEFORE_SEAL": false,
+  "TARGET_ACTUAL_SCORE_BEFORE_SEAL": false,
+  "REAL_TARGET_ACTUAL_IMPORT_IN_V0_14": false,
+  "PROSPECTIVE_METRICS_COMPUTED": false,
+  "CANDIDATE_WINNER_SELECTED": false,
+  "MISSING_WEATHER_IS_ZERO": false,
+  "WEATHER_INTERPOLATION_NOT_PREDECLARED": false,
+  "V0_14_S1_AUTHORIZED": false,
+  "V0_14_S2_AUTHORIZED": false,
+  "V0_14_S3_AUTHORIZED": false,
+  "V0_14_S4_AUTHORIZED": false,
+  "V0_15_AUTHORIZED": false,
+  "REAL_ECMWF_CAPTURE_EXECUTED": false,
+  "PRIVATE_HARVEST_ROW_READ": false,
+  "PRIVATE_WEATHER_ARTIFACT_READ": false,
+  "PRIVATE_AREA_ARTIFACT_READ": false,
+  "MODEL_TRAINING_EXECUTED": false,
+  "MODEL_PREDICTION_EXECUTED": false,
+  "BACKTEST_EXECUTED": false,
+  "SCORING_EXECUTED": false,
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "PRODUCTION_ACCURACY_VALIDATED": false,
+  "PRODUCTION_LIKE_WEATHER_VALIDATION": false,
+  "PRODUCTION_USE_APPROVED": false,
+  "NEW_BLIND_VALIDATION": false,
+  "READY_AUTHORIZED": false,
+  "MERGE_AUTHORIZED": false,
+  "AUTO_MERGE": false,
+  "TAG_AUTHORIZED": false,
+  "RELEASE_AUTHORIZED": false,
+  "TAG_CREATED": false,
+  "RELEASE_CREATED": false,
+  "AUTO_START_NEXT_SLICE": false,
+  "PRIVATE_DATA_REQUIRED_FOR_CI": false,
+  "NETWORK_REQUIRED_FOR_S0_CI": false,
+  "SECOND_PROVIDER_CREATED": false,
+  "V0_12_REOPENED": false
+}
