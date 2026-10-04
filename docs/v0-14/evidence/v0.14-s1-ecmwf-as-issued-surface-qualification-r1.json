@@ -1,0 +1,2984 @@
+{
+  "06_18_SUPPORT_168H": false,
+  "10U_SEMANTICS": "INSTANTANEOUS_AT_VALID_TIME",
+  "10V_SEMANTICS": "INSTANTANEOUS_AT_VALID_TIME",
+  "2T_SEMANTICS": "INSTANTANEOUS_AT_VALID_TIME",
+  "2T_UNIT": "K",
+  "360_CAPTURE_ROLE": "OPTIONAL",
+  "BACKTEST_EXECUTED": false,
+  "BASE_CAPTURE_COUNT": 39,
+  "BASE_GRID_BINDING_PASS_COUNT": 39,
+  "BASE_LOCATION_AUTHORITY_HASH_VERIFIED": true,
+  "BASE_LOCATION_AUTHORITY_SHA256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+  "BASE_SHA": "d77d98f8a2e79bbd1089b7a61bf084d417063a5b",
+  "BUSINESS_TIMEZONE": "Asia/Shanghai",
+  "CAPTURE_ITERATIONS_NOTE": "ENGINEERING_PARSER_DIAGNOSTICS_AND_429_RAW_CACHE_RESUME_ONLY_NO_MODEL_OR_HARVEST_EXECUTION",
+  "CAPTURE_ROLE": "QUALIFICATION_ONLY",
+  "CLASS": "od",
+  "COMPLETE_RUN_REQUIRED_STEPS": [
+    24,
+    72,
+    168
+  ],
+  "COORDINATE_REFERENCE_SYSTEM": "NOT_ESTABLISHED",
+  "COORDINATE_REVIEW_STATUS": "RANGE_VALID_CRS_UNCONFIRMED",
+  "CORRECTNESS_BUG_FIXED": false,
+  "CURRENT_ADAPTER_MATERIALIZES_FULL_NATIVE_SURFACE": false,
+  "CURRENT_PROVIDER_UNIT_CONVERSION_STATUS": "PASS",
+  "CURRENT_REPO_CAPTURE_STEP_SURFACE": [
+    24,
+    72,
+    168,
+    360
+  ],
+  "DETERMINISTIC_REPLAY": "PASS",
+  "ECMWF_AS_ISSUED_PROVIDER_QUALIFICATION": "PASS",
+  "ENDPOINT_SNAPSHOTS_FORM_COMPLETE_FUTURE_WEATHER_WINDOW": false,
+  "FUTURE_WEATHER_FEATURE_SCHEMA_FROZEN": false,
+  "GRIB_SEMANTIC_PROBES": {
+    "144:10u": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 165,
+        "shortName": "10u",
+        "startStep": 144,
+        "stepRange": "144",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "f99a6daeae9c148ad5731658ff413dcd22c36e5b9b568936569dd71e64074bc6"
+    },
+    "144:10v": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 166,
+        "shortName": "10v",
+        "startStep": 144,
+        "stepRange": "144",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "24eefb57e9e15a748d8be7658cef69e8473a845a8b5dec84c27316b6a968c4e1"
+    },
+    "144:2t": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 167,
+        "shortName": "2t",
+        "startStep": 144,
+        "stepRange": "144",
+        "stepType": "instant",
+        "units": "K",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "a4225aeecc95c7b6096b73de9167a8f0b18d20b2e298999b8fbf456688999d34"
+    },
+    "144:mn2t3": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228027,
+        "shortName": "mn2t3",
+        "startStep": 141,
+        "stepRange": "141-144",
+        "stepType": "min",
+        "typeOfStatisticalProcessing": 3,
+        "units": "K",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "eff5a50fab49b452d9dd70cd85b116adfa5d02ac52b66d8a2d0cf0dbedd3fb7f"
+    },
+    "144:mx2t3": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228026,
+        "shortName": "mx2t3",
+        "startStep": 141,
+        "stepRange": "141-144",
+        "stepType": "max",
+        "typeOfStatisticalProcessing": 2,
+        "units": "K",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "ba10371f2d6bd0efb54b93492f4816cea700b9f873d8e8fddc0a72b709868d9d"
+    },
+    "144:ssrd": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 144,
+        "paramId": 169,
+        "shortName": "ssrd",
+        "startStep": 0,
+        "stepRange": "0-144",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "J m**-2",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "fa4b515d52efcda05a7020ede725c8d849f2a9180093257a59e2a87c932bcbfd"
+    },
+    "144:tp": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 144,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 144,
+        "paramId": 228,
+        "shortName": "tp",
+        "startStep": 0,
+        "stepRange": "0-144",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "m",
+        "validityDate": 20261010,
+        "validityTime": 0
+      },
+      "sha256": "76d9f47189ae422913f574403324f1427997792cce9063a12870438edd0bca80"
+    },
+    "150:10u": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 165,
+        "shortName": "10u",
+        "startStep": 150,
+        "stepRange": "150",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "07b031d03cda57abc9f8ad6abbc4d68883b10932a9b2d025b95ed53440d47366"
+    },
+    "150:10v": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 166,
+        "shortName": "10v",
+        "startStep": 150,
+        "stepRange": "150",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "3b9756ffcecba9f74e3eee14910c775872314f5f2a18e24ae782b4ccb0bd10d9"
+    },
+    "150:2t": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 167,
+        "shortName": "2t",
+        "startStep": 150,
+        "stepRange": "150",
+        "stepType": "instant",
+        "units": "K",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "3620f63f676ac358ea567ece643edf11abcbec89ca415f15de785982a00383a9"
+    },
+    "150:mn2t6": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 6,
+        "paramId": 122,
+        "shortName": "mn2t6",
+        "startStep": 144,
+        "stepRange": "144-150",
+        "stepType": "min",
+        "typeOfStatisticalProcessing": 3,
+        "units": "K",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "e45bd446f8de47dfe5a8f7548f0c5507adcb15a798c5536c6479c06d882f3c62"
+    },
+    "150:mx2t6": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 6,
+        "paramId": 121,
+        "shortName": "mx2t6",
+        "startStep": 144,
+        "stepRange": "144-150",
+        "stepType": "max",
+        "typeOfStatisticalProcessing": 2,
+        "units": "K",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "41332c6829f4344a23a573d90c1a39cd1178d5d9e4e0b9b0a13f8502606b73cd"
+    },
+    "150:ssrd": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 150,
+        "paramId": 169,
+        "shortName": "ssrd",
+        "startStep": 0,
+        "stepRange": "0-150",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "J m**-2",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "21c1dc23f6beddc5f78922035854e6ef9421e6930f1f2160953bfb394d03cf27"
+    },
+    "150:tp": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 150,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 150,
+        "paramId": 228,
+        "shortName": "tp",
+        "startStep": 0,
+        "stepRange": "0-150",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "m",
+        "validityDate": 20261010,
+        "validityTime": 600
+      },
+      "sha256": "13442956efc8ca0631c40ddc8e61bbc4f17b85d28999aa9fd8b1eea62c499ded"
+    },
+    "168:10u": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 165,
+        "shortName": "10u",
+        "startStep": 168,
+        "stepRange": "168",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "3035c60c50d47c2451cdd2478bc641b3064244ab56e14ffd0b7954bcad91f123"
+    },
+    "168:10v": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 166,
+        "shortName": "10v",
+        "startStep": 168,
+        "stepRange": "168",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "7443e1faeb9aba2e40ea9cecc94a0ebafc0d3b216d67779c7ab3e1b8be151872"
+    },
+    "168:2t": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 167,
+        "shortName": "2t",
+        "startStep": 168,
+        "stepRange": "168",
+        "stepType": "instant",
+        "units": "K",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "c5afd2fa948132ba96a44111d48bc0123ea8ec6f504d1dcdeb6060a049b122dd"
+    },
+    "168:mn2t6": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 6,
+        "paramId": 122,
+        "shortName": "mn2t6",
+        "startStep": 162,
+        "stepRange": "162-168",
+        "stepType": "min",
+        "typeOfStatisticalProcessing": 3,
+        "units": "K",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "9b72c90b7bd2cc0fbe6050cf84bbf343dcc51c0ce21a0dfd8ce222d0e96577e4"
+    },
+    "168:mx2t6": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 6,
+        "paramId": 121,
+        "shortName": "mx2t6",
+        "startStep": 162,
+        "stepRange": "162-168",
+        "stepType": "max",
+        "typeOfStatisticalProcessing": 2,
+        "units": "K",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "160e745632055a767e8d4e6bd5d2e27ef70a31760b23bc8fcd79194b5072adfe"
+    },
+    "168:ssrd": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 168,
+        "paramId": 169,
+        "shortName": "ssrd",
+        "startStep": 0,
+        "stepRange": "0-168",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "J m**-2",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "a4efedf78ea8c2e807fad7d224eb6250236f1700b88286c2903072dcc9352615"
+    },
+    "168:tp": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 168,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 168,
+        "paramId": 228,
+        "shortName": "tp",
+        "startStep": 0,
+        "stepRange": "0-168",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "m",
+        "validityDate": 20261011,
+        "validityTime": 0
+      },
+      "sha256": "09c274b3c2ab87804cbcc893a4204d87edd4b9f4172c04edbb3ac76483891b61"
+    },
+    "24:10u": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 165,
+        "shortName": "10u",
+        "startStep": 24,
+        "stepRange": "24",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "f2582eb40112a025096fcc3190da285f75d59dfce977411a44c02e9679761938"
+    },
+    "24:10v": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 166,
+        "shortName": "10v",
+        "startStep": 24,
+        "stepRange": "24",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "11a5b04a8d8540ec7642c9efba457cb185a7cc419e4fbf1ae8d9d70d1b768d66"
+    },
+    "24:2t": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 167,
+        "shortName": "2t",
+        "startStep": 24,
+        "stepRange": "24",
+        "stepType": "instant",
+        "units": "K",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "0cf46a839e291e47d00a4c1f03cfb8d5b00c3f017bc2f496f23fb291b0ac6cf6"
+    },
+    "24:mn2t3": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228027,
+        "shortName": "mn2t3",
+        "startStep": 21,
+        "stepRange": "21-24",
+        "stepType": "min",
+        "typeOfStatisticalProcessing": 3,
+        "units": "K",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "d143985a0b70ad01a3d99f6477b46b40654759b4e426cd9dda948db324681ab0"
+    },
+    "24:mx2t3": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228026,
+        "shortName": "mx2t3",
+        "startStep": 21,
+        "stepRange": "21-24",
+        "stepType": "max",
+        "typeOfStatisticalProcessing": 2,
+        "units": "K",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "a407b7dfbae8ea8dd30dbae6ff82bbe64d555ac354be37b71452c991c3b5508d"
+    },
+    "24:ssrd": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 24,
+        "paramId": 169,
+        "shortName": "ssrd",
+        "startStep": 0,
+        "stepRange": "0-24",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "J m**-2",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "52047a02492393050876200b476d24e22ecf00b43d35483bb39dd8ee7a2168dd"
+    },
+    "24:tp": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 24,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 24,
+        "paramId": 228,
+        "shortName": "tp",
+        "startStep": 0,
+        "stepRange": "0-24",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "m",
+        "validityDate": 20261005,
+        "validityTime": 0
+      },
+      "sha256": "67e6ab2625707eede983124fe4e455949b6c515c1b36f68d56710ed00f361f71"
+    },
+    "360:10u": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 165,
+        "shortName": "10u",
+        "startStep": 360,
+        "stepRange": "360",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "f92b5d4c5d1b98e5dbc2883830dbb690846f916a536a789191914d373bb30797"
+    },
+    "360:10v": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 166,
+        "shortName": "10v",
+        "startStep": 360,
+        "stepRange": "360",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "e31eb94ac5f7062d9873da691ab5a5559bbe63008ccd65c08d28afb6977fa4c3"
+    },
+    "360:2t": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 167,
+        "shortName": "2t",
+        "startStep": 360,
+        "stepRange": "360",
+        "stepType": "instant",
+        "units": "K",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "9de5c4d9d50149439a56676705a9a43bc17cd949870a1b16ce405ea8a2b572e8"
+    },
+    "360:mn2t6": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 6,
+        "paramId": 122,
+        "shortName": "mn2t6",
+        "startStep": 354,
+        "stepRange": "354-360",
+        "stepType": "min",
+        "typeOfStatisticalProcessing": 3,
+        "units": "K",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "09bd53f9fecd0aa7724762b2645318375b67195ca9b61bf41f025e423ba0d9e1"
+    },
+    "360:mx2t6": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 6,
+        "paramId": 121,
+        "shortName": "mx2t6",
+        "startStep": 354,
+        "stepRange": "354-360",
+        "stepType": "max",
+        "typeOfStatisticalProcessing": 2,
+        "units": "K",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "348a8bc46c53fd4c4427540e429af7c015c62cfa076afa3d497839f5f721068b"
+    },
+    "360:ssrd": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 360,
+        "paramId": 169,
+        "shortName": "ssrd",
+        "startStep": 0,
+        "stepRange": "0-360",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "J m**-2",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "742de187515228eff64e2da464369f57b94a10d52285a992710daa7eb53fbafc"
+    },
+    "360:tp": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 360,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 360,
+        "paramId": 228,
+        "shortName": "tp",
+        "startStep": 0,
+        "stepRange": "0-360",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "m",
+        "validityDate": 20261019,
+        "validityTime": 0
+      },
+      "sha256": "fc74ddd8117e433d77ac205bdba9ba6ab15ac38114a62151ed85273b72d295be"
+    },
+    "3:10u": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 165,
+        "shortName": "10u",
+        "startStep": 3,
+        "stepRange": "3",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "dca5e1058139a563f0907bbb9aa5f1fcfbfd727f1aab8f3d12bc86f8c800dd72"
+    },
+    "3:10v": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 166,
+        "shortName": "10v",
+        "startStep": 3,
+        "stepRange": "3",
+        "stepType": "instant",
+        "units": "m s**-1",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "b6b1ed7f596fd34b25ba8f62a3e1218de29fb73d1daa93a113ec85526988273c"
+    },
+    "3:2t": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "paramId": 167,
+        "shortName": "2t",
+        "startStep": 3,
+        "stepRange": "3",
+        "stepType": "instant",
+        "units": "K",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "078a569b41661b6fb6e5f9831823bb5f2b61e04f7e878a9fd0998cca9688bf5e"
+    },
+    "3:mn2t3": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228027,
+        "shortName": "mn2t3",
+        "startStep": 0,
+        "stepRange": "0-3",
+        "stepType": "min",
+        "typeOfStatisticalProcessing": 3,
+        "units": "K",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "6eea1ea377233070d5ddf538d7f396e7aeacaf151616bba38ae7d6e1075e3c25"
+    },
+    "3:mx2t3": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228026,
+        "shortName": "mx2t3",
+        "startStep": 0,
+        "stepRange": "0-3",
+        "stepType": "max",
+        "typeOfStatisticalProcessing": 2,
+        "units": "K",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "e6c386ac987fa739631302d35b34bca3f5b7dd469d3a5c0dedf009b30b2c1d2d"
+    },
+    "3:ssrd": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 169,
+        "shortName": "ssrd",
+        "startStep": 0,
+        "stepRange": "0-3",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "J m**-2",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "490d3ad8e163717fcf8897ad5bfdc92a8dee6b59d5d205e254675723cbee0724"
+    },
+    "3:tp": {
+      "metadata": {
+        "dataDate": 20261004,
+        "dataTime": 0,
+        "endStep": 3,
+        "indicatorOfUnitOfTimeRange": 1,
+        "lengthOfTimeRange": 3,
+        "paramId": 228,
+        "shortName": "tp",
+        "startStep": 0,
+        "stepRange": "0-3",
+        "stepType": "accum",
+        "typeOfStatisticalProcessing": 1,
+        "units": "m",
+        "validityDate": 20261004,
+        "validityTime": 300
+      },
+      "sha256": "64b8f30debcf460171467209bac3a37c68fa2c7d4b20401d700c52279b196349"
+    }
+  },
+  "H15_PROVIDER_SURFACE_GUARANTEED": false,
+  "H15_PROVIDER_SURFACE_QUALIFICATION": "QUALIFIED",
+  "H7_PROVIDER_SURFACE_QUALIFICATION": "QUALIFIED",
+  "HISTORICAL_PROXY_IS_AS_ISSUED_FORECAST": false,
+  "IFS_PRODUCT_CYCLE": "50r1_CURRENT_DOCUMENTED_PRODUCT_CONTRACT_NOT_INFERRED_FROM_GRIB",
+  "INDEX_ARTIFACT_COUNT": 889,
+  "IS_00_12_ONLY_POLICY_INTENTIONALLY_REQUIRED_FOR_168H_COMPLETENESS": true,
+  "LATEST_FORMAL_RELEASE": "v0.11.0",
+  "LEGACY_NORMALIZED_TEMPERATURE_MEAN_FIELD_IS_NOT_DAILY_MEAN": true,
+  "LIVE_00_CYCLE_AVAILABLE": true,
+  "LIVE_06_CYCLE_AVAILABLE": true,
+  "LIVE_12_CYCLE_AVAILABLE": true,
+  "LIVE_18_CYCLE_AVAILABLE": true,
+  "LOCAL_DAY_EXACT_AGGREGATION_FROM_NATIVE_STEPS": false,
+  "LOCAL_DAY_PRORATING_AUTHORIZED": false,
+  "LOCAL_MIDNIGHT_UTC": "16:00_PREVIOUS_UTC_DATE",
+  "MERGE_AUTHORIZED": false,
+  "MN2T3_QUALIFIED_RANGE": "3..144_BY_3H_LAST_3H",
+  "MN2T6_QUALIFIED_RANGE": "150..360_BY_6H_LAST_6H_00_12",
+  "MODEL_ID": "IFS",
+  "MODEL_PREDICTION_EXECUTED": false,
+  "MODEL_TRAINING_EXECUTED": false,
+  "MX2T3_QUALIFIED_RANGE": "3..144_BY_3H_LAST_3H",
+  "MX2T6_QUALIFIED_RANGE": "150..360_BY_6H_LAST_6H_00_12",
+  "NETWORK_REQUIRED_FOR_CI": false,
+  "OBSERVED_DISTINCT_COMPLETE_00_12_RUN_COUNT": 7,
+  "OBSERVED_RUNS": {
+    "20261001000000": {
+      "availability_matrix_hash": "668116470ae0d803af30c394ae51a60c4a30673b5db90bc70f2b610c09a5b947",
+      "cycle": "00",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261001060000": {
+      "availability_matrix_hash": "9f3c447ceff0b33fff1b1489122dbcd4d6fe41f6c9c073ab5daa0bb025063a24",
+      "cycle": "06",
+      "index_count": 49,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "10v": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "2t": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "ssrd": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "tp": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        }
+      },
+      "status": "AVAILABLE_BUT_INCOMPLETE_FOR_V0_14_REQUIRED_SURFACE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261001120000": {
+      "availability_matrix_hash": "a9c0f1010357198c2aa8f8e635e64ef9427444716d2c677f14bba6bde07b9cba",
+      "cycle": "12",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261001180000": {
+      "availability_matrix_hash": "c5d89222204c888f7563ce43f3fbfcac2f2905f1178246f9ecba33419ec6a66d",
+      "cycle": "18",
+      "index_count": 49,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "10v": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "2t": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "ssrd": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "tp": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        }
+      },
+      "status": "AVAILABLE_BUT_INCOMPLETE_FOR_V0_14_REQUIRED_SURFACE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261002000000": {
+      "availability_matrix_hash": "f20784a48f1bbe410e254af7c374ed694fc4cfb38746db946337bb2a9982ab2c",
+      "cycle": "00",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261002060000": {
+      "availability_matrix_hash": "556e595b516e7fae3bee3699488a4d4304a8b83df11226e5e25daf6440b5ac60",
+      "cycle": "06",
+      "index_count": 49,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "10v": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "2t": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "ssrd": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "tp": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        }
+      },
+      "status": "AVAILABLE_BUT_INCOMPLETE_FOR_V0_14_REQUIRED_SURFACE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261002120000": {
+      "availability_matrix_hash": "92bf6f785246e1908ff6bd6715515bfd37880e2936bc8e69c7df71bc823f0715",
+      "cycle": "12",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261002180000": {
+      "availability_matrix_hash": "97cd10fc21dc532e547582398fe0b9891b3f55c979f29592201d811f98867127",
+      "cycle": "18",
+      "index_count": 49,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "10v": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "2t": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "ssrd": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "tp": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        }
+      },
+      "status": "AVAILABLE_BUT_INCOMPLETE_FOR_V0_14_REQUIRED_SURFACE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261003000000": {
+      "availability_matrix_hash": "ec824b732e8a9ce452caed8cc1da502e988b6cfd5fb8f3199a94b04b3ba86cd4",
+      "cycle": "00",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261003060000": {
+      "availability_matrix_hash": "d1722bfbbe91f819b66ac2444f3981060dd28c649ea4844173027251fe5b523e",
+      "cycle": "06",
+      "index_count": 49,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "10v": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "2t": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "ssrd": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "tp": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        }
+      },
+      "status": "AVAILABLE_BUT_INCOMPLETE_FOR_V0_14_REQUIRED_SURFACE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261003120000": {
+      "availability_matrix_hash": "cbcdd2e49bdd567d13865cc9797bffe59df060d2ba40b36fed2be97bb1784905",
+      "cycle": "12",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261003180000": {
+      "availability_matrix_hash": "89fe944d9b5ccaabb4446dff4abca03bcb84211f66a6bfe75184d177daaa4381",
+      "cycle": "18",
+      "index_count": 49,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "10v": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "2t": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 0,
+          "first_step": null,
+          "last_step": null,
+          "qualified_steps_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "ssrd": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        },
+        "tp": {
+          "count": 49,
+          "first_step": 0,
+          "last_step": 144,
+          "qualified_steps_hash": "c01ef07a1d86e948d87ee3dd286a53a183e33d5a2abd9ca8046ad6cd5016c0e4"
+        }
+      },
+      "status": "AVAILABLE_BUT_INCOMPLETE_FOR_V0_14_REQUIRED_SURFACE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    },
+    "20261004000000": {
+      "availability_matrix_hash": "52030506b159b16cb4f70e826ff2b2fc3ae461f1755a0b51c5d47e7b7e2d26b4",
+      "cycle": "00",
+      "index_count": 85,
+      "listed_steps": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21,
+        24,
+        27,
+        30,
+        33,
+        36,
+        39,
+        42,
+        45,
+        48,
+        51,
+        54,
+        57,
+        60,
+        63,
+        66,
+        69,
+        72,
+        75,
+        78,
+        81,
+        84,
+        87,
+        90,
+        93,
+        96,
+        99,
+        102,
+        105,
+        108,
+        111,
+        114,
+        117,
+        120,
+        123,
+        126,
+        129,
+        132,
+        135,
+        138,
+        141,
+        144,
+        150,
+        156,
+        162,
+        168,
+        174,
+        180,
+        186,
+        192,
+        198,
+        204,
+        210,
+        216,
+        222,
+        228,
+        234,
+        240,
+        246,
+        252,
+        258,
+        264,
+        270,
+        276,
+        282,
+        288,
+        294,
+        300,
+        306,
+        312,
+        318,
+        324,
+        330,
+        336,
+        342,
+        348,
+        354,
+        360
+      ],
+      "parameter_ranges": {
+        "10u": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "10v": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "2t": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "mn2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mn2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "mx2t3": {
+          "count": 48,
+          "first_step": 3,
+          "last_step": 144,
+          "qualified_steps_hash": "ec3606afa5e20204dff3095e00bf5887a14639ea698011c29ec519f8ea024093"
+        },
+        "mx2t6": {
+          "count": 36,
+          "first_step": 150,
+          "last_step": 360,
+          "qualified_steps_hash": "5a24555d174b7150e500b811511032adabfec442367e2e6c9405f0a437b44e39"
+        },
+        "ssrd": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        },
+        "tp": {
+          "count": 85,
+          "first_step": 0,
+          "last_step": 360,
+          "qualified_steps_hash": "dafe1d6aae58472727d7bc28a136abeb488259734b92a6b52d983343d7b24187"
+        }
+      },
+      "status": "QUALIFIED_COMPLETE",
+      "unqualified_index_field_step_mismatches": [
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mx2t3"
+        },
+        {
+          "field_step": "3",
+          "file_step": 0,
+          "parameter": "mn2t3"
+        }
+      ]
+    }
+  },
+  "OBSERVED_RUN_COUNT": 13,
+  "OFFICIAL_00_12_STEP_SURFACE": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    15,
+    18,
+    21,
+    24,
+    27,
+    30,
+    33,
+    36,
+    39,
+    42,
+    45,
+    48,
+    51,
+    54,
+    57,
+    60,
+    63,
+    66,
+    69,
+    72,
+    75,
+    78,
+    81,
+    84,
+    87,
+    90,
+    93,
+    96,
+    99,
+    102,
+    105,
+    108,
+    111,
+    114,
+    117,
+    120,
+    123,
+    126,
+    129,
+    132,
+    135,
+    138,
+    141,
+    144,
+    150,
+    156,
+    162,
+    168,
+    174,
+    180,
+    186,
+    192,
+    198,
+    204,
+    210,
+    216,
+    222,
+    228,
+    234,
+    240,
+    246,
+    252,
+    258,
+    264,
+    270,
+    276,
+    282,
+    288,
+    294,
+    300,
+    306,
+    312,
+    318,
+    324,
+    330,
+    336,
+    342,
+    348,
+    354,
+    360
+  ],
+  "OFFICIAL_06_18_STEP_SURFACE": [
+    0,
+    3,
+    6,
+    9,
+    12,
+    15,
+    18,
+    21,
+    24,
+    27,
+    30,
+    33,
+    36,
+    39,
+    42,
+    45,
+    48,
+    51,
+    54,
+    57,
+    60,
+    63,
+    66,
+    69,
+    72,
+    75,
+    78,
+    81,
+    84,
+    87,
+    90,
+    93,
+    96,
+    99,
+    102,
+    105,
+    108,
+    111,
+    114,
+    117,
+    120,
+    123,
+    126,
+    129,
+    132,
+    135,
+    138,
+    141,
+    144
+  ],
+  "OFFICIAL_DOCUMENTATION_HORIZON_CONFLICT": true,
+  "OFFICIAL_SOURCES": [
+    {
+      "authority_role": "CURRENT_PRODUCT_CONTRACT",
+      "facts": "IFS_50R1;OD_OPER_FC;00_12_TO_360;06_18_TO_144;12_ROLLING_RUNS",
+      "retrieved_at": "2026-10-04",
+      "url": "https://www.ecmwf.int/en/forecasts/datasets/open-data"
+    },
+    {
+      "authority_role": "CURRENT_TECHNICAL_ACCESS_DOCUMENTATION_WITH_HORIZON_CONFLICT",
+      "facts": "RAW_INDEX_BYTE_RANGES;FOUR_OPER_CYCLES;TEXT_RETAINS_240_90_LIMITS_CONTRADICTED_BY_PRODUCT_PAGE_AND_LIVE_INDEX",
+      "retrieved_at": "2026-10-04",
+      "url": "https://confluence.ecmwf.int/spaces/DAC/pages/272310539/ECMWF+open+data+real-time+forecasts+from+IFS+and+AIFS"
+    },
+    {
+      "authority_role": "OFFICIAL_OPERATIONAL_ACCUMULATION_TRANSFORM_DOCUMENTATION",
+      "facts": "OPERATIONAL_FORECAST_ACCUMULATIONS_FROM_FORECAST_START;LIVE_GRIB_STARTSTEP_ZERO_VERIFIES_PRODUCT_SPECIFIC_ENCODING",
+      "retrieved_at": "2026-10-04",
+      "url": "https://github.com/ecmwf/anemoi-datasets/blob/main/docs/building/sources/accumulate.rst"
+    },
+    {
+      "authority_role": "PARAMETER_DEFINITION_NOT_PRODUCT_STEP_AUTHORITY",
+      "facts": "SSRD_169_DOWNWARD_SOLAR_ENERGY_POSITIVE_DOWNWARDS_NOT_NET_SSR_176;LIVE_SSRD_ENCODING_IS_ACCUM_J_M2",
+      "retrieved_at": "2026-10-04",
+      "url": "https://codes.ecmwf.int/grib/param-db/169"
+    }
+  ],
+  "OPTIONAL_360_STATUS": "QUALIFIED_OPTIONAL",
+  "PIT_ORDER": "PASS",
+  "POST_CAPTURE_RAW_IDENTITY_CHECK": "PASS",
+  "PRIVATE_COORDINATES_COMMITTED": false,
+  "PRIVATE_HARVEST_ROW_READ": false,
+  "PRIVATE_HISTORICAL_WEATHER_ROW_READ": false,
+  "PRIVATE_RAW_MANIFEST_SHA256": "da565010b9f19ecde17474490e664f8598db992503bdbd45c7ff689e2c3ae0fd",
+  "PRODUCTION_PROVIDER_CODE_CHANGED": false,
+  "PRODUCTION_USE_APPROVED": false,
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "PROSPECTIVE_COHORT_ENTRY_CREATED": false,
+  "PROVIDER_CONTRACT_DRIFT": false,
+  "PROVIDER_EXTENSION_REASON": "DENSE_STEP_SEQUENCE_AND_6H_EXTREMA_NEEDED_FOR_DEFENSIBLE_WINDOW_MATERIALIZATION;FINAL_FEATURE_POLICY_NOT_SELECTED",
+  "PROVIDER_EXTENSION_REQUIRED_FOR_S2": true,
+  "PROVIDER_NAME": "ECMWF_IFS_OPEN_DATA",
+  "PROXY_MAPPING": {
+    "PRECIPITATION": {
+      "reason": "SAME_RUN_CUMULATIVE_DIFFERENCE_AND_M_TO_MM;LOCAL_MIDNIGHT_NOT_NATIVE_BOUNDARY",
+      "status": "PARTIAL"
+    },
+    "SOLAR": {
+      "reason": "SAME_RUN_CUMULATIVE_ENERGY_DIFFERENCE_J_TO_MJ;LOCAL_MIDNIGHT_NOT_NATIVE_BOUNDARY",
+      "status": "PARTIAL"
+    },
+    "TEMPERATURE": {
+      "reason": "K_TO_C_EXACT_UNIT_TRANSFORM;INSTANT_3H_6H_SAMPLES_NOT_24_HOURLY_LOCAL_DAY_MEAN",
+      "status": "PARTIAL"
+    },
+    "TMAX": {
+      "reason": "3H_6H_INTERVAL_EXTREMA_NOT_ERA5_24_HOURLY_SAMPLED_LOCAL_DAY_MAX",
+      "status": "PARTIAL"
+    },
+    "TMIN": {
+      "reason": "3H_6H_INTERVAL_EXTREMA_NOT_ERA5_24_HOURLY_SAMPLED_LOCAL_DAY_MIN",
+      "status": "PARTIAL"
+    },
+    "WIND": {
+      "reason": "HYPOT_U_V_PHYSICAL_TRANSFORM;INSTANT_SAMPLES_NOT_24_HOURLY_LOCAL_DAY_MEAN",
+      "status": "PARTIAL"
+    }
+  },
+  "PUBLIC_PROXY_AUTHORITY": "docs/v0-7/s2/weather-dataset-and-leakage-safe-feature-freeze.md",
+  "QUALIFICATION_CAPTURE_FETCHED_AT": "2026-10-04T08:43:53.697770+00:00",
+  "QUALIFICATION_CAPTURE_ISSUED_AT": "2026-10-04T00:00:00+00:00",
+  "QUALIFICATION_CAPTURE_KNOWN_AT": "2026-10-04T08:43:53.697770+00:00",
+  "QUALIFICATION_CAPTURE_RUN_ID": "20261004000000",
+  "QUALIFICATION_CUTOFF": "2026-10-04T08:43:53.722701+00:00",
+  "QUALIFIED_COMPLETE_CYCLES": [
+    "00",
+    "12"
+  ],
+  "RAW_ARTIFACTS_COMMITTED": false,
+  "READY_AUTHORIZED": false,
+  "REAL_ECMWF_CAPTURE_EXECUTED": true,
+  "REAL_SHADOW_FORECAST_COUNT": 0,
+  "RELEASE_CREATED": false,
+  "REPLAY_SCOPE": "SAME_PROVIDER_INSTANCE_IMMUTABLE_RAW_CACHE_SAME_FINAL_CUTOFF",
+  "REPRESENTATIVE_GRIB_RUN_ID": "20261004000000",
+  "RESOLUTION": "0p25",
+  "RESULT": "PASS",
+  "ROLLING_ARCHIVE_APPROX_TIME_COVERAGE": "2-3_DAYS_NOT_HISTORICAL_ARCHIVE",
+  "ROLLING_ARCHIVE_AVAILABLE_RUN_COUNT_DOCUMENTED": 12,
+  "SAME_DECODED_VALUES": true,
+  "SAME_FIELD_HASHES": true,
+  "SAME_INDEX_HASHES": true,
+  "SAME_RUN_ID": true,
+  "SAME_SNAPSHOT_HASHES": true,
+  "SCORING_EXECUTED": false,
+  "SNAPSHOT_CONTENT_HASH": "63f5436fc6a2b18b63b6bde27865d6379b51abc5043cabac6a74fee750207a7e",
+  "SNAPSHOT_COUNT": 156,
+  "SOURCE_RETRIEVAL_PRECISION": "UTC_DATE",
+  "SSRD_ACCUMULATION_ORIGIN": "FORECAST_START_STEP_0",
+  "SSRD_POSITIVE_DIRECTION": "DOWNWARD",
+  "SSRD_SEMANTICS": "TIME_INTEGRATED_DOWNWARD_SURFACE_SOLAR_ENERGY",
+  "SSRD_UNIT": "J m**-2",
+  "STREAM": "oper",
+  "TAG_CREATED": false,
+  "TARGET_ACTUAL_READ": false,
+  "TASK_ID": "V0_14_S1_ECMWF_AS_ISSUED_PROVIDER_SURFACE_AND_METEOROLOGICAL_SEMANTICS_QUALIFICATION_R1",
+  "TP_ACCUMULATION_ORIGIN": "FORECAST_START_STEP_0",
+  "TP_SEMANTICS": "ACCUMULATED_FROM_FORECAST_START",
+  "TP_UNIT": "m",
+  "TRANSFORMATION_CANDIDATES_ONLY": [
+    "K_MINUS_273_15",
+    "HYPOT_10U_10V",
+    "SAME_RUN_CUMULATIVE_DIFFERENCE",
+    "INTERVAL_ENERGY_DIVIDED_BY_INTERVAL_SECONDS",
+    "FORECAST_RUN_RELATIVE_WINDOW"
+  ],
+  "TRANSFORMATION_CANDIDATE_PRECONDITIONS": [
+    "SAME_RUN",
+    "ORDERED_VALID_STEPS",
+    "SAME_PARAMETER_ENCODING",
+    "NONNEGATIVE_DIFFERENCE_WITH_EXPLICIT_TOLERANCE_POLICY_TO_BE_FROZEN_IN_S2"
+  ],
+  "TYPE": "fc",
+  "V0_14_S1_COMPLETE": true,
+  "V0_14_S2_AUTHORIZED": false,
+  "V0_14_S3_AUTHORIZED": false,
+  "V0_14_S4_AUTHORIZED": false,
+  "V0_14_VERSION_COMPLETE": false,
+  "V0_15_AUTHORIZED": false,
+  "WIND_UNIT": "m s**-1",
+  "PROVIDER_NATIVE_INDEX_PARITY": "PASS",
+  "PROVIDER_SEMANTIC_PROBE_FIELD_PARITY": "PASS",
+  "PROVIDER_ARTIFACT_MANIFEST_SHA256": "319fe5121baf90ff76798e3a0d6814c9fa4732abed0c2e336b9ba2d8b9736703",
+  "S0_PUBLIC_EVIDENCE_SHA256": "767e5e3b6dbf5af56d9ec4b72cb69fb0818cb98f479dd4768244807f883a2004",
+  "S0_PR": 674,
+  "S0_MERGE_SHA": "d77d98f8a2e79bbd1089b7a61bf084d417063a5b",
+  "FAILURE_INJECTION_CASE_COUNT": 36,
+  "FAILURE_INJECTION_PASS_COUNT": 36
+}
