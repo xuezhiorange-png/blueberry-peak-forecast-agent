@@ -127,6 +127,9 @@ def leakage_proof() -> dict[str, Any]:
 def derive(root: Path) -> dict[str, Any]:
     sources, pins = load_sources(root)
     matrix = sources[f"{BUSINESS}/base-season-training-readiness-matrix.json"]["rows"]
+    business_rows = {(r["base_id"], r["season"]): r for r in matrix}
+    if len(business_rows) != len(matrix):
+        raise ValueError("DUPLICATE_SOURCE_BASE_SEASON")
     roles = split_roles([r["season"] for r in matrix])
     area_rows = sources[f"{BUSINESS}/area-pit-evidence-reclassification.json"]["rows"]
     areas = {(r["base_id"], r["season"]): r for r in area_rows}
@@ -140,6 +143,15 @@ def derive(root: Path) -> dict[str, Any]:
     weather = {(r["base_id"], r["season"], r["forecast_origin"]): r for r in weather_rows}
     if len(weather) != len(weather_rows):
         raise ValueError("DUPLICATE_SOURCE_ORIGIN")
+    weather_audited = Counter((r["base_id"], r["season"]) for r in weather_rows)
+    weather_qualified = Counter(
+        (r["base_id"], r["season"])
+        for r in weather_rows
+        if r["weather8_coverage_complete"]
+        and r["tier_b_publication_eligible"]
+        and r["tp_endpoints_audited"]
+        and r["precipitation_policy_pass"]
+    )
     policy: dict[str, Any] = {
         "policy_version": "V0_15_S1_RETROSPECTIVE_RESEARCH_ADMISSION_R1",
         "strict_pit": False,
@@ -219,6 +231,20 @@ def derive(root: Path) -> dict[str, Any]:
             else "UNRESOLVED",
             "identity_mapping_hash": digest(mapping),
             "label_completeness": "COMPLETE" if allowed else "PARTIAL",
+            "weather_evidence_level": "TIER_B_ASSUMED" if weather_qualified[key] else "UNAVAILABLE",
+            "weather_coverage_status": (
+                "NOT_AUDITED_IN_S0"
+                if not weather_audited[key]
+                else "FULL_WEATHER_COVERAGE"
+                if weather_qualified[key] == weather_audited[key]
+                else "PARTIAL_WEATHER_COVERAGE"
+                if weather_qualified[key]
+                else "NO_QUALIFIED_WEATHER_COVERAGE"
+            ),
+            "weather_qualified_origin_count_before_h15_tail_filter": weather_qualified[key],
+            "benchmark_exposure_status": "PREVIOUSLY_EXPOSED_BENCHMARK"
+            if known
+            else "UNKNOWN_EXPOSURE",
             "exposure_status": exposure,
             "temporal_role": roles[key[1]],
             "base_research_eligible": allowed,
@@ -278,7 +304,8 @@ def derive(root: Path) -> dict[str, Any]:
                 "retrospective_authority_used": True,
                 "strict_pit": False,
                 "source_weather_row_hash": digest(w),
-                "source_business_row_hash": digest(entry),
+                "source_business_row_hash": digest(business_rows[key]),
+                "cohort_decision_hash": digest(entry),
                 "label_projection_hash": sources[
                     f"{BUSINESS}/canonical-logical-harvest-record-report.json"
                 ]["logical_projection_hash"],

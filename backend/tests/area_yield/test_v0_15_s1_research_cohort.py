@@ -209,6 +209,23 @@ def test_exposure_unknown_is_not_unexposed(reports: dict) -> None:
     assert not any(r["exposure_status"] == "KNOWN_UNEXPOSED" for r in rows)
 
 
+def test_every_base_season_preserves_all_evidence_grades(reports: dict) -> None:
+    rows = reports["retrospective-base-research-cohort.json"]["all_base_season_decisions"]
+    required = {
+        "weather_evidence_level",
+        "area_evidence_level",
+        "identity_evidence_level",
+        "label_completeness",
+        "benchmark_exposure_status",
+        "research_admission_status",
+    }
+    assert len(rows) == 117
+    assert all(required <= row.keys() for row in rows)
+    assert sum(r["weather_coverage_status"] == "FULL_WEATHER_COVERAGE" for r in rows) == 39
+    assert sum(r["weather_coverage_status"] == "PARTIAL_WEATHER_COVERAGE" for r in rows) == 22
+    assert all(r["area_evidence_level"] == "PIT_EVIDENCE_TIER_C_RETROSPECTIVE" for r in rows)
+
+
 def test_common_rowset_exact_order_and_masks(reports: dict) -> None:
     rows = reports["research-forecast-origin-universe.json"]["rows"]
     common = reports["common-comparison-rowset-contract.json"]
@@ -234,6 +251,7 @@ def test_two_fresh_derivations_are_byte_equal(reports: dict) -> None:
 
 def test_manifest_bindings_and_no_actual_values(reports: dict) -> None:
     import hashlib
+    import json
 
     from backend.app.area_yield.v015_research_cohort import canonical
 
@@ -244,6 +262,16 @@ def test_manifest_bindings_and_no_actual_values(reports: dict) -> None:
         assert len(content) == member["size"]
     rows = reports["research-forecast-origin-universe.json"]["rows"]
     assert all("quantity_kg" not in row for row in rows)
+    source = json.loads(
+        (
+            Path(__file__).resolve().parents[3] / "docs/v0-15/evidence/business-data-closure-r1/"
+            "base-season-training-readiness-matrix.json"
+        ).read_text()
+    )
+    source_hashes = {(r["base_id"], r["season"]): digest(r) for r in source["rows"]}
+    assert all(
+        r["source_business_row_hash"] == source_hashes[r["base_id"], r["season"]] for r in rows
+    )
 
 
 @pytest.mark.parametrize("origin", ["2025-02-01T17:00:00", "2025-02-01T18:00:00+08:00"])
