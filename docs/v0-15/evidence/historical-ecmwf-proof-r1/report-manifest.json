@@ -1,0 +1,42 @@
+{
+  "deterministic_serialization": true,
+  "members": [
+    {
+      "name": "historical-ecmwf-access-route-report.json",
+      "sha256": "3de0e1e2c3967bdbe93dcc2d1bb3b1a55ed3f78223e5c18054a46345579ff697",
+      "size": 4475
+    },
+    {
+      "name": "historical-forecast-feasibility-recommendation.json",
+      "sha256": "72058df5634d999ad537809469904bb1aa1e3d37160d3856d4e5c1afd5fc6b68",
+      "size": 1753
+    },
+    {
+      "name": "historical-run-selection-policy.json",
+      "sha256": "93ab586dc9dd8631a9c52974e432023484ed5e5ce4b92015d02695bc3f66b29f",
+      "size": 2948
+    },
+    {
+      "name": "historical-weather8-coverage-report.json",
+      "sha256": "2962f5f64ce038e4a2adf71ecdca7baceb0acbe7a307366916caaa0145292efd",
+      "size": 1723
+    },
+    {
+      "name": "radiation-semantics-comparison.json",
+      "sha256": "1cf24d6aa51d432dd636c594170c755b558ebabc1477c6b81a9353d2a241f685",
+      "size": 948
+    },
+    {
+      "name": "real-grib-metadata-validation.json",
+      "sha256": "1949ceba5e49699189ee5e737e9614ea985ecad65adbab7804ed87032d2c66cf",
+      "size": 326688
+    },
+    {
+      "name": "real-historical-forecast-retrieval-receipt.json",
+      "sha256": "4d486869bec9d603a620e4a1d2f69d9bd6491e9ee31b2a2f3234e060aa68328a",
+      "size": 1851
+    }
+  ],
+  "raw_values_committed": false,
+  "schema": "V0_15_HISTORICAL_ECMWF_PROOF_MANIFEST_V1"
+}
