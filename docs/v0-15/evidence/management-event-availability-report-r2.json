@@ -27,6 +27,64 @@
   },
   "policy": "Production plans/schema/contract fields and synthetic fixtures do not prove executed pruning thinning or forcing. No verified execution export found by this bounded local schema search. This is not an absence claim.",
   "real_executed_records": [],
+  "requested_event_classes": {
+    "flower_bud_thinning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "flower_thinning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "forcing": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "fruit_thinning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "other_management_events": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "postharvest_pruning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "summer_pruning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "winter_pruning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    }
+  },
   "schema_or_template_candidates": [
     {
       "columns": [

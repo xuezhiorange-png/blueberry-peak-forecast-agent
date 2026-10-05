@@ -11,6 +11,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -77,13 +78,21 @@ def coverage_matrix(
     if any(set(state) - set(DOMAINS) for state in facts.values()):
         raise ValueError("UNKNOWN_ASSET_DOMAIN")
     rows: list[dict[str, Any]] = []
+    metadata = {str(e["entity_id"]): e for e in entities}
     for entity_id in sorted(ids):
         for season in sorted(seasons):
             state = dict.fromkeys(DOMAINS, "UNKNOWN_REQUIRES_REVIEW")
             state.update(facts.get((entity_id, season), {}))
             readiness = classify_readiness(state)
             rows.append(
-                {"entity_id": entity_id, "season_id": season, **state, "asset_readiness": readiness}
+                {
+                    "entity_id": entity_id,
+                    "canonical_name": metadata[entity_id].get("canonical_name", ""),
+                    "entity_kind": metadata[entity_id].get("entity_kind", "UNCLASSIFIED"),
+                    "season_id": season,
+                    **state,
+                    "asset_readiness": readiness,
+                }
             )
     return rows
 
@@ -206,10 +215,14 @@ def admit_predictor(feature: dict[str, Any], cutoff: str) -> None:
             "expver",
             "resolution",
         }
-        if required - feature.keys() or not feature.get("operational_run"):
+        if (
+            required - feature.keys()
+            or any(feature.get(k) in (None, "", [], {}) for k in required)
+            or feature.get("operational_run") is not True
+        ):
             raise ValueError("ARCHIVE_PROVENANCE_INCOMPLETE")
         issue, valid = aware(feature["issue_time"]), aware(feature["valid_time"])
-        if issue > boundary or issue >= valid:
+        if issue > boundary or issue >= valid or aware(feature["available_at"]) < issue:
             raise ValueError("FUTURE_OR_INVALID_RUN")
 
 
@@ -247,6 +260,9 @@ def validate_archive_claim(claim: dict[str, Any]) -> None:
 def validate_public(value: Any) -> None:
     if isinstance(value, dict):
         denied = {
+            "lat",
+            "lon",
+            "lng",
             "latitude",
             "longitude",
             "coordinates",
@@ -256,15 +272,55 @@ def validate_public(value: Any) -> None:
             "private_path",
             "credentials",
         }
-        if denied & value.keys():
+        if denied & {str(key).lower() for key in value}:
             raise ValueError("PUBLIC_PRIVATE_FIELD")
         for child in value.values():
             validate_public(child)
     elif isinstance(value, list):
         for child in value:
             validate_public(child)
-    elif isinstance(value, str) and (value.startswith("/") or ":\\" in value):
+    elif isinstance(value, str) and (
+        value.startswith("/")
+        or ":\\" in value
+        or "file://" in value.lower()
+        or re.search(r"(?:^|[\s('=])/(?:Users|tmp|private|opt|var|etc|home)/", value)
+    ):
         raise ValueError("PUBLIC_PRIVATE_PATH")
+
+
+def attach_audit_metadata(row: dict[str, Any], extra: dict[str, Any]) -> None:
+    allowed = {
+        "statuses",
+        "entity_id",
+        "season_id",
+        "canonical_name",
+        "entity_kind",
+        "evidence_ids",
+        "historical_as_issued_weather",
+        "weather8",
+        "pit_backtest_ready",
+        "historical_available_at",
+        "source_label_scope",
+        "harvest_completeness_counts",
+        "proxy360_supported_cycle_count",
+    }
+    if set(extra) - allowed or extra.get("pit_backtest_ready", False) is not False:
+        raise ValueError("AUDIT_CONCLUSION_OVERRIDE")
+    for key in ("canonical_name", "entity_kind"):
+        if key in extra and extra[key] != row[key]:
+            raise ValueError("ENTITY_METADATA_CONFLICT")
+    row.update(
+        {
+            k: v
+            for k, v in extra.items()
+            if k not in {"statuses", "entity_id", "season_id", "canonical_name", "entity_kind"}
+        }
+    )
+    row.setdefault("historical_as_issued_weather", "NOT_AUDITED")
+    row.setdefault("weather8", "NOT_AUDITED")
+    row["pit_backtest_ready"] = False
+    if row["historical_as_issued_weather"] not in ARCHIVE_STATUSES:
+        raise ValueError("UNKNOWN_ARCHIVE_STATUS")
 
 
 def main() -> None:
@@ -282,12 +338,7 @@ def main() -> None:
     extras = {(r["entity_id"], r["season_id"]): r for r in source["facts"]}
     for row in rows:
         extra = extras.get((row["entity_id"], row["season_id"]), {})
-        row.update(
-            {k: v for k, v in extra.items() if k not in {"statuses", "entity_id", "season_id"}}
-        )
-        row.setdefault("historical_as_issued_weather", "NOT_AUDITED")
-        row.setdefault("weather8", "NOT_AUDITED")
-        row.setdefault("pit_backtest_ready", False)
+        attach_audit_metadata(row, extra)
     gaps = owner_gaps(rows, source["searched_sources"]) + source.get("additional_gaps", [])
     result = {
         "schema": "V0_15_S0_READ_ONLY_AUDIT_R2",
