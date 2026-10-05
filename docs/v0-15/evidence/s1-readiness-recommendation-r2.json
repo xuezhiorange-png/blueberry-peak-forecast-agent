@@ -1,0 +1,8 @@
+{
+  "authorized": false,
+  "blind_test": "No previously consumed season can be renamed fresh blind",
+  "cohort_selected": false,
+  "ready": false,
+  "reason": "Database access, unresolved identities, historical available_at and archive retrieval remain unclosed",
+  "split_years_frozen": false
+}

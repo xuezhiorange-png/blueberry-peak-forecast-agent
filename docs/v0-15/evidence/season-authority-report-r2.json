@@ -1,0 +1,23 @@
+{
+  "SEASON": {
+    "2022_2023_status": "MISSING_UNLOCATED_WITHIN_AUDITED_SCOPE_NOT_ZERO_NOT_GLOBAL_NONEXISTENCE",
+    "date_outlier_rule": "JULY_JUNE_DIAGNOSTIC_ONLY_NOT_NEW_BUSINESS_BOUNDARY",
+    "historically_consumed_seasons_cannot_be_blind_test": true,
+    "observed_primary_seasons": [
+      "2023-2024",
+      "2024-2025",
+      "2025-2026"
+    ]
+  },
+  "audited_season_ids": [
+    "2023-2024",
+    "2024-2025",
+    "2025-2026"
+  ],
+  "primary_source_seasons": [
+    "2023-2024",
+    "2024-2025",
+    "2025-2026"
+  ],
+  "rule": "July-June source diagnostic is not automatically July-April business authority"
+}
