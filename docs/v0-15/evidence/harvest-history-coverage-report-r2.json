@@ -1,0 +1,5242 @@
+{
+  "counts": {
+    "all_discovered_raw_farm_label_season_pairs": 228,
+    "all_discovered_raw_farm_label_union_count": 144,
+    "canonical_base_season_count": 117,
+    "canonical_base_union_count": 39,
+    "canonical_daily_rows": 33033,
+    "identity_authority_label_union_count": 144,
+    "identity_authority_rows": 228,
+    "not_limited_to_29": true,
+    "subfarm_parent_relation_rows": 466,
+    "subfarm_parent_status_counts": {
+      "BUSINESS_CONFIRMED_PARENT_CORRECTION": 2,
+      "SOURCE_REPORTED_PARENT": 464
+    }
+  },
+  "limitations": [
+    "No global workstation scan or remote immutable package verification.",
+    "No independent original 2022-2023 harvest source located in audited root/manifests/pinned historical docs.",
+    "All raw labels are retained by source; exact existing season-label authority lookup only, no inferred merges.",
+    "S1/S6 authority versions remain separate; counts do not assert complete observation or automatic supersession.",
+    "No independent executed management records or actual variety area authority established.",
+    "Prior-turn output filter disclosed two historical quantity strings; not retained in this artifact.",
+    "Prior-turn mixed-season derived area metadata table was read and contained future-season entries; no future actual source file was opened/hashed/statted; mixed metadata excluded."
+  ],
+  "perBaseSeasonmetadata": [
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "base_name": "澜沧东回基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 4
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "东回一号农场",
+        "东回三号农场",
+        "东回二号农场",
+        "东回四号农场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 43,
+        "PARTIAL_KNOWN_SUBTOTAL": 144,
+        "UNKNOWN_NOT_ZERO_FILLED": 103
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 187,
+        "UNKNOWN": 103
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 103,
+        "COMPLETE_MAPPED_MEMBERS": 187
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 103,
+        "KNOWN_MAPPED_SUBTOTAL": 187
+      },
+      "s6_zero_basis_counts": {
+        "": 187,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 103
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "base_name": "广南旧莫基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "广南旧莫基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 115,
+        "UNKNOWN_NOT_ZERO_FILLED": 175
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 115,
+        "UNKNOWN": 175
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 175,
+        "COMPLETE_MAPPED_MEMBERS": 115
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 175,
+        "KNOWN_MAPPED_SUBTOTAL": 115
+      },
+      "s6_zero_basis_counts": {
+        "": 115,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 175
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "base_name": "保山由旺基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "保山由旺基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 132,
+        "UNKNOWN_NOT_ZERO_FILLED": 158
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 132,
+        "UNKNOWN": 158
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 158,
+        "COMPLETE_MAPPED_MEMBERS": 132
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 158,
+        "KNOWN_MAPPED_SUBTOTAL": 132
+      },
+      "s6_zero_basis_counts": {
+        "": 132,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 158
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "base_name": "丘北曰者基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "base_name": "砚山黑鱼洞基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山黑鱼洞基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 177,
+        "UNKNOWN_NOT_ZERO_FILLED": 113
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 177,
+        "UNKNOWN": 113
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 113,
+        "COMPLETE_MAPPED_MEMBERS": 177
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 113,
+        "KNOWN_MAPPED_SUBTOTAL": 177
+      },
+      "s6_zero_basis_counts": {
+        "": 177,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 113
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "base_name": "永仁莲池基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁莲池一场",
+        "永仁莲池二场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 89,
+        "COMPLETE_MAPPED_MEMBERS": 115,
+        "PARTIAL_KNOWN_SUBTOTAL": 30,
+        "UNKNOWN_NOT_ZERO_FILLED": 56
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 89,
+        "KNOWN_MAPPED_SUBTOTAL": 145,
+        "UNKNOWN": 56
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 145,
+        "COMPLETE_MAPPED_MEMBERS": 145
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 145,
+        "KNOWN_MAPPED_SUBTOTAL": 145
+      },
+      "s6_zero_basis_counts": {
+        "": 234,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 56
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_319779873190a57608b59b4e",
+      "base_name": "永仁猛虎基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁猛虎农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 46,
+        "UNKNOWN_NOT_ZERO_FILLED": 244
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 46,
+        "UNKNOWN": 244
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 46,
+        "UNKNOWN_NOT_ZERO_FILLED": 244
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 46,
+        "UNKNOWN": 244
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "base_name": "砚山阿猛基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "base_name": "腾冲曲石基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "base_name": "元江甘庄基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "新平扬武农场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 79,
+        "UNKNOWN_NOT_ZERO_FILLED": 211
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 79,
+        "UNKNOWN": 211
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 211,
+        "COMPLETE_MAPPED_MEMBERS": 79
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 211,
+        "KNOWN_MAPPED_SUBTOTAL": 79
+      },
+      "s6_zero_basis_counts": {
+        "": 79,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 211
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "base_name": "乡丰蓝莓基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "base_name": "弥勒西三基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "base_name": "丘北双龙营二基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "base_name": "弥勒巡检司基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "base_name": "砚山回龙基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山回龙农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 130,
+        "UNKNOWN_NOT_ZERO_FILLED": 160
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 130,
+        "UNKNOWN": 160
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 130,
+        "UNKNOWN_NOT_ZERO_FILLED": 160
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 130,
+        "UNKNOWN": 160
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "base_name": "富民款庄基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "base_name": "版纳勐旺基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "版纳勐旺农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 1,
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 1,
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 1,
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 1,
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "base_name": "腾冲德宏基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "base_name": "丘北双龙营一基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北双龙营基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 152,
+        "UNKNOWN_NOT_ZERO_FILLED": 138
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 152,
+        "UNKNOWN": 138
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 138,
+        "COMPLETE_MAPPED_MEMBERS": 152
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 138,
+        "KNOWN_MAPPED_SUBTOTAL": 152
+      },
+      "s6_zero_basis_counts": {
+        "": 152,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 138
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "base_name": "砚山炭房基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山炭房基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 123,
+        "UNKNOWN_NOT_ZERO_FILLED": 167
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 123,
+        "UNKNOWN": 167
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 167,
+        "COMPLETE_MAPPED_MEMBERS": 123
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 167,
+        "KNOWN_MAPPED_SUBTOTAL": 123
+      },
+      "s6_zero_basis_counts": {
+        "": 123,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 167
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "base_name": "腾冲中和基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "base_name": "砚山平远基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 3
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山平远一场",
+        "砚山平远三场",
+        "砚山平远二场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 100,
+        "UNKNOWN_NOT_ZERO_FILLED": 190
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 100,
+        "UNKNOWN": 190
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 100,
+        "UNKNOWN_NOT_ZERO_FILLED": 190
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 100,
+        "UNKNOWN": 190
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "base_name": "澜沧上允基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "base_name": "泸西基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "base_name": "弥勒新哨基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "base_name": "丘北天星基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北天星农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 116,
+        "COMPLETE_MAPPED_MEMBERS": 118,
+        "UNKNOWN_NOT_ZERO_FILLED": 56
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 116,
+        "KNOWN_MAPPED_SUBTOTAL": 118,
+        "UNKNOWN": 56
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 172,
+        "COMPLETE_MAPPED_MEMBERS": 118
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 172,
+        "KNOWN_MAPPED_SUBTOTAL": 118
+      },
+      "s6_zero_basis_counts": {
+        "": 234,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 56
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "base_name": "开远开心莓基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "base_name": "保山杨柳基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "保山杨柳农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 140,
+        "COMPLETE_MAPPED_MEMBERS": 94,
+        "UNKNOWN_NOT_ZERO_FILLED": 56
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 140,
+        "KNOWN_MAPPED_SUBTOTAL": 94,
+        "UNKNOWN": 56
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 196,
+        "COMPLETE_MAPPED_MEMBERS": 94
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 196,
+        "KNOWN_MAPPED_SUBTOTAL": 94
+      },
+      "s6_zero_basis_counts": {
+        "": 234,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 56
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_b30634ab6020391a3923849b",
+      "base_name": "永仁麦拉基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "base_name": "牟定民乐基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "base_name": "建水阿朋基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水阿朋基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 120,
+        "UNKNOWN_NOT_ZERO_FILLED": 170
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 120,
+        "UNKNOWN": 170
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 170,
+        "COMPLETE_MAPPED_MEMBERS": 120
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 170,
+        "KNOWN_MAPPED_SUBTOTAL": 120
+      },
+      "s6_zero_basis_counts": {
+        "": 120,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 170
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "base_name": "弥勒朋普基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒朋普基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 149,
+        "UNKNOWN_NOT_ZERO_FILLED": 141
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 149,
+        "UNKNOWN": 141
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 141,
+        "COMPLETE_MAPPED_MEMBERS": 149
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 141,
+        "KNOWN_MAPPED_SUBTOTAL": 149
+      },
+      "s6_zero_basis_counts": {
+        "": 149,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 141
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "base_name": "建水面甸基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水面甸农场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 96,
+        "UNKNOWN_NOT_ZERO_FILLED": 194
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 96,
+        "UNKNOWN": 194
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 194,
+        "COMPLETE_MAPPED_MEMBERS": 96
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 194,
+        "KNOWN_MAPPED_SUBTOTAL": 96
+      },
+      "s6_zero_basis_counts": {
+        "": 96,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 194
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "base_name": "弥勒五山基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒五山农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 81,
+        "COMPLETE_MAPPED_MEMBERS": 153,
+        "UNKNOWN_NOT_ZERO_FILLED": 56
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 81,
+        "KNOWN_MAPPED_SUBTOTAL": 153,
+        "UNKNOWN": 56
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 137,
+        "COMPLETE_MAPPED_MEMBERS": 153
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 137,
+        "KNOWN_MAPPED_SUBTOTAL": 153
+      },
+      "s6_zero_basis_counts": {
+        "": 234,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 56
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "base_name": "曲靖潇湘基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "base_name": "建水岔科基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "AUTHORIZED_ALIAS": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水南庄基地"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 23,
+        "UNKNOWN_NOT_ZERO_FILLED": 267
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 23,
+        "UNKNOWN": 267
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 23,
+        "UNKNOWN_NOT_ZERO_FILLED": 267
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 23,
+        "UNKNOWN": 267
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "base_name": "砚山维摩基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 290
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 290
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "base_name": "大理巍山基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "大理巍山农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 166,
+        "COMPLETE_MAPPED_MEMBERS": 68,
+        "UNKNOWN_NOT_ZERO_FILLED": 56
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 166,
+        "KNOWN_MAPPED_SUBTOTAL": 68,
+        "UNKNOWN": 56
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 222,
+        "COMPLETE_MAPPED_MEMBERS": 68
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 222,
+        "KNOWN_MAPPED_SUBTOTAL": 68
+      },
+      "s6_zero_basis_counts": {
+        "": 234,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 56
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "base_name": "砚山盘龙基地",
+      "daily_row_count": 290,
+      "distinct_days": 290,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山盘龙农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 111,
+        "UNKNOWN_NOT_ZERO_FILLED": 179
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 111,
+        "UNKNOWN": 179
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 111,
+        "UNKNOWN_NOT_ZERO_FILLED": 179
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 111,
+        "UNKNOWN": 179
+      },
+      "s6_zero_basis_counts": {
+        "": 290
+      },
+      "season": "2023-2024"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "base_name": "澜沧东回基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 5,
+        "EXACT": 4
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "东回一号农场",
+        "东回三号农场",
+        "东回二号农场",
+        "东回四号农场",
+        "澜沧东回一号农场",
+        "澜沧东回一场",
+        "澜沧东回三场",
+        "澜沧东回二场",
+        "澜沧东回四场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 1,
+        "PARTIAL_KNOWN_SUBTOTAL": 246,
+        "UNKNOWN_NOT_ZERO_FILLED": 42
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 247,
+        "UNKNOWN": 42
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 42,
+        "COMPLETE_MAPPED_MEMBERS": 247
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 42,
+        "KNOWN_MAPPED_SUBTOTAL": 247
+      },
+      "s6_zero_basis_counts": {
+        "": 247,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 42
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "base_name": "广南旧莫基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "广南旧莫农场",
+        "广南旧莫基地"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 207,
+        "UNKNOWN_NOT_ZERO_FILLED": 82
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 207,
+        "UNKNOWN": 82
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 207,
+        "UNKNOWN_NOT_ZERO_FILLED": 82
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 207,
+        "UNKNOWN": 82
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "base_name": "保山由旺基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "保山由旺农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 19,
+        "UNKNOWN_NOT_ZERO_FILLED": 270
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 19,
+        "UNKNOWN": 270
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 19,
+        "UNKNOWN_NOT_ZERO_FILLED": 270
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 19,
+        "UNKNOWN": 270
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "base_name": "丘北曰者基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北曰者农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 247,
+        "COMPLETE_MAPPED_MEMBERS": 34,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 247,
+        "KNOWN_MAPPED_SUBTOTAL": 34,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 255,
+        "COMPLETE_MAPPED_MEMBERS": 34
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 255,
+        "KNOWN_MAPPED_SUBTOTAL": 34
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "base_name": "砚山黑鱼洞基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山黑鱼洞农场",
+        "砚山黑鱼洞基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 1,
+        "PARTIAL_KNOWN_SUBTOTAL": 174,
+        "UNKNOWN_NOT_ZERO_FILLED": 114
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 175,
+        "UNKNOWN": 114
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 114,
+        "COMPLETE_MAPPED_MEMBERS": 175
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 114,
+        "KNOWN_MAPPED_SUBTOTAL": 175
+      },
+      "s6_zero_basis_counts": {
+        "": 175,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 114
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "base_name": "永仁莲池基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁莲池一场",
+        "永仁莲池二场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 86,
+        "COMPLETE_MAPPED_MEMBERS": 171,
+        "PARTIAL_KNOWN_SUBTOTAL": 24,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 86,
+        "KNOWN_MAPPED_SUBTOTAL": 195,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 94,
+        "COMPLETE_MAPPED_MEMBERS": 195
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 94,
+        "KNOWN_MAPPED_SUBTOTAL": 195
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_319779873190a57608b59b4e",
+      "base_name": "永仁猛虎基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁猛虎农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 113,
+        "COMPLETE_MAPPED_MEMBERS": 168,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 113,
+        "KNOWN_MAPPED_SUBTOTAL": 168,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 121,
+        "COMPLETE_MAPPED_MEMBERS": 168
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 121,
+        "KNOWN_MAPPED_SUBTOTAL": 168
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "base_name": "砚山阿猛基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山阿猛农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 1,
+        "UNKNOWN_NOT_ZERO_FILLED": 288
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 1,
+        "UNKNOWN": 288
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 1,
+        "UNKNOWN_NOT_ZERO_FILLED": 288
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 1,
+        "UNKNOWN": 288
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "base_name": "腾冲曲石基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 7,
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "中和樊家营农场",
+        "曲石农场",
+        "曲石清河农场",
+        "樊家营农场",
+        "清河农场",
+        "腾冲曲石农场",
+        "腾冲清河农场",
+        "腾冲高黎贡农场",
+        "高黎贡农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 95,
+        "UNKNOWN_NOT_ZERO_FILLED": 194
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 95,
+        "UNKNOWN": 194
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 194,
+        "COMPLETE_MAPPED_MEMBERS": 95
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 194,
+        "KNOWN_MAPPED_SUBTOTAL": 95
+      },
+      "s6_zero_basis_counts": {
+        "": 95,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 194
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "base_name": "元江甘庄基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "元江甘庄农场",
+        "新平扬武农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 157,
+        "UNKNOWN_NOT_ZERO_FILLED": 132
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 157,
+        "UNKNOWN": 132
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 157,
+        "UNKNOWN_NOT_ZERO_FILLED": 132
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 157,
+        "UNKNOWN": 132
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "base_name": "乡丰蓝莓基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 5
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "乡丰蓝莓一分场",
+        "乡丰蓝莓三分场",
+        "乡丰蓝莓二分场",
+        "乡丰蓝莓五分场",
+        "乡丰蓝莓四分场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 161,
+        "UNKNOWN_NOT_ZERO_FILLED": 128
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 161,
+        "UNKNOWN": 128
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 161,
+        "UNKNOWN_NOT_ZERO_FILLED": 128
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 161,
+        "UNKNOWN": 128
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "base_name": "弥勒西三基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒西三农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 145,
+        "COMPLETE_MAPPED_MEMBERS": 136,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 145,
+        "KNOWN_MAPPED_SUBTOTAL": 136,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 153,
+        "COMPLETE_MAPPED_MEMBERS": 136
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 153,
+        "KNOWN_MAPPED_SUBTOTAL": 136
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "base_name": "丘北双龙营二基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "base_name": "弥勒巡检司基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒巡检司农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 20,
+        "UNKNOWN_NOT_ZERO_FILLED": 269
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 20,
+        "UNKNOWN": 269
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 20,
+        "UNKNOWN_NOT_ZERO_FILLED": 269
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 20,
+        "UNKNOWN": 269
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "base_name": "砚山回龙基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "回龙中心实验站",
+        "砚山回龙农场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 138,
+        "PARTIAL_KNOWN_SUBTOTAL": 47,
+        "UNKNOWN_NOT_ZERO_FILLED": 104
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 185,
+        "UNKNOWN": 104
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 104,
+        "COMPLETE_MAPPED_MEMBERS": 185
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 104,
+        "KNOWN_MAPPED_SUBTOTAL": 185
+      },
+      "s6_zero_basis_counts": {
+        "": 185,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 104
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "base_name": "富民款庄基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "base_name": "版纳勐旺基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "版纳勐旺农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 124,
+        "COMPLETE_MAPPED_MEMBERS": 157,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 124,
+        "KNOWN_MAPPED_SUBTOTAL": 157,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 132,
+        "COMPLETE_MAPPED_MEMBERS": 157
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 132,
+        "KNOWN_MAPPED_SUBTOTAL": 157
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "base_name": "腾冲德宏基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "base_name": "丘北双龙营一基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北双龙营农场",
+        "丘北双龙营基地"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 273,
+        "UNKNOWN_NOT_ZERO_FILLED": 16
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 273,
+        "UNKNOWN": 16
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 16,
+        "COMPLETE_MAPPED_MEMBERS": 273
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 16,
+        "KNOWN_MAPPED_SUBTOTAL": 273
+      },
+      "s6_zero_basis_counts": {
+        "": 273,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 16
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "base_name": "砚山炭房基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山炭房农场",
+        "砚山炭房基地"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 1,
+        "PARTIAL_KNOWN_SUBTOTAL": 181,
+        "UNKNOWN_NOT_ZERO_FILLED": 107
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 182,
+        "UNKNOWN": 107
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 107,
+        "COMPLETE_MAPPED_MEMBERS": 182
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 107,
+        "KNOWN_MAPPED_SUBTOTAL": 182
+      },
+      "s6_zero_basis_counts": {
+        "": 182,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 107
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "base_name": "腾冲中和基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "腾冲樊家营农场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 20,
+        "UNKNOWN_NOT_ZERO_FILLED": 269
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 20,
+        "UNKNOWN": 269
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 269,
+        "COMPLETE_MAPPED_MEMBERS": 20
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 269,
+        "KNOWN_MAPPED_SUBTOTAL": 20
+      },
+      "s6_zero_basis_counts": {
+        "": 20,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 269
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "base_name": "砚山平远基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 3
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山平远一场",
+        "砚山平远三场",
+        "砚山平远二场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 212,
+        "UNKNOWN_NOT_ZERO_FILLED": 77
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 212,
+        "UNKNOWN": 77
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 212,
+        "UNKNOWN_NOT_ZERO_FILLED": 77
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 212,
+        "UNKNOWN": 77
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "base_name": "澜沧上允基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "澜沧上允一场",
+        "澜沧上允农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 107,
+        "COMPLETE_MAPPED_MEMBERS": 1,
+        "PARTIAL_KNOWN_SUBTOTAL": 173,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 107,
+        "KNOWN_MAPPED_SUBTOTAL": 174,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 115,
+        "COMPLETE_MAPPED_MEMBERS": 174
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 115,
+        "KNOWN_MAPPED_SUBTOTAL": 174
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "base_name": "泸西基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "base_name": "弥勒新哨基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "base_name": "丘北天星基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北天星农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 67,
+        "COMPLETE_MAPPED_MEMBERS": 214,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 67,
+        "KNOWN_MAPPED_SUBTOTAL": 214,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 75,
+        "COMPLETE_MAPPED_MEMBERS": 214
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 75,
+        "KNOWN_MAPPED_SUBTOTAL": 214
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "base_name": "开远开心莓基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "base_name": "保山杨柳基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "保山杨柳农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 20,
+        "UNKNOWN_NOT_ZERO_FILLED": 269
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 20,
+        "UNKNOWN": 269
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 20,
+        "UNKNOWN_NOT_ZERO_FILLED": 269
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 20,
+        "UNKNOWN": 269
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_b30634ab6020391a3923849b",
+      "base_name": "永仁麦拉基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁麦拉农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 97,
+        "COMPLETE_MAPPED_MEMBERS": 184,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 97,
+        "KNOWN_MAPPED_SUBTOTAL": 184,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 105,
+        "COMPLETE_MAPPED_MEMBERS": 184
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 105,
+        "KNOWN_MAPPED_SUBTOTAL": 184
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "base_name": "牟定民乐基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "base_name": "建水阿朋基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水阿朋农场",
+        "建水阿朋基地"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 142,
+        "UNKNOWN_NOT_ZERO_FILLED": 147
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 142,
+        "UNKNOWN": 147
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 147,
+        "COMPLETE_MAPPED_MEMBERS": 142
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 147,
+        "KNOWN_MAPPED_SUBTOTAL": 142
+      },
+      "s6_zero_basis_counts": {
+        "": 142,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 147
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "base_name": "弥勒朋普基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒朋普农场",
+        "弥勒朋普基地"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 147,
+        "UNKNOWN_NOT_ZERO_FILLED": 142
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 147,
+        "UNKNOWN": 142
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 142,
+        "COMPLETE_MAPPED_MEMBERS": 147
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 142,
+        "KNOWN_MAPPED_SUBTOTAL": 147
+      },
+      "s6_zero_basis_counts": {
+        "": 147,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 142
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "base_name": "建水面甸基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水面甸农场"
+      ],
+      "s1_completeness_counts": {
+        "COMPLETE_MAPPED_MEMBERS": 210,
+        "UNKNOWN_NOT_ZERO_FILLED": 79
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 210,
+        "UNKNOWN": 79
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 79,
+        "COMPLETE_MAPPED_MEMBERS": 210
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 79,
+        "KNOWN_MAPPED_SUBTOTAL": 210
+      },
+      "s6_zero_basis_counts": {
+        "": 210,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 79
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "base_name": "弥勒五山基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒五山农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 116,
+        "COMPLETE_MAPPED_MEMBERS": 165,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 116,
+        "KNOWN_MAPPED_SUBTOTAL": 165,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 124,
+        "COMPLETE_MAPPED_MEMBERS": 165
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 124,
+        "KNOWN_MAPPED_SUBTOTAL": 165
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "base_name": "曲靖潇湘基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {},
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [],
+      "s1_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s1_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_completeness_counts": {
+        "UNKNOWN_NOT_ZERO_FILLED": 289
+      },
+      "s6_status_counts": {
+        "UNKNOWN": 289
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "base_name": "建水岔科基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "AUTHORIZED_ALIAS": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水南庄基地",
+        "建水岔科农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 23,
+        "UNKNOWN_NOT_ZERO_FILLED": 266
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 23,
+        "UNKNOWN": 266
+      },
+      "s6_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 23,
+        "UNKNOWN_NOT_ZERO_FILLED": 266
+      },
+      "s6_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 23,
+        "UNKNOWN": 266
+      },
+      "s6_zero_basis_counts": {
+        "": 289
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "base_name": "砚山维摩基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 4
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山维摩一场",
+        "砚山维摩二场",
+        "维摩联农幕菲勒",
+        "维摩联农长塘子"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 114,
+        "PARTIAL_KNOWN_SUBTOTAL": 167,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 114,
+        "KNOWN_MAPPED_SUBTOTAL": 167,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 122,
+        "COMPLETE_MAPPED_MEMBERS": 167
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 122,
+        "KNOWN_MAPPED_SUBTOTAL": 167
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "base_name": "大理巍山基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "大理巍山农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 187,
+        "COMPLETE_MAPPED_MEMBERS": 94,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 187,
+        "KNOWN_MAPPED_SUBTOTAL": 94,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 195,
+        "COMPLETE_MAPPED_MEMBERS": 94
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 195,
+        "KNOWN_MAPPED_SUBTOTAL": 94
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "base_name": "砚山盘龙基地",
+      "daily_row_count": 289,
+      "distinct_days": 289,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山盘龙农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 172,
+        "COMPLETE_MAPPED_MEMBERS": 109,
+        "UNKNOWN_NOT_ZERO_FILLED": 8
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 172,
+        "KNOWN_MAPPED_SUBTOTAL": 109,
+        "UNKNOWN": 8
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 180,
+        "COMPLETE_MAPPED_MEMBERS": 109
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 180,
+        "KNOWN_MAPPED_SUBTOTAL": 109
+      },
+      "s6_zero_basis_counts": {
+        "": 281,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 8
+      },
+      "season": "2024-2025"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "base_name": "澜沧东回基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 5
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "澜沧东回一场",
+        "澜沧东回三场",
+        "澜沧东回二场",
+        "澜沧东回五场",
+        "澜沧东回四场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 39,
+        "COMPLETE_MAPPED_MEMBERS": 145,
+        "PARTIAL_KNOWN_SUBTOTAL": 44,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 39,
+        "KNOWN_MAPPED_SUBTOTAL": 189,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 79,
+        "COMPLETE_MAPPED_MEMBERS": 189
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 79,
+        "KNOWN_MAPPED_SUBTOTAL": 189
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "base_name": "广南旧莫基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "广南旧莫农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 79,
+        "COMPLETE_MAPPED_MEMBERS": 149,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 79,
+        "KNOWN_MAPPED_SUBTOTAL": 149,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 119,
+        "COMPLETE_MAPPED_MEMBERS": 149
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 119,
+        "KNOWN_MAPPED_SUBTOTAL": 149
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "base_name": "保山由旺基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "保山华仁农场",
+        "保山由旺农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 26,
+        "COMPLETE_MAPPED_MEMBERS": 171,
+        "PARTIAL_KNOWN_SUBTOTAL": 31,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 26,
+        "KNOWN_MAPPED_SUBTOTAL": 202,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 66,
+        "COMPLETE_MAPPED_MEMBERS": 202
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 66,
+        "KNOWN_MAPPED_SUBTOTAL": 202
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "base_name": "丘北曰者基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北曰者农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 65,
+        "COMPLETE_MAPPED_MEMBERS": 163,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 65,
+        "KNOWN_MAPPED_SUBTOTAL": 163,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 105,
+        "COMPLETE_MAPPED_MEMBERS": 163
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 105,
+        "KNOWN_MAPPED_SUBTOTAL": 163
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "base_name": "砚山黑鱼洞基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山黑鱼洞农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 56,
+        "COMPLETE_MAPPED_MEMBERS": 172,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 56,
+        "KNOWN_MAPPED_SUBTOTAL": 172,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 96,
+        "COMPLETE_MAPPED_MEMBERS": 172
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 96,
+        "KNOWN_MAPPED_SUBTOTAL": 172
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "base_name": "永仁莲池基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁莲池一场",
+        "永仁莲池二场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 9,
+        "COMPLETE_MAPPED_MEMBERS": 206,
+        "PARTIAL_KNOWN_SUBTOTAL": 13,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 9,
+        "KNOWN_MAPPED_SUBTOTAL": 219,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 49,
+        "COMPLETE_MAPPED_MEMBERS": 219
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 49,
+        "KNOWN_MAPPED_SUBTOTAL": 219
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_319779873190a57608b59b4e",
+      "base_name": "永仁猛虎基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁猛虎农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 31,
+        "COMPLETE_MAPPED_MEMBERS": 197,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 31,
+        "KNOWN_MAPPED_SUBTOTAL": 197,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 71,
+        "COMPLETE_MAPPED_MEMBERS": 197
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 71,
+        "KNOWN_MAPPED_SUBTOTAL": 197
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "base_name": "砚山阿猛基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山阿猛农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 134,
+        "COMPLETE_MAPPED_MEMBERS": 134
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 134,
+        "KNOWN_MAPPED_SUBTOTAL": 134
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 134,
+        "COMPLETE_MAPPED_MEMBERS": 134
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 134,
+        "KNOWN_MAPPED_SUBTOTAL": 134
+      },
+      "s6_zero_basis_counts": {
+        "": 268
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "base_name": "腾冲曲石基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "腾冲曲石农场",
+        "腾冲高黎贡农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 52,
+        "COMPLETE_MAPPED_MEMBERS": 115,
+        "PARTIAL_KNOWN_SUBTOTAL": 61,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 52,
+        "KNOWN_MAPPED_SUBTOTAL": 176,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 92,
+        "COMPLETE_MAPPED_MEMBERS": 176
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 92,
+        "KNOWN_MAPPED_SUBTOTAL": 176
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "base_name": "元江甘庄基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "元江甘庄农场",
+        "新平扬武农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 22,
+        "COMPLETE_MAPPED_MEMBERS": 175,
+        "PARTIAL_KNOWN_SUBTOTAL": 31,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 22,
+        "KNOWN_MAPPED_SUBTOTAL": 206,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 62,
+        "COMPLETE_MAPPED_MEMBERS": 206
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 62,
+        "KNOWN_MAPPED_SUBTOTAL": 206
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "base_name": "乡丰蓝莓基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 5
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "乡丰蓝莓一分场",
+        "乡丰蓝莓三分场",
+        "乡丰蓝莓二分场",
+        "乡丰蓝莓五分场",
+        "乡丰蓝莓四分场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 105,
+        "COMPLETE_MAPPED_MEMBERS": 61,
+        "PARTIAL_KNOWN_SUBTOTAL": 62,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 105,
+        "KNOWN_MAPPED_SUBTOTAL": 123,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 145,
+        "COMPLETE_MAPPED_MEMBERS": 123
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 145,
+        "KNOWN_MAPPED_SUBTOTAL": 123
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "base_name": "弥勒西三基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒西三农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 89,
+        "COMPLETE_MAPPED_MEMBERS": 139,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 89,
+        "KNOWN_MAPPED_SUBTOTAL": 139,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 129,
+        "COMPLETE_MAPPED_MEMBERS": 139
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 129,
+        "KNOWN_MAPPED_SUBTOTAL": 139
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "base_name": "丘北双龙营二基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 3
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北双龙营三场",
+        "丘北双龙营二场",
+        "丘北双龙营四场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 80,
+        "COMPLETE_MAPPED_MEMBERS": 89,
+        "PARTIAL_KNOWN_SUBTOTAL": 59,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 80,
+        "KNOWN_MAPPED_SUBTOTAL": 148,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 120,
+        "COMPLETE_MAPPED_MEMBERS": 148
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 120,
+        "KNOWN_MAPPED_SUBTOTAL": 148
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "base_name": "弥勒巡检司基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒巡检司农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 87,
+        "COMPLETE_MAPPED_MEMBERS": 141,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 87,
+        "KNOWN_MAPPED_SUBTOTAL": 141,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 127,
+        "COMPLETE_MAPPED_MEMBERS": 141
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 127,
+        "KNOWN_MAPPED_SUBTOTAL": 141
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "base_name": "砚山回龙基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 3
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "回龙中心实验站",
+        "回龙中心试验站",
+        "砚山回龙农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 49,
+        "PARTIAL_KNOWN_SUBTOTAL": 179,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 49,
+        "KNOWN_MAPPED_SUBTOTAL": 179,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 89,
+        "COMPLETE_MAPPED_MEMBERS": 179
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 89,
+        "KNOWN_MAPPED_SUBTOTAL": 179
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "base_name": "富民款庄基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "富民款庄农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 68,
+        "COMPLETE_MAPPED_MEMBERS": 160,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 68,
+        "KNOWN_MAPPED_SUBTOTAL": 160,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 108,
+        "COMPLETE_MAPPED_MEMBERS": 160
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 108,
+        "KNOWN_MAPPED_SUBTOTAL": 160
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "base_name": "版纳勐旺基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "版纳勐旺农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 55,
+        "COMPLETE_MAPPED_MEMBERS": 173,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 55,
+        "KNOWN_MAPPED_SUBTOTAL": 173,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 95,
+        "COMPLETE_MAPPED_MEMBERS": 173
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 95,
+        "KNOWN_MAPPED_SUBTOTAL": 173
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "base_name": "腾冲德宏基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "AUTHORIZED_ALIAS": 1,
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "德宏盈江农场",
+        "盈江联农带农"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 95,
+        "COMPLETE_MAPPED_MEMBERS": 45,
+        "PARTIAL_KNOWN_SUBTOTAL": 88,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 95,
+        "KNOWN_MAPPED_SUBTOTAL": 133,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 135,
+        "COMPLETE_MAPPED_MEMBERS": 133
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 135,
+        "KNOWN_MAPPED_SUBTOTAL": 133
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "base_name": "丘北双龙营一基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北县云莓农业产业发展有限公司",
+        "丘北双龙营一场",
+        "丘北双龙营农场"
+      ],
+      "s1_completeness_counts": {
+        "PARTIAL_KNOWN_SUBTOTAL": 165,
+        "UNKNOWN_NOT_ZERO_FILLED": 103
+      },
+      "s1_status_counts": {
+        "KNOWN_MAPPED_SUBTOTAL": 165,
+        "UNKNOWN": 103
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 103,
+        "COMPLETE_MAPPED_MEMBERS": 165
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 103,
+        "KNOWN_MAPPED_SUBTOTAL": 165
+      },
+      "s6_zero_basis_counts": {
+        "": 165,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 103
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "base_name": "砚山炭房基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山炭房农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 52,
+        "COMPLETE_MAPPED_MEMBERS": 176,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 52,
+        "KNOWN_MAPPED_SUBTOTAL": 176,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 92,
+        "COMPLETE_MAPPED_MEMBERS": 176
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 92,
+        "KNOWN_MAPPED_SUBTOTAL": 176
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "base_name": "腾冲中和基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 6
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "腾冲中和新街农场",
+        "腾冲中和樊家营农场",
+        "腾冲中和闫家冲农场",
+        "腾冲新街农场",
+        "腾冲樊家营农场",
+        "腾冲闫家冲农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 61,
+        "PARTIAL_KNOWN_SUBTOTAL": 167,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 61,
+        "KNOWN_MAPPED_SUBTOTAL": 167,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 101,
+        "COMPLETE_MAPPED_MEMBERS": 167
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 101,
+        "KNOWN_MAPPED_SUBTOTAL": 167
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "base_name": "砚山平远基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 3
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山平远一场",
+        "砚山平远三场",
+        "砚山平远二场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 47,
+        "COMPLETE_MAPPED_MEMBERS": 142,
+        "PARTIAL_KNOWN_SUBTOTAL": 39,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 47,
+        "KNOWN_MAPPED_SUBTOTAL": 181,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 87,
+        "COMPLETE_MAPPED_MEMBERS": 181
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 87,
+        "KNOWN_MAPPED_SUBTOTAL": 181
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "base_name": "澜沧上允基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "澜沧上允一场",
+        "澜沧上允农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 28,
+        "COMPLETE_MAPPED_MEMBERS": 1,
+        "PARTIAL_KNOWN_SUBTOTAL": 199,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 28,
+        "KNOWN_MAPPED_SUBTOTAL": 200,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 68,
+        "COMPLETE_MAPPED_MEMBERS": 200
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 68,
+        "KNOWN_MAPPED_SUBTOTAL": 200
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "base_name": "泸西基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "泸西农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 118,
+        "COMPLETE_MAPPED_MEMBERS": 110,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 118,
+        "KNOWN_MAPPED_SUBTOTAL": 110,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 158,
+        "COMPLETE_MAPPED_MEMBERS": 110
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 158,
+        "KNOWN_MAPPED_SUBTOTAL": 110
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "base_name": "弥勒新哨基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 4
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒新哨一场",
+        "弥勒新哨三场",
+        "弥勒新哨二场",
+        "弥勒新哨四场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 77,
+        "COMPLETE_MAPPED_MEMBERS": 99,
+        "PARTIAL_KNOWN_SUBTOTAL": 52,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 77,
+        "KNOWN_MAPPED_SUBTOTAL": 151,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 117,
+        "COMPLETE_MAPPED_MEMBERS": 151
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 117,
+        "KNOWN_MAPPED_SUBTOTAL": 151
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "base_name": "丘北天星基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "丘北天星农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 74,
+        "COMPLETE_MAPPED_MEMBERS": 154,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 74,
+        "KNOWN_MAPPED_SUBTOTAL": 154,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 114,
+        "COMPLETE_MAPPED_MEMBERS": 154
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 114,
+        "KNOWN_MAPPED_SUBTOTAL": 154
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "base_name": "开远开心莓基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "开远开心莓农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 82,
+        "COMPLETE_MAPPED_MEMBERS": 146,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 82,
+        "KNOWN_MAPPED_SUBTOTAL": 146,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 122,
+        "COMPLETE_MAPPED_MEMBERS": 146
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 122,
+        "KNOWN_MAPPED_SUBTOTAL": 146
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "base_name": "保山杨柳基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "保山杨柳农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 86,
+        "COMPLETE_MAPPED_MEMBERS": 182
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 86,
+        "KNOWN_MAPPED_SUBTOTAL": 182
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 86,
+        "COMPLETE_MAPPED_MEMBERS": 182
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 86,
+        "KNOWN_MAPPED_SUBTOTAL": 182
+      },
+      "s6_zero_basis_counts": {
+        "": 268
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_b30634ab6020391a3923849b",
+      "base_name": "永仁麦拉基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "永仁麦拉农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 28,
+        "COMPLETE_MAPPED_MEMBERS": 200,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 28,
+        "KNOWN_MAPPED_SUBTOTAL": 200,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 68,
+        "COMPLETE_MAPPED_MEMBERS": 200
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 68,
+        "KNOWN_MAPPED_SUBTOTAL": 200
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "base_name": "牟定民乐基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "牟定民乐农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 70,
+        "COMPLETE_MAPPED_MEMBERS": 158,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 70,
+        "KNOWN_MAPPED_SUBTOTAL": 158,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 110,
+        "COMPLETE_MAPPED_MEMBERS": 158
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 110,
+        "KNOWN_MAPPED_SUBTOTAL": 158
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "base_name": "建水阿朋基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水阿朋农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 73,
+        "COMPLETE_MAPPED_MEMBERS": 155,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 73,
+        "KNOWN_MAPPED_SUBTOTAL": 155,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 113,
+        "COMPLETE_MAPPED_MEMBERS": 155
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 113,
+        "KNOWN_MAPPED_SUBTOTAL": 155
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "base_name": "弥勒朋普基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒朋普农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 81,
+        "COMPLETE_MAPPED_MEMBERS": 147,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 81,
+        "KNOWN_MAPPED_SUBTOTAL": 147,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 121,
+        "COMPLETE_MAPPED_MEMBERS": 147
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 121,
+        "KNOWN_MAPPED_SUBTOTAL": 147
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "base_name": "建水面甸基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 3
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水面甸一场",
+        "建水面甸二场",
+        "建水面甸农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 38,
+        "COMPLETE_MAPPED_MEMBERS": 1,
+        "PARTIAL_KNOWN_SUBTOTAL": 189,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 38,
+        "KNOWN_MAPPED_SUBTOTAL": 190,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 78,
+        "COMPLETE_MAPPED_MEMBERS": 190
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 78,
+        "KNOWN_MAPPED_SUBTOTAL": 190
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "base_name": "弥勒五山基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "弥勒五山农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 88,
+        "COMPLETE_MAPPED_MEMBERS": 140,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 88,
+        "KNOWN_MAPPED_SUBTOTAL": 140,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 128,
+        "COMPLETE_MAPPED_MEMBERS": 140
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 128,
+        "KNOWN_MAPPED_SUBTOTAL": 140
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "base_name": "曲靖潇湘基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "曲靖潇湘农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 104,
+        "COMPLETE_MAPPED_MEMBERS": 124,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 104,
+        "KNOWN_MAPPED_SUBTOTAL": 124,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 144,
+        "COMPLETE_MAPPED_MEMBERS": 124
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 144,
+        "KNOWN_MAPPED_SUBTOTAL": 124
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "base_name": "建水岔科基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 2
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "建水南庄农场",
+        "建水岔科农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 67,
+        "COMPLETE_MAPPED_MEMBERS": 82,
+        "PARTIAL_KNOWN_SUBTOTAL": 79,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 67,
+        "KNOWN_MAPPED_SUBTOTAL": 161,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 107,
+        "COMPLETE_MAPPED_MEMBERS": 161
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 107,
+        "KNOWN_MAPPED_SUBTOTAL": 161
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "base_name": "砚山维摩基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 4
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山维摩一场",
+        "砚山维摩二场",
+        "维摩联农幕菲勒",
+        "维摩联农长塘子"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 48,
+        "COMPLETE_MAPPED_MEMBERS": 39,
+        "PARTIAL_KNOWN_SUBTOTAL": 141,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 48,
+        "KNOWN_MAPPED_SUBTOTAL": 180,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 88,
+        "COMPLETE_MAPPED_MEMBERS": 180
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 88,
+        "KNOWN_MAPPED_SUBTOTAL": 180
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "base_name": "大理巍山基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "大理巍山农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 112,
+        "COMPLETE_MAPPED_MEMBERS": 116,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 112,
+        "KNOWN_MAPPED_SUBTOTAL": 116,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 152,
+        "COMPLETE_MAPPED_MEMBERS": 116
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 152,
+        "KNOWN_MAPPED_SUBTOTAL": 116
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    },
+    {
+      "area_authority_rows": 1,
+      "area_basis_counts": {
+        "USER_CONFIRMED_THREE_SEASON_AREA_SNAPSHOT": 1
+      },
+      "area_status_counts": {
+        "BUSINESS_CONFIRMED_HISTORICAL_ACTUAL": 1
+      },
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "base_name": "砚山盘龙基地",
+      "daily_row_count": 268,
+      "distinct_days": 268,
+      "duplicate_day_rows": 0,
+      "mapping_status_counts": {
+        "EXACT": 1
+      },
+      "missing_days_within_existing_span": 0,
+      "raw_labels": [
+        "砚山盘龙农场"
+      ],
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 62,
+        "COMPLETE_MAPPED_MEMBERS": 166,
+        "UNKNOWN_NOT_ZERO_FILLED": 40
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 62,
+        "KNOWN_MAPPED_SUBTOTAL": 166,
+        "UNKNOWN": 40
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 102,
+        "COMPLETE_MAPPED_MEMBERS": 166
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 102,
+        "KNOWN_MAPPED_SUBTOTAL": 166
+      },
+      "s6_zero_basis_counts": {
+        "": 228,
+        "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO": 40
+      },
+      "season": "2025-2026"
+    }
+  ],
+  "perSeason": [
+    {
+      "all_discovered_raw_source_farm_label_count": 56,
+      "bases_with_known_mapped_subtotal_days": 21,
+      "canonical_base_count": 39,
+      "canonical_base_season_count": 39,
+      "canonical_daily_rows": 11310,
+      "consumption_status": "HISTORICALLY_CONSUMED_NOT_BLIND_TEST",
+      "identity_authority_label_count": 56,
+      "mapping_status_counts": {
+        "AUTHORIZED_ALIAS": 1,
+        "BUSINESS_CONFIRMED_MAPPING": 11,
+        "EXACT": 15,
+        "EXCLUDED": 7,
+        "UNRESOLVED": 22
+      },
+      "nonblank_assigned_base_count": 21,
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 592,
+        "COMPLETE_MAPPED_MEMBERS": 1734,
+        "PARTIAL_KNOWN_SUBTOTAL": 585,
+        "UNKNOWN_NOT_ZERO_FILLED": 8399
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 592,
+        "KNOWN_MAPPED_SUBTOTAL": 2319,
+        "UNKNOWN": 8399
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 2442,
+        "COMPLETE_MAPPED_MEMBERS": 1908,
+        "PARTIAL_KNOWN_SUBTOTAL": 411,
+        "UNKNOWN_NOT_ZERO_FILLED": 6549
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 2442,
+        "KNOWN_MAPPED_SUBTOTAL": 2319,
+        "UNKNOWN": 6549
+      },
+      "season": "2023-2024",
+      "status": "PARTIAL"
+    },
+    {
+      "all_discovered_raw_source_farm_label_count": 88,
+      "bases_with_known_mapped_subtotal_days": 31,
+      "canonical_base_count": 39,
+      "canonical_base_season_count": 39,
+      "canonical_daily_rows": 11271,
+      "consumption_status": "HISTORICALLY_CONSUMED_NOT_BLIND_TEST",
+      "identity_authority_label_count": 88,
+      "mapping_status_counts": {
+        "AUTHORIZED_ALIAS": 1,
+        "BUSINESS_CONFIRMED_MAPPING": 19,
+        "EXACT": 47,
+        "EXCLUDED": 8,
+        "UNRESOLVED": 13
+      },
+      "nonblank_assigned_base_count": 31,
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 1575,
+        "COMPLETE_MAPPED_MEMBERS": 1804,
+        "PARTIAL_KNOWN_SUBTOTAL": 2489,
+        "UNKNOWN_NOT_ZERO_FILLED": 5403
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 1575,
+        "KNOWN_MAPPED_SUBTOTAL": 4293,
+        "UNKNOWN": 5403
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 2885,
+        "COMPLETE_MAPPED_MEMBERS": 3473,
+        "PARTIAL_KNOWN_SUBTOTAL": 820,
+        "UNKNOWN_NOT_ZERO_FILLED": 4093
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 2885,
+        "KNOWN_MAPPED_SUBTOTAL": 4293,
+        "UNKNOWN": 4093
+      },
+      "season": "2024-2025",
+      "status": "PARTIAL"
+    },
+    {
+      "all_discovered_raw_source_farm_label_count": 84,
+      "bases_with_known_mapped_subtotal_days": 39,
+      "canonical_base_count": 39,
+      "canonical_base_season_count": 39,
+      "canonical_daily_rows": 10452,
+      "consumption_status": "HISTORICALLY_CONSUMED_NOT_BLIND_TEST",
+      "identity_authority_label_count": 84,
+      "mapping_status_counts": {
+        "AUTHORIZED_ALIAS": 1,
+        "BUSINESS_CONFIRMED_MAPPING": 1,
+        "EXACT": 73,
+        "UNRESOLVED": 9
+      },
+      "nonblank_assigned_base_count": 39,
+      "s1_completeness_counts": {
+        "AUTHORIZED_ZERO": 2537,
+        "COMPLETE_MAPPED_MEMBERS": 4773,
+        "PARTIAL_KNOWN_SUBTOTAL": 1599,
+        "UNKNOWN_NOT_ZERO_FILLED": 1543
+      },
+      "s1_status_counts": {
+        "CONFIRMED_ZERO": 2537,
+        "KNOWN_MAPPED_SUBTOTAL": 6372,
+        "UNKNOWN": 1543
+      },
+      "s6_completeness_counts": {
+        "AUTHORIZED_ZERO": 4080,
+        "COMPLETE_MAPPED_MEMBERS": 6372
+      },
+      "s6_status_counts": {
+        "CONFIRMED_ZERO": 4080,
+        "KNOWN_MAPPED_SUBTOTAL": 6372
+      },
+      "season": "2025-2026",
+      "status": "PARTIAL"
+    }
+  ],
+  "source_overlap": [
+    {
+      "left": "H02",
+      "left_only_metadata_rows": 24314,
+      "no_merge_inferred": true,
+      "right": "H04",
+      "right_only_metadata_rows": 23676,
+      "same_bytes": false,
+      "six_field_metadata_overlap_rows": 177758
+    },
+    {
+      "left": "H02",
+      "left_only_metadata_rows": 24314,
+      "no_merge_inferred": true,
+      "right": "H06",
+      "right_only_metadata_rows": 23676,
+      "same_bytes": false,
+      "six_field_metadata_overlap_rows": 177758
+    },
+    {
+      "left": "H03",
+      "left_only_metadata_rows": 18052,
+      "no_merge_inferred": true,
+      "right": "H05",
+      "right_only_metadata_rows": 17408,
+      "same_bytes": false,
+      "six_field_metadata_overlap_rows": 215119
+    },
+    {
+      "left": "H03",
+      "left_only_metadata_rows": 30384,
+      "no_merge_inferred": true,
+      "right": "H07",
+      "right_only_metadata_rows": 2,
+      "same_bytes": false,
+      "six_field_metadata_overlap_rows": 202787
+    },
+    {
+      "left": "H04",
+      "left_only_metadata_rows": 0,
+      "no_merge_inferred": true,
+      "right": "H06",
+      "right_only_metadata_rows": 0,
+      "same_bytes": true,
+      "six_field_metadata_overlap_rows": 201434
+    },
+    {
+      "left": "H05",
+      "left_only_metadata_rows": 45159,
+      "no_merge_inferred": true,
+      "right": "H07",
+      "right_only_metadata_rows": 15421,
+      "same_bytes": false,
+      "six_field_metadata_overlap_rows": 187368
+    }
+  ],
+  "sources": [
+    {
+      "date_max": "2024-06-30",
+      "date_min": "2023-07-26",
+      "distinct_variety_count": 26,
+      "farm_subfarm_pair_count": 2,
+      "filename": "23~24.xls",
+      "kind": "PRIMARY_ARCHIVED",
+      "missing_label_counts": {
+        "subfarm_label": 93757
+      },
+      "out_of_expected_season_rows": 0,
+      "rawdistinctlabels": 56,
+      "row_count": 93761,
+      "rows_by_date_derived_season": {
+        "2023-2024": 93761
+      },
+      "season": "2023-2024",
+      "sha256": "8fa003b4abdea0b0bd9c50a9fbd619ad15ea5c9a2e790faa5e5b3353a2a01d20",
+      "source_id": "H01",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 2
+    },
+    {
+      "date_max": "2025-05-27",
+      "date_min": "2024-07-01",
+      "distinct_variety_count": 25,
+      "farm_subfarm_pair_count": 194,
+      "filename": "24~25.xls",
+      "kind": "PRIMARY_ARCHIVED",
+      "missing_label_counts": {},
+      "out_of_expected_season_rows": 0,
+      "rawdistinctlabels": 88,
+      "row_count": 202072,
+      "rows_by_date_derived_season": {
+        "2024-2025": 202072
+      },
+      "season": "2024-2025",
+      "sha256": "f4ffba4b10a3129c768871bc5f3dfa2845534bc0e7eb04e166ba97211fa92dd6",
+      "source_id": "H02",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 132
+    },
+    {
+      "date_max": "2026-04-16",
+      "date_min": "2025-07-22",
+      "distinct_variety_count": 20,
+      "farm_subfarm_pair_count": 214,
+      "filename": "原果入库汇总表.xls",
+      "kind": "IMMUTABLE_SOURCE_002_BYTES",
+      "missing_label_counts": {},
+      "out_of_expected_season_rows": 0,
+      "rawdistinctlabels": 84,
+      "row_count": 233171,
+      "rows_by_date_derived_season": {
+        "2025-2026": 233171
+      },
+      "season": "2025-2026",
+      "sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+      "source_id": "H03",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 192
+    },
+    {
+      "date_max": "2025-05-27",
+      "date_min": "2024-07-01",
+      "distinct_variety_count": 23,
+      "equals_pinned_git": true,
+      "farm_subfarm_pair_count": 193,
+      "filename": "2024_2025_receipts.xls",
+      "kind": "LEGACY_REPOSITORY_RAW",
+      "missing_label_counts": {},
+      "out_of_expected_season_rows": 0,
+      "pinned_git_sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+      "rawdistinctlabels": 87,
+      "row_count": 201434,
+      "rows_by_date_derived_season": {
+        "2024-2025": 201434
+      },
+      "season": "2024-2025",
+      "sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+      "source_id": "H04",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 131
+    },
+    {
+      "date_max": "2026-04-16",
+      "date_min": "2025-07-22",
+      "distinct_variety_count": 13,
+      "equals_pinned_git": true,
+      "farm_subfarm_pair_count": 213,
+      "filename": "2025_2026_receipts.xls",
+      "kind": "LEGACY_REPOSITORY_RAW",
+      "missing_label_counts": {},
+      "out_of_expected_season_rows": 0,
+      "pinned_git_sha256": "66c4de6ddab4d8e3962eaaba0aab1b6ddcefff9f2605b36c950af3848e2a9c0b",
+      "rawdistinctlabels": 83,
+      "row_count": 232527,
+      "rows_by_date_derived_season": {
+        "2025-2026": 232527
+      },
+      "season": "2025-2026",
+      "sha256": "66c4de6ddab4d8e3962eaaba0aab1b6ddcefff9f2605b36c950af3848e2a9c0b",
+      "source_id": "H05",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 191
+    },
+    {
+      "date_max": "2025-05-27",
+      "date_min": "2024-07-01",
+      "distinct_variety_count": 23,
+      "farm_subfarm_pair_count": 193,
+      "filename": "24~25到加工厂.xls",
+      "kind": "LEGACY_FACTORY_ENRICHED",
+      "missing_label_counts": {},
+      "out_of_expected_season_rows": 0,
+      "rawdistinctlabels": 87,
+      "row_count": 201434,
+      "rows_by_date_derived_season": {
+        "2024-2025": 201434
+      },
+      "season": "2024-2025",
+      "sha256": "a55cbf259f52e6a20e30d646b43d2aa0f104f60786d725dbc051e46c76b390d5",
+      "source_id": "H06",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 131
+    },
+    {
+      "date_max": "2026-03-31",
+      "date_min": "2025-07-22",
+      "distinct_variety_count": 20,
+      "farm_subfarm_pair_count": 210,
+      "filename": "25~26到加工厂.xls",
+      "kind": "LEGACY_FACTORY_ENRICHED",
+      "missing_label_counts": {},
+      "out_of_expected_season_rows": 0,
+      "rawdistinctlabels": 81,
+      "row_count": 202789,
+      "rows_by_date_derived_season": {
+        "2025-2026": 202789
+      },
+      "season": "2025-2026",
+      "sha256": "b01951bd394a0aa9b812dee4a849caad01c7bd651600a691e233558cf0bfe486",
+      "source_id": "H07",
+      "status": "VERIFIED_HISTORICAL",
+      "subfarmcount": 191
+    }
+  ],
+  "zero_policy": {
+    "CONFIRMED_ZERO": "EXISTING_BUSINESS_AUTHORITY_RULE_ONLY",
+    "MISSING_UNKNOWN": "MISSING_SOURCE_OR_LABEL_OR_IDENTITY_OR_INCOMPLETE_COVERAGE_NOT_ZERO",
+    "REAL_ZERO": "EXPLICIT_NUMERIC_ZERO_SOURCE_ROW_DOES_NOT_PROVE_BASE_DAY_OR_SEASON_ZERO",
+    "application_policy": "EXPLICIT_BUSINESS_RULE_NO_HARVEST_RECORD_MEANS_ZERO",
+    "authority": "PRIVATE_SOURCE_REFERENCE",
+    "missing_source_or_canonical_day_not_zero": true,
+    "partial_not_automatically_zero": true,
+    "unresolved_identity_not_zero": true
+  }
+}
