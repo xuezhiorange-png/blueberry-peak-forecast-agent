@@ -6,6 +6,7 @@ import pytest
 
 from scripts.audit_v0_15_s0_existing_assets import (
     admit_predictor,
+    attach_audit_metadata,
     authorize_label_unlock,
     classify_readiness,
     coverage_matrix,
@@ -216,6 +217,13 @@ def test_real_archive_needs_provenance_and_valid_issue_order() -> None:
         operational_run=True,
     )
     admit_predictor(feature, "2025-01-15T09:00:00+00:00")
+    for key in ("model", "provider", "retrieval_provenance", "cycle", "stream"):
+        invalid = {**feature, key: ""}
+        with pytest.raises(ValueError, match="ARCHIVE_PROVENANCE_INCOMPLETE"):
+            admit_predictor(invalid, "2025-01-15T09:00:00+00:00")
+    invalid = {**feature, "available_at": "2025-01-14T23:00:00+00:00"}
+    with pytest.raises(ValueError, match="FUTURE_OR_INVALID_RUN"):
+        admit_predictor(invalid, "2025-01-15T09:00:00+00:00")
     feature["issue_time"] = "2025-01-16T00:00:00+00:00"
     with pytest.raises(ValueError, match="FUTURE_OR_INVALID_RUN"):
         admit_predictor(feature, "2025-01-15T09:00:00+00:00")
@@ -247,3 +255,48 @@ def test_net_radiation_and_unproven_weather8_rejected() -> None:
         validate_archive_claim({"status": "AS_ISSUED_COMPLETE", "retrieval_success": False})
     with pytest.raises(ValueError, match="PROXY_IS_NOT_AS_ISSUED"):
         validate_archive_claim({"status": "NOT_AUDITED", "proxy_is_as_issued": True})
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"harvest": "AVAILABLE_VALID"},
+        {"asset_readiness": "TRAINING_READY"},
+        {"pit_backtest_ready": True},
+    ],
+)
+def test_metadata_cannot_override_audit_conclusion(extra: dict) -> None:
+    row = coverage_matrix([{"entity_id": "a"}], ["s"], {})[0]
+    with pytest.raises(ValueError, match="AUDIT_CONCLUSION_OVERRIDE"):
+        attach_audit_metadata(row, extra)
+
+
+def test_entity_metadata_survives_without_repeated_facts() -> None:
+    row = coverage_matrix(
+        [{"entity_id": "a", "canonical_name": "Farm", "entity_kind": "CANONICAL_BASE"}], ["s"], {}
+    )[0]
+    attach_audit_metadata(row, {})
+    assert row["canonical_name"] == "Farm"
+    assert row["entity_kind"] == "CANONICAL_BASE"
+
+
+@pytest.mark.parametrize(
+    "value", [{"lat": 25, "lon": 102}, "file:///tmp/private.csv", "See /Users/operator/private.csv"]
+)
+def test_public_alias_and_embedded_path_rejected(value: object) -> None:
+    with pytest.raises(ValueError, match="PUBLIC_PRIVATE"):
+        validate_public(value)
+
+
+def test_blank_archive_provenance_rejected() -> None:
+    with pytest.raises(ValueError, match="ARCHIVE_PROVENANCE_INCOMPLETE"):
+        admit_predictor(
+            {
+                "lane": "PREDICTOR_ZONE",
+                "role": "ARCHIVED_OPERATIONAL_FORECAST",
+                "available_at": "2025-01-15T07:00:00+00:00",
+                "operational_run": True,
+                "model": "",
+            },
+            "2025-01-15T09:00:00+00:00",
+        )
