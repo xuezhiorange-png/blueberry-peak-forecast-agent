@@ -532,6 +532,13 @@ def claim_attempt(root: Path, day: str, started: datetime) -> None:
         s.write_immutable(
             path, {"slot_id": slot_id(day), "attempt_started_at": started.isoformat()}
         )
+        with path.open("rb") as stream:
+            os.fsync(stream.fileno())
+        directory = os.open(claims, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
 
 
 def verify_freshness(issued: datetime, created: datetime) -> None:
