@@ -1,0 +1,19 @@
+{
+  "future_vault_blockers": [
+    "Predictor role allowlist",
+    "Actual package bytes/hash and timestamp/custody validation"
+  ],
+  "models_trained": false,
+  "operational_vault_deployed": false,
+  "remaining_blockers": [
+    "ECMWF authenticated access",
+    "Authorized historical DB read-only access",
+    "Contemporaneous authority availability evidence"
+  ],
+  "result": "PARTIAL",
+  "s0_final_ready": false,
+  "s1_authorized": false,
+  "s1_ready": false,
+  "scoring_executed": false,
+  "v014_accessed_or_modified": false
+}

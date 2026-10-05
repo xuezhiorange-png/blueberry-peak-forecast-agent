@@ -1,0 +1,944 @@
+{
+  "rows": [
+    {
+      "available_at": null,
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "b10f592e6eb0658a928f21d71150a412840fc7c4ece7b856b5f8bc6c1f6ccca0",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "2c39f70c2dfd232e0198c56ef23b1b23e1173016a0cdf2e68b65435632515f36",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "a5d06b2656c33aecd862c80fb77d15c4c3b7be6696c46d86b56e540c040a59cd",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "695f59327d20536a49d107c72ecb46ea0599581ac79130f069df76de44793d05",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "c203e721f1a6f55bd2f03c38ac1a5b59dd187e62166372ef1cd4dc5ab8497ee8",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "3df792a5f2f1349c4a4ae1bcdedcf41f3e266573d45b40287b0860344316470e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "31e305f77edd0f97197ada1d1d96a76d15b2d6b2de413e3906e91ff983fbc63c",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "5b449c508bb3b60fdb601754593f270687ab5cd8023b5ec75969a57a0208b8f0",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "837527491f1a8ad8e90e0ae85396be55723b70245a5346afb59517fea9529d93",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "1b31c1bae6cd6bf4e99f91263952c394e7d24653ab82b145e4471f239531b30d",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "0597d590d51c7870f809d70d40a82c4b83327977d76d2196584fa7d725df433a",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b6f770afe00fc843b49ba96935619c541a8e122fddf1636f51d64981e28e2d4e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "e0f9774107ff51d65e12868dadf4f8d5ff5be5e37ce225f5805669b98977bf43",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "bf08ccb1a273a33754ad4a566c3bb3a98f5358e1ff9599755f058c42e2027a72",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "43a0425c4aa3481f76b7458a76ca0ca0689bf27081fba03559742f6961b2a06c",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "ef76bc24f233d4faee7ddc1ff8d9676299277b38a84e70aed75072a46745cc9a",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "0137eb1d4f324d128c45c772557a89eb34199bd3d78682a31f7249fc619c255d",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "fa16be8f486c7a6c64c4ebb1e8eb486ff18fe426a1872064f7b73c0e32809666",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_319779873190a57608b59b4e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "e67daf5172b070366417a0c4d4c6aaa0bafea3be269d1b371b45aa7353801923",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_319779873190a57608b59b4e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "8f3250b5bb44c0786e752739d603b0d43aacee2f862cd85c436f5cf168e7f65e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_319779873190a57608b59b4e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "ff800b94428b84156f5b1517d8f8d05928d919bce49220f362ad1c0e76e36424",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "25c83f6ca9ef4fe1d3f8a074bad29e10860e0ec86d2064ce57ef93a20ab43b5d",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "cc964d881e729a1bb3b1caea10b1829c9fbd905f4c0f8b18de5eefde2212a3c7",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "0d15c47ffa247f07ca202da990f7c430edf7ad0e46e515c18be8c94890e246da",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "cf6a0769d1561d8dad436498c546e99cbb5ae2711c0581699b4f0708778f85a8",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "e982737add21e171d457dd6bf6469e9afd229ceccc09a803eb75b5ee546887a2",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "fa51191fd414da40f4c5fcf64fabd76408136530c6c1a7191c18862738dd3b19",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "000890940dd8ad9a330a9accf17a50c20b1a7e2cae015f678f722996884edb17",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "2bda0a9857b1cd54d581ba3fe376c2f89a2e6853e01a72382e807855f9296900",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "3611bf0812bbaa31475c34a7fb0c7895a0e7a2815238de1d07085a0249603a69",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "2ad5f3ffc0215bd621fc527a182467065bf461f590abff0959abc814c6540a09",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "e4d6d0f6bde33a360cf7d0f8434e205bc0f0aa6b91b304948a0c204090a2ddc7",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "1b6d5bf810f72f8712d4aa3658f73e28323427a1e08dbb41dc1cdaf2b9d848d5",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "307cd9708b700a3980385142e0ca79a2acd3fb99540bb2fc3f275708c0ec3d8b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "f2f09e41008937f0229f138a090f7ce7e65ceaaef06643ef7a64c6767874af00",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "1bed77129985ecb9a20cc1fe9256b37811bf67def188f90f50c5671d5e07cbcf",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "c7f1e70837139e7194064d0336f351a7fd1b5e083506d21cb4d012989a05fe61",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "ab395715f9502550bfdf26de339bcc54b1297010b3c3a8e1b2e9a1b2d89f11b1",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "7c725aa58d7b3acc839c5958d9ddca37fbb8e9f168a6ca75cda3789f0e8aae50",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "78765a6912fc624812f13d64f489201a4e4370b9c6c11284186bff331169403e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "ade06e0f8e042dd4066c80493ea55ebcb181da451da83cae41df22fee03b5cb7",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b48c7a80165fd4be5ec95dc409abb40b38b473d3f81887377fb2943c42379c9e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "2e805bb55afbd501c1dd73113a1cbcff3f52770a43ecdcda6a2050dc538b9d74",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "89c6e0e833717ee42cc781d4c4ad6b3df7701bee31e6ccc76385033b6ca05ac4",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b0d94fcdf86cbaffcccd914c8312d004648e1efbf4b24785f30d9abf7ae8828b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "3f8f4dd0e75a09a6f4ef3afef648fa70d7ea2a74c6a57d475c998a5e6c290946",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "bfd460a22bee452f01509e6ace0f833fb9c751f4b298157c36b47ae10b098f91",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "6498836649c04308bf9435254df2bafcd192faf3e802ef3613cbf19f1935682b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "6a2b2968ddb7d14f898f25201f2ef6a3b6338703eb472cc7c684784970b94d8b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "ac7de85bebe161cafa168c6c0b0fcea423f0289d091b52e17880ce6e5bc3143e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b8946816b64c34763bc9023271ca4144c70a3ca6d0f512423df23099a6830614",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "78c37bde7bc198880760fa68e71d750f15fc6cf9ce32a0181f8474da14468679",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "0d16d1ecdb48ff105195e6a15bc1000923adcb5038578e039f76713429eb13cf",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b8f423f8059eb170d5807db768458d36588224173c395f4451ea5dabd3baa6b5",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "46b4a8ea5089be57bd778b62c83dda35ed71f571031d23e9fdf7d6d59b14a0ee",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "27204d64c703fe758216aeec87bfe7602bc37e21721e6f1e25a2f328af2700b1",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "2f92a2a9b4f5caf824669ade2423aa11bc2b886fd34ffbb23bc34114a11f27fa",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "98f9fec3f589f94671424e46e094d79041b9aa033625bfd6f6f1e5627a600b15",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "371ba96a83e32e696fb49bfe10542c829eabc180bfc448bbc5ac0c661802417b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "2e7d012c7f6609c1c53224f89dd165221d803e9a68b09f37300d9f9b2fc50039",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "d7ba63b19085b95f95a3d91ebea0dc4c92dbe7ea260c68579c1846fc26a010cf",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "605b7e4d8ff2de8a90af1d2babfe72dc57f28b25c37a22682f89d28e01522800",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "f40138225ee84e8bada1c42ab9f60c07b0dbbdb93e1e974a1e6f459a18c62df2",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "84cce9791735cc2b319b9adc48a7d2951d3541d7613fac9eb4e76cf4f2cb2617",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "d471d65fea49411050af70aa1435a99edf3b2e350829334b68b43261ac489f6f",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "5a098802068c124789f15f0be00ed00f2332d21a3a115ee5f8a472764077390c",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "667d15a8336ee9e4810c3e171bcca14b9b7eeabb96dcb909f36119d7e222e1a4",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "df0ac192f82c1d96c706a611144e6bf8039d9792126808cab3505bc00bcb9360",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b1e35d7fb36a616551224e2498a8f008d2bb550be5d62cf9464da3b3147d5d30",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "25484e643a80736a9b130034e9370276c51b2830ea25a56cf1cd28165b729099",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "c1dc7f822a6e86c709eaeb3372275f2aba7bad70adf28c79e0ff5f17f7aac30b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "03a9a93dcb513022a478733e6d9b1c3fca5f38a8d6d0c566cedd28d8e21bed59",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "129193f6fadd2d57440a6d60fac73f0fdf493dd532ccaccfcc681b698e9486ad",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "27a119df5690cac93cee3907dd9ed6b0dbb31be8024ddfd37653a1f4f5520aa0",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "c9bda7e465d56724fc12aeafd1b182426488dd24c6bbe03563b5a8f0f601d857",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "fe7c690b8b59ecfaba1f6f28b4db6fe8dfb575b5b5d8bd20fe922942863ca897",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "0c779770da0c36676a844084a05f278ba3b19a561b959f7bb9a9e9a0feffffdb",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "a0347d7e891b68b0150fe18edf85eb28b8fc9b331457514aa20ef39a33670391",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "7b898dde6342872d2dbd8b9af66b4eac28ea896de96fa7ca5db09b06d78460b2",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "002621ecc8777f30636bb3b89f16c329af4d12fc353ef55ec1248af8acd4af54",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "ea5bfdbb889492d106512bdb57c1fbad30d6b4af542a0ecebcccb39bb07e9dc9",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "11240b06f52d3d6f27821829166974aa1663d6fe736bac782bc36b7072b52d65",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "982c6084969f56cf804860b42fe16b3152007bf7c6cd47698ad43013190dade3",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "70b1b09897faaa8a402902ffd21eeb6262e7770946a0c6a0e4f14662905027f4",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_b30634ab6020391a3923849b",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "265955354f814828d0aa8347fabb4fee7aebf25707b09c907e171ecdd9bf2c8f",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_b30634ab6020391a3923849b",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "5f9973d0d764b3f6f25edf40817b5f2def18b43687a47935c9df76a389921dc3",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_b30634ab6020391a3923849b",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "49026af60e458dc12a10615153956e53471b19fa38819a8d5e690c9096d68bfc",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "8720e9fc110d38ba7ddfd462dc279bb7549f4932b04b5d8cf61f53b433d1430e",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "0b832bd913447ca6879d875605e67117e2bacec63bd0db772efe8d71a5fb292f",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "8263e25de3b1f8b351ec0d9fe91c1f28b179aea272065bbae143dd0302cee3a3",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "fecf87adbb8c7b860388c5028dee15273a17ef73f5d212b9dd689e97248f528d",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "b054b2a7c6a904888a9ab148d9de57b7200610f15381f63ca3a702101c824c81",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "70e35105ca67110b0e6c20f8e98b3a497ce6744d425ac8ab3c4e4617e1f92f4c",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "e8e31445196eb3b1ed200803bec535f1e35dc932a2c73c868f59941c8465b8ad",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "03136f631aa811ffc5049266544de3ade38c79c4a664d5d64967f32f7a7a8ae1",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "0d7da3d856c9c0f4e9da92fdce7f108ccc31fcf18568dadc7b0a91c0808229e1",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "df7e7389abfcc9efd2244e0dedd75e55e625493757a6d3e1bf248faf530528dc",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "43cd0a5d293be98305bb4c0124d8a401bb2f75dcea4e903cbb0a294127ecef1a",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "8136dc151d509ed0dd9bacc6b23149b52bd47a9a6918b626baa352de65b262b5",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "25c4d538a1ceb9bef8c9e053a6130e7a266b88a7252270f65a0ce6aa1667b6eb",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "18a6bcbbde29755be306481f83e2d33b90eecd6a89afd1a12ea093c39b8586c5",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "4bb2807cafe9efbf30af6b8cb1cef0afca1338c1fdd6883f1799c3f64c5c1c3c",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "a0c5999305c1ef517c89ee8118b5c7fb9fd9d4bfb03c292638960818c85b2637",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "794be1a6af4ac678bd184fe05d360a1d053bebbc18f166dd95bc4cc3944215f6",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "f49256d27dcb6694cfd8f3a61037595f632562fb1ab9e91e98d3badc0048f457",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "2bf1115b0ca7d96dac143d9cc366c5d4543b14370ee5cdc668598e15806127e5",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "144928d0d4eb9d4788d4ad62444b1cfb0ec4bd47fe1eeaeaa240f3327a775199",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "b4846c76dd4ebda3a129505ccd0f70ab3778dcc7e745ba8dbddb278e143a5fac",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "38d818466465a5039d76bf3247d6b54ab1a3f3bfeb552274cf678cae44d61f13",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "b2c4a80a450ef2ac2022dc551c8cf6f7efb21e0e2b64365d79331377797047b8",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "11189f1bf199cd3dbdbf08ad5a942b8bbcd0be9de7278881524914b373f45b6b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "4788a9ba49caca9ebc5a7c4484b948011f8083354bd50d8796880e79409bc98d",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "c83043db19b8e9126d4f00f5bf632f03f4a4bb5c4722b44f7d51f6f0f8b10c4b",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "dfa28438f4c57392a24ed3bb3a7cc950ddcff8457a8aa842fd24ea658b1fbd21",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2023-2024",
+      "source_row_hash": "d07b0cd345726ffe973c56c52f7f5a60e1c87e9bd1a8039394c08b86ab64dedf",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2024-2025",
+      "source_row_hash": "9ab31ec4f46651897038172f8e936f0f92003873e14684a9db55b88db4702934",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    },
+    {
+      "available_at": null,
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "reason": "Confirmed historical authority; availability unknown; DB inaccessible",
+      "season": "2025-2026",
+      "source_row_hash": "534ad0c9287dc510f9818bef4fee1f7bae4dbe67506df19b26ed41219126b979",
+      "tier": "PIT_EVIDENCE_TIER_C_RETROSPECTIVE"
+    }
+  ],
+  "source": "Committed S0 baseline; reclassification, not new area authority",
+  "tier_a_count": 0,
+  "tier_b_count": 0,
+  "tier_c_count": 117
+}
