@@ -1,0 +1,30 @@
+{
+  "official_parameter_reference": "https://confluence.ecmwf.int/spaces/TIGGE/pages/40109884/Parameters",
+  "provider_issued_at": "2025-02-01T00:00:00+00:00",
+  "provider_run_id": "20250201000000",
+  "radiation_semantics_match": true,
+  "retrieved_route_c": {
+    "end_steps": [
+      168,
+      360
+    ],
+    "evidence_level": "REAL_GRIB_DECODE",
+    "match_to_v014": true,
+    "param_id": 169,
+    "parameter": "ssrd",
+    "semantics": "surface solar radiation downwards",
+    "start_step": 0,
+    "step_type": "accum",
+    "units": "J m**-2"
+  },
+  "source_head_sha": "cee19c4720fa68e5e8df0fa188e94ba8a95b4936",
+  "ssr_substitution_allowed": false,
+  "task_id": "V0_15_S0_HISTORICAL_ECMWF_ACCESS_AND_WEATHER8_PROOF_R1",
+  "tigge": {
+    "evidence_level": "OFFICIAL_DOCUMENTATION_ONLY_ACCESS_BLOCKED",
+    "match_to_v014": false,
+    "parameter": "ssr",
+    "semantics": "surface NET solar radiation",
+    "units_documented": "W m**-2 s"
+  }
+}
