@@ -1,0 +1,21 @@
+{
+  "operational_vault_deployed": false,
+  "policy_hash": "4ea8bc7ee738427dd6d477ab175016eb4cd187339221184b62fc4043d1bf7309",
+  "policy_id": "V0_15_S0_PIT_EVIDENCE_TIERS_R1",
+  "result_based_promotion": false,
+  "scope": "Metadata classification, not operational predictor admission or blind vault",
+  "tier_a": "Direct immutable revision/acquisition/ingestion evidence; exact payload lineage; available_at <= cutoff. Event/effective/mtime/current retrieval never suffice.",
+  "tier_b": "Real data, frozen conservative result-independent assumption. PIT_STRICT=false. No assumption rule instantiated by this closure.",
+  "tier_c": "Final existence only; contemporaneous availability unknown. Exploratory/proxy only; forbidden in strict blind PIT benchmark.",
+  "time_fields": [
+    "event_time",
+    "effective_time",
+    "source_timestamp",
+    "created_at",
+    "ingested_at",
+    "updated_at",
+    "available_at",
+    "retrieved_at"
+  ],
+  "unknown_identity": "REVIEW_REQUIRED; no fuzzy mapping or automatic binding"
+}

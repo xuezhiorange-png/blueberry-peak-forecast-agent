@@ -1,0 +1,39 @@
+{
+  "base_sha": "f8308e4c076465aa050447c69f651c08b7ee6acb",
+  "baseline_and_observation_sha256": {
+    "access-closure-observation-r1.json": "4cf66c2cf67521f8ed7e6327a5e43358c88c7107d91175eb015f99f51147c996",
+    "area-authority-coverage-report-r2.json": "42bd3ee77c0078a7432751dcc1daf252e1bebc284b783dbce62983ab00d8e9cf",
+    "base-season-coverage-matrix-r2.csv": "db705f3140157a13502969bce812b89e5fe1f0a444c76eb895b76d8749bd2519",
+    "historical-as-issued-archive-report-r2.json": "7baaee0d77ab985f3f114654e56f1789498258736cc51c66e0063734b34e56ef",
+    "identity-conflict-report-r2.json": "99f82285a7b3c85fe9b3ab295278f47a32bc66262e2554836938f8da17eb11ab",
+    "owner-data-supplement-package-r2.json": "e5c690564ff1778330dc601085f8a5359e99fad354608a24f8d19a776685daeb"
+  },
+  "baseline_audit_regression_tests": 41,
+  "byte_equal_reports": true,
+  "focused_tests": 25,
+  "fresh_process_replay_count": 2,
+  "merge_authorized": false,
+  "new_data_reupload_requested": false,
+  "ready_authorized": false,
+  "real_db_readonly_verified": false,
+  "real_grib_decoded": false,
+  "report_canonical_hash": "3496036fc0e80f0d19a8a4d3829dcb56d827e4ffdf95af714703036d2ed6f24d",
+  "report_sha256": {
+    "area-available-at-classification.json": "ace962039baa2dcfa54ecf5dad5503a5d8c63d6e911a2487a2637bd1dccbfa7b",
+    "authenticated-ecmwf-historical-retrieval-report.json": "74fdcd6a2ec101175df15960503df2b0293299b5d6cc901a021fd6bb04901910",
+    "historical-database-readonly-audit-report.json": "9be04044cb614622bcee884d6cbe616204353d320c53bd4134ee92ab83ea5b01",
+    "historical-grib-validation-report.json": "fc1cb78d20e85a62fe999709b3435aebd981607451b8bef9872d443446e212dc",
+    "identity-authority-closure-report.json": "bce5ad56756f4dd1a711daca15048e4560e7a203cb0525e233d1df5e4e5f9347",
+    "pit-evidence-tier-policy.json": "79446011736ab196e4d6be272cecd299e6297d30c26c0370f115943fe11a0ba2",
+    "revised-base-season-coverage-matrix.json": "11f6a83ecb307a8743ddec83308d7b10b011ce3e171acab89583c345efd0188d",
+    "revised-owner-data-supplement-package.json": "89a91f83373f1362873effefcccdb7323fc39816191f270dff8b221769510ea8",
+    "s0-final-readiness-recommendation.json": "dd7cce9ec2e2ff0abe74256c1865c144280cfb25ed55be739abbf4b4899a35de",
+    "weather8-historical-support-report.json": "81040cbc08ea6fdc270eaba46950fbc369d6025c59a55a44bd1cd041a87c3a42"
+  },
+  "result": "PARTIAL",
+  "s0_final_ready": false,
+  "s1_authorized": false,
+  "s1_ready": false,
+  "schema": "V0_15_S0_CLOSURE_RECEIPT_R1",
+  "v014_production_accessed": false
+}
