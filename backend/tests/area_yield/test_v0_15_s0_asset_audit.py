@@ -281,7 +281,14 @@ def test_entity_metadata_survives_without_repeated_facts() -> None:
 
 
 @pytest.mark.parametrize(
-    "value", [{"lat": 25, "lon": 102}, "file:///tmp/private.csv", "See /Users/operator/private.csv"]
+    "value",
+    [
+        {"lat": 25, "lon": 102},
+        "file:///tmp/private.csv",
+        "See /Users/operator/private.csv",
+        "source:/Users/operator/private.csv",
+        "`/Users/operator/private.csv`",
+    ],
 )
 def test_public_alias_and_embedded_path_rejected(value: object) -> None:
     with pytest.raises(ValueError, match="PUBLIC_PRIVATE"):

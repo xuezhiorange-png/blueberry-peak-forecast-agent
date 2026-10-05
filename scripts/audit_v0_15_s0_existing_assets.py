@@ -283,7 +283,7 @@ def validate_public(value: Any) -> None:
         value.startswith("/")
         or ":\\" in value
         or "file://" in value.lower()
-        or re.search(r"(?:^|[\s('=])/(?:Users|tmp|private|opt|var|etc|home)/", value)
+        or re.search(r"/(?:Users|tmp|private|opt|var|etc|home)/", value, re.IGNORECASE)
     ):
         raise ValueError("PUBLIC_PRIVATE_PATH")
 
