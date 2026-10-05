@@ -1,0 +1,45 @@
+{
+  "PRECIPITATION_0_168": "AVAILABLE",
+  "PRECIPITATION_168_360": "AVAILABLE",
+  "RADIATION_0_168": "AVAILABLE",
+  "RADIATION_168_360": "AVAILABLE",
+  "TEMPERATURE_0_168": "AVAILABLE",
+  "TEMPERATURE_168_360": "AVAILABLE",
+  "WIND_0_168": "AVAILABLE",
+  "WIND_168_360": "AVAILABLE",
+  "base_count_proven": 1,
+  "base_id": "base_05c82656e3dcb06cac487039",
+  "coverage_limit": "One real historical run, one selected Base; not an all-season archive census.",
+  "exact_grid_binding_pass": true,
+  "feature_count": 8,
+  "feature_policy_hash": "ac1f76a07b422420bbe9164802d419d531a7457ec5976d353af5d99cfc498059",
+  "feature_values_committed": false,
+  "feature_values_hash": "fb7edf15806d412ed81895b1157ea57eb3d60d62eb98492e45f2c55c655ec056",
+  "full_v014_reconstruction": true,
+  "historical_weather8_0_168": "COMPLETE",
+  "historical_weather8_168_360": "COMPLETE",
+  "instantaneous_step_zero_included": false,
+  "offline_feature_replay_byte_equal": true,
+  "private_feature_artifact_sha256": "51ac92efaa3985b1537e6e3bc36782597acd0149c7f5c5bec444ec39a4e960d8",
+  "provider_issued_at": "2025-02-01T00:00:00+00:00",
+  "provider_run_id": "20250201000000",
+  "raw_values_disclosed": false,
+  "run_count_proven": 1,
+  "source_head_sha": "cee19c4720fa68e5e8df0fa188e94ba8a95b4936",
+  "ssrd_formulas": [
+    "ssrd168",
+    "ssrd360-ssrd168"
+  ],
+  "task_id": "V0_15_S0_HISTORICAL_ECMWF_ACCESS_AND_WEATHER8_PROOF_R1",
+  "temperature_semantics": "NATIVE_STEP_DURATION_WEIGHTED_ENDPOINT_SAMPLE_MEAN",
+  "tp_formulas": [
+    "tp168*1000",
+    "(tp360-tp168)*1000"
+  ],
+  "tp_ssrd_cumulative_regression_check": "PASS",
+  "wind_semantics": "NATIVE_STEP_DURATION_WEIGHTED_ENDPOINT_WIND_SPEED_MEAN",
+  "window_hours": [
+    168,
+    192
+  ]
+}

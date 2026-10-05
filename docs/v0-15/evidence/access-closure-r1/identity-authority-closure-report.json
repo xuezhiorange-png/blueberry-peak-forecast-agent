@@ -1,0 +1,11 @@
+{
+  "historical_available_at": "UNKNOWN",
+  "identity_rebound": false,
+  "source_report_hash": "b773ec6680b8eee3761ca07a5238cd7205a61c6d254e0ef5f3552b36ef332cfe",
+  "source_row_count": 228,
+  "source_rows_reinterpreted_as_strict": false,
+  "status": "NOT_CLOSED",
+  "strict_authority_count": 0,
+  "unresolved_count": 44,
+  "unresolved_count_scope": "Baseline mapping rows, not unique bases; no new proof"
+}
