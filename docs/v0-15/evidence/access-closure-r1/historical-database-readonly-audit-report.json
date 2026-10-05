@@ -1,0 +1,11 @@
+{
+  "audit_completed": false,
+  "connection_requirement": "Authorized read-only connection/export; no service changes",
+  "data_absence_claimed": false,
+  "future_actual_read": false,
+  "read_access": false,
+  "read_only_enforced_on_real_connection": false,
+  "records_queried": false,
+  "schema_names_not_data_semantics": true,
+  "status": "ACCESS_BLOCKED"
+}

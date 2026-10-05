@@ -1,0 +1,10 @@
+{
+  "ecmwf_auth_available": false,
+  "db_access_available": false,
+  "protected_runtime_accessed": false,
+  "current_actual_accessed": false,
+  "observed_at": "2026-10-05T10:25:00+00:00",
+  "discovery_scope": "Current operator process ECMWF API key/email and database environment names; standard ECMWF API config existence; checkout non-example environment configs. No keychain enumeration, secret export, remote host, or production access. Not a global credential absence claim.",
+  "ecmwf_standard_config_present": false,
+  "database_config_file_present": false
+}
