@@ -1,0 +1,106 @@
+{
+  "official_sources": {
+    "eccodes": "https://github.com/ecmwf/eccodes-python",
+    "ecds_migration": "https://confluence.ecmwf.int/spaces/DAC/pages/462894687/User+guide+for+migration+of+S2S+and+TIGGE+to+ECDS",
+    "official_client": "https://github.com/ecmwf/ecmwf-opendata",
+    "open_data": "https://www.ecmwf.int/en/forecasts/datasets/open-data",
+    "tigge_parameters": "https://confluence.ecmwf.int/spaces/TIGGE/pages/40109884/Parameters"
+  },
+  "provider_issued_at": "2025-02-01T00:00:00+00:00",
+  "provider_run_id": "20250201000000",
+  "route_a": {
+    "auth_available": false,
+    "name": "MARS",
+    "reason": "No securely configured MARS profile or environment entry found; no credential guessing.",
+    "request_executed": false,
+    "retrieval_success": false,
+    "status": "ACCESS_BLOCKED"
+  },
+  "route_b": {
+    "access_available": false,
+    "credential_source": "existing approved client profile; values never serialized",
+    "credential_value_disclosed": false,
+    "dataset": "tigge-forecasts",
+    "error_classification": "LICENCE_OR_TERMS_NOT_ACCEPTED",
+    "error_type": "HTTPError",
+    "http_status": 403,
+    "request": {
+      "class": "ti",
+      "date": "2024-02-01",
+      "expver": "prod",
+      "grid": "1/1",
+      "levtype": "sfc",
+      "origin": "ecmf",
+      "param": "167",
+      "step": "6",
+      "time": "00:00:00",
+      "type": "cf"
+    },
+    "request_executed": true,
+    "retrieval_completed_at": "2026-10-05T12:49:23.092168+00:00",
+    "retrieval_started_at": "2026-10-05T12:49:18.209168+00:00",
+    "retrieval_success": false,
+    "route": "B_ECDS_TIGGE",
+    "status": "ACCESS_BLOCKED",
+    "terms_accepted_by_this_task": false
+  },
+  "route_c": {
+    "archive_absence_inferred_from_error": false,
+    "attempts": [
+      {
+        "attempted_at": "2026-10-05T12:51:33.168820+00:00",
+        "file_size": 648399,
+        "forecast_issue_time": "2025-02-01T00:00:00+00:00",
+        "forecast_step": 6,
+        "http_status": 200,
+        "index_url": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com/20250201/00z/ifs/0p25/oper/20250201000000-6h-oper-fc.index",
+        "request_executed": true,
+        "response_sha256": "ab97fa71e22eb3577f1fd9ede9812b4173bcdf654b04f908666ff3e533c29da2",
+        "retrieval_success": true,
+        "sha256": "c6535438eda010c3038f011ed5ba7a93522b89a33d338830430ee2e4c9f830f6",
+        "source": "aws"
+      },
+      {
+        "attempted_at": "2026-10-05T12:51:33.169203+00:00",
+        "forecast_issue_time": "2025-02-01T00:00:00+00:00",
+        "forecast_step": 6,
+        "http_status": 409,
+        "index_url": "https://ai4edataeuwest.blob.core.windows.net/ecmwf/20250201/00z/ifs/0p25/oper/20250201000000-6h-oper-fc.index",
+        "request_executed": true,
+        "response_sha256": "9b3d5765e82dfb57fee904d4549c6e81979ae4873b9c4b2349444974c24bd173",
+        "result": "HTTP_ACCESS_ERROR",
+        "retrieval_success": false,
+        "source": "azure"
+      },
+      {
+        "attempted_at": "2026-10-05T12:51:33.167719+00:00",
+        "error_type": "URLError",
+        "forecast_issue_time": "2025-02-01T00:00:00+00:00",
+        "forecast_step": 6,
+        "index_url": "https://data.ecmwf.int/forecasts/20250201/00z/ifs/0p25/oper/20250201000000-6h-oper-fc.index",
+        "request_executed": true,
+        "result": "ACCESS_ERROR_REQUIRES_REVIEW",
+        "retrieval_success": false,
+        "source": "ecmwf"
+      },
+      {
+        "attempted_at": "2026-10-05T12:51:33.169021+00:00",
+        "file_size": 648399,
+        "forecast_issue_time": "2025-02-01T00:00:00+00:00",
+        "forecast_step": 6,
+        "http_status": 200,
+        "index_url": "https://storage.googleapis.com/ecmwf-open-data/20250201/00z/ifs/0p25/oper/20250201000000-6h-oper-fc.index",
+        "request_executed": true,
+        "response_sha256": "ab97fa71e22eb3577f1fd9ede9812b4173bcdf654b04f908666ff3e533c29da2",
+        "retrieval_success": true,
+        "sha256": "c6535438eda010c3038f011ed5ba7a93522b89a33d338830430ee2e4c9f830f6",
+        "source": "google"
+      }
+    ],
+    "name": "Official ECMWF Open Data cloud replicas",
+    "status": "RETRIEVED_AND_DECODED",
+    "transport_note": "Two AWS dense attempts ended on 503 SlowDown; fixed-run cached bytes preserved. Google fallback required byte-identical indexes; no result-driven run change."
+  },
+  "source_head_sha": "cee19c4720fa68e5e8df0fa188e94ba8a95b4936",
+  "task_id": "V0_15_S0_HISTORICAL_ECMWF_ACCESS_AND_WEATHER8_PROOF_R1"
+}

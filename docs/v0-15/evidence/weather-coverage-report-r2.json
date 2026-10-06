@@ -1,0 +1,4154 @@
+{
+  "base_universes": {
+    "base_names": {
+      "base_05c82656e3dcb06cac487039": "澜沧东回基地",
+      "base_10a4048aaf973fce65f5df40": "广南旧莫基地",
+      "base_1921620f6f595d3dc489dfa9": "保山由旺基地",
+      "base_1abf75fac2a2b1d7ccd74528": "丘北曰者基地",
+      "base_213507022f5779b1ed8ec255": "砚山黑鱼洞基地",
+      "base_2158646aee6000e2dd75afec": "永仁莲池基地",
+      "base_319779873190a57608b59b4e": "永仁猛虎基地",
+      "base_32a8489fdfad1a0ef0bad5ae": "砚山阿猛基地",
+      "base_33c9a0e6037e5e33bb59f154": "腾冲曲石基地",
+      "base_34fde1e05c1763f5b91499bb": "元江甘庄基地",
+      "base_36bc109841061a7798ed99a3": "乡丰蓝莓基地",
+      "base_3926ad631cbd8f5c7dc5f269": "弥勒西三基地",
+      "base_4028dc91aa8b73415aca41ba": "丘北双龙营二基地",
+      "base_40bc2a61ee14280aacf2e3fa": "弥勒巡检司基地",
+      "base_4fd002ff555f93b3f509789e": "砚山回龙基地",
+      "base_5596fbcc710d9dccb56afbec": "富民款庄基地",
+      "base_59be02a586e9c15be0d2694b": "版纳勐旺基地",
+      "base_5d98f77f66280b5196f09ceb": "腾冲德宏基地",
+      "base_68dad09f2a52dc180294119c": "丘北双龙营一基地",
+      "base_7092a05c3796a2582b5df9f8": "砚山炭房基地",
+      "base_7a0a9068b49251f4bc2228a5": "腾冲中和基地",
+      "base_80961ce21621aacbcaa509f7": "砚山平远基地",
+      "base_817f6981ac6c56d3fa476451": "澜沧上允基地",
+      "base_92a1023ab04011d53e8ab83c": "泸西基地",
+      "base_99bf5a30de037767b4ec1023": "弥勒新哨基地",
+      "base_a21676b04cd2f64e8b297033": "丘北天星基地",
+      "base_a7b76749d14a0f6bde410169": "开远开心莓基地",
+      "base_a96b297b126a8cab67c4755f": "保山杨柳基地",
+      "base_b30634ab6020391a3923849b": "永仁麦拉基地",
+      "base_bd88aa28f73dde00eb3c3392": "牟定民乐基地",
+      "base_be13e722e3d26160c1f04dbc": "建水阿朋基地",
+      "base_c51783e2ec7c16bba447d64e": "弥勒朋普基地",
+      "base_c8353bffd0cc9318d7d64520": "建水面甸基地",
+      "base_c8ab16ef1fae69899640eedb": "弥勒五山基地",
+      "base_d89ace7e18ae7a2d012939be": "曲靖潇湘基地",
+      "base_e24b268ad72d59adc8b8a7fe": "建水岔科基地",
+      "base_e63d30015dd3676c280e0e08": "砚山维摩基地",
+      "base_f10df3ac242e4dbbf6c20b98": "大理巍山基地",
+      "base_ffdc1ebe359436aa3f0fa834": "砚山盘龙基地"
+    },
+    "cohort29_count_public_s2": 29,
+    "cohort29_ids": "NOT_PUBLIC_NOT_READ",
+    "cohort29_membership_comparison": "Cannot independently identify 29 cohort IDs or the 9 historical Bases outside cohort without prohibited private data; public S2 states unavailable-weather Base exclusions=0.",
+    "historical_count": 38,
+    "historical_ids": [
+      "base_05c82656e3dcb06cac487039",
+      "base_10a4048aaf973fce65f5df40",
+      "base_1921620f6f595d3dc489dfa9",
+      "base_1abf75fac2a2b1d7ccd74528",
+      "base_213507022f5779b1ed8ec255",
+      "base_2158646aee6000e2dd75afec",
+      "base_319779873190a57608b59b4e",
+      "base_32a8489fdfad1a0ef0bad5ae",
+      "base_33c9a0e6037e5e33bb59f154",
+      "base_34fde1e05c1763f5b91499bb",
+      "base_3926ad631cbd8f5c7dc5f269",
+      "base_4028dc91aa8b73415aca41ba",
+      "base_40bc2a61ee14280aacf2e3fa",
+      "base_4fd002ff555f93b3f509789e",
+      "base_5596fbcc710d9dccb56afbec",
+      "base_59be02a586e9c15be0d2694b",
+      "base_5d98f77f66280b5196f09ceb",
+      "base_68dad09f2a52dc180294119c",
+      "base_7092a05c3796a2582b5df9f8",
+      "base_7a0a9068b49251f4bc2228a5",
+      "base_80961ce21621aacbcaa509f7",
+      "base_817f6981ac6c56d3fa476451",
+      "base_92a1023ab04011d53e8ab83c",
+      "base_99bf5a30de037767b4ec1023",
+      "base_a21676b04cd2f64e8b297033",
+      "base_a7b76749d14a0f6bde410169",
+      "base_a96b297b126a8cab67c4755f",
+      "base_b30634ab6020391a3923849b",
+      "base_bd88aa28f73dde00eb3c3392",
+      "base_be13e722e3d26160c1f04dbc",
+      "base_c51783e2ec7c16bba447d64e",
+      "base_c8353bffd0cc9318d7d64520",
+      "base_c8ab16ef1fae69899640eedb",
+      "base_d89ace7e18ae7a2d012939be",
+      "base_e24b268ad72d59adc8b8a7fe",
+      "base_e63d30015dd3676c280e0e08",
+      "base_f10df3ac242e4dbbf6c20b98",
+      "base_ffdc1ebe359436aa3f0fa834"
+    ],
+    "historical_not_in_public_base39": [],
+    "live39_count_public_s1": 39,
+    "live39_count_public_s2": 39,
+    "live39_ids_binding": "Public S1/S2 provide count and authority SHA, not ID membership list; correspondence to committed Base39 is count-level only, private registry not read.",
+    "live_location_authority_sha256_public": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "missing_historical_base_ids": [
+      "base_36bc109841061a7798ed99a3"
+    ],
+    "public_base39_count": 39,
+    "public_base39_sha256": "0d382e644b271df4d9b8e7f31f8e4148816135faf70aa1e21a97ee2eb6374b85",
+    "public_base39_source": "PRIVATE_SOURCE_REFERENCE"
+  },
+  "checks": {
+    "characterization_hash": true,
+    "raw_artifact_set_hash": true,
+    "source_manifest_hash": true,
+    "source_product": true
+  },
+  "coverage": [
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_05c82656e3dcb06cac487039",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_10a4048aaf973fce65f5df40",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_1921620f6f595d3dc489dfa9",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_1abf75fac2a2b1d7ccd74528",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_213507022f5779b1ed8ec255",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_2158646aee6000e2dd75afec",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_319779873190a57608b59b4e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_319779873190a57608b59b4e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_319779873190a57608b59b4e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_32a8489fdfad1a0ef0bad5ae",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_33c9a0e6037e5e33bb59f154",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_34fde1e05c1763f5b91499bb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "MISSING_BASE",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "business_coverage_status": "MISSING_BASE",
+      "business_daily_rows": 0,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 290,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 0,
+      "daily_rows": 0,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": null,
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 0,
+        "hourly_precipitation_mm": 0,
+        "hourly_solar_energy_j_m2": 0,
+        "temperature_2m_c": 0,
+        "wind_u_10m_m_s": 0,
+        "wind_v_10m_m_s": 0
+      },
+      "last_local_date": null,
+      "proxy360_cycle_ranges_utc_12h": [],
+      "proxy360_supported_cycle_count": 0,
+      "season": "2023-2024",
+      "weather_status": "MISSING_BASE"
+    },
+    {
+      "annual_coverage_status": "MISSING_BASE",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "business_coverage_status": "MISSING_BASE",
+      "business_daily_rows": 0,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 289,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 0,
+      "daily_rows": 0,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": null,
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 0,
+        "hourly_precipitation_mm": 0,
+        "hourly_solar_energy_j_m2": 0,
+        "temperature_2m_c": 0,
+        "wind_u_10m_m_s": 0,
+        "wind_v_10m_m_s": 0
+      },
+      "last_local_date": null,
+      "proxy360_cycle_ranges_utc_12h": [],
+      "proxy360_supported_cycle_count": 0,
+      "season": "2024-2025",
+      "weather_status": "MISSING_BASE"
+    },
+    {
+      "annual_coverage_status": "MISSING_BASE",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_36bc109841061a7798ed99a3",
+      "business_coverage_status": "MISSING_BASE",
+      "business_daily_rows": 0,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 289,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 0,
+      "daily_rows": 0,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": null,
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 0,
+        "hourly_precipitation_mm": 0,
+        "hourly_solar_energy_j_m2": 0,
+        "temperature_2m_c": 0,
+        "wind_u_10m_m_s": 0,
+        "wind_v_10m_m_s": 0
+      },
+      "last_local_date": null,
+      "proxy360_cycle_ranges_utc_12h": [],
+      "proxy360_supported_cycle_count": 0,
+      "season": "2025-2026",
+      "weather_status": "MISSING_BASE"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_3926ad631cbd8f5c7dc5f269",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_4028dc91aa8b73415aca41ba",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_40bc2a61ee14280aacf2e3fa",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_4fd002ff555f93b3f509789e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_5596fbcc710d9dccb56afbec",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_59be02a586e9c15be0d2694b",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_5d98f77f66280b5196f09ceb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_68dad09f2a52dc180294119c",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_7092a05c3796a2582b5df9f8",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_7a0a9068b49251f4bc2228a5",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_80961ce21621aacbcaa509f7",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_817f6981ac6c56d3fa476451",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_92a1023ab04011d53e8ab83c",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_99bf5a30de037767b4ec1023",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_a21676b04cd2f64e8b297033",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_a7b76749d14a0f6bde410169",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_a96b297b126a8cab67c4755f",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_b30634ab6020391a3923849b",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_b30634ab6020391a3923849b",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_b30634ab6020391a3923849b",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_bd88aa28f73dde00eb3c3392",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_be13e722e3d26160c1f04dbc",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_c51783e2ec7c16bba447d64e",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_c8353bffd0cc9318d7d64520",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_c8ab16ef1fae69899640eedb",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_d89ace7e18ae7a2d012939be",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_e24b268ad72d59adc8b8a7fe",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_e63d30015dd3676c280e0e08",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_f10df3ac242e4dbbf6c20b98",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2024-06-30",
+      "annual_start_local_date": "2023-07-01",
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 290,
+      "business_end_local_date": "2024-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2023-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 274,
+      "daily_rows": 290,
+      "expected_annual_calendar_days": 366,
+      "expected_business_calendar_days": 290,
+      "first_local_date": "2023-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6960,
+        "hourly_precipitation_mm": 6960,
+        "hourly_solar_energy_j_m2": 6960,
+        "temperature_2m_c": 6960,
+        "wind_u_10m_m_s": 6960,
+        "wind_v_10m_m_s": 6960
+      },
+      "last_local_date": "2024-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2023-07-01T00:00:00+00:00",
+          "2024-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 550,
+      "season": "2023-2024",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2025-06-30",
+      "annual_start_local_date": "2024-07-01",
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2025-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2024-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2024-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2025-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2024-07-01T00:00:00+00:00",
+          "2025-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2024-2025",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    },
+    {
+      "annual_coverage_status": "AVAILABLE_PARTIAL_ANNUAL_WINDOW",
+      "annual_end_local_date": "2026-06-30",
+      "annual_start_local_date": "2025-07-01",
+      "base_id": "base_ffdc1ebe359436aa3f0fa834",
+      "business_coverage_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON",
+      "business_daily_rows": 289,
+      "business_end_local_date": "2026-04-15",
+      "business_missing_day_count": 0,
+      "business_start_local_date": "2025-07-01",
+      "covered_daily_origins_00_12_local_both_supported_count": 273,
+      "daily_rows": 289,
+      "expected_annual_calendar_days": 365,
+      "expected_business_calendar_days": 289,
+      "first_local_date": "2025-07-01",
+      "hourly_rows_by_variable": {
+        "dewpoint_2m_c": 6936,
+        "hourly_precipitation_mm": 6936,
+        "hourly_solar_energy_j_m2": 6936,
+        "temperature_2m_c": 6936,
+        "wind_u_10m_m_s": 6936,
+        "wind_v_10m_m_s": 6936
+      },
+      "last_local_date": "2026-04-15",
+      "proxy360_cycle_ranges_utc_12h": [
+        [
+          "2025-07-01T00:00:00+00:00",
+          "2026-03-31T12:00:00+00:00"
+        ]
+      ],
+      "proxy360_supported_cycle_count": 548,
+      "season": "2025-2026",
+      "weather_status": "AVAILABLE_COMPLETE_BUSINESS_SEASON"
+    }
+  ],
+  "proxy_only": true,
+  "semantics": [
+    [
+      "dewpoint_2m_c",
+      "d2m",
+      "K",
+      "degC",
+      "INSTANT_AT_START",
+      "ERA5_LAND_HOURLY_NORMALIZED_V1",
+      791616
+    ],
+    [
+      "hourly_precipitation_mm",
+      "tp",
+      "m",
+      "mm",
+      "PROVIDER_DEACCUMULATED_HOURLY_INTERVAL_END",
+      "ERA5_LAND_HOURLY_NORMALIZED_V1",
+      791616
+    ],
+    [
+      "hourly_solar_energy_j_m2",
+      "ssrd",
+      "J m**-2",
+      "J m-2",
+      "PROVIDER_DEACCUMULATED_HOURLY_INTERVAL_END",
+      "ERA5_LAND_HOURLY_NORMALIZED_V1",
+      791616
+    ],
+    [
+      "temperature_2m_c",
+      "t2m",
+      "K",
+      "degC",
+      "INSTANT_AT_START",
+      "ERA5_LAND_HOURLY_NORMALIZED_V1",
+      791616
+    ],
+    [
+      "wind_u_10m_m_s",
+      "u10",
+      "m s**-1",
+      "m s-1",
+      "INSTANT_AT_START",
+      "ERA5_LAND_HOURLY_NORMALIZED_V1",
+      791616
+    ],
+    [
+      "wind_v_10m_m_s",
+      "v10",
+      "m s**-1",
+      "m s-1",
+      "INSTANT_AT_START",
+      "ERA5_LAND_HOURLY_NORMALIZED_V1",
+      791616
+    ]
+  ],
+  "summary_counts": {
+    "all_hash_and_metadata_checks": "PASS",
+    "annual_partial_base_season_cells": 114,
+    "base_season_availability_cells_including_missing_base": 117,
+    "business_complete_base_season_cells": 114,
+    "business_partial_base_season_cells": 0,
+    "cohort_difference_ids": "NOT_DETERMINABLE_FROM_ALLOWED_PUBLIC_EVIDENCE",
+    "historical_base_variable_groups": 228,
+    "historical_bases": 38,
+    "historical_bases_minus_public_cohort_count": 9,
+    "historical_weather_base_season_cells_available": 114,
+    "historical_weather_base_season_cells_missing": 3,
+    "proxy360_supported_cycles_per_available_base_by_season": {
+      "2023-2024": 550,
+      "2024-2025": 548,
+      "2025-2026": 548
+    },
+    "public_live_qualification_bases": 39,
+    "public_reference_bases": 39,
+    "public_s2_cohort_bases": 29,
+    "replays_audited": 2,
+    "unique_correction_records": 21455,
+    "unique_daily_rows": 32984,
+    "unique_datasets": 1,
+    "unique_hourly_rows": 4749696
+  }
+}

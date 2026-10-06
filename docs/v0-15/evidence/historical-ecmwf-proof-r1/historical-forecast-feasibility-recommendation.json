@@ -1,0 +1,42 @@
+{
+  "acceptance_route": "PASS_A",
+  "alternative_historical_weather_feature_set_feasible": false,
+  "alternative_status": "NOT_REQUIRED_FOR_THIS_PROOF; no TIGGE feature set implemented or verified",
+  "business_data_frozen": {
+    "area_tier_c_count": 117,
+    "identity_unresolved_count": 44,
+    "logical_harvest_record_count": 33033,
+    "strict_pit_ready_base_season_count": 0,
+    "training_candidate_base_season_count": 76
+  },
+  "business_db_changed": false,
+  "cold_storage_changed": false,
+  "current_2026_27_actual_accessed": false,
+  "historical_pit_backtest_ready": false,
+  "historical_real_forecast_available": true,
+  "historical_run_selection_policy_frozen": true,
+  "historical_run_selection_policy_hash": "f61a31c49bb3dab63a6a9ac3aff8f474dce51b6b46e93bf4267ef32db219e49c",
+  "historical_v014_weather8_reconstruction_feasible": true,
+  "label_vault_accessed": false,
+  "merge_authorized": false,
+  "model_training_executed": false,
+  "provider_issued_at": "2025-02-01T00:00:00+00:00",
+  "provider_run_id": "20250201000000",
+  "ready_authorized": false,
+  "remaining_limits": [
+    "No claim of complete archive coverage across all Base x Season.",
+    "Historical full-run publication/availability by cutoff still requires separate evidence.",
+    "IFS cycle not inferred from issue date.",
+    "TIGGE account terms/access unresolved; no silent ssr/ssrd equivalence."
+  ],
+  "result": "PASS",
+  "s0_weather_data_ready": true,
+  "s1_authorized": false,
+  "scoring_executed": false,
+  "source_head_sha": "cee19c4720fa68e5e8df0fa188e94ba8a95b4936",
+  "stop": true,
+  "task_id": "V0_15_S0_HISTORICAL_ECMWF_ACCESS_AND_WEATHER8_PROOF_R1",
+  "v014_registry_changed": false,
+  "v014_runtime_changed": false,
+  "v014_scheduler_changed": false
+}
