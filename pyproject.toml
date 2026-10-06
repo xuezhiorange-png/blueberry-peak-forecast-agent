@@ -25,6 +25,8 @@ dependencies = [
 [project.optional-dependencies]
 climate = ["cdsapi>=0.7.7", "requests>=2.32.0", "xarray==2026.7.0", "h5netcdf==1.8.1", "h5py==3.16.0"]
 dev = [
+    "catboost==1.2.10",
+    "lightgbm==4.7.0",
     "xarray==2026.7.0",
     "h5netcdf==1.8.1",
     "h5py==3.16.0",
@@ -40,6 +42,8 @@ dev = [
 
 [dependency-groups]
 dev = [
+    "catboost==1.2.10",
+    "lightgbm==4.7.0",
     "xarray==2026.7.0",
     "h5netcdf==1.8.1",
     "h5py==3.16.0",
@@ -124,4 +128,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["sklearn", "sklearn.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["catboost", "catboost.*", "lightgbm", "lightgbm.*"]
 ignore_missing_imports = true

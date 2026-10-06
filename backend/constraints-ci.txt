@@ -36,6 +36,8 @@ uvicorn==0.50.2
 xlrd==2.0.2
 
 # dev extras
+catboost==1.2.10
+lightgbm==4.7.0
 h5netcdf==1.8.1
 h5py==3.16.0
 xarray==2026.7.0
