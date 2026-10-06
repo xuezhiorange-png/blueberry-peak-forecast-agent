@@ -133,6 +133,17 @@ def acquire(
         ).read_bytes()
     )
     pins = {r["run_id"]: r["effective_derived_run_sha256"] for r in bindings["run_receipt_layers"]}
+    samples = json.loads(
+        (
+            root / "docs/v0-15/evidence/historical-ecmwf-coverage-sweep-r1/"
+            "historical-model-cycle-grib-validation.json"
+        ).read_bytes()
+    )
+    raw_pins = {
+        (sample["run_id"], f["step"], f["parameter"]): f["sha256"]
+        for sample in samples["samples"]
+        for f in sample["safe_decoded_fields"]
+    }
     output.mkdir(parents=True, mode=0o700, exist_ok=True)
     with httpx.Client(
         timeout=90, limits=httpx.Limits(max_connections=workers, max_keepalive_connections=workers)
@@ -172,6 +183,10 @@ def acquire(
                         p = raw_root / run_id / f"{step}-{parameter}.grib"
                         if p.exists():
                             raw = p.read_bytes()
+                            if hashlib.sha256(raw).hexdigest() != raw_pins.get(
+                                (run_id, step, parameter)
+                            ):
+                                raise ValueError("RAW_CACHE_SOURCE_HASH_DRIFT")
                             break
                     stem = product["namespace"] + f"/{run_id}-{step}h-oper-fc"
                     source = "https://storage.googleapis.com/ecmwf-open-data/" + stem + ".grib2"

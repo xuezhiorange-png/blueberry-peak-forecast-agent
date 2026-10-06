@@ -10,6 +10,7 @@ from backend.app.area_yield.v015_materialization import (
     base_vectors,
     daily_index,
     label_vector,
+    source_quality,
     validate_public,
     weather_vector,
 )
@@ -96,6 +97,26 @@ def test_zero_exact():
         label_vector(origin(), daily_index(daily("REAL_ZERO", "1")))
 
 
+def test_source_descriptive_audit_preserves_states_and_missing():
+    from copy import deepcopy
+
+    rows = daily()
+    rows[0].update(record_state="UNKNOWN", quantity_kg=None)
+    rows[1].update(record_state="PARTIAL_SUBTOTAL", quantity_kg="1000000")
+    rows[2].update(record_state="REAL_ZERO", quantity_kg="1")
+    rows[3].update(quantity_kg="NaN")
+    rows[4].update(quantity_kg="-1")
+    before = deepcopy(rows)
+    result = source_quality(rows)["2023-2024"]
+    assert rows == before
+    assert result["record_count"] == 15
+    assert result["incomplete_state_count"] == 2
+    assert result["complete_quantity_missing_count"] == 0
+    assert result["negative_count"] == 1
+    assert result["nonfinite_count"] == 1
+    assert result["real_zero_mismatch_count"] == 1
+
+
 def test_duplicate_fail_closed():
     rows = daily()
     with pytest.raises(ValueError, match="DUPLICATE_LOGICAL_KEY"):
@@ -146,14 +167,19 @@ def test_future_labels_mutate_without_changing_predictor_inputs(tmp_path):
             }
         ],
     )
-    before = digest(read_feature_artifact(path))
+    from scripts.materialize_v0_15_s2_dataset import sha
+
+    expected = sha(path.read_bytes())
+    before = digest(read_feature_artifact(path, expected_file_sha256=expected))
     prior = label_vector(row, daily_index(daily()))
     for offset in (1, 7, 15):
         changed = daily()
         changed[offset - 1]["quantity_kg"] = "999"
         assert label_vector(row, daily_index(changed)) != prior
-        assert digest(read_feature_artifact(path)) == before
-    assert "label_hash" not in read_feature_artifact(path)[0]
+        assert digest(read_feature_artifact(path, expected_file_sha256=expected)) == before
+    assert "label_hash" not in read_feature_artifact(path, expected_file_sha256=expected)[0]
+    with pytest.raises(ValueError, match="FEATURE_ARTIFACT_HASH_DRIFT"):
+        read_feature_artifact(path, expected_file_sha256="0" * 64)
 
 
 def test_precipitation_policy_not_applied_to_radiation():
@@ -183,7 +209,20 @@ def test_weather_anomaly_and_missing_reject():
 
 
 @pytest.mark.parametrize(
-    "payload", [{"quantity_kg": "1"}, {"path": "/private/tmp/a"}, {"latitude": 0}, {"d1_actual": 1}]
+    "payload",
+    [
+        {"quantity_kg": "1"},
+        {"path": "/private/tmp/a"},
+        {"latitude": 0},
+        {"d1_actual": 1},
+        {"labels": {"h7_total": "1"}},
+        {"base10": ["1"]},
+        {"weather8": ["1"]},
+        {"single_day_peak_quantity": "1"},
+        {"api_key": "synthetic"},
+        {"connection": "postgres://synthetic"},
+        {"/home/operator/private": "hash"},
+    ],
 )
 def test_public_privacy(payload):
     with pytest.raises(ValueError, match="PUBLIC_PRIVACY_VIOLATION"):
@@ -216,14 +255,16 @@ def test_feature_reader_label_path_and_symlink_denied(tmp_path):
     label = tmp_path / "label_zone" / "label.json"
     immutable(label, [{"labels": {"daily": ["99"]}}])
     with pytest.raises(ValueError, match="LABEL_ZONE_DENIED"):
-        read_feature_artifact(label)
+        read_feature_artifact(label, expected_file_sha256="0" * 64)
     feature = tmp_path / "feature_zone" / "data.json"
     immutable(feature, [{"base10": base_vectors(origin(), Decimal("394"))}])
-    assert len(read_feature_artifact(feature)) == 1
+    from scripts.materialize_v0_15_s2_dataset import sha
+
+    assert len(read_feature_artifact(feature, expected_file_sha256=sha(feature.read_bytes()))) == 1
     link = feature.parent / "symlink.json"
     link.symlink_to(label)
     with pytest.raises(ValueError, match="LABEL_ZONE_DENIED"):
-        read_feature_artifact(link)
+        read_feature_artifact(link, expected_file_sha256="0" * 64)
 
 
 def test_era5_cache_rejected():
@@ -266,3 +307,66 @@ def test_weather_reanalysis_units_and_ssrd_regression_reject():
     f[360, "ssrd"]["value"] = "-1"
     with pytest.raises(ValueError, match="CUMULATIVE_WEATHER_REGRESSION"):
         weather_vector(f)
+
+
+def test_frozen_rowset_and_weather_train_zero():
+    from pathlib import Path
+
+    import scripts.materialize_v0_15_s2_dataset as module
+
+    values, _ = module.sources(Path(module.__file__).resolve().parents[1])
+    rows = values["research-forecast-origin-universe.json"]["rows"]
+    base = [r for r in rows if r["base_research_eligible"]]
+    weather = [r for r in rows if r["weather_comparable_eligible"]]
+    assert len(base) == len({r["row_hash"] for r in base}) == 20020
+    assert len(weather) == 12925
+    assert len({(r["base_id"], r["season"], r["selected_run_id"]) for r in weather}) == 12925
+    assert not any(r["temporal_role"] == "TRAIN" for r in weather)
+    assert {r["row_hash"] for r in weather} <= {r["row_hash"] for r in base}
+    assert {r["season"] for r in base} == {"2023-2024", "2024-2025", "2025-2026"}
+
+
+@pytest.mark.parametrize("drift", ["missing_field", "run", "location", "late_publication"])
+def test_weather_cache_provenance_fail_closed(drift):
+    from backend.app.area_yield.v015_materialization import validate_weather_cache
+
+    cache = {
+        "provider": "ECMWF_IFS_OPEN_DATA",
+        "status": "COMPLETE",
+        "run_id": "20250201000000",
+        "location_authority_sha256": (
+            "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904"
+        ),
+        "raw_receipts": [
+            {
+                "step": s,
+                "parameter": p,
+                "raw_sha256": "a" * 64,
+                "raw_size": 100,
+                "metadata": {
+                    "dataDate": 20250201,
+                    "dataTime": 0,
+                    "shortName": p,
+                    "endStep": s,
+                    "marsClass": "od",
+                    "marsStream": "oper",
+                    "marsType": "fc",
+                },
+            }
+            for s, p in REQUIRED_FIELDS
+        ],
+    }
+    row = {"selected_run_id": cache["run_id"], "forecast_origin": "2025-02-01T17:00:00+08:00"}
+    cache["cache_hash"] = digest(cache)
+    validate_weather_cache(cache, row)
+    if drift == "missing_field":
+        cache["raw_receipts"].pop()
+    elif drift == "run":
+        row["selected_run_id"] = "20250131000000"
+    elif drift == "location":
+        cache["location_authority_sha256"] = "b" * 64
+    else:
+        row["forecast_origin"] = "2025-02-01T15:00:00+08:00"
+    cache["cache_hash"] = digest({k: v for k, v in cache.items() if k != "cache_hash"})
+    with pytest.raises(ValueError):
+        validate_weather_cache(cache, row)

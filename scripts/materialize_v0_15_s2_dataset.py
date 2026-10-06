@@ -21,8 +21,10 @@ from backend.app.area_yield.v015_materialization import (
     base_vectors,
     daily_index,
     label_vector,
+    source_quality,
     validate_public,
     validate_weather_cache,
+    validate_weather_origin,
     weather_vector,
 )
 from backend.app.area_yield.v015_research_cohort import canonical, digest
@@ -41,6 +43,10 @@ PINS = {
     "docs/v0-15/evidence/historical-ecmwf-coverage-sweep-r1/audit-source-manifest.json": (
         "2bc2d22ce6a28710d494143dae12bbfb49efb84d3327f6e514ef2355a5d92f7e"
     ),
+    (
+        "docs/v0-15/evidence/historical-ecmwf-coverage-sweep-r1/"
+        "historical-model-cycle-grib-validation.json"
+    ): ("a2960138985b3aa373614396f77163dbf6240f79cf7f0ab0343899595267c0e3"),
 }
 
 
@@ -131,6 +137,9 @@ def run(
         if key in areas:
             raise ValueError("DUPLICATE_AREA_AUTHORITY")
         areas[key] = area
+    # Source bytes were authenticated above. Keep only the area authority rows,
+    # not the large raw/label snapshot, while constructing private outputs.
+    del snap, area_rows, rows
     cohort = {
         (r["base_id"], r["season"]): r
         for r in s["retrospective-base-research-cohort.json"]["admitted_rows"]
@@ -140,6 +149,7 @@ def run(
         for r in s["research-forecast-origin-universe.json"]["rows"]
         if r["base_research_eligible"]
     ]
+    del s
     if len(origins) != 20020 or len(cohort) != 76:
         raise ValueError("S1_ELIGIBLE_UNIVERSE_CHANGED")
     features: dict[str, list[Any]] = {role: [] for role in ("TRAIN", "VALIDATION", "EXPOSED_OOT")}
@@ -269,23 +279,31 @@ def run(
             try:
                 run_id = row["selected_run_id"]
                 if run_id not in caches:
-                    caches[run_id] = json.loads((weather / (run_id + ".json")).read_bytes())
+                    full = json.loads((weather / (run_id + ".json")).read_bytes())
+                    validate_weather_cache(full, row)
+                    if full["catalog_sha256"] != catalog_pins[run_id]:
+                        raise ValueError("S0_CATALOG_DRIFT")
+                    compact: dict[str, Any] = {
+                        "cache_hash": full["cache_hash"],
+                        "vectors": {},
+                        "errors": {},
+                    }
+                    for base, fields in full["base_fields"].items():
+                        surface = {(f["step"], f["parameter"]): f for f in fields}
+                        try:
+                            vector = weather_vector(surface)
+                            if canonical(vector) != canonical(weather_vector(surface)):
+                                raise ValueError("WEATHER_REPLAY_FAILED")
+                            compact["vectors"][base] = vector
+                        except (KeyError, ValueError) as exc:
+                            compact["errors"][base] = str(exc)
+                    caches[run_id] = compact
+                    del full
+                validate_weather_origin(run_id, row)
                 cache = caches[run_id]
-                validate_weather_cache(cache, row)
-                if cache["catalog_sha256"] != catalog_pins[run_id]:
-                    raise ValueError("S0_CATALOG_DRIFT")
-                if (
-                    cache["run_id"] != run_id
-                    or digest({k: v for k, v in cache.items() if k != "cache_hash"})
-                    != cache["cache_hash"]
-                ):
-                    raise ValueError("WEATHER_CACHE_IDENTITY_INVALID")
-                if cache["provider"] != "ECMWF_IFS_OPEN_DATA" or cache["status"] != "COMPLETE":
-                    raise ValueError("WEATHER_NOT_AS_ISSUED_OR_INCOMPLETE")
-                surface = {(r["step"], r["parameter"]): r for r in cache["base_fields"][key[0]]}
-                vector = weather_vector(surface)
-                if canonical(vector) != canonical(weather_vector(surface)):
-                    raise ValueError("WEATHER_REPLAY_FAILED")
+                if key[0] in cache["errors"]:
+                    raise ValueError(cache["errors"][key[0]])
+                vector = cache["vectors"][key[0]]
                 w = {
                     **common,
                     "run_id": run_id,
@@ -391,6 +409,7 @@ def run(
             "statistical_threshold": None,
             "source_logical_record_count": len(daily),
             "source_state_counts_unchanged": dict(Counter(r["record_state"] for r in daily)),
+            "source_descriptive_quality_by_season": source_quality(daily),
             "source_records_not_selected_by_s1_are_not_re_admitted": True,
             "unknown_zero_conversion": False,
             "partial_complete_conversion": False,

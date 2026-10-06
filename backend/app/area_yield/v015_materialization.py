@@ -4,6 +4,7 @@ Feature construction accepts origin metadata and area only. Label construction
 is a separate application path. Retrospective grades are never upgraded.
 """
 
+import hashlib
 import json
 from datetime import UTC, date, datetime
 from decimal import Decimal, localcontext
@@ -30,12 +31,15 @@ from scripts.audit_v0_15_precip_packing_policy import window_precip
 POLICY_ID = "V0_15_S2_RESEARCH_NUMERIC_MATERIALIZATION_R1"
 
 
-def read_feature_artifact(path: Path) -> list[dict[str, Any]]:
+def read_feature_artifact(path: Path, *, expected_file_sha256: str) -> list[dict[str, Any]]:
     """The feature-reader path cannot point at a label artifact, including symlinks."""
     resolved = path.resolve(strict=True)
     if resolved.parent.name != "feature_zone":
         raise ValueError("LABEL_ZONE_DENIED")
-    rows: list[dict[str, Any]] = json.loads(resolved.read_bytes())
+    raw = resolved.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_file_sha256:
+        raise ValueError("FEATURE_ARTIFACT_HASH_DRIFT")
+    rows: list[dict[str, Any]] = json.loads(raw)
     if not isinstance(rows, list):
         raise ValueError("FEATURE_ARTIFACT_REQUIRED")
     for row in rows:
@@ -62,9 +66,7 @@ def validate_weather_cache(cache: dict[str, Any], row: dict[str, Any]) -> None:
         or digest({k: v for k, v in cache.items() if k != "cache_hash"}) != cache["cache_hash"]
     ):
         raise ValueError("WEATHER_CACHE_IDENTITY_INVALID")
-    issued = datetime.strptime(cache["run_id"], "%Y%m%d%H%M%S").replace(tzinfo=UTC)
-    if issued.hour not in (0, 12) or not availability(issued, origin_time(row["forecast_origin"])):
-        raise ValueError("PUBLICATION_CUTOFF_FAILED")
+    validate_weather_origin(cache["run_id"], row)
     if cache["location_authority_sha256"] != (
         "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904"
     ):
@@ -78,7 +80,7 @@ def validate_weather_cache(cache: dict[str, Any], row: dict[str, Any]) -> None:
         m = r["metadata"]
         if (
             m["dataDate"] != int(cache["run_id"][:8])
-            or m["dataTime"] != issued.hour * 100
+            or m["dataTime"] != int(cache["run_id"][8:10]) * 100
             or m["shortName"] != r["parameter"]
             or m["endStep"] != r["step"]
             or (m["marsClass"], m["marsStream"], m["marsType"]) != ("od", "oper", "fc")
@@ -86,6 +88,15 @@ def validate_weather_cache(cache: dict[str, Any], row: dict[str, Any]) -> None:
             or r["raw_size"] <= 0
         ):
             raise ValueError("RAW_RUN_PROVENANCE_INVALID")
+
+
+def validate_weather_origin(run_id: str, row: dict[str, Any]) -> None:
+    """Validate the cutoff for each row, including reuse of a verified run."""
+    if run_id != row["selected_run_id"]:
+        raise ValueError("WEATHER_CACHE_IDENTITY_INVALID")
+    issued = datetime.strptime(run_id, "%Y%m%d%H%M%S").replace(tzinfo=UTC)
+    if issued.hour not in (0, 12) or not availability(issued, origin_time(row["forecast_origin"])):
+        raise ValueError("PUBLICATION_CUTOFF_FAILED")
 
 
 def authorized(season: str) -> None:
@@ -139,6 +150,48 @@ def daily_index(rows: list[dict[str, Any]]) -> dict[tuple[str, str, str], dict[s
         if key in result:
             raise ValueError("DUPLICATE_LOGICAL_KEY")
         result[key] = row
+    return result
+
+
+def source_quality(rows: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """Descriptive source audit; never changes S0 states or admits excluded rows."""
+    daily_index(rows)
+    result = {
+        season: {
+            "record_count": 0,
+            "complete_state_count": 0,
+            "incomplete_state_count": 0,
+            "negative_count": 0,
+            "nonfinite_count": 0,
+            "complete_quantity_missing_count": 0,
+            "real_zero_mismatch_count": 0,
+            "outside_business_boundary_count": 0,
+            "broken_source_lineage_count": 0,
+        }
+        for season in SEASONS
+    }
+    for row in rows:
+        counts = result[row["season"]]
+        counts["record_count"] += 1
+        complete = row["record_state"] in COMPLETE_STATES
+        counts["complete_state_count" if complete else "incomplete_state_count"] += 1
+        raw = row["quantity_kg"]
+        if raw is None:
+            counts["complete_quantity_missing_count"] += int(complete)
+        else:
+            value = Decimal(str(raw))
+            if not value.is_finite():
+                counts["nonfinite_count"] += 1
+            else:
+                counts["negative_count"] += int(value < 0)
+                counts["real_zero_mismatch_count"] += int(
+                    row["record_state"] == "REAL_ZERO" and value != 0
+                )
+        boundary = business_boundary(row["season"])
+        counts["outside_business_boundary_count"] += int(
+            not boundary.start <= date.fromisoformat(row["date"]) <= boundary.end
+        )
+        counts["broken_source_lineage_count"] += int(not row["source_hashes"])
     return result
 
 
@@ -209,17 +262,47 @@ def validate_public(value: Any) -> None:
         "d1_actual",
         "source_file",
         "coefficients",
+        "labels",
+        "base10",
+        "weather8",
+        "base_fields",
+        "h7_total",
+        "h15_total",
+        "single_day_peak_quantity",
+        "single_day_peak_date",
+        "rolling7_peak_quantity",
+        "rolling7_peak_start_date",
+        "api_key",
+        "secret",
+        "credentials",
+        "database_url",
     }
     if isinstance(value, dict):
         if forbidden.intersection(k.lower() for k in value):
             raise ValueError("PUBLIC_PRIVACY_VIOLATION")
+        for k in value:
+            validate_public(k)
         for v in value.values():
             validate_public(v)
     elif isinstance(value, list):
         for v in value:
             validate_public(v)
     elif isinstance(value, str) and (
-        value.startswith(("/Users/", "/private/", "/var/", "/tmp/", "/opt/"))
-        or "postgresql://" in value
+        any(
+            p in value
+            for p in (
+                "/Users/",
+                "/private/",
+                "/var/",
+                "/tmp/",
+                "/opt/",
+                "/root/",
+                "/home/",
+                "/etc/",
+                "postgresql://",
+                "postgres://",
+            )
+        )
+        or ("postgresql+" in value and "://" in value)
     ):
         raise ValueError("PUBLIC_PRIVACY_VIOLATION")
