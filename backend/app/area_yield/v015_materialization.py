@@ -43,7 +43,9 @@ def read_feature_artifact(path: Path, *, expected_file_sha256: str) -> list[dict
     if not isinstance(rows, list):
         raise ValueError("FEATURE_ARTIFACT_REQUIRED")
     for row in rows:
-        if {"labels", "daily", "h7_total", "h15_total", "quantity_kg"}.intersection(row):
+        if {"labels", "label_hash", "daily", "h7_total", "h15_total", "quantity_kg"}.intersection(
+            row
+        ):
             raise ValueError("LABEL_ZONE_DENIED")
         if not ({"base10", "weather8"} & row.keys()):
             raise ValueError("FEATURE_ARTIFACT_REQUIRED")

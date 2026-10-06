@@ -149,37 +149,73 @@ def test_invalid_area_authority(area):
         base_vectors(origin(), Decimal(area))
 
 
-def test_future_labels_mutate_without_changing_predictor_inputs(tmp_path):
+@pytest.mark.parametrize("mutation", ["D1", "D7", "D15", "TARGET_SOURCE", "SEASON_FINAL_SOURCE"])
+def test_future_labels_leave_complete_feature_artifact_unchanged(tmp_path, mutation):
+    from copy import deepcopy
+
     from backend.app.area_yield.v015_materialization import read_feature_artifact
-    from scripts.materialize_v0_15_s2_dataset import immutable
+    from scripts.materialize_v0_15_s2_dataset import (
+        feature_row,
+        immutable,
+        label_row,
+        pairing_record,
+        sha,
+    )
 
     row = origin()
+    row["forecast_origin"] = "2024-03-31T17:00:00+08:00"
+    row["target_dates"] = [f"2024-04-{i:02}" for i in range(1, 16)]
+    records = daily()
+    for record, day in zip(records, row["target_dates"], strict=True):
+        record["date"] = day
     vector = base_vectors(row, Decimal("394"))
-    path = tmp_path / "feature_zone" / "features.json"
-    immutable(
-        path,
-        [
-            {
-                "row_key": row["row_hash"],
-                "base10": vector,
-                "feature_hash": digest(vector),
-                "label_hash": "audit-only",
-            }
-        ],
-    )
-    from scripts.materialize_v0_15_s2_dataset import sha
-
-    expected = sha(path.read_bytes())
-    before = digest(read_feature_artifact(path, expected_file_sha256=expected))
-    prior = label_vector(row, daily_index(daily()))
-    for offset in (1, 7, 15):
-        changed = daily()
-        changed[offset - 1]["quantity_kg"] = "999"
-        assert label_vector(row, daily_index(changed)) != prior
-        assert digest(read_feature_artifact(path, expected_file_sha256=expected)) == before
-    assert "label_hash" not in read_feature_artifact(path, expected_file_sha256=expected)[0]
+    common = {"row_key": row["row_hash"], "split": "TRAIN"}
+    lineage = ["1" * 64, "2" * 64, "3" * 64]
+    before_f = feature_row(common, vector, lineage)
+    before_l = label_row(common, label_vector(row, daily_index(records)), lineage, digest(vector))
+    changed = deepcopy(records)
+    if mutation.startswith("D"):
+        changed[int(mutation[1:]) - 1]["quantity_kg"] = "999"
+    else:
+        # April 15 is both D15 and the frozen business-season final day.
+        changed[6 if mutation == "TARGET_SOURCE" else -1]["source_hashes"] = ["f" * 64]
+    after_f = feature_row(common, vector, lineage)
+    after_l = label_row(common, label_vector(row, daily_index(changed)), lineage, digest(vector))
+    assert before_f["feature_hash"] == after_f["feature_hash"]
+    assert before_f["row_hash"] == after_f["row_hash"]
+    assert before_l["label_hash"] != after_l["label_hash"]
+    assert "label_hash" not in after_f
+    assert set(after_f["source_hashes"]) == set(lineage)
+    before_path = tmp_path / "before" / "feature_zone" / "data.json"
+    after_path = tmp_path / "after" / "feature_zone" / "data.json"
+    immutable(before_path, [before_f])
+    immutable(after_path, [after_f])
+    assert before_path.read_bytes() == after_path.read_bytes()
+    before_label = tmp_path / "before" / "label_zone" / "data.json"
+    after_label = tmp_path / "after" / "label_zone" / "data.json"
+    immutable(before_label, [before_l])
+    immutable(after_label, [after_l])
+    assert before_label.read_bytes() != after_label.read_bytes()
+    audit = tmp_path / "after" / "audit" / "feature-label-pairing.json"
+    pair = pairing_record(after_f, after_l)
+    immutable(audit, [pair])
+    assert pair["pair_hash"] == digest({k: v for k, v in pair.items() if k != "pair_hash"})
+    expected = sha(after_path.read_bytes())
+    assert "label_hash" not in read_feature_artifact(after_path, expected_file_sha256=expected)[0]
+    with pytest.raises(ValueError, match="LABEL_ZONE_DENIED"):
+        read_feature_artifact(audit, expected_file_sha256=sha(audit.read_bytes()))
     with pytest.raises(ValueError, match="FEATURE_ARTIFACT_HASH_DRIFT"):
-        read_feature_artifact(path, expected_file_sha256="0" * 64)
+        read_feature_artifact(after_path, expected_file_sha256="0" * 64)
+
+
+def test_feature_reader_rejects_legacy_label_hash(tmp_path):
+    from backend.app.area_yield.v015_materialization import read_feature_artifact
+    from scripts.materialize_v0_15_s2_dataset import immutable, sha
+
+    path = tmp_path / "feature_zone" / "data.json"
+    immutable(path, [{"base10": base_vectors(origin(), Decimal("394")), "label_hash": "a" * 64}])
+    with pytest.raises(ValueError, match="LABEL_ZONE_DENIED"):
+        read_feature_artifact(path, expected_file_sha256=sha(path.read_bytes()))
 
 
 def test_precipitation_policy_not_applied_to_radiation():
