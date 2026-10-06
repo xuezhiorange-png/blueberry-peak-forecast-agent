@@ -1,0 +1,1 @@
+{"base_origin_count":20020,"fresh_process_file_parity_requires_additional_operator_verification":true,"label_origin_count":20020,"method":"TWO_INDEPENDENT_PURE_FUNCTION_CALLS;CANONICAL_BYTE_EQUALITY","network_during_replay":false,"result":"PASS","vector_replay_count_per_successful_origin":2,"weather_origin_count":12925}
