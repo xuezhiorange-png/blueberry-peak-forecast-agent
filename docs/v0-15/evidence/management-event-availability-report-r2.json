@@ -1,0 +1,160 @@
+{
+  "event_statuses": {
+    "forcing": {
+      "db_status": "DBUNKNOWN_ACCESS_NOT_AVAILABLE",
+      "file_search_result": "NO_VERIFIED_EXECUTED_RECORD_FOUND_IN_SEARCHED_LOCAL_SOURCES",
+      "missing_claim": false,
+      "new_upload_requested": false,
+      "schema_or_template_is_event_proof": false,
+      "status": "UNKNOWN_REQUIRES_REVIEW"
+    },
+    "pruning": {
+      "db_status": "DBUNKNOWN_ACCESS_NOT_AVAILABLE",
+      "file_search_result": "NO_VERIFIED_EXECUTED_RECORD_FOUND_IN_SEARCHED_LOCAL_SOURCES",
+      "missing_claim": false,
+      "new_upload_requested": false,
+      "schema_or_template_is_event_proof": false,
+      "status": "UNKNOWN_REQUIRES_REVIEW"
+    },
+    "thinning": {
+      "db_status": "DBUNKNOWN_ACCESS_NOT_AVAILABLE",
+      "file_search_result": "NO_VERIFIED_EXECUTED_RECORD_FOUND_IN_SEARCHED_LOCAL_SOURCES",
+      "missing_claim": false,
+      "new_upload_requested": false,
+      "schema_or_template_is_event_proof": false,
+      "status": "UNKNOWN_REQUIRES_REVIEW"
+    }
+  },
+  "policy": "Production plans/schema/contract fields and synthetic fixtures do not prove executed pruning thinning or forcing. No verified execution export found by this bounded local schema search. This is not an absence claim.",
+  "real_executed_records": [],
+  "requested_event_classes": {
+    "flower_bud_thinning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "flower_thinning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "forcing": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "fruit_thinning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "other_management_events": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "postharvest_pruning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "summer_pruning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    },
+    "winter_pruning": {
+      "database_audited": false,
+      "global_absence_claim": false,
+      "local_search_result": "NOT_FOUND_VERIFIED_EXECUTED_RECORD",
+      "status": "UNKNOWN_REQUIRES_REVIEW",
+      "verified_executed_record_count": 0
+    }
+  },
+  "schema_or_template_candidates": [
+    {
+      "columns": [
+        "farm_code",
+        "farm_name",
+        "subfarm_code",
+        "subfarm_name",
+        "season_code",
+        "variety_code",
+        "planted_area_mu",
+        "expected_yield_kg_per_mu",
+        "marketable_rate",
+        "tree_age_years",
+        "pruning_date",
+        "flowering_start_date",
+        "flowering_peak_date",
+        "flowering_end_date",
+        "first_pick_date",
+        "expected_total_marketable_kg",
+        "version",
+        "effective_from",
+        "effective_to",
+        "available_at",
+        "source_type",
+        "source_name",
+        "source_version",
+        "notes"
+      ],
+      "header_sha256": "b0c8d1ec5b1e23d16a21fd43cb2ba103df00c2f70536ee7cfc0dd36b605d1386",
+      "management_columns": [
+        "pruning_date"
+      ],
+      "raw_rows_read": false,
+      "reference": "historical:data/templates/production_plans.csv"
+    },
+    {
+      "columns": [
+        "farm_code",
+        "farm_name",
+        "subfarm_code",
+        "subfarm_name",
+        "season_code",
+        "variety_code",
+        "planted_area_mu",
+        "expected_yield_kg_per_mu",
+        "marketable_rate",
+        "tree_age_years",
+        "pruning_date",
+        "flowering_start_date",
+        "flowering_peak_date",
+        "flowering_end_date",
+        "first_pick_date",
+        "expected_total_marketable_kg",
+        "version",
+        "effective_from",
+        "effective_to",
+        "available_at",
+        "source_type",
+        "source_name",
+        "source_version",
+        "notes"
+      ],
+      "header_sha256": "b0c8d1ec5b1e23d16a21fd43cb2ba103df00c2f70536ee7cfc0dd36b605d1386",
+      "management_columns": [
+        "pruning_date"
+      ],
+      "raw_rows_read": false,
+      "reference": "repo:data/templates/production_plans.csv"
+    }
+  ],
+  "status": "PARTIAL",
+  "synthetic_records_counted_as_real": 0
+}

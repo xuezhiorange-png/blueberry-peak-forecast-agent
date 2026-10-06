@@ -1,0 +1,21 @@
+{
+  "access_observation": {
+    "current_actual_accessed": false,
+    "database_config_file_present": false,
+    "db_access_available": false,
+    "discovery_scope": "Current operator process ECMWF API key/email and database environment names; standard ECMWF API config existence; checkout non-example environment configs. No keychain enumeration, secret export, remote host, or production access. Not a global credential absence claim.",
+    "ecmwf_auth_available": false,
+    "ecmwf_standard_config_present": false,
+    "observed_at": "2026-10-05T10:25:00+00:00",
+    "protected_runtime_accessed": false
+  },
+  "auth_available": false,
+  "authenticated_request_executed": false,
+  "classification": "ACCESS_BLOCKED",
+  "new_network_request_executed": false,
+  "next_action": "Authorize secure credentials; never send secrets in chat/Git",
+  "prior_403_is_baseline_not_new_request": true,
+  "query_cycle": "00",
+  "query_date": "2025-01-15",
+  "retrieval_success": false
+}

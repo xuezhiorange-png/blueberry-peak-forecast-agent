@@ -1,0 +1,44 @@
+{
+  "acquisition": {
+    "completed_at": "2026-10-05T13:08:25.665026+00:00",
+    "field_count": 256,
+    "initial_attempt_cache_preserved": true,
+    "initial_attempt_http_error": 503,
+    "network_used": true,
+    "started_at": "2026-10-05T13:03:07.058929+00:00",
+    "transient_transport_errors": []
+  },
+  "external_trusted_timestamp": false,
+  "historical_full_run_available_at_verified": false,
+  "historical_object_response_metadata": {
+    "content_length": 124271045,
+    "etag": "0ebbee2872aba1b394a8670fc25f51ac",
+    "last_modified": "2025-02-01T08:34:05+00:00",
+    "scope": "6h containing object only"
+  },
+  "location_authority_sha256": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+  "provider_issued_at": "2025-02-01T00:00:00+00:00",
+  "provider_run_id": "20250201000000",
+  "raw_cache_class": "ISOLATED_OPERATOR_OWNED_V015_RESEARCH_ONLY",
+  "raw_fields_manifest_sha256": "eb795dad6a7e1d4d7e1d17f112df0edc813b49ba05a488021a7d5ba90eeaae01",
+  "raw_grib_committed": false,
+  "real_historical_forecast_retrieved": true,
+  "sample_base_id": "base_05c82656e3dcb06cac487039",
+  "sample_canonical_base_name": "澜沧东回基地",
+  "sample_season": "2024-2025",
+  "selection_basis": "Existing frozen coverage report and exact frozen location authority, without quantity or label-vault access.",
+  "source_head_sha": "cee19c4720fa68e5e8df0fa188e94ba8a95b4936",
+  "summary": {
+    "all_required_fields_decoded": true,
+    "field_count": 256,
+    "forecast_step_count": 84,
+    "issue_time": "2025-02-01T00:00:00+00:00",
+    "parameter_count": 5,
+    "radiation_semantics_match": true,
+    "raw_field_bytes": 196548565,
+    "same_run": true,
+    "valid_time_end": "2025-02-16T00:00:00+00:00",
+    "valid_time_start": "2025-02-01T03:00:00+00:00"
+  },
+  "task_id": "V0_15_S0_HISTORICAL_ECMWF_ACCESS_AND_WEATHER8_PROOF_R1"
+}
