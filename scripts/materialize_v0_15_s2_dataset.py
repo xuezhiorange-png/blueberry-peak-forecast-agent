@@ -66,6 +66,49 @@ def immutable(path: Path, value: Any) -> None:
     path.chmod(0o600)
 
 
+def feature_row(common: dict[str, Any], vectors: Any, feature_sources: list[str]) -> dict[str, Any]:
+    """Feature-zone serialization has no label argument or target-source lineage."""
+    result = {
+        **common,
+        "source_hashes": sorted(set(feature_sources)),
+        "base10": vectors,
+        "missing_mask": [False] * 10,
+        "feature_hash": digest(vectors),
+    }
+    result["row_hash"] = digest(result)
+    return result
+
+
+def label_row(
+    common: dict[str, Any], label: dict[str, Any], feature_sources: list[str], feature_hash: str
+) -> dict[str, Any]:
+    """Keep the established label-zone bytes and numeric definition unchanged."""
+    result = {
+        **common,
+        "source_hashes": sorted(set(label["source_hashes"] + feature_sources)),
+        "labels": label,
+        "label_hash": digest(label),
+        "feature_hash": feature_hash,
+    }
+    result["row_hash"] = digest(result)
+    return result
+
+
+def pairing_record(feature: dict[str, Any], label: dict[str, Any]) -> dict[str, Any]:
+    """Cross-zone linkage is private audit data, never predictor input."""
+    if feature["row_key"] != label["row_key"]:
+        raise ValueError("PAIRING_ROW_KEY_MISMATCH")
+    result = {
+        "row_key": feature["row_key"],
+        "feature_hash": feature["feature_hash"],
+        "label_hash": label["label_hash"],
+        "feature_row_hash": feature["row_hash"],
+        "label_row_hash": label["row_hash"],
+    }
+    result["pair_hash"] = digest(result)
+    return result
+
+
 def sources(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
     inherited, inherited_pins = load_sources(root)
     raw = (root / S1 / "manifest.json").read_bytes()
@@ -155,7 +198,7 @@ def run(
     features: dict[str, list[Any]] = {role: [] for role in ("TRAIN", "VALIDATION", "EXPOSED_OOT")}
     labels: dict[str, list[Any]] = {role: [] for role in features}
     wx: dict[str, list[Any]] = {role: [] for role in features}
-    failed, wx_failed = [], []
+    failed, wx_failed, pairing = [], [], []
     caches: dict[str, Any] = {}
     catalog_bindings = json.loads(
         (
@@ -234,29 +277,16 @@ def run(
                 base_vectors(row, Decimal(a["payload"]["historical_actual_area_mu"]))
             ) or canonical(label) != canonical(label_vector(row, index)):
                 raise ValueError("DETERMINISTIC_REPLAY_FAILED")
-            source_hashes = sorted(
-                set(
-                    label["source_hashes"]
-                    + [
-                        a["source_hash"],
-                        row["source_business_row_hash"],
-                        row["cohort_decision_hash"],
-                    ]
-                )
-            )
-            f = {
-                **common,
-                "source_hashes": source_hashes,
-                "base10": vectors,
-                "missing_mask": [False] * 10,
-            }
-            label_row = {**common, "source_hashes": source_hashes, "labels": label}
-            # Numeric feature identity is independent of target labels/source revisions.
-            f["feature_hash"], label_row["label_hash"] = digest(vectors), digest(label)
-            f["label_hash"], label_row["feature_hash"] = label_row["label_hash"], f["feature_hash"]
-            f["row_hash"], label_row["row_hash"] = digest(f), digest(label_row)
+            feature_sources = [
+                a["source_hash"],
+                row["source_business_row_hash"],
+                row["cohort_decision_hash"],
+            ]
+            f = feature_row(common, vectors, feature_sources)
+            label_record = label_row(common, label, feature_sources, f["feature_hash"])
             features[role].append(f)
-            labels[role].append(label_row)
+            labels[role].append(label_record)
+            pairing.append(pairing_record(f, label_record))
             q[role]["valid_label_count"] += 15
             q[role]["real_zero_count"] += sum(
                 index[key[0], key[1], d]["record_state"] == "REAL_ZERO" for d in row["target_dates"]
@@ -340,6 +370,7 @@ def run(
         q[role]["base_season_count"] = len({(r["base_id"], r["season"]) for r in features[role]})
     immutable(private / "audit" / "base-failed.json", failed)
     immutable(private / "audit" / "weather-failed.json", wx_failed)
+    immutable(private / "audit" / "feature-label-pairing.json", pairing)
     n = sum(map(len, features.values()))
     wn = sum(map(len, wx.values()))
     if n + len(failed) != 20020 or wn + len(wx_failed) != 12925:
@@ -373,6 +404,8 @@ def run(
             "SEPARATE_FEATURE_AND_LABEL_DIRECTORIES;OWNER_ONLY;FEATURE_BUILDER_NO_LABEL_ARGUMENT"
         ),
         "origin_day_harvest_excluded": True,
+        "feature_lineage_policy": "FEATURE_SIDE_ONLY;NO_LABEL_HASH_OR_TARGET_LABEL_SOURCE_HASH",
+        "cross_zone_linkage": "PRIVATE_AUDIT_ONLY",
     }
     policy["policy_hash"] = digest(policy)
     ready = not failed
@@ -461,6 +494,10 @@ def run(
             "database_isolation_receipt": isolation,
             "original_source_modified": False,
             "future_actual_leakage_tests": "PASS",
+            "feature_artifact_label_dependency": False,
+            "feature_row_hash_and_file_bytes_invariance_tests": "PASS",
+            "private_pairing_audit_row_count": len(pairing),
+            "private_pairing_audit_hash": digest(pairing),
         },
         "privacy-scan-report.json": {"result": "PASS", "public_contains_private_rows": False},
         "deterministic-replay-report.json": {
@@ -500,6 +537,14 @@ def run(
         "members": members,
         "dataset_hashes": hashes,
         "policy_hash": policy["policy_hash"],
+        "private_audit_members": [
+            {
+                "name": "audit/feature-label-pairing.json",
+                "sha256": sha(canonical(pairing)),
+                "size": len(canonical(pairing)),
+                "row_count": len(pairing),
+            }
+        ],
     }
     manifest["manifest_hash"] = digest(manifest)
     immutable(private / "manifest.json", manifest)
