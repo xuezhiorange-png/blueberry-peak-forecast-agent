@@ -1,0 +1,388 @@
+{
+  "2026_2027_ACTUAL_IMPORT_AUTHORIZED": false,
+  "2026_2027_ACTUAL_READ_AUTHORIZED": false,
+  "2026_2027_ACTUAL_SCORING_AUTHORIZED": false,
+  "AUDIT": {
+    "METHOD": "Fresh Git fetch plus live GitHub Release and PR metadata; read-only git show for P1 contract",
+    "P1_NOTE": "Earlier P1 text may discuss P50/P80/P90; version scope requires explicit semantics and supersedes any automatic point=P50 implication. P1 remains unadmitted until separate gate.",
+    "PR690_CONTRACT_ONLY": true,
+    "PR690_FILES": [
+      "backend/tests/area_yield/test_forecast_intelligence_p1_hierarchy_contract.py",
+      "docs/forecast-intelligence/evidence/p1-hierarchical-forecast-contract-r1.json",
+      "docs/forecast-intelligence/p1-hierarchical-forecast-contract-r1.md"
+    ],
+    "PR690_STATE": "OPEN_DRAFT",
+    "PR690_TARGET": "main",
+    "VERIFIED_DATE": "2026-10-07"
+  },
+  "BASE_MAIN_SHA": "b69e526a7a6d7c40bd22351cf16bad6c8befea14",
+  "CHANGED_FILE_ALLOWLIST": [
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md",
+    "docs/v0-16/evidence/v0.16.0-version-plan-and-scope-freeze-r1.json",
+    "backend/tests/area_yield/test_v0_16_scope_contract.py"
+  ],
+  "CORE_GOAL": [
+    "FORECAST_INTELLIGENCE",
+    "DECISION_INTELLIGENCE"
+  ],
+  "CURRENT_SEASON_ACTUAL_AVAILABLE": false,
+  "HISTORICAL_EXPOSURE_AND_RETROSPECTIVE_GRADES_MUST_BE_RETAINED": true,
+  "HISTORICAL_TAG_RELEASE_MUTATION_ALLOWED": false,
+  "LATEST_FORMAL_RELEASE": "v0.15.0",
+  "MERGE_AUTHORIZED": false,
+  "MODE": "DOCS_ONLY_VERSION_SCOPE_AND_TASK_FREEZE",
+  "MODEL_REFIT_AUTHORIZED": false,
+  "MODEL_TRAINING_AUTHORIZED": false,
+  "OWNER_AUTHORIZED": true,
+  "P1_ADMISSION_STATUS": "PENDING_VERSION_SCOPE_FREEZE",
+  "P1_NEXT_GATE": "S0_REVIEW_MERGE_THEN_FRESH_MAIN_AND_SEPARATE_AUTHORIZATION",
+  "PREEXISTING_P1_DRAFT": true,
+  "PREEXISTING_P1_HEAD": "5b5f01683e47c32e0cae45b791e9d0d41d8e66c2",
+  "PREEXISTING_P1_MODIFICATION_AUTHORIZED": false,
+  "PREEXISTING_P1_PR": 690,
+  "PREEXISTING_P1_TITLE": "docs(forecast-intelligence): freeze hierarchical forecast contract",
+  "PRODUCTION_USE_APPROVED": false,
+  "PROSPECTIVE_ACCURACY_VALIDATED": false,
+  "PROSPECTIVE_SCORING_AUTHORIZED": false,
+  "READY_AUTHORIZED": false,
+  "REAL_ROI_VALIDATED": false,
+  "RELEASE_AUTHORIZED": false,
+  "RELEASE_CLASS": "RESEARCH_AND_ENGINEERING_VERSION",
+  "S1_IMPLEMENTATION_AUTHORIZED": false,
+  "S2_IMPLEMENTATION_AUTHORIZED": false,
+  "S3_IMPLEMENTATION_AUTHORIZED": false,
+  "S4_IMPLEMENTATION_AUTHORIZED": false,
+  "S5_IMPLEMENTATION_AUTHORIZED": false,
+  "S6_IMPLEMENTATION_AUTHORIZED": false,
+  "STAGES": {
+    "S1": {
+      "APPEND_ONLY": true,
+      "ARITHMETIC_INVARIANTS": [
+        "sum(Base daily)=Region daily",
+        "sum(Region daily)=Company daily",
+        "sum(all Base daily)=Company daily"
+      ],
+      "DETERMINISTIC": true,
+      "DIAGNOSTIC_SUBTOTAL_IS_OFFICIAL": false,
+      "FACTORY_EXCLUSION_REASON": "Routing/allocation is not stable production ownership",
+      "FACTORY_HIERARCHY_ADMITTED": false,
+      "FARM_EXCLUSION_REASON": "Historical farm/member identity maps to canonical base_id; no independent authoritative parent hierarchy proven",
+      "FARM_HIERARCHY_ADMITTED": false,
+      "FORBIDDEN_METHODS": [
+        "MinT",
+        "TOP_DOWN",
+        "MIDDLE_OUT",
+        "PARENT_MODEL_FITTING",
+        "STATISTICAL_RECONCILIATION_SEARCH"
+      ],
+      "FORECAST_ATOMIC_ENTITY_TYPE": "BASE",
+      "HIERARCHY": [
+        "BASE",
+        "REGION",
+        "COMPANY"
+      ],
+      "IMMUTABLE": true,
+      "INCOMPLETE_OFFICIAL_AGGREGATE_KG": null,
+      "INCOMPLETE_STATUS": "INCOMPLETE_CHILD_COVERAGE",
+      "MISSING_CHILD_AS_ZERO": false,
+      "OUTPUTS": [
+        "hierarchy_authority_snapshot",
+        "hierarchy_authority_hash",
+        "reconciliation_run",
+        "daily_aggregate",
+        "season_H7_H15_totals_where_applicable",
+        "single_day_peak",
+        "rolling_7_peak",
+        "child_coverage",
+        "source_forecast_ids_and_hashes",
+        "result_hash"
+      ],
+      "OWNER_ORIGINAL_ITEM": 8,
+      "PEAK_SOURCE": "AGGREGATED_DAILY_CURVE",
+      "RECONCILIATION_METHOD": "BOTTOM_UP_EXACT_SUM",
+      "SOURCE_FORECAST_MUTATION_ALLOWED": false,
+      "SUM_CHILD_PEAKS_ALLOWED": false,
+      "TASK_ID": "V0_16_S1_HIERARCHICAL_FORECAST_RECONCILIATION",
+      "TIE_BREAK": "EARLIEST_DATE"
+    },
+    "S2": {
+      "EVALUATION": [
+        "empirical_coverage",
+        "interval_width",
+        "coverage_by_lead_day",
+        "H7_H15_coverage",
+        "Base_breadth",
+        "failure_and_not_computable_counts"
+      ],
+      "FUTURE_COVERAGE_GUARANTEE_ALLOWED": false,
+      "GAUSSIAN_RESIDUAL_ASSUMPTION_REQUIRED": false,
+      "INPUT_AUTHORITY": "Legally frozen historical forecast/label evidence retaining retrospective and exposure grades",
+      "INTERVAL_COVERAGE_LEVELS": [
+        80,
+        90
+      ],
+      "INTERVAL_IS_AUTOMATIC_QUANTILE": false,
+      "OUTPUTS": [
+        "point_forecast",
+        "prediction_interval_80",
+        "prediction_interval_90",
+        "upper_planning_bound_80",
+        "upper_planning_bound_90"
+      ],
+      "OWNER_ORIGINAL_ITEM": 1,
+      "POINT_FORECAST_IS_PROVEN_P50": false,
+      "POINT_MODEL_FROZEN": true,
+      "POINT_MODEL_RETRAIN_OR_TUNE_ALLOWED": false,
+      "PREFERRED_METHOD": "CONFORMAL_PREDICTION",
+      "PROSPECTIVE_INTERVAL_COVERAGE_VALIDATED": false,
+      "RETROSPECTIVE_INTERVAL_CALIBRATION": true,
+      "TASK_ID": "V0_16_S2_UNCERTAINTY_AND_CONFORMAL_CALIBRATION",
+      "UI_QUANTILE_LABELS_REQUIRE_EXPLICIT_SEMANTIC_MAPPING": true
+    },
+    "S3": {
+      "ABSENT_HARVEST_STATE_GROUP_FABRICATION_ALLOWED": false,
+      "ALLOWED_DESCRIPTION": [
+        "MODEL_ATTRIBUTION",
+        "PREDICTION_CONTRIBUTION"
+      ],
+      "ATTRIBUTION_IS_CAUSAL_EXPLANATION": false,
+      "DEPENDENCIES": [
+        "S1",
+        "S2"
+      ],
+      "FORBIDDEN_DESCRIPTION": [
+        "ROOT_CAUSE",
+        "CAUSAL_RELATIONSHIP",
+        "FACTOR_CAUSED_YIELD_INCREASE"
+      ],
+      "GROUPS": [
+        "BASE10",
+        "HARVEST_STATE",
+        "SEASON_POSITION",
+        "AREA",
+        "OTHER"
+      ],
+      "INPUTS": [
+        "frozen_coefficients",
+        "frozen_scaling",
+        "feature_values",
+        "intercept"
+      ],
+      "MODEL_RETRAIN_ALLOWED": false,
+      "NEW_TREE_TRAINING_AUTHORIZED": false,
+      "OUTPUTS": [
+        "forecast_id",
+        "target_date",
+        "baseline_intercept",
+        "feature_contributions",
+        "group_contributions",
+        "reconstructed_prediction",
+        "reconstruction_error",
+        "model_hash",
+        "feature_hash",
+        "attribution_hash"
+      ],
+      "OWNER_ORIGINAL_ITEM": 6,
+      "PREFERRED_METHOD": "EXACT_LINEAR_CONTRIBUTION",
+      "RECONSTRUCTION_REQUIRED": true,
+      "RECONSTRUCTION_TOLERANCE_MUST_BE_FROZEN_BEFORE_IMPLEMENTATION": true,
+      "RECONSTRUCTION_TOLERANCE_NOT_CHOSEN_IN_S0": true,
+      "TASK_ID": "V0_16_S3_FORECAST_ATTRIBUTION",
+      "TREE_SHAP": "FUTURE_ADAPTER_ONLY"
+    },
+    "S4": {
+      "CURRENT_2026_2027_ACTUAL_READ": false,
+      "CURRENT_2026_2027_ACTUAL_REQUIRED": false,
+      "DESCRIPTIVE_STATUSES": [
+        "INSUFFICIENT_DATA",
+        "SCORABLE",
+        "NOT_SCORABLE",
+        "OBSERVED_DEGRADATION"
+      ],
+      "FUTURE_FLOW": [
+        "forecast",
+        "actual_matching",
+        "completeness_gate",
+        "locked_scoring",
+        "quality_monitoring"
+      ],
+      "HORIZONS": [
+        "H1",
+        "H3",
+        "H7",
+        "H15"
+      ],
+      "METRICS": [
+        "WAPE",
+        "MAE",
+        "Bias",
+        "cumulative_WAPE",
+        "forecast_coverage",
+        "actual_completeness",
+        "issuance_coverage"
+      ],
+      "MISSING_ACTUAL_AS_ZERO": false,
+      "OWNER_ORIGINAL_ITEM": 7,
+      "PARTIAL_AS_COMPLETE": false,
+      "PRODUCTION_ALERT_THRESHOLDS_ESTABLISHED": false,
+      "PRODUCTION_THRESHOLDS_REQUIRE_BUSINESS_AUTHORITY": true,
+      "S2_CONDITIONAL_METRICS": [
+        "interval_empirical_coverage",
+        "interval_width"
+      ],
+      "SILENT_INCOMPLETE_SCORING_ALLOWED": false,
+      "TASK_ID": "V0_16_S4_FORECASTOPS_MONITORING",
+      "TEST_INPUTS": [
+        "FROZEN_HISTORICAL_EVIDENCE",
+        "EXPLICIT_SYNTHETIC_FIXTURES"
+      ]
+    },
+    "S5": {
+      "CANONICAL_COMPANY_COST_ESTABLISHED": false,
+      "COST_AUTHORITY": [
+        "OWNER_BUSINESS_SUPPLIED",
+        "EXPLICIT_SYNTHETIC_SCENARIO"
+      ],
+      "DEPENDENCIES": [
+        "FROZEN_FORECAST_CONTRACT",
+        "FROZEN_INTERVAL_CONTRACT"
+      ],
+      "FORMULA": "C_under * max(actual - forecast, 0) + C_over * max(forecast - actual, 0)",
+      "FUTURE_ONLY_EXCLUSIONS": [
+        "labor_cost",
+        "cold_storage_cost",
+        "packaging_cost",
+        "transport_cost",
+        "quality_loss",
+        "emergency_capacity_cost"
+      ],
+      "INVENT_COMPANY_COST_ALLOWED": false,
+      "NEW_FORECAST_MODEL_ALLOWED": false,
+      "OUTPUTS": [
+        "underforecast_kg",
+        "overforecast_kg",
+        "underforecast_loss",
+        "overforecast_loss",
+        "total_business_loss"
+      ],
+      "OWNER_ORIGINAL_ITEM": 9,
+      "REAL_FINANCIAL_BENEFIT_CLAIM_REQUIRES_REAL_COST_AUTHORITY": true,
+      "REAL_ROI_VALIDATED": false,
+      "SAME_COST_CONTRACT_COMPARISON_REQUIRED": true,
+      "TASK_ID": "V0_16_S5_BUSINESS_LOSS_CONTRACT"
+    },
+    "S6": {
+      "AUTOMATIC_EXECUTION_ALLOWED": false,
+      "DEPENDENCIES": [
+        "FROZEN_FORECAST_CONTRACT",
+        "FROZEN_INTERVAL_CONTRACT",
+        "S5_BUSINESS_LOSS_CONTRACT"
+      ],
+      "EXCLUSIONS": [
+        "MULTI_FACTORY_ROUTING",
+        "VEHICLE_ROUTING",
+        "COLD_STORAGE_OPTIMIZATION",
+        "AUTOMATIC_PEAK_SHAVING",
+        "LP_MILP_OPTIMIZER",
+        "REINFORCEMENT_LEARNING",
+        "WORKFORCE_SCHEDULING_SYSTEM"
+      ],
+      "HIDDEN_DEFAULT_PRODUCTIVITY_ALLOWED": false,
+      "INPUTS": [
+        "saved_forecast",
+        "uncertainty_planning_level",
+        "daily_handling_capacity",
+        "optional_buffer_capacity",
+        "C_under",
+        "C_over"
+      ],
+      "OPTIONAL_EXPLICIT_INPUTS": [
+        "workforce_count",
+        "productivity_kg_per_person_day"
+      ],
+      "OUTPUTS": [
+        "overload_dates",
+        "daily_overload_kg",
+        "cumulative_shortfall",
+        "max_backlog",
+        "capacity_utilization",
+        "under_over_quantity",
+        "business_loss",
+        "scenario_comparison",
+        "scenario_ranking"
+      ],
+      "OUTPUT_CLASS": "DECISION_SUPPORT_SCENARIO_RESULT",
+      "OWNER_ORIGINAL_ITEM": 3,
+      "SAME_FORECAST_HIERARCHY_LOSS_CONTRACT_REQUIRED": true,
+      "TASK_ID": "V0_16_S6_WHAT_IF_DECISION_SIMULATOR",
+      "WHAT_IF_IS_NEW_FORECAST_MODEL": false,
+      "WHAT_IF_IS_SCENARIO_SIMULATION": true,
+      "WORKFORCE_CAPACITY_FORMULA": "daily_capacity_kg = workforce_count * productivity_kg_per_person_day"
+    }
+  },
+  "STAGE_ORDER": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "VERSION_CLOSEOUT"
+  ],
+  "SYNTHETIC_MUST_BE_EXPLICITLY_LABELED": true,
+  "TAG_AUTHORIZED": false,
+  "TASK_ID": "V0_16_VERSION_SCOPE_AND_TASK_FREEZE_R1",
+  "V0_12_RELEASE_STATUS": "UNRELEASED_RESEARCH_ENGINEERING_LINE",
+  "V0_14_HARVEST_STATE_INSERTION_ALLOWED": false,
+  "V0_14_PROTECTED": [
+    "model",
+    "scheduler",
+    "registry",
+    "issuance_policy",
+    "historical_seals"
+  ],
+  "V0_14_UNCHANGED": true,
+  "V0_15_MODEL_DEVELOPMENT_FROZEN": true,
+  "V0_15_PROTOCOL_FROZEN": true,
+  "V0_15_REFIT_RESCORING_OR_TUNING_ALLOWED": false,
+  "V0_15_UNCHANGED": true,
+  "V0_16_VERSION_COMPLETE": false,
+  "V0_17_AUTHORIZED": false,
+  "V0_17_BRANCH_PR_PIPELINE_COHORT_CREATION_ALLOWED": false,
+  "V0_17_RECOMMENDED_DIRECTION": "HARVEST_STATE_PROSPECTIVE_SHADOW_VALIDATION",
+  "V0_17_STARTED": false,
+  "V0_17_START_REQUIRES": [
+    "CURRENT_SEASON_ACTUAL_AVAILABLE=true",
+    "INDEPENDENT_VERSION_SCOPE_FREEZE",
+    "PROSPECTIVE_DATA_AUTHORITY",
+    "AVAILABLE_AT_CUTOFF_AUTHORITY",
+    "MODEL_FREEZE",
+    "COHORT_FREEZE",
+    "LOCKED_SCORING_CONTRACT"
+  ],
+  "VERSION": "0.16.0",
+  "VERSION_COMPLETE_CONDITIONS": [
+    "S0_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "S1_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "S2_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "S3_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "S4_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "S5_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "S6_MERGED_AND_POST_MERGE_CI_SUCCESS",
+    "ALL_RUNTIME_OUTPUT_CONTRACTS_DETERMINISTIC",
+    "HISTORICAL_FORECASTS_NOT_OVERWRITTEN",
+    "V0_14_V0_15_FROZEN_ARTIFACTS_UNCHANGED",
+    "NO_UNAUTHORIZED_CURRENT_ACTUAL_READ",
+    "NO_PROSPECTIVE_ACCURACY_OVERCLAIM",
+    "NO_PRODUCTION_APPROVAL_OVERCLAIM",
+    "FINAL_CLOSEOUT_INDEPENDENT_REVIEW",
+    "MAIN_INTEGRATION_AND_POST_MERGE_MAIN_CI",
+    "SEPARATE_TAG_RELEASE_AUTHORIZATION"
+  ],
+  "VERSION_COMPLETE_REQUIRES_CURRENT_SEASON_ACTUAL": false,
+  "VERSION_NAME": "FORECAST_INTELLIGENCE_AND_DECISION_SUPPORT_FOUNDATION",
+  "VERSION_NAME_CN": "预测智能与决策支持基础版",
+  "VERSION_SCOPE_FROZEN": true,
+  "VERSION_TASKS_FROZEN": true
+}
