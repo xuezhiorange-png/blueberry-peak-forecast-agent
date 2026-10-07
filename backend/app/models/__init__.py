@@ -263,8 +263,16 @@ __all__ = [
 ]
 
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
+from backend.app.models.hierarchical_forecast import (
+    HierarchicalForecastDaily,
+    HierarchicalForecastRun,
+    HierarchicalForecastSource,
+)
 
 __all__ += [
+    "HierarchicalForecastDaily",
+    "HierarchicalForecastRun",
+    "HierarchicalForecastSource",
     "EmpiricalForecastRun",
     "EmpiricalMaturityAuthority",
     "AreaForecastDailyRow",

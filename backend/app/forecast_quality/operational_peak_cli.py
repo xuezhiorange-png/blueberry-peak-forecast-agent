@@ -11,6 +11,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.core_forecast.cli import CoreForecastCliError
+from backend.app.forecast_intelligence.cli import (
+    dispatch_hierarchical,
+    register_hierarchical_parser,
+)
 from backend.app.forecast_quality.operational_peak import (
     OperationalPeakForecastError,
     OperationalPeakForecastRequest,
@@ -37,6 +41,7 @@ from backend.app.forecast_quality.operational_peak_schemas import (
 def register_operational_peak_parser(
     parsers: argparse._SubParsersAction[argparse.ArgumentParser],
 ) -> None:
+    register_hierarchical_parser(parsers, frozen_root_bridge=True)
     root = parsers.add_parser("operational-peak-run")
     subs = root.add_subparsers(dest="command", required=True)
     create = subs.add_parser("create")
@@ -68,6 +73,11 @@ async def dispatch_operational_peak(
     stdin: TextIO,
     stdout: TextIO,
 ) -> None:
+    if getattr(args, "hierarchical_forecast_adapter", False):
+        await dispatch_hierarchical(
+            args, session_factory=session_factory, stdin=stdin, stdout=stdout
+        )
+        return
     try:
         async with session_factory() as session:
             if args.command == "create":

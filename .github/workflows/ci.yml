@@ -713,6 +713,7 @@ jobs:
             backend/tests/integration/test_v0_1_s2_complete_daily_curve_postgres.py \
             backend/tests/integration/test_core_forecast_persistence_postgres.py \
             backend/tests/integration/test_core_forecast_cli_postgres.py \
+            backend/tests/forecast_intelligence/test_postgres.py \
             backend/tests/forecast_quality/test_idempotency.py \
             backend/tests/forecast_quality/test_comparison_point.py \
             backend/tests/forecast_quality/test_comparison_quantile.py \
@@ -1427,6 +1428,7 @@ jobs:
           pytest \
             backend/tests/test_concurrency_isolation_helpers.py \
             backend/tests/test_concurrency_isolation_helpers_live.py \
+            backend/tests/forecast_intelligence/test_postgres.py \
             backend/tests/rolling_backtest/test_historical_backtest_concurrency.py \
             backend/tests/forecast_quality/test_idempotency.py \
             backend/tests/s4_validation_budget/test_postgres_persistence.py \

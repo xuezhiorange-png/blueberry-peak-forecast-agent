@@ -61,6 +61,13 @@
 #
 version: 1
 
+# S1 adds ordinary PostgreSQL coverage to domain-1 and its sharp-selector race
+# test to postgres-concurrency; the exhaustive canary intentionally repeats both.
+v0_16_s1_test_ownership:
+  file: backend/tests/forecast_intelligence/test_postgres.py
+  ordinary_owner: postgres-domain-1
+  postgres_concurrency_owner: postgres-concurrency
+
 # Single-execution principle applied throughout:
 #   - "Sharp selector" wins: when a marker filter matches a test, the marker
 #     filter is the owner, NOT the file path. Path-based shards add the
@@ -297,6 +304,7 @@ shards:
     job: postgres-concurrency
     event: pull_request
     pytest_args:
+      - backend/tests/forecast_intelligence/test_postgres.py
       - backend/tests/rolling_backtest/test_historical_backtest_concurrency.py
       - backend/tests/forecast_quality/test_idempotency.py
       - "-m"
@@ -327,6 +335,7 @@ shards:
     job: postgres-domain-1
     event: pull_request
     pytest_args:
+      - backend/tests/forecast_intelligence/test_postgres.py
       - backend/tests/integration/test_baseline_backtest.py
       - backend/tests/integration/test_climate_zone_import.py
       - backend/tests/integration/test_daily_facts_analytics.py
@@ -363,6 +372,7 @@ shards:
       - "-q"
       - "--tb=short"
     owner_files:
+      - backend/tests/forecast_intelligence/test_postgres.py
       - backend/tests/integration/test_baseline_backtest.py
       - backend/tests/integration/test_climate_zone_import.py
       - backend/tests/integration/test_daily_facts_analytics.py

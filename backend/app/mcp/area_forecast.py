@@ -33,6 +33,7 @@ from backend.app.area_yield.run_persistence import (
     AreaForecastRunNotFoundError,
     AreaForecastWriteFailure,
 )
+from backend.app.forecast_intelligence.errors import HierarchicalForecastError
 from backend.app.forecast_quality.operational_peak import OperationalPeakForecastError
 from backend.app.forecast_quality.operational_peak_authority import (
     OperationalPeakAuthorityError,
@@ -43,7 +44,7 @@ from backend.app.forecast_quality.operational_peak_persistence import (
     OperationalPeakRunNotFoundError,
     OperationalPeakWriteFailure,
 )
-from backend.app.mcp import v0_12_research
+from backend.app.mcp import hierarchical_forecast_runs, v0_12_research
 from backend.app.mcp.operational_base_search import (
     SEARCH as OPERATIONAL_BASE_SEARCH,
 )
@@ -115,6 +116,7 @@ async def _list_tools(
             *run_tools(),
             *operational_peak_run_tools(),
             *operational_base_search_tools(),
+            *hierarchical_forecast_runs.run_tools(),
             *v0_12_research.run_tools(),
         ]
     )
@@ -123,6 +125,18 @@ async def _list_tools(
 async def _call_tool(
     ctx: ServerRequestContext[Any], params: CallToolRequestParams
 ) -> CallToolResult:
+    if params.name in hierarchical_forecast_runs.CONTRACTS:
+        try:
+            payload = await hierarchical_forecast_runs.call_tool(
+                params.name, params.arguments or {}
+            )
+        except ValidationError:
+            return _error("INVALID_REQUEST", "INVALID_REQUEST_DOCUMENT")
+        except HierarchicalForecastError as exc:
+            return _error(exc.code, exc.code)
+        except Exception:
+            return _error("HIERARCHICAL_FORECAST_WRITE_FAILURE", "PERSISTENCE_SERVICE_UNAVAILABLE")
+        return _result(payload)
     if params.name in v0_12_research.CONTRACTS:
         payload, error = await v0_12_research.call_tool(params.name, params.arguments or {})
         return _result(payload, error=error)
