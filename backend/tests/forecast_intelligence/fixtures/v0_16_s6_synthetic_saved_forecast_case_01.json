@@ -1,0 +1,128 @@
+{
+  "synthetic": true,
+  "fixture_id": "V0_16_S6_SYNTHETIC_SAVED_FORECAST_CASE_01",
+  "forecast_origin": "2024-12-31T17:00:00+08:00",
+  "hierarchy_level": "COMPANY",
+  "hierarchy_entity_id": "SYNTHETIC_COMPANY",
+  "daily_rows": [
+    {
+      "date": "2025-01-01",
+      "point_forecast_kg": "80",
+      "upper_planning_bound_80_kg": "100",
+      "upper_planning_bound_90_kg": "120"
+    },
+    {
+      "date": "2025-01-02",
+      "point_forecast_kg": "100",
+      "upper_planning_bound_80_kg": "120",
+      "upper_planning_bound_90_kg": "140"
+    },
+    {
+      "date": "2025-01-03",
+      "point_forecast_kg": "120",
+      "upper_planning_bound_80_kg": "140",
+      "upper_planning_bound_90_kg": "160"
+    },
+    {
+      "date": "2025-01-04",
+      "point_forecast_kg": "160",
+      "upper_planning_bound_80_kg": "180",
+      "upper_planning_bound_90_kg": "200"
+    },
+    {
+      "date": "2025-01-05",
+      "point_forecast_kg": "200",
+      "upper_planning_bound_80_kg": "220",
+      "upper_planning_bound_90_kg": "240"
+    },
+    {
+      "date": "2025-01-06",
+      "point_forecast_kg": "180",
+      "upper_planning_bound_80_kg": "200",
+      "upper_planning_bound_90_kg": "220"
+    },
+    {
+      "date": "2025-01-07",
+      "point_forecast_kg": "140",
+      "upper_planning_bound_80_kg": "160",
+      "upper_planning_bound_90_kg": "180"
+    },
+    {
+      "date": "2025-01-08",
+      "point_forecast_kg": "100",
+      "upper_planning_bound_80_kg": "120",
+      "upper_planning_bound_90_kg": "140"
+    },
+    {
+      "date": "2025-01-09",
+      "point_forecast_kg": "80",
+      "upper_planning_bound_80_kg": "100",
+      "upper_planning_bound_90_kg": "120"
+    },
+    {
+      "date": "2025-01-10",
+      "point_forecast_kg": "120",
+      "upper_planning_bound_80_kg": "140",
+      "upper_planning_bound_90_kg": "160"
+    },
+    {
+      "date": "2025-01-11",
+      "point_forecast_kg": "160",
+      "upper_planning_bound_80_kg": "180",
+      "upper_planning_bound_90_kg": "200"
+    },
+    {
+      "date": "2025-01-12",
+      "point_forecast_kg": "140",
+      "upper_planning_bound_80_kg": "160",
+      "upper_planning_bound_90_kg": "180"
+    },
+    {
+      "date": "2025-01-13",
+      "point_forecast_kg": "100",
+      "upper_planning_bound_80_kg": "120",
+      "upper_planning_bound_90_kg": "140"
+    },
+    {
+      "date": "2025-01-14",
+      "point_forecast_kg": "80",
+      "upper_planning_bound_80_kg": "100",
+      "upper_planning_bound_90_kg": "120"
+    },
+    {
+      "date": "2025-01-15",
+      "point_forecast_kg": "60",
+      "upper_planning_bound_80_kg": "80",
+      "upper_planning_bound_90_kg": "100"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "SYNTHETIC_SCENARIO_A_DIRECT_120",
+      "capacity_mode": "DIRECT",
+      "daily_handling_capacity_kg": "120",
+      "workforce_count": null,
+      "productivity_kg_per_person_day": null,
+      "buffer_supplied": true,
+      "buffer_handling_capacity_kg": "0"
+    },
+    {
+      "scenario_id": "SYNTHETIC_SCENARIO_B_DIRECT_140",
+      "capacity_mode": "DIRECT",
+      "daily_handling_capacity_kg": "140",
+      "workforce_count": null,
+      "productivity_kg_per_person_day": null,
+      "buffer_supplied": true,
+      "buffer_handling_capacity_kg": "0"
+    },
+    {
+      "scenario_id": "SYNTHETIC_SCENARIO_C_WORKFORCE_BUFFER_140",
+      "capacity_mode": "WORKFORCE_DERIVED",
+      "daily_handling_capacity_kg": null,
+      "workforce_count": 10,
+      "productivity_kg_per_person_day": "12",
+      "buffer_supplied": true,
+      "buffer_handling_capacity_kg": "20"
+    }
+  ]
+}
