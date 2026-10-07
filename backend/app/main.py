@@ -12,6 +12,7 @@ from backend.app.api.actual_harvest_imports import router as actual_harvest_impo
 from backend.app.api.area_forecast_runs import router as area_forecast_runs_router
 from backend.app.api.harvest_state import router as harvest_state_router
 from backend.app.api.health import router as health_router
+from backend.app.api.hierarchical_forecast_runs import router as hierarchical_forecast_runs_router
 from backend.app.api.master_data import router as master_data_router
 from backend.app.api.materialized_datasets import router as materialized_datasets_router
 from backend.app.api.maturity import router as maturity_router
@@ -170,6 +171,9 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         app.dependency_overrides[get_settings] = lambda: app_settings
 
     app.include_router(health_router, prefix="/health", tags=["health"])
+    app.include_router(
+        hierarchical_forecast_runs_router, prefix="/api/v1", tags=["forecast-intelligence"]
+    )
     app.include_router(
         actual_harvest_import_router,
         prefix="/api/v1/actual-harvest",
