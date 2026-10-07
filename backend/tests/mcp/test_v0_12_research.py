@@ -62,7 +62,7 @@ async def test_default_disabled_preserves_ten_tools(
     monkeypatch.setenv("V0_12_RESEARCH_MCP_ENABLED", "false")
     get_settings.cache_clear()
     async with Client(server) as client:
-        assert len((await client.list_tools()).tools) == 10
+        assert len((await client.list_tools()).tools) == 14
         failed = await client.call_tool(tools.READINESS, {})
     assert failed.is_error
     assert failed.structured_content["code"] == "V0_12_RESEARCH_INTERFACE_DISABLED"
@@ -71,7 +71,7 @@ async def test_default_disabled_preserves_ten_tools(
 async def test_enabled_four_tools_full_flow(runtime: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     async with Client(server) as client:
         listed = (await client.list_tools()).tools
-        assert len(listed) == 14
+        assert len(listed) == 18
         assert {t.name for t in listed[-4:]} == set(tools.CONTRACTS)
         for tool in listed[-4:]:
             encoded = json.dumps(tool.input_schema)
@@ -275,7 +275,7 @@ async def test_actual_stdio_process(runtime: Any) -> None:
         command=sys.executable, args=["-m", "backend.app.mcp.area_forecast"], env=dict(os.environ)
     )
     async with Client(params) as client:
-        assert len((await client.list_tools()).tools) == 14
+        assert len((await client.list_tools()).tools) == 18
         assert (await client.call_tool(tools.READINESS, {})).structured_content["E3_COMPLETE"]
         created = (
             await client.call_tool(tools.CREATE, business(request_id="STDIO"))
@@ -317,7 +317,7 @@ async def test_http_protocol_and_connector(
                 "clientInfo": {"name": "E4-test", "version": "1"},
             },
         )
-        assert len((await rpc("tools/list", {}))["tools"]) == 14
+        assert len((await rpc("tools/list", {}))["tools"]) == 18
 
         async def call(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             result = await rpc("tools/call", {"name": name, "arguments": arguments})

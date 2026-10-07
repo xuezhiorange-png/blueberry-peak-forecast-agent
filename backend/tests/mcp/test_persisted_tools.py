@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from backend.app.cli import run_cli
 from backend.app.db.session import get_db_session
 from backend.app.main import create_app
-from backend.app.mcp import persisted_runs
+from backend.app.mcp import hierarchical_forecast_runs, persisted_runs
 from backend.app.mcp.area_forecast import server
 from backend.app.mcp.operational_base_search import SEARCH as OPERATIONAL_BASE_SEARCH
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
@@ -35,7 +35,12 @@ OPERATIONAL_NAMES = [
     "list_blueberry_operational_peak_forecast_runs",
     "get_blueberry_operational_peak_forecast_daily",
 ]
-ALL_NAMES = NAMES + OPERATIONAL_NAMES + [OPERATIONAL_BASE_SEARCH]
+ALL_NAMES = (
+    NAMES
+    + OPERATIONAL_NAMES
+    + [OPERATIONAL_BASE_SEARCH]
+    + list(hierarchical_forecast_runs.CONTRACTS)
+)
 
 
 async def test_all_tools_discovery():
@@ -45,7 +50,7 @@ async def test_all_tools_discovery():
     for tool in tools:
         assert tool.description and tool.input_schema and tool.output_schema
         assert tool.annotations.read_only_hint == (
-            tool.name not in {NAMES[1], OPERATIONAL_NAMES[0]}
+            tool.name not in {NAMES[1], OPERATIONAL_NAMES[0], hierarchical_forecast_runs.CREATE}
         )
         assert tool.annotations.destructive_hint is False
         assert tool.annotations.idempotent_hint is True
@@ -266,6 +271,7 @@ async def test_saved_tool_schema_hash():
             "annotations": t.annotations.model_dump(),
         }
         for t in tools[1:]
+        if t.name not in hierarchical_forecast_runs.CONTRACTS
     ]
     value = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()

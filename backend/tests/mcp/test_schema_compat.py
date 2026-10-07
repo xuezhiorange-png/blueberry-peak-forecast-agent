@@ -97,8 +97,10 @@ async def test_all_ten_tools_expose_projected_input_schemas() -> None:
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
 
-    assert len(tools) == 10
-    assert {tool.name for tool in tools} == ALL_TOOL_NAMES
+    from backend.app.mcp.hierarchical_forecast_runs import CONTRACTS
+
+    assert len(tools) == 14
+    assert {tool.name for tool in tools} == ALL_TOOL_NAMES | set(CONTRACTS)
     assert all(not _contains_key(tool.input_schema, "exclusiveMinimum") for tool in tools)
 
     by_name = {tool.name: tool.input_schema for tool in tools}
@@ -131,7 +133,13 @@ async def test_all_tool_input_schema_hash_is_frozen() -> None:
     async with Client(server) as client:
         tools = (await client.list_tools()).tools
 
-    payload = [{"name": tool.name, "input_schema": tool.input_schema} for tool in tools]
+    from backend.app.mcp.hierarchical_forecast_runs import CONTRACTS
+
+    payload = [
+        {"name": tool.name, "input_schema": tool.input_schema}
+        for tool in tools
+        if tool.name not in CONTRACTS
+    ]
     schema_hash = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()

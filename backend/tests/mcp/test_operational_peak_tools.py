@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from mcp import Client
 
-from backend.app.mcp import operational_peak_runs
+from backend.app.mcp import hierarchical_forecast_runs, operational_peak_runs
 from backend.app.mcp.area_forecast import server
 
 
@@ -32,6 +32,7 @@ async def test_operational_tools_discovery_and_roundtrip(s6_factory, s6_authorit
             "list_blueberry_operational_peak_forecast_runs",
             "get_blueberry_operational_peak_forecast_daily",
             "search_blueberry_operational_bases",
+            *hierarchical_forecast_runs.CONTRACTS,
         ]
         new_tools = tools[5:]
         assert new_tools[0].annotations.read_only_hint is False
