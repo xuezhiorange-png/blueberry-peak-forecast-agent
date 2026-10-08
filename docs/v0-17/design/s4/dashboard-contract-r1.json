@@ -1,0 +1,882 @@
+{
+  "attribution_available": false,
+  "business_run_selector_backend_ready": false,
+  "components": {
+    "AppShell": {
+      "acceptance": "All five routes reachable without nested menu",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1/S2 envelope",
+      "copy": "蓝莓预测智能",
+      "desktop": "200px sidebar, content max1440",
+      "inputs": "page, context, module states",
+      "interaction": "Skip link; page heading focus",
+      "missing": "Keep navigation; affected module only",
+      "mobile": "compact header + horizontal single-level nav",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "AttributionAuthorityPanel": {
+      "acceptance": "No generic importance passed off as run explanation",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 attribution",
+      "copy": "本次保存预测尚未绑定合法归因",
+      "desktop": "clear explanation with future layout text",
+      "inputs": "identity + bound authority status",
+      "interaction": "read reason + authority disclosure",
+      "missing": "Current NOT_AVAILABLE primary state",
+      "mobile": "stacked panel",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "AuthorityDetails": {
+      "acceptance": "Hashes not renamed or recalculated",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "Original S1/S2 separate provenance fields",
+      "copy": "权威来源详情",
+      "desktop": "technical details secondary",
+      "inputs": "source result/projection/adapter/engine hashes, policies",
+      "interaction": "native disclosure / dialog; Escape focus return",
+      "missing": "Absent field omitted with reason",
+      "mobile": "wrap hash; never horizontal page overflow",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "AuthorizedSavedRunSelector": {
+      "acceptance": "Ten identity/hash fields verified server-side before commit",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "Trusted handoff NOT currently implemented; S1 verification",
+      "copy": "选择已保存预测",
+      "desktop": "bounded 640px dialog",
+      "inputs": "AuthorizedSavedForecastContext candidate or advanced full identity",
+      "interaction": "dialog two explicit paths, Escape and return focus",
+      "missing": "No backend list means no populated dropdown",
+      "mobile": "full-width scrollable dialog, keyboard safe",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "BacklogChart": {
+      "acceptance": "Carry-over vs new-demand deficit explicitly explained",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S2 engine result",
+      "copy": "日末积压",
+      "desktop": "separate chart from daily gap",
+      "inputs": "S6 closing backlog rows",
+      "interaction": "date controls and data table",
+      "missing": "No substitution of overload; zero valid",
+      "mobile": "full-width plot",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "CapacityDemandChart": {
+      "acceptance": "No recomputing effective capacity in UI",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S2 engine result",
+      "copy": "规划需求与有效处理能力",
+      "desktop": "two series, same kg axis",
+      "inputs": "S6 demand and effective capacity rows",
+      "interaction": "paired data table and date detail",
+      "missing": "Stale result not current; missing breaks series",
+      "mobile": "full-width plot",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ChartDateDetail": {
+      "acceptance": "Date/chart/table share selection, not new computation",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 row",
+      "copy": "日期详情",
+      "desktop": "adjacent chart detail",
+      "inputs": "selected authoritative daily row",
+      "interaction": "Arrow keys via date controls; live region",
+      "missing": "Clear detail on run change or missing date",
+      "mobile": "below chart full width",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ContributionChart": {
+      "acceptance": "No causal copy; adjustments separate; future schema gap explicit",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "Future S1-bound M1 authority only",
+      "copy": "模型中对本次预测贡献较大",
+      "desktop": "signed horizontal bars, zero baseline",
+      "inputs": "future exact contribution payload, not existing API",
+      "interaction": "future keyboard term list + text alternative",
+      "missing": "No bars in current prototype",
+      "mobile": "vertical term list + expandable raw values",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ContributionPanel": {
+      "acceptance": "No client percentage or registry-based inference",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "No current API contract: NOT_AVAILABLE",
+      "copy": "区域 / 基地贡献暂不可用",
+      "desktop": "panel reserved under main chart",
+      "inputs": "optional server-bound child contribution payload",
+      "interaction": "explanation and future detail entry only",
+      "missing": "Do not render fake proportions",
+      "mobile": "full width unavailable panel",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "CoverageComparisonChart": {
+      "acceptance": "Under-nominal not green success; no prospective guarantee",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 public S2 observations",
+      "copy": "历史观察低于名义水平",
+      "desktop": "observed/nominal bars with text",
+      "inputs": "H7/H15 candidate/computable/covered counts and coverage",
+      "interaction": "accessible comparison rows + table",
+      "missing": "H1/H3 interval NOT_AVAILABLE",
+      "mobile": "vertical comparison rows",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "DailyForecastChart": {
+      "acceptance": "Only plotting coordinates use numeric conversion; no business arithmetic",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 curve; bounds unavailable presently",
+      "copy": "逐日预测 · kg",
+      "desktop": "wide 280px plot",
+      "inputs": "ordered DailyReadRow + optional legally bound series",
+      "interaction": "date buttons + touch point + auxiliary table",
+      "missing": "Gap breaks line; no extrapolation",
+      "mobile": "full width 220px plot",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "DailyForecastTable": {
+      "acceptance": "Original decimal text preserved in detail; no clipped numbers",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 exact rows",
+      "copy": "日期 / 预测值 / 规划上界",
+      "desktop": "semantic four-column table",
+      "inputs": "daily rows and source hash",
+      "interaction": "row date buttons synchronize details",
+      "missing": "— not 0; missing date not manufactured",
+      "mobile": "date/point concise row + details",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "EmptyState": {
+      "acceptance": "No latest or old LIST shortcut",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 EMPTY or no selection",
+      "copy": "请选择已保存预测",
+      "desktop": "centered guided panel",
+      "inputs": "no verified saved context / no rows",
+      "interaction": "open authorized context selector",
+      "missing": "No fake run list",
+      "mobile": "visible primary action",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ErrorState": {
+      "acceptance": "No SQL/token/path/stack exposure",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1/S2 error contract",
+      "copy": "暂时无法读取，请重试",
+      "desktop": "bounded error panel",
+      "inputs": "sanitized code + retryable flag",
+      "interaction": "retry same identity; focus error heading",
+      "missing": "Hide failed data, retain valid independent modules",
+      "mobile": "full width action",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "GlobalForecastContext": {
+      "acceptance": "No relative-to-today wording; no latest guessing",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 canonical read",
+      "copy": "保存预测 · 预测起点",
+      "desktop": "entity/origin/run inline",
+      "inputs": "verified ForecastIdentity, source hash",
+      "interaction": "Open selector; focus return",
+      "missing": "请选择已保存预测; Quality independent",
+      "mobile": "two-line context; details collapsed",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "HierarchyCompletenessPanel": {
+      "acceptance": "Partial aggregate never shown complete",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 hierarchy",
+      "copy": "子节点覆盖",
+      "desktop": "inline status + details",
+      "inputs": "expected/included/missing children + status",
+      "interaction": "details disclosure",
+      "missing": "INCOMPLETE_CHILD_COVERAGE explicit; block simulation",
+      "mobile": "stack counts, no squashed table",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "HierarchySelector": {
+      "acceptance": "FARM/FACTORY absent; current selection not silently rewritten",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 saved hierarchy snapshot",
+      "copy": "公司 / 区域 / 基地",
+      "desktop": "inline selector",
+      "inputs": "level + separately verified entity context",
+      "interaction": "select COMPANY/REGION/BASE; change requires identity revalidation",
+      "missing": "No inferred children or client aggregation",
+      "mobile": "44px full-width control",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "HighLoadDateList": {
+      "acceptance": "Never production alarm or threshold",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 overview",
+      "copy": "较高预测量日期 · 相对关注顺序",
+      "desktop": "compact ranked rows",
+      "inputs": "server-ordered descriptive dates",
+      "interaction": "date link selects curve date",
+      "missing": "No fallback sorting from browser",
+      "mobile": "vertical rows",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "HistoricalScopeSummary": {
+      "acceptance": "Quality not relabeled as selected Operational Peak run",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 QualityIdentity",
+      "copy": "M1 Ridge · EXPOSED_OOT · 2025–2026",
+      "desktop": "compact scope strip",
+      "inputs": "model/split/season/scope/strict PIT flags",
+      "interaction": "details for pins",
+      "missing": "Evidence missing NOT_AVAILABLE",
+      "mobile": "stacked label/value",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "KpiCard": {
+      "acceptance": "Null and legitimate zero distinct",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 OverviewData",
+      "copy": "预测起点后 7 日累计量",
+      "desktop": "32px tabular value",
+      "inputs": "server value|null, unit, horizon status",
+      "interaction": "label/value read in DOM order",
+      "missing": "— plus explicit reason, never zero",
+      "mobile": "28px value, wrap long label",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "KpiGrid": {
+      "acceptance": "Fixed order and no fifth primary KPI",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 overview",
+      "copy": "7日 / 15日 / 高峰日期 / 高峰日量",
+      "desktop": "four columns",
+      "inputs": "four ordered KpiCard inputs",
+      "interaction": "reading order same as visual",
+      "missing": "Keep four slots with independent states",
+      "mobile": "2×2",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "LoadingSkeleton": {
+      "acceptance": "No layout jump; reduced-motion static",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "Presentation only",
+      "copy": "正在读取已验证来源",
+      "desktop": "fixed geometry cards/plot",
+      "inputs": "request generation, requested module",
+      "interaction": "aria-busy; cancel on switch",
+      "missing": "Never show 0 as pending",
+      "mobile": "2×2 skeleton",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "PrimaryNavigation": {
+      "acceptance": "Exactly five semantic links; 44px targets",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S0 five-page set",
+      "copy": "总览 / 预测 / 影响因素 / 产能模拟 / 预测质量",
+      "desktop": "vertical five links",
+      "inputs": "active page",
+      "interaction": "Tab/Enter; aria-current",
+      "missing": "Never remove destination for missing data",
+      "mobile": "single horizontal row, short labels",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "QualityMetricPanel": {
+      "acceptance": "WAPE/MAE/Bias/cumulative WAPE, no re-scoring",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1 quality independent historical evidence",
+      "copy": "历史验证 · 非当前生产表现",
+      "desktop": "metric table",
+      "inputs": "H1/H3/H7/H15 frozen point metrics",
+      "interaction": "horizon tabs + exact value details",
+      "missing": "Missing metric unavailable, not zero",
+      "mobile": "compact horizon cards",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ScenarioComparison": {
+      "acceptance": "Only same forecast/planning/cost/date set; no optimal recommendation",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S6 compare_and_rank via S2",
+      "copy": "给定条件下的情景排序",
+      "desktop": "wide comparison table",
+      "inputs": "S2 comparison rows and rank/hash",
+      "interaction": "sortable presentation must not change engine ranks; keyboard rows",
+      "missing": "Mismatch/stale hides ranking",
+      "mobile": "stacked rank cards",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ScenarioEditor": {
+      "acceptance": "DIRECT/workforce exclusive; initial backlog read-only 0",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S2 schema, server forecast selection",
+      "copy": "当日额外处理能力",
+      "desktop": "A/B/C tabs + form grid",
+      "inputs": "explicit capacity rows + cost ID/hash + planning level",
+      "interaction": "mode radio/select; errors linked; manual submit",
+      "missing": "No default cost or productivity; invalid scenario isolated",
+      "mobile": "one scenario at a time; sticky actions not obscure fields",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "ScenarioResultFreshness": {
+      "acceptance": "Late response cannot replace new identity or revision",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S2 result identity comparison only",
+      "copy": "输入已修改，结果已过期",
+      "desktop": "notice above result",
+      "inputs": "input revision + completed request revision",
+      "interaction": "manual re-submit, cancel old request",
+      "missing": "Edits mark stale immediately, hide active ranks",
+      "mobile": "notice before action/result",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "StatusPanel": {
+      "acceptance": "Status per module, not blanket page success",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "Corresponding envelope",
+      "copy": "数据状态",
+      "desktop": "panel within affected module",
+      "inputs": "status, reason, recovery, module ID",
+      "interaction": "aria-live polite; alert only actionable error",
+      "missing": "No catch-all masking",
+      "mobile": "full-width readable text",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    },
+    "UnavailableState": {
+      "acceptance": "Business unavailable not system error",
+      "accessibility": "Semantic labels; visible focus; 44px targets; color never sole status; text alternative; 200% text test",
+      "authority": "S1/S2 normal NOT_AVAILABLE",
+      "copy": "当前权威来源不支持此能力",
+      "desktop": "neutral panel",
+      "inputs": "unavailable_reason + scope",
+      "interaction": "explanation not disabled dead end",
+      "missing": "No fabricated chart/value/fallback",
+      "mobile": "stack text + authority details",
+      "states": [
+        "LOADING",
+        "READY",
+        "EMPTY",
+        "PARTIAL",
+        "NOT_AVAILABLE",
+        "ERROR",
+        "AUTHORITY_MISMATCH",
+        "NO_CURRENT_ACTUAL"
+      ]
+    }
+  },
+  "contribution_api_available": false,
+  "hierarchy": [
+    "COMPANY",
+    "REGION",
+    "BASE"
+  ],
+  "kpis": [
+    "FORECAST_7D_TOTAL",
+    "FORECAST_15D_TOTAL",
+    "PEAK_DATE",
+    "PEAK_DAILY_QUANTITY"
+  ],
+  "no_client_business_math": true,
+  "owner_visual_approval": false,
+  "pages": [
+    "OVERVIEW",
+    "FORECAST",
+    "ATTRIBUTION",
+    "CAPACITY_SIMULATOR",
+    "QUALITY"
+  ],
+  "planning_levels": [
+    "POINT",
+    "UPPER_PLANNING_BOUND_80",
+    "UPPER_PLANNING_BOUND_90"
+  ],
+  "s5_authorized": false,
+  "schema": "V0_17_S4_DASHBOARD_DESIGN_CONTRACT_R1",
+  "state_matrix": {
+    "ATTRIBUTION": {
+      "AUTHORITY_MISMATCH": {
+        "copy": "来源身份不一致，已停止展示受影响结果",
+        "data_rule": "hide mismatched data and ranks",
+        "recovery": "重新核验保存记录"
+      },
+      "EMPTY": {
+        "copy": "请选择已保存预测",
+        "data_rule": "no invented latest selection",
+        "recovery": "可信上下文交接或高级身份核验"
+      },
+      "ERROR": {
+        "copy": "暂时无法读取，请重试",
+        "data_rule": "sanitized error only; no stale success",
+        "recovery": "重试相同核验身份；保留独立模块"
+      },
+      "LOADING": {
+        "copy": "正在读取已验证来源",
+        "data_rule": "aria-busy; do not show pending zero",
+        "recovery": "切换身份取消旧请求；保留导航"
+      },
+      "NOT_AVAILABLE": {
+        "copy": "当前权威来源不支持此能力",
+        "data_rule": "data null; no synthetic substitution",
+        "recovery": "查看缺失 authority；不 fallback"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "copy": "当前产季暂无可用于正式评分的实际采收数据。",
+        "data_rule": "no import/upload/scoring; forecast independent",
+        "recovery": "可查看独立历史验证"
+      },
+      "PARTIAL": {
+        "copy": "部分数据：可用日期不足或子节点覆盖不完整",
+        "data_rule": "H15 null if <15; incomplete hierarchy cannot simulate",
+        "recovery": "查看缺失说明；短窗口仅按实际日期展示"
+      },
+      "READY": {
+        "copy": "数据就绪（仅适用于已绑定模块）",
+        "data_rule": "Point READY does not imply bound/attribution READY",
+        "recovery": "可查看来源与日期详情"
+      }
+    },
+    "CAPACITY_SIMULATOR": {
+      "AUTHORITY_MISMATCH": {
+        "copy": "来源身份不一致，已停止展示受影响结果",
+        "data_rule": "hide mismatched data and ranks",
+        "recovery": "重新核验保存记录"
+      },
+      "EMPTY": {
+        "copy": "请选择已保存预测",
+        "data_rule": "no invented latest selection",
+        "recovery": "可信上下文交接或高级身份核验"
+      },
+      "ERROR": {
+        "copy": "暂时无法读取，请重试",
+        "data_rule": "sanitized error only; no stale success",
+        "recovery": "重试相同核验身份；保留独立模块"
+      },
+      "LOADING": {
+        "copy": "正在读取已验证来源",
+        "data_rule": "aria-busy; do not show pending zero",
+        "recovery": "切换身份取消旧请求；保留导航"
+      },
+      "NOT_AVAILABLE": {
+        "copy": "当前权威来源不支持此能力",
+        "data_rule": "data null; no synthetic substitution",
+        "recovery": "查看缺失 authority；不 fallback"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "copy": "当前产季暂无可用于正式评分的实际采收数据。",
+        "data_rule": "no import/upload/scoring; forecast independent",
+        "recovery": "可查看独立历史验证"
+      },
+      "PARTIAL": {
+        "copy": "部分数据：可用日期不足或子节点覆盖不完整",
+        "data_rule": "H15 null if <15; incomplete hierarchy cannot simulate",
+        "recovery": "查看缺失说明；短窗口仅按实际日期展示"
+      },
+      "READY": {
+        "copy": "数据就绪（仅适用于已绑定模块）",
+        "data_rule": "Point READY does not imply bound/attribution READY",
+        "recovery": "可查看来源与日期详情"
+      }
+    },
+    "FORECAST": {
+      "AUTHORITY_MISMATCH": {
+        "copy": "来源身份不一致，已停止展示受影响结果",
+        "data_rule": "hide mismatched data and ranks",
+        "recovery": "重新核验保存记录"
+      },
+      "EMPTY": {
+        "copy": "请选择已保存预测",
+        "data_rule": "no invented latest selection",
+        "recovery": "可信上下文交接或高级身份核验"
+      },
+      "ERROR": {
+        "copy": "暂时无法读取，请重试",
+        "data_rule": "sanitized error only; no stale success",
+        "recovery": "重试相同核验身份；保留独立模块"
+      },
+      "LOADING": {
+        "copy": "正在读取已验证来源",
+        "data_rule": "aria-busy; do not show pending zero",
+        "recovery": "切换身份取消旧请求；保留导航"
+      },
+      "NOT_AVAILABLE": {
+        "copy": "当前权威来源不支持此能力",
+        "data_rule": "data null; no synthetic substitution",
+        "recovery": "查看缺失 authority；不 fallback"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "copy": "当前产季暂无可用于正式评分的实际采收数据。",
+        "data_rule": "no import/upload/scoring; forecast independent",
+        "recovery": "可查看独立历史验证"
+      },
+      "PARTIAL": {
+        "copy": "部分数据：可用日期不足或子节点覆盖不完整",
+        "data_rule": "H15 null if <15; incomplete hierarchy cannot simulate",
+        "recovery": "查看缺失说明；短窗口仅按实际日期展示"
+      },
+      "READY": {
+        "copy": "数据就绪（仅适用于已绑定模块）",
+        "data_rule": "Point READY does not imply bound/attribution READY",
+        "recovery": "可查看来源与日期详情"
+      }
+    },
+    "OVERVIEW": {
+      "AUTHORITY_MISMATCH": {
+        "copy": "来源身份不一致，已停止展示受影响结果",
+        "data_rule": "hide mismatched data and ranks",
+        "recovery": "重新核验保存记录"
+      },
+      "EMPTY": {
+        "copy": "请选择已保存预测",
+        "data_rule": "no invented latest selection",
+        "recovery": "可信上下文交接或高级身份核验"
+      },
+      "ERROR": {
+        "copy": "暂时无法读取，请重试",
+        "data_rule": "sanitized error only; no stale success",
+        "recovery": "重试相同核验身份；保留独立模块"
+      },
+      "LOADING": {
+        "copy": "正在读取已验证来源",
+        "data_rule": "aria-busy; do not show pending zero",
+        "recovery": "切换身份取消旧请求；保留导航"
+      },
+      "NOT_AVAILABLE": {
+        "copy": "当前权威来源不支持此能力",
+        "data_rule": "data null; no synthetic substitution",
+        "recovery": "查看缺失 authority；不 fallback"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "copy": "当前产季暂无可用于正式评分的实际采收数据。",
+        "data_rule": "no import/upload/scoring; forecast independent",
+        "recovery": "可查看独立历史验证"
+      },
+      "PARTIAL": {
+        "copy": "部分数据：可用日期不足或子节点覆盖不完整",
+        "data_rule": "H15 null if <15; incomplete hierarchy cannot simulate",
+        "recovery": "查看缺失说明；短窗口仅按实际日期展示"
+      },
+      "READY": {
+        "copy": "数据就绪（仅适用于已绑定模块）",
+        "data_rule": "Point READY does not imply bound/attribution READY",
+        "recovery": "可查看来源与日期详情"
+      }
+    },
+    "QUALITY": {
+      "AUTHORITY_MISMATCH": {
+        "copy": "来源身份不一致，已停止展示受影响结果",
+        "data_rule": "hide mismatched data and ranks",
+        "recovery": "重新核验保存记录"
+      },
+      "EMPTY": {
+        "copy": "历史公共证据尚未就绪",
+        "data_rule": "no quality metrics without frozen authority",
+        "recovery": "核验公共证据打包；不依赖全局保存记录"
+      },
+      "ERROR": {
+        "copy": "暂时无法读取，请重试",
+        "data_rule": "sanitized error only; no stale success",
+        "recovery": "重试相同核验身份；保留独立模块"
+      },
+      "LOADING": {
+        "copy": "正在读取已验证来源",
+        "data_rule": "aria-busy; do not show pending zero",
+        "recovery": "切换身份取消旧请求；保留导航"
+      },
+      "NOT_AVAILABLE": {
+        "copy": "当前权威来源不支持此能力",
+        "data_rule": "data null; no synthetic substitution",
+        "recovery": "查看缺失 authority；不 fallback"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "copy": "当前产季暂无可用于正式评分的实际采收数据。",
+        "data_rule": "no import/upload/scoring; forecast independent",
+        "recovery": "可查看独立历史验证"
+      },
+      "PARTIAL": {
+        "copy": "历史证据部分可用",
+        "data_rule": "keep only pinned available metrics; missing coverage null",
+        "recovery": "查看缺失项；不重新评分"
+      },
+      "READY": {
+        "copy": "数据就绪（仅适用于已绑定模块）",
+        "data_rule": "Point READY does not imply bound/attribution READY",
+        "recovery": "可查看来源与日期详情"
+      }
+    }
+  },
+  "upper_bounds_available": false,
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      834,
+      1112
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      360,
+      800
+    ]
+  ]
+}
