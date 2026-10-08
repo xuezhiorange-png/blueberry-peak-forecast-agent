@@ -10,6 +10,9 @@ from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
 from backend.app.actual_harvest_import.api_policy import ActualHarvestRequestBodyLimitMiddleware
 from backend.app.api.actual_harvest_imports import router as actual_harvest_import_router
 from backend.app.api.area_forecast_runs import router as area_forecast_runs_router
+from backend.app.api.forecast_intelligence_decision import (
+    router as forecast_intelligence_decision_router,
+)
 from backend.app.api.forecast_intelligence_read import router as forecast_intelligence_read_router
 from backend.app.api.harvest_state import router as harvest_state_router
 from backend.app.api.health import router as health_router
@@ -172,6 +175,11 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
         app.dependency_overrides[get_settings] = lambda: app_settings
 
     app.include_router(health_router, prefix="/health", tags=["health"])
+    app.include_router(
+        forecast_intelligence_decision_router,
+        prefix="/api/v1/decision-support",
+        tags=["forecast-intelligence"],
+    )
     app.include_router(
         forecast_intelligence_read_router,
         prefix="/api/v1/forecast-intelligence",
