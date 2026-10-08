@@ -1,0 +1,435 @@
+{
+  "browser_engine": "Chromium",
+  "browser_surface": "Codex in-app browser",
+  "checks": {
+    "date_link": "PASS",
+    "dialog_focus_return": "PASS",
+    "font_enlargement": "PASS",
+    "keyboard": "PASS",
+    "orientation": "PASS",
+    "reduced_motion": "PASS",
+    "scenario_stale": "PASS"
+  },
+  "limitations": [
+    "Chromium narrow viewports are not iOS Safari acceptance",
+    "Prototype static interaction is not production network race testing",
+    "S5 must implement real screen-reader/device/keyboard and data-source parity acceptance"
+  ],
+  "method": {
+    "capture": "Real browser screenshots; full page except selector dialog viewport",
+    "fixes": [
+      "Long ranking semantics text wrapped to eliminate phone horizontal overflow",
+      "Explicit hidden display rule restores mutually exclusive capacity fields",
+      "Comparison caption and state badge wrap made readable"
+    ],
+    "font_enlargement": "Review control forces 30px text, at least 200% body size; 390px overview has no horizontal overflow. This is text stress testing, not OS accessibility settings verification.",
+    "keyboard": "ArrowRight selects adjacent date; solid focus outline; Escape closes dialog and returns focus to select-run",
+    "orientation": "844x390 viewport, five navigation entries, scrollWidth844",
+    "overflow": "documentElement.scrollWidth == innerWidth on all 30 page/viewport combinations",
+    "reduced_motion": "Read computed styles: zero animated elements. Read CSS prefers-reduced-motion disables animation and transition. OS preference was not changed.",
+    "visual_review": "Inspected actual five desktop/five phone screenshots plus selector and state samples; aligned numbers/cards, no visible clipping/overlap or obscured actions."
+  },
+  "overflow_failures": [],
+  "real_ios_safari_verified": false,
+  "real_mobile_soft_keyboard_verified": false,
+  "schema": "V0_17_S4_VISUAL_QA_R1",
+  "screen_reader_verified": false,
+  "screenshots": [
+    {
+      "kind": "page",
+      "path": "screenshots/attribution-1024x768.jpg",
+      "sha256": "3a5e58c9fcb8a72d08a6068c9850071a8cb692ad0b2a36d8cdf9b7e9a2a787d1",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/attribution-1280x800.jpg",
+      "sha256": "23d2956906105c41d3e9a9fb4dd0b243e467045175b657efcbefe2b8b1505f79",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/attribution-1440x900.jpg",
+      "sha256": "2b984849fb863622d4cac14e9f13b974abda9e60654f9fb992c42bdbb94ff2cf",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/attribution-360x800.jpg",
+      "sha256": "946e46f133bbd97abe033f8476a005da83f57a5dfb478176bcccd72b353294a1",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/attribution-390x844.jpg",
+      "sha256": "fd6ba23cf6f4ea533c68f364403983ed07775a85388533f09482ae36871062f6",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/attribution-834x1112.jpg",
+      "sha256": "ed51d7c4a5e6e8a06b0c5193fdb794d4b7e2e1aea879c254ea88cbf048f1f6b1",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/capacity-1024x768.jpg",
+      "sha256": "605463d91baa42ad8f695bc5027bd02db8188dc14d7c9594328558545a3fcd87",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/capacity-1280x800.jpg",
+      "sha256": "d6b729dcfdf328761064311e61d633c6d035a25c25444a331a65ed2d80e8d698",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/capacity-1440x900.jpg",
+      "sha256": "0072b4881709b6833d1852ba1868c94a9cc7f292f47aa1c6e5d83de73396e3ad",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/capacity-360x800.jpg",
+      "sha256": "4bbcd36f6b7659252e53499aadfff5249fa2f05e30dfe638881ed5a79e8139e5",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/capacity-390x844.jpg",
+      "sha256": "6645b5fd67e436d06f5aa019924d7393d573b0c8c7ae8cb488397428a096e8d1",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/capacity-834x1112.jpg",
+      "sha256": "a13609ffff127427258b3fb0709be52d8c07abc9c1c7a943da82ac83ba14cf7d",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/forecast-1024x768.jpg",
+      "sha256": "48dd0c1396d5b2b3584c9a2254fd906718490f0e120f9caef27b112c70a1473b",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/forecast-1280x800.jpg",
+      "sha256": "e58cd4da1b2e3e0c1b4672538f266fb6929cf95965828e67a5da08f16305fd7f",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/forecast-1440x900.jpg",
+      "sha256": "9c63541a07a013dbfe7d5489e471701d55255bb51608f3ffca61fb6d16b32cf5",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/forecast-360x800.jpg",
+      "sha256": "d0e13d6d2a68c047d6bc6f98d257e09500960b79d390073e3fdaede3ee403a70",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/forecast-390x844.jpg",
+      "sha256": "d52e58e1355bb0bf961c04e61066532b270c5e90544e7113c6d05aeabe750580",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/forecast-834x1112.jpg",
+      "sha256": "647542902168856d43581ccc70b999a04a1ae18a552c81290ca60a561604b8c2",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/overview-1024x768.jpg",
+      "sha256": "cd0316733a95a9ab858c549b66ff3f1af721045135a5a646875987904ede51f8",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/overview-1280x800.jpg",
+      "sha256": "b47f4afe5cdb4924d5a00419243e8dabd5e089d58fc56b9d35aea9647a177553",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/overview-1440x900.jpg",
+      "sha256": "aac3380f5dca2ac18467849b66e8da0f0867f7460e7801f1acafef43057ca27b",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/overview-360x800.jpg",
+      "sha256": "5ee71f9087fa209ff9909fc1f4051e7fc9d92b72f0ed854aef10bfc95d85aad9",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/overview-390x844.jpg",
+      "sha256": "451b1668e8679c7177089ad93dd4f03a379b46395ac0bc2013c67c117180aff9",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/overview-834x1112.jpg",
+      "sha256": "c3f8954edfb1690fd5f6a6ba24ed8a62221d50957eeae8b0a2b932097124e384",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/quality-1024x768.jpg",
+      "sha256": "8740866fac014ab41f2b7118bcccf16e6c6d62731ceeece658f7eba93b20ba95",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/quality-1280x800.jpg",
+      "sha256": "b818d16a42790e282ecd890ba7d0338e4dc7d2d205441ebf29d4d5856af1bd11",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/quality-1440x900.jpg",
+      "sha256": "914898c0984314942467479fc4f76685b51c90f61b4755f55ce251ea300b4c29",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/quality-360x800.jpg",
+      "sha256": "9578b7f44f63e3c3d5d1441b8bc60507ef2076f6c89349d0079d7de841cdf21a",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/quality-390x844.jpg",
+      "sha256": "806358eeef62da5ec8a4dc8cf55c5ae18f4859f4cad640adef1df2d9fafa1720",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "page",
+      "path": "screenshots/quality-834x1112.jpg",
+      "sha256": "ab0c5be9a6dde095cf82119cfa018ce7e184b7ffd1832322e1199a8efd101d78",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    {
+      "kind": "selector",
+      "path": "screenshots/saved-run-selector-390x844.jpg",
+      "sha256": "68a971a9967cecffda8050930e3b954945696e40e636ead7e2bd443b380d9017",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-authority_mismatch-390x844.jpg",
+      "sha256": "197e5946700fc86d5de2f4215d3b2a145eff74122fe91e6b2f6d2f42d350548b",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-empty-390x844.jpg",
+      "sha256": "9e2bb028d1153ec841538b78d7873ea2371b9c8011b308372e550b340bfe45e5",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-error-390x844.jpg",
+      "sha256": "5649816872406cedf23c9d38fb5ac53ed45910d7185dafce7d86f603603f1029",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-loading-390x844.jpg",
+      "sha256": "597df061de9c88ec8a062b9c29a9aaf693e6d8ee1f0e267618ccfb8e2a98f280",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-no_current_actual-390x844.jpg",
+      "sha256": "2e433c8d9941cb7bb3ac66a310a1dc7ccb9cb41d9fed8e8470e7ad5509107acd",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-not_available-390x844.jpg",
+      "sha256": "a2efb48d5b95d8bf36a1f07ccd576b45808a72aba227e2a360982b77123642a8",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-partial-390x844.jpg",
+      "sha256": "503467e7dfa0c5894d3ec6e14118611cf2c4ae7def696aaeef2b4bc32c2e233a",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "state",
+      "path": "screenshots/state-ready-390x844.jpg",
+      "sha256": "d52e58e1355bb0bf961c04e61066532b270c5e90544e7113c6d05aeabe750580",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "accessibility",
+      "path": "screenshots/text-enlargement-390x844.jpg",
+      "sha256": "3c4122f98865d6bbfc29f7b6f9c3b2e2a4c66d48408a127ee29ed01f9ba435fa",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "kind": "interaction",
+      "path": "screenshots/workforce-stale-390x844.jpg",
+      "sha256": "ecf99624ce70a1e3d22b36275ea3cdb96b8b962ea3070c794e0e12eea31c245e",
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  ],
+  "status": "PASS",
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      834,
+      1112
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      360,
+      800
+    ]
+  ]
+}

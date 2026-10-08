@@ -1,0 +1,100 @@
+{
+  "border": {
+    "style": "solid",
+    "width_px": 1
+  },
+  "breakpoint": {
+    "compact_navigation_max_px": 1099,
+    "phone_max_px": 479,
+    "single_column_max_px": 699
+  },
+  "color": {
+    "attention": "#805415",
+    "attention_tint": "#fff4df",
+    "border": "#d6dfd8",
+    "brand": "#164b3b",
+    "brand_tint": "#e5efe9",
+    "canvas": "#f3f5f2",
+    "error": "#a52b38",
+    "ink": "#172d27",
+    "mismatch": "#74409a",
+    "mismatch_tint": "#f3edf9",
+    "panel": "#ffffff",
+    "secondary": "#50645c",
+    "unavailable": "#58655e"
+  },
+  "data_series": {
+    "backlog": "#93691f",
+    "capacity": "#667b90",
+    "missing": "null: no point, no segment, no zero, no interpolation",
+    "point": "#164b3b",
+    "upper80": "#627eaa",
+    "upper90": "#8a6d9b"
+  },
+  "elevation": {
+    "canvas": 0,
+    "dialog": 100,
+    "panel": 1,
+    "sticky_navigation": 10
+  },
+  "focus": {
+    "minimum_touch_target_px": 44,
+    "offset_px": 3,
+    "outline": "3px solid #326fb1"
+  },
+  "grid": {
+    "desktop_gap_px": 24,
+    "kpi_desktop_columns": 4,
+    "kpi_phone_columns": 2,
+    "max_content_px": 1440,
+    "phone_gap_px": 16,
+    "sidebar_px": 200
+  },
+  "motion": {
+    "duration_ms": 120,
+    "reduced_motion": "disable nonessential animation; no animated skeleton"
+  },
+  "radius": {
+    "control_px": 8,
+    "panel_px": 12,
+    "pill_px": 999
+  },
+  "shadow": {
+    "dialog": "0 16px 60px rgb(23 45 39 / 20%)",
+    "panel": "0 2px 8px rgb(23 45 39 / 3%)"
+  },
+  "spacing": {
+    "steps_px": [
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      32,
+      40,
+      48
+    ],
+    "unit_px": 4
+  },
+  "state": {
+    "AUTHORITY_MISMATCH": "violet conflict",
+    "EMPTY": "guided selection",
+    "ERROR": "red validation not production alarm",
+    "LOADING": "aria-busy skeleton",
+    "NOT_AVAILABLE": "neutral explanatory panel",
+    "NO_CURRENT_ACTUAL": "neutral independent module",
+    "PARTIAL": "amber + explicit denominator",
+    "READY": "text + neutral/brand"
+  },
+  "typography": {
+    "axis_px": 13,
+    "body_px": 15,
+    "font_family": "-apple-system, BlinkMacSystemFont, \"Avenir Next\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "kpi_px": 32,
+    "line_height": 1.6,
+    "note_px": 13,
+    "numeric": "tabular-nums",
+    "title_px": 28
+  }
+}
