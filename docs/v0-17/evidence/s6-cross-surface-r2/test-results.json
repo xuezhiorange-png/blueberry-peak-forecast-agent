@@ -2,66 +2,6 @@
   "SYNTHETIC": true,
   "backend": [
     {
-      "case": "test_drifted_identity_http_conflict_sdk_forbidden[forecast_family-SYNTHETIC_WRONG_FAMILY]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_drifted_identity_http_conflict_sdk_forbidden[baseline_id-SYNTHETIC_WRONG_BASELINE]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_drifted_identity_http_conflict_sdk_forbidden[policy_version-SYNTHETIC_WRONG_POLICY]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_drifted_identity_http_conflict_sdk_forbidden[target_season-2024-2025]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_drifted_identity_http_conflict_sdk_forbidden[origin_date-2026-01-02]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_drifted_identity_http_conflict_sdk_forbidden[expected_source_result_hash-0000000000000000000000000000000000000000000000000000000000000000]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_invalid_decision_never_returns_result[missing_cost]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_invalid_decision_never_returns_result[unknown_cost]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_invalid_decision_never_returns_result[cost_hash]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_invalid_decision_never_returns_result[decimal]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_invalid_decision_never_returns_result[dates]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
-      "case": "test_invalid_decision_never_returns_result[extra_forecast]",
-      "result": "PASS",
-      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
-    },
-    {
       "case": "test_all_eight_capabilities_same_database[BASE]",
       "result": "PASS",
       "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
@@ -295,6 +235,116 @@
       "case": "test_denied_decisions_execute_no_business[compare_capacity_scenarios]",
       "result": "PASS",
       "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[forecast_family-SYNTHETIC_WRONG_FAMILY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[baseline_id-SYNTHETIC_WRONG_BASELINE]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[policy_version-SYNTHETIC_WRONG_POLICY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[target_season-2024-2025]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[origin_date-2026-01-02]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[expected_source_result_hash-0000000000000000000000000000000000000000000000000000000000000000]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[missing_cost]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[unknown_cost]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[cost_hash]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[decimal]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[dates]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[extra_forecast]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_exact_report_attachments_ignore_unrelated_disk_files",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_duplicate_destination_fails_before_any_archive_copy",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[stale]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[unrelated]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[missing]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[tampered]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[outside]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[test_id]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[project]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[timestamp]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
     }
   ],
   "browser": [
@@ -660,11 +710,11 @@
     }
   ],
   "browser_stats": {
-    "duration": 114864.095,
+    "duration": 112221.06700000001,
     "expected": 60,
     "flaky": 0,
     "skipped": 0,
-    "startTime": "2026-10-08T14:36:36.250Z",
+    "startTime": "2026-10-08T15:23:25.347Z",
     "unexpected": 0
   }
 }

@@ -9,6 +9,7 @@ import hashlib
 import json
 import shutil
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -21,10 +22,97 @@ def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
 
 
+def collect_screenshots(browser, execution_id, artifact_root):
+    """Only explicit attachments from this successful execution are admissible.
+
+    Validate the entire plan before copying any file. No recursive discovery,
+    existing archive reuse, inferred project names or basename overwrites.
+    """
+    assert execution_id and execution_id != "CI_VALIDATION_NOT_ARCHIVED"
+    start = datetime.fromisoformat(browser["stats"]["startTime"])
+    end = start + timedelta(milliseconds=browser["stats"]["duration"])
+    planned = {}
+    seen_sources = set()
+
+    def walk(suite):
+        for spec in suite.get("specs", []):
+            for test in spec["tests"]:
+                for result in test["results"]:
+                    attachments = result.get("attachments", [])
+                    images = [a for a in attachments if a["contentType"].startswith("image/")]
+                    if not images:
+                        continue
+                    assert spec["file"] == "dashboard-cross-surface.spec.ts", "UNRELATED_SPEC"
+                    assert test["status"] == "expected" and result["status"] == "passed"
+                    assert len(test["results"]) == 1 and result["retry"] == 0
+                    metadata = {}
+                    for attachment in attachments:
+                        if attachment["name"].startswith("provenance:"):
+                            import base64
+
+                            name = attachment["name"].removeprefix("provenance:")
+                            assert name not in metadata, "DUPLICATE_PROVENANCE"
+                            metadata[name] = json.loads(base64.b64decode(attachment["body"]))
+                    assert len(metadata) == len(images), "MISSING_PROVENANCE"
+                    for image in images:
+                        name = image["name"]
+                        meta = metadata[name]
+                        assert meta["execution_id"] == execution_id, "STALE_EXECUTION"
+                        assert meta["test_file"] == "e2e/" + spec["file"]
+                        assert meta["test_title"] == spec["title"]
+                        assert meta["project"] == test["projectName"]
+                        assert meta["test_id"] == spec["id"] and meta["name"] == name
+                        captured_at = datetime.fromisoformat(meta["captured_at"])
+                        test_start = datetime.fromisoformat(result["startTime"])
+                        assert start <= captured_at <= end
+                        # SDK duration excludes worker-fixture startup although
+                        # startTime precedes it; it is not a wall-clock deadline.
+                        assert test_start <= captured_at
+                        path = Path(image["path"]).resolve()
+                        relative = path.relative_to(artifact_root.resolve())
+                        # Playwright copies attachments to hash-suffixed filenames.
+                        # The report's logical name and content digest are authority,
+                        # not the SDK-generated attachment basename.
+                        assert Path(name).name == name and "SYNTHETIC" in name
+                        assert sha(path) == meta["sha256"], "SOURCE_DRIFT"
+                        assert relative.as_posix() not in seen_sources, "DUPLICATE_SOURCE"
+                        seen_sources.add(relative.as_posix())
+                        # Both projects capture all viewports; publish one explicitly
+                        # designated desktop-project copy of each page/viewport.
+                        if name.endswith("-SYNTHETIC.jpg"):
+                            if test["projectName"] != "chromium-desktop":
+                                continue
+                            destination = name.replace("-SYNTHETIC", "")
+                        else:
+                            project = {"chromium-desktop": "desktop", "chromium-mobile": "mobile"}[
+                                test["projectName"]
+                            ]
+                            destination = project + "-" + name
+                        assert destination not in planned, "DUPLICATE_DESTINATION"
+                        planned[destination] = {
+                            **meta,
+                            "report_spec_id": spec["id"],
+                            "test_result_status": result["status"],
+                            "test_start_time": result["startTime"],
+                            "test_duration_ms": result["duration"],
+                            "source_artifact_path": relative.as_posix(),
+                            "source_path": path,
+                        }
+        for child in suite.get("suites", []):
+            walk(child)
+
+    for suite in browser["suites"]:
+        walk(suite)
+    assert len(planned) == 44, "INCOMPLETE_SCREENSHOT_SET"
+    return planned
+
+
 def main():
     parser = argparse.ArgumentParser()
     for name in ("root", "original", "captures", "browser", "backend"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--execution-id", required=True)
+    parser.add_argument("--browser-artifact-root", type=Path, required=True)
     args = parser.parse_args()
     root = args.root
     evidence_root = root / "docs/v0-17/evidence"
@@ -241,19 +329,45 @@ def main():
             "visual_review": "REPRESENTATIVE_DESKTOP_PHONE_TABLET_INSPECTED; NO_REDESIGN",
         },
     )
-    # S5 capture's four unlabelled auxiliary images are not public R2 evidence.
-    screenshots = {
-        str(p.relative_to(root)): sha(p)
-        for p in sorted((output / "screenshots").glob("*"))
-        if p.is_file()
-        and not p.name.startswith("state-")
-        and p.name != "capacity-abc-comparison.jpg"
-    }
-    for path in sorted((root / "frontend/test-results").rglob("*SYNTHETIC.png")):
-        project = "mobile" if "chromium-mobile" in str(path) else "desktop"
-        dest = output / "screenshots" / (project + "-" + path.name)
-        shutil.copy2(path, dest)
-        screenshots[str(dest.relative_to(root))] = sha(dest)
+    plan = collect_screenshots(browser, args.execution_id, args.browser_artifact_root)
+    screenshots = {}
+    provenance = []
+    for name, record in sorted(plan.items()):
+        source = record.pop("source_path")
+        dest = output / "screenshots" / name
+        shutil.copy2(source, dest)
+        destination = str(dest.relative_to(root))
+        screenshots[destination] = sha(dest)
+        provenance.append({**record, "archive_path": destination})
+    # Public, path-safe extraction of the exact report attachments. Keep the
+    # original report digest too; never publish its machine-specific config.
+    report_path = output / "screenshot-execution-report.json"
+    write(
+        report_path,
+        {
+            "raw_report_sha256": sha(args.browser),
+            "stats": browser["stats"],
+            "cases": provenance,
+        },
+    )
+    write(
+        output / "screenshot-provenance.json",
+        {
+            "schema": "V0_17_S6_SCREENSHOT_PROVENANCE_R1",
+            "execution_id": args.execution_id,
+            "artifact_root_label": args.browser_artifact_root.name,
+            "browser_report_sha256": sha(args.browser),
+            "public_report_sha256": sha(report_path),
+            "start_time": browser["stats"]["startTime"],
+            "duration_ms": browser["stats"]["duration"],
+            "selection": (
+                "EXACT_SPEC_ATTACHMENTS; DESKTOP_PROJECT_FOR_PAGE_VIEWPORTS; "
+                "BOTH_PROJECTS_FOR_STATES"
+            ),
+            "duplicate_destination_policy": "REJECT_BEFORE_COPY",
+            "screenshots": provenance,
+        },
+    )
     artifacts = {str(p.relative_to(root)): sha(p) for p in sorted(output.glob("*.json"))}
     evidence = {
         "schema": "V0_17_S6_CROSS_SURFACE_PRODUCT_ACCEPTANCE_R2",
@@ -268,6 +382,17 @@ def main():
             "post_merge_ci": 37783261851,
             "post_merge_ci_conclusion": "success",
             "selector_retest": "PASS_FRESH_R2",
+        },
+        "evidence_provenance_correction": {
+            "review_id": 5458870712,
+            "previous_head": "0e1935d5f0c372acba48812d1f5ae65a8b9822df",
+            "previous_cancel_reopen_images": "NOT_ACCEPTED_AS_FRESH_R2_EVIDENCE",
+            "scope": "S6_TEST_AND_EVIDENCE_ONLY",
+            "execution_id": args.execution_id,
+            "fresh_screenshot_count": len(screenshots),
+            "provenance_admission": "PASS_EXACT_REPORT_ATTACHMENTS",
+            "duplicate_destination_admission": "REJECT",
+            "independent_reassessment": "PENDING",
         },
         "original_r1_hash_audit": "PASS_7_OF_7",
         "original_r1_artifacts_sha256": pins,
