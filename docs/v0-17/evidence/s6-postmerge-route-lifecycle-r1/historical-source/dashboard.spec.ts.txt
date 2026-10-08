@@ -1,8 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { createServer } from "node:http";
-import { once } from "node:events";
 
 type Selection = Record<string, string | number>;
 const test = base.extend<
@@ -73,13 +71,14 @@ const test = base.extend<
     for (const surface of ["forecast-intelligence", "decision-support"])
       await page.route(`**/api/v1/${surface}/**`, async (route) => {
         const incoming = new URL(route.request().url());
-        await route.continue({
+        const response = await route.fetch({
           url: authority.url + incoming.pathname + incoming.search,
         });
+        await route.fulfill({ response });
       });
     await use(page);
-    // Native forwarding handles the route once. Browser cancellation owns the
-    // response lifecycle; no detached APIRequestContext fetch remains to fulfill.
+    // Complete real in-flight service requests before Playwright disposes the
+    // request context; do not suppress callback errors or skip their assertions.
     await page.unrouteAll({ behavior: "wait" });
   },
 });
@@ -130,203 +129,6 @@ test("real saved authority BASE/REGION/COMPANY, six reads and unchanged service 
   await page.getByRole("link", { name: /预测质量$/ }).click();
   await expect(page.locator("main")).toContainText("EXPOSED_OOT");
   await expect(page.locator("main")).toContainText("当前产季暂无可用于正式评分的实际采收数据");
-});
-
-test("native forwarding preserves real GET POST bodies headers and complete business JSON", async ({
-  page,
-  authority,
-}) => {
-  await page.goto("/dashboard/overview");
-  const identity = authority.identities[0];
-  const params = new URLSearchParams(Object.entries(identity).map(([k, v]) => [k, String(v)]));
-  for (const capability of [
-    "overview",
-    "curve",
-    "hierarchy",
-    "uncertainty",
-    "attribution",
-    "quality",
-  ]) {
-    const query =
-      capability === "quality"
-        ? "mode=HISTORICAL_VALIDATION&model_id=V0_15_S5_M1_RIDGE"
-        : params.toString();
-    const path = `/api/v1/forecast-intelligence/${capability}?${query}`;
-    const expected = await page.request.get(authority.url + path);
-    expect(expected.status()).toBe(200);
-    const actual = await page.evaluate(async (url) => {
-      const response = await fetch(url);
-      return {
-        status: response.status,
-        type: response.headers.get("content-type"),
-        payload: await response.json(),
-      };
-    }, path);
-    expect(actual.status).toBe(expected.status());
-    expect(actual.type).toContain("application/json");
-    expect(actual.payload).toEqual(await expected.json());
-  }
-  const curve = await (
-    await page.request.get(authority.url + `/api/v1/forecast-intelligence/curve?${params}`)
-  ).json();
-  const costId = "SYNTHETIC_UNDER_4X_R1";
-  const costHash = "8d6f2567a18bd298f1a261a059a88b2772d77bcc6f03e313dc3853c9cd2f0f3f";
-  const { expected_source_result_hash, ...forecast_selection } = identity;
-  const scenario = {
-    scenario_id: "NATIVE_FORWARDING",
-    scenario_version: "R1",
-    capacity_rows: curve.data.daily_rows.map((row: { target_date: string }) => ({
-      date: row.target_date,
-      capacity_mode: "DIRECT",
-      daily_handling_capacity_kg: "140",
-      buffer_handling_capacity_kg: "0",
-    })),
-  };
-  const body = {
-    forecast_selection,
-    expected_source_result_hash,
-    planning_level: "POINT",
-    cost_contract_id: costId,
-    expected_cost_contract_hash: costHash,
-    ...scenario,
-  };
-  const path = "/api/v1/decision-support/simulate-capacity";
-  const browserRequest = page.waitForRequest((r) => r.url().endsWith(path));
-  const actual = await page.evaluate(
-    async ({ url, value }) => {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(value),
-      });
-      return {
-        status: response.status,
-        type: response.headers.get("content-type"),
-        payload: await response.json(),
-      };
-    },
-    { url: path, value: body },
-  );
-  const request = await browserRequest;
-  expect(request.method()).toBe("POST");
-  expect(request.headers()["content-type"]).toContain("application/json");
-  expect(request.postDataJSON()).toEqual(body);
-  const expected = await page.request.post(authority.url + path, { data: body });
-  expect(actual.status).toBe(200);
-  expect(actual.type).toContain("application/json");
-  expect(actual.payload).toEqual(await expected.json());
-  expect(actual.payload.data.total_business_loss).toBe("980");
-  const comparisonPath = "/api/v1/decision-support/compare-capacity-scenarios";
-  const comparisonBody = {
-    forecast_selection,
-    expected_source_result_hash,
-    planning_level: "POINT",
-    cost_contract_id: costId,
-    expected_cost_contract_hash: costHash,
-    scenarios: [scenario, { ...scenario, scenario_id: "NATIVE_FORWARDING_OTHER" }],
-  };
-  const comparison = await page.evaluate(
-    async ({ url, value }) => {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(value),
-      });
-      return { status: response.status, payload: await response.json() };
-    },
-    { url: comparisonPath, value: comparisonBody },
-  );
-  const expectedComparison = await page.request.post(authority.url + comparisonPath, {
-    data: comparisonBody,
-  });
-  expect(comparison.status).toBe(200);
-  expect(comparison.payload).toEqual(await expectedComparison.json());
-});
-
-test("native forwarding cancels a held real response without late identity replacement", async ({
-  page,
-  authority,
-}) => {
-  await page.goto("/dashboard/overview");
-  await select(page, authority.identities[0]);
-  await expect(page.locator(".d-kpis").first()).toContainText("1820");
-  let release!: () => void;
-  let arrived!: () => void;
-  let completed!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const started = new Promise<void>((resolve) => {
-    arrived = resolve;
-  });
-  const finished = new Promise<void>((resolve) => {
-    completed = resolve;
-  });
-  const errors: unknown[] = [];
-  // A test-only transport gate delays an ACTUAL canonical response, not mock JSON.
-  const gateway = createServer((request, response) => {
-    void (async () => {
-      expect(request.method).toBe("GET");
-      const upstream = await fetch(authority.url + request.url);
-      const body = await upstream.text();
-      expect(upstream.status).toBe(200);
-      arrived();
-      await held;
-      response.writeHead(upstream.status, {
-        "Content-Type": upstream.headers.get("content-type")!,
-      });
-      response.end(body);
-      completed();
-    })().catch((error) => {
-      errors.push(error);
-      response.destroy();
-      arrived();
-      completed();
-    });
-  });
-  gateway.listen(0, "127.0.0.1");
-  await once(gateway, "listening");
-  const address = gateway.address();
-  if (!address || typeof address === "string") throw new Error("Missing synthetic gate port");
-  await page.route(
-    "**/api/v1/forecast-intelligence/overview?**",
-    async (route) => {
-      const original = new URL(route.request().url());
-      await route.continue({
-        url: `http://127.0.0.1:${address.port}${original.pathname}${original.search}`,
-      });
-    },
-    { times: 1 },
-  );
-  try {
-    const cancelled = page.waitForEvent("requestfailed", {
-      predicate: (request) =>
-        request.url().includes("/overview?") && request.url().includes("SYNTHETIC_REGION"),
-    });
-    await select(page, authority.identities[2]);
-    await started;
-    await page.getByRole("link", { name: /预测$/ }).click();
-    await cancelled;
-    await select(page, authority.identities[3]);
-    await expect(page.locator(".d-context-title")).toContainText(
-      String(authority.identities[3].entity_id),
-    );
-    release();
-    await finished;
-    expect(errors).toEqual([]);
-    await page.getByRole("link", { name: /总览$/ }).click();
-    await expect(page.locator(".d-kpis").first()).toContainText("3640");
-    await expect(page.locator(".d-context-title")).toContainText(
-      String(authority.identities[3].entity_id),
-    );
-  } finally {
-    release();
-    gateway.closeAllConnections();
-    await new Promise<void>((resolve, reject) =>
-      gateway.close((error) => (error ? reject(error) : resolve())),
-    );
-    expect(errors).toEqual([]);
-  }
 });
 test("real simulation and comparison parity; explicit costs, daily workforce and stale ranks", async ({
   page,

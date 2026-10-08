@@ -1,0 +1,133 @@
+{
+  "cases": [
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    }
+  ],
+  "raw_report_sha256": "bc221d3a652d09c36701cfa103302253fd7616296fc9d5c9539db1bb4c454904",
+  "stats": {
+    "duration": 107919.51,
+    "expected": 20,
+    "flaky": 0,
+    "skipped": 0,
+    "startTime": "2026-10-08T23:02:49.676Z",
+    "unexpected": 0
+  }
+}
