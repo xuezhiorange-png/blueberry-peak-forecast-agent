@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { forecastIdentity, forecastQuery, levels } from "../schemas/contracts";
 import { DashboardError, read, safeError } from "../api/client";
 import { useForecast } from "../context/ForecastContext";
@@ -31,18 +31,32 @@ export function AuthorizedSavedRunSelector() {
   const [error, setError] = useState<string>();
   const [mismatch, setMismatch] = useState(false);
   const [busy, setBusy] = useState(false);
+  const cancelRequest = useCallback((resetBusy = true) => {
+    active.current?.abort();
+    active.current = null;
+    generation.current++;
+    if (resetBusy) setBusy(false);
+  }, []);
+  function close() {
+    cancelRequest();
+    closeSelector();
+  }
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     if (selectorOpen) dialog.current?.showModal();
-    else dialog.current?.close();
+    else {
+      cancelRequest();
+      dialog.current?.close();
+    }
     return () => {
-      active.current?.abort();
-      generation.current++;
-      previous?.focus();
+      // Invalidate work on unmount/StrictMode cleanup without updating UI state.
+      cancelRequest(false);
+      // A closed-state cleanup must not steal focus from the next opener.
+      if (selectorOpen) previous?.focus();
     };
-  }, [selectorOpen]);
+  }, [selectorOpen, cancelRequest]);
   async function validate(form: HTMLFormElement) {
-    active.current?.abort();
+    cancelRequest();
     const controller = new AbortController();
     active.current = controller;
     const current = ++generation.current;
@@ -57,7 +71,7 @@ export function AuthorizedSavedRunSelector() {
       const curve = await read("curve", query, controller.signal);
       if (!["READY", "PARTIAL"].includes(curve.status) || !curve.data?.daily_rows.length)
         throw new DashboardError(409, "SAVED_CURVE_UNAVAILABLE");
-      if (!controller.signal.aborted && generation.current === current)
+      if (!controller.signal.aborted && generation.current === current && dialog.current?.open)
         commit({
           query,
           curve,
@@ -67,25 +81,32 @@ export function AuthorizedSavedRunSelector() {
             query.expected_source_result_hash,
         });
     } catch (failure) {
-      if (!controller.signal.aborted && generation.current === current) {
+      if (!controller.signal.aborted && generation.current === current && dialog.current?.open) {
         setError(safeError(failure));
         setMismatch(failure instanceof DashboardError && failure.status === 409);
       }
     } finally {
-      if (!controller.signal.aborted && generation.current === current) setBusy(false);
+      if (
+        !controller.signal.aborted &&
+        generation.current === current &&
+        active.current === controller
+      ) {
+        active.current = null;
+        setBusy(false);
+      }
     }
   }
   return (
     <dialog
       className="d-dialog"
       ref={dialog}
-      onCancel={closeSelector}
-      onClose={closeSelector}
+      onCancel={close}
+      onClose={close}
       aria-labelledby="d-selector-title"
     >
       <div className="d-panel-heading">
         <h2 id="d-selector-title">选择已保存预测</h2>
-        <button autoFocus onClick={closeSelector}>
+        <button autoFocus onClick={close}>
           关闭
         </button>
       </div>
@@ -103,9 +124,7 @@ export function AuthorizedSavedRunSelector() {
           void validate(e.currentTarget);
         }}
         onChange={() => {
-          active.current?.abort();
-          generation.current++;
-          setBusy(false);
+          cancelRequest();
           setError(undefined);
         }}
       >
