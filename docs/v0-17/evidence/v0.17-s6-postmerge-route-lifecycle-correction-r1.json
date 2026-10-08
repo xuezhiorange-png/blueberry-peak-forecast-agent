@@ -1,0 +1,63 @@
+{
+  "artifact_sha256": {
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/dashboard-results.json": "8bca5708d3671fdec504da34b71208c613176b6d7dc8240b767ce131bbf1412a",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/dashboard.spec.ts.txt": "7713e7975e0cfeb6ca7464496a01b3e1b61f30208a9875968666edcd9da44c3d",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/test_v0_17_s6_evidence_contract.py.txt": "c030be143f261d908b19bb8619b6d2c41427083a96e09b94788bc684db0c0624",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/original-failure-manifest.json": "83308c3b1b9a502a554ce8cac0908a987ee22e7f249a16720c71641d6bb0d68a",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/repeat-results.json": "79e980b6ffb878e3c828abde5b9001d593affd5204cf0277422e1311d7fc78ed"
+  },
+  "backend_regression": "968_PASS;4_POSTGRES_DESELECTED",
+  "base_main_sha": "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+  "cancelled_request_handling": "BROWSER_OWNS_RESPONSE; REAL_HELD_RESPONSE_RELEASED_AFTER_NEW_CONTEXT",
+  "current_actual_accessed": false,
+  "dashboard_tests": "64_PASS",
+  "error_swallowing": false,
+  "fixed_sleeps_added": false,
+  "frontend_unit_tests": "122_PASS",
+  "governance": {
+    "correction_authorized": true,
+    "deploy_authorized": false,
+    "exact_head_ci": "PENDING_AT_COMMIT",
+    "merge_authorized": false,
+    "production_readiness": "NOT_READY",
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s6_formal_complete": false,
+    "stop": true,
+    "version_closeout_authorized": false
+  },
+  "historical_evidence_rewritten": false,
+  "historical_source_bindings": {
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": {
+      "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/test_v0_17_s6_evidence_contract.py.txt",
+      "current_sha256": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5",
+      "historical_sha256": "c030be143f261d908b19bb8619b6d2c41427083a96e09b94788bc684db0c0624"
+    },
+    "frontend/e2e/dashboard.spec.ts": {
+      "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/dashboard.spec.ts.txt",
+      "current_sha256": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
+      "historical_sha256": "7713e7975e0cfeb6ca7464496a01b3e1b61f30208a9875968666edcd9da44c3d"
+    }
+  },
+  "local_full_frontend_e2e": "NOT_RUN_LOCAL_POSTGRES_UNAVAILABLE; EXACT_HEAD_CI_REQUIRED",
+  "method_body_headers": "URL_ONLY_NATIVE_CONTINUE; REAL_GET_POST_JSON_PARITY_TESTED",
+  "original_failure_ci": 37807916550,
+  "production_code_changed": false,
+  "repeat_tests": "20_PASS;10_DESKTOP;10_NARROW_CHROMIUM",
+  "root_cause": "DETACHED_FETCH_FULFILL_OUTLIVES_ROUTE_DURING_FIXTURE_CLEANUP",
+  "route_lifecycle_corrected": true,
+  "same_origin_cors": "BROWSER_FETCH_SUCCESS_WITH_UNCHANGED_SERVICES; NO_CORS_BYPASS",
+  "scope": "E2E_TEST_PROXY_LIFECYCLE_AND_DIRECT_EVIDENCE_ONLY",
+  "source_evidence_sha256": {
+    "backend/tests/e2e/build_v0_17_s6_route_lifecycle_evidence.py": "c52ef6a893e344a54585bbb8f82931824a26a20109e873a2f26434527f741ca9",
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "d1fce81fe1fdcb725a4802b9d6d3f9d530eb032171e09be7d460e51b287383b8",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r1.md": "21f4edcf68dd59a28c64eb9f6053c1da7d50e02cae20f3a1fe387978fee1c328",
+    "frontend/e2e/dashboard-cross-surface.spec.ts": "30d80dc0caa3a0936817d46fdd33862956beb09b64870bb3581ed4d1020dcd85",
+    "frontend/e2e/dashboard.spec.ts": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
+    "frontend/e2e/selector-cancel-reopen.spec.ts": "0442d70e2dcda7fd1252081145399e3798c0f4d8b32f80e03672ad3a4818fdbc",
+    "frontend/e2e/support/dashboard_api.py": "3e8653f41c859173549be38d4ff726c9390ac431723a61632a2ca47521167bd6"
+  },
+  "task_id": "V0_17_S6_POST_MERGE_FRONTEND_E2E_ROUTE_LIFECYCLE_CORRECTION_R1"
+}
