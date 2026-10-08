@@ -1,0 +1,92 @@
+{
+  "schema": "V0_17_S6_SELECTOR_CANCEL_REOPEN_CORRECTION_R1",
+  "task_id": "V0_17_S6_SELECTOR_CANCEL_REOPEN_CORRECTION_R1",
+  "base_main_sha": "a7585286d5f654265025a7f79f5622f6d8474d35",
+  "root_cause": "BUSY_NOT_RESET_AFTER_ABORT",
+  "production_changed_files": [
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx"
+  ],
+  "original_selector_sha256": "02d4465a74356158bb609d24eb9e0d198634f8683e85c95596360be9a5507dec",
+  "original_failure": {
+    "component": "3 failed / 5 passed before correction",
+    "browser": "2 failed: reopened submit remained disabled",
+    "viewports": [
+      [1440, 900],
+      [390, 844]
+    ]
+  },
+  "validation": {
+    "selector_component_tests": 11,
+    "frontend_unit_tests": "122 passed",
+    "dashboard_browser_tests": "28 passed (22 existing + 6 correction)",
+    "backend_frozen_contract_tests": "399 passed, 60 warnings",
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "format": "PASS",
+    "build": "PASS",
+    "ruff": "PASS",
+    "backend_format": "PASS",
+    "mypy": "PASS",
+    "local_trial_browser": "NOT_RUN_LOCAL_POSTGRES_BACKEND_UNAVAILABLE; unchanged exact-head CI required",
+    "local_full_suite": "NOT_RUN_KNOWN_LOCAL_LIBOMP_UNAVAILABLE"
+  },
+  "cancellation_contract": [
+    "abort controller",
+    "invalidate generation",
+    "clear active reference",
+    "reset busy on cancellation, not unmount",
+    "guard native dialog closed state before commit/error",
+    "old completion cannot clear new request busy",
+    "preserve previously verified context and date",
+    "restore opener focus"
+  ],
+  "source_evidence_sha256": {
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/what_if.py": "9504b5552833d8d0d0be64e0379d4913222e5fae8d270a858dd7fd2e943ae7d0",
+    "backend/app/forecast_intelligence/business_loss.py": "26c5bab071833f1dccba56bf0defd3103fd8b6741721e37f4069285923d54443",
+    "backend/app/mcp/forecast_intelligence_http.py": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce",
+    "frontend/e2e/support/dashboard_api.py": "3e8653f41c859173549be38d4ff726c9390ac431723a61632a2ca47521167bd6",
+    "docs/v0-17/design/s4/dashboard-contract-r1.json": "5ab67eb3516398ef9390133955894bee4efa725b85f179ac823da4245e0d4a21",
+    "docs/v0-17/design/s4/design-tokens-r1.json": "51712a6a4c587361f687694fe187bdbc0cb5026de956f5ef45d6e1ac1c12b653"
+  },
+  "original_s6_artifacts_sha256": {
+    "backend/tests/e2e/test_v0_17_s6_cross_surface_parity.py": "6e25a29297de92e0475b886ea53324e2f192b8c287a89086730e3f4be4e3faf5",
+    "docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-desktop.png": "07ab22c5137eb87d344c09e24960592e73cedc0ccc98a6dd053d171d014ce8ee",
+    "docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-mobile.png": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json": "f9a1c81678878a2881d618d42e252f658128975e5d58f86072f49c2da10a0a56",
+    "docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r1.md": "3294ef1496388bb6ef57cc3bcd1f30f1d0619ca94bc011118ad6698cb35a8e03",
+    "frontend/e2e/dashboard-cross-surface.spec.ts": "4618826da58b841028c1eb1bad8fd61661994dcd9c4b79e38dce6a4bffd05bdb",
+    "frontend/e2e/support/s6_api.py": "4661701020a658df586c6bc86cee7980086e6ad1816d60339640670c0834309c"
+  },
+  "original_s6_success_evidence_preserved": true,
+  "original_s6_failure_evidence_preserved": true,
+  "screenshots": {
+    "synthetic": true,
+    "browser": "Playwright Chromium",
+    "before_desktop": "99bd0c547fdd31dc58c237a9725aefcbd312d68eadd375e8215cb0f3816f9121",
+    "before_mobile": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+    "after_desktop": "cd22e497ad3e71bbe5de72ecd2ab7c2d8cbf4f7d479c564a7fbc9cbfaac3314d",
+    "after_mobile": "e18d6185cd49557ac88bb16f66cb04ac67f024185435450503edf3e61d967e1a"
+  },
+  "privacy": {
+    "synthetic_database_only": true,
+    "private_data_accessed": false,
+    "credentials_published": false
+  },
+  "governance": {
+    "correction_authorized": true,
+    "s6_result": "BLOCKED",
+    "s6_acceptance_resumed": false,
+    "s6_formal_complete": false,
+    "production_readiness": "NOT_READY",
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deploy_authorized": false,
+    "release_authorized": false,
+    "exact_head_ci": "PENDING_AT_COMMIT; final receipt binds live result",
+    "stop": true
+  }
+}
