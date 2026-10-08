@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>蓝莓预测智能 · S4 设计候选</title><link rel="stylesheet" href="styles.css"><script src="prototype.js" defer></script></head>
+<body>
+<a class="skip" href="#main">跳到主要内容</a>
+<div class="design-label">SYNTHETIC DESIGN FIXTURE — NOT PRODUCTION DATA <span>静态设计候选 R1 · 非生产界面</span></div>
+<div class="shell">
+<aside class="sidebar"><div class="brand"><b>BLUEBERRY</b><span>预测智能 / 决策支持</span></div>
+<nav aria-label="主导航">
+<a href="#overview" data-page="OVERVIEW" aria-current="page"><span class="nav-index">01</span>总览</a>
+<a href="#forecast" data-page="FORECAST"><span class="nav-index">02</span>预测</a>
+<a href="#attribution" data-page="ATTRIBUTION"><span class="nav-index">03</span>影响因素</a>
+<a href="#capacity" data-page="CAPACITY_SIMULATOR"><span class="nav-index">04</span>产能模拟</a>
+<a href="#quality" data-page="QUALITY"><span class="nav-index">05</span>预测质量</a>
+</nav><div class="sidebar-note">研究与工程能力<br>非生产批准<br><span>V0.17 / S4 DESIGN</span></div></aside>
+<div class="workspace">
+<header class="context"><div><span class="eyebrow">已保存预测 · 合成上下文</span><div class="context-title">示意公司 <span class="badge">COMPANY</span></div><p>起点 2025-01-01 · 保存记录 DESIGN-001 · 15 日样本</p></div><button id="select-run">选择已保存预测</button></header>
+<div class="review-bar"><label for="review-state">设计评审状态</label><select id="review-state"><option value="READY">默认布局 / READY</option><option>LOADING</option><option>EMPTY</option><option>PARTIAL</option><option>NOT_AVAILABLE</option><option>ERROR</option><option>AUTHORITY_MISMATCH</option><option>NO_CURRENT_ACTUAL</option></select><button id="large-text" aria-pressed="false">文字放大检查</button><span>此控件仅用于设计评审，不属于产品导航</span></div>
+<main id="main" tabindex="-1"><div class="page-heading"><div><p class="eyebrow" id="page-kicker">FORECAST INTELLIGENCE</p><h1 id="page-title">总览</h1><p id="page-description">从保存的预测出发，先看数量，再看规划压力。</p></div><span class="badge" id="page-status">设计样本 · READY</span></div>
+<div id="state-panel" aria-live="polite"></div><div id="page-content"></div>
+<footer>设计样本，不构成生产决策批准。Point 不是已证明 P50；规划上界不是已证明 P80/P90 分位数。<br>无当前季实际数据读取、模型执行或业务计算。</footer></main>
+</div></div>
+<dialog id="run-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title">选择已保存预测</h2><button id="close-dialog" aria-label="关闭保存预测选择器">关闭</button></div><p class="notice">BUSINESS_RUN_SELECTOR_BACKEND_READY=false<br>正常业务选择仍需可信服务器上下文交接。此原型不读取保存记录，不提供“最新预测”列表。</p><h3>路径 A · 可信授权上下文交接</h3><p>业务用户只看实体、层级、预测起点、记录标识及完整性。服务端必须提供完整身份与来源 hash；当前 API 尚未提供发现 / 交接来源。</p><details><summary>路径 B · 高级完整身份输入（技术核验）</summary><form id="identity-form"><div id="identity-fields" class="form-grid"></div><p>输入不是权限证明；S5 必须经 S1 canonical 核验后才提交上下文。</p><button type="submit" class="primary">预览核验说明</button><p id="identity-message" role="status"></p></form></details></dialog>
+</body></html>
