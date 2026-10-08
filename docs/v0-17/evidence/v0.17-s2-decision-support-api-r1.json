@@ -1,0 +1,258 @@
+{
+  "adapter_contract": {
+    "anchor_local_time": "00:00:00",
+    "base_binding_fields": [
+      "binding_type",
+      "binding_policy_version",
+      "adapter_policy_version",
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "source_authority_hash",
+      "source_result_hash"
+    ],
+    "base_digest_serialization": "SORTED_COMPACT_UTF8_JSON_PLUS_NEWLINE_SHA256",
+    "base_scope_kind": "S2_ATOMIC_FORECAST_SCOPE_BINDING_NOT_REGISTRY_HIERARCHY",
+    "base_scope_policy": "BASE_SCOPED_FORECAST_AUTHORITY_BINDING_R1",
+    "buffer_absent_semantics": "BUFFER_SUPPLIED_FALSE_EXPLICIT_ZERO",
+    "buffer_semantics": "SAME_DAY_ADDITIVE_HANDLING_CAPACITY",
+    "date_anchor_not_issuance_timestamp": true,
+    "hash_domains": [
+      "source_result_hash",
+      "source_read_projection_hash",
+      "adapter_authority_hash",
+      "adapter_saved_forecast_hash",
+      "scenario_hash",
+      "engine_result_hash",
+      "projection_hash"
+    ],
+    "incomplete_child_coverage_admitted": false,
+    "initial_backlog_kg": "0",
+    "origin_date_anchor_policy": "V0_17_S2_SHANGHAI_DATE_ANCHOR_R1",
+    "partial_window_semantics": "ONLY_CONTINUOUS_SAVED_D1_PREFIX_AVAILABLE_DATES_WITH_PARTIAL_STATUS",
+    "policy_version": "V0_17_S2_SAVED_FORECAST_DECISION_ADAPTER_R1",
+    "s1_base_hierarchy_hash_unchanged_null": true,
+    "source_hashes_renamed_as_hierarchy": false,
+    "timezone": "Asia/Shanghai",
+    "upper_bound_fallback_allowed": false
+  },
+  "api_capabilities": {
+    "BUSINESS_LOSS_EXPOSURE": {
+      "method": "GET",
+      "path": "/api/v1/decision-support/business-loss"
+    },
+    "COMPARE_CAPACITY_SCENARIOS": {
+      "method": "POST",
+      "path": "/api/v1/decision-support/compare-capacity-scenarios"
+    },
+    "SIMULATE_CAPACITY": {
+      "method": "POST",
+      "path": "/api/v1/decision-support/simulate-capacity"
+    }
+  },
+  "architecture": "S1_CANONICAL_READ_SERVICE_TO_S2_ADAPTER_TO_UNCHANGED_S5_S6_ENGINES",
+  "authority_inventory": {
+    "base": "TAGGED_S2_ATOMIC_FORECAST_SCOPE_NOT_REGISTRY_HIERARCHY",
+    "costs": "THREE_EXPLICIT_FROZEN_S5_SYNTHETIC_CONTRACTS",
+    "mathematics": "UNCHANGED_S6_SIMULATE_AND_COMPARE_AND_RANK",
+    "region_company": "SAVED_HISTORICAL_HIERARCHY_SNAPSHOT",
+    "saved_forecast": "UNCHANGED_S1_CANONICAL_SAVED_RUN_VALIDATION",
+    "upper80_upper90": "NOT_AVAILABLE_NO_EXACT_RUN_BOUND_AUTHORITY"
+  },
+  "authorization": {
+    "actor": "EXISTING_TRIAL_ACTOR_DEP",
+    "fine_grained_entity_authorization_established": false,
+    "permission": "may_read_forecast",
+    "permission_precedes_source_read": true,
+    "scenario_domain_validation_after_canonical_read": true
+  },
+  "base_main_sha": "ac4e862aea8b87d072835bbc1b2ae98e60adcb3e",
+  "changed_files": [
+    "backend/app/forecast_intelligence/decision_service.py",
+    "backend/app/forecast_intelligence/decision_schemas.py",
+    "backend/app/api/forecast_intelligence_decision.py",
+    "backend/app/main.py",
+    "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+    "backend/tests/forecast_intelligence/test_v0_17_s2_decision_api.py",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md",
+    "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json"
+  ],
+  "cost_contract_hashes": {
+    "SYNTHETIC_BALANCED_R1": "35f8316fbf2688b108e173d0d8438ce6323aa0f9db208f7a143f72e07aa5679f",
+    "SYNTHETIC_OVER_4X_R1": "6cec3474d85b6421467d43ff71fb6a52a4b4904289cded15c4fdcea74e49fe36",
+    "SYNTHETIC_UNDER_4X_R1": "8d6f2567a18bd298f1a261a059a88b2772d77bcc6f03e313dc3853c9cd2f0f3f"
+  },
+  "cost_semantics": {
+    "canonical_company_cost_established": false,
+    "client_cost_override_allowed": false,
+    "default_cost_contract_allowed": false,
+    "get_without_scenario_amount": "NOT_COMPUTED_NO_SCENARIO",
+    "loss_unit": "SYNTHETIC_LOSS_UNIT",
+    "real_roi_validated": false,
+    "s5_original_semantics": "ACTUAL_VS_FORECAST_LOSS",
+    "simulation_semantics": "ASYMMETRIC_PLANNING_GAP_LOSS",
+    "synthetic": true
+  },
+  "failure_semantics": {
+    "200": [
+      "READY",
+      "PARTIAL",
+      "NOT_AVAILABLE"
+    ],
+    "401": [
+      "UNAUTHENTICATED"
+    ],
+    "403": [
+      "FORBIDDEN"
+    ],
+    "404": [
+      "SAVED_RUN_NOT_FOUND",
+      "COST_CONTRACT_NOT_FOUND"
+    ],
+    "409": [
+      "SOURCE_OR_HASH_OR_COMPARISON_AUTHORITY_CONFLICT"
+    ],
+    "413": [
+      "REQUEST_BODY_TOO_LARGE"
+    ],
+    "422": [
+      "INVALID_INPUT_DATE_SET_DECIMAL_PRECISION"
+    ],
+    "503": [
+      "AUTHORIZATION_PERSISTENCE_OR_INTERNAL_SERVICE_UNAVAILABLE"
+    ]
+  },
+  "frozen_policy_pins": {
+    "s5_policy_hash": "740c0a48506b524ea822b88ad9c5b3443cf3356969026e02cff4a6e1a3c446b7",
+    "s6_policy_hash": "c1712c6596a813816eefbcb8d51c7088304549cfcc1899a637dff1b150be6463",
+    "utilization_numeric_policy": "V0_16_EXACT_RATIO_WITH_DECIMAL50_HALF_EVEN_R1"
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s2_formal_complete": false,
+    "s2_implementation_authorized": true,
+    "s3_authorized": false,
+    "s4_authorized": false,
+    "s5_authorized": false,
+    "s6_authorized": false,
+    "tag_authorized": false
+  },
+  "isolation": {
+    "auto_optimization": false,
+    "business_action_persisted": false,
+    "ci_workflow_changed": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "db_migration_created": false,
+    "dependency_changed": false,
+    "frontend_changed": false,
+    "mcp_changed": false,
+    "model_refit": false,
+    "model_training": false,
+    "model_tuning": false,
+    "new_forecast_execution": false,
+    "private_data_read": false,
+    "s1_read_contract_changed": false,
+    "s5_engine_changed": false,
+    "s6_engine_changed": false,
+    "v0_14_changed": false,
+    "v0_15_changed": false
+  },
+  "s1_formal_prerequisite_verified": true,
+  "s1_post_merge_ci_conclusion": "success",
+  "s1_post_merge_ci_run_id": 37714290836,
+  "source_evidence_count": 20,
+  "source_evidence_sha256": {
+    "backend/app/actual_harvest_import/api_auth.py": "59548ae9afcaae17edf646a20b94e6190da92eadbe050f6bda06f6763467ddfd",
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/forecast_intelligence/business_loss.py": "26c5bab071833f1dccba56bf0defd3103fd8b6741721e37f4069285923d54443",
+    "backend/app/forecast_intelligence/persistence.py": "4f4234b9ca0ea5ac26cdb90576b32b6a7dfe82f6260bf85aa6342b18a6796b9a",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/forecast_intelligence/what_if.py": "9504b5552833d8d0d0be64e0379d4913222e5fae8d270a858dd7fd2e943ae7d0",
+    "backend/app/forecast_quality/operational_peak_persistence.py": "35e9fb6920acb75029b83dc075d9c7f4b73f5206d8848aa9c9a02fc09f0ed4a6",
+    "backend/app/trial.py": "131ade420874d20fe20a1bd29c5f1e000fa5401a1f10469fcdad2b2344a38715",
+    "docs/v0-16/evidence/business-loss-contract-r1/business-loss-policy-r1.json": "a0dc8c94444b190ee97349861825c83f58479736ffcf50f8870f6543074e20c0",
+    "docs/v0-16/evidence/business-loss-contract-r1/manifest-r1.json": "a083661b6229a97c95ca4d0b058aca0cafb5d2e08e8683a74107b8201f8103c1",
+    "docs/v0-16/evidence/business-loss-contract-r1/synthetic-cost-contracts-r1.json": "2b2e477fe9735e0df56fb12ed770d4c121446a96c0c1c3397a6622747d99ac3f",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/manifest-r1.json": "beaea961d4a0c9e841947cb42a6b8b50df696ed764bb433cd1debba97b0df8d8",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/what-if-policy-r1.json": "1c629293ff6ecd081dadd35b634e068ea7f8b341461853326effe34924e5c3e1",
+    "docs/v0-16/v0.16-s5-business-loss-contract-r1.md": "841d06290369e2ec2da1367a35576496d928591dfa77114e8ac0d7af95cab307",
+    "docs/v0-16/v0.16-s6-what-if-decision-simulator-r1.md": "f25641349fd4e229a23cb41dedcd76d4bd6b069b67e4354dc996ba7ac2203083",
+    "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json": "4158c6945ff88e1d30935f4eb06772efea3dceb6135860dfd966ab6718f5da34",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3"
+  },
+  "stage": "S2",
+  "task_id": "V0_17_S2_DECISION_SUPPORT_API_IMPLEMENTATION_R1",
+  "technical_limits": {
+    "body_bytes": 131072,
+    "maximum_daily_rows": 15,
+    "maximum_quantity_string_characters": 64,
+    "maximum_scenarios": 20,
+    "maximum_workforce_count": 1000000,
+    "minimum_comparison_scenarios": 2,
+    "minimum_daily_rows": 1,
+    "quantity_grammar": "NONNEGATIVE_ASCII_FIXED_POINT_DECIMAL_STRING",
+    "query_bytes": 8192
+  },
+  "test_matrix": {
+    "authority": [
+      "BASE_REGION_COMPANY",
+      "EXACT_IDENTITY_AND_HASH",
+      "CANONICAL_PERSISTED_DAMAGE",
+      "BASE_HASH_REPRODUCTION_AND_SENSITIVITY",
+      "RERUN_IDENTITY",
+      "INCOMPLETE_HIERARCHY"
+    ],
+    "capacity": [
+      "DIRECT_WORKFORCE",
+      "MUTUAL_EXCLUSION",
+      "STRICT_DECIMAL_AND_WORKFORCE",
+      "EXACT_DATE_SET",
+      "SAME_DAY_BUFFER",
+      "ZERO_CAPACITY",
+      "PARTIAL_PREFIX_WINDOW",
+      "NO_INITIAL_BACKLOG_OVERRIDE"
+    ],
+    "parity": [
+      "FULL_S6_DAILY_AGGREGATE_AND_HASH",
+      "ALL_THREE_COST_CONTRACTS",
+      "DIRECT_WORKFORCE_EQUIVALENCE",
+      "UTILIZATION_RATIO_AND_EXCEPTION_ISOLATION",
+      "S6_COMPARISON_AND_INPUT_ORDER_DETERMINISM"
+    ],
+    "safety": [
+      "401_403_404_409_422_413_503",
+      "NO_SOURCE_READ_BEFORE_PERMISSION",
+      "NO_AUTOFLUSH_DML",
+      "BOUNDED_COLLECTIONS_AND_ACTUAL_BODY_BYTES",
+      "NO_ACTUAL_INFERENCE_CALIBRATION_OPTIMIZER",
+      "NO_PRIVATE_ERROR_DETAILS"
+    ]
+  },
+  "transport_namespace_reason": "PRESERVE_S1_FROZEN_SIX_GET_ROUTE_OWNERSHIP_WITHOUT_TEST_EDITS_OR_HIDDEN_API",
+  "validation": {
+    "exact_head_ci": "PENDING_EXTERNAL_EXACT_HEAD_CI",
+    "focused_tests": "97 passed, 36 warnings",
+    "format": "PASS",
+    "local_full_suite": "NOT_RUN_KNOWN_LOCAL_LIBOMP_UNAVAILABLE",
+    "mypy": "PASS",
+    "privacy_audit": "PASS",
+    "regression_tests": "716 passed, 2 skipped, 60 warnings",
+    "ruff": "PASS",
+    "source_evidence_hash_audit": "PASS"
+  },
+  "version": "0.17.0"
+}
