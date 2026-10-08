@@ -391,6 +391,13 @@
       "passed": 111,
       "status": "PASS"
     },
+    "initial_ci_browser_failure": {
+      "correction": "DRAIN_BOTH_CHILD_PIPES_AND_AWAIT_IN_FLIGHT_ROUTE_TEARDOWN",
+      "head_sha": "193d3626e2666db9cf2ab64baaae4697cf616aeb",
+      "job": "frontend-e2e",
+      "observed": "51_PASSED_1_FAILED_AND_WORKER_TEARDOWN_TIMEOUT",
+      "run_id": 37761027449
+    },
     "legacy_trial_unit": "PASS_41_EXISTING_TESTS",
     "local_full_backend_suite": "NOT_RUN_FULL_BACKEND_ENVIRONMENT_NOT_PROVISIONED",
     "local_legacy_trial_e2e": "NOT_RUN_REQUIRES_ISOLATED_POSTGRESQL_CI_FIXTURES",
