@@ -1,0 +1,397 @@
+{
+  "cases": [
+    {
+      "case": "cancelled saved-run validation can be retried after reopening",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 0",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 2",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 3",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "simulation comparison HTTP SDK DOM and stale results",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 4",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 5",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 6",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "diagnostic errors hide conflicted values and recover",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1440x900",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1280x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1024x768",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 834x1112",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 390x844",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 360x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "late real HTTP validation cannot replace a newer verified run",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 0",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 2",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 3",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "simulation comparison HTTP SDK DOM and stale results",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 4",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 5",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 6",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "diagnostic errors hide conflicted values and recover",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1440x900",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1280x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1024x768",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 834x1112",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 390x844",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 360x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "late real HTTP validation cannot replace a newer verified run",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "native forwarding preserves real GET POST bodies headers and complete business JSON",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "native forwarding cancels a held real response without late identity replacement",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real simulation and comparison parity; explicit costs, daily workforce and stale ranks",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "hash mismatch never replaces validated context; keyboard dialog focus returns",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1440x900",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1280x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1024x768",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 834x1112",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 390x844",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 360x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "safe unavailable/error modules recover without losing validated context",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "date keyboard/table linkage, large text and reduced motion",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "native forwarding preserves real GET POST bodies headers and complete business JSON",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "native forwarding cancels a held real response without late identity replacement",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "real simulation and comparison parity; explicit costs, daily workforce and stale ranks",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "hash mismatch never replaces validated context; keyboard dialog focus returns",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1440x900",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1280x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1024x768",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 834x1112",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 390x844",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 360x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "safe unavailable/error modules recover without losing validated context",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "date keyboard/table linkage, large text and reduced motion",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: button",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: escape",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: native",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-desktop",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: button",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: escape",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: native",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-mobile",
+      "status": "PASS"
+    }
+  ],
+  "raw_report_sha256": "757128a4b4e9b081d4137234c6eca1d2b851c122113d73a11937edd17eb4c71f",
+  "stats": {
+    "duration": 117714.064,
+    "expected": 64,
+    "flaky": 0,
+    "skipped": 0,
+    "startTime": "2026-10-08T23:05:39.980Z",
+    "unexpected": 0
+  }
+}
