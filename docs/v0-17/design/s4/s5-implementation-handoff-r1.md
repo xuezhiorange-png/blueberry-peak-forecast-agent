@@ -14,7 +14,7 @@ S1 没有合法 child list/contribution ratio response。模块保持 NOT_AVAILA
 
 ## 4. API Client 和类型
 
-复用 S1 六 GET 与 S2 /api/v1/decision-support 两 POST；独立于旧 Trial client。以现有 Pydantic response/schema 对应 TypeScript discriminated union，Decimal 全部 string，原始hash保留。ReadResponse<OverviewData/CurveData/HierarchyData/QualityData>、DecisionResponse<SimulationData/ComparisonData> 映射不可丢 reason/status。空值、partial、unavailable 不转 0。区间/归因 READY 新payload当前没有：本轮不虚构未来schema。
+复用 S1 六 GET 与 S2 /api/v1/decision-support 两 POST；独立于旧 Trial client。以现有 Pydantic response/schema 对应 TypeScript discriminated union，Decimal 全部 string，原始hash保留。ReadResponse<OverviewData/CurveData/HierarchyData/QualityData>、DecisionResponse<SimulationResult/ComparisonData> 映射不可丢 reason/status。ComparisonData 包含 comparison: ComparisonResult 与 scenario_results: SimulationResult[]。空值、partial、unavailable 不转 0。区间/归因 READY 新payload当前没有：本轮不虚构未来schema。
 
 GET overview 的累计/峰值、高量排序全部服务端；曲线只绘图。S2 daily rows/aggregate/utilization exact pair与derived decimal全部透传；禁止重算 backlog/loss/rank。展示舍入不回流计算。精度工具可在 S5 授权内选择，但不改变权威字符串。
 
