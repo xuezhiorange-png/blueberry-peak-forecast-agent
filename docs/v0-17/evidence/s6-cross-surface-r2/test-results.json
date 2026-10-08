@@ -1,0 +1,720 @@
+{
+  "SYNTHETIC": true,
+  "backend": [
+    {
+      "case": "test_all_eight_capabilities_same_database[BASE]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_all_eight_capabilities_same_database[REGION]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_all_eight_capabilities_same_database[COMPANY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[POINT-DIRECT-None-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[POINT-DIRECT-0-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[POINT-DIRECT-20-120]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[POINT-WORKFORCE_DERIVED-20-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[POINT-DIRECT-0-0]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_80-DIRECT-None-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_80-DIRECT-0-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_80-DIRECT-20-120]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_80-WORKFORCE_DERIVED-20-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_80-DIRECT-0-0]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_90-DIRECT-None-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_90-DIRECT-0-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_90-DIRECT-20-120]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_90-WORKFORCE_DERIVED-20-140]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_capacity_and_planning_parity[UPPER_PLANNING_BOUND_90-DIRECT-0-0]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_current_quality_and_historical_scope_are_independent",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_saved_special_authorities_same_database[RERUN]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_saved_special_authorities_same_database[SHORT]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_saved_special_authorities_same_database[INCOMPLETE]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_explicit_cost_exposure_and_sdk_loss_authority[SYNTHETIC_BALANCED_R1-35f8316fbf2688b108e173d0d8438ce6323aa0f9db208f7a143f72e07aa5679f]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_explicit_cost_exposure_and_sdk_loss_authority[SYNTHETIC_UNDER_4X_R1-8d6f2567a18bd298f1a261a059a88b2772d77bcc6f03e313dc3853c9cd2f0f3f]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_explicit_cost_exposure_and_sdk_loss_authority[SYNTHETIC_OVER_4X_R1-6cec3474d85b6421467d43ff71fb6a52a4b4904289cded15c4fdcea74e49fe36]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_cross_surface_parity"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[0]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[1]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[2]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[3]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_concurrent_principals_and_quality_grants",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[missing-401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[wrong-401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[duplicate-401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[host-403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[origin-403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[http-403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[oversize-413]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[config-503]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[404]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[409]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[413]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[422]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[503]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_denied_decisions_execute_no_business[simulate_capacity]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_denied_decisions_execute_no_business[compare_capacity_scenarios]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[forecast_family-SYNTHETIC_WRONG_FAMILY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[baseline_id-SYNTHETIC_WRONG_BASELINE]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[policy_version-SYNTHETIC_WRONG_POLICY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[target_season-2024-2025]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[origin_date-2026-01-02]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[expected_source_result_hash-0000000000000000000000000000000000000000000000000000000000000000]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[missing_cost]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[unknown_cost]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[cost_hash]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[decimal]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[dates]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[extra_forecast]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_exact_report_attachments_ignore_unrelated_disk_files",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_duplicate_destination_fails_before_any_archive_copy",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[stale]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[unrelated]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[missing]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[tampered]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[outside]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[test_id]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[project]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    },
+    {
+      "case": "test_unattributable_sources_fail_closed[timestamp]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_screenshot_provenance"
+    }
+  ],
+  "browser": [
+    {
+      "case": "cancelled saved-run validation can be retried after reopening",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 0",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 2",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 3",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "simulation comparison HTTP SDK DOM and stale results",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 4",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 5",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 6",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "diagnostic errors hide conflicted values and recover",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1440x900",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1280x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1024x768",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 834x1112",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 390x844",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 360x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "late real HTTP validation cannot replace a newer verified run",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 0",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 2",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "same SQLite HTTP SDK DOM authority scope 3",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "simulation comparison HTTP SDK DOM and stale results",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 4",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 5",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "rerun short incomplete canonical selection 6",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "diagnostic errors hide conflicted values and recover",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1440x900",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1280x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 1024x768",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 834x1112",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 390x844",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "canonical S6 five page viewport evidence 360x800",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "late real HTTP validation cannot replace a newer verified run",
+      "file": "dashboard-cross-surface.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "real simulation and comparison parity; explicit costs, daily workforce and stale ranks",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "hash mismatch never replaces validated context; keyboard dialog focus returns",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1440x900",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1280x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1024x768",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 834x1112",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 390x844",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 360x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "safe unavailable/error modules recover without losing validated context",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "date keyboard/table linkage, large text and reduced motion",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "real simulation and comparison parity; explicit costs, daily workforce and stale ranks",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "hash mismatch never replaces validated context; keyboard dialog focus returns",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1440x900",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1280x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 1024x768",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 834x1112",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 390x844",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "five pages render without overflow 360x800",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "safe unavailable/error modules recover without losing validated context",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "date keyboard/table linkage, large text and reduced motion",
+      "file": "dashboard.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: button",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: escape",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: native",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-desktop",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: button",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: escape",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    },
+    {
+      "case": "cancelled saved-run validation can be retried after reopening: native",
+      "file": "selector-cancel-reopen.spec.ts",
+      "project": "chromium-mobile",
+      "result": "PASS"
+    }
+  ],
+  "browser_stats": {
+    "duration": 112221.06700000001,
+    "expected": 60,
+    "flaky": 0,
+    "skipped": 0,
+    "startTime": "2026-10-08T15:23:25.347Z",
+    "unexpected": 0
+  }
+}

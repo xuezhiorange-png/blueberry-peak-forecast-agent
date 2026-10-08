@@ -1,0 +1,350 @@
+{
+  "failure_cases": [
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[forecast_family-SYNTHETIC_WRONG_FAMILY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[baseline_id-SYNTHETIC_WRONG_BASELINE]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[policy_version-SYNTHETIC_WRONG_POLICY]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[target_season-2024-2025]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[origin_date-2026-01-02]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_drifted_identity_http_conflict_sdk_forbidden[expected_source_result_hash-0000000000000000000000000000000000000000000000000000000000000000]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[missing_cost]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[unknown_cost]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[cost_hash]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[decimal]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[dates]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    },
+    {
+      "case": "test_invalid_decision_never_returns_result[extra_forecast]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_authority_and_failures"
+    }
+  ],
+  "http_denial": "LAZY_SESSION_POSSIBLE; ZERO_SQL_BEFORE_AUTHORIZATION",
+  "permission_cases": [
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[0]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[1]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[2]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_explicit_grant_never_implies_other_scopes[3]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_sdk_concurrent_principals_and_quality_grants",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[missing-401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[wrong-401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[duplicate-401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[host-403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[origin-403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[http-403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[oversize-413]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_transport_denial_without_session[config-503]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[401]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[403]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[404]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[409]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[413]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[422]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_http_status_matrix_authorization_before_read[503]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_denied_decisions_execute_no_business[simulate_capacity]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    },
+    {
+      "case": "test_denied_decisions_execute_no_business[compare_capacity_scenarios]",
+      "result": "PASS",
+      "suite": "backend.tests.e2e.test_v0_17_s6_permissions"
+    }
+  ],
+  "states": {
+    "ATTRIBUTION": {
+      "AUTHORITY_MISMATCH": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "EMPTY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "ERROR": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "LOADING": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NOT_AVAILABLE": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "NO_CURRENT_ACTUAL_IS_QUALITY_MODULE_ONLY"
+      },
+      "PARTIAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "READY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "NO_LEGAL_READY_ATTRIBUTION_SOURCE; NOT_FABRICATED"
+      }
+    },
+    "CAPACITY_SIMULATOR": {
+      "AUTHORITY_MISMATCH": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "EMPTY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "ERROR": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "LOADING": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NOT_AVAILABLE": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "NO_CURRENT_ACTUAL_IS_QUALITY_MODULE_ONLY"
+      },
+      "PARTIAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "READY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      }
+    },
+    "FORECAST": {
+      "AUTHORITY_MISMATCH": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "EMPTY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "ERROR": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "LOADING": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NOT_AVAILABLE": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "NO_CURRENT_ACTUAL_IS_QUALITY_MODULE_ONLY"
+      },
+      "PARTIAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "READY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      }
+    },
+    "OVERVIEW": {
+      "AUTHORITY_MISMATCH": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "EMPTY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "ERROR": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "LOADING": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NOT_AVAILABLE": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "NO_CURRENT_ACTUAL_IS_QUALITY_MODULE_ONLY"
+      },
+      "PARTIAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "READY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      }
+    },
+    "QUALITY": {
+      "AUTHORITY_MISMATCH": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "EMPTY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "ERROR": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "LOADING": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NOT_AVAILABLE": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "NO_CURRENT_ACTUAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      },
+      "PARTIAL": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "NO_NEW_FROZEN_PARTIAL_QUALITY_SOURCE"
+      },
+      "READY": {
+        "contract": "PASS_FROZEN_CONTRACT_AND_STATUS_RENDERER",
+        "runtime_scope": "MODULE_APPLICABILITY; SAVED_CURVES_AND_FAILURE_INJECTION; SEE_NODEIDS"
+      }
+    }
+  },
+  "supplemental_transport_tests": "FULL_S3_SAFETY_REGRESSION: timeout/cancel/disconnect/argument/response limits and recovery"
+}
