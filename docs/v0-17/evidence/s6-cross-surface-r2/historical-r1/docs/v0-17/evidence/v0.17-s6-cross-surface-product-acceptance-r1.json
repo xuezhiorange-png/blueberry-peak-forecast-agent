@@ -1,0 +1,172 @@
+{
+  "task_id": "V0_17_S6_CROSS_SURFACE_E2E_PRODUCT_ACCEPTANCE_R1",
+  "version": "0.17.0",
+  "stage": "S6",
+  "result": "BLOCKED",
+  "base_main_sha": "a7585286d5f654265025a7f79f5622f6d8474d35",
+  "branch": "task/v0.17-s6-cross-surface-e2e-acceptance-r1",
+  "preflight": {
+    "pr_704_merged": true,
+    "post_merge_ci_run_id": 37767679478,
+    "post_merge_ci_head_sha": "a7585286d5f654265025a7f79f5622f6d8474d35",
+    "post_merge_ci_status": "completed",
+    "post_merge_ci_conclusion": "success",
+    "parallel_s6_found": false
+  },
+  "blocker": {
+    "id": "S6_SAVED_RUN_SELECTOR_CANCEL_REOPEN_BUSY",
+    "severity": "PRODUCT_ACCEPTANCE_BLOCKER",
+    "source": "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx",
+    "lines": [
+      38,
+      40,
+      49,
+      74,
+      75
+    ],
+    "reproduction": [
+      "Open advanced selector and fill a valid complete synthetic saved-run identity.",
+      "Start verification; hold delivery of its real canonical HTTP response.",
+      "Close selector while verification is pending.",
+      "Release the late HTTP response, then reopen without editing identity.",
+      "Submit button remains disabled with label 正在核验…; context remains uncommitted."
+    ],
+    "root_cause": "Close aborts the controller and increments generation; finally clears busy only for a non-aborted matching generation. Close/reopen never resets busy. A form edit resets it, but normal retry without changing valid identity is blocked.",
+    "production_fix_authorized": false,
+    "production_fix_applied": false,
+    "proposed_correction_task": "V0_17_S5_SAVED_RUN_SELECTOR_CANCEL_RECOVERY_CORRECTION_R1",
+    "proposed_correction_scope": [
+      "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx",
+      "targeted frontend unit/E2E tests",
+      "new correction evidence only"
+    ],
+    "required_fix_checks": [
+      "Close/Escape during verification clears pending UI for next opening.",
+      "Keep abort, generation guards, exact identity/hash checks and atomic context commit.",
+      "Late response never commits invalid or closed selection; previous verified context preserved.",
+      "Reopen supports retry without editing valid fields; keyboard focus returns.",
+      "Desktop and narrow Chromium reproduction passes; no service/MCP/math/history changes."
+    ]
+  },
+  "execution": {
+    "synthetic_saved_runs": true,
+    "canonical_repository": true,
+    "one_database_per_test": true,
+    "http_and_sdk_use_same_database": true,
+    "real_mcp_sdk_client_session": true,
+    "browser_uses_http_only": true,
+    "mcp_tool_count": 8,
+    "post_seed_business_dml_count": 0,
+    "current_actual_accessed": false,
+    "model_execution": false,
+    "private_data_accessed": false
+  },
+  "results": {
+    "backend_new_parity_tests": "19 passed in 8.10s",
+    "browser_reproduction": "2 failed: chromium-desktop and chromium-mobile; expected enabled, received disabled",
+    "backend_scope": "Tested subset only: BASE/REGION/COMPANY eight tools; 15 capacity/planning cases; independent historical/current quality. Not a complete S6 acceptance matrix.",
+    "ruff": "PASS_TARGETED",
+    "format": "PASS_TARGETED",
+    "frontend_typecheck": "PASS",
+    "frontend_lint": "PASS_NEW_SPEC",
+    "full_regression": "NOT_RUN_STOPPED_AT_PRODUCTION_DEFECT",
+    "mypy": "NOT_RUN",
+    "full_suite_canary": "NOT_RUN",
+    "unit_contract_golden": "NOT_RUN",
+    "exact_head_ci": "NOT_RUN_NO_PR"
+  },
+  "parity": {
+    "service_http_sdk": "PASS_TESTED_SUBSET",
+    "dashboard_http": "BLOCKED_NOT_COMPLETED",
+    "full_cross_surface": "BLOCKED",
+    "product_acceptance": "BLOCKED",
+    "production_readiness": "NOT_READY",
+    "base_region_company": "PASS_SERVICE_HTTP_SDK_ONLY",
+    "unbound_upper_and_attribution": "NOT_AVAILABLE",
+    "b_c_equivalent_metrics": "PASS",
+    "abc_rank_order": [
+      "B",
+      "C",
+      "A"
+    ],
+    "rank_ties": "Equal operational values retain lexical scenario_id tiebreak, not a shared ordinal rank."
+  },
+  "screenshots": [
+    {
+      "path": "docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-desktop.png",
+      "sha256": "07ab22c5137eb87d344c09e24960592e73cedc0ccc98a6dd053d171d014ce8ee",
+      "viewport": [
+        1280,
+        720
+      ],
+      "browser": "Playwright Chromium Desktop Chrome"
+    },
+    {
+      "path": "docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-mobile.png",
+      "sha256": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+      "viewport": [
+        390,
+        844
+      ],
+      "browser": "Playwright desktop Chromium narrow viewport, not iOS Safari"
+    }
+  ],
+  "source_evidence_count": 24,
+  "source_evidence_sha256": {
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/what_if.py": "9504b5552833d8d0d0be64e0379d4913222e5fae8d270a858dd7fd2e943ae7d0",
+    "backend/app/forecast_intelligence/business_loss.py": "26c5bab071833f1dccba56bf0defd3103fd8b6741721e37f4069285923d54443",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_http.py": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+    "backend/app/mcp/forecast_intelligence_server.py": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+    "backend/app/mcp/forecast_intelligence_tools.py": "3d4d6ec2ab6d0bcd6895f64393cf25e37e26f9c2a6878a39bbb260177f6377cd",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "02d4465a74356158bb609d24eb9e0d198634f8683e85c95596360be9a5507dec",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce",
+    "frontend/src/dashboard/context/useResource.ts": "baf8d774b1dbf79ad297f88172ea6c63c0559f1c2d6f577e2eddccebf17bc3d7",
+    "frontend/src/dashboard/pages/CapacityPage.tsx": "c660d643af653c08c3d73d06a53f628e1b02977b2c878738947ec26e8e66b968",
+    "frontend/e2e/support/dashboard_api.py": "3e8653f41c859173549be38d4ff726c9390ac431723a61632a2ca47521167bd6",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/design/s4/dashboard-contract-r1.json": "5ab67eb3516398ef9390133955894bee4efa725b85f179ac823da4245e0d4a21",
+    "docs/v0-17/design/s4/design-tokens-r1.json": "51712a6a4c587361f687694fe187bdbc0cb5026de956f5ef45d6e1ac1c12b653",
+    "docs/v0-17/design/s4/s5-implementation-handoff-r1.md": "f71252c7d9442c6acf45a826d966eb02624a8feb37daeb58289089f1b1f0c4ca"
+  },
+  "limitations": {
+    "business_run_selector_backend_ready": false,
+    "normal_business_discovery_available": false,
+    "production_multi_user_scope_validated": false,
+    "production_service_account_configured": false,
+    "production_access_isolation_verified": false,
+    "production_deployed": false,
+    "real_ios_safari_validated": false,
+    "soft_keyboard_validated": false,
+    "screen_reader_validated": false,
+    "complete_30_viewport_page_matrix_executed": false
+  },
+  "governance": {
+    "s6_authorized": true,
+    "s6_formal_complete": false,
+    "production_backend_changed": false,
+    "production_mcp_changed": false,
+    "production_frontend_changed": false,
+    "frozen_math_changed": false,
+    "historical_evidence_changed": false,
+    "commit_created": false,
+    "pr_created": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deploy_authorized": false,
+    "tag_authorized": false,
+    "release_authorized": false,
+    "version_closeout_authorized": false,
+    "v0_18_authorized": false,
+    "stop": true
+  }
+}

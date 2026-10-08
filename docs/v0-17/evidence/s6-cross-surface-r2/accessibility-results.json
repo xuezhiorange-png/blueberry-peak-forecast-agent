@@ -1,0 +1,40 @@
+{
+  "browser": "Playwright 1.62.0 Chromium; narrow viewport is not real mobile Safari",
+  "chart_source_table": "PASS",
+  "dialog_focus_return": "PASS",
+  "document_horizontal_overflow": "PASS_30_COMBINATIONS_REPEATED_IN_TWO_PROJECTS",
+  "font_enlargement": "PASS_TESTED_DASHBOARD_FONT_30PX",
+  "keyboard_date_controls": "PASS",
+  "real_ios_safari": "NOT_VALIDATED",
+  "reduced_motion": "PASS",
+  "screen_reader": "NOT_VALIDATED",
+  "soft_keyboard": "NOT_VALIDATED",
+  "unique_page_viewport_combinations": 30,
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      834,
+      1112
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      360,
+      800
+    ]
+  ],
+  "visual_review": "REPRESENTATIVE_DESKTOP_PHONE_TABLET_INSPECTED; NO_REDESIGN"
+}
