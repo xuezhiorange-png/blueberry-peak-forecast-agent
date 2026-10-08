@@ -1,6 +1,36 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+
+async function capture(page: Page, info: TestInfo, name: string) {
+  const path = info.outputPath(name);
+  await page.screenshot({
+    path,
+    fullPage: true,
+    ...(name.endsWith(".jpg") ? { type: "jpeg" as const, quality: 80 } : {}),
+  });
+  await info.attach(name, {
+    path,
+    contentType: name.endsWith(".jpg") ? "image/jpeg" : "image/png",
+  });
+  await info.attach(`provenance:${name}`, {
+    body: JSON.stringify({
+      execution_id: process.env.S6_SCREENSHOT_EXECUTION_ID ?? "CI_VALIDATION_NOT_ARCHIVED",
+      test_id: info.testId,
+      test_file: "e2e/dashboard-cross-surface.spec.ts",
+      test_title: info.title,
+      project: info.project.name,
+      captured_at: new Date().toISOString(),
+      name,
+      sha256: createHash("sha256")
+        .update(await readFile(path))
+        .digest("hex"),
+    }),
+    contentType: "application/json",
+  });
+}
 
 // SYNTHETIC=true. Browser HTTP and server-side real MCP SDK share one SQLite DB.
 const test = base.extend<
@@ -100,6 +130,11 @@ test("cancelled saved-run validation can be retried after reopening", async ({
   page,
   authority,
 }, info) => {
+  await page.setViewportSize(
+    info.project.name === "chromium-mobile"
+      ? { width: 390, height: 844 }
+      : { width: 1440, height: 900 },
+  );
   await page.goto("/dashboard/overview");
   await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
   const dialog = page.getByRole("dialog");
@@ -144,7 +179,8 @@ test("cancelled saved-run validation can be retried after reopening", async ({
         "SYNTHETIC S6 ACCEPTANCE — NOT PRODUCTION DATA · cancelled verification reopened";
       document.body.prepend(caption);
     });
-    await page.screenshot({ path: info.outputPath("cancel-reopen-SYNTHETIC.png"), fullPage: true });
+    await dialog.locator('button[type="submit"]').scrollIntoViewIfNeeded();
+    await capture(page, info, "cancel-reopen-SYNTHETIC.png");
     // A cancelled operation must not permanently disable retry. No field edit
     // should be necessary to recover an already valid complete identity.
     await expect(dialog.locator('button[type="submit"]')).toBeEnabled();
@@ -292,7 +328,7 @@ test("simulation comparison HTTP SDK DOM and stale results", async ({ page, auth
     body: JSON.stringify(result),
     contentType: "application/json",
   });
-  await page.screenshot({ path: info.outputPath("comparison-SYNTHETIC.png"), fullPage: true });
+  await capture(page, info, "comparison-SYNTHETIC.png");
   await page.getByLabel("人数（非负整数）", { exact: true }).fill("11");
   await expect(page.locator(".d-rank-list")).not.toBeVisible();
   await expect(page.locator("main")).toContainText("已过期");
@@ -313,7 +349,7 @@ for (const scope of [4, 5, 6])
       }
       await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
       await expect(dialog.locator('[data-state="AUTHORITY_MISMATCH"]')).toBeVisible();
-      await page.screenshot({ path: info.outputPath("incomplete-SYNTHETIC.png"), fullPage: true });
+      await capture(page, info, "incomplete-SYNTHETIC.png");
       await dialog.getByRole("button", { name: "关闭", exact: true }).click();
       await expect(page.locator(".d-context-title")).toContainText("SYNTHETIC_BASE_1");
       await expect(page.locator(".d-kpi-value").nth(1)).toHaveAttribute("title", "1820.000000");
@@ -331,7 +367,7 @@ for (const scope of [4, 5, 6])
         await expect(page.locator('[data-state="PARTIAL"]').first()).toBeVisible();
         await expect(page.locator(".d-kpi-value").nth(1)).toHaveText("— kg");
         await expect(page.locator(".d-kpi-value").nth(1)).not.toHaveAttribute("title");
-        await page.screenshot({ path: info.outputPath("partial-SYNTHETIC.png"), fullPage: true });
+        await capture(page, info, "partial-SYNTHETIC.png");
       } else {
         expect(value.source_rerun_of_run_id).toBe(authority.identities[0].run_id);
         await expect(page.locator(".d-kpi-value").nth(1)).toHaveAttribute(
@@ -344,7 +380,7 @@ for (const scope of [4, 5, 6])
 
 test("diagnostic errors hide conflicted values and recover", async ({ page, authority }, info) => {
   await page.goto("/dashboard/overview");
-  await page.screenshot({ path: info.outputPath("empty-SYNTHETIC.png"), fullPage: true });
+  await capture(page, info, "empty-SYNTHETIC.png");
   await select(page, authority.identities[0]);
   for (const code of [409, 503]) {
     await page.route("**/api/v1/forecast-intelligence/overview?**", async (route) => {
@@ -362,7 +398,7 @@ test("diagnostic errors hide conflicted values and recover", async ({ page, auth
     ).toBeVisible();
     await expect(page.locator(".d-kpis")).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("PRIVATE_SQL");
-    await page.screenshot({ path: info.outputPath(`error-${code}-SYNTHETIC.png`), fullPage: true });
+    await capture(page, info, `error-${code}-SYNTHETIC.png`);
     await page.unroute("**/api/v1/forecast-intelligence/overview?**");
   }
   await page.locator('[data-state="ERROR"]').first().getByRole("button").click();
@@ -434,14 +470,7 @@ for (const [width, height] of [
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      await page.screenshot({
-        path: process.env.S6_SCREENSHOT_DIR
-          ? resolve(process.env.S6_SCREENSHOT_DIR, `${route}-${width}x${height}.jpg`)
-          : info.outputPath(`${route}-${width}x${height}-SYNTHETIC.jpg`),
-        type: "jpeg",
-        quality: 80,
-        fullPage: true,
-      });
+      await capture(page, info, `${route}-${width}x${height}-SYNTHETIC.jpg`);
     }
   });
 

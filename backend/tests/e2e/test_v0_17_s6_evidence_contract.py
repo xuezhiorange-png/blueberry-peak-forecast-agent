@@ -55,6 +55,34 @@ def test_original_seven_and_correction_chain_are_not_rewritten():
     assert json.loads(historical.read_text())["result"] == "BLOCKED"
 
 
+def test_all_screenshots_have_exact_fresh_test_provenance():
+    receipt = load()
+    provenance = json.loads(
+        FILE.parent.joinpath("s6-cross-surface-r2/screenshot-provenance.json").read_text()
+    )
+    records = provenance["screenshots"]
+    report_path = FILE.parent.joinpath("s6-cross-surface-r2/screenshot-execution-report.json")
+    report = json.loads(report_path.read_text())
+    assert (
+        hashlib.sha256(report_path.read_bytes()).hexdigest() == provenance["public_report_sha256"]
+    )
+    assert report["cases"] == records
+    assert report["raw_report_sha256"] == provenance["browser_report_sha256"]
+    assert len(records) == 44
+    assert len({r["source_artifact_path"] for r in records}) == 44
+    assert len({r["archive_path"] for r in records}) == 44
+    assert {r["archive_path"]: r["sha256"] for r in records} == receipt["screenshot_sha256"]
+    for record in records:
+        assert record["execution_id"] == provenance["execution_id"]
+        assert record["test_file"] == "e2e/dashboard-cross-surface.spec.ts"
+        assert record["test_id"] and record["report_spec_id"] and record["test_title"]
+        assert record["test_id"] == record["report_spec_id"]
+        assert record["test_result_status"] == "passed"
+        assert record["project"] in ("chromium-desktop", "chromium-mobile")
+        assert not Path(record["source_artifact_path"]).is_absolute()
+    assert provenance["duplicate_destination_policy"] == "REJECT_BEFORE_COPY"
+
+
 def test_complete_executed_matrix_and_real_sdk_parity():
     receipt = load()
     assert receipt["test_counts"]["parity"] == 25
