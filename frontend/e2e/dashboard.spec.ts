@@ -29,9 +29,13 @@ const test = base.extend<
         },
       );
       let logs = "";
-      child.stderr.on("data", (v) => {
-        logs += String(v);
-      });
+      const drain = (v: Buffer) => {
+        logs = (logs + String(v)).slice(-32768);
+      };
+      // Drain both pipes: Linux's smaller stdout pipe otherwise blocks uvicorn's
+      // access logger after many requests, including the final DML audit read.
+      child.stdout.on("data", drain);
+      child.stderr.on("data", drain);
       const api = await playwright.request.newContext();
       try {
         await expect
@@ -52,7 +56,8 @@ const test = base.extend<
         expect(state.SYNTHETIC).toBe(true);
         await use({ url, identities: state.identities });
         expect(
-          (await (await api.get(url + "/__dashboard_test__/authority")).json()).read_dml_count,
+          (await (await api.get(url + "/__dashboard_test__/authority", { timeout: 5000 })).json())
+            .read_dml_count,
         ).toBe(0);
       } finally {
         child.kill("SIGTERM");
@@ -72,6 +77,9 @@ const test = base.extend<
         await route.fulfill({ response });
       });
     await use(page);
+    // Complete real in-flight service requests before Playwright disposes the
+    // request context; do not suppress callback errors or skip their assertions.
+    await page.unrouteAll({ behavior: "wait" });
   },
 });
 async function select(page: Page, identity: Selection) {
