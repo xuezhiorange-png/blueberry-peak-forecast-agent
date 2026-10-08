@@ -1,0 +1,263 @@
+{
+  "api_mapping": {
+    "GET_FORECAST_ATTRIBUTION": {
+      "method": "GET",
+      "path": "/attribution"
+    },
+    "GET_FORECAST_CURVE": {
+      "method": "GET",
+      "path": "/curve"
+    },
+    "GET_FORECAST_OVERVIEW": {
+      "method": "GET",
+      "path": "/overview"
+    },
+    "GET_FORECAST_QUALITY": {
+      "method": "GET",
+      "path": "/quality"
+    },
+    "GET_FORECAST_UNCERTAINTY": {
+      "method": "GET",
+      "path": "/uncertainty"
+    },
+    "GET_HIERARCHICAL_FORECAST": {
+      "method": "GET",
+      "path": "/hierarchy"
+    }
+  },
+  "api_prefix": "/api/v1/forecast-intelligence",
+  "authority_inventory": {
+    "attribution": {
+      "authority": "V0.16 S3 frozen M1 evidence",
+      "reason": "NO_EXACT_M1_MODEL_FEATURE_SEALED_PREDICTION_ATTRIBUTION_AUTHORITY",
+      "runtime_binding_available": false,
+      "status": "NOT_AVAILABLE"
+    },
+    "quality": {
+      "authority": "V0.16 S4 public point summary and S2 original coverage summary",
+      "current_mode_status": "NO_CURRENT_ACTUAL",
+      "evidence_mode": "RETROSPECTIVE_OBSERVATION",
+      "h1_h3_interval_status": "NOT_AVAILABLE",
+      "interval_horizons": [
+        "H7",
+        "H15"
+      ],
+      "missing_package_reason": "PUBLIC_HISTORICAL_EVIDENCE_NOT_PACKAGED",
+      "missing_package_status": "NOT_AVAILABLE",
+      "mode": "HISTORICAL_VALIDATION",
+      "model_id": "V0_15_S5_M1_RIDGE",
+      "point_horizons": [
+        "H1",
+        "H3",
+        "H7",
+        "H15"
+      ],
+      "public_files_required": 7,
+      "scope": "BASE_COHORT_AGGREGATE",
+      "source_split": "EXPOSED_OOT",
+      "target_season": "2025-2026"
+    },
+    "saved_atomic": {
+      "baseline_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "family": "OPERATIONAL_PEAK_FORECAST_RUN_V1",
+      "model_compatible_with_m1": false,
+      "policy_version": "OPERATIONAL_PEAK_POLICY_V1",
+      "repository": "OperationalPeakRunRepository.get"
+    },
+    "saved_hierarchy": {
+      "hierarchy": [
+        "COMPANY",
+        "REGION",
+        "BASE"
+      ],
+      "incomplete_child_status": "INCOMPLETE_CHILD_COVERAGE",
+      "reconciliation_policy": "HIERARCHICAL_BOTTOM_UP_EXACT_SUM_R1",
+      "repository": "HierarchicalRunRepository.get",
+      "saved_snapshot_only": true
+    },
+    "uncertainty": {
+      "authority": "V0.16 S2 frozen M1 evidence",
+      "reason": "NO_EXACT_BOUND_M1_INTERVAL_AUTHORITY_FOR_SAVED_RUN",
+      "runtime_binding_available": false,
+      "status": "NOT_AVAILABLE"
+    }
+  },
+  "authorization": {
+    "existing_trial_actor": true,
+    "forbidden_status": 403,
+    "forecast_permission": "may_read_forecast",
+    "new_permission_system": false,
+    "quality_permission": "may_read_quality",
+    "server_actor_missing_status": 503,
+    "upstream_unauthenticated_status": 401
+  },
+  "base_main_sha": "1cabff0887b1525f15409b7bdc88ed2396a147d8",
+  "branch": "task/v0.17-s1-forecast-intelligence-service-read-api-r1",
+  "changed_files": [
+    "backend/app/api/forecast_intelligence_read.py",
+    "backend/app/forecast_intelligence/read_schemas.py",
+    "backend/app/forecast_intelligence/read_service.py",
+    "backend/app/main.py",
+    "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py",
+    "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md"
+  ],
+  "failure_semantics": {
+    "200": [
+      "READY",
+      "PARTIAL",
+      "EMPTY",
+      "NOT_AVAILABLE",
+      "NO_CURRENT_ACTUAL"
+    ],
+    "401": [
+      "UNAUTHENTICATED"
+    ],
+    "403": [
+      "FORBIDDEN"
+    ],
+    "404": [
+      "SAVED_RUN_NOT_FOUND"
+    ],
+    "409": [
+      "AUTHORITY_MISMATCH",
+      "SAVED_RUN_INTEGRITY_FAILED",
+      "PUBLIC_EVIDENCE_AUTHORITY_MISMATCH"
+    ],
+    "422": [
+      "INVALID_REQUEST"
+    ],
+    "503": [
+      "AUTHORIZATION_UNAVAILABLE",
+      "PERSISTENCE_UNAVAILABLE",
+      "READ_UNAVAILABLE"
+    ]
+  },
+  "frozen_policy_pins": {
+    "s2": "f35f2700011f440569c9a0140dc9deb482281d60190e8a601b5a503c79013efd",
+    "s3": "950d7d4885c4a96b43bba5ad6b586ee7a424ae86482618a8be22ed272039a422",
+    "s4": "6dfe2c1ac684844af636d936b5797d301e80f015c9e3dd880a102127a169ac1c"
+  },
+  "governance": {
+    "merge_authorized": false,
+    "owner_authorized": true,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s1_authorized": true,
+    "s1_formal_complete": false,
+    "s2_authorized": false,
+    "s3_authorized": false,
+    "s4_authorized": false,
+    "s5_authorized": false,
+    "s6_authorized": false,
+    "stop": true,
+    "tag_authorized": false
+  },
+  "isolation": {
+    "ci_workflow_changed": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "db_migration_created": false,
+    "dependencies_changed": false,
+    "frontend_changed": false,
+    "mcp_changed": false,
+    "model_refit": false,
+    "model_training": false,
+    "model_tuning": false,
+    "new_scoring": false,
+    "point_forecast_reexecuted": false,
+    "production_deployed": false,
+    "v0_14_changed": false,
+    "v0_15_changed": false,
+    "v0_16_frozen_math_changed": false
+  },
+  "latest_formal_release": "v0.16.0",
+  "limitations": {
+    "attribution_is_causal": false,
+    "empty_completed_run_admitted": false,
+    "historical_actual_available_at_proven": false,
+    "observed_interval_coverage": "UNDER_NOMINAL",
+    "point_forecast_is_proven_p50": false,
+    "production_alert_thresholds_established": false,
+    "production_use_approved": false,
+    "prospective_accuracy_validated": false,
+    "retrospective_authority_used": true,
+    "runtime_attribution_authority_missing": true,
+    "runtime_uncertainty_authority_missing": true,
+    "strict_pit": false,
+    "upper_planning_bound_is_quantile": false
+  },
+  "one_service_layer": true,
+  "read_capabilities": [
+    "GET_FORECAST_OVERVIEW",
+    "GET_FORECAST_CURVE",
+    "GET_HIERARCHICAL_FORECAST",
+    "GET_FORECAST_UNCERTAINTY",
+    "GET_FORECAST_ATTRIBUTION",
+    "GET_FORECAST_QUALITY"
+  ],
+  "read_contract": {
+    "decimal_string_quantities": true,
+    "float_conversion_allowed": false,
+    "missing_is_zero": false,
+    "overview_peak_scope": "SAVED_DAILY_CURVE_D1_THROUGH_AVAILABLE_D15",
+    "peak_tie_rule": "EARLIEST_DATE",
+    "projection_policy_version": "V0_17_FORECAST_INTELLIGENCE_READ_PROJECTION_R1",
+    "read_autoflush_allowed": false,
+    "schema_version": "V0_17_FORECAST_INTELLIGENCE_READ_R1",
+    "source_result_hash_is_projection_hash": false,
+    "unbound_attribution_fallback_allowed": false,
+    "unbound_interval_fallback_allowed": false,
+    "window_semantics": "PREFIX_D1_THROUGH_DH"
+  },
+  "scope": "AUTHORITATIVE_READ_SERVICE_AND_GET_API_ONLY",
+  "selection": {
+    "cross_run_composition_allowed": false,
+    "cursor_implemented": false,
+    "expected_source_hash_supported": true,
+    "explicit_run_identity_required": true,
+    "forecast_family_switch_allowed": false,
+    "latest_query_implemented": false,
+    "rerun_lineage_retained": true
+  },
+  "source_evidence_count": 21,
+  "source_evidence_sha256": {
+    "backend/app/actual_harvest_import/api_auth.py": "59548ae9afcaae17edf646a20b94e6190da92eadbe050f6bda06f6763467ddfd",
+    "backend/app/forecast_intelligence/application.py": "407788d4d9ca290ed3d1abbfbe0ff0382a6ea46319ad956a10c3b61da4072013",
+    "backend/app/forecast_intelligence/attribution.py": "1fa4a5a4efc47ffe0636e68a5d95f31e999acc5b43633b13837be4c1a3abf926",
+    "backend/app/forecast_intelligence/business_loss.py": "26c5bab071833f1dccba56bf0defd3103fd8b6741721e37f4069285923d54443",
+    "backend/app/forecast_intelligence/forecast_ops.py": "f5f0c85f3b4696122011c91603770c6369878961f9f0e4560ebe6cdf27921790",
+    "backend/app/forecast_intelligence/persistence.py": "4f4234b9ca0ea5ac26cdb90576b32b6a7dfe82f6260bf85aa6342b18a6796b9a",
+    "backend/app/forecast_intelligence/reconciliation.py": "ad7b0f0c915cee7e57b1d8cc2cd635290af942ca911fd57ca1fe8b981a63bd16",
+    "backend/app/forecast_intelligence/uncertainty.py": "f062f494bfa967ec939b51665d1178057393dc020bfa6b926e59740acc3d606c",
+    "backend/app/forecast_intelligence/what_if.py": "9504b5552833d8d0d0be64e0379d4913222e5fae8d270a858dd7fd2e943ae7d0",
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/app/forecast_quality/operational_peak_persistence.py": "35e9fb6920acb75029b83dc075d9c7f4b73f5206d8848aa9c9a02fc09f0ed4a6",
+    "backend/app/trial.py": "131ade420874d20fe20a1bd29c5f1e000fa5401a1f10469fcdad2b2344a38715",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/manifest-r1.json": "9a81af66ca0106031c579dd8648336ae2053dd4071076367725d8d92097fb8a5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/monitoring-policy-r1.json": "7ec6d4c95cec9f2463dcff11053657825cb3164235e27e6dfdf3d4a504639170",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/source-binding-r1.json": "95f6e219229d38db42c44e0b9a3a6c371d51893c29926d6105cf35b09eccd5e0",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/conformal-policy-r1.json": "4d3d2635ddbd4fecd68e59c47d46ae3f35389e78ccacc960188944fa9f158a4d",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/manifest-r1.json": "b4b4ca6124f4aea081243ac477c01ff7c0dc0123eb846ee2cd23a2b2f9a773b1",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3"
+  },
+  "stage": "S1",
+  "task_id": "V0_17_S1_FORECAST_INTELLIGENCE_SERVICE_AND_READ_API_R1",
+  "validation": {
+    "exact_head_ci": "PENDING_EXTERNAL_EXACT_HEAD_CI",
+    "focused_tests": "PASS",
+    "format": "PASS",
+    "local_full_suite": "NOT_RUN_KNOWN_LOCAL_LIBOMP_UNAVAILABLE",
+    "mypy": "PASS",
+    "privacy_audit": "PASS",
+    "regression_tests": "PASS",
+    "ruff": "PASS",
+    "source_evidence_hash_audit": "PASS"
+  },
+  "version": "0.17.0",
+  "version_name": "FORECAST_INTELLIGENCE_PRODUCTIZATION_AND_DASHBOARD"
+}
