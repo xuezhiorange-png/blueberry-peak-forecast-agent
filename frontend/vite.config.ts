@@ -13,6 +13,8 @@ export default defineConfig({
         target: trialApiProxyTarget,
         changeOrigin: false,
       },
+      "/api/v1/forecast-intelligence": { target: trialApiProxyTarget, changeOrigin: false },
+      "/api/v1/decision-support": { target: trialApiProxyTarget, changeOrigin: false },
     },
   },
   test: {
