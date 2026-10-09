@@ -37,7 +37,10 @@ def test_historical_evidence_and_source_chain_are_unchanged():
         assert receipt["artifact_sha256"][binding["archive_path"]] == binding["historical_sha256"]
         if path in first["source_evidence_sha256"]:
             assert first["source_evidence_sha256"][path] == binding["historical_sha256"]
-        if path in original["source_evidence_sha256"] and path not in first["historical_source_bindings"]:
+        if (
+            path in original["source_evidence_sha256"]
+            and path not in first["historical_source_bindings"]
+        ):
             assert original["source_evidence_sha256"][path] == binding["historical_sha256"]
         if path in first["historical_source_bindings"]:
             prior = first["historical_source_bindings"][path]

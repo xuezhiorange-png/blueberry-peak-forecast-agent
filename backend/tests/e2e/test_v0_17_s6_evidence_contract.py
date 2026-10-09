@@ -72,7 +72,10 @@ def test_all_pins_match_repository_bytes(group):
                 hashlib.sha256((ROOT / binding["archive_path"]).read_bytes()).hexdigest()
                 == expected
             )
-            assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == binding["current_sha256"]
+            assert (
+                hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+                == binding["current_sha256"]
+            )
             continue
         assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected, path
 

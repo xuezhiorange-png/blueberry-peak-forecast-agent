@@ -23,7 +23,8 @@ export async function startHeldCanonicalGet(authorityUrl: string) {
       if (request.method !== "GET" || !path?.startsWith("/api/v1/forecast-intelligence/curve?"))
         throw new Error("Only canonical GET curve requests may enter the held transport gate");
       const upstream = await fetch(authorityUrl + path);
-      if (upstream.status !== 200) throw new Error(`Canonical upstream returned ${upstream.status}`);
+      if (upstream.status !== 200)
+        throw new Error(`Canonical upstream returned ${upstream.status}`);
       const body = await upstream.text();
       signalStarted();
       await held;
