@@ -1,0 +1,14 @@
+{
+  "members": {
+    "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json": "8e5185a139ec106edb80393db2047de6398300e1035eeee2b7b85167ba017b14",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d"
+  },
+  "new_current_actual_access": false,
+  "new_real_scoring": false,
+  "new_real_training": false,
+  "privacy_scan": "PASS",
+  "private_data_read": false,
+  "schema": "V0_17_VERSION_CLOSEOUT_MANIFEST_R1",
+  "scope": "PUBLIC_FROZEN_EVIDENCE_ONLY",
+  "source_evidence_count": 134
+}
