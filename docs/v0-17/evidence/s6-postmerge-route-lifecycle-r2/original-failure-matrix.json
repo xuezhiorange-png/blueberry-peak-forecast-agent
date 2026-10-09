@@ -1,0 +1,30 @@
+{
+  "original_artifacts_preserved_in_actions": true,
+  "original_failures": [
+    {
+      "artifact_digest": "sha256:6b669df88ffbc0f6b75d22d337378ca0066f339cc92eb085f40729cb39e1028c",
+      "artifact_id": 11564221074,
+      "conclusion": "failure",
+      "error": "route.fulfill: Route is already handled!",
+      "failed": 1,
+      "failed_test": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "head_sha": "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+      "passed": 89,
+      "run_id": 37807916550,
+      "source": "frontend/e2e/dashboard.spec.ts:77"
+    },
+    {
+      "artifact_digest": "sha256:97d1a70c8b10ca356bb44011a787e7b8d949fed944c71fbb424b8b2176fed44c",
+      "artifact_id": 11587200108,
+      "conclusion": "failure",
+      "error": "route.fulfill: Route is already handled!",
+      "failed": 1,
+      "failed_test": "late real HTTP validation cannot replace a newer verified run",
+      "head_sha": "d4ce572c0905c23423e72df393682178a8e9db41",
+      "passed": 93,
+      "run_id": 37861642942,
+      "source": "frontend/e2e/dashboard-cross-surface.spec.ts:122"
+    }
+  ],
+  "synthetic": true
+}

@@ -1,9 +1,8 @@
-import { test as base, expect, type Page, type TestInfo, type Response } from "@playwright/test";
+import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { startHeldCanonicalGet } from "./support/held-canonical-response";
 
 async function capture(page: Page, info: TestInfo, name: string) {
   const path = info.outputPath(name);
@@ -101,43 +100,31 @@ const test = base.extend<
         document.body.prepend(label);
       });
     });
-    // Browser owns cancellation. SDK parity is asserted in the awaited test path.
     for (const surface of ["forecast-intelligence", "decision-support"])
       await page.route(`**/api/v1/${surface}/**`, async (route) => {
         const incoming = new URL(route.request().url());
-        await route.continue({
+        const response = await route.fetch({
           url: authority.url + incoming.pathname + incoming.search,
         });
+        if (route.request().method() === "POST") {
+          const sdk = await page.request.post(authority.url + "/__s6_test__/sdk", {
+            data: {
+              name: incoming.pathname.endsWith("/simulate-capacity")
+                ? "simulate_capacity"
+                : "compare_capacity_scenarios",
+              arguments: route.request().postDataJSON(),
+            },
+          });
+          const value = await sdk.json();
+          expect(value.isError).toBe(false);
+          expect(value.payload).toEqual(await response.json());
+        }
+        await route.fulfill({ response });
       });
     await use(page);
     await page.unrouteAll({ behavior: "wait" });
   },
 });
-
-async function assertPostHttpMcpParity(
-  page: Page,
-  authority: { url: string },
-  response: Response,
-) {
-  const request = response.request();
-  const path = new URL(request.url()).pathname;
-  const name = path.endsWith("/simulate-capacity")
-    ? "simulate_capacity"
-    : path.endsWith("/compare-capacity-scenarios")
-      ? "compare_capacity_scenarios"
-      : null;
-  expect(name).not.toBeNull();
-  expect(request.method()).toBe("POST");
-  expect(request.headers()["content-type"]).toContain("application/json");
-  expect(response.status()).toBe(200);
-  const sdk = await page.request.post(authority.url + "/__s6_test__/sdk", {
-    data: { name, arguments: request.postDataJSON() },
-  });
-  expect(sdk.status()).toBe(200);
-  const value = await sdk.json();
-  expect(value.isError).toBe(false);
-  expect(value.payload).toEqual(await response.json());
-}
 
 test("cancelled saved-run validation can be retried after reopening", async ({
   page,
@@ -156,27 +143,32 @@ test("cancelled saved-run validation can be retried after reopening", async ({
     if (["source_kind", "hierarchy_level"].includes(key)) await field.selectOption(String(value));
     else await field.fill(String(value));
   }
-  const gate = await startHeldCanonicalGet(authority.url);
-  const pattern = "**/api/v1/forecast-intelligence/curve?**";
-  const targetRun = String(authority.identities[0].run_id);
-  await page.route(pattern, async (route) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested!: () => void;
+  const started = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  // Delay a REAL canonical HTTP result; no substituted business JSON.
+  await page.route("**/api/v1/forecast-intelligence/curve?**", async (route) => {
     const incoming = new URL(route.request().url());
-    if (incoming.searchParams.get("run_id") !== targetRun) {
-      await route.fallback();
-      return;
-    }
-    await route.continue({ url: gate.url + incoming.pathname + incoming.search });
+    const response = await route.fetch({
+      url: authority.url + incoming.pathname + incoming.search,
+    });
+    requested();
+    await held;
+    await route.fulfill({ response });
   });
   try {
     await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
-    await gate.started;
+    await started;
     await expect(dialog.getByRole("button", { name: "正在核验…" })).toBeDisabled();
     await dialog.getByRole("button", { name: "关闭", exact: true }).click();
     await expect(dialog).not.toBeVisible();
-    gate.release();
-    await gate.finished;
-    expect(gate.errors).toEqual([]);
-    await page.unroute(pattern);
+    release();
+    await page.unroute("**/api/v1/forecast-intelligence/curve?**");
     await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
     await expect(dialog).toBeVisible();
     await expect(page.locator(".d-context-title")).toHaveText("请选择已保存预测");
@@ -189,11 +181,11 @@ test("cancelled saved-run validation can be retried after reopening", async ({
     });
     await dialog.locator('button[type="submit"]').scrollIntoViewIfNeeded();
     await capture(page, info, "cancel-reopen-SYNTHETIC.png");
+    // A cancelled operation must not permanently disable retry. No field edit
+    // should be necessary to recover an already valid complete identity.
     await expect(dialog.locator('button[type="submit"]')).toBeEnabled();
   } finally {
-    gate.release();
-    await gate.close();
-    expect(gate.errors).toEqual([]);
+    release();
   }
 });
 
@@ -313,9 +305,7 @@ test("simulation comparison HTTP SDK DOM and stale results", async ({ page, auth
     await page.getByRole("button", { name: "确认复制至这些日期" }).click();
     const pending = page.waitForResponse((r) => r.url().endsWith("/simulate-capacity"));
     await page.getByRole("button", { name: "模拟当前情景", exact: true }).click();
-    const http = await pending;
-    await assertPostHttpMcpParity(page, authority, http);
-    const result = await http.json();
+    const result = await (await pending).json();
     expect(result.data.total_business_loss).toBe(id === "A" ? "1280" : "980");
     await expect(page.locator("main")).toContainText(result.engine_result_hash);
     for (const key of [
@@ -328,9 +318,7 @@ test("simulation comparison HTTP SDK DOM and stale results", async ({ page, auth
   }
   const pending = page.waitForResponse((r) => r.url().endsWith("/compare-capacity-scenarios"));
   await page.getByRole("button", { name: "比较全部情景", exact: true }).click();
-  const http = await pending;
-  await assertPostHttpMcpParity(page, authority, http);
-  const result = await http.json();
+  const result = await (await pending).json();
   expect(
     result.data.comparison.rankings.map((r: { scenario_id: string }) => r.scenario_id),
   ).toEqual(["B", "C", "A"]);
@@ -468,9 +456,7 @@ for (const [width, height] of [
         await page.getByLabel("同日额外处理能力 kg/日", { exact: true }).fill("0");
         await page.getByRole("button", { name: "将本日产能输入应用到全部日期…" }).click();
         await page.getByRole("button", { name: "确认复制至这些日期" }).click();
-        const pending = page.waitForResponse((r) => r.url().endsWith("/simulate-capacity"));
         await page.getByRole("button", { name: "模拟当前情景", exact: true }).click();
-        await assertPostHttpMcpParity(page, authority, await pending);
         await expect(page.getByText("情景 B · 服务端结果", { exact: true })).toBeVisible();
       }
       await expect(page.locator('[data-state="LOADING"]')).toHaveCount(0);
@@ -494,33 +480,41 @@ test("late real HTTP validation cannot replace a newer verified run", async ({
 }) => {
   await page.goto("/dashboard/overview");
   await select(page, authority.identities[0]);
-  const gate = await startHeldCanonicalGet(authority.url);
-  const pattern = "**/api/v1/forecast-intelligence/curve?**";
-  const oldRun = String(authority.identities[4].run_id);
-  await page.route(pattern, async (route) => {
-    const incoming = new URL(route.request().url());
-    if (incoming.searchParams.get("run_id") !== oldRun) {
-      await route.fallback();
-      return;
+  let release!: () => void;
+  let started!: () => void;
+  let finished!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const pending = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const completed = new Promise<void>((resolve) => {
+    finished = resolve;
+  });
+  await page.route("**/api/v1/forecast-intelligence/curve?**", async (route) => {
+    const url = new URL(route.request().url());
+    const response = await route.fetch({ url: authority.url + url.pathname + url.search });
+    if (url.searchParams.get("run_id") === String(authority.identities[4].run_id)) {
+      started();
+      await held;
     }
-    await route.continue({ url: gate.url + incoming.pathname + incoming.search });
+    await route.fulfill({ response });
+    if (url.searchParams.get("run_id") === String(authority.identities[4].run_id)) finished();
   });
   try {
     await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
     const dialog = page.getByRole("dialog");
-    await dialog.locator('[name="run_id"]').fill(oldRun);
+    await dialog.locator('[name="run_id"]').fill(String(authority.identities[4].run_id));
     await dialog.locator('button[type="submit"]').click();
-    await gate.started;
+    await pending;
     await dialog.getByRole("button", { name: "关闭", exact: true }).click();
     await select(page, authority.identities[1]);
-    gate.release();
-    await gate.finished;
-    expect(gate.errors).toEqual([]);
+    release();
+    await completed;
     await expect(page.locator(".d-context-title")).toContainText("SYNTHETIC_BASE_2");
     await expect(page.locator("main")).not.toContainText("正在核验…");
   } finally {
-    gate.release();
-    await gate.close();
-    expect(gate.errors).toEqual([]);
+    release();
   }
 });
