@@ -1,6 +1,7 @@
 import { test as base, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { startHeldCanonicalGet } from "./support/held-canonical-response";
 
 // SYNTHETIC=true. Independent correction regression using the committed S5 server.
 const test = base.extend<
@@ -65,10 +66,9 @@ const test = base.extend<
     for (const surface of ["forecast-intelligence", "decision-support"])
       await page.route(`**/api/v1/${surface}/**`, async (route) => {
         const incoming = new URL(route.request().url());
-        const response = await route.fetch({
+        await route.continue({
           url: authority.url + incoming.pathname + incoming.search,
         });
-        await route.fulfill({ response });
       });
     await use(page);
     await page.unrouteAll({ behavior: "wait" });
@@ -93,32 +93,20 @@ for (const closeWay of ["button", "escape", "native"] as const) {
       if (["source_kind", "hierarchy_level"].includes(key)) await field.selectOption(String(value));
       else await field.fill(String(value));
     }
-    let release!: () => void;
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    let requested!: () => void;
-    const started = new Promise<void>((resolve) => {
-      requested = resolve;
-    });
-    let delivered!: () => void;
-    const completed = new Promise<void>((resolve) => {
-      delivered = resolve;
-    });
-    // Delay a REAL canonical HTTP result; no substituted business JSON.
-    await page.route("**/api/v1/forecast-intelligence/curve?**", async (route) => {
+    const gate = await startHeldCanonicalGet(authority.url);
+    const pattern = "**/api/v1/forecast-intelligence/curve?**";
+    const targetRun = String(authority.identities[0].run_id);
+    await page.route(pattern, async (route) => {
       const incoming = new URL(route.request().url());
-      const response = await route.fetch({
-        url: authority.url + incoming.pathname + incoming.search,
-      });
-      requested();
-      await held;
-      await route.fulfill({ response });
-      delivered();
+      if (incoming.searchParams.get("run_id") !== targetRun) {
+        await route.fallback();
+        return;
+      }
+      await route.continue({ url: gate.url + incoming.pathname + incoming.search });
     });
     try {
       await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
-      await started;
+      await gate.started;
       await expect(dialog.getByRole("button", { name: "正在核验…" })).toBeDisabled();
       if (closeWay === "button")
         await dialog.getByRole("button", { name: "关闭", exact: true }).click();
@@ -128,9 +116,10 @@ for (const closeWay of ["button", "escape", "native"] as const) {
       await expect(
         page.getByRole("button", { name: "选择已保存预测", exact: true }).first(),
       ).toBeFocused();
-      release();
-      await completed;
-      await page.unroute("**/api/v1/forecast-intelligence/curve?**");
+      gate.release();
+      await gate.finished;
+      expect(gate.errors).toEqual([]);
+      await page.unroute(pattern);
       await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
       await expect(dialog).toBeVisible();
       await expect(page.locator(".d-context-title")).toHaveText("请选择已保存预测");
@@ -145,18 +134,16 @@ for (const closeWay of ["button", "escape", "native"] as const) {
         path: info.outputPath("cancel-reopen-SYNTHETIC.png"),
         fullPage: true,
       });
-      // A cancelled operation must not permanently disable retry. No field edit
-      // should be necessary to recover an already valid complete identity.
       await expect(dialog.locator('button[type="submit"]')).toBeEnabled();
       await dialog.locator('button[type="submit"]').click();
       await expect(dialog).not.toBeVisible();
       await expect(page.locator(".d-context-title")).toContainText("SYNTHETIC_BASE_1");
-      // Wait for the newly committed context's real HTTP module reads before
-      // tearing down browser routing; no callback may outlive its route context.
       await expect(page.locator(".d-kpis").first()).toContainText("1820");
       await expect(page.locator('[data-state="LOADING"]')).toHaveCount(0);
     } finally {
-      release();
+      gate.release();
+      await gate.close();
+      expect(gate.errors).toEqual([]);
     }
   });
 }
