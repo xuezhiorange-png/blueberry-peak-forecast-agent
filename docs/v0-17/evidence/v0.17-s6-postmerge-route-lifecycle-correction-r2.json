@@ -87,7 +87,7 @@
   "source_evidence_sha256": {
     "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
     "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
-    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "ecb48f8fc78434ff28caabeba884c7303431d306512a8f07bfe03dfef19f86fa",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "2cd45eb4527b5d6ec35369f00a4fb04af0606439e7bdeeb20105b957adedf106",
     "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
     "frontend/e2e/dashboard-cross-surface.spec.ts": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
     "frontend/e2e/dashboard.spec.ts": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",

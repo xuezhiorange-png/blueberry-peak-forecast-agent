@@ -117,8 +117,8 @@ def test_canonical_safe_public_evidence():
             assert sha(ROOT / relative) == receipt["artifact_sha256"][relative]
             continue
         assert relative.endswith(".json")
-        assert raw == json.dumps(
-            json.loads(raw), ensure_ascii=False, sort_keys=True, indent=2
-        ) + "\n"
+        assert (
+            raw == json.dumps(json.loads(raw), ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        )
         assert "/Users/" not in raw and "/private/tmp/" not in raw
         assert "Authorization: Bearer" not in raw
