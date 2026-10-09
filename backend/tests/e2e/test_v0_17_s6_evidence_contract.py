@@ -15,6 +15,10 @@ def load():
     return json.loads(FILE.read_text())
 
 
+def hash_file(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def test_canonical_receipt_and_generated_matrices():
     paths = [FILE, *FILE.parent.joinpath("s6-cross-surface-r2").glob("*.json")]
     for path in paths:
@@ -32,7 +36,6 @@ def test_canonical_receipt_and_generated_matrices():
     ["source_evidence_sha256", "artifact_sha256", "screenshot_sha256", "historical_copy_sha256"],
 )
 def test_all_pins_match_repository_bytes(group):
-    # Historical R2 pins and both authorized successor source snapshots are immutable.
     first = json.loads(
         FILE.parent.joinpath("v0.17-s6-postmerge-route-lifecycle-correction-r1.json").read_text()
     )
@@ -50,34 +53,19 @@ def test_all_pins_match_repository_bytes(group):
             if prior is not None:
                 assert prior["historical_sha256"] == expected
                 assert prior["current_sha256"] == binding["historical_sha256"]
-                assert (
-                    hashlib.sha256((ROOT / prior["archive_path"]).read_bytes()).hexdigest()
-                    == expected
-                )
+                assert hash_file(ROOT / prior["archive_path"]) == expected
             else:
                 assert binding["historical_sha256"] == expected
-            assert (
-                hashlib.sha256((ROOT / binding["archive_path"]).read_bytes()).hexdigest()
-                == binding["historical_sha256"]
-            )
-            assert (
-                hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
-                == binding["current_sha256"]
-            )
+            assert hash_file(ROOT / binding["archive_path"]) == binding["historical_sha256"]
+            assert hash_file(ROOT / path) == binding["current_sha256"]
             continue
         if group == "source_evidence_sha256" and path in first["historical_source_bindings"]:
             binding = first["historical_source_bindings"][path]
             assert binding["historical_sha256"] == expected
-            assert (
-                hashlib.sha256((ROOT / binding["archive_path"]).read_bytes()).hexdigest()
-                == expected
-            )
-            assert (
-                hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
-                == binding["current_sha256"]
-            )
+            assert hash_file(ROOT / binding["archive_path"]) == expected
+            assert hash_file(ROOT / path) == binding["current_sha256"]
             continue
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected, path
+        assert hash_file(ROOT / path) == expected, path
 
 
 def test_original_seven_and_correction_chain_are_not_rewritten():
