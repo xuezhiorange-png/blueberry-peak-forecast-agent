@@ -85,14 +85,14 @@
   "proxy_mode": "BROWSER_NATIVE_CONTINUE_NO_DETACHED_FETCH",
   "scope": "TEST_ONLY_ALL_ACTIVE_ROUTE_LIFECYCLE_AND_IMMUTABLE_EVIDENCE",
   "source_evidence_sha256": {
-    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "ab03193f33507435da4427258f0798391b61007117281dffe0119fd88e470331",
-    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "6c83c42268fa6431eb3223d0b0ed01350e008d7c61feb82ff2a8001b6f9a2a26",
-    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "900dd7d219c43404f8fb1bee47690adc62844464ad536e687648f25f91ad6f25",
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "b4c0fd417c576ca4abaace9a76547d37b04738fcd8f541a83b00871028d322c0",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "9fc1bc20a037df2361e789829c7e7476182da97370b73c17e5266388a4c27ca5",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "00aab5b5763735538cc205b51bf23a4a2207bc320eb548b94effe973526b3fe3",
     "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
-    "frontend/e2e/dashboard-cross-surface.spec.ts": "828faa9d8cff8fc875422ccce6f32907d4ece9091a3264337b76ce2f2e86b6e2",
+    "frontend/e2e/dashboard-cross-surface.spec.ts": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
     "frontend/e2e/dashboard.spec.ts": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
     "frontend/e2e/selector-cancel-reopen.spec.ts": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46",
-    "frontend/e2e/support/held-canonical-response.ts": "37223ca2e397ef84a94810516fa10df2f9a356fd933c0db4375759287ec1f770"
+    "frontend/e2e/support/held-canonical-response.ts": "9970f1972ecebe16332f6b5777e7ae9ec7b18e0a9d6374ad3e8adfe2203595ca"
   },
   "task_id": "V0_17_S6_POST_MERGE_FRONTEND_E2E_ROUTE_LIFECYCLE_CORRECTION_R2"
 }

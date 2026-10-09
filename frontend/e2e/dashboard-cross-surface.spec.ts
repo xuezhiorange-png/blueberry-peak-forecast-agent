@@ -114,11 +114,7 @@ const test = base.extend<
   },
 });
 
-async function assertPostHttpMcpParity(
-  page: Page,
-  authority: { url: string },
-  response: Response,
-) {
+async function assertPostHttpMcpParity(page: Page, authority: { url: string }, response: Response) {
   const request = response.request();
   const path = new URL(request.url()).pathname;
   const name = path.endsWith("/simulate-capacity")

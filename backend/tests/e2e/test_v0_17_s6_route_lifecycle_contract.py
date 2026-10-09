@@ -27,10 +27,16 @@ def test_exact_new_source_and_artifact_hashes(group):
     successor = load_successor()
     for relative, digest in value[group].items():
         assert not Path(relative).is_absolute() and ".." not in Path(relative).parts
-        if group == "source_evidence_sha256" and relative in successor["historical_source_bindings"]:
+        if (
+            group == "source_evidence_sha256"
+            and relative in successor["historical_source_bindings"]
+        ):
             binding = successor["historical_source_bindings"][relative]
             assert binding["historical_sha256"] == digest
-            assert hashlib.sha256((ROOT / binding["archive_path"]).read_bytes()).hexdigest() == digest
+            assert (
+                hashlib.sha256((ROOT / binding["archive_path"]).read_bytes()).hexdigest()
+                == digest
+            )
             assert (
                 hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
                 == binding["current_sha256"]
@@ -62,7 +68,10 @@ def test_history_is_bound_without_rewriting_r2():
                 == next_binding["current_sha256"]
             )
         else:
-            assert hashlib.sha256((ROOT / source).read_bytes()).hexdigest() == binding["current_sha256"]
+            assert (
+                hashlib.sha256((ROOT / source).read_bytes()).hexdigest()
+                == binding["current_sha256"]
+            )
 
 
 def test_failed_ci_raw_artifact_inventory_and_real_repeat_matrix():
