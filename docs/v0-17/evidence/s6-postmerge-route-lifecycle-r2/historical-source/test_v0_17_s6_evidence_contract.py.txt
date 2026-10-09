@@ -15,10 +15,6 @@ def load():
     return json.loads(FILE.read_text())
 
 
-def hash_file(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def test_canonical_receipt_and_generated_matrices():
     paths = [FILE, *FILE.parent.joinpath("s6-cross-surface-r2").glob("*.json")]
     for path in paths:
@@ -36,36 +32,30 @@ def test_canonical_receipt_and_generated_matrices():
     ["source_evidence_sha256", "artifact_sha256", "screenshot_sha256", "historical_copy_sha256"],
 )
 def test_all_pins_match_repository_bytes(group):
-    first = json.loads(
+    # An authorized test-only correction does not rewrite this historical receipt.
+    # Bind its exact old bytes AND the explicitly corrected current bytes instead.
+    bridge = json.loads(
         FILE.parent.joinpath("v0.17-s6-postmerge-route-lifecycle-correction-r1.json").read_text()
     )
-    second = json.loads(
-        FILE.parent.joinpath("v0.17-s6-postmerge-route-lifecycle-correction-r2.json").read_text()
-    )
-    assert set(first["historical_source_bindings"]) == {
+    assert bridge["task_id"] == ("V0_17_S6_POST_MERGE_FRONTEND_E2E_ROUTE_LIFECYCLE_CORRECTION_R1")
+    assert bridge["base_main_sha"] == "eea84b6606ce356020da979d04a5d0d73af7bd6b"
+    assert set(bridge["historical_source_bindings"]) == {
         "frontend/e2e/dashboard.spec.ts",
         "backend/tests/e2e/test_v0_17_s6_evidence_contract.py",
     }
     for path, expected in load()[group].items():
-        if group == "source_evidence_sha256" and path in second["historical_source_bindings"]:
-            binding = second["historical_source_bindings"][path]
-            prior = first["historical_source_bindings"].get(path)
-            if prior is not None:
-                assert prior["historical_sha256"] == expected
-                assert prior["current_sha256"] == binding["historical_sha256"]
-                assert hash_file(ROOT / prior["archive_path"]) == expected
-            else:
-                assert binding["historical_sha256"] == expected
-            assert hash_file(ROOT / binding["archive_path"]) == binding["historical_sha256"]
-            assert hash_file(ROOT / path) == binding["current_sha256"]
-            continue
-        if group == "source_evidence_sha256" and path in first["historical_source_bindings"]:
-            binding = first["historical_source_bindings"][path]
+        if group == "source_evidence_sha256" and path in bridge["historical_source_bindings"]:
+            binding = bridge["historical_source_bindings"][path]
             assert binding["historical_sha256"] == expected
-            assert hash_file(ROOT / binding["archive_path"]) == expected
-            assert hash_file(ROOT / path) == binding["current_sha256"]
+            assert (
+                hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == binding["current_sha256"]
+            )
+            assert (
+                hashlib.sha256((ROOT / binding["archive_path"]).read_bytes()).hexdigest()
+                == expected
+            )
             continue
-        assert hash_file(ROOT / path) == expected, path
+        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected, path
 
 
 def test_original_seven_and_correction_chain_are_not_rewritten():

@@ -1,0 +1,98 @@
+{
+  "artifact_sha256": {
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/dashboard-cross-surface.spec.ts.txt": "30d80dc0caa3a0936817d46fdd33862956beb09b64870bb3581ed4d1020dcd85",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/selector-cancel-reopen.spec.ts.txt": "0442d70e2dcda7fd1252081145399e3798c0f4d8b32f80e03672ad3a4818fdbc",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_evidence_contract.py.txt": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_route_lifecycle_contract.py.txt": "d1fce81fe1fdcb725a4802b9d6d3f9d530eb032171e09be7d460e51b287383b8",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/original-failure-matrix.json": "c4a1449eaef5a20580d29d6b925a8d82f88380c022434d5a68ec6aecc7ab48c4"
+  },
+  "base_main_sha": "d4ce572c0905c23423e72df393682178a8e9db41",
+  "changed_active_test_files": [
+    "frontend/e2e/dashboard-cross-surface.spec.ts",
+    "frontend/e2e/selector-cancel-reopen.spec.ts"
+  ],
+  "current_actual_accessed": false,
+  "delayed_requests": "REAL_CANONICAL_HTTP_HELD_BY_NODE_TRANSPORT_GATE",
+  "error_swallowing": false,
+  "exact_head_ci": "PENDING_AT_COMMIT",
+  "frozen_evidence_sha256": {
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json": "3e660bf04a1fbd0138e490ce3b4a4145b3dcbd52b6126c3a7fc46533e47200d9"
+  },
+  "governance": {
+    "correction_authorized": true,
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "production_readiness": "NOT_READY",
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s6_formal_complete": false,
+    "stop": true,
+    "version_closeout_authorized": false
+  },
+  "historical_source_bindings": {
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": {
+      "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_evidence_contract.py.txt",
+      "current_sha256": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
+      "historical_sha256": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5"
+    },
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": {
+      "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_route_lifecycle_contract.py.txt",
+      "current_sha256": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
+      "historical_sha256": "d1fce81fe1fdcb725a4802b9d6d3f9d530eb032171e09be7d460e51b287383b8"
+    },
+    "frontend/e2e/dashboard-cross-surface.spec.ts": {
+      "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/dashboard-cross-surface.spec.ts.txt",
+      "current_sha256": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
+      "historical_sha256": "30d80dc0caa3a0936817d46fdd33862956beb09b64870bb3581ed4d1020dcd85"
+    },
+    "frontend/e2e/selector-cancel-reopen.spec.ts": {
+      "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/selector-cancel-reopen.spec.ts.txt",
+      "current_sha256": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46",
+      "historical_sha256": "0442d70e2dcda7fd1252081145399e3798c0f4d8b32f80e03672ad3a4818fdbc"
+    }
+  },
+  "history_rewritten": false,
+  "new_test_only_gateway": "frontend/e2e/support/held-canonical-response.ts",
+  "original_failures": [
+    {
+      "artifact_digest": "sha256:6b669df88ffbc0f6b75d22d337378ca0066f339cc92eb085f40729cb39e1028c",
+      "artifact_id": 11564221074,
+      "conclusion": "failure",
+      "error": "route.fulfill: Route is already handled!",
+      "failed": 1,
+      "failed_test": "real saved authority BASE/REGION/COMPANY, six reads and unchanged service strings",
+      "head_sha": "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+      "passed": 89,
+      "run_id": 37807916550,
+      "source": "frontend/e2e/dashboard.spec.ts:77"
+    },
+    {
+      "artifact_digest": "sha256:97d1a70c8b10ca356bb44011a787e7b8d949fed944c71fbb424b8b2176fed44c",
+      "artifact_id": 11587200108,
+      "conclusion": "failure",
+      "error": "route.fulfill: Route is already handled!",
+      "failed": 1,
+      "failed_test": "late real HTTP validation cannot replace a newer verified run",
+      "head_sha": "d4ce572c0905c23423e72df393682178a8e9db41",
+      "passed": 93,
+      "run_id": 37861642942,
+      "source": "frontend/e2e/dashboard-cross-surface.spec.ts:122"
+    }
+  ],
+  "post_http_mcp_parity": "EXPLICIT_AWAITED_FULL_JSON_SIMULATION_COMPARISON_AND_VIEWPORT",
+  "production_code_changed": false,
+  "proxy_mode": "BROWSER_NATIVE_CONTINUE_NO_DETACHED_FETCH",
+  "scope": "TEST_ONLY_ALL_ACTIVE_ROUTE_LIFECYCLE_AND_IMMUTABLE_EVIDENCE",
+  "source_evidence_sha256": {
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "2cd45eb4527b5d6ec35369f00a4fb04af0606439e7bdeeb20105b957adedf106",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
+    "frontend/e2e/dashboard-cross-surface.spec.ts": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
+    "frontend/e2e/dashboard.spec.ts": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
+    "frontend/e2e/selector-cancel-reopen.spec.ts": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46",
+    "frontend/e2e/support/held-canonical-response.ts": "9970f1972ecebe16332f6b5777e7ae9ec7b18e0a9d6374ad3e8adfe2203595ca"
+  },
+  "task_id": "V0_17_S6_POST_MERGE_FRONTEND_E2E_ROUTE_LIFECYCLE_CORRECTION_R2"
+}
