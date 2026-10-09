@@ -1,0 +1,3139 @@
+{
+  "base_main_sha": "df6520404334bd518d3f65e3da470315bab194f9",
+  "capability_summary": {
+    "conditional_ranking": [
+      "B",
+      "C",
+      "A"
+    ],
+    "dashboard_parity_scope": "DOM_CASES_NOT_EVERY_BACKEND_PARAMETER_COMBINATION",
+    "decision_http_capability_count": 3,
+    "equal_quantity_ties_use_lexical_ids_not_shared_ordinal": true,
+    "interval_horizons": [
+      7,
+      15
+    ],
+    "mcp_tool_mapping": {
+      "compare_capacity_scenarios": "DecisionSupportService.compare",
+      "get_forecast_attribution": "ForecastIntelligenceReadService.attribution",
+      "get_forecast_curve": "ForecastIntelligenceReadService.curve",
+      "get_forecast_overview": "ForecastIntelligenceReadService.overview",
+      "get_forecast_quality": "ForecastIntelligenceReadService.quality",
+      "get_forecast_uncertainty": "ForecastIntelligenceReadService.uncertainty",
+      "get_hierarchical_forecast": "ForecastIntelligenceReadService.hierarchy",
+      "simulate_capacity": "DecisionSupportService.simulate"
+    },
+    "one_service_layer": true,
+    "point_horizons": [
+      1,
+      3,
+      7,
+      15
+    ],
+    "quality_scope": "M1_EXPOSED_OOT_2025_2026_BASE_COHORT_AGGREGATE_RETROSPECTIVE",
+    "read_capability_count": 6,
+    "s6_acceptance_scope": "ISOLATED_SYNTHETIC_AVAILABLE_AUTHORITY",
+    "s6_test_counts": {
+      "backend_acceptance": 69,
+      "browser": 60,
+      "failures": 12,
+      "parity": 25,
+      "permissions": 22
+    },
+    "supported_hierarchy": [
+      "COMPANY",
+      "REGION",
+      "BASE"
+    ],
+    "top_level_pages": [
+      "OVERVIEW",
+      "FORECAST",
+      "ATTRIBUTION",
+      "CAPACITY_SIMULATOR",
+      "QUALITY"
+    ],
+    "under_nominal_coverage_preserved": true
+  },
+  "data_authority": {
+    "current_season_actual_dependency": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "historical_actual_available_at_proven": false,
+    "retrospective_authority_used": true,
+    "strict_pit": false
+  },
+  "final_main_log_summaries": {
+    "frontend-e2e": {
+      "duration": "3.3m",
+      "job_id": 113662186346,
+      "log_sha256": "c27d3b6017d5b5eb48c093dc75259a22cdcbd486a9547d62b96a0684a979d954",
+      "passed": 94
+    },
+    "full-suite-canary": {
+      "duration": "1647.26s (0:27:27)",
+      "job_id": 113662186285,
+      "log_sha256": "74fb97b3dc18a8002645424f64c4c29ae7471a45fdf7a16867f62fa95b9d7ffd",
+      "passed": 9824,
+      "skipped": 5,
+      "warnings": 499
+    }
+  },
+  "frozen_git_audit": {
+    "v0_14_v0_15_evidence_models": {
+      "changed_files": [],
+      "paths": [
+        "docs/v0-14",
+        "docs/v0-15",
+        "backend/app/area_yield",
+        "backend/app/harvest_state"
+      ],
+      "release_baseline": "v0.16.0",
+      "target_sha": "df6520404334bd518d3f65e3da470315bab194f9"
+    },
+    "v0_16_evidence": {
+      "changed_files": [],
+      "paths": [
+        "docs/v0-16"
+      ],
+      "release_baseline": "v0.16.0",
+      "target_sha": "df6520404334bd518d3f65e3da470315bab194f9"
+    },
+    "v0_16_mathematics": {
+      "changed_files": [],
+      "paths": [
+        "backend/app/forecast_intelligence/application.py",
+        "backend/app/forecast_intelligence/persistence.py",
+        "backend/app/forecast_intelligence/reconciliation.py",
+        "backend/app/forecast_intelligence/uncertainty.py",
+        "backend/app/forecast_intelligence/attribution.py",
+        "backend/app/forecast_intelligence/forecast_ops.py",
+        "backend/app/forecast_intelligence/business_loss.py",
+        "backend/app/forecast_intelligence/what_if.py"
+      ],
+      "release_baseline": "v0.16.0",
+      "target_sha": "df6520404334bd518d3f65e3da470315bab194f9"
+    }
+  },
+  "frozen_policy_pins": {
+    "S2": {
+      "FROZEN_FLAG": "UNCERTAINTY",
+      "PATH": "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/conformal-policy-r1.json",
+      "POLICY_HASH": "f35f2700011f440569c9a0140dc9deb482281d60190e8a601b5a503c79013efd"
+    },
+    "S3": {
+      "FROZEN_FLAG": "ATTRIBUTION",
+      "PATH": "docs/v0-16/evidence/forecast-attribution-r1/attribution-policy-r1.json",
+      "POLICY_HASH": "950d7d4885c4a96b43bba5ad6b586ee7a424ae86482618a8be22ed272039a422"
+    },
+    "S4": {
+      "FROZEN_FLAG": "FORECASTOPS",
+      "PATH": "docs/v0-16/evidence/forecastops-monitoring-r1/monitoring-policy-r1.json",
+      "POLICY_HASH": "6dfe2c1ac684844af636d936b5797d301e80f015c9e3dd880a102127a169ac1c"
+    },
+    "S5": {
+      "FROZEN_FLAG": "BUSINESS_LOSS",
+      "PATH": "docs/v0-16/evidence/business-loss-contract-r1/business-loss-policy-r1.json",
+      "POLICY_HASH": "740c0a48506b524ea822b88ad9c5b3443cf3356969026e02cff4a6e1a3c446b7"
+    },
+    "S6": {
+      "FROZEN_FLAG": "WHAT_IF",
+      "PATH": "docs/v0-16/evidence/what-if-decision-simulator-r1/what-if-policy-r1.json",
+      "POLICY_HASH": "c1712c6596a813816eefbcb8d51c7088304549cfcc1899a637dff1b150be6463"
+    }
+  },
+  "gate_counts": {
+    "fail": 0,
+    "pass": 13,
+    "pending": 3
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "external_exact_head_ci": "REQUIRED_SEPARATE_TERMINAL_PR_RECEIPT",
+    "merge_authorized": false,
+    "owner_authorized": true,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "release_created": false,
+    "s0_formal_complete_verified": true,
+    "s1_formal_complete_verified": true,
+    "s2_formal_complete_verified": true,
+    "s3_formal_complete_verified": true,
+    "s4_formal_complete_verified": true,
+    "s5_formal_complete_verified": true,
+    "s6_formal_complete_verified": true,
+    "stop": true,
+    "tag_authorized": false,
+    "tag_created": false,
+    "v0_17_version_complete": false,
+    "v0_18_authorized": false,
+    "v0_18_started": false,
+    "version_closeout_authorized": true,
+    "version_closeout_formal_complete": false,
+    "version_closeout_implementation_complete": false,
+    "version_closeout_independent_review": "PENDING"
+  },
+  "historical_evidence_sha256": {
+    "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json": {
+      "sha256": "4158c6945ff88e1d30935f4eb06772efea3dceb6135860dfd966ab6718f5da34",
+      "verified_against_committed_head": "02244bac750d1eedc10302e242e5f61ff30cc185"
+    },
+    "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json": {
+      "sha256": "115d5847d6f853fefda2063ce5b709eeaececf3be775639a4e5e0881491cb37c",
+      "verified_against_committed_head": "cc045039e836baa19cd992ffb58e43cc13685a29"
+    },
+    "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json": {
+      "sha256": "fbcf81c98a26076b4f02c788659b0723bcb11a6ebbc239d4b83418bb4a8e2737",
+      "verified_against_committed_head": "ec3814c8391e4d0f66c4c56c3fca0a6748a8783a"
+    },
+    "docs/v0-17/evidence/v0.17-s4-dashboard-design-freeze-r1.json": {
+      "sha256": "d07b4b886e28e8a98468bb58bdbf6440798720797efcfb05e8385f987b62d253",
+      "verified_against_committed_head": "cb58a5661d0a3d159a3bdb1d10e383c4c877901f"
+    },
+    "docs/v0-17/evidence/v0.17-s5-dashboard-implementation-r1.json": {
+      "sha256": "c143d2b63a0e3d1c85d346930507b7432e56a8f51c2e9a0d92fc79e2c5ff1897",
+      "verified_against_committed_head": "f635f728760c42718a78c3c537ebdc906d0f0adc"
+    },
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": {
+      "sha256": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+      "verified_against_committed_head": "da398dd63a64c130bc723310419cafe9a8a41c64"
+    },
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json": {
+      "sha256": "3e660bf04a1fbd0138e490ce3b4a4145b3dcbd52b6126c3a7fc46533e47200d9",
+      "verified_against_committed_head": "a7d5b3691ad2e13444c4f72d52b9dfa282092f18"
+    },
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json": {
+      "sha256": "98830150da51b913b982d331f7ad172224e465640d5c3837f1ebf202591409c3",
+      "verified_against_committed_head": "385906085a91b25c98913fd49a3dff14c1f3e6cc"
+    },
+    "docs/v0-17/evidence/v0.17-s6-selector-cancel-reopen-correction-r1.json": {
+      "sha256": "20e4c09fd64a5647042adc463456ebfa1a01121dd99439b7e096898f0279a109",
+      "verified_against_committed_head": "2e5f639ab7d50de616ba6add80d1f4efce2c2359"
+    },
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": {
+      "sha256": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+      "verified_against_committed_head": "6b80bcd416618dc70332d96c6e09afb7761d41bf"
+    }
+  },
+  "historical_evidence_unchanged": true,
+  "latest_formal_release": "v0.16.0",
+  "limitations": {
+    "attribution_is_causal": false,
+    "attribution_run_bound_authority": false,
+    "automatic_execution": false,
+    "automatic_optimization": false,
+    "business_run_selector_backend_ready": false,
+    "canonical_company_cost_established": false,
+    "child_contribution_authority_available": false,
+    "current_season_actual_available": false,
+    "normal_business_discovery_available": false,
+    "planning_bounds_are_calibrated_quantiles": false,
+    "point_forecast_is_proven_p50": false,
+    "production_access_isolation_verified": false,
+    "production_deployed": false,
+    "production_multi_user_scope_validated": false,
+    "production_run_grants_verified": false,
+    "production_service_account_configured": false,
+    "production_use_approved": false,
+    "prospective_accuracy_validated": false,
+    "real_ios_safari_validated": false,
+    "real_roi_validated": false,
+    "screen_reader_validated": false,
+    "soft_keyboard_validated": false,
+    "upper80_run_bound_authority": false,
+    "upper90_run_bound_authority": false
+  },
+  "new_actual_access": false,
+  "new_forecast_execution": false,
+  "new_real_scoring": false,
+  "new_real_training": false,
+  "new_simulation_experiment": false,
+  "private_data_read": false,
+  "production_code_changed": false,
+  "production_readiness": "NOT_READY",
+  "red_main_log_evidence": [
+    {
+      "conclusion": "failure",
+      "error": "route.fulfill: Route is already handled!",
+      "job_id": 113416955183,
+      "log_contains_failure": true,
+      "log_sha256": "4d9bc9bff8633c54b45e1fcc5aa66c590a309f5f6845837a92ae3c40cc329313",
+      "passed_hint": "89"
+    },
+    {
+      "conclusion": "failure",
+      "error": "route.fulfill: Route is already handled!",
+      "job_id": 113598544852,
+      "log_contains_failure": true,
+      "log_sha256": "3415c7a825e8cdcfac3b27551579c951731909f0bedc2507491bcee9098b6d6a",
+      "passed_hint": "93"
+    }
+  ],
+  "release_baseline_sha": "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32",
+  "release_class": "PRODUCTIZATION_AND_ENGINEERING_VERSION",
+  "release_metadata": {
+    "draft": false,
+    "id": 405980150,
+    "prerelease": false,
+    "tag": "v0.16.0",
+    "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases/tag/v0.16.0"
+  },
+  "s6_correction_chain": [
+    {
+      "corrected_by_pr": 707,
+      "correction_main_still_failed": true,
+      "error": "route.fulfill: Route is already handled!",
+      "failed_run_id": 37807916550,
+      "historical_conclusion": "failure"
+    },
+    {
+      "corrected_by_pr": 708,
+      "error": "route.fulfill: Route is already handled!",
+      "failed_run_id": 37861642942,
+      "final_main_conclusion": "success",
+      "final_main_run_id": 37881564725,
+      "historical_conclusion": "failure"
+    }
+  ],
+  "s6_formal_confirmation": {
+    "author": "xuezhiorange-png",
+    "body_sha256": "98221efddead957b39083f7a14d952e5cf1aab3a464478e2c11c32567ff0dc06",
+    "confirmed_main_ci": 37881564725,
+    "confirmed_main_sha": "df6520404334bd518d3f65e3da470315bab194f9",
+    "created_at": "2026-10-09T05:35:06Z",
+    "id": 6074984775,
+    "s6_formal_complete": true,
+    "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/708#issuecomment-6074984775"
+  },
+  "scope": "PUBLIC_FROZEN_EVIDENCE_ONLY",
+  "source_evidence_count": 134,
+  "source_evidence_sha256": {
+    "backend/app/api/forecast_intelligence_decision.py": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/forecast_intelligence/attribution.py": "1fa4a5a4efc47ffe0636e68a5d95f31e999acc5b43633b13837be4c1a3abf926",
+    "backend/app/forecast_intelligence/business_loss.py": "26c5bab071833f1dccba56bf0defd3103fd8b6741721e37f4069285923d54443",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/forecast_ops.py": "f5f0c85f3b4696122011c91603770c6369878961f9f0e4560ebe6cdf27921790",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/forecast_intelligence/uncertainty.py": "f062f494bfa967ec939b51665d1178057393dc020bfa6b926e59740acc3d606c",
+    "backend/app/forecast_intelligence/what_if.py": "9504b5552833d8d0d0be64e0379d4913222e5fae8d270a858dd7fd2e943ae7d0",
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/app/forecast_quality/operational_peak_authority.py": "2bfe44b3ed1521a8a6ff8775724bf40397825eaa6aff128c12f143ab85d8ea30",
+    "backend/app/forecast_quality/operational_peak_persistence.py": "35e9fb6920acb75029b83dc075d9c7f4b73f5206d8848aa9c9a02fc09f0ed4a6",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_http.py": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+    "backend/app/mcp/forecast_intelligence_server.py": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+    "backend/app/mcp/forecast_intelligence_tools.py": "3d4d6ec2ab6d0bcd6895f64393cf25e37e26f9c2a6878a39bbb260177f6377cd",
+    "backend/tests/forecast_intelligence/build_v0_17_version_closeout.py": "571b95a937b9bc86e1b4df2ad5cd7bb3778362ddb8d9baf7c2ac957f43797362",
+    "backend/tests/forecast_intelligence/fixtures/v0_16_s6_synthetic_saved_forecast_case_01.json": "4161396a3fbb71611f2316408e1a8ce7404c42dfbfe954df16bbe84642b2ea48",
+    "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py": "9a2056a02d5f5608bb8177a1873f42cf47d54a8bf965eea0d6926951423588fb",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/common-rowset-binding-report.json": "f3572c380002b8f31de266e4ba245d7f759c235d0f80d09d7f4bd120e447fd38",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/deterministic-replay-report.json": "b4b2e75ee4deb43daa667e8352a45bcd4b10792df46d312b0eb6a27516de312c",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-metrics.json": "02319ad9e14bcc855dafa7937c3ba89f373faf9098be20c5f47b9ae1d5d26ba7",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-prediction-seal.json": "32b16e9e8b983c52be50c83d4dbd5957bc0bfdc271a82b1b3488cf5ddb7de1f0",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/feature-label-custody-audit.json": "99db786e6e3e295251a4088bffbad407a9d00f23b461f27a3a7e804dfa574ef1",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/final-fit-manifest.json": "de3a6fa5ebcf79321ffb4212a11d435ad79e3ffee3d014021b1f200f1f019396",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/model-config-freeze.json": "12f5e14b9239ddffa917585009132a7d65fac368d0913da582016f52cad9e87f",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/s5-experiment-contract.json": "bc590a028f205a4d41b97c6588d4b2799ea87426120b17f2384cec9f51283217",
+    "docs/v0-16/evidence/business-loss-contract-r1/business-loss-policy-r1.json": "a0dc8c94444b190ee97349861825c83f58479736ffcf50f8870f6543074e20c0",
+    "docs/v0-16/evidence/business-loss-contract-r1/deterministic-replay-report-r1.json": "01ad20ebff4d6c998ef9282bf570f5735493909721eee1a1e95cbe524c4f99d8",
+    "docs/v0-16/evidence/business-loss-contract-r1/historical-synthetic-loss-summary-r1.json": "741c978a3c46b6de5243848dd9dd3a0bf883254d2b44cedb2bb0eaf201a91e7c",
+    "docs/v0-16/evidence/business-loss-contract-r1/manifest-r1.json": "a083661b6229a97c95ca4d0b058aca0cafb5d2e08e8683a74107b8201f8103c1",
+    "docs/v0-16/evidence/business-loss-contract-r1/privacy-scan-report-r1.json": "5cd7e58bfe791a7af91c74c666d3564c250dff054e1b5811e7562e12d6fe19be",
+    "docs/v0-16/evidence/business-loss-contract-r1/source-binding-r1.json": "7e122d0c862dc0a9af959fd3b1d9ca7a8a8f055b958bac7805645a5dc727b9f0",
+    "docs/v0-16/evidence/business-loss-contract-r1/synthetic-cost-contracts-r1.json": "2b2e477fe9735e0df56fb12ed770d4c121446a96c0c1c3397a6622747d99ac3f",
+    "docs/v0-16/evidence/business-loss-contract-r1/v0.16-s5-business-loss-contract-r1.json": "d55dde8af55ec63b4806607a901d291cacefa6852379e7775cea21c26d0f3d57",
+    "docs/v0-16/evidence/forecast-attribution-r1/attribution-policy-r1.json": "9ec2ae8f946ec5261e02f138dc2abf8d5659438a2d8e08fbd9a37d3bff361785",
+    "docs/v0-16/evidence/forecast-attribution-r1/business-semantic-group-summary-r1.json": "da34d9ff8a67f4f2b8560996c1f5b0b6363b816fa7e8ea9e3192fa96e3a8beb0",
+    "docs/v0-16/evidence/forecast-attribution-r1/deterministic-replay-report-r1.json": "22eadd03a3ef3e58334329157d6e90ffe6ddee4681a632ee0e01af8ea3e191e3",
+    "docs/v0-16/evidence/forecast-attribution-r1/family-group-summary-r1.json": "3a9854682dda489fb2e45e7de7a2d19ae34d2db8eadb5395fc20dfd7b578c502",
+    "docs/v0-16/evidence/forecast-attribution-r1/feature-contribution-summary-r1.json": "7c5789edf97bdca7fecbc9db21c402d5bd559e7dcd80a5568ada51ca28ede443",
+    "docs/v0-16/evidence/forecast-attribution-r1/horizon-contribution-summary-r1.json": "cfa4ecb35574643c6055e4a5008b9aa316e8d5bb5447e96962e38f1a61b379d2",
+    "docs/v0-16/evidence/forecast-attribution-r1/manifest-r1.json": "3d82606c7efdbea99a44fa4aa2c35793e9c1a48f6742df42ef43b5ab313c8a5c",
+    "docs/v0-16/evidence/forecast-attribution-r1/privacy-scan-report-r1.json": "fcff4adc8d464e6de26ea3f191e02987d012cd67e59c996744e6773368c3d655",
+    "docs/v0-16/evidence/forecast-attribution-r1/reconstruction-summary-r1.json": "083537e23d998a2fa0a8e907790f24f1e0ebf077832b05b7dfdd792a3eeb34f5",
+    "docs/v0-16/evidence/forecast-attribution-r1/source-binding-r1.json": "1d31d972149f020fc83acd14b7a7fcd3063506f307b4d65ba1a52ef3104b4182",
+    "docs/v0-16/evidence/forecast-attribution-r1/v0.16-s3-forecast-attribution-r1.json": "4a5918e0678d9cb3945b4f71612317754cf8f7fdc12b3412e468f029036815e8",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/completeness-summary-r1.json": "b2dfe776421719fa6a11b6595a04bdcbbbe78772fe6a14ec72e921b1f0fcb2b5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/deterministic-replay-report-r1.json": "a5ed64f82521dd32dce1002398a3c07f27fe0a47edae1f8790309e5f2a4e322b",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/integrity-summary-r1.json": "5ffad283db327cff25ea0a9371956381f7e61ce762816145a45a38b640632871",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/interval-quality-summary-r1.json": "7689b6e434dd1da8670468f6a86c0f1dc7fd46df84f0bdfba37737bf2f1b4497",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/issuance-coverage-summary-r1.json": "0c5d40c6fa9949a8b1c3e5d77e232a1af461466aacb4b1d53d947149806fa0ba",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/manifest-r1.json": "9a81af66ca0106031c579dd8648336ae2053dd4071076367725d8d92097fb8a5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/monitoring-policy-r1.json": "7ec6d4c95cec9f2463dcff11053657825cb3164235e27e6dfdf3d4a504639170",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/privacy-scan-report-r1.json": "f0fb6691796ba7d34442929d81fc2c499333e2fb6f4c7fd13399d3a4d03a17a9",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/runtime-observability-summary-r1.json": "ec3e4a8e0110d09f628b19987751bc5ab7c785d1d17dcfd2a0fa736b1c50f6e6",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/source-binding-r1.json": "95f6e219229d38db42c44e0b9a3a6c371d51893c29926d6105cf35b09eccd5e0",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/v0.16-s4-forecastops-monitoring-r1.json": "3537c433ac56e65536105ecb550d506cd98d416fcb48e6bd61b880efb8268a9c",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/base-breadth-summary-r1.json": "84ee5a3393485aafb8d4f911a690a8e16ae13c14582ce767b11db591fd3c0eb3",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/conformal-policy-r1.json": "4d3d2635ddbd4fecd68e59c47d46ae3f35389e78ccacc960188944fa9f158a4d",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/deterministic-replay-report-r1.json": "48afd5c553c5c3cfddff809554895010d836e0ff057d1411f7ad45a353b2f658",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/lead-day-coverage-r1.json": "5dd0b3418bc0e8549644a6730f7aef9e42d3b2457424472ec0abdb87d3e28f30",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/manifest-r1.json": "b4b4ca6124f4aea081243ac477c01ff7c0dc0123eb846ee2cd23a2b2f9a773b1",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/privacy-scan-report-r1.json": "7ec3b1ac2d13ba9b52d503866f08e01b3e84158918678f441179f28dbf272b8c",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/source-binding-r1.json": "b345fefbe2aa59b0737859eae0f709f1e16a6cd3934b8d755bccbb431dd01ef7",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/v0.16-s2-uncertainty-and-conformal-calibration-r1.json": "7939b17ae74ff39996edc767e4a84c6c4da3011dc69b9e61fd4de52ba0f6fa04",
+    "docs/v0-16/evidence/v0.16-s1-hierarchical-forecast-reconciliation-r1.json": "376048ce5d12408ddd030c8b17bec2ca107ce3046ec8357b34e5682495fda9cf",
+    "docs/v0-16/evidence/v0.16.0-version-closeout-manifest-r1.json": "2520e4d7ba5ad6e2df34d0a03154565f4849a0168ebdb87feec7a214be124313",
+    "docs/v0-16/evidence/v0.16.0-version-closeout-r1.json": "abfcd8224dfe4731f61add2b0c2296ce10fec50efbc2e69ff9989c09ccea8333",
+    "docs/v0-16/evidence/v0.16.0-version-plan-and-scope-freeze-r1.json": "a9bfa820d6efe9f4c0e401681fdaabac177f1c615ed78ed62e6abb4d74b808c3",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/deterministic-replay-report-r1.json": "2b479efa9e563fe7a849cfb5693d2573cca22542c3203e41afd8472762c06203",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/manifest-r1.json": "beaea961d4a0c9e841947cb42a6b8b50df696ed764bb433cd1debba97b0df8d8",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/privacy-scan-report-r1.json": "723589ae80eff764f5146aa4073e5be3519200e01187c2b60e0531bd091b00ba",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/scenario-ranking-summary-r1.json": "55a06edce4c7299bcfaad487d017b2ae6f126a6f81edd1250b0bb7159fcd0038",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/source-binding-r1.json": "5d9f77bb5836836a69b2910ffa497dd5b87a07b1e656eef1cffdd995cba494b4",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-saved-forecast-r1.json": "191a661fa71f9d34759b21db1c3f7a6b5c79ab36a2f5186bed58eec5a32a8acd",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-scenario-results-r1.json": "069f4c9f6671ad5abc77e6b4ee777c6f4354420a3fb5bc61144e48abee5ef6da",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-scenarios-r1.json": "104362fccf60f73877525ed2caca2d299551866900bc8d481e82293967cb6594",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/v0.16-s6-what-if-decision-simulator-r1.json": "fd375b5445b1fb7a928efeae1d0d8524f7e3b84b66b605cff24af9738f7487e7",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/what-if-policy-r1.json": "1c629293ff6ecd081dadd35b634e068ea7f8b341461853326effe34924e5c3e1",
+    "docs/v0-16/v0.16-s1-hierarchical-forecast-reconciliation-r1.md": "c0bcbf362ba5e855774a203bc054c2de221e3510447e3a42e2086c58bca747c4",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-16/v0.16-s3-forecast-attribution-r1.md": "9065fabd8f1558d7146dcafcc9ff56b0b4a1bcec77c9d3ee11c8247a822a3366",
+    "docs/v0-16/v0.16-s4-forecastops-monitoring-r1.md": "669eda3a96cf55ddb463b209854b3a9276c0f047afe036dc8f2ea5eaf9a880e1",
+    "docs/v0-16/v0.16-s5-business-loss-contract-r1.md": "841d06290369e2ec2da1367a35576496d928591dfa77114e8ac0d7af95cab307",
+    "docs/v0-16/v0.16-s6-what-if-decision-simulator-r1.md": "f25641349fd4e229a23cb41dedcd76d4bd6b069b67e4354dc996ba7ac2203083",
+    "docs/v0-16/v0.16.0-closeout.md": "77d1bc082863b0af9436b460ee65d6c5429579e309b10348665256e17d729725",
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md": "7eed60e8045903eb8229afa0c1c6b6f0a9e99e4ce2e9cda9ce212c4ce435f7de",
+    "docs/v0-17/design/s4/dashboard-contract-r1.json": "5ab67eb3516398ef9390133955894bee4efa725b85f179ac823da4245e0d4a21",
+    "docs/v0-17/design/s4/design-tokens-r1.json": "51712a6a4c587361f687694fe187bdbc0cb5026de956f5ef45d6e1ac1c12b653",
+    "docs/v0-17/design/s4/visual-qa-report-r1.json": "cbdbdb2ae77860668e9ac24db42062fc3bd4996013bde8b3947c53be650ace10",
+    "docs/v0-17/evidence/s6-cross-surface-r2/accessibility-results.json": "8851a75c134d454295f457758c765a19cf5a0440431258ee62a2a932b2d7286c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/failure-state-matrix.json": "e219978879f8e6e3a4d4f7c3a79105e8dd6d1f060cca3c8922b3517c8a7141c9",
+    "docs/v0-17/evidence/s6-cross-surface-r2/parity-matrix.json": "58634da1b28681eae7b916ea45b48dcd73777316f3dfc9216d66885559624d65",
+    "docs/v0-17/evidence/s6-cross-surface-r2/parity-payloads.json": "b3018a970bad4924276d2ab8f9877c2a73e28bf1c8b30fe4911bf8182e74858d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshot-execution-report.json": "fb9baa9aa29b77293efc9da31ba8a3645b84d1b5e762d4201ae3f4587ee12056",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshot-provenance.json": "19baf0491e11f5d3ff483be7d4d2233c30f4fba1b8a85d9facb735cf9b78064b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/test-results.json": "0addce0eb9dac2913ed320f5698fe35d5f007296531b158e9e65bdd6b92d1a03",
+    "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json": "4158c6945ff88e1d30935f4eb06772efea3dceb6135860dfd966ab6718f5da34",
+    "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json": "115d5847d6f853fefda2063ce5b709eeaececf3be775639a4e5e0881491cb37c",
+    "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json": "fbcf81c98a26076b4f02c788659b0723bcb11a6ebbc239d4b83418bb4a8e2737",
+    "docs/v0-17/evidence/v0.17-s4-dashboard-design-freeze-r1.json": "d07b4b886e28e8a98468bb58bdbf6440798720797efcfb05e8385f987b62d253",
+    "docs/v0-17/evidence/v0.17-s5-dashboard-implementation-r1.json": "c143d2b63a0e3d1c85d346930507b7432e56a8f51c2e9a0d92fc79e2c5ff1897",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json": "3e660bf04a1fbd0138e490ce3b4a4145b3dcbd52b6126c3a7fc46533e47200d9",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json": "98830150da51b913b982d331f7ad172224e465640d5c3837f1ebf202591409c3",
+    "docs/v0-17/evidence/v0.17-s6-selector-cancel-reopen-correction-r1.json": "20e4c09fd64a5647042adc463456ebfa1a01121dd99439b7e096898f0279a109",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r2.md": "473ea0a41535c857a208d00da8b0e97b943dec91df4c710dad55935eb7d9270c",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r1.md": "21f4edcf68dd59a28c64eb9f6053c1da7d50e02cae20f3a1fe387978fee1c328",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
+    "docs/v0-17/v0.17-s6-selector-cancel-reopen-correction-r1.md": "4066c2cc81754ff982dab5051480b8a3d6ec6de90c8ebf816afced2bfe95db57",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-3/s3/s3-quantile-semantics-contract.md": "c4259c18f38e6f5c1ebac23944dd2f5a5b98b8fa1062ac820a4ca06b12244e94",
+    "docs/v0-3/s3/s3-quantile-semantics-remediation-contract.md": "9b231d1ad50885bc330212ad3216008f233fc37c604a657c607a80ebdae409bc",
+    "frontend/e2e/dashboard-cross-surface.spec.ts": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
+    "frontend/e2e/dashboard.spec.ts": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
+    "frontend/e2e/selector-cancel-reopen.spec.ts": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46",
+    "frontend/e2e/support/held-canonical-response.ts": "9970f1972ecebe16332f6b5777e7ae9ec7b18e0a9d6374ad3e8adfe2203595ca",
+    "frontend/src/dashboard/api/client.ts": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+    "frontend/src/dashboard/app/Dashboard.tsx": "31ea60ee4cff4aa69ea516cfd30205fb841ec11d238b7b59b389a9884e006c94",
+    "scripts/run_v0_16_s2_uncertainty_calibration.py": "0f6f7a5dceece86dd562982f970b11f296755f9abba2a499a8f57da3ed8ef9fa",
+    "scripts/run_v0_16_s3_forecast_attribution.py": "89c83eda4ee58c4da28df74b5bd6ad9e941fd67617ead42ac0a42f1b0813c9d1",
+    "scripts/run_v0_16_s4_forecastops_monitoring.py": "ea3af1660873f538fb43ec2a36ef233751a1c17438384e1aad0d4d5b91f2c89c",
+    "scripts/run_v0_16_s5_business_loss_contract.py": "46c6aede4605cd5202fdcf3c420e11c16c87029a84a12bc6c6db31244dda7e19",
+    "scripts/run_v0_16_s6_what_if_decision_simulator.py": "e2f2a8f79184cfacde872d235c95227ba85fe1092316ee5eb57098ecfbdbcd84"
+  },
+  "source_map_sha256": "c0102485b56f98aacff251641d79ac9dc2cf9ccdc1b50a389a5e7d62c49d03bf",
+  "stage_chain": [
+    {
+      "authorization_evidence": {
+        "keys": [
+          "S0_AUTHORIZED"
+        ],
+        "path": "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json",
+        "value": true
+      },
+      "base_sha": "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32",
+      "git_merge_parents": [
+        "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32",
+        "6b80bcd416618dc70332d96c6e09afb7761d41bf"
+      ],
+      "head_sha": "6b80bcd416618dc70332d96c6e09afb7761d41bf",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "f4919c31bef1871ba9b79c15a5673af0a12996f065a70051a5b897c87dda5a2a",
+          "commit_id": "6b80bcd416618dc70332d96c6e09afb7761d41bf",
+          "id": 5449801554,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-07T23:55:53Z",
+          "summary": "V0.17 S0 independent exact-head scope review — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/699#pullrequestreview-5449801554"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "1cabff0887b1525f15409b7bdc88ed2396a147d8",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113077622100,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077622100"
+          },
+          {
+            "conclusion": "success",
+            "id": 113077622357,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077622357"
+          },
+          {
+            "conclusion": "success",
+            "id": 113077622410,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077622410"
+          },
+          {
+            "conclusion": "success",
+            "id": 113077622437,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077622437"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077623248,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077623248"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077623632,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077623632"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077623775,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077623775"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077623856,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077623856"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077623862,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077623862"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077623970,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077623970"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077664196,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077664196"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113077666422,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340/job/113077666422"
+          }
+        ],
+        "run_id": 37705147340,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37705147340"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "1cabff0887b1525f15409b7bdc88ed2396a147d8",
+      "merge_parents": [
+        "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32",
+        "6b80bcd416618dc70332d96c6e09afb7761d41bf"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-07T23:57:28Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "1893cec7a12e22bee9dc53907f0eea8867a26d71a21142c1ca7b8d1f86785745",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "6b80bcd416618dc70332d96c6e09afb7761d41bf",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 112926012107,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012107"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012448,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012448"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012480,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012480"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012493,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012493"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012501,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012501"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012517,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012517"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012580,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012580"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012608,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012608"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012621,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012621"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012625,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012625"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012758,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012758"
+          },
+          {
+            "conclusion": "success",
+            "id": 112926012856,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201/job/112926012856"
+          }
+        ],
+        "run_id": 37660361201,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37660361201"
+      },
+      "pr_number": 699,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/699",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S0"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "s1_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json",
+        "value": true
+      },
+      "base_sha": "1cabff0887b1525f15409b7bdc88ed2396a147d8",
+      "git_merge_parents": [
+        "1cabff0887b1525f15409b7bdc88ed2396a147d8",
+        "02244bac750d1eedc10302e242e5f61ff30cc185"
+      ],
+      "head_sha": "02244bac750d1eedc10302e242e5f61ff30cc185",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "b807c4dde61954f203f51753c0e65bf42cf5ec27669efce215747da7f8fb4b3a",
+          "commit_id": "02244bac750d1eedc10302e242e5f61ff30cc185",
+          "id": 5450423469,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T01:41:54Z",
+          "summary": "V0.17 S1 independent exact-head read API review — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/700#pullrequestreview-5450423469"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "ac4e862aea8b87d072835bbc1b2ae98e60adcb3e",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113107105270,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107105270"
+          },
+          {
+            "conclusion": "success",
+            "id": 113107105460,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107105460"
+          },
+          {
+            "conclusion": "success",
+            "id": 113107105535,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107105535"
+          },
+          {
+            "conclusion": "success",
+            "id": 113107105642,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107105642"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107106174,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107106174"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107106312,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107106312"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107106769,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107106769"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107106809,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107106809"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107106897,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107106897"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107130794,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107130794"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107139571,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107139571"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113107141641,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836/job/113107141641"
+          }
+        ],
+        "run_id": 37714290836,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37714290836"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "ac4e862aea8b87d072835bbc1b2ae98e60adcb3e",
+      "merge_parents": [
+        "1cabff0887b1525f15409b7bdc88ed2396a147d8",
+        "02244bac750d1eedc10302e242e5f61ff30cc185"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T01:42:49Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "8cf61a7b9704aa8592529f0e4cc61379a0f4d9597fce3f9b43b237f4b76dd720",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "02244bac750d1eedc10302e242e5f61ff30cc185",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113096152369,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152369"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152451,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152451"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152456,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152456"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152483,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152483"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152486,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152486"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152548,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152548"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152552,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152552"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152556,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152556"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152558,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152558"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152562,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152562"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152564,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152564"
+          },
+          {
+            "conclusion": "success",
+            "id": 113096152575,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272/job/113096152575"
+          }
+        ],
+        "run_id": 37710846272,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37710846272"
+      },
+      "pr_number": 700,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/700",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S1"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "s2_implementation_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json",
+        "value": true
+      },
+      "base_sha": "ac4e862aea8b87d072835bbc1b2ae98e60adcb3e",
+      "git_merge_parents": [
+        "ac4e862aea8b87d072835bbc1b2ae98e60adcb3e",
+        "cc045039e836baa19cd992ffb58e43cc13685a29"
+      ],
+      "head_sha": "cc045039e836baa19cd992ffb58e43cc13685a29",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "b0b5bce7f9ae2d1b392997233f5f49df36eb8b458c62c92460c884ae8e558887",
+          "commit_id": "cc045039e836baa19cd992ffb58e43cc13685a29",
+          "id": 5451036267,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T03:36:07Z",
+          "summary": "V0.17 S2 independent exact-head decision support review — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/701#pullrequestreview-5451036267"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "0512a2c4f21bc5faaac7936776ed2de8eecb5669",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113136606532,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136606532"
+          },
+          {
+            "conclusion": "success",
+            "id": 113136606699,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136606699"
+          },
+          {
+            "conclusion": "success",
+            "id": 113136606773,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136606773"
+          },
+          {
+            "conclusion": "success",
+            "id": 113136607205,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607205"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607611,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607611"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607660,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607660"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607709,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607709"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607778,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607778"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607827,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607827"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607896,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607896"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136607901,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136607901"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113136608049,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089/job/113136608049"
+          }
+        ],
+        "run_id": 37723603089,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37723603089"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "0512a2c4f21bc5faaac7936776ed2de8eecb5669",
+      "merge_parents": [
+        "ac4e862aea8b87d072835bbc1b2ae98e60adcb3e",
+        "cc045039e836baa19cd992ffb58e43cc13685a29"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T03:37:23Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "d3a66fa3d9efdeede7d96d86fd81077c1b6c1a46635e6134e8caa3bb912df2b1",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "cc045039e836baa19cd992ffb58e43cc13685a29",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113122894114,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894114"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894247,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894247"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894271,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894271"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894278,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894278"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894296,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894296"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894312,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894312"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894314,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894314"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894326,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894326"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894327,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894327"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894339,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894339"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894348,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894348"
+          },
+          {
+            "conclusion": "success",
+            "id": 113122894423,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076/job/113122894423"
+          }
+        ],
+        "run_id": 37719264076,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37719264076"
+      },
+      "pr_number": 701,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/701",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S2"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "s3_implementation_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json",
+        "value": true
+      },
+      "base_sha": "0512a2c4f21bc5faaac7936776ed2de8eecb5669",
+      "git_merge_parents": [
+        "0512a2c4f21bc5faaac7936776ed2de8eecb5669",
+        "ec3814c8391e4d0f66c4c56c3fca0a6748a8783a"
+      ],
+      "head_sha": "ec3814c8391e4d0f66c4c56c3fca0a6748a8783a",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "a69280e13d061628e088ad7a3f84d0f222c20e914add7c58887b728f28f968fc",
+          "commit_id": "ec3814c8391e4d0f66c4c56c3fca0a6748a8783a",
+          "id": 5451950459,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T05:31:02Z",
+          "summary": "V0.17 S3 independent exact-head MCP productization review — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/702#pullrequestreview-5451950459"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "4c9a29542cef2e0dc10812826d2b7e9333956c0a",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113165792133,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165792133"
+          },
+          {
+            "conclusion": "success",
+            "id": 113165792309,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165792309"
+          },
+          {
+            "conclusion": "success",
+            "id": 113165792356,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165792356"
+          },
+          {
+            "conclusion": "success",
+            "id": 113165792405,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165792405"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165792932,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165792932"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165793346,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165793346"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165793363,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165793363"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165793370,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165793370"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165793459,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165793459"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165793708,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165793708"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165793826,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165793826"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113165834166,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094/job/113165834166"
+          }
+        ],
+        "run_id": 37732882094,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37732882094"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "4c9a29542cef2e0dc10812826d2b7e9333956c0a",
+      "merge_parents": [
+        "0512a2c4f21bc5faaac7936776ed2de8eecb5669",
+        "ec3814c8391e4d0f66c4c56c3fca0a6748a8783a"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T05:32:19Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "8348f78d5d7a39da8ce3d181876fe6731367b27b44a98948647ca348c71f9449",
+      "pr_ci": {
+        "attempt": 2,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "ec3814c8391e4d0f66c4c56c3fca0a6748a8783a",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113159420698,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159420698"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159421457,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159421457"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159422135,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159422135"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159444404,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159444404"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159446021,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159446021"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159446555,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159446555"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159451096,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159451096"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159451694,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159451694"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159454287,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159454287"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159456991,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159456991"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159462959,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159462959"
+          },
+          {
+            "conclusion": "success",
+            "id": 113159465172,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163/job/113159465172"
+          }
+        ],
+        "run_id": 37727860163,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37727860163"
+      },
+      "pr_number": 702,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/702",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S3"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "s4_implementation_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s4-dashboard-design-freeze-r1.json",
+        "value": true
+      },
+      "base_sha": "4c9a29542cef2e0dc10812826d2b7e9333956c0a",
+      "git_merge_parents": [
+        "4c9a29542cef2e0dc10812826d2b7e9333956c0a",
+        "cb58a5661d0a3d159a3bdb1d10e383c4c877901f"
+      ],
+      "head_sha": "cb58a5661d0a3d159a3bdb1d10e383c4c877901f",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "821b3ee7751f7f535f2a454247fdcd80cd76ce1a0d613f9328a9e03de4c98012",
+          "commit_id": "09453c1a1e00a47b97dde9769c6b1f8fd73fd131",
+          "id": 5453163827,
+          "result": "BLOCKED",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T07:26:13Z",
+          "summary": "V0.17 S4 independent exact-head design freeze review — **BLOCKED: one correctness issue requiring R2 correction.**",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/703#pullrequestreview-5453163827"
+        },
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "5971c8c715a3592a86f10f5d1d7fb92a2cfce6fa2cc0b2873f481ac0e68d9d0a",
+          "commit_id": "cb58a5661d0a3d159a3bdb1d10e383c4c877901f",
+          "id": 5453800712,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T08:26:43Z",
+          "summary": "V0.17 S4 R2 independent exact-head design freeze review — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/703#pullrequestreview-5453800712"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "493d8a28daf4f35d4c6e6a3a933b09393c1080c5",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113221574499,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221574499"
+          },
+          {
+            "conclusion": "success",
+            "id": 113221574711,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221574711"
+          },
+          {
+            "conclusion": "success",
+            "id": 113221574775,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221574775"
+          },
+          {
+            "conclusion": "success",
+            "id": 113221574837,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221574837"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221575788,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221575788"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221575796,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221575796"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221576156,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221576156"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221576207,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221576207"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221576282,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221576282"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221576432,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221576432"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221576486,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221576486"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113221634144,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163/job/113221634144"
+          }
+        ],
+        "run_id": 37750293163,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37750293163"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "493d8a28daf4f35d4c6e6a3a933b09393c1080c5",
+      "merge_parents": [
+        "4c9a29542cef2e0dc10812826d2b7e9333956c0a",
+        "cb58a5661d0a3d159a3bdb1d10e383c4c877901f"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T08:30:27Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "c76126c7dd62ba7cb14965f5c5b41b298689d989a534d55cd5cce97744af6414",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "cb58a5661d0a3d159a3bdb1d10e383c4c877901f",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113204798298,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798298"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798634,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798634"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798646,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798646"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798657,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798657"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798667,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798667"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798680,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798680"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798732,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798732"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798782,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798782"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798819,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798819"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798830,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798830"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204798974,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204798974"
+          },
+          {
+            "conclusion": "success",
+            "id": 113204799009,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616/job/113204799009"
+          }
+        ],
+        "run_id": 37745161616,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37745161616"
+      },
+      "pr_number": 703,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/703",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S4"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "s5_implementation_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s5-dashboard-implementation-r1.json",
+        "value": true
+      },
+      "base_sha": "493d8a28daf4f35d4c6e6a3a933b09393c1080c5",
+      "git_merge_parents": [
+        "493d8a28daf4f35d4c6e6a3a933b09393c1080c5",
+        "f635f728760c42718a78c3c537ebdc906d0f0adc"
+      ],
+      "head_sha": "f635f728760c42718a78c3c537ebdc906d0f0adc",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "8824de2a0f07212a300365952c7f8a2d6f77bd78da66c00ca2194ba37e42c333",
+          "commit_id": "f635f728760c42718a78c3c537ebdc906d0f0adc",
+          "id": 5455528079,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T10:59:40Z",
+          "summary": "V0.17 S5 independent exact-head Dashboard review — **PASS (frontend implementation scope only; production readiness remains false).**",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/704#pullrequestreview-5455528079"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "a7585286d5f654265025a7f79f5622f6d8474d35",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113279208680,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279208680"
+          },
+          {
+            "conclusion": "success",
+            "id": 113279208954,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279208954"
+          },
+          {
+            "conclusion": "success",
+            "id": 113279209006,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279209006"
+          },
+          {
+            "conclusion": "success",
+            "id": 113279209080,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279209080"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279209939,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279209939"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279209994,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279209994"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279210196,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279210196"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279210471,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279210471"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279210535,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279210535"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279210616,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279210616"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279210840,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279210840"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113279211194,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478/job/113279211194"
+          }
+        ],
+        "run_id": 37767679478,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37767679478"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "a7585286d5f654265025a7f79f5622f6d8474d35",
+      "merge_parents": [
+        "493d8a28daf4f35d4c6e6a3a933b09393c1080c5",
+        "f635f728760c42718a78c3c537ebdc906d0f0adc"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T11:04:36Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "e77bd4244e6adc3eb7fe1b23b9bbba1d847df242ae86bbec8318979ac94e9e36",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "f635f728760c42718a78c3c537ebdc906d0f0adc",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113260594249,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594249"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594462,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594462"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594476,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594476"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594533,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594533"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594582,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594582"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594595,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594595"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594613,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594613"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594653,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594653"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594744,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594744"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594790,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594790"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594862,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594862"
+          },
+          {
+            "conclusion": "success",
+            "id": 113260594916,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112/job/113260594916"
+          }
+        ],
+        "run_id": 37761928112,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37761928112"
+      },
+      "pr_number": 704,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/704",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S5"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "correction_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s6-selector-cancel-reopen-correction-r1.json",
+        "value": true
+      },
+      "base_sha": "a7585286d5f654265025a7f79f5622f6d8474d35",
+      "git_merge_parents": [
+        "a7585286d5f654265025a7f79f5622f6d8474d35",
+        "2e5f639ab7d50de616ba6add80d1f4efce2c2359"
+      ],
+      "head_sha": "2e5f639ab7d50de616ba6add80d1f4efce2c2359",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "5f0944c5de3e2651ae5d56eace22181f6705437d9f396c81212aa17293a0f76b",
+          "commit_id": "2e5f639ab7d50de616ba6add80d1f4efce2c2359",
+          "id": 5457147791,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T13:14:38Z",
+          "summary": "V0.17 S6 selector cancel/reopen independent exact-head review — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/705#pullrequestreview-5457147791"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "2022dc00b2aa685a2d7331aba5a47142f655a723",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113331446741,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331446741"
+          },
+          {
+            "conclusion": "success",
+            "id": 113331447099,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331447099"
+          },
+          {
+            "conclusion": "success",
+            "id": 113331447226,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331447226"
+          },
+          {
+            "conclusion": "success",
+            "id": 113331447364,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331447364"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331448393,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331448393"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331448612,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331448612"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331448788,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331448788"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331448805,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331448805"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331448898,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331448898"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331449116,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331449116"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331449147,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331449147"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113331449282,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851/job/113331449282"
+          }
+        ],
+        "run_id": 37783261851,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37783261851"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "2022dc00b2aa685a2d7331aba5a47142f655a723",
+      "merge_parents": [
+        "a7585286d5f654265025a7f79f5622f6d8474d35",
+        "2e5f639ab7d50de616ba6add80d1f4efce2c2359"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T13:17:59Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "9acd719cc4fb5da4ec5831b503127a7d318982a47df3c38085b5e30778aeb54a",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "2e5f639ab7d50de616ba6add80d1f4efce2c2359",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113312801373,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801373"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801585,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801585"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801666,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801666"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801684,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801684"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801700,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801700"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801740,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801740"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801741,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801741"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801771,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801771"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801773,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801773"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801836,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801836"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801865,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801865"
+          },
+          {
+            "conclusion": "success",
+            "id": 113312801948,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841/job/113312801948"
+          }
+        ],
+        "run_id": 37777753841,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37777753841"
+      },
+      "pr_number": 705,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/705",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S6_SELECTOR_CORRECTION"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "s6_resume_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "value": true
+      },
+      "base_sha": "2022dc00b2aa685a2d7331aba5a47142f655a723",
+      "git_merge_parents": [
+        "2022dc00b2aa685a2d7331aba5a47142f655a723",
+        "da398dd63a64c130bc723310419cafe9a8a41c64"
+      ],
+      "head_sha": "da398dd63a64c130bc723310419cafe9a8a41c64",
+      "historical_main_gate_passed": false,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "42a2ab60360a71514b84fdd236f2d276f4b088766361e4b737933e46f6538171",
+          "commit_id": "0e1935d5f0c372acba48812d1f5ae65a8b9822df",
+          "id": 5458870712,
+          "result": "BLOCKED",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T15:15:29Z",
+          "summary": "V0.17 S6 R2 independent exact-head review — **BLOCKED (evidence provenance correction required; no identified production code defect).**",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/706#pullrequestreview-5458870712"
+        },
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "cea555771f4e23d6b7059048939f3f62dcf8f0bbf98c61889ab6522eb4b028ed",
+          "commit_id": "da398dd63a64c130bc723310419cafe9a8a41c64",
+          "id": 5459657345,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T16:15:27Z",
+          "summary": "V0.17 S6 R2 independent exact-head reassessment — **PASS**.",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/706#pullrequestreview-5459657345"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "failure",
+        "event": "push",
+        "head_sha": "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 1,
+          "skipped": 8,
+          "success": 3,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "failure",
+            "id": 113416955183,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416955183"
+          },
+          {
+            "conclusion": "success",
+            "id": 113416955621,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416955621"
+          },
+          {
+            "conclusion": "success",
+            "id": 113416955752,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416955752"
+          },
+          {
+            "conclusion": "success",
+            "id": 113416955825,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416955825"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416956666,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416956666"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416956716,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416956716"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416957015,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416957015"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416957281,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416957281"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416957442,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416957442"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416957457,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416957457"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113416958365,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113416958365"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113417011264,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550/job/113417011264"
+          }
+        ],
+        "run_id": 37807916550,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37807916550"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+      "merge_parents": [
+        "2022dc00b2aa685a2d7331aba5a47142f655a723",
+        "da398dd63a64c130bc723310419cafe9a8a41c64"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T16:19:43Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "2c3c5406ec39266ee3287bb842c8fb5be3dcd44acbdf4eda8dd643d95d0f19bc",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "da398dd63a64c130bc723310419cafe9a8a41c64",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113392155419,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155419"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155774,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155774"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155808,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155808"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155858,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155858"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155885,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155885"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155895,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155895"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155901,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155901"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155932,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155932"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392155961,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392155961"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392156003,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392156003"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392156325,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392156325"
+          },
+          {
+            "conclusion": "success",
+            "id": 113392156603,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505/job/113392156603"
+          }
+        ],
+        "run_id": 37800798505,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37800798505"
+      },
+      "pr_number": 706,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/706",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S6_ACCEPTANCE"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "correction_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json",
+        "value": true
+      },
+      "base_sha": "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+      "git_merge_parents": [
+        "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+        "a7d5b3691ad2e13444c4f72d52b9dfa282092f18"
+      ],
+      "head_sha": "a7d5b3691ad2e13444c4f72d52b9dfa282092f18",
+      "historical_main_gate_passed": false,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "5ee2becb059a1283b695320b728157a059bdca1bb41b62145e640c5529337c65",
+          "commit_id": "a7d5b3691ad2e13444c4f72d52b9dfa282092f18",
+          "id": 5464172052,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-08T23:46:33Z",
+          "summary": "## V0.17 S6 post-merge route lifecycle correction — independent exact-head technical review | REVIEW_RESULT=PASS",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/707#pullrequestreview-5464172052"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "failure",
+        "event": "push",
+        "head_sha": "d4ce572c0905c23423e72df393682178a8e9db41",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 1,
+          "skipped": 8,
+          "success": 3,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113598544509,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598544509"
+          },
+          {
+            "conclusion": "success",
+            "id": 113598544688,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598544688"
+          },
+          {
+            "conclusion": "failure",
+            "id": 113598544852,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598544852"
+          },
+          {
+            "conclusion": "success",
+            "id": 113598544914,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598544914"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598545891,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598545891"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598545981,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598545981"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598546047,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598546047"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598546056,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598546056"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598546079,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598546079"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598546118,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598546118"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598546257,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598546257"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113598546278,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942/job/113598546278"
+          }
+        ],
+        "run_id": 37861642942,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37861642942"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "d4ce572c0905c23423e72df393682178a8e9db41",
+      "merge_parents": [
+        "eea84b6606ce356020da979d04a5d0d73af7bd6b",
+        "a7d5b3691ad2e13444c4f72d52b9dfa282092f18"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-08T23:50:33Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "c5d37dc2b3577bc9c0e8713c12cb7008fb51f01d5d2f54c1dc3b49c0d6fc9ce5",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "a7d5b3691ad2e13444c4f72d52b9dfa282092f18",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113586516659,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586516659"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586516806,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586516806"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586516912,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586516912"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586516925,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586516925"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517007,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517007"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517013,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517013"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517041,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517041"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517042,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517042"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517081,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517081"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517096,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517096"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517104,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517104"
+          },
+          {
+            "conclusion": "success",
+            "id": 113586517587,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884/job/113586517587"
+          }
+        ],
+        "run_id": 37857931884,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37857931884"
+      },
+      "pr_number": 707,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/707",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S6_CORRECTION_R1"
+    },
+    {
+      "authorization_evidence": {
+        "keys": [
+          "governance",
+          "correction_authorized"
+        ],
+        "path": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+        "value": true
+      },
+      "base_sha": "d4ce572c0905c23423e72df393682178a8e9db41",
+      "git_merge_parents": [
+        "d4ce572c0905c23423e72df393682178a8e9db41",
+        "385906085a91b25c98913fd49a3dff14c1f3e6cc"
+      ],
+      "head_sha": "385906085a91b25c98913fd49a3dff14c1f3e6cc",
+      "historical_main_gate_passed": true,
+      "implementation_authorization_verified": true,
+      "independent_review_exact_head_match": true,
+      "independent_reviews": [
+        {
+          "author": "xuezhiorange-png",
+          "body_sha256": "6cc649067b5e4f39ddc97dbca6b8391dc664c1f4025e4ab75455514a21b659c4",
+          "commit_id": "385906085a91b25c98913fd49a3dff14c1f3e6cc",
+          "id": 5465332217,
+          "result": "PASS",
+          "state": "COMMENTED",
+          "submitted_at": "2026-10-09T03:17:08Z",
+          "summary": "## V0.17 S6 R2 — independent exact-head technical review | REVIEW_RESULT=PASS",
+          "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/708#pullrequestreview-5465332217"
+        }
+      ],
+      "main_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "push",
+        "head_sha": "df6520404334bd518d3f65e3da470315bab194f9",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 8,
+          "success": 4,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113662186110,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662186110"
+          },
+          {
+            "conclusion": "success",
+            "id": 113662186228,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662186228"
+          },
+          {
+            "conclusion": "success",
+            "id": 113662186285,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662186285"
+          },
+          {
+            "conclusion": "success",
+            "id": 113662186346,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662186346"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187095,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187095"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187113,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187113"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187139,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187139"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187157,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187157"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187178,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187178"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187203,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187203"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662187348,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662187348"
+          },
+          {
+            "conclusion": "skipped",
+            "id": 113662207559,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725/job/113662207559"
+          }
+        ],
+        "run_id": 37881564725,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37881564725"
+      },
+      "merge_authority_basis": "OBSERVED_OWNER_MERGE_AND_OWNER_FORMAL_CHAIN_CONFIRMATION_NOT_DRAFT_FLAGS",
+      "merge_commit_sha": "df6520404334bd518d3f65e3da470315bab194f9",
+      "merge_parents": [
+        "d4ce572c0905c23423e72df393682178a8e9db41",
+        "385906085a91b25c98913fd49a3dff14c1f3e6cc"
+      ],
+      "merged": true,
+      "merged_at": "2026-10-09T03:56:27Z",
+      "merged_by": "xuezhiorange-png",
+      "pr_body_sha256": "e9693e1d4287c21cd7abab517c5b84e40d76e680336d2b274260cfd0859d6db8",
+      "pr_ci": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "head_sha": "385906085a91b25c98913fd49a3dff14c1f3e6cc",
+        "job_counts": {
+          "cancelled": 0,
+          "failure": 0,
+          "skipped": 0,
+          "success": 12,
+          "total": 12
+        },
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 113641327606,
+            "name": "postgres-migration",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327606"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327730,
+            "name": "unit-contract-golden",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327730"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327754,
+            "name": "postgres-domain-1",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327754"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327770,
+            "name": "compose-smoke",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327770"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327828,
+            "name": "postgres-concurrency",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327828"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327834,
+            "name": "static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327834"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327855,
+            "name": "postgres-domain-2",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327855"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327865,
+            "name": "postgres-task11",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327865"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641327902,
+            "name": "frontend-static",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641327902"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641328026,
+            "name": "frontend-unit",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641328026"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641328031,
+            "name": "frontend-e2e",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641328031"
+          },
+          {
+            "conclusion": "success",
+            "id": 113641328041,
+            "name": "full-suite-canary",
+            "status": "completed",
+            "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290/job/113641328041"
+          }
+        ],
+        "run_id": 37874965290,
+        "status": "completed",
+        "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/37874965290"
+      },
+      "pr_number": 708,
+      "pr_state": "MERGED",
+      "pr_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/708",
+      "review_action_is_owner_merge_authorization": false,
+      "stage": "S6_CORRECTION_R2"
+    }
+  ],
+  "task_id": "V0_17_VERSION_CLOSEOUT_R1",
+  "v0_17_tag_release_absent_at_capture": true,
+  "validation": {
+    "additional_s1_s2_evidence_contract_cases": 3,
+    "closeout_contract_cases": 25,
+    "external_ci": "REQUIRED_SEPARATE_EXACT_HEAD_RECEIPT",
+    "format": "PASS",
+    "frozen_contract_regression_cases": 200,
+    "local_distinct_contract_cases_passed": 228,
+    "local_full_suite": "NOT_RUN_CLOSEOUT_PUBLIC_CONTRACT_ONLY",
+    "mypy": "PASS_562_SOURCE_FILES",
+    "offline_replay": "IDENTICAL_BYTES",
+    "private_data_read": false,
+    "ruff": "PASS"
+  },
+  "verification_limits": [
+    "Authorization snapshots are historical execution records, not live permission grants.",
+    "Observed Owner merge and formal confirmation do not turn COMMENT reviews into GitHub APPROVE events.",
+    "Frozen artifact inspection is not a new production/private-environment forensic audit.",
+    "No business experiment or browser acceptance is rerun for closeout.",
+    "Exact-head closeout CI is an external terminal receipt, not preclaimed in this snapshot."
+  ],
+  "version": "0.17.0",
+  "version_complete_gates": [
+    {
+      "description": "S0 authorized scope, exact-head review, merge and main CI",
+      "evidence": [
+        "stage_chain[0]"
+      ],
+      "gate_id": "G01",
+      "status": "PASS"
+    },
+    {
+      "description": "S1 authoritative read service/API chain",
+      "evidence": [
+        "stage_chain[1]"
+      ],
+      "gate_id": "G02",
+      "status": "PASS"
+    },
+    {
+      "description": "S2 frozen-engine decision API chain",
+      "evidence": [
+        "stage_chain[2]"
+      ],
+      "gate_id": "G03",
+      "status": "PASS"
+    },
+    {
+      "description": "S3 eight-tool authorized MCP chain",
+      "evidence": [
+        "stage_chain[3]"
+      ],
+      "gate_id": "G04",
+      "status": "PASS"
+    },
+    {
+      "description": "S4 reviewed design freeze including R2 correction",
+      "evidence": [
+        "stage_chain[4]"
+      ],
+      "gate_id": "G05",
+      "status": "PASS"
+    },
+    {
+      "description": "S5 five-page Dashboard reviewed implementation chain",
+      "evidence": [
+        "stage_chain[5]"
+      ],
+      "gate_id": "G06",
+      "status": "PASS"
+    },
+    {
+      "description": "S6 acceptance plus selector/provenance/route corrections and final main success",
+      "evidence": [
+        "stage_chain[6:10]",
+        "s6_formal_confirmation"
+      ],
+      "gate_id": "G07",
+      "status": "PASS"
+    },
+    {
+      "description": "Single-authority deterministic HTTP/MCP/Dashboard tested-scope parity",
+      "evidence": [
+        "capability_summary",
+        "source_evidence_sha256"
+      ],
+      "gate_id": "G08",
+      "status": "PASS"
+    },
+    {
+      "description": "Historical saved/evidence/source identity preserved",
+      "evidence": [
+        "historical_evidence_sha256"
+      ],
+      "gate_id": "G09",
+      "status": "PASS"
+    },
+    {
+      "description": "Frozen V0.14/V0.15/V0.16 authority unchanged",
+      "evidence": [
+        "frozen_git_audit"
+      ],
+      "gate_id": "G10",
+      "status": "PASS"
+    },
+    {
+      "description": "No unauthorized current actual or new business experiment",
+      "evidence": [
+        "data_authority",
+        "source_evidence_sha256"
+      ],
+      "gate_id": "G11",
+      "status": "PASS"
+    },
+    {
+      "description": "No prospective/quantile/causal/cost/ROI overclaim",
+      "evidence": [
+        "limitations",
+        "scope source"
+      ],
+      "gate_id": "G12",
+      "status": "PASS"
+    },
+    {
+      "description": "Production gaps and NOT_READY explicitly retained",
+      "evidence": [
+        "production_readiness",
+        "limitations"
+      ],
+      "gate_id": "G13",
+      "status": "PASS"
+    },
+    {
+      "description": "Final closeout independent exact-head review",
+      "evidence": [
+        "PENDING_SEPARATE_INDEPENDENT_REVIEW"
+      ],
+      "gate_id": "G14",
+      "status": "PENDING"
+    },
+    {
+      "description": "Closeout merge and post-merge main CI",
+      "evidence": [
+        "PENDING_OWNER_MERGE_AND_MAIN_CI"
+      ],
+      "gate_id": "G15",
+      "status": "PENDING"
+    },
+    {
+      "description": "Separate Owner tag/release authorization",
+      "evidence": [
+        "PENDING_OWNER_TAG_RELEASE_AUTHORIZATION"
+      ],
+      "gate_id": "G16",
+      "status": "PENDING"
+    }
+  ],
+  "version_name": "FORECAST_INTELLIGENCE_PRODUCTIZATION_AND_DASHBOARD",
+  "version_name_cn": "蓝莓预测智能产品化与决策看板版"
+}
