@@ -85,8 +85,8 @@
   "proxy_mode": "BROWSER_NATIVE_CONTINUE_NO_DETACHED_FETCH",
   "scope": "TEST_ONLY_ALL_ACTIVE_ROUTE_LIFECYCLE_AND_IMMUTABLE_EVIDENCE",
   "source_evidence_sha256": {
-    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "b4c0fd417c576ca4abaace9a76547d37b04738fcd8f541a83b00871028d322c0",
-    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "9fc1bc20a037df2361e789829c7e7476182da97370b73c17e5266388a4c27ca5",
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
     "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "00aab5b5763735538cc205b51bf23a4a2207bc320eb548b94effe973526b3fe3",
     "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
     "frontend/e2e/dashboard-cross-surface.spec.ts": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
