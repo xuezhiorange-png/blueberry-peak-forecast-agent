@@ -33,17 +33,17 @@
   "historical_source_bindings": {
     "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": {
       "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_evidence_contract.py.txt",
-      "current_sha256": "ab03193f33507435da4427258f0798391b61007117281dffe0119fd88e470331",
+      "current_sha256": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
       "historical_sha256": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5"
     },
     "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": {
       "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_route_lifecycle_contract.py.txt",
-      "current_sha256": "6c83c42268fa6431eb3223d0b0ed01350e008d7c61feb82ff2a8001b6f9a2a26",
+      "current_sha256": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
       "historical_sha256": "d1fce81fe1fdcb725a4802b9d6d3f9d530eb032171e09be7d460e51b287383b8"
     },
     "frontend/e2e/dashboard-cross-surface.spec.ts": {
       "archive_path": "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/dashboard-cross-surface.spec.ts.txt",
-      "current_sha256": "828faa9d8cff8fc875422ccce6f32907d4ece9091a3264337b76ce2f2e86b6e2",
+      "current_sha256": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
       "historical_sha256": "30d80dc0caa3a0936817d46fdd33862956beb09b64870bb3581ed4d1020dcd85"
     },
     "frontend/e2e/selector-cancel-reopen.spec.ts": {
@@ -87,7 +87,7 @@
   "source_evidence_sha256": {
     "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
     "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
-    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "00aab5b5763735538cc205b51bf23a4a2207bc320eb548b94effe973526b3fe3",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "ecb48f8fc78434ff28caabeba884c7303431d306512a8f07bfe03dfef19f86fa",
     "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
     "frontend/e2e/dashboard-cross-surface.spec.ts": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
     "frontend/e2e/dashboard.spec.ts": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",

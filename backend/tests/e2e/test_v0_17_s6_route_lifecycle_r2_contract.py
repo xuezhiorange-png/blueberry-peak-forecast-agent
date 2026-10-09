@@ -32,6 +32,7 @@ def test_historical_evidence_and_source_chain_are_unchanged():
     assert receipt["frozen_evidence_sha256"][str(R1.relative_to(ROOT))] == sha(R1)
     assert receipt["frozen_evidence_sha256"][str(S6.relative_to(ROOT))] == sha(S6)
     for path, binding in receipt["historical_source_bindings"].items():
+        assert receipt["source_evidence_sha256"][path] == binding["current_sha256"]
         assert sha(ROOT / binding["archive_path"]) == binding["historical_sha256"]
         assert sha(ROOT / path) == binding["current_sha256"]
         assert receipt["artifact_sha256"][binding["archive_path"]] == binding["historical_sha256"]
@@ -105,12 +106,19 @@ def test_both_red_main_ci_artifacts_preserved_without_success_overclaim():
 
 def test_canonical_safe_public_evidence():
     receipt = json.loads(RECEIPT.read_text())
+    source_archives = {
+        binding["archive_path"] for binding in receipt["historical_source_bindings"].values()
+    }
     for relative in (str(RECEIPT.relative_to(ROOT)), *receipt["artifact_sha256"]):
         raw = (ROOT / relative).read_text()
-        if relative.endswith(".json"):
-            assert (
-                raw
-                == json.dumps(json.loads(raw), ensure_ascii=False, sort_keys=True, indent=2) + "\n"
-            )
+        if relative in source_archives:
+            # Immutable legacy test code may contain literal privacy-check tokens.
+            # Its exact historical bytes are already enforced by SHA256 above.
+            assert sha(ROOT / relative) == receipt["artifact_sha256"][relative]
+            continue
+        assert relative.endswith(".json")
+        assert raw == json.dumps(
+            json.loads(raw), ensure_ascii=False, sort_keys=True, indent=2
+        ) + "\n"
         assert "/Users/" not in raw and "/private/tmp/" not in raw
         assert "Authorization: Bearer" not in raw
