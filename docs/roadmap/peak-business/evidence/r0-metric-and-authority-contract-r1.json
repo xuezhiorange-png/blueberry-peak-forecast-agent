@@ -1,0 +1,620 @@
+{
+  "base_main_sha": "b7ae7b4d35f182d5505ff3ea3750c5de403b2b81",
+  "capability_inventory": {
+    "core_forecast": {
+      "effective_harvest_capacity_is_factory_processing_throughput": false,
+      "factory_scoped_schema_exists": true,
+      "p50_p80_p90_schema_proves_calibration": false,
+      "results_reusable_for_operational_peak": false,
+      "rolling7_metric_exists_for_its_own_curve": true,
+      "separate_forecast_family": true
+    },
+    "historical_actual_peak_analytics": {
+      "actual_fact_analysis_only": true,
+      "forecast_metric_authority": false,
+      "forecast_missing_days_may_be_zero_filled": false,
+      "raw_actual_rows_accessed_in_this_task": false
+    },
+    "operational_peak": {
+      "approved_concentration_projection": false,
+      "approved_consecutive_high_period_threshold": false,
+      "baseline_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "earliest_date_tie_break": true,
+      "factory_assignment_authority": false,
+      "factory_processing_capacity_authority": false,
+      "forecast_family": "OPERATIONAL_PEAK_FORECAST_RUN_V1",
+      "normal_business_run_discovery": false,
+      "policy_version": "OPERATIONAL_PEAK_POLICY_V1",
+      "rolling7_peak_projection": false,
+      "saved_daily_curve": true,
+      "saved_h15_prefix": true,
+      "saved_h7_prefix": true,
+      "single_day_peak_from_same_curve": true
+    },
+    "v016_decision_support": {
+      "canonical_factory_capacity_authority": false,
+      "explicit_capacity_scenarios_exist": true,
+      "optimizer_or_automatic_action": false,
+      "real_company_cost_established": false,
+      "synthetic_cost_only_for_frozen_contracts": true
+    },
+    "v017_product": {
+      "cross_surface_synthetic_acceptance": true,
+      "dashboard_top_level_page_count": 5,
+      "mcp_tool_count": 8,
+      "production_ready": false,
+      "resource_level_end_user_acl_validated": false,
+      "shared_service_http_and_mcp": true
+    }
+  },
+  "document_sha256": {
+    "docs/roadmap/peak-business/future-version-stage-proposal-r1.md": "52770b2f35289e9a50e6926f36b9a3337bef3dcb5cd2d34911a1c95aa7583b5c",
+    "docs/roadmap/peak-business/r0-business-metric-contract-r1.md": "5c1a555e379bbbc4e35e07ace560a4ca8688037b7b0cc3231aa0bcac04b311e1",
+    "docs/roadmap/peak-business/r0-existing-capability-and-authority-inventory-r1.md": "1f0ea166c76cfa915015ef2988c694d288dd2877d3f0747b9c8b7db47c03a3d4",
+    "docs/roadmap/peak-business/r0-factory-capacity-authority-contract-r1.md": "205aada7f5a987c65b6bd55ece5c1f9e9bf2e6670967b80e43c069dad6c43d75",
+    "docs/roadmap/peak-business/r0-owner-decision-matrix-r1.md": "d9c6640dff65c0d2b4b9d5e202eeaa132bb7b17c77d9cd8fb4e9179b0f85ddb9",
+    "docs/roadmap/peak-business/r0-report-provenance-contract-r1.md": "ca93449f7dc8f7948729e045f7cae9bea24776495bd3e52af48d72044555abff"
+  },
+  "execution_boundaries": {
+    "calibration_or_experiment": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "database_migration_created": false,
+    "deployment": false,
+    "forecast_execution": false,
+    "historical_rescoring": false,
+    "model_experiment_executed": false,
+    "model_refit": false,
+    "model_training": false,
+    "model_tuning": false,
+    "private_business_data_read": false,
+    "production_code_changed": false,
+    "production_database_connected": false,
+    "production_prediction_result_created": false,
+    "real_data_accessed": false,
+    "v017_frozen_evidence_modified": false,
+    "v018_scope_modified": false
+  },
+  "factory_authority": {
+    "allocation_authority": "NOT_AVAILABLE",
+    "base_to_factory_assignment": "NOT_AVAILABLE",
+    "effective_harvest_capacity_is_processing_capacity": false,
+    "factory_processing_capacity": "NOT_AVAILABLE",
+    "multi_factory_assignment": {
+      "allocation_modes": [
+        "SHARE",
+        "EXPLICIT_QUANTITY"
+      ],
+      "allowed_only_with_explicit_effective_dated_assignments": true,
+      "implicit_residual_distribution_allowed": false,
+      "missing_or_conflicting_assignment": "NOT_AVAILABLE_OR_PARTIAL",
+      "share_conservation_required": true,
+      "temporary_transfer_requires_approved_superseding_event": true
+    },
+    "required_future_binding": [
+      "stable_base_id",
+      "stable_factory_id",
+      "effective_business_date_range",
+      "allocation_method_and_conservation",
+      "source_revision_and_hash",
+      "trusted_publisher_and_approval",
+      "same_quantity_basis",
+      "capacity_time_interval_and_scope"
+    ],
+    "user_entered_s2_capacity_is_verified_factory_capacity": false
+  },
+  "formal_version_name": null,
+  "formal_version_number": null,
+  "future_stage_proposal": {
+    "formal_version_approved": false,
+    "previous_stage_pass_authorizes_next": false,
+    "stage_ids": [
+      "PB-S0",
+      "PB-S1",
+      "PB-S2",
+      "PB-S3",
+      "PB-S4",
+      "PB-S5",
+      "PB-S6"
+    ],
+    "stages": {
+      "PB-S0": {
+        "authority": "PUBLIC_FROZEN_EVIDENCE_AND_OWNER_DECISIONS",
+        "depends_on": [
+          "R0_INDEPENDENT_REVIEW"
+        ],
+        "goal": "OWNER_SCOPE_AND_BUSINESS_DECISION_FREEZE",
+        "implementation_authorized": false
+      },
+      "PB-S1": {
+        "authority": "TRUSTED_ISSUER_GRANT_PUBLISHER_ORGANIZATION_DIRECTORY_AND_CANONICAL_REPOSITORY",
+        "depends_on": [
+          "PB-S0",
+          "IDENTITY_DECISIONS_AND_EXPLICIT_AUTHORIZATION"
+        ],
+        "goal": "TRUSTED_IDENTITY_RESOURCE_AUTHORIZATION_AND_SAVED_RUN_DISCOVERY",
+        "implementation_authorized": false
+      },
+      "PB-S2": {
+        "authority": "AUTHORIZED_CANONICAL_OPERATIONAL_PEAK_SAVED_RUN",
+        "depends_on": [
+          "PB-S0",
+          "PB-S1"
+        ],
+        "goal": "OPERATIONAL_PEAK_METRIC_PROJECTION",
+        "implementation_authorized": false
+      },
+      "PB-S3": {
+        "authority": "VERSIONED_EFFECTIVE_DATED_MAPPING_AND_SAME_BASIS_CAPACITY",
+        "depends_on": [
+          "PB-S0",
+          "TRUSTED_PUBLISHERS_AND_SOURCE_APPROVAL"
+        ],
+        "goal": "BASE_TO_FACTORY_MAPPING_AND_PROCESSING_CAPACITY_AUTHORITY",
+        "implementation_authorized": false
+      },
+      "PB-S4": {
+        "authority": "SAVED_RUN_PLUS_EXPLICIT_ASSUMPTION_OR_AUTHORIZED_FACTORY_CAPACITY",
+        "depends_on": [
+          "PB-S1",
+          "PB-S2",
+          "PB-S3_WHEN_FACTORY_DATA_USED"
+        ],
+        "goal": "BOUNDED_CAPACITY_SCENARIO_COMPOSITION",
+        "implementation_authorized": false
+      },
+      "PB-S5": {
+        "authority": "SERVER_METRIC_AND_SCENARIO_RESPONSES_WITH_PROVENANCE",
+        "depends_on": [
+          "PB-S1",
+          "PB-S2",
+          "PB-S4"
+        ],
+        "goal": "PEAK_DASHBOARD_AND_TRACEABLE_REPORT",
+        "implementation_authorized": false
+      },
+      "PB-S6": {
+        "authority": "SYNTHETIC_ISOLATED_FIXTURES_AND_APPROVED_OPERATIONS_EVIDENCE",
+        "depends_on": [
+          "PB-S1",
+          "PB-S2",
+          "PB-S3",
+          "PB-S4",
+          "PB-S5",
+          "OWNER_SAFE_PILOT_AUTHORIZATION"
+        ],
+        "goal": "ISOLATED_ACCEPTANCE_AND_SAFE_PILOT_READINESS_EVIDENCE",
+        "implementation_authorized": false
+      }
+    }
+  },
+  "governance": {
+    "all_future_stages_authorized": false,
+    "future_version_name": "PENDING_OWNER_DECISION",
+    "future_version_number": "PENDING_OWNER_DECISION",
+    "identity_auth_implementation_paused": true,
+    "merge_authorized": false,
+    "owner_authorized_scope": "BUSINESS_METRIC_AND_AUTHORITY_DESIGN_ONLY",
+    "owner_decisions_pending": true,
+    "ready_authorized": false,
+    "v018_name_and_scope_preserved": true,
+    "v018_s0_to_s6_superseded": false,
+    "v018_scope_amended": false
+  },
+  "latest_formal_release": "v0.17.0",
+  "live_preflight": {
+    "checked_pr_ci_failed_jobs": 0,
+    "checked_pr_ci_success_jobs": 12,
+    "latest_release": "v0.17.0",
+    "main_sha": "b7ae7b4d35f182d5505ff3ea3750c5de403b2b81",
+    "roadmap_reassessment_merge_sha": "b7ae7b4d35f182d5505ff3ea3750c5de403b2b81",
+    "roadmap_reassessment_post_merge_ci": {
+      "attempt": 1,
+      "conclusion": "success",
+      "event": "push",
+      "failed_jobs": 0,
+      "head_sha": "b7ae7b4d35f182d5505ff3ea3750c5de403b2b81",
+      "skipped_jobs": 8,
+      "status": "completed",
+      "success_jobs": 4
+    },
+    "roadmap_reassessment_post_merge_ci_run_id": "38034832975",
+    "roadmap_reassessment_pr": 712,
+    "roadmap_reassessment_pr_ci": {
+      "attempt": 1,
+      "conclusion": "success",
+      "event": "pull_request",
+      "failed_jobs": 0,
+      "skipped_jobs": 0,
+      "status": "completed",
+      "success_jobs": 12
+    },
+    "roadmap_reassessment_pr_ci_run_id": "38032186280",
+    "roadmap_reassessment_pr_head_sha": "13ac4381ebcea1094f07a0ab260dc4b5e9f7ac72",
+    "similar_open_pr_count": 0,
+    "v018_s0_exact_head_ci": {
+      "attempt": 1,
+      "conclusion": "success",
+      "event": "pull_request",
+      "failed_jobs": 0,
+      "head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+      "run_id": "38014489131",
+      "skipped_jobs": 0,
+      "status": "completed",
+      "success_jobs": 12
+    },
+    "v018_s0_exact_head_ci_run_id": "38014489131",
+    "v018_s0_formal_complete": true,
+    "v018_s0_independent_review_id": "5477145147",
+    "v018_s0_merge_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+    "v018_s0_post_merge_ci": {
+      "attempt": 1,
+      "conclusion": "success",
+      "event": "push",
+      "failed_jobs": 0,
+      "head_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "skipped_jobs": 8,
+      "status": "completed",
+      "success_jobs": 4
+    },
+    "v018_s0_post_merge_ci_run_id": "38017386758",
+    "v018_s0_pr": 710,
+    "v018_s0_pr_base_sha": "1b218edc74ff29091c07607ddbcdba0c10577398",
+    "v018_s0_pr_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+    "v018_s1_identity_implementation": "PAUSED_AND_UNAUTHORIZED",
+    "v018_s1_implementation_formal_complete": false,
+    "v018_s1_preflight_exact_head_ci": {
+      "attempt": 1,
+      "conclusion": "success",
+      "event": "pull_request",
+      "failed_jobs": 0,
+      "head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "run_id": "38021408217",
+      "skipped_jobs": 0,
+      "status": "completed",
+      "success_jobs": 12
+    },
+    "v018_s1_preflight_exact_head_ci_run_id": "38021408217",
+    "v018_s1_preflight_formal_complete": true,
+    "v018_s1_preflight_independent_review_id": "5477662925",
+    "v018_s1_preflight_independent_review_result": "PASS",
+    "v018_s1_preflight_independent_review_state": "COMMENTED",
+    "v018_s1_preflight_merge_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+    "v018_s1_preflight_post_merge_ci": {
+      "attempt": 1,
+      "conclusion": "success",
+      "event": "push",
+      "failed_jobs": 0,
+      "head_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+      "skipped_jobs": 8,
+      "status": "completed",
+      "success_jobs": 4
+    },
+    "v018_s1_preflight_post_merge_ci_run_id": "38025671165",
+    "v018_s1_preflight_pr": 711,
+    "v018_s1_preflight_pr_head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+    "v018_s1_preflight_review_complete": true,
+    "v018_s1_preflight_review_state": "COMMENTED"
+  },
+  "metric_contract": {
+    "authority_identity_fields": [
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "source_result_hash",
+      "target_date_range",
+      "metric_contract_version"
+    ],
+    "business_date_basis": "SAVED_CURVE_DATE_NO_CLIENT_TIMEZONE_REWRITE",
+    "completeness": {
+      "cross_run_or_cross_family_composition": false,
+      "identity_or_source_hash_mismatch": "AUTHORITY_MISMATCH",
+      "incomplete_child_coverage_is_complete": false,
+      "interpolation_or_extrapolation": false,
+      "missing_or_duplicate_calendar_date": "PARTIAL_OR_NOT_COMPUTABLE",
+      "missing_to_zero": false
+    },
+    "concentration": {
+      "candidate_metrics": [
+        "MAX_ROLLING_7_SHARE",
+        "DAILY_PEAK_TO_MEAN_RATIO",
+        "N_DAY_PREFIX_SHARE"
+      ],
+      "n_days": "PENDING_OWNER_DECISION",
+      "range_and_denominator": "MUST_BE_EXPLICIT_AND_IDENTICAL",
+      "risk_bands": "NOT_DEFINED",
+      "status": "CANDIDATE_NOT_APPROVED",
+      "threshold": "PENDING_OWNER_DECISION",
+      "zero_denominator": "NOT_COMPUTABLE_ZERO_DENOMINATOR"
+    },
+    "consecutive_high_period": {
+      "method": "PENDING_OWNER_DECISION",
+      "minimum_consecutive_days": "PENDING_OWNER_DECISION",
+      "production_alert_semantics": false,
+      "status": "NOT_AVAILABLE_THRESHOLD_UNAPPROVED",
+      "threshold": "PENDING_OWNER_DECISION"
+    },
+    "daily_peak": {
+      "status": "EXISTING_FOR_OPERATIONAL_PEAK_CURVE",
+      "sum_of_child_peaks_allowed": false,
+      "tie_break": "EARLIEST_DATE",
+      "zero_curve_event_status": "NO_POSITIVE_DEMAND"
+    },
+    "h7_prefix": {
+      "definition": "D1_THROUGH_D7_SUM",
+      "same_as_rolling7_max": false
+    },
+    "quantity_unit": "kg",
+    "rolling7_peak": {
+      "definition": "MAXIMUM_SUM_OVER_COMPLETE_CONSECUTIVE_7_CALENDAR_DAY_WINDOWS",
+      "full_15_day_candidate_window_count": 9,
+      "incomplete_declared_range": "PARTIAL_NOT_GLOBAL",
+      "less_than_7_consecutive_days": "NOT_COMPUTABLE_NO_COMPLETE_7DAY_WINDOW",
+      "missing_day_fill": "FORBIDDEN",
+      "status": "CANDIDATE_NOT_IMPLEMENTED_FOR_OPERATIONAL_PEAK",
+      "tie_break": "EARLIEST_START_DATE"
+    }
+  },
+  "owner_decisions": [
+    {
+      "id": "DECISION-01",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "BUSINESS_DATE_AND_TIMEZONE"
+    },
+    {
+      "id": "DECISION-02",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "CONSECUTIVE_HIGH_PERIOD_METHOD_AND_THRESHOLD"
+    },
+    {
+      "id": "DECISION-03",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "CONCENTRATION_METRICS_AND_RANGE"
+    },
+    {
+      "id": "DECISION-04",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "FACTORY_PROCESSING_CAPACITY_DEFINITION_AND_BASIS"
+    },
+    {
+      "id": "DECISION-05",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "BASE_TO_FACTORY_AUTHORITY_PUBLISHER"
+    },
+    {
+      "id": "DECISION-06",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "MULTI_FACTORY_ALLOCATION_AND_TRANSFER_RULES"
+    },
+    {
+      "id": "DECISION-07",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "REPORT_AUDIENCE_AND_APPROVAL"
+    },
+    {
+      "id": "DECISION-08",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "FUTURE_VERSION_IDENTITY_AND_STAGE_BOUNDARY"
+    }
+  ],
+  "quality_research_boundary": {
+    "daily_wape_h15": "0.45061746284274714676741860562477726865031957501063",
+    "daily_wape_h7": "0.42492240428114891228797259913152412125067904816858",
+    "future_owner_authorization_required_for_each_experiment": true,
+    "historical_actual_available_at_proven": false,
+    "historical_row_or_actual_data_access": false,
+    "independent_from_product_roadmap": true,
+    "interval_coverage_h7_h15_under_nominal": true,
+    "interval_coverage_observations": {
+      "H15": {
+        "PI80": {
+          "covered_rows": 63907,
+          "empirical_coverage": "0.50575340297562519784742006964229186451408673630896",
+          "nominal_coverage": "0.8"
+        },
+        "PI90": {
+          "covered_rows": 89832,
+          "empirical_coverage": "0.71092117758784425451092117758784425451092117758784",
+          "nominal_coverage": "0.9"
+        },
+        "UPPER80": {
+          "covered_rows": 89084,
+          "empirical_coverage": "0.70500158277936055713833491611269389047166824944603",
+          "nominal_coverage": "0.8"
+        },
+        "UPPER90": {
+          "covered_rows": 102270,
+          "empirical_coverage": "0.80935422602089268755935422602089268755935422602089",
+          "nominal_coverage": "0.9"
+        },
+        "candidate_rows": 131625,
+        "computable_rows": 126360,
+        "not_computable_rows": 5265
+      },
+      "H7": {
+        "PI80": {
+          "covered_rows": 32368,
+          "empirical_coverage": "0.53892773892773892773892773892773892773892773892774",
+          "nominal_coverage": "0.8"
+        },
+        "PI90": {
+          "covered_rows": 44763,
+          "empirical_coverage": "0.74530469530469530469530469530469530469530469530470",
+          "nominal_coverage": "0.9"
+        },
+        "UPPER80": {
+          "covered_rows": 43325,
+          "empirical_coverage": "0.72136197136197136197136197136197136197136197136197",
+          "nominal_coverage": "0.8"
+        },
+        "UPPER90": {
+          "covered_rows": 49444,
+          "empirical_coverage": "0.82324342324342324342324342324342324342324342324342",
+          "nominal_coverage": "0.9"
+        },
+        "candidate_rows": 61425,
+        "computable_rows": 60060,
+        "not_computable_rows": 1365
+      }
+    },
+    "model_id": "V0_15_S5_M1_RIDGE",
+    "new_training_refit_tuning_scoring_or_calibration": false,
+    "operational_peak_accuracy_proven_by_m1": false,
+    "prospective_accuracy_validated": false,
+    "retrospective_authority_used": true,
+    "rolling7_peak_quantity_mae_kg": "15081.759951705243042507122507122507122507122507123",
+    "rolling7_peak_start_date_mae_days": "3.5376638176638176638176638176638176638176638176638",
+    "season": "2025-2026",
+    "single_day_peak_date_mae_days": "6.1284330484330484330484330484330484330484330484330",
+    "single_day_peak_quantity_mae_kg": "3185.2562525667584237037037037037037037037037037037",
+    "split": "EXPOSED_OOT",
+    "strict_pit": false
+  },
+  "report_provenance": {
+    "client_business_math_allowed": false,
+    "external_report_sharing_authorized": false,
+    "report_generated_at_is_forecast_issuance_time": false,
+    "required_bindings": [
+      "complete_forecast_identity",
+      "source_result_hash",
+      "metric_contract_version",
+      "section_projection_hashes",
+      "date_range_and_coverage",
+      "scenario_and_cost_identity_when_applicable",
+      "synthetic_or_actual_data_mode"
+    ],
+    "server_projection_is_authority": true,
+    "unavailable_sections_may_be_filled_by_report": false
+  },
+  "schema": "PEAK_BUSINESS_R0_METRIC_AND_AUTHORITY_CONTRACT_R1",
+  "source_evidence_count": 54,
+  "source_evidence_sha256": {
+    "backend/app/analytics/peak_metrics.py": "802887e5a88ba2ca37bf9c46f097254f54d99b89048e8a4933691fabf6edaa8b",
+    "backend/app/api/operational_peak_runs.py": "32a527b119b9de2d63f591356453aa46913fa4e1ab48188abb17c711d1aec722",
+    "backend/app/core_forecast/metrics.py": "7621e9a81cbedb2d0097cfa83ccd4f0288df766990b065d47a6f0e1ac77aef7c",
+    "backend/app/core_forecast/schemas.py": "8c66b791b746ace0dc7c903f5a98f16fef5169869217b3a9093942eaa6b13002",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/app/forecast_quality/operational_peak_application.py": "5316615013b7ee72689066525ad339ebe93fbe63c11f08b41288ccd2f5733065",
+    "backend/app/forecast_quality/operational_peak_authority.py": "2bfe44b3ed1521a8a6ff8775724bf40397825eaa6aff128c12f143ab85d8ea30",
+    "backend/app/forecast_quality/operational_peak_persistence.py": "35e9fb6920acb75029b83dc075d9c7f4b73f5206d8848aa9c9a02fc09f0ed4a6",
+    "backend/app/forecast_quality/operational_peak_schemas.py": "d5585026489e79e8dfdbc2bd0c7de62525909ad3f330a751e6d522df528e8fe9",
+    "backend/app/models/operational_peak.py": "8a39318347058d1e8787a793883bdd88b24e86ebe85dcb799f4f56749cb5ddd8",
+    "backend/tests/analytics/test_peak_metrics.py": "df521346c5ff47c7f0dd7a31fb84454216dccd1ba0a1b8ed25be04afeaab2cac",
+    "backend/tests/core_forecast/test_metrics.py": "58745e9d3db013bee9f5e506748dca07fc9fbf86be71f92965e6499ab70df99c",
+    "docs/05_daily_facts_and_peak_metrics.md": "ad94ec5c8541c5f132c9dd848a7467908f2cda8f643d7715b992750a0a39b5ff",
+    "docs/next-version/operational-peak-product-path-s6.md": "e1c462e9fba543b523b5b56b5b3efad292073c0ddfc4b1df60f013a28642492e",
+    "docs/v0-14/evidence/v0.14-s3-real-shadow-prediction-seal-r2.json": "8d47cdc1f81920293a7c8fac1f0fb4c9da1998ef16e1fc83bab2ed64afa09b44",
+    "docs/v0-14/evidence/v0.14-s4-prospective-cohort-operations-closeout-r1.json": "4695956c5871c71117718a0b1cf98c97ec31d88a7430c415180cf7fcebde1ac9",
+    "docs/v0-14/evidence/v0.14.0-version-plan-and-prospective-protocol-freeze-r1.json": "767e5e3b6dbf5af56d9ec4b72cb69fb0818cb98f479dd4768244807f883a2004",
+    "docs/v0-14/v0.14-s3-real-shadow-prediction-seal-r2.md": "402fe96dbed9f3cd49507421099205895ebb433994688e3830c53e6bafaac102",
+    "docs/v0-14/v0.14-s4-prospective-cohort-operations-closeout-r1.md": "cd588c26392946d9a0927635d66f817ade129d5b2ab62cb520aa8b3b2646e997",
+    "docs/v0-14/v0.14.0-closeout.md": "5ac15b75a5e16ff5f44e07029d3a7d8350a6c8e514acbdf481ad1eee83395db1",
+    "docs/v0-14/v0.14.0-version-plan-and-prospective-protocol-freeze.md": "2724112827a652e77083b35da9eb8358ee0c4f0c3160526689c83d01d9155d9d",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-metrics.json": "02319ad9e14bcc855dafa7937c3ba89f373faf9098be20c5f47b9ae1d5d26ba7",
+    "docs/v0-15/v0.15-s1-retrospective-research-cohort-and-split-freeze-r1.md": "fd9dcad9d40a21efa9089b765617e5bcb2f5b20e9bf2238c02ef346e51e965a1",
+    "docs/v0-15/v0.15-s5-harvest-state-incremental-value-r1.md": "523264b91bf2036394ed82a614e83564bab111aaf1cfdce8365eaffd41eb0227",
+    "docs/v0-15/v0.15.0-closeout.md": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/v0.16-s1-hierarchical-forecast-reconciliation-r1.md": "c0bcbf362ba5e855774a203bc054c2de221e3510447e3a42e2086c58bca747c4",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-16/v0.16-s5-business-loss-contract-r1.md": "841d06290369e2ec2da1367a35576496d928591dfa77114e8ac0d7af95cab307",
+    "docs/v0-16/v0.16-s6-what-if-decision-simulator-r1.md": "f25641349fd4e229a23cb41dedcd76d4bd6b069b67e4354dc996ba7ac2203083",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json": "8e5185a139ec106edb80393db2047de6398300e1035eeee2b7b85167ba017b14",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r2.md": "473ea0a41535c857a208d00da8b0e97b943dec91df4c710dad55935eb7d9270c",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "synthetic_contract_examples": {
+    "aggregate_curve_then_peak": {
+      "aggregate_daily_kg": [
+        10,
+        10
+      ],
+      "aggregate_peak_kg": 10,
+      "base_a_kg": [
+        10,
+        0
+      ],
+      "base_b_kg": [
+        0,
+        10
+      ],
+      "sum_of_child_peaks_kg_forbidden": 20
+    },
+    "daily_peak_tie": {
+      "selected_day_index_1_based": 2,
+      "values_kg": [
+        5,
+        9,
+        9
+      ]
+    },
+    "incomplete_calendar_is_not_filled": true,
+    "incomplete_child_coverage_status": "INCOMPLETE_CHILD_COVERAGE",
+    "multi_factory_with_explicit_share_example": {
+      "exact_sum": "1.0",
+      "implies_real_assignment": false,
+      "shares": [
+        "0.6",
+        "0.4"
+      ],
+      "synthetic": true
+    },
+    "multi_factory_without_authorized_mapping_status": "NOT_AVAILABLE",
+    "prefix_vs_rolling7": {
+      "full_15_day_window_count": 9,
+      "h7_prefix_kg": 70,
+      "rolling7_max_kg": 250,
+      "rolling7_start_day_index_1_based": 3,
+      "values_kg": [
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        100,
+        100,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "source_hash_or_run_identity_mismatch_status": "AUTHORITY_MISMATCH",
+    "synthetic": true,
+    "zero_denominator_status": "NOT_COMPUTABLE_ZERO_DENOMINATOR"
+  },
+  "task_id": "PEAK_BUSINESS_R0_METRIC_AND_AUTHORITY_CONTRACT_R1",
+  "workflow_identifier": "PEAK_BUSINESS"
+}
