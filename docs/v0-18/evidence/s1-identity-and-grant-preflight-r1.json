@@ -1,0 +1,228 @@
+{
+  "adaptation_review": {
+    "dashboard": {
+      "advanced_identity_input_is_authorization": false,
+      "business_run_discovery_available": false,
+      "normal_user_login_available": false,
+      "transport": "SAME_ORIGIN_HTTP_API_CLIENT_NO_END_USER_BFF_SESSION"
+    },
+    "http": {
+      "business_repository_read_before_permission_tested_zero": true,
+      "current_actor_source": "SERVER_CONFIG_TRIAL_ACTOR_ENVIRONMENT",
+      "end_user_resource_acl_available": false,
+      "existing_permission_names": [
+        "may_read_forecast",
+        "may_read_quality"
+      ],
+      "future_requirement": "AUTHENTICATE_CAPABILITY_AND_EXACT_GRANT_BEFORE_BUSINESS_REPOSITORY_OR_EVIDENCE_READ",
+      "route_permission_check_is_inside_handler_after_service_dependency_resolution": true,
+      "s1_s2_business_payload_and_math_change_allowed": false
+    },
+    "mcp": {
+      "end_user_delegation_available": false,
+      "end_user_delegation_client_compatibility": "UNVERIFIED",
+      "existing_authentication": "SERVER_OWNED_X_FORECAST_INTELLIGENCE_KEY_SERVICE_ACCOUNT",
+      "existing_quality_grant_independent": true,
+      "existing_run_grant_binds_full_forecast_identity_and_source_hash": true,
+      "service_account_is_end_user": false,
+      "tool_count": 8,
+      "tool_names_change_allowed": false
+    },
+    "trial_actor": {
+      "identity_is_oidc_authenticated_user": false,
+      "load_source": "TRIAL_ACTOR_IDENTITY_AND_SCOPE_ENVIRONMENT",
+      "missing_configuration_fails_closed": true,
+      "per_user_or_per_base_acl": false
+    }
+  },
+  "authorized_scope": "DESIGN_AND_ADAPTATION_REVIEW_ONLY",
+  "base_main_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+  "identity_provider_review": {
+    "company_enterprise_provider_verified": false,
+    "company_provider_status": "UNVERIFIED",
+    "recommended_architecture": "CONDITIONALLY_RECOMMENDED_ENTERPRISE_OIDC_AUTHORIZATION_CODE_PKCE_S256_SAME_ORIGIN_BFF_SERVER_SESSION",
+    "repository_oidc_bff_runtime_found": false,
+    "selection_status": "PENDING_OWNER_DECISION",
+    "unverified_inputs": [
+      "TRUSTED_ISSUER_AND_TENANT",
+      "OIDC_CLIENT_REGISTRATION_AND_EXACT_REDIRECTS",
+      "MFA_AND_ACCOUNT_DEPROVISIONING_SUPPORT",
+      "TRUSTED_ORGANIZATION_MEMBERSHIP_SOURCE",
+      "BFF_HOSTING_AND_SESSION_STORE",
+      "IDENTITY_AND_SECURITY_OPERATIONS_OWNER"
+    ]
+  },
+  "live_preflight": {
+    "latest_formal_release": "v0.17.0",
+    "main_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+    "open_v018_s1_pr_found": false,
+    "open_v018_s1_remote_branch_found": false,
+    "s0_exact_head_ci_attempt": 1,
+    "s0_exact_head_ci_conclusion": "success",
+    "s0_exact_head_ci_jobs": "12_SUCCESS_0_FAILED_0_SKIPPED",
+    "s0_exact_head_ci_run_id": "38014489131",
+    "s0_formal_complete_confirmed": true,
+    "s0_independent_review_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+    "s0_independent_review_id": "5477145147",
+    "s0_main_post_merge_ci_attempt": 1,
+    "s0_main_post_merge_ci_conclusion": "success",
+    "s0_main_post_merge_ci_event": "push",
+    "s0_main_post_merge_ci_head_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+    "s0_main_post_merge_ci_jobs": "4_SUCCESS_8_WORKFLOW_SKIPPED",
+    "s0_main_post_merge_ci_run_id": "38017386758",
+    "s0_merge_commit_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+    "s0_pr_base_sha": "1b218edc74ff29091c07607ddbcdba0c10577398",
+    "s0_pr_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+    "s0_pr_number": 710,
+    "s0_pr_state": "MERGED",
+    "s0_review_result": "PASS",
+    "s0_reviewed_post_merge_comment_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/710#issuecomment-6093212503"
+  },
+  "normative_sources": [
+    {
+      "accessed_date": "2026-10-10",
+      "name": "OAuth 2.0 Security Best Current Practice",
+      "url": "https://www.rfc-editor.org/rfc/rfc9700.html",
+      "version": "RFC9700"
+    },
+    {
+      "accessed_date": "2026-10-10",
+      "name": "OpenID Connect Core 1.0 incorporating errata set 2",
+      "url": "https://openid.net/specs/openid-connect-core-1_0-errata2.html",
+      "version": "OIDC_CORE_1_0_ERRATA_2"
+    },
+    {
+      "accessed_date": "2026-10-10",
+      "name": "Model Context Protocol Authorization",
+      "url": "https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization",
+      "version": "2025-11-25"
+    },
+    {
+      "accessed_date": "2026-10-10",
+      "name": "Keycloak Server Administration Guide",
+      "url": "https://www.keycloak.org/docs/26.8.0/server_admin/",
+      "version": "26.8.0_REFERENCE_ONLY_NOT_CONFIGURED"
+    }
+  ],
+  "owner_authorized": true,
+  "owner_decisions": [
+    {
+      "decision_id": "DECISION-01",
+      "status": "PENDING_OWNER_DECISION",
+      "topic": "TRUSTED_IDENTITY_PROVIDER_AND_ISSUER"
+    },
+    {
+      "decision_id": "DECISION-02",
+      "status": "RECOMMENDED_PENDING_OWNER_DECISION",
+      "topic": "SAME_ORIGIN_BFF_AND_SERVER_SESSION"
+    },
+    {
+      "decision_id": "DECISION-03",
+      "status": "RECOMMENDED_PENDING_IDENTITY_LIFECYCLE_OWNER",
+      "topic": "ISSUER_SUBJECT_TO_INTERNAL_PRINCIPAL_MAPPING"
+    },
+    {
+      "decision_id": "DECISION-04",
+      "status": "BLOCKER_PENDING_OWNER_DECISION",
+      "topic": "TRUSTED_GRANT_PUBLISHER_AND_ORGANIZATION_BOUNDARY_SOURCE"
+    },
+    {
+      "decision_id": "DECISION-05",
+      "status": "RECOMMENDED_FOR_LIMITED_SYNTHETIC_PILOT_PENDING_OWNER_DECISION",
+      "topic": "VERSIONED_GRANT_CONFIG_VS_INDEPENDENT_AUTHORIZATION_STORE"
+    },
+    {
+      "decision_id": "DECISION-06",
+      "status": "BLOCKER_UNVERIFIED_CLIENT_COMPATIBILITY",
+      "topic": "MCP_END_USER_DELEGATION"
+    }
+  ],
+  "principal_mapping": {
+    "email_or_display_name_is_identity_key": false,
+    "end_user_key": [
+      "validated_issuer",
+      "case_sensitive_subject"
+    ],
+    "internal_principal_id": "SERVER_OWNED_IMMUTABLE_IDENTIFIER",
+    "principal_types": [
+      "END_USER",
+      "SERVICE_ACCOUNT"
+    ],
+    "service_account_is_end_user": false
+  },
+  "resource_authorization_design": {
+    "base_region_company_grants_independent": true,
+    "client_supplied_actor_or_source_system_authorizes": false,
+    "default_deny": true,
+    "grant_storage_candidate": "VERSIONED_APPROVED_CONFIG_FOR_LIMITED_LOW_CHURN_SYNTHETIC_PILOT; INDEPENDENT_STORE_REQUIRES_SEPARATE_SCHEMA_AUTHORIZATION",
+    "grant_storage_selection": "PENDING_OWNER_DECISION",
+    "grant_verification_order": [
+      "TRUSTED_AUTHENTICATION",
+      "PRINCIPAL_STATUS",
+      "CAPABILITY",
+      "ORGANIZATION_SCOPE_AND_EXACT_RESOURCE_GRANT",
+      "CANONICAL_BUSINESS_READ",
+      "IDENTITY_AND_SOURCE_HASH_RECHECK",
+      "FROZEN_S1_S2_SERVICE",
+      "PRE_RESPONSE_GRANT_REVISION_RECHECK"
+    ],
+    "hierarchy_registry_used_as_acl": false,
+    "missing_or_ungranted_resource_existence_disclosed": false,
+    "quality_grant_independent": true,
+    "resource_grant_binds_complete_forecast_identity_and_source_hash": true,
+    "unauthorized_business_read_expected": 0,
+    "unauthorized_quality_evidence_read_expected": 0,
+    "unauthorized_simulation_expected": 0,
+    "wildcard_or_allow_all": false
+  },
+  "s1_implementation_authorized": false,
+  "scope": {
+    "database_migration_created": false,
+    "identity_provider_connected": false,
+    "production_code_changed": false,
+    "production_database_connected": false,
+    "production_user_created": false,
+    "real_secret_created": false,
+    "s1_implementation_authorized": false,
+    "sensitive_business_data_read": false
+  },
+  "source_evidence_count": 34,
+  "source_evidence_sha256": {
+    "backend/app/actual_harvest_import/api_auth.py": "59548ae9afcaae17edf646a20b94e6190da92eadbe050f6bda06f6763467ddfd",
+    "backend/app/api/forecast_intelligence_decision.py": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/db/session.py": "1760ed25857205893dfd6b2fc9c167caf26d1182f47f220b37621c5b0da6382b",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/main.py": "4820eccedf90ab409501551c02098a721833c37b523fa235bda96f30b5633939",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_http.py": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+    "backend/app/mcp/forecast_intelligence_server.py": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+    "backend/app/mcp/forecast_intelligence_tools.py": "3d4d6ec2ab6d0bcd6895f64393cf25e37e26f9c2a6878a39bbb260177f6377cd",
+    "backend/app/trial.py": "131ade420874d20fe20a1bd29c5f1e000fa5401a1f10469fcdad2b2344a38715",
+    "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py": "e88ddc461e11207f3e2c9b0105a0fbb3ce8e4b3b71223c3493d0649d82cf49a5",
+    "backend/tests/forecast_intelligence/test_v0_17_s2_decision_api.py": "82af7ae999f7774bcaa226f1ff955caf9f0f230bc0611c7187d82cbba986b615",
+    "backend/tests/forecast_intelligence/test_v0_17_s3_read_access.py": "799a102bdaad793c8f7590dac1797bf9c0a5fa6c7cccaefe949042eac3219647",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+    "backend/tests/mcp/test_v0_17_s3_productization.py": "355df00cdd64d8e2f09a8b8ce6a84f32a9d7b26328c62de787e07ad90b2ccd2e",
+    "backend/tests/mcp/test_v0_17_s3_safety.py": "fca9468a503d9f5de478faf9f46af8a3c43492c212d2e7d0a374b1ec74ce3410",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78",
+    "frontend/package.json": "a792c2afecc7fcbcbac21543c19435e3d8031063fd66f6397cbc9283a3d6a7ac",
+    "frontend/src/dashboard/api/client.ts": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "6d85a3910d611098769b6f95cb18a58f6c2ad8edd50b377085ca3d6a43437bac",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce",
+    "pyproject.toml": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+    "uv.lock": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218"
+  },
+  "task_id": "V0_18_S1_IDENTITY_AND_GRANT_AUTHORITY_PREFLIGHT_R1",
+  "version": "0.18.0"
+}
