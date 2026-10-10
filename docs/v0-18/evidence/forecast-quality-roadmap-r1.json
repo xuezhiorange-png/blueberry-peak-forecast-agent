@@ -1,0 +1,330 @@
+{
+  "base_main_sha": "1b218edc74ff29091c07607ddbcdba0c10577398",
+  "business_threshold": null,
+  "document_sha256": {
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "execution_boundaries": {
+    "calibration_replay": false,
+    "ci_workflow_changed": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "db_migration_created": false,
+    "dependency_changed": false,
+    "forecast_execution": false,
+    "frozen_v017_changed": false,
+    "model_refit": false,
+    "model_training": false,
+    "model_tuning": false,
+    "private_data_read": false,
+    "production_code_changed": false,
+    "production_database_connected": false,
+    "production_deployed": false,
+    "quality_scoring": false,
+    "simulation_experiment": false
+  },
+  "frozen_baseline": {
+    "coverage": {
+      "H15": {
+        "PI80": {
+          "candidate_row_count": 131625,
+          "computable_row_count": 126360,
+          "coverage_gap": "-0.29424659702437480215257993035770813548591326369104",
+          "covered_row_count": 63907,
+          "empirical_coverage": "0.50575340297562519784742006964229186451408673630896",
+          "max_interval_width_kg": "8239.736637316244",
+          "mean_interval_width_kg": "3248.0004848026838394982589427033871478315922760367",
+          "median_interval_width_kg": "3277.046939964032",
+          "min_interval_width_kg": "30.104352186862",
+          "nominal_coverage": "0.8",
+          "not_computable_row_count": 5265,
+          "observation": "UNDER_NOMINAL"
+        },
+        "PI90": {
+          "candidate_row_count": 131625,
+          "computable_row_count": 126360,
+          "coverage_gap": "-0.18907882241215574548907882241215574548907882241216",
+          "covered_row_count": 89832,
+          "empirical_coverage": "0.71092117758784425451092117758784425451092117758784",
+          "max_interval_width_kg": "13676.506675316234",
+          "mean_interval_width_kg": "5603.3720846030354601297879075656853434631212408990",
+          "median_interval_width_kg": "5779.548311314379",
+          "min_interval_width_kg": "112.853699124315",
+          "nominal_coverage": "0.9",
+          "not_computable_row_count": 5265,
+          "observation": "UNDER_NOMINAL"
+        },
+        "UPPER80": {
+          "candidate_row_count": 131625,
+          "computable_row_count": 126360,
+          "coverage_gap": "-0.09499841722063944286166508388730610952833175055397",
+          "covered_row_count": 89084,
+          "empirical_coverage": "0.70500158277936055713833491611269389047166824944603",
+          "mean_upper_expansion_kg": "799.31657568375390956790123456790123456790123456790",
+          "median_upper_expansion_kg": "878.4014706136145",
+          "nominal_coverage": "0.8",
+          "not_computable_row_count": 5265,
+          "observation": "UNDER_NOMINAL"
+        },
+        "UPPER90": {
+          "candidate_row_count": 131625,
+          "computable_row_count": 126360,
+          "coverage_gap": "-0.09064577397910731244064577397910731244064577397911",
+          "covered_row_count": 102270,
+          "empirical_coverage": "0.80935422602089268755935422602089268755935422602089",
+          "mean_upper_expansion_kg": "2164.0036573136863280864197530864197530864197530864",
+          "median_upper_expansion_kg": "2510.275983043778",
+          "nominal_coverage": "0.9",
+          "not_computable_row_count": 5265,
+          "observation": "UNDER_NOMINAL"
+        }
+      },
+      "H7": {
+        "PI80": {
+          "candidate_row_count": 61425,
+          "computable_row_count": 60060,
+          "coverage_gap": "-0.26107226107226107226107226107226107226107226107226",
+          "covered_row_count": 32368,
+          "empirical_coverage": "0.53892773892773892773892773892773892773892773892774",
+          "max_interval_width_kg": "6943.869223644480",
+          "mean_interval_width_kg": "2892.9289543938008836496836496836496836496836496836",
+          "median_interval_width_kg": "2963.730200683408",
+          "min_interval_width_kg": "53.126986010794",
+          "nominal_coverage": "0.8",
+          "not_computable_row_count": 1365,
+          "observation": "UNDER_NOMINAL"
+        },
+        "PI90": {
+          "candidate_row_count": 61425,
+          "computable_row_count": 60060,
+          "coverage_gap": "-0.15469530469530469530469530469530469530469530469530",
+          "covered_row_count": 44763,
+          "empirical_coverage": "0.74530469530469530469530469530469530469530469530470",
+          "max_interval_width_kg": "11549.866053925068",
+          "mean_interval_width_kg": "4978.9131825944959756909756909756909756909756909757",
+          "median_interval_width_kg": "5122.313135421242",
+          "min_interval_width_kg": "138.765775245914",
+          "nominal_coverage": "0.9",
+          "not_computable_row_count": 1365,
+          "observation": "UNDER_NOMINAL"
+        },
+        "UPPER80": {
+          "candidate_row_count": 61425,
+          "computable_row_count": 60060,
+          "coverage_gap": "-0.07863802863802863802863802863802863802863802863803",
+          "covered_row_count": 43325,
+          "empirical_coverage": "0.72136197136197136197136197136197136197136197136197",
+          "mean_upper_expansion_kg": "579.45948507567357467532467532467532467532467532468",
+          "median_upper_expansion_kg": "670.258718799021",
+          "nominal_coverage": "0.8",
+          "not_computable_row_count": 1365,
+          "observation": "UNDER_NOMINAL"
+        },
+        "UPPER90": {
+          "candidate_row_count": 61425,
+          "computable_row_count": 60060,
+          "coverage_gap": "-0.07675657675657675657675657675657675657675657675658",
+          "covered_row_count": 49444,
+          "empirical_coverage": "0.82324342324342324342324342324342324342324342324342",
+          "mean_upper_expansion_kg": "1753.0262616087176824675324675324675324675324675325",
+          "median_upper_expansion_kg": "2211.681235407943",
+          "nominal_coverage": "0.9",
+          "not_computable_row_count": 1365,
+          "observation": "UNDER_NOMINAL"
+        }
+      }
+    },
+    "cumulative_wape": {
+      "H15": "0.34911095982658588459272749739273097300626628279606",
+      "H7": "0.35195638653247035996985638640668303029086949011106"
+    },
+    "daily_wape": {
+      "H15": "0.45061746284274714676741860562477726865031957501063",
+      "H7": "0.42492240428114891228797259913152412125067904816858"
+    },
+    "historical_available_at_proven": false,
+    "model_id": "V0_15_S5_M1_RIDGE",
+    "operational_peak_is_m1": false,
+    "origin_count": 8775,
+    "peak_metrics": {
+      "ROLLING7_PEAK_QUANTITY_MAE_KG": "15081.759951705243042507122507122507122507122507123",
+      "ROLLING7_PEAK_START_DATE_MAE_DAYS": "3.5376638176638176638176638176638176638176638176638",
+      "SINGLE_DAY_PEAK_DATE_MAE_DAYS": "6.1284330484330484330484330484330484330484330484330",
+      "SINGLE_DAY_PEAK_QUANTITY_MAE_KG": "3185.2562525667584237037037037037037037037037037037"
+    },
+    "retrospective_authority_used": true,
+    "season": "2025-2026",
+    "split": "EXPOSED_OOT",
+    "strict_pit": false,
+    "target_row_count": 131625
+  },
+  "governance": {
+    "current_season_actual_access_authorized": false,
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "model_training_authorized": false,
+    "owner_authorized": true,
+    "production_code_authorized": false,
+    "quality_roadmap_document_authorized": true,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s0_formal_complete": false,
+    "s0_planning_authorized": true,
+    "s1_to_s6_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false,
+    "version_closeout_authorized": false,
+    "version_complete": false
+  },
+  "new_accuracy_target": null,
+  "production_readiness": "NOT_READY",
+  "schema": "FORECAST_QUALITY_IMPROVEMENT_ROADMAP_R1",
+  "scope": "INDEPENDENT_QUALITY_PLANNING_ONLY_NOT_V018_IMPLEMENTATION",
+  "source_evidence_count": 23,
+  "source_evidence_sha256": {
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_server.py": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-metrics.json": "02319ad9e14bcc855dafa7937c3ba89f373faf9098be20c5f47b9ae1d5d26ba7",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/s5-experiment-contract.json": "bc590a028f205a4d41b97c6588d4b2799ea87426120b17f2384cec9f51283217",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-manifest-r1.json": "7034b70ca25fffdc6403fda3f3673d65abffb48fae39e3789581c40841dc7b54",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json": "8e5185a139ec106edb80393db2047de6398300e1035eeee2b7b85167ba017b14",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3"
+  },
+  "task_id": "V0_18_S0_BUSINESS_USABILITY_SCOPE_FREEZE_R1",
+  "threshold_authority": "FUTURE_OWNER_DECISION_BEFORE_EVALUATION",
+  "tracks": {
+    "Q1": {
+      "deliverables": [
+        "SOURCE_BOUND_ERROR_SLICE_PROTOCOL",
+        "PAIRED_OR_NONCOMPARABLE_MATRIX",
+        "DENOMINATOR_AND_MISSINGNESS_ACCOUNTING"
+      ],
+      "entry_gate": "OWNER_SOURCE_LABEL_PREDICTION_SEALS_AND_COMPARISON_CONTRACT_AUTHORIZATION",
+      "execution_authorized": false,
+      "name": "HISTORICAL_ERROR_AND_SAMPLE_COMPARABILITY",
+      "paired_key": [
+        "model_family",
+        "fit_state",
+        "base_scope",
+        "origin",
+        "lead",
+        "target_date",
+        "label_authority"
+      ],
+      "post_result_bucketing_allowed": false,
+      "uncertainty_dependence_unit": "ORIGIN_TIME_BASE_CLUSTER",
+      "zero_denominator": "NOT_COMPUTABLE_NO_EPSILON"
+    },
+    "Q2": {
+      "date_tolerance_days": null,
+      "deliverables": [
+        "SIGNED_AND_ABSOLUTE_DATE_SHIFT",
+        "PEAK_QUANTITY_MAE_AND_BIAS",
+        "ROLLING7_START_AND_QUANTITY_ERRORS",
+        "COMPUTABLE_COUNTS"
+      ],
+      "entry_gate": "OWNER_PREDECLARED_PEAK_METRIC_PROTOCOL",
+      "execution_authorized": false,
+      "legacy_metric_redefined": false,
+      "name": "PEAK_DATE_QUANTITY_AND_ROLLING7_EVALUATION",
+      "rolling7_start_count_in_h15": 9,
+      "short_window": "SEPARATE_NOT_IN_FULL_WINDOW_DENOMINATOR",
+      "window_policy": "SAME_COMPLETE_D1_D15_EARLIEST_TIE_ROLLING7_COMPLETE_7_DAYS",
+      "zero_actual_peak": "NO_POSITIVE_ACTUAL_PEAK_NO_RELATIVE_ERROR"
+    },
+    "Q3": {
+      "coverage_grain": "DAILY_TARGET_ROWS_NOT_CUMULATIVE_INTERVAL",
+      "deliverables": [
+        "COVERAGE_GAP_WIDTH_EXPANSION",
+        "CANDIDATE_COMPUTABLE_NOT_COMPUTABLE_COVERED_COUNTS",
+        "PREDECLARED_LEAD_SCALE_SEASON_DIAGNOSTICS",
+        "DEPENDENCE_AWARE_RELIABILITY_PLAN"
+      ],
+      "entry_gate": "OWNER_CALIBRATION_EVALUATION_SEPARATION_PROTOCOL",
+      "execution_authorized": false,
+      "name": "INTERVAL_COVERAGE_AND_RELIABILITY",
+      "nominal_coverage_is_future_guarantee": false,
+      "retune_frozen_s2": false,
+      "sum_base_bounds_for_aggregate": false
+    },
+    "Q4": {
+      "date_anchor_is_issuance": false,
+      "deliverables": [
+        "APPEND_ONLY_AVAILABILITY_LEDGER",
+        "PRELABEL_PREDICTION_SEAL",
+        "AS_ISSUED_RECEIPT_AND_SCORING_MATURITY_PROTOCOL"
+      ],
+      "entry_gate": "OWNER_CUSTODY_TIMESTAMP_SOURCE_AUTHORITY_APPROVAL",
+      "execution_authorized": false,
+      "missing_available_at": "NOT_PROVEN_RETROSPECTIVE_NOT_STRICT_PIT",
+      "name": "ORIGIN_AVAILABILITY_AND_ISSUANCE_PROTOCOL",
+      "required_receipts": [
+        "FORECAST_ORIGIN",
+        "SOURCE_AVAILABLE_AT",
+        "INGESTED_AT",
+        "AS_ISSUED_AT",
+        "MODEL_AND_INPUT_SEAL",
+        "ACTUAL_AVAILABLE_AT",
+        "SCORING_CUTOFF"
+      ]
+    },
+    "Q5": {
+      "deliverables": [
+        "PREREGISTERED_AB_PROTOCOL",
+        "TARGET_FIREWALL_MANIFEST",
+        "PAIRED_TIME_SEASON_HELD_SCOPE_EVALUATION",
+        "FAILURE_AND_STOP_CUSTODY"
+      ],
+      "entry_gate": "OWNER_MODEL_DATA_FEATURE_SPLIT_AND_EXPERIMENT_BUDGET_AUTHORIZATION",
+      "execution_authorized": false,
+      "exposed_oot_is_blind": false,
+      "name": "FUTURE_MODEL_AB_AND_LABEL_LEAKAGE_PREVENTION",
+      "post_holdout_tuning_allowed": false,
+      "random_adjacent_split_allowed": false,
+      "scaler_fit": "TRAIN_ONLY_OR_EXPLICIT_FINAL_FIT_CONTRACT_NO_EVALUATION",
+      "score_order": [
+        "SEAL_PREDICTIONS",
+        "INDEPENDENT_LABEL_READER",
+        "SCORE"
+      ],
+      "unknown_feature_column": "FAIL_CLOSED"
+    },
+    "Q6": {
+      "actual_access_requires_separate_owner_authorization": true,
+      "business_error_tolerance": null,
+      "current_actual_available": false,
+      "deliverables": [
+        "COHORT_AND_CUTOFF_AUTHORITY",
+        "AS_ISSUED_PRELABEL_SEALS",
+        "MATURE_LABEL_CUSTODY",
+        "REVIEWED_VALIDATION_RECEIPT",
+        "OWNER_THRESHOLD_AND_PROMOTION_DECISION"
+      ],
+      "entry_gate": "OWNER_REAL_DATA_PRIVACY_ACCESS_AND_SEPARATE_SCORING_AUTHORIZATION",
+      "execution_authorized": false,
+      "min_sample_count": null,
+      "name": "PROSPECTIVE_DATA_ENTRY_AND_VALIDATION_GATES",
+      "promotion_automatic": false
+    }
+  },
+  "version": "0.18.0"
+}
