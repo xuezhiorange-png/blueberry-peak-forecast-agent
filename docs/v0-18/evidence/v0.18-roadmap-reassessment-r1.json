@@ -1,0 +1,779 @@
+{
+  "base_main_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+  "capability_inventory": {
+    "core_forecast": {
+      "destination_factory_scoped_run_exists_in_code": true,
+      "destination_factory_to_operational_peak_base_mapping_proven": false,
+      "effective_harvest_capacity_is_processing_throughput": false,
+      "forecast_intelligence_dashboard_exposed": false,
+      "forecast_intelligence_http_exposed": false,
+      "forecast_intelligence_mcp_exposed": false,
+      "persisted_domain_and_cli_lane_exists": true,
+      "quantile_types_prove_calibration": false,
+      "single_day_and_sustained_seven_day_metrics_exist": true
+    },
+    "dashboard": {
+      "current_run_discovery": false,
+      "server_authoritative_s2_scenarios": true,
+      "source_bound_general_forecast_report_export": false,
+      "top_level_pages": [
+        "OVERVIEW",
+        "FORECAST",
+        "ATTRIBUTION",
+        "CAPACITY_SIMULATOR",
+        "QUALITY"
+      ]
+    },
+    "mcp": {
+      "end_user_delegation_validated": false,
+      "production_configured": false,
+      "tool_count": 8,
+      "tools_share_s1_s2_authority": true
+    },
+    "operational_peak": {
+      "baseline": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "consecutive_high_period_contract": false,
+      "descriptive_high_load_ordering": true,
+      "factory_assignment_contract": false,
+      "family": "OPERATIONAL_PEAK_FORECAST_RUN_V1",
+      "processing_capacity_contract": false,
+      "production_accuracy_validated": false,
+      "rolling_seven_maximum_contract": false,
+      "run_bound_m1_attribution_authority": false,
+      "run_bound_upper80_authority": false,
+      "run_bound_upper90_authority": false,
+      "saved_base_daily_curve": true,
+      "saved_curve_single_day_peak": true,
+      "saved_h7_h15_prefixes": true
+    },
+    "reports": {
+      "general_forecast_intelligence_report_contract": false,
+      "unrelated_residual_model_report_endpoints_exist": true
+    },
+    "v0_16": {
+      "automatic_optimization": false,
+      "hierarchy": [
+        "BASE",
+        "REGION",
+        "COMPANY"
+      ],
+      "missing_child_is_zero": false,
+      "real_company_cost_established": false,
+      "real_roi_validated": false,
+      "synthetic_capacity_scenarios": true
+    },
+    "v0_17": {
+      "dashboard_page_count": 5,
+      "decision_support_api": true,
+      "mcp_tool_count": 8,
+      "production_readiness": "NOT_READY",
+      "read_capability_count": 6,
+      "service_layer": true,
+      "synthetic_cross_surface_acceptance": true
+    }
+  },
+  "classification": {
+    "designable_without_new_business_data": [
+      "BUSINESS_METRIC_AND_AUTHORITY_CONTRACTS",
+      "TRACEABLE_REPORT_TEMPLATE_FROM_AUTHORIZED_SAVED_RESPONSE",
+      "ISOLATED_SYNTHETIC_CONTRACT_TESTS"
+    ],
+    "existing_saved_forecast_only_after_separate_access_authorization": [
+      "SERVER_SIDE_PEAK_WINDOW_PROJECTION",
+      "EXPLICIT_USER_CAPACITY_SCENARIO_USING_FROZEN_S2_ENGINE"
+    ],
+    "must_wait_for_authorized_real_operational_data": [
+      "PROSPECTIVE_OPERATIONAL_PEAK_ACCURACY",
+      "CURRENT_SEASON_SCORING",
+      "AUTHORITATIVE_BASE_FACTORY_ASSIGNMENT",
+      "FACTORY_PROCESSING_CAPACITY",
+      "CANONICAL_COMPANY_COST_AND_ROI",
+      "PRODUCTION_PILOT_CLAIMS"
+    ],
+    "requires_separate_historical_research_data_authorization": [
+      "NEW_ACTUAL_VS_FORECAST_ERROR_SLICES",
+      "OPERATIONAL_PEAK_HISTORICAL_SCORING",
+      "CROSS_FAMILY_MODEL_COMPARISON",
+      "CALIBRATION_OR_RESCORING"
+    ]
+  },
+  "current_version_scope": {
+    "historical_s0_s6_declared_superseded": false,
+    "preserved": true,
+    "s0_formal_complete": true,
+    "s1_identity_auth_implementation_paused": true,
+    "s1_implementation_authorized": false,
+    "s1_preflight_formal_complete": true,
+    "scope_amendment_recommended": false,
+    "version": "0.18.0",
+    "version_name": "BUSINESS_USABILITY_AND_SAFE_PILOT_FOUNDATION"
+  },
+  "document_sha256": {
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8"
+  },
+  "execution_boundaries": {
+    "calibration_replay": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "database_migration_created": false,
+    "deployment": false,
+    "historical_rescoring": false,
+    "identity_auth_implementation": false,
+    "model_experiment": false,
+    "model_refit": false,
+    "model_training": false,
+    "model_tuning": false,
+    "private_business_data_read": false,
+    "production_code_changed": false,
+    "production_database_connected": false,
+    "simulation_experiment": false
+  },
+  "governance_recommendation": {
+    "future_version_name": null,
+    "future_version_number": null,
+    "future_version_status": "PENDING_OWNER_DECISION",
+    "no_stage_in_this_roadmap_is_authorized": true,
+    "peak_business_capability_governance": "SEPARATE_FUTURE_OWNER_APPROVED_VERSION_PROPOSAL",
+    "quality_research_is_implementation_authorization": false
+  },
+  "live_preflight": {
+    "latest_formal_release": "v0.17.0",
+    "latest_release_draft": false,
+    "latest_release_prerelease": false,
+    "main_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+    "parallel_v018_roadmap_pr_found": false,
+    "s0": {
+      "exact_head_pr_ci_attempt": 1,
+      "exact_head_pr_ci_conclusion": "success",
+      "exact_head_pr_ci_event": "pull_request",
+      "exact_head_pr_ci_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+      "exact_head_pr_ci_jobs": "12_SUCCESS_0_SKIPPED",
+      "exact_head_pr_ci_run_id": 38014489131,
+      "exact_head_pr_ci_status": "completed",
+      "formal_complete_confirmed": true,
+      "merge_commit_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "merge_parents": [
+        "1b218edc74ff29091c07607ddbcdba0c10577398",
+        "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4"
+      ],
+      "owner_formal_receipt_comment_id": 6093212503,
+      "post_merge_main_ci_attempt": 1,
+      "post_merge_main_ci_conclusion": "success",
+      "post_merge_main_ci_event": "push",
+      "post_merge_main_ci_head_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "post_merge_main_ci_jobs": "4_SUCCESS_8_WORKFLOW_SKIPPED",
+      "post_merge_main_ci_run_id": 38017386758,
+      "post_merge_main_ci_status": "completed",
+      "pr_base_sha": "1b218edc74ff29091c07607ddbcdba0c10577398",
+      "pr_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+      "pr_number": 710,
+      "pr_state": "MERGED"
+    },
+    "s1_preflight": {
+      "exact_head_pr_ci_attempt": 1,
+      "exact_head_pr_ci_conclusion": "success",
+      "exact_head_pr_ci_event": "pull_request",
+      "exact_head_pr_ci_head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "exact_head_pr_ci_jobs": "12_SUCCESS_0_SKIPPED",
+      "exact_head_pr_ci_run_id": 38021408217,
+      "exact_head_pr_ci_status": "completed",
+      "exact_head_review_commit_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "exact_head_review_id": 5477662925,
+      "formal_preflight_complete_confirmed": true,
+      "implementation_authorized": false,
+      "merge_commit_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+      "merge_parents": [
+        "52b5a80f89c59130917b29c9097d63076eab4acb",
+        "be32c1084601d2b02e89c952ccc78312e213112a"
+      ],
+      "owner_decisions_pending": [
+        "DECISION-01",
+        "DECISION-02",
+        "DECISION-03",
+        "DECISION-04",
+        "DECISION-05",
+        "DECISION-06"
+      ],
+      "owner_formal_receipt_comment_id": 6094353334,
+      "post_merge_main_ci_attempt": 1,
+      "post_merge_main_ci_conclusion": "success",
+      "post_merge_main_ci_event": "push",
+      "post_merge_main_ci_head_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+      "post_merge_main_ci_jobs": "4_SUCCESS_8_WORKFLOW_SKIPPED",
+      "post_merge_main_ci_run_id": 38025671165,
+      "post_merge_main_ci_status": "completed",
+      "pr_base_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "pr_head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "pr_number": 711,
+      "pr_state": "MERGED"
+    }
+  },
+  "quality_boundaries": {
+    "business_error_threshold": null,
+    "current_season_actual_available": false,
+    "frozen_coverage_observation": "UNDER_NOMINAL",
+    "h15_pi80_coverage": "0.50575340297562519784742006964229186451408673630896",
+    "h15_pi90_coverage": "0.71092117758784425451092117758784425451092117758784",
+    "h15_upper80_coverage": "0.70500158277936055713833491611269389047166824944603",
+    "h15_upper90_coverage": "0.80935422602089268755935422602089268755935422602089",
+    "h7_pi80_coverage": "0.53892773892773892773892773892773892773892773892774",
+    "h7_pi90_coverage": "0.74530469530469530469530469530469530469530469530470",
+    "h7_upper80_coverage": "0.72136197136197136197136197136197136197136197136197",
+    "h7_upper90_coverage": "0.82324342324342324342324342324342324342324342324342",
+    "historical_available_at_proven": false,
+    "historical_research_execution_authorized": false,
+    "m1_h15_daily_wape": "0.45061746284274714676741860562477726865031957501063",
+    "m1_h7_daily_wape": "0.42492240428114891228797259913152412125067904816858",
+    "m1_model_id": "V0_15_S5_M1_RIDGE",
+    "m1_peak_metrics_are_operational_peak_accuracy": false,
+    "m1_rolling7_peak_quantity_mae_kg": "15081.759951705243042507122507122507122507122507123",
+    "m1_rolling7_peak_start_date_mae_days": "3.5376638176638176638176638176638176638176638176638",
+    "m1_season": "2025-2026",
+    "m1_single_day_peak_date_mae_days": "6.1284330484330484330484330484330484330484330484330",
+    "m1_single_day_peak_quantity_mae_kg": "3185.2562525667584237037037037037037037037037037037",
+    "m1_split": "EXPOSED_OOT",
+    "new_accuracy_target": null,
+    "operational_peak_model_family": "OPERATIONAL_PEAK_FORECAST_RUN_V1",
+    "peak_date_tolerance_days": null,
+    "prospective_accuracy_validated": false,
+    "prospective_scoring_authorized": false,
+    "retrospective_authority_used": true,
+    "strict_pit": false
+  },
+  "quality_research_stages": [
+    {
+      "acceptance": [
+        "NO_POST_RESULT_BUCKETING",
+        "ZERO_DENOMINATOR_NOT_COMPUTABLE",
+        "OPERATIONAL_PEAK_NOT_M1"
+      ],
+      "authorization_required": "SEPARATE_HISTORICAL_DATA_READ_AND_SCORING_AUTHORIZATION",
+      "deliverables": [
+        "COMMON_ROWSET_AND_EXCLUSION_LEDGER",
+        "PAIRED_OR_NONCOMPARABLE_MATRIX",
+        "ERROR_SLICE_PROTOCOL"
+      ],
+      "dependencies": [
+        "Q_DATA_READ_AUTHORIZATION",
+        "PREDECLARED_COMPARISON_CONTRACT"
+      ],
+      "expected_modules": [
+        "research_only",
+        "evidence_tests"
+      ],
+      "goal": "Predeclare family/fit-state/scope/season/origin/lead/label rowset compatibility.",
+      "input_authority": "OWNER_AUTHORIZED_FROZEN_PREDICTION_SEALS_AND_HISTORICAL_LABELS",
+      "name": "HISTORICAL_ERROR_AND_SAMPLE_COMPARABILITY",
+      "non_goals": [
+        "TRAINING",
+        "REFIT",
+        "TUNING",
+        "CURRENT_ACTUAL"
+      ],
+      "stage_id": "Q1"
+    },
+    {
+      "acceptance": [
+        "FULL_WINDOW_AND_SAME_SCOPE",
+        "NO_CHILD_PEAK_SUM",
+        "NO_INVENTED_TOLERANCE_OR_TARGET"
+      ],
+      "authorization_required": "SEPARATE_HISTORICAL_DATA_READ_AND_SCORING_AUTHORIZATION",
+      "deliverables": [
+        "PEAK_DATE_SHIFT",
+        "PEAK_QUANTITY_ERROR",
+        "ROLLING7_START_AND_QUANTITY_ERROR",
+        "SAMPLE_COUNTS"
+      ],
+      "dependencies": [
+        "Q1",
+        "SEPARATE_RESCORING_AUTHORIZATION"
+      ],
+      "expected_modules": [
+        "research_metrics",
+        "offline_evidence",
+        "tests"
+      ],
+      "goal": "Evaluate single-day and rolling-seven peak timing and quantities on comparable complete windows.",
+      "input_authority": "Q1_COMPATIBLE_SEALED_PREDICTIONS_AND_MATURED_AUTHORIZED_LABELS",
+      "name": "PEAK_AND_SUSTAINED_PERIOD_EVALUATION",
+      "non_goals": [
+        "PRODUCTION_ACCURACY_CLAIM",
+        "MODEL_PROMOTION"
+      ],
+      "stage_id": "Q2"
+    },
+    {
+      "acceptance": [
+        "NO_POINT_FALLBACK",
+        "DAILY_VS_AGGREGATE_SCOPE_EXPLICIT",
+        "UNDER_NOMINAL_NOT_HIDDEN"
+      ],
+      "authorization_required": "SEPARATE_RESCORING_OR_CALIBRATION_AUTHORIZATION",
+      "deliverables": [
+        "CANDIDATE_COMPUTABLE_NOT_COMPUTABLE_COVERED_COUNTS",
+        "COVERAGE_GAP_AND_WIDTH",
+        "PREDECLARED_GROUPED_UNCERTAINTY_PLAN"
+      ],
+      "dependencies": [
+        "FROZEN_INTERVAL_POLICY",
+        "SEPARATE_RESEARCH_DATA_AUTHORIZATION"
+      ],
+      "expected_modules": [
+        "research_metrics",
+        "evidence",
+        "tests"
+      ],
+      "goal": "Diagnose coverage, width and computability while retaining under-nominal results.",
+      "input_authority": "FROZEN_S2_INTERVAL_AUTHORITY_AND_AUTHORIZED_MATURED_LABELS",
+      "name": "INTERVAL_COVERAGE_AND_RELIABILITY",
+      "non_goals": [
+        "RECALIBRATION_NOW",
+        "TRUE_QUANTILE_CLAIM",
+        "FUTURE_COVERAGE_GUARANTEE"
+      ],
+      "stage_id": "Q3"
+    },
+    {
+      "acceptance": [
+        "BUSINESS_DATE_NOT_AVAILABILITY_PROOF",
+        "MISSING_PROOF_REMAINS_NOT_PROVEN",
+        "APPEND_ONLY_CORRECTIONS"
+      ],
+      "authorization_required": "SEPARATE_SOURCE_ACCESS_AND_CUSTODY_APPROVAL",
+      "deliverables": [
+        "TIMEZONE_AWARE_ORIGIN_CONTRACT",
+        "SOURCE_AVAILABLE_INGESTED_AS_ISSUED_RECEIPTS",
+        "ACTUAL_AVAILABLE_AT_AND_SCORING_CUTOFF"
+      ],
+      "dependencies": [
+        "SOURCE_OWNER_AND_CUSTODY_AUTHORITY",
+        "SEPARATE_AUDIT_AUTHORIZATION"
+      ],
+      "expected_modules": [
+        "source_adapters",
+        "seal_manifest",
+        "audit_evidence"
+      ],
+      "goal": "Prove which source bytes were available at each prediction cutoff and when labels matured.",
+      "input_authority": "SOURCE_PUBLICATION_AND_INGESTION_RECEIPTS_PLUS_PREDICTION_SEALS",
+      "name": "ISSUANCE_AND_SOURCE_AVAILABILITY_TIME_PROTOCOL",
+      "non_goals": [
+        "BACKFILL_AS_ISSUED_FACTS",
+        "CLAIM_STRICT_PIT_WITHOUT_PROOF"
+      ],
+      "stage_id": "Q4"
+    },
+    {
+      "acceptance": [
+        "TRAIN_ONLY_PREPROCESSING",
+        "NO_POST_HOC_BUCKETING",
+        "FAILED_TRIALS_PRESERVED"
+      ],
+      "authorization_required": "SEPARATE_TRAINING_REFIT_TUNING_AND_SCORING_AUTHORIZATION",
+      "deliverables": [
+        "PRE_REGISTERED_EXPERIMENT_CONTRACT",
+        "TIME_AND_ENTITY_AWARE_SPLITS",
+        "SEALED_PREDICTION_THEN_INDEPENDENT_SCORING"
+      ],
+      "dependencies": [
+        "Q1",
+        "Q4",
+        "NEW_MODEL_EXPERIMENT_AUTHORIZATION"
+      ],
+      "expected_modules": [
+        "research_pipeline",
+        "leakage_firewall",
+        "experiment_evidence"
+      ],
+      "goal": "If separately authorized, compare predeclared model candidates without label leakage or exposed-holdout reuse.",
+      "input_authority": "OWNER_APPROVED_CANDIDATE_CONFIG_TRAINING_CUTOFF_AND_DATA_SCOPE",
+      "name": "FUTURE_MODEL_AB_AND_LEAKAGE_CONTROLS",
+      "non_goals": [
+        "EXECUTION_IN_THIS_ROADMAP",
+        "AUTOMATIC_PROMOTION"
+      ],
+      "stage_id": "Q5"
+    },
+    {
+      "acceptance": [
+        "SEAL_BEFORE_LABEL_READ",
+        "STRICT_PIT_ONLY_WHEN_PROVEN",
+        "OWNER_THRESHOLDS_BEFORE_SCORE",
+        "FAIL_CLOSED_ON_GAPS"
+      ],
+      "authorization_required": "SEPARATE_DATA_ACCESS_SCORING_AND_PROMOTION_GATES",
+      "deliverables": [
+        "COHORT_COMPLETENESS",
+        "INDEPENDENT_SCORING",
+        "OWNER_THRESHOLD_AND_PROMOTION_GATE"
+      ],
+      "dependencies": [
+        "LAWFUL_DATA_ACCESS",
+        "STRICT_SOURCE_TIME_EVIDENCE",
+        "MATURED_LABELS",
+        "SEPARATE_SCORING_AUTHORIZATION"
+      ],
+      "expected_modules": [
+        "prospective_protocol",
+        "sealed_cohort",
+        "independent_scorer",
+        "evidence"
+      ],
+      "goal": "Admit prospective evaluation only after lawful data access, sealed issuance and matured-label authority are proven.",
+      "input_authority": "FUTURE_LAWFUL_REAL_DATA_AND_SEALED_ISSUANCE_AUTHORITY",
+      "name": "PROSPECTIVE_DATA_AND_VALIDATION_ADMISSION",
+      "non_goals": [
+        "CURRENT_ACTUAL_ACCESS_NOW",
+        "AUTOMATIC_PROMOTION",
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "stage_id": "Q6"
+    }
+  ],
+  "roadmap_stages": [
+    {
+      "acceptance": [
+        "H7_PREFIX_DISTINCT_FROM_ROLLING_SEVEN_MAX",
+        "NO_INVENTED_THRESHOLD",
+        "ALL_METRICS_BIND_SCOPE_UNIT_WINDOW_AND_SOURCE"
+      ],
+      "authorization_required": "DESIGN_OWNER_SIGNOFF_ONLY",
+      "deliverables": [
+        "METRIC_DEFINITIONS",
+        "UNIT_AND_SCOPE_RULES",
+        "MISSINGNESS_AND_TIE_RULES",
+        "REPORT_PROVENANCE_CONTRACT"
+      ],
+      "dependencies": [],
+      "existing_capability_and_gap": "Operational Peak has a saved-curve single-day peak and descriptive high-load ordering; Core Forecast has a separate sustained-seven metric. No common business contract or approved threshold exists.",
+      "expected_modules": [
+        "docs",
+        "offline_contract_tests"
+      ],
+      "goal": "Freeze peak, sustained-period, concentration, capacity and report semantics with business owners.",
+      "input_authority": [
+        "PUBLIC_FROZEN_CONTRACTS",
+        "OWNER_BUSINESS_DECISIONS"
+      ],
+      "name": "BUSINESS_DEFINITION_AND_AUTHORITY_CONTRACT",
+      "non_goals": [
+        "MODEL_CHANGE",
+        "SCORING",
+        "PRODUCTION_ALERT_THRESHOLD"
+      ],
+      "priority": 0,
+      "stage_id": "R0"
+    },
+    {
+      "acceptance": [
+        "DEFAULT_DENY",
+        "AUTHORIZATION_BEFORE_SENSITIVE_READ",
+        "NON_ENUMERATING_DENIAL",
+        "CROSS_PRINCIPAL_AND_ORGANIZATION_ISOLATION"
+      ],
+      "authorization_required": "CURRENTLY_PAUSED_AND_UNAUTHORIZED",
+      "deliverables": [
+        "END_USER_SERVICE_ACCOUNT_SEPARATION",
+        "SHARED_RESOURCE_AUTHORIZATION",
+        "BASE_REGION_COMPANY_AND_QUALITY_GRANTS",
+        "REVOCATION_AND_ZERO_READ_TESTS"
+      ],
+      "dependencies": [
+        "OWNER_DECISIONS_01_TO_06",
+        "EXPLICIT_UNPAUSE_AND_IMPLEMENTATION_AUTHORIZATION"
+      ],
+      "existing_capability_and_gap": "V0.18 S1 preflight is formal; identity provider, Principal lifecycle, grant publisher and storage decisions remain pending. Current implementation is paused.",
+      "expected_modules": [
+        "future_auth_session_facade",
+        "http_authorization_adapters",
+        "mcp_authorization_adapters",
+        "security_tests"
+      ],
+      "goal": "Require verified identity and exact organization/resource grants before business reads.",
+      "input_authority": [
+        "VERIFIED_IDENTITY_ISSUER",
+        "OWNER_APPOINTED_IDENTITY_AND_GRANT_AUTHORITY",
+        "AUTHORITATIVE_ORGANIZATION_BOUNDARIES"
+      ],
+      "name": "TRUSTED_IDENTITY_AND_RESOURCE_ACCESS_RESUMPTION",
+      "non_goals": [
+        "IMPLEMENTATION_IN_THIS_TASK",
+        "FULL_IAM_PLATFORM",
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "priority": 1,
+      "stage_id": "R1"
+    },
+    {
+      "acceptance": [
+        "NO_GLOBAL_LATEST",
+        "FILTER_AUTHORIZED_SET_BEFORE_PAGINATION",
+        "RECHECK_IDENTITY_HASH_AND_GRANT",
+        "REPORT_REPRODUCES_SERVER_VALUES"
+      ],
+      "authorization_required": "SENSITIVE_RECORD_ACCESS_AND_IMPLEMENTATION_REQUIRE_SEPARATE_OWNER_GATE",
+      "deliverables": [
+        "AUTHORIZATION_FILTERED_DISCOVERY",
+        "SIGNED_SHORT_LIVED_SELECTION_HANDOFF",
+        "HASH_BOUND_REPORT_MANIFEST"
+      ],
+      "dependencies": [
+        "R1_FORMAL_COMPLETE",
+        "R0_REPORT_SEMANTICS",
+        "SEPARATE_R2_AUTHORIZATION"
+      ],
+      "existing_capability_and_gap": "V0.17 reads an explicit full identity/hash but has no business run discovery or general forecast report contract.",
+      "expected_modules": [
+        "authorized_discovery_api",
+        "report_projection",
+        "dashboard_context",
+        "tests"
+      ],
+      "goal": "Let an authorized user select a precise saved forecast and preserve its provenance through display and report export.",
+      "input_authority": [
+        "R1_VERSIONED_GRANT_CATALOG",
+        "CANONICAL_SAVED_RUN_REPOSITORIES"
+      ],
+      "name": "AUTHORIZED_SAVED_RUN_DISCOVERY_AND_TRACEABLE_REPORTS",
+      "non_goals": [
+        "CLIENT_SIDE_ALL_RUN_LIST",
+        "GUESS_RUN_ID",
+        "CREATE_FORECAST"
+      ],
+      "priority": 2,
+      "stage_id": "R2"
+    },
+    {
+      "acceptance": [
+        "SAME_RUN_AND_HASH",
+        "NO_CHILD_PEAK_SUM",
+        "MISSING_DATES_REMAIN_PARTIAL",
+        "NO_CLIENT_BUSINESS_MATH"
+      ],
+      "authorization_required": "SEPARATE_IMPLEMENTATION_AUTHORIZATION; ACTUAL_SCORING_REMAINS_SEPARATE",
+      "deliverables": [
+        "SERVER_SIDE_PEAK_WINDOW_PROJECTION",
+        "PER_METRIC_COMPLETENESS",
+        "OPTIONAL_CONSECUTIVE_BAND_AFTER_OWNER_THRESHOLD_DECISION"
+      ],
+      "dependencies": [
+        "R0",
+        "R2_FOR_NORMAL_BUSINESS_SELECTION"
+      ],
+      "existing_capability_and_gap": "Operational Peak exposes single-day peak/high-load order; a different Core Forecast authority has rolling-seven metrics. Operational Peak has no rolling-window/consecutive-period/concentration contract.",
+      "expected_modules": [
+        "forecast_intelligence_service_and_schema",
+        "read_api",
+        "dashboard_overview_forecast",
+        "tests"
+      ],
+      "goal": "Present peak timing and concentration metrics from one authoritative saved curve.",
+      "input_authority": [
+        "EXACT_AUTHORIZED_SAVED_CURVE",
+        "SEPARATELY_AUTHORIZED_LABEL_AUTHORITY_FOR_ERROR_METRICS"
+      ],
+      "name": "PEAK_SUSTAINED_PERIOD_AND_CONCENTRATION_CONTRACT",
+      "non_goals": [
+        "NEW_FORECAST_MODEL",
+        "UNAPPROVED_HIGH_THRESHOLD",
+        "PRODUCTION_ALARM",
+        "CAUSAL_RISK_CLAIM"
+      ],
+      "priority": 3,
+      "stage_id": "R3"
+    },
+    {
+      "acceptance": [
+        "CONSERVATION_OR_EXPLICIT_UNALLOCATED_QUANTITY",
+        "OVERLAPS_FAIL_CLOSED",
+        "HARVEST_CAPACITY_NOT_RELABELLED_AS_PROCESSING_CAPACITY"
+      ],
+      "authorization_required": "OWNER_DATA_ACCESS; ANY_SCHEMA_OR_MIGRATION_REQUIRES_SEPARATE_AUTHORIZATION",
+      "deliverables": [
+        "VERSIONED_BASE_FACTORY_MAPPING",
+        "MULTI_DESTINATION_ALLOCATION_RULE",
+        "PROCESSING_CAPACITY_TIME_BASIS",
+        "PROVENANCE_AND_REVOCATION"
+      ],
+      "dependencies": [
+        "R0",
+        "APPOINTED_BUSINESS_DATA_AUTHORITY",
+        "R1_R2_FOR_PRODUCTION_READ"
+      ],
+      "existing_capability_and_gap": "Core Forecast can bind its own run to a destination factory and harvest-capacity rows; no mapping from Operational Peak BASE to factory or factory processing-capacity authority is verified.",
+      "expected_modules": [
+        "business_mapping_contract",
+        "authorized_mapping_adapter",
+        "persistence_only_if_approved",
+        "tests"
+      ],
+      "goal": "Define authoritative factory destinations and processing throughput before factory overload claims.",
+      "input_authority": [
+        "OWNER_NAMED_BUSINESS_MASTER_DATA_PUBLISHER",
+        "VERSIONED_EFFECTIVE_DATED_ASSIGNMENT",
+        "FACTORY_PROCESSING_CAPACITY_SOURCE"
+      ],
+      "name": "BASE_FACTORY_RELATIONSHIP_AND_PROCESSING_CAPACITY_CONTRACT",
+      "non_goals": [
+        "INFER_ASSIGNMENT",
+        "MULTI_FACTORY_ROUTING",
+        "OPTIMIZATION",
+        "ACTUAL_DATA_ACCESS_NOW"
+      ],
+      "priority": 4,
+      "stage_id": "R4"
+    },
+    {
+      "acceptance": [
+        "DASHBOARD_API_REPORT_HASH_PARITY",
+        "NO_CLIENT_ALLOCATION_OR_RANKING",
+        "STALE_SCENARIO_INVALIDATION",
+        "NO_ROI_OR_QUANTILE_OVERCLAIM"
+      ],
+      "authorization_required": "SEPARATE_FRONTEND_AND_API_IMPLEMENTATION_AUTHORIZATION",
+      "deliverables": [
+        "PEAK_AND_SUSTAINED_WINDOW_PANELS",
+        "EXPLICIT_CAPACITY_SCENARIO_FLOW",
+        "HASH_BOUND_REPORT_EXPORT",
+        "HONEST_UNAVAILABLE_STATES"
+      ],
+      "dependencies": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4_FOR_FACTORY_PRESENTATION"
+      ],
+      "existing_capability_and_gap": "V0.17 has five pages, server peak/high-load, and explicit S2 scenarios with synthetic costs; normal discovery, contribution authority and factory mapping are absent.",
+      "expected_modules": [
+        "forecast_intelligence",
+        "api",
+        "frontend_dashboard",
+        "reporting",
+        "e2e_tests"
+      ],
+      "goal": "Provide understandable peak views, explicit capacity scenarios and reproducible reports for authorized selections.",
+      "input_authority": [
+        "R2_SELECTED_SAVED_RUN",
+        "R3_SERVICE_PROJECTIONS",
+        "R4_FACTORY_AUTHORITY_ONLY_WHEN_AVAILABLE",
+        "S2_SYNTHETIC_COST_CONTRACTS"
+      ],
+      "name": "DASHBOARD_PEAK_CAPACITY_AND_TRACEABLE_REPORT_EXPERIENCE",
+      "non_goals": [
+        "NEW_MODEL",
+        "OPTIMIZER",
+        "AUTOMATIC_SCHEDULING",
+        "PRODUCTION_DEPLOYMENT"
+      ],
+      "priority": 5,
+      "stage_id": "R5"
+    },
+    {
+      "acceptance": [
+        "ZERO_UNAUTHORIZED_BUSINESS_READS",
+        "NO_PRODUCTION_DATABASE_OR_ACTUALS",
+        "REPLAYABLE_EVIDENCE",
+        "PRODUCTION_READINESS_NOT_INFERRED_FROM_SYNTHETIC_PASS"
+      ],
+      "authorization_required": "SEPARATE_ACCEPTANCE_AND_DEPLOYMENT_APPROVAL",
+      "deliverables": [
+        "AUTHORIZATION_BEFORE_READ_TESTS",
+        "HTTP_MCP_DASHBOARD_PARITY",
+        "LEGACY_ROUTE_ISOLATION",
+        "ROTATION_REVOCATION_RESTORE_ROLLBACK_EVIDENCE"
+      ],
+      "dependencies": [
+        "R1_TO_R5_AS_APPLICABLE",
+        "NAMED_SECURITY_AND_OPERATIONS_OWNERS",
+        "SEPARATE_SAFE_PILOT_AUTHORIZATION"
+      ],
+      "existing_capability_and_gap": "V0.17 has synthetic cross-surface parity; production IdP, live grants, network isolation and operational drills remain unverified.",
+      "expected_modules": [
+        "test_only_e2e",
+        "runbooks",
+        "evidence_manifests"
+      ],
+      "goal": "Test the authorized business path and security failure behavior in an isolated synthetic environment.",
+      "input_authority": [
+        "ISOLATED_SYNTHETIC_SAVED_RUNS",
+        "TEST_ONLY_GRANTS",
+        "SEPARATELY_APPROVED_OPERATOR_CONFIGURATION"
+      ],
+      "name": "ISOLATED_SYNTHETIC_ACCEPTANCE_AND_OPERATIONAL_READINESS_EVIDENCE",
+      "non_goals": [
+        "PRODUCTION_RELEASE",
+        "LIVE_USER_ACCESS",
+        "CURRENT_SEASON_SCORING"
+      ],
+      "priority": 6,
+      "stage_id": "R6"
+    }
+  ],
+  "schema": "V0_18_ROADMAP_REASSESSMENT_R1",
+  "source_evidence_count": 58,
+  "source_evidence_sha256": {
+    "backend/app/api/forecast_intelligence_decision.py": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/core_forecast/application.py": "43cc17e6e29fb1fe342d351e2caf87aec95deca7707834c5b19cf9b207b97ae4",
+    "backend/app/core_forecast/canonical.py": "988890f575fb5c2df5f078c53656dee504328b3bba07341d6b60c2358d5b6aab",
+    "backend/app/core_forecast/cli.py": "3f2d61ae9c6f52bcfba1f506a68d4dfc7c14d95b1b782fce56f1606dab6d9c31",
+    "backend/app/core_forecast/metrics.py": "7621e9a81cbedb2d0097cfa83ccd4f0288df766990b065d47a6f0e1ac77aef7c",
+    "backend/app/core_forecast/persistence.py": "dced0b8ec53cf54bd948129e58fbe3eba05d9ac6461cf065da09c297bc94f9e8",
+    "backend/app/core_forecast/repository.py": "33eaacc708600723f5f0272ad638f0aea3b4588be7724725bfdd959b6cff897a",
+    "backend/app/core_forecast/schemas.py": "8c66b791b746ace0dc7c903f5a98f16fef5169869217b3a9093942eaa6b13002",
+    "backend/app/core_forecast/service.py": "f4a53ec935b9abfb2d857722a00ced5fbee3375e484cdc688b19d2915be4c0ad",
+    "backend/app/forecast_intelligence/business_loss.py": "26c5bab071833f1dccba56bf0defd3103fd8b6741721e37f4069285923d54443",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/forecast_intelligence/what_if.py": "9504b5552833d8d0d0be64e0379d4913222e5fae8d270a858dd7fd2e943ae7d0",
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/app/forecast_quality/operational_peak_persistence.py": "35e9fb6920acb75029b83dc075d9c7f4b73f5206d8848aa9c9a02fc09f0ed4a6",
+    "backend/app/forecast_quality/operational_peak_schemas.py": "d5585026489e79e8dfdbc2bd0c7de62525909ad3f330a751e6d522df528e8fe9",
+    "backend/app/main.py": "4820eccedf90ab409501551c02098a721833c37b523fa235bda96f30b5633939",
+    "backend/app/mcp/forecast_intelligence_tools.py": "3d4d6ec2ab6d0bcd6895f64393cf25e37e26f9c2a6878a39bbb260177f6377cd",
+    "docs/v0-14/v0.14-s3-real-shadow-prediction-seal-r2.md": "402fe96dbed9f3cd49507421099205895ebb433994688e3830c53e6bafaac102",
+    "docs/v0-14/v0.14-s4-prospective-cohort-operations-closeout-r1.md": "cd588c26392946d9a0927635d66f817ade129d5b2ab62cb520aa8b3b2646e997",
+    "docs/v0-14/v0.14.0-closeout.md": "5ac15b75a5e16ff5f44e07029d3a7d8350a6c8e514acbdf481ad1eee83395db1",
+    "docs/v0-14/v0.14.0-version-plan-and-prospective-protocol-freeze.md": "2724112827a652e77083b35da9eb8358ee0c4f0c3160526689c83d01d9155d9d",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-metrics.json": "02319ad9e14bcc855dafa7937c3ba89f373faf9098be20c5f47b9ae1d5d26ba7",
+    "docs/v0-15/v0.15-s1-retrospective-research-cohort-and-split-freeze-r1.md": "fd9dcad9d40a21efa9089b765617e5bcb2f5b20e9bf2238c02ef346e51e965a1",
+    "docs/v0-15/v0.15-s3-base10-model-benchmark-r1.md": "75171ad6e795c80a8501db7db99e1f607614f2a5ec500c7093499e42b221c684",
+    "docs/v0-15/v0.15.0-closeout.md": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-16/v0.16-s3-forecast-attribution-r1.md": "9065fabd8f1558d7146dcafcc9ff56b0b4a1bcec77c9d3ee11c8247a822a3366",
+    "docs/v0-16/v0.16-s4-forecastops-monitoring-r1.md": "669eda3a96cf55ddb463b209854b3a9276c0f047afe036dc8f2ea5eaf9a880e1",
+    "docs/v0-16/v0.16-s5-business-loss-contract-r1.md": "841d06290369e2ec2da1367a35576496d928591dfa77114e8ac0d7af95cab307",
+    "docs/v0-16/v0.16-s6-what-if-decision-simulator-r1.md": "f25641349fd4e229a23cb41dedcd76d4bd6b069b67e4354dc996ba7ac2203083",
+    "docs/v0-16/v0.16.0-closeout.md": "77d1bc082863b0af9436b460ee65d6c5429579e309b10348665256e17d729725",
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md": "7eed60e8045903eb8229afa0c1c6b6f0a9e99e4ce2e9cda9ce212c4ce435f7de",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78",
+    "frontend/src/dashboard/api/client.ts": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+    "frontend/src/dashboard/app/Dashboard.tsx": "31ea60ee4cff4aa69ea516cfd30205fb841ec11d238b7b59b389a9884e006c94",
+    "frontend/src/dashboard/pages/CapacityPage.tsx": "c660d643af653c08c3d73d06a53f628e1b02977b2c878738947ec26e8e66b968",
+    "frontend/src/dashboard/pages/ReadPages.tsx": "eaf4f7fec98cdb3e5bd3c258baefa5c743612e5667ac42317b67327d1f4c4b91"
+  },
+  "task_id": "V0_18_ROADMAP_REALIGNMENT_R1",
+  "version": "0.18.0"
+}
