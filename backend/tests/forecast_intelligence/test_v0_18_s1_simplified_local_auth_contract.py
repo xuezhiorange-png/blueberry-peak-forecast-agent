@@ -124,6 +124,9 @@ def test_resource_grants_are_explicit_non_inheriting_and_checked_before_reads() 
     assert grants["client_fields_can_create_or_expand_grant"] is False
     assert grants["source_hash_alone_authorizes"] is False
     assert grants["scope_wildcard_default"] is False
+    assert grants["pre_response_grant_revision_recheck"] is True
+    assert grants["pre_response_principal_active_recheck"] is True
+    assert grants["in_flight_revocation_suppresses_sensitive_response"] is True
     assert grants["required_saved_forecast_identity_fields"] == [
         "source_kind",
         "forecast_family",
@@ -152,7 +155,13 @@ def test_stage_order_and_mcp_compatibility_remain_bounded() -> None:
     stages = evidence["proposed_stage_plan"]
     assert [item["stage"] for item in stages] == ["S0", "S1", "S2", "S3", "S4", "S5", "S6"]
     assert all(item["implementation_authorized"] is False for item in stages)
+    dependencies = {item["stage"]: item.get("depends_on_formal_complete", []) for item in stages}
+    assert dependencies["S3"] == ["S1", "S2"]
+    assert dependencies["S4"] == ["S1", "S2", "S3"]
+    assert "S1 and S2 formally complete" in PLAN.read_text(encoding="utf-8")
+    assert "S1, S2, and S3 formally complete" in PLAN.read_text(encoding="utf-8")
     runtime = evidence["runtime_and_scope_status"]
+    assert runtime["pre_response_grant_revision_recheck_implemented"] is False
     assert runtime["mcp_identity_mode_first_release"] == (
         "SERVICE_ACCOUNT_WITH_EXACT_RUN_AND_QUALITY_GRANTS"
     )
@@ -184,6 +193,10 @@ def test_governance_forbids_runtime_scope_and_release_actions() -> None:
     assert evidence["decision_record"]["owner_auth_direction"] == "SIMPLIFIED_LOCAL_AUTH"
     assert evidence["decision_record"]["scope_amendment_required"] is True
     assert evidence["decision_record"]["scope_amendment_status"] == "PENDING_OWNER_APPROVAL"
+    assert evidence["historical_contracts"]["original_s0_s1_evidence_immutable"] is True
+    assert evidence["historical_contracts"]["resource_access_default_deny"] is True
+    assert evidence["historical_contracts"]["quality_grant_independent"] is True
+    assert evidence["historical_contracts"]["no_unauthorized_resource_existence_disclosure"] is True
     assert governance["s0_original_scope_preserved"] is True
     assert governance["historical_evidence_modified"] is False
     assert governance["s1_production_implementation_authorized"] is False
@@ -206,3 +219,5 @@ def test_plan_marks_amendment_and_owner_decisions_without_claiming_approval() ->
     assert "No runtime behavior is changed here." in document
     assert "## Owner decisions still pending" in document
     assert "## Security references" in document
+    assert "`PRE_RESPONSE_GRANT_REVISION_RECHECK=true`" in document
+    assert "not an implemented behavior" in document
