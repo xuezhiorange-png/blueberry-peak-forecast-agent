@@ -151,11 +151,20 @@
       "stage": "S2"
     },
     {
+      "depends_on_formal_complete": [
+        "S1",
+        "S2"
+      ],
       "goal": "Retain MCP ServiceAccount exact grants and verify compatibility without end-user delegation.",
       "implementation_authorized": false,
       "stage": "S3"
     },
     {
+      "depends_on_formal_complete": [
+        "S1",
+        "S2",
+        "S3"
+      ],
       "goal": "Add Dashboard sign-in and normal authorized saved-forecast selection while retaining five pages.",
       "implementation_authorized": false,
       "stage": "S4"
@@ -182,6 +191,9 @@
     "client_fields_can_create_or_expand_grant": false,
     "grant_publisher_server_side_only": true,
     "historical_quality_independent_grant": true,
+    "in_flight_revocation_suppresses_sensitive_response": true,
+    "pre_response_grant_revision_recheck": true,
+    "pre_response_principal_active_recheck": true,
     "required_saved_forecast_identity_fields": [
       "source_kind",
       "forecast_family",
@@ -223,6 +235,7 @@
       "compare_capacity_scenarios"
     ],
     "oidc_keycloak_implementation": "PAUSED",
+    "pre_response_grant_revision_recheck_implemented": false,
     "production_data_accessed": false,
     "production_readiness": "NOT_READY",
     "production_runtime_changed": false,
@@ -245,7 +258,7 @@
     "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py": "e88ddc461e11207f3e2c9b0105a0fbb3ce8e4b3b71223c3493d0649d82cf49a5",
     "backend/tests/forecast_intelligence/test_v0_17_s2_decision_api.py": "82af7ae999f7774bcaa226f1ff955caf9f0f230bc0611c7187d82cbba986b615",
     "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
-    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "b0aa7b0544bf7440a0f7ccd53cae8cfef2907aeed999747dfebe3d3c8084c558",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
     "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
     "backend/tests/mcp/test_v0_17_s3_productization.py": "355df00cdd64d8e2f09a8b8ce6a84f32a9d7b26328c62de787e07ad90b2ccd2e",
     "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
@@ -253,7 +266,7 @@
     "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
     "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
     "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
-    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "1fdf26696ec5a24d13529c1bfa717ce5966a9355470e02a34f4381eaa4d1e741",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
     "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
     "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78",
     "frontend/src/dashboard/api/client.ts": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
