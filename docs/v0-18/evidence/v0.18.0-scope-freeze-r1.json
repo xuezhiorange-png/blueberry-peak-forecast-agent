@@ -1,0 +1,612 @@
+{
+  "acceptance_matrix": {
+    "browser_viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        1280,
+        800
+      ],
+      [
+        1024,
+        768
+      ],
+      [
+        834,
+        1112
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        360,
+        800
+      ]
+    ],
+    "business_cases": [
+      "SAME_AUTHORITY_HTTP_MCP_DOM",
+      "DIRECT_WORKFORCE_BUFFER_ZERO_CAPACITY",
+      "EXPLICIT_SYNTHETIC_COST",
+      "STALE_RANKING",
+      "SHORT_WINDOW_INCOMPLETE_CHILD",
+      "UNBOUND_AUTHORITY_UNAVAILABLE"
+    ],
+    "discovery_cases": [
+      "FILTER_BEFORE_LIMIT",
+      "CURSOR_PRINCIPAL_FILTER_SORT_REVISION_EXPIRY",
+      "TAMPERED_CONTEXT",
+      "SOURCE_HASH_DRIFT",
+      "RERUN_SEPARATION",
+      "DELETED_GRANTED_RUN",
+      "NO_GLOBAL_COUNT"
+    ],
+    "execution_status": "PLANNED_NOT_RUN",
+    "http_statuses": [
+      401,
+      403,
+      404,
+      409,
+      413,
+      422,
+      503
+    ],
+    "identity_cases": [
+      "MISSING_CONFIG",
+      "BAD_ISSUER_AUDIENCE_EXPIRY",
+      "DUPLICATE_HEADERS",
+      "FORGED_ACTOR",
+      "CROSS_PRINCIPAL_ORGANIZATION_BASE_REGION_COMPANY",
+      "INDEPENDENT_QUALITY_GRANT",
+      "REVOCATION_DURING_REQUEST"
+    ],
+    "pilot_cases": [
+      "TLS_HOST_ORIGIN_PROXY",
+      "KEY_ROTATION",
+      "LEGACY_PATHS_UNREACHABLE",
+      "REDACTED_AUDIT",
+      "BACKUP_RESTORE",
+      "ROLLBACK",
+      "RESOURCE_LIMIT_TIMEOUT_CANCEL"
+    ],
+    "real_ios_safari_validated": false,
+    "screen_reader_validated": false,
+    "soft_keyboard_validated": false,
+    "unauthorized_expected_counts": {
+      "business_read": 0,
+      "quality_file_read": 0,
+      "simulation": 0
+    }
+  },
+  "authorization_architecture": {
+    "aggregate_grant_independent": true,
+    "client_actor_trusted": false,
+    "current_registry_rewrites_saved_hierarchy": false,
+    "default_deny": true,
+    "delegation_effective_scope": "INTERSECTION_USER_CLIENT_AND_EXACT_RUN_GRANTS",
+    "identity_key": [
+      "trusted_issuer",
+      "subject"
+    ],
+    "identity_provider": "OIDC_DIRECTION_PROVIDER_AND_BFF_MAPPING_PENDING_S1_OWNER_DECISION",
+    "mcp_without_compatible_delegation": "SERVICE_ACCOUNT_ONLY_NOT_END_USER_ACCEPTANCE",
+    "order": [
+      "AUTHENTICATE",
+      "CAPABILITY",
+      "RESOURCE_GRANT",
+      "CANONICAL_READ",
+      "RECHECK_HASH_AND_GRANT",
+      "SERVICE"
+    ],
+    "policy_metadata_read_permitted": true,
+    "policy_storage": "TRUSTED_VERSIONED_CONFIG_FIRST_SCHEMA_CHANGE_REQUIRES_SEPARATE_APPROVAL",
+    "principal_client_actor_fields_authorize": false,
+    "principal_types": [
+      "END_USER",
+      "SERVICE_ACCOUNT"
+    ],
+    "production_acl_validated": false,
+    "provider_configured": false,
+    "quality_grant_independent": true,
+    "resource_grant_fields": [
+      "principal_id",
+      "principal_type",
+      "organization_scope",
+      "capability",
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "expected_source_result_hash",
+      "grant_revision",
+      "valid_from",
+      "valid_until",
+      "revoked"
+    ],
+    "revocation": "RECHECK_EACH_REQUEST_INVALIDATE_CURSOR_HANDOFF_AND_CACHE",
+    "service_account_is_end_user": false,
+    "status": "DESIGN_NOT_IMPLEMENTED",
+    "unauthorized_existence_disclosure": false,
+    "unauthorized_sensitive_read_count": 0,
+    "wildcard_allowed": false
+  },
+  "base_main_sha": "1b218edc74ff29091c07607ddbcdba0c10577398",
+  "document_sha256": {
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "error_contract": {
+    "401": "UNAUTHENTICATED_NO_RESOURCE_INFO",
+    "403": "SAME_DENIAL_FOR_NONEXISTENT_OR_UNGRANTED_RESOURCE_BEFORE_LOOKUP",
+    "404": "ONLY_AFTER_VALID_EXACT_RESOURCE_GRANT",
+    "409": "AUTHORITY_OR_REVISION_CONFLICT_CLEAR_RESULTS_RESELECT",
+    "413": "RESOURCE_LIMIT_NO_TRUNCATION",
+    "422": "INVALID_INPUT_CURSOR_NO_RAW_ECHO",
+    "503": "AUTHORIZATION_PERSISTENCE_OR_SERVICE_UNAVAILABLE_RETRY"
+  },
+  "execution_boundaries": {
+    "calibration_replay": false,
+    "ci_workflow_changed": false,
+    "current_season_actual_import": false,
+    "current_season_actual_read": false,
+    "current_season_actual_scoring": false,
+    "db_migration_created": false,
+    "dependency_changed": false,
+    "forecast_execution": false,
+    "frozen_v017_changed": false,
+    "model_refit": false,
+    "model_training": false,
+    "model_tuning": false,
+    "private_data_read": false,
+    "production_code_changed": false,
+    "production_database_connected": false,
+    "production_deployed": false,
+    "quality_scoring": false,
+    "simulation_experiment": false
+  },
+  "governance": {
+    "current_season_actual_access_authorized": false,
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "model_training_authorized": false,
+    "owner_authorized": true,
+    "production_code_authorized": false,
+    "quality_roadmap_document_authorized": true,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s0_formal_complete": false,
+    "s0_planning_authorized": true,
+    "s1_to_s6_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false,
+    "version_closeout_authorized": false,
+    "version_complete": false
+  },
+  "live_preflight": {
+    "initial_worktree_clean": true,
+    "latest_formal_release": "v0.17.0",
+    "parallel_v018_branches": 0,
+    "parallel_v018_prs": 0,
+    "release_draft": false,
+    "release_id": 408106332,
+    "release_prerelease": false,
+    "tag_object_sha": "3442d9fd8dbecf14eb34e8409d79b063a30af52b",
+    "tag_target_sha": "1b218edc74ff29091c07607ddbcdba0c10577398"
+  },
+  "owner_decisions_pending": [
+    "IDENTITY_PROVIDER_CLIENT_BFF_AND_PRINCIPAL_MAPPING",
+    "TRUSTED_GRANT_PUBLISHER_AND_ORGANIZATION_BOUNDARY",
+    "MCP_END_USER_DELEGATION_PROTOCOL",
+    "RPO_RTO_RETENTION_CAPACITY_OPERATION_OWNER",
+    "BUSINESS_ACCURACY_ACCEPTANCE_THRESHOLDS",
+    "INDEPENDENT_IMPLEMENTATION_DEPLOYMENT_RELEASE_AUTHORIZATION"
+  ],
+  "primary_goal": "AUTHORIZED_BUSINESS_DISCOVERY_SELECTION_AND_SAFE_PILOT_DESIGN",
+  "product_contract": {
+    "business_run_selector_backend_ready": false,
+    "client_business_math": false,
+    "current_actual_message": "当前产季暂无可用于正式评分的实际采收数据。",
+    "h15": "D1_THROUGH_D15_PREFIX",
+    "h7": "D1_THROUGH_D7_PREFIX",
+    "hierarchy": [
+      "COMPANY",
+      "REGION",
+      "BASE"
+    ],
+    "loss_unit": "SYNTHETIC_LOSS_UNIT",
+    "mcp_discovery": "AUTHORIZED_HTTP_HANDOFF_NO_NEW_TOOL",
+    "mcp_tools": [
+      "get_forecast_overview",
+      "get_forecast_curve",
+      "get_hierarchical_forecast",
+      "get_forecast_uncertainty",
+      "get_forecast_attribution",
+      "get_forecast_quality",
+      "simulate_capacity",
+      "compare_capacity_scenarios"
+    ],
+    "missing_to_zero": false,
+    "ninth_mcp_tool": false,
+    "normal_business_discovery_available": false,
+    "one_service_layer": true,
+    "pages": [
+      "OVERVIEW",
+      "FORECAST",
+      "ATTRIBUTION",
+      "CAPACITY_SIMULATOR",
+      "QUALITY"
+    ],
+    "point_fallback": false,
+    "scenario_ranking": "SERVER_CONDITIONAL_ORDER_NOT_OPTIMIZATION",
+    "states": [
+      "LOADING",
+      "READY",
+      "EMPTY",
+      "PARTIAL",
+      "NOT_AVAILABLE",
+      "ERROR",
+      "AUTHORITY_MISMATCH",
+      "NO_CURRENT_ACTUAL"
+    ],
+    "unavailable": {
+      "ATTRIBUTION": "NOT_AVAILABLE",
+      "CHILD_CONTRIBUTION": "NOT_AVAILABLE",
+      "UPPER80": "NOT_AVAILABLE",
+      "UPPER90": "NOT_AVAILABLE"
+    }
+  },
+  "production_readiness": "NOT_READY",
+  "prohibited_claims": {
+    "attribution_causal": false,
+    "canonical_company_cost_established": false,
+    "current_season_actual_available": false,
+    "optimization_implemented": false,
+    "point_proven_p50": false,
+    "production_use_approved": false,
+    "prospective_accuracy_validated": false,
+    "real_roi_validated": false,
+    "strict_pit_proven": false,
+    "upper_bounds_calibrated_quantiles": false
+  },
+  "quality_research_is_v018_stage": false,
+  "safe_pilot_architecture": {
+    "audit_safe_metadata_write_separate_from_business_dml": true,
+    "business_read_phase_dml_guard": true,
+    "dataset": "ISOLATED_SYNTHETIC_CANONICAL_SAVED_RUNS",
+    "deployed": false,
+    "host_origin_not_authentication": true,
+    "https_required": true,
+    "legacy_access": "DEFAULT_DENY_SEPARATE_TRUST_DOMAIN_TEST_ALL_OLD_PATHS",
+    "operational_owner": null,
+    "owner_deployment_gate_required": true,
+    "production_database_connected": false,
+    "required_drills": [
+      "CREDENTIAL_ROTATION",
+      "GRANT_REVOCATION",
+      "BACKUP_RESTORE_HASH_PARITY",
+      "ROLLBACK_REVOKE_ACCESS",
+      "CROSS_PRINCIPAL_DENIAL",
+      "AUDIT_REDACTION",
+      "HTTPS_AND_PROXY_TRUST",
+      "LEGACY_ENDPOINT_DENIAL"
+    ],
+    "retention_days": null,
+    "rpo": null,
+    "rto": null,
+    "secrets": "SERVER_SECRET_STORE_NO_BUNDLE_NO_LOG_NO_REPOSITORY",
+    "status": "DESIGN_NOT_DEPLOYED"
+  },
+  "saved_run_discovery_contract": {
+    "authorization_filter_before_pagination": true,
+    "candidate_paths": [
+      "GET /api/v1/business-access/scope",
+      "GET /api/v1/business-access/saved-runs",
+      "POST /api/v1/business-access/selection"
+    ],
+    "capabilities": [
+      "AUTHORIZED_SCOPE",
+      "AUTHORIZED_SAVED_RUN_LIST",
+      "VERIFIED_SELECTION_HANDOFF"
+    ],
+    "created_at_is_issuance_timestamp": false,
+    "cursor_binding": [
+      "principal",
+      "client",
+      "grant_revision",
+      "catalog_snapshot",
+      "filters",
+      "sort",
+      "last_key",
+      "expires_at"
+    ],
+    "cursor_integrity": "SERVER_SIGNATURE_NOT_BASE64_ONLY",
+    "daily_quantities_in_list": false,
+    "filters": [
+      "target_season",
+      "hierarchy_level",
+      "entity_id",
+      "forecast_family",
+      "origin_from",
+      "origin_to"
+    ],
+    "global_latest_allowed": false,
+    "global_total_exposed": false,
+    "handoff_is_authorization": false,
+    "handoff_validation": [
+      "SERVER_SIGNATURE",
+      "PRINCIPAL_CLIENT_BINDING",
+      "EXPIRY",
+      "GRANT_REVISION",
+      "EXACT_IDENTITY_AND_HASH",
+      "REAUTHORIZE",
+      "CANONICAL_READ"
+    ],
+    "identity_fields": [
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "expected_source_result_hash"
+    ],
+    "implemented": false,
+    "limits": {
+      "cursor_ttl_seconds": 900,
+      "default_page_size": 20,
+      "handoff_ttl_seconds": 300,
+      "max_cursor_bytes": 2048,
+      "max_page_size": 100
+    },
+    "path_status": "CANDIDATE_TRANSPORT_REVIEW_REQUIRED",
+    "rerun_auto_replacement": false,
+    "sort": [
+      "origin_date_DESC",
+      "source_kind_ASC",
+      "forecast_family_ASC",
+      "run_id_DESC",
+      "entity_id_ASC",
+      "source_result_hash_ASC"
+    ],
+    "source_hash_changed": "409_RESELECT_NO_FALLBACK",
+    "unauthorized_rerun_link_disclosed": false
+  },
+  "schema": "V0_18_BUSINESS_USABILITY_SCOPE_FREEZE_R1",
+  "scope": "PUBLIC_FROZEN_EVIDENCE_AND_DESIGN_ONLY",
+  "source_evidence_count": 23,
+  "source_evidence_sha256": {
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_server.py": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-metrics.json": "02319ad9e14bcc855dafa7937c3ba89f373faf9098be20c5f47b9ae1d5d26ba7",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/s5-experiment-contract.json": "bc590a028f205a4d41b97c6588d4b2799ea87426120b17f2384cec9f51283217",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-manifest-r1.json": "7034b70ca25fffdc6403fda3f3673d65abffb48fae39e3789581c40841dc7b54",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json": "8e5185a139ec106edb80393db2047de6398300e1035eeee2b7b85167ba017b14",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3"
+  },
+  "stage_order": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "VERSION_CLOSEOUT"
+  ],
+  "stages": {
+    "S0": {
+      "acceptance": [
+        "CANONICAL_PUBLIC_SOURCE_BINDING",
+        "OFFLINE_CONTRACT_TESTS",
+        "DRAFT_EXACT_HEAD_CI"
+      ],
+      "allowed_paths": [
+        "docs/v0-18/**",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "depends_on": [
+        "V0_17_0_FORMAL_RELEASE"
+      ],
+      "excluded": [
+        "PRODUCTION_IMPLEMENTATION",
+        "RESEARCH_EXECUTION"
+      ],
+      "implementation_authorized": false,
+      "name": "BUSINESS_USABILITY_SCOPE_FREEZE",
+      "owner_gate": "CURRENT_PLANNING_ONLY_THEN_INDEPENDENT_REVIEW",
+      "planning_authorized": true
+    },
+    "S1": {
+      "acceptance": [
+        "NO_BUSINESS_READ_BEFORE_GRANT",
+        "END_USER_SERVICE_ACCOUNT_SEPARATION",
+        "AGGREGATE_AND_QUALITY_INDEPENDENT_GRANTS",
+        "REVOCATION_AND_NO_EXISTENCE_DISCLOSURE"
+      ],
+      "allowed_paths": [
+        "backend/app/security/new_v018_identity_and_access_modules",
+        "backend/app/api/authorized_transport_adapters",
+        "backend/tests/access/**",
+        "docs/v0-18/s1/**"
+      ],
+      "depends_on": [
+        "S0_FORMAL_COMPLETE",
+        "OWNER_TRUSTED_ISSUER_AND_POLICY_PUBLISHER_DECISION"
+      ],
+      "excluded": [
+        "DISCOVERY_IMPLEMENTATION",
+        "DASHBOARD",
+        "COMPLETE_IAM_ADMIN"
+      ],
+      "implementation_authorized": false,
+      "name": "TRUSTED_IDENTITY_AND_RESOURCE_AUTHORIZATION",
+      "owner_gate": "SEPARATE_IMPLEMENTATION_THEN_REVIEW_READY_MERGE_MAIN_CI"
+    },
+    "S2": {
+      "acceptance": [
+        "FILTER_BEFORE_PAGINATION",
+        "SIGNED_CURSOR_PRINCIPAL_FILTER_REVISION_BINDING",
+        "VERIFIED_HANDOFF_REAUTHORIZE",
+        "DELETED_DRIFTED_RERUN_FAIL_CLOSED"
+      ],
+      "allowed_paths": [
+        "backend/app/forecast_intelligence/authorized_catalog_and_discovery_adapters",
+        "backend/app/api/business_access",
+        "backend/tests/discovery/**",
+        "docs/v0-18/s2/**"
+      ],
+      "depends_on": [
+        "S1_FORMAL_COMPLETE"
+      ],
+      "excluded": [
+        "PREDICTION_GENERATION",
+        "GLOBAL_LATEST",
+        "MATHEMATICAL_ENGINE_CHANGE"
+      ],
+      "implementation_authorized": false,
+      "name": "AUTHORIZED_SAVED_RUN_DISCOVERY_AND_HANDOFF",
+      "owner_gate": "SEPARATE_IMPLEMENTATION_THEN_REVIEW_READY_MERGE_MAIN_CI"
+    },
+    "S3": {
+      "acceptance": [
+        "EXACT_EIGHT_TOOLS",
+        "USER_CLIENT_RUN_SCOPE_INTERSECTION",
+        "QUALITY_GRANT",
+        "HTTP_MCP_PAYLOAD_PARITY"
+      ],
+      "allowed_paths": [
+        "backend/app/mcp/dedicated_authorization_and_context_adapters",
+        "backend/tests/mcp/v018/**",
+        "docs/v0-18/s3/**"
+      ],
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY"
+      ],
+      "excluded": [
+        "LEGACY_TOOL_BEHAVIOR_CHANGE",
+        "NINTH_BUSINESS_TOOL",
+        "NEW_ALGORITHM"
+      ],
+      "implementation_authorized": false,
+      "name": "MCP_TRUSTED_BUSINESS_CONTEXT",
+      "owner_gate": "SEPARATE_IMPLEMENTATION_THEN_REVIEW_READY_MERGE_MAIN_CI"
+    },
+    "S4": {
+      "acceptance": [
+        "NORMAL_AUTHORIZED_SELECTION",
+        "FIVE_PAGES_EIGHT_MODULE_STATES",
+        "CANCEL_LATE_LOGOUT_REVOKE_ISOLATION",
+        "TRIAL_REGRESSION"
+      ],
+      "allowed_paths": [
+        "frontend/src/dashboard/api_and_context_and_selector",
+        "frontend/src/dashboard/related_states",
+        "frontend/e2e/v018/**",
+        "docs/v0-18/s4/**"
+      ],
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "S3_FORMAL_COMPLETE"
+      ],
+      "excluded": [
+        "S4_DESIGN_REWRITE",
+        "CLIENT_BUSINESS_MATH",
+        "SERVER_FORMULA_CHANGE"
+      ],
+      "implementation_authorized": false,
+      "name": "DASHBOARD_AUTHORIZED_BUSINESS_FLOW",
+      "owner_gate": "SEPARATE_IMPLEMENTATION_THEN_REVIEW_READY_MERGE_MAIN_CI"
+    },
+    "S5": {
+      "acceptance": [
+        "HTTPS_SECRET_ROTATION",
+        "LEGACY_ENDPOINT_NETWORK_DENIAL",
+        "AUDIT_REDACTION",
+        "SYNTHETIC_BACKUP_RESTORE_AND_ROLLBACK"
+      ],
+      "allowed_paths": [
+        "test_only/isolated_pilot_configuration_templates",
+        "backend/tests/pilot/**",
+        "docs/v0-18/s5/runbooks"
+      ],
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "S3_FORMAL_COMPLETE",
+        "S4_FORMAL_COMPLETE",
+        "OWNER_OPERATION_PLAN_REVIEW"
+      ],
+      "deployment_authorized": false,
+      "excluded": [
+        "ACTUAL_DEPLOYMENT",
+        "PRODUCTION_CREDENTIAL_CONFIGURATION",
+        "PRODUCTION_DATABASE"
+      ],
+      "implementation_authorized": false,
+      "name": "ISOLATED_SYNTHETIC_SAFE_PILOT_READINESS",
+      "owner_gate": "SEPARATE_IMPLEMENTATION_THEN_REVIEW_READY_MERGE_MAIN_CI"
+    },
+    "S6": {
+      "acceptance": [
+        "CANONICAL_THREE_SURFACE_PARITY",
+        "AUTHORIZATION_BEFORE_READ_ZERO_COUNTERS",
+        "BROWSER_ACCESSIBILITY_AND_SECURITY_DRILLS",
+        "FROZEN_REGRESSION"
+      ],
+      "allowed_paths": [
+        "backend/tests/e2e/v018/**",
+        "frontend/e2e/v018/**",
+        "docs/v0-18/s6/evidence"
+      ],
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "S3_FORMAL_COMPLETE",
+        "S4_FORMAL_COMPLETE",
+        "S5_FORMAL_COMPLETE"
+      ],
+      "excluded": [
+        "UNAUTHORIZED_PRODUCTION_FIX",
+        "MODEL_EXPERIMENT",
+        "PRODUCTION_APPROVAL"
+      ],
+      "implementation_authorized": false,
+      "name": "BUSINESS_AND_SECURITY_ACCEPTANCE",
+      "owner_gate": "SEPARATE_IMPLEMENTATION_THEN_REVIEW_READY_MERGE_MAIN_CI"
+    }
+  },
+  "task_id": "V0_18_S0_BUSINESS_USABILITY_SCOPE_FREEZE_R1",
+  "validation_snapshot": "OFFLINE_CONTRACTS_AND_EXACT_HEAD_CI_RECORDED_IN_TERMINAL_RECEIPT_NOT_PRECLAIMED",
+  "version": "0.18.0",
+  "version_name": "BUSINESS_USABILITY_AND_SAFE_PILOT_FOUNDATION"
+}
