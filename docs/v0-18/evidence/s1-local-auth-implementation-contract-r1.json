@@ -1,0 +1,888 @@
+{
+  "allowed_changed_files": [
+    "docs/v0-18/s1/local-auth-implementation-contract-r1.md",
+    "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py"
+  ],
+  "api": {
+    "admin_auth_body_limit_bytes": 16384,
+    "admin_list_max_page_size": 100,
+    "business_error_and_success_schema_unchanged": true,
+    "business_loss_requires_explicit_cost_and_forecast_capability": true,
+    "endpoints": {
+      "audit_events": {
+        "csrf_required": false,
+        "implemented": false,
+        "method": "GET",
+        "path": "/api/v1/admin/audit-events",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "organization_id",
+          "from",
+          "to",
+          "page_size",
+          "after_event_id"
+        ],
+        "response_fields": [
+          "items",
+          "next_event_id"
+        ],
+        "response_sensitive_fields": []
+      },
+      "change_password": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/auth/change-password",
+        "permission": "VALID_SESSION_SELF",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "current_password",
+          "new_password"
+        ],
+        "response_fields": [
+          "password_changed"
+        ],
+        "response_sensitive_fields": []
+      },
+      "create_grant": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/admin/resource-grants",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "subject_principal_id",
+          "resource_kind",
+          "capability",
+          "binding",
+          "organization_id",
+          "valid_from",
+          "valid_until",
+          "expected_grant_revision",
+          "approval_reference",
+          "reason"
+        ],
+        "response_fields": [
+          "grant_id",
+          "new_grant_revision",
+          "binding_summary"
+        ],
+        "response_sensitive_fields": []
+      },
+      "create_user": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/admin/users",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "username",
+          "initial_password",
+          "role",
+          "reason"
+        ],
+        "response_fields": [
+          "account_id",
+          "principal_id",
+          "role",
+          "status",
+          "must_change_password"
+        ],
+        "response_sensitive_fields": []
+      },
+      "csrf": {
+        "csrf_required": false,
+        "implemented": false,
+        "method": "GET",
+        "path": "/api/v1/auth/csrf",
+        "permission": "TRUSTED_ORIGIN_NO_BUSINESS_ACCESS",
+        "request_extra_fields": "FORBID",
+        "request_fields": [],
+        "response_fields": [
+          "csrf_token",
+          "expires_in"
+        ],
+        "response_sensitive_fields": []
+      },
+      "list_grants": {
+        "csrf_required": false,
+        "implemented": false,
+        "method": "GET",
+        "path": "/api/v1/admin/resource-grants",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "subject_principal_id",
+          "page_size",
+          "after_grant_id"
+        ],
+        "response_fields": [
+          "items",
+          "next_grant_id"
+        ],
+        "response_sensitive_fields": []
+      },
+      "list_users": {
+        "csrf_required": false,
+        "implemented": false,
+        "method": "GET",
+        "path": "/api/v1/admin/users",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "page_size",
+          "after_account_id"
+        ],
+        "response_fields": [
+          "items",
+          "next_account_id"
+        ],
+        "response_sensitive_fields": []
+      },
+      "login": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "permission": "PREAUTH_CSRF",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "username",
+          "password"
+        ],
+        "response_fields": [
+          "principal_id",
+          "role",
+          "must_change_password"
+        ],
+        "response_sensitive_fields": []
+      },
+      "logout": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/auth/logout",
+        "permission": "VALID_SESSION",
+        "request_extra_fields": "FORBID",
+        "request_fields": [],
+        "response_fields": [
+          "logged_out"
+        ],
+        "response_sensitive_fields": []
+      },
+      "me": {
+        "csrf_required": false,
+        "implemented": false,
+        "method": "GET",
+        "path": "/api/v1/auth/me",
+        "permission": "VALID_SESSION",
+        "request_extra_fields": "FORBID",
+        "request_fields": [],
+        "response_fields": [
+          "principal_id",
+          "role",
+          "must_change_password",
+          "auth_revision",
+          "grant_revision"
+        ],
+        "response_sensitive_fields": []
+      },
+      "reset_password": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/admin/users/{id}/reset-password",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "new_temporary_password",
+          "expected_auth_revision",
+          "reason"
+        ],
+        "response_fields": [
+          "reset",
+          "must_change_password"
+        ],
+        "response_sensitive_fields": []
+      },
+      "revoke_grant": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "POST",
+        "path": "/api/v1/admin/resource-grants/{id}/revoke",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "expected_grant_revision",
+          "reason"
+        ],
+        "response_fields": [
+          "revoked",
+          "new_grant_revision"
+        ],
+        "response_sensitive_fields": []
+      },
+      "user_role": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "PATCH",
+        "path": "/api/v1/admin/users/{id}/role",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "role",
+          "expected_auth_revision",
+          "reason"
+        ],
+        "response_fields": [
+          "account_summary",
+          "auth_revision"
+        ],
+        "response_sensitive_fields": []
+      },
+      "user_status": {
+        "csrf_required": true,
+        "implemented": false,
+        "method": "PATCH",
+        "path": "/api/v1/admin/users/{id}/status",
+        "permission": "ADMIN_AND_APPROVED_MANAGEMENT_BOUNDARY",
+        "request_extra_fields": "FORBID",
+        "request_fields": [
+          "status",
+          "expected_auth_revision",
+          "reason"
+        ],
+        "response_fields": [
+          "account_summary",
+          "auth_revision"
+        ],
+        "response_sensitive_fields": []
+      }
+    },
+    "error_statuses": [
+      401,
+      403,
+      404,
+      409,
+      413,
+      415,
+      422,
+      429,
+      503
+    ],
+    "errors_redact_inputs_sql_paths_credentials": true,
+    "existing_s1_query_limit_bytes": 8192,
+    "existing_s2_body_limit_bytes": 131072,
+    "prefix": "/api/v1",
+    "s2_csrf_required": true
+  },
+  "authentication": {
+    "admin_implicit_forecast_access": false,
+    "admin_implicit_quality_access": false,
+    "bootstrap_public_endpoint": false,
+    "candidate_dependency": "argon2-cffi",
+    "candidate_dependency_review_status": "PENDING_IMPLEMENTATION_DEPENDENCY_APPROVAL",
+    "candidate_documentation_version": "25.1.0",
+    "candidate_parameters": {
+      "absolute_seconds": 86400,
+      "approval_status": "PENDING_OWNER_APPROVAL",
+      "audit_retention_days": 180,
+      "deployment_benchmark_required": true,
+      "failure_count": 5,
+      "failure_window_seconds": 900,
+      "hash_bytes": 32,
+      "idle_seconds": 28800,
+      "memory_kib_min": 19456,
+      "parallelism": 1,
+      "password_max_characters": 128,
+      "password_min_characters": 15,
+      "preauth_seconds": 300,
+      "restriction_seconds": 900,
+      "salt_bytes": 16,
+      "time_cost_min": 2,
+      "username_max_characters": 64
+    },
+    "login_throttle_design": "POSTGRES_TRANSACTION_ADVISORY_LOCK_AND_HMAC_AUDIT_BUCKET_WINDOW",
+    "login_throttling_cross_worker_atomic": true,
+    "mode": "LOCAL_USERNAME_PASSWORD",
+    "password_algorithm": "ARGON2ID",
+    "principal_types": [
+      "END_USER",
+      "SERVICE_ACCOUNT"
+    ],
+    "public_registration": false,
+    "reset_forces_password_change": true,
+    "roles": [
+      "ADMIN",
+      "BUSINESS_USER"
+    ],
+    "shared_default_account": false,
+    "unknown_login_same_error_and_hash_cost": true
+  },
+  "authorization": {
+    "admin_bypass": false,
+    "admin_grant_publication_boundary_required": true,
+    "already_sent_bytes_retractable": false,
+    "client_actor_trusted": false,
+    "cross_level_inheritance": false,
+    "denial_before_sensitive_read": true,
+    "exact_run_fields": [
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "expected_source_result_hash"
+    ],
+    "fresh_revision_read": "READ_COMMITTED_NOT_STALE_ORM_SNAPSHOT",
+    "future_run_auto_enrollment": false,
+    "global_latest": false,
+    "hash_is_authorization": false,
+    "levels": [
+      "BASE",
+      "REGION",
+      "COMPANY"
+    ],
+    "order": [
+      "AUTHENTICATE",
+      "CHECK_CAPABILITY",
+      "CHECK_EXACT_RESOURCE_GRANT",
+      "CANONICAL_READ",
+      "VERIFY_IDENTITY_HASH",
+      "PRE_RESPONSE_PRINCIPAL_GRANT_RECHECK"
+    ],
+    "organization_steward_approval_required": true,
+    "pre_response_grant_revision_recheck": true,
+    "pre_response_principal_active_recheck": true,
+    "quality_evidence_binding_required": true,
+    "quality_independent": true,
+    "recheck_runtime_implemented": false,
+    "release_gate_design": "SUBJECT_ROW_SHARED_RELEASE_LOCK_VS_EXCLUSIVE_REVOCATION_COMMIT",
+    "revocation_before_release_sensitive_bytes_expected": 0,
+    "runtime_asgi_release_barrier_test_required": true,
+    "s1_saved_run_discovery": false,
+    "sensitive_response_streaming": false,
+    "unauthorized_existing_missing_same_error": "403_FORBIDDEN",
+    "unauthorized_forecast_reads_expected": 0,
+    "unauthorized_quality_reads_expected": 0,
+    "unauthorized_simulations_expected": 0
+  },
+  "base_main_sha": "5b07acee24a56ffb9c7b7f6b697c6763e96e06b8",
+  "compatibility": {
+    "business_payload_hash_math_unchanged": true,
+    "current_season_actual_access": false,
+    "dashboard_csrf_client_stage": "S4",
+    "dashboard_runtime_changed": false,
+    "legacy_isolation_verified": false,
+    "legacy_protected_ingress_policy": "EXPLICIT_ALLOWLIST_DEFAULT_DENY",
+    "mcp_end_user_delegation": false,
+    "mcp_mode": "SERVICE_ACCOUNT_ONLY",
+    "mcp_runtime_changed": false,
+    "mcp_tool_count": 8,
+    "s1_existing_dashboard_post_compatibility_claimed": false,
+    "trial_actor_fallback": false,
+    "upper80_upper90_attribution_child_contribution": "NOT_AVAILABLE"
+  },
+  "database": {
+    "audit_append_only": true,
+    "constraints": [
+      "UUID_SERVER_GENERATED",
+      "USERNAME_UNIQUE",
+      "PRINCIPAL_UNIQUE_NON_RECYCLED",
+      "SESSION_KIND_ACCOUNT_COUPLING",
+      "FORECAST_QUALITY_BINDING_DISCRIMINATED",
+      "SHA256_LOWERCASE_64",
+      "REVISION_POSITIVE_MONOTONIC",
+      "VALID_UNTIL_AFTER_VALID_FROM",
+      "NO_HARD_ACCOUNT_DELETE",
+      "APPEND_ONLY_AUDIT",
+      "GRANT_REPLACEMENT_REVOKE_AND_ADD_ATOMIC"
+    ],
+    "future_revision_id": null,
+    "management_audit_atomic": true,
+    "migration_created": false,
+    "observed_alembic_heads": [
+      "0040_hierarchical_forecast"
+    ],
+    "principal_immutable_non_reusable": true,
+    "quality_binding_fields": [
+      "mode",
+      "model_id",
+      "source_split",
+      "target_season",
+      "scope",
+      "evidence_policy_version",
+      "evidence_hashes",
+      "evidence_set_digest"
+    ],
+    "reuse": "EXISTING_POSTGRESQL_SQLALCHEMY_BASE_ASYNCSESSION",
+    "tables": {
+      "auth_account": [
+        "account_id",
+        "principal_id",
+        "username_normalized",
+        "password_hash",
+        "role",
+        "status",
+        "must_change_password",
+        "auth_revision",
+        "grant_revision",
+        "managed_organization_ids",
+        "created_at",
+        "updated_at",
+        "disabled_at"
+      ],
+      "auth_audit_event": [
+        "event_id",
+        "occurred_at",
+        "actor_principal_id",
+        "target_id",
+        "action",
+        "result_code",
+        "revision_before",
+        "revision_after",
+        "correlation_id",
+        "organization_id",
+        "login_bucket_digest",
+        "reason_code"
+      ],
+      "auth_resource_grant": [
+        "grant_id",
+        "principal_id",
+        "resource_kind",
+        "capability",
+        "organization_id",
+        "approved_by_principal",
+        "approval_reference",
+        "reason",
+        "grant_revision",
+        "valid_from",
+        "valid_until",
+        "revoked_at",
+        "created_at",
+        "typed_binding"
+      ],
+      "auth_session": [
+        "session_id",
+        "token_digest",
+        "kind",
+        "account_id",
+        "csrf_token_digest",
+        "issued_at",
+        "last_seen_at",
+        "idle_expires_at",
+        "absolute_expires_at",
+        "auth_revision",
+        "grant_revision",
+        "revoked_at",
+        "revoke_reason"
+      ]
+    },
+    "trial_owner_is_local_principal": false,
+    "username_is_authorization_key": false
+  },
+  "future_s1_allowed_paths": [
+    "backend/app/local_auth/{__init__,schemas,models,repository,passwords,sessions,service,authorization,audit,bootstrap}.py",
+    "backend/app/api/local_auth.py",
+    "backend/app/api/local_auth_admin.py",
+    "backend/app/main.py",
+    "backend/app/core/config.py",
+    "backend/app/models/__init__.py",
+    "backend/app/api/forecast_intelligence_read.py",
+    "backend/app/api/forecast_intelligence_decision.py",
+    "backend/alembic/versions/<actual_generated_revision>_local_auth.py",
+    "pyproject.toml",
+    "uv.lock",
+    "backend/tests/local_auth/",
+    "docs/v0-18/s1/new_implementation_evidence"
+  ],
+  "governance": {
+    "current_season_actual_accessed": false,
+    "database_migration_created": false,
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "model_experiment_executed": false,
+    "owner_contract_authorized": true,
+    "peak_business_started": false,
+    "production_code_changed": false,
+    "production_readiness": "NOT_READY",
+    "ready_authorized": false,
+    "release_authorized": false,
+    "runtime_authorization_requires": [
+      "CONTRACT_INDEPENDENT_REVIEW",
+      "OWNER_CONTRACT_READY_MERGE",
+      "CONTRACT_MERGE_AND_MAIN_CI_SUCCESS",
+      "OWNER_PARAMETER_AND_RESPONSIBILITY_APPROVAL",
+      "S1_SEPARATE_CODE_SCHEMA_DEPENDENCY_AUTHORIZATION"
+    ],
+    "runtime_implemented": false,
+    "s0_addendum_formal_complete_basis": "OWNER_CONFIRMED_WITH_LIVE_MERGE_AND_PUSH_CI",
+    "s1_implementation_authorized": false,
+    "s2_to_s6_implementation_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false
+  },
+  "historical_source_sha256": {
+    "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
+    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "044329bd092dc4a08d9829c03cd6ad7cd06ce803e45ac74fccb5bde75ce3b0b1",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json": "eaf767b26e02e3495e9ac57bc61ee44c02229c25d82c79c5c49665ec3e796055",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json": "ec376c24146f98899c8e8c252f5cc34d88b2929607c0fd1bda21f3e0f601b4c4",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "96efd4fef39d509088a7c833b0715b40d18a38502366f30763f385ae21470b02",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "latest_formal_release": "v0.17.0",
+  "live_preflight": {
+    "fresh_fetch": true,
+    "parallel_s1_pr_found": false,
+    "pr715": {
+      "ci_conclusion": "success",
+      "ci_event": "push",
+      "ci_jobs": {
+        "failed": 0,
+        "skipped": 8,
+        "success": 4
+      },
+      "ci_status": "completed",
+      "formal_completion_basis": "OWNER_CONFIRMED_WITH_LIVE_MERGE_AND_PUSH_CI",
+      "github_review_records_returned": 0,
+      "head_sha": "13d3cf4d8a08d156a3f75a9044a8163bcd8d4720",
+      "merge_sha": "5b07acee24a56ffb9c7b7f6b697c6763e96e06b8",
+      "post_merge_ci": 38114257884,
+      "state": "MERGED"
+    },
+    "release_draft": false,
+    "release_prerelease": false,
+    "worktree_clean_before_changes": true
+  },
+  "mode": "IMPLEMENTATION_CONTRACT_AND_OFFLINE_TESTS_ONLY",
+  "owner_decisions": [
+    {
+      "id": "D01",
+      "status": "PENDING_OWNER_APPROVAL",
+      "subject": "FOUR_TABLE_POSTGRES_SCHEMA_DEPENDENCY_MIGRATION_AND_BACKUP_AUDIT_OWNER"
+    },
+    {
+      "id": "D02",
+      "status": "PENDING_OWNER_APPROVAL",
+      "subject": "HASH_BENCHMARK_PASSWORD_SESSION_RATE_COOKIE_CSRF_PARAMETERS"
+    },
+    {
+      "id": "D03",
+      "status": "PENDING_OWNER_APPROVAL",
+      "subject": "BOOTSTRAP_ORGANIZATION_STEWARD_GRANT_APPROVER_BOUNDARIES_AND_RESET_DELIVERY"
+    },
+    {
+      "id": "D04",
+      "status": "PENDING_OWNER_APPROVAL",
+      "subject": "S1_CODE_ALLOWLIST_SEPARATE_AUTHORIZATION_LEGACY_INGRESS_POLICY"
+    }
+  ],
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "s3_completion_acceptance": [
+    "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE",
+    "EXACT_HEAD_CI_SUCCESS",
+    "INDEPENDENT_REVIEW",
+    "OWNER_READY_MERGE_AUTHORIZATION",
+    "POST_MERGE_MAIN_CI_SUCCESS"
+  ],
+  "s3_safety_acceptance_status": "PENDING_NOT_EXECUTED",
+  "schema": "V0_18_S1_LOCAL_AUTH_IMPLEMENTATION_CONTRACT_R1",
+  "security_acceptance_matrix": [
+    {
+      "case": "ADMIN_CREATE_LOGIN_STABLE_PRINCIPAL",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A01",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "WRONG_UNKNOWN_DISABLED_PASSWORD_DENY",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A02",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "RESET_INVALIDATES_SESSIONS_FORCED_CHANGE",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A03",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "LOGOUT_EXPIRY_FORGED_COOKIE_DENY",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A04",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "BUSINESS_USER_ADMIN_DENY",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A05",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "ADMIN_NO_IMPLICIT_DATA",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A06",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "CROSS_USER_ORG_RUN_HASH_DENY_BEFORE_READ",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A07",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "BASE_REGION_COMPANY_RERUN_NONINHERITANCE",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A08",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "QUALITY_SEPARATE_PINNED_EVIDENCE",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A09",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "CANONICAL_INTEGRITY_FAIL_CLOSED",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A10",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "IN_FLIGHT_REVOKE_DISABLE_EXPIRY_RELEASE_BARRIER",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A11",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "CONCURRENT_PRINCIPAL_CANCEL_ISOLATION",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A12",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "LEGACY_ALL_PATHS_NO_ACTOR_FALLBACK",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A13",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "SERVICE_HTTP_DECIMAL_IDENTITY_HASH_PARITY",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A14",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "CSRF_ORIGIN_FIXATION_PROTECTION",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A15",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "ATOMIC_CROSS_WORKER_BOUNDED_THROTTLE",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A16",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "ADMIN_BOUNDARY_LAST_ADMIN_CAS_AUDIT_ROLLBACK",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A17",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "BOOTSTRAP_NONRECYCLED_PRINCIPAL_REHASH",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A18",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "NO_BUSINESS_DML_SECRETS_ACTUAL_MODELS",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A19",
+      "status": "PLANNED_NOT_RUN"
+    },
+    {
+      "case": "CONFIG_DB_FAILURE_FAIL_CLOSED_RECOVERY",
+      "environment": "ISOLATED_SYNTHETIC_ONLY",
+      "id": "A20",
+      "status": "PLANNED_NOT_RUN"
+    }
+  ],
+  "security_references": [
+    {
+      "checked_on": "2026-10-11",
+      "url": "https://argon2-cffi.readthedocs.io/en/stable/parameters.html"
+    },
+    {
+      "checked_on": "2026-10-11",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-10-11",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    },
+    {
+      "checked_on": "2026-10-11",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    }
+  ],
+  "session": {
+    "absolute_expiry_extendable": false,
+    "cache_control": "no-store",
+    "cookie": {
+      "domain": null,
+      "http_only": true,
+      "name": "__Host-blueberry-session",
+      "path": "/",
+      "same_site": "Lax",
+      "secure": true
+    },
+    "csrf": "SYNCHRONIZER_TOKEN_AND_EXACT_ORIGIN_JSON",
+    "database_stores_raw_token": false,
+    "https_required": true,
+    "invalidation_events": [
+      "LOGOUT",
+      "ACCOUNT_DISABLE",
+      "PASSWORD_RESET",
+      "ROLE_CHANGE",
+      "MATERIAL_GRANT_REVOCATION"
+    ],
+    "mode": "OPAQUE_SERVER_SIDE_SESSION",
+    "password_change_required_blocks_business": true,
+    "preauth_grants_business_access": false,
+    "token_random_bytes_min": 32
+  },
+  "source_evidence_count": 46,
+  "source_evidence_sha256": {
+    "backend/alembic/env.py": "31603d4e92f3ab3d392f97620eb2e9f67dd898738a27b1e2988853ed816a520a",
+    "backend/alembic/versions/0040_hierarchical_forecast.py": "ae9cb0ee50b811e2f8317c805a2eb8034957f0d45ca8d8cde0c0cd44401b5ba0",
+    "backend/app/actual_harvest_import/api_auth.py": "59548ae9afcaae17edf646a20b94e6190da92eadbe050f6bda06f6763467ddfd",
+    "backend/app/api/forecast_intelligence_decision.py": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/core/config.py": "f10bdcd0a63737ea01409a121d072bed8f7fb3f33ebfc11b6e59266b469f8cda",
+    "backend/app/db/base.py": "987edfd9dfe38b2c49492c7d1a4e774015d16b72e2281b018e4160be6b47d560",
+    "backend/app/db/session.py": "1760ed25857205893dfd6b2fc9c167caf26d1182f47f220b37621c5b0da6382b",
+    "backend/app/forecast_intelligence/decision_schemas.py": "1913520e7c699647ae0d268bc3bbd394c9065f4b47b498b5d8d27345504bcdd8",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/read_schemas.py": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/main.py": "4820eccedf90ab409501551c02098a721833c37b523fa235bda96f30b5633939",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_http.py": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+    "backend/app/models/__init__.py": "e9cca76e6de29f5f8008f20eabdc2d23ea099a7f3b419a6453183d205757d57c",
+    "backend/app/models/hierarchical_forecast.py": "f13762f6a42cbc061ac5f4a79f9d579cb7b7dc84227287e6a4602430480edf9a",
+    "backend/app/models/master_data.py": "2a6d5f11f012a14639faf14ee814ab43c3a4d2a3457e1cc2f859b3ee4bd1a712",
+    "backend/app/models/trial.py": "7dd07cf72195f5ae6a3a173bda4632d7a837dc52dde6012bea272895cd3c5f1e",
+    "backend/app/trial.py": "131ade420874d20fe20a1bd29c5f1e000fa5401a1f10469fcdad2b2344a38715",
+    "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
+    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "044329bd092dc4a08d9829c03cd6ad7cd06ce803e45ac74fccb5bde75ce3b0b1",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py": "bbe1d3362b53fcaddf0b078cd56e1373bf3fb631f699c6a76111752a3b6ac571",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json": "eaf767b26e02e3495e9ac57bc61ee44c02229c25d82c79c5c49665ec3e796055",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json": "ec376c24146f98899c8e8c252f5cc34d88b2929607c0fd1bda21f3e0f601b4c4",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "96efd4fef39d509088a7c833b0715b40d18a38502366f30763f385ae21470b02",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/local-auth-implementation-contract-r1.md": "079cc4cda5e2514fe8847b32cf8b16afeb798cde8f637adba99f9106a0fb0c81",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78",
+    "frontend/src/dashboard/api/client.ts": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+    "pyproject.toml": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+    "uv.lock": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218"
+  },
+  "stage_dependencies": {
+    "S0": [
+      "V0_17_0_FORMAL_RELEASE"
+    ],
+    "S1": [
+      "S0_FORMAL_COMPLETE",
+      "ADDENDUM_FORMAL_COMPLETE",
+      "OWNER_LOCAL_ACCOUNT_AND_POLICY_PUBLISHER_DECISION"
+    ],
+    "S2": [
+      "S1_FORMAL_COMPLETE"
+    ],
+    "S3": [
+      "S1_FORMAL_COMPLETE",
+      "S2_FORMAL_COMPLETE",
+      "OWNER_SERVICE_ACCOUNT_MODE_AND_TEST_PLAN_APPROVED"
+    ],
+    "S4": [
+      "S1_FORMAL_COMPLETE",
+      "S2_FORMAL_COMPLETE",
+      "S3_FORMAL_COMPLETE"
+    ],
+    "S5": [
+      "S1_FORMAL_COMPLETE",
+      "S2_FORMAL_COMPLETE",
+      "S3_FORMAL_COMPLETE",
+      "S4_FORMAL_COMPLETE",
+      "OWNER_OPERATION_PLAN_REVIEW"
+    ],
+    "S6": [
+      "S1_FORMAL_COMPLETE",
+      "S2_FORMAL_COMPLETE",
+      "S3_FORMAL_COMPLETE",
+      "S4_FORMAL_COMPLETE",
+      "S5_FORMAL_COMPLETE"
+    ]
+  },
+  "stage_order": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "VERSION_CLOSEOUT"
+  ],
+  "task_id": "V0_18_S1_LOCAL_AUTH_IMPLEMENTATION_CONTRACT_R1",
+  "validation_snapshot": {
+    "exact_head_ci": "PENDING_AFTER_DRAFT_PR",
+    "format": "1396 files already formatted",
+    "historical_contract_tests": 51,
+    "mypy": "2.1.0 Success: no issues found in 563 source files",
+    "new_contract_tests": 23,
+    "offline_contract_tests": "74 passed in 0.25s",
+    "ruff": "0.15.18 All checks passed",
+    "runtime_security_acceptance": "PLANNED_NOT_RUN",
+    "source_hash_audit": "46 public source hashes verified offline"
+  },
+  "version": "0.18.0",
+  "version_name": "BUSINESS_USABILITY_AND_SAFE_PILOT_FOUNDATION"
+}
