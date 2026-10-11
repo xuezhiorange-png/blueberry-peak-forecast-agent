@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from backend.tests.historical_source import historical_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/s1/local-auth-runtime-r1.json"
 
@@ -19,7 +21,14 @@ def test_runtime_evidence_canonical_sources_and_security_boundaries():
             assert not path.is_absolute() and ".." not in path.parts
             assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == digest
     assert set(value["security_acceptance"]) == {f"A{i:02}" for i in range(1, 21)}
-    assert value["security_acceptance"]["A19"]["result"] == "BLOCKED"
+    assert value["security_acceptance"]["A19"]["result"] == "PASS_TESTED_SCOPE"
+    previous = value["r4_correction"]["previous_r3_snapshot"]
+    original = historical_bytes("docs/v0-18/s1/local-auth-runtime-r1.json", previous["head_sha"])
+    assert hashlib.sha256(original).hexdigest() == previous["evidence_sha256"]
+    assert json.loads(original)["security_acceptance"]["A19"]["result"] == "BLOCKED"
+    assert previous["a19_status"] == "BLOCKED"
+    assert value["security_acceptance_counts"] == {"blocked": 0, "fail": 0, "pass_tested_scope": 20}
+    assert value["r4_correction"]["previous_exact_head_ci"]["conclusion"] == "failure"
     assert value["dependency_review"]["unrelated_dependency_upgrades_authorized"] is False
     assert value["production_readiness"] == "NOT_READY"
     assert value["real_admin_and_org_authority"] == "PENDING"
