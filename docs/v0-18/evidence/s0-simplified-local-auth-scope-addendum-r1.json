@@ -1,0 +1,435 @@
+{
+  "base_main_sha": "6fb43c92c874de45c773f27c50d44cbe51835bc8",
+  "compatibility_revisions": [
+    {
+      "new": "LOCAL_ADMIN_PROVISIONED_ACCOUNTS_SERVER_SESSION",
+      "old": "OIDC_DIRECTION_PROVIDER_AND_BFF_MAPPING_PENDING_S1_OWNER_DECISION",
+      "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
+    },
+    {
+      "new": "SERVER_AUTHENTICATED_ACCOUNT_IMMUTABLE_PRINCIPAL_MAPPING",
+      "old": "TRUSTED_ISSUER_SUBJECT_PRINCIPAL_MAPPING",
+      "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
+    },
+    {
+      "new": "SAME_ORIGIN_SERVER_SESSION_COOKIE_CSRF_BOUNDARY",
+      "old": "COMPLEX_IDP_TOKEN_BFF",
+      "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
+    },
+    {
+      "new": "OWNER_LOCAL_ACCOUNT_AND_POLICY_PUBLISHER_DECISION",
+      "old": "OWNER_TRUSTED_ISSUER_AND_POLICY_PUBLISHER_DECISION",
+      "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
+    },
+    {
+      "new": "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE",
+      "old": "CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY",
+      "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
+    },
+    {
+      "new": "SERVICE_PRINCIPAL_CLIENT_BOUNDARY_EXACT_RUN_AND_QUALITY_GRANTS",
+      "old": "USER_CLIENT_RUN_SCOPE_INTERSECTION",
+      "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
+    }
+  ],
+  "governance": {
+    "addendum_effective": false,
+    "addendum_merge_main_ci": "PENDING",
+    "current_season_actual_accessed": false,
+    "database_migration_created": false,
+    "deploy_authorized": false,
+    "formal_effect_requires": [
+      "INDEPENDENT_EXACT_HEAD_REVIEW",
+      "OWNER_READY_MERGE_AUTHORIZATION",
+      "ADDENDUM_MERGE",
+      "SUCCESSFUL_POST_MERGE_MAIN_CI"
+    ],
+    "independent_review": "PENDING",
+    "local_auth_implemented": false,
+    "merge_authorized": false,
+    "model_experiment_executed": false,
+    "owner_auth_direction_confirmed": true,
+    "owner_ready_merge_authorization": "PENDING",
+    "peak_business_started": false,
+    "pre_response_recheck_implemented": false,
+    "production_code_changed": false,
+    "production_readiness": "NOT_READY",
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s0_addendum_draft_authorized": true,
+    "s0_addendum_formal_approval_pending": true,
+    "s0_original_formal_complete": true,
+    "s1_preflight_formal_complete": true,
+    "s1_runtime_authorized": false,
+    "s1_to_s6_implementation_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false,
+    "version_closeout_authorized": false
+  },
+  "historical_source_sha256": {
+    "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json": "ec376c24146f98899c8e8c252f5cc34d88b2929607c0fd1bda21f3e0f601b4c4",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "identity_contract": {
+    "admin_implies_forecast_access": false,
+    "admin_implies_quality_access": false,
+    "authentication": "LOCAL_USERNAME_PASSWORD",
+    "client_actor_trusted": false,
+    "cookie_requirements": [
+      "Secure",
+      "HttpOnly",
+      "SameSite"
+    ],
+    "csrf_required": true,
+    "https_required": true,
+    "login_failure_limits_required": true,
+    "password_library_and_parameters": "PENDING_S1_SEPARATE_APPROVAL",
+    "password_storage": "SALTED_ADAPTIVE_HASH_NOT_PLAINTEXT_OR_REVERSIBLE",
+    "principal_id": "SERVER_GENERATED_IMMUTABLE_NON_REUSABLE",
+    "principal_types": [
+      "END_USER",
+      "SERVICE_ACCOUNT"
+    ],
+    "provisioning": "ADMIN_ONLY",
+    "public_signup": false,
+    "roles": [
+      "ADMIN",
+      "BUSINESS_USER"
+    ],
+    "session_events_requiring_invalidation": [
+      "LOGOUT",
+      "ACCOUNT_DISABLE",
+      "PASSWORD_RESET",
+      "MATERIAL_GRANT_REVOCATION"
+    ],
+    "session_revocable": true,
+    "session_server_side": true,
+    "session_ttl_and_schema": "PENDING_S1_SEPARATE_APPROVAL",
+    "shared_default_account": false,
+    "username_is_permission_key": false
+  },
+  "latest_formal_release": "v0.17.0",
+  "live_preflight": {
+    "parallel_addendum_pr_found": false,
+    "pr714_api_reviews_and_comments_count": 0,
+    "pr714_formal_completion_basis": "OWNER_CONFIRMED_AND_LIVE_MERGE_PUSH_CI_VERIFIED",
+    "pr714_head_sha": "52714a6bfdd498dddda7d9f95ff5908b558d28c6",
+    "pr714_main_ci_jobs": {
+      "failed": 0,
+      "skipped": 8,
+      "success": 4
+    },
+    "pr714_merge_parents": [
+      "f333a2f713f409abfa967d9dfea5b025638f03a2",
+      "52714a6bfdd498dddda7d9f95ff5908b558d28c6"
+    ],
+    "release_draft": false,
+    "release_prerelease": false,
+    "stages": [
+      {
+        "ci_attempt": 1,
+        "ci_conclusion": "success",
+        "ci_event": "push",
+        "ci_head_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+        "ci_status": "completed",
+        "merge_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+        "post_merge_ci": 38017386758,
+        "pr": 710,
+        "pr_state": "MERGED"
+      },
+      {
+        "ci_attempt": 1,
+        "ci_conclusion": "success",
+        "ci_event": "push",
+        "ci_head_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+        "ci_status": "completed",
+        "merge_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+        "post_merge_ci": 38025671165,
+        "pr": 711,
+        "pr_state": "MERGED"
+      },
+      {
+        "ci_attempt": 1,
+        "ci_conclusion": "success",
+        "ci_event": "push",
+        "ci_head_sha": "b7ae7b4d35f182d5505ff3ea3750c5de403b2b81",
+        "ci_status": "completed",
+        "merge_sha": "b7ae7b4d35f182d5505ff3ea3750c5de403b2b81",
+        "post_merge_ci": 38034832975,
+        "pr": 712,
+        "pr_state": "MERGED"
+      },
+      {
+        "ci_attempt": 1,
+        "ci_conclusion": "success",
+        "ci_event": "push",
+        "ci_head_sha": "6fb43c92c874de45c773f27c50d44cbe51835bc8",
+        "ci_status": "completed",
+        "merge_sha": "6fb43c92c874de45c773f27c50d44cbe51835bc8",
+        "post_merge_ci": 38102232994,
+        "pr": 714,
+        "pr_state": "MERGED"
+      }
+    ],
+    "tracked_historical_files_changed": false,
+    "worktree_clean_before_changes": true
+  },
+  "mcp_contract": {
+    "business_payload_math_hash_unchanged": true,
+    "end_user_delegation": "NOT_IMPLEMENTED_UNVERIFIED_EXCLUDED_FIRST_RELEASE",
+    "end_user_isolation_validated": false,
+    "identity_mode": "SERVICE_ACCOUNT_ONLY",
+    "original_delegation_gate_passed": false,
+    "quality_grants": "INDEPENDENT_QUALITY_GRANTS",
+    "replacement_acceptance": [
+      "MANDATORY_SEPARATE_CREDENTIALS_AND_ROTATION",
+      "HTTPS_HOST_ORIGIN",
+      "SERVICE_PRINCIPAL_CLIENT_BOUNDARY",
+      "BASE_REGION_COMPANY_EXACT_GRANTS",
+      "INDEPENDENT_QUALITY_GRANTS",
+      "DENIAL_BEFORE_READ_AND_SIMULATION",
+      "CANONICAL_HASH_PRE_RESPONSE_REVISION",
+      "CONCURRENT_PRINCIPAL_ISOLATION",
+      "NO_LEGACY_BYPASS",
+      "EIGHT_TOOLS_HTTP_PAYLOAD_HASH_PARITY"
+    ],
+    "replacement_gate": "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE",
+    "replacement_gate_status": "PENDING_NOT_EXECUTED",
+    "run_grants": "EXACT_RUN_GRANTS",
+    "service_account_is_end_user": false,
+    "tool_count": 8,
+    "tool_names": [
+      "get_forecast_overview",
+      "get_forecast_curve",
+      "get_hierarchical_forecast",
+      "get_forecast_uncertainty",
+      "get_forecast_attribution",
+      "get_forecast_quality",
+      "simulate_capacity",
+      "compare_capacity_scenarios"
+    ]
+  },
+  "mode": "DOCS_ONLY_SCOPE_ADDENDUM_AND_CONTRACT_TEST",
+  "owner_decisions_pending": [
+    "ACCOUNT_ADMINISTRATOR_AND_GRANT_APPROVER_AND_ORGANIZATION_ENTITY_STEWARD",
+    "PASSWORD_LIBRARY_PARAMETERS_USERNAME_RESET_AND_RATE_POLICY",
+    "SESSION_STORAGE_TTL_CSRF_AND_REVOCATION_TARGET",
+    "PERSISTENCE_SCHEMA_MIGRATION_BACKUP_AND_AUDIT_RETENTION",
+    "COMPANY_GRANT_APPROVAL_AND_HISTORICAL_EXACT_RUN_CATALOG",
+    "FUTURE_RUN_ENROLLMENT_POLICY",
+    "LEGACY_ROUTE_ADAPTATION_OR_NETWORK_ISOLATION"
+  ],
+  "preserved_contracts": {
+    "attribution_is_causal": false,
+    "current_season_actual_available": false,
+    "decimal_and_hash_authority": true,
+    "eight_mcp_tools": true,
+    "filter_before_pagination": true,
+    "five_dashboard_pages": true,
+    "historical_sources_immutable": true,
+    "legacy_isolation_verified": false,
+    "legacy_routes_require_adaptation_or_network_isolation_before_pilot": true,
+    "no_global_latest": true,
+    "original_allowed_paths_and_non_goals": true,
+    "original_owner_gates": true,
+    "original_stage_names": true,
+    "original_version_identity": true,
+    "planning_bounds_proven_quantiles": false,
+    "point_is_proven_p50": false,
+    "quality_roadmap_separate": true,
+    "real_roi_validated": false,
+    "signed_discovery_cursor_handoff": true
+  },
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "resource_contract": {
+    "admin_bypass": false,
+    "cross_level_inheritance": false,
+    "current_registry_rewrites_historical_scope": false,
+    "default_deny": true,
+    "entity_scope_implies_all_runs": false,
+    "entity_scope_is_additional_constraint": true,
+    "explicit_grants": true,
+    "future_run_auto_enrollment_allowed": false,
+    "future_run_enrollment_policy": "PENDING_OWNER_DECISION",
+    "grant_publisher_server_owned": true,
+    "historical_runs": "EXPLICIT_APPROVED_EXACT_RUN_ALLOWLIST",
+    "in_flight_revocation_suppresses_sensitive_response": true,
+    "levels": [
+      "BASE",
+      "REGION",
+      "COMPANY"
+    ],
+    "no_unauthorized_existence_disclosure": true,
+    "order": [
+      "AUTHENTICATE",
+      "CAPABILITY_AND_ORGANIZATION_AND_EXACT_GRANT",
+      "CANONICAL_READ_AND_IDENTITY_HASH_VERIFICATION",
+      "EXISTING_SERVICE",
+      "PRE_RESPONSE_PRINCIPAL_AND_GRANT_REVISION_RECHECK"
+    ],
+    "organization_source": "OWNER_APPROVED_STEWARD_REQUIRED_UNVERIFIED",
+    "pre_response_grant_revision_recheck": true,
+    "pre_response_principal_active_recheck": true,
+    "quality_grant_independent": true,
+    "required_exact_run_fields": [
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "expected_source_result_hash"
+    ],
+    "rerun_requires_independent_binding": true,
+    "revocation_invalidates": [
+      "CACHE",
+      "CURSOR",
+      "HANDOFF",
+      "SELECTED_CONTEXT",
+      "RELEVANT_SESSION"
+    ],
+    "scope_constraints": [
+      "principal_id",
+      "principal_type",
+      "organization_scope",
+      "capability",
+      "hierarchy_level",
+      "entity_id",
+      "forecast_family",
+      "target_season",
+      "source_kind",
+      "baseline_id",
+      "policy_version",
+      "source_authority_version",
+      "valid_from",
+      "valid_until",
+      "grant_revision",
+      "revoked",
+      "approval_reference"
+    ],
+    "source_hash_is_authorization": false,
+    "source_version_drift_requires_reapproval": true,
+    "unauthorized_business_reads_expected": 0,
+    "unauthorized_quality_reads_expected": 0,
+    "unauthorized_simulations_expected": 0
+  },
+  "schema": "V0_18_S0_SIMPLIFIED_LOCAL_AUTH_SCOPE_ADDENDUM_R1",
+  "source_evidence_count": 19,
+  "source_evidence_sha256": {
+    "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
+    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "d1b6cf7585b2b7e700cce7d109d3d92ce98211da1eea05909890602508a2652c",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json": "ec376c24146f98899c8e8c252f5cc34d88b2929607c0fd1bda21f3e0f601b4c4",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "27b12dd7e9d41e7b80b1ef147062137c2d29e1bb193cefd1b830cfe94151a20a",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "stage_order": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "VERSION_CLOSEOUT"
+  ],
+  "stages": {
+    "S0": {
+      "depends_on": [
+        "V0_17_0_FORMAL_RELEASE"
+      ],
+      "implementation_authorized": false,
+      "name": "BUSINESS_USABILITY_SCOPE_FREEZE"
+    },
+    "S1": {
+      "depends_on": [
+        "S0_FORMAL_COMPLETE",
+        "ADDENDUM_FORMAL_COMPLETE",
+        "OWNER_LOCAL_ACCOUNT_AND_POLICY_PUBLISHER_DECISION"
+      ],
+      "implementation_authorized": false,
+      "name": "TRUSTED_IDENTITY_AND_RESOURCE_AUTHORIZATION"
+    },
+    "S2": {
+      "depends_on": [
+        "S1_FORMAL_COMPLETE"
+      ],
+      "implementation_authorized": false,
+      "name": "AUTHORIZED_SAVED_RUN_DISCOVERY_AND_HANDOFF"
+    },
+    "S3": {
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE"
+      ],
+      "implementation_authorized": false,
+      "name": "MCP_TRUSTED_BUSINESS_CONTEXT"
+    },
+    "S4": {
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "S3_FORMAL_COMPLETE"
+      ],
+      "implementation_authorized": false,
+      "name": "DASHBOARD_AUTHORIZED_BUSINESS_FLOW"
+    },
+    "S5": {
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "S3_FORMAL_COMPLETE",
+        "S4_FORMAL_COMPLETE",
+        "OWNER_OPERATION_PLAN_REVIEW"
+      ],
+      "implementation_authorized": false,
+      "name": "ISOLATED_SYNTHETIC_SAFE_PILOT_READINESS"
+    },
+    "S6": {
+      "depends_on": [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "S3_FORMAL_COMPLETE",
+        "S4_FORMAL_COMPLETE",
+        "S5_FORMAL_COMPLETE"
+      ],
+      "implementation_authorized": false,
+      "name": "BUSINESS_AND_SECURITY_ACCEPTANCE"
+    }
+  },
+  "task_id": "V0_18_S0_SIMPLIFIED_LOCAL_AUTH_SCOPE_ADDENDUM_R1",
+  "version": "0.18.0",
+  "version_name": "BUSINESS_USABILITY_AND_SAFE_PILOT_FOUNDATION"
+}
