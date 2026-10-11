@@ -12,7 +12,6 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from backend.app.db.session import AsyncSessionMaker
-from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Variety
 from backend.app.models.planning import (
     AgroClimateZone,
@@ -40,6 +39,7 @@ from backend.app.planning.location import (
 )
 from backend.app.planning.service import _load_candidates, create_minimal_planning_task
 from backend.app.planning.similarity import haversine_distance_km
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.integration
 
@@ -52,7 +52,7 @@ def _require_postgres() -> None:
 @pytest.fixture
 async def client() -> AsyncClient:
     _require_postgres()
-    app = create_app()
+    app = create_app(synthetic=True)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 

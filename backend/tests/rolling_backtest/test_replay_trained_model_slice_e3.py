@@ -24,7 +24,6 @@ import pytest
 from httpx import ASGITransport
 
 from backend.app.api import rolling_backtest_replay_trained
-from backend.app.main import create_app
 from backend.app.rolling_backtest.enums import Task10ModelPolicy
 from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedExecutionRequest,
@@ -36,6 +35,7 @@ from backend.app.rolling_backtest.replay_trained_service import (
     ReplayTrainedServiceError,
     ReplayTrainedServiceNotFoundError,
 )
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 # ---------------------------------------------------------------------------
 # Fixtures and helpers
@@ -44,7 +44,7 @@ from backend.app.rolling_backtest.replay_trained_service import (
 
 @pytest.fixture
 def app() -> Any:
-    return create_app()
+    return create_app(synthetic=True)
 
 
 @pytest.fixture

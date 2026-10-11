@@ -141,6 +141,7 @@ from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
 from backend.tests.actual_harvest_import.test_i7_label_snapshot import (
     _build_record as _build_i7_record,
 )
+from backend.tests.alembic_head import unique_head
 from backend.tests.integration.test_core_forecast_persistence_postgres import (
     _prepare_default_trial_forecast,
 )
@@ -740,9 +741,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         conn = await asyncpg.connect(_temporary_database_url(db_name))
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0040_hierarchical_forecast"
-            )
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == unique_head()
             nullable_rows = await conn.fetch(
                 """
                 SELECT table_name, column_name, is_nullable
@@ -803,9 +802,7 @@ async def test_round_b_migration_round_trip_creates_one_head() -> None:
         conn = await asyncpg.connect(_temporary_database_url(db_name))
         try:
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0040_hierarchical_forecast"
-            )
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == unique_head()
         finally:
             await conn.close()
     finally:
@@ -4066,9 +4063,7 @@ async def test_round_c_migration_clean_round_trip_0024_0025_0024_0025() -> None:
         try:
             # §8 oracle
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0040_hierarchical_forecast"
-            )
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == unique_head()
             columns = await conn.fetch(
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_name = 'model_baseline_comparison'"
@@ -4161,9 +4156,7 @@ async def test_round_c_migration_v2_data_blocks_downgrade_to_0024() -> None:
             # §11.3 oracle: current_database is still the temp DB and
             # version is still 0026.
             assert await conn.fetchval("SELECT current_database()") == db_name
-            assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-                "0040_hierarchical_forecast"
-            )
+            assert await conn.fetchval("SELECT version_num FROM alembic_version") == unique_head()
             assert (
                 await conn.fetchval(
                     "SELECT count(*) FROM quality_evaluation_run "

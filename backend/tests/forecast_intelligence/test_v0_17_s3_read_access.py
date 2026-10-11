@@ -16,6 +16,7 @@ from backend.app.forecast_intelligence.read_access import (
 )
 from backend.app.forecast_intelligence.read_schemas import QualityReadQuery, ReadError
 from backend.tests.forecast_intelligence.test_v0_17_s1_service_read_api import query
+from backend.tests.historical_source import source_bytes
 
 
 def account(**updates):
@@ -97,7 +98,7 @@ def test_public_evidence_is_canonical_source_bound_and_private_free():
     assert value["source_evidence_count"] == len(value["source_evidence_sha256"])
     for name, expected in value["source_evidence_sha256"].items():
         assert not Path(name).is_absolute() and ".." not in Path(name).parts
-        assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected
+        assert hashlib.sha256(source_bytes(name, root=root)).hexdigest() == expected
     assert all(flag is False for flag in value["isolation"].values())
     assert len(value["eight_tool_mapping"]) == 8
     assert value["governance"]["s3_implementation_authorized"]

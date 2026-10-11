@@ -28,6 +28,7 @@ from backend.app.s3_daily_rowset.incumbent_forecast_v0_2_sql_table_authority imp
     MATCH_TABLE_NAMES,
     is_bindable,
 )
+from backend.tests.alembic_head import assert_unique_head
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
 from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
 
@@ -35,7 +36,6 @@ _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _MIGRATION_PATH = (
     _BACKEND_ROOT / "alembic" / "versions" / "e8b2c4d6f1a3_s3_incumbent_forecast_replay_identity.py"
 )
-NEW_ALEMBIC_HEAD = "0040_hierarchical_forecast"
 INCUMBENT_REPLAY_IDENTITY_REVISION = "e8b2c4d6f1a3"
 PARENT_ALEMBIC_REVISION = "a7c3e9f1b2d4"
 TABLE_NAME = "s3_incumbent_forecast_replay_identity"
@@ -66,9 +66,7 @@ def _migration_module() -> ModuleType:
 def test_alembic_has_single_head_at_new_revision() -> None:
     config = Config(str(_BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
-    heads = ScriptDirectory.from_config(config).get_heads()
-
-    assert heads == [NEW_ALEMBIC_HEAD]
+    assert_unique_head(ScriptDirectory.from_config(config))
 
 
 def test_migration_revision_metadata() -> None:

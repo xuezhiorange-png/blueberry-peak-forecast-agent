@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.db.session import AsyncSessionMaker
 from backend.app.harvest_state.persistence import HarvestStatePersistenceIntegrityError
 from backend.app.harvest_state.schemas import Task9ARequest
-from backend.app.main import create_app
 from backend.app.models.harvest_state import (
     HarvestStateCohortTransitionRowModel,
     HarvestStateDailyMemberRowModel,
@@ -24,6 +23,7 @@ from backend.app.models.harvest_state import (
 )
 from backend.app.models.master_data import Season
 from backend.tests.harvest_state.conftest import make_request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.integration
 
@@ -46,7 +46,7 @@ async def client() -> AsyncIterator[AsyncClient]:
             )
         )
         await session.commit()
-    app = create_app()
+    app = create_app(synthetic=True)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as test_client:
         yield test_client
 

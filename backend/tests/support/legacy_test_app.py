@@ -1,0 +1,283 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from sqlalchemy import event
+
+from backend.app.actual_harvest_import.api_errors import ActualHarvestApiError
+from backend.app.actual_harvest_import.api_policy import ActualHarvestRequestBodyLimitMiddleware
+from backend.app.api.actual_harvest_imports import router as actual_harvest_import_router
+from backend.app.api.area_forecast_runs import router as area_forecast_runs_router
+from backend.app.api.forecast_intelligence_decision import (
+    router as forecast_intelligence_decision_router,
+)
+from backend.app.api.forecast_intelligence_read import router as forecast_intelligence_read_router
+from backend.app.api.harvest_state import router as harvest_state_router
+from backend.app.api.health import router as health_router
+from backend.app.api.hierarchical_forecast_runs import router as hierarchical_forecast_runs_router
+from backend.app.api.master_data import router as master_data_router
+from backend.app.api.materialized_datasets import router as materialized_datasets_router
+from backend.app.api.maturity import router as maturity_router
+from backend.app.api.operational_peak_runs import router as operational_peak_runs_router
+from backend.app.api.planning import router as planning_router
+from backend.app.api.production_plans import router as production_plan_router
+from backend.app.api.residual_model import router as residual_model_router
+from backend.app.api.rolling_backtest_replay_trained import (
+    router as rolling_backtest_replay_trained_router,
+)
+from backend.app.api.trial import router as trial_router
+from backend.app.api.weather import router as weather_router
+from backend.app.core.config import AppSettings, get_settings
+from backend.app.core.version import APP_VERSION
+from backend.app.db import session as db_session
+from backend.app.mcp.streamable_http import mount_blueberry_mcp
+from backend.app.schemas.harvest_state import HarvestStateErrorResponse
+from backend.app.trial import TrialErrorResponse, map_actual_harvest_error
+
+
+def _reject_nonisolated_connection(dialect, connection_record, args, params):
+    del dialect, connection_record, args
+    database = str(params.get("database", ""))
+    if (
+        params.get("host") not in {"127.0.0.1", "localhost", "::1"}
+        or "_test_" not in database
+        or not database.replace("_", "").isalnum()
+    ):
+        raise RuntimeError("Legacy tests cannot connect to a nonisolated database")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    await db_session.dispose_db_engine()
+
+
+def _is_harvest_state_path(path: str) -> bool:
+    return path == "/api/v1/harvest-state" or path.startswith("/api/v1/harvest-state/")
+
+
+def _is_replay_trained_path(path: str) -> bool:
+    return path == "/api/v1/rolling-backtest/replay-trained-predictions" or path.startswith(
+        "/api/v1/rolling-backtest/replay-trained-predictions/"
+    )
+
+
+def _is_actual_harvest_path(path: str) -> bool:
+    return path == "/api/v1/actual-harvest" or path.startswith("/api/v1/actual-harvest/")
+
+
+def _is_trial_path(path: str) -> bool:
+    return path == "/api/v1/trial" or path.startswith("/api/v1/trial/")
+
+
+def create_legacy_test_app(settings: AppSettings | None = None, *, synthetic: bool) -> FastAPI:
+    """Explicit test-only composition of unchanged legacy routers and handlers.
+
+    Callers must seed/inject synthetic repositories. The live entry below
+    additionally requires a test environment and an isolated loopback database.
+    This module is never imported or mounted by the production application.
+    """
+    if synthetic is not True:
+        raise ValueError("Legacy application requires explicit synthetic configuration")
+    if not event.contains(
+        db_session.engine.sync_engine, "do_connect", _reject_nonisolated_connection
+    ):
+        event.listen(db_session.engine.sync_engine, "do_connect", _reject_nonisolated_connection)
+    app_settings = settings or get_settings()
+    app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
+    app.state.settings = app_settings
+    app.state.legacy_test_only = True
+
+    @app.middleware("http")
+    async def mark_synthetic_entry(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Blueberry-Test-Entry"] = "SYNTHETIC_LEGACY"
+        return response
+
+    app.add_middleware(ActualHarvestRequestBodyLimitMiddleware)
+
+    @app.exception_handler(ActualHarvestApiError)
+    async def _handle_actual_harvest_api_error(
+        request: Request,
+        exc: ActualHarvestApiError,
+    ) -> JSONResponse:
+        if _is_trial_path(request.url.path):
+            trial_error = map_actual_harvest_error(exc)
+            return JSONResponse(
+                status_code=trial_error.status_code,
+                content=TrialErrorResponse(
+                    request_id=request.headers.get("x-request-id"),
+                    code=trial_error.code.value,
+                    message_template_id=trial_error.code.value,
+                    retryable=trial_error.retryable,
+                    details=trial_error.details,
+                ).model_dump(mode="json"),
+            )
+        del request
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "request_id": None,
+                "status": "ERROR",
+                "data_or_null": None,
+                "errors": [
+                    {
+                        "code": exc.code.value,
+                        "message_template_id": exc.code.value,
+                        "details": exc.details,
+                    }
+                ],
+                "warnings": [],
+                "pagination_or_null": None,
+                "canonical_hashes": {},
+                "provenance": {"api_policy_version": "actual-harvest-api-policy-v1"},
+            },
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _handle_request_validation_error(
+        request: Request,
+        exc: RequestValidationError,
+    ) -> JSONResponse:
+        if _is_replay_trained_path(request.url.path):
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": {
+                        "code": "TASK012_REPLAY_TRAINED_INPUT_INVALID",
+                        "message": "Replay-trained request is invalid.",
+                        "blocker": None,
+                        "identity": {},
+                    }
+                },
+            )
+        if _is_trial_path(request.url.path):
+            return JSONResponse(
+                status_code=422,
+                content=TrialErrorResponse(
+                    request_id=request.headers.get("x-request-id"),
+                    code="TRIAL_REQUEST_INVALID",
+                    message_template_id="TRIAL_REQUEST_INVALID",
+                    retryable=False,
+                ).model_dump(mode="json"),
+            )
+        if _is_actual_harvest_path(request.url.path):
+            error_code = "API_REQUEST_INVALID"
+            if any(
+                marker in str(item.get("msg", "")).lower()
+                for item in exc.errors()
+                for marker in ("server-generated", "source file metadata")
+            ):
+                error_code = "SERVER_GENERATED_FIELD_SUPPLIED"
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "request_id": request.headers.get("x-request-id"),
+                    "status": "ERROR",
+                    "data_or_null": None,
+                    "errors": [
+                        {
+                            "code": error_code,
+                            "message_template_id": error_code,
+                            "details": {},
+                        }
+                    ],
+                    "warnings": [],
+                    "pagination_or_null": None,
+                    "canonical_hashes": {},
+                    "provenance": {"api_policy_version": "actual-harvest-api-policy-v1"},
+                },
+            )
+        if not _is_harvest_state_path(request.url.path):
+            return await request_validation_exception_handler(request, exc)
+        return JSONResponse(
+            status_code=422,
+            content=HarvestStateErrorResponse(
+                error={
+                    "code": "HARVEST_STATE_DELIVERY_INPUT_ERROR",
+                    "message": "Harvest-state request is invalid.",
+                }
+            ).model_dump(mode="json"),
+        )
+
+    if settings is not None:
+        app.dependency_overrides[get_settings] = lambda: app_settings
+
+    app.include_router(health_router, prefix="/health", tags=["health"])
+    app.include_router(
+        forecast_intelligence_decision_router,
+        prefix="/api/v1/decision-support",
+        tags=["forecast-intelligence"],
+    )
+    app.include_router(
+        forecast_intelligence_read_router,
+        prefix="/api/v1/forecast-intelligence",
+        tags=["forecast-intelligence"],
+    )
+    app.include_router(
+        hierarchical_forecast_runs_router, prefix="/api/v1", tags=["forecast-intelligence"]
+    )
+    app.include_router(
+        actual_harvest_import_router,
+        prefix="/api/v1/actual-harvest",
+        tags=["actual-harvest-import"],
+    )
+    app.include_router(harvest_state_router, prefix="/api/v1/harvest-state", tags=["harvest-state"])
+    app.include_router(master_data_router, prefix="/api/v1/master-data", tags=["master-data"])
+    app.include_router(planning_router, prefix="/planning", tags=["planning"])
+    app.include_router(production_plan_router, prefix="/planning", tags=["production-plans"])
+    app.include_router(weather_router, prefix="/planning", tags=["weather"])
+    app.include_router(maturity_router, prefix="/planning", tags=["maturity"])
+    app.include_router(
+        residual_model_router,
+        prefix="/api/v1/residual-model",
+        tags=["residual-model"],
+    )
+    app.include_router(
+        rolling_backtest_replay_trained_router,
+        prefix="/api/v1/rolling-backtest",
+        tags=["rolling-backtest", "task-012"],
+    )
+    app.include_router(trial_router, prefix="/api/v1/trial", tags=["trial"])
+    app.include_router(
+        area_forecast_runs_router, prefix="/api/v1/area-forecast-runs", tags=["area-forecast-runs"]
+    )
+    app.include_router(
+        operational_peak_runs_router,
+        prefix="/api/v1/operational-peak-forecast-runs",
+        tags=["operational-peak-forecast-runs"],
+    )
+    app.include_router(
+        materialized_datasets_router,
+        prefix="/api/v1/materialized-datasets",
+        tags=["materialized-datasets"],
+    )
+    mount_blueberry_mcp(app, app_settings)
+    return app
+
+
+def create_live_legacy_test_app() -> FastAPI:
+    """Loopback integration entry, intentionally unavailable without opt-in."""
+    import os
+
+    settings = AppSettings(_env_file=None)
+    if (
+        os.environ.get("BLUEBERRY_LEGACY_SYNTHETIC_TEST") != "1"
+        or settings.app_env != "test"
+        or settings.postgres_host not in {"127.0.0.1", "localhost", "::1"}
+        or "_test_" not in settings.postgres_db
+        or not settings.postgres_db.replace("_", "").isalnum()
+    ):
+        raise ValueError("Isolated legacy test configuration required")
+    app = create_legacy_test_app(settings, synthetic=True)
+
+    @app.middleware("http")
+    async def loopback_only(request: Request, call_next):
+        if request.client is None or request.client.host not in {"127.0.0.1", "::1"}:
+            return JSONResponse(status_code=403, content={"detail": "Test ingress denied"})
+        return await call_next(request)
+
+    return app

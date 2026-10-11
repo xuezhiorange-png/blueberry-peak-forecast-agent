@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from backend.tests.historical_source import source_bytes
+
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
 SCOPE = "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json"
@@ -41,7 +43,7 @@ def raw(path):
     relative = Path(path)
     assert not relative.is_absolute() and ".." not in relative.parts
     assert relative.parts[0] in {"docs", "backend"}
-    return (ROOT / relative).read_bytes()
+    return source_bytes(str(relative), root=ROOT)
 
 
 def load(path):

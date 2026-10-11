@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from backend.tests.historical_source import source_bytes
+
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
 DOC = "docs/v0-17/v0.17.0-closeout.md"
@@ -79,7 +81,7 @@ def raw(relative):
     path = Path(relative)
     assert not path.is_absolute() and ".." not in path.parts
     assert path.parts[0] in {"docs", "backend", "frontend", "scripts"}
-    return (ROOT / path).read_bytes()
+    return source_bytes(path, root=ROOT)
 
 
 def load(relative):
@@ -316,7 +318,16 @@ def test_production_gaps_privacy_and_no_execution_overclaim():
     tree = ast.parse(Path(__file__).read_text())
     imports = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
     imports.update(a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names)
-    assert imports == {"ast", "hashlib", "json", "re", "pathlib", "pytest"}
+    # The sole added import verifies local immutable Git blobs, not runtime IO.
+    assert imports == {
+        "ast",
+        "hashlib",
+        "json",
+        "re",
+        "pathlib",
+        "pytest",
+        "backend.tests.historical_source",
+    }
 
 
 @pytest.mark.parametrize(
