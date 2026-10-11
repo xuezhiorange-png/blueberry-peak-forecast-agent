@@ -59,7 +59,20 @@ async def manage(
                 account = await auth.create_account(
                     db, principal, boundary, CreateAccount.model_validate(await body(request))
                 )
-                return envelope(summary(account), 201)
+                account_summary = summary(account)
+                return envelope(
+                    {
+                        key: account_summary[key]
+                        for key in (
+                            "account_id",
+                            "principal_id",
+                            "role",
+                            "status",
+                            "must_change_password",
+                        )
+                    },
+                    201,
+                )
             if resource == "users" and object_id is not None:
                 try:
                     object_id = str(UUID(object_id))
@@ -113,7 +126,13 @@ async def manage(
                 await auth.changed(
                     db, account, principal, "ACCOUNT_" + action.upper().replace("-", "_")
                 )
-                return envelope(summary(account))
+                if action == "reset-password":
+                    return envelope(
+                        {"reset": True, "must_change_password": account.must_change_password}
+                    )
+                return envelope(
+                    {"account_summary": summary(account), "auth_revision": account.auth_revision}
+                )
             if resource == "resource-grants" and request.method == "POST" and action is None:
                 payload = TypeAdapter(ForecastGrant | QualityGrantRequest).validate_python(
                     await body(request)
@@ -123,6 +142,14 @@ async def manage(
                     {
                         "grant_id": created_grant.grant_id,
                         "new_grant_revision": created_grant.grant_revision,
+                        "binding_summary": {
+                            "resource_kind": created_grant.resource_kind,
+                            "capability": created_grant.capability,
+                            "organization_id": created_grant.organization_id,
+                            "binding": created_grant.forecast_binding
+                            if created_grant.resource_kind == "FORECAST"
+                            else created_grant.quality_binding,
+                        },
                     },
                     201,
                 )
@@ -186,7 +213,7 @@ async def manage(
                     )
                 ).all()
                 data = {
-                    "users": [summary(v) for v in account_rows[:size]],
+                    "items": [summary(v) for v in account_rows[:size]],
                     "next_account_id": account_rows[size - 1].account_id
                     if len(account_rows) > size
                     else None,
@@ -216,7 +243,7 @@ async def manage(
                     )
                 ).all()
                 data = {
-                    "grants": [
+                    "items": [
                         {
                             "grant_id": v.grant_id,
                             "principal_id": v.principal_id,
@@ -258,7 +285,7 @@ async def manage(
                     )
                 ).all()
                 data = {
-                    "events": [
+                    "items": [
                         {"event_id": v.event_id, "action": v.action, "result_code": v.result_code}
                         for v in audit_rows[:size]
                     ],

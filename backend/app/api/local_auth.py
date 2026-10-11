@@ -77,7 +77,9 @@ async def session_operation(operation: str, request: Request) -> JSONResponse:
             return response
         if operation == "login":
             result, raw = await auth.login(request, Login.model_validate(await body(request)))
-            response = envelope(result)
+            response = envelope(
+                {key: result[key] for key in ("principal_id", "role", "must_change_password")}
+            )
             cookie(response, raw)
             return response
         principal = await auth.authenticate(request, csrf=request.method == "POST")

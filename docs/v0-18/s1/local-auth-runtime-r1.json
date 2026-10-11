@@ -23,66 +23,476 @@
   "dependency_review": {
     "audit": [
       {
-        "advisories": [
-          {
-            "fix_versions": [
-              "4.14.2"
-            ],
-            "id": "PYSEC-2026-4025"
-          },
-          {
-            "fix_versions": [
-              "4.14.2"
-            ],
-            "id": "PYSEC-2026-4023"
-          },
-          {
-            "fix_versions": [
-              "4.14.2"
-            ],
-            "id": "PYSEC-2026-4024"
-          }
-        ],
+        "name": "aiosqlite",
+        "version": "0.22.1",
+        "vulns": []
+      },
+      {
+        "name": "alembic",
+        "version": "1.18.4",
+        "vulns": []
+      },
+      {
+        "name": "annotated-doc",
+        "version": "0.0.4",
+        "vulns": []
+      },
+      {
+        "name": "annotated-types",
+        "version": "0.7.0",
+        "vulns": []
+      },
+      {
         "name": "anyio",
-        "version": "4.14.0"
+        "version": "4.14.2",
+        "vulns": []
       },
       {
-        "advisories": [],
         "name": "argon2-cffi",
-        "version": "25.1.0"
+        "version": "25.1.0",
+        "vulns": []
       },
       {
-        "advisories": [],
         "name": "argon2-cffi-bindings",
-        "version": "26.1.0"
+        "version": "26.1.0",
+        "vulns": []
       },
       {
-        "advisories": [],
+        "name": "ast-serialize",
+        "version": "0.5.0",
+        "vulns": []
+      },
+      {
+        "name": "asyncpg",
+        "version": "0.31.0",
+        "vulns": []
+      },
+      {
+        "name": "attrs",
+        "version": "26.1.0",
+        "vulns": []
+      },
+      {
+        "name": "blueberry-peak-forecast-agent",
+        "skip_reason": "Dependency not found on PyPI and could not be audited: blueberry-peak-forecast-agent (0.2.0)"
+      },
+      {
+        "name": "catboost",
+        "version": "1.2.10",
+        "vulns": []
+      },
+      {
+        "name": "certifi",
+        "version": "2026.6.17",
+        "vulns": []
+      },
+      {
         "name": "cffi",
-        "version": "2.1.1"
+        "version": "2.1.1",
+        "vulns": []
       },
       {
-        "advisories": [
-          {
-            "fix_versions": [
-              "2.15.0"
-            ],
-            "id": "PYSEC-2026-4141"
-          },
-          {
-            "fix_versions": [
-              "2.15.0"
-            ],
-            "id": "PYSEC-2026-4183"
-          }
-        ],
+        "name": "click",
+        "version": "8.4.1",
+        "vulns": []
+      },
+      {
+        "name": "contourpy",
+        "version": "1.4.0",
+        "vulns": []
+      },
+      {
+        "name": "cryptography",
+        "version": "50.0.1",
+        "vulns": []
+      },
+      {
+        "name": "cycler",
+        "version": "0.12.1",
+        "vulns": []
+      },
+      {
+        "name": "defusedxml",
+        "version": "0.7.1",
+        "vulns": []
+      },
+      {
+        "name": "eccodes",
+        "version": "2.48.0",
+        "vulns": []
+      },
+      {
+        "name": "et-xmlfile",
+        "version": "2.0.0",
+        "vulns": []
+      },
+      {
+        "name": "fastapi",
+        "version": "0.137.2",
+        "vulns": []
+      },
+      {
+        "name": "findlibs",
+        "version": "0.1.3",
+        "vulns": []
+      },
+      {
+        "name": "fonttools",
+        "version": "4.66.1",
+        "vulns": []
+      },
+      {
+        "name": "graphviz",
+        "version": "0.21",
+        "vulns": []
+      },
+      {
+        "name": "greenlet",
+        "version": "3.5.2",
+        "vulns": []
+      },
+      {
+        "name": "h11",
+        "version": "0.16.0",
+        "vulns": []
+      },
+      {
+        "name": "h5netcdf",
+        "version": "1.8.1",
+        "vulns": []
+      },
+      {
+        "name": "h5py",
+        "version": "3.16.0",
+        "vulns": []
+      },
+      {
+        "name": "httpcore",
+        "version": "1.0.9",
+        "vulns": []
+      },
+      {
+        "name": "httpcore2",
+        "version": "2.12.0",
+        "vulns": []
+      },
+      {
+        "name": "httptools",
+        "version": "0.8.0",
+        "vulns": []
+      },
+      {
+        "name": "httpx",
+        "version": "0.28.1",
+        "vulns": []
+      },
+      {
+        "name": "httpx2",
+        "version": "2.12.0",
+        "vulns": []
+      },
+      {
+        "name": "idna",
+        "version": "3.18",
+        "vulns": []
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.0",
+        "vulns": []
+      },
+      {
+        "name": "joblib",
+        "version": "1.5.3",
+        "vulns": []
+      },
+      {
+        "name": "jsonschema",
+        "version": "4.26.0",
+        "vulns": []
+      },
+      {
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1",
+        "vulns": []
+      },
+      {
+        "name": "kiwisolver",
+        "version": "1.5.1",
+        "vulns": []
+      },
+      {
+        "name": "librt",
+        "version": "0.11.0",
+        "vulns": []
+      },
+      {
+        "name": "lightgbm",
+        "version": "4.7.0",
+        "vulns": []
+      },
+      {
+        "name": "mako",
+        "version": "1.3.12",
+        "vulns": []
+      },
+      {
+        "name": "markupsafe",
+        "version": "3.0.3",
+        "vulns": []
+      },
+      {
+        "name": "matplotlib",
+        "version": "3.11.2",
+        "vulns": []
+      },
+      {
+        "name": "mcp",
+        "version": "2.2.0",
+        "vulns": []
+      },
+      {
+        "name": "mcp-types",
+        "version": "2.2.0",
+        "vulns": []
+      },
+      {
+        "name": "mypy",
+        "version": "2.1.0",
+        "vulns": []
+      },
+      {
+        "name": "mypy-extensions",
+        "version": "1.1.0",
+        "vulns": []
+      },
+      {
+        "name": "narwhals",
+        "version": "2.22.1",
+        "vulns": []
+      },
+      {
+        "name": "numpy",
+        "version": "2.4.6",
+        "vulns": []
+      },
+      {
+        "name": "openpyxl",
+        "version": "3.1.5",
+        "vulns": []
+      },
+      {
+        "name": "opentelemetry-api",
+        "version": "1.44.0",
+        "vulns": []
+      },
+      {
+        "name": "packaging",
+        "version": "26.2",
+        "vulns": []
+      },
+      {
+        "name": "pandas",
+        "version": "3.0.5",
+        "vulns": []
+      },
+      {
+        "name": "pathspec",
+        "version": "1.1.1",
+        "vulns": []
+      },
+      {
+        "name": "pillow",
+        "version": "12.3.0",
+        "vulns": []
+      },
+      {
+        "name": "plotly",
+        "version": "7.1.0",
+        "vulns": []
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0",
+        "vulns": []
+      },
+      {
+        "name": "pycparser",
+        "version": "3.0",
+        "vulns": []
+      },
+      {
+        "name": "pydantic",
+        "version": "2.13.4",
+        "vulns": []
+      },
+      {
+        "name": "pydantic-core",
+        "version": "2.46.4",
+        "vulns": []
+      },
+      {
+        "name": "pydantic-settings",
+        "version": "2.14.2",
+        "vulns": []
+      },
+      {
+        "name": "pygments",
+        "version": "2.20.0",
+        "vulns": []
+      },
+      {
         "name": "pyjwt",
-        "version": "2.14.0"
+        "version": "2.15.0",
+        "vulns": []
+      },
+      {
+        "name": "pyparsing",
+        "version": "3.3.3",
+        "vulns": []
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1",
+        "vulns": []
+      },
+      {
+        "name": "pytest-asyncio",
+        "version": "1.4.0",
+        "vulns": []
+      },
+      {
+        "name": "pytest-timeout",
+        "version": "2.4.0",
+        "vulns": []
+      },
+      {
+        "name": "python-dateutil",
+        "version": "2.9.0.post0",
+        "vulns": []
+      },
+      {
+        "name": "python-dotenv",
+        "version": "1.2.2",
+        "vulns": []
+      },
+      {
+        "name": "python-multipart",
+        "version": "0.0.32",
+        "vulns": []
+      },
+      {
+        "name": "pyyaml",
+        "version": "6.0.3",
+        "vulns": []
+      },
+      {
+        "name": "referencing",
+        "version": "0.37.0",
+        "vulns": []
+      },
+      {
+        "name": "rpds-py",
+        "version": "2026.6.3",
+        "vulns": []
+      },
+      {
+        "name": "ruff",
+        "version": "0.15.18",
+        "vulns": []
+      },
+      {
+        "name": "scikit-learn",
+        "version": "1.9.0",
+        "vulns": []
+      },
+      {
+        "name": "scipy",
+        "version": "1.18.0",
+        "vulns": []
+      },
+      {
+        "name": "six",
+        "version": "1.17.0",
+        "vulns": []
+      },
+      {
+        "name": "sqlalchemy",
+        "version": "2.0.51",
+        "vulns": []
+      },
+      {
+        "name": "sse-starlette",
+        "version": "3.4.11",
+        "vulns": []
+      },
+      {
+        "name": "starlette",
+        "version": "1.3.1",
+        "vulns": []
+      },
+      {
+        "name": "threadpoolctl",
+        "version": "3.6.0",
+        "vulns": []
+      },
+      {
+        "name": "truststore",
+        "version": "0.10.4",
+        "vulns": []
+      },
+      {
+        "name": "typing-extensions",
+        "version": "4.15.0",
+        "vulns": []
+      },
+      {
+        "name": "typing-inspection",
+        "version": "0.4.2",
+        "vulns": []
+      },
+      {
+        "name": "uvicorn",
+        "version": "0.49.0",
+        "vulns": []
+      },
+      {
+        "name": "uvloop",
+        "version": "0.22.1",
+        "vulns": []
+      },
+      {
+        "name": "watchfiles",
+        "version": "1.2.0",
+        "vulns": []
+      },
+      {
+        "name": "websockets",
+        "version": "16.0",
+        "vulns": []
+      },
+      {
+        "name": "xarray",
+        "version": "2026.7.0",
+        "vulns": []
+      },
+      {
+        "name": "xlrd",
+        "version": "2.0.2",
+        "vulns": []
+      },
+      {
+        "name": "xlwt",
+        "version": "1.3.0",
+        "vulns": []
       }
     ],
-    "audit_report_sha256": "b02c3903a94aaced919227ae4d9e6146ad88ea3a900a4bcbcc3e4270580e2e16",
+    "audit_report_sha256": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
+    "complete_environment_consistency": "PARTIAL_EXISTING_ECCODESLIB_GAP",
     "new_password_dependencies_no_reported_vulnerabilities": true,
-    "result": "BLOCKED_EXISTING_DEPENDENCIES",
+    "remaining_advisories": 0,
+    "result": "PASS_INSTALLED_TREE_TESTED_SCOPE",
+    "targeted_anyio_pyjwt_upgrade_authorized": true,
     "unrelated_dependency_upgrades_authorized": false
   },
   "environment_repairs": {
@@ -515,6 +925,264 @@
     "prior_r1_r2_diagnostics_changed": false
   },
   "production_readiness": "NOT_READY",
+  "r4_correction": {
+    "api_contract": {
+      "all_14_endpoint_fields_checked": true,
+      "binding_summary": "APPROVED_RESOURCE_KIND_CAPABILITY_ORGANIZATION_AND_EXACT_BINDING_ONLY",
+      "extra_drift_fixed": [
+        "create_user",
+        "user_status",
+        "user_role",
+        "reset_password",
+        "login"
+      ],
+      "initial_failed_junit_sha256": "f6c8f1a6520b0ab451d877cad1124e7ec178bb04d207d3629d6eb2d39a85ba1e",
+      "list_key": "items",
+      "source": "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json"
+    },
+    "audit_command": "uvx pip-audit --path .venv/lib/python3.12/site-packages --format json",
+    "audit_tool": "pip-audit 2.10.1",
+    "dependency_audit_path": "backend/tests/local_auth/fixtures/r4-dependency-audit.json",
+    "dependency_audit_sha256": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
+    "environment_consistency": {
+      "missing_dependency": "eccodeslib",
+      "old_lock_did_not_bind_dependency": true,
+      "out_of_scope_dependency_modified": false,
+      "package": "eccodes",
+      "present_before_r4": true,
+      "result": "PARTIAL_EXISTING_BASELINE_GAP",
+      "uv_pip_check": "FAIL",
+      "version": "2.48.0",
+      "whole_environment_parity_claimed": false
+    },
+    "initial_command_errors_preserved": [
+      "npm test script absent; rerun existing test:unit",
+      "Ruff paths initially relative to frontend; rerun from repository root",
+      "Extra non-CI mypy backend/app backend/tests/local_auth invocation traversed untyped legacy tests: 737 errors in 27 files. Correct frozen CI scope mypy backend/app: PASS, 573 files. No type-check rules weakened."
+    ],
+    "installed_lock_constraints_target_parity": "PASS",
+    "installed_records": 93,
+    "latest_exact_head_ci": "PENDING_AFTER_COMMIT_REPORTED_IN_PR",
+    "local_validation": {
+      "final_canonical_and_runtime": "PASS",
+      "final_runtime": {
+        "errors": 0,
+        "failures": 0,
+        "junit_sha256": "7d4023572775d97cba074fe7e0d77002d8de2cb300f6499e284ba6de2a6bb4e0",
+        "skipped": 0,
+        "tests": 84
+      },
+      "format": "PASS",
+      "frontend_e2e_passed": 94,
+      "frontend_unit_passed": 122,
+      "full_offline_backend": {
+        "errors": 0,
+        "failures": 0,
+        "junit_sha256": "584ef59b18f7fc56c3cbfdf30b9270b1bd4eecf982f3cbf83f9a49d44b9d3ea1",
+        "skipped": 21,
+        "tests": 9105
+      },
+      "mypy_backend_app": "PASS_573_FILES",
+      "p0_p1_p2_passed": 39,
+      "postgres_regression": {
+        "errors": 0,
+        "failures": 0,
+        "junit_sha256": "01e3c2349ca1116543f1cc3b7ff5715bd4a8097431e3f77addac42f18c906039",
+        "skipped": 0,
+        "tests": 140
+      },
+      "ruff": "PASS",
+      "runtime_first_pass": 82
+    },
+    "make_boundary": {
+      "make_exit_code": 2,
+      "makefile_changed": false,
+      "negative_guards_preserved": true,
+      "no_docker_or_database_in_probe": true,
+      "positive_repetitions": 10,
+      "private_subprocess_path_only": true,
+      "real_make_and_guard_executed": true,
+      "root_cause": "DEFAULT_PROFILE_TEST_EXECUTED_FULL_NESTED_POSTGRES_CHAIN",
+      "stub_exit_code": 73,
+      "stub_script_argument": "backend/scripts/postgres_test_db.sh",
+      "timeout_changed": false,
+      "timeout_seconds": 30,
+      "unique_receipt_required": true
+    },
+    "mcp_version": "2.2.0",
+    "not_publicly_auditable": [
+      {
+        "name": "blueberry-peak-forecast-agent",
+        "skip_reason": "Dependency not found on PyPI and could not be audited: blueberry-peak-forecast-agent (0.2.0)"
+      }
+    ],
+    "observed_at_utc": "2026-10-11T23:38:23.532348+00:00",
+    "other_locked_package_versions_changed": false,
+    "owner_authorized": true,
+    "previous_exact_head_ci": {
+      "canary_junit_sha256": "39d9c664a90a7374db4bb036554b1e66c4840b1ee0e1ecf45c06f651556feade",
+      "canary_passed": 10008,
+      "canary_skipped": 5,
+      "conclusion": "failure",
+      "event": "pull_request",
+      "failed_jobs": 1,
+      "golden_failed": 1,
+      "golden_junit_sha256": "395147fe9b7035b82c1d46c03c9fb0fc836e4a4d00be0d60ea1bc723edf45294",
+      "golden_passed": 9062,
+      "golden_skipped": 21,
+      "head_sha": "e92507f5213058e07515ef7f7efc2d71edf4488d",
+      "run_id": 38152759596,
+      "skipped_jobs": 0,
+      "status": "completed",
+      "success_jobs": 11,
+      "total_jobs": 12
+    },
+    "previous_r3_snapshot": {
+      "a19_status": "BLOCKED",
+      "dependency_review": {
+        "audit": [
+          {
+            "advisories": [
+              {
+                "fix_versions": [
+                  "4.14.2"
+                ],
+                "id": "PYSEC-2026-4025"
+              },
+              {
+                "fix_versions": [
+                  "4.14.2"
+                ],
+                "id": "PYSEC-2026-4023"
+              },
+              {
+                "fix_versions": [
+                  "4.14.2"
+                ],
+                "id": "PYSEC-2026-4024"
+              }
+            ],
+            "name": "anyio",
+            "version": "4.14.0"
+          },
+          {
+            "advisories": [],
+            "name": "argon2-cffi",
+            "version": "25.1.0"
+          },
+          {
+            "advisories": [],
+            "name": "argon2-cffi-bindings",
+            "version": "26.1.0"
+          },
+          {
+            "advisories": [],
+            "name": "cffi",
+            "version": "2.1.1"
+          },
+          {
+            "advisories": [
+              {
+                "fix_versions": [
+                  "2.15.0"
+                ],
+                "id": "PYSEC-2026-4141"
+              },
+              {
+                "fix_versions": [
+                  "2.15.0"
+                ],
+                "id": "PYSEC-2026-4183"
+              }
+            ],
+            "name": "pyjwt",
+            "version": "2.14.0"
+          }
+        ],
+        "audit_report_sha256": "b02c3903a94aaced919227ae4d9e6146ad88ea3a900a4bcbcc3e4270580e2e16",
+        "new_password_dependencies_no_reported_vulnerabilities": true,
+        "result": "BLOCKED_EXISTING_DEPENDENCIES",
+        "unrelated_dependency_upgrades_authorized": false
+      },
+      "evidence_sha256": "ec3976db1318cb5b79d882989095bfbd8247fb729bfc808471b3efb798d5f565",
+      "head_sha": "e92507f5213058e07515ef7f7efc2d71edf4488d",
+      "result": "PARTIAL",
+      "security_acceptance_counts": {
+        "blocked": 1,
+        "fail": 0,
+        "pass_tested_scope": 19
+      }
+    },
+    "public_sources": [
+      {
+        "advisory_id": "PYSEC-2026-4025",
+        "fix_verified": true,
+        "fixed_version": "4.14.2",
+        "package": "anyio",
+        "source_sha256": "3d248ef262b91f6893780e9a2f15fbdaf149929a89d32ffa14102fb29ea77018",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/anyio/PYSEC-2026-4025.yaml"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4023",
+        "fix_verified": true,
+        "fixed_version": "4.14.2",
+        "package": "anyio",
+        "source_sha256": "33e12d343b9711a41b7b5735ddde95484921d6dec0f078f185e40378a2a22147",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/anyio/PYSEC-2026-4023.yaml"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4024",
+        "fix_verified": true,
+        "fixed_version": "4.14.2",
+        "package": "anyio",
+        "source_sha256": "77f57a49c5d4d40bc548f0ac85df5940dd60c931206c5eee369bedd5c1f548bc",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/anyio/PYSEC-2026-4024.yaml"
+      },
+      {
+        "package": "anyio",
+        "published_not_yanked": true,
+        "source_sha256": "db8486b090bcf9977cd53888ffcd558fdf646d47887f656ab2eeeb0e9bb4cd06",
+        "source_url": "https://pypi.org/pypi/anyio/4.14.2/json",
+        "version": "4.14.2"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4141",
+        "fix_verified": true,
+        "fixed_version": "2.15.0",
+        "package": "pyjwt",
+        "source_sha256": "3e047280defb1b7c9e105d4961aeecc858414c8af774ee07722a6d92ec484d2c",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/pyjwt/PYSEC-2026-4141.yaml"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4183",
+        "fix_verified": true,
+        "fixed_version": "2.15.0",
+        "package": "pyjwt",
+        "source_sha256": "67b9cf0d4f26cd730e5a9cbd1c3b9dd232c82e7c4d618da0dc1ae45fd5e6a0ad",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/pyjwt/PYSEC-2026-4183.yaml"
+      },
+      {
+        "package": "pyjwt",
+        "published_not_yanked": true,
+        "source_sha256": "d7d239d115c9442eed19860676c23a4132a38a3880d5722da57fe2e0bd80f570",
+        "source_url": "https://pypi.org/pypi/pyjwt/2.15.0/json",
+        "version": "2.15.0"
+      }
+    ],
+    "remaining_advisories": [],
+    "task_id": "V0_18_S1_CI_TIMEOUT_DEPENDENCY_AND_API_CONTRACT_R4",
+    "version_changes": {
+      "anyio": {
+        "new": "4.14.2",
+        "old": "4.14.0"
+      },
+      "pyjwt": {
+        "new": "2.15.0",
+        "old": "2.14.0"
+      }
+    },
+    "vulnerability_service": "PyPI"
+  },
   "real_admin_and_org_authority": "PENDING",
   "result": "PARTIAL",
   "runtime_restrictions": {
@@ -705,11 +1373,13 @@
       ]
     },
     "A19": {
-      "blocker": "EXISTING_DEPENDENCY_ADVISORIES_REQUIRE_INDEPENDENT_REVIEW_AND_UPGRADE_AUTHORITY",
       "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
-      "result": "BLOCKED",
+      "result": "PASS_TESTED_SCOPE",
       "test_nodes": [
-        "backend/tests/local_auth/test_security_matrix.py::test_a19_audit_has_no_credentials"
+        "backend/tests/local_auth/test_security_matrix.py::test_a19_audit_has_no_credentials",
+        "backend/tests/local_auth/test_r4_dependencies.py::test_r4_public_audit_snapshot_covers_installed_target_packages",
+        "backend/tests/local_auth/test_r4_dependencies.py::test_r4_pyjwt_deep_payload_is_a_safe_decode_error",
+        "backend/tests/local_auth/test_r4_dependencies.py::test_r4_anyio_cancellation_isolated_and_next_request_recovers"
       ]
     },
     "A20": {
@@ -722,17 +1392,17 @@
     }
   },
   "security_acceptance_counts": {
-    "blocked": 1,
+    "blocked": 0,
     "fail": 0,
-    "pass_tested_scope": 19
+    "pass_tested_scope": 20
   },
   "source_evidence_sha256": {
     ".github/workflows/ci.yml": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
     "backend/alembic/versions/d7766e57d4c8_local_auth.py": "adaab0867c374276e700d031fe957b4c9dded0b1ec1983c86a1e90b8c4cf4f56",
     "backend/app/api/forecast_intelligence_decision.py": "44b1e341439b4ad2d233831dfea9483f092bf81ca503222c8ff8b9613e9f09d1",
     "backend/app/api/forecast_intelligence_read.py": "0847f9912c3ccb18dc17506f07d90336ab70d3c0b6e13cb89700c2ceba090101",
-    "backend/app/api/local_auth.py": "c9a5a27a824cce505bc680c76a25936418280dea70c717d8ee57bdb574dc73c9",
-    "backend/app/api/local_auth_admin.py": "80c5a9544b47dbdf5183bb809cd8346f87883027a71f0371949ce2f635785e18",
+    "backend/app/api/local_auth.py": "51d050b3f90834777505cf246f74437d0e84195e55fb8a145834e9d7465b6338",
+    "backend/app/api/local_auth_admin.py": "db1209223b3d92b917d3ba84dff97d11c45f7733c7be61eca4b2eebfac45de1f",
     "backend/app/core/config.py": "d5094762cdb8fcbffd5024a312492a344b0ff2a608e1f2533613c228c071f446",
     "backend/app/local_auth/__init__.py": "0d7944e897f727f9d83b2ba8244755459a610f6e1d6f2c98e91ad7c9e99003ea",
     "backend/app/local_auth/authorization.py": "0a97c967f9513df37fac6e054bfc262f3dc7233ff73253a37daa1d18466cbbd6",
@@ -745,6 +1415,7 @@
     "backend/app/local_auth/sessions.py": "8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b",
     "backend/app/main.py": "014783c642bee0d4019eca08e716150faf56909384d9669ee106f492508b5011",
     "backend/app/models/__init__.py": "268b103807cb0feb0100cae4792071b306093b5f512a472ecae06dd707214c09",
+    "backend/constraints-ci.txt": "00d2b569621aebfd4d729485e122d3652834d630e5df8a9b5b51c3db5f05accf",
     "backend/tests/actual_harvest_import/alembic_cases.py": "ac7caa599be4deb314d5ebb3f5b59c48fcb3a4badcc8f6d1507b23e8ab96a4e6",
     "backend/tests/actual_harvest_import/conftest.py": "1c8df09b8cc8261ae96740f0e748796d43285af1532484cbd7f546486b329ef1",
     "backend/tests/actual_harvest_import/test_lifecycle_postgres.py": "37aeeaa4a659bc4d464915eaa548c89ee23f5d2553e3d453c5d6cacc7fad822d",
@@ -779,16 +1450,19 @@
     "backend/tests/integration/test_rolling_backtest_orchestration.py": "459b82f4e3dff0f19d3f654630930446f2ca6769a0eba8b58578ffe7fd6564b6",
     "backend/tests/integration/test_weather_features.py": "65c43d838eb58a19440962d9658e8e2bd3a2ad7fba916cecec7b58b276af584e",
     "backend/tests/local_auth/conftest.py": "94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d",
+    "backend/tests/local_auth/fixtures/r4-dependency-audit.json": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
     "backend/tests/local_auth/run_frontend_legacy_acceptance.py": "9bd9bf90476d143901af1eb46a4c5fc48e92df0e40c4381ea27b28ccb76a2100",
     "backend/tests/local_auth/test_admin_runtime.py": "f5730dde17530f2963f84e61ef25f3a53eeb25a1e1c03cbd50af3a8547964736",
+    "backend/tests/local_auth/test_api_response_contract.py": "94406d9062a5cd4bd4263d0db13ef67fec332a2b7f0744049e8b44f52e573a80",
     "backend/tests/local_auth/test_authorization_release.py": "0c1d712dae395d97314a5a1bea4cacf9997fb6c8a693b442d7e136854fc04866",
     "backend/tests/local_auth/test_controlled_http.py": "26a5211b719fba137945445e2ef14e3d831c1be610ad3a670ae2135e431f0ea5",
     "backend/tests/local_auth/test_grant_administration.py": "3db87cbdf4f4e2782be134ac5e3c3ec4a1f1d7eb16ed4eddbee3b578faf70f2e",
     "backend/tests/local_auth/test_historical_source.py": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
     "backend/tests/local_auth/test_legacy_entry.py": "45ff85c7eb805251d9c044994ed4a9d7dabaf7753eb07bbecede6ccf0bbb4159",
     "backend/tests/local_auth/test_migration_compatibility.py": "dc7e03eb474dda98bc1d6705923938bdf2d4e4249eed7111d26d01bb7d4a75e4",
+    "backend/tests/local_auth/test_r4_dependencies.py": "ab15a5830d457752ac698edce37ac416b9e9ed70d17c77268e5a69186cf6805e",
     "backend/tests/local_auth/test_real_response_gate.py": "4001d22bd699bd2c439df82670fe4e1953f6e5244cef340fa894fd063bf90483",
-    "backend/tests/local_auth/test_runtime_evidence_contract.py": "06ca43d18b388258aee3225830a4ad23662339812ea91d7ef42f9ed7bf499f96",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": "e7054aee289cd41022c06a44f9adbd80be3233fe63adfc045f42b2baa8f05c7c",
     "backend/tests/local_auth/test_runtime_sessions.py": "46c58a207461546d8d174d9ee2dec3317bd4edb3b02fc6f751281173b04711db",
     "backend/tests/local_auth/test_security_matrix.py": "a63ca2a1b3e196b5b85c96d028ab745601a40aab84b0928b4a04863c8cfa84fb",
     "backend/tests/mcp/test_area_forecast.py": "8dd9f9bfc9804ec4170d48018a031101363d18e61b036508bf29d78e0cf73b52",
@@ -803,6 +1477,7 @@
     "backend/tests/s2_materialized_dataset/lane_d/conftest.py": "927637d9fab766deda5ca027e0bc88e6b1c18c1596757afee2ebdfb3f53a5bb7",
     "backend/tests/s2_materialized_dataset/lane_d/test_integration_seams.py": "6b4a1cf7fc7f5e51877db1dadf16ff3f5605dc57201892c44ea29c3f2a0a13f1",
     "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py": "e95f570b8efcc6c1f0880d22a6b6018a77d10feb3d59d39153b18662f76227eb",
+    "backend/tests/safety/test_dev_db_protection.py": "f3e21bd3f65407c5762e62798d51fb207eda2bf8976d41fd1b4189089b997421",
     "backend/tests/support/legacy_test_app.py": "e6379156414f8e74f46b73491338f7dfafac3181af6fec550c2516517ea7b775",
     "backend/tests/test_harvest_state_api.py": "2537303224f87d71e09284d418c143eb58b127fc742cbe208e0377167b96cbb1",
     "backend/tests/test_health.py": "3a105539a73b95dd73964506ca951e10e4f44a724be3fad92e38203abd3adf07",
@@ -811,15 +1486,15 @@
     "backend/tests/test_residual_model_api.py": "19b1d5223552ae3a302210357e44a525aae021970da41d4cf0e38cde1ef81446",
     "backend/tests/test_residual_model_execution_api.py": "b9ddae8228fb0c8285b8c29968d0fb38b918b812a259dc8c47f9100fe1602025",
     "backend/tests/trial/test_api.py": "9f3dda44b61e02914105568d2b7453560872363eae2c73893fd8b034c45377c4",
-    "docs/v0-18/s1/local-auth-runtime-r1.md": "baeca0448edecb9c64a00437feb01be251dede036d4dd7d0ab5c7fb276f215f6",
+    "docs/v0-18/s1/local-auth-runtime-r1.md": "3472d5bfc5690d8bbabc3e673168382cef1fdb43e38aca11cfc08f719903eeb5",
     "docs/v0-18/s1/runtime-r1-results/local-test-results.json": "9af2cbbe338ddda55a10f8f9a29f19b6a41b1fcb27a11401c71b41267962fe9b",
     "docs/v0-18/s1/runtime-resume-r1-blocked.json": "3db148fab783e82b3f8f9acdffc586dfc9320fd248774199a3d128daaef533e2",
     "docs/v0-18/s1/runtime-resume-r1-blocked.md": "80e638119c16870e076f784999c9bdacfbb182d1a1d19d3d3dba5f75e06d23c3",
     "docs/v0-18/s1/runtime-resume-r2-blocked.json": "363140612e822b6196185186d1cc17e3c3cda90abdd2f37304464cb3ba878784",
     "docs/v0-18/s1/runtime-resume-r2-blocked.md": "a317ea561f034639abb83f9dfd75063b60339c24a2f360b70974c9f01a635573",
     "frontend/src/test/dashboardGovernance.test.ts": "897d55405d07ad109c58ec13ccccee37a6dcadb7ab6267b32c015d6dd762dcfa",
-    "pyproject.toml": "991fc9a79b818bc2d2161fd864adfedc4a6b7865ec75453820366fac3f1073e3",
-    "uv.lock": "f17f9e9f86f3c8474a3bea2703b1918dc6438792bc62b3398e7d7beacf5ba60d"
+    "pyproject.toml": "3f2c7f7bafa6dd25381a66050706b1438f9e1ac92df8ad3a4818a446b8f093db",
+    "uv.lock": "66d4f9c2dd5659472a3f9fc507932fdc14a2d49380366a5dc27648df0d611da8"
   },
   "synthetic": true,
   "task_id": "V0_18_S1_LEGACY_TEST_ENTRY_COMPATIBILITY_AND_RUNTIME_RESUME_R3",

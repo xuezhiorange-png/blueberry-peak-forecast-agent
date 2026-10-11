@@ -133,3 +133,57 @@ setup errors，均为 CI 未安装 `uv`；其余 Canary 为 9965 passed / 5 skip
 三个新增测试/本地 runner 的 Alembic 子进程改为
 `sys.executable -m alembic`，始终复用当前已安装的测试解释器和依赖。
 没有额外安装工具，没有放宽迁移/数据/安全断言；继续执行真实 PostgreSQL 复测与新 HEAD CI。
+
+## R4：Golden 子进程、依赖和 API 响应定向修正
+
+本节为新的执行事实，不回写以上 R3 历史结论。原 HEAD
+`e92507f5213058e07515ef7f7efc2d71edf4488d` 的 Run `38152759596`
+completed/failure：11 success / 1 failure / 0 skipped；Canary 10008 passed / 5 skipped，
+Golden 9062 passed / 1 failed / 21 skipped，失败为旧 `make test-pg` 子流程超过 30 秒。
+原始日志、JUnit 与原 A19 BLOCKED 审计均保留。
+
+P0 仅修改安全测试：真实执行原 Makefile、Python guard 和默认参数传递，
+仅该子进程的 PATH 内提供 bash 替身。替身检查首个脚本与完整测试配置，写入唯一
+receipt 后以 73 退出，Make 以 2 传播失败，停止后续 Docker/等待/嵌套 pytest。
+成功断言同时要求 receipt、独立 stdout 标识、指定退出原因及没有 guard 拒绝。
+正向重复 10 次，破坏 guard、无 receipt、错误脚本、缺配置和开发库负向保留；
+`_run_make` 的 30 秒期限和 Makefile 完全不改。
+
+P1 仅升级 AnyIO 4.14.0 → 4.14.2、PyJWT 2.14.0 → 2.15.0，
+直接依赖与 CI constraints 同步精确版本，uv.lock 其余包版本无变化，MCP 仍 2.2.0。
+PyPI 实际发布元数据、pypa/advisory-database 固定提交及五项公告已读取并绑定 SHA256。
+pip-audit 2.10.1 扫描当前 93 个安装记录：公开包无已知漏洞；项目自身未发布到 PyPI，
+不能由公共漏洞数据库评价，仍依靠当前代码安全测试，明确保留此限制。
+原始 JSON 逐字节归档于 `backend/tests/local_auth/fixtures/r4-dependency-audit.json`。
+运行版本、锁和 CI constraints 的三方断言将由新 HEAD CI 实际执行。
+新增 JWT 深嵌套错误与 AnyIO 取消/恢复兼容检查，不修改 MCP Runtime。
+
+额外 `uv pip check` 发现基线已有 eccodes 2.48.0 元数据要求 eccodeslib，但原锁文件
+未包含它；旧 R3 安装扫描也没有此包。这不是两项升级引入的版本变化，未擅自更改
+气象依赖或扩大锁文件修复。**完整环境一致性不能标记 PASS**，该既有缺口另行审查。
+本轮漏洞扫描结论仅针对实际安装树与已授权的五项公告，不等于生产整体安全证明。
+
+P2 在 HTTP 响应出口修正 users/grants/events → items，以及已批准 grant 的
+binding_summary；摘要只包含已批准的资源类型、capability、组织及 exact binding。
+进一步真实字段比对发现 status/role/reset/create-user/login 使用通用账号结构，
+分别按 PR #716 的 account_summary/auth_revision、reset/must_change_password、
+五字段账号创建摘要及三个登录字段修正。不改业务计算、身份、管理范围、CAS 或审计。
+真实 PostgreSQL HTTP 测试覆盖全部 14 项 API 的响应字段和分页、越组织拒绝。
+首次字段测试 1 pass / 1 fail 的登录结构复现保留，修正后 P0/P1/P2 共 39 passed。
+综合运行安全/Legacy/迁移测试 82 passed；浏览器 94 passed。
+
+最新 A19 的安装树漏洞和兼容性结论记录为 PASS_TESTED_SCOPE，并保留原 BLOCKED
+版本、证据 hash 与旧 CI 失败链。完整安装一致性限制及 D03 仍未闭合，生产 NOT_READY。
+后续全量回归及 exact-head CI 的实际结果另行补充，不以本地结果替代 CI。
+
+R4 提交前最终本地复验：认证/权限/Legacy/迁移及新 HTTP 合同共 84 passed，
+独立 PostgreSQL 旧业务与迁移回归 140 passed；完整离线后端 9084 passed / 21 个
+既有 skipped / 839 deselected（655.00 秒），未新增 skip/xfail。Frontend Unit
+122 passed、真实浏览器 E2E 94 passed；typecheck、lint、format、build 均通过。
+Ruff check、1426 文件 format check 及 CI 原范围 `mypy backend/app`（573 文件）通过。
+一次额外把未类型化测试目录加入 mypy 的非 CI 命令产生 737 个错误，保留为命令范围
+错误，不调整原检查规则或旧测试以掩盖；标准 CI 范围重新执行通过。
+260 份冻结文件与 98 项当前来源 SHA256 独立核验一致，Makefile 无改动。
+本地 PostgreSQL 测试服务已停止，保留数据目录、原始审计和 JUnit，不操作生产环境。
+最终提交的 exact-head CI 结果将在 PR 中绑定真实 HEAD/Run ID 和任务结果；
+本证据不预填尚未发生的远端成功，也不声称 S1 正式完成。
