@@ -1,0 +1,285 @@
+{
+  "authorized_scope": "DOCS_AND_OFFLINE_CONTRACT_ONLY",
+  "base_main_sha": "f333a2f713f409abfa967d9dfea5b025638f03a2",
+  "current_baseline_status": {
+    "latest_formal_release": "v0.17.0",
+    "latest_formal_release_is_latest": true,
+    "main_sha": "f333a2f713f409abfa967d9dfea5b025638f03a2",
+    "open_v018_draft_prs": [],
+    "repository": "xuezhiorange-png/blueberry-peak-forecast-agent"
+  },
+  "decision_record": {
+    "local_auth_runtime_implemented": false,
+    "owner_auth_direction": "SIMPLIFIED_LOCAL_AUTH",
+    "scope_amendment_required": true,
+    "scope_amendment_status": "PENDING_OWNER_APPROVAL",
+    "summary": "Replace the planned first-release OIDC route with administrator-provisioned local accounts, server sessions, two human roles and explicit resource grants; preserve historical S0/S1 evidence and all existing authorization invariants."
+  },
+  "governance": {
+    "database_migration_created": false,
+    "deploy_authorized": false,
+    "deploy_executed": false,
+    "historical_evidence_modified": false,
+    "merge_authorized": false,
+    "model_or_forecast_changed": false,
+    "production_code_authorized": false,
+    "production_code_changed": false,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s0_formal_complete": true,
+    "s0_original_scope_preserved": true,
+    "s1_preflight_formal_complete": true,
+    "s1_production_implementation_authorized": false,
+    "tag_authorized": false
+  },
+  "historical_contracts": {
+    "end_user_and_service_account_separate": true,
+    "existing_eight_mcp_tool_names_and_business_contracts_unchanged": true,
+    "historical_oidc_recommendation_rewritten": false,
+    "legacy_route_isolation_verified": false,
+    "legacy_routes_must_be_adapted_or_network_restricted_before_pilot": true,
+    "no_unauthorized_resource_existence_disclosure": true,
+    "original_s0_s1_evidence_immutable": true,
+    "quality_grant_independent": true,
+    "resource_access_default_deny": true,
+    "source_hash_is_integrity_not_authorization": true
+  },
+  "identity_and_session_contract": {
+    "account_self_registration": false,
+    "admin_role_implies_forecast_access": false,
+    "admin_role_implies_quality_access": false,
+    "browser_cookie_candidate": "__Host- opaque session cookie; Secure; HttpOnly; SameSite=Lax; Path=/; no Domain; HTTPS required",
+    "csrf_controls": [
+      "synchronizer token",
+      "Origin validation for state-changing requests",
+      "SameSite is defense-in-depth only"
+    ],
+    "human_roles": [
+      "ADMIN",
+      "BUSINESS_USER"
+    ],
+    "internal_principal_mapping": "SERVER_GENERATED_IMMUTABLE_NON_RECYCLING_OPAQUE_PRINCIPAL_ID",
+    "login_failure_controls": "bounded rate/attempt controls; thresholds pending Owner decision",
+    "password_storage": "salted adaptive password hash only; proposed Argon2id; no plaintext or reversible storage",
+    "password_storage_parameter_floor": "OWASP Argon2id baseline: 19 MiB memory, 2 iterations, parallelism 1; benchmark and approve deployment cost before implementation",
+    "principal_key_is_username": false,
+    "public_signup": false,
+    "service_account_is_human_account": false,
+    "session_revocation_events": [
+      "logout",
+      "account disable",
+      "password reset",
+      "material grant revocation"
+    ],
+    "session_server_side": true,
+    "shared_default_account": false
+  },
+  "live_preflight": {
+    "main_sha": "f333a2f713f409abfa967d9dfea5b025638f03a2",
+    "s0": {
+      "exact_head_ci_attempt": 1,
+      "exact_head_ci_conclusion": "success",
+      "exact_head_ci_event": "pull_request",
+      "exact_head_ci_jobs": "12_SUCCESS_0_SKIPPED_0_FAILED",
+      "exact_head_ci_run_id": "38014489131",
+      "exact_head_ci_status": "completed",
+      "formal_complete_verified": true,
+      "independent_review_id": "5477145147",
+      "independent_review_state": "COMMENTED_PASS",
+      "merge_base_sha": "1b218edc74ff29091c07607ddbcdba0c10577398",
+      "merge_commit_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "merge_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+      "post_merge_ci_conclusion": "success",
+      "post_merge_ci_event": "push",
+      "post_merge_ci_head_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "post_merge_ci_jobs": "4_SUCCESS_8_WORKFLOW_SKIPPED",
+      "post_merge_ci_run_id": "38017386758",
+      "post_merge_ci_status": "completed",
+      "pr_number": 710,
+      "pr_state": "MERGED"
+    },
+    "s1_preflight": {
+      "exact_head_ci_attempt": 1,
+      "exact_head_ci_conclusion": "success",
+      "exact_head_ci_event": "pull_request",
+      "exact_head_ci_jobs": "12_SUCCESS_0_SKIPPED_0_FAILED",
+      "exact_head_ci_run_id": "38021408217",
+      "exact_head_ci_status": "completed",
+      "formal_complete_verified": true,
+      "independent_review_id": "5477662925",
+      "independent_review_state": "COMMENTED_PASS",
+      "merge_base_sha": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "merge_commit_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+      "merge_head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "post_merge_ci_conclusion": "success",
+      "post_merge_ci_event": "push",
+      "post_merge_ci_head_sha": "a2af2f246d2f4a16a1c6be514f004167d80f5b1e",
+      "post_merge_ci_jobs": "4_SUCCESS_8_WORKFLOW_SKIPPED",
+      "post_merge_ci_run_id": "38025671165",
+      "post_merge_ci_status": "completed",
+      "pr_number": 711,
+      "pr_state": "MERGED",
+      "production_implementation_authorized": false
+    },
+    "s1_production_implementation": "NOT_AUTHORIZED",
+    "v018_draft_pr_found": false
+  },
+  "owner_decisions_pending": [
+    "Approve or reject additive V0.18 S0 scope amendment for local accounts, opaque local principal mapping and explicit entity-scope grants.",
+    "Name initial account administrator, grant approver, organization/entity data steward and any break-glass owner.",
+    "Approve persistence location, additive schema/migration, backup, retention and recovery ownership.",
+    "Approve maintained Argon2id dependency and deployment-specific parameters after review.",
+    "Set username normalization, password/reset policy, rate limits, session idle/absolute expiry and revocation behavior.",
+    "Set company-grant approval and dual-control policy, audit retention and grant-revocation target.",
+    "Choose adaptation or network restriction for legacy Trial and MCP paths before pilot.",
+    "Confirm MCP remains ServiceAccount-only for the first release; no end-user delegation."
+  ],
+  "proposed_stage_plan": [
+    {
+      "goal": "Preserve the completed business-usability scope freeze; record any authentication change as an additive amendment.",
+      "implementation_authorized": false,
+      "stage": "S0"
+    },
+    {
+      "goal": "Implement administrator-provisioned local accounts, server sessions, stable principals, roles and shared revocable grants after scope amendment.",
+      "implementation_authorized": false,
+      "stage": "S1"
+    },
+    {
+      "goal": "Discover and select only saved forecasts within authorized scopes using full identity and source-hash handoff.",
+      "implementation_authorized": false,
+      "stage": "S2"
+    },
+    {
+      "depends_on_formal_complete": [
+        "S1",
+        "S2"
+      ],
+      "goal": "Retain MCP ServiceAccount exact grants and verify compatibility without end-user delegation.",
+      "implementation_authorized": false,
+      "stage": "S3"
+    },
+    {
+      "depends_on_formal_complete": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "goal": "Add Dashboard sign-in and normal authorized saved-forecast selection while retaining five pages.",
+      "implementation_authorized": false,
+      "stage": "S4"
+    },
+    {
+      "goal": "Run isolated synthetic safe-pilot security, route-isolation, backup/restore and rollback acceptance.",
+      "implementation_authorized": false,
+      "stage": "S5"
+    },
+    {
+      "goal": "Complete integrated product/security/business acceptance and evidence closeout.",
+      "implementation_authorized": false,
+      "stage": "S6"
+    }
+  ],
+  "resource_grant_contract": {
+    "authorization_order": [
+      "authenticate account and resolve active principal",
+      "check capability and explicit scope grant",
+      "verify complete canonical saved-run identity and source hash",
+      "read/project business data or execute permitted simulation"
+    ],
+    "base_region_company_independent_no_inheritance": true,
+    "client_fields_can_create_or_expand_grant": false,
+    "grant_publisher_server_side_only": true,
+    "historical_quality_independent_grant": true,
+    "in_flight_revocation_suppresses_sensitive_response": true,
+    "pre_response_grant_revision_recheck": true,
+    "pre_response_principal_active_recheck": true,
+    "required_saved_forecast_identity_fields": [
+      "source_kind",
+      "forecast_family",
+      "run_id",
+      "hierarchy_level",
+      "entity_id",
+      "target_season",
+      "origin_date",
+      "baseline_id",
+      "policy_version",
+      "source_result_hash"
+    ],
+    "scope_levels": [
+      "BASE",
+      "REGION",
+      "COMPANY"
+    ],
+    "scope_wildcard_default": false,
+    "source_hash_alone_authorizes": false,
+    "unauthorized_business_read_count_expected": 0,
+    "unauthorized_quality_read_count_expected": 0,
+    "unauthorized_simulation_count_expected": 0,
+    "versioned_revocable_grants": true
+  },
+  "runtime_and_scope_status": {
+    "database_migration_created": false,
+    "local_account_runtime_exists_in_base": false,
+    "mcp_end_user_delegation_implemented": false,
+    "mcp_identity_mode_first_release": "SERVICE_ACCOUNT_WITH_EXACT_RUN_AND_QUALITY_GRANTS",
+    "mcp_tool_count": 8,
+    "mcp_tool_names": [
+      "get_forecast_overview",
+      "get_forecast_curve",
+      "get_hierarchical_forecast",
+      "get_forecast_uncertainty",
+      "get_forecast_attribution",
+      "get_forecast_quality",
+      "simulate_capacity",
+      "compare_capacity_scenarios"
+    ],
+    "oidc_keycloak_implementation": "PAUSED",
+    "pre_response_grant_revision_recheck_implemented": false,
+    "production_data_accessed": false,
+    "production_readiness": "NOT_READY",
+    "production_runtime_changed": false,
+    "scope_amendment_required_before_s1": true
+  },
+  "schema": "V0_18_S1_SIMPLIFIED_LOCAL_AUTH_PLAN_R1",
+  "source_evidence_count": 30,
+  "source_evidence_sha256": {
+    "backend/app/actual_harvest_import/api_auth.py": "59548ae9afcaae17edf646a20b94e6190da92eadbe050f6bda06f6763467ddfd",
+    "backend/app/api/forecast_intelligence_decision.py": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+    "backend/app/api/forecast_intelligence_read.py": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+    "backend/app/forecast_intelligence/decision_service.py": "748c5c77c52e0e32969a6c53d6b2c33144d00ca234c1c91ead9629054750f592",
+    "backend/app/forecast_intelligence/read_access.py": "b0c439dc9cc4bd86ae6e195efdd5a8bde8d6b37c616bb3e84e62d77f940e97a8",
+    "backend/app/forecast_intelligence/read_service.py": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_http.py": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+    "backend/app/mcp/forecast_intelligence_server.py": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+    "backend/app/mcp/forecast_intelligence_tools.py": "3d4d6ec2ab6d0bcd6895f64393cf25e37e26f9c2a6878a39bbb260177f6377cd",
+    "backend/app/trial.py": "131ade420874d20fe20a1bd29c5f1e000fa5401a1f10469fcdad2b2344a38715",
+    "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py": "e88ddc461e11207f3e2c9b0105a0fbb3ce8e4b3b71223c3493d0649d82cf49a5",
+    "backend/tests/forecast_intelligence/test_v0_17_s2_decision_api.py": "82af7ae999f7774bcaa226f1ff955caf9f0f230bc0611c7187d82cbba986b615",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+    "backend/tests/mcp/test_v0_17_s3_productization.py": "355df00cdd64d8e2f09a8b8ce6a84f32a9d7b26328c62de787e07ad90b2ccd2e",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78",
+    "frontend/src/dashboard/api/client.ts": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "6d85a3910d611098769b6f95cb18a58f6c2ad8edd50b377085ca3d6a43437bac",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce",
+    "pyproject.toml": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+    "uv.lock": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218"
+  },
+  "task_id": "V0_18_S1_SIMPLIFIED_LOCAL_AUTH_REPLAN_R1",
+  "version": "0.18.0",
+  "web_references": [
+    "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+    "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html",
+    "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+  ]
+}
