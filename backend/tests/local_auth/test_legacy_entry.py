@@ -74,9 +74,20 @@ def test_l08_live_entry_and_database_fail_closed(monkeypatch):
     for params in (
         {"host": "remote.example", "database": "blueberry_test_fixture"},
         {"host": "localhost", "database": "blueberry_peak"},
+        {"host": "localhost", "database": "blueberry_test_bad;DROP"},
+        {"host": "localhost", "database": "blueberry_test_../business"},
     ):
         with pytest.raises(RuntimeError, match="nonisolated"):
             _reject_nonisolated_connection(None, None, [], params)
+
+
+def test_existing_canary_isolated_database_identifier_is_accepted():
+    _reject_nonisolated_connection(
+        None,
+        None,
+        [],
+        {"host": "localhost", "database": "blueberry_peak_test_38147646993_1_full-suite-canary"},
+    )
 
 
 def test_ci_legacy_database_jobs_use_explicit_isolated_names():

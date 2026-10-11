@@ -44,7 +44,7 @@ def _reject_nonisolated_connection(dialect, connection_record, args, params):
     if (
         params.get("host") not in {"127.0.0.1", "localhost", "::1"}
         or "_test_" not in database
-        or not database.replace("_", "").isalnum()
+        or not database.replace("_", "").replace("-", "").isalnum()
     ):
         raise RuntimeError("Legacy tests cannot connect to a nonisolated database")
 
@@ -269,7 +269,7 @@ def create_live_legacy_test_app() -> FastAPI:
         or settings.app_env != "test"
         or settings.postgres_host not in {"127.0.0.1", "localhost", "::1"}
         or "_test_" not in settings.postgres_db
-        or not settings.postgres_db.replace("_", "").isalnum()
+        or not settings.postgres_db.replace("_", "").replace("-", "").isalnum()
     ):
         raise ValueError("Isolated legacy test configuration required")
     app = create_legacy_test_app(settings, synthetic=True)
