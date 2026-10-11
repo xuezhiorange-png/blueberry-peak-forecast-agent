@@ -65,7 +65,7 @@ async def run():
     try:
         await asyncio.to_thread(
             subprocess.run,
-            ["uv", "run", "alembic", "-c", "backend/alembic.ini", "upgrade", "head"],
+            [sys.executable, "-m", "alembic", "-c", "backend/alembic.ini", "upgrade", "head"],
             cwd=ROOT,
             env=environment,
             check=True,

@@ -4,6 +4,7 @@ import asyncio
 import importlib
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -35,7 +36,7 @@ async def test_m06_m07_real_downgrade_upgrade_preserves_historical_rows(
     for direction, revision in (("downgrade", "0040_hierarchical_forecast"), ("upgrade", "head")):
         result = await asyncio.to_thread(
             subprocess.run,
-            ["uv", "run", "alembic", "-c", "backend/alembic.ini", direction, revision],
+            [sys.executable, "-m", "alembic", "-c", "backend/alembic.ini", direction, revision],
             env=environment,
             capture_output=True,
             text=True,

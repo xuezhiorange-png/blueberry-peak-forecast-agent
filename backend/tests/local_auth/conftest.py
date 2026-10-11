@@ -3,6 +3,7 @@
 import asyncio
 import os
 import subprocess
+import sys
 from uuid import uuid4
 
 import asyncpg
@@ -36,7 +37,7 @@ async def pg_auth():
     environment = dict(os.environ, APP_ENV="test", POSTGRES_DB=database)
     result = await asyncio.to_thread(
         subprocess.run,
-        ["uv", "run", "alembic", "-c", "backend/alembic.ini", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "-c", "backend/alembic.ini", "upgrade", "head"],
         env=environment,
         capture_output=True,
         text=True,

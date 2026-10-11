@@ -12,6 +12,14 @@
   },
   "base_main_sha": "320f2046e3105b1b55da9cb037892571110b584a",
   "branch": "task/v0.18-s1-local-auth-runtime-r1",
+  "current_python_launcher_retest": {
+    "canonical_evidence_test_run_separately": true,
+    "junit_path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-current-python-retest.xml",
+    "junit_sha256": "2c7ea75861764c456a81896910d9bdb5efd55d349af827b3be2cb26bf7374421",
+    "raw_committed": false,
+    "runtime_tests_passed": 75,
+    "seconds": 83.86
+  },
   "dependency_review": {
     "audit": [
       {
@@ -770,15 +778,15 @@
     "backend/tests/integration/test_production_plans.py": "67ff6700c41d7da4d969daa3c65b3dea563012964c4cd8c0ad063c89ce0566bc",
     "backend/tests/integration/test_rolling_backtest_orchestration.py": "459b82f4e3dff0f19d3f654630930446f2ca6769a0eba8b58578ffe7fd6564b6",
     "backend/tests/integration/test_weather_features.py": "65c43d838eb58a19440962d9658e8e2bd3a2ad7fba916cecec7b58b276af584e",
-    "backend/tests/local_auth/conftest.py": "7e14848132f8dbe74d5001aeb1024902c23442d4623997fbe71e0c66a23a3a73",
-    "backend/tests/local_auth/run_frontend_legacy_acceptance.py": "e2e0431dbff3aa2935be2aba33906cc92525513592507487cde77341d791150c",
+    "backend/tests/local_auth/conftest.py": "94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d",
+    "backend/tests/local_auth/run_frontend_legacy_acceptance.py": "9bd9bf90476d143901af1eb46a4c5fc48e92df0e40c4381ea27b28ccb76a2100",
     "backend/tests/local_auth/test_admin_runtime.py": "f5730dde17530f2963f84e61ef25f3a53eeb25a1e1c03cbd50af3a8547964736",
     "backend/tests/local_auth/test_authorization_release.py": "0c1d712dae395d97314a5a1bea4cacf9997fb6c8a693b442d7e136854fc04866",
     "backend/tests/local_auth/test_controlled_http.py": "26a5211b719fba137945445e2ef14e3d831c1be610ad3a670ae2135e431f0ea5",
     "backend/tests/local_auth/test_grant_administration.py": "3db87cbdf4f4e2782be134ac5e3c3ec4a1f1d7eb16ed4eddbee3b578faf70f2e",
     "backend/tests/local_auth/test_historical_source.py": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
     "backend/tests/local_auth/test_legacy_entry.py": "45ff85c7eb805251d9c044994ed4a9d7dabaf7753eb07bbecede6ccf0bbb4159",
-    "backend/tests/local_auth/test_migration_compatibility.py": "2c0f6bedeec953eaa66ddd533ae07c1e4d4504aec57cbd56b659c40dedeb3bb9",
+    "backend/tests/local_auth/test_migration_compatibility.py": "dc7e03eb474dda98bc1d6705923938bdf2d4e4249eed7111d26d01bb7d4a75e4",
     "backend/tests/local_auth/test_real_response_gate.py": "4001d22bd699bd2c439df82670fe4e1953f6e5244cef340fa894fd063bf90483",
     "backend/tests/local_auth/test_runtime_evidence_contract.py": "06ca43d18b388258aee3225830a4ad23662339812ea91d7ef42f9ed7bf499f96",
     "backend/tests/local_auth/test_runtime_sessions.py": "46c58a207461546d8d174d9ee2dec3317bd4edb3b02fc6f751281173b04711db",
@@ -803,7 +811,7 @@
     "backend/tests/test_residual_model_api.py": "19b1d5223552ae3a302210357e44a525aae021970da41d4cf0e38cde1ef81446",
     "backend/tests/test_residual_model_execution_api.py": "b9ddae8228fb0c8285b8c29968d0fb38b918b812a259dc8c47f9100fe1602025",
     "backend/tests/trial/test_api.py": "9f3dda44b61e02914105568d2b7453560872363eae2c73893fd8b034c45377c4",
-    "docs/v0-18/s1/local-auth-runtime-r1.md": "6fb8a5581c9ae0a5e7ff562f0b8a5c0d73a5af3e32209cc640a07f324ebc9099",
+    "docs/v0-18/s1/local-auth-runtime-r1.md": "baeca0448edecb9c64a00437feb01be251dede036d4dd7d0ab5c7fb276f215f6",
     "docs/v0-18/s1/runtime-r1-results/local-test-results.json": "9af2cbbe338ddda55a10f8f9a29f19b6a41b1fcb27a11401c71b41267962fe9b",
     "docs/v0-18/s1/runtime-resume-r1-blocked.json": "3db148fab783e82b3f8f9acdffc586dfc9320fd248774199a3d128daaef533e2",
     "docs/v0-18/s1/runtime-resume-r1-blocked.md": "80e638119c16870e076f784999c9bdacfbb182d1a1d19d3d3dba5f75e06d23c3",
@@ -1081,5 +1089,31 @@
       "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
     }
   ],
+  "third_pr_ci_failure": {
+    "cause": "43 local-auth setup errors: FileNotFoundError uv; no business assertion failures",
+    "conclusion": "failure",
+    "correction": "All three new test-only Alembic subprocess launchers use sys.executable -m alembic, reusing installed CI interpreter/dependencies",
+    "failed_job_count": 1,
+    "golden": {
+      "deselected": 837,
+      "old_make_timeout_recurred": false,
+      "passed": 9063,
+      "skipped": 21
+    },
+    "head_sha": "28a11eaccfa00c025f458b237a98df0a8371da76",
+    "preserved_junit": {
+      "counts": {
+        "errors": 43,
+        "failures": 0,
+        "skipped": 5,
+        "tests": 10013
+      },
+      "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38149711872-canary/full.xml",
+      "raw_committed": false,
+      "sha256": "c26ccaf7577a6d61d35003f155c587a8e1502e834cfd83c0e278897cec89566a"
+    },
+    "run_id": 38149711872,
+    "success_job_count": 11
+  },
   "version": "0.18.0"
 }

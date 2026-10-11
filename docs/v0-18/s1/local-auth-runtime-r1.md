@@ -125,3 +125,11 @@ health、upgrade 和 pytest 配置同步为明确的 `blueberry_test_*` 名称�
 测试专用校验仅增加合法标识符中的连字符支持，仍要求 loopback、`_test_`
 及只含字母数字/下划线/连字符；业务库、远程库、SQL/路径字符继续拒绝。
 原始两份 JUnit 与失败结果保留。该修正后必须再执行完整 exact-head CI。
+
+第三轮 Run `38149711872`：11 个任务成功，Canary 仅有 43 个新增认证夹具
+setup errors，均为 CI 未安装 `uv`；其余 Canary 为 9965 passed / 5 skipped，
+没有业务断言 failure。Golden 原样运行 9063 passed / 21 skipped，旧 Makefile 超时
+没有复发，但不据此删改第二轮失败记录。
+三个新增测试/本地 runner 的 Alembic 子进程改为
+`sys.executable -m alembic`，始终复用当前已安装的测试解释器和依赖。
+没有额外安装工具，没有放宽迁移/数据/安全断言；继续执行真实 PostgreSQL 复测与新 HEAD CI。
