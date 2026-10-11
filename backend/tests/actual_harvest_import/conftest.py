@@ -31,8 +31,8 @@ from backend.app.actual_harvest_import.validation_models import (
 )
 from backend.app.db.base import Base
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 NOW = datetime(2026, 7, 18, 8, 0, tzinfo=UTC)
 
@@ -74,7 +74,7 @@ async def sqlite_session_maker() -> AsyncIterator[async_sessionmaker[AsyncSessio
 async def api_client(
     sqlite_session_maker: async_sessionmaker[AsyncSession],
 ) -> AsyncIterator[AsyncClient]:
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _session() -> AsyncIterator[AsyncSession]:
         async with sqlite_session_maker() as session:

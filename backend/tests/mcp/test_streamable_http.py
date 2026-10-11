@@ -10,11 +10,11 @@ from pydantic import SecretStr
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.core.config import AppSettings
-from backend.app.main import create_app
 from backend.app.mcp import operational_peak_runs, persisted_runs
 from backend.app.mcp.area_forecast import server
 from backend.tests.area_yield.test_run_persistence import authority  # noqa: F401
 from backend.tests.mcp.test_persisted_tools import ALL_NAMES, NAMES, args
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 PATHS = ["/api/v1/blueberry/v1/mcp/sse", "/api/v1/blueberry/v1/mcp"]
 INITIALIZE = {
@@ -37,7 +37,9 @@ async def rpc(client, method, params, path=PATHS[0], **kwargs):
 @pytest.mark.parametrize("path", PATHS)
 @pytest.mark.parametrize("accept", [None, "*/*", "application/json"])
 async def test_initialize_list_json_without_session_or_sse(path, accept):
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         c.headers.pop("accept", None)
         if accept:
             c.headers["accept"] = accept
@@ -55,7 +57,7 @@ async def test_initialize_list_json_without_session_or_sse(path, accept):
 async def test_shared_secret_all_posts(path):
     settings = AppSettings(blueberry_mcp_connector_shared_secret=SecretStr("test-secret"))
     async with AsyncClient(
-        transport=ASGITransport(app=create_app(settings)), base_url="http://local"
+        transport=ASGITransport(app=create_app(settings, synthetic=True)), base_url="http://local"
     ) as c:
         for method in ("initialize", "tools/list", "tools/call"):
             for headers in ({}, {"X-Blueberry-Connector-Key": "wrong"}):
@@ -75,7 +77,9 @@ async def test_db_errors_remain_redacted(name, monkeypatch):
 
     monkeypatch.setattr(persisted_runs, "AsyncSessionMaker", broken)
     body = args() if name == NAMES[1] else ({} if name == NAMES[3] else {"run_id": 1})
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         result = await rpc(c, "tools/call", {"name": name, "arguments": body})
     assert result["isError"]
     assert result["structuredContent"]["code"] == "AREA_FORECAST_WRITE_FAILURE"
@@ -89,7 +93,9 @@ async def test_db_errors_remain_redacted(name, monkeypatch):
 async def test_product_error_parity(body):
     async with Client(server) as c:
         expected = await c.call_tool(NAMES[0], body)
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         result = await rpc(c, "tools/call", {"name": NAMES[0], "arguments": body})
     assert result["isError"] and result["structuredContent"] == expected.structured_content
 
@@ -99,7 +105,7 @@ async def test_secret_environment_configuration(monkeypatch):
     settings = AppSettings(_env_file=None)
     assert "environment-secret" not in repr(settings)
     async with AsyncClient(
-        transport=ASGITransport(app=create_app(settings)), base_url="http://local"
+        transport=ASGITransport(app=create_app(settings, synthetic=True)), base_url="http://local"
     ) as c:
         assert (await c.post(PATHS[0], json={})).status_code == 401
         await rpc(
@@ -116,7 +122,9 @@ async def test_streamable_http_operational_peak_tools_use_same_server(
         "target_season": "2026-2027",
         "origin_date": "2027-03-31",
     }
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         listed = await rpc(c, "tools/list", {})
         assert [tool["name"] for tool in listed["tools"]] == ALL_NAMES
         created = await rpc(

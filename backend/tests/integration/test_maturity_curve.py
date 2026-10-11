@@ -16,7 +16,6 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from backend.app.db.session import AsyncSessionMaker
-from backend.app.main import create_app
 from backend.app.models.analytics import AnalyticsBuildRun, FactReceiptDaily
 from backend.app.models.master_data import Factory, Farm, Holiday, Season, Variety
 from backend.app.models.maturity import (
@@ -33,6 +32,7 @@ from backend.app.models.weather import (
     WeatherDailyObservation,
     WeatherSourceLocation,
 )
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.integration
 
@@ -47,7 +47,7 @@ def _require_postgres() -> None:
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     _require_postgres()
-    app = create_app()
+    app = create_app(synthetic=True)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 

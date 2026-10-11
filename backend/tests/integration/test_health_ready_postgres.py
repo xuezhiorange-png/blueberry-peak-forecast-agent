@@ -24,8 +24,8 @@ from datetime import date
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from backend.app.main import create_app
 from backend.app.models.master_data import Season
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.integration
 
@@ -37,7 +37,7 @@ pytestmark = pytest.mark.integration
 @pytest.mark.asyncio
 async def test_health_ready_uses_real_postgresql_connection() -> None:
     """Original representative test (unchanged)."""
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/health/ready")
@@ -63,7 +63,7 @@ async def test_health_ready_under_transactional_isolation(
     outer transaction back at teardown so the row never escapes to
     the shared PG database.
     """
-    app = create_app()
+    app = create_app(synthetic=True)
 
     # Direct-DB round-trip under the current ORM schema.  Keep this probe
     # aligned with ``Season(code, start_date, end_date)`` rather than

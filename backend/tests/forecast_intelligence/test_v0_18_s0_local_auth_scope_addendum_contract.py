@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from backend.tests.historical_source import source_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 DOC = "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md"
 JSON = "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json"
@@ -112,7 +114,7 @@ def test_canonical_bytes_and_independent_source_pins() -> None:
         path = Path(relative)
         assert not path.is_absolute() and ".." not in path.parts
         assert len(digest) == 64
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == digest
+        assert hashlib.sha256(source_bytes(path, root=ROOT)).hexdigest() == digest
 
 
 def test_baseline_and_owner_confirmed_history_not_runtime_completion() -> None:

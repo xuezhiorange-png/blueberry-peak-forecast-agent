@@ -5,7 +5,7 @@ from __future__ import annotations
 from httpx import ASGITransport, AsyncClient
 
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 def _body() -> dict[str, str]:
@@ -17,7 +17,7 @@ def _body() -> dict[str, str]:
 
 
 def _app(factory):
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as session:

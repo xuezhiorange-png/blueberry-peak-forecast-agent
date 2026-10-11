@@ -20,12 +20,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.s2_materialized_dataset.shared.contracts import (
     SOURCE_COHORT_ID,
     SOURCE_COHORT_MANIFEST_SHA256,
     MaterializableRow,
 )
+from backend.tests.alembic_head import assert_unique_head
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 _BACKEND_ROOT = Path(__file__).resolve().parents[3]
 LANE_D_MIGRATION_PATH = (
@@ -33,7 +34,6 @@ LANE_D_MIGRATION_PATH = (
 )
 LANE_D_MIGRATION_REVISION = "d4e8f1a2b3c5"
 LANE_D_MIGRATION_DOWN_REVISION = "8c6aead9f8e9"
-ALEMBIC_SINGLE_HEAD = "0040_hierarchical_forecast"
 
 
 def _identity_hash(label: str) -> str:
@@ -99,11 +99,7 @@ def assert_lane_d_alembic_head_and_revision_contract() -> None:
     config = Config(str(_BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
-    heads = script.get_heads()
-    assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [ALEMBIC_SINGLE_HEAD], (
-        f"alembic heads must be [{ALEMBIC_SINGLE_HEAD!r}], got {heads!r}"
-    )
+    assert_unique_head(script)
     module = _lane_d_migration_module()
     assert module.revision == LANE_D_MIGRATION_REVISION
     assert module.down_revision == LANE_D_MIGRATION_DOWN_REVISION
@@ -192,7 +188,7 @@ class _SyncSessionBridge:
 
 @pytest.fixture
 def lane_d_api_client(lane_d_migrated_session: Session) -> Iterator[AsyncClient]:
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _override_db_session() -> AsyncIterator[_SyncSessionBridge]:
         yield _SyncSessionBridge(lane_d_migrated_session)

@@ -10,6 +10,8 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from alembic.script import ScriptDirectory
 
+from backend.tests.alembic_head import assert_unique_head
+
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _ALEMBIC_VERSIONS_DIR = _BACKEND_ROOT / "alembic" / "versions"
 
@@ -59,7 +61,6 @@ MIGRATION_TASK10_AUTHORITY_BINDING_PATH = (
     _ALEMBIC_VERSIONS_DIR / "c1d4e8f2a9b3_core_forecast_task10_authority_binding.py"
 )
 MIGRATION_TASK10_AUTHORITY_BINDING_REVISION = "c1d4e8f2a9b3"
-MIGRATION_CURRENT_HEAD_REVISION = "0040_hierarchical_forecast"
 
 
 def _migration_module() -> ModuleType:
@@ -104,11 +105,7 @@ def assert_actual_harvest_alembic_head_and_revision_contract() -> None:
     # 0022 remains the I7 lineage parent for finalized_at, 0023 remains the
     # S2 historical binding extension, Lane C E4b remains the E4b revision, and
     # replay-identity schema R1 and S3-B final-target lane migration share a single head chain.
-    heads = script.get_heads()
-    assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [MIGRATION_CURRENT_HEAD_REVISION], (
-        f"alembic heads must be [{MIGRATION_CURRENT_HEAD_REVISION!r}], got {heads!r}"
-    )
+    assert_unique_head(script)
     module = _migration_module()
     assert module.revision == MIGRATION_REVISION
     assert module.down_revision == "0020_actual_harvest_commit_manifest"

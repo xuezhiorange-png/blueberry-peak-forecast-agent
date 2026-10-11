@@ -15,7 +15,6 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from backend.app.db.session import AsyncSessionMaker
-from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.models.production_plan import FarmSeasonVarietyPlan
 from backend.app.planning.plan_config import load_production_plan_config
@@ -29,6 +28,7 @@ from backend.app.planning.plan_service import (
     create_replacement_version,
     get_effective_plan,
 )
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.integration
 
@@ -41,7 +41,7 @@ def _require_postgres() -> None:
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     _require_postgres()
-    app = create_app()
+    app = create_app(synthetic=True)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 

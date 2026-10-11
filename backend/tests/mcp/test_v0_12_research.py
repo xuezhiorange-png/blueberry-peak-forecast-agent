@@ -21,10 +21,10 @@ from backend.app.area_yield import research_records as legacy
 from backend.app.area_yield.data import digest
 from backend.app.area_yield.v0_12_e1_fixtures import make_fixture
 from backend.app.core.config import get_settings
-from backend.app.main import create_app
 from backend.app.mcp import v0_12_research as tools
 from backend.app.mcp.area_forecast import server
 from backend.tests.mcp.test_streamable_http_postgres import running_backend
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 @pytest.fixture
@@ -293,7 +293,7 @@ async def test_http_protocol_and_connector(
     monkeypatch.setenv("BLUEBERRY_MCP_CONNECTOR_SHARED_SECRET", "E4-test-secret")
     get_settings.cache_clear()
     async with AsyncClient(
-        transport=ASGITransport(app=create_app()), base_url="http://local"
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
     ) as client:
         for key in (None, "wrong"):
             response = await client.post(

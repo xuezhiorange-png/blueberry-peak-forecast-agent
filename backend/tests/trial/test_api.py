@@ -19,7 +19,6 @@ from backend.app.actual_harvest_import.api_schemas import (
 )
 from backend.app.actual_harvest_import.enums import ActualHarvestImportChannel
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.trial import (
     DefaultTrialApplicationService,
     TrialActualHarvestCommitResponse,
@@ -49,6 +48,7 @@ from backend.app.trial import (
     get_trial_service,
     serialize_csv,
 )
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 NOW = datetime(2026, 7, 29, 8, 0, tzinfo=UTC)
 
@@ -572,7 +572,7 @@ def synthetic_service() -> SyntheticTrialService:
 
 @pytest.fixture
 def trial_app(synthetic_service: SyntheticTrialService):
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _session() -> AsyncIterator[None]:
         yield None

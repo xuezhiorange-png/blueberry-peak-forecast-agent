@@ -9,13 +9,13 @@ from mcp.types import CallToolRequestParams
 
 from backend.app.cli import run_cli
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.mcp import area_forecast, hierarchical_forecast_runs
 from backend.tests.forecast_intelligence.test_reconciliation import request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 def _app(factory):
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as session:

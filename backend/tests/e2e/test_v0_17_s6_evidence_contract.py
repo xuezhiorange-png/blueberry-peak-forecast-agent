@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from backend.tests.historical_source import source_bytes
+
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
 FILE = ROOT / "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json"
@@ -16,7 +18,7 @@ def load():
 
 
 def hash_file(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(source_bytes(path.relative_to(ROOT).as_posix(), root=ROOT)).hexdigest()
 
 
 def test_canonical_receipt_and_generated_matrices():
