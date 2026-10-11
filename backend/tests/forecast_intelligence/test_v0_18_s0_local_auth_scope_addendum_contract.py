@@ -73,7 +73,7 @@ DEPENDENCIES = {
     "S3": [
         "S1_FORMAL_COMPLETE",
         "S2_FORMAL_COMPLETE",
-        "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE",
+        "OWNER_SERVICE_ACCOUNT_MODE_AND_TEST_PLAN_APPROVED",
     ],
     "S4": ["S1_FORMAL_COMPLETE", "S2_FORMAL_COMPLETE", "S3_FORMAL_COMPLETE"],
     "S5": [
@@ -267,9 +267,12 @@ def test_mcp_replacement_gate_does_not_claim_user_delegation_pass() -> None:
     assert mcp["service_account_is_end_user"] is False
     assert mcp["end_user_delegation"] == "NOT_IMPLEMENTED_UNVERIFIED_EXCLUDED_FIRST_RELEASE"
     assert {
-        "DENIAL_BEFORE_READ_AND_SIMULATION",
+        "DENIAL_BEFORE_BUSINESS_READ",
+        "DENIAL_BEFORE_SIMULATION",
         "INDEPENDENT_QUALITY_GRANTS",
-        "CANONICAL_HASH_PRE_RESPONSE_REVISION",
+        "COMPLETE_SOURCE_IDENTITY_HASH_VERIFICATION",
+        "PRE_RESPONSE_PRINCIPAL_GRANT_REVISION_RECHECK",
+        "IN_FLIGHT_REVOCATION_SUPPRESSES_SENSITIVE_RESPONSE",
         "NO_LEGACY_BYPASS",
         "EIGHT_TOOLS_HTTP_PAYLOAD_HASH_PARITY",
     }.issubset(mcp["replacement_acceptance"])
@@ -311,6 +314,67 @@ def test_stage_dependencies_and_explicit_technical_revisions() -> None:
         item["status"] == "PENDING_ADDENDUM_FORMAL_APPROVAL"
         for item in data["compatibility_revisions"]
     )
+
+
+def test_s3_start_and_completion_gates_are_not_circular() -> None:
+    data = evidence()
+    stage = data["stages"]["S3"]
+    safety_gate = "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE"
+    assert stage["depends_on"] == [
+        "S1_FORMAL_COMPLETE",
+        "S2_FORMAL_COMPLETE",
+        "OWNER_SERVICE_ACCOUNT_MODE_AND_TEST_PLAN_APPROVED",
+    ]
+    assert safety_gate not in stage["depends_on"]
+    assert stage["start_authorization_requires"] == "S3_IMPLEMENTATION_SEPARATELY_AUTHORIZED"
+    assert stage["start_authorization_field"] == "stages.S3.implementation_authorized"
+    assert stage["implementation_authorized"] is False
+    approval = stage["mode_and_test_plan_approval"]
+    assert approval == {
+        "status": "PENDING_OWNER_APPROVAL",
+        "independent_authorization_record": None,
+        "inferred_from_offline_tests": False,
+    }
+    assert stage["completion_acceptance_required"] == [
+        safety_gate,
+        "EXACT_HEAD_CI_SUCCESS",
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY_MERGE_AUTHORIZATION",
+        "POST_MERGE_MAIN_CI_SUCCESS",
+    ]
+    assert stage["formal_complete"] is False
+    assert data["mcp_contract"]["replacement_gate_status"] == "PENDING_NOT_EXECUTED"
+    assert "s3_implementation_authorized" not in data["governance"]
+    document = (ROOT / DOC).read_text(encoding="utf-8")
+    start_section = document.split("### S3_START_PRECONDITIONS\n", 1)[1].split(
+        "### S3_COMPLETION_ACCEPTANCE\n", 1
+    )[0]
+    assert safety_gate not in start_section
+    for precondition in stage["depends_on"] + [stage["start_authorization_requires"]]:
+        assert precondition in start_section
+
+
+def test_s3_future_safety_acceptance_is_complete_but_unexecuted() -> None:
+    mcp = evidence()["mcp_contract"]
+    assert mcp["replacement_acceptance"] == [
+        "MANDATORY_SEPARATE_CREDENTIALS_AND_ROTATION",
+        "HTTPS_HOST_ORIGIN",
+        "SERVICE_PRINCIPAL_CLIENT_BOUNDARY",
+        "BASE_REGION_COMPANY_EXACT_GRANTS",
+        "INDEPENDENT_QUALITY_GRANTS",
+        "DENIAL_BEFORE_BUSINESS_READ",
+        "DENIAL_BEFORE_SIMULATION",
+        "COMPLETE_SOURCE_IDENTITY_HASH_VERIFICATION",
+        "PRE_RESPONSE_PRINCIPAL_GRANT_REVISION_RECHECK",
+        "IN_FLIGHT_REVOCATION_SUPPRESSES_SENSITIVE_RESPONSE",
+        "CONCURRENT_PRINCIPAL_ISOLATION",
+        "NO_LEGACY_BYPASS",
+        "EIGHT_TOOLS_HTTP_PAYLOAD_HASH_PARITY",
+    ]
+    assert mcp["end_user_delegation_implemented"] is False
+    assert mcp["end_user_isolation_validated"] is False
+    assert mcp["original_delegation_gate_passed"] is False
+    assert mcp["business_payload_math_hash_unchanged"] is True
 
 
 def test_addendum_is_not_formally_effective_or_runtime_permission() -> None:
