@@ -116,3 +116,12 @@ health、upgrade 和 pytest 配置同步为明确的 `blueberry_test_*` 名称�
 其他任务、测试集合、断言及生产入口不改变。新增离线检查锁定配置一致性。
 全新独占 PostgreSQL 的同一 Task11 集合复测 510 passed / 5 deselected。
 首轮远端失败记录保留，新 HEAD 必须重新取得完整 CI，不继承旧 HEAD 绿色分片。
+
+第二轮 Run `38147646993` 的 10 个分片成功（浏览器 94 passed），Golden 为
+9061 passed / 1 failed / 21 skipped：旧 Makefile 子流程超过其既有 30 秒期限。
+未修改该无关安全测试或超时。Canary 24 failures / 800 errors 的主要根因为
+新测试入口误拒绝了原有合法隔离库名称中的 job 连字符：
+`blueberry_peak_test_38147646993_1_full-suite-canary`。
+测试专用校验仅增加合法标识符中的连字符支持，仍要求 loopback、`_test_`
+及只含字母数字/下划线/连字符；业务库、远程库、SQL/路径字符继续拒绝。
+原始两份 JUnit 与失败结果保留。该修正后必须再执行完整 exact-head CI。

@@ -361,6 +361,64 @@
     "missing_objects_fail": true,
     "result": "PASS_LOCAL"
   },
+  "hyphen_identifier_retest": {
+    "initial_environment_errors": "Local PG restart omitted custom port; 43 connection errors retained, fixed environment only. First selected old quality run omitted ISOLATED_DB_NAME and skipped 50; corrected complete run 123 passed, zero skips.",
+    "preserved_logs": [
+      {
+        "counts": {
+          "errors": 43,
+          "failures": 0,
+          "skipped": 0,
+          "tests": 76
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-final-hyphen-runtime.xml",
+        "raw_committed": false,
+        "sha256": "e9b83b34099bb11299d7b0dfe15dab644a674b9f1e4bf1e13ed42256e3957b93"
+      },
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0,
+          "tests": 76
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-final-hyphen-runtime-retest.xml",
+        "raw_committed": false,
+        "sha256": "c7c86b39c9a8617d33259a2696d4bc9fd9b0f3c06a1017de883cfcdb35a26de3"
+      },
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "skipped": 50,
+          "tests": 123
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-ci-hyphen-retest.xml",
+        "raw_committed": false,
+        "sha256": "002e433291c9c9359131d79247afbd2ec3ac312b8e45c01dc67dacc369d93416"
+      },
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0,
+          "tests": 123
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-ci-hyphen-complete-retest.xml",
+        "raw_committed": false,
+        "sha256": "0fce169ecff6895730ff082cd7590b451a27973a22baf9807dc258435e9257f0"
+      }
+    ],
+    "real_postgres_original_failure_paths": {
+      "passed": 123,
+      "seconds": 53.67,
+      "skipped": 0
+    },
+    "runtime": {
+      "passed": 76,
+      "seconds": 88.8
+    }
+  },
   "initial_pr_ci_failure": {
     "correction": "Explicit isolated container database names in task11/domain2 only; connection guard unchanged",
     "failed_job": "postgres-task11",
@@ -459,6 +517,42 @@
     "new_forecast_experiment_executed": false,
     "production_database_migrated": false,
     "real_admin_created": false
+  },
+  "second_pr_ci_failure": {
+    "conclusion": "failure",
+    "correction": "Permit alphanumeric underscore/hyphen names while preserving loopback and _test_ requirement; negative SQL/path/business database tests retained",
+    "failed_job_count": 2,
+    "head_sha": "9adc83d536bc20fcf16b7458fcb99d0d43ab53aa",
+    "legacy_name_root_cause": "Original CI isolated database includes job-name hyphens; test-only identifier guard mistakenly rejected hyphens",
+    "preserved_junit": [
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 1,
+          "skipped": 21,
+          "tests": 9083
+        },
+        "name": "golden",
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38147646993-golden/unit-contract-golden.xml",
+        "raw_committed": false,
+        "sha256": "d46215f3bbe3ed1f2276d7c3aad549287361d1008fb1464460696ff9c8d9c0f1"
+      },
+      {
+        "counts": {
+          "errors": 800,
+          "failures": 24,
+          "skipped": 6,
+          "tests": 10012
+        },
+        "name": "canary",
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38147646993-canary/full.xml",
+        "raw_committed": false,
+        "sha256": "acb33aa044e6652f11c44d665dc9f621bb5250e65655a134cf3a67b7c65ae2dc"
+      }
+    ],
+    "run_id": 38147646993,
+    "success_job_count": 10,
+    "unrelated_golden_failure": "test_make_test_pg_no_env_does_not_reject: existing 30-second subprocess timeout; not changed"
   },
   "security_acceptance": {
     "A01": {
@@ -683,7 +777,7 @@
     "backend/tests/local_auth/test_controlled_http.py": "26a5211b719fba137945445e2ef14e3d831c1be610ad3a670ae2135e431f0ea5",
     "backend/tests/local_auth/test_grant_administration.py": "3db87cbdf4f4e2782be134ac5e3c3ec4a1f1d7eb16ed4eddbee3b578faf70f2e",
     "backend/tests/local_auth/test_historical_source.py": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
-    "backend/tests/local_auth/test_legacy_entry.py": "b4c30a6f297bfecff0154954d659aab22c4b4c0ded1eea488350e73814c5b109",
+    "backend/tests/local_auth/test_legacy_entry.py": "45ff85c7eb805251d9c044994ed4a9d7dabaf7753eb07bbecede6ccf0bbb4159",
     "backend/tests/local_auth/test_migration_compatibility.py": "2c0f6bedeec953eaa66ddd533ae07c1e4d4504aec57cbd56b659c40dedeb3bb9",
     "backend/tests/local_auth/test_real_response_gate.py": "4001d22bd699bd2c439df82670fe4e1953f6e5244cef340fa894fd063bf90483",
     "backend/tests/local_auth/test_runtime_evidence_contract.py": "06ca43d18b388258aee3225830a4ad23662339812ea91d7ef42f9ed7bf499f96",
@@ -701,7 +795,7 @@
     "backend/tests/s2_materialized_dataset/lane_d/conftest.py": "927637d9fab766deda5ca027e0bc88e6b1c18c1596757afee2ebdfb3f53a5bb7",
     "backend/tests/s2_materialized_dataset/lane_d/test_integration_seams.py": "6b4a1cf7fc7f5e51877db1dadf16ff3f5605dc57201892c44ea29c3f2a0a13f1",
     "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py": "e95f570b8efcc6c1f0880d22a6b6018a77d10feb3d59d39153b18662f76227eb",
-    "backend/tests/support/legacy_test_app.py": "c052d124768ab71060152749de09ca1a163f17b9e3c7e92153969d6a1f7d8002",
+    "backend/tests/support/legacy_test_app.py": "e6379156414f8e74f46b73491338f7dfafac3181af6fec550c2516517ea7b775",
     "backend/tests/test_harvest_state_api.py": "2537303224f87d71e09284d418c143eb58b127fc742cbe208e0377167b96cbb1",
     "backend/tests/test_health.py": "3a105539a73b95dd73964506ca951e10e4f44a724be3fad92e38203abd3adf07",
     "backend/tests/test_historical_backtest_alembic.py": "34bd90994a7459d2178f2ddd7732182e4cf35e76ef89ef13252007e915e54610",
@@ -709,7 +803,7 @@
     "backend/tests/test_residual_model_api.py": "19b1d5223552ae3a302210357e44a525aae021970da41d4cf0e38cde1ef81446",
     "backend/tests/test_residual_model_execution_api.py": "b9ddae8228fb0c8285b8c29968d0fb38b918b812a259dc8c47f9100fe1602025",
     "backend/tests/trial/test_api.py": "9f3dda44b61e02914105568d2b7453560872363eae2c73893fd8b034c45377c4",
-    "docs/v0-18/s1/local-auth-runtime-r1.md": "720a152be4cccad856b266c8783c8c820f2f4f32756518960c5c5c7fab716559",
+    "docs/v0-18/s1/local-auth-runtime-r1.md": "6fb8a5581c9ae0a5e7ff562f0b8a5c0d73a5af3e32209cc640a07f324ebc9099",
     "docs/v0-18/s1/runtime-r1-results/local-test-results.json": "9af2cbbe338ddda55a10f8f9a29f19b6a41b1fcb27a11401c71b41267962fe9b",
     "docs/v0-18/s1/runtime-resume-r1-blocked.json": "3db148fab783e82b3f8f9acdffc586dfc9320fd248774199a3d128daaef533e2",
     "docs/v0-18/s1/runtime-resume-r1-blocked.md": "80e638119c16870e076f784999c9bdacfbb182d1a1d19d3d3dba5f75e06d23c3",
