@@ -361,6 +361,31 @@
     "missing_objects_fail": true,
     "result": "PASS_LOCAL"
   },
+  "initial_pr_ci_failure": {
+    "correction": "Explicit isolated container database names in task11/domain2 only; connection guard unchanged",
+    "failed_job": "postgres-task11",
+    "failure": "Legacy tests cannot connect to a nonisolated database",
+    "head_sha": "acc6038c4b42d25a23c434a74a1ce5864169da6e",
+    "local_legacy_entry_tests": {
+      "passed": 13
+    },
+    "local_task11_retest": {
+      "deselected": 5,
+      "passed": 510
+    },
+    "preserved_junit": {
+      "counts": {
+        "errors": 102,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 510
+      },
+      "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38146985676-task11/postgres-task11.xml",
+      "raw_committed": false,
+      "sha256": "97beee9c44721f8ed26d5fdcd0ced26acbd566be051c80059690e39f45bbb9bb"
+    },
+    "run_id": 38146985676
+  },
   "legacy_entry": {
     "l01_l10": "PASS_TESTED_SCOPE",
     "loopback_only": true,
@@ -600,7 +625,7 @@
     "pass_tested_scope": 19
   },
   "source_evidence_sha256": {
-    ".github/workflows/ci.yml": "09024a38b0c0b964633096fc7dbf6c0a046e6b84ec91a26d68cfb98241cc5492",
+    ".github/workflows/ci.yml": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
     "backend/alembic/versions/d7766e57d4c8_local_auth.py": "adaab0867c374276e700d031fe957b4c9dded0b1ec1983c86a1e90b8c4cf4f56",
     "backend/app/api/forecast_intelligence_decision.py": "44b1e341439b4ad2d233831dfea9483f092bf81ca503222c8ff8b9613e9f09d1",
     "backend/app/api/forecast_intelligence_read.py": "0847f9912c3ccb18dc17506f07d90336ab70d3c0b6e13cb89700c2ceba090101",
@@ -658,7 +683,7 @@
     "backend/tests/local_auth/test_controlled_http.py": "26a5211b719fba137945445e2ef14e3d831c1be610ad3a670ae2135e431f0ea5",
     "backend/tests/local_auth/test_grant_administration.py": "3db87cbdf4f4e2782be134ac5e3c3ec4a1f1d7eb16ed4eddbee3b578faf70f2e",
     "backend/tests/local_auth/test_historical_source.py": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
-    "backend/tests/local_auth/test_legacy_entry.py": "359aeaabedf5ce5e562efb32a245b50b749e45cf8cd3183127facc68f8b88fe8",
+    "backend/tests/local_auth/test_legacy_entry.py": "b4c30a6f297bfecff0154954d659aab22c4b4c0ded1eea488350e73814c5b109",
     "backend/tests/local_auth/test_migration_compatibility.py": "2c0f6bedeec953eaa66ddd533ae07c1e4d4504aec57cbd56b659c40dedeb3bb9",
     "backend/tests/local_auth/test_real_response_gate.py": "4001d22bd699bd2c439df82670fe4e1953f6e5244cef340fa894fd063bf90483",
     "backend/tests/local_auth/test_runtime_evidence_contract.py": "06ca43d18b388258aee3225830a4ad23662339812ea91d7ef42f9ed7bf499f96",
@@ -684,7 +709,7 @@
     "backend/tests/test_residual_model_api.py": "19b1d5223552ae3a302210357e44a525aae021970da41d4cf0e38cde1ef81446",
     "backend/tests/test_residual_model_execution_api.py": "b9ddae8228fb0c8285b8c29968d0fb38b918b812a259dc8c47f9100fe1602025",
     "backend/tests/trial/test_api.py": "9f3dda44b61e02914105568d2b7453560872363eae2c73893fd8b034c45377c4",
-    "docs/v0-18/s1/local-auth-runtime-r1.md": "f91044d18902906dbf2ae732f4cbaa94c1e488090e71e2326c1ec9d492593e12",
+    "docs/v0-18/s1/local-auth-runtime-r1.md": "720a152be4cccad856b266c8783c8c820f2f4f32756518960c5c5c7fab716559",
     "docs/v0-18/s1/runtime-r1-results/local-test-results.json": "9af2cbbe338ddda55a10f8f9a29f19b6a41b1fcb27a11401c71b41267962fe9b",
     "docs/v0-18/s1/runtime-resume-r1-blocked.json": "3db148fab783e82b3f8f9acdffc586dfc9320fd248774199a3d128daaef533e2",
     "docs/v0-18/s1/runtime-resume-r1-blocked.md": "80e638119c16870e076f784999c9bdacfbb182d1a1d19d3d3dba5f75e06d23c3",

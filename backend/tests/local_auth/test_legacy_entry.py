@@ -6,6 +6,7 @@ import socket
 from pathlib import Path
 
 import pytest
+import yaml
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 
@@ -76,6 +77,23 @@ def test_l08_live_entry_and_database_fail_closed(monkeypatch):
     ):
         with pytest.raises(RuntimeError, match="nonisolated"):
             _reject_nonisolated_connection(None, None, [], params)
+
+
+def test_ci_legacy_database_jobs_use_explicit_isolated_names():
+    root = Path(__file__).resolve().parents[3]
+    jobs = yaml.safe_load((root / ".github/workflows/ci.yml").read_text())["jobs"]
+    for job, database in (
+        ("postgres-task11", "blueberry_test_task11"),
+        ("postgres-domain-2", "blueberry_test_domain2"),
+    ):
+        definition = jobs[job]
+        service = definition["services"]["postgres"]
+        assert service["env"]["POSTGRES_DB"] == database
+        assert database in service["options"]
+        for step in definition["steps"]:
+            if "POSTGRES_DB" in step.get("env", {}):
+                assert step["env"]["POSTGRES_DB"] == database
+        _reject_nonisolated_connection(None, None, [], {"host": "localhost", "database": database})
 
 
 async def test_l09_l10_live_entry_verified_and_owned_process_stops():

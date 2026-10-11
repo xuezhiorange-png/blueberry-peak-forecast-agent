@@ -900,13 +900,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_domain2
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
+          --health-cmd "pg_isready -U blueberry_app -d blueberry_test_domain2"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -955,7 +955,7 @@ jobs:
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_domain2
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
@@ -985,7 +985,7 @@ jobs:
           APP_ENV: test
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_domain2
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         run: alembic -c backend/alembic.ini upgrade head
@@ -995,7 +995,7 @@ jobs:
           APP_ENV: test
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_domain2
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
           RUN_POSTGRES_INTEGRATION: "1"
@@ -1059,13 +1059,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_task11
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U blueberry_app -d blueberry_peak"
+          --health-cmd "pg_isready -U blueberry_app -d blueberry_test_task11"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -1114,7 +1114,7 @@ jobs:
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_task11
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         run: |
@@ -1144,7 +1144,7 @@ jobs:
           APP_ENV: test
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_task11
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
         run: alembic -c backend/alembic.ini upgrade head
@@ -1154,7 +1154,7 @@ jobs:
           APP_ENV: test
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_DB: blueberry_peak
+          POSTGRES_DB: blueberry_test_task11
           POSTGRES_USER: blueberry_app
           POSTGRES_PASSWORD: change-me-in-local-env
           RUN_POSTGRES_INTEGRATION: "1"
