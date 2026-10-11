@@ -104,3 +104,15 @@ S3 MCP Runtime 与最终用户委托未修改；S2 发现/S4 登录界面未提�
 PR 中另报告最终 HEAD CI，不拿旧 CI 或本地结果冒充远端验收。
 
 STOP：等待独立代码/安全复审。即使 CI 全绿，也不自动消除 A19/D03 或授权后续阶段。
+
+## 首轮 PR CI 的测试库隔离修正
+
+PR #717 首轮 HEAD `acc6038c4b42d25a23c434a74a1ce5864169da6e` 的
+Run `38146985676` 在 postgres-task11 分片实际报错：
+`Legacy tests cannot connect to a nonisolated database`。隔离保护正确拒绝
+容器内仍沿用 `blueberry_peak` 名称的测试库；不删除或豁免该保护。
+只将 postgres-task11 / postgres-domain-2 两个受影响任务的容器初始库、
+health、upgrade 和 pytest 配置同步为明确的 `blueberry_test_*` 名称。
+其他任务、测试集合、断言及生产入口不改变。新增离线检查锁定配置一致性。
+全新独占 PostgreSQL 的同一 Task11 集合复测 510 passed / 5 deselected。
+首轮远端失败记录保留，新 HEAD 必须重新取得完整 CI，不继承旧 HEAD 绿色分片。
