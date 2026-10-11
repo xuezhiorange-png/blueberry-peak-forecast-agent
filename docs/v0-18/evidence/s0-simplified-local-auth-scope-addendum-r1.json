@@ -335,7 +335,7 @@
   "source_evidence_count": 19,
   "source_evidence_sha256": {
     "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
-    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "d1b6cf7585b2b7e700cce7d109d3d92ce98211da1eea05909890602508a2652c",
+    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "2cd26209bd1d9b80f2e725d938002ce21f6f89dd7c0c0a814dca93e623b077e6",
     "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
     "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
     "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",

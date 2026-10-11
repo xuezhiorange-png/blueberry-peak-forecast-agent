@@ -94,7 +94,9 @@ DEPENDENCIES = {
 
 
 def evidence() -> dict[str, Any]:
-    return json.loads((ROOT / JSON).read_text(encoding="utf-8"))
+    data = json.loads((ROOT / JSON).read_text(encoding="utf-8"))
+    assert isinstance(data, dict)
+    return data
 
 
 def test_canonical_bytes_and_independent_source_pins() -> None:
