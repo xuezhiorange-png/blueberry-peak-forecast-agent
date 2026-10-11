@@ -24,6 +24,7 @@
     {
       "new": "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE",
       "old": "CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY",
+      "replacement_phase": "S3_COMPLETION_ACCEPTANCE_NOT_START_PRECONDITION",
       "status": "PENDING_ADDENDUM_FORMAL_APPROVAL"
     },
     {
@@ -192,6 +193,7 @@
   "mcp_contract": {
     "business_payload_math_hash_unchanged": true,
     "end_user_delegation": "NOT_IMPLEMENTED_UNVERIFIED_EXCLUDED_FIRST_RELEASE",
+    "end_user_delegation_implemented": false,
     "end_user_isolation_validated": false,
     "identity_mode": "SERVICE_ACCOUNT_ONLY",
     "original_delegation_gate_passed": false,
@@ -202,8 +204,11 @@
       "SERVICE_PRINCIPAL_CLIENT_BOUNDARY",
       "BASE_REGION_COMPANY_EXACT_GRANTS",
       "INDEPENDENT_QUALITY_GRANTS",
-      "DENIAL_BEFORE_READ_AND_SIMULATION",
-      "CANONICAL_HASH_PRE_RESPONSE_REVISION",
+      "DENIAL_BEFORE_BUSINESS_READ",
+      "DENIAL_BEFORE_SIMULATION",
+      "COMPLETE_SOURCE_IDENTITY_HASH_VERIFICATION",
+      "PRE_RESPONSE_PRINCIPAL_GRANT_REVISION_RECHECK",
+      "IN_FLIGHT_REVOCATION_SUPPRESSES_SENSITIVE_RESPONSE",
       "CONCURRENT_PRINCIPAL_ISOLATION",
       "NO_LEGACY_BYPASS",
       "EIGHT_TOOLS_HTTP_PAYLOAD_HASH_PARITY"
@@ -335,7 +340,7 @@
   "source_evidence_count": 19,
   "source_evidence_sha256": {
     "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
-    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "2cd26209bd1d9b80f2e725d938002ce21f6f89dd7c0c0a814dca93e623b077e6",
+    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "044329bd092dc4a08d9829c03cd6ad7cd06ce803e45ac74fccb5bde75ce3b0b1",
     "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
     "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
     "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
@@ -345,7 +350,7 @@
     "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
     "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
     "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
-    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "5b2fa2eb6c8cec7ec249712a659c676ffbf6c3852d9fcce933b4046f5f0b533a",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "96efd4fef39d509088a7c833b0715b40d18a38502366f30763f385ae21470b02",
     "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
     "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
     "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
@@ -389,13 +394,28 @@
       "name": "AUTHORIZED_SAVED_RUN_DISCOVERY_AND_HANDOFF"
     },
     "S3": {
+      "completion_acceptance_required": [
+        "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE",
+        "EXACT_HEAD_CI_SUCCESS",
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY_MERGE_AUTHORIZATION",
+        "POST_MERGE_MAIN_CI_SUCCESS"
+      ],
       "depends_on": [
         "S1_FORMAL_COMPLETE",
         "S2_FORMAL_COMPLETE",
-        "SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE"
+        "OWNER_SERVICE_ACCOUNT_MODE_AND_TEST_PLAN_APPROVED"
       ],
+      "formal_complete": false,
       "implementation_authorized": false,
-      "name": "MCP_TRUSTED_BUSINESS_CONTEXT"
+      "mode_and_test_plan_approval": {
+        "independent_authorization_record": null,
+        "inferred_from_offline_tests": false,
+        "status": "PENDING_OWNER_APPROVAL"
+      },
+      "name": "MCP_TRUSTED_BUSINESS_CONTEXT",
+      "start_authorization_field": "stages.S3.implementation_authorized",
+      "start_authorization_requires": "S3_IMPLEMENTATION_SEPARATELY_AUTHORIZED"
     },
     "S4": {
       "depends_on": [

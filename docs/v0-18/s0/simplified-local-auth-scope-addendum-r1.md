@@ -34,7 +34,7 @@ Owner 已确认首期使用管理员创建的本地账号密码、ADMIN / BUSINE
 | OWNER_TRUSTED_ISSUER_AND_POLICY_PUBLISHER_DECISION（S1 前提） | 替换为 OWNER_LOCAL_ACCOUNT_AND_POLICY_PUBLISHER_DECISION，加 ADDENDUM_FORMAL_COMPLETE | 账号/Principal 管理及组织主数据、grant 发布/审批责任仍须 Owner 指定；不是删除 publisher gate |
 | 版本化可信配置优先、Schema 另行批准 | 管理员可管理账号/角色/资源授权；持久化位置与 Schema 不在本轮选定 | 不自动批准独立 IAM 平台、新表、迁移或 grant 管理 API；配置或存储必须有 revision、撤销和审批 |
 | exact-run grant | 实体范围作为额外限制/管理分组，与完整 exact-run identity/hash 绑定同时成立 | 不扩大历史/未来记录权限；详细规则见下节 |
-| CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY（S3 前提） | 首期替代为 SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE | S1/S2 formal 依赖不变；新 gate 待测，不标 PASS；用户委托未验证、未实现、排除首期 |
+| CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY（S3 前提） | 首期安全目标替代为 SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE，并移入 S3 完成验收；启动前改为 Owner 独立批准服务账号模式与测试计划 | S1/S2 formal 依赖及单独实施授权不变；不能要求 S3 启动前完成其内部验收；用户委托未验证、未实现、排除首期 |
 | USER_CLIENT_RUN_SCOPE_INTERSECTION（S3 验收） | 首期验证 service principal、明确 client 边界、exact run/Quality grants 与共享判定一致 | 不声称用户权限交集或最终用户隔离通过；未来委托仍需原用户/客户端/记录交集及独立批准 |
 | 全 IAM 管理排除项 | S1 内最小账号新增、禁用、管理员重置、角色及授权配置，具体界面/API 待批准 | 不建设企业 IAM、公开注册或新的 Dashboard 一级业务页；不能以管理权限绕过数据 ACL |
 
@@ -74,9 +74,32 @@ Owner 已确认首期使用管理员创建的本地账号密码、ADMIN / BUSINE
 
 首期仅 SERVICE_ACCOUNT_ONLY + EXACT_RUN_GRANTS + INDEPENDENT_QUALITY_GRANTS。八个工具名称、输入输出、Decimal、业务数学/hash、不可用状态不变；HTTP/Dashboard END_USER 与 MCP machine Principal 不混淆，也不假设 service key 代表豆包最终用户。
 
-SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE 必须在 S3 单独授权后实测：强制非空独立凭据、安全轮换、HTTPS/Host/Origin、账号/client 固定范围、每个 BASE/REGION/COMPANY exact grant 独立、Quality 独立、拒绝前零业务读/模拟、canonical hash 与响应前 revision 复核、并发不串权、旧入口无绕过、八工具与 HTTP 相同合法业务 payload/hash。当前状态 `PENDING_NOT_EXECUTED`。
+SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE 是 S3 内部执行的完成验收，不是启动前提。必须在 S3 单独授权后实测：强制非空独立服务账号/凭据与轮换、HTTPS/必要网络信任边界和固定 client 范围、每个 BASE/REGION/COMPANY exact grant 独立、Quality 独立、未授权零业务读取、未授权零模拟执行、完整 source identity/hash、响应前 Principal/grant revision 复核、请求中撤权不返回敏感结果、并发不串权、旧 Trial/MCP 无绕过、八工具与 HTTP 相同合法业务 payload/hash。当前状态 `PENDING_NOT_EXECUTED`。
 
-原 CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY 不被标 PASS，只在首期服务账号范围以该新 gate 待批准替代。最终用户委托=`NOT_IMPLEMENTED_UNVERIFIED_EXCLUDED_FIRST_RELEASE`；最终用户 MCP 隔离不能验收通过。如以后启用，重新批准协议/issuer/audience/撤销与用户∩client∩记录交集，不从本轮推断。
+### S3_START_PRECONDITIONS
+
+启动条件为以下四项同时成立：
+
+- `S1_FORMAL_COMPLETE`
+- `S2_FORMAL_COMPLETE`
+- `OWNER_SERVICE_ACCOUNT_MODE_AND_TEST_PLAN_APPROVED`
+- `S3_IMPLEMENTATION_SEPARATELY_AUTHORIZED`
+
+Owner 必须另有独立授权记录，明确批准 SERVICE_ACCOUNT_ONLY、EXACT_RUN_GRANTS、INDEPENDENT_QUALITY_GRANTS 及对应隔离安全验证计划。已确认首期技术方向不等于已批准 S3 测试计划或实施。该审批当前 `PENDING_OWNER_APPROVAL`，授权记录尚无；本轮离线测试不产生批准。机器合同 depends_on 记录前三项；第四项仅由 `stages.S3.implementation_authorized` 控制，当前 false，不新增第二个实施授权来源。
+
+### S3_COMPLETION_ACCEPTANCE
+
+S3 正式完成必须满足以下全部条件：
+
+- `SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE=PASS`
+- `EXACT_HEAD_CI=SUCCESS`
+- `INDEPENDENT_REVIEW=PASS`
+- `OWNER_READY_MERGE_AUTHORIZED`
+- `POST_MERGE_MAIN_CI=SUCCESS`
+
+以上为未来正式验收要求，不是本轮结果。当前 `SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE=PENDING_NOT_EXECUTED`、`S3_IMPLEMENTATION_AUTHORIZED=false`、`S3_FORMAL_COMPLETE=false`。本补充合同或离线测试通过不能把运行安全验收改为 PASS。
+
+原 CLIENT_DELEGATION_PROTOCOL_COMPATIBILITY 不被标 PASS，只在首期服务账号范围以该新完成验收 gate 待批准替代。最终用户委托=`NOT_IMPLEMENTED_UNVERIFIED_EXCLUDED_FIRST_RELEASE`；`MCP_END_USER_DELEGATION_IMPLEMENTED=false`、`MCP_END_USER_ISOLATION_VALIDATED=false`、`ORIGINAL_DELEGATION_GATE_PASSED=false`。最终用户 MCP 隔离不能验收通过。如以后启用，重新批准协议/issuer/audience/撤销与用户∩client∩记录交集，不从本轮推断。
 
 ## 阶段目标与完整依赖
 
@@ -87,7 +110,7 @@ SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE 必须在 S3 单独授权后实测
 | S0 | 原始冻结与本补充合同 | v0.17.0 正式 Release；本 addendum 尚待正式批准 |
 | S1 | 本地账号、会话、两角色、Principal、共享资源授权 | S0_FORMAL_COMPLETE、ADDENDUM_FORMAL_COMPLETE、OWNER_LOCAL_ACCOUNT_AND_POLICY_PUBLISHER_DECISION；密码/会话/Schema/责任人须独立批准 |
 | S2 | 授权内 saved-run 查询、筛选、分页及可信选择 | S1_FORMAL_COMPLETE；不允许 global latest 或客户端伪 identity |
-| S3 | MCP service account 兼容与安全验收 | S1_FORMAL_COMPLETE、S2_FORMAL_COMPLETE、SERVICE_ACCOUNT_EXACT_GRANT_SAFETY_ACCEPTANCE；该技术前提替代须本 addendum 正式批准 |
+| S3 | MCP service account 兼容与安全验收 | S1_FORMAL_COMPLETE、S2_FORMAL_COMPLETE、OWNER_SERVICE_ACCOUNT_MODE_AND_TEST_PLAN_APPROVED，加单独 S3 实施授权；安全验收是完成条件，不是启动依赖；修订须本 addendum 正式批准 |
 | S4 | Dashboard 正常登录与预测选择 | S1_FORMAL_COMPLETE、S2_FORMAL_COMPLETE、S3_FORMAL_COMPLETE；保留五页设计 |
 | S5 | 隔离合成安全试运行验收 | S1–S4_FORMAL_COMPLETE、OWNER_OPERATION_PLAN_REVIEW；TLS、旧入口、审计、备份恢复/回滚独立验收，不部署 |
 | S6 | 最终业务/安全/三端验收 | S1–S5_FORMAL_COMPLETE；保留 browser/accessibility/security 和冻结回归，不自动生产批准 |
