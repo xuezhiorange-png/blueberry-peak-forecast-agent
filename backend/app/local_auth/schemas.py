@@ -96,7 +96,9 @@ class GrantFields(RequestModel):
     valid_from: datetime
     valid_until: datetime
     expected_grant_revision: Annotated[StrictInt, Field(gt=0)]
-    approval_reference: Annotated[StrictStr, Field(min_length=1, max_length=200)]
+    approval_reference: Annotated[StrictStr, Field(min_length=1, max_length=200)] = (
+        "ADMIN_DIRECT_ASSIGNMENT"
+    )
     reason: Reason
 
     @field_validator("valid_from", "valid_until")
@@ -132,8 +134,43 @@ class PublisherBoundary(RequestModel):
     manageable_account_ids: tuple[UUID, ...]
     create_roles: tuple[Role, ...] = ()
     approved_grants: tuple[ForecastGrant | QualityGrantRequest, ...] = ()
+    simple_admin: bool = False
+    registered_resources: tuple["RegisteredResource", ...] = ()
 
     def validate_scope(self) -> Self:
         if not self.organization_ids or any("*" in v for v in self.organization_ids):
             raise ValueError("Explicit publisher boundary required")
+        return self
+
+
+class RegisteredResource(RequestModel):
+    """Server-validated catalog entry, independent of recipient and approval sheet."""
+
+    organization_id: StrictStr
+    resource_kind: Literal["FORECAST", "QUALITY"]
+    capability: Literal["may_read_forecast", "may_read_quality"]
+    binding: ForecastBinding | QualityBinding
+
+    def validate_scope(self) -> Self:
+        if not self.organization_id or "*" in self.organization_id:
+            raise ValueError("Explicit organization required")
+        forecast = self.resource_kind == "FORECAST"
+        if forecast != isinstance(self.binding, ForecastBinding) or self.capability != (
+            "may_read_forecast" if forecast else "may_read_quality"
+        ):
+            raise ValueError("Resource binding mismatch")
+        return self
+
+
+class SimpleAdminCatalog(RequestModel):
+    organization_ids: tuple[StrictStr, ...]
+    resources: tuple[RegisteredResource, ...]
+
+    def validate_scope(self) -> Self:
+        if not self.organization_ids or any(not v or "*" in v for v in self.organization_ids):
+            raise ValueError("Explicit organization directory required")
+        for resource in self.resources:
+            resource.validate_scope()
+            if resource.organization_id not in self.organization_ids:
+                raise ValueError("Unregistered organization")
         return self

@@ -8,7 +8,8 @@ from datetime import timedelta
 from typing import Any
 
 from fastapi import Request
-from sqlalchemy import func, select, text
+from sqlalchemy import cast, func, or_, select, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.local_auth.models import AuthAccount, AuthAuditEvent, AuthResourceGrant
@@ -19,6 +20,7 @@ from backend.app.local_auth.schemas import (
     Login,
     PublisherBoundary,
     QualityGrantRequest,
+    SimpleAdminCatalog,
 )
 from backend.app.local_auth.sessions import AuthError, Principal, Sessions, now
 
@@ -50,6 +52,7 @@ def audit(
     code: str = "SUCCESS",
     before: int | None = None,
     after: int | None = None,
+    reason: str | None = None,
 ) -> None:
     db.add(
         AuthAuditEvent(
@@ -63,7 +66,7 @@ def audit(
             revision_after=after,
             organization_id=organization,
             login_bucket_digest=bucket,
-            reason_code=action,
+            reason_code=reason if reason is not None else action,
         )
     )
 
@@ -78,6 +81,24 @@ class AuthService(Sessions):
         if principal.role != "ADMIN" or principal.must_change_password:
             raise AuthError("FORBIDDEN")
         try:
+            catalog_raw = self.settings.local_auth_simple_admin_catalog_json.get_secret_value()
+            if catalog_raw:
+                catalog = SimpleAdminCatalog.model_validate_json(catalog_raw).validate_scope()
+                organizations = json.loads(self.settings.local_auth_organization_ids_json)
+                if not isinstance(organizations, list) or not set(catalog.organization_ids) <= set(
+                    organizations
+                ):
+                    raise ValueError("Unverified organization directory")
+                if any(not isinstance(v, str) or not v or "*" in v for v in organizations):
+                    raise ValueError("Invalid organization directory")
+                return PublisherBoundary(
+                    principal_id=principal.principal_id,
+                    organization_ids=catalog.organization_ids,
+                    manageable_account_ids=(principal.account_id,),
+                    create_roles=("BUSINESS_USER",),
+                    simple_admin=True,
+                    registered_resources=catalog.resources,
+                )
             entries = json.loads(
                 self.settings.local_auth_publisher_boundaries_json.get_secret_value()
             )
@@ -90,6 +111,26 @@ class AuthService(Sessions):
         if len(matches) != 1:
             raise AuthError("FORBIDDEN")
         return matches[0]
+
+    def account_scope(self, boundary: PublisherBoundary) -> Any:
+        explicit = AuthAccount.account_id.in_([str(v) for v in boundary.manageable_account_ids])
+        if not boundary.simple_admin:
+            return explicit
+        organizations = cast(AuthAccount.managed_organization_ids, JSONB)
+        return or_(
+            explicit,
+            (AuthAccount.role == "BUSINESS_USER")
+            & (organizations != [])
+            & organizations.contained_by(list(boundary.organization_ids)),
+        )
+
+    @staticmethod
+    def operation_reason(boundary: PublisherBoundary, reason: str) -> str | None:
+        if not boundary.simple_admin:
+            return None
+        if len(reason) > 64:
+            raise AuthError("INVALID_REQUEST", 422)
+        return reason
 
     async def login(self, request: Request, payload: Login) -> tuple[dict[str, Any], str]:
         self.transport(request, modifying=True)
@@ -224,26 +265,41 @@ class AuthService(Sessions):
             role=payload.role,
             created_at=now(),
             updated_at=now(),
-            managed_organization_ids=[],
+            managed_organization_ids=list(boundary.organization_ids)
+            if boundary.simple_admin
+            else [],
         )
         db.add(account)
         await db.flush()
-        audit(db, "ACCOUNT_CREATED", actor=principal.principal_id, target=account.account_id)
+        audit(
+            db,
+            "ACCOUNT_CREATED",
+            actor=principal.principal_id,
+            target=account.account_id,
+            organization=boundary.organization_ids[0] if boundary.simple_admin else None,
+            reason=self.operation_reason(boundary, payload.reason),
+        )
         return account
 
     async def managed_account(
         self, db: AsyncSession, boundary: PublisherBoundary, account_id: str
     ) -> AuthAccount:
-        if account_id not in {str(v) for v in boundary.manageable_account_ids}:
+        if not boundary.simple_admin and account_id not in {
+            str(v) for v in boundary.manageable_account_ids
+        }:
             raise AuthError("FORBIDDEN")
         result = await db.scalar(
             select(AuthAccount)
-            .where(AuthAccount.account_id == account_id)
+            .where(AuthAccount.account_id == account_id, self.account_scope(boundary))
             .with_for_update()
             .execution_options(populate_existing=True)
         )
         if result is None:
-            raise AuthError("SAVED_ACCOUNT_NOT_FOUND", 404)
+            if not boundary.simple_admin and account_id in {
+                str(v) for v in boundary.manageable_account_ids
+            }:
+                raise AuthError("SAVED_ACCOUNT_NOT_FOUND", 404)
+            raise AuthError("FORBIDDEN")
         return result
 
     async def protect_last_admin(self, db: AsyncSession, account: AuthAccount) -> None:
@@ -269,7 +325,13 @@ class AuthService(Sessions):
                 raise AuthError("LAST_ADMIN_PROTECTED", 409)
 
     async def changed(
-        self, db: AsyncSession, account: AuthAccount, principal: Principal, action: str
+        self,
+        db: AsyncSession,
+        account: AuthAccount,
+        principal: Principal,
+        action: str,
+        reason: str | None = None,
+        organization: str | None = None,
     ) -> None:
         before = account.auth_revision
         account.auth_revision += 1
@@ -282,6 +344,8 @@ class AuthService(Sessions):
             target=account.account_id,
             before=before,
             after=account.auth_revision,
+            reason=reason,
+            organization=organization,
         )
 
     async def create_grant(
@@ -296,13 +360,20 @@ class AuthService(Sessions):
             or payload.valid_until <= payload.valid_from
         ):
             raise AuthError("FORBIDDEN")
-        if payload not in boundary.approved_grants:
+        registered = any(
+            entry.organization_id == payload.organization_id
+            and entry.resource_kind == payload.resource_kind
+            and entry.capability == payload.capability
+            and entry.binding == payload.binding
+            for entry in boundary.registered_resources
+        )
+        if not (registered if boundary.simple_admin else payload in boundary.approved_grants):
             raise AuthError("FORBIDDEN")
         subject = await db.scalar(
             select(AuthAccount)
             .where(
                 AuthAccount.principal_id == str(payload.subject_principal_id),
-                AuthAccount.account_id.in_([str(v) for v in boundary.manageable_account_ids]),
+                self.account_scope(boundary),
             )
             .with_for_update()
         )
@@ -344,5 +415,6 @@ class AuthService(Sessions):
             organization=grant.organization_id,
             before=before,
             after=subject.grant_revision,
+            reason=self.operation_reason(boundary, payload.reason),
         )
         return grant
