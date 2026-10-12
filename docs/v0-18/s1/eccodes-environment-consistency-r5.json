@@ -14,6 +14,33 @@
     "E12": "PENDING_EXACT_HEAD_CI"
   },
   "base_main_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+  "candidate_ci_snapshot": {
+    "attempt": 1,
+    "completed_success_jobs_at_recording": 11,
+    "event": "pull_request",
+    "final_head_must_be_retested": true,
+    "frontend_e2e": {
+      "failed": 0,
+      "junit_sha256": "72eea2fdbed9ae9f3fd4b2d18189e73c79087cf6c51f8c73a2f4a303afdb1b5c",
+      "passed": 94
+    },
+    "frontend_unit": {
+      "failed": 0,
+      "junit_sha256": "81c0918e9a6f99e43d1308f3a4296c2d5a9a7dae0837337e2c5c2a95e285d97d",
+      "passed": 122
+    },
+    "golden": {
+      "errors": 0,
+      "failed": 0,
+      "junit_sha256": "7599601880dd890fb8ae56bae7c88cdf44874b70f69a462e1b76d0168edbb9ab",
+      "passed": 9089,
+      "r5_native_cases_passed_not_skipped": 5,
+      "skipped_existing": 21
+    },
+    "head_sha": "ae40786e7442f7cc3ffc7c5023aa2bfce249533a",
+    "run_id": 38253364042,
+    "status_at_evidence_update": "in_progress_full_suite_canary"
+  },
   "dependency_audit": {
     "archive_difference": "final newline only",
     "archived_output_sha256": "85b09d5a3da537d404c5476e21131939a06bc05bbc9a6b7548fd3915e430bbbb",
@@ -30,7 +57,7 @@
     "result": "PASS_PUBLIC_PYTHON_PACKAGE_SCOPE",
     "unpublished_first_party_package": "NOT_AUDITED_PUBLIC_DATABASE"
   },
-  "exact_head_ci": "PENDING_PUSH_AND_FULL_CI; final exact-head receipt on PR717; do not inherit prior green run",
+  "exact_head_ci": "PENDING_FINAL_EVIDENCE_HEAD_FULL_CI; final canonical machine receipt on PR717; candidate green jobs are not inherited",
   "historical_frozen_files": 260,
   "installation": {
     "after": [
@@ -66,7 +93,88 @@
       "original_auth_tests_changed": false,
       "passed": 88
     },
-    "backend_offline": "RUNNING",
+    "backend_offline": {
+      "deselected": 839,
+      "eccodes_private_loader_dependency": false,
+      "environment": "isolated venv/bin on subprocess PATH; existing isolated OpenMP runtime for unchanged LightGBM tests",
+      "failed": 0,
+      "junit_sha256": "7bd594de68d136b93d3bf8444dd66b558dd72ed26c998f0a9f5343d13e21385c",
+      "passed": 9089,
+      "skipped_existing": 21
+    },
+    "first_offline_attempt": {
+      "failed": 16,
+      "failures": [
+        {
+          "case": "backend.tests.area_yield.test_v0_15_s3_base10_benchmark::test_real_library_smoke_and_prediction_replay[LGB1]",
+          "cause": "missing LightGBM OpenMP loader path"
+        },
+        {
+          "case": "backend.tests.area_yield.test_v0_15_s3_base10_benchmark::test_four_stage_real_library_replay_and_custody",
+          "cause": "missing LightGBM OpenMP loader path"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_source_002_identity_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_test_seal_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_exact_grain_union_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_per_cell_per_horizon_authority_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_pr550_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_pr551_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_pr552_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.forecast_quality.test_s3_b_single_loop_live_materialization_db_acquisition_r1::test_pr553_standalone_reader_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.s3_daily_rowset.test_accepted_s2_train_val_source_002_row_level_read_live_run_sync_correction_r1::test_pr550_pr551_pr552_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.s3_daily_rowset.test_source_002_variety_master_identity_resolver_r1::test_pr550_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.s3_daily_rowset.test_source_002_variety_master_identity_resolver_r1::test_pr551_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.s3_daily_rowset.test_source_002_variety_master_identity_resolver_r1::test_pr552_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.s3_daily_rowset.test_source_002_variety_master_identity_resolver_r1::test_pr553_regression",
+          "cause": "missing subprocess pytest on PATH"
+        },
+        {
+          "case": "backend.tests.s3_daily_rowset.test_source_002_variety_master_identity_resolver_r1::test_pr554_regression",
+          "cause": "missing subprocess pytest on PATH"
+        }
+      ],
+      "junit_sha256": "eb7ab5980e53a541e2c508b3a15163412228ba2be7bc4918e2fd5d52f6c4b9cc",
+      "passed": 9072,
+      "skipped_existing": 21,
+      "test_assertions_changed": false
+    },
     "format": "PASS_1427_FILES",
     "frontend_build": "PASS",
     "frontend_e2e": {
@@ -77,6 +185,11 @@
     },
     "frontend_typecheck": "PASS",
     "frontend_unit_passed": 122,
+    "library_replay_environment_retest": {
+      "failed": 0,
+      "junit_sha256": "a7dfb561d0dcbfb76b63484c071d28f08162d34f51e7aca51654c808b7573b16",
+      "passed": 3
+    },
     "mypy": "PASS_573_SOURCE_FILES",
     "native_and_weather": {
       "junit_sha256": "337ee5c152efa6220a38d7310243947e0b773e9ca45f931d7e05a8e649c29f31",
@@ -203,14 +316,28 @@
     ],
     "real_weather_downloaded": false,
     "result": "PASS",
+    "sample": {
+      "data_date": 20260101,
+      "edition": 2,
+      "message_bytes": 179,
+      "native_library_version": "2.48.0",
+      "number_of_points": 496,
+      "repeat_exact": true,
+      "sha256": "08984644bb504a7c7a2e39f162e7923739c18cc9a5b9803b339310255f429538"
+    },
     "source": "bundled regular_ll_sfc_grib2 SYNTHETIC constant sample"
   },
   "platform_acceptance": {
     "linux_aarch64": "WHEEL_METADATA_ONLY",
     "linux_minimum_glibc": "2.28",
-    "linux_x86_64": "PENDING_EXACT_HEAD_CI",
+    "linux_x86_64": "PASS_RUNTIME_PY312_GOLDEN_38253364042",
     "macos_arm64": "PASS_RUNTIME_PY312",
     "macos_minimum": "13.0",
+    "macos_native_macho_minos": {
+      "libeccodes": "13.0",
+      "libeckit": "13.0",
+      "method": "otool LC_BUILD_VERSION"
+    },
     "macos_x86_64": "WHEEL_METADATA_ONLY",
     "musl_or_other_abi": "NOT_VALIDATED",
     "windows_amd64": "BUNDLED_BINDING_WHEEL_METADATA_ONLY"
