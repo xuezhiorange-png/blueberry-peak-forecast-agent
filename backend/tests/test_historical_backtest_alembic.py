@@ -12,6 +12,8 @@ import pytest
 from alembic import command
 from alembic.config import Config
 
+from backend.tests.alembic_head import unique_head
+
 pytestmark = [pytest.mark.postgres, pytest.mark.migration]
 
 
@@ -43,9 +45,7 @@ async def test_historical_backtest_migration_round_trip_preserves_legacy_rows() 
     )
     conn = await asyncpg.connect(url)
     try:
-        assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-            "0040_hierarchical_forecast"
-        )
+        assert await conn.fetchval("SELECT version_num FROM alembic_version") == unique_head()
         table_names = {
             row["tablename"]
             for row in await conn.fetch(
@@ -160,9 +160,7 @@ async def test_historical_backtest_migration_round_trip_preserves_legacy_rows() 
 
     conn = await asyncpg.connect(url)
     try:
-        assert await conn.fetchval("SELECT version_num FROM alembic_version") == (
-            "0040_hierarchical_forecast"
-        )
+        assert await conn.fetchval("SELECT version_num FROM alembic_version") == unique_head()
         preserved = await conn.fetchrow(
             """
             SELECT s2_contract_version, s2_node_count, backtest_request_hash

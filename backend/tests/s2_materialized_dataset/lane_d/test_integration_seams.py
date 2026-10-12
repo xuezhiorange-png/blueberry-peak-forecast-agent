@@ -11,7 +11,6 @@ import pytest
 import sqlalchemy as sa
 from httpx import AsyncClient
 
-from backend.app.main import create_app
 from backend.app.models import (
     S2MaterializedDatasetModel,
     S2MaterializedMaterializableRowModel,
@@ -55,6 +54,7 @@ from backend.tests.s2_materialized_dataset.lane_d.conftest import (
     complete_upstream,
     make_row,
 )
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
@@ -323,7 +323,7 @@ def test_repositories_init_reexports_lane_d_service() -> None:
 
 
 def test_main_includes_materialized_datasets_router() -> None:
-    schema = create_app().openapi()
+    schema = create_app(synthetic=True).openapi()
     assert (
         "/api/v1/materialized-datasets/{dataset_id}/versions/{dataset_version}" in schema["paths"]
     )

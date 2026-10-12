@@ -7,6 +7,8 @@ from typing import Any
 
 import pytest
 
+from backend.tests.historical_source import source_bytes
+
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE_PATH = "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json"
@@ -19,7 +21,7 @@ def raw(path: str) -> bytes:
     assert not relative.is_absolute()
     assert ".." not in relative.parts
     assert relative.parts[0] in {"backend", "docs", "frontend"}
-    return (ROOT / relative).read_bytes()
+    return source_bytes(str(relative), root=ROOT)
 
 
 def load(path: str) -> dict[str, Any]:

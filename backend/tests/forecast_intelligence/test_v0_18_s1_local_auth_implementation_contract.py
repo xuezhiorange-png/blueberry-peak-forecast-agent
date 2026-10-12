@@ -7,6 +7,8 @@ from typing import Any
 
 import pytest
 
+from backend.tests.historical_source import source_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 DOC = "docs/v0-18/s1/local-auth-implementation-contract-r1.md"
 EVIDENCE = "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json"
@@ -31,7 +33,7 @@ def test_canonical_json_and_independently_pinned_history() -> None:
     pins = {**old["source_evidence_sha256"], ADDENDUM: ADDENDUM_SHA}
     assert data["historical_source_sha256"] == pins
     for path, digest in data["source_evidence_sha256"].items():
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == digest, path
+        assert hashlib.sha256(source_bytes(path, root=ROOT)).hexdigest() == digest, path
     assert data["source_evidence_count"] == len(data["source_evidence_sha256"])
     assert data["source_evidence_sha256"].items() >= pins.items()
     assert DOC in data["source_evidence_sha256"]

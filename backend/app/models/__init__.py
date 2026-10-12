@@ -24,6 +24,12 @@ from backend.app.actual_harvest_import.validation_models import (
     ActualHarvestValidationResultModel,
     ActualHarvestValidationRunModel,
 )
+from backend.app.local_auth.models import (
+    AuthAccount,
+    AuthAuditEvent,
+    AuthResourceGrant,
+    AuthSession,
+)
 from backend.app.models.analytics import (
     AnalyticsBuildRun,
     FactorySeasonPeakMetric,
@@ -270,6 +276,10 @@ from backend.app.models.hierarchical_forecast import (
 )
 
 __all__ += [
+    "AuthAccount",
+    "AuthAuditEvent",
+    "AuthResourceGrant",
+    "AuthSession",
     "HierarchicalForecastDaily",
     "HierarchicalForecastRun",
     "HierarchicalForecastSource",

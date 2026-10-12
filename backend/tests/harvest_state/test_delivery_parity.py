@@ -12,13 +12,13 @@ from backend.app.cli import run_cli
 from backend.app.db.session import get_db_session
 from backend.app.harvest_state.application import execute_harvest_state_run
 from backend.app.harvest_state.schemas import Task9ARequest
-from backend.app.main import create_app
 from backend.tests.harvest_state.conftest import make_request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 @pytest.fixture
 async def parity_client(sqlite_session: AsyncSession) -> AsyncIterator[AsyncClient]:
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _override() -> AsyncIterator[AsyncSession]:
         yield sqlite_session

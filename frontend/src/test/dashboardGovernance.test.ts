@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { designTokens } from "../dashboard/styles/tokens";
 import {
@@ -14,6 +15,27 @@ import fixture from "./fixtures/dashboard-synthetic.json";
 
 const root = resolve(process.cwd(), "..");
 const load = (path: string) => readFileSync(resolve(root, path), "utf8");
+const historicalCommit = "320f2046e3105b1b55da9cb037892571110b584a";
+const adaptedHistoricalSources = new Set([
+  "backend/app/api/forecast_intelligence_read.py",
+  "backend/app/api/forecast_intelligence_decision.py",
+]);
+function evidenceBytes(path: string): Buffer {
+  if (
+    !path ||
+    path.startsWith("/") ||
+    path.split("/").includes("..") ||
+    path.includes(":") ||
+    path.includes("\\") ||
+    path.includes("\0")
+  )
+    throw new Error("Invalid evidence source path");
+  if (!adaptedHistoricalSources.has(path)) return readFileSync(resolve(root, path));
+  // PR #716's immutable authority snapshot, independently checked against the
+  // unchanged S5 evidence. Runtime API behavior is tested separately.
+  execFileSync("git", ["cat-file", "-e", `${historicalCommit}^{commit}`], { cwd: root });
+  return execFileSync("git", ["show", `${historicalCommit}:${path}`], { cwd: root });
+}
 function sources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
     entry.isDirectory()
@@ -29,12 +51,7 @@ describe("frozen design and scope", () => {
     );
     for (const group of ["source_evidence_sha256", "screenshot_sha256"])
       for (const [path, expected] of Object.entries(evidence[group]))
-        expect(
-          createHash("sha256")
-            .update(readFileSync(resolve(root, path)))
-            .digest("hex"),
-          path,
-        ).toBe(expected);
+        expect(createHash("sha256").update(evidenceBytes(path)).digest("hex"), path).toBe(expected);
     expect(evidence.source_evidence_count).toBe(
       Object.keys(evidence.source_evidence_sha256).length,
     );

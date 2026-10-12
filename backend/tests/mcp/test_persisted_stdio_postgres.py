@@ -19,10 +19,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from backend.app.core.config import get_settings
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
 from backend.tests.area_yield.test_run_persistence import authority  # noqa: F401
 from backend.tests.mcp.test_persisted_tools import ALL_NAMES, NAMES, args
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = [
     pytest.mark.postgres,
@@ -97,7 +97,7 @@ async def test_actual_stdio_concurrent_create_and_read_parity(isolated_database,
     monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS", "trial-api")
     monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_CHANNELS", "api")
     monkeypatch.setenv("TRIAL_ACTOR_PERMISSIONS", "may_create_forecast,may_read_forecast")
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as s:

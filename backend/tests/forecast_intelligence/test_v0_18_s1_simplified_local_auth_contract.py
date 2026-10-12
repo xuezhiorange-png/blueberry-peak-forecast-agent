@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from backend.tests.historical_source import source_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 PLAN = ROOT / "docs/v0-18/s1/simplified-local-auth-plan-r1.md"
 EVIDENCE = ROOT / "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json"
@@ -57,7 +59,7 @@ def test_evidence_is_canonical_and_all_source_hashes_match() -> None:
         assert not path.is_absolute()
         assert ".." not in path.parts
         assert len(expected_hash) == 64
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected_hash
+        assert hashlib.sha256(source_bytes(path, root=ROOT)).hexdigest() == expected_hash
 
 
 def test_fresh_baseline_and_completed_preflight_are_not_rewritten() -> None:

@@ -3142,7 +3142,7 @@ import httpx  # noqa: E402
 import pytest  # noqa: E402
 from httpx import ASGITransport  # noqa: E402
 
-from backend.app.main import create_app  # noqa: E402
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app  # noqa: E402
 from backend.app.rolling_backtest.replay_trained_service import (  # noqa: E402
     ReplayTrainedExecutionRequest,
     ReplayTrainedPersistedIdentityIntegrityError,
@@ -3162,7 +3162,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 async def e3_client() -> AsyncIterator[httpx.AsyncClient]:
     require_postgres()
-    app = create_app()
+    app = create_app(synthetic=True)
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as test_client:
         yield test_client

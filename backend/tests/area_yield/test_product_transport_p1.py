@@ -10,8 +10,8 @@ from httpx import ASGITransport, AsyncClient
 
 from backend.app.agent.orchestration import AgentOrchestrator
 from backend.app.area_yield.product_authority import forecast_area_product
-from backend.app.main import create_app
 from backend.tests.area_yield.test_product_p1 import bundle, request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 @pytest.fixture
@@ -43,7 +43,9 @@ def test_agent_core_and_fresh_cli_identical(configured):
 
 @pytest.mark.asyncio
 async def test_http_same_service_no_dependency_override(configured):
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         response = await c.post("/api/v1/trial/forecasts", json=request().model_dump(mode="json"))
     assert response.status_code == 200, response.text
     assert response.json() == forecast_area_product(request()).model_dump(mode="json")
@@ -51,7 +53,9 @@ async def test_http_same_service_no_dependency_override(configured):
 
 @pytest.mark.asyncio
 async def test_http_permission_and_invalid_area(configured, monkeypatch):
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         body = request().model_dump(mode="json")
         body["productive_area_mu"] = "NaN"
         assert (await c.post("/api/v1/trial/forecasts", json=body)).status_code == 422
@@ -98,7 +102,9 @@ async def test_server_authority_is_503_and_cli_configuration_error(
         raw = json.dumps(b).encode() if failure == "payload_hash" else b"not-json"
         configured.write_bytes(raw)
         monkeypatch.setenv("AREA_YIELD_AUTHORITY_SHA256", hashlib.sha256(raw).hexdigest())
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         r = await c.post("/api/v1/trial/forecasts", json=request().model_dump(mode="json"))
     assert r.status_code == 503, r.text
     assert r.json()["code"] == "AREA_FORECAST_AUTHORITY_UNAVAILABLE"
@@ -118,7 +124,9 @@ async def test_server_authority_is_503_and_cli_configuration_error(
 async def test_business_failure_has_same_reason_http_cli_python(configured, farm, season, reason):
     body = request(farm).model_dump(mode="json")
     body["target_season"] = season
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         r = await c.post("/api/v1/trial/forecasts", json=body)
     assert r.status_code == 422
     assert r.json()["code"] == "AREA_FORECAST_UNSUPPORTED_FARM_HISTORY"
@@ -143,7 +151,9 @@ async def test_business_failure_has_same_reason_http_cli_python(configured, farm
 )
 async def test_bad_request_is_422_not_authority_failure(configured, changes):
     body = {**request().model_dump(mode="json"), **changes}
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         r = await c.post("/api/v1/trial/forecasts", json=body)
     assert r.status_code == 422
     run = cli(body)

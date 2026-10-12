@@ -24,6 +24,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
@@ -295,12 +296,41 @@ def test_check_test_profile_unit_helper() -> None:
 
 
 @_REQUIRE_MAKE
-def test_make_test_pg_no_env_does_not_reject() -> None:
-    """Plain ``make test-pg`` (no env pre-export) must NOT be rejected by the guard.
+@pytest.mark.parametrize("_repeat", range(10))
+def test_make_test_pg_no_env_does_not_reject(tmp_path: Path, _repeat: int) -> None:
+    """Execute the real guard/defaults, stopping before Docker or nested pytest."""
+    environment, marker, receipt = _make_boundary_probe(tmp_path)
+    result = _run_make("test-pg", make_env=environment)
+    _assert_make_boundary(result, marker, receipt)
 
-    If the run fails, the only acceptable reason is Docker /
-    docker-compose not being on PATH (rc=127) — NOT a guard rejection.
-    """
+
+def _make_boundary_probe(tmp_path: Path) -> tuple[dict[str, str], str, Path]:
+    """Only this subprocess PATH replaces the first bash command, never the guard."""
+    bash = shutil.which("bash")
+    assert bash is not None and Path(bash).is_absolute()
+    marker = "R4_MAKE_TEST_PG_BOUNDARY_" + uuid4().hex
+    receipt = tmp_path / "boundary-receipt"
+    stub = tmp_path / "bash"
+    stub.write_text(
+        f"#!{bash}\n"
+        "set -euo pipefail\n"
+        "[[ $# == 1 && $1 == backend/scripts/postgres_test_db.sh ]] || exit 64\n"
+        "[[ ${APP_ENV:-} == test && ${POSTGRES_HOST:-} == localhost "
+        "&& ${POSTGRES_PORT:-} == 55432 && ${POSTGRES_DB:-} == blueberry_peak_test "
+        "&& ${POSTGRES_USER:-} == postgres && ${POSTGRES_PASSWORD:-} == postgres "
+        '&& ${DATABASE_URL:-} == "postgresql://postgres:***@localhost:55432/blueberry_peak_test" '
+        "]] || exit 65\n"
+        'printf "%s\\n" "$R4_BOUNDARY_MARKER" > "$R4_BOUNDARY_RECEIPT"\n'
+        'printf "%s\\n" "$R4_BOUNDARY_MARKER"\n'
+        "exit 73\n",
+        encoding="utf-8",
+    )
+    stub.chmod(0o755)
+    # These sentinels fail if a later process is ever reached; none contacts a DB.
+    for command in ("docker", "pytest"):
+        sentinel = tmp_path / command
+        sentinel.write_text(f"#!{bash}\nprintf 'UNEXPECTED_NESTED_COMMAND\\n'\nexit 92\n")
+        sentinel.chmod(0o755)
     clean_env = {
         k: v
         for k, v in os.environ.items()
@@ -313,21 +343,70 @@ def test_make_test_pg_no_env_does_not_reject() -> None:
             "POSTGRES_USER",
             "POSTGRES_PASSWORD",
             "DATABASE_URL",
+            "MAKEFLAGS",
+            "MFLAGS",
+            "MAKEOVERRIDES",
         }
     }
-
-    result = _run_make("test-pg", make_env=clean_env)
-
-    if _is_docker_not_available() and result.returncode in (127, 126):
-        pytest.skip(
-            f"docker not available in this sandbox (rc={result.returncode}); "
-            "guard is still exercised"
-        )
-
-    assert not _guard_rejection_in_output(result.stdout, result.stderr), (
-        f"Guard rejected plain 'make test-pg' (one-command contract broken). "
-        f"stdout={result.stdout!r} stderr={result.stderr!r} rc={result.returncode}"
+    clean_env.update(
+        PATH=str(tmp_path) + os.pathsep + os.environ.get("PATH", ""),
+        R4_BOUNDARY_MARKER=marker,
+        R4_BOUNDARY_RECEIPT=str(receipt),
     )
+    return clean_env, marker, receipt
+
+
+def _assert_make_boundary(result: subprocess.CompletedProcess, marker: str, receipt: Path) -> None:
+    assert result.returncode == 2, "make must propagate the boundary stub exit, not succeed"
+    assert receipt.is_file(), "the boundary subprocess was not executed"
+    assert receipt.read_text(encoding="utf-8") == marker + "\n"
+    assert result.stdout.splitlines().count(marker) == 1
+    assert "Error 73" in result.stderr
+    assert "UNEXPECTED_NESTED_COMMAND" not in result.stdout + result.stderr
+    assert not _guard_rejection_in_output(result.stdout, result.stderr)
+
+
+@_REQUIRE_MAKE
+@pytest.mark.parametrize(
+    "overrides", [("GUARD_OK=0",), ("GUARD_OK=1", "POSTGRES_DB=blueberry_peak")]
+)
+def test_make_boundary_cannot_pass_with_broken_guard(tmp_path: Path, overrides: tuple[str, ...]):
+    environment, marker, receipt = _make_boundary_probe(tmp_path)
+    result = _run_make(*overrides, "test-pg", make_env=environment)
+    with pytest.raises(AssertionError):
+        _assert_make_boundary(result, marker, receipt)
+    assert not receipt.exists()
+
+
+def test_make_boundary_missing_execution_cannot_pass(tmp_path: Path):
+    _, marker, receipt = _make_boundary_probe(tmp_path)
+    fake = subprocess.CompletedProcess(["make", "test-pg"], 2, marker + "\n", "Error 73")
+    with pytest.raises(AssertionError, match="not executed"):
+        _assert_make_boundary(fake, marker, receipt)
+
+
+@pytest.mark.parametrize("script", ["backend/scripts/postgres_test_db.sh", "unexpected.sh"])
+def test_make_boundary_rejects_missing_profile_or_wrong_script(tmp_path: Path, script: str):
+    environment, _, receipt = _make_boundary_probe(tmp_path)
+    # No test profile pre-export: only Makefile may supply it in the success path.
+    result = subprocess.run(
+        [str(tmp_path / "bash"), script],
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == (65 if script.endswith("postgres_test_db.sh") else 64)
+    assert not receipt.exists()
+
+
+@_REQUIRE_MAKE
+def test_make_boundary_dev_profile_guard_precedes_stub(tmp_path: Path):
+    environment, marker, receipt = _make_boundary_probe(tmp_path)
+    result = _run_make("POSTGRES_DB=blueberry_peak", "test-pg", make_env=environment)
+    assert result.returncode != 0
+    assert _guard_rejection_in_output(result.stdout, result.stderr)
+    assert not receipt.exists() and marker not in result.stdout.splitlines()
 
 
 @_REQUIRE_MAKE

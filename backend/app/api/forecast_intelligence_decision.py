@@ -54,6 +54,10 @@ class DecisionRoute(APIRoute):
                     body.extend(chunk)
                 request._body = bytes(body)
             try:
+                if getattr(request.app.state, "local_auth_controlled", False):
+                    from backend.app.local_auth.authorization import protected_transport
+
+                    return await protected_transport(request, decision=True)
                 return await original(request)
             except RequestValidationError:
                 return decision_error("INVALID_REQUEST", 422)

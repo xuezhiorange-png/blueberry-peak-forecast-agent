@@ -32,6 +32,11 @@ pytestmark = [
 
 @asynccontextmanager
 async def running_backend(env, port=0):
+    env = {**env, "APP_ENV": "test", "BLUEBERRY_LEGACY_SYNTHETIC_TEST": "1"}
+    if "_test_" not in env.get("POSTGRES_DB", ""):
+        # File-only research tests never open SQL connections. Give them an
+        # unavailable isolated name, not the default business database.
+        env["POSTGRES_DB"] = "blueberry_test_legacy_unconfigured"
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", port))
         port = listener.getsockname()[1]
@@ -39,7 +44,8 @@ async def running_backend(env, port=0):
         sys.executable,
         "-m",
         "uvicorn",
-        "backend.app.main:app",
+        "backend.tests.support.legacy_test_app:create_live_legacy_test_app",
+        "--factory",
         "--host",
         "127.0.0.1",
         "--port",
@@ -62,8 +68,13 @@ async def running_backend(env, port=0):
                 pytest.fail("backend readiness timeout")
             yield client
     finally:
-        process.terminate()
-        await asyncio.wait_for(process.wait(), 10)
+        if process.returncode is None:
+            process.terminate()
+            try:
+                await asyncio.wait_for(process.wait(), 10)
+            except TimeoutError:
+                process.kill()
+                await process.wait()
 
 
 async def test_network_all_tools_and_transport_parity(isolated_database, monkeypatch):
