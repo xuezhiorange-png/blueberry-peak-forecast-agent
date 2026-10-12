@@ -16,11 +16,11 @@ from backend.app.area_yield.run_persistence import (
 )
 from backend.app.cli import run_cli
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.models.area_forecast import AreaForecastRun
 from backend.tests.area_yield.test_run_persistence import authority, bounded  # noqa: F401
 from backend.tests.area_yield.test_run_persistence import session as session
 from backend.tests.area_yield.test_run_transport import factory as factory
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.usefixtures("authority")
 
@@ -107,7 +107,7 @@ async def test_http_cli_scope_conflict_code(factory):
         a = await execute_area_forecast_run(s, bounded())
         b = await execute_area_forecast_run(s, bounded(farm="other"))
     body = {**bounded().model_dump(mode="json"), "rerun_of_run_id": b.run.run_id}
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as s:

@@ -14,15 +14,15 @@ from backend.app.harvest_state.application import (
     HarvestStateDeliveryIntegrityError,
 )
 from backend.app.harvest_state.schemas import Task9ARequest
-from backend.app.main import create_app
 from backend.tests.harvest_state.conftest import make_request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 @pytest.fixture
 async def harvest_state_client(
     harvest_state_sqlite_session: AsyncSession,
 ) -> AsyncIterator[AsyncClient]:
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _override() -> AsyncIterator[AsyncSession]:
         yield harvest_state_sqlite_session
@@ -301,7 +301,7 @@ async def test_report_missing_run_uses_stable_error_payload(
 
 
 def test_openapi_registers_harvest_state_routes() -> None:
-    app = create_app()
+    app = create_app(synthetic=True)
     schema = app.openapi()
 
     assert "/api/v1/harvest-state/runs" in schema["paths"]
@@ -312,21 +312,21 @@ def test_openapi_registers_harvest_state_routes() -> None:
 
 
 def test_openapi_json_report_media_type() -> None:
-    schema = create_app().openapi()
+    schema = create_app(synthetic=True).openapi()
     operation = schema["paths"]["/api/v1/harvest-state/runs/{run_id}/report.json"]["get"]
 
     assert "application/json" in operation["responses"]["200"]["content"]
 
 
 def test_openapi_csv_report_media_type_is_application_zip() -> None:
-    schema = create_app().openapi()
+    schema = create_app(synthetic=True).openapi()
     operation = schema["paths"]["/api/v1/harvest-state/runs/{run_id}/report.csv"]["get"]
 
     assert "application/zip" in operation["responses"]["200"]["content"]
 
 
 def test_openapi_report_error_models() -> None:
-    schema = create_app().openapi()
+    schema = create_app(synthetic=True).openapi()
     for path in (
         "/api/v1/harvest-state/runs/{run_id}/report.json",
         "/api/v1/harvest-state/runs/{run_id}/report.csv",
@@ -340,7 +340,7 @@ def test_openapi_report_error_models() -> None:
 
 
 def test_openapi_operation_ids_are_unique() -> None:
-    schema = create_app().openapi()
+    schema = create_app(synthetic=True).openapi()
     operation_ids = []
     for path_item in schema["paths"].values():
         for operation in path_item.values():

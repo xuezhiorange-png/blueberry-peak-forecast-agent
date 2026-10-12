@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from backend.app.cli import run_cli
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
 from backend.tests.area_yield.test_run_persistence import authority, bounded  # noqa: F401
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.usefixtures("authority")
 
@@ -31,7 +31,7 @@ async def factory(tmp_path, monkeypatch):
 
 
 async def test_http_create_history_daily_no_reforecast(factory, monkeypatch):
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as s:
@@ -90,7 +90,7 @@ async def test_cli_create_get_list_daily(factory, monkeypatch):
     ],
 )
 async def test_http_errors(factory, monkeypatch, fault, code, status):
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as s:
@@ -116,7 +116,7 @@ async def test_stateless_http_cli_mcp_do_not_persist(factory):
 
     from backend.app.mcp.area_forecast import TOOL_NAME, server
 
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as s:

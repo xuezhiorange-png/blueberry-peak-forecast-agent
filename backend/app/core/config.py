@@ -20,6 +20,10 @@ class AppSettings(BaseSettings):
     v0_12_research_mcp_enabled: bool = False
     v0_12_research_runtime_registry_path: str = ""
     v0_12_research_test_store_path: str = ""
+    local_auth_origin: str = ""
+    local_auth_login_bucket_secret: SecretStr = Field(default=SecretStr(""))
+    local_auth_publisher_boundaries_json: SecretStr = Field(default=SecretStr(""))
+    local_auth_organization_ids_json: str = ""
 
     postgres_host: str = "localhost"
     postgres_port: int = 5432

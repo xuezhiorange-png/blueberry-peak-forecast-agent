@@ -826,10 +826,10 @@ async def test_api_first_execution_is_201_and_exact_replay_is_200(
     from httpx import ASGITransport
 
     from backend.app.api import rolling_backtest_replay_trained
-    from backend.app.main import create_app
     from backend.tests.rolling_backtest.test_replay_trained_model_slice_e1 import (
         _service_request,
     )
+    from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
     recorded: list[tuple[str, bool]] = []
 
@@ -904,7 +904,7 @@ async def test_api_first_execution_is_201_and_exact_replay_is_200(
     body = request.to_payload()
     body["idempotency_key"] = "idem-e3-16"
 
-    app = create_app()
+    app = create_app(synthetic=True)
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         first = await client.post("/api/v1/rolling-backtest/replay-trained-predictions", json=body)
@@ -937,13 +937,13 @@ async def test_api_error_envelopes_are_stable_and_non_leaking(
     from httpx import ASGITransport
 
     from backend.app.api import rolling_backtest_replay_trained
-    from backend.app.main import create_app
     from backend.app.rolling_backtest.replay_trained_service import (
         ReplayTrainedServiceInputError,
     )
     from backend.tests.rolling_backtest.test_replay_trained_model_slice_e1 import (
         _service_request,
     )
+    from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
     async def _raise_input_error(session: object, *, request: object) -> object:
         raise ReplayTrainedServiceInputError(
@@ -958,7 +958,7 @@ async def test_api_error_envelopes_are_stable_and_non_leaking(
             "    raise SQLAlchemyError('DSN=postgres://root:***@host/db')\n"
         )
 
-    app = create_app()
+    app = create_app(synthetic=True)
     transport = ASGITransport(app=app)
 
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -1052,11 +1052,11 @@ async def test_get_requires_exact_prediction_run_id(
     from httpx import ASGITransport
 
     from backend.app.api import rolling_backtest_replay_trained
-    from backend.app.main import create_app
     from backend.app.rolling_backtest.replay_trained_service import (
         ReplayTrainedPersistedIdentity,
         ReplayTrainedServiceNotFoundError,
     )
+    from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
     async def _fake_load(
         session: object, *, prediction_run_id: int
@@ -1116,7 +1116,7 @@ async def test_get_requires_exact_prediction_run_id(
         _service_should_not_run,
     )
 
-    app = create_app()
+    app = create_app(synthetic=True)
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         exact = await client.get("/api/v1/rolling-backtest/replay-trained-predictions/4242")

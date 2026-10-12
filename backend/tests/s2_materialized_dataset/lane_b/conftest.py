@@ -47,6 +47,7 @@ from backend.app.s2_materialized_dataset.lane_b.schemas import (
     SyntheticSourceRowIdentity,
     SyntheticSourceRowInput,
 )
+from backend.tests.alembic_head import assert_unique_head
 
 MAPPING_REGISTRY_HASH = digest({"registry": "synthetic-lane-b-mapping-v1"})
 ARTIFACT_HASH = "a" * 64
@@ -57,7 +58,6 @@ LANE_B_MIGRATION_PATH = (
 )
 LANE_B_MIGRATION_REVISION = "2af278a20e2a"
 LANE_B_MIGRATION_DOWN_REVISION = "0029_s2_lane_a_raw_ingestion_lineage"
-ALEMBIC_SINGLE_HEAD = "0040_hierarchical_forecast"
 
 
 def _lane_b_migration_module():
@@ -75,11 +75,7 @@ def assert_lane_b_alembic_head_and_revision_contract() -> None:
     config = Config(str(_BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(_BACKEND_ROOT / "alembic"))
     script = ScriptDirectory.from_config(config)
-    heads = script.get_heads()
-    assert len(heads) == 1, f"alembic heads must be exactly one, got {heads!r}"
-    assert heads == [ALEMBIC_SINGLE_HEAD], (
-        f"alembic heads must be [{ALEMBIC_SINGLE_HEAD!r}], got {heads!r}"
-    )
+    assert_unique_head(script)
     module = _lane_b_migration_module()
     assert module.revision == LANE_B_MIGRATION_REVISION
     assert module.down_revision == LANE_B_MIGRATION_DOWN_REVISION

@@ -62,9 +62,20 @@ def _is_trial_path(path: str) -> bool:
 
 
 def create_app(settings: AppSettings | None = None) -> FastAPI:
+    """Production factory: authenticated controlled ingress, without bypass flags."""
     app_settings = settings or get_settings()
     app = FastAPI(title=app_settings.app_name, version=APP_VERSION, lifespan=lifespan)
     app.state.settings = app_settings
+    app.state.local_auth_controlled = True
+    from backend.app.api.local_auth import router as auth_router
+    from backend.app.api.local_auth_admin import router as admin_router
+    from backend.app.local_auth.repository import ControlledIngress
+    from backend.app.local_auth.service import AuthService
+
+    app.state.local_auth = AuthService(db_session.AsyncSessionMaker, app_settings)
+    app.include_router(auth_router, prefix="/api/v1/auth", tags=["local-auth"])
+    app.include_router(admin_router, prefix="/api/v1/admin", tags=["local-auth-admin"])
+    app.add_middleware(ControlledIngress)
     app.add_middleware(ActualHarvestRequestBodyLimitMiddleware)
 
     @app.exception_handler(ActualHarvestApiError)

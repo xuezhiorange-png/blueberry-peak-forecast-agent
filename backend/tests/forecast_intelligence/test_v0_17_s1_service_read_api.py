@@ -26,8 +26,8 @@ from backend.app.forecast_intelligence.read_schemas import (
 )
 from backend.app.forecast_intelligence.read_service import ForecastIntelligenceReadService
 from backend.app.forecast_quality.operational_peak_persistence import OperationalPeakRunRepository
-from backend.app.main import create_app
 from backend.tests.forecast_intelligence.test_reconciliation import request as hierarchy_request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 FORECAST_ENDPOINTS = ["overview", "curve", "hierarchy", "uncertainty", "attribution"]
 ROOT = Path(__file__).resolve().parents[3]
@@ -74,7 +74,7 @@ def configured_app(factory, monkeypatch, permissions="may_read_forecast,may_read
     monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS", "synthetic")
     monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_CHANNELS", "api")
     monkeypatch.setenv("TRIAL_ACTOR_PERMISSIONS", permissions)
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with factory() as session:
@@ -121,7 +121,7 @@ async def test_base_repository_service_and_http_exact_parity(
     monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_SOURCE_SYSTEMS", "synthetic")
     monkeypatch.setenv("TRIAL_ACTOR_ALLOWED_CHANNELS", "api")
     monkeypatch.setenv("TRIAL_ACTOR_PERMISSIONS", "may_read_forecast,may_read_quality")
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with hierarchy_factory() as session:
@@ -488,7 +488,7 @@ async def test_read_is_deterministic_context_independent_and_performs_no_dml(
 
 
 def test_only_six_get_routes_no_engine_execution_and_frozen_boundaries():
-    app = create_app()
+    app = create_app(synthetic=True)
     paths = app.openapi()["paths"]
     owned = {p: v for p, v in paths.items() if p.startswith("/api/v1/forecast-intelligence/")}
     assert set(owned) == {

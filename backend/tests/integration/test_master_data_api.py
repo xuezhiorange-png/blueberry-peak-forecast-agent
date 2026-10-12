@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from backend.app.main import create_app
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.integration
 
@@ -23,7 +23,7 @@ def _unique(prefix: str) -> str:
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     _require_postgres()
-    app = create_app()
+    app = create_app(synthetic=True)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 

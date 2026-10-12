@@ -100,7 +100,6 @@ from backend.app.actual_harvest_import.validation_service import (
     seal_mapping_registry,
 )
 from backend.app.db.session import AsyncSessionMaker, get_db_session
-from backend.app.main import create_app
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 from backend.app.trial import (
     DefaultTrialApplicationService,
@@ -112,6 +111,7 @@ from backend.tests.actual_harvest_import.test_api_schemas import (
     _record_payload,
 )
 from backend.tests.db.profile import assert_safe_postgres_test_identity
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 # PR #117 formal review B1 fix: deterministic trigger rejection attribution.
 # The previous helper swallowed any DBAPIError, which let connection
@@ -777,7 +777,7 @@ async def test_postgres_trial_default_service_create_and_replay_contract(
         may_validate=True,
         may_commit=True,
     )
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _session_override() -> AsyncIterator[AsyncSession]:
         async with AsyncSessionMaker() as session:

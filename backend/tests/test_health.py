@@ -2,7 +2,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 class _ReadyResult:
@@ -31,7 +31,7 @@ async def _broken_session_override():
 
 @pytest.mark.asyncio
 async def test_health_live_succeeds_without_database():
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/health/live")
@@ -46,7 +46,7 @@ async def test_health_live_succeeds_without_database():
 
 @pytest.mark.asyncio
 async def test_unit_health_ready_succeeds_when_database_query_succeeds():
-    app = create_app()
+    app = create_app(synthetic=True)
     app.dependency_overrides[get_db_session] = _ready_session_override
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -62,7 +62,7 @@ async def test_unit_health_ready_succeeds_when_database_query_succeeds():
 
 @pytest.mark.asyncio
 async def test_health_ready_returns_503_when_database_query_fails():
-    app = create_app()
+    app = create_app(synthetic=True)
     app.dependency_overrides[get_db_session] = _broken_session_override
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -73,7 +73,7 @@ async def test_health_ready_returns_503_when_database_query_fails():
 
 
 def test_create_app_registers_health_routes():
-    app = create_app()
+    app = create_app(synthetic=True)
 
     assert app.title == "Blueberry Peak Forecast Agent"
     assert app.version == "0.2.0"

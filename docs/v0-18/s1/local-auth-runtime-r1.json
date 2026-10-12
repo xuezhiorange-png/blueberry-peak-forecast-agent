@@ -1,0 +1,1801 @@
+{
+  "argon2_cost": {
+    "deployment_cost_approved": false,
+    "hash_max_ms": 25.2,
+    "hash_mean_ms": 23.181,
+    "iterations": 10,
+    "memory_kib": 19456,
+    "parallelism": 1,
+    "time_cost": 2,
+    "verify_max_ms": 24.207,
+    "verify_mean_ms": 22.759
+  },
+  "base_main_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+  "branch": "task/v0.18-s1-local-auth-runtime-r1",
+  "current_python_launcher_retest": {
+    "canonical_evidence_test_run_separately": true,
+    "junit_path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-current-python-retest.xml",
+    "junit_sha256": "2c7ea75861764c456a81896910d9bdb5efd55d349af827b3be2cb26bf7374421",
+    "raw_committed": false,
+    "runtime_tests_passed": 75,
+    "seconds": 83.86
+  },
+  "dependency_review": {
+    "audit": [
+      {
+        "name": "aiosqlite",
+        "version": "0.22.1",
+        "vulns": []
+      },
+      {
+        "name": "alembic",
+        "version": "1.18.4",
+        "vulns": []
+      },
+      {
+        "name": "annotated-doc",
+        "version": "0.0.4",
+        "vulns": []
+      },
+      {
+        "name": "annotated-types",
+        "version": "0.7.0",
+        "vulns": []
+      },
+      {
+        "name": "anyio",
+        "version": "4.14.2",
+        "vulns": []
+      },
+      {
+        "name": "argon2-cffi",
+        "version": "25.1.0",
+        "vulns": []
+      },
+      {
+        "name": "argon2-cffi-bindings",
+        "version": "26.1.0",
+        "vulns": []
+      },
+      {
+        "name": "ast-serialize",
+        "version": "0.5.0",
+        "vulns": []
+      },
+      {
+        "name": "asyncpg",
+        "version": "0.31.0",
+        "vulns": []
+      },
+      {
+        "name": "attrs",
+        "version": "26.1.0",
+        "vulns": []
+      },
+      {
+        "name": "blueberry-peak-forecast-agent",
+        "skip_reason": "Dependency not found on PyPI and could not be audited: blueberry-peak-forecast-agent (0.2.0)"
+      },
+      {
+        "name": "catboost",
+        "version": "1.2.10",
+        "vulns": []
+      },
+      {
+        "name": "certifi",
+        "version": "2026.6.17",
+        "vulns": []
+      },
+      {
+        "name": "cffi",
+        "version": "2.1.1",
+        "vulns": []
+      },
+      {
+        "name": "click",
+        "version": "8.4.1",
+        "vulns": []
+      },
+      {
+        "name": "contourpy",
+        "version": "1.4.0",
+        "vulns": []
+      },
+      {
+        "name": "cryptography",
+        "version": "50.0.1",
+        "vulns": []
+      },
+      {
+        "name": "cycler",
+        "version": "0.12.1",
+        "vulns": []
+      },
+      {
+        "name": "defusedxml",
+        "version": "0.7.1",
+        "vulns": []
+      },
+      {
+        "name": "eccodes",
+        "version": "2.48.0",
+        "vulns": []
+      },
+      {
+        "name": "et-xmlfile",
+        "version": "2.0.0",
+        "vulns": []
+      },
+      {
+        "name": "fastapi",
+        "version": "0.137.2",
+        "vulns": []
+      },
+      {
+        "name": "findlibs",
+        "version": "0.1.3",
+        "vulns": []
+      },
+      {
+        "name": "fonttools",
+        "version": "4.66.1",
+        "vulns": []
+      },
+      {
+        "name": "graphviz",
+        "version": "0.21",
+        "vulns": []
+      },
+      {
+        "name": "greenlet",
+        "version": "3.5.2",
+        "vulns": []
+      },
+      {
+        "name": "h11",
+        "version": "0.16.0",
+        "vulns": []
+      },
+      {
+        "name": "h5netcdf",
+        "version": "1.8.1",
+        "vulns": []
+      },
+      {
+        "name": "h5py",
+        "version": "3.16.0",
+        "vulns": []
+      },
+      {
+        "name": "httpcore",
+        "version": "1.0.9",
+        "vulns": []
+      },
+      {
+        "name": "httpcore2",
+        "version": "2.12.0",
+        "vulns": []
+      },
+      {
+        "name": "httptools",
+        "version": "0.8.0",
+        "vulns": []
+      },
+      {
+        "name": "httpx",
+        "version": "0.28.1",
+        "vulns": []
+      },
+      {
+        "name": "httpx2",
+        "version": "2.12.0",
+        "vulns": []
+      },
+      {
+        "name": "idna",
+        "version": "3.18",
+        "vulns": []
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.0",
+        "vulns": []
+      },
+      {
+        "name": "joblib",
+        "version": "1.5.3",
+        "vulns": []
+      },
+      {
+        "name": "jsonschema",
+        "version": "4.26.0",
+        "vulns": []
+      },
+      {
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1",
+        "vulns": []
+      },
+      {
+        "name": "kiwisolver",
+        "version": "1.5.1",
+        "vulns": []
+      },
+      {
+        "name": "librt",
+        "version": "0.11.0",
+        "vulns": []
+      },
+      {
+        "name": "lightgbm",
+        "version": "4.7.0",
+        "vulns": []
+      },
+      {
+        "name": "mako",
+        "version": "1.3.12",
+        "vulns": []
+      },
+      {
+        "name": "markupsafe",
+        "version": "3.0.3",
+        "vulns": []
+      },
+      {
+        "name": "matplotlib",
+        "version": "3.11.2",
+        "vulns": []
+      },
+      {
+        "name": "mcp",
+        "version": "2.2.0",
+        "vulns": []
+      },
+      {
+        "name": "mcp-types",
+        "version": "2.2.0",
+        "vulns": []
+      },
+      {
+        "name": "mypy",
+        "version": "2.1.0",
+        "vulns": []
+      },
+      {
+        "name": "mypy-extensions",
+        "version": "1.1.0",
+        "vulns": []
+      },
+      {
+        "name": "narwhals",
+        "version": "2.22.1",
+        "vulns": []
+      },
+      {
+        "name": "numpy",
+        "version": "2.4.6",
+        "vulns": []
+      },
+      {
+        "name": "openpyxl",
+        "version": "3.1.5",
+        "vulns": []
+      },
+      {
+        "name": "opentelemetry-api",
+        "version": "1.44.0",
+        "vulns": []
+      },
+      {
+        "name": "packaging",
+        "version": "26.2",
+        "vulns": []
+      },
+      {
+        "name": "pandas",
+        "version": "3.0.5",
+        "vulns": []
+      },
+      {
+        "name": "pathspec",
+        "version": "1.1.1",
+        "vulns": []
+      },
+      {
+        "name": "pillow",
+        "version": "12.3.0",
+        "vulns": []
+      },
+      {
+        "name": "plotly",
+        "version": "7.1.0",
+        "vulns": []
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0",
+        "vulns": []
+      },
+      {
+        "name": "pycparser",
+        "version": "3.0",
+        "vulns": []
+      },
+      {
+        "name": "pydantic",
+        "version": "2.13.4",
+        "vulns": []
+      },
+      {
+        "name": "pydantic-core",
+        "version": "2.46.4",
+        "vulns": []
+      },
+      {
+        "name": "pydantic-settings",
+        "version": "2.14.2",
+        "vulns": []
+      },
+      {
+        "name": "pygments",
+        "version": "2.20.0",
+        "vulns": []
+      },
+      {
+        "name": "pyjwt",
+        "version": "2.15.0",
+        "vulns": []
+      },
+      {
+        "name": "pyparsing",
+        "version": "3.3.3",
+        "vulns": []
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1",
+        "vulns": []
+      },
+      {
+        "name": "pytest-asyncio",
+        "version": "1.4.0",
+        "vulns": []
+      },
+      {
+        "name": "pytest-timeout",
+        "version": "2.4.0",
+        "vulns": []
+      },
+      {
+        "name": "python-dateutil",
+        "version": "2.9.0.post0",
+        "vulns": []
+      },
+      {
+        "name": "python-dotenv",
+        "version": "1.2.2",
+        "vulns": []
+      },
+      {
+        "name": "python-multipart",
+        "version": "0.0.32",
+        "vulns": []
+      },
+      {
+        "name": "pyyaml",
+        "version": "6.0.3",
+        "vulns": []
+      },
+      {
+        "name": "referencing",
+        "version": "0.37.0",
+        "vulns": []
+      },
+      {
+        "name": "rpds-py",
+        "version": "2026.6.3",
+        "vulns": []
+      },
+      {
+        "name": "ruff",
+        "version": "0.15.18",
+        "vulns": []
+      },
+      {
+        "name": "scikit-learn",
+        "version": "1.9.0",
+        "vulns": []
+      },
+      {
+        "name": "scipy",
+        "version": "1.18.0",
+        "vulns": []
+      },
+      {
+        "name": "six",
+        "version": "1.17.0",
+        "vulns": []
+      },
+      {
+        "name": "sqlalchemy",
+        "version": "2.0.51",
+        "vulns": []
+      },
+      {
+        "name": "sse-starlette",
+        "version": "3.4.11",
+        "vulns": []
+      },
+      {
+        "name": "starlette",
+        "version": "1.3.1",
+        "vulns": []
+      },
+      {
+        "name": "threadpoolctl",
+        "version": "3.6.0",
+        "vulns": []
+      },
+      {
+        "name": "truststore",
+        "version": "0.10.4",
+        "vulns": []
+      },
+      {
+        "name": "typing-extensions",
+        "version": "4.15.0",
+        "vulns": []
+      },
+      {
+        "name": "typing-inspection",
+        "version": "0.4.2",
+        "vulns": []
+      },
+      {
+        "name": "uvicorn",
+        "version": "0.49.0",
+        "vulns": []
+      },
+      {
+        "name": "uvloop",
+        "version": "0.22.1",
+        "vulns": []
+      },
+      {
+        "name": "watchfiles",
+        "version": "1.2.0",
+        "vulns": []
+      },
+      {
+        "name": "websockets",
+        "version": "16.0",
+        "vulns": []
+      },
+      {
+        "name": "xarray",
+        "version": "2026.7.0",
+        "vulns": []
+      },
+      {
+        "name": "xlrd",
+        "version": "2.0.2",
+        "vulns": []
+      },
+      {
+        "name": "xlwt",
+        "version": "1.3.0",
+        "vulns": []
+      }
+    ],
+    "audit_report_sha256": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
+    "complete_environment_consistency": "PARTIAL_EXISTING_ECCODESLIB_GAP",
+    "new_password_dependencies_no_reported_vulnerabilities": true,
+    "remaining_advisories": 0,
+    "result": "PASS_INSTALLED_TREE_TESTED_SCOPE",
+    "targeted_anyio_pyjwt_upgrade_authorized": true,
+    "unrelated_dependency_upgrades_authorized": false
+  },
+  "environment_repairs": {
+    "libomp": "llvm-openmp 23.1.3 local isolated tool environment; DYLD_LIBRARY_PATH; 4 library checks passed",
+    "model_code_changed": false
+  },
+  "exact_head_ci": "PENDING_AFTER_COMMIT_REPORTED_IN_PR",
+  "frozen_history_sha256": {
+    "docs/v0-16/evidence/business-loss-contract-r1/business-loss-policy-r1.json": "a0dc8c94444b190ee97349861825c83f58479736ffcf50f8870f6543074e20c0",
+    "docs/v0-16/evidence/business-loss-contract-r1/deterministic-replay-report-r1.json": "01ad20ebff4d6c998ef9282bf570f5735493909721eee1a1e95cbe524c4f99d8",
+    "docs/v0-16/evidence/business-loss-contract-r1/historical-synthetic-loss-summary-r1.json": "741c978a3c46b6de5243848dd9dd3a0bf883254d2b44cedb2bb0eaf201a91e7c",
+    "docs/v0-16/evidence/business-loss-contract-r1/manifest-r1.json": "a083661b6229a97c95ca4d0b058aca0cafb5d2e08e8683a74107b8201f8103c1",
+    "docs/v0-16/evidence/business-loss-contract-r1/privacy-scan-report-r1.json": "5cd7e58bfe791a7af91c74c666d3564c250dff054e1b5811e7562e12d6fe19be",
+    "docs/v0-16/evidence/business-loss-contract-r1/source-binding-r1.json": "7e122d0c862dc0a9af959fd3b1d9ca7a8a8f055b958bac7805645a5dc727b9f0",
+    "docs/v0-16/evidence/business-loss-contract-r1/synthetic-cost-contracts-r1.json": "2b2e477fe9735e0df56fb12ed770d4c121446a96c0c1c3397a6622747d99ac3f",
+    "docs/v0-16/evidence/business-loss-contract-r1/v0.16-s5-business-loss-contract-r1.json": "d55dde8af55ec63b4806607a901d291cacefa6852379e7775cea21c26d0f3d57",
+    "docs/v0-16/evidence/forecast-attribution-r1/attribution-policy-r1.json": "9ec2ae8f946ec5261e02f138dc2abf8d5659438a2d8e08fbd9a37d3bff361785",
+    "docs/v0-16/evidence/forecast-attribution-r1/business-semantic-group-summary-r1.json": "da34d9ff8a67f4f2b8560996c1f5b0b6363b816fa7e8ea9e3192fa96e3a8beb0",
+    "docs/v0-16/evidence/forecast-attribution-r1/deterministic-replay-report-r1.json": "22eadd03a3ef3e58334329157d6e90ffe6ddee4681a632ee0e01af8ea3e191e3",
+    "docs/v0-16/evidence/forecast-attribution-r1/family-group-summary-r1.json": "3a9854682dda489fb2e45e7de7a2d19ae34d2db8eadb5395fc20dfd7b578c502",
+    "docs/v0-16/evidence/forecast-attribution-r1/feature-contribution-summary-r1.json": "7c5789edf97bdca7fecbc9db21c402d5bd559e7dcd80a5568ada51ca28ede443",
+    "docs/v0-16/evidence/forecast-attribution-r1/horizon-contribution-summary-r1.json": "cfa4ecb35574643c6055e4a5008b9aa316e8d5bb5447e96962e38f1a61b379d2",
+    "docs/v0-16/evidence/forecast-attribution-r1/manifest-r1.json": "3d82606c7efdbea99a44fa4aa2c35793e9c1a48f6742df42ef43b5ab313c8a5c",
+    "docs/v0-16/evidence/forecast-attribution-r1/privacy-scan-report-r1.json": "fcff4adc8d464e6de26ea3f191e02987d012cd67e59c996744e6773368c3d655",
+    "docs/v0-16/evidence/forecast-attribution-r1/reconstruction-summary-r1.json": "083537e23d998a2fa0a8e907790f24f1e0ebf077832b05b7dfdd792a3eeb34f5",
+    "docs/v0-16/evidence/forecast-attribution-r1/source-binding-r1.json": "1d31d972149f020fc83acd14b7a7fcd3063506f307b4d65ba1a52ef3104b4182",
+    "docs/v0-16/evidence/forecast-attribution-r1/v0.16-s3-forecast-attribution-r1.json": "4a5918e0678d9cb3945b4f71612317754cf8f7fdc12b3412e468f029036815e8",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/completeness-summary-r1.json": "b2dfe776421719fa6a11b6595a04bdcbbbe78772fe6a14ec72e921b1f0fcb2b5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/deterministic-replay-report-r1.json": "a5ed64f82521dd32dce1002398a3c07f27fe0a47edae1f8790309e5f2a4e322b",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/integrity-summary-r1.json": "5ffad283db327cff25ea0a9371956381f7e61ce762816145a45a38b640632871",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/interval-quality-summary-r1.json": "7689b6e434dd1da8670468f6a86c0f1dc7fd46df84f0bdfba37737bf2f1b4497",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/issuance-coverage-summary-r1.json": "0c5d40c6fa9949a8b1c3e5d77e232a1af461466aacb4b1d53d947149806fa0ba",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/manifest-r1.json": "9a81af66ca0106031c579dd8648336ae2053dd4071076367725d8d92097fb8a5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/monitoring-policy-r1.json": "7ec6d4c95cec9f2463dcff11053657825cb3164235e27e6dfdf3d4a504639170",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/privacy-scan-report-r1.json": "f0fb6691796ba7d34442929d81fc2c499333e2fb6f4c7fd13399d3a4d03a17a9",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/runtime-observability-summary-r1.json": "ec3e4a8e0110d09f628b19987751bc5ab7c785d1d17dcfd2a0fa736b1c50f6e6",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/source-binding-r1.json": "95f6e219229d38db42c44e0b9a3a6c371d51893c29926d6105cf35b09eccd5e0",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/v0.16-s4-forecastops-monitoring-r1.json": "3537c433ac56e65536105ecb550d506cd98d416fcb48e6bd61b880efb8268a9c",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/base-breadth-summary-r1.json": "84ee5a3393485aafb8d4f911a690a8e16ae13c14582ce767b11db591fd3c0eb3",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/conformal-policy-r1.json": "4d3d2635ddbd4fecd68e59c47d46ae3f35389e78ccacc960188944fa9f158a4d",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/deterministic-replay-report-r1.json": "48afd5c553c5c3cfddff809554895010d836e0ff057d1411f7ad45a353b2f658",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/lead-day-coverage-r1.json": "5dd0b3418bc0e8549644a6730f7aef9e42d3b2457424472ec0abdb87d3e28f30",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/manifest-r1.json": "b4b4ca6124f4aea081243ac477c01ff7c0dc0123eb846ee2cd23a2b2f9a773b1",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/privacy-scan-report-r1.json": "7ec3b1ac2d13ba9b52d503866f08e01b3e84158918678f441179f28dbf272b8c",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/source-binding-r1.json": "b345fefbe2aa59b0737859eae0f709f1e16a6cd3934b8d755bccbb431dd01ef7",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/v0.16-s2-uncertainty-and-conformal-calibration-r1.json": "7939b17ae74ff39996edc767e4a84c6c4da3011dc69b9e61fd4de52ba0f6fa04",
+    "docs/v0-16/evidence/v0.16-s1-hierarchical-forecast-reconciliation-r1.json": "376048ce5d12408ddd030c8b17bec2ca107ce3046ec8357b34e5682495fda9cf",
+    "docs/v0-16/evidence/v0.16.0-version-closeout-manifest-r1.json": "2520e4d7ba5ad6e2df34d0a03154565f4849a0168ebdb87feec7a214be124313",
+    "docs/v0-16/evidence/v0.16.0-version-closeout-r1.json": "abfcd8224dfe4731f61add2b0c2296ce10fec50efbc2e69ff9989c09ccea8333",
+    "docs/v0-16/evidence/v0.16.0-version-plan-and-scope-freeze-r1.json": "a9bfa820d6efe9f4c0e401681fdaabac177f1c615ed78ed62e6abb4d74b808c3",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/deterministic-replay-report-r1.json": "2b479efa9e563fe7a849cfb5693d2573cca22542c3203e41afd8472762c06203",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/manifest-r1.json": "beaea961d4a0c9e841947cb42a6b8b50df696ed764bb433cd1debba97b0df8d8",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/privacy-scan-report-r1.json": "723589ae80eff764f5146aa4073e5be3519200e01187c2b60e0531bd091b00ba",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/scenario-ranking-summary-r1.json": "55a06edce4c7299bcfaad487d017b2ae6f126a6f81edd1250b0bb7159fcd0038",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/source-binding-r1.json": "5d9f77bb5836836a69b2910ffa497dd5b87a07b1e656eef1cffdd995cba494b4",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-saved-forecast-r1.json": "191a661fa71f9d34759b21db1c3f7a6b5c79ab36a2f5186bed58eec5a32a8acd",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-scenario-results-r1.json": "069f4c9f6671ad5abc77e6b4ee777c6f4354420a3fb5bc61144e48abee5ef6da",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-scenarios-r1.json": "104362fccf60f73877525ed2caca2d299551866900bc8d481e82293967cb6594",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/v0.16-s6-what-if-decision-simulator-r1.json": "fd375b5445b1fb7a928efeae1d0d8524f7e3b84b66b605cff24af9738f7487e7",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/what-if-policy-r1.json": "1c629293ff6ecd081dadd35b634e068ea7f8b341461853326effe34924e5c3e1",
+    "docs/v0-16/v0.16-s1-hierarchical-forecast-reconciliation-r1.md": "c0bcbf362ba5e855774a203bc054c2de221e3510447e3a42e2086c58bca747c4",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-16/v0.16-s3-forecast-attribution-r1.md": "9065fabd8f1558d7146dcafcc9ff56b0b4a1bcec77c9d3ee11c8247a822a3366",
+    "docs/v0-16/v0.16-s4-forecastops-monitoring-r1.md": "669eda3a96cf55ddb463b209854b3a9276c0f047afe036dc8f2ea5eaf9a880e1",
+    "docs/v0-16/v0.16-s5-business-loss-contract-r1.md": "841d06290369e2ec2da1367a35576496d928591dfa77114e8ac0d7af95cab307",
+    "docs/v0-16/v0.16-s6-what-if-decision-simulator-r1.md": "f25641349fd4e229a23cb41dedcd76d4bd6b069b67e4354dc996ba7ac2203083",
+    "docs/v0-16/v0.16.0-closeout.md": "77d1bc082863b0af9436b460ee65d6c5429579e309b10348665256e17d729725",
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md": "7eed60e8045903eb8229afa0c1c6b6f0a9e99e4ce2e9cda9ce212c4ce435f7de",
+    "docs/v0-17/design/s4/component-and-chart-contract-r1.md": "64cc7315857a5b69c22721d1fa52ecd76435cd5843cfc292b52f6af9d5f3e4ed",
+    "docs/v0-17/design/s4/dashboard-contract-r1.json": "5ab67eb3516398ef9390133955894bee4efa725b85f179ac823da4245e0d4a21",
+    "docs/v0-17/design/s4/dashboard-ux-freeze-r1.md": "01fbee9ff48117d060939e8921947a41f2e2d9c05ebfd7af39d602bf8f3beeb3",
+    "docs/v0-17/design/s4/design-tokens-r1.json": "51712a6a4c587361f687694fe187bdbc0cb5026de956f5ef45d6e1ac1c12b653",
+    "docs/v0-17/design/s4/five-page-information-architecture-r1.md": "980e89ae72c7ef1e7028d6026ce1e080275d77f933ae5db86f04ce7fd62c7836",
+    "docs/v0-17/design/s4/navigation-and-saved-run-flow-r1.md": "4993e5893bdb5e75da3bc14341acf05e4998d746b6164801b3a531070c2358f2",
+    "docs/v0-17/design/s4/prototype/index.html": "c6374adfd0e29d958e62081de2582e91b57f123aec3c91118fdc7da7f2bbb8d6",
+    "docs/v0-17/design/s4/prototype/prototype.js": "be412b40c6c3666415dd6571473792c6f7fe14e0dce5ff09a6a18fecc295ccdd",
+    "docs/v0-17/design/s4/prototype/styles.css": "2523e0341e5100ba92bc9121ea5d0fecc5e83afece3f33115f69292f4d66baaa",
+    "docs/v0-17/design/s4/responsive-and-accessibility-r1.md": "6c361722c6f6c38bc134f9accd276b458fd745e6e17b0d76d98af5842e18d11d",
+    "docs/v0-17/design/s4/s5-implementation-handoff-r1.md": "f71252c7d9442c6acf45a826d966eb02624a8feb37daeb58289089f1b1f0c4ca",
+    "docs/v0-17/design/s4/screenshots/attribution-1024x768.jpg": "3a5e58c9fcb8a72d08a6068c9850071a8cb692ad0b2a36d8cdf9b7e9a2a787d1",
+    "docs/v0-17/design/s4/screenshots/attribution-1280x800.jpg": "88fd45c0e790266afb9f231d553c5bc72c1b745f720344f3372788f69fdacaa5",
+    "docs/v0-17/design/s4/screenshots/attribution-1440x900.jpg": "9846fe8a002baf8e6e204124892ba9df0bd2fe95ec7498960f6114e6bf5648f9",
+    "docs/v0-17/design/s4/screenshots/attribution-360x800.jpg": "c434aad143d21d3771a5e73b131adc3ff877a1728e61971ee3f3d6d88b7a1383",
+    "docs/v0-17/design/s4/screenshots/attribution-390x844.jpg": "ae97ec265f9fab92376c43cf0455cbd20743f6da4185b9ff6ee82b189dcd7f94",
+    "docs/v0-17/design/s4/screenshots/attribution-834x1112.jpg": "dab3abb8edd7a995bdbd9b17b5ad5bd823a6a6c77370dd655b1f930126b4415b",
+    "docs/v0-17/design/s4/screenshots/capacity-1024x768.jpg": "cb4e892f06373844d8dcb140fee8e4abbd1b22f37446007cc4d1fa22f19a4c4e",
+    "docs/v0-17/design/s4/screenshots/capacity-1280x800.jpg": "c7c6a6889cee8ea93621390f23ae30c9db6b4915c1d160141a2f882f641e2150",
+    "docs/v0-17/design/s4/screenshots/capacity-1440x900.jpg": "055b9d4ce236f53244b29e700ed49a4ba1857f4de5f76fb310810e5b2b97ae60",
+    "docs/v0-17/design/s4/screenshots/capacity-360x800.jpg": "593f9c5537027724cf5bdb551148620791591a71e6b5d5730c648ea4448f846d",
+    "docs/v0-17/design/s4/screenshots/capacity-390x844.jpg": "1a0ac0b91a9e770eb246fbd78aa28433a3df093be7291f969847ec209896b70c",
+    "docs/v0-17/design/s4/screenshots/capacity-834x1112.jpg": "c52fc28821388eb52f0663ded5fae25be0e7e92058f1a5f7afe955c51e88d0d4",
+    "docs/v0-17/design/s4/screenshots/forecast-1024x768.jpg": "06c5e9e4a26c0f07439c4062788e376f5602586a6484c5c780a0262a856d6d2e",
+    "docs/v0-17/design/s4/screenshots/forecast-1280x800.jpg": "7c0be45087e5523088a6bf8bd0b50dfe5a86f93a7d6380f15a4138a8d6fa0b05",
+    "docs/v0-17/design/s4/screenshots/forecast-1440x900.jpg": "54b3859610f6361f86b6cf724379ca37942aa8a41752c2b4bde5fd13643081b7",
+    "docs/v0-17/design/s4/screenshots/forecast-360x800.jpg": "7a64011b2b2a2dbf8b7a0aba03c0b52575a78cdf05d2d76eeda7e17c02a4da09",
+    "docs/v0-17/design/s4/screenshots/forecast-390x844.jpg": "94cf27924aa72b30521865f5c019f1e8dc7de7ebfd4764bf002634706fac74a0",
+    "docs/v0-17/design/s4/screenshots/forecast-834x1112.jpg": "652888d20209a3b952520d3b6198878d05e9fcc2d084a69e6a55e4c44d4e78de",
+    "docs/v0-17/design/s4/screenshots/overview-1024x768.jpg": "1f112b0eb0cb0bc526ecc17f7b0165619ca57e4c4db2049bdada83309fffaa4b",
+    "docs/v0-17/design/s4/screenshots/overview-1280x800.jpg": "9e9b57e701a8d367fbf5e1e0321413e0291ea2d9595cb4301fd788caaeccde7f",
+    "docs/v0-17/design/s4/screenshots/overview-1440x900.jpg": "4e10329829ac6be12fdd52cea8afd094fbffa6dabbdf8a92d567dc2505927413",
+    "docs/v0-17/design/s4/screenshots/overview-360x800.jpg": "6392fc936a13fe1ba7433443e1dd9046ec95138314b2f410b88d0433c0de51db",
+    "docs/v0-17/design/s4/screenshots/overview-390x844.jpg": "418b069c8b5fe1987ad03475dffa0344e822bfb8db0ca7b0f3a87e4eb1b266a1",
+    "docs/v0-17/design/s4/screenshots/overview-834x1112.jpg": "2f925cd1865bc6778095bbc924448e2ada3ac2d0b1f06325d9db56b66570aba1",
+    "docs/v0-17/design/s4/screenshots/quality-1024x768.jpg": "8740866fac014ab41f2b7118bcccf16e6c6d62731ceeece658f7eba93b20ba95",
+    "docs/v0-17/design/s4/screenshots/quality-1280x800.jpg": "52e89f432713e5b8dcf401a1ab4718785df8afcc3635cb08ab96c61c1d2dc0cc",
+    "docs/v0-17/design/s4/screenshots/quality-1440x900.jpg": "c32df430ac6b669021181ed7ce42fca6ebfd09cdb270aefdff54381426926d8c",
+    "docs/v0-17/design/s4/screenshots/quality-360x800.jpg": "0dbf5d5d67b2e2a0a73a656f5a86ac0968eabf92b70c0facca20a17a7ecad01d",
+    "docs/v0-17/design/s4/screenshots/quality-390x844.jpg": "4067eada9d254b49d1a2a1810f01ced282b4dcb9841db771c2bdc0333fc41bcc",
+    "docs/v0-17/design/s4/screenshots/quality-834x1112.jpg": "26a6ddac188cae491950042abbe45336a52352631d6921dec9585c160869108c",
+    "docs/v0-17/design/s4/screenshots/saved-run-selector-390x844.jpg": "6571ee289181b5f0959539f4045d7c0f3a1ff1c212eaeb91d79fbd93a5095eb6",
+    "docs/v0-17/design/s4/screenshots/state-authority_mismatch-390x844.jpg": "a42a790fc85c0d9c7335f8e6914f2cb1bb02d64d49f96252fc480d7a5df6948c",
+    "docs/v0-17/design/s4/screenshots/state-empty-390x844.jpg": "4c6713e9c06f7a0c94647f93a70a061a22c693de99cc7dbf30fbfb2250a2be2a",
+    "docs/v0-17/design/s4/screenshots/state-error-390x844.jpg": "68ed8adb70c56923d09cb7206105dbfd4376964b47985e6ece69ffb9a49cf775",
+    "docs/v0-17/design/s4/screenshots/state-loading-390x844.jpg": "8a4f1c46bb3d4d6ff6f2c17b0e40b0a0c73e958ec98912ea34b116e498ddca77",
+    "docs/v0-17/design/s4/screenshots/state-no_current_actual-390x844.jpg": "822be6c010cf231263e32634fa85a882d309a8f873bac4afb62cebcccd0f2841",
+    "docs/v0-17/design/s4/screenshots/state-not_available-390x844.jpg": "8d7be1d3fa7127b85a5e16f2f43589a4b01680f68d52644b4b89ccaddbec8ab9",
+    "docs/v0-17/design/s4/screenshots/state-partial-390x844.jpg": "5b514a3fba355fee9510dccd22c821cbf2f7accc6e7d28a6e590f55483a05067",
+    "docs/v0-17/design/s4/screenshots/state-ready-390x844.jpg": "94cf27924aa72b30521865f5c019f1e8dc7de7ebfd4764bf002634706fac74a0",
+    "docs/v0-17/design/s4/screenshots/text-enlargement-390x844.jpg": "339c291bc82b8ea5ac60893e74399f43e9eb34763d0881f6f76c9db04e2618cf",
+    "docs/v0-17/design/s4/screenshots/workforce-stale-390x844.jpg": "81625162c0788a4322eef8f507d3b4f59346cd4001ead5adf63453eb36d61161",
+    "docs/v0-17/design/s4/visual-qa-report-r1.json": "cbdbdb2ae77860668e9ac24db42062fc3bd4996013bde8b3947c53be650ace10",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-1024x768.jpg": "28d94660f52b1a5ca042eab9f1ed3c411e99d44980f5e84744d74028adc34bff",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-1280x800.jpg": "0ecfcab150ab4b5074e5a299303c1cd62aa4af7d736a6abc7d55c7c51246d0e7",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-1440x900.jpg": "30b62101e2f1a3a941991a36c121a09d46c4b7f1fba97bfa1b00228593795cd7",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-360x800.jpg": "5b0ea74a9686b3f19d5269b2956809cd7c572cdf6a8f5a23ac89ade1aa1f9d49",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-390x844.jpg": "0afa84b99db23b8a62052d96eebc9908e9da6f4d413c452294d97d8d41fdf538",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-834x1112.jpg": "60b7dd772fc1ae2a604d057e56989139683beab91814b8fbdf745cebc4fb5cef",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-1024x768.jpg": "83b90d2197d0af5db76b643810720159ec209c821257cc711cae50097edcff09",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-1280x800.jpg": "dfb53b66dd3b7033d7f774fb83ef1bec7ce86c40b0a726c3badc54ba96d73404",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-1440x900.jpg": "42dc524cc726f66a99332ed5e243d6ee89c5947414eb2b4f096d125a1a3b8d7f",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-360x800.jpg": "53ae5651d2db3f58f716f8a47495184e896d66ede43276a5d93cf2c15986c7d0",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-390x844.jpg": "4356e15009ae6f8d25ac6957f9f976438ca855928abc48e0f2f30714905db697",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-834x1112.jpg": "8a62e657c4ce7aca9368faab00731776f153360613f793d72392cfe88035b8e7",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-abc-comparison.jpg": "7583c5b9e4b41ad56d9599723843ab9ee49c32cb6a3da0c04a3ef704269d8503",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-1024x768.jpg": "182cb7778577c41233a33fd2dc46feeacf7d414ab513cdcb95fdcb08a966694d",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-1280x800.jpg": "54d75244a32ce5703a89a7973ba04c253e1a6bdda7bcd4da01ca23572c180c17",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-1440x900.jpg": "9e4d58637bf1ea79bb625a9214a6efcc42ac6b5791201a62a9735b09b09c1a9d",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-360x800.jpg": "0d1b78d204a19158c571104b2852a09f8596c631bcf250a4e460a28838505487",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-390x844.jpg": "448e7bf2f56159231e5c52264dd1923b9d704a865902456d841428dbc7e46e11",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-834x1112.jpg": "7291e8ca3594e17a030a1079951a8ae993c1399e4c0adf020bf863168d3aca3b",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-1024x768.jpg": "31098ac64e782d6ccf73d7cfd57976b495f821250329ac86306899a143caea2c",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-1280x800.jpg": "8de356a431b71a00cef19a35712412f26146d009c60c61fd29a4e6df5e8fb500",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-1440x900.jpg": "bea60a6ac83e91632f696f7937172febc462ce213626268fb40d8e71619fa8af",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-360x800.jpg": "3b06d993352e314f66fb0e8fc805b1e0a0fd74df550ababc889f1d08bf1c6a0e",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-390x844.jpg": "a4f32edc2e1781bc72c49d6af1b0b717c10961057768f4c158c4c39944503887",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-834x1112.jpg": "ce90f29b5d0bb8bdb1f39555cd51dabe5769adf7e9ca4ba2e1935a96d15fb195",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-1024x768.jpg": "5dbc393f6227ddfaf173315a2b1b7b6ceb0e61abb046c8285347356db55b1d8c",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-1280x800.jpg": "e66c0446aaec46bb47f691d74ca425b090333b7ead6b472f1afa33f29949835c",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-1440x900.jpg": "6d459e0e577d36c6ddc79e54aeba83a6fe30df8f7545ce85ffe6be93cd5c05a4",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-360x800.jpg": "484c42cdb0bbb5da05dc876c3f33be8a311e43d2746c142aa56824c6e6fcdb2b",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-390x844.jpg": "160a90ff724dd9d086cbb4a609fd228c58aec3b981b1f977c291b4478a01a516",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-834x1112.jpg": "77f08be32237da6bc5eb70dce27969a87a7a2e8dbbf5fa2c52319397279ad615",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/state-409.jpg": "243e5b04752a88c3efe9b1a6fbdb82ee31ef5ed610132d2ff16dc42a0351e240",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/state-503.jpg": "ca3a047eac1682414d80c5778732ceaece349805f56bc6f762d633be5c427c9f",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/state-empty.jpg": "a0f0ee9dcbfd7e10cd36c0f20d676f982de814486bb2a0d00bed39574ea0faf7",
+    "docs/v0-17/evidence/s6-cross-surface-r2/accessibility-results.json": "8851a75c134d454295f457758c765a19cf5a0440431258ee62a2a932b2d7286c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/failure-state-matrix.json": "e219978879f8e6e3a4d4f7c3a79105e8dd6d1f060cca3c8922b3517c8a7141c9",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/backend/tests/e2e/test_v0_17_s6_cross_surface_parity.py": "6e25a29297de92e0475b886ea53324e2f192b8c287a89086730e3f4be4e3faf5",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-desktop.png": "07ab22c5137eb87d344c09e24960592e73cedc0ccc98a6dd053d171d014ce8ee",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-mobile.png": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json": "f9a1c81678878a2881d618d42e252f658128975e5d58f86072f49c2da10a0a56",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r1.md": "3294ef1496388bb6ef57cc3bcd1f30f1d0619ca94bc011118ad6698cb35a8e03",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/frontend/e2e/dashboard-cross-surface.spec.ts": "4618826da58b841028c1eb1bad8fd61661994dcd9c4b79e38dce6a4bffd05bdb",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/frontend/e2e/support/s6_api.py": "4661701020a658df586c6bc86cee7980086e6ad1816d60339640670c0834309c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/parity-matrix.json": "58634da1b28681eae7b916ea45b48dcd73777316f3dfc9216d66885559624d65",
+    "docs/v0-17/evidence/s6-cross-surface-r2/parity-payloads.json": "b3018a970bad4924276d2ab8f9877c2a73e28bf1c8b30fe4911bf8182e74858d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshot-execution-report.json": "fb9baa9aa29b77293efc9da31ba8a3645b84d1b5e762d4201ae3f4587ee12056",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshot-provenance.json": "19baf0491e11f5d3ff483be7d4d2233c30f4fba1b8a85d9facb735cf9b78064b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-1024x768.jpg": "becb4428af1d68fa811a862ec574535684c59e09baa272d45bc9647fe3b88b29",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-1280x800.jpg": "9ceadca6366850ccfdca057f6608be2a48ec567cb1f0a3b4d0ac9f0945b7f9df",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-1440x900.jpg": "36ebdbe89fc1f1274f9bad41ac89289b1259116308fd5744a081ce55057f918d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-360x800.jpg": "7067a6169fb1bfc63e575e69cdab21156c9c8a1ae98a7c442d4f53fd278c437c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-390x844.jpg": "9d533046df658b9c9e02269a50a76ba359bc64695a8a055e730f4f5194b89e36",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-834x1112.jpg": "6ecac126571893c4852b1acc9964c273bf00e9bde22607ca4242815b06db8727",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-1024x768.jpg": "9e6cc3456b27f3e87d7afd74ad7119ff733318c48bc6c143cf17f6956b00c754",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-1280x800.jpg": "1493313cda1fa867184cef6f122d232629736412612598c6ac40c017b4be799c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-1440x900.jpg": "724781386872aed6710c304642f1264c21f94782c7224f9d14ae3cbc2e97d65e",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-360x800.jpg": "8e5751190d797bb59cfa78b9465e27df34102158218d15dd5e504a4f2e9b8bbe",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-390x844.jpg": "810212937f77056bd71fded9b2a71dde15ec562f8376809fd0c61825ff82dd39",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-834x1112.jpg": "95cb69649557017898b516e418df1cb71cb4b76e180381f2c34fe1ac04362baa",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-cancel-reopen-SYNTHETIC.png": "b2b798d6b820ee10de6c87624366551c7d1dbcb1f8dde640b5b7e7df1aa2cd3e",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-comparison-SYNTHETIC.png": "d34efbd14f7d1d98d58fc1de6eb07f14ef3e1ba1e38037c187c5ab83b701105b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-empty-SYNTHETIC.png": "01989f6d78f2495cea7203b339c95d11165af87cdde31450a982549655245565",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-error-409-SYNTHETIC.png": "5aa9e240626f9167771670837ed6e083890959653df5b47a4d23a1ed8d75fa08",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-error-503-SYNTHETIC.png": "132c8b6765cc3df4c088c38046b8734b020009b2343ffecd6d154a47c4da80be",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-incomplete-SYNTHETIC.png": "11bed7aa8ab1fdbe801f6b7ea565e7c2e2591b218b2b9543e37a1667a21aba4b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-partial-SYNTHETIC.png": "996c5f5f4ed9946f70e9e8dab5f9ebb3a2e0c201ecbbd9e273c4203955feb1c2",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-1024x768.jpg": "343ffdf75985006e5d3c879b57d11a1deb4cd4fcb3f7f43b3235f9db14662743",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-1280x800.jpg": "1dd0877179996905f70c3707aedd8ca5aa547be66728ed3667542949b900321d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-1440x900.jpg": "93936bc8e91bfa2d2276a2c766107138e75060de0217212bc649558b5ad2267d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-360x800.jpg": "4cca251b4f618f857143e425b00741a9c103ae56a446c325f630995c5abf09fb",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-390x844.jpg": "f9421302617aa60bf45fb423d513654f1faf8e9b97b47dc35fa4a2ebd64bf4e5",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-834x1112.jpg": "6a8052cefdc64892ee56e872064561996a38c9db72c7d404c2d774b37dc460be",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-cancel-reopen-SYNTHETIC.png": "06c4e3f80dad9b385ea444b4236ebc089c8807e75037e04271050fa617381e6c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-comparison-SYNTHETIC.png": "1c826987777a348517f2b461ddff4441f737e01524c36020e90e7598800e19e2",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-empty-SYNTHETIC.png": "7a49f7818ff015baf15257f3bb90b385409f4934a14cac6aa2d634eda07f62ba",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-error-409-SYNTHETIC.png": "a2ce25c100b22a65639154ef15493df63b6c77746345c0f4ae91d6a36c3d97fd",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-error-503-SYNTHETIC.png": "9f6d26f3b57597a5bec8774eda230bb1c5088dc20a9bf42de0379a9f259d249d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-incomplete-SYNTHETIC.png": "66b47d3a9cf2f714e940df6a31c173ca0b7f8940e9f4e41cb9488c353a2e005f",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-partial-SYNTHETIC.png": "ddb1ed5f1d4f9e8aa21140557dec89bc252641a0f6e7bd018db3db64f1724501",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-1024x768.jpg": "7340aa5d0db5a4099eea6511f51910c21bb9b9727fdd5226b7ec5265d79a9477",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-1280x800.jpg": "6341ee5d6f1ec9764d75c420b3dd09dd33a4cf8d6205931354c5b905f01aaad3",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-1440x900.jpg": "add97f977a0ec9701661e08d9f2870f14028490d46a1b10e72f5d8ee7b118983",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-360x800.jpg": "5d6cc35c5626a1bb59809e675f2ec078174beae6cc51d4332f86102841857db1",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-390x844.jpg": "4fa0fd0321c7ebec929646a0e61fcab894119d7c7a46c3dc59bd67157aba74b0",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-834x1112.jpg": "c53def7cfe127354b1d9bcbd2d4177370c7cb3169a0220447ac89ee981cecf68",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-1024x768.jpg": "f0c30f2a7a5760f72a401fedeb8517dd930ee42b062dd2e33138d603b3e44a64",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-1280x800.jpg": "575fa5304013c82f583bbca01245c8fdab81c44aa593a682f8da82105767e160",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-1440x900.jpg": "7b4aac0de7de8b4b3c74b8563e7108b498b894990671a0326d638bb81f8c769a",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-360x800.jpg": "1d521a07582184faf33e7923501c3b5e9cbbd9490ac54637a1a9fed3452e5530",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-390x844.jpg": "6983d90be4b5b05c6157217ba7a29fa6ad3baaeebbe1f5222c0ed2c0edafe1c6",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-834x1112.jpg": "7083576cea586348d265eb2ec96b9222efdf3a6c7538e2203b8ebd8c8d2e9289",
+    "docs/v0-17/evidence/s6-cross-surface-r2/test-results.json": "0addce0eb9dac2913ed320f5698fe35d5f007296531b158e9e65bdd6b92d1a03",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/dashboard-results.json": "8bca5708d3671fdec504da34b71208c613176b6d7dc8240b767ce131bbf1412a",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/dashboard.spec.ts.txt": "7713e7975e0cfeb6ca7464496a01b3e1b61f30208a9875968666edcd9da44c3d",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/test_v0_17_s6_evidence_contract.py.txt": "c030be143f261d908b19bb8619b6d2c41427083a96e09b94788bc684db0c0624",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/original-failure-manifest.json": "83308c3b1b9a502a554ce8cac0908a987ee22e7f249a16720c71641d6bb0d68a",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/repeat-results.json": "79e980b6ffb878e3c828abde5b9001d593affd5204cf0277422e1311d7fc78ed",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/dashboard-cross-surface.spec.ts.txt": "30d80dc0caa3a0936817d46fdd33862956beb09b64870bb3581ed4d1020dcd85",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/selector-cancel-reopen.spec.ts.txt": "0442d70e2dcda7fd1252081145399e3798c0f4d8b32f80e03672ad3a4818fdbc",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_evidence_contract.py.txt": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_route_lifecycle_contract.py.txt": "d1fce81fe1fdcb725a4802b9d6d3f9d530eb032171e09be7d460e51b287383b8",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/original-failure-matrix.json": "c4a1449eaef5a20580d29d6b925a8d82f88380c022434d5a68ec6aecc7ab48c4",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/after-desktop.png": "cd22e497ad3e71bbe5de72ecd2ab7c2d8cbf4f7d479c564a7fbc9cbfaac3314d",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/after-mobile.png": "e18d6185cd49557ac88bb16f66cb04ac67f024185435450503edf3e61d967e1a",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/before-desktop.png": "99bd0c547fdd31dc58c237a9725aefcbd312d68eadd375e8215cb0f3816f9121",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/before-mobile.png": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+    "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json": "4158c6945ff88e1d30935f4eb06772efea3dceb6135860dfd966ab6718f5da34",
+    "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json": "115d5847d6f853fefda2063ce5b709eeaececf3be775639a4e5e0881491cb37c",
+    "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json": "fbcf81c98a26076b4f02c788659b0723bcb11a6ebbc239d4b83418bb4a8e2737",
+    "docs/v0-17/evidence/v0.17-s4-dashboard-design-freeze-r1.json": "d07b4b886e28e8a98468bb58bdbf6440798720797efcfb05e8385f987b62d253",
+    "docs/v0-17/evidence/v0.17-s5-dashboard-implementation-r1.json": "c143d2b63a0e3d1c85d346930507b7432e56a8f51c2e9a0d92fc79e2c5ff1897",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json": "3e660bf04a1fbd0138e490ce3b4a4145b3dcbd52b6126c3a7fc46533e47200d9",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json": "98830150da51b913b982d331f7ad172224e465640d5c3837f1ebf202591409c3",
+    "docs/v0-17/evidence/v0.17-s6-selector-cancel-reopen-correction-r1.json": "20e4c09fd64a5647042adc463456ebfa1a01121dd99439b7e096898f0279a109",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-manifest-r1.json": "7034b70ca25fffdc6403fda3f3673d65abffb48fae39e3789581c40841dc7b54",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json": "8e5185a139ec106edb80393db2047de6398300e1035eeee2b7b85167ba017b14",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r2.md": "473ea0a41535c857a208d00da8b0e97b943dec91df4c710dad55935eb7d9270c",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r1.md": "21f4edcf68dd59a28c64eb9f6053c1da7d50e02cae20f3a1fe387978fee1c328",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
+    "docs/v0-17/v0.17-s6-selector-cancel-reopen-correction-r1.md": "4066c2cc81754ff982dab5051480b8a3d6ec6de90c8ebf816afced2bfe95db57",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json": "eaf767b26e02e3495e9ac57bc61ee44c02229c25d82c79c5c49665ec3e796055",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json": "4834725e7683c7a6fe15f65dcf93140f71386c5dd11c7fed1fc8f1434d4a68ac",
+    "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json": "ec376c24146f98899c8e8c252f5cc34d88b2929607c0fd1bda21f3e0f601b4c4",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "96efd4fef39d509088a7c833b0715b40d18a38502366f30763f385ae21470b02",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/local-auth-implementation-contract-r1.md": "079cc4cda5e2514fe8847b32cf8b16afeb798cde8f637adba99f9106a0fb0c81",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s1_formal_complete": false,
+    "s2_s6_authorized": false,
+    "tag_authorized": false
+  },
+  "historical_hash_adaptation": {
+    "ci_object_availability": "PENDING_EXACT_HEAD_CI",
+    "expected_hashes_changed": false,
+    "frozen_evidence_changed": false,
+    "historical_commit": "320f2046e3105b1b55da9cb037892571110b584a",
+    "missing_objects_fail": true,
+    "result": "PASS_LOCAL"
+  },
+  "hyphen_identifier_retest": {
+    "initial_environment_errors": "Local PG restart omitted custom port; 43 connection errors retained, fixed environment only. First selected old quality run omitted ISOLATED_DB_NAME and skipped 50; corrected complete run 123 passed, zero skips.",
+    "preserved_logs": [
+      {
+        "counts": {
+          "errors": 43,
+          "failures": 0,
+          "skipped": 0,
+          "tests": 76
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-final-hyphen-runtime.xml",
+        "raw_committed": false,
+        "sha256": "e9b83b34099bb11299d7b0dfe15dab644a674b9f1e4bf1e13ed42256e3957b93"
+      },
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0,
+          "tests": 76
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-final-hyphen-runtime-retest.xml",
+        "raw_committed": false,
+        "sha256": "c7c86b39c9a8617d33259a2696d4bc9fd9b0f3c06a1017de883cfcdb35a26de3"
+      },
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "skipped": 50,
+          "tests": 123
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-ci-hyphen-retest.xml",
+        "raw_committed": false,
+        "sha256": "002e433291c9c9359131d79247afbd2ec3ac312b8e45c01dc67dacc369d93416"
+      },
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0,
+          "tests": 123
+        },
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/r3-ci-hyphen-complete-retest.xml",
+        "raw_committed": false,
+        "sha256": "0fce169ecff6895730ff082cd7590b451a27973a22baf9807dc258435e9257f0"
+      }
+    ],
+    "real_postgres_original_failure_paths": {
+      "passed": 123,
+      "seconds": 53.67,
+      "skipped": 0
+    },
+    "runtime": {
+      "passed": 76,
+      "seconds": 88.8
+    }
+  },
+  "initial_pr_ci_failure": {
+    "correction": "Explicit isolated container database names in task11/domain2 only; connection guard unchanged",
+    "failed_job": "postgres-task11",
+    "failure": "Legacy tests cannot connect to a nonisolated database",
+    "head_sha": "acc6038c4b42d25a23c434a74a1ce5864169da6e",
+    "local_legacy_entry_tests": {
+      "passed": 13
+    },
+    "local_task11_retest": {
+      "deselected": 5,
+      "passed": 510
+    },
+    "preserved_junit": {
+      "counts": {
+        "errors": 102,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 510
+      },
+      "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38146985676-task11/postgres-task11.xml",
+      "raw_committed": false,
+      "sha256": "97beee9c44721f8ed26d5fdcd0ced26acbd566be051c80059690e39f45bbb9bb"
+    },
+    "run_id": 38146985676
+  },
+  "legacy_entry": {
+    "l01_l10": "PASS_TESTED_SCOPE",
+    "loopback_only": true,
+    "mcp_credential_contract_changed": false,
+    "production_database_fallback": false,
+    "production_factory_bypass_option": false,
+    "production_legacy_default_deny": true,
+    "synthetic_opt_in_required": true,
+    "test_entry_imported_by_production": false
+  },
+  "local_results": {
+    "additional_current_authority_fault_tests": "2 passed real PostgreSQL quality missing/tampered files and saved daily-row corruption",
+    "format": "PASS",
+    "frontend_e2e": 94,
+    "frontend_static": "PASS",
+    "frontend_unit": 122,
+    "full_backend_offline": {
+      "deselected": 815,
+      "passed": 9060,
+      "seconds": 760.59,
+      "skipped": 21
+    },
+    "history_contract_specialized": 88,
+    "legacy_specialized": 115,
+    "mypy_app": "PASS_573_FILES",
+    "mypy_entire_backend_untyped_tests": "NOT_CI_TARGET_6196_TEST_TYPING_ERRORS",
+    "postgres_regression": 140,
+    "ruff": "PASS",
+    "runtime_new_tests": 73
+  },
+  "migration_acceptance": {
+    "direct_parent": "0040_hierarchical_forecast",
+    "historical_revision_assertions_changed": false,
+    "m01_m10": "PASS_TESTED_SCOPE",
+    "m08_original_test": "backend/tests/forecast_quality/test_persistence.py",
+    "production_database_migrated": false,
+    "real_postgres": true,
+    "unique_head": "d7766e57d4c8"
+  },
+  "parent_task": "V0_18_S1_LOCAL_AUTH_RUNTIME_IMPLEMENTATION_R1",
+  "preserved_failures": {
+    "fixture_initial_junit": "runtime-r1-results/local-test-results.json",
+    "frontend_initial": {
+      "cause": "Asia Shanghai browser cutoff differs from UTC CI seed",
+      "failed": 10,
+      "passed": 84,
+      "trace_sha256": {
+        "test-results/forecast-flow-production-F-7483c-sable-on-the-mobile-project-chromium-desktop/trace.zip": "356716ae1b30589128e5785c423acec9d8dea5afac168add3ec4f85bfab80dac",
+        "test-results/forecast-flow-production-F-7483c-sable-on-the-mobile-project-chromium-mobile/trace.zip": "7b7148217bc68c9aa5ffa539c0f1d07859ff5588f24a0afcca6be2025092b077",
+        "test-results/forecast-flow-production-F-acfd3-ck-and-downloads-server-CSV-chromium-desktop/trace.zip": "5c21f89344772e7ebd807846e48c2b9e6072ac78f9cc6c842c418040c0b59c53",
+        "test-results/forecast-flow-production-F-acfd3-ck-and-downloads-server-CSV-chromium-mobile/trace.zip": "19d1a83a5566a3ba654ec2d2e394274f733f524e198001016a7488561c5f97de",
+        "test-results/forecast-flow-production-F-bcdc7-a-failed-subsequent-request-chromium-desktop/trace.zip": "5e2cd9fad01f0c008655fa58ba5d43019d9b0302641a04fc08dbc2b2f04ee194",
+        "test-results/forecast-flow-production-F-bcdc7-a-failed-subsequent-request-chromium-mobile/trace.zip": "3b4aebb7ac51ea4d244093210967908b746fc765343997bfeba5dd01d75efa6e",
+        "test-results/forecast-flow-production-F-c8d98-tch-through-the-real-server-chromium-desktop/trace.zip": "880fda5fe80974a3956dc2d91f5dd989009f9c8ab8ba6f6a9cee86bd2f487772",
+        "test-results/forecast-flow-production-F-c8d98-tch-through-the-real-server-chromium-mobile/trace.zip": "59ab5bdf15ee15e5c54ef6360f28cb8b58d20af1ec3312a14e5b2dbe4650f5c0",
+        "test-results/quality-flow-production-Ac-76f1d-ted-Quality-and-exports-CSV-chromium-desktop/trace.zip": "4208b2b2d3a2939ad862173ec5b41c003eb5f12bef9ce42ac66a1aea85300f16",
+        "test-results/quality-flow-production-Ac-76f1d-ted-Quality-and-exports-CSV-chromium-mobile/trace.zip": "7972e681b55ee69fa4bc1e6ec9689ce70c167632da7f5627470fbd858de6e881"
+      },
+      "utc_retest_passed": 94
+    },
+    "prior_r1_r2_diagnostics_changed": false
+  },
+  "production_readiness": "NOT_READY",
+  "r4_correction": {
+    "api_contract": {
+      "all_14_endpoint_fields_checked": true,
+      "binding_summary": "APPROVED_RESOURCE_KIND_CAPABILITY_ORGANIZATION_AND_EXACT_BINDING_ONLY",
+      "extra_drift_fixed": [
+        "create_user",
+        "user_status",
+        "user_role",
+        "reset_password",
+        "login"
+      ],
+      "initial_failed_junit_sha256": "f6c8f1a6520b0ab451d877cad1124e7ec178bb04d207d3629d6eb2d39a85ba1e",
+      "list_key": "items",
+      "source": "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json"
+    },
+    "audit_command": "uvx pip-audit --path .venv/lib/python3.12/site-packages --format json",
+    "audit_tool": "pip-audit 2.10.1",
+    "dependency_audit_path": "backend/tests/local_auth/fixtures/r4-dependency-audit.json",
+    "dependency_audit_sha256": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
+    "environment_consistency": {
+      "missing_dependency": "eccodeslib",
+      "old_lock_did_not_bind_dependency": true,
+      "out_of_scope_dependency_modified": false,
+      "package": "eccodes",
+      "present_before_r4": true,
+      "result": "PARTIAL_EXISTING_BASELINE_GAP",
+      "uv_pip_check": "FAIL",
+      "version": "2.48.0",
+      "whole_environment_parity_claimed": false
+    },
+    "initial_command_errors_preserved": [
+      "npm test script absent; rerun existing test:unit",
+      "Ruff paths initially relative to frontend; rerun from repository root",
+      "Extra non-CI mypy backend/app backend/tests/local_auth invocation traversed untyped legacy tests: 737 errors in 27 files. Correct frozen CI scope mypy backend/app: PASS, 573 files. No type-check rules weakened."
+    ],
+    "installed_lock_constraints_target_parity": "PASS",
+    "installed_records": 93,
+    "latest_exact_head_ci": "PENDING_AFTER_COMMIT_REPORTED_IN_PR",
+    "local_validation": {
+      "final_canonical_and_runtime": "PASS",
+      "final_runtime": {
+        "errors": 0,
+        "failures": 0,
+        "junit_sha256": "7d4023572775d97cba074fe7e0d77002d8de2cb300f6499e284ba6de2a6bb4e0",
+        "skipped": 0,
+        "tests": 84
+      },
+      "format": "PASS",
+      "frontend_e2e_passed": 94,
+      "frontend_unit_passed": 122,
+      "full_offline_backend": {
+        "errors": 0,
+        "failures": 0,
+        "junit_sha256": "584ef59b18f7fc56c3cbfdf30b9270b1bd4eecf982f3cbf83f9a49d44b9d3ea1",
+        "skipped": 21,
+        "tests": 9105
+      },
+      "mypy_backend_app": "PASS_573_FILES",
+      "p0_p1_p2_passed": 39,
+      "postgres_regression": {
+        "errors": 0,
+        "failures": 0,
+        "junit_sha256": "01e3c2349ca1116543f1cc3b7ff5715bd4a8097431e3f77addac42f18c906039",
+        "skipped": 0,
+        "tests": 140
+      },
+      "ruff": "PASS",
+      "runtime_first_pass": 82
+    },
+    "make_boundary": {
+      "make_exit_code": 2,
+      "makefile_changed": false,
+      "negative_guards_preserved": true,
+      "no_docker_or_database_in_probe": true,
+      "positive_repetitions": 10,
+      "private_subprocess_path_only": true,
+      "real_make_and_guard_executed": true,
+      "root_cause": "DEFAULT_PROFILE_TEST_EXECUTED_FULL_NESTED_POSTGRES_CHAIN",
+      "stub_exit_code": 73,
+      "stub_script_argument": "backend/scripts/postgres_test_db.sh",
+      "timeout_changed": false,
+      "timeout_seconds": 30,
+      "unique_receipt_required": true
+    },
+    "mcp_version": "2.2.0",
+    "not_publicly_auditable": [
+      {
+        "name": "blueberry-peak-forecast-agent",
+        "skip_reason": "Dependency not found on PyPI and could not be audited: blueberry-peak-forecast-agent (0.2.0)"
+      }
+    ],
+    "observed_at_utc": "2026-10-11T23:38:23.532348+00:00",
+    "other_locked_package_versions_changed": false,
+    "owner_authorized": true,
+    "previous_exact_head_ci": {
+      "canary_junit_sha256": "39d9c664a90a7374db4bb036554b1e66c4840b1ee0e1ecf45c06f651556feade",
+      "canary_passed": 10008,
+      "canary_skipped": 5,
+      "conclusion": "failure",
+      "event": "pull_request",
+      "failed_jobs": 1,
+      "golden_failed": 1,
+      "golden_junit_sha256": "395147fe9b7035b82c1d46c03c9fb0fc836e4a4d00be0d60ea1bc723edf45294",
+      "golden_passed": 9062,
+      "golden_skipped": 21,
+      "head_sha": "e92507f5213058e07515ef7f7efc2d71edf4488d",
+      "run_id": 38152759596,
+      "skipped_jobs": 0,
+      "status": "completed",
+      "success_jobs": 11,
+      "total_jobs": 12
+    },
+    "previous_r3_snapshot": {
+      "a19_status": "BLOCKED",
+      "dependency_review": {
+        "audit": [
+          {
+            "advisories": [
+              {
+                "fix_versions": [
+                  "4.14.2"
+                ],
+                "id": "PYSEC-2026-4025"
+              },
+              {
+                "fix_versions": [
+                  "4.14.2"
+                ],
+                "id": "PYSEC-2026-4023"
+              },
+              {
+                "fix_versions": [
+                  "4.14.2"
+                ],
+                "id": "PYSEC-2026-4024"
+              }
+            ],
+            "name": "anyio",
+            "version": "4.14.0"
+          },
+          {
+            "advisories": [],
+            "name": "argon2-cffi",
+            "version": "25.1.0"
+          },
+          {
+            "advisories": [],
+            "name": "argon2-cffi-bindings",
+            "version": "26.1.0"
+          },
+          {
+            "advisories": [],
+            "name": "cffi",
+            "version": "2.1.1"
+          },
+          {
+            "advisories": [
+              {
+                "fix_versions": [
+                  "2.15.0"
+                ],
+                "id": "PYSEC-2026-4141"
+              },
+              {
+                "fix_versions": [
+                  "2.15.0"
+                ],
+                "id": "PYSEC-2026-4183"
+              }
+            ],
+            "name": "pyjwt",
+            "version": "2.14.0"
+          }
+        ],
+        "audit_report_sha256": "b02c3903a94aaced919227ae4d9e6146ad88ea3a900a4bcbcc3e4270580e2e16",
+        "new_password_dependencies_no_reported_vulnerabilities": true,
+        "result": "BLOCKED_EXISTING_DEPENDENCIES",
+        "unrelated_dependency_upgrades_authorized": false
+      },
+      "evidence_sha256": "ec3976db1318cb5b79d882989095bfbd8247fb729bfc808471b3efb798d5f565",
+      "head_sha": "e92507f5213058e07515ef7f7efc2d71edf4488d",
+      "result": "PARTIAL",
+      "security_acceptance_counts": {
+        "blocked": 1,
+        "fail": 0,
+        "pass_tested_scope": 19
+      }
+    },
+    "public_sources": [
+      {
+        "advisory_id": "PYSEC-2026-4025",
+        "fix_verified": true,
+        "fixed_version": "4.14.2",
+        "package": "anyio",
+        "source_sha256": "3d248ef262b91f6893780e9a2f15fbdaf149929a89d32ffa14102fb29ea77018",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/anyio/PYSEC-2026-4025.yaml"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4023",
+        "fix_verified": true,
+        "fixed_version": "4.14.2",
+        "package": "anyio",
+        "source_sha256": "33e12d343b9711a41b7b5735ddde95484921d6dec0f078f185e40378a2a22147",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/anyio/PYSEC-2026-4023.yaml"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4024",
+        "fix_verified": true,
+        "fixed_version": "4.14.2",
+        "package": "anyio",
+        "source_sha256": "77f57a49c5d4d40bc548f0ac85df5940dd60c931206c5eee369bedd5c1f548bc",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/anyio/PYSEC-2026-4024.yaml"
+      },
+      {
+        "package": "anyio",
+        "published_not_yanked": true,
+        "source_sha256": "db8486b090bcf9977cd53888ffcd558fdf646d47887f656ab2eeeb0e9bb4cd06",
+        "source_url": "https://pypi.org/pypi/anyio/4.14.2/json",
+        "version": "4.14.2"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4141",
+        "fix_verified": true,
+        "fixed_version": "2.15.0",
+        "package": "pyjwt",
+        "source_sha256": "3e047280defb1b7c9e105d4961aeecc858414c8af774ee07722a6d92ec484d2c",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/pyjwt/PYSEC-2026-4141.yaml"
+      },
+      {
+        "advisory_id": "PYSEC-2026-4183",
+        "fix_verified": true,
+        "fixed_version": "2.15.0",
+        "package": "pyjwt",
+        "source_sha256": "67b9cf0d4f26cd730e5a9cbd1c3b9dd232c82e7c4d618da0dc1ae45fd5e6a0ad",
+        "source_url": "https://raw.githubusercontent.com/pypa/advisory-database/b82eda8f436221a79692a481dbe9749cfeefbe2f/vulns/pyjwt/PYSEC-2026-4183.yaml"
+      },
+      {
+        "package": "pyjwt",
+        "published_not_yanked": true,
+        "source_sha256": "d7d239d115c9442eed19860676c23a4132a38a3880d5722da57fe2e0bd80f570",
+        "source_url": "https://pypi.org/pypi/pyjwt/2.15.0/json",
+        "version": "2.15.0"
+      }
+    ],
+    "remaining_advisories": [],
+    "task_id": "V0_18_S1_CI_TIMEOUT_DEPENDENCY_AND_API_CONTRACT_R4",
+    "version_changes": {
+      "anyio": {
+        "new": "4.14.2",
+        "old": "4.14.0"
+      },
+      "pyjwt": {
+        "new": "2.15.0",
+        "old": "2.14.0"
+      }
+    },
+    "vulnerability_service": "PyPI"
+  },
+  "r5_dependency_correction": {
+    "auth_runtime_changed": false,
+    "previous_environment_consistency": "PARTIAL_EXISTING_ECCODESLIB_GAP",
+    "previous_evidence_sha256": "c6eff7db47ce11c4af36c759fcc18ee0921f8043e4e27a253f2313d75b3198f5",
+    "previous_head_sha": "cdcbf70339dd98b65d5c40f2cad8d08d2ed36872",
+    "report": "docs/v0-18/s1/eccodes-environment-consistency-r5.json"
+  },
+  "real_admin_and_org_authority": "PENDING",
+  "result": "PARTIAL",
+  "runtime_restrictions": {
+    "current_season_actual_accessed": false,
+    "dashboard_runtime_changed": false,
+    "forecast_math_changed": false,
+    "mcp_runtime_changed": false,
+    "new_forecast_experiment_executed": false,
+    "production_database_migrated": false,
+    "real_admin_created": false
+  },
+  "second_pr_ci_failure": {
+    "conclusion": "failure",
+    "correction": "Permit alphanumeric underscore/hyphen names while preserving loopback and _test_ requirement; negative SQL/path/business database tests retained",
+    "failed_job_count": 2,
+    "head_sha": "9adc83d536bc20fcf16b7458fcb99d0d43ab53aa",
+    "legacy_name_root_cause": "Original CI isolated database includes job-name hyphens; test-only identifier guard mistakenly rejected hyphens",
+    "preserved_junit": [
+      {
+        "counts": {
+          "errors": 0,
+          "failures": 1,
+          "skipped": 21,
+          "tests": 9083
+        },
+        "name": "golden",
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38147646993-golden/unit-contract-golden.xml",
+        "raw_committed": false,
+        "sha256": "d46215f3bbe3ed1f2276d7c3aad549287361d1008fb1464460696ff9c8d9c0f1"
+      },
+      {
+        "counts": {
+          "errors": 800,
+          "failures": 24,
+          "skipped": 6,
+          "tests": 10012
+        },
+        "name": "canary",
+        "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38147646993-canary/full.xml",
+        "raw_committed": false,
+        "sha256": "acb33aa044e6652f11c44d665dc9f621bb5250e65655a134cf3a67b7c65ae2dc"
+      }
+    ],
+    "run_id": 38147646993,
+    "success_job_count": 10,
+    "unrelated_golden_failure": "test_make_test_pg_no_env_does_not_reject: existing 30-second subprocess timeout; not changed"
+  },
+  "security_acceptance": {
+    "A01": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_admin_runtime.py::test_a01_admin_creates_account_without_business_grants",
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a01_login_cookie_digest_and_me"
+      ]
+    },
+    "A02": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a02_wrong_password_and_disabled_have_same_safe_error",
+        "backend/tests/local_auth/test_security_matrix.py::test_a02_unknown_username_matches_bad_password"
+      ]
+    },
+    "A03": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_admin_runtime.py::test_a03_admin_reset_forced_change_and_old_session_revocation",
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a03_revision_change_revokes_existing_session"
+      ]
+    },
+    "A04": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a04_logout_invalidates_cookie",
+        "backend/tests/local_auth/test_security_matrix.py::test_a04_cookie_duplicate_and_forgery",
+        "backend/tests/local_auth/test_security_matrix.py::test_a04_expired_server_session_rejected"
+      ]
+    },
+    "A05": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a05_business_user_cannot_manage_accounts",
+        "backend/tests/local_auth/test_security_matrix.py::test_a05_all_management_endpoints_denied_before_target_reads"
+      ]
+    },
+    "A06": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_authorization_release.py::test_a06_admin_has_no_implicit_resource_access"
+      ]
+    },
+    "A07": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_authorization_release.py::test_a07_a08_a09_exact_identity_and_independent_quality",
+        "backend/tests/local_auth/test_controlled_http.py::test_a07_unauthorized_forecast_reads_zero"
+      ]
+    },
+    "A08": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_authorization_release.py::test_a07_a08_a09_exact_identity_and_independent_quality"
+      ]
+    },
+    "A09": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_authorization_release.py::test_a07_a08_a09_exact_identity_and_independent_quality",
+        "backend/tests/local_auth/test_security_matrix.py::test_a09_quality_grant_is_independent_and_pinned"
+      ]
+    },
+    "A10": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_security_matrix.py::test_a10_canonical_hash_drift_fails_closed"
+      ]
+    },
+    "A11": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_authorization_release.py::test_a11_revocation_committed_before_release_sends_no_sensitive_bytes",
+        "backend/tests/local_auth/test_real_response_gate.py::test_a11_real_canonical_read_revocation_wins_before_asgi_send"
+      ]
+    },
+    "A12": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_authorization_release.py::test_a12_release_lock_blocks_revocation_and_cancellation_releases_lock",
+        "backend/tests/local_auth/test_security_matrix.py::test_a12_concurrent_principal_session_isolation"
+      ]
+    },
+    "A13": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_controlled_http.py::test_a13_controlled_legacy_ingress_no_fallback"
+      ]
+    },
+    "A14": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_controlled_http.py::test_a14_real_controlled_http_frozen_service_parity"
+      ]
+    },
+    "A15": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a15_csrf_origin_and_preauth_refresh",
+        "backend/tests/local_auth/test_security_matrix.py::test_a15_duplicate_origin_and_csrf_rejected"
+      ]
+    },
+    "A16": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a16_cross_worker_login_limit",
+        "backend/tests/local_auth/test_security_matrix.py::test_a16_password_and_body_limits_before_hash"
+      ]
+    },
+    "A17": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_admin_runtime.py::test_a17_last_admin_cas_and_explicit_management_scope",
+        "backend/tests/local_auth/test_grant_administration.py::test_a17_approved_grant_exact_cas_revocation_and_audit",
+        "backend/tests/local_auth/test_security_matrix.py::test_a17_audit_failure_rolls_back_account_creation"
+      ]
+    },
+    "A18": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_admin_runtime.py::test_a18_synthetic_bootstrap_requires_approval_and_is_not_repeatable",
+        "backend/tests/local_auth/test_runtime_sessions.py::test_a18_successful_login_rehashes_without_replacing_principal"
+      ]
+    },
+    "A19": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_security_matrix.py::test_a19_audit_has_no_credentials",
+        "backend/tests/local_auth/test_r4_dependencies.py::test_r4_public_audit_snapshot_covers_installed_target_packages",
+        "backend/tests/local_auth/test_r4_dependencies.py::test_r4_pyjwt_deep_payload_is_a_safe_decode_error",
+        "backend/tests/local_auth/test_r4_dependencies.py::test_r4_anyio_cancellation_isolated_and_next_request_recovers"
+      ]
+    },
+    "A20": {
+      "environment": "ISOLATED_SYNTHETIC_POSTGRESQL_15_18",
+      "result": "PASS_TESTED_SCOPE",
+      "test_nodes": [
+        "backend/tests/local_auth/test_admin_runtime.py::test_a20_missing_publisher_and_invalid_origin_fail_closed",
+        "backend/tests/local_auth/test_security_matrix.py::test_a20_actual_connection_failure_is_safe_and_recovers"
+      ]
+    }
+  },
+  "security_acceptance_counts": {
+    "blocked": 0,
+    "fail": 0,
+    "pass_tested_scope": 20
+  },
+  "source_evidence_sha256": {
+    ".github/workflows/ci.yml": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
+    "backend/alembic/versions/d7766e57d4c8_local_auth.py": "adaab0867c374276e700d031fe957b4c9dded0b1ec1983c86a1e90b8c4cf4f56",
+    "backend/app/api/forecast_intelligence_decision.py": "44b1e341439b4ad2d233831dfea9483f092bf81ca503222c8ff8b9613e9f09d1",
+    "backend/app/api/forecast_intelligence_read.py": "0847f9912c3ccb18dc17506f07d90336ab70d3c0b6e13cb89700c2ceba090101",
+    "backend/app/api/local_auth.py": "51d050b3f90834777505cf246f74437d0e84195e55fb8a145834e9d7465b6338",
+    "backend/app/api/local_auth_admin.py": "db1209223b3d92b917d3ba84dff97d11c45f7733c7be61eca4b2eebfac45de1f",
+    "backend/app/core/config.py": "d5094762cdb8fcbffd5024a312492a344b0ff2a608e1f2533613c228c071f446",
+    "backend/app/local_auth/__init__.py": "0d7944e897f727f9d83b2ba8244755459a610f6e1d6f2c98e91ad7c9e99003ea",
+    "backend/app/local_auth/authorization.py": "0a97c967f9513df37fac6e054bfc262f3dc7233ff73253a37daa1d18466cbbd6",
+    "backend/app/local_auth/bootstrap.py": "14320791d38cf55432aeb38fba39803ab7e2778aff4f55c14547b4c3db1792d0",
+    "backend/app/local_auth/models.py": "c1c8ee2eeef0e24125a85300d4849f0f33c75e16cd2728b765f208458a3c0049",
+    "backend/app/local_auth/passwords.py": "32876be48c6069ee01b40156c85f04fb34c372b4f4883e7804299700a6c90502",
+    "backend/app/local_auth/repository.py": "051f900a567e3eaf5aa0ce6a9a5418e3e7b4d330328c3fe30203e382f8f85e2c",
+    "backend/app/local_auth/schemas.py": "0aed8d4f93af53d82836dbcf8a8fee2d5827adc9f8ecd5e98f5c26c1d80df6d5",
+    "backend/app/local_auth/service.py": "ab4fbd826dcb2d6c02752d0f1f148329354719a9bea91ae40778ebc10e5bb995",
+    "backend/app/local_auth/sessions.py": "8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b",
+    "backend/app/main.py": "014783c642bee0d4019eca08e716150faf56909384d9669ee106f492508b5011",
+    "backend/app/models/__init__.py": "268b103807cb0feb0100cae4792071b306093b5f512a472ecae06dd707214c09",
+    "backend/constraints-ci.txt": "17e90740c10bef414c23970e6ed3e3046619de876b711de2b699ef505df86a48",
+    "backend/tests/actual_harvest_import/alembic_cases.py": "ac7caa599be4deb314d5ebb3f5b59c48fcb3a4badcc8f6d1507b23e8ab96a4e6",
+    "backend/tests/actual_harvest_import/conftest.py": "1c8df09b8cc8261ae96740f0e748796d43285af1532484cbd7f546486b329ef1",
+    "backend/tests/actual_harvest_import/test_lifecycle_postgres.py": "37aeeaa4a659bc4d464915eaa548c89ee23f5d2553e3d453c5d6cacc7fad822d",
+    "backend/tests/alembic_head.py": "bb78b47e87b0599189c99c1f8a93cd35a722e247b7bf49d296043a3a499c885e",
+    "backend/tests/area_yield/test_product_transport_p1.py": "0d4a01b2db441a8b694c2a95040716a3c4f70aa243eb5d02b32ce1abae854046",
+    "backend/tests/area_yield/test_rerun_scope.py": "9f1a3e72a29b672cd51ba88846e166e0324b49df1e5d1ccf0e23aac64aac00e4",
+    "backend/tests/area_yield/test_run_transport.py": "6e5a04864808f5085315df557adc9f44b8cb24be09433f528f520f721fdb7525",
+    "backend/tests/e2e/test_v0_17_s6_evidence_contract.py": "1ef88e0fe155eaa2fbc90647d6e38b454968eef61ab484d7e1bc95c89d4c9d7e",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py": "568e63f9073082eed0be176c4abc6ab9fb080cf18ea3cc36ba1b1d739ec0a66b",
+    "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py": "1d2bcaeef1e90cd4b56bab3ab4aa8b030ca3f14e7e7c94c94938fb96eeba4638",
+    "backend/tests/forecast_intelligence/test_transports.py": "22ecf3d4b1387593c09e18f856f06ff4ab607e98448a6cb388bece71b7f3ad56",
+    "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py": "f3d962d37e7509d3946796ae1e41c29cb234d92eee44777eb4cc9ad7a6defdf8",
+    "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py": "4f206ec6a9569c5e099d1485897eba0f712dc1a4c6c7e73bbe5134b2e99df95a",
+    "backend/tests/forecast_intelligence/test_v0_17_s3_read_access.py": "f0c6e47d22815b2923bc90c830113da821e972231331a291d11a6cdfb946d1ca",
+    "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py": "963eed240950db44686794613dcfc63e077e501ca463a8c73dbc80a059732947",
+    "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py": "d8899a0ca0a300b546ff023fe7d9ba360206aa6e96db65a4678036dbad061b1e",
+    "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py": "0fd71bf2200ffa07c504aaf775f157c7ae510e514eec8d706e1395e5bc6f1ec9",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py": "3263ecbfc065ce70d768e9ec5993402c5e56a12f0b3cbfbe674ee466a15fcd5f",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py": "4c72ff03d3024a3022e6cc984b5e03797fe6e303254757652b451824b73f3bf0",
+    "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py": "a5ab7de3290bbe0ba05d420597e2685fdcb8fb8dbb38aa4d2e33522b181c8d0b",
+    "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py": "8aefeb0611eda9fac7fddde79ac46ce0ddb7670ad0711e35e79b9dbe7f284916",
+    "backend/tests/forecast_quality/test_operational_peak_api.py": "24e330b3d6740dea03fff4beed9d808ba3059f0787ebf8b1c89f2844fc2d5c7a",
+    "backend/tests/forecast_quality/test_persistence.py": "884832c9ec2687bb7a13108f89039d494843da658ab77626dec7acd6c60952b4",
+    "backend/tests/harvest_state/test_delivery_parity.py": "b1eaffed5dd6e9ad50f8eaf53ef171701f4271fdc68e7985ca5801cf177978a8",
+    "backend/tests/historical_source.py": "422cb4931c25e7915f5599b8b36973ec584620e47cfdf6539c13ec4456dc91bb",
+    "backend/tests/integration/test_harvest_state_delivery.py": "332ef0a3fa1d6d9afd66fe32814bc3cabf7e2465fd380a841eb382715fb747ca",
+    "backend/tests/integration/test_health_ready_postgres.py": "8a06f076fdbbd6ad214267a7aa73ffad4571d126c711954c8996305780b4cfb7",
+    "backend/tests/integration/test_master_data_api.py": "f1301c1099a763295fbe8a99b26a961b801f4cecebbb376d7f99360387501740",
+    "backend/tests/integration/test_maturity_curve.py": "1ed07bc115983ce4be3f181eb7ac3b369c959099889b2b9b31b956ee6d8c22f5",
+    "backend/tests/integration/test_minimal_input_parameter_inference.py": "f1264c67b53a7c3c96dde36c2eb77220e4cc0402e1248891e4234166a3dac770",
+    "backend/tests/integration/test_production_plans.py": "67ff6700c41d7da4d969daa3c65b3dea563012964c4cd8c0ad063c89ce0566bc",
+    "backend/tests/integration/test_rolling_backtest_orchestration.py": "459b82f4e3dff0f19d3f654630930446f2ca6769a0eba8b58578ffe7fd6564b6",
+    "backend/tests/integration/test_weather_features.py": "65c43d838eb58a19440962d9658e8e2bd3a2ad7fba916cecec7b58b276af584e",
+    "backend/tests/local_auth/conftest.py": "94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d",
+    "backend/tests/local_auth/fixtures/r4-dependency-audit.json": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
+    "backend/tests/local_auth/run_frontend_legacy_acceptance.py": "9bd9bf90476d143901af1eb46a4c5fc48e92df0e40c4381ea27b28ccb76a2100",
+    "backend/tests/local_auth/test_admin_runtime.py": "f5730dde17530f2963f84e61ef25f3a53eeb25a1e1c03cbd50af3a8547964736",
+    "backend/tests/local_auth/test_api_response_contract.py": "94406d9062a5cd4bd4263d0db13ef67fec332a2b7f0744049e8b44f52e573a80",
+    "backend/tests/local_auth/test_authorization_release.py": "0c1d712dae395d97314a5a1bea4cacf9997fb6c8a693b442d7e136854fc04866",
+    "backend/tests/local_auth/test_controlled_http.py": "26a5211b719fba137945445e2ef14e3d831c1be610ad3a670ae2135e431f0ea5",
+    "backend/tests/local_auth/test_grant_administration.py": "3db87cbdf4f4e2782be134ac5e3c3ec4a1f1d7eb16ed4eddbee3b578faf70f2e",
+    "backend/tests/local_auth/test_historical_source.py": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
+    "backend/tests/local_auth/test_legacy_entry.py": "45ff85c7eb805251d9c044994ed4a9d7dabaf7753eb07bbecede6ccf0bbb4159",
+    "backend/tests/local_auth/test_migration_compatibility.py": "dc7e03eb474dda98bc1d6705923938bdf2d4e4249eed7111d26d01bb7d4a75e4",
+    "backend/tests/local_auth/test_r4_dependencies.py": "ab15a5830d457752ac698edce37ac416b9e9ed70d17c77268e5a69186cf6805e",
+    "backend/tests/local_auth/test_real_response_gate.py": "4001d22bd699bd2c439df82670fe4e1953f6e5244cef340fa894fd063bf90483",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": "e7054aee289cd41022c06a44f9adbd80be3233fe63adfc045f42b2baa8f05c7c",
+    "backend/tests/local_auth/test_runtime_sessions.py": "46c58a207461546d8d174d9ee2dec3317bd4edb3b02fc6f751281173b04711db",
+    "backend/tests/local_auth/test_security_matrix.py": "a63ca2a1b3e196b5b85c96d028ab745601a40aab84b0928b4a04863c8cfa84fb",
+    "backend/tests/mcp/test_area_forecast.py": "8dd9f9bfc9804ec4170d48018a031101363d18e61b036508bf29d78e0cf73b52",
+    "backend/tests/mcp/test_persisted_stdio_postgres.py": "e7ace969add5c5a15beb0bde49fd890072d284cd0a592510e276aa0d5563e1c7",
+    "backend/tests/mcp/test_persisted_tools.py": "6b603686fd387a40313fcdb2e8e3f46b6dd653f2b5318002378fe1eeb657bde4",
+    "backend/tests/mcp/test_streamable_http.py": "eb4edd2a0424f525f30ffaa36064c1e873e9daa1974691d7a48d98d8475b5aec",
+    "backend/tests/mcp/test_streamable_http_postgres.py": "ba3502ad4d648e02e246ef967c46f68045f046c761dfd80e00ca1570913476b7",
+    "backend/tests/mcp/test_v0_12_research.py": "d5b683ed59d2ae1cd7ab921fc2be8a8115fea976100ee7f472f7cc4342b5c020",
+    "backend/tests/rolling_backtest/test_replay_trained_model_slice_e1.py": "37d52961ad900746598b01d70250366681e3c016e26a3f6cd2baa7e24e37cca8",
+    "backend/tests/rolling_backtest/test_replay_trained_model_slice_e3.py": "895ef24a41dc7c16a9a6853b9147bbbe40b728b32cf8e1e8982caabaed30ba88",
+    "backend/tests/s2_materialized_dataset/lane_b/conftest.py": "501a8223abd7a696bb01dc9f5ee56ff7f06206f9502294f1647ec4ef60b84132",
+    "backend/tests/s2_materialized_dataset/lane_d/conftest.py": "927637d9fab766deda5ca027e0bc88e6b1c18c1596757afee2ebdfb3f53a5bb7",
+    "backend/tests/s2_materialized_dataset/lane_d/test_integration_seams.py": "6b4a1cf7fc7f5e51877db1dadf16ff3f5605dc57201892c44ea29c3f2a0a13f1",
+    "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py": "e95f570b8efcc6c1f0880d22a6b6018a77d10feb3d59d39153b18662f76227eb",
+    "backend/tests/safety/test_dev_db_protection.py": "f3e21bd3f65407c5762e62798d51fb207eda2bf8976d41fd1b4189089b997421",
+    "backend/tests/support/legacy_test_app.py": "e6379156414f8e74f46b73491338f7dfafac3181af6fec550c2516517ea7b775",
+    "backend/tests/test_harvest_state_api.py": "2537303224f87d71e09284d418c143eb58b127fc742cbe208e0377167b96cbb1",
+    "backend/tests/test_health.py": "3a105539a73b95dd73964506ca951e10e4f44a724be3fad92e38203abd3adf07",
+    "backend/tests/test_historical_backtest_alembic.py": "34bd90994a7459d2178f2ddd7732182e4cf35e76ef89ef13252007e915e54610",
+    "backend/tests/test_lifespan.py": "7939b55d50539ce7e37564bf17e2595dbc29bb36644f29c8b1a3dc17b86597e1",
+    "backend/tests/test_residual_model_api.py": "19b1d5223552ae3a302210357e44a525aae021970da41d4cf0e38cde1ef81446",
+    "backend/tests/test_residual_model_execution_api.py": "b9ddae8228fb0c8285b8c29968d0fb38b918b812a259dc8c47f9100fe1602025",
+    "backend/tests/trial/test_api.py": "9f3dda44b61e02914105568d2b7453560872363eae2c73893fd8b034c45377c4",
+    "docs/v0-18/s1/local-auth-runtime-r1.md": "3472d5bfc5690d8bbabc3e673168382cef1fdb43e38aca11cfc08f719903eeb5",
+    "docs/v0-18/s1/runtime-r1-results/local-test-results.json": "9af2cbbe338ddda55a10f8f9a29f19b6a41b1fcb27a11401c71b41267962fe9b",
+    "docs/v0-18/s1/runtime-resume-r1-blocked.json": "3db148fab783e82b3f8f9acdffc586dfc9320fd248774199a3d128daaef533e2",
+    "docs/v0-18/s1/runtime-resume-r1-blocked.md": "80e638119c16870e076f784999c9bdacfbb182d1a1d19d3d3dba5f75e06d23c3",
+    "docs/v0-18/s1/runtime-resume-r2-blocked.json": "363140612e822b6196185186d1cc17e3c3cda90abdd2f37304464cb3ba878784",
+    "docs/v0-18/s1/runtime-resume-r2-blocked.md": "a317ea561f034639abb83f9dfd75063b60339c24a2f360b70974c9f01a635573",
+    "frontend/src/test/dashboardGovernance.test.ts": "897d55405d07ad109c58ec13ccccee37a6dcadb7ab6267b32c015d6dd762dcfa",
+    "pyproject.toml": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df",
+    "uv.lock": "02f743c0d2ecc884f453c2b6bc4570faf1da6cbca9513dce01e4e5a9d375717e"
+  },
+  "synthetic": true,
+  "task_id": "V0_18_S1_LEGACY_TEST_ENTRY_COMPATIBILITY_AND_RUNTIME_RESUME_R3",
+  "test_entry_adaptations": [
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/actual_harvest_import/conftest.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/actual_harvest_import/test_lifecycle_postgres.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/area_yield/test_product_transport_p1.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/area_yield/test_rerun_scope.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/area_yield/test_run_transport.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/forecast_intelligence/test_transports.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/forecast_quality/test_operational_peak_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/harvest_state/test_delivery_parity.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_harvest_state_delivery.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_health_ready_postgres.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_master_data_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_maturity_curve.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_minimal_input_parameter_inference.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_production_plans.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_rolling_backtest_orchestration.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/integration/test_weather_features.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/mcp/test_area_forecast.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/mcp/test_persisted_stdio_postgres.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/mcp/test_persisted_tools.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/mcp/test_streamable_http.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/mcp/test_streamable_http_postgres.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/mcp/test_v0_12_research.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/rolling_backtest/test_replay_trained_model_slice_e1.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/rolling_backtest/test_replay_trained_model_slice_e3.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/s2_materialized_dataset/lane_d/conftest.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/s2_materialized_dataset/lane_d/test_integration_seams.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/test_harvest_state_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/test_health.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/test_lifespan.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/test_residual_model_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/test_residual_model_execution_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    },
+    {
+      "failure_before": "Controlled production ingress rejects legacy success route with 403",
+      "file": "backend/tests/trial/test_api.py",
+      "historical_semantics_preserved": true,
+      "isolated_entry_after": "create_legacy_test_app(synthetic=True)",
+      "production_security_unchanged": true,
+      "why_change_required": "Exercise original real routers and unchanged assertions in an explicit test trust domain"
+    }
+  ],
+  "third_pr_ci_failure": {
+    "cause": "43 local-auth setup errors: FileNotFoundError uv; no business assertion failures",
+    "conclusion": "failure",
+    "correction": "All three new test-only Alembic subprocess launchers use sys.executable -m alembic, reusing installed CI interpreter/dependencies",
+    "failed_job_count": 1,
+    "golden": {
+      "deselected": 837,
+      "old_make_timeout_recurred": false,
+      "passed": 9063,
+      "skipped": 21
+    },
+    "head_sha": "28a11eaccfa00c025f458b237a98df0a8371da76",
+    "preserved_junit": {
+      "counts": {
+        "errors": 43,
+        "failures": 0,
+        "skipped": 5,
+        "tests": 10013
+      },
+      "path": "/tmp/blueberry-local-auth-pg-8KkMv5/ci-38149711872-canary/full.xml",
+      "raw_committed": false,
+      "sha256": "c26ccaf7577a6d61d35003f155c587a8e1502e834cfd83c0e278897cec89566a"
+    },
+    "run_id": 38149711872,
+    "success_job_count": 11
+  },
+  "version": "0.18.0"
+}

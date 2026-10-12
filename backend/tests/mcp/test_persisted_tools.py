@@ -12,13 +12,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from backend.app.cli import run_cli
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.mcp import hierarchical_forecast_runs, persisted_runs
 from backend.app.mcp.area_forecast import server
 from backend.app.mcp.operational_base_search import SEARCH as OPERATIONAL_BASE_SEARCH
 from backend.app.models.area_forecast import AreaForecastDailyRow, AreaForecastRun
 from backend.tests.area_yield.test_run_persistence import authority, bounded  # noqa: F401
 from backend.tests.area_yield.test_run_transport import factory as factory
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 pytestmark = pytest.mark.usefixtures("authority")
 
@@ -81,7 +81,7 @@ def cli(factory, words, body=""):
 
 
 async def test_transport_parity_history_and_stateless_no_write(configured, monkeypatch):
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def sessions():
         async with configured() as s:

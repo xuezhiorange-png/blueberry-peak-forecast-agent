@@ -41,6 +41,7 @@ from backend.tests.forecast_intelligence.test_v0_17_s1_service_read_api import (
     query,
 )
 from backend.tests.forecast_intelligence.test_what_if import scenario as synthetic_scenario
+from backend.tests.historical_source import source_bytes
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -644,7 +645,7 @@ def test_execution_evidence_frozen_sources_and_governance():
     assert value["source_evidence_count"] == len(value["source_evidence_sha256"])
     for name, expected in value["source_evidence_sha256"].items():
         assert not Path(name).is_absolute() and ".." not in Path(name).parts
-        assert hashlib.sha256((ROOT / name).read_bytes()).hexdigest() == expected
+        assert hashlib.sha256(source_bytes(name, root=ROOT)).hexdigest() == expected
     for policy_file, key in [
         ("business-loss-contract-r1/business-loss-policy-r1.json", "s5_policy_hash"),
         ("what-if-decision-simulator-r1/what-if-policy-r1.json", "s6_policy_hash"),

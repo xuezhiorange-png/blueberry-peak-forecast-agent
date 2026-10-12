@@ -13,9 +13,9 @@ from mcp.client.stdio import StdioServerParameters
 
 from backend.app.area_yield.product import AreaDrivenForecastResult
 from backend.app.area_yield.product_authority import forecast_area_product
-from backend.app.main import create_app
 from backend.app.mcp.area_forecast import TOOL_NAME, input_schema, server
 from backend.tests.area_yield.test_product_p1 import bundle, request
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 
 @pytest.fixture
@@ -67,7 +67,9 @@ async def test_typed_error_transport_parity(configured, monkeypatch, failure):
         monkeypatch.delenv("AREA_YIELD_AUTHORITY_SHA256")
     async with Client(server) as client:
         mcp = await client.call_tool(TOOL_NAME, args)
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         http = await c.post(
             "/api/v1/trial/forecasts",
             json={
@@ -97,7 +99,9 @@ async def test_four_way_payload_hash_parity_and_determinism(configured):
             assert not result.is_error
             assert result.structured_content == expected
             assert json.loads(result.content[0].text) == expected
-    async with AsyncClient(transport=ASGITransport(app=create_app()), base_url="http://local") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=create_app(synthetic=True)), base_url="http://local"
+    ) as c:
         response = await c.post("/api/v1/trial/forecasts", json=request().model_dump(mode="json"))
     assert response.status_code == 200 and response.json() == expected
     cli = await anyio.run_process(

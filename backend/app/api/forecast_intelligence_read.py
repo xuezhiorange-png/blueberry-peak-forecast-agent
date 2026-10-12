@@ -52,6 +52,10 @@ class ForecastIntelligenceReadRoute(APIRoute):
             if len(request.scope.get("query_string", b"")) > 8192:
                 return _error("INVALID_REQUEST", 422)
             try:
+                if getattr(request.app.state, "local_auth_controlled", False):
+                    from backend.app.local_auth.authorization import protected_transport
+
+                    return await protected_transport(request)
                 return await original(request)
             except RequestValidationError:
                 return _error("INVALID_REQUEST", 422)

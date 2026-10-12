@@ -43,7 +43,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from backend.app.db.session import get_db_session
-from backend.app.main import create_app
 from backend.app.models.residual_model import (
     ResidualModelArtifact,
     ResidualModelExecutionAttempt,
@@ -63,6 +62,7 @@ from backend.app.residual_model.schemas import (
     ResidualPredictionRow,
     ResidualTrainingExecutionResult,
 )
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 # ---------------------------------------------------------------------------
 # Helpers — ORM-like run shim
@@ -228,7 +228,7 @@ def _create_residual_tables(sync_conn: Any) -> None:
 
 @pytest.fixture
 async def residual_client(residual_db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
-    app = create_app()
+    app = create_app(synthetic=True)
 
     async def _override() -> AsyncIterator[AsyncSession]:
         yield residual_db_session

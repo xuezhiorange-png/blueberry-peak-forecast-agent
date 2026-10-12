@@ -52,7 +52,7 @@ from typing import Any
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from backend.app.main import create_app
+from backend.tests.support.legacy_test_app import create_legacy_test_app as create_app
 
 # ---------------------------------------------------------------------------
 # Frozen Slice 2 error codes (per PR #76 §8)
@@ -168,7 +168,7 @@ async def residual_client() -> AsyncClient:
             )
         )
         await session.commit()
-        app = create_app()
+        app = create_app(synthetic=True)
 
         async def _override() -> AsyncIterator[_AsyncSession]:
             yield session

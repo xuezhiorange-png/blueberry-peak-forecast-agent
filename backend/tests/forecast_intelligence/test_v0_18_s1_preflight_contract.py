@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from backend.tests.historical_source import source_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json"
 DESIGN_DOCS = (
@@ -57,7 +59,7 @@ def test_machine_evidence_is_canonical_and_all_bound_sources_match(evidence: dic
         assert not path.is_absolute()
         assert ".." not in path.parts
         assert len(expected_hash) == 64
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected_hash
+        assert hashlib.sha256(source_bytes(path, root=ROOT)).hexdigest() == expected_hash
 
 
 def test_live_baseline_and_s0_formal_receipt_are_frozen(evidence: dict) -> None:
