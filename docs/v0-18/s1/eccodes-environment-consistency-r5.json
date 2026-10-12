@@ -1,0 +1,255 @@
+{
+  "acceptance": {
+    "E01": "PASS_LOCAL_TESTED_SCOPE",
+    "E02": "PASS_LOCAL_TESTED_SCOPE",
+    "E03": "PASS_LOCAL_TESTED_SCOPE",
+    "E04": "PASS_LOCAL_TESTED_SCOPE",
+    "E05": "PASS_LOCAL_TESTED_SCOPE",
+    "E06": "PASS_LOCAL_TESTED_SCOPE",
+    "E07": "PASS_LOCAL_TESTED_SCOPE",
+    "E08": "PASS_LOCAL_TESTED_SCOPE",
+    "E09": "PASS_LOCAL_TESTED_SCOPE",
+    "E10": "PASS_LOCAL_TESTED_SCOPE",
+    "E11": "PASS_LOCAL_TESTED_SCOPE",
+    "E12": "PENDING_EXACT_HEAD_CI"
+  },
+  "base_main_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+  "dependency_audit": {
+    "archive_difference": "final newline only",
+    "archived_output_sha256": "85b09d5a3da537d404c5476e21131939a06bc05bbc9a6b7548fd3915e430bbbb",
+    "database": "pip-audit default PyPI/PYSEC/GHSA service",
+    "frontend_existing_advisories": {
+      "high": 5,
+      "moderate": 2,
+      "resolution": "OUT_OF_R5_SCOPE_UNCHANGED"
+    },
+    "native_library_comprehensive_cve_assessment": "NOT_CLAIMED",
+    "package_records": 96,
+    "raw_output_sha256": "85b09d5a3da537d404c5476e21131939a06bc05bbc9a6b7548fd3915e430bbbb",
+    "reported_vulnerabilities": 0,
+    "result": "PASS_PUBLIC_PYTHON_PACKAGE_SCOPE",
+    "unpublished_first_party_package": "NOT_AUDITED_PUBLIC_DATABASE"
+  },
+  "exact_head_ci": "PENDING_PUSH_AND_FULL_CI; final exact-head receipt on PR717; do not inherit prior green run",
+  "historical_frozen_files": 260,
+  "installation": {
+    "after": [
+      "No broken requirements found.",
+      "All installed packages are compatible",
+      "Found: ecCodes v2.48.0.",
+      "Library: <fresh-environment>/lib/python3.12/site-packages/eccodeslib/lib/libeccodes.dylib",
+      "Definitions: /MEMFS/definitions",
+      "Samples: /MEMFS/samples",
+      "Your system is ready."
+    ],
+    "before": [
+      "eccodes 2.48.0 requires eccodeslib, which is not installed.",
+      "uv pip check: Found 1 incompatibility"
+    ],
+    "commands": [
+      "uv venv --python 3.12 --seed <fresh-environment>",
+      "UV_PROJECT_ENVIRONMENT=<fresh-environment> uv sync --frozen --inexact --extra dev",
+      "python -m pip check",
+      "uv pip check --python <fresh-environment>/bin/python",
+      "uv lock --check",
+      "python -m eccodes selfcheck"
+    ],
+    "mode": "new seeded isolated environment; frozen application lock; pip validation tool retained",
+    "platform": "macOS arm64",
+    "private_library_paths_used": false,
+    "python": "3.12.13"
+  },
+  "local_tests": {
+    "a01_a20": "20_PASS_TESTED_SCOPE_0_FAIL_0_BLOCKED",
+    "auth_postgresql": {
+      "junit_sha256": "d302c0962dba8a859f9a237cc5745b1a36efc9854400d5f9152e678665add8fc",
+      "original_auth_tests_changed": false,
+      "passed": 88
+    },
+    "backend_offline": "RUNNING",
+    "format": "PASS_1427_FILES",
+    "frontend_build": "PASS",
+    "frontend_e2e": {
+      "failed": 0,
+      "first_attempt": "runner missing python on PATH; corrected subprocess environment only; test service cleaned up",
+      "mode": "real synthetic PostgreSQL legacy entry; Chromium desktop and narrow viewport",
+      "passed": 94
+    },
+    "frontend_typecheck": "PASS",
+    "frontend_unit_passed": 122,
+    "mypy": "PASS_573_SOURCE_FILES",
+    "native_and_weather": {
+      "junit_sha256": "337ee5c152efa6220a38d7310243947e0b773e9ca45f931d7e05a8e649c29f31",
+      "passed": 65
+    },
+    "ruff": "PASS"
+  },
+  "lock_change": {
+    "added": {
+      "eccodeslib": "2.48.0.26",
+      "eckitlib": "2.1.1.26"
+    },
+    "anyio": "4.14.2",
+    "eccodes": "2.48.0",
+    "existing_package_versions_changed": [],
+    "mcp": "2.2.0",
+    "native_direct_marker": "sys_platform == 'linux' or sys_platform == 'darwin'",
+    "pyjwt": "2.15.0"
+  },
+  "metadata_discrepancy": {
+    "old_lock_contains_eccodeslib": false,
+    "old_resolver_internal_cause_proven": false,
+    "universal_wheel_requires_dist": "eccodeslib; platform_system != \"Windows\"",
+    "windows_wheel_requires_eccodeslib": false
+  },
+  "metadata_sources": {
+    "eccodes": {
+      "cp312_or_universal_wheels": [
+        {
+          "filename": "eccodes-2.48.0-cp312-cp312-win_amd64.whl",
+          "sha256": "ae555c99abe13331d5f4a5dd4b4b6ca2ac39aefdc68037b7ebb623df16963778",
+          "url": "https://files.pythonhosted.org/packages/3e/47/87399a674133f4c61031344e92e8041d5a04c78d5d2dcf41e171c1ce65cc/eccodes-2.48.0-cp312-cp312-win_amd64.whl"
+        },
+        {
+          "filename": "eccodes-2.48.0-py3-none-any.whl",
+          "sha256": "470eed1c5ba0aa9062a345ac0806cb887e5395263243b2d93c88e45002a035aa",
+          "url": "https://files.pythonhosted.org/packages/1d/f8/8e28ab8e3d7d2881942e0c2c4538004e19c5349425e7f6dfd15259e37e51/eccodes-2.48.0-py3-none-any.whl"
+        }
+      ],
+      "raw_metadata_sha256": "58f69dd738891658168567711201a2447d4b3f98ed384a810d92438bc43cf368",
+      "source_url": "https://pypi.org/pypi/eccodes/2.48.0/json",
+      "version": "2.48.0",
+      "version_metadata_requires_dist": [
+        "numpy",
+        "attrs",
+        "cffi",
+        "findlibs"
+      ]
+    },
+    "eccodeslib": {
+      "cp312_or_universal_wheels": [
+        {
+          "filename": "eccodeslib-2.48.0.26-cp312-cp312-macosx_13_0_arm64.whl",
+          "sha256": "ead5acb5214fb79a4d9d1f3aebec67defa1f7f18088fcf38fed968d66be60e65",
+          "url": "https://files.pythonhosted.org/packages/40/58/bc1aacba6ba814c56f4c4d55ab825cc01ef27e545c6d8e1d194a49e72f2f/eccodeslib-2.48.0.26-cp312-cp312-macosx_13_0_arm64.whl"
+        },
+        {
+          "filename": "eccodeslib-2.48.0.26-cp312-cp312-macosx_13_0_x86_64.whl",
+          "sha256": "78c2e9b4b86648806ebe9b300329696222f43930f2aaccdaf048292b594981ae",
+          "url": "https://files.pythonhosted.org/packages/20/2c/8d64cc3899a48c7edb2fc5119fd57c957bae8e36fc3113f0cbc9fa4a5b64/eccodeslib-2.48.0.26-cp312-cp312-macosx_13_0_x86_64.whl"
+        },
+        {
+          "filename": "eccodeslib-2.48.0.26-cp312-cp312-manylinux_2_28_aarch64.whl",
+          "sha256": "a4908810573a15d969a1ccaed815445482874101dc6707a54394eda6ad96610b",
+          "url": "https://files.pythonhosted.org/packages/7f/9e/1700cd553d6bcec8fd519aa473ad67402cdb94d73123293aa97f7e924cca/eccodeslib-2.48.0.26-cp312-cp312-manylinux_2_28_aarch64.whl"
+        },
+        {
+          "filename": "eccodeslib-2.48.0.26-cp312-cp312-manylinux_2_28_x86_64.whl",
+          "sha256": "5892ef7bac9a1ecc2b4d4cd7e3d6bd2b31581f41b82c0e7a04dfa87b572369fa",
+          "url": "https://files.pythonhosted.org/packages/4e/85/6c2bf17daa7de0207f550922c59c4e1f9267277636edbe46ce8287fdd4bc/eccodeslib-2.48.0.26-cp312-cp312-manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "raw_metadata_sha256": "f26d1fe738ac279b61fc86f9b2ef84aa65aa57f4b58882f9d43434b531d5be91",
+      "source_url": "https://pypi.org/pypi/eccodeslib/2.48.0.26/json",
+      "version": "2.48.0.26",
+      "version_metadata_requires_dist": [
+        "eckitlib==2.1.1.26"
+      ]
+    },
+    "eckitlib": {
+      "cp312_or_universal_wheels": [
+        {
+          "filename": "eckitlib-2.1.1.26-cp312-cp312-macosx_13_0_arm64.whl",
+          "sha256": "ee0103b532e9e5dfd454d5de3616defe295d84115b8f6e5922acca1f70857dbc",
+          "url": "https://files.pythonhosted.org/packages/c7/9e/c86bfda3293247f469db5271482b0e08ae2520001f918b8fd4f12bdd7065/eckitlib-2.1.1.26-cp312-cp312-macosx_13_0_arm64.whl"
+        },
+        {
+          "filename": "eckitlib-2.1.1.26-cp312-cp312-macosx_13_0_x86_64.whl",
+          "sha256": "a5caf612b4fe2322a1f594a2cb0687c2509926418f8bf9ba235736114ce6ccd1",
+          "url": "https://files.pythonhosted.org/packages/fc/0d/4e13acec84430356f69a1646b6c6d503add0703978d0ba116738675c49d6/eckitlib-2.1.1.26-cp312-cp312-macosx_13_0_x86_64.whl"
+        },
+        {
+          "filename": "eckitlib-2.1.1.26-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+          "sha256": "213e667f5533ed7ded1b30beecad3e34560ed34c92da44a9945be991d9bc2c64",
+          "url": "https://files.pythonhosted.org/packages/2c/56/13f1cf010ba2b4f0087e50f1c824f614e97b52c16914e4460db167a789ef/eckitlib-2.1.1.26-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"
+        },
+        {
+          "filename": "eckitlib-2.1.1.26-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+          "sha256": "d719d9580f04d37b34fa85f41d849e40b77d8b2be3e2af1d5dab5e42d25605ed",
+          "url": "https://files.pythonhosted.org/packages/6b/6d/cdbd51f0848cf9a4410761c666361c2c35d93635e9bfb7cbc715aa39950a/eckitlib-2.1.1.26-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "raw_metadata_sha256": "eb293e05e9976c878c1e8e7f22dadc4f71f0051e3acccf4a859f97cfaa1a1827",
+      "source_url": "https://pypi.org/pypi/eckitlib/2.1.1.26/json",
+      "version": "2.1.1.26",
+      "version_metadata_requires_dist": null
+    }
+  },
+  "missing_original_temporary_worktree": {
+    "existing_registry_pruned": false,
+    "exists": false,
+    "path": "/tmp/blueberry-v018-s1-local-auth-runtime-r1",
+    "r4_tracked_audit_unchanged": true,
+    "tracked_bytes_recovered_from": "cdcbf70339dd98b65d5c40f2cad8d08d2ed36872",
+    "untracked_outputs_recovered": false
+  },
+  "native_grib": {
+    "assertions": [
+      "real GRIB2 bytes",
+      "standard metadata",
+      "decoded constant values",
+      "identical repeated message bytes",
+      "native handle release in finally"
+    ],
+    "real_weather_downloaded": false,
+    "result": "PASS",
+    "source": "bundled regular_ll_sfc_grib2 SYNTHETIC constant sample"
+  },
+  "platform_acceptance": {
+    "linux_aarch64": "WHEEL_METADATA_ONLY",
+    "linux_minimum_glibc": "2.28",
+    "linux_x86_64": "PENDING_EXACT_HEAD_CI",
+    "macos_arm64": "PASS_RUNTIME_PY312",
+    "macos_minimum": "13.0",
+    "macos_x86_64": "WHEEL_METADATA_ONLY",
+    "musl_or_other_abi": "NOT_VALIDATED",
+    "windows_amd64": "BUNDLED_BINDING_WHEEL_METADATA_ONLY"
+  },
+  "pr_number": 717,
+  "previous_exact_head_ci": {
+    "conclusion": "success",
+    "run_id": 38185783199
+  },
+  "previous_head_sha": "cdcbf70339dd98b65d5c40f2cad8d08d2ed36872",
+  "previous_r4_evidence_sha256": "c6eff7db47ce11c4af36c759fcc18ee0921f8043e4e27a253f2313d75b3198f5",
+  "production_readiness": "NOT_READY",
+  "prohibited_actions": {
+    "auth_runtime_modified": false,
+    "dashboard_runtime_modified": false,
+    "deploy_authorized": false,
+    "forecast_math_modified": false,
+    "historical_evidence_modified": false,
+    "mcp_runtime_modified": false,
+    "merge_authorized": false,
+    "production_database_migrated": false,
+    "ready_authorized": false,
+    "real_admin_created": false,
+    "real_grants_issued": false,
+    "release_authorized": false,
+    "s1_formal_complete": false,
+    "s2_s6_started": false,
+    "tag_authorized": false,
+    "weather_provider_modified": false
+  },
+  "real_admin_and_org_authority": "PENDING",
+  "source_evidence_sha256": {
+    "backend/constraints-ci.txt": "17e90740c10bef414c23970e6ed3e3046619de876b711de2b699ef505df86a48",
+    "backend/tests/local_auth/test_r5_eccodes_environment.py": "1d482616fe6147b3fdd073774741ba51e96c489e40bc9f854e0711c9b8494e0a",
+    "docs/v0-18/s1/eccodes-environment-consistency-r5.md": "6e67a85e5f394e8d22e64a578086897fadc2e9b44dce434d0b6fa33077538671",
+    "docs/v0-18/s1/local-auth-runtime-r1.json": "a1b83f13c0a19126adf9b773336fb5594438432313e71de9709de777f0c0deae",
+    "docs/v0-18/s1/r5-dependency-audit.json": "85b09d5a3da537d404c5476e21131939a06bc05bbc9a6b7548fd3915e430bbbb",
+    "pyproject.toml": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df",
+    "uv.lock": "02f743c0d2ecc884f453c2b6bc4570faf1da6cbca9513dce01e4e5a9d375717e"
+  },
+  "task_id": "V0_18_S1_ECCODESLIB_ENVIRONMENT_CONSISTENCY_CLOSURE_R5"
+}

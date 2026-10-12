@@ -24,6 +24,8 @@ alembic==1.18.5
 anyio==4.14.2
 asyncpg==0.31.0
 defusedxml==0.7.1
+eccodes==2.48.0
+eccodeslib==2.48.0.26; sys_platform == 'linux' or sys_platform == 'darwin'
 fastapi==0.139.0
 mcp==2.2.0
 numpy==2.5.1

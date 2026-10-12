@@ -1183,6 +1183,13 @@
     },
     "vulnerability_service": "PyPI"
   },
+  "r5_dependency_correction": {
+    "auth_runtime_changed": false,
+    "previous_environment_consistency": "PARTIAL_EXISTING_ECCODESLIB_GAP",
+    "previous_evidence_sha256": "c6eff7db47ce11c4af36c759fcc18ee0921f8043e4e27a253f2313d75b3198f5",
+    "previous_head_sha": "cdcbf70339dd98b65d5c40f2cad8d08d2ed36872",
+    "report": "docs/v0-18/s1/eccodes-environment-consistency-r5.json"
+  },
   "real_admin_and_org_authority": "PENDING",
   "result": "PARTIAL",
   "runtime_restrictions": {
@@ -1415,7 +1422,7 @@
     "backend/app/local_auth/sessions.py": "8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b",
     "backend/app/main.py": "014783c642bee0d4019eca08e716150faf56909384d9669ee106f492508b5011",
     "backend/app/models/__init__.py": "268b103807cb0feb0100cae4792071b306093b5f512a472ecae06dd707214c09",
-    "backend/constraints-ci.txt": "00d2b569621aebfd4d729485e122d3652834d630e5df8a9b5b51c3db5f05accf",
+    "backend/constraints-ci.txt": "17e90740c10bef414c23970e6ed3e3046619de876b711de2b699ef505df86a48",
     "backend/tests/actual_harvest_import/alembic_cases.py": "ac7caa599be4deb314d5ebb3f5b59c48fcb3a4badcc8f6d1507b23e8ab96a4e6",
     "backend/tests/actual_harvest_import/conftest.py": "1c8df09b8cc8261ae96740f0e748796d43285af1532484cbd7f546486b329ef1",
     "backend/tests/actual_harvest_import/test_lifecycle_postgres.py": "37aeeaa4a659bc4d464915eaa548c89ee23f5d2553e3d453c5d6cacc7fad822d",
@@ -1493,8 +1500,8 @@
     "docs/v0-18/s1/runtime-resume-r2-blocked.json": "363140612e822b6196185186d1cc17e3c3cda90abdd2f37304464cb3ba878784",
     "docs/v0-18/s1/runtime-resume-r2-blocked.md": "a317ea561f034639abb83f9dfd75063b60339c24a2f360b70974c9f01a635573",
     "frontend/src/test/dashboardGovernance.test.ts": "897d55405d07ad109c58ec13ccccee37a6dcadb7ab6267b32c015d6dd762dcfa",
-    "pyproject.toml": "3f2c7f7bafa6dd25381a66050706b1438f9e1ac92df8ad3a4818a446b8f093db",
-    "uv.lock": "66d4f9c2dd5659472a3f9fc507932fdc14a2d49380366a5dc27648df0d611da8"
+    "pyproject.toml": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df",
+    "uv.lock": "02f743c0d2ecc884f453c2b6bc4570faf1da6cbca9513dce01e4e5a9d375717e"
   },
   "synthetic": true,
   "task_id": "V0_18_S1_LEGACY_TEST_ENTRY_COMPATIBILITY_AND_RUNTIME_RESUME_R3",
