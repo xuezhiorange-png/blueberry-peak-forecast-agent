@@ -1,0 +1,9 @@
+# Isolated CPU research environment; production pyproject.toml/uv.lock remain untouched.
+# These package versions already exist in the repository's R1 uv.lock.
+Pillow==12.3.0
+numpy==2.4.6
+pydantic==2.13.4
+pytest==9.1.1
+pytest-asyncio==1.4.0
+ruff==0.15.18
+mypy==2.1.0

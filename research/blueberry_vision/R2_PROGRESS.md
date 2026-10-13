@@ -10,37 +10,46 @@ R2_START_HEAD_SHA=88f052405d98210864d4f4d56b0da4bb62d5bd12
 
 BASE_MAIN_SHA=c35524174865785164fe4529f35067037ccddc2a
 
-## Durable state
+## Completed durable milestones
 
-M0 preflight complete: GitHub permissions.push=true; git push --dry-run successful;
-R1 regression freshly ran 69 passed. Independent R2 worktree preserves R1 branch/files.
-Current checkpoint commit uses `chore(vision-r2): checkpoint environment and R1 regression`;
-its SHA is resolved from Git history and recorded at the next milestone, avoiding self-reference.
-Evidence: `evidence/r2/environment.json` records versions, license metadata, actual stdout and source hashes.
-
-| Milestone | Status | Durable commit / recovery identity |
+| Milestone | Status | Commit |
 | --- | --- | --- |
-| M0 | COMPLETE | current checkpoint, resolve by commit subject above |
-| M1 assets/adapter | IN_PROGRESS | not yet committed |
-| M2 synthetic PNG/reference | IN_PROGRESS | not yet committed |
-| M3 classical pixel detector | IN_PROGRESS | not yet committed |
-| M4 CPU trainable baseline | IN_PROGRESS | not yet committed |
-| M5 independent evaluator | IN_PROGRESS | not yet committed |
-| M6 COCO/visual review | IN_PROGRESS | not yet committed |
-| M7 complete CLI/CI/acceptance | PENDING | not yet committed |
+| M0 | COMPLETE_PUSHED | `c570d929eb8843dc0b29bfc818d0740484156531` |
+| M1 | COMPLETE_IN_CURRENT_CHECKPOINT | resolve commit `feat(vision-r2): add asset loading and dataset validation` after this commit |
+| M2 | PENDING_CHECKPOINT | not yet a durable completed milestone |
+| M3 | PENDING_CHECKPOINT | not yet a durable completed milestone |
+| M4 | PENDING_CHECKPOINT | not yet a durable completed milestone |
+| M5 | PENDING_CHECKPOINT | not yet a durable completed milestone |
+| M6 | PENDING_CHECKPOINT | not yet a durable completed milestone |
+| M7 | PENDING_CHECKPOINT | not yet a durable completed milestone |
 
-Parallel code work is not a completed milestone. Only tested, committed checkpoints count.
-Data state: no private/real orchard images, no database or current-season actual accessed;
-all future images for this R2 are programmatically generated SYNTHETIC assets.
-Production forecast, Harvest State and frozen version files remain unchanged.
+Current checkpoint parent: `c570d929eb8843dc0b29bfc818d0740484156531`. Current checkpoint SHA is deliberately not
+embedded in its own commit; the next checkpoint records it and the final receipt
+supplies final HEAD. All COMPLETE_PUSHED milestones were ordinary-pushed and their
+remote HEAD checked. A local parallel module is not a completed milestone.
+
+Current stage evidence: `evidence/r2/m1_checkpoint.json`.
+Actual test stdout/exit codes are preserved there. `feat(vision-r2): add asset loading and dataset validation` is the checkpoint identity.
+
+## Data and boundaries
+
+Only generated synthetic pixels/references/CPU models are authorized and used.
+Real company/orchard images, business database, current-season actual and historical
+harvest labels were not accessed. R1 contracts/69 regressions remain preserved.
+Production forecast, Harvest State and V0.15–V0.18 frozen files remain untouched.
+Counts are visible fruit per image, never kg; synthetic color appearances are not
+approved maturity labels. Synthetic results are not real accuracy.
+
+Known blockers: none.
 
 ## Resume from GitHub
 
-Fetch origin with prune; audit live R2 HEAD and this file before resuming.
-Use `python -m venv /tmp/blueberry-vision-r2-venv` and install the isolated
-`research/blueberry_vision/requirements-r2.txt` after its M1 commit. Do not uv-sync production dependencies.
-Next: finish M1 PNG/JPEG asset tests and versioned 2.0.0 adapter, commit/push M1;
-then M2 generator, M3 pixels, M4 actual training, M5 evaluation, M6 report, M7 complete run.
-
-Known blockers: none. M0 does not claim images/detectors/training are already implemented.
-Ready/Merge/Tag/Release/Deploy remain unauthorized. Final HEAD belongs in the task receipt.
+Fetch origin --prune, verify live branch HEAD, read this file and stage evidence;
+do not reset to the instruction's old SHA or overwrite another worktree.
+Create an isolated Python3.12 environment and install
+`research/blueberry_vision/requirements-r2.txt`; do not alter production uv.lock.
+Next step: M2 commit deterministic synthetic PNG/reference generator and frozen dataset manifest..
+Current accepted artifact paths: research/blueberry_vision/assets.py, research/blueberry_vision/r2_contracts.py, research/blueberry_vision/r2_common.py, research/blueberry_vision/tests/test_r2_assets.py, research/blueberry_vision/tests/test_r2_common.py, research/blueberry_vision/schemas/r2_dataset.schema.json, research/blueberry_vision/requirements-r2.txt.
+Future/pending stages must run their own tests and produce commit/push checkpoints.
+Final scope: complete CLI and synthetic end-to-end results, Draft PR to main, inspect
+available exact-head CI. Ready/Merge/Tag/Release/Deploy remain unauthorized.
