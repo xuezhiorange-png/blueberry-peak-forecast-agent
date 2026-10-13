@@ -1,0 +1,3171 @@
+{
+  "SYNTHETIC": true,
+  "config_hash": "f3f66390ee918ea5e7e5577019e7f76632a7f00d1b6064abd62ce3fa3aaec48d",
+  "count_unit": "visible_fruit_per_image",
+  "dataset_manifest_hash": "29100d7f845c9bbd16b1c09e5cda703e53cf8fffead963752141247991dec2e5",
+  "detector_version": "rgb-connected-components/2.0.0",
+  "images": [
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            109.0,
+            11.0,
+            142.0,
+            44.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 863,
+          "object_id": "prediction-00001",
+          "score": 0.573499825,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            211.0,
+            11.0,
+            242.0,
+            42.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 785,
+          "object_id": "prediction-00002",
+          "score": 0.5505530167,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            11.0,
+            12.0,
+            40.0,
+            42.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 682,
+          "object_id": "prediction-00003",
+          "score": 0.5359513306,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            13.0,
+            141.0,
+            46.0,
+            174.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 881,
+          "object_id": "prediction-00004",
+          "score": 0.5462209287,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            113.0,
+            143.0,
+            145.0,
+            172.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 715,
+          "object_id": "prediction-00005",
+          "score": 0.5242346877,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            209.0,
+            146.0,
+            245.0,
+            179.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 945,
+          "object_id": "prediction-00006",
+          "score": 0.5917496392,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0000",
+      "predicted_visible_fruit_count": 6,
+      "prediction_hash": "2854014b3a9785f148bd911e0a9c847c66a7ac4890cceff837dd31827cd00baa",
+      "reason_code": null,
+      "source_asset_hash": "cb119671f8791df3348252bff0d32f04883238056e1c10253ca2daf3ea3dce36",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            8.0,
+            4.0,
+            227.0,
+            154.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 28593,
+          "object_id": "prediction-00001",
+          "score": 0.5847779915,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0001",
+      "predicted_visible_fruit_count": 1,
+      "prediction_hash": "265692fda65e34a99f4a3fc5cef4d9c40d9d71da78470024f1dcc4b4a17cebe5",
+      "reason_code": null,
+      "source_asset_hash": "6043c8a62ca370c90a4796a39753eea1d2f441e19cbca2ff208ff644afba29aa",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            22.0,
+            35.0,
+            186.0,
+            120.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 11333,
+          "object_id": "prediction-00001",
+          "score": 0.5706965304,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0002",
+      "predicted_visible_fruit_count": 1,
+      "prediction_hash": "cd14b0353e57bb0400c2e0640a05355339a4b4644373ab355feda9f0268576aa",
+      "reason_code": null,
+      "source_asset_hash": "b87c248563ac94fdc9d57f1e6f8ab030bd2c0497533c424566f9634030554ee3",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            113.0,
+            9.0,
+            150.0,
+            44.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1042,
+          "object_id": "prediction-00001",
+          "score": 0.6038189154,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            160.0,
+            10.0,
+            191.0,
+            41.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 754,
+          "object_id": "prediction-00002",
+          "score": 0.5509517054,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            11.0,
+            244.0,
+            41.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 756,
+          "object_id": "prediction-00003",
+          "score": 0.6243402778,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            10.0,
+            14.0,
+            46.0,
+            48.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 954,
+          "object_id": "prediction-00004",
+          "score": 0.5783469756,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            62.0,
+            14.0,
+            90.0,
+            41.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 618,
+          "object_id": "prediction-00005",
+          "score": 0.6255875327,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            13.0,
+            54.0,
+            46.0,
+            74.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 436,
+          "object_id": "prediction-00006",
+          "score": 0.5356332534,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            55.0,
+            143.0,
+            85.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 740,
+          "object_id": "prediction-00007",
+          "score": 0.5674590417,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            59.0,
+            56.0,
+            93.0,
+            84.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 713,
+          "object_id": "prediction-00008",
+          "score": 0.5816622862,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            213.0,
+            57.0,
+            246.0,
+            89.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 836,
+          "object_id": "prediction-00009",
+          "score": 0.5693306419,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            165.0,
+            58.0,
+            194.0,
+            88.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 685,
+          "object_id": "prediction-00010",
+          "score": 0.5785570308,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            14.0,
+            98.0,
+            47.0,
+            132.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 894,
+          "object_id": "prediction-00011",
+          "score": 0.6024721031,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            58.0,
+            100.0,
+            96.0,
+            133.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 974,
+          "object_id": "prediction-00012",
+          "score": 0.5656098432,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            216.0,
+            101.0,
+            244.0,
+            117.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 303,
+          "object_id": "prediction-00013",
+          "score": 0.5683742928,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            167.0,
+            105.0,
+            194.0,
+            118.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 217,
+          "object_id": "prediction-00014",
+          "score": 0.5453057098,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            110.0,
+            107.0,
+            143.0,
+            130.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 571,
+          "object_id": "prediction-00015",
+          "score": 0.4914199772,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            9.0,
+            140.0,
+            46.0,
+            176.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1032,
+          "object_id": "prediction-00016",
+          "score": 0.6049973484,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            62.0,
+            144.0,
+            96.0,
+            177.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 879,
+          "object_id": "prediction-00017",
+          "score": 0.5714242531,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            110.0,
+            145.0,
+            142.0,
+            176.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 797,
+          "object_id": "prediction-00018",
+          "score": 0.5320076294,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            158.0,
+            147.0,
+            195.0,
+            179.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 916,
+          "object_id": "prediction-00019",
+          "score": 0.517952983,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            215.0,
+            149.0,
+            245.0,
+            174.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 581,
+          "object_id": "prediction-00020",
+          "score": 0.5318373781,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0003",
+      "predicted_visible_fruit_count": 20,
+      "prediction_hash": "d2f8548a41767935736312f13015c37ee9b81362622335967824c4a9002277e2",
+      "reason_code": null,
+      "source_asset_hash": "d38ab6651e4af4ed48c3c385db36a3508cdda7333d0dde60fe365b73a5ec562c",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            107.0,
+            60.0,
+            146.0,
+            113.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1652,
+          "object_id": "prediction-00001",
+          "score": 0.5656374078,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            12.0,
+            61.0,
+            47.0,
+            104.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1233,
+          "object_id": "prediction-00002",
+          "score": 0.5175490761,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            163.0,
+            64.0,
+            193.0,
+            117.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1286,
+          "object_id": "prediction-00003",
+          "score": 0.5502864729,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            62.0,
+            67.0,
+            97.0,
+            109.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1118,
+          "object_id": "prediction-00004",
+          "score": 0.5469713212,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            211.0,
+            67.0,
+            245.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1484,
+          "object_id": "prediction-00005",
+          "score": 0.4842725075,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            8.0,
+            122.0,
+            45.0,
+            192.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 2061,
+          "object_id": "prediction-00006",
+          "score": 0.5466596767,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            59.0,
+            126.0,
+            96.0,
+            191.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1837,
+          "object_id": "prediction-00007",
+          "score": 0.539935051,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            131.0,
+            146.0,
+            162.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 611,
+          "object_id": "prediction-00008",
+          "score": 0.4820399336,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            159.0,
+            135.0,
+            191.0,
+            145.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 212,
+          "object_id": "prediction-00009",
+          "score": 0.5190566038,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            215.0,
+            140.0,
+            239.0,
+            145.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 73,
+          "object_id": "prediction-00010",
+          "score": 0.4833105023,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0004",
+      "predicted_visible_fruit_count": 10,
+      "prediction_hash": "f044e2ac2fea16d5e215acbf510ae32777ff4c7353e2b8f03b37cb2a6138ed31",
+      "reason_code": null,
+      "source_asset_hash": "1562687ee584eef93d136e5994787a7d1ef010048bf40197181790c9efe1db8a",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            148.0,
+            10.0,
+            179.0,
+            42.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 800,
+          "object_id": "prediction-00001",
+          "score": 0.5290325101,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            15.0,
+            13.0,
+            46.0,
+            45.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 771,
+          "object_id": "prediction-00002",
+          "score": 0.5425220179,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            81.0,
+            14.0,
+            113.0,
+            47.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 836,
+          "object_id": "prediction-00003",
+          "score": 0.6014777711,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            214.0,
+            14.0,
+            249.0,
+            47.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 932,
+          "object_id": "prediction-00004",
+          "score": 0.5757026097,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            13.0,
+            74.0,
+            47.0,
+            109.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 911,
+          "object_id": "prediction-00005",
+          "score": 0.5091602865,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            77.0,
+            77.0,
+            114.0,
+            114.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1078,
+          "object_id": "prediction-00006",
+          "score": 0.4752168088,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            146.0,
+            81.0,
+            177.0,
+            111.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 741,
+          "object_id": "prediction-00007",
+          "score": 0.5232802773,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            213.0,
+            81.0,
+            243.0,
+            111.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 726,
+          "object_id": "prediction-00008",
+          "score": 0.5634424931,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            146.0,
+            139.0,
+            182.0,
+            176.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1071,
+          "object_id": "prediction-00009",
+          "score": 0.6021215018,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            142.0,
+            249.0,
+            181.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1144,
+          "object_id": "prediction-00010",
+          "score": 0.5741944851,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            82.0,
+            147.0,
+            113.0,
+            178.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 752,
+          "object_id": "prediction-00011",
+          "score": 0.5721701979,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            12.0,
+            148.0,
+            41.0,
+            177.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 687,
+          "object_id": "prediction-00012",
+          "score": 0.4827910516,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0005",
+      "predicted_visible_fruit_count": 12,
+      "prediction_hash": "c41a3d9e31fa367cc1f59fbdd2400cb2afe49f022d86f3e1f88188d3a12ed999",
+      "reason_code": null,
+      "source_asset_hash": "a155a9fe9389ecdd8911bcb49baebcffba55d4cfd6aae7d3ef8e94312b3e473d",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            76.0,
+            9.0,
+            113.0,
+            46.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1054,
+          "object_id": "prediction-00001",
+          "score": 0.3160896418,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            11.0,
+            14.0,
+            45.0,
+            48.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 881,
+          "object_id": "prediction-00002",
+          "score": 0.2895461521,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            148.0,
+            14.0,
+            178.0,
+            45.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 739,
+          "object_id": "prediction-00003",
+          "score": 0.3981500356,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            214.0,
+            14.0,
+            246.0,
+            44.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 725,
+          "object_id": "prediction-00004",
+          "score": 0.4269123563,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            10.0,
+            75.0,
+            45.0,
+            109.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 916,
+          "object_id": "prediction-00005",
+          "score": 0.3094899728,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            146.0,
+            75.0,
+            181.0,
+            109.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 934,
+          "object_id": "prediction-00006",
+          "score": 0.3974927235,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            76.0,
+            76.0,
+            108.0,
+            107.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 757,
+          "object_id": "prediction-00007",
+          "score": 0.2854396599,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            216.0,
+            77.0,
+            247.0,
+            109.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 780,
+          "object_id": "prediction-00008",
+          "score": 0.3699263337,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            143.0,
+            141.0,
+            180.0,
+            177.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1061,
+          "object_id": "prediction-00009",
+          "score": 0.3861295261,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            142.0,
+            247.0,
+            178.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 977,
+          "object_id": "prediction-00010",
+          "score": 0.4083355063,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            79.0,
+            143.0,
+            115.0,
+            180.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1000,
+          "object_id": "prediction-00011",
+          "score": 0.2819751502,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            15.0,
+            145.0,
+            47.0,
+            176.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 737,
+          "object_id": "prediction-00012",
+          "score": 0.2943994288,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0006",
+      "predicted_visible_fruit_count": 12,
+      "prediction_hash": "a5a257a7af3af99b4a29fd4c8fb548b182ea663328f5923195ae3650b2faa57d",
+      "reason_code": null,
+      "source_asset_hash": "57308406af22c827b4e1cbc1f20a2b0943fce1458e98b917304625127cd2c251",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            146.0,
+            8.0,
+            182.0,
+            43.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 967,
+          "object_id": "prediction-00001",
+          "score": 0.5248144523,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            81.0,
+            11.0,
+            112.0,
+            40.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 720,
+          "object_id": "prediction-00002",
+          "score": 0.6453689478,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            11.0,
+            12.0,
+            42.0,
+            42.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 725,
+          "object_id": "prediction-00003",
+          "score": 0.5298536337,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            218.0,
+            15.0,
+            246.0,
+            43.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 620,
+          "object_id": "prediction-00004",
+          "score": 0.5935060072,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            145.0,
+            76.0,
+            180.0,
+            110.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 962,
+          "object_id": "prediction-00005",
+          "score": 0.5799239155,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            209.0,
+            76.0,
+            246.0,
+            112.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1047,
+          "object_id": "prediction-00006",
+          "score": 0.5915851919,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            78.0,
+            79.0,
+            111.0,
+            113.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 854,
+          "object_id": "prediction-00007",
+          "score": 0.5957000609,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            13.0,
+            83.0,
+            44.0,
+            111.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 677,
+          "object_id": "prediction-00008",
+          "score": 0.6281473565,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            78.0,
+            144.0,
+            112.0,
+            177.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 858,
+          "object_id": "prediction-00009",
+          "score": 0.6060224702,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            14.0,
+            145.0,
+            44.0,
+            176.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 745,
+          "object_id": "prediction-00010",
+          "score": 0.5651563289,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            145.0,
+            146.0,
+            175.0,
+            177.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 749,
+          "object_id": "prediction-00011",
+          "score": 0.5404477655,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            213.0,
+            146.0,
+            245.0,
+            178.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 794,
+          "object_id": "prediction-00012",
+          "score": 0.569955329,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0007",
+      "predicted_visible_fruit_count": 12,
+      "prediction_hash": "76a439424131768c78d3ffd023a03775480a6efa48e28dd9b7f5188de43b194b",
+      "reason_code": null,
+      "source_asset_hash": "5c8e884d8aaf38602cc55440b25efe97dba2325dea150850544b11ab9361a443",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            207.0,
+            7.0,
+            246.0,
+            47.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1206,
+          "object_id": "prediction-00001",
+          "score": 0.558802781,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            75.0,
+            8.0,
+            112.0,
+            44.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1038,
+          "object_id": "prediction-00002",
+          "score": 0.5957402489,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            18.0,
+            19.0,
+            32.0,
+            33.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 148,
+          "object_id": "prediction-00003",
+          "score": 0.5581572325,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            158.0,
+            24.0,
+            170.0,
+            36.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 117,
+          "object_id": "prediction-00004",
+          "score": 0.5442307692,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            77.0,
+            52.0,
+            113.0,
+            88.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1044,
+          "object_id": "prediction-00005",
+          "score": 0.5036518199,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            211.0,
+            54.0,
+            247.0,
+            92.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1100,
+          "object_id": "prediction-00006",
+          "score": 0.5137448498,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            153.0,
+            62.0,
+            170.0,
+            81.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 253,
+          "object_id": "prediction-00007",
+          "score": 0.5417848052,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            22.0,
+            67.0,
+            32.0,
+            77.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 82,
+          "object_id": "prediction-00008",
+          "score": 0.5495182927,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            208.0,
+            95.0,
+            246.0,
+            132.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1104,
+          "object_id": "prediction-00009",
+          "score": 0.6169993587,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            76.0,
+            101.0,
+            111.0,
+            135.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 967,
+          "object_id": "prediction-00010",
+          "score": 0.5441911222,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            156.0,
+            105.0,
+            173.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 225,
+          "object_id": "prediction-00011",
+          "score": 0.5397093426,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            21.0,
+            109.0,
+            37.0,
+            124.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 193,
+          "object_id": "prediction-00012",
+          "score": 0.5543566494,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            70.0,
+            138.0,
+            115.0,
+            181.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1499,
+          "object_id": "prediction-00013",
+          "score": 0.5524629189,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            138.0,
+            251.0,
+            178.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1209,
+          "object_id": "prediction-00014",
+          "score": 0.5701519851,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            155.0,
+            150.0,
+            172.0,
+            169.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 255,
+          "object_id": "prediction-00015",
+          "score": 0.5795614035,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            23.0,
+            155.0,
+            35.0,
+            166.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 106,
+          "object_id": "prediction-00016",
+          "score": 0.5838961549,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0008",
+      "predicted_visible_fruit_count": 16,
+      "prediction_hash": "5fbefe82995193af3eb8309dade89be07d8a336faf80ac945fedb02c27e95cad",
+      "reason_code": null,
+      "source_asset_hash": "cc61b62ec5aff1435c8fb818b3feda4c377faed69e2bce7c3fb34dc5e19fb24c",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            11.0,
+            9.0,
+            47.0,
+            43.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 944,
+          "object_id": "prediction-00001",
+          "score": 0.5855447114,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            163.0,
+            13.0,
+            197.0,
+            48.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 936,
+          "object_id": "prediction-00002",
+          "score": 0.5090603902,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            208.0,
+            75.0,
+            245.0,
+            111.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1018,
+          "object_id": "prediction-00003",
+          "score": 0.5479965169,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            65.0,
+            78.0,
+            96.0,
+            108.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 727,
+          "object_id": "prediction-00004",
+          "score": 0.6229706335,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            113.0,
+            145.0,
+            149.0,
+            181.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1033,
+          "object_id": "prediction-00005",
+          "score": 0.5627775686,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0009",
+      "predicted_visible_fruit_count": 5,
+      "prediction_hash": "3ba4e95a3a3fb7ecaf819638fc807539ed308d9c1947b37997261889c0d713a0",
+      "reason_code": null,
+      "source_asset_hash": "ae49bd570a8abff273ccf1aee482a2cd812e54575ed54869ebf171dfa705290b",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            60.0,
+            0.0,
+            98.0,
+            21.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 632,
+          "object_id": "prediction-00001",
+          "score": 0.5246637906,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            0.0,
+            32.0,
+            20.0,
+            71.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 616,
+          "object_id": "prediction-00002",
+          "score": 0.4964734744,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            233.0,
+            43.0,
+            256.0,
+            86.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 816,
+          "object_id": "prediction-00003",
+          "score": 0.53852926,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            61.0,
+            76.0,
+            98.0,
+            112.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1054,
+          "object_id": "prediction-00004",
+          "score": 0.5575288939,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            122.0,
+            83.0,
+            160.0,
+            119.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1099,
+          "object_id": "prediction-00005",
+          "score": 0.5574821143,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            195.0,
+            129.0,
+            230.0,
+            162.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 903,
+          "object_id": "prediction-00006",
+          "score": 0.5110009564,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            43.0,
+            142.0,
+            72.0,
+            170.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 635,
+          "object_id": "prediction-00007",
+          "score": 0.5087464606,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            160.0,
+            172.0,
+            200.0,
+            192.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 627,
+          "object_id": "prediction-00008",
+          "score": 0.4744732855,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0010",
+      "predicted_visible_fruit_count": 8,
+      "prediction_hash": "53a63c4b1776dd31d8d3c67b872d12fcf47015fb2b8fc01bc495e04e525f9430",
+      "reason_code": null,
+      "source_asset_hash": "cfeb3b666a81a2dc211fa62ebd567e183fc25f7c3079666ed4954872e2a556ed",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [],
+      "image_id": "synthetic-r2-20261013-validation-0011",
+      "predicted_visible_fruit_count": 0,
+      "prediction_hash": "f46971030e0a72f2a38fbcaf8abfb6cf822272662064ac0ba135a4f10d309e2a",
+      "reason_code": null,
+      "source_asset_hash": "34e812250034f6e7e5a26738b97af99bc43f5af0b8d404ca38a0beec68f170da",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            160.0,
+            28.0,
+            211.0,
+            55.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 1043,
+          "object_id": "prediction-00001",
+          "score": 0.6514887436,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            77.0,
+            29.0,
+            109.0,
+            60.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 786,
+          "object_id": "prediction-00002",
+          "score": 0.5207689506,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            27.0,
+            33.0,
+            52.0,
+            56.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 455,
+          "object_id": "prediction-00003",
+          "score": 0.5545246058,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            81.0,
+            82.0,
+            104.0,
+            104.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 397,
+          "object_id": "prediction-00004",
+          "score": 0.5578143512,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            25.0,
+            83.0,
+            49.0,
+            106.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 439,
+          "object_id": "prediction-00005",
+          "score": 0.5822356476,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            168.0,
+            86.0,
+            197.0,
+            115.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 657,
+          "object_id": "prediction-00006",
+          "score": 0.6249925684,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            167.0,
+            127.0,
+            210.0,
+            168.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 881,
+          "object_id": "prediction-00007",
+          "score": 0.5874432785,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            25.0,
+            134.0,
+            50.0,
+            159.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 469,
+          "object_id": "prediction-00008",
+          "score": 0.5806903412,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            77.0,
+            143.0,
+            102.0,
+            167.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 488,
+          "object_id": "prediction-00009",
+          "score": 0.6165473019,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0012",
+      "predicted_visible_fruit_count": 9,
+      "prediction_hash": "fe22a9d1054ea2a04f01a914b78311352a4e4f0705ca7d36dfbd415bfb2bf2f1",
+      "reason_code": null,
+      "source_asset_hash": "f9f9b3e66ee3b46b24e6dd20100d0e380552957fa73e5c9d063760e3f21182ae",
+      "status": "ok"
+    },
+    {
+      "detected_objects": [
+        {
+          "bbox_xyxy": [
+            13.0,
+            11.0,
+            28.0,
+            27.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 190,
+          "object_id": "prediction-00001",
+          "score": 0.6313925439,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            61.0,
+            11.0,
+            76.0,
+            27.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 187,
+          "object_id": "prediction-00002",
+          "score": 0.5445031194,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            11.0,
+            204.0,
+            30.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 262,
+          "object_id": "prediction-00003",
+          "score": 0.6125198094,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            237.0,
+            11.0,
+            255.0,
+            30.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 252,
+          "object_id": "prediction-00004",
+          "score": 0.601039056,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            35.0,
+            12.0,
+            53.0,
+            29.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 238,
+          "object_id": "prediction-00005",
+          "score": 0.6069998833,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            138.0,
+            12.0,
+            154.0,
+            29.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 213,
+          "object_id": "prediction-00006",
+          "score": 0.5624275062,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            162.0,
+            13.0,
+            176.0,
+            27.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 151,
+          "object_id": "prediction-00007",
+          "score": 0.6136842817,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            14.0,
+            126.0,
+            28.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 155,
+          "object_id": "prediction-00008",
+          "score": 0.5943326201,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            14.0,
+            227.0,
+            28.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 166,
+          "object_id": "prediction-00009",
+          "score": 0.6105425273,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            263.0,
+            14.0,
+            278.0,
+            29.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 175,
+          "object_id": "prediction-00010",
+          "score": 0.5501626984,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            287.0,
+            14.0,
+            301.0,
+            27.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 150,
+          "object_id": "prediction-00011",
+          "score": 0.5763351648,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            87.0,
+            15.0,
+            102.0,
+            29.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 165,
+          "object_id": "prediction-00012",
+          "score": 0.6008928571,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            13.0,
+            35.0,
+            28.0,
+            50.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 174,
+          "object_id": "prediction-00013",
+          "score": 0.5570732759,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            37.0,
+            35.0,
+            54.0,
+            52.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 223,
+          "object_id": "prediction-00014",
+          "score": 0.5198241384,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            85.0,
+            35.0,
+            102.0,
+            52.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 237,
+          "object_id": "prediction-00015",
+          "score": 0.5795729126,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            135.0,
+            35.0,
+            151.0,
+            50.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 184,
+          "object_id": "prediction-00016",
+          "score": 0.5235439312,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            163.0,
+            35.0,
+            180.0,
+            51.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 223,
+          "object_id": "prediction-00017",
+          "score": 0.6345143102,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            211.0,
+            36.0,
+            228.0,
+            53.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 235,
+          "object_id": "prediction-00018",
+          "score": 0.606672311,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            239.0,
+            36.0,
+            253.0,
+            50.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 166,
+          "object_id": "prediction-00019",
+          "score": 0.6076407672,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            61.0,
+            37.0,
+            75.0,
+            51.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 159,
+          "object_id": "prediction-00020",
+          "score": 0.6550121936,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            113.0,
+            37.0,
+            128.0,
+            51.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 166,
+          "object_id": "prediction-00021",
+          "score": 0.5970636116,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            37.0,
+            200.0,
+            52.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 163,
+          "object_id": "prediction-00022",
+          "score": 0.5806982179,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            263.0,
+            37.0,
+            279.0,
+            53.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 205,
+          "object_id": "prediction-00023",
+          "score": 0.55140625,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            288.0,
+            37.0,
+            304.0,
+            52.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 190,
+          "object_id": "prediction-00024",
+          "score": 0.576622807,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            60.0,
+            57.0,
+            77.0,
+            74.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 232,
+          "object_id": "prediction-00025",
+          "score": 0.6167766936,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            35.0,
+            58.0,
+            53.0,
+            76.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 246,
+          "object_id": "prediction-00026",
+          "score": 0.6631577462,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            86.0,
+            58.0,
+            101.0,
+            73.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 179,
+          "object_id": "prediction-00027",
+          "score": 0.5637200497,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            161.0,
+            58.0,
+            177.0,
+            73.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 183,
+          "object_id": "prediction-00028",
+          "score": 0.6616530055,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            188.0,
+            58.0,
+            204.0,
+            74.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 196,
+          "object_id": "prediction-00029",
+          "score": 0.579942602,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            111.0,
+            59.0,
+            126.0,
+            74.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 184,
+          "object_id": "prediction-00030",
+          "score": 0.5992892512,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            238.0,
+            59.0,
+            252.0,
+            72.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 147,
+          "object_id": "prediction-00031",
+          "score": 0.5469976452,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            287.0,
+            59.0,
+            303.0,
+            75.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 199,
+          "object_id": "prediction-00032",
+          "score": 0.5882262877,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            12.0,
+            60.0,
+            26.0,
+            73.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 145,
+          "object_id": "prediction-00033",
+          "score": 0.5951596249,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            138.0,
+            60.0,
+            152.0,
+            74.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 158,
+          "object_id": "prediction-00034",
+          "score": 0.6411295531,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            60.0,
+            228.0,
+            75.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 190,
+          "object_id": "prediction-00035",
+          "score": 0.5632017544,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            261.0,
+            60.0,
+            277.0,
+            75.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 188,
+          "object_id": "prediction-00036",
+          "score": 0.5805031028,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            80.0,
+            128.0,
+            96.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 196,
+          "object_id": "prediction-00037",
+          "score": 0.5562181122,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            60.0,
+            81.0,
+            77.0,
+            99.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 244,
+          "object_id": "prediction-00038",
+          "score": 0.5786881898,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            211.0,
+            81.0,
+            228.0,
+            99.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 243,
+          "object_id": "prediction-00039",
+          "score": 0.5907422537,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            286.0,
+            81.0,
+            301.0,
+            97.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 192,
+          "object_id": "prediction-00040",
+          "score": 0.654140625,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            36.0,
+            82.0,
+            54.0,
+            98.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 230,
+          "object_id": "prediction-00041",
+          "score": 0.6499396135,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            88.0,
+            82.0,
+            103.0,
+            97.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 177,
+          "object_id": "prediction-00042",
+          "score": 0.6319096045,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            136.0,
+            82.0,
+            154.0,
+            100.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 253,
+          "object_id": "prediction-00043",
+          "score": 0.5332232348,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            82.0,
+            203.0,
+            99.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 231,
+          "object_id": "prediction-00044",
+          "score": 0.6243366999,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            237.0,
+            82.0,
+            253.0,
+            98.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 205,
+          "object_id": "prediction-00045",
+          "score": 0.6733269817,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            162.0,
+            83.0,
+            178.0,
+            98.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 178,
+          "object_id": "prediction-00046",
+          "score": 0.5528277154,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            262.0,
+            83.0,
+            280.0,
+            99.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 222,
+          "object_id": "prediction-00047",
+          "score": 0.5740990991,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            11.0,
+            84.0,
+            26.0,
+            98.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 162,
+          "object_id": "prediction-00048",
+          "score": 0.6121175044,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            10.0,
+            103.0,
+            27.0,
+            121.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 243,
+          "object_id": "prediction-00049",
+          "score": 0.5554284677,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            36.0,
+            103.0,
+            51.0,
+            119.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 183,
+          "object_id": "prediction-00050",
+          "score": 0.5191666667,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            162.0,
+            103.0,
+            179.0,
+            120.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 230,
+          "object_id": "prediction-00051",
+          "score": 0.5694684632,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            87.0,
+            104.0,
+            105.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 245,
+          "object_id": "prediction-00052",
+          "score": 0.5648570169,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            237.0,
+            104.0,
+            253.0,
+            120.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 208,
+          "object_id": "prediction-00053",
+          "score": 0.5765324519,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            287.0,
+            104.0,
+            302.0,
+            119.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 161,
+          "object_id": "prediction-00054",
+          "score": 0.6022726018,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            63.0,
+            105.0,
+            80.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 222,
+          "object_id": "prediction-00055",
+          "score": 0.6047593441,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            185.0,
+            105.0,
+            203.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 243,
+          "object_id": "prediction-00056",
+          "score": 0.5855982208,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            105.0,
+            228.0,
+            120.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 192,
+          "object_id": "prediction-00057",
+          "score": 0.6440494792,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            111.0,
+            106.0,
+            127.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 201,
+          "object_id": "prediction-00058",
+          "score": 0.5826531405,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            137.0,
+            106.0,
+            152.0,
+            121.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 180,
+          "object_id": "prediction-00059",
+          "score": 0.5754166667,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            261.0,
+            106.0,
+            278.0,
+            122.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 202,
+          "object_id": "prediction-00060",
+          "score": 0.6067286692,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            161.0,
+            126.0,
+            178.0,
+            144.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 245,
+          "object_id": "prediction-00061",
+          "score": 0.6035490863,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            62.0,
+            127.0,
+            78.0,
+            142.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 189,
+          "object_id": "prediction-00062",
+          "score": 0.5752248677,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            127.0,
+            204.0,
+            144.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 233,
+          "object_id": "prediction-00063",
+          "score": 0.5277972384,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            236.0,
+            127.0,
+            254.0,
+            146.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 266,
+          "object_id": "prediction-00064",
+          "score": 0.6107482247,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            260.0,
+            127.0,
+            277.0,
+            143.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 215,
+          "object_id": "prediction-00065",
+          "score": 0.5604138167,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            38.0,
+            128.0,
+            52.0,
+            144.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 176,
+          "object_id": "prediction-00066",
+          "score": 0.6128246753,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            128.0,
+            130.0,
+            145.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 242,
+          "object_id": "prediction-00067",
+          "score": 0.5639292322,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            11.0,
+            129.0,
+            26.0,
+            143.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 172,
+          "object_id": "prediction-00068",
+          "score": 0.5434606866,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            138.0,
+            129.0,
+            152.0,
+            142.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 154,
+          "object_id": "prediction-00069",
+          "score": 0.6072177822,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            213.0,
+            129.0,
+            230.0,
+            145.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 212,
+          "object_id": "prediction-00070",
+          "score": 0.5903163152,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            286.0,
+            129.0,
+            301.0,
+            144.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 182,
+          "object_id": "prediction-00071",
+          "score": 0.6015099206,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            87.0,
+            130.0,
+            102.0,
+            145.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 181,
+          "object_id": "prediction-00072",
+          "score": 0.5534993861,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            62.0,
+            149.0,
+            79.0,
+            166.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 227,
+          "object_id": "prediction-00073",
+          "score": 0.5689601657,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            111.0,
+            150.0,
+            126.0,
+            165.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 175,
+          "object_id": "prediction-00074",
+          "score": 0.6661269841,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            136.0,
+            150.0,
+            153.0,
+            167.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 225,
+          "object_id": "prediction-00075",
+          "score": 0.6147926759,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            151.0,
+            201.0,
+            167.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 193,
+          "object_id": "prediction-00076",
+          "score": 0.6301338515,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            151.0,
+            226.0,
+            166.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 169,
+          "object_id": "prediction-00077",
+          "score": 0.5691624401,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            261.0,
+            151.0,
+            275.0,
+            166.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 171,
+          "object_id": "prediction-00078",
+          "score": 0.5644287803,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            11.0,
+            152.0,
+            27.0,
+            168.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 208,
+          "object_id": "prediction-00079",
+          "score": 0.5987079327,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            38.0,
+            152.0,
+            52.0,
+            167.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 167,
+          "object_id": "prediction-00080",
+          "score": 0.6393619903,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            89.0,
+            152.0,
+            103.0,
+            166.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 161,
+          "object_id": "prediction-00081",
+          "score": 0.5836180124,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            163.0,
+            152.0,
+            179.0,
+            168.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 184,
+          "object_id": "prediction-00082",
+          "score": 0.5744225543,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            288.0,
+            152.0,
+            303.0,
+            168.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 186,
+          "object_id": "prediction-00083",
+          "score": 0.5345026882,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            238.0,
+            153.0,
+            253.0,
+            167.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 168,
+          "object_id": "prediction-00084",
+          "score": 0.5860416667,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            36.0,
+            172.0,
+            53.0,
+            190.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 243,
+          "object_id": "prediction-00085",
+          "score": 0.6211949286,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            85.0,
+            173.0,
+            102.0,
+            191.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 234,
+          "object_id": "prediction-00086",
+          "score": 0.5593781423,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            14.0,
+            174.0,
+            28.0,
+            189.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 163,
+          "object_id": "prediction-00087",
+          "score": 0.5996782793,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            113.0,
+            174.0,
+            129.0,
+            190.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 210,
+          "object_id": "prediction-00088",
+          "score": 0.5859672619,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            137.0,
+            174.0,
+            151.0,
+            188.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 160,
+          "object_id": "prediction-00089",
+          "score": 0.5250621811,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            210.0,
+            174.0,
+            226.0,
+            191.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 212,
+          "object_id": "prediction-00090",
+          "score": 0.5514012209,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            235.0,
+            174.0,
+            252.0,
+            191.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 230,
+          "object_id": "prediction-00091",
+          "score": 0.6638434632,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            262.0,
+            174.0,
+            277.0,
+            189.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 175,
+          "object_id": "prediction-00092",
+          "score": 0.5976626984,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            63.0,
+            175.0,
+            78.0,
+            189.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 164,
+          "object_id": "prediction-00093",
+          "score": 0.4978444396,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            163.0,
+            175.0,
+            178.0,
+            191.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 190,
+          "object_id": "prediction-00094",
+          "score": 0.5387609649,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            175.0,
+            202.0,
+            190.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 188,
+          "object_id": "prediction-00095",
+          "score": 0.6029100177,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            285.0,
+            175.0,
+            302.0,
+            191.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 214,
+          "object_id": "prediction-00096",
+          "score": 0.5568272402,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            38.0,
+            196.0,
+            52.0,
+            211.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 168,
+          "object_id": "prediction-00097",
+          "score": 0.6054613095,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            262.0,
+            196.0,
+            277.0,
+            211.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 178,
+          "object_id": "prediction-00098",
+          "score": 0.562892166,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            286.0,
+            196.0,
+            302.0,
+            211.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 191,
+          "object_id": "prediction-00099",
+          "score": 0.547582897,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            14.0,
+            197.0,
+            28.0,
+            211.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 160,
+          "object_id": "prediction-00100",
+          "score": 0.5524840561,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            63.0,
+            197.0,
+            79.0,
+            213.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 200,
+          "object_id": "prediction-00101",
+          "score": 0.5873125,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            87.0,
+            197.0,
+            101.0,
+            212.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 153,
+          "object_id": "prediction-00102",
+          "score": 0.5528221289,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            163.0,
+            197.0,
+            177.0,
+            211.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 159,
+          "object_id": "prediction-00103",
+          "score": 0.5333140803,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            186.0,
+            197.0,
+            204.0,
+            215.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 256,
+          "object_id": "prediction-00104",
+          "score": 0.576261996,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            238.0,
+            197.0,
+            253.0,
+            212.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 169,
+          "object_id": "prediction-00105",
+          "score": 0.5862429323,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            136.0,
+            198.0,
+            151.0,
+            213.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 179,
+          "object_id": "prediction-00106",
+          "score": 0.5657102731,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            212.0,
+            198.0,
+            228.0,
+            214.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 209,
+          "object_id": "prediction-00107",
+          "score": 0.5417202452,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            199.0,
+            126.0,
+            213.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 162,
+          "object_id": "prediction-00108",
+          "score": 0.6848663076,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            285.0,
+            217.0,
+            303.0,
+            235.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 259,
+          "object_id": "prediction-00109",
+          "score": 0.5894132227,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            112.0,
+            218.0,
+            130.0,
+            235.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 238,
+          "object_id": "prediction-00110",
+          "score": 0.6681080766,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            263.0,
+            218.0,
+            279.0,
+            235.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 225,
+          "object_id": "prediction-00111",
+          "score": 0.6156633987,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            63.0,
+            219.0,
+            79.0,
+            235.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 209,
+          "object_id": "prediction-00112",
+          "score": 0.6269774222,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            138.0,
+            219.0,
+            154.0,
+            235.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 199,
+          "object_id": "prediction-00113",
+          "score": 0.6070076947,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            211.0,
+            219.0,
+            228.0,
+            235.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 202,
+          "object_id": "prediction-00114",
+          "score": 0.5918153029,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            86.0,
+            220.0,
+            102.0,
+            236.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 203,
+          "object_id": "prediction-00115",
+          "score": 0.5794373461,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            162.0,
+            220.0,
+            179.0,
+            238.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 233,
+          "object_id": "prediction-00116",
+          "score": 0.6547017448,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            235.0,
+            220.0,
+            252.0,
+            237.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 234,
+          "object_id": "prediction-00117",
+          "score": 0.548956947,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            188.0,
+            221.0,
+            204.0,
+            236.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 194,
+          "object_id": "prediction-00118",
+          "score": 0.6148560997,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            14.0,
+            222.0,
+            28.0,
+            236.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 164,
+          "object_id": "prediction-00119",
+          "score": 0.5445954144,
+          "score_type": "non_probability_color_shape_score"
+        },
+        {
+          "bbox_xyxy": [
+            39.0,
+            222.0,
+            53.0,
+            236.0
+          ],
+          "class_label": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "component_pixel_area": 165,
+          "object_id": "prediction-00120",
+          "score": 0.5578370439,
+          "score_type": "non_probability_color_shape_score"
+        }
+      ],
+      "image_id": "synthetic-r2-20261013-validation-0013",
+      "predicted_visible_fruit_count": 120,
+      "prediction_hash": "b1b791b08943fe1e072f8b3d5226d94dcfe371cbc9bb469f200084dd2c69772b",
+      "reason_code": null,
+      "source_asset_hash": "9cb172315b509cbe31b08391495f102056d1b4a9da3216f17f57966e28be1002",
+      "status": "ok"
+    }
+  ],
+  "model_hash": "d01257505f7b130e2e5075cad30bb1b5049764a8ba2abbe614ac52004a5f24f8",
+  "model_name": "Baseline A: deterministic RGB connected components",
+  "prediction_hash": "bcdc079320632288a5377239bff04ffab18f8473700563e004f99a84f709cb37",
+  "prediction_scope_hash": "8e3a1b03134e47627e5eb130da2407f04d9484e9e2de458166b9f128e6661078",
+  "schema_version": "blueberry-vision-predictions/2.0.0",
+  "split": "validation",
+  "split_hash": "29d06869258ae57870fa80fce9a54d6577598149292a6ed3cd1b856c2c7b50cb"
+}

@@ -1,0 +1,19 @@
+{
+  "config": {
+    "connectivity": 4,
+    "maximum_component_area_fraction": 0.9,
+    "maximum_input_pixels": 4000000,
+    "minimum_blue_over_green": 12.0,
+    "minimum_color_difference": 18.0,
+    "minimum_component_area": 12,
+    "minimum_fill_ratio": 0.12,
+    "minimum_saturation": 0.2,
+    "minimum_value": 0.12,
+    "name": "classical_rgb_components",
+    "score_type": "non_probability_color_shape_score",
+    "version": "rgb-connected-components/2.0.0"
+  },
+  "config_hash": "f3f66390ee918ea5e7e5577019e7f76632a7f00d1b6064abd62ce3fa3aaec48d",
+  "selection_policy": "PRE_REGISTERED_DEFAULTS_NO_TEST_TUNING",
+  "test_results_consumed_for_selection": false
+}
