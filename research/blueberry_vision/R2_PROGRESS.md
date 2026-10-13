@@ -19,17 +19,17 @@ BASE_MAIN_SHA=c35524174865785164fe4529f35067037ccddc2a
 | M2 | COMPLETE_PUSHED | `37f8156eebe5daa8f3f3d3bd4d9b55dd5e167ce3` |
 | M3 | COMPLETE_PUSHED | `71bfa4289f5301900c828339b20ad236e6bb3e79` |
 | M4 | COMPLETE_PUSHED | `dc6361dd25124bb4b55a3df5ffd25d52cca7a451` |
-| M5 | COMPLETE_IN_CURRENT_CHECKPOINT | resolve commit `feat(vision-r2): add independent detection counting evaluation` after this commit |
-| M6 | PENDING_CHECKPOINT | not yet a durable completed milestone |
+| M5 | COMPLETE_PUSHED | `834e98e441e45e81d1c67d0ee1149d5ef7a3d927` |
+| M6 | COMPLETE_IN_CURRENT_CHECKPOINT | resolve commit `feat(vision-r2): add visual review and experiment reports` after this commit |
 | M7 | PENDING_CHECKPOINT | not yet a durable completed milestone |
 
-Current checkpoint parent: `dc6361dd25124bb4b55a3df5ffd25d52cca7a451`. Current checkpoint SHA is deliberately not
+Current checkpoint parent: `834e98e441e45e81d1c67d0ee1149d5ef7a3d927`. Current checkpoint SHA is deliberately not
 embedded in its own commit; the next checkpoint records it and the final receipt
 supplies final HEAD. All COMPLETE_PUSHED milestones were ordinary-pushed and their
 remote HEAD checked. A local parallel module is not a completed milestone.
 
-Current stage evidence: `evidence/r2/m5_checkpoint.json`.
-Actual test stdout/exit codes are preserved there. `feat(vision-r2): add independent detection counting evaluation` is the checkpoint identity.
+Current stage evidence: `evidence/r2/m6_checkpoint.json`.
+Actual test stdout/exit codes are preserved there. `feat(vision-r2): add visual review and experiment reports` is the checkpoint identity.
 
 ## Data and boundaries
 
@@ -48,8 +48,8 @@ Fetch origin --prune, verify live branch HEAD, read this file and stage evidence
 do not reset to the instruction's old SHA or overwrite another worktree.
 Create an isolated Python3.12 environment and install
 `research/blueberry_vision/requirements-r2.txt`; do not alter production uv.lock.
-Next step: M6 commit COCO conversion, overlays and embedded offline review UI; verify actual browser controls..
-Current accepted artifact paths: research/blueberry_vision/evaluator.py, research/blueberry_vision/tests/test_r2_evaluator.py, research/blueberry_vision/cli.py, research/blueberry_vision/docs/r2_evaluation.md, research/blueberry_vision/evidence/r2/algorithm_config.json, research/blueberry_vision/evidence/r2/baseline_predictions.json, research/blueberry_vision/evidence/r2/trained_candidate_predictions.json, research/blueberry_vision/evidence/r2/baseline_metrics.json, research/blueberry_vision/evidence/r2/trained_candidate_metrics.json, research/blueberry_vision/evidence/r2/comparison.json, research/blueberry_vision/evidence/r2/baseline_validation_metrics.json, research/blueberry_vision/evidence/r2/candidate_validation_metrics.json, research/blueberry_vision/evidence/r2/baseline_test_metrics.json, research/blueberry_vision/evidence/r2/baseline_out_of_domain_metrics.json, research/blueberry_vision/evidence/r2/trained_candidate_test_metrics.json, research/blueberry_vision/evidence/r2/trained_candidate_out_of_domain_metrics.json.
+Next step: M7 full research regression/static checks, fresh 56-image run-demo, path-isolated CI, final artifacts and Draft PR..
+Current accepted artifact paths: research/blueberry_vision/annotations.py, research/blueberry_vision/report.py, research/blueberry_vision/review_ui.html, research/blueberry_vision/docs/r2_review.md, research/blueberry_vision/tests/test_r2_annotations.py, research/blueberry_vision/tests/test_r2_report.py, research/blueberry_vision/examples/r2/review, research/blueberry_vision/evidence/r2/coco_detection.json, research/blueberry_vision/evidence/r2/coco_roundtrip.json, research/blueberry_vision/evidence/r2/visual_report_manifest.json, research/blueberry_vision/evidence/r2/browser_review.json, research/blueberry_vision/evidence/r2/review_browser.png.
 Future/pending stages must run their own tests and produce commit/push checkpoints.
 Final scope: complete CLI and synthetic end-to-end results, Draft PR to main, inspect
 available exact-head CI. Ready/Merge/Tag/Release/Deploy remain unauthorized.

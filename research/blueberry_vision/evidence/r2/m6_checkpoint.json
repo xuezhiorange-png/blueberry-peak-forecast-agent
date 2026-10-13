@@ -1,0 +1,74 @@
+{
+  "branch": "research/blueberry-vision-r2-offline-detection-counting",
+  "checkpoint_parent_sha": "834e98e441e45e81d1c67d0ee1149d5ef7a3d927",
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests/test_r2_annotations.py",
+        "research/blueberry_vision/tests/test_r2_report.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": ".............................................                            [100%]\n45 passed in 0.56s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/annotations.py",
+        "research/blueberry_vision/report.py",
+        "research/blueberry_vision/tests/test_r2_annotations.py",
+        "research/blueberry_vision/tests/test_r2_report.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/annotations.py",
+        "research/blueberry_vision/report.py",
+        "research/blueberry_vision/tests/test_r2_annotations.py",
+        "research/blueberry_vision/tests/test_r2_report.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "4 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/annotations.py",
+        "research/blueberry_vision/report.py",
+        "research/blueberry_vision/tests/test_r2_annotations.py",
+        "research/blueberry_vision/tests/test_r2_report.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 4 source files\n"
+    }
+  ],
+  "facts": {
+    "annotation_tests": 45,
+    "browser_review": "PASS: actual browser 2 models/28 images/filters/GT-pred layers/draw/edit/delete/export candidate draft, immutable GT, no external requests",
+    "coco_roundtrip": "PASS",
+    "error_images": 23,
+    "overlays": 56,
+    "prediction_only_overlays": 56,
+    "report_html": "examples/r2/review/report.html"
+  },
+  "limitations": [
+    "Engineering synthetic checks only; no real orchard accuracy, kg calibration or production authorization."
+  ],
+  "milestone": "M6",
+  "recorded_at": "2026-10-13T03:16:13.966492+00:00",
+  "source_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE"
+}

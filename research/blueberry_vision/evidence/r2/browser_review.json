@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "scope": "SYNTHETIC_ONLY",
+  "browser": "Chromium; localhost response intercepted entirely by Playwright; no running server or deployment",
+  "initial_attempt": "file:// blocked by managed browser administrator policy; used in-memory localhost route",
+  "report_path": "examples/r2/review/report.html",
+  "checks": {
+    "browser_version": "154.0.8037.57",
+    "model_count": 2,
+    "image_count": 28,
+    "banner": "SYNTHETIC DEMONSTRATION \u2014 NOT REAL BLUEBERRY ACCURACY",
+    "filters": {
+      "fp": 9,
+      "fn": 9,
+      "high": 11,
+      "empty": 2,
+      "failure": 0,
+      "all": 28
+    },
+    "layer_toggles": true,
+    "draft_draw_class_export_delete": true,
+    "immutable_gt": true,
+    "draft_export_version": "candidate-draft/50c3df2a193db698",
+    "page_errors": [],
+    "unexpected_network_requests": []
+  }
+}
