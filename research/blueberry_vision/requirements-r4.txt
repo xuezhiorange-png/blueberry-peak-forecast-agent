@@ -1,0 +1,2 @@
+# No new runtime dependency; preserve versioned CPU R2/R3 environment and licenses.
+-r requirements-r3.txt

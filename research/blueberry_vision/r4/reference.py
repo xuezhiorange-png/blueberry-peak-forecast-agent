@@ -167,6 +167,15 @@ def qualify_reference(
         reasons.append("GT_MISSING")
     else:
         validate_snapshot(snapshot, image)
+        targets = [obj for obj in snapshot.get("objects") or [] if obj["disposition"] == "TARGET"]
+        if len({tuple(obj["bbox_xyxy"]) for obj in targets}) != len(targets):
+            reasons.append("DUPLICATE_TARGET_GEOMETRY")
+        if any(
+            obj["bbox_xyxy"][2] - obj["bbox_xyxy"][0] < 3
+            or obj["bbox_xyxy"][3] - obj["bbox_xyxy"][1] < 3
+            for obj in targets
+        ):
+            reasons.append("TARGET_BELOW_REGISTERED_SIZE")
         eligibility = reference_eligibility(snapshot)
         reasons.extend(eligibility["reason_codes"])
         if snapshot["review_status"] != "SEALED":
@@ -211,7 +220,14 @@ def qualify_reference(
         if (
             not roles
             or not isinstance(participants, list)
-            or not all(isinstance(row, dict) for row in participants)
+            or not all(
+                isinstance(row, dict)
+                and all(
+                    isinstance(row.get(key), str) and row[key].strip()
+                    for key in ("role", "person_id", "identity_verified_by")
+                )
+                for row in participants
+            )
             or {row.get("role") for row in participants} != roles
             or len(participants) != len(roles)
             or len({row.get("person_id") for row in participants}) != len(roles)
@@ -228,7 +244,13 @@ def qualify_reference(
         if (
             snapshot
             and basis == "INDEPENDENT_HUMAN_ADJUDICATION"
-            and all(isinstance(row, dict) for row in participants)
+            and isinstance(participants, list)
+            and all(
+                isinstance(row, dict)
+                and isinstance(row.get("role"), str)
+                and isinstance(row.get("person_id"), str)
+                for row in participants
+            )
         ):
             parents = snapshot.get("parent_snapshot_hashes", [])
             hashes = approval.get("source_annotation_hashes", [])
@@ -237,14 +259,18 @@ def qualify_reference(
                 row.get("person_id") for row in participants if row.get("role") in {"A", "B"}
             ]
             if (
-                len(hashes) != 2
+                not isinstance(hashes, list)
+                or not all(isinstance(value, str) for value in hashes)
+                or len(hashes) != 2
                 or len(set(hashes)) != 2
                 or set(hashes) != set(parents)
                 or set(ids) != set(asserted_ids)
             ):
                 reasons.append("HUMAN_SOURCE_VERSION_BINDING_MISMATCH")
         try:
-            stamp = datetime.fromisoformat(approval.get("approved_at", "").replace("Z", "+00:00"))
+            stamp = datetime.fromisoformat(
+                str(approval.get("approved_at", "")).replace("Z", "+00:00")
+            )
             if stamp.utcoffset() is None or not approval.get("approved_by"):
                 raise ValueError("APPROVAL_TIME_OR_AUTHORITY_MISSING")
         except (ValueError, TypeError):
@@ -260,7 +286,9 @@ def qualify_reference(
         if (
             evidence_root is None
             or not isinstance(documents, list)
-            or not all(isinstance(doc, dict) for doc in documents)
+            or not all(
+                isinstance(doc, dict) and isinstance(doc.get("kind"), str) for doc in documents
+            )
             or not expected_kinds <= {doc.get("kind") for doc in documents}
         ):
             reasons.append("HUMAN_EVIDENCE_DOCUMENTS_MISSING")

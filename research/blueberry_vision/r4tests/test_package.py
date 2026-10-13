@@ -1,5 +1,6 @@
 import copy
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,11 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
-def dataset():
+def dataset() -> Any:
     return read_json(ROOT / "evidence/r3/pilot_dataset_manifest.json")
 
 
-def test_all_images_full_frame_without_cherry_picking(dataset):
+def test_all_images_full_frame_without_cherry_picking(dataset: Any) -> None:
     package = build_package(dataset)
     assert len(package["images"]) == 8
     for row, image in zip(
@@ -30,32 +31,32 @@ def test_all_images_full_frame_without_cherry_picking(dataset):
 
 
 @pytest.mark.parametrize("field,value", [("SYNTHETIC", True), ("purpose", "SYNTHETIC_ENGINEERING")])
-def test_synthetic_cannot_be_real_package(dataset, field, value):
+def test_synthetic_cannot_be_real_package(dataset: Any, field: Any, value: Any) -> None:
     dataset[field] = value
     dataset = seal(dataset, "manifest_hash")
     with pytest.raises(ValueError):
         build_package(dataset)
 
 
-def test_resealed_roi_changed_after_registration_rejected(dataset):
+def test_resealed_roi_changed_after_registration_rejected(dataset: Any) -> None:
     p = build_package(dataset)
     p["images"][0]["roi_xyxy"][0] = 10
     with pytest.raises(ValueError, match="PACKAGE_REGISTRATION_MISMATCH"):
         validate_package(seal(p, "package_hash"), dataset)
 
 
-def test_license_source_unauthorized(dataset):
+def test_license_source_unauthorized(dataset: Any) -> None:
     dataset["sources"][0]["research_use"] = False
     with pytest.raises(ValueError):
         build_package(seal(dataset, "manifest_hash"))
 
 
-def test_whole_image_projection_preserves_boxes():
+def test_whole_image_projection_preserves_boxes() -> None:
     boxes = [{"bbox_xyxy": [2, 3, 8, 9], "object_id": "x"}]
     assert project_boxes(boxes, [0, 0, 10, 10]) == boxes
 
 
-def test_roi_centroid_half_open_and_clipping_golden():
+def test_roi_centroid_half_open_and_clipping_golden() -> None:
     boxes = [
         {"bbox_xyxy": [0, 0, 8, 8], "object_id": "in"},
         {"bbox_xyxy": [8, 0, 12, 4], "object_id": "out"},
@@ -66,12 +67,12 @@ def test_roi_centroid_half_open_and_clipping_golden():
 
 
 @pytest.mark.parametrize("roi", [[0, 0, 0, 4], [0, 0, float("nan"), 5], [0, 0, 5], [True, 0, 5, 5]])
-def test_bad_roi(roi):
+def test_bad_roi(roi: Any) -> None:
     with pytest.raises(ValueError, match="ROI_INVALID"):
         project_boxes([], roi)
 
 
-def test_package_hash_tampering(dataset):
+def test_package_hash_tampering(dataset: Any) -> None:
     p = copy.deepcopy(build_package(dataset))
     p["images"][0]["source_asset_hash"] = "0" * 64
     with pytest.raises(ValueError, match="PACKAGE_HASH_INVALID"):

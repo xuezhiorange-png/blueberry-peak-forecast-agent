@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Any
 
 import pytest
 
@@ -8,7 +9,9 @@ from research.blueberry_vision.r4.package import build_package, clean_editor
 
 @pytest.mark.parametrize("slot", ["A", "B"])
 @pytest.mark.parametrize("preview_only", [True, False])
-def test_editor_never_supplies_model_answers(public_preview, tmp_path, slot, preview_only):
+def test_editor_never_supplies_model_answers(
+    public_preview: Any, tmp_path: Any, slot: Any, preview_only: Any
+) -> None:
     dataset, root = public_preview
     package = build_package(dataset)
     output = tmp_path / "editor.html"

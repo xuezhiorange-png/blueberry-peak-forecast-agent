@@ -1,0 +1,35 @@
+{
+  "actual_full_resolution_browser": "browser_full_resolution.json",
+  "base_main_at_start": "c35524174865785164fe4529f35067037ccddc2a",
+  "ci": "WAIT_FOR_CURRENT_CHECKPOINT_PUSH_DRAFT_PR_EXACT_HEAD",
+  "company_orchard_accuracy_validated": false,
+  "current_season_actual_read": false,
+  "default_acceptance_tests": "701 passed in22.17s",
+  "format": "PASS",
+  "live_main_at_final_audit": "9b894b66a018c78de11bf01de4cc1daa3408db40",
+  "local_engineering_acceptance": "PASS",
+  "main_advanced_by_other_task": true,
+  "mypy": "PASS63sourcefiles",
+  "original_r1_r2_r3_files_unchanged": true,
+  "production_vision_approved": false,
+  "qualified_gt_available": false,
+  "r3_artifact_verification": {
+    "artifact_manifest_hash": "b03ff5291587ea214175295d6a33ab966eedd0ba3ac2b522be70957b3952b4aa",
+    "declared_count": 86,
+    "failures": [],
+    "scope": "DECLARED_FILES_ONLY",
+    "valid": true,
+    "verified_count": 86
+  },
+  "real_evaluation_complete": false,
+  "ruff": "PASS",
+  "source_r3_head": "b0b6f8c9e368317af8cd927db701315b6c961317",
+  "task_result": "PARTIAL",
+  "tests": {
+    "new": 67,
+    "original": 634,
+    "passed": 701,
+    "skipped": 0
+  },
+  "visual_count_to_kg_calibrated": false
+}

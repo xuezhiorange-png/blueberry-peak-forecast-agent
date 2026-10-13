@@ -1,0 +1,29 @@
+{
+  "company_orchard_accuracy_validated": false,
+  "count_to_kg_calibrated": false,
+  "current_season_actual_read": false,
+  "engineering_integrity": "PASS",
+  "human_reviews_completed": 0,
+  "production_vision_approved": false,
+  "qualified_gt_available": false,
+  "r2_artifacts_exit_code": 0,
+  "r3_artifacts_valid": true,
+  "real_evaluation_complete": false,
+  "real_image_count": 8,
+  "real_metrics_status": "NOT_EVALUABLE",
+  "recovered_original_predictions": [
+    {
+      "canonical_hash": "60cb65963dcd555aa1b23c4fd49e178fdb4bcabb36fbd443a736a4da39200bbb",
+      "file_sha256": "de197b9b02752ba58d391a326847cdb8aae26b95907cb12a34717ed1a83dd12c",
+      "model": "A"
+    },
+    {
+      "canonical_hash": "2eeb5134d8ff28dbc1bc9537c4b83b5f56b8cd2831c16f0c85ffdf7fab28a92d",
+      "file_sha256": "55ab05614192b2eec106062e9dd8e267f12bbd924e7277ef9911d99cd542cbd8",
+      "model": "B"
+    }
+  ],
+  "reference_hash": null,
+  "task_result": "PARTIAL",
+  "unscorable_images": 8
+}

@@ -1,0 +1,11 @@
+{
+  "actual_chromium_executed": true,
+  "full_resolution_raw_view": true,
+  "original_resolution_backing_canvas": true,
+  "one_to_one_display_ratio": 1,
+  "fit_toggle_passed": true,
+  "images": 8,
+  "page_errors": [],
+  "human_annotation_completed": false,
+  "qualified_gt_created": false
+}

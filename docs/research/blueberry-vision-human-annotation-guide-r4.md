@@ -28,11 +28,13 @@ r4-visible-single-berry-research/1.0.0，通过work_package_binding绑定，不�
 3. 分别New empty draft，按实际全图逐果绘框，可移动/缩放/删除/改候选类别和disposition。
    逐图检查全部区域后选择COMPLETE；真正空图才显式EMPTY_VERIFIED。
    不完整图仍UNANNOTATED；不得由导入工具补零。
-4. 输入真实操作人员ID只代表self-asserted，工具没有账号认证。Export new draft + history
+4. 使用1:1 / Fit inspection查看完整分辨率细节；完成每张图后先导出，再切换图片。
+   没有云端自动保存，不能把低分辨率预览当作完成全图审查。
+5. 输入真实操作人员ID只代表self-asserted，工具没有账号认证。Export new draft + history
    保存新文件；编辑不覆盖原GT。COCO可候选导出，主交付是含task/guide绑定的snapshot bundle。
-5. A/B独立提交；Owner保留原文件hash、时间、任务来源和独立性证据，再调用R4导入/QC。
+6. A/B独立提交；Owner保留原文件hash、时间、任务来源和独立性证据，再调用R4导入/QC。
    不要把机器模拟的测试文件、Codex/LLM绘框或browser工程检查当真实人工结果。
-6. 仲裁者复核分歧；R3原状态机DRAFT→SUBMITTED→REVIEW_PENDING→ADJUDICATED→SEALED。
+7. 仲裁者复核分歧；R3原状态机DRAFT→SUBMITTED→REVIEW_PENDING→ADJUDICATED→SEALED。
    原A/B不可变；新参考版本需绑定两份来源hash、身份/方法核验、实际批准依据。
 
 Git公开clean_annotation_preview.html仅320px**预览**，不是有效标注来源；它的导出
