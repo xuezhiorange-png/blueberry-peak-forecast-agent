@@ -1,0 +1,15 @@
+{
+  "config": {
+    "connectivity": 4,
+    "maximum_component_area_fraction": 0.9,
+    "maximum_input_pixels": 4000000,
+    "minimum_component_area": 12,
+    "minimum_fill_ratio": 0.12,
+    "probability_threshold": 0.5,
+    "score_type": "uncalibrated_pixel_probability_shape_score",
+    "version": "numpy-logistic-pixel/2.0.0"
+  },
+  "config_hash": "7baf41e9a2453afd92a9beba020269a75a7620c669948b8a864ade2c546d81fe",
+  "selection_policy": "PRE_REGISTERED_DEFAULTS_NO_TEST_TUNING",
+  "test_results_consumed_for_selection": false
+}

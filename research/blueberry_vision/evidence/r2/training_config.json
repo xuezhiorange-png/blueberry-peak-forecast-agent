@@ -1,0 +1,13 @@
+{
+  "feature_version": "normalized-rgb-polynomial/2.0.0",
+  "iterations": 80,
+  "l2_penalty": 0.001,
+  "learning_rate": 0.15,
+  "maximum_input_pixels": 4000000,
+  "maximum_training_samples": 250000,
+  "samples_per_image": 1200,
+  "sampling": "balanced_per_image_without_replacement",
+  "seed": 20261013,
+  "source_scope": "synthetic_train_only",
+  "version": "numpy-logistic-pixel/2.0.0"
+}
