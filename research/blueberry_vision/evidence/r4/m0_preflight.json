@@ -1,0 +1,62 @@
+{
+  "base_main": "c35524174865785164fe4529f35067037ccddc2a",
+  "candidate_boxes": 100,
+  "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+  "inherited_inventory_hash": "a86e028a596c109fae931b4d6f20b3786d515389634dee43d55e502ee89152df",
+  "inherited_tracked_files": 3697,
+  "manual_damage_regions": 500,
+  "network_policy": "unrestricted/enforced",
+  "parents": [
+    {
+      "baseRefName": "main",
+      "headRefOid": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+      "isDraft": true,
+      "number": 719,
+      "state": "OPEN"
+    },
+    {
+      "baseRefName": "research/blueberry-vision-r2-offline-detection-counting",
+      "headRefOid": "b0b6f8c9e368317af8cd927db701315b6c961317",
+      "isDraft": true,
+      "number": 720,
+      "state": "OPEN"
+    }
+  ],
+  "prediction_checks": [
+    {
+      "model": "A",
+      "prediction_hash": "60cb65963dcd555aa1b23c4fd49e178fdb4bcabb36fbd443a736a4da39200bbb",
+      "prediction_hash_matches": true,
+      "raw_file_sha_matches": true
+    },
+    {
+      "model": "B",
+      "prediction_hash": "2eeb5134d8ff28dbc1bc9537c4b83b5f56b8cd2831c16f0c85ffdf7fab28a92d",
+      "prediction_hash_matches": true,
+      "raw_file_sha_matches": true
+    }
+  ],
+  "private_data_read": false,
+  "qualified_gt_images": 0,
+  "r3_artifacts": {
+    "artifact_manifest_hash": "b03ff5291587ea214175295d6a33ab966eedd0ba3ac2b522be70957b3952b4aa",
+    "declared_count": 86,
+    "failures": [],
+    "scope": "DECLARED_FILES_ONLY",
+    "valid": true,
+    "verified_count": 86
+  },
+  "reviewed_assets": [
+    "data_source_registry.json",
+    "source_registry_supplement_v2.json",
+    "pilot_source_index.json",
+    "publisher_candidate_annotations.json",
+    "publisher_annotation_provenance_audit.json",
+    "pilot_test_seal.json",
+    "exposure_ledgers.json",
+    "examples/r3/real_review.html"
+  ],
+  "semi_auto_polygons": 675,
+  "source_head": "b0b6f8c9e368317af8cd927db701315b6c961317",
+  "workspace_clean_before_r4": true
+}
