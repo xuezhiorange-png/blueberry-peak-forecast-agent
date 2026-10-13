@@ -19,3 +19,10 @@ Current data: 8 authorized public real images, zero qualified GT, no real metric
 No human reviewers assigned. No production/actual/Harvest State/parent PR changes.
 Each stage ordinary commit/push/remote verification; own commit hash is supplied by
 next checkpoint and final receipt, never self-embedded. Resume from fetched R4 HEAD.
+
+M0 commit b1a5deddf0cd111a7d5f23701ec90928abb92684 pushed, remote verified.
+M1 complete in current checkpoint:8 dataset reviews; fresh official NC legalcode,
+DCM license/publisher methodology; nine actual source-gate tests passed. No restricted
+images/labels downloaded. Rights-holder request drafted, NOT SENT. BerryMachine is
+a genuine new CC BY4 candidate requiring method/species review, not admitted GT.
+Next M2: all8 full-frame A/B clean task packages, no model answers or source drafts.

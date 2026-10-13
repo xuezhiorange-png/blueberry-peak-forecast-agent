@@ -1,0 +1,249 @@
+{
+  "files": [
+    {
+      "byte_size": 387010395,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-03T07:00:32Z",
+        "value": "401a46a3338c81b57be8e0e7a66530c1b87c21e40ca826b72431e2aea39b1c0d"
+      },
+      "file_name": "synthetic.zip",
+      "file_path": "/640x640 Images with VOC annotations/synthetic.zip",
+      "identifier": "62ea1cff129f5921638099f64689783",
+      "open_access": true
+    },
+    {
+      "byte_size": 456748161,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-03T07:00:32Z",
+        "value": "e00d34cd6d68e38e83f94c6c854e141493537c1d3482a533c65efc6e54ba1c66"
+      },
+      "file_name": "additions.zip",
+      "file_path": "/640x640 Images with VOC annotations/additions.zip",
+      "identifier": "62ea1cff1094c340337686f64689529",
+      "open_access": true
+    },
+    {
+      "byte_size": 2233417411,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-03T07:00:32Z",
+        "value": "0c7425a0000150ff9ee344acc6e219408afbb2f01d5bd871fc30c57b4349853e"
+      },
+      "file_name": "main.zip",
+      "file_path": "/640x640 Images with VOC annotations/main.zip",
+      "identifier": "62ea1cff11d3a326085782f64689744",
+      "open_access": true
+    },
+    {
+      "byte_size": 675249,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:08:15Z",
+        "value": "726f8ebe76839defa6a3e13b7e84f40089601b60e17bc5e45eb7322abeada6f7"
+      },
+      "file_name": "frames.csv",
+      "file_path": "/Datatables/frames.csv",
+      "identifier": "62fe39baba0ec789036365f64977233",
+      "open_access": true
+    },
+    {
+      "byte_size": 2047921,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:08:15Z",
+        "value": "edd62db86c00620351d313683badf92e60216014f5fd4156332eb9b1f4401e62"
+      },
+      "file_name": "images.csv",
+      "file_path": "/Datatables/images.csv",
+      "identifier": "62fe39babb183612038757f64977234",
+      "open_access": true
+    },
+    {
+      "byte_size": 97120567,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:08:15Z",
+        "value": "04ecefacd51be11f9e7269eceac3275ead404a7cbd69b22dbd836a902fb91813"
+      },
+      "file_name": "predictions.csv",
+      "file_path": "/Datatables/predictions.csv",
+      "identifier": "62fe39babbeeb535949510f64977245",
+      "open_access": true
+    },
+    {
+      "byte_size": 687576965,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "8721af7255f56985a8c16f07c90ae258afb0dbf57fe129d1b56f4dba37e66211"
+      },
+      "file_name": "additions_640_images.zip",
+      "file_path": "/Original/additions_640_images.zip",
+      "identifier": "62fe39cdcc1e3909028664f64690541",
+      "open_access": true
+    },
+    {
+      "byte_size": 2278642,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "98b6342c39f7dee27807c8f305c89a344890d48cb6c5704523d068794ebe3d60"
+      },
+      "file_name": "coco_annotations_6_classes_additions_640_images.json",
+      "file_path": "/Original/coco_annotations_6_classes_additions_640_images.json",
+      "identifier": "62fe39cdcd3cc335375221f64690470",
+      "open_access": true
+    },
+    {
+      "byte_size": 1385112,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "2ccbd8d120bf2b8f30641d8db8b0e4a87034e63a927ceb990677d1d8d9dde599"
+      },
+      "file_name": "coco_annotations_6_classes_main_images_full_size.json",
+      "file_path": "/Original/coco_annotations_6_classes_main_images_full_size.json",
+      "identifier": "62fe39cdce276435806366f64690542",
+      "open_access": true
+    },
+    {
+      "byte_size": 15184196,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "fd54e262891d9da16422b706ef8cf8e0eb872679d153ab4cf15b223522466f48"
+      },
+      "file_name": "coco_annotations_9_classes_main_images_full_size.json",
+      "file_path": "/Original/coco_annotations_9_classes_main_images_full_size.json",
+      "identifier": "62fe39cdceda5780175723f64690473",
+      "open_access": true
+    },
+    {
+      "byte_size": 3940904,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "49347c83f50a9845b6f33f56f3040c6b599628caf1f8e252a81d2aec2f6ad7ce"
+      },
+      "file_name": "coco_annotations_frame_main_images_full_size.json",
+      "file_path": "/Original/coco_annotations_frame_main_images_full_size.json",
+      "identifier": "62fe39cdcf965556790602f64977224",
+      "open_access": true
+    },
+    {
+      "byte_size": 11707381810,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "c36cbbe0230d1595fc63b296980f135638079c51077dc3727a43ca1bfe791cc2"
+      },
+      "file_name": "main_images_full_size_1of8.zip",
+      "file_path": "/Original/main_images_full_size_1of8.zip",
+      "identifier": "62fe39cdd0855080827468f64843778",
+      "open_access": true
+    },
+    {
+      "byte_size": 11758204387,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "28d15986f82a5a4248d8b788231df22805e99199f124648074721dcdc250b7b9"
+      },
+      "file_name": "main_images_full_size_2of8.zip",
+      "file_path": "/Original/main_images_full_size_2of8.zip",
+      "identifier": "62fe39cdd14fa187176695f64850067",
+      "open_access": true
+    },
+    {
+      "byte_size": 12503322595,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "d60eadbb1f76c1b6065dec8fd99f2a86185ea99df5761eae68014d127185e752"
+      },
+      "file_name": "main_images_full_size_3of8.zip",
+      "file_path": "/Original/main_images_full_size_3of8.zip",
+      "identifier": "62fe39cdd2143603570745f64866311",
+      "open_access": true
+    },
+    {
+      "byte_size": 11739676413,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "ce7a1c33c88ca4f86641b2aba93020ec96dd172a97e6da363d3b5de036878de2"
+      },
+      "file_name": "main_images_full_size_4of8.zip",
+      "file_path": "/Original/main_images_full_size_4of8.zip",
+      "identifier": "62fe39cdd2c94087433310f64871596",
+      "open_access": true
+    },
+    {
+      "byte_size": 10245284924,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "d7c28abc558139db14384d689cb3f0ebbf6e3e363a6c0d9c2c2281fc6d0773c8"
+      },
+      "file_name": "main_images_full_size_5of8.zip",
+      "file_path": "/Original/main_images_full_size_5of8.zip",
+      "identifier": "62fe39cdd372b871991367f64882743",
+      "open_access": true
+    },
+    {
+      "byte_size": 9378909573,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "895b6b420acc6ad6ca83c0b0aa80c4bb9a33242cc17967e4c765cabc9a4f6018"
+      },
+      "file_name": "main_images_full_size_6of8.zip",
+      "file_path": "/Original/main_images_full_size_6of8.zip",
+      "identifier": "62fe39cdd428d468010278f64894267",
+      "open_access": true
+    },
+    {
+      "byte_size": 9720479980,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "6f15854c8122cd329f5aeea7201f322d729b446689f29e3e6512461872f7ee07"
+      },
+      "file_name": "main_images_full_size_7of8.zip",
+      "file_path": "/Original/main_images_full_size_7of8.zip",
+      "identifier": "62fe39cdd4f49177078369f64894268",
+      "open_access": true
+    },
+    {
+      "byte_size": 6753508642,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:13:20Z",
+        "value": "ae30bf1ca229f392773f46cfe674c661dfa90efa4bf414ce74f64a5e1ba2c86b"
+      },
+      "file_name": "main_images_full_size_8of8.zip",
+      "file_path": "/Original/main_images_full_size_8of8.zip",
+      "identifier": "62fe39cdd5b10062536965f64895108",
+      "open_access": true
+    },
+    {
+      "byte_size": 8441,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "checked": "2022-08-18T13:19:19Z",
+        "value": "08c31f8b2e1e370876b9c316bfb3d9e150045f7cc140550cbe1f7a33cbf4f8f5"
+      },
+      "file_name": "README.md",
+      "file_path": "/README.md",
+      "identifier": "62fe3c5604d8c737955432f64977247",
+      "open_access": true
+    }
+  ],
+  "human_annotation_method_status": "NOT_VERIFIED",
+  "no_images_or_annotation_files_downloaded": true,
+  "response_sha256": "f867033e54183d789c00f5c0af011f91803edc4bf24d1984b300f73f9ccda8f1",
+  "source_url": "https://metax.fairdata.fi/rest/v2/datasets/8ef7c84b-873d-40bc-8670-0c6994b31cc2/files",
+  "species": "Vaccinium myrtillus and Vaccinium vitis-idaea; cultivar mapping unconfirmed"
+}

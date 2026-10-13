@@ -1,0 +1,305 @@
+{
+  "blueberry_dcm_license_object": "Zenodo dataset record:140images and released annotations; code repository does not replace data license.",
+  "company_association_not_resolved_by_word_research": true,
+  "existing_authorized_images": 8,
+  "license_terms": "Section2(a)(1):reproduce/share material and adapted material for NonCommercial purposes only;Section3 attribution and change indications.",
+  "network_receipts": [
+    {
+      "sha256": "36abdd68018b1de539a6f169ce20bb569e9c8e44edcbfedf568165b733cae357",
+      "url": "https://zenodo.org/api/records/14002517"
+    },
+    {
+      "error": "HTTP Error 503: Service Unavailable",
+      "url": "https://zenodo.org/api/records/6450413"
+    },
+    {
+      "error": "HTTP Error 503: Service Unavailable",
+      "url": "https://zenodo.org/api/records/22148787"
+    },
+    {
+      "error": "HTTP Error 403: Forbidden",
+      "url": "https://creativecommons.org/licenses/by-nc/4.0/legalcode.en"
+    },
+    {
+      "sha256": "5360483f3c9d2d3a12bdde28001bb1c4e11f5b7ef65cea0a7975967328516110",
+      "url": "https://zenodo.org/api/records?q=blueberry%20manual%20annotation&size=15"
+    },
+    {
+      "sha256": "72831961b2dfe1cf50f3deee51c4f00ae9de1506f847a4a9658ce67f5e6fa44b",
+      "url": "https://api.figshare.com/v2/articles/29222462"
+    },
+    {
+      "bytes": 35271,
+      "sha256": "3f69255e6550c75072122fe7b143143154bf31703cca14fd23e444bfaf12687c",
+      "url": "https://creativecommons.org/licenses/by-nc/4.0/"
+    },
+    {
+      "bytes": 49995,
+      "sha256": "3307f50ad87c95b551b6a9c4e30c7fc4408f15e5b0e957542b2883f24df74474",
+      "url": "https://creativecommons.org/licenses/by-nc/4.0/legalcode"
+    },
+    {
+      "bytes": 4109,
+      "sha256": "4fb6b3384c2bcb0596b1f55ff410cc2955d7469393c21177a9c1e2c7d52d7da2",
+      "url": "https://zenodo.org/api/records/6450413"
+    },
+    {
+      "bytes": 4802,
+      "sha256": "840bce67e41301534a4c6d80d6ffa72270a9f77763056c4b52631e9aed2c58c8",
+      "url": "https://zenodo.org/api/records/22148787"
+    },
+    {
+      "error": "HTTP Error 503: Service Unavailable",
+      "url": "https://zenodo.org/api/records?q=title%3Ablueberry&size=30"
+    },
+    {
+      "bytes": 24963,
+      "sha256": "3923badf4a41bb6e47314627b4066ffc022eca106575b13c9cdf71efeca00c9c",
+      "url": "https://api.datacite.org/dois?query=blueberry%20bounding%20box&page[size]=15"
+    },
+    {
+      "bytes": 4294,
+      "sha256": "9929e6a60f9178bbf8a62fe88347585596ce3c947b9816a46f672917eee7bf4b",
+      "url": "https://api.github.com/repos/vicdxxx/BlueberryDetectionAndCounting/contents"
+    },
+    {
+      "sha256": "13eaa77f0dff36e2cec51f08eeacbcf271d3e20730c21bcd187a59f29cb84c91",
+      "url": "https://zenodo.org/api/records/6324489"
+    },
+    {
+      "sha256": "d0b5643518bd9a86843017aff8638376f61de6bb122248b59dff40ca83e42190",
+      "url": "https://zenodo.org/api/records/7813238"
+    },
+    {
+      "sha256": "755e46c5793bec70a9587ee8f971a711ed2f1e0f43f2d23dc8283e1231f3f58e",
+      "url": "https://api.datacite.org/dois?query=blueberry%20annotation&page[size]=30"
+    },
+    {
+      "error": "HTTP Error 400: Bad Request",
+      "url": "https://zenodo.org/api/records?q=%2Btitle%3Ablueberry&size=30"
+    },
+    {
+      "sha256": "cc6a58d06a40980411c9188b5dc8cae233d420f0e60119173cea9ba9f6998ea8",
+      "url": "https://raw.githubusercontent.com/vicdxxx/BlueberryDetectionAndCounting/main/README.md"
+    },
+    {
+      "sha256": "acb1b71b078740f52e447e97097e74206a8254dac12add00d366354cf401eb62",
+      "url": "https://zenodo.org/api/records/22026942"
+    },
+    {
+      "sha256": "7e1985737c08a6c0c1336aa3ddfd18612b88e2a616c9f4ebfdd009b081138ef2",
+      "url": "https://api.datacite.org/dois/10.23729/02620e31-a7d0-45f6-b1d4-a159a97c1841"
+    }
+  ],
+  "noncommercial_definition": "not primarily intended for or directed towards commercial advantage or monetary compensation",
+  "official_legalcode_sha256": "3307f50ad87c95b551b6a9c4e30c7fc4408f15e5b0e957542b2883f24df74474",
+  "official_legalcode_url": "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
+  "purpose": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH",
+  "qualified_gt_images": 0,
+  "registry_hash": "dcbce54de9e0a9ecbf37c552cf0a64ca5789eebd385872ee8cefa1de4c08087e",
+  "remaining_candidate": "BerryMachine CC BY4 VOC/COCO human provenance and taxon need further verification.",
+  "restricted_dataset_downloaded": false,
+  "search_scope": "Official Zenodo/DataCite/Figshare/Fairdata metadata; not an exhaustive world search.",
+  "sources": [
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": 140,
+      "images_downloaded_r4": 0,
+      "label_review": "Publisher describes VIA2.0.12 manual per-fruit Blue/Unblue visible/occluded boxes.",
+      "license_id": "CC-BY-NC-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "name": "BlueberryDCM",
+      "object_count_publisher": 17955,
+      "official_url": "https://zenodo.org/records/14002517",
+      "qualified_gt": false,
+      "reason_codes": [
+        "COMPANY_NONCOMMERCIAL_SCOPE_UNRESOLVED"
+      ],
+      "research_use": false,
+      "use_admission": {
+        "eligible": false,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [
+          "RESEARCH_USE_NOT_AUTHORIZED",
+          "COMPANY_NONCOMMERCIAL_SCOPE_UNRESOLVED"
+        ],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": 114,
+      "images_downloaded_r4": 0,
+      "label_review": "675 semi-auto berry polygons;500 manual damage-region boxes are a different target.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Blueberry Quality",
+      "object_count_publisher": 675,
+      "official_url": "https://zenodo.org/records/22148787",
+      "qualified_gt": false,
+      "reason_codes": [
+        "REFERENCE_HUMAN_REVIEW_MISSING_OR_TARGET_MISMATCH"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": 1195,
+      "images_downloaded_r4": 0,
+      "label_review": "Published manual process, released binary union masks;R3 audited release lacks per-fruit identity.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "AgriVision",
+      "object_count_publisher": null,
+      "official_url": "https://springernature.figshare.com/articles/dataset/29222462",
+      "qualified_gt": false,
+      "reason_codes": [
+        "PER_FRUIT_GT_NOT_RECONSTRUCTIBLE_FROM_UNION_MASK"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": 2000,
+      "images_downloaded_r4": 0,
+      "label_review": "Boxes are Bush/Pole, not individual berries.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "FlexiGroBots",
+      "object_count_publisher": null,
+      "official_url": "https://zenodo.org/records/7813238",
+      "qualified_gt": false,
+      "reason_codes": [
+        "ANNOTATION_TARGET_MISMATCH"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": null,
+      "images_downloaded_r4": 0,
+      "label_review": "RGB/tactile/kinematic robot demonstrations; no documented single-fruit human GT.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "CRISP BlueBerry",
+      "object_count_publisher": null,
+      "official_url": "https://zenodo.org/records/6450413",
+      "qualified_gt": false,
+      "reason_codes": [
+        "PER_FRUIT_HUMAN_GT_NOT_DOCUMENTED"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": null,
+      "images_downloaded_r4": 0,
+      "label_review": "Source describes sweetpepper/NIR scenes/satellite imagery, not berry GT.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "deepNIR",
+      "object_count_publisher": null,
+      "official_url": "https://zenodo.org/records/6324489",
+      "qualified_gt": false,
+      "reason_codes": [
+        "SPECIES_TARGET_MISMATCH"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": null,
+      "images_downloaded_r4": 0,
+      "label_review": "Software archive MIT; original MegaBlueberry/MegaPeach data and private annotations expressly excluded.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Label-efficient Blueberry software",
+      "object_count_publisher": null,
+      "official_url": "https://zenodo.org/records/22026942",
+      "qualified_gt": false,
+      "reason_codes": [
+        "SOFTWARE_LICENSE_NOT_IMAGE_AUTHORITY"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    },
+    {
+      "gt_admission": "BLOCKED",
+      "image_count_publisher": null,
+      "images_downloaded_r4": 0,
+      "label_review": "Wild Vaccinium myrtillus/bilberry and lingonberry; VOC/COCO files indexed. Need README, actual human method/target mapping and project QC. No image/GT downloaded.",
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "name": "Berry Machine",
+      "object_count_publisher": null,
+      "official_url": "https://etsin.fairdata.fi/dataset/8ef7c84b-873d-40bc-8670-0c6994b31cc2",
+      "qualified_gt": false,
+      "reason_codes": [
+        "SPECIES_MAPPING_AND_HUMAN_METHOD_NOT_VERIFIED"
+      ],
+      "research_use": true,
+      "use_admission": {
+        "eligible": true,
+        "limitation": "No legal opinion, rights-holder waiver, or human GT authentication.",
+        "qualified_gt": false,
+        "reason_codes": [],
+        "scope": "COMPANY_ASSOCIATED_EXTERNAL_RESEARCH"
+      }
+    }
+  ],
+  "stage_tests": {
+    "command": "pytest research/blueberry_vision/r4tests/test_sources.py -q",
+    "passed": 9
+  },
+  "version": "r4-source-review/1.0"
+}
