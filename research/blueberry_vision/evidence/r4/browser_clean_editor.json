@@ -1,0 +1,12 @@
+{
+  "actual_chromium_executed": true,
+  "images": 8,
+  "model_answers_supplied": 0,
+  "model_controls_visible": false,
+  "draw_and_draft_export_passed": true,
+  "page_errors": [],
+  "operator_is_automated_engineering_check": true,
+  "human_reviews_completed": 0,
+  "qualified_gt_created": false,
+  "preview_not_valid_for_final_annotation": true
+}
