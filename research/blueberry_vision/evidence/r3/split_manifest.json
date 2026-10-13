@@ -1,0 +1,93 @@
+{
+  "SYNTHETIC": false,
+  "association_edges": [],
+  "dataset_manifest_hash": "d9ea9731b61a1ae761e27d40042f1dfe1e6a8e7cedb1bc318b3604f3837faf6e",
+  "duplicate_report_hash": "4d16cd1a5979cd6466f260578ff24910e1844ad9e95cf6574b000237b72142b7",
+  "groups": [
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "05ec7b55aae46b8459711f2b8ed3a6035d4059a97998731b2c04c059dd1caddf",
+      "image_ids": [
+        "public-commons-15928839"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "e1fdcec5c0eb6a17ef780b30d54ee2a082ac4592dbd031301414d7c69ba82676",
+      "image_ids": [
+        "public-commons-4112477"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "cfe50927f17c1e9e55c239cd26b9483111e3e581abadd6ad89376923fc3ad4fd",
+      "image_ids": [
+        "public-commons-4112528"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "ba65e6fedf302a1b43dc0952565eae51e1503484f78700842050a3952b9a6264",
+      "image_ids": [
+        "public-commons-81047629"
+      ]
+    }
+  ],
+  "holdout_verification": {
+    "cross_base": {
+      "overlap": [],
+      "reason_code": "UNKNOWN_HOLDOUT_METADATA",
+      "status": "UNVERIFIED",
+      "unknown_count": 4
+    },
+    "cross_date": {
+      "overlap": [],
+      "reason_code": "UNKNOWN_HOLDOUT_METADATA",
+      "status": "UNVERIFIED",
+      "unknown_count": 4
+    }
+  },
+  "limitations": [
+    "Declared associations and pending perceptual candidates are conservatively connected.",
+    "Undetected near duplicates and unknown metadata remain unverified.",
+    "Metadata integrity does not authenticate source identity or grant business authority."
+  ],
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "records": [
+    {
+      "asset_sha256": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "group_id": "05ec7b55aae46b8459711f2b8ed3a6035d4059a97998731b2c04c059dd1caddf",
+      "image_id": "public-commons-15928839",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "group_id": "e1fdcec5c0eb6a17ef780b30d54ee2a082ac4592dbd031301414d7c69ba82676",
+      "image_id": "public-commons-4112477",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "group_id": "cfe50927f17c1e9e55c239cd26b9483111e3e581abadd6ad89376923fc3ad4fd",
+      "image_id": "public-commons-4112528",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "group_id": "ba65e6fedf302a1b43dc0952565eae51e1503484f78700842050a3952b9a6264",
+      "image_id": "public-commons-81047629",
+      "split": "TEST"
+    }
+  ],
+  "schema_version": "blueberry-vision-split/3.0.0",
+  "split_hash": "1f7816263326412891d6f10668af575ca38a1c086af3361204c0ddf969cd173e",
+  "split_version": "commons-pilot-1"
+}

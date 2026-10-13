@@ -1,0 +1,59 @@
+{
+  "SYNTHETIC": false,
+  "config_hash": null,
+  "dataset_manifest_hash": "d9ea9731b61a1ae761e27d40042f1dfe1e6a8e7cedb1bc318b3604f3837faf6e",
+  "evaluation_protocol_hash": null,
+  "exposure_history": [],
+  "exposure_ledger_hash": null,
+  "freeze_hash": null,
+  "independent_access_control": false,
+  "limitations": [
+    "Research artifact integrity and an append-only ledger are not a production custody system.",
+    "Public reference exposure prevents any previously-unseen blind-test claim."
+  ],
+  "model_hash": null,
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "real_orchard_accuracy_approved": false,
+  "reason_codes": [
+    "CONFIG_NOT_FROZEN",
+    "GT_MISSING"
+  ],
+  "reviewer_identity_authenticated": false,
+  "schema_version": "blueberry-vision-test-seal/3.0.0",
+  "sealed_images": [
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "image_id": "public-commons-15928839",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "image_id": "public-commons-4112477",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "image_id": "public-commons-4112528",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "image_id": "public-commons-81047629",
+      "label_definition_version": null
+    }
+  ],
+  "split_hash": "1f7816263326412891d6f10668af575ca38a1c086af3361204c0ddf969cd173e",
+  "status": "NOT_EVALUABLE",
+  "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+  "test_seal_hash": "b1b5987bd587a73a057a73be1a892c06e2db5116f64ceb52184039c4bc34c71d",
+  "train_validation_scope_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "training_data_hash": null
+}
