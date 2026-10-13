@@ -1,0 +1,226 @@
+{
+  "base_main_sha": "c35524174865785164fe4529f35067037ccddc2a",
+  "branch": "research/blueberry-vision-foundation-prep-r0",
+  "change_scope_audit": {
+    "allowed_new_files_only": true,
+    "changed_files": [
+      "docs/research/blueberry-vision-algorithm-research-r1.md",
+      "docs/research/blueberry-vision-data-contract-r1.md",
+      "docs/research/blueberry-vision-existing-capabilities-r1.md",
+      "docs/research/blueberry-vision-experiment-protocol-r1.md",
+      "docs/research/blueberry-vision-foundation-engineering-preparation-r1.md",
+      "research/blueberry_vision/README.md",
+      "research/blueberry_vision/__init__.py",
+      "research/blueberry_vision/contracts.py",
+      "research/blueberry_vision/evidence/preparation_validation_r1.json",
+      "research/blueberry_vision/experiment_protocol_r1.json",
+      "research/blueberry_vision/fixtures/synthetic_manifest.json",
+      "research/blueberry_vision/generate_artifacts.py",
+      "research/blueberry_vision/schemas/vision_manifest.schema.json",
+      "research/blueberry_vision/schemas/vision_observation.schema.json",
+      "research/blueberry_vision/tests/test_validator.py",
+      "research/blueberry_vision/validate_manifest.py"
+    ],
+    "existing_tracked_changes": 0,
+    "local_document_links": 52,
+    "new_files": 16,
+    "offline_artifact_hashes": 10,
+    "result": "PASS"
+  },
+  "checkout_initial_status": "CLEAN_TRACKED_AND_UNTRACKED",
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r1-venv/bin/python",
+        "-m",
+        "pytest",
+        "research/blueberry_vision/tests",
+        "-q"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "pytest",
+      "passed": true,
+      "stderr": "",
+      "stdout": ".....................................................................    [100%]\n69 passed in 1.40s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r1-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "ruff_check",
+      "passed": true,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r1-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "ruff_format_check",
+      "passed": true,
+      "stderr": "",
+      "stdout": "5 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r1-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "mypy",
+      "passed": true,
+      "stderr": "",
+      "stdout": "Success: no issues found in 5 source files\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r1-venv/bin/python",
+        "-m",
+        "research.blueberry_vision.validate_manifest",
+        "research/blueberry_vision/fixtures/synthetic_manifest.json",
+        "--mode",
+        "contract",
+        "--json"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "synthetic_contract",
+      "passed": true,
+      "stderr": "",
+      "stdout": "{\"errors\": [], \"mode\": \"contract\", \"summary\": {\"algorithm_metrics_computed\": false, \"authorization_authenticity_verified\": false, \"image_assets_verified\": false, \"image_files_present\": false, \"missing_count_records\": 1, \"near_duplicate_image_analysis_performed\": false, \"prediction_records\": 0, \"real_observation_records\": 0, \"record_count\": 5, \"splits\": {\"out_of_domain\": 1, \"test\": 1, \"train\": 1, \"unassigned\": 1, \"validation\": 1}, \"synthetic_records\": 5}, \"valid\": true}\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r1-venv/bin/python",
+        "-m",
+        "research.blueberry_vision.validate_manifest",
+        "research/blueberry_vision/fixtures/synthetic_manifest.json",
+        "--mode",
+        "experiment",
+        "--json"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "name": "synthetic_experiment_rejection",
+      "passed": true,
+      "stderr": "",
+      "stdout": "{\"errors\": [{\"code\": \"EXPERIMENT_LABEL_APPROVAL_REQUIRED\", \"path\": \"/observations/0/label_definition_version\"}, {\"code\": \"EXPERIMENT_LABEL_APPROVAL_REQUIRED\", \"path\": \"/observations/1/label_definition_version\"}, {\"code\": \"EXPERIMENT_LABEL_APPROVAL_REQUIRED\", \"path\": \"/observations/2/label_definition_version\"}, {\"code\": \"EXPERIMENT_LABEL_APPROVAL_REQUIRED\", \"path\": \"/observations/3/label_definition_version\"}, {\"code\": \"SYNTHETIC_NOT_EXPERIMENT_DATA\", \"path\": \"/SYNTHETIC\"}, {\"code\": \"EXPERIMENT_REAL_OBSERVATIONS_REQUIRED\", \"path\": \"/observations\"}, {\"code\": \"EXPERIMENT_IMAGE_ASSETS_REQUIRED\", \"path\": \"/image_files_present\"}], \"mode\": \"experiment\", \"summary\": {\"algorithm_metrics_computed\": false, \"authorization_authenticity_verified\": false, \"image_assets_verified\": false, \"image_files_present\": false, \"missing_count_records\": 1, \"near_duplicate_image_analysis_performed\": false, \"prediction_records\": 0, \"real_observation_records\": 0, \"record_count\": 5, \"splits\": {\"out_of_domain\": 1, \"test\": 1, \"train\": 1, \"unassigned\": 1, \"validation\": 1}, \"synthetic_records\": 5}, \"valid\": false}\n"
+    }
+  ],
+  "experiment_rejection_is_expected": true,
+  "internal_synthetic_review": {
+    "final_scenarios": 13,
+    "formal_owner_independent_review_performed": false,
+    "review_fixes": [
+      "RFC3339 offset and UTC overflow rejection",
+      "Exclusive permission expiry",
+      "Unassigned connected group split leakage",
+      "Predicted zero distinct from reviewed observed zero",
+      "Single task and label definition per experiment manifest"
+    ],
+    "status": "PASS_INTERNAL_ENGINEERING_ONLY"
+  },
+  "isolation": "NEW_INDEPENDENT_CLONE_NO_OTHER_WORKTREE_IN_THIS_CLONE",
+  "limitations": [
+    "Metadata declarations only; no image bytes, authorization authenticity or undeclared near-duplicate verification.",
+    "No real algorithm accuracy or independent weight/forecast comparison.",
+    "No production/CI acceptance; commit and push outcome are provided in final receipt."
+  ],
+  "offline_artifact_sha256": {
+    "research/blueberry_vision/README.md": "343049be4434583e08082ad651aa9224956b9fccf390babc48b5eaaf2ca60803",
+    "research/blueberry_vision/__init__.py": "6fd48b9744b3c36f676e9e081637c427622cac79d739c7e731464466561045c0",
+    "research/blueberry_vision/contracts.py": "f1c67186ce050c5d2368f34d38d946fbdb5b6096e9e076c450dd8cd0c7b8c8a2",
+    "research/blueberry_vision/experiment_protocol_r1.json": "f64591d95400cc9735e99d6483df5b49fee48d40bea68c216137e6a2e18915ad",
+    "research/blueberry_vision/fixtures/synthetic_manifest.json": "748032722358d4dc514d8877b4e3d766bece3aa94e6e8fec3a229cf05f57f383",
+    "research/blueberry_vision/generate_artifacts.py": "2dd672a7816c8fe05bb0dd6d64cd78ed5483e14927797d821f5e0c2084e7e1fc",
+    "research/blueberry_vision/schemas/vision_manifest.schema.json": "805f1acd1ac2b6ad63172e06a6a19d6145e9a2ceb14f25d0bdbe95cbe21a3c6e",
+    "research/blueberry_vision/schemas/vision_observation.schema.json": "58b8539b75bb5344a0ed15fef9773fcdfe804a5051d396bfbd31be5d2a1cfb94",
+    "research/blueberry_vision/tests/test_validator.py": "327d461f6e83653ddda520161f426a76ac83114caf51791ec189df2687b3e453",
+    "research/blueberry_vision/validate_manifest.py": "9ff23c888e4a4bec816e8bf16a3e8b7823b617b9c4977c40697a3cba3db314d9"
+  },
+  "protected_public_source_integrity": {
+    "AGENTS.md": true,
+    "CODEX_MASTER_PROMPT.md": true,
+    "CODEX_TASKS.md": true,
+    "docs/research/blueberry-vision-foundation-preparation-r0.md": true,
+    "docs/v0-14/v0.14.0-closeout.md": true,
+    "docs/v0-14/v0.14.0-version-plan-and-prospective-protocol-freeze.md": true,
+    "docs/v0-15/v0.15.0-closeout.md": true,
+    "docs/v0-16/v0.16.0-closeout.md": true,
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md": true,
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": true,
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": true,
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": true,
+    "pyproject.toml": true
+  },
+  "protocol_integrity": {
+    "execution_flags_all_false": true,
+    "frozen_sources": {
+      "AGENTS.md": true,
+      "docs/research/blueberry-vision-foundation-preparation-r0.md": true,
+      "docs/v0-15/v0.15.0-closeout.md": true,
+      "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": true,
+      "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": true
+    },
+    "planned_steps": 9,
+    "result": "PASS"
+  },
+  "recorded_at": "2026-10-13T02:05:17.374577+00:00",
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "result": "PASS",
+  "scope": {
+    "current_season_actual_read": false,
+    "database_accessed": false,
+    "merge_authorized": false,
+    "migration_created": false,
+    "model_training_started": false,
+    "pr_created": false,
+    "pretrained_weights_downloaded": false,
+    "production_forecast_changed": false,
+    "ready_authorized": false,
+    "real_image_data_read": false,
+    "real_image_data_uploaded": false,
+    "real_image_dataset_downloaded": false,
+    "tag_release_deploy_performed": false
+  },
+  "snapshot_phase": "PRE_COMMIT_OFFLINE_VALIDATION_NO_EXTERNAL_CI_CLAIM",
+  "source_evidence_sha256": {
+    "AGENTS.md": "ff6eb1c2cc45607138da6a619512fbbdfad8e541016b6b67bd1b65c1daf51b60",
+    "CODEX_MASTER_PROMPT.md": "0b4207452433a6db3f8ff250ec1ffbb3358a5c94f22fac7eb876786eadadf7e5",
+    "CODEX_TASKS.md": "4546683597b1bb7720df6defefae09c392305114b2d699bc6a993f02418f3b20",
+    "docs/research/blueberry-vision-foundation-preparation-r0.md": "589a026ddf0acdd6d4ef525661d8be145deac7aaa4d5fd8d5ab992695bffb145",
+    "docs/v0-14/v0.14.0-closeout.md": "5ac15b75a5e16ff5f44e07029d3a7d8350a6c8e514acbdf481ad1eee83395db1",
+    "docs/v0-14/v0.14.0-version-plan-and-prospective-protocol-freeze.md": "2724112827a652e77083b35da9eb8358ee0c4f0c3160526689c83d01d9155d9d",
+    "docs/v0-15/v0.15.0-closeout.md": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7",
+    "docs/v0-16/v0.16.0-closeout.md": "77d1bc082863b0af9436b460ee65d6c5429579e309b10348665256e17d729725",
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md": "7eed60e8045903eb8229afa0c1c6b6f0a9e99e4ce2e9cda9ce212c4ce435f7de",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "96efd4fef39d509088a7c833b0715b40d18a38502366f30763f385ae21470b02",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78",
+    "pyproject.toml": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df"
+  },
+  "start_head_sha": "60208273be061d891c2cfb5bb4ff952647f6e5f8",
+  "task_id": "BLUEBERRY_VISION_FOUNDATION_ENGINEERING_PREPARATION_R1",
+  "tool_environment": "ISOLATED_TMP_VENV_SELECTED_VERSIONS_MATCH_EXISTING_UV_LOCK_NO_REPOSITORY_DEPENDENCY_CHANGE",
+  "tool_versions": {
+    "mypy": "2.1.0",
+    "pydantic": "2.13.4",
+    "pytest": "9.1.1",
+    "pytest-asyncio": "1.4.0",
+    "python": "3.12.14",
+    "ruff": "0.15.18"
+  },
+  "tracked_existing_files_changed": []
+}
