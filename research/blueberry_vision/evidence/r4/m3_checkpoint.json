@@ -1,0 +1,12 @@
+{
+  "adjudicated_images": 0,
+  "engineering": "PASS",
+  "human_review": "PENDING",
+  "independent_humans": 0,
+  "qualified_gt_images": 0,
+  "receipt_template_is_not_approval": true,
+  "tests": {
+    "command": "pytest research/blueberry_vision/r4tests -q",
+    "passed": 41
+  }
+}

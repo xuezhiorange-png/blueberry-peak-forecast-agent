@@ -34,3 +34,10 @@ answers; full-resolution20MB views generated locally, compact308KBpublic preview
 explicitly not a valid annotation source. 25tests passed; actual Chromium draw/export
 passed with zero page errors (automated UI test is not human GT). No human completed.
 Next M3: strict task/snapshot QC and authentic human-reference approval gate.
+
+M2 commit498e6ffeb7c83ba8e32f090289a984ec41804617 pushed, remote verified.
+M3 current checkpoint: task/source/guide/geometry QC and independent draft comparison
+implemented using unchanged R3 snapshots; additional owner-verified human evidence
+required.41tests passed. No actual human input or owner receipt, no adjudication,
+zero QUALIFIED_GT. annotation_review_status/reference_admission preserve nulls.
+Next M4: verify R3 original prediction freeze, lock same full-frame scoring scope.
