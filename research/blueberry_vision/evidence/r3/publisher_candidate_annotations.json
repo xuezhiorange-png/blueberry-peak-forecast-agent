@@ -1,0 +1,1407 @@
+{
+  "SYNTHETIC": false,
+  "annotations_hash": "48ef0aaefd5f2766caaffb0de341f35f1835db0120d29b5852f689b1be87ae54",
+  "dataset_manifest_hash": "9f75e2a7c58c6e55187064ec33f4beb7bf4e26204fc64825f10c4081a1993096",
+  "draft_geometry": {
+    "quality-1626757232": [
+      {
+        "bbox_xyxy": [
+          397.575,
+          754.975,
+          491.95,
+          851.525
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-76"
+      },
+      {
+        "bbox_xyxy": [
+          557.275,
+          762.775,
+          639.7,
+          845.125
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-77"
+      },
+      {
+        "bbox_xyxy": [
+          394.075,
+          603.825,
+          492.025,
+          699.825
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-78"
+      },
+      {
+        "bbox_xyxy": [
+          560.425,
+          613.9,
+          636.15,
+          690.45
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-79"
+      },
+      {
+        "bbox_xyxy": [
+          398.125,
+          455.8,
+          487.1,
+          542.625
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-80"
+      },
+      {
+        "bbox_xyxy": [
+          551.85,
+          452.3,
+          639.225,
+          540.575
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-81"
+      },
+      {
+        "bbox_xyxy": [
+          395.025,
+          300.0,
+          490.55,
+          397.3
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-82"
+      },
+      {
+        "bbox_xyxy": [
+          552.35,
+          303.45,
+          637.95,
+          390.875
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-83"
+      },
+      {
+        "bbox_xyxy": [
+          400.0,
+          153.675,
+          483.625,
+          236.375
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-84"
+      },
+      {
+        "bbox_xyxy": [
+          549.375,
+          152.325,
+          638.3,
+          240.075
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-85"
+      },
+      {
+        "bbox_xyxy": [
+          699.025,
+          145.075,
+          796.15,
+          242.625
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-86"
+      },
+      {
+        "bbox_xyxy": [
+          697.625,
+          289.05,
+          801.95,
+          393.175
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-87"
+      },
+      {
+        "bbox_xyxy": [
+          692.775,
+          445.8,
+          803.725,
+          557.075
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-88"
+      },
+      {
+        "bbox_xyxy": [
+          698.675,
+          601.375,
+          803.8,
+          706.25
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-89"
+      },
+      {
+        "bbox_xyxy": [
+          705.75,
+          757.175,
+          803.275,
+          854.8
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-90"
+      },
+      {
+        "bbox_xyxy": [
+          844.775,
+          754.35,
+          959.525,
+          864.35
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-91"
+      },
+      {
+        "bbox_xyxy": [
+          852.125,
+          600.175,
+          955.275,
+          708.1
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-92"
+      },
+      {
+        "bbox_xyxy": [
+          845.425,
+          449.25,
+          951.325,
+          554.125
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-93"
+      },
+      {
+        "bbox_xyxy": [
+          849.625,
+          299.25,
+          942.325,
+          392.425
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-94"
+      },
+      {
+        "bbox_xyxy": [
+          843.2,
+          136.825,
+          950.975,
+          242.925
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-95"
+      },
+      {
+        "bbox_xyxy": [
+          996.65,
+          137.725,
+          1102.35,
+          243.5
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-96"
+      },
+      {
+        "bbox_xyxy": [
+          998.8,
+          288.725,
+          1113.525,
+          402.4
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-97"
+      },
+      {
+        "bbox_xyxy": [
+          1001.275,
+          447.875,
+          1104.1,
+          549.45
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-98"
+      },
+      {
+        "bbox_xyxy": [
+          1003.75,
+          602.2,
+          1110.575,
+          707.85
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-99"
+      },
+      {
+        "bbox_xyxy": [
+          1008.325,
+          751.1,
+          1111.775,
+          854.225
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-100"
+      }
+    ],
+    "quality-3127978079": [
+      {
+        "bbox_xyxy": [
+          386.225,
+          769.075,
+          473.25,
+          855.6
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-1"
+      },
+      {
+        "bbox_xyxy": [
+          545.725,
+          766.825,
+          628.675,
+          850.175
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-2"
+      },
+      {
+        "bbox_xyxy": [
+          705.325,
+          767.75,
+          791.5,
+          853.85
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-3"
+      },
+      {
+        "bbox_xyxy": [
+          861.275,
+          766.0,
+          949.675,
+          850.675
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-4"
+      },
+      {
+        "bbox_xyxy": [
+          1006.05,
+          754.95,
+          1115.175,
+          863.175
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-5"
+      },
+      {
+        "bbox_xyxy": [
+          1021.5,
+          613.65,
+          1097.675,
+          689.475
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-6"
+      },
+      {
+        "bbox_xyxy": [
+          855.55,
+          607.7,
+          945.125,
+          697.575
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-7"
+      },
+      {
+        "bbox_xyxy": [
+          708.4,
+          614.425,
+          782.175,
+          686.125
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-8"
+      },
+      {
+        "bbox_xyxy": [
+          539.475,
+          610.725,
+          625.65,
+          694.85
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-9"
+      },
+      {
+        "bbox_xyxy": [
+          377.6,
+          603.5,
+          477.225,
+          705.15
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-10"
+      },
+      {
+        "bbox_xyxy": [
+          378.15,
+          447.5,
+          471.55,
+          538.675
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-11"
+      },
+      {
+        "bbox_xyxy": [
+          540.625,
+          444.025,
+          632.475,
+          533.7
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-12"
+      },
+      {
+        "bbox_xyxy": [
+          698.525,
+          448.6,
+          787.775,
+          540.05
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-13"
+      },
+      {
+        "bbox_xyxy": [
+          857.475,
+          451.075,
+          944.3,
+          535.375
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-14"
+      },
+      {
+        "bbox_xyxy": [
+          1017.1,
+          451.1,
+          1100.5,
+          535.225
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-15"
+      },
+      {
+        "bbox_xyxy": [
+          1019.0,
+          293.3,
+          1101.8,
+          374.5
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-16"
+      },
+      {
+        "bbox_xyxy": [
+          1014.625,
+          128.875,
+          1108.725,
+          221.375
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-17"
+      },
+      {
+        "bbox_xyxy": [
+          853.375,
+          287.95,
+          950.7,
+          382.85
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-18"
+      },
+      {
+        "bbox_xyxy": [
+          862.675,
+          141.7,
+          940.525,
+          220.325
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-19"
+      },
+      {
+        "bbox_xyxy": [
+          695.55,
+          288.425,
+          787.975,
+          382.85
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-20"
+      },
+      {
+        "bbox_xyxy": [
+          695.275,
+          129.425,
+          785.9,
+          222.2
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-21"
+      },
+      {
+        "bbox_xyxy": [
+          545.4,
+          293.925,
+          624.85,
+          375.275
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-22"
+      },
+      {
+        "bbox_xyxy": [
+          534.35,
+          132.625,
+          622.85,
+          219.1
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-23"
+      },
+      {
+        "bbox_xyxy": [
+          371.75,
+          284.7,
+          474.9,
+          386.275
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-24"
+      },
+      {
+        "bbox_xyxy": [
+          372.5,
+          127.975,
+          471.45,
+          226.45
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-25"
+      }
+    ],
+    "quality-3872104307": [
+      {
+        "bbox_xyxy": [
+          391.825,
+          748.375,
+          486.8,
+          846.15
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-26"
+      },
+      {
+        "bbox_xyxy": [
+          553.475,
+          755.85,
+          636.375,
+          839.075
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-27"
+      },
+      {
+        "bbox_xyxy": [
+          387.4,
+          595.325,
+          486.85,
+          693.15
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-28"
+      },
+      {
+        "bbox_xyxy": [
+          556.85,
+          605.175,
+          633.5,
+          682.725
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-29"
+      },
+      {
+        "bbox_xyxy": [
+          390.475,
+          444.95,
+          481.925,
+          533.575
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-30"
+      },
+      {
+        "bbox_xyxy": [
+          547.875,
+          440.725,
+          636.45,
+          530.95
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-31"
+      },
+      {
+        "bbox_xyxy": [
+          386.2,
+          285.75,
+          484.05,
+          384.225
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-32"
+      },
+      {
+        "bbox_xyxy": [
+          547.55,
+          289.25,
+          634.7,
+          378.325
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-33"
+      },
+      {
+        "bbox_xyxy": [
+          390.7,
+          135.85,
+          476.375,
+          219.65
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-34"
+      },
+      {
+        "bbox_xyxy": [
+          544.35,
+          134.4,
+          635.55,
+          224.525
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-35"
+      },
+      {
+        "bbox_xyxy": [
+          697.0,
+          127.525,
+          796.575,
+          227.15
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-36"
+      },
+      {
+        "bbox_xyxy": [
+          844.55,
+          119.75,
+          954.05,
+          227.875
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-37"
+      },
+      {
+        "bbox_xyxy": [
+          1000.675,
+          120.75,
+          1107.9,
+          229.175
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-38"
+      },
+      {
+        "bbox_xyxy": [
+          695.6,
+          275.15,
+          802.35,
+          381.075
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-39"
+      },
+      {
+        "bbox_xyxy": [
+          850.675,
+          285.725,
+          944.75,
+          380.225
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-40"
+      },
+      {
+        "bbox_xyxy": [
+          1002.075,
+          275.225,
+          1118.325,
+          390.9
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-41"
+      },
+      {
+        "bbox_xyxy": [
+          690.925,
+          435.125,
+          803.625,
+          548.025
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-42"
+      },
+      {
+        "bbox_xyxy": [
+          846.3,
+          438.375,
+          953.4,
+          545.025
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-43"
+      },
+      {
+        "bbox_xyxy": [
+          1003.675,
+          437.125,
+          1108.075,
+          539.95
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-44"
+      },
+      {
+        "bbox_xyxy": [
+          697.425,
+          592.575,
+          803.25,
+          698.675
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-45"
+      },
+      {
+        "bbox_xyxy": [
+          704.225,
+          750.05,
+          802.575,
+          848.6
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-46"
+      },
+      {
+        "bbox_xyxy": [
+          844.55,
+          747.025,
+          960.05,
+          858.275
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-47"
+      },
+      {
+        "bbox_xyxy": [
+          852.65,
+          591.475,
+          956.725,
+          700.8
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-48"
+      },
+      {
+        "bbox_xyxy": [
+          1005.525,
+          593.3,
+          1113.3,
+          700.25
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-49"
+      },
+      {
+        "bbox_xyxy": [
+          1008.65,
+          743.5,
+          1113.45,
+          847.425
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-50"
+      }
+    ],
+    "quality-4195390806": [
+      {
+        "bbox_xyxy": [
+          415.9,
+          753.775,
+          502.425,
+          839.525
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-51"
+      },
+      {
+        "bbox_xyxy": [
+          573.925,
+          752.7,
+          655.925,
+          834.975
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-52"
+      },
+      {
+        "bbox_xyxy": [
+          732.3,
+          755.2,
+          817.4,
+          840.125
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-53"
+      },
+      {
+        "bbox_xyxy": [
+          886.75,
+          754.35,
+          974.85,
+          837.675
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-54"
+      },
+      {
+        "bbox_xyxy": [
+          1029.925,
+          744.125,
+          1138.825,
+          850.95
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-55"
+      },
+      {
+        "bbox_xyxy": [
+          408.95,
+          589.525,
+          507.1,
+          690.075
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-56"
+      },
+      {
+        "bbox_xyxy": [
+          569.475,
+          597.9,
+          654.575,
+          681.4
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-57"
+      },
+      {
+        "bbox_xyxy": [
+          736.425,
+          602.875,
+          809.6,
+          673.7
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-58"
+      },
+      {
+        "bbox_xyxy": [
+          882.525,
+          597.6,
+          971.075,
+          685.85
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-59"
+      },
+      {
+        "bbox_xyxy": [
+          1047.2,
+          604.5,
+          1122.175,
+          679.325
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-60"
+      },
+      {
+        "bbox_xyxy": [
+          410.075,
+          435.05,
+          503.475,
+          525.1
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-61"
+      },
+      {
+        "bbox_xyxy": [
+          405.4,
+          272.4,
+          507.1,
+          373.3
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-62"
+      },
+      {
+        "bbox_xyxy": [
+          407.55,
+          117.15,
+          505.375,
+          214.925
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-63"
+      },
+      {
+        "bbox_xyxy": [
+          568.025,
+          123.225,
+          655.775,
+          209.0
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-64"
+      },
+      {
+        "bbox_xyxy": [
+          577.925,
+          283.375,
+          656.45,
+          364.225
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-65"
+      },
+      {
+        "bbox_xyxy": [
+          571.55,
+          432.35,
+          662.55,
+          521.125
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-66"
+      },
+      {
+        "bbox_xyxy": [
+          727.525,
+          121.9,
+          817.975,
+          213.5
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-67"
+      },
+      {
+        "bbox_xyxy": [
+          726.8,
+          279.225,
+          819.025,
+          372.825
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-68"
+      },
+      {
+        "bbox_xyxy": [
+          727.85,
+          438.125,
+          816.6,
+          529.0
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-69"
+      },
+      {
+        "bbox_xyxy": [
+          892.85,
+          134.65,
+          971.4,
+          213.05
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-70"
+      },
+      {
+        "bbox_xyxy": [
+          883.025,
+          280.15,
+          979.65,
+          373.625
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-71"
+      },
+      {
+        "bbox_xyxy": [
+          885.75,
+          442.125,
+          971.625,
+          525.575
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-72"
+      },
+      {
+        "bbox_xyxy": [
+          1047.075,
+          286.8,
+          1130.125,
+          367.525
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-73"
+      },
+      {
+        "bbox_xyxy": [
+          1043.9,
+          443.25,
+          1127.0,
+          526.825
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-74"
+      },
+      {
+        "bbox_xyxy": [
+          1044.75,
+          123.325,
+          1137.075,
+          215.65
+        ],
+        "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+        "disposition": "TARGET",
+        "object_id": "coco-75"
+      }
+    ]
+  },
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "schema_version": "blueberry-vision-annotations/3.0.0",
+  "snapshots": [
+    {
+      "SYNTHETIC": false,
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "annotator_id": "external-import",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "UNANNOTATED",
+      "history": [
+        {
+          "actor_id": "external-import",
+          "at": null,
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "UNKNOWN",
+          "prior_snapshot_hash": null
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": null,
+      "image_height": 1000,
+      "image_id": "quality-1626757232",
+      "image_width": 1500,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": null,
+      "parent_snapshot_hashes": [],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+        "coordinate_frame_evidence_ref": "public_quality_source_index.json:explicit first-frame orientation1 and scale0.25",
+        "coordinate_frame_status": "VERIFIED",
+        "evidence_refs": [
+          "https://zenodo.org/records/22148787",
+          "research/blueberry_vision/evidence/r3/publisher_annotation_provenance_audit.json"
+        ],
+        "evidence_status": "PENDING_QUALITY_REVIEW",
+        "imported_source_quality": {
+          "candidate": true,
+          "human_review_verified_in_source": false,
+          "model_prediction": false,
+          "not_reference": true,
+          "semi_automatic": false,
+          "source_annotation_evidence_statuses": [
+            "PENDING_QUALITY_REVIEW"
+          ],
+          "source_annotation_methods": [],
+          "source_annotation_origins": [
+            "UNVERIFIED"
+          ],
+          "source_annotation_statuses": [
+            "DRAFT"
+          ],
+          "source_human_review_statuses": [],
+          "source_label_approval_statuses": [
+            "CANDIDATE_ONLY"
+          ]
+        },
+        "kind": "UNVERIFIED_PUBLISHER_CANDIDATE",
+        "publisher_gt_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+        "source_annotation_hash": "9e8a32af5bc370a52eeca01daad8c5898d0a549330c1f0d337259ee574b2b14a",
+        "source_annotation_version": "quality-bbox-candidate-adapter/3.0.0"
+      },
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "review_status": "DRAFT",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "b8f5ca841e61b0196a01e7e6a211538cb305b55b81bf9b537404b70367d7416c",
+      "source_asset_hash": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "source_id": "zenodo-22148787",
+      "uncertain_count": null,
+      "visible_count": null,
+      "workflow_mode": "OFFLINE_SELF_ASSERTED"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "annotator_id": "external-import",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "UNANNOTATED",
+      "history": [
+        {
+          "actor_id": "external-import",
+          "at": null,
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "UNKNOWN",
+          "prior_snapshot_hash": null
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": null,
+      "image_height": 1000,
+      "image_id": "quality-3127978079",
+      "image_width": 1500,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": null,
+      "parent_snapshot_hashes": [],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+        "coordinate_frame_evidence_ref": "public_quality_source_index.json:explicit first-frame orientation1 and scale0.25",
+        "coordinate_frame_status": "VERIFIED",
+        "evidence_refs": [
+          "https://zenodo.org/records/22148787",
+          "research/blueberry_vision/evidence/r3/publisher_annotation_provenance_audit.json"
+        ],
+        "evidence_status": "PENDING_QUALITY_REVIEW",
+        "imported_source_quality": {
+          "candidate": true,
+          "human_review_verified_in_source": false,
+          "model_prediction": false,
+          "not_reference": true,
+          "semi_automatic": false,
+          "source_annotation_evidence_statuses": [
+            "PENDING_QUALITY_REVIEW"
+          ],
+          "source_annotation_methods": [],
+          "source_annotation_origins": [
+            "UNVERIFIED"
+          ],
+          "source_annotation_statuses": [
+            "DRAFT"
+          ],
+          "source_human_review_statuses": [],
+          "source_label_approval_statuses": [
+            "CANDIDATE_ONLY"
+          ]
+        },
+        "kind": "UNVERIFIED_PUBLISHER_CANDIDATE",
+        "publisher_gt_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+        "source_annotation_hash": "9e8a32af5bc370a52eeca01daad8c5898d0a549330c1f0d337259ee574b2b14a",
+        "source_annotation_version": "quality-bbox-candidate-adapter/3.0.0"
+      },
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "review_status": "DRAFT",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "e6e9f6b3afc2082dcaf0d24cba495baf6f14ff0b671f334b83c8913375469d64",
+      "source_asset_hash": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "source_id": "zenodo-22148787",
+      "uncertain_count": null,
+      "visible_count": null,
+      "workflow_mode": "OFFLINE_SELF_ASSERTED"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "annotator_id": "external-import",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "UNANNOTATED",
+      "history": [
+        {
+          "actor_id": "external-import",
+          "at": null,
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "UNKNOWN",
+          "prior_snapshot_hash": null
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": null,
+      "image_height": 1000,
+      "image_id": "quality-3872104307",
+      "image_width": 1500,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": null,
+      "parent_snapshot_hashes": [],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+        "coordinate_frame_evidence_ref": "public_quality_source_index.json:explicit first-frame orientation1 and scale0.25",
+        "coordinate_frame_status": "VERIFIED",
+        "evidence_refs": [
+          "https://zenodo.org/records/22148787",
+          "research/blueberry_vision/evidence/r3/publisher_annotation_provenance_audit.json"
+        ],
+        "evidence_status": "PENDING_QUALITY_REVIEW",
+        "imported_source_quality": {
+          "candidate": true,
+          "human_review_verified_in_source": false,
+          "model_prediction": false,
+          "not_reference": true,
+          "semi_automatic": false,
+          "source_annotation_evidence_statuses": [
+            "PENDING_QUALITY_REVIEW"
+          ],
+          "source_annotation_methods": [],
+          "source_annotation_origins": [
+            "UNVERIFIED"
+          ],
+          "source_annotation_statuses": [
+            "DRAFT"
+          ],
+          "source_human_review_statuses": [],
+          "source_label_approval_statuses": [
+            "CANDIDATE_ONLY"
+          ]
+        },
+        "kind": "UNVERIFIED_PUBLISHER_CANDIDATE",
+        "publisher_gt_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+        "source_annotation_hash": "9e8a32af5bc370a52eeca01daad8c5898d0a549330c1f0d337259ee574b2b14a",
+        "source_annotation_version": "quality-bbox-candidate-adapter/3.0.0"
+      },
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "review_status": "DRAFT",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "855b8c02f124e5ad0c0e4cb19ed06143bf53134955413f0a2b0ea01ffcde716a",
+      "source_asset_hash": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "source_id": "zenodo-22148787",
+      "uncertain_count": null,
+      "visible_count": null,
+      "workflow_mode": "OFFLINE_SELF_ASSERTED"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "annotator_id": "external-import",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "UNANNOTATED",
+      "history": [
+        {
+          "actor_id": "external-import",
+          "at": null,
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "UNKNOWN",
+          "prior_snapshot_hash": null
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": null,
+      "image_height": 1000,
+      "image_id": "quality-4195390806",
+      "image_width": 1500,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": null,
+      "parent_snapshot_hashes": [],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+        "coordinate_frame_evidence_ref": "public_quality_source_index.json:explicit first-frame orientation1 and scale0.25",
+        "coordinate_frame_status": "VERIFIED",
+        "evidence_refs": [
+          "https://zenodo.org/records/22148787",
+          "research/blueberry_vision/evidence/r3/publisher_annotation_provenance_audit.json"
+        ],
+        "evidence_status": "PENDING_QUALITY_REVIEW",
+        "imported_source_quality": {
+          "candidate": true,
+          "human_review_verified_in_source": false,
+          "model_prediction": false,
+          "not_reference": true,
+          "semi_automatic": false,
+          "source_annotation_evidence_statuses": [
+            "PENDING_QUALITY_REVIEW"
+          ],
+          "source_annotation_methods": [],
+          "source_annotation_origins": [
+            "UNVERIFIED"
+          ],
+          "source_annotation_statuses": [
+            "DRAFT"
+          ],
+          "source_human_review_statuses": [],
+          "source_label_approval_statuses": [
+            "CANDIDATE_ONLY"
+          ]
+        },
+        "kind": "UNVERIFIED_PUBLISHER_CANDIDATE",
+        "publisher_gt_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+        "source_annotation_hash": "9e8a32af5bc370a52eeca01daad8c5898d0a549330c1f0d337259ee574b2b14a",
+        "source_annotation_version": "quality-bbox-candidate-adapter/3.0.0"
+      },
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "review_status": "DRAFT",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "44feed7c99a279e8192bf45341f84c3e32d67e772efb7000979d89cb68c9edd6",
+      "source_asset_hash": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "source_id": "zenodo-22148787",
+      "uncertain_count": null,
+      "visible_count": null,
+      "workflow_mode": "OFFLINE_SELF_ASSERTED"
+    }
+  ]
+}

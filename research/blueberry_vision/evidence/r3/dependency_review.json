@@ -1,0 +1,10 @@
+{
+  "COCO_metric_policy": "only report actual pycocotools results with qualified GT; no real GT => NOT_EVALUABLE",
+  "environment": "isolated research requirements-r3.txt; production lock unchanged",
+  "license_description": "FreeBSD two-clause BSD license; preserve copyright and disclaimer",
+  "license_sha256": "bd8ef15597b3b292f3bb0feed9701c1ace5bcebe07f28fb5047ec8d3d89471b1",
+  "license_url": "https://raw.githubusercontent.com/ppwwyyxx/cocoapi/master/license.txt",
+  "package": "pycocotools",
+  "use": "optional official COCO bbox evaluator; no weights or images download",
+  "version": "2.0.11"
+}

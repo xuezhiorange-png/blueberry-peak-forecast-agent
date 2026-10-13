@@ -1,0 +1,116 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests/test_r3_sources.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py",
+        "research/blueberry_vision/tests/test_r3_evaluation.py",
+        "research/blueberry_vision/tests/test_r3_public_pilot.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "........................................................................ [ 23%]\n........................................................................ [ 47%]\n........................................................................ [ 70%]\n........................................................................ [ 94%]\n.................                                                        [100%]\n305 passed in 2.14s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/r3/contracts.py",
+        "research/blueberry_vision/r3/ingestion.py",
+        "research/blueberry_vision/r3/dedup.py",
+        "research/blueberry_vision/r3/sources.py",
+        "research/blueberry_vision/r3/annotations.py",
+        "research/blueberry_vision/r3/splits.py",
+        "research/blueberry_vision/r3/evaluation.py",
+        "research/blueberry_vision/r3/public_pilot.py",
+        "research/blueberry_vision/tests/test_r3_sources.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py",
+        "research/blueberry_vision/tests/test_r3_evaluation.py",
+        "research/blueberry_vision/tests/test_r3_public_pilot.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/r3/contracts.py",
+        "research/blueberry_vision/r3/ingestion.py",
+        "research/blueberry_vision/r3/dedup.py",
+        "research/blueberry_vision/r3/sources.py",
+        "research/blueberry_vision/r3/annotations.py",
+        "research/blueberry_vision/r3/splits.py",
+        "research/blueberry_vision/r3/evaluation.py",
+        "research/blueberry_vision/r3/public_pilot.py",
+        "research/blueberry_vision/tests/test_r3_sources.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py",
+        "research/blueberry_vision/tests/test_r3_evaluation.py",
+        "research/blueberry_vision/tests/test_r3_public_pilot.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "15 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/r3/contracts.py",
+        "research/blueberry_vision/r3/ingestion.py",
+        "research/blueberry_vision/r3/dedup.py",
+        "research/blueberry_vision/r3/sources.py",
+        "research/blueberry_vision/r3/annotations.py",
+        "research/blueberry_vision/r3/splits.py",
+        "research/blueberry_vision/r3/evaluation.py",
+        "research/blueberry_vision/r3/public_pilot.py",
+        "research/blueberry_vision/tests/test_r3_sources.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py",
+        "research/blueberry_vision/tests/test_r3_evaluation.py",
+        "research/blueberry_vision/tests/test_r3_public_pilot.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 15 source files\n"
+    }
+  ],
+  "facts": {
+    "R2_algorithms_reused": [
+      "RGB_threshold_and_4_connected_components_v2",
+      "CPU_NumPy_logistic_pixel_classifier_v2"
+    ],
+    "frozen_configuration_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+    "metrics_status": "NOT_EVALUABLE",
+    "no_real_model_training": true,
+    "original_model_unchanged": true,
+    "original_vs_corrected_guard_pixel_results_identical": true,
+    "publisher_candidate_boxes": 100,
+    "qualified_reference_images": 0,
+    "real_images": 8,
+    "real_inference_successful_runs": 16,
+    "upstream_license_preserved_verbatim": "Path-scoped whitespace attribute; no application or Python lint change"
+  },
+  "milestone": "M5",
+  "parent_sha": "5d83ca8a0b89161578c0885d63ac87ded6208aff",
+  "recorded_at": "2026-10-13T04:57:34.588939+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}

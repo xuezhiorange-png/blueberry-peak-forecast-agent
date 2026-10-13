@@ -1,0 +1,12 @@
+{
+  "schema_version": "blueberry-vision-source-registry-index/3.0.0",
+  "catalog_ref": "data_source_registry.json",
+  "catalog_file_sha256": "0dc643c92593bc5d469bf8a8c685a89c3da517371c932fd9440d0f2ba5672678",
+  "catalog_hash": "1b63c81fdca37b6cbf297fbfcc4387332bb248b323fa6443a22b2f36e27f0ccb",
+  "catalog_sources": 9,
+  "admitted_real_image_sources": 4,
+  "public_source_index_ref": "public_pilot_source_index.json",
+  "public_source_index_file_sha256": "597a528cd61290b6264a9d614d01084a7d92c00c5455a2c5d2d671960d9b2484",
+  "real_image_gt_status": "MISSING",
+  "company_orchard_authorized": false
+}

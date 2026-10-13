@@ -1,0 +1,725 @@
+{
+  "checked_at": "2026-10-13T04:24:02.496780+00:00",
+  "discovery_mode": "ONLINE_OFFICIAL_METADATA",
+  "download_limits": {
+    "bytes": 500000000,
+    "image_count": 100
+  },
+  "fresh_network_verification": true,
+  "limitations": [
+    "Provider declarations verified, not a legal opinion or corporate image authorization.",
+    "Commercially affiliated task does not presume CC-BY-NC use is noncommercial.",
+    "Source labels are not automatically business-approved, or locally adjudicated human GT."
+  ],
+  "no_images_downloaded_by_discovery": true,
+  "pilot_download": {
+    "actual_asset_read": true,
+    "dataset_id": "commons-blueberry-public-pilot-r3",
+    "image_count": 4,
+    "public_images_not_company_orchard": true,
+    "reference_status": "NO_HUMAN_REFERENCE_LABELS",
+    "regeneration": "Use sources.discover_sources(online=True), then sources.download_public_pilot(registry, new_local_dir, the four commons source IDs); revalidate returned byte hashes against versioned download_evidence.",
+    "source_index_sha256": "597a528cd61290b6264a9d614d01084a7d92c00c5455a2c5d2d671960d9b2484",
+    "total_bytes": 6371007
+  },
+  "provider_checks": [
+    {
+      "bytes": 8551,
+      "provider": "commons",
+      "sha256": "768f9ad5dcad97966133b59c0cccaddb0e320720957659a4f313053e46c007d4",
+      "status": "FETCHED",
+      "url": "https://commons.wikimedia.org/w/api.php?action=query&titles=File%3ABlueberries-In-Pack.jpg%7CFile%3ABlueberries%20on%20branch.jpg%7CFile%3ABlueberries%20ripening%20on%20branch.jpg%7CFile%3ABlueberries%20on%20the%20branches%20of%20a%20bush.jpg&prop=imageinfo|revisions&iiprop=url|extmetadata|size&rvprop=ids&format=json"
+    },
+    {
+      "bytes": 7863,
+      "provider": "zenodo-14002517",
+      "sha256": "b210edd34eb85fd602c2e828f81699309d40aebbfe4ec5206665cd309f93a418",
+      "status": "FETCHED",
+      "url": "https://zenodo.org/api/records/14002517"
+    },
+    {
+      "bytes": 7748,
+      "provider": "zenodo-7813238",
+      "sha256": "9150d60e6e3504c1719a4b6d613f99b997746a3a0e73fb7b6697576a3b02dfc0",
+      "status": "FETCHED",
+      "url": "https://zenodo.org/api/records/7813238"
+    },
+    {
+      "bytes": 4236,
+      "provider": "zenodo-10522314",
+      "sha256": "57dedfac03768c09e60be8214cbf49c8b3faf661a66584b8ce32e8de706cec55",
+      "status": "FETCHED",
+      "url": "https://zenodo.org/api/records/10522314"
+    },
+    {
+      "bytes": 4109,
+      "provider": "zenodo-6450413",
+      "sha256": "4fb6b3384c2bcb0596b1f55ff410cc2955d7469393c21177a9c1e2c7d52d7da2",
+      "status": "FETCHED",
+      "url": "https://zenodo.org/api/records/6450413"
+    },
+    {
+      "bytes": 35271,
+      "provider": "official-license-terms",
+      "sha256": "3f69255e6550c75072122fe7b143143154bf31703cca14fd23e444bfaf12687c",
+      "status": "FETCHED",
+      "url": "https://creativecommons.org/licenses/by-nc/4.0/"
+    },
+    {
+      "bytes": 35530,
+      "provider": "official-license-terms",
+      "sha256": "b462fb0a649a8ec875bba7590abad7dc1e72c0456ddec070cf3a28183689dceb",
+      "status": "FETCHED",
+      "url": "https://creativecommons.org/licenses/by-sa/4.0"
+    },
+    {
+      "bytes": 31822,
+      "provider": "official-license-terms",
+      "sha256": "bbb0dcc37f02552e7270e6d2e06be02672ce29ada816107d6fa91e1e6809714b",
+      "status": "FETCHED",
+      "url": "https://creativecommons.org/licenses/by/2.0"
+    },
+    {
+      "bytes": 31950,
+      "provider": "official-license-terms",
+      "sha256": "8dda1ccec4be91fc80821d4e4fd5c568072b9a3a74b2fdc07c249a27e920ef01",
+      "status": "FETCHED",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "bytes": 30248,
+      "provider": "official-license-terms",
+      "sha256": "abb4d48fc8b85de52b377dd105532c6c549f515d492a8e1712bc99e7316a1f12",
+      "status": "FETCHED",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    },
+    {
+      "bytes": 111587,
+      "provider": "roboflow",
+      "sha256": "fe61a00bd5a4e760cb41ab623cbed0a75065a751e3a69755feacdc1239b28c5d",
+      "status": "FETCHED",
+      "url": "https://universe.roboflow.com/blueberrydetection/blueberrydetection/dataset/1"
+    }
+  ],
+  "registry_hash": "1b63c81fdca37b6cbf297fbfcc4387332bb248b323fa6443a22b2f36e27f0ccb",
+  "registry_version": "3.0.0",
+  "search_history": [
+    {
+      "metadata_sha256": "0bea26cee93b9a781663276a2cd40e4d01d827a4ce84680556a860f4cd383fd9",
+      "outcome": "Selected actual RGB fruit/bush candidates; publications, yield tables, genetics and unrelated pests excluded without downloading their data.",
+      "provider": "Zenodo",
+      "query": "blueberry AND (image OR detection OR dataset)",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "5bd6d2ec21c14153c6e85980518ee484139f2b48edef633f9fd5dddb1cbceaf2",
+      "outcome": "Selected actual RGB fruit/bush candidates; publications, yield tables, genetics and unrelated pests excluded without downloading their data.",
+      "provider": "Zenodo",
+      "query": "blueberries AND (image OR detection)",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "a30a1b2ab78bbf14a49aa2885da0e2d9e971ef401c8636e8d68a3c6da3defaaa",
+      "outcome": "Selected actual RGB fruit/bush candidates; publications, yield tables, genetics and unrelated pests excluded without downloading their data.",
+      "provider": "Zenodo",
+      "query": "blueberry fruit detection",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "777a13df07e278457e3c30184937668c4834a1993b951ced6f00aef586e35bce",
+      "outcome": "Located official Zenodo records; OpenAlex OA/article licenses not used as image permission.",
+      "provider": "OpenAlex",
+      "query": "blueberry detection dataset",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "eeec07190ddc6b4c18dc926dfc8816b7f5c24f594560092b5dccf94aed8a26ae",
+      "outcome": "First 15 hits did not establish a fruit detection image dataset; no data downloaded.",
+      "provider": "Figshare",
+      "query": "blueberry",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "667effe0c4f48770eabd7440e50d1a3179e2756e496642ac23d1dcea1d9b0897",
+      "outcome": "Public page did not expose verifiable per-fruit licensed data in retrieved HTML; no data downloaded.",
+      "provider": "Mendeley Data",
+      "query": "blueberry",
+      "status": "PUBLIC_SEARCH_PAGE_FETCHED_API_ENDPOINT_404"
+    }
+  ],
+  "source_review_summary": {
+    "catalog_sources": 9,
+    "downloaded_image_bytes": 6371007,
+    "downloaded_real_images": 4,
+    "labeled_candidate_not_admitted": "CC_BY_NC_COMMERCIAL_AFFILIATION_PURPOSE_UNRESOLVED",
+    "labeled_fruit_dataset_candidate": 1,
+    "metadata_license_declarations_verified": 8,
+    "real_image_metrics_status": "NOT_EVALUABLE_NO_QUALIFIED_GT",
+    "small_pilot_admissible_sources": 4
+  },
+  "sources": [
+    {
+      "SYNTHETIC": false,
+      "asset_size_bytes": 4970305,
+      "attribution_required": false,
+      "base_identity": "UNRESOLVED",
+      "capture_date_source_text": "2011-07-27",
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "commons_revision_id": 1285097426,
+      "contains_blueberry": "SOURCE_DESCRIPTION_SUPPORTED_NOT_BUSINESS_TAXONOMY_APPROVED",
+      "creator": "Evan-Amos",
+      "download_admission": "ALLOWED_SMALL_PILOT",
+      "download_evidence": {
+        "asset_sha256": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+        "bytes": 4970305,
+        "decoded_by": "R2_PILLOW_SECURE_ASSET_LOADER",
+        "image_height": 2760,
+        "image_width": 3200,
+        "redistribution_conditions": "Attribution and changes indicated; CC-BY-SA derivative images retain original license.",
+        "reference_status": "GT_MISSING"
+      },
+      "download_status": "DOWNLOADED_SMALL_PILOT",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Blueberries-In-Pack.jpg",
+      "has_per_fruit_annotations": false,
+      "image_count": 1,
+      "image_height": 2760,
+      "image_types": [
+        "JPEG"
+      ],
+      "image_width": 3200,
+      "independent_split": false,
+      "license_conditions": "Credit creator/source/license and indicate modifications; BY-SA image derivatives retain BY-SA. Training use does not establish any future model license conclusion.",
+      "license_evidence": {
+        "metadata_sha256": "888f96eed98ab6ea3b27465a968bc9635f19583a88acf6f9f5e3fef70cfd5217",
+        "official_terms": {
+          "bytes": 30248,
+          "sha256": "abb4d48fc8b85de52b377dd105532c6c549f515d492a8e1712bc99e7316a1f12",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        },
+        "provider_credit": "Own work",
+        "provider_license_name": "CC0",
+        "provider_license_url": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "provider_permission_excerpt": "",
+        "restrictions": ""
+      },
+      "license_id": "CC0-1.0",
+      "license_name": "CC0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "model_training": "PERMITTED_DERIVATIVE_USE_WITH_LICENSE_CONDITIONS",
+      "name": "File:Blueberries-In-Pack.jpg",
+      "observed_at": null,
+      "official_url": "https://commons.wikimedia.org/wiki/File:Blueberries-In-Pack.jpg",
+      "publisher": "Wikimedia Commons / individual creator",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "research_use": true,
+      "share_alike_derivatives": false,
+      "source_id": "commons-15928839",
+      "variety": "UNKNOWN"
+    },
+    {
+      "SYNTHETIC": false,
+      "asset_size_bytes": 858751,
+      "attribution_required": true,
+      "base_identity": "UNRESOLVED",
+      "capture_date_source_text": "2006-07-09 17:34",
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "commons_revision_id": 1067118316,
+      "contains_blueberry": "SOURCE_DESCRIPTION_SUPPORTED_NOT_BUSINESS_TAXONOMY_APPROVED",
+      "creator": "Jim Clark",
+      "download_admission": "ALLOWED_SMALL_PILOT",
+      "download_evidence": {
+        "asset_sha256": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+        "bytes": 858751,
+        "decoded_by": "R2_PILLOW_SECURE_ASSET_LOADER",
+        "image_height": 2301,
+        "image_width": 2043,
+        "redistribution_conditions": "Attribution and changes indicated; CC-BY-SA derivative images retain original license.",
+        "reference_status": "GT_MISSING"
+      },
+      "download_status": "DOWNLOADED_SMALL_PILOT",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/7e/Blueberries_on_branch.jpg",
+      "has_per_fruit_annotations": false,
+      "image_count": 1,
+      "image_height": 2301,
+      "image_types": [
+        "JPEG"
+      ],
+      "image_width": 2043,
+      "independent_split": false,
+      "license_conditions": "Credit creator/source/license and indicate modifications; BY-SA image derivatives retain BY-SA. Training use does not establish any future model license conclusion.",
+      "license_evidence": {
+        "metadata_sha256": "9609b627e89d7b64297f6c2711f6fc454075c2a1e76a8b8d285513bb60260891",
+        "official_terms": {
+          "bytes": 31822,
+          "sha256": "bbb0dcc37f02552e7270e6d2e06be02672ce29ada816107d6fa91e1e6809714b",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by/2.0"
+        },
+        "provider_credit": "[1]",
+        "provider_license_name": "CC BY 2.0",
+        "provider_license_url": "https://creativecommons.org/licenses/by/2.0",
+        "provider_permission_excerpt": "",
+        "restrictions": ""
+      },
+      "license_id": "CC-BY-2.0",
+      "license_name": "CC BY 2.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "model_training": "PERMITTED_DERIVATIVE_USE_WITH_LICENSE_CONDITIONS",
+      "name": "File:Blueberries on branch.jpg",
+      "observed_at": null,
+      "official_url": "https://commons.wikimedia.org/wiki/File:Blueberries_on_branch.jpg",
+      "publisher": "Wikimedia Commons / individual creator",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "research_use": true,
+      "share_alike_derivatives": false,
+      "source_id": "commons-4112477",
+      "variety": "UNKNOWN"
+    },
+    {
+      "SYNTHETIC": false,
+      "asset_size_bytes": 261907,
+      "attribution_required": true,
+      "base_identity": "UNRESOLVED",
+      "capture_date_source_text": "2007-06-26 13:26",
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "commons_revision_id": 826868444,
+      "contains_blueberry": "SOURCE_DESCRIPTION_SUPPORTED_NOT_BUSINESS_TAXONOMY_APPROVED",
+      "creator": "mike epp from bensalem, pa, usa",
+      "download_admission": "ALLOWED_SMALL_PILOT",
+      "download_evidence": {
+        "asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+        "bytes": 261907,
+        "decoded_by": "R2_PILLOW_SECURE_ASSET_LOADER",
+        "image_height": 1063,
+        "image_width": 1600,
+        "redistribution_conditions": "Attribution and changes indicated; CC-BY-SA derivative images retain original license.",
+        "reference_status": "GT_MISSING"
+      },
+      "download_status": "DOWNLOADED_SMALL_PILOT",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Blueberries_ripening_on_branch.jpg",
+      "has_per_fruit_annotations": false,
+      "image_count": 1,
+      "image_height": 1063,
+      "image_types": [
+        "JPEG"
+      ],
+      "image_width": 1600,
+      "independent_split": false,
+      "license_conditions": "Credit creator/source/license and indicate modifications; BY-SA image derivatives retain BY-SA. Training use does not establish any future model license conclusion.",
+      "license_evidence": {
+        "metadata_sha256": "12150f6181b59a1b6ede5967c741d00a5ddf63f6fa7b6de6d048098ba73af3de",
+        "official_terms": {
+          "bytes": 31822,
+          "sha256": "bbb0dcc37f02552e7270e6d2e06be02672ce29ada816107d6fa91e1e6809714b",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by/2.0"
+        },
+        "provider_credit": "[1]",
+        "provider_license_name": "CC BY 2.0",
+        "provider_license_url": "https://creativecommons.org/licenses/by/2.0",
+        "provider_permission_excerpt": "",
+        "restrictions": ""
+      },
+      "license_id": "CC-BY-2.0",
+      "license_name": "CC BY 2.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "model_training": "PERMITTED_DERIVATIVE_USE_WITH_LICENSE_CONDITIONS",
+      "name": "File:Blueberries ripening on branch.jpg",
+      "observed_at": null,
+      "official_url": "https://commons.wikimedia.org/wiki/File:Blueberries_ripening_on_branch.jpg",
+      "publisher": "Wikimedia Commons / individual creator",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "research_use": true,
+      "share_alike_derivatives": false,
+      "source_id": "commons-4112528",
+      "variety": "UNKNOWN"
+    },
+    {
+      "SYNTHETIC": false,
+      "asset_size_bytes": 280044,
+      "attribution_required": true,
+      "base_identity": "UNRESOLVED",
+      "capture_date_source_text": "2019-08-03",
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "commons_revision_id": 826868426,
+      "contains_blueberry": "SOURCE_DESCRIPTION_SUPPORTED_NOT_BUSINESS_TAXONOMY_APPROVED",
+      "creator": "Oleg Bor",
+      "download_admission": "ALLOWED_SMALL_PILOT",
+      "download_evidence": {
+        "asset_sha256": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+        "bytes": 280044,
+        "decoded_by": "R2_PILLOW_SECURE_ASSET_LOADER",
+        "image_height": 1024,
+        "image_width": 768,
+        "redistribution_conditions": "Attribution and changes indicated; CC-BY-SA derivative images retain original license.",
+        "reference_status": "GT_MISSING"
+      },
+      "download_status": "DOWNLOADED_SMALL_PILOT",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Blueberries_on_the_branches_of_a_bush.jpg",
+      "has_per_fruit_annotations": false,
+      "image_count": 1,
+      "image_height": 1024,
+      "image_types": [
+        "JPEG"
+      ],
+      "image_width": 768,
+      "independent_split": false,
+      "license_conditions": "Credit creator/source/license and indicate modifications; BY-SA image derivatives retain BY-SA. Training use does not establish any future model license conclusion.",
+      "license_evidence": {
+        "metadata_sha256": "32025c57b95ad149cdde4a467004229ecb26f5c0aa261946394e286986c266b9",
+        "official_terms": {
+          "bytes": 35530,
+          "sha256": "b462fb0a649a8ec875bba7590abad7dc1e72c0456ddec070cf3a28183689dceb",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by-sa/4.0"
+        },
+        "provider_credit": "Own work",
+        "provider_license_name": "CC BY-SA 4.0",
+        "provider_license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "provider_permission_excerpt": "",
+        "restrictions": ""
+      },
+      "license_id": "CC-BY-SA-4.0",
+      "license_name": "CC BY-SA 4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "model_training": "PERMITTED_DERIVATIVE_USE_WITH_LICENSE_CONDITIONS",
+      "name": "File:Blueberries on the branches of a bush.jpg",
+      "observed_at": null,
+      "official_url": "https://commons.wikimedia.org/wiki/File:Blueberries_on_the_branches_of_a_bush.jpg",
+      "publisher": "Wikimedia Commons / individual creator",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "research_use": true,
+      "share_alike_derivatives": true,
+      "source_id": "commons-81047629",
+      "variety": "UNKNOWN"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_formats": [
+        "VIA_JSON",
+        "Pascal_VOC_XML",
+        "YOLO_TXT"
+      ],
+      "annotation_quality_status": "PUBLISHER_DESCRIBED_MANUAL_NOT_LOCAL_REVIEWED",
+      "attribution_required": true,
+      "commercial_use": false,
+      "contains_blueberry": "REAL_BLUEBERRY_CANOPY",
+      "creators": [
+        {
+          "affiliation": "Michigan State University",
+          "name": "Lu, Yuzhen",
+          "orcid": "0000-0002-3636-1137"
+        }
+      ],
+      "download_admission": "BLOCKED_PENDING_PURPOSE_OR_PERMISSION",
+      "download_status": "NOT_DOWNLOADED",
+      "files": [
+        {
+          "checksum": "md5:77fc808520dbe7751cb367dbd06ea32f",
+          "download_url": "https://zenodo.org/api/records/14002517/files/BlueberryDCM.7z/content",
+          "name": "BlueberryDCM.7z",
+          "size_bytes": 107267412
+        }
+      ],
+      "has_per_fruit_annotations": true,
+      "image_count": 140,
+      "image_license_status": "LICENSE_VERIFIED_USE_RESTRICTED",
+      "image_types": [
+        "JPEG"
+      ],
+      "independent_split": "UNVERIFIED",
+      "license_evidence": {
+        "description_excerpt": "The BlueberryDCM dataset consists of 140 RGB images of blueberry canopies captured at varied spatial scales. All the images were acquired using smartphones in natural field light conditions in different orchards in the season of 2022, with 134 images in Mississippi and 6 images in Michigan.  A total of 17,955 bounding box annotations were manually done in the VGG Image Annotator (VIA) (v2.0.12) for the blueberry instances of two fruit maturity classes, \"Blue\" and \"Unblue\", representing ripe and unripe fruit, respectively. In addition, for each maturity class, there are two sub-categories in the annotation, \"visible\", and \"occluded\", to indicate whether the fruit is fully visible in the canopy or partially occluded. The original annotation format exported from the VGG is VIA .json.  The derived annotation files in two other formats, .xml (Pascal VOC format) and .txt (YOLO format with noralized xywh, with 0, 1, 2,  and 3 denoting the four categories of \"Unblue_visible\", \"Unblue_occluded\", \"Blue_visible\", and \"Blue_occluded\" bluerries, respectively) are provided in the dataset for the compatibility of a wide range of object detectors. Hence, the dataset contains both the raw images (.jpg) and three corresponding annotations files (.json, .xml, and .txt) with the same file names, totaling about 107 MB in file size.  \n \nThe dataset was used for in a study (see below) on the evaluation of YOLOv8 and YOLOv9 models for blueberry detection, counting, and maturity assessment. The detection accuracy of 93% mAP@50 was achieved by YOLOv8l, with an error of about 10 blueberries in fruit counting and an error of 3.6% in estimating the \"Blue\" fruit percentage. Software programs for the modeling work are made publicly available at: https://github.com/vicdxxx/BlueberryDetectionAndCounting. In addition, the blueberry dataset was also used as a preliminary database for developing an iOS-based mobile application, which is described in Deng, B., Lu, Y., WanderWeide, J., 2024. Development and preliminary evaluation of a deep learning-based fruit counting mobile application for highbush Blueberries. 2024 ASABE Annual International Meeting 2401022\n \nDetails about the dataset curation and statistics as well as modeling experiments are described in the journal article: Deng, B., Lu, Y., 2024.  Detection, Counting, and Maturity Assessment of Blueberries in Canopy Images using YOLOv8 and YOLOv9. Smart Agricultural Technology. https://doi.org/10.1016/j.atech.2024.100620. If you use the dataset in published research, please consider citing the dataset or the journal article. Hopefully, you find the dataset useful.",
+        "metadata_license_id": "cc-by-nc-4.0",
+        "metadata_sha256": "a07307ff08c3431a30efac0dc0e0041e83a9fbda48a7b1e9e148adbdddcde249",
+        "official_terms": {
+          "bytes": 35271,
+          "sha256": "3f69255e6550c75072122fe7b143143154bf31703cca14fd23e444bfaf12687c",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by-nc/4.0/"
+        }
+      },
+      "license_id": "CC-BY-NC-4.0",
+      "license_scope": "DEPOSIT_FILES",
+      "license_status": "LICENSE_VERIFIED_USE_RESTRICTED",
+      "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "model_training": "NONCOMMERCIAL_DERIVATIVE_USE_ONLY",
+      "name": "BlueberryDCM: A Canopy Image Dataset for Detection, Counting, and Maturity Assessment of Blueberries",
+      "official_url": "https://zenodo.org/records/14002517",
+      "per_fruit_annotation_count": 17955,
+      "publisher": "Zenodo / Michigan State University",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": "NONCOMMERCIAL_WITH_ATTRIBUTION",
+      "research_use": "NONCOMMERCIAL_ONLY",
+      "source_id": "zenodo-14002517",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_formats": [
+        "LABELME_JSON",
+        "YOLO_TXT_BUSH_AND_POLE"
+      ],
+      "annotation_quality_status": "NOT_APPLICABLE_SINGLE_FRUIT",
+      "attribution_required": true,
+      "commercial_use": true,
+      "contains_blueberry": "BLUEBERRY_BUSH_SCENES_NOT_PER_FRUIT_GT",
+      "creators": [
+        {
+          "affiliation": "BioSense Institute",
+          "name": "Filipović Vladan",
+          "orcid": "0000-0002-6625-202X"
+        },
+        {
+          "affiliation": "BioSense Institute",
+          "name": "Stefanović Dimitrije",
+          "orcid": "0000-0002-9085-6165"
+        },
+        {
+          "affiliation": "BioSense Institute",
+          "name": "Pajević Nina",
+          "orcid": "0000-0002-8643-3012"
+        },
+        {
+          "affiliation": "BioSense Institute",
+          "name": "Grbović Željana",
+          "orcid": "0000-0002-9214-5324"
+        },
+        {
+          "affiliation": "Aurora Innovation",
+          "name": "Đurić Nemanja",
+          "orcid": "0000-0002-6502-7891"
+        },
+        {
+          "affiliation": "BioSense Institute",
+          "name": "Panić Marko",
+          "orcid": "0000-0002-7993-6826"
+        }
+      ],
+      "download_admission": "NOT_SELECTED_NOT_SINGLE_FRUIT_OR_ARCHIVE_EXCEEDS_PILOT_LIMIT",
+      "download_status": "NOT_DOWNLOADED",
+      "files": [
+        {
+          "checksum": "md5:2cf027a49fb48b762f1f03c1e5f4b5a9",
+          "download_url": "https://zenodo.org/api/records/7813238/files/Labels_YOLO_TXT.zip/content",
+          "name": "Labels_YOLO_TXT.zip",
+          "size_bytes": 554731
+        },
+        {
+          "checksum": "md5:98ee10094aee35ae51495a5e1cbe0d0a",
+          "download_url": "https://zenodo.org/api/records/7813238/files/Labels_LabelMe_JSON.zip/content",
+          "name": "Labels_LabelMe_JSON.zip",
+          "size_bytes": 1020072
+        },
+        {
+          "checksum": "md5:d75ba941f7ed7d9d7e6529ad2a4600f2",
+          "download_url": "https://zenodo.org/api/records/7813238/files/Images.zip/content",
+          "name": "Images.zip",
+          "size_bytes": 9597990932
+        }
+      ],
+      "has_per_fruit_annotations": false,
+      "image_count": 2000,
+      "image_license_status": "LICENSE_VERIFIED",
+      "image_types": [
+        "PNG"
+      ],
+      "independent_split": "PUBLISHED_SEQUENCE_SPLIT_TRAIN1490_VALIDATION200_TEST310",
+      "license_evidence": {
+        "description_excerpt": "Ground-level Blueberry Orchard Dataset v1 consists of 2000 RGB images of blueberry orchard scenes captured in the village of Babe, Serbia on three occasions in March, May, and August of 2022. Images are captured using the RGB module of Luxonis OAK-D device, with the resolution of 1920×1080 pixels and stored in the lossless PNG format. \n\nThe dataset is created for the purpose of training deep learning models for blueberry bush detection, for the task of autonomous UGV guidance. It contains sequences of images captured from the UGV moving and rotating in blueberry orchard rows. Images are captured from a height of approximately 0.5 meters, with the camera angled towards the base of a blueberry plant and the surrounding bank on which it grows. Dataset is captured in real-life outdoor conditions and contains multiple sources of variability (bush shape and size, lighting conditions, shadows, saturation etc.) and artifacts (occlusions by weeds, branches, presence of irregular objects etc.).\n\nThere are two classes of annotated objects of interest:\n\n\n\t\n\tBush, corresponding to the base of the blueberry bush.\n\t\n\t\n\tPole, corresponding to hail netting poles and similar obstructing objects such as lamp posts or wooden legs of bumblebee hives (distinguishing poles is important to prevent equipment damage in operations such as soil sampling and pruning).\n\t\n\n\nObjects of interest are annotated with bounding boxes. Labels are saved in two formats:\n\n\n\t\n\tLabelMe JSON format (x1, y1, x2, y2; in pixels)\n\t\n\t\n\tYolo TXT format (x_center, y_center, width, height; as a ratio of total image size, with numerical labels 0 and 1 corresponding to Bush and Pole)\n\t\n\n\nThere are 61 images with no annotated objects, and there are no corresponding label files for these images.\n\nThe dataset is split into train, validation and test sets with 75%, 10%, and 15% split (1490, 200, and 310 images, respectively). As the data contains sequences of images, the split is made based on sequences rather than individual images to prevent data leakage.\n\nDetailed description and statistics are available in:\n\nV. Filipović, D. Stefanović, N. Pajević, Ž. Grbović, N. Đurić and M. Panić, \"Bush Detection for Vision-based UGV Guidance in Blueberry Orchards: Data Set and Methods,\" Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops, Vancouver, Canada, 2023. (Accepted)",
+        "metadata_license_id": "cc-by-4.0",
+        "metadata_sha256": "088d9acd4527e84c23f0b6b9a28a7dd863375205ff1ff88f42ce2e71aed80ae9",
+        "official_terms": {
+          "bytes": 31950,
+          "sha256": "8dda1ccec4be91fc80821d4e4fd5c568072b9a3a74b2fdc07c249a27e920ef01",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      },
+      "license_id": "CC-BY-4.0",
+      "license_scope": "DEPOSIT_FILES",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "model_training": "PERMITTED_WITH_ATTRIBUTION_SUBJECT_TO_IMAGE_LICENSE_SCOPE",
+      "name": "FlexiGroBots Ground-level Blueberry Orchard Dataset v1 - RGB Bush Detection Dataset",
+      "official_url": "https://zenodo.org/records/7813238",
+      "per_fruit_annotation_count": null,
+      "publisher": "Zenodo / BioSense Institute; BioSense Institute; BioSense Institute; BioSense Institute; Aurora Innovation; BioSense Institute",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "research_use": true,
+      "source_id": "zenodo-7813238",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_formats": [],
+      "annotation_quality_status": "NOT_APPLICABLE_SINGLE_FRUIT",
+      "attribution_required": true,
+      "commercial_use": true,
+      "contains_blueberry": "UNKNOWN_ASSET_CONTENT",
+      "creators": [
+        {
+          "affiliation": "University of Tartu",
+          "name": "Roy, Kallol",
+          "orcid": "0000-0002-6557-2689"
+        },
+        {
+          "affiliation": null,
+          "name": "Mahmoud, Nesma Talaat Abbas",
+          "orcid": "0000-0002-5618-2953"
+        }
+      ],
+      "download_admission": "BLOCKED_IMAGE_LICENSE_SCOPE",
+      "download_status": "NOT_DOWNLOADED",
+      "files": [
+        {
+          "checksum": "md5:9282ec7c8869412a520ccf7a9f20a68a",
+          "download_url": "https://zenodo.org/api/records/14205417/files/Agri_Paper_Experiments.zip/content",
+          "name": "Agri_Paper_Experiments.zip",
+          "size_bytes": 47212026
+        }
+      ],
+      "has_per_fruit_annotations": null,
+      "image_count": null,
+      "image_license_status": "LICENSE_UNVERIFIED",
+      "image_types": [
+        "UNKNOWN"
+      ],
+      "independent_split": "UNVERIFIED",
+      "license_evidence": {
+        "description_excerpt": "Blueberry data source: https://doi.org/10.22616/erdev.2021.20.tf222, in roboflow through: https://app.roboflow.com/blueberrydetection/blueberrydetection/1\nBush Detection Data source: http://dx.doi.org/10.5281/zenodo.7813238\nRoboFlow Public dataset: https://universe.roboflow.com/plants-e5wq4/weeds-sovlx/dataset/2\nThe folders have 6 experiments; every folder has the experiment notebook. The notebook can be regenerated, all the datasets are available in roboflow.",
+        "metadata_license_id": "cc-by-4.0",
+        "metadata_sha256": "b0ba5047b8807551cde62851142a85e044d053a27131b41102888aa6e9e73c0e",
+        "official_terms": {
+          "bytes": 31950,
+          "sha256": "8dda1ccec4be91fc80821d4e4fd5c568072b9a3a74b2fdc07c249a27e920ef01",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      },
+      "license_id": "CC-BY-4.0",
+      "license_scope": "DEPOSIT_CODE_AND_RESULTS_ONLY",
+      "license_status": "LICENSE_VERIFIED_CODE_ONLY",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "model_training": "PERMITTED_WITH_ATTRIBUTION_SUBJECT_TO_IMAGE_LICENSE_SCOPE",
+      "name": "Robust Object Detection under Smooth Perturbations in Precision Agriculture - Experiments Code & Results",
+      "official_url": "https://zenodo.org/records/14205417",
+      "per_fruit_annotation_count": null,
+      "publisher": "Zenodo / University of Tartu; Mahmoud, Nesma Talaat Abbas",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "requested_record_id": 10522314,
+      "requested_record_url": "https://zenodo.org/records/10522314",
+      "research_use": "CODE_AND_RESULTS_ONLY",
+      "source_id": "zenodo-14205417",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_formats": [],
+      "annotation_quality_status": "NOT_APPLICABLE_SINGLE_FRUIT",
+      "attribution_required": true,
+      "commercial_use": true,
+      "contains_blueberry": "UNKNOWN_ASSET_CONTENT",
+      "creators": [
+        {
+          "affiliation": "Queen Mary University of London",
+          "name": "Claudio Coppola"
+        }
+      ],
+      "download_admission": "NOT_SELECTED_NOT_SINGLE_FRUIT_OR_ARCHIVE_EXCEEDS_PILOT_LIMIT",
+      "download_status": "NOT_DOWNLOADED",
+      "files": [
+        {
+          "checksum": "md5:45f068a2486608c69f5387cab86a74e6",
+          "download_url": "https://zenodo.org/api/records/6450413/files/clutter.zip/content",
+          "name": "clutter.zip",
+          "size_bytes": 10573001415
+        },
+        {
+          "checksum": "md5:358edbc20331f463bb42f29b1c7553b1",
+          "download_url": "https://zenodo.org/api/records/6450413/files/single.zip/content",
+          "name": "single.zip",
+          "size_bytes": 7271002083
+        }
+      ],
+      "has_per_fruit_annotations": null,
+      "image_count": null,
+      "image_license_status": "LICENSE_VERIFIED",
+      "image_types": [
+        "UNKNOWN"
+      ],
+      "independent_split": "UNVERIFIED",
+      "license_evidence": {
+        "description_excerpt": "Dataset of Teleoperated Demonstrations for fruit-picking tasks involving a teleoperated dexterous hand.\n\n \n\nData involve the following modalities:\n\n- RGB\n\n- Tactile\n\n- Kinematic",
+        "metadata_license_id": "cc-by-4.0",
+        "metadata_sha256": "e1e15221d18d5c7ad464d0f7b151166712eface3011065aa0f1964299bbaa297",
+        "official_terms": {
+          "bytes": 31950,
+          "sha256": "8dda1ccec4be91fc80821d4e4fd5c568072b9a3a74b2fdc07c249a27e920ef01",
+          "status": "FETCHED",
+          "url": "https://creativecommons.org/licenses/by/4.0/"
+        }
+      },
+      "license_id": "CC-BY-4.0",
+      "license_scope": "DEPOSIT_FILES",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "model_training": "PERMITTED_WITH_ATTRIBUTION_SUBJECT_TO_IMAGE_LICENSE_SCOPE",
+      "name": "CRISP Fruit-Picking Teleoperated Dataset: BlueBerry",
+      "official_url": "https://zenodo.org/records/6450413",
+      "per_fruit_annotation_count": null,
+      "publisher": "Zenodo / Queen Mary University of London",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "research_use": true,
+      "source_id": "zenodo-6450413",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    },
+    {
+      "SYNTHETIC": false,
+      "attribution_required": null,
+      "commercial_use": null,
+      "contains_blueberry": "PROVIDER_DESCRIBED_BLUEBERRY",
+      "download_admission": "BLOCKED_LICENSE_UNVERIFIED",
+      "download_status": "NOT_DOWNLOADED",
+      "has_per_fruit_annotations": "PROVIDER_DESCRIBED_OBJECT_DETECTION_NOT_LOCAL_REVIEWED",
+      "image_count": 118,
+      "image_types": [
+        "UNKNOWN"
+      ],
+      "independent_split": "PUBLIC_SPLIT_INDEPENDENCE_UNVERIFIED",
+      "license_evidence": {
+        "metadata_excerpt": "118 open source Blueberry images and annotations in multiple formats for training computer vision models. BlueBerryDetection (v1, 2023-01-09 9:01pm), created by BlueberryDetection",
+        "page_sha256": "fe61a00bd5a4e760cb41ab623cbed0a75065a751e3a69755feacdc1239b28c5d",
+        "reason": "Landing-page open-source phrase is not an identified image license."
+      },
+      "license_id": null,
+      "license_status": "LICENSE_UNVERIFIED",
+      "license_url": null,
+      "model_training": "UNKNOWN",
+      "name": "BlueBerryDetection v1",
+      "official_url": "https://universe.roboflow.com/blueberrydetection/blueberrydetection/dataset/1",
+      "publisher": "Roboflow Universe / BlueberryDetection project uploader",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": null,
+      "research_use": null,
+      "source_id": "roboflow-blueberrydetection-v1",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    }
+  ]
+}

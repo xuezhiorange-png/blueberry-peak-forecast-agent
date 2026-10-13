@@ -1,0 +1,163 @@
+{
+  "business_approval_conferred": false,
+  "checks": [
+    {
+      "actual_output": "313 passed in 2.39s",
+      "command": "python -m pytest -q research/blueberry_vision/tests/test_r3_sources.py research/blueberry_vision/tests/test_r3_ingestion.py research/blueberry_vision/tests/test_r3_dedup.py research/blueberry_vision/tests/test_r3_annotations.py research/blueberry_vision/tests/test_r3_evaluation.py research/blueberry_vision/tests/test_r3_report.py research/blueberry_vision/newtests/test_r3_splits.py",
+      "exit_code": 0,
+      "name": "stable_core_pytest"
+    },
+    {
+      "actual_output": "All checks passed!",
+      "exit_code": 0,
+      "name": "stable_core_ruff"
+    },
+    {
+      "actual_output": "15 files already formatted",
+      "exit_code": 0,
+      "name": "stable_core_format"
+    },
+    {
+      "actual_output": "Success: no issues found in 8 source files",
+      "exit_code": 0,
+      "name": "stable_core_mypy"
+    }
+  ],
+  "dependencies": {
+    "Pillow": "12.3.0",
+    "mypy": "2.1.0",
+    "numpy": "2.4.6",
+    "pycocotools": "2.0.11",
+    "pydantic": "2.13.4",
+    "pytest": "9.1.1",
+    "ruff": "0.15.18"
+  },
+  "human_annotation_review_performed": false,
+  "inherited_r1_r2_files_changed": [],
+  "inherited_r1_r2_files_checked": 233,
+  "intermediate_negative_results_preserved": [
+    {
+      "cause": "Concurrent edit snapshot: newly added coordinate/helper-freeze regressions loaded an earlier implementation.",
+      "tests": "4 failed, 268 passed"
+    },
+    {
+      "cause": "Helper sources/schema changed during combined test process; freeze correctly rejected changed source and schema/model mismatch.",
+      "tests": "3 failed, 272 passed"
+    },
+    {
+      "cause": "New report missing-prediction and EXIF-binding regressions were written before their implementation.",
+      "tests": "2 failed, 299 passed"
+    },
+    {
+      "check": "Ruff E501 and format pending in new report regression",
+      "resolution": "Formatter/lint rerun passed in stable final checks."
+    }
+  ],
+  "public_reference_gate": {
+    "audit_hash": "eeb3edca59cb41e60a0f4e9a56325649043ebfc5103e58cc262fbab534ea64be",
+    "audit_path": "publisher_annotation_provenance_audit.json",
+    "code_review_does_not_certify_human_gt": true,
+    "publisher_polygon_count": 675,
+    "qualified_human_gt_available": false,
+    "real_image_accuracy_status": "NOT_EVALUABLE",
+    "reason": "ALL_675_XML_POLYGONS_SEMI_AUTO_NO_DOCUMENTED_HUMAN_CORRECTION",
+    "source_methods": [
+      "semi-auto"
+    ],
+    "xml_files_reviewed_by_source_audit": 27
+  },
+  "remaining_limits": [
+    "Offline seals, hashes and asserted reviewer IDs do not provide independent custody or identity authentication.",
+    "dHash/crop links are reviewable candidates with false positives and negatives; unknown associations remain unverified.",
+    "Public imagery and real pixel inference do not prove orchard accuracy, approved maturity grades, or count-to-kg calibration.",
+    "Optional official COCO metrics require qualified GT; synthetic goldens do not establish real-image accuracy."
+  ],
+  "resolved_findings": [
+    {
+      "id": "REVIEW-R3-001",
+      "problem": "TRAIN/VALIDATION/UNASSIGNED predictions could enter sealed TEST metrics.",
+      "regression": "tests/test_r3_evaluation.py mixed-split hand geometry golden",
+      "resolution": "Only admitted TEST/OUT_OF_DOMAIN IDs can score; other rows explicitly excluded."
+    },
+    {
+      "id": "REVIEW-R3-002",
+      "problem": "Omitted sealed TEST predictions disappeared from per-image failures.",
+      "regression": "test_omitted_sealed_test_prediction_is_visible_not_silently_dropped; test_missing_sealed_prediction_renders_excluded_scope_not_zero",
+      "resolution": "Every sealed scope ID retained; PREDICTION_MISSING/null count recorded, incomplete scope blocks aggregate accuracy; report and charts preserve missing-prediction coverage."
+    },
+    {
+      "id": "REVIEW-R3-003",
+      "problem": "Confirmed perceptual duplicate links disappeared from pending-only candidate view; rejected API review.reason did not match split review_reason.",
+      "regression": "newtests/test_r3_splits.py actual pixel import/dedup/review integration in all three states",
+      "resolution": "Split consumes all reviewed edges; pending/confirmed links remain connected, explicit reviewed rejection supported, exact equality never broken."
+    },
+    {
+      "id": "REVIEW-R3-004",
+      "problem": "Known candidate/model/semi-automatic COCO source metadata could be overridden by caller-supplied HUMAN publisher provenance; uncertain labels/unknown coverage could upgrade.",
+      "regression": "tests/test_r3_annotations.py candidate/semi-auto/model/source-quality alias and disposition negative cases",
+      "resolution": "Known source-quality restrictions and nested metadata retained, candidate/model upgrade blocked, uncertain/ignore dispositions preserved, unknown coverage remains null."
+    },
+    {
+      "id": "REVIEW-R3-005",
+      "problem": "Report previews bypassed R3 root-ancestor symlink safety.",
+      "regression": "test_report_rejects_symlinked_data_root; test_report_rejects_symlinked_root_ancestor",
+      "resolution": "Report uses guarded secure_load_asset; data-root and ancestor symlinks rejected."
+    },
+    {
+      "id": "REVIEW-R3-006",
+      "problem": "EXIF2 mirrored JPEG raw-coordinate COCO boxes passed dimension checks but disagreed with normalized pixels.",
+      "regression": "test_exif_geometry_is_actual_and_raw_coco_is_rejected; test_resealed_coordinate_metadata_cannot_override_decoded_pixels; test_report_verifies_resealed_exif_against_actual_bytes",
+      "reproduced_before_fix": {
+        "dimensions": [
+          64,
+          48
+        ],
+        "normalized_pixel_bbox": [
+          44,
+          12,
+          54,
+          24
+        ],
+        "raw_bbox": [
+          10,
+          12,
+          20,
+          24
+        ]
+      },
+      "resolution": "Actual EXIF/original geometry preserved and rebound to bytes; nontrivial/unknown orientation requires verified normalized-frame evidence; inference/audit/report reject false frame metadata."
+    },
+    {
+      "id": "REVIEW-R3-007",
+      "problem": "Unknown session sentinels could become false declared association groups.",
+      "regression": "test_unknown_session_dedup_to_split_allows_distinct_images",
+      "resolution": "Unknown values do not create duplicate metadata links or canonical identities."
+    },
+    {
+      "id": "REVIEW-R3-008",
+      "problem": "Known original-image lineage was dropped during derivative import.",
+      "regression": "test_original_and_derivative_use_one_hash_family_namespace; test_origin_family_closes_transitively_through_unassigned_derivative; test_test_derivative_cannot_hide_original_asset_consumed_by_training",
+      "resolution": "Optional original asset hashes preserved; raw originals and derivatives share one transitive family namespace, including originals outside the batch and training leakage checks."
+    }
+  ],
+  "review_hash": "31f93aae462a54f50ebdd868a38e1458b9dbd13b756f73e4a02d160a3f6a5a9e",
+  "review_type": "INDEPENDENT_CODEX_AGENT_CODE_AND_TEST_REVIEW",
+  "reviewed_file_sha256": {
+    "research/blueberry_vision/r3/annotation_snapshot.schema.json": "d06374c57dcd86f22e938828d9efcb513544fc54c3b54f44728c56a98b6b3af4",
+    "research/blueberry_vision/r3/annotations.py": "25d18756431ff2c64dd5078323adff3c824fc43bf29b90a000ce032088c92f85",
+    "research/blueberry_vision/r3/contracts.py": "67074aaef7d0d992a33d4e6cb9f2a05af7f668a50870e196d498dc2f4d67eb47",
+    "research/blueberry_vision/r3/dedup.py": "17c0c7c544f0b5ba4aefc29f66a927e6dd53d5714d40f082d9fff78282897b69",
+    "research/blueberry_vision/r3/evaluation.py": "f2daa3109d9d107bde39b4c615058c4f4694f32082990cc2725e50ff39838b29",
+    "research/blueberry_vision/r3/ingestion.py": "b28c26842e249b678f961f4a05da637340e69680a6564fab03959543e5ac5188",
+    "research/blueberry_vision/r3/report.py": "bbd392748ce5c45b276bb041950660af4dbafd825849636b6f7129d26ae2a2f5",
+    "research/blueberry_vision/r3/review_ui.html": "9143196d747892d3fd6be9909ed281e43c6ee9fc5fa6df6adda4d813046ac8b5",
+    "research/blueberry_vision/r3/schema.json": "6d324e1e7df32974c2472b5b4f72765f6ed90040559dd8fba377829b7501cd4b",
+    "research/blueberry_vision/r3/sources.py": "bccd5ab9806841ec0529c2fe55409180867e6d7562a1f617cb96f40ba9928a70",
+    "research/blueberry_vision/r3/splits.py": "ee73536a92f93a00bc9fe4a54a47ea7a1bcdfd78282836a10a0f1c49d9b65c5c"
+  },
+  "reviewer_identity_authenticated": false,
+  "schema_version": "blueberry-vision-code-review/3.0.0",
+  "scope": "R3 core source, contracts, image/annotation/split/evaluation/report integrations; final CLI, exact-head CI and Git persistence are separately accepted by the root task.",
+  "status": "PASS_REVIEWED_ENGINEERING_GATES",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}

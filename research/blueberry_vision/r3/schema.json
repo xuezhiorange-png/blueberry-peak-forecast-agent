@@ -1,0 +1,538 @@
+{
+  "$defs": {
+    "BaseIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_ref": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Ref"
+        },
+        "base_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Id"
+        },
+        "status": {
+          "enum": [
+            "UNRESOLVED",
+            "CANONICAL"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "BaseIdentity",
+      "type": "object"
+    },
+    "R3Image": {
+      "additionalProperties": false,
+      "properties": {
+        "SYNTHETIC": {
+          "title": "Synthetic",
+          "type": "boolean"
+        },
+        "annotation_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotation Ref"
+        },
+        "annotation_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotation Version"
+        },
+        "asset_available_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asset Available At"
+        },
+        "asset_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Asset Ref",
+          "type": "string"
+        },
+        "asset_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Asset Sha256",
+          "type": "string"
+        },
+        "asset_size_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 20000000,
+          "title": "Asset Size Bytes",
+          "type": "integer"
+        },
+        "base_identity": {
+          "$ref": "#/$defs/BaseIdentity"
+        },
+        "capture_session_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Session Id"
+        },
+        "capture_time_status": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Capture Time Status",
+          "type": "string"
+        },
+        "exif_orientation": {
+          "anyOf": [
+            {
+              "maximum": 8,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exif Orientation"
+        },
+        "frame_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Index"
+        },
+        "image_coordinate_frame": {
+          "anyOf": [
+            {
+              "const": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Coordinate Frame"
+        },
+        "image_height": {
+          "exclusiveMinimum": 0,
+          "maximum": 8192,
+          "title": "Image Height",
+          "type": "integer"
+        },
+        "image_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Image Id",
+          "type": "string"
+        },
+        "image_width": {
+          "exclusiveMinimum": 0,
+          "maximum": 8192,
+          "title": "Image Width",
+          "type": "integer"
+        },
+        "import_batch_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Import Batch Id",
+          "type": "string"
+        },
+        "license_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "License Id",
+          "type": "string"
+        },
+        "license_status": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "License Status",
+          "type": "string"
+        },
+        "license_url": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "License Url",
+          "type": "string"
+        },
+        "multiview_group_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Multiview Group Id"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Observed At"
+        },
+        "original_asset_ref": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Asset Ref"
+        },
+        "original_asset_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Asset Sha256"
+        },
+        "original_height": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 8192,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Height"
+        },
+        "original_width": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 8192,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Width"
+        },
+        "parent_image_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Image Id"
+        },
+        "preprocessing_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Preprocessing Hash",
+          "type": "string"
+        },
+        "preprocessing_version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Preprocessing Version",
+          "type": "string"
+        },
+        "purpose": {
+          "enum": [
+            "PUBLIC_EXTERNAL_BENCHMARK",
+            "AUTHORIZED_ORCHARD_PILOT",
+            "SYNTHETIC_ENGINEERING"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "record_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Record Hash",
+          "type": "string"
+        },
+        "rgb_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Rgb Sha256",
+          "type": "string"
+        },
+        "sampling_unit_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sampling Unit Id"
+        },
+        "scene_metadata": {
+          "additionalProperties": true,
+          "title": "Scene Metadata",
+          "type": "object"
+        },
+        "source_authority": {
+          "additionalProperties": true,
+          "title": "Source Authority",
+          "type": "object"
+        },
+        "source_batch_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Batch Id"
+        },
+        "source_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_provided_capture_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Provided Capture Date"
+        },
+        "variety": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variety"
+        },
+        "video_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Id"
+        }
+      },
+      "required": [
+        "image_id",
+        "asset_ref",
+        "asset_sha256",
+        "rgb_sha256",
+        "image_width",
+        "image_height",
+        "asset_size_bytes",
+        "preprocessing_version",
+        "preprocessing_hash",
+        "source_id",
+        "source_authority",
+        "license_id",
+        "license_url",
+        "license_status",
+        "purpose",
+        "SYNTHETIC",
+        "observed_at",
+        "capture_time_status",
+        "base_identity",
+        "import_batch_id",
+        "record_hash"
+      ],
+      "title": "R3Image",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "SYNTHETIC": {
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "annotation_index": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Annotation Index"
+    },
+    "dataset_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_version": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "images": {
+      "items": {
+        "$ref": "#/$defs/R3Image"
+      },
+      "title": "Images",
+      "type": "array"
+    },
+    "import_policy": {
+      "additionalProperties": true,
+      "title": "Import Policy",
+      "type": "object"
+    },
+    "manifest_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Manifest Hash",
+      "type": "string"
+    },
+    "purpose": {
+      "enum": [
+        "PUBLIC_EXTERNAL_BENCHMARK",
+        "AUTHORIZED_ORCHARD_PILOT",
+        "SYNTHETIC_ENGINEERING"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "blueberry-vision-external-dataset/3.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_index_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Source Index Hash",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Sources",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "dataset_version",
+    "purpose",
+    "SYNTHETIC",
+    "sources",
+    "images",
+    "source_index_hash",
+    "import_policy",
+    "manifest_hash"
+  ],
+  "title": "R3Dataset",
+  "type": "object"
+}

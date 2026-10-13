@@ -1,0 +1,63 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/newtests/test_r3_splits.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "..........................................................               [100%]\n58 passed in 0.10s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/r3/splits.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/r3/splits.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "2 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/r3/splits.py",
+        "research/blueberry_vision/newtests/test_r3_splits.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 2 source files\n"
+    }
+  ],
+  "facts": {
+    "confirmed_perceptual_edges_stay_isolation_links": true,
+    "hashed_duplicate_report_identity_checked": true,
+    "provisional_seal_status": "NOT_EVALUABLE",
+    "real_gt_still_missing": true,
+    "real_test_asset_count": 4,
+    "split_hash": "1f7816263326412891d6f10668af575ca38a1c086af3361204c0ddf969cd173e"
+  },
+  "milestone": "M4",
+  "parent_sha": "f5ac493886f6c38c8db62cdf94f35bbe5ab06bdf",
+  "recorded_at": "2026-10-13T04:40:04.259920+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}

@@ -1,0 +1,418 @@
+{
+  "SYNTHETIC": false,
+  "archive_integrity": "SELECTED_MEMBER_CRC_AND_SHA256_ONLY_FULL_ARCHIVE_CHECKSUM_NOT_VERIFIED",
+  "dataset_id": "blueberry-quality-v2-small-publisher-reference-r3",
+  "dataset_version": "3.0.0",
+  "image_count": 4,
+  "image_selection_count": 4,
+  "images": [
+    {
+      "SYNTHETIC": false,
+      "annotation_quality_status": "PUB_REFERENCE_PENDING_QUALITY",
+      "annotation_sha256": "5baefad053811df40f64838bf0f55d726acc9983c0906aa22f22f1e89b81c043",
+      "annotation_source_member": "blueberry-paper-v2.0.0/data/raw/annotations/Aufgetaut_UEB_2.xml",
+      "asset_ref": "Aufgetaut_UEB_2.first-frame-1500.png",
+      "asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "attribution_required": true,
+      "base_identity": {
+        "status": "UNRESOLVED"
+      },
+      "bytes": 9567631,
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "creator": "Lando Maximilian Garbe",
+      "image_height": 1000,
+      "image_id": "quality-4195390806",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "observed_at": null,
+      "original_asset_ref": "Aufgetaut_UEB_2.JPG",
+      "original_asset_sha256": "e338ae9e178ee9c56ec7956397b3cbd6900fad9f947903d3c84d2222643fa2e2",
+      "preprocessing": {
+        "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+        "derived_asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+        "geometry_scale_x": 0.25,
+        "geometry_scale_y": 0.25,
+        "image_height": 1000,
+        "image_width": 1500,
+        "original_asset_sha256": "e338ae9e178ee9c56ec7956397b3cbd6900fad9f947903d3c84d2222643fa2e2",
+        "output_encoding": {
+          "compress_level": 9,
+          "format": "PNG",
+          "optimize": false
+        },
+        "pillow_version": "12.3.0",
+        "preprocessing_hash": "d04b8bc47169d5b536a2cdf3a9ed96baf847e5ff919196570a4fab95f0f82064",
+        "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+        "selected_frame_index": 0,
+        "source_exif_orientation": 1,
+        "source_format": "MPO",
+        "source_frame_count": 2,
+        "source_height": 4000,
+        "source_width": 6000
+      },
+      "publisher_image_id": 4195390806,
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "reference_object_count": 25,
+      "research_use": true,
+      "source_id": "zenodo-22148787",
+      "source_member": "blueberry-paper-v2.0.0/data/raw/images/Aufgetaut_UEB_2.JPG",
+      "source_url": "https://zenodo.org/records/22148787",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+      "variety": null
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_quality_status": "PUB_REFERENCE_PENDING_QUALITY",
+      "annotation_sha256": "1554e3d71f6f94f76134e333ab0756b389ff04e6eeb6c99b743c1b9205fd0b56",
+      "annotation_source_member": "blueberry-paper-v2.0.0/data/raw/annotations/Aufgetaut_WB_2.xml",
+      "asset_ref": "Aufgetaut_WB_2.first-frame-1500.png",
+      "asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "attribution_required": true,
+      "base_identity": {
+        "status": "UNRESOLVED"
+      },
+      "bytes": 8144764,
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "creator": "Lando Maximilian Garbe",
+      "image_height": 1000,
+      "image_id": "quality-3127978079",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "observed_at": null,
+      "original_asset_ref": "Aufgetaut_WB_2.JPG",
+      "original_asset_sha256": "023792d124c5b9bd11958958e9a18ed74bd7ce4a899dfa55a8baafe908ddc889",
+      "preprocessing": {
+        "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+        "derived_asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+        "geometry_scale_x": 0.25,
+        "geometry_scale_y": 0.25,
+        "image_height": 1000,
+        "image_width": 1500,
+        "original_asset_sha256": "023792d124c5b9bd11958958e9a18ed74bd7ce4a899dfa55a8baafe908ddc889",
+        "output_encoding": {
+          "compress_level": 9,
+          "format": "PNG",
+          "optimize": false
+        },
+        "pillow_version": "12.3.0",
+        "preprocessing_hash": "8a7e80eb3c1ca2d69fde190050b2f5317319508d6922283707ec359a58f079f2",
+        "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+        "selected_frame_index": 0,
+        "source_exif_orientation": 1,
+        "source_format": "MPO",
+        "source_frame_count": 2,
+        "source_height": 4000,
+        "source_width": 6000
+      },
+      "publisher_image_id": 3127978079,
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "reference_object_count": 25,
+      "research_use": true,
+      "source_id": "zenodo-22148787",
+      "source_member": "blueberry-paper-v2.0.0/data/raw/images/Aufgetaut_WB_2.JPG",
+      "source_url": "https://zenodo.org/records/22148787",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+      "variety": null
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_quality_status": "PUB_REFERENCE_PENDING_QUALITY",
+      "annotation_sha256": "8f19b148fd87e32535a1ac3ab260dd9738d8ed07e6ac637660a51076edf1373a",
+      "annotation_source_member": "blueberry-paper-v2.0.0/data/raw/annotations/Aufgetaut_vs_frisch_MB_2.xml",
+      "asset_ref": "Aufgetaut_vs_frisch_MB_2.first-frame-1500.png",
+      "asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "attribution_required": true,
+      "base_identity": {
+        "status": "UNRESOLVED"
+      },
+      "bytes": 8696778,
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "creator": "Lando Maximilian Garbe",
+      "image_height": 1000,
+      "image_id": "quality-1626757232",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "observed_at": null,
+      "original_asset_ref": "Aufgetaut_vs_frisch_MB_2.JPG",
+      "original_asset_sha256": "1898595be6a3bf9a9c7983014be3d26724fcf030cb874bc7d4dca745d94cffdf",
+      "preprocessing": {
+        "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+        "derived_asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+        "geometry_scale_x": 0.25,
+        "geometry_scale_y": 0.25,
+        "image_height": 1000,
+        "image_width": 1500,
+        "original_asset_sha256": "1898595be6a3bf9a9c7983014be3d26724fcf030cb874bc7d4dca745d94cffdf",
+        "output_encoding": {
+          "compress_level": 9,
+          "format": "PNG",
+          "optimize": false
+        },
+        "pillow_version": "12.3.0",
+        "preprocessing_hash": "99efb17de29b69ffa5dd6961179241d02516853f67723096055cde94b4cd6212",
+        "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+        "selected_frame_index": 0,
+        "source_exif_orientation": 1,
+        "source_format": "MPO",
+        "source_frame_count": 2,
+        "source_height": 4000,
+        "source_width": 6000
+      },
+      "publisher_image_id": 1626757232,
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "reference_object_count": 25,
+      "research_use": true,
+      "source_id": "zenodo-22148787",
+      "source_member": "blueberry-paper-v2.0.0/data/raw/images/Aufgetaut_vs_frisch_MB_2.JPG",
+      "source_url": "https://zenodo.org/records/22148787",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+      "variety": null
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_quality_status": "PUB_REFERENCE_PENDING_QUALITY",
+      "annotation_sha256": "696227fe9cc634b02323e6e2fe364176d3a7e173b64db492ab0d210a58c21567",
+      "annotation_source_member": "blueberry-paper-v2.0.0/data/raw/annotations/Aufgetaut_vs_frisch_UEB_2.xml",
+      "asset_ref": "Aufgetaut_vs_frisch_UEB_2.first-frame-1500.png",
+      "asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "attribution_required": true,
+      "base_identity": {
+        "status": "UNRESOLVED"
+      },
+      "bytes": 9037330,
+      "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+      "commercial_use": true,
+      "creator": "Lando Maximilian Garbe",
+      "image_height": 1000,
+      "image_id": "quality-3872104307",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "observed_at": null,
+      "original_asset_ref": "Aufgetaut_vs_frisch_UEB_2.JPG",
+      "original_asset_sha256": "e96f2543e286780b2072f472a45e9eba4f1d3e6b10c3d49f53bb9671e75de8c7",
+      "preprocessing": {
+        "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+        "derived_asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+        "geometry_scale_x": 0.25,
+        "geometry_scale_y": 0.25,
+        "image_height": 1000,
+        "image_width": 1500,
+        "original_asset_sha256": "e96f2543e286780b2072f472a45e9eba4f1d3e6b10c3d49f53bb9671e75de8c7",
+        "output_encoding": {
+          "compress_level": 9,
+          "format": "PNG",
+          "optimize": false
+        },
+        "pillow_version": "12.3.0",
+        "preprocessing_hash": "340a0996fffbab72b2201f94aa69de477793adb705f43c4e21cf6ba3bc302efe",
+        "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+        "selected_frame_index": 0,
+        "source_exif_orientation": 1,
+        "source_format": "MPO",
+        "source_frame_count": 2,
+        "source_height": 4000,
+        "source_width": 6000
+      },
+      "publisher_image_id": 3872104307,
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "reference_object_count": 25,
+      "research_use": true,
+      "source_id": "zenodo-22148787",
+      "source_member": "blueberry-paper-v2.0.0/data/raw/images/Aufgetaut_vs_frisch_UEB_2.JPG",
+      "source_url": "https://zenodo.org/records/22148787",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+      "variety": null
+    }
+  ],
+  "index_hash": "b56c6083b792d79d56994219d85bb8bc7e5e5101c1b4656e79c5af64905153e5",
+  "license_evidence": {
+    "dataset_license_declaration": "Data licensing is CC BY 4.0.",
+    "official_license_terms_sha256": "8dda1ccec4be91fc80821d4e4fd5c568072b9a3a74b2fdc07c249a27e920ef01",
+    "official_readme_sha256": "5ce93d249a6eb6650e4fdec9504f52f906a685f5bf9a2fab1c4543b3031dd66a",
+    "official_record_sha256": "b4c87bb41280bc2c4dc59dd8931e810d0ae6410293519e4cb82a9104f3b84466"
+  },
+  "locally_independent_human_review": false,
+  "network_bytes": 36402648,
+  "publisher_coco_member": "blueberry-paper-v2.0.0/data/processed_revision_segmentation_cv/train/annotations.json",
+  "publisher_coco_sha256": "e9443e6565904baf2a2667bc9167630dec37932bd4a5b4818f977754ff9c2871",
+  "publisher_coco_subset_sha256": "22fee714c4b68e518b2cfd4d52ce6f6b5a7756c0e67d162af340d1f6b03ae0d4",
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "range_receipts": {
+    "curated_archive": [
+      {
+        "bytes": 22,
+        "end": 1303122682,
+        "sha256": "8e0a119df246198bb4fe28575b0d0d24d8bae220bdd6472bcd4f7b121a727c69",
+        "start": 1303122661
+      },
+      {
+        "bytes": 42,
+        "end": 1303122682,
+        "sha256": "c4ae5f4f556b33c289c43054e594d3cafecb6e6077a75a5ed1e484e423b9bf26",
+        "start": 1303122641
+      },
+      {
+        "bytes": 669610,
+        "end": 1303122660,
+        "sha256": "22b022d881e6fe5fd8d2f278d771bf166cf751f43afcc65ae041c218389663e9",
+        "start": 1302453051
+      },
+      {
+        "bytes": 4096,
+        "end": 618163437,
+        "sha256": "6f782882b2a8a536e91e38e23cc5255c241c0e7b604392a78368469b090eff0c",
+        "start": 618159342
+      },
+      {
+        "bytes": 215468,
+        "end": 618374924,
+        "sha256": "198409a32b7d9c3cdffa413ec93a7f963d10fb4f1b04c21bad19740a055d6eed",
+        "start": 618159457
+      }
+    ],
+    "source_archive": [
+      {
+        "bytes": 22,
+        "end": 3589602822,
+        "sha256": "edb57bdccafcdfa91826f01629ba3d5f2d2e10cf83029e67c39566eed84dac7a",
+        "start": 3589602801
+      },
+      {
+        "bytes": 42,
+        "end": 3589602822,
+        "sha256": "4da340680d162f0b6de64cd26f24bceead56e5e52da3edb1b664d10d6ea04389",
+        "start": 3589602781
+      },
+      {
+        "bytes": 98,
+        "end": 3589602822,
+        "sha256": "a53030d7fec507cd0c96d07d41d9197c8baff56e1e64acd6f4c0cf22229067e4",
+        "start": 3589602725
+      },
+      {
+        "bytes": 29177,
+        "end": 3589602724,
+        "sha256": "4f6d31cf76f47d1528d23183dd049335910362945f3df188014c78c806132821",
+        "start": 3589573548
+      },
+      {
+        "bytes": 4096,
+        "end": 3354839863,
+        "sha256": "d6de0e3df2a0519dfe087443fbf86202410654ac589031f533c6a02fd7d94e9b",
+        "start": 3354835768
+      },
+      {
+        "bytes": 9552209,
+        "end": 3364388064,
+        "sha256": "12d88b0c6632b894c3f58f77e69d7297084040d38269816433fd3605fb1db05f",
+        "start": 3354835856
+      },
+      {
+        "bytes": 4096,
+        "end": 3354665037,
+        "sha256": "259b80ba1520abf79568d87115d75d910297d941561c434f1d6a561b0f67e294",
+        "start": 3354660942
+      },
+      {
+        "bytes": 6313,
+        "end": 3354667347,
+        "sha256": "ea5e0a65ce347e362a540e25a1870e44665bafc1b94ed4de1fd7091441b60d39",
+        "start": 3354661035
+      },
+      {
+        "bytes": 4096,
+        "end": 3391274791,
+        "sha256": "abf7707ec9eaca024dafd636492462346db1b503035ac71328d96ef89d4fdc54",
+        "start": 3391270696
+      },
+      {
+        "bytes": 8128999,
+        "end": 3399399781,
+        "sha256": "086616b014581e4b382999926a697400145cc734d7f1b6665b67dff66e9c6a6a",
+        "start": 3391270783
+      },
+      {
+        "bytes": 4096,
+        "end": 3354691662,
+        "sha256": "c8df5df243bef5c20c49dea7d0f4c416c0a309df0554b36fd83224cd646a8b79",
+        "start": 3354687567
+      },
+      {
+        "bytes": 6495,
+        "end": 3354694153,
+        "sha256": "f80fcd431662c12add5f47d53919c1c7d01974081baee056b07964ff18ccd286",
+        "start": 3354687659
+      },
+      {
+        "bytes": 4096,
+        "end": 3364392160,
+        "sha256": "8bb66979a89e68abece35115000bfc1eabc04c09ed7c7bf2041a704a884ff654",
+        "start": 3364388065
+      },
+      {
+        "bytes": 8681305,
+        "end": 3373069466,
+        "sha256": "9f19686419c9eb22460e2cc4a247b88dd0f0084e0472806b36faff2a9958da31",
+        "start": 3364388162
+      },
+      {
+        "bytes": 4096,
+        "end": 3354671443,
+        "sha256": "f46242e0ac38d8636a061411904ff958b8bda14f39b658da8665ec29075365af",
+        "start": 3354667348
+      },
+      {
+        "bytes": 6606,
+        "end": 3354674055,
+        "sha256": "cd93d386511aaa1a2943616de847922d15869ed4a6eb7192d5a67796706a8df9",
+        "start": 3354667450
+      },
+      {
+        "bytes": 4096,
+        "end": 3373073562,
+        "sha256": "83ffe23b7ed04bc59684870c5bf44c3326072966eb55ba098cda0499eff944fb",
+        "start": 3373069467
+      },
+      {
+        "bytes": 9022097,
+        "end": 3382091661,
+        "sha256": "4d0b8ea7b647791ac5af0f1428b91d2bc887b898603548d7b3dbbce3f3795d41",
+        "start": 3373069565
+      },
+      {
+        "bytes": 4096,
+        "end": 3354678151,
+        "sha256": "77fd954eeb280f5faeda0734ef40b7c007aca5ec543bd74a90664e3403d11d80",
+        "start": 3354674056
+      },
+      {
+        "bytes": 6791,
+        "end": 3354680949,
+        "sha256": "a698c80af7b5b10a00427cd3555f456714547dc9fe2008623c128683a3e8cd64",
+        "start": 3354674159
+      }
+    ]
+  },
+  "reference_class_semantics": "Publisher categories identify source images; explicit candidate berry union mapping required, never maturity labels.",
+  "reference_object_count": 100,
+  "reference_status": "PUB_REFERENCE_PENDING_QUALITY_NOT_EVALUABLE",
+  "retrieved_at": "2026-10-13T04:41:33.684712+00:00",
+  "selection_rule": "FIRST_N_SORTED_RAW_COCO_IMAGE_FILENAME_NO_MODEL_OUTCOMES",
+  "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+  "total_image_bytes": 35446503
+}
