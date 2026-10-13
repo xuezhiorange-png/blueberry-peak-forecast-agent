@@ -1,0 +1,74 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "............................................                             [100%]\n44 passed in 0.31s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/r3/contracts.py",
+        "research/blueberry_vision/r3/ingestion.py",
+        "research/blueberry_vision/r3/dedup.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/r3/contracts.py",
+        "research/blueberry_vision/r3/ingestion.py",
+        "research/blueberry_vision/r3/dedup.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "5 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/r3/contracts.py",
+        "research/blueberry_vision/r3/ingestion.py",
+        "research/blueberry_vision/r3/dedup.py",
+        "research/blueberry_vision/tests/test_r3_ingestion.py",
+        "research/blueberry_vision/tests/test_r3_dedup.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 5 source files\n"
+    }
+  ],
+  "facts": {
+    "SYNTHETIC": false,
+    "annotated_real_images": 0,
+    "dataset_manifest_hash": "d9ea9731b61a1ae761e27d40042f1dfe1e6a8e7cedb1bc318b3604f3837faf6e",
+    "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+    "qa_is_auxiliary_not_gt": true,
+    "r2_bytes_preserved": true,
+    "real_images": 4
+  },
+  "milestone": "M2",
+  "parent_sha": "a15c56d6634e69db3715b86e2b5e8f63bb28aee1",
+  "recorded_at": "2026-10-13T04:37:18.534557+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}
