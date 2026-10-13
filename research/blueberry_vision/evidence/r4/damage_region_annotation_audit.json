@@ -1,0 +1,159 @@
+{
+  "archive_integrity": "SELECTED_MEMBER_CRC_AND_LOCAL_SHA256_NOT_FULL_ARCHIVE",
+  "bbox_count": 500,
+  "image_downloads": 0,
+  "license": "CC-BY-4.0",
+  "methods": {
+    "manual": 500
+  },
+  "network_bytes": 49819,
+  "no_owner_contact_fields_recorded": true,
+  "official_source": "https://zenodo.org/records/22148787",
+  "qualified_gt": false,
+  "r3_parent_pr": 720,
+  "r3_parent_pr_body_sha256": "2aa32878cb51d8a35178f297a02158b617f4a763b4ddddd6629c034a6736181a",
+  "reason": "ANNOTATION_TARGET_MISMATCH_DAMAGE_REGION_NOT_SINGLE_FRUIT",
+  "rows": [
+    {
+      "bbox_count": 71,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "Kaputte Stelle": 71
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/1.1.xml",
+      "methods": {
+        "manual": 71
+      },
+      "sha256": "fa7d4ff27d108c4efb97e52c2619397ddcc96513b99fc7738db794fb3e7d6549",
+      "source_image_names": [
+        "Never_1_1.JPG"
+      ]
+    },
+    {
+      "bbox_count": 58,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "Kaputte Stellen": 58
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/1.2.xml",
+      "methods": {
+        "manual": 58
+      },
+      "sha256": "bf4088d5c71c5f3078523914b9d1d3e4d0b02f2af6188083de6a5beaeaace962",
+      "source_image_names": [
+        "Never_1_2.JPG"
+      ]
+    },
+    {
+      "bbox_count": 72,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "kaputte Stellen": 72
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/1.3.xml",
+      "methods": {
+        "manual": 72
+      },
+      "sha256": "0d32b1b30518f636a1f2a5de1403552e2871130c16af126a3a0b7530b981e1cf",
+      "source_image_names": [
+        "Never_1_3.JPG"
+      ]
+    },
+    {
+      "bbox_count": 57,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "Kaputte Stellen": 57
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/1.4.xml",
+      "methods": {
+        "manual": 57
+      },
+      "sha256": "d29aaf07dfb556ea6cc2f6d913603cc32b566e36280b8ddceb3c9cfc8b40c1bc",
+      "source_image_names": [
+        "Never_1_4.JPG"
+      ]
+    },
+    {
+      "bbox_count": 60,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "Kaputte Stellen": 60
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/1.6.xml",
+      "methods": {
+        "manual": 60
+      },
+      "sha256": "08298e9a26908c2318c0be8d94395f5474f7050fccacfc6c31df111e2b961c9a",
+      "source_image_names": [
+        "Never_1_6.JPG"
+      ]
+    },
+    {
+      "bbox_count": 95,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "kaputte Stellen": 95
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/1.7.xml",
+      "methods": {
+        "manual": 95
+      },
+      "sha256": "cc3e61c62098085670a6a12afe7c6b3b83ea410e228346730a58994f9dea8df2",
+      "source_image_names": [
+        "Never_1_7.JPG"
+      ]
+    },
+    {
+      "bbox_count": 87,
+      "dimensions": [
+        {
+          "height": "4000",
+          "width": "6000"
+        }
+      ],
+      "labels": {
+        "kaputte Stellen": 87
+      },
+      "member": "blueberry-paper-v2.0.0/data/BBoxes_annotation_data/2.1.xml",
+      "methods": {
+        "manual": 87
+      },
+      "sha256": "b4038eeeab7de6893fa124e250ac1d7d3978b9706e9a066fc53de77f31363431",
+      "source_image_names": [
+        "never_2.1.1.JPG"
+      ]
+    }
+  ],
+  "xml_count": 7
+}
