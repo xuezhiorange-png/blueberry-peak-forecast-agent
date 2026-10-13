@@ -540,22 +540,79 @@ def test_overwrite_never_raises_on_existing_file(
         )
 
 
+@pytest.mark.parametrize("second_written_at", ["2026-10-13T00:50:19Z", "2026-10-13T00:50:20Z"])
 def test_overwrite_always_succeeds_and_replaces_bytes(
     stub_provider: None,
     rows_by_run_mask: dict[tuple[str, str], list[EvaluationMetricRow]],
     golden_rows_single_node: list[EvaluationMetricRow],
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    second_written_at: str,
 ) -> None:
+    timestamps = iter(["2026-10-13T00:50:19Z", second_written_at])
+    monkeypatch.setattr(
+        "backend.app.rolling_backtest.export._now_utc_iso_z", lambda: next(timestamps)
+    )
     rows_by_run_mask[(SAMPLE_RUN_ID, SAMPLE_MASK_HASH)] = golden_rows_single_node
     result = _make_evaluation_result(golden_rows_single_node)
     artifacts1 = write_export_artifacts(_make_export_request(result, tmp_path))
     bytes1 = artifacts1.json_path.read_bytes()
+    csv1 = artifacts1.csv_path.read_bytes()
+    manifest1 = json.loads(artifacts1.manifest_path.read_bytes())
+    assert artifacts1.audit_path is not None
+    audit_bytes1 = artifacts1.audit_path.read_bytes()
+    audit1 = json.loads(audit_bytes1)
+    paths1 = (
+        artifacts1.json_path,
+        artifacts1.csv_path,
+        artifacts1.manifest_path,
+        artifacts1.audit_path,
+    )
+    # ALWAYS must replace existing content, not merely return its paths.
+    for path in paths1:
+        path.write_bytes(b"SYNTHETIC_CORRUPTED_EXISTING_EXPORT")
+        assert path.read_bytes() == b"SYNTHETIC_CORRUPTED_EXISTING_EXPORT"
     artifacts2 = write_export_artifacts(
         _make_export_request(result, tmp_path, overwrite_policy=ExportOverwritePolicy.ALWAYS)
     )
     bytes2 = artifacts2.json_path.read_bytes()
-    # Same canonical JSON for identical inputs.
-    assert bytes1 == bytes2
+    assert artifacts2.audit_path is not None
+    assert paths1 == (
+        artifacts2.json_path,
+        artifacts2.csv_path,
+        artifacts2.manifest_path,
+        artifacts2.audit_path,
+    )
+    json1, json2 = json.loads(bytes1), json.loads(bytes2)
+    assert json1.pop("written_at_utc") == "2026-10-13T00:50:19Z"
+    assert json2.pop("written_at_utc") == second_written_at
+    assert json1 == json2
+    # Exact serialization may change only this one runtime field, never business bytes.
+    old_timestamp = b'"written_at_utc":"2026-10-13T00:50:19Z"'
+    assert bytes1.count(old_timestamp) == 1
+    assert bytes2 == bytes1.replace(
+        old_timestamp, f'"written_at_utc":"{second_written_at}"'.encode(), 1
+    )
+    assert artifacts2.csv_path.read_bytes() == csv1
+    manifest2 = json.loads(artifacts2.manifest_path.read_bytes())
+    audit_bytes2 = artifacts2.audit_path.read_bytes()
+    audit2 = json.loads(audit_bytes2)
+    for manifest, audit, audit_bytes, timestamp, policy in (
+        (manifest1, audit1, audit_bytes1, "2026-10-13T00:50:19Z", "missing"),
+        (manifest2, audit2, audit_bytes2, second_written_at, "always"),
+    ):
+        assert manifest["canonical_payload_hash"] == result.canonical_payload_hash
+        assert manifest.pop("written_at_utc") == timestamp
+        assert manifest.pop("audit_payload_hash") == hashlib.sha256(audit_bytes).hexdigest()
+        assert audit.pop("started_at_utc") == audit.pop("finished_at_utc") == timestamp
+        assert manifest["inputs"].pop("overwrite_policy") == policy
+        assert audit["inputs"].pop("overwrite_policy") == policy
+        assert audit["exit_code"] == 0
+    # Hash inputs, provenance and all remaining manifest/audit fields stay identical.
+    assert manifest1 == manifest2
+    assert audit1 == audit2
+    with pytest.raises(StopIteration):
+        next(timestamps)  # Exactly one controlled clock reading per export.
 
 
 # ---------------------------------------------------------------------------
