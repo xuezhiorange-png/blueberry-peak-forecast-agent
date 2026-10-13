@@ -1,0 +1,664 @@
+{
+  "$defs": {
+    "BaseIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "resolved",
+            "unresolved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "base_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Base Id"
+        },
+        "authority_ref": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Authority Ref"
+        },
+        "unresolved_reason": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unresolved Reason"
+        }
+      },
+      "required": [
+        "status",
+        "base_id",
+        "authority_ref",
+        "unresolved_reason"
+      ],
+      "title": "BaseIdentity",
+      "type": "object"
+    },
+    "DeviceMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "device_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Device Id",
+          "type": "string"
+        },
+        "camera_model": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Camera Model",
+          "type": "string"
+        },
+        "view_angle_degrees": {
+          "anyOf": [
+            {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "View Angle Degrees"
+        },
+        "capture_distance_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Capture Distance M"
+        },
+        "lighting": {
+          "enum": [
+            "diffuse",
+            "direct_sun",
+            "shade",
+            "artificial",
+            "mixed",
+            "unknown"
+          ],
+          "title": "Lighting",
+          "type": "string"
+        },
+        "metadata_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Metadata Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "device_id",
+        "camera_model",
+        "view_angle_degrees",
+        "capture_distance_m",
+        "lighting",
+        "metadata_ref"
+      ],
+      "title": "DeviceMetadata",
+      "type": "object"
+    },
+    "ImageDimensions": {
+      "additionalProperties": false,
+      "properties": {
+        "width_px": {
+          "exclusiveMinimum": 0,
+          "title": "Width Px",
+          "type": "integer"
+        },
+        "height_px": {
+          "exclusiveMinimum": 0,
+          "title": "Height Px",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width_px",
+        "height_px"
+      ],
+      "title": "ImageDimensions",
+      "type": "object"
+    },
+    "ModelProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "model_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Model Version",
+          "type": "string"
+        },
+        "model_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Model Hash",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "provenance_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Provenance Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model_version",
+        "model_hash",
+        "generated_at",
+        "provenance_ref"
+      ],
+      "title": "ModelProvenance",
+      "type": "object"
+    },
+    "SourceAuthority": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Authority Id",
+          "type": "string"
+        },
+        "source_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "permission_status": {
+          "enum": [
+            "synthetic_only",
+            "approved",
+            "pending",
+            "denied"
+          ],
+          "title": "Permission Status",
+          "type": "string"
+        },
+        "evidence_ref": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Evidence Ref"
+        },
+        "allowed_uses": {
+          "items": {
+            "enum": [
+              "metadata_validation",
+              "train",
+              "validation",
+              "test",
+              "out_of_domain"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Uses",
+          "type": "array"
+        },
+        "granted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Granted At"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expires At"
+        }
+      },
+      "required": [
+        "authority_id",
+        "source_ref",
+        "permission_status",
+        "evidence_ref",
+        "allowed_uses",
+        "granted_at",
+        "expires_at"
+      ],
+      "title": "SourceAuthority",
+      "type": "object"
+    },
+    "VisionObject": {
+      "additionalProperties": false,
+      "properties": {
+        "object_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "class_label": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Class Label",
+          "type": "string"
+        },
+        "bbox_xyxy": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Bbox Xyxy"
+        },
+        "mask_polygon": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mask Polygon"
+        }
+      },
+      "required": [
+        "object_id",
+        "class_label",
+        "bbox_xyxy",
+        "mask_polygon"
+      ],
+      "title": "VisionObject",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Nullable entries are required; unavailable data cannot silently become zero.",
+  "properties": {
+    "schema_version": {
+      "const": "blueberry-vision-observation/1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "observation_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "image_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Image Id",
+      "type": "string"
+    },
+    "asset_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Asset Hash",
+      "type": "string"
+    },
+    "capture_session_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Capture Session Id",
+      "type": "string"
+    },
+    "near_duplicate_group_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Near Duplicate Group Id",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "asset_available_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "title": "Asset Available At",
+      "type": "string"
+    },
+    "available_at": {
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "title": "Available At",
+      "type": "string"
+    },
+    "base_identity": {
+      "$ref": "#/$defs/BaseIdentity"
+    },
+    "season_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Season Id",
+      "type": "string"
+    },
+    "sampling_unit_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Sampling Unit Id",
+      "type": "string"
+    },
+    "variety_id": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Variety Id"
+    },
+    "occlusion": {
+      "enum": [
+        "none",
+        "partial",
+        "heavy",
+        "unknown"
+      ],
+      "title": "Occlusion",
+      "type": "string"
+    },
+    "device": {
+      "$ref": "#/$defs/DeviceMetadata"
+    },
+    "image_dimensions": {
+      "$ref": "#/$defs/ImageDimensions"
+    },
+    "record_kind": {
+      "enum": [
+        "real_observation",
+        "synthetic_observation",
+        "model_prediction"
+      ],
+      "title": "Record Kind",
+      "type": "string"
+    },
+    "SYNTHETIC": {
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "validation",
+        "test",
+        "out_of_domain",
+        "unassigned"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "task_kind": {
+      "enum": [
+        "detection",
+        "instance_segmentation",
+        "maturity_classification",
+        "yield_proxy"
+      ],
+      "title": "Task Kind",
+      "type": "string"
+    },
+    "annotation_version": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Annotation Version"
+    },
+    "label_definition_version": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Label Definition Version"
+    },
+    "annotation_quality_status": {
+      "enum": [
+        "not_annotated",
+        "in_progress",
+        "reviewed",
+        "rejected"
+      ],
+      "title": "Annotation Quality Status",
+      "type": "string"
+    },
+    "annotation_available_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Annotation Available At"
+    },
+    "object_count": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Object Count"
+    },
+    "count_unit": {
+      "const": "fruit_count",
+      "title": "Count Unit",
+      "type": "string"
+    },
+    "missing_count_reason": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Missing Count Reason"
+    },
+    "class_labels": {
+      "anyOf": [
+        {
+          "items": {
+            "maxLength": 256,
+            "minLength": 1,
+            "pattern": "^\\S(?:.*\\S)?$",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Class Labels"
+    },
+    "objects": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/VisionObject"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Objects"
+    },
+    "source_authority": {
+      "$ref": "#/$defs/SourceAuthority"
+    },
+    "model_provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModelProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "record_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Record Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "observation_id",
+    "image_id",
+    "asset_hash",
+    "capture_session_id",
+    "near_duplicate_group_id",
+    "observed_at",
+    "asset_available_at",
+    "available_at",
+    "base_identity",
+    "season_id",
+    "sampling_unit_id",
+    "variety_id",
+    "occlusion",
+    "device",
+    "image_dimensions",
+    "record_kind",
+    "SYNTHETIC",
+    "split",
+    "task_kind",
+    "annotation_version",
+    "label_definition_version",
+    "annotation_quality_status",
+    "annotation_available_at",
+    "object_count",
+    "count_unit",
+    "missing_count_reason",
+    "class_labels",
+    "objects",
+    "source_authority",
+    "model_provenance",
+    "record_hash"
+  ],
+  "title": "VisionObservation",
+  "type": "object"
+}
