@@ -1,0 +1,62 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests/test_r3_annotations.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "..............................................                           [100%]\n46 passed in 0.05s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/r3/annotations.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/r3/annotations.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "2 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/r3/annotations.py",
+        "research/blueberry_vision/tests/test_r3_annotations.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 2 source files\n"
+    }
+  ],
+  "facts": {
+    "agreement_match_count": 1,
+    "missing_gt_not_zero": true,
+    "real_human_annotation_performed": false,
+    "synthetic_sealed_reference_eligible": false,
+    "workflow_snapshots": 8
+  },
+  "milestone": "M3",
+  "parent_sha": "35b2cd36d72297efbe83fc3aa4bc54019d531f3a",
+  "recorded_at": "2026-10-13T04:38:02.234458+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}
