@@ -48,3 +48,11 @@ verified against durable R3 receipt; original model/config/source hashes and all
 actual raw/RGB/size records checked. Same full-frame/exposed score protocol locked.
 49tests passed; R3 test seal/ledger remain unchanged, GT still unavailable.
 Next M5: run strict admission and retain NOT_EVALUABLE/null real metrics per image.
+
+M4 commit080b1e49a9e909e79ac390e9fb5875699bd64e42 pushed, remote verified.
+M5 current checkpoint: strict real reference admission executed,8unscorable images,
+0qualifiedGT; actual real metrics remain null/NOT_EVALUABLE. Original R3 evaluator
+matching/AP/count/official COCO adapter reused, no real score attempted.54tests
+passed including hand Goldens. Missing2649component-area scalars saved compactly;
+recovered A/B full serialized SHA and canonical hashes exactly match R3 receipts.
+Next M6: concise business report, operational CLI, full regression and exact-head CI.
