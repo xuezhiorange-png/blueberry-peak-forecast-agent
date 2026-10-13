@@ -1,0 +1,46 @@
+{
+  "dependency_versions": {
+    "Pillow": "12.3.0",
+    "numpy": "2.4.6"
+  },
+  "images_per_split": 14,
+  "minimum_visible_fraction": 0.15,
+  "minimum_visible_pixels": 12,
+  "png_encoding": {
+    "compress_level": 9,
+    "metadata": "none",
+    "optimize": false
+  },
+  "pressure_dimensions": [
+    320,
+    256
+  ],
+  "references_are_real_business_labels": false,
+  "scenes": [
+    "sparse",
+    "dense",
+    "touching",
+    "partial_occlusion",
+    "high_occlusion",
+    "leaf_branch_background",
+    "shadow",
+    "glare",
+    "mixed_sizes",
+    "color_appearance",
+    "edge_crop",
+    "empty",
+    "distractors",
+    "pressure"
+  ],
+  "seed": 20261013,
+  "splits": [
+    "train",
+    "validation",
+    "test",
+    "out_of_domain"
+  ],
+  "standard_dimensions": [
+    256,
+    192
+  ]
+}
