@@ -1,0 +1,80 @@
+{
+  "branch": "research/blueberry-vision-r2-offline-detection-counting",
+  "checkpoint_parent_sha": "c570d929eb8843dc0b29bfc818d0740484156531",
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "pytest",
+        "research/blueberry_vision/tests/test_validator.py",
+        "research/blueberry_vision/tests/test_r2_assets.py",
+        "research/blueberry_vision/tests/test_r2_common.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "........................................................................ [ 60%]\n...............................................                          [100%]\n119 passed in 1.72s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/assets.py",
+        "research/blueberry_vision/r2_contracts.py",
+        "research/blueberry_vision/r2_common.py",
+        "research/blueberry_vision/tests/test_r2_assets.py",
+        "research/blueberry_vision/tests/test_r2_common.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/assets.py",
+        "research/blueberry_vision/r2_contracts.py",
+        "research/blueberry_vision/r2_common.py",
+        "research/blueberry_vision/tests/test_r2_assets.py",
+        "research/blueberry_vision/tests/test_r2_common.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "5 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/assets.py",
+        "research/blueberry_vision/r2_contracts.py",
+        "research/blueberry_vision/r2_common.py",
+        "research/blueberry_vision/tests/test_r2_assets.py",
+        "research/blueberry_vision/tests/test_r2_common.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 5 source files\n"
+    }
+  ],
+  "facts": {
+    "actual_png_jpeg_bytes_read": true,
+    "adapter_schema_version": "blueberry-vision-dataset/2.0.0",
+    "cpu_dependencies_only": true,
+    "near_duplicate_perceptual_analysis": false,
+    "normalized_duplicate_guard": true,
+    "orientation": "EXIF_transpose_then_RGB_white_alpha",
+    "r1_semantics_unchanged": true
+  },
+  "limitations": [
+    "Engineering synthetic checks only; no real orchard accuracy, kg calibration or production authorization."
+  ],
+  "milestone": "M1",
+  "recorded_at": "2026-10-13T02:55:05.484808+00:00",
+  "source_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE"
+}

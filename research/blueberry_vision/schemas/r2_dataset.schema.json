@@ -1,0 +1,545 @@
+{
+  "$defs": {
+    "BaseIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_ref": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Authority Ref"
+        },
+        "base_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Base Id"
+        },
+        "status": {
+          "enum": [
+            "resolved",
+            "unresolved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unresolved_reason": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unresolved Reason"
+        }
+      },
+      "required": [
+        "status",
+        "base_id",
+        "authority_ref",
+        "unresolved_reason"
+      ],
+      "title": "BaseIdentity",
+      "type": "object"
+    },
+    "R2ImageRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "SYNTHETIC": {
+          "const": true,
+          "title": "Synthetic",
+          "type": "boolean"
+        },
+        "annotation_quality_status": {
+          "const": "synthetic_reference",
+          "title": "Annotation Quality Status",
+          "type": "string"
+        },
+        "annotation_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Annotation Version",
+          "type": "string"
+        },
+        "asset_available_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+          "title": "Asset Available At",
+          "type": "string"
+        },
+        "asset_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Asset Sha256",
+          "type": "string"
+        },
+        "available_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+          "title": "Available At",
+          "type": "string"
+        },
+        "base_identity": {
+          "$ref": "#/$defs/BaseIdentity"
+        },
+        "capture_session_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Capture Session Id",
+          "type": "string"
+        },
+        "drawn_object_count": {
+          "minimum": 0,
+          "title": "Drawn Object Count",
+          "type": "integer"
+        },
+        "generation_seed": {
+          "minimum": 0,
+          "title": "Generation Seed",
+          "type": "integer"
+        },
+        "gt_status": {
+          "enum": [
+            "complete",
+            "missing"
+          ],
+          "title": "Gt Status",
+          "type": "string"
+        },
+        "hidden_object_count": {
+          "minimum": 0,
+          "title": "Hidden Object Count",
+          "type": "integer"
+        },
+        "ignore_regions": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          },
+          "maxItems": 100000,
+          "title": "Ignore Regions",
+          "type": "array"
+        },
+        "ignored_object_count": {
+          "minimum": 0,
+          "title": "Ignored Object Count",
+          "type": "integer"
+        },
+        "image_height": {
+          "exclusiveMinimum": 0,
+          "maximum": 8192,
+          "title": "Image Height",
+          "type": "integer"
+        },
+        "image_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Image Id",
+          "type": "string"
+        },
+        "image_width": {
+          "exclusiveMinimum": 0,
+          "maximum": 8192,
+          "title": "Image Width",
+          "type": "integer"
+        },
+        "label_definition_version": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Label Definition Version",
+          "type": "string"
+        },
+        "near_duplicate_group_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Near Duplicate Group Id",
+          "type": "string"
+        },
+        "objects": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/R2Object"
+              },
+              "maxItems": 100000,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Objects"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+          "title": "Observed At",
+          "type": "string"
+        },
+        "original_asset_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_./-]*$",
+          "title": "Original Asset Ref",
+          "type": "string"
+        },
+        "preprocessing_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Preprocessing Hash",
+          "type": "string"
+        },
+        "preprocessing_version": {
+          "const": "rgb-exif-transpose/1.0.0",
+          "title": "Preprocessing Version",
+          "type": "string"
+        },
+        "record_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Record Hash",
+          "type": "string"
+        },
+        "sampling_unit_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Sampling Unit Id",
+          "type": "string"
+        },
+        "scene_metadata": {
+          "additionalProperties": true,
+          "title": "Scene Metadata",
+          "type": "object"
+        },
+        "source_authority": {
+          "$ref": "#/$defs/SourceAuthority"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test",
+            "out_of_domain"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "template_group_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Template Group Id",
+          "type": "string"
+        },
+        "training_mask_ref": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_./-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Training Mask Ref"
+        },
+        "training_mask_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Training Mask Sha256"
+        },
+        "visible_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Visible Count"
+        }
+      },
+      "required": [
+        "image_id",
+        "original_asset_ref",
+        "asset_sha256",
+        "image_width",
+        "image_height",
+        "observed_at",
+        "asset_available_at",
+        "available_at",
+        "capture_session_id",
+        "sampling_unit_id",
+        "base_identity",
+        "source_authority",
+        "SYNTHETIC",
+        "split",
+        "generation_seed",
+        "template_group_id",
+        "near_duplicate_group_id",
+        "preprocessing_version",
+        "preprocessing_hash",
+        "label_definition_version",
+        "annotation_version",
+        "annotation_quality_status",
+        "gt_status",
+        "visible_count",
+        "objects",
+        "ignore_regions",
+        "drawn_object_count",
+        "hidden_object_count",
+        "ignored_object_count",
+        "scene_metadata",
+        "training_mask_ref",
+        "training_mask_sha256",
+        "record_hash"
+      ],
+      "title": "R2ImageRecord",
+      "type": "object"
+    },
+    "R2Object": {
+      "additionalProperties": false,
+      "properties": {
+        "bbox_xyxy": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Bbox Xyxy",
+          "type": "array"
+        },
+        "class_label": {
+          "const": "SYNTHETIC_BLUEBERRY_VISIBLE",
+          "title": "Class Label",
+          "type": "string"
+        },
+        "object_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Object Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_id",
+        "class_label",
+        "bbox_xyxy"
+      ],
+      "title": "R2Object",
+      "type": "object"
+    },
+    "SourceAuthority": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_uses": {
+          "items": {
+            "enum": [
+              "metadata_validation",
+              "train",
+              "validation",
+              "test",
+              "out_of_domain"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Uses",
+          "type": "array"
+        },
+        "authority_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Authority Id",
+          "type": "string"
+        },
+        "evidence_ref": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "pattern": "^\\S(?:.*\\S)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Evidence Ref"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expires At"
+        },
+        "granted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Granted At"
+        },
+        "permission_status": {
+          "enum": [
+            "synthetic_only",
+            "approved",
+            "pending",
+            "denied"
+          ],
+          "title": "Permission Status",
+          "type": "string"
+        },
+        "source_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^\\S(?:.*\\S)?$",
+          "title": "Source Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "authority_id",
+        "source_ref",
+        "permission_status",
+        "evidence_ref",
+        "allowed_uses",
+        "granted_at",
+        "expires_at"
+      ],
+      "title": "SourceAuthority",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "SYNTHETIC": {
+      "const": true,
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "annotation_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Annotation Version",
+      "type": "string"
+    },
+    "generation_config": {
+      "additionalProperties": true,
+      "title": "Generation Config",
+      "type": "object"
+    },
+    "generator_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "image_files_present": {
+      "const": true,
+      "title": "Image Files Present",
+      "type": "boolean"
+    },
+    "images": {
+      "items": {
+        "$ref": "#/$defs/R2ImageRecord"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Images",
+      "type": "array"
+    },
+    "label_definition_version": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "title": "Label Definition Version",
+      "type": "string"
+    },
+    "manifest_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Hash",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "blueberry-vision-dataset/2.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Split Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "SYNTHETIC",
+    "image_files_present",
+    "generator_version",
+    "generation_config",
+    "label_definition_version",
+    "annotation_version",
+    "images",
+    "manifest_hash",
+    "split_hash"
+  ],
+  "title": "R2Dataset",
+  "type": "object"
+}
