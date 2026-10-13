@@ -124,7 +124,12 @@ async def manage(
                     )
                     account.must_change_password = True
                 await auth.changed(
-                    db, account, principal, "ACCOUNT_" + action.upper().replace("-", "_")
+                    db,
+                    account,
+                    principal,
+                    "ACCOUNT_" + action.upper().replace("-", "_"),
+                    reason=auth.operation_reason(boundary, payload.reason),
+                    organization=boundary.organization_ids[0] if boundary.simple_admin else None,
                 )
                 if action == "reset-password":
                     return envelope(
@@ -162,9 +167,7 @@ async def manage(
                     .where(
                         AuthResourceGrant.grant_id == object_id,
                         AuthResourceGrant.organization_id.in_(boundary.organization_ids),
-                        AuthAccount.account_id.in_(
-                            [str(v) for v in boundary.manageable_account_ids]
-                        ),
+                        auth.account_scope(boundary),
                     )
                 )
                 if grant is None:
@@ -196,15 +199,14 @@ async def manage(
                         organization=grant.organization_id,
                         before=before,
                         after=subject.grant_revision,
+                        reason=auth.operation_reason(boundary, payload.reason),
                     )
                 return envelope({"revoked": True, "new_grant_revision": subject.grant_revision})
             if request.method != "GET" or action is not None:
                 raise AuthError("NOT_FOUND", 404)
             if resource == "users":
                 size, after = page(request, {"page_size", "after_account_id"})
-                account_statement = select(AuthAccount).where(
-                    AuthAccount.account_id.in_([str(v) for v in boundary.manageable_account_ids])
-                )
+                account_statement = select(AuthAccount).where(auth.account_scope(boundary))
                 if after:
                     account_statement = account_statement.where(AuthAccount.account_id > after)
                 account_rows = (
@@ -225,9 +227,7 @@ async def manage(
                     select(AuthResourceGrant)
                     .join(AuthAccount, AuthAccount.principal_id == AuthResourceGrant.principal_id)
                     .where(
-                        AuthAccount.account_id.in_(
-                            [str(v) for v in boundary.manageable_account_ids]
-                        ),
+                        auth.account_scope(boundary),
                         AuthResourceGrant.organization_id.in_(boundary.organization_ids),
                     )
                 )

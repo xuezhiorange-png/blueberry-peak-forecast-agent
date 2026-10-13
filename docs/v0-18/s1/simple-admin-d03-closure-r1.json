@@ -1,0 +1,148 @@
+{
+  "admin_has_implicit_business_access": false,
+  "base_main_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+  "catalog_source": "TRUSTED_SERVER_CONFIGURATION_ONLY",
+  "future_run_auto_grants": false,
+  "historical_frozen_evidence_count": 260,
+  "historical_source_policy": {
+    "commit": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+    "expected_hashes_changed": false,
+    "frozen_documents_use_current_bytes": true,
+    "runtime_sources_use_merged_snapshot_only_for_historical_evidence": true
+  },
+  "local_validation": {
+    "direct_flow_pass_count": 8,
+    "environment": "ISOLATED_LOOPBACK_POSTGRESQL_15_SYNTHETIC",
+    "exact_head_ci": "PENDING_DRAFT_PR",
+    "format": "PASS",
+    "frontend_unit": "122_PASS",
+    "mypy_backend_app": "PASS",
+    "offline_full_regression": "RUNNING_NOT_ACCEPTED_YET",
+    "ruff": "PASS",
+    "runtime_suite": {
+      "failed": 0,
+      "junit_sha256": "6a426eb720126b8d6d9ac96eaff268f59328743a731e6c0536921a479662f739",
+      "passed": 98,
+      "skipped": 0
+    },
+    "security_test_mapping": {
+      "A01": [
+        "test_a01_admin_creates_account_without_business_grants",
+        "test_a01_login_cookie_digest_and_me"
+      ],
+      "A02": [
+        "test_a02_wrong_password_and_disabled_have_same_safe_error",
+        "test_a02_unknown_username_matches_bad_password"
+      ],
+      "A03": [
+        "test_a03_admin_reset_forced_change_and_old_session_revocation",
+        "test_a03_revision_change_revokes_existing_session"
+      ],
+      "A04": [
+        "test_a04_logout_invalidates_cookie",
+        "test_a04_expired_server_session_rejected[idle_expires_at]",
+        "test_a04_expired_server_session_rejected[absolute_expires_at]",
+        "test_a04_cookie_duplicate_and_forgery"
+      ],
+      "A05": [
+        "test_a05_business_user_cannot_manage_accounts",
+        "test_a05_all_management_endpoints_denied_before_target_reads"
+      ],
+      "A06": [
+        "test_a06_admin_has_no_implicit_resource_access"
+      ],
+      "A07": [
+        "test_a07_a08_a09_exact_identity_and_independent_quality",
+        "test_a07_unauthorized_forecast_reads_zero"
+      ],
+      "A08": [
+        "test_a07_a08_a09_exact_identity_and_independent_quality"
+      ],
+      "A09": [
+        "test_a07_a08_a09_exact_identity_and_independent_quality",
+        "test_a09_quality_grant_is_independent_and_pinned"
+      ],
+      "A10": [
+        "test_a10_canonical_hash_drift_fails_closed"
+      ],
+      "A11": [
+        "test_a11_revocation_committed_before_release_sends_no_sensitive_bytes",
+        "test_a11_real_canonical_read_revocation_wins_before_asgi_send[disable]",
+        "test_a11_real_canonical_read_revocation_wins_before_asgi_send[grant]",
+        "test_a11_real_canonical_read_revocation_wins_before_asgi_send[expiry]",
+        "test_a11_real_canonical_read_revocation_wins_before_asgi_send[session]"
+      ],
+      "A12": [
+        "test_a12_release_lock_blocks_revocation_and_cancellation_releases_lock",
+        "test_a12_concurrent_principal_session_isolation"
+      ],
+      "A13": [
+        "test_a13_controlled_legacy_ingress_no_fallback"
+      ],
+      "A14": [
+        "test_a14_real_controlled_http_frozen_service_parity[BASE]",
+        "test_a14_real_controlled_http_frozen_service_parity[REGION]",
+        "test_a14_real_controlled_http_frozen_service_parity[COMPANY]"
+      ],
+      "A15": [
+        "test_a15_csrf_origin_and_preauth_refresh",
+        "test_a15_duplicate_origin_and_csrf_rejected"
+      ],
+      "A16": [
+        "test_a16_cross_worker_login_limit",
+        "test_a16_password_and_body_limits_before_hash"
+      ],
+      "A17": [
+        "test_a17_last_admin_cas_and_explicit_management_scope",
+        "test_a17_approved_grant_exact_cas_revocation_and_audit",
+        "test_a17_audit_failure_rolls_back_account_creation"
+      ],
+      "A18": [
+        "test_a18_synthetic_bootstrap_requires_approval_and_is_not_repeatable",
+        "test_a18_successful_login_rehashes_without_replacing_principal"
+      ],
+      "A19": [
+        "test_a19_audit_has_no_credentials"
+      ],
+      "A20": [
+        "test_a20_missing_publisher_and_invalid_origin_fail_closed",
+        "test_a20_actual_connection_failure_is_safe_and_recovers"
+      ]
+    }
+  },
+  "owner_simple_admin_scheme_approved": true,
+  "per_account_preregistration_required": false,
+  "per_assignment_external_approval_required": false,
+  "production_readiness": "NOT_READY",
+  "prohibited_actions": {
+    "merge_authorized": false,
+    "production_database_migrated": false,
+    "production_deployed": false,
+    "ready_authorized": false,
+    "real_admin_created": false,
+    "real_grants_created": false,
+    "release_authorized": false,
+    "s1_formal_complete": false,
+    "s2_s6_started": false,
+    "tag_authorized": false
+  },
+  "quality_grant_independent": true,
+  "real_environment_accounts_and_catalog": "NOT_CONFIGURED_OWNER_DESIGNATION_REQUIRED",
+  "security_acceptance_counts": {
+    "blocked": 0,
+    "fail": 0,
+    "pass_tested_scope": 20
+  },
+  "source_evidence_sha256": {
+    "backend/app/api/local_auth_admin.py": "ed6eb4d3fd2d9f32b1ea1887662d92a9f616a16e327266aada453c4f1ce80349",
+    "backend/app/core/config.py": "d1df26a767988b5fee81a26f8a733b9a60dc8cc431c1994dba72b6d5ad6a4f6c",
+    "backend/app/local_auth/schemas.py": "a86bbe84fc475cdbead79464f0259c871c29b6d6b40c9827b939be87a321ab55",
+    "backend/app/local_auth/service.py": "d1e5e4c531aa948a9c1791888d9c627ae5195deb4ab512930ab669a95ecf167f",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": "7792878aecd954dd216ead604982c858faff1e947129005c57b6178b580e1bb9",
+    "backend/tests/local_auth/test_simple_admin.py": "ec7fc708ce4fd6d3b43bbcad77eb25ca43e7d382671dbaae1e036328c02bcac0",
+    "backend/tests/local_auth/test_simple_admin_decision_contract.py": "ffa5d8dbd6f2e79d79dc52725501c7d5ed659818433adce3fce78bd7d828ecb0",
+    "docs/v0-18/s1/local-auth-runtime-r1.json": "a1b83f13c0a19126adf9b773336fb5594438432313e71de9709de777f0c0deae",
+    "docs/v0-18/s1/simple-admin-d03-closure-r1.md": "d27046c971c7bb44d62d26b18cdfedfb39f89eb6c8e0ef292cfa4f86df3f851d"
+  },
+  "task_id": "V0_18_S1_SIMPLE_ADMIN_CLOSURE_R1"
+}
