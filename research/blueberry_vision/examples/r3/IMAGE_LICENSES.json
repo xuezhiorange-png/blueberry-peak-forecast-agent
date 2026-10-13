@@ -1,0 +1,27 @@
+{
+  "overlays": [
+    {
+      "creator": "mike epp from bensalem, pa, usa",
+      "derivative_license": "CC-BY-2.0",
+      "license_id": "CC-BY-2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "modifications": "EXIF normalized, resized, bounding-box overlay and research labels; original unmodified",
+      "official_url": "https://commons.wikimedia.org/wiki/File:Blueberries_ripening_on_branch.jpg",
+      "path": "research/blueberry_vision/examples/r3/public-commons-4112528-model-B-overlay.png",
+      "source_asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "source_id": "commons-4112528"
+    },
+    {
+      "creator": "Garbe, Lando Maximilian",
+      "derivative_license": "CC-BY-4.0",
+      "license_id": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "modifications": "EXIF normalized, resized, bounding-box overlay and research labels; original unmodified",
+      "official_url": "https://zenodo.org/records/22148787",
+      "path": "research/blueberry_vision/examples/r3/quality-1626757232-model-B-overlay.png",
+      "source_asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "source_id": "zenodo-22148787"
+    }
+  ],
+  "report_and_screenshot": "Each embedded image retains the image-specific creator/source/license in real_review.html; CC BY-SA image adaptations retain CC BY-SA4.0. Software licensing does not replace image licensing."
+}

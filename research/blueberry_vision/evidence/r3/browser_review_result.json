@@ -1,0 +1,16 @@
+{
+  "#countError": "NOT_EVALUABLE",
+  "#gtCount": "NOT_EVALUABLE",
+  "#maeBias": "NOT_EVALUABLE",
+  "#precisionRecall": "NOT_EVALUABLE",
+  "actual_model_switch": "1161 -> 66",
+  "banner": "PUBLIC EXTERNAL BENCHMARK \u2014 NOT ORCHARD APPROVAL",
+  "draft_bundle_hash_valid": true,
+  "export_does_not_approve_gt": true,
+  "initial_model_A_count": "1161",
+  "mode": "REAL_PUBLIC_LICENSED_PHOTOS_ACTUAL_HTML_IN_MEMORY_ROUTE_NO_SERVICE_DEPLOYMENT",
+  "no_fake_FP_filter_results_without_GT": true,
+  "page_errors": [],
+  "pending_candidates_copied": 25,
+  "real_image_list_count": 8
+}
