@@ -1,0 +1,16 @@
+{
+  "actual_browser": "browser_clean_editor.json",
+  "adjudication_task_unassigned": true,
+  "automated_browser_draft_not_human_annotation": true,
+  "full_resolution_local_html_bytes": 20079189,
+  "independent_unassigned_annotation_tasks": 2,
+  "package_hash": "2e09c0c74e781b2940e6e344308160953b94d69fa70a2620024b11b479ac8cb0",
+  "public_preview_bytes": 308384,
+  "qualified_gt_images": 0,
+  "real_images": 8,
+  "reference_count": null,
+  "tests": {
+    "command": "pytest research/blueberry_vision/r4tests -q",
+    "passed": 25
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "business_evaluation": "NOT_EVALUABLE",
+  "engineering": "PASS",
+  "manual_goldens": "TP1/FP1/FN1/AP50=.5; MAE1.5/Bias.5, missing image excluded. These are unit goldens, not real-image results.",
+  "original_predictions_exact_byte_recovery": true,
+  "real_coco": "NOT_RUN_NO_QUALIFIED_GT",
+  "real_count_bias": null,
+  "real_count_mae": null,
+  "real_precision": null,
+  "real_qualified_gt_images": 0,
+  "reason": "No genuine independent human annotations, adjudication or owner verification receipts.",
+  "recovery_supplement_bytes": 39178,
+  "report_hash": "c1f5b8f0dd650855f213d10ca3175d2dba22c5cd9d9072f07cfe84614533d152",
+  "tests": {
+    "command": "pytest research/blueberry_vision/r4tests -q",
+    "passed": 54
+  }
+}
