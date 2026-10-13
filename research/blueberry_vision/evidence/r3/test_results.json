@@ -1,0 +1,75 @@
+{
+  "commands": [
+    "python -m pytest research/blueberry_vision/tests research/blueberry_vision/newtests -q --junitxml=/tmp/blueberry-r3-final-tests.xml",
+    "ruff check research/blueberry_vision",
+    "ruff format --check research/blueberry_vision",
+    "mypy --explicit-package-bases research/blueberry_vision",
+    "python -m research.blueberry_vision.r3.cli run-r3-acceptance --output /tmp/blueberry-r3-final-acceptance --coco"
+  ],
+  "engineering_acceptance": {
+    "COUNT_TO_KG_CALIBRATED": false,
+    "PRODUCTION_FORECAST_CHANGED": false,
+    "REAL_IMAGE_ACCURACY_VALIDATED": false,
+    "REAL_ORCHARD_ACCURACY_APPROVED": false,
+    "SYNTHETIC": true,
+    "artifact_manifest_hash": "01a75a2ce9b09447ee0b0a070eb5549155bce3651ee431bb65434968feb8ad9f",
+    "artifact_scope": "Outputs existing before this administrative acceptance.json receipt",
+    "checks": {
+      "artifact_verification": true,
+      "both_models_evaluated": true,
+      "coco_round_trip": true,
+      "cross_split_leakage_rejected": true,
+      "duplicate_candidates_found": true,
+      "frozen_model_reloaded": true,
+      "html_generated": true,
+      "image_pixels_decoded": true,
+      "mae_bias_golden": true,
+      "one_to_one_golden": true,
+      "painted_reference_baseline_a": true,
+      "pixel_only_inference": true,
+      "production_approval_absent": true
+    },
+    "evaluated_images_per_model": [
+      3,
+      3
+    ],
+    "metrics_scope": "SYNTHETIC_ENGINEERING_ONLY_NOT_REAL_BLUEBERRY_ACCURACY",
+    "purpose": "SYNTHETIC_ENGINEERING",
+    "regression_tests": {
+      "checks": [
+        {
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "........................................................................ [ 26%]\n........................................................................ [ 53%]\n........................................................................ [ 79%]\n.......................................................                  [100%]\n271 passed in 11.16s\n",
+          "suite": "R1_R2_ORIGINAL"
+        },
+        {
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "........................................................................ [ 19%]\n........................................................................ [ 39%]\n........................................................................ [ 59%]\n........................................................................ [ 79%]\n........................................................................ [ 99%]\n...                                                                      [100%]\n363 passed in 3.36s\n",
+          "suite": "R3"
+        }
+      ],
+      "status": "PASS"
+    },
+    "status": "PASS",
+    "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+  },
+  "format_result": "PASS_46_FILES",
+  "intermediate_negative_evidence": "independent_review.json preserves TDD/integration failures; corrective re-freeze retained in model_inference.json. No failed test deleted or disabled.",
+  "mypy_result": "PASS_46_FILES",
+  "new_R3_tests": 363,
+  "original_R1_R2_tests": 271,
+  "ruff_result": "PASS",
+  "status": "PASS",
+  "whole_research": {
+    "errors": "0",
+    "failures": "0",
+    "hostname": "9b5bc3de3e09",
+    "name": "pytest",
+    "skipped": "0",
+    "tests": "634",
+    "time": "14.998",
+    "timestamp": "2026-10-13T05:01:14.374703+00:00"
+  }
+}
