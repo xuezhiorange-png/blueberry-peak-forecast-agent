@@ -1,0 +1,65 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests/test_r3_report.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "...................................                                      [100%]\n35 passed in 0.49s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/r3/report.py",
+        "research/blueberry_vision/tests/test_r3_report.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/r3/report.py",
+        "research/blueberry_vision/tests/test_r3_report.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "2 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/r3/report.py",
+        "research/blueberry_vision/tests/test_r3_report.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 2 source files\n"
+    }
+  ],
+  "facts": {
+    "actual_HTML_bytes": 1125539,
+    "browser_actual_model_switch": "1161 -> 66",
+    "browser_draft_export_valid_hash": true,
+    "browser_page_errors": 0,
+    "bulk_raw_images_not_committed": true,
+    "duplicate_full_report_JSON_not_committed": true,
+    "licensed_real_previews": 8,
+    "pending_geometry_editable_but_not_GT": 100
+  },
+  "milestone": "M6",
+  "parent_sha": "37d26594e4b79007d8339de91d1102c429cc497c",
+  "recorded_at": "2026-10-13T05:00:34.930338+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}
