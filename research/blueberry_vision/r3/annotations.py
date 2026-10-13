@@ -114,6 +114,96 @@ def _operation(operation: str, actor_id: str, at: str | None, prior_hash: str | 
     }
 
 
+def _source_quality(coco: JSONDict) -> JSONDict:
+    """Retain known source assertions; caller provenance cannot erase them."""
+    containers = [coco]
+    for key in ("info", "research_provenance", "provenance"):
+        metadata = coco.get(key)
+        if metadata is not None:
+            if not isinstance(metadata, dict):
+                raise AnnotationError("PROVENANCE_INVALID")
+            containers.append(metadata)
+    for key in ("images", "annotations"):
+        containers.extend(_records(coco.get(key), f"{key.upper()}_REQUIRED"))
+    for _ in range(2):
+        nested: list[JSONDict] = []
+        for item in containers:
+            for key in ("research_snapshot", "research_record", "research_object", "provenance"):
+                value = item.get(key)
+                if isinstance(value, dict) and value not in containers and value not in nested:
+                    nested.append(value)
+        containers.extend(nested)
+    origins: set[str] = set()
+    methods: set[str] = set()
+    statuses: set[str] = set()
+    human_reviews: set[str] = set()
+    evidence_statuses: set[str] = set()
+    label_approvals: set[str] = set()
+    candidate = False
+    prediction = False
+    for item in containers:
+        candidate = candidate or item.get("candidate") is True
+        prediction = (
+            prediction
+            or bool(item.get("model_provenance"))
+            or item.get("record_kind") == "model_prediction"
+        )
+        for key, values in (
+            ("annotation_origin", origins),
+            ("annotation_method", methods),
+            ("annotation_status", statuses),
+            ("annotation_quality_status", statuses),
+            ("human_review_status", human_reviews),
+            ("evidence_status", evidence_statuses),
+            ("label_approval", label_approvals),
+            ("label_approval_status", label_approvals),
+        ):
+            value = item.get(key)
+            if isinstance(value, str):
+                values.add(value.strip().upper().replace("-", "_").replace(" ", "_"))
+        review_status = item.get("review_status")
+        if isinstance(review_status, str):
+            statuses.add(review_status.strip().upper())
+    candidate = candidate or bool(
+        statuses & {"DRAFT", "SUBMITTED", "REVIEW_PENDING", "CANDIDATE", "UNREVIEWED"}
+    )
+    candidate = (
+        candidate
+        or bool(label_approvals & {"CANDIDATE_ONLY", "DRAFT", "UNREVIEWED"})
+        or bool(origins & {"UNVERIFIED", "UNKNOWN", "UNREVIEWED"})
+        or any(
+            value in {"UNVERIFIED", "UNKNOWN", "UNREVIEWED", "DENIED"}
+            or value.startswith("PENDING")
+            for value in evidence_statuses
+        )
+    )
+    prediction = prediction or bool(
+        origins & {"MODEL", "AI", "MODEL_PREDICTION", "AUTOMATIC", "AUTO", "MACHINE"}
+    )
+    semi_automatic = any(
+        "SEMI_AUTOMATIC" in value or value == "SEMI_AUTO" for value in origins | methods
+    )
+    reviewed = bool(human_reviews) and human_reviews <= {
+        "VERIFIED",
+        "REVIEWED",
+        "ADJUDICATED",
+        "SEALED",
+    }
+    return {
+        "candidate": candidate,
+        "model_prediction": prediction,
+        "semi_automatic": semi_automatic,
+        "human_review_verified_in_source": reviewed,
+        "source_annotation_origins": sorted(origins),
+        "source_annotation_methods": sorted(methods),
+        "source_annotation_statuses": sorted(statuses),
+        "source_human_review_statuses": sorted(human_reviews),
+        "source_annotation_evidence_statuses": sorted(evidence_statuses),
+        "source_label_approval_statuses": sorted(label_approvals),
+        "not_reference": candidate or prediction or semi_automatic and not reviewed,
+    }
+
+
 def create_draft(
     image_record: JSONDict,
     *,
@@ -502,6 +592,12 @@ def reference_eligibility(snapshot: JSONDict) -> JSONDict:
     validate_snapshot(snapshot)
     reasons: list[str] = []
     provenance = snapshot["provenance"]
+    imported_quality = provenance.get("imported_source_quality")
+    declared_quality = _source_quality({"info": provenance, "images": [], "annotations": []})
+    if declared_quality["not_reference"] or (
+        isinstance(imported_quality, dict) and imported_quality.get("not_reference") is True
+    ):
+        reasons.append("SOURCE_ANNOTATION_QUALITY_NOT_REFERENCE")
     if snapshot["gt_status"] != "COMPLETE":
         reasons.append("ANNOTATION_MISSING")
     if snapshot["SYNTHETIC"] or snapshot["workflow_mode"] == "SIMULATED_ENGINEERING":
@@ -690,6 +786,28 @@ def import_annotations(
         annotation_version is None or provenance is None or category_mapping is None
     ):
         raise AnnotationError("EXTERNAL_PROVENANCE_REQUIRED")
+    quality = _source_quality(coco) if not controlled else None
+    imported_provenance = copy.deepcopy(provenance)
+    if quality is not None:
+        if quality["model_prediction"]:
+            raise AnnotationError("PREDICTION_IS_NOT_GT")
+        assert imported_provenance is not None
+        if quality["not_reference"] and (
+            imported_provenance.get("kind")
+            in {"DOCUMENTED_PUBLISHER_ANNOTATION", "INDEPENDENT_HUMAN_ADJUDICATION"}
+            or imported_provenance.get("annotation_origin") == "HUMAN"
+            and imported_provenance.get("evidence_status") == "VERIFIED"
+        ):
+            raise AnnotationError("ANNOTATION_PROVENANCE_AUTHORITY_UPGRADE")
+        imported_provenance["imported_source_quality"] = quality
+        source_info = coco.get("info", {})
+        if (
+            "purpose" in source_info
+            and source_info["purpose"] != dataset.get("purpose")
+            or "SYNTHETIC" in source_info
+            and source_info["SYNTHETIC"] != dataset.get("SYNTHETIC")
+        ):
+            raise AnnotationError("PURPOSE_SYNTHETIC_MISMATCH")
     indexed = {row["image_id"]: row for row in _records(dataset.get("images"), "IMAGES_REQUIRED")}
     categories: dict[int, str] = {}
     for category_record in _records(coco.get("categories"), "CATEGORIES_REQUIRED"):
@@ -713,6 +831,59 @@ def import_annotations(
             "purpose": dataset["purpose"],
             "SYNTHETIC": dataset["SYNTHETIC"],
         }
+        if not controlled:
+            source_info = coco.get("info", {})
+            declared_asset_hashes = [
+                row[key] for key in ("source_asset_hash", "asset_sha256") if key in row
+            ]
+            if len(coco["images"]) == 1:
+                declared_asset_hashes.extend(
+                    source_info[key]
+                    for key in ("source_asset_hash", "asset_sha256")
+                    if key in source_info
+                )
+            if any(
+                declared_hash != image_record.get("asset_sha256")
+                for declared_hash in declared_asset_hashes
+            ):
+                raise AnnotationError("IMAGE_ASSET_MISMATCH")
+            if (
+                row.get("source_image_id") is not None
+                and row["source_image_id"] != image_record["image_id"]
+            ):
+                raise AnnotationError("IMAGE_ASSET_MISMATCH")
+            orientation = image_record.get("exif_orientation")
+            if orientation is not None and (
+                type(orientation) is not int or orientation not in range(1, 9)
+            ):
+                raise AnnotationError("EXIF_METADATA_INVALID")
+            if orientation != 1:
+                assert imported_provenance is not None
+                frame = imported_provenance.get(
+                    "coordinate_frame", imported_provenance.get("annotation_coordinate_frame")
+                )
+                frame_status = imported_provenance.get(
+                    "coordinate_frame_status",
+                    imported_provenance.get("coordinate_frame_evidence_status"),
+                )
+                frame_refs = imported_provenance.get("coordinate_frame_evidence_refs")
+                if frame_refs is None and isinstance(
+                    imported_provenance.get("coordinate_frame_evidence_ref"), str
+                ):
+                    frame_refs = [imported_provenance["coordinate_frame_evidence_ref"]]
+                if (
+                    frame != "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"
+                    or frame_status != "VERIFIED"
+                    or not isinstance(frame_refs, list)
+                    or not frame_refs
+                    or any(not isinstance(ref, str) or not ref.strip() for ref in frame_refs)
+                ):
+                    raise AnnotationError("ANNOTATION_COORDINATE_FRAME_UNVERIFIED")
+                if (
+                    image_record.get("image_coordinate_frame")
+                    != "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"
+                ):
+                    raise AnnotationError("IMAGE_COORDINATE_FRAME_INVALID")
         if (
             type(row.get("width")) is not int
             or type(row.get("height")) is not int
@@ -768,32 +939,50 @@ def import_annotations(
             label = category_mapping.get(category)
             if label is None:
                 raise AnnotationError("CATEGORY_MAPPING_REQUIRED")
+            disposition = row.get("disposition", "IGNORE" if row.get("iscrowd", 0) else "TARGET")
+            if disposition not in {"TARGET", "IGNORE", "UNCERTAIN"}:
+                raise AnnotationError("DISPOSITION_INVALID")
+            if row.get("iscrowd", 0) and disposition == "TARGET":
+                raise AnnotationError("ISCROWD_DISPOSITION_CONFLICT")
             objects[iid].append(
                 {
                     "object_id": f"coco-{aid}",
                     "class_label": label,
                     "bbox_xyxy": box,
-                    "disposition": "IGNORE" if row.get("iscrowd", 0) else "TARGET",
+                    "disposition": disposition,
                 }
             )
     snapshots: list[JSONDict] = []
+    draft_geometry: dict[str, list[JSONDict]] = {}
     for iid, (image_record, snapshot) in images.items():
         if snapshot is not None:
             if objects[iid] != (snapshot["objects"] or []):
                 raise AnnotationError("COCO_SNAPSHOT_GEOMETRY_MISMATCH")
             snapshots.append(copy.deepcopy(snapshot))
         else:
-            assert annotation_version is not None and provenance is not None
+            assert annotation_version is not None and imported_provenance is not None
+            source_info = coco.get("info", {})
+            source_objects: list[JSONDict] | None = objects[iid]
+            if (
+                quality is not None
+                and quality["candidate"]
+                and source_info.get("gt_status") != "COMPLETE"
+            ):
+                source_objects = None
+                draft_geometry[image_record["image_id"]] = copy.deepcopy(objects[iid])
             snapshots.append(
                 create_draft(
                     image_record,
                     annotation_version=annotation_version,
                     annotator_id=annotator_id,
-                    objects=objects[iid],
+                    objects=source_objects,
                     workflow_mode=workflow_mode,
-                    provenance=provenance,
+                    provenance=imported_provenance,
                 )
             )
     if controlled and not verify_seal(coco, "adapter_hash"):
         raise AnnotationError("COCO_ADAPTER_HASH_MISMATCH")
-    return annotation_bundle(dataset, snapshots)
+    result = annotation_bundle(dataset, snapshots)
+    if draft_geometry:
+        result = seal({**result, "draft_geometry": draft_geometry}, "annotations_hash")
+    return result

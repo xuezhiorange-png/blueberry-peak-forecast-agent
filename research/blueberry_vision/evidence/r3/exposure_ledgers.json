@@ -1,0 +1,122 @@
+[
+  {
+    "events": [
+      {
+        "actor_id": "offline-self-asserted-operator",
+        "actor_identity_authenticated": false,
+        "artifact": {
+          "file_sha256": "515c38b3ab8a1fc05092e99dc2f0ade5c242adf40b8dfdc3bb1137b4a293ccb3",
+          "filename": "config_freeze.json"
+        },
+        "details": {
+          "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f"
+        },
+        "event": "CONFIG_FROZEN",
+        "event_hash": "61cd355f307c8613ea3c316a9a8242fda7aa7104547e32deaec31621fca4afa3",
+        "independent_access_control": false,
+        "previous_event_hash": null,
+        "recorded_at": "2026-10-13T04:54:43.719155Z",
+        "schema_version": "blueberry-vision-exposure-event/3.0.0",
+        "sequence": 1
+      },
+      {
+        "actor_id": "offline-self-asserted-operator",
+        "actor_identity_authenticated": false,
+        "artifact": null,
+        "details": {
+          "artifact_sha256": "de197b9b02752ba58d391a326847cdb8aae26b95907cb12a34717ed1a83dd12c",
+          "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+          "prediction_hash": "60cb65963dcd555aa1b23c4fd49e178fdb4bcabb36fbd443a736a4da39200bbb"
+        },
+        "event": "PREDICTIONS_FIXED",
+        "event_hash": "7e059b4bcf564c4c133baec8ee91840aa808da56bf44800a4f9e9d6d768d5a17",
+        "independent_access_control": false,
+        "previous_event_hash": "61cd355f307c8613ea3c316a9a8242fda7aa7104547e32deaec31621fca4afa3",
+        "recorded_at": "2026-10-13T04:54:49.129084Z",
+        "schema_version": "blueberry-vision-exposure-event/3.0.0",
+        "sequence": 2
+      },
+      {
+        "actor_id": "offline-self-asserted-operator",
+        "actor_identity_authenticated": false,
+        "artifact": null,
+        "details": {
+          "annotations_hash": "48ef0aaefd5f2766caaffb0de341f35f1835db0120d29b5852f689b1be87ae54",
+          "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+          "prediction_hash": "60cb65963dcd555aa1b23c4fd49e178fdb4bcabb36fbd443a736a4da39200bbb"
+        },
+        "event": "GT_SCORE_READ",
+        "event_hash": "a304ad6b23b995d90307a00242ab5b7e1077e932bd1fa257bffa64476c57d756",
+        "independent_access_control": false,
+        "previous_event_hash": "7e059b4bcf564c4c133baec8ee91840aa808da56bf44800a4f9e9d6d768d5a17",
+        "recorded_at": "2026-10-13T04:56:18.111375Z",
+        "schema_version": "blueberry-vision-exposure-event/3.0.0",
+        "sequence": 3
+      }
+    ],
+    "independent_access_control": false,
+    "ledger_hash": "1509c26e9c6b105ecb62ec74311506186b01c078535f65f83d05db282f98ce1a",
+    "model_key": "A",
+    "schema_version": "blueberry-vision-exposure-ledger/3.0.0"
+  },
+  {
+    "events": [
+      {
+        "actor_id": "offline-self-asserted-operator",
+        "actor_identity_authenticated": false,
+        "artifact": {
+          "file_sha256": "515c38b3ab8a1fc05092e99dc2f0ade5c242adf40b8dfdc3bb1137b4a293ccb3",
+          "filename": "config_freeze.json"
+        },
+        "details": {
+          "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f"
+        },
+        "event": "CONFIG_FROZEN",
+        "event_hash": "28a47b14ecf2ad7b8285bc2162f06b3c5d2138ef63e302a57c7f574ed9a058fd",
+        "independent_access_control": false,
+        "previous_event_hash": null,
+        "recorded_at": "2026-10-13T04:54:43.689603Z",
+        "schema_version": "blueberry-vision-exposure-event/3.0.0",
+        "sequence": 1
+      },
+      {
+        "actor_id": "offline-self-asserted-operator",
+        "actor_identity_authenticated": false,
+        "artifact": null,
+        "details": {
+          "artifact_sha256": "55ab05614192b2eec106062e9dd8e267f12bbd924e7277ef9911d99cd542cbd8",
+          "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+          "prediction_hash": "2eeb5134d8ff28dbc1bc9537c4b83b5f56b8cd2831c16f0c85ffdf7fab28a92d"
+        },
+        "event": "PREDICTIONS_FIXED",
+        "event_hash": "a79ec7cf9e8d139e59ae59805dda585e687f1941e583e5ac1041550eeb8566e0",
+        "independent_access_control": false,
+        "previous_event_hash": "28a47b14ecf2ad7b8285bc2162f06b3c5d2138ef63e302a57c7f574ed9a058fd",
+        "recorded_at": "2026-10-13T04:54:56.583106Z",
+        "schema_version": "blueberry-vision-exposure-event/3.0.0",
+        "sequence": 2
+      },
+      {
+        "actor_id": "offline-self-asserted-operator",
+        "actor_identity_authenticated": false,
+        "artifact": null,
+        "details": {
+          "annotations_hash": "48ef0aaefd5f2766caaffb0de341f35f1835db0120d29b5852f689b1be87ae54",
+          "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+          "prediction_hash": "2eeb5134d8ff28dbc1bc9537c4b83b5f56b8cd2831c16f0c85ffdf7fab28a92d"
+        },
+        "event": "GT_SCORE_READ",
+        "event_hash": "9a98f0b5a9b31a61de95df9a5ca34db859d129c5a894af6b830559fc792b094f",
+        "independent_access_control": false,
+        "previous_event_hash": "a79ec7cf9e8d139e59ae59805dda585e687f1941e583e5ac1041550eeb8566e0",
+        "recorded_at": "2026-10-13T04:56:18.170892Z",
+        "schema_version": "blueberry-vision-exposure-event/3.0.0",
+        "sequence": 3
+      }
+    ],
+    "independent_access_control": false,
+    "ledger_hash": "c170401b0fbe111bd49505304a029c041ca69c98e8fb5784ea24fb975d9f292a",
+    "model_key": "B",
+    "schema_version": "blueberry-vision-exposure-ledger/3.0.0"
+  }
+]

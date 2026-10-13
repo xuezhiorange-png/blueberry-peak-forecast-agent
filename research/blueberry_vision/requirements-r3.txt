@@ -1,0 +1,2 @@
+-r requirements-r2.txt
+pycocotools==2.0.11

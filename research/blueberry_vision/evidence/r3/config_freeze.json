@@ -1,0 +1,106 @@
+{
+  "adapter_config": {
+    "bbox_frame": "ORIGINAL_EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+    "class_mapping": {
+      "SYNTHETIC_BLUEBERRY_VISIBLE": "CANDIDATE_VISIBLE_BLUEBERRY"
+    },
+    "label_approval": "CANDIDATE_RESEARCH_ADAPTATION_NOT_BUSINESS_APPROVED",
+    "maximum_edge": 1280,
+    "resampling": "PILLOW_LANCZOS",
+    "upscale": false,
+    "version": "rgb-external-resize/3.0.0"
+  },
+  "config_hash": "01c75bade2985a65208ad709cee2542a8f5251d3029eeee335fb91cc9312f67d",
+  "dependencies": {
+    "Pillow": "12.3.0",
+    "numpy": "2.4.6"
+  },
+  "evaluation_protocol": {
+    "RESEARCH_AP50": "VOC_ALL_POINTS_PRECISION_ENVELOPE_NO_MAXDETS_CAP",
+    "coco_evaluator": "OPTIONAL_PYCOCOTOOLS_2.0.11_MAXDETS_1_10_100",
+    "count_policy": "RAW_OUTPUT_BOX_COUNT_INCLUDING_IGNORED_PREDICTIONS",
+    "count_unit": "visible_fruit_per_image",
+    "ignore_overlap_threshold": 0.5,
+    "iou_threshold": 0.5,
+    "missing_gt": "NOT_EVALUABLE_NULL_NEVER_ZERO",
+    "public_gt_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+    "version": "blueberry-vision-external-box-count/3.0.0"
+  },
+  "evaluation_protocol_hash": "9065772533d672adca60c1e40f071dcd155d7b6e821ba0ccaa0f87cf874d000d",
+  "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+  "frozen_configs": {
+    "A": {
+      "connectivity": 4,
+      "maximum_component_area_fraction": 0.9,
+      "maximum_input_pixels": 4000000,
+      "minimum_blue_over_green": 12.0,
+      "minimum_color_difference": 18.0,
+      "minimum_component_area": 12,
+      "minimum_fill_ratio": 0.12,
+      "minimum_saturation": 0.2,
+      "minimum_value": 0.12,
+      "name": "classical_rgb_components",
+      "score_type": "non_probability_color_shape_score",
+      "version": "rgb-connected-components/2.0.0"
+    },
+    "B": {
+      "connectivity": 4,
+      "maximum_component_area_fraction": 0.9,
+      "maximum_input_pixels": 4000000,
+      "minimum_component_area": 12,
+      "minimum_fill_ratio": 0.12,
+      "probability_threshold": 0.5,
+      "score_type": "uncalibrated_pixel_probability_shape_score",
+      "version": "numpy-logistic-pixel/2.0.0"
+    }
+  },
+  "independent_access_control": false,
+  "model_hash": "b9cdb356002516139108e634e3a421461535f29a492a397930cd7e48dcddbf1c",
+  "models": {
+    "A": {
+      "model_hash": "d01257505f7b130e2e5075cad30bb1b5049764a8ba2abbe614ac52004a5f24f8",
+      "model_name": "RGB_threshold_and_4_connected_components_v2",
+      "model_version": "rgb-connected-components/2.0.0",
+      "training_scope": "NO_TRAINING_DETERMINISTIC_R2_FROZEN_CONFIG"
+    },
+    "B": {
+      "model_artifact_sha256": "b685ff32fac8542e3f50bbbb5f5a1b09d2319114ce14af17078de06ac9482b10",
+      "model_hash": "b0985cbc760e3158737382c3ed56cab65bf417b9aa9346068ff03aaedfd3381f",
+      "model_name": "CPU_NumPy_logistic_pixel_classifier_v2",
+      "model_version": "numpy-logistic-pixel/2.0.0",
+      "training_data_hash": "a92c8c9a9f8228ccd4273ccbd249fc68ce4e8d48eeed5783bca510ae57ec4edb",
+      "training_dataset_manifest_hash": "29100d7f845c9bbd16b1c09e5cda703e53cf8fffead963752141247991dec2e5",
+      "training_scope": "R2_SYNTHETIC_TRAIN_ONLY_NO_R3_REFIT"
+    }
+  },
+  "schema_version": "blueberry-vision-r3-baseline-freeze/3.0.0",
+  "selection_policy": "R2_ARTIFACTS_UNCHANGED_ADAPTER_PREREGISTERED_NO_REAL_GT_SELECTION",
+  "source_code_sha256": {
+    "classical.py": "7b4ccbd5a28ffb18cdb4f4f1d6018c27a7d03d671fb568a342f1898d00431604",
+    "evaluator.py": "289bf6e0c76a72ee6dec373949502aecf2ae5fb8cd6d0cc9bf0f7f85d044efbf",
+    "r3/annotations.py": "25d18756431ff2c64dd5078323adff3c824fc43bf29b90a000ce032088c92f85",
+    "r3/contracts.py": "67074aaef7d0d992a33d4e6cb9f2a05af7f668a50870e196d498dc2f4d67eb47",
+    "r3/evaluation.py": "f2daa3109d9d107bde39b4c615058c4f4694f32082990cc2725e50ff39838b29",
+    "r3/ingestion.py": "b28c26842e249b678f961f4a05da637340e69680a6564fab03959543e5ac5188",
+    "r3/splits.py": "ee73536a92f93a00bc9fe4a54a47ea7a1bcdfd78282836a10a0f1c49d9b65c5c",
+    "trainable.py": "884ed4e0d032ea24888c1d8901cdb895ba01abea502ef122c0df5d5657a25948"
+  },
+  "training_data_hash": "a92c8c9a9f8228ccd4273ccbd249fc68ce4e8d48eeed5783bca510ae57ec4edb",
+  "training_dataset_manifest_hash": "29100d7f845c9bbd16b1c09e5cda703e53cf8fffead963752141247991dec2e5",
+  "training_image_ids": [
+    "synthetic-r2-20261013-train-0000",
+    "synthetic-r2-20261013-train-0001",
+    "synthetic-r2-20261013-train-0002",
+    "synthetic-r2-20261013-train-0003",
+    "synthetic-r2-20261013-train-0004",
+    "synthetic-r2-20261013-train-0005",
+    "synthetic-r2-20261013-train-0006",
+    "synthetic-r2-20261013-train-0007",
+    "synthetic-r2-20261013-train-0008",
+    "synthetic-r2-20261013-train-0009",
+    "synthetic-r2-20261013-train-0010",
+    "synthetic-r2-20261013-train-0011",
+    "synthetic-r2-20261013-train-0012",
+    "synthetic-r2-20261013-train-0013"
+  ]
+}

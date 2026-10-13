@@ -1,0 +1,171 @@
+{
+  "SYNTHETIC": false,
+  "annotation_coverage": 0.0,
+  "annotation_coverage_semantics": "ASSET_REFERENCE_ONLY_NOT_QUALITY_APPROVED",
+  "dataset_manifest_hash": "9f75e2a7c58c6e55187064ec33f4beb7bf4e26204fc64825f10c4081a1993096",
+  "images": [
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 1.1594202898550725,
+      "brightness": 0.688426890717189,
+      "candidate_flags": [],
+      "contrast": 0.28444099650871135,
+      "image_height": 2760,
+      "image_id": "public-commons-15928839",
+      "image_width": 3200,
+      "laplacian_variance": 0.009624053541938377,
+      "quality_thumbnail_dimensions": [
+        512,
+        442
+      ],
+      "reason_code": null,
+      "saturation": 0.21492781045116846,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 0.8878748370273793,
+      "brightness": 0.4933222435392426,
+      "candidate_flags": [],
+      "contrast": 0.24197655621769812,
+      "image_height": 2301,
+      "image_id": "public-commons-4112477",
+      "image_width": 2043,
+      "laplacian_variance": 0.016229529365747664,
+      "quality_thumbnail_dimensions": [
+        455,
+        512
+      ],
+      "reason_code": null,
+      "saturation": 0.5035022320405454,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 1.5051740357478833,
+      "brightness": 0.3718334851229095,
+      "candidate_flags": [],
+      "contrast": 0.16087807632278764,
+      "image_height": 1063,
+      "image_id": "public-commons-4112528",
+      "image_width": 1600,
+      "laplacian_variance": 0.010931972671869794,
+      "quality_thumbnail_dimensions": [
+        512,
+        340
+      ],
+      "reason_code": null,
+      "saturation": 0.43107449849945784,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 0.75,
+      "brightness": 0.5233969790190652,
+      "candidate_flags": [],
+      "contrast": 0.24339837090478297,
+      "image_height": 1024,
+      "image_id": "public-commons-81047629",
+      "image_width": 768,
+      "laplacian_variance": 0.028534086201965483,
+      "quality_thumbnail_dimensions": [
+        384,
+        512
+      ],
+      "reason_code": null,
+      "saturation": 0.41482972032463133,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 1.5,
+      "brightness": 0.5678564065285204,
+      "candidate_flags": [],
+      "contrast": 0.21578478848973698,
+      "image_height": 1000,
+      "image_id": "quality-1626757232",
+      "image_width": 1500,
+      "laplacian_variance": 0.003339405641155429,
+      "quality_thumbnail_dimensions": [
+        512,
+        341
+      ],
+      "reason_code": null,
+      "saturation": 0.3750580081052961,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 1.5,
+      "brightness": 0.5275548141819044,
+      "candidate_flags": [],
+      "contrast": 0.20639926701037142,
+      "image_height": 1000,
+      "image_id": "quality-3127978079",
+      "image_width": 1500,
+      "laplacian_variance": 0.004353768313541191,
+      "quality_thumbnail_dimensions": [
+        512,
+        341
+      ],
+      "reason_code": null,
+      "saturation": 0.44970645681688676,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 1.5,
+      "brightness": 0.6227257994436778,
+      "candidate_flags": [],
+      "contrast": 0.21971803059528283,
+      "image_height": 1000,
+      "image_id": "quality-3872104307",
+      "image_width": 1500,
+      "laplacian_variance": 0.0035843243313212706,
+      "quality_thumbnail_dimensions": [
+        512,
+        341
+      ],
+      "reason_code": null,
+      "saturation": 0.37989267054140835,
+      "status": "VALID"
+    },
+    {
+      "annotatability": "REQUIRES_HUMAN_REVIEW",
+      "aspect_ratio": 1.5,
+      "brightness": 0.5866486848711259,
+      "candidate_flags": [],
+      "contrast": 0.21879183685162362,
+      "image_height": 1000,
+      "image_id": "quality-4195390806",
+      "image_width": 1500,
+      "laplacian_variance": 0.005418235138858234,
+      "quality_thumbnail_dimensions": [
+        512,
+        341
+      ],
+      "reason_code": null,
+      "saturation": 0.4312436468954314,
+      "status": "VALID"
+    }
+  ],
+  "per_fruit_label_count": null,
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "quality_hash": "8765b89595a704246480e0bfd8cb0f3b39125ed26b18833c824790518d463781",
+  "source_distribution": {
+    "commons-15928839": 1,
+    "commons-4112477": 1,
+    "commons-4112528": 1,
+    "commons-81047629": 1,
+    "zenodo-22148787": 4
+  },
+  "summary": {
+    "business_label_quality_inferred": false,
+    "failed_count": 0,
+    "image_count": 8,
+    "possible_unannotatable_candidates": 0,
+    "quality_metrics_are_auxiliary": true,
+    "valid_count": 8
+  },
+  "unannotated_count": 8
+}

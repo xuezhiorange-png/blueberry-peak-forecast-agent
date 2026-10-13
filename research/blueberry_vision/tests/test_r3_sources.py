@@ -227,3 +227,176 @@ def test_source_id_cannot_be_used_as_path_traversal(tmp_path: Path) -> None:
     row["source_id"] = "../../escape"
     with pytest.raises(sources.SourceError, match="SOURCE_ID_INVALID"):
         sources.download_public_pilot({"sources": [row]}, tmp_path / "download", ["../../escape"])
+
+
+def test_range_reader_is_seekable_bounded_and_cache_stable() -> None:
+    data = b"abcdefghij" * 1000
+    calls: list[tuple[int, int]] = []
+
+    def transport(url: str, start: int, end: int, size: int) -> bytes:
+        assert size == len(data)
+        calls.append((start, end))
+        return data[start : end + 1]
+
+    reader = sources.BoundedRangeFile(
+        "https://zenodo.org/api/records/1/files/sample.zip/content",
+        len(data),
+        max_network_bytes=20_000,
+        transport=transport,
+    )
+    assert reader.read(5) == b"abcde"
+    assert reader.seek(0) == 0
+    assert reader.read(5) == b"abcde"
+    assert len(calls) == 1
+    assert reader.seek(-4, 2) == len(data) - 4
+    assert reader.read() == b"ghij"
+    with pytest.raises(sources.SourceError, match="ZIP_RANGE_BOUNDS"):
+        reader.seek(-1)
+
+
+def test_range_reader_rejects_budget_and_large_reads_before_network() -> None:
+    def forbidden(*args: Any) -> bytes:
+        pytest.fail("network should be blocked before call")
+
+    reader = sources.BoundedRangeFile(
+        "https://zenodo.org/api/records/1/files/sample.zip/content",
+        30_000_000,
+        max_network_bytes=10,
+        transport=forbidden,
+    )
+    with pytest.raises(sources.SourceError, match="ZIP_NETWORK_BUDGET"):
+        reader.read(11)
+    with pytest.raises(sources.SourceError, match="ZIP_READ_SIZE_LIMIT"):
+        reader.read(21_000_000)
+
+
+def test_zip_member_reader_verifies_crc_and_never_extracts_archive_paths() -> None:
+    import io
+    import zipfile
+
+    blob = io.BytesIO()
+    with zipfile.ZipFile(blob, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        z.writestr("dataset/image.jpg", b"example_image_bytes")
+        z.writestr("../escape.jpg", b"unsafe")
+    data = blob.getvalue()
+    reader = sources.BoundedRangeFile(
+        "https://zenodo.org/api/records/1/files/sample.zip/content",
+        len(data),
+        transport=lambda url, start, end, size: data[start : end + 1],
+    )
+    with zipfile.ZipFile(reader) as archive:
+        assert sources.read_archive_member(archive, "dataset/image.jpg") == b"example_image_bytes"
+        with pytest.raises(sources.SourceError, match="ZIP_MEMBER_PATH_UNSAFE"):
+            sources.read_archive_member(archive, "../escape.jpg")
+
+
+def test_mpo_first_frame_adapter_is_explicit_bounded_and_does_not_change_raw() -> None:
+    from io import BytesIO
+
+    from PIL import Image
+
+    first = Image.new("RGB", (32, 16), (35, 90, 160))
+    second = Image.new("RGB", (32, 16), (180, 30, 40))
+    stream = BytesIO()
+    first.save(stream, format="MPO", save_all=True, append_images=[second])
+    raw = stream.getvalue()
+    output, protocol = sources.normalize_public_first_frame(raw, max_long_edge=16)
+    assert raw == stream.getvalue()
+    assert Image.open(BytesIO(output)).format == "PNG"
+    assert Image.open(BytesIO(output)).size == (16, 8)
+    assert protocol["source_format"] == "MPO"
+    assert protocol["selected_frame_index"] == 0
+    assert protocol["geometry_scale_x"] == protocol["geometry_scale_y"] == 0.5
+    assert protocol["original_asset_sha256"] != protocol["derived_asset_sha256"]
+    assert protocol["source_frame_count"] == 2
+    assert "SYNTHETIC" not in protocol  # Geometry processing cannot assert data origin.
+
+
+def test_public_first_frame_adapter_rejects_oversize_and_unsupported_format() -> None:
+    from io import BytesIO
+
+    from PIL import Image
+
+    with pytest.raises(sources.SourceError, match="PUBLIC_IMAGE_BYTES_LIMIT"):
+        sources.normalize_public_first_frame(b"x" * 20_000_001)
+    stream = BytesIO()
+    Image.new("RGB", (4, 4)).save(stream, format="BMP")
+    with pytest.raises(sources.SourceError, match="PUBLIC_IMAGE_FORMAT_UNSUPPORTED"):
+        sources.normalize_public_first_frame(stream.getvalue())
+
+
+def test_quality_candidate_bbox_conversion_has_independent_scale_golden_and_no_review(
+    tmp_path: Path,
+) -> None:
+    from research.blueberry_vision.r2_common import file_hash, seal, write_json_new
+
+    original = {
+        "categories": [{"id": 27, "name": "source_image.JPG"}],
+        "images": [{"id": 9, "file_name": "source_image.JPG"}],
+        "annotations": [
+            {
+                "id": 111,
+                "image_id": 9,
+                "category_id": 27,
+                "bbox": [4, 8, 12, 16],
+                "segmentation": [[4, 8, 16, 8, 16, 24]],
+            }
+        ],
+    }
+    write_json_new(tmp_path / "publisher_annotations_subset.json", original)
+    index = seal(
+        {
+            "images": [
+                {
+                    "publisher_image_id": 9,
+                    "image_id": "quality-9",
+                    "asset_ref": "derived.png",
+                    "asset_sha256": "a" * 64,
+                    "image_width": 10,
+                    "image_height": 10,
+                    "preprocessing": {"geometry_scale_x": 0.25, "geometry_scale_y": 0.25},
+                }
+            ],
+            "publisher_coco_sha256": "b" * 64,
+            "publisher_coco_member": "source.json",
+            "publisher_coco_subset_sha256": file_hash(
+                tmp_path / "publisher_annotations_subset.json"
+            ),
+        },
+        "index_hash",
+    )
+    write_json_new(tmp_path / "source_index.json", index)
+    result = sources.make_quality_bbox_draft(tmp_path)
+    assert result["annotations"][0]["bbox"] == [1, 2, 3, 4]
+    assert "segmentation" not in result["annotations"][0]
+    assert result["object_provenance"][0]["publisher_category_id"] == 27
+    assert result["object_provenance"][0]["publisher_category_name"] == "source_image.JPG"
+    assert result["categories"][0]["name"] == "CANDIDATE_VISIBLE_BLUEBERRY"
+    assert result["info"]["annotation_origin"] == "UNVERIFIED"
+    assert result["info"]["evidence_status"] == "PENDING_QUALITY_REVIEW"
+    assert result["accuracy_status"] == "NOT_EVALUABLE_GT_QUALITY_PENDING"
+
+
+def test_mpo_reference_orientation_and_extra_frames_are_not_silently_ignored() -> None:
+    from io import BytesIO
+
+    from PIL import Image
+
+    source = Image.new("RGB", (8, 8), (30, 90, 150))
+    exif = Image.Exif()
+    exif[274] = 6
+    oriented = BytesIO()
+    source.save(oriented, format="JPEG", exif=exif)
+    with pytest.raises(
+        sources.SourceError, match="PUBLIC_REFERENCE_ORIENTATION_REQUIRES_GEOMETRY_ADAPTER"
+    ):
+        sources.normalize_public_first_frame(oriented.getvalue())
+    multiple = BytesIO()
+    source.save(multiple, format="MPO", save_all=True, append_images=[source] * 4)
+    with pytest.raises(sources.SourceError, match="PUBLIC_IMAGE_FRAME_LIMIT"):
+        sources.normalize_public_first_frame(multiple.getvalue())
+
+
+def test_corrupt_public_container_has_explicit_reason_code() -> None:
+    with pytest.raises(sources.SourceError, match="PUBLIC_IMAGE_DECODE_FAILED"):
+        sources.normalize_public_first_frame(b"JPEG extension is not proof of decodable bytes")

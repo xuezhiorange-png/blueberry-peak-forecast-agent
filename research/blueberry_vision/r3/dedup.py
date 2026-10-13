@@ -11,9 +11,18 @@ from PIL import Image
 
 from ..r2_common import JSONDict, canonical_hash, seal, verify_seal
 from .contracts import DatasetError, validate_manifest, validate_timestamp
-from .ingestion import secure_load_asset
+from .ingestion import secure_load_asset, verify_coordinate_metadata
 
 DEDUP_VERSION = "r3-dhash-candidate-graph/3.0.0"
+
+
+def _known(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value.strip())
+        and value.strip().upper()
+        not in {"UNKNOWN", "UNRESOLVED", "UNASSIGNED", "NOT_PROVIDED", "N/A", "NONE", "NULL"}
+    )
 
 
 def dhash_rgb(rgb: npt.NDArray[np.uint8]) -> str:
@@ -61,6 +70,7 @@ def find_near_duplicates(dataset: JSONDict, data_root: Path, threshold: int = 6)
                 or loaded.metadata["preprocessing_hash"] != image["preprocessing_hash"]
             ):
                 raise DatasetError("PREPROCESSING_HASH_MISMATCH")
+            verify_coordinate_metadata(image, loaded)
             rows.append(
                 {
                     "image_id": image["image_id"],
@@ -135,13 +145,19 @@ def find_near_duplicates(dataset: JSONDict, data_root: Path, threshold: int = 6)
                 "multiview_group_id",
                 "source_batch_id",
             ):
-                if left.get(key) is not None and left.get(key) == right.get(key):
+                if _known(left.get(key)) and left.get(key) == right.get(key):
                     links.append(key)
             if (
-                left.get("parent_image_id") == right["image_id"]
-                or right.get("parent_image_id") == left["image_id"]
+                (
+                    _known(left.get("parent_image_id"))
+                    and left.get("parent_image_id") == right["image_id"]
+                )
                 or (
-                    left.get("parent_image_id") is not None
+                    _known(right.get("parent_image_id"))
+                    and right.get("parent_image_id") == left["image_id"]
+                )
+                or (
+                    _known(left.get("parent_image_id"))
                     and left.get("parent_image_id") == right.get("parent_image_id")
                 )
             ):

@@ -30,6 +30,8 @@ def image(*, synthetic: bool = False) -> JSONDict:
         "asset_sha256": "a" * 64,
         "image_width": 100,
         "image_height": 80,
+        "exif_orientation": 1,
+        "image_coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
         "source_id": "public-source",
         "purpose": "SYNTHETIC_ENGINEERING" if synthetic else "PUBLIC_EXTERNAL_BENCHMARK",
         "SYNTHETIC": synthetic,
@@ -424,3 +426,269 @@ def test_dataset_duplicate_image_ids_are_not_collapsed() -> None:
     d = seal(d, "manifest_hash")
     with pytest.raises(AnnotationError, match="DUPLICATE_DATASET_IMAGE_ID"):
         annotation_bundle(d, [draft([])])
+
+
+def raw_coco(info: JSONDict | None = None, *, disposition: str | None = None) -> JSONDict:
+    data: JSONDict = {
+        "images": [{"id": 1, "width": 100, "height": 80}],
+        "categories": [{"id": 1, "name": "blueberry"}],
+        "annotations": [
+            {"id": 1, "image_id": 1, "category_id": 1, "bbox": [10, 10, 10, 10], "iscrowd": 0}
+        ],
+    }
+    if info is not None:
+        data["info"] = info
+    if disposition is not None:
+        data["annotations"][0]["disposition"] = disposition
+    return data
+
+
+def plain_import(coco: JSONDict, provenance: JSONDict | None = None) -> JSONDict:
+    return import_annotations(
+        dataset(),
+        coco,
+        annotation_version="candidate-v1",
+        category_mapping={1: "CANDIDATE_VISIBLE_BLUEBERRY"},
+        image_mapping={1: "external-1"},
+        provenance=provenance
+        or {
+            "kind": "SELF_ASSERTED_LOCAL_DRAFT",
+            "annotation_origin": "UNVERIFIED",
+            "evidence_status": "UNVERIFIED",
+            "evidence_refs": [],
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "info",
+    [
+        {"candidate": True},
+        {"annotation_status": "DRAFT"},
+        {"annotation_status": "SUBMITTED"},
+        {"annotation_status": "REVIEW_PENDING"},
+        {"annotation_origin": "SEMI_AUTOMATIC", "human_review_status": "UNKNOWN"},
+        {"annotation_method": "semi-automatic annotation", "human_review_status": "UNVERIFIED"},
+    ],
+)
+def test_known_candidate_or_unreviewed_semi_auto_cannot_be_upgraded_by_caller(
+    info: JSONDict,
+) -> None:
+    with pytest.raises(AnnotationError, match="ANNOTATION_PROVENANCE_AUTHORITY_UPGRADE"):
+        plain_import(raw_coco(info), publisher_provenance())
+
+
+@pytest.mark.parametrize("origin", ["MODEL", "AI", "MODEL_PREDICTION", "AUTOMATIC"])
+def test_known_model_coco_not_promoted_by_claimed_publisher(origin: str) -> None:
+    with pytest.raises(AnnotationError, match="PREDICTION_IS_NOT_GT"):
+        plain_import(raw_coco({"annotation_origin": origin}), publisher_provenance())
+
+
+def test_plain_coco_uncertain_disposition_preserved() -> None:
+    imported = plain_import(
+        raw_coco(
+            {"candidate": True, "annotation_status": "DRAFT", "gt_status": "COMPLETE"},
+            disposition="UNCERTAIN",
+        )
+    )
+    snapshot = imported["snapshots"][0]
+    assert snapshot["visible_count"] == 0 and snapshot["uncertain_count"] == 1
+    assert snapshot["objects"][0]["disposition"] == "UNCERTAIN"
+    assert reference_eligibility(snapshot)["eligible"] is False
+
+
+def test_candidate_coco_unknown_coverage_not_guessed_complete() -> None:
+    imported = plain_import(raw_coco({"candidate": True, "annotation_status": "DRAFT"}))
+    snapshot = imported["snapshots"][0]
+    assert (
+        snapshot["gt_status"] == "UNANNOTATED"
+        and snapshot["objects"] is None
+        and snapshot["visible_count"] is None
+    )
+    assert len(imported["draft_geometry"]["external-1"]) == 1
+
+
+def test_source_candidate_restriction_survives_resealed_provenance_claim() -> None:
+    imported = plain_import(raw_coco({"candidate": True, "gt_status": "COMPLETE"}))
+    snapshot = imported["snapshots"][0]
+    restrictions = snapshot["provenance"]["imported_source_quality"]
+    snapshot["provenance"] = {**publisher_provenance(), "imported_source_quality": restrictions}
+    snapshot = seal(snapshot, "snapshot_hash")
+    eligibility = reference_eligibility(snapshot)
+    assert eligibility["eligible"] is False
+    assert "SOURCE_ANNOTATION_QUALITY_NOT_REFERENCE" in eligibility["reason_codes"]
+
+
+def test_coco_crowd_disposition_conflict_rejected() -> None:
+    coco = raw_coco(disposition="TARGET")
+    coco["annotations"][0]["iscrowd"] = 1
+    with pytest.raises(AnnotationError, match="ISCROWD_DISPOSITION_CONFLICT"):
+        plain_import(coco)
+
+
+def test_plain_coco_ignore_and_uncertain_not_inferred_from_prediction() -> None:
+    coco = raw_coco(disposition="UNKNOWN_DISPOSITION")
+    with pytest.raises(AnnotationError, match="DISPOSITION_INVALID"):
+        plain_import(coco)
+
+
+def test_known_unreviewed_semi_auto_snapshot_provenance_not_qualified() -> None:
+    claimed = {
+        **publisher_provenance(),
+        "annotation_method": "SEMI_AUTOMATIC",
+        "human_review_status": "UNKNOWN",
+    }
+    eligibility = reference_eligibility(draft([obj()], provenance=claimed))
+    assert eligibility["eligible"] is False
+    assert "SOURCE_ANNOTATION_QUALITY_NOT_REFERENCE" in eligibility["reason_codes"]
+
+
+def test_known_ui_candidate_source_hash_must_match_image() -> None:
+    coco = raw_coco({"candidate": True, "source_asset_hash": "f" * 64, "gt_status": "COMPLETE"})
+    with pytest.raises(AnnotationError, match="IMAGE_ASSET_MISMATCH"):
+        plain_import(coco)
+
+
+def test_external_coco_does_not_mix_source_purpose() -> None:
+    with pytest.raises(AnnotationError, match="PURPOSE_SYNTHETIC_MISMATCH"):
+        plain_import(raw_coco({"purpose": "SYNTHETIC_ENGINEERING", "SYNTHETIC": True}))
+
+
+def test_stripped_adapter_metadata_does_not_hide_known_draft_snapshot() -> None:
+    coco = export_coco(annotation_bundle(dataset(), [draft([obj()])]))
+    coco.pop("research_provenance")
+    with pytest.raises(AnnotationError, match="ANNOTATION_PROVENANCE_AUTHORITY_UPGRADE"):
+        plain_import(coco, publisher_provenance())
+
+
+def test_nested_source_model_provenance_is_not_gt() -> None:
+    coco = raw_coco()
+    coco["annotations"][0]["provenance"] = {"annotation_origin": "MODEL"}
+    with pytest.raises(AnnotationError, match="PREDICTION_IS_NOT_GT"):
+        plain_import(coco, publisher_provenance())
+
+
+def test_nontrivial_exif_orientation_raw_coco_coordinates_rejected() -> None:
+    d = dataset()
+    d["images"][0]["exif_orientation"] = 2
+    d["images"][0]["image_coordinate_frame"] = "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"
+    d = seal(d, "manifest_hash")
+    with pytest.raises(AnnotationError, match="ANNOTATION_COORDINATE_FRAME_UNVERIFIED"):
+        import_annotations(
+            d,
+            raw_coco(),
+            annotation_version="publisher-v1",
+            category_mapping={1: "CANDIDATE_VISIBLE_BLUEBERRY"},
+            image_mapping={1: "external-1"},
+            provenance=publisher_provenance(),
+        )
+
+
+def test_exif_normalized_coordinate_evidence_explicitly_required() -> None:
+    d = dataset()
+    d["images"][0]["exif_orientation"] = 2
+    d["images"][0]["image_coordinate_frame"] = "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"
+    d = seal(d, "manifest_hash")
+    provenance = {
+        **publisher_provenance(),
+        "annotation_coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+        "coordinate_frame_evidence_status": "VERIFIED",
+        "coordinate_frame_evidence_refs": ["https://publisher.example/exif-coordinate-convention"],
+    }
+    imported = import_annotations(
+        d,
+        raw_coco(),
+        annotation_version="publisher-v1",
+        category_mapping={1: "CANDIDATE_VISIBLE_BLUEBERRY"},
+        image_mapping={1: "external-1"},
+        provenance=provenance,
+    )
+    assert imported["snapshots"][0]["objects"][0]["bbox_xyxy"] == [10, 10, 20, 20]
+
+
+def test_nontrivial_exif_frame_name_alone_not_verified() -> None:
+    d = dataset()
+    d["images"][0]["exif_orientation"] = 2
+    d = seal(d, "manifest_hash")
+    provenance = {
+        **publisher_provenance(),
+        "annotation_coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+    }
+    with pytest.raises(AnnotationError, match="ANNOTATION_COORDINATE_FRAME_UNVERIFIED"):
+        import_annotations(
+            d,
+            raw_coco(),
+            annotation_version="publisher-v1",
+            category_mapping={1: "CANDIDATE_VISIBLE_BLUEBERRY"},
+            image_mapping={1: "external-1"},
+            provenance=provenance,
+        )
+
+
+@pytest.mark.parametrize("field", ["asset_sha256", "source_asset_hash"])
+def test_plain_coco_declared_image_byte_hash_reconciled(field: str) -> None:
+    coco = raw_coco()
+    coco["images"][0][field] = "a" * 64
+    assert plain_import(coco)["snapshots"][0]["source_asset_hash"] == "a" * 64
+    coco["images"][0][field] = "f" * 64
+    with pytest.raises(AnnotationError, match="IMAGE_ASSET_MISMATCH"):
+        plain_import(coco)
+
+
+def test_plain_coco_conflicting_declared_byte_hashes_rejected() -> None:
+    coco = raw_coco()
+    coco["images"][0].update(asset_sha256="f" * 64, source_asset_hash="a" * 64)
+    with pytest.raises(AnnotationError, match="IMAGE_ASSET_MISMATCH"):
+        plain_import(coco)
+
+
+def test_plain_coco_absent_hash_keeps_explicit_id_and_dimension_binding() -> None:
+    imported = plain_import(raw_coco())
+    assert imported["snapshots"][0]["source_asset_hash"] == "a" * 64
+
+
+def actual_pending_quality_info() -> JSONDict:
+    return {
+        "annotation_quality_status": "DRAFT",
+        "label_approval": "CANDIDATE_ONLY",
+        "annotation_origin": "UNVERIFIED",
+        "evidence_status": "PENDING_QUALITY_REVIEW",
+    }
+
+
+def test_actual_pending_quality_source_cannot_be_upgraded_by_publisher_argument() -> None:
+    with pytest.raises(AnnotationError, match="ANNOTATION_PROVENANCE_AUTHORITY_UPGRADE"):
+        plain_import(raw_coco(actual_pending_quality_info()), publisher_provenance())
+
+
+def test_actual_pending_quality_geometry_remains_draft_unless_explicitly_complete() -> None:
+    imported = plain_import(raw_coco(actual_pending_quality_info()))
+    snapshot = imported["snapshots"][0]
+    assert snapshot["objects"] is None and snapshot["visible_count"] is None
+    assert snapshot["gt_status"] == "UNANNOTATED"
+    assert len(imported["draft_geometry"]["external-1"]) == 1
+    quality = snapshot["provenance"]["imported_source_quality"]
+    assert quality["candidate"] and quality["not_reference"]
+
+
+@pytest.mark.parametrize(
+    "info",
+    [
+        {"annotation_quality_status": "DRAFT"},
+        {"label_approval": "CANDIDATE_ONLY"},
+        {"annotation_origin": "UNVERIFIED"},
+        {"evidence_status": "PENDING_QUALITY_REVIEW"},
+        {"annotation_quality_status": "UNREVIEWED"},
+        {"evidence_status": "UNKNOWN"},
+    ],
+)
+def test_known_pending_source_aliases_never_upgraded(info: JSONDict) -> None:
+    with pytest.raises(AnnotationError, match="ANNOTATION_PROVENANCE_AUTHORITY_UPGRADE"):
+        plain_import(raw_coco(info), publisher_provenance())
+
+
+def test_explicit_complete_pending_candidate_still_not_real_reference() -> None:
+    info = {**actual_pending_quality_info(), "gt_status": "COMPLETE"}
+    snapshot = plain_import(raw_coco(info))["snapshots"][0]
+    assert snapshot["visible_count"] == 1
+    assert reference_eligibility(snapshot)["eligible"] is False

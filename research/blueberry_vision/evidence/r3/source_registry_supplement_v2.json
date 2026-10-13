@@ -1,0 +1,414 @@
+{
+  "acquisition_summary": {
+    "commons_photos": 4,
+    "cumulative_download_budget": "All photographic, annotation, ZIP directory and metadata transfers remained below 100MB, well below500MB; raw archive bulk never downloaded.",
+    "initial_mpo_rejection_preserved": {
+      "raw_bytes": 9567631,
+      "reason": "R2_IMAGE_FORMAT_UNSUPPORTED_MPO_CONTAINER",
+      "resolution": "Explicit bounded frame0 to1500px PNG R3 adapter, source SHA preserved, R2 contract unchanged."
+    },
+    "original_photo_bytes_commons_and_quality": 41817510,
+    "quality_normalized_photos": 4,
+    "quality_photos": 4,
+    "quality_publisher_candidate_objects": 100,
+    "real_accuracy_status": "NOT_EVALUABLE_GT_MISSING_OR_QUALITY_UNVERIFIED",
+    "reliable_human_gt_objects": 0,
+    "unique_real_photos_acquired_total": 8
+  },
+  "checked_at": "2026-10-13T04:36:18.689153+00:00",
+  "limitations": [
+    "Metadata or article licenses do not propagate automatically to third-party images.",
+    "No real yield tables, Lab measurement tables, company images or current-season actual accessed.",
+    "Public reference data are exposed benchmarks, not protected independent blinds."
+  ],
+  "parent_registry_path": "data_source_registry.json",
+  "registry_hash": "ab1fcde7b3f5f759ecff889a4767a46168c11373170193293223d925dc59a368",
+  "registry_version": "3.0.0-supplement-2-attribution",
+  "search_checks": [
+    {
+      "metadata_sha256": "f48310fd4c863e242322c888ff5b2d8d1d95933df22b5756f02afc2ac62953fb",
+      "provider": "DataCite",
+      "query": "blueberry image dataset",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "db6628e16448ccd49c1fee79f08214dce54a004c8af74f1dac4655cf9a76f8b4",
+      "provider": "OpenAlex",
+      "query": "blueberry annotated dataset",
+      "status": "FETCHED"
+    },
+    {
+      "metadata_sha256": "d7e150320f21d8c4ace486ca711e651474de9c2674251808d421971d1f10ca72",
+      "provider": "Kaggle public list",
+      "query": "blueberry",
+      "status": "FETCHED_METADATA_ONLY_NO_LOGIN_OR_IMAGE_DOWNLOAD"
+    },
+    {
+      "metadata_sha256": "3ef9bf54d4041b4c9aba81d9d34b1628bfc5f9de8f379b1b294a38b9f3147338",
+      "provider": "Dryad",
+      "query": "blueberry image",
+      "status": "FETCHED_NO_RESULTS"
+    },
+    {
+      "downloaded_images": 0,
+      "provider": "Zenodo",
+      "query": "blueberry AND (annotation OR annotated OR detection)",
+      "status": "HTTP400_QUERY_REJECTED"
+    }
+  ],
+  "sources": [
+    {
+      "SYNTHETIC": false,
+      "attribution_required": true,
+      "commercial_use": true,
+      "contains_blueberry": true,
+      "dataset_original_archive_size": 6023889834,
+      "download_admission": "DIRECT_ARCHIVE_OVER_BUDGET_RANGE_PILOT_POSSIBLE",
+      "download_status": "ZIP_DIRECTORY_AND_ONE_REFERENCE_MASK_ONLY_NO_RGB_IMAGES",
+      "has_per_fruit_annotations": "PUBLISHER_DESCRIBES_MANUAL_PER_BERRY_POLYGONS_BUT_RELEASE_ONLY_BINARY_MASKS",
+      "image_count": 1195,
+      "image_license_status": "LICENSE_VERIFIED",
+      "image_types": [
+        "BMP_RGB",
+        "PNG_BINARY_SEGMENTATION_MASK"
+      ],
+      "independent_split": "UNVERIFIED",
+      "license_evidence": {
+        "annotation_provenance_excerpt": "Three trained annotators manually labeled the frames, with cross-validation and consensus applied for challenging cases involving occlusion, overlapping clusters, and partial visibility.",
+        "downloaded_mask_pixel_values": [
+          0,
+          255
+        ],
+        "downloaded_mask_sha256": "f80d223e9e7fcb05ae82f6039848e4ddb7eb700253814644c24e93b27c2f6f9d",
+        "official_api_sha256": "72831961b2dfe1cf50f3deee51c4f00ae9de1506f847a4a9658ce67f5e6fa44b",
+        "official_license": {
+          "name": "CC BY",
+          "url": "https://creativecommons.org/licenses/by/4.0/",
+          "value": 52
+        },
+        "paper_article_license": "CC-BY-NC-ND-4.0_ARTICLE_ONLY_DATASET_SEPARATELY_CC_BY",
+        "paper_sha256": "142873f33c343e4decb58d7bb69abb2a86ccf027b9db614f16d539bc122108e1",
+        "paper_url": "https://www.nature.com/articles/s41597-025-06263-3"
+      },
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "model_training": "PERMITTED_WITH_ATTRIBUTION",
+      "name": "AgriVision: A Benchmark Dataset for Advancing Real-World Robotic Vision in Densely Fruited Blueberry Crop",
+      "official_api_url": "https://api.figshare.com/v2/articles/29222462",
+      "official_url": "https://figshare.com/articles/dataset/_/29222462",
+      "publisher": "Muhammad Owais et al. / Khalifa University Center for Autonomous Robotic Systems / Figshare",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "reference_limitations": [
+        "No released instance IDs or per-object bboxes in inspected ZIP directory.",
+        "A connected-component conversion of a binary semantic mask can merge touching berries and cannot be promoted to reliable single-fruit GT.",
+        "No detection/count accuracy computed from this semantic mask."
+      ],
+      "research_use": true,
+      "source_id": "figshare-29222462",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    },
+    {
+      "SYNTHETIC": false,
+      "annotation_formats": [
+        "CVAT_XML",
+        "COCO_POLYGON_BBOX"
+      ],
+      "annotation_quality_status": "PUB_REFERENCE_PENDING_QUALITY",
+      "attribution_required": true,
+      "bbox_annotation_object_count": 500,
+      "bbox_annotation_xml_count": 7,
+      "commercial_use": true,
+      "creator": "Garbe, Lando Maximilian",
+      "download_admission": "ALLOWED_SMALL_LICENSED_MEMBER_SELECTION",
+      "download_evidence": {
+        "accepted_gt_count": 0,
+        "all_27_xml_audit": {
+          "annotation_audit_sha256": "22d232913f43f8b366e7888ddee5f610c6d4b7a17da9bbd282c65aa489c011ae",
+          "manual_shape_count": 0,
+          "objects": 675,
+          "source_method_counts": {
+            "semi-auto": 675
+          }
+        },
+        "annotation_origin": "UNVERIFIED",
+        "download_network_bytes": 36402648,
+        "evidence_status": "PENDING_QUALITY_REVIEW",
+        "image_count": 4,
+        "photos": [
+          {
+            "annotation_sha256": "5baefad053811df40f64838bf0f55d726acc9983c0906aa22f22f1e89b81c043",
+            "asset_ref": "Aufgetaut_UEB_2.first-frame-1500.png",
+            "asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+            "image_height": 1000,
+            "image_id": "quality-4195390806",
+            "image_width": 1500,
+            "original_asset_ref": "Aufgetaut_UEB_2.JPG",
+            "original_asset_sha256": "e338ae9e178ee9c56ec7956397b3cbd6900fad9f947903d3c84d2222643fa2e2",
+            "preprocessing": {
+              "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+              "derived_asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+              "geometry_scale_x": 0.25,
+              "geometry_scale_y": 0.25,
+              "image_height": 1000,
+              "image_width": 1500,
+              "original_asset_sha256": "e338ae9e178ee9c56ec7956397b3cbd6900fad9f947903d3c84d2222643fa2e2",
+              "output_encoding": {
+                "compress_level": 9,
+                "format": "PNG",
+                "optimize": false
+              },
+              "pillow_version": "12.3.0",
+              "preprocessing_hash": "d04b8bc47169d5b536a2cdf3a9ed96baf847e5ff919196570a4fab95f0f82064",
+              "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+              "selected_frame_index": 0,
+              "source_exif_orientation": 1,
+              "source_format": "MPO",
+              "source_frame_count": 2,
+              "source_height": 4000,
+              "source_width": 6000
+            },
+            "reference_object_count": 25
+          },
+          {
+            "annotation_sha256": "1554e3d71f6f94f76134e333ab0756b389ff04e6eeb6c99b743c1b9205fd0b56",
+            "asset_ref": "Aufgetaut_WB_2.first-frame-1500.png",
+            "asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+            "image_height": 1000,
+            "image_id": "quality-3127978079",
+            "image_width": 1500,
+            "original_asset_ref": "Aufgetaut_WB_2.JPG",
+            "original_asset_sha256": "023792d124c5b9bd11958958e9a18ed74bd7ce4a899dfa55a8baafe908ddc889",
+            "preprocessing": {
+              "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+              "derived_asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+              "geometry_scale_x": 0.25,
+              "geometry_scale_y": 0.25,
+              "image_height": 1000,
+              "image_width": 1500,
+              "original_asset_sha256": "023792d124c5b9bd11958958e9a18ed74bd7ce4a899dfa55a8baafe908ddc889",
+              "output_encoding": {
+                "compress_level": 9,
+                "format": "PNG",
+                "optimize": false
+              },
+              "pillow_version": "12.3.0",
+              "preprocessing_hash": "8a7e80eb3c1ca2d69fde190050b2f5317319508d6922283707ec359a58f079f2",
+              "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+              "selected_frame_index": 0,
+              "source_exif_orientation": 1,
+              "source_format": "MPO",
+              "source_frame_count": 2,
+              "source_height": 4000,
+              "source_width": 6000
+            },
+            "reference_object_count": 25
+          },
+          {
+            "annotation_sha256": "8f19b148fd87e32535a1ac3ab260dd9738d8ed07e6ac637660a51076edf1373a",
+            "asset_ref": "Aufgetaut_vs_frisch_MB_2.first-frame-1500.png",
+            "asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+            "image_height": 1000,
+            "image_id": "quality-1626757232",
+            "image_width": 1500,
+            "original_asset_ref": "Aufgetaut_vs_frisch_MB_2.JPG",
+            "original_asset_sha256": "1898595be6a3bf9a9c7983014be3d26724fcf030cb874bc7d4dca745d94cffdf",
+            "preprocessing": {
+              "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+              "derived_asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+              "geometry_scale_x": 0.25,
+              "geometry_scale_y": 0.25,
+              "image_height": 1000,
+              "image_width": 1500,
+              "original_asset_sha256": "1898595be6a3bf9a9c7983014be3d26724fcf030cb874bc7d4dca745d94cffdf",
+              "output_encoding": {
+                "compress_level": 9,
+                "format": "PNG",
+                "optimize": false
+              },
+              "pillow_version": "12.3.0",
+              "preprocessing_hash": "99efb17de29b69ffa5dd6961179241d02516853f67723096055cde94b4cd6212",
+              "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+              "selected_frame_index": 0,
+              "source_exif_orientation": 1,
+              "source_format": "MPO",
+              "source_frame_count": 2,
+              "source_height": 4000,
+              "source_width": 6000
+            },
+            "reference_object_count": 25
+          },
+          {
+            "annotation_sha256": "696227fe9cc634b02323e6e2fe364176d3a7e173b64db492ab0d210a58c21567",
+            "asset_ref": "Aufgetaut_vs_frisch_UEB_2.first-frame-1500.png",
+            "asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+            "image_height": 1000,
+            "image_id": "quality-3872104307",
+            "image_width": 1500,
+            "original_asset_ref": "Aufgetaut_vs_frisch_UEB_2.JPG",
+            "original_asset_sha256": "e96f2543e286780b2072f472a45e9eba4f1d3e6b10c3d49f53bb9671e75de8c7",
+            "preprocessing": {
+              "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+              "derived_asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+              "geometry_scale_x": 0.25,
+              "geometry_scale_y": 0.25,
+              "image_height": 1000,
+              "image_width": 1500,
+              "original_asset_sha256": "e96f2543e286780b2072f472a45e9eba4f1d3e6b10c3d49f53bb9671e75de8c7",
+              "output_encoding": {
+                "compress_level": 9,
+                "format": "PNG",
+                "optimize": false
+              },
+              "pillow_version": "12.3.0",
+              "preprocessing_hash": "340a0996fffbab72b2201f94aa69de477793adb705f43c4e21cf6ba3bc302efe",
+              "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+              "selected_frame_index": 0,
+              "source_exif_orientation": 1,
+              "source_format": "MPO",
+              "source_frame_count": 2,
+              "source_height": 4000,
+              "source_width": 6000
+            },
+            "reference_object_count": 25
+          }
+        ],
+        "publisher_original_candidate_objects": 100,
+        "source_index_hash": "b56c6083b792d79d56994219d85bb8bc7e5e5101c1b4656e79c5af64905153e5",
+        "total_derived_png_bytes": 8641155,
+        "total_original_image_bytes": 35446503
+      },
+      "download_status": "DOWNLOADED_FOUR_REAL_PHOTOS_AND_PUBLISHER_CANDIDATES",
+      "has_per_fruit_annotations": true,
+      "image_count": 114,
+      "image_license_status": "LICENSE_VERIFIED",
+      "image_types": [
+        "JPEG",
+        "CR3_NOT_DOWNLOADED",
+        "PNG_CROPS_NOT_SELECTED"
+      ],
+      "independent_split": "27_SEGMENTATION_IMAGES_REUSED_CV_NOT_INDEPENDENT_BLIND_TEST",
+      "license_evidence": {
+        "creator_metadata_sha256": "b4c87bb41280bc2c4dc59dd8931e810d0ae6410293519e4cb82a9104f3b84466",
+        "creator_metadata_url": "https://zenodo.org/api/records/22148787",
+        "official_api_sha256": "b4c87bb41280bc2c4dc59dd8931e810d0ae6410293519e4cb82a9104f3b84466",
+        "official_metadata_license": {
+          "id": "cc-by-4.0"
+        },
+        "official_readme_sha256": "5ce93d249a6eb6650e4fdec9504f52f906a685f5bf9a2fab1c4543b3031dd66a",
+        "official_readme_url": "https://zenodo.org/api/records/22148787/files/DATASET_README.md/content",
+        "publisher_coco_sha256": "e9443e6565904baf2a2667bc9167630dec37932bd4a5b4818f977754ff9c2871",
+        "readme_annotation_excerpt": "data/raw contains the 27 polygon-annotated images and XML files: 675 berry polygons. data/processed_revision_segmentation_cv contains their portable COCO export and masks.",
+        "readme_license_excerpt": "Data licensing is CC BY 4.0."
+      },
+      "license_id": "CC-BY-4.0",
+      "license_status": "LICENSE_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "model_training": "PERMITTED_WITH_ATTRIBUTION_AND_VALID_SPLITS",
+      "name": "Blueberry Quality Dataset: current paper release",
+      "official_url": "https://zenodo.org/records/22148787",
+      "per_fruit_annotation_count": 675,
+      "polygon_annotated_image_count": 27,
+      "publisher": "Lando Maximilian Garbe / Zenodo",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": true,
+      "reference_limitations": [
+        "Publisher COCO category names identify source images, not maturity/business classes.",
+        "Explicit candidate berry union mapping and original labels must be retained.",
+        "Publication reference is not local authenticated double-human adjudication.",
+        "Full archive checksums cannot be verified from selected HTTP ranges.",
+        "All 675 source XML polygons mark source=semi-auto; no documented human correction/quality review found. No real accuracy may be scored from these candidates."
+      ],
+      "requested_source_concept_url": "https://zenodo.org/records/20479052",
+      "research_use": true,
+      "source_id": "zenodo-22148787",
+      "test_exposure": "EXPOSED_PUBLIC_BENCHMARK"
+    },
+    {
+      "SYNTHETIC": false,
+      "attribution_required": true,
+      "commercial_use": false,
+      "dataset_total_bytes": 1029844929,
+      "download_admission": "BLOCKED_LICENSE_AUTHORITY_AND_SIZE",
+      "download_status": "NOT_DOWNLOADED",
+      "has_per_fruit_annotations": null,
+      "image_count": null,
+      "image_license_status": "LICENSE_UNVERIFIED",
+      "image_types": [
+        "UNKNOWN"
+      ],
+      "independent_split": "UNKNOWN",
+      "license_id": "CC-BY-NC-SA-4.0",
+      "license_status": "METADATA_LICENSE_DECLARED_USE_RESTRICTED_NOT_IMAGE_AUTHORITY_VERIFIED",
+      "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "model_training": "NONCOMMERCIAL_ONLY_IF_AUTHORITY_VERIFIED",
+      "name": "Blueberry Detection dataset",
+      "official_url": "https://www.kaggle.com/datasets/zhengkunli3969/blueberry-detection-dataset",
+      "publisher": "Zhengkun Li / Kaggle uploader metadata",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": "NONCOMMERCIAL_SHAREALIKE_IF_AUTHORITY_VERIFIED",
+      "research_use": "NONCOMMERCIAL_ONLY_IF_ORIGINAL_IMAGE_AUTHORITY_VERIFIED",
+      "source_id": "kaggle-zhengkunli3969-blueberry-detection-dataset"
+    },
+    {
+      "SYNTHETIC": false,
+      "attribution_required": null,
+      "commercial_use": null,
+      "dataset_total_bytes": 349864573,
+      "download_admission": "BLOCKED_ORIGINAL_IMAGE_SCOPE_AND_LABEL_GRANULARITY",
+      "download_status": "NOT_DOWNLOADED",
+      "has_per_fruit_annotations": "CLUSTER_DETECTION_NOT_PER_FRUIT",
+      "image_count": null,
+      "image_license_status": "LICENSE_UNVERIFIED",
+      "image_types": [
+        "UNKNOWN"
+      ],
+      "independent_split": "UNKNOWN",
+      "license_evidence": {
+        "description_excerpt": "Dataset used for blueberry Cluster detection with YOLOv8 dataset format. In-field blueberry fruit phenotyping with a MARS-PhenoBot and customized BerryNet, Computers and Electronics in Agriculture 232 (2025) 110057.",
+        "official_api_sha256": "f93d07b2e07569a082f8f4bdb3c6209191be929090f02c5a8d049c76977fd95f"
+      },
+      "license_id": "Apache-2.0",
+      "license_status": "METADATA_LICENSE_DECLARED_NOT_ORIGINAL_IMAGE_SCOPE_VERIFIED",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "model_training": "UNKNOWN_IMAGE_SCOPE",
+      "name": "Blueberry Cluster Detection",
+      "official_url": "https://www.kaggle.com/datasets/zhengkunli3969/blueberry-cluster-detection",
+      "publisher": "Zhengkun Li / Kaggle uploader metadata",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": null,
+      "research_use": null,
+      "source_id": "kaggle-zhengkunli3969-blueberry-cluster-detection"
+    },
+    {
+      "SYNTHETIC": false,
+      "attribution_required": null,
+      "commercial_use": null,
+      "download_admission": "BLOCKED_DATA_SOURCE_NOT_VERIFIED",
+      "download_status": "NOT_DOWNLOADED",
+      "has_per_fruit_annotations": "TITLE_CLAIM_ONLY_UNVERIFIED",
+      "image_count": null,
+      "image_license_status": "LICENSE_UNVERIFIED",
+      "image_types": [
+        "UNKNOWN"
+      ],
+      "independent_split": "UNKNOWN",
+      "license_evidence": {
+        "arxiv_html_status": "HTTP_404",
+        "datacite_response_sha256": "f48310fd4c863e242322c888ff5b2d8d1d95933df22b5756f02afc2ac62953fb"
+      },
+      "license_id": "CC0-1.0_ARTICLE_METADATA_SCOPE_ONLY",
+      "license_status": "ARTICLE_METADATA_SCOPE_ONLY_IMAGE_LICENSE_UNVERIFIED",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "model_training": "UNKNOWN",
+      "name": "AerialYield-B2D: A Greenhouse Blueberry Dataset with Five-Stage Ripeness Masks and Fruit Counts",
+      "official_url": "https://arxiv.org/abs/2608.16973",
+      "publisher": "arXiv indexed in DataCite",
+      "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+      "redistribution": null,
+      "research_use": null,
+      "source_id": "datacite-arxiv-2608-16973"
+    }
+  ]
+}

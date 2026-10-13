@@ -1,0 +1,205 @@
+{
+  "SYNTHETIC": false,
+  "association_edges": [
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3127978079",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review_status": "CONFIRMED"
+    },
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3127978079",
+      "relation": "source_batch_id"
+    },
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3872104307",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review_status": "CONFIRMED"
+    },
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3872104307",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review_status": "PENDING"
+    },
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3872104307",
+      "relation": "source_batch_id"
+    },
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-4195390806",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review_status": "CONFIRMED"
+    },
+    {
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-4195390806",
+      "relation": "source_batch_id"
+    },
+    {
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-3872104307",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review_status": "CONFIRMED"
+    },
+    {
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-3872104307",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review_status": "PENDING"
+    },
+    {
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-4195390806",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review_status": "CONFIRMED"
+    },
+    {
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-4195390806",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review_status": "PENDING"
+    },
+    {
+      "image_id_a": "quality-3872104307",
+      "image_id_b": "quality-4195390806",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review_status": "CONFIRMED"
+    },
+    {
+      "image_id_a": "quality-3872104307",
+      "image_id_b": "quality-4195390806",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review_status": "PENDING"
+    }
+  ],
+  "dataset_manifest_hash": "9f75e2a7c58c6e55187064ec33f4beb7bf4e26204fc64825f10c4081a1993096",
+  "duplicate_report_hash": "8a6a34518ca6564874c4f45f21df7052dd7914cc0aeaaf73b776079305908e5c",
+  "groups": [
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "05ec7b55aae46b8459711f2b8ed3a6035d4059a97998731b2c04c059dd1caddf",
+      "image_ids": [
+        "public-commons-15928839"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "e1fdcec5c0eb6a17ef780b30d54ee2a082ac4592dbd031301414d7c69ba82676",
+      "image_ids": [
+        "public-commons-4112477"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "cfe50927f17c1e9e55c239cd26b9483111e3e581abadd6ad89376923fc3ad4fd",
+      "image_ids": [
+        "public-commons-4112528"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "ba65e6fedf302a1b43dc0952565eae51e1503484f78700842050a3952b9a6264",
+      "image_ids": [
+        "public-commons-81047629"
+      ]
+    },
+    {
+      "assigned_splits": [
+        "TEST"
+      ],
+      "group_id": "49b779ca6e22686f28009f2ba2872740899542884e3a29d4fbe0a10169ea5b42",
+      "image_ids": [
+        "quality-1626757232",
+        "quality-3127978079",
+        "quality-3872104307",
+        "quality-4195390806"
+      ]
+    }
+  ],
+  "holdout_verification": {
+    "cross_base": {
+      "overlap": [],
+      "reason_code": "UNKNOWN_HOLDOUT_METADATA",
+      "status": "UNVERIFIED",
+      "unknown_count": 8
+    },
+    "cross_date": {
+      "overlap": [],
+      "reason_code": "UNKNOWN_HOLDOUT_METADATA",
+      "status": "UNVERIFIED",
+      "unknown_count": 8
+    }
+  },
+  "limitations": [
+    "Declared associations and pending perceptual candidates are conservatively connected.",
+    "Undetected near duplicates and unknown metadata remain unverified.",
+    "Metadata integrity does not authenticate source identity or grant business authority."
+  ],
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "records": [
+    {
+      "asset_sha256": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "group_id": "05ec7b55aae46b8459711f2b8ed3a6035d4059a97998731b2c04c059dd1caddf",
+      "image_id": "public-commons-15928839",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "group_id": "e1fdcec5c0eb6a17ef780b30d54ee2a082ac4592dbd031301414d7c69ba82676",
+      "image_id": "public-commons-4112477",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "group_id": "cfe50927f17c1e9e55c239cd26b9483111e3e581abadd6ad89376923fc3ad4fd",
+      "image_id": "public-commons-4112528",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "group_id": "ba65e6fedf302a1b43dc0952565eae51e1503484f78700842050a3952b9a6264",
+      "image_id": "public-commons-81047629",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "group_id": "49b779ca6e22686f28009f2ba2872740899542884e3a29d4fbe0a10169ea5b42",
+      "image_id": "quality-1626757232",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "group_id": "49b779ca6e22686f28009f2ba2872740899542884e3a29d4fbe0a10169ea5b42",
+      "image_id": "quality-3127978079",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "group_id": "49b779ca6e22686f28009f2ba2872740899542884e3a29d4fbe0a10169ea5b42",
+      "image_id": "quality-3872104307",
+      "split": "TEST"
+    },
+    {
+      "asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "group_id": "49b779ca6e22686f28009f2ba2872740899542884e3a29d4fbe0a10169ea5b42",
+      "image_id": "quality-4195390806",
+      "split": "TEST"
+    }
+  ],
+  "schema_version": "blueberry-vision-split/3.0.0",
+  "split_hash": "ce345b7a6bc08ea2ad9c31cb2b90df9752909980dfc1505c666128098d975132",
+  "split_version": "public-pilot8-fixed-no-real-training/1"
+}

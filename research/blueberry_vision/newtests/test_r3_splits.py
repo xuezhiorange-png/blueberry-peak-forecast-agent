@@ -4,14 +4,17 @@ from copy import deepcopy
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
-from research.blueberry_vision.r2_common import JSONDict, canonical_hash, seal
+from research.blueberry_vision.r2_common import JSONDict, canonical_hash, file_hash, seal
 from research.blueberry_vision.r3.annotations import (
     adjudicate_annotations,
     annotation_bundle,
     create_draft,
     transition_review,
 )
+from research.blueberry_vision.r3.dedup import find_near_duplicates, review_duplicate
+from research.blueberry_vision.r3.ingestion import import_images
 from research.blueberry_vision.r3.splits import (
     SplitError,
     append_exposure_event,
@@ -664,3 +667,121 @@ def test_tampered_hashed_duplicate_report_is_rejected() -> None:
     report["threshold"] = 100
     with pytest.raises(SplitError, match="DUPLICATE_REPORT_HASH_INVALID"):
         build_split(data, {"a": "TEST"}, report)
+
+
+@pytest.mark.parametrize("review_status", ["PENDING", "CONFIRMED", "REJECTED"])
+def test_actual_perceptual_review_roundtrip_to_split(tmp_path: Path, review_status: str) -> None:
+    """Actual pixel scan and review use the canonical dedup review.reason field."""
+    asset_dir = tmp_path / "assets"
+    asset_dir.mkdir()
+    for image_id, blue in (("a", 120), ("b", 121)):
+        Image.new("RGB", (24, 16), (20, 50, blue)).save(asset_dir / f"{image_id}.png")
+    source = {
+        "source_id": "synthetic-regression-source",
+        "purpose": "SYNTHETIC_ENGINEERING",
+        "SYNTHETIC": True,
+        "license_status": "SYNTHETIC_AUTHORITY",
+        "license_id": "OWN_SYNTHETIC_FIXTURE",
+        "license_url": "https://example.org/synthetic-fixture-authority",
+        "research_use": True,
+        "commercial_use": False,
+        "model_training": False,
+        "redistribution": False,
+        "attribution_required": False,
+    }
+    index = {
+        "dataset_id": "actual-dedup-pixel-fixture",
+        "dataset_version": "1",
+        "purpose": "SYNTHETIC_ENGINEERING",
+        "SYNTHETIC": True,
+        "images": [
+            {
+                "image_id": image_id,
+                "source_id": source["source_id"],
+                "asset_ref": f"{image_id}.png",
+                "asset_sha256": file_hash(asset_dir / f"{image_id}.png"),
+            }
+            for image_id in ("a", "b")
+        ],
+    }
+    data = import_images(asset_dir, index, {"sources": [source]}, tmp_path / "import")
+    report = find_near_duplicates(data, asset_dir, threshold=0)
+    assert len(report["candidate_edges"]) == 1
+    assert report["edges"][0]["relation"] == "PERCEPTUAL_SIMILARITY"
+    assert data["images"][0]["asset_sha256"] != data["images"][1]["asset_sha256"]
+    assert data["images"][0]["rgb_sha256"] != data["images"][1]["rgb_sha256"]
+    if review_status != "PENDING":
+        report = review_duplicate(
+            report,
+            report["edges"][0]["edge_id"],
+            review_status,
+            "offline-self-asserted-reviewer",
+            "2026-01-01T00:00:00Z",
+            "Synthetic regression fixture: visually similar color fields are distinct.",
+        )
+        assert report["candidate_edges"] == []
+        assert report["edges"][0]["review"]["reason"]
+        assert report["edges"][0]["review"]["identity_authenticated"] is False
+    if review_status == "REJECTED":
+        assert len(build_split(data, {"a": "TRAIN", "b": "TEST"}, report)["groups"]) == 2
+    else:
+        with pytest.raises(SplitError, match="GROUP_CROSS_SPLIT"):
+            build_split(data, {"a": "TRAIN", "b": "TEST"}, report)
+
+
+def test_derivatives_share_origin_when_original_is_outside_batch() -> None:
+    data = dataset()
+    original_hash = canonical_hash("original-not-in-pilot")
+    for row in data["images"][:2]:
+        row["original_asset_sha256"] = original_hash
+    data = seal(data, "manifest_hash")
+    with pytest.raises(SplitError, match="GROUP_CROSS_SPLIT"):
+        build_split(data, {"a": "TRAIN", "b": "TEST"})
+
+
+def test_original_and_derivative_use_one_hash_family_namespace() -> None:
+    data = dataset()
+    data["images"][0]["original_asset_sha256"] = data["images"][1]["asset_sha256"]
+    data = seal(data, "manifest_hash")
+    with pytest.raises(SplitError, match="GROUP_CROSS_SPLIT"):
+        build_split(data, {"a": "TRAIN", "b": "TEST"})
+
+
+def test_origin_family_closes_transitively_through_unassigned_derivative() -> None:
+    data = dataset()
+    original_hash = data["images"][2]["asset_sha256"]
+    for row in data["images"][:2]:
+        row["original_asset_sha256"] = original_hash
+    data = seal(data, "manifest_hash")
+    with pytest.raises(SplitError, match="GROUP_CROSS_SPLIT"):
+        build_split(data, {"a": "TRAIN", "c": "TEST"})
+
+
+def test_distinct_declared_origin_families_do_not_merge() -> None:
+    data = dataset()
+    for row in data["images"][:2]:
+        row["original_asset_sha256"] = canonical_hash("source-origin-" + row["image_id"])
+    data = seal(data, "manifest_hash")
+    assert len(build_split(data, {"a": "TRAIN", "b": "TEST"})["groups"]) == 3
+
+
+def test_declared_origin_hash_must_be_a_valid_sha256() -> None:
+    data = dataset()
+    data["images"][0]["original_asset_sha256"] = "invalid"
+    data = seal(data, "manifest_hash")
+    with pytest.raises(SplitError, match="ORIGINAL_ASSET_HASH_INVALID"):
+        build_split(data, {})
+
+
+def test_test_derivative_cannot_hide_original_asset_consumed_by_training() -> None:
+    data = dataset()
+    origin = canonical_hash("declared-training-original")
+    data["images"][0]["original_asset_sha256"] = origin
+    data = seal(data, "manifest_hash")
+    config = frozen(data)
+    config["training_asset_hashes"] = [origin]
+    config = seal(config, "freeze_hash")
+    result = check_admission(
+        data, build_split(data, {"a": "TEST"}), annotations(data), freeze=config
+    )
+    assert "TRAINING_TEST_LEAKAGE" in result["reason_codes"]
