@@ -1,5 +1,6 @@
 import copy
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,7 +11,7 @@ from research.blueberry_vision.r4.package import build_package
 
 
 @pytest.fixture
-def frozen_public_inference(public_preview):
+def frozen_public_inference(public_preview: Any) -> Any:
     dataset, root = public_preview
     freeze = read_json(Path(__file__).resolve().parents[1] / "evidence/r3/config_freeze.json")
     predictions = {
@@ -30,7 +31,7 @@ def frozen_public_inference(public_preview):
     return dataset, freeze, predictions, evidence
 
 
-def test_genuine_pixel_output_freeze(frozen_public_inference):
+def test_genuine_pixel_output_freeze(frozen_public_inference: Any) -> None:
     d, f, preds, receipt = frozen_public_inference
     lock = lock_predictions(d, build_package(d), f, preds, receipt)
     assert lock["verified"]
@@ -48,7 +49,9 @@ def test_genuine_pixel_output_freeze(frozen_public_inference):
         ("dataset_manifest_hash", "0" * 64),
     ],
 )
-def test_resealed_prediction_tampering(frozen_public_inference, field, value):
+def test_resealed_prediction_tampering(
+    frozen_public_inference: Any, field: Any, value: Any
+) -> None:
     d, f, preds, receipt = frozen_public_inference
     preds = copy.deepcopy(preds)
     preds["A"][field] = value
@@ -57,7 +60,7 @@ def test_resealed_prediction_tampering(frozen_public_inference, field, value):
         lock_predictions(d, build_package(d), f, preds, receipt)
 
 
-def test_one_image_scope_missing(frozen_public_inference):
+def test_one_image_scope_missing(frozen_public_inference: Any) -> None:
     d, f, preds, receipt = frozen_public_inference
     preds["B"]["images"] = []
     preds["B"] = seal(preds["B"], "prediction_hash")
@@ -65,7 +68,7 @@ def test_one_image_scope_missing(frozen_public_inference):
         lock_predictions(d, build_package(d), f, preds, receipt)
 
 
-def test_config_cannot_change_even_if_rehashed(frozen_public_inference):
+def test_config_cannot_change_even_if_rehashed(frozen_public_inference: Any) -> None:
     d, f, preds, receipt = frozen_public_inference
     f = copy.deepcopy(f)
     f["adapter_config"]["maximum_edge"] = 640

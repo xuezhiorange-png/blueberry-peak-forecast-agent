@@ -56,3 +56,20 @@ matching/AP/count/official COCO adapter reused, no real score attempted.54tests
 passed including hand Goldens. Missing2649component-area scalars saved compactly;
 recovered A/B full serialized SHA and canonical hashes exactly match R3 receipts.
 Next M6: concise business report, operational CLI, full regression and exact-head CI.
+
+M5 commitc2a15b44dfdbe3f784010bddfc3b3b419d57df50 pushed, remote verified.
+M6 complete in current checkpoint: operational CPU CLI, business report, full-resolution
+1:1/Fit clean editor and actual Chromium verification;701tests(634+67),0skipped,
+Ruff/format/mypy63filesPASS; default acceptance freshly701passed. Original R3 files
+unchanged. Invalid list-valued owner role test found/fixed; negative test retained.
+Compact prediction scalar supplement recovers exact original canonical/file hashes.
+Task stillPARTIAL:8realphotos,0human reviews,0qualifiedGT,8unscorable,nullrealmetrics.
+Main advanced externally to9b894b66; R3b0 and parentPRs unchanged.
+Next: push this final checkpoint; create stacked DraftPRbaseR3; verify exact-headCI.
+Final HEAD/CI live in own PR/GitHub receipts, not self-embedded in this commit.
+Owner next: assign two real independent annotators plus adjudicator for8fullframes and
+verify real identities/sources/quality; alternatively get applicable DCM permission and
+review genuine published manual protocol/QC. No automatic GT or business approval.
+Paths: r4/,r4tests/,R4_README.md,evidence/r4/,examples/r4/business/report.md,
+examples/r4/clean_annotation_preview.html; source/license/guide docs underdocs/research/.
+STOP after exact-head checks; no Ready/Merge/Release/Deploy, no parent PR modifications.

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,7 +11,7 @@ from research.blueberry_vision.r4.scoring import evaluate_qualified
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_recover_exact_historical_predictions_and_serialized_bytes(tmp_path):
+def test_recover_exact_historical_predictions_and_serialized_bytes(tmp_path: Any) -> None:
     restored = recover_predictions()
     receipts = read_json(ROOT / "evidence/r3/model_inference.json")
     for receipt in receipts["model_runs"]:
@@ -21,7 +22,7 @@ def test_recover_exact_historical_predictions_and_serialized_bytes(tmp_path):
         assert file_hash(output) == receipt["prediction_file_sha256"]
 
 
-def test_real_images_without_gt_never_score():
+def test_real_images_without_gt_never_score() -> None:
     dataset = read_json(ROOT / "evidence/r3/pilot_dataset_manifest.json")
     package = read_json(ROOT / "evidence/r4/human_annotation_package.json")
     lock = read_json(ROOT / "evidence/r4/prediction_freeze.json")
@@ -38,7 +39,7 @@ def test_real_images_without_gt_never_score():
         assert all(row["reference_count"] is None for row in model["per_image"])
 
 
-def test_altered_freeze_cannot_score():
+def test_altered_freeze_cannot_score() -> None:
     dataset = read_json(ROOT / "evidence/r3/pilot_dataset_manifest.json")
     package = read_json(ROOT / "evidence/r4/human_annotation_package.json")
     lock = read_json(ROOT / "evidence/r4/prediction_freeze.json")
@@ -47,7 +48,7 @@ def test_altered_freeze_cannot_score():
         evaluate_qualified(dataset, package, seal(lock, "lock_hash"), recover_predictions())
 
 
-def test_detection_hand_golden_duplicates_and_missed_gt():
+def test_detection_hand_golden_duplicates_and_missed_gt() -> None:
     gt = [
         {"class_label": "berry", "bbox_xyxy": [0, 0, 10, 10]},
         {"class_label": "berry", "bbox_xyxy": [20, 20, 30, 30]},
@@ -62,8 +63,8 @@ def test_detection_hand_golden_duplicates_and_missed_gt():
     assert research_ap50({"x": gt}, {"x": pred}) == pytest.approx(0.5)
 
 
-def test_count_hand_golden_and_missing_excluded():
-    rows = [
+def test_count_hand_golden_and_missing_excluded() -> None:
+    rows: list[dict[str, Any]] = [
         {
             "status": "EVALUATED",
             "tp": 1,

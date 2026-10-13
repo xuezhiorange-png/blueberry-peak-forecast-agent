@@ -289,7 +289,29 @@ def clean_editor(
     payload["report_hash"] = canonical_hash(payload)
     encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
     html = html.replace("__REPORT_JSON__", encoded).replace("__DOMAIN_BANNER__", payload["banner"])
+    # Preserve original resolution in the backing canvas. Inspecting 1:1 is a
+    # local display mode, not a new ROI, augmentation, count rule or annotation.
+    html = html.replace(
+        "const scale=Math.min(1,850/row.image_width,650/row.image_height);",
+        (
+            "const scale=report.full_resolution?1:"
+            "Math.min(1,850/row.image_width,650/row.image_height);"
+        ),
+    )
+    html = html.replace(
+        '<div class="toolbar">',
+        '<div class="toolbar"><button id="inspectionZoom">1:1 / Fit inspection</button>',
+    )
+    html = html.replace(
+        "const $=id=>document.getElementById(id);",
+        "const $=id=>document.getElementById(id);"
+        "$('inspectionZoom').disabled=!report.full_resolution;"
+        "$('inspectionZoom').onclick=()=>document.querySelector('.canvas-wrap')"
+        ".classList.toggle('full-resolution');",
+    )
     style = "<style>.summary,.chart-grid,.count-grid,#exportAnalysis,#copyDraft{display:none}"
+    style += ".canvas-wrap.full-resolution{display:block;max-height:700px;overflow:auto}"
+    style += ".canvas-wrap.full-resolution canvas{max-width:none;width:auto;height:auto}"
     style += ".control:has(#modelSelect),.control:has(#filterSelect),label:has(#showPred),"
     style += (
         "label:has(#showGT),label:has(#showErrors),label:has(#showCandidates){display:none}</style>"

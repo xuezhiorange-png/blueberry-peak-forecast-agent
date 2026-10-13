@@ -4,6 +4,7 @@ import base64
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
-def public_preview(tmp_path):
+def public_preview(tmp_path: Any) -> Any:
     html = (ROOT / "examples/r3/real_review.html").read_text()
     match = re.search(
         r'<script id="report-data" type="application/json">(.*?)</script>', html, re.DOTALL

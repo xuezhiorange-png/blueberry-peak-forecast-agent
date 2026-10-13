@@ -1,0 +1,62 @@
+name: Blueberry Vision R4 Qualified Reference
+on:
+  push:
+    branches: [research/blueberry-vision-r4-qualified-real-gt]
+    paths:
+      - research/blueberry_vision/**
+      - docs/research/blueberry-vision-*-r4.md
+      - .github/workflows/blueberry-vision-r4-research.yml
+  pull_request:
+    paths:
+      - research/blueberry_vision/**
+      - docs/research/blueberry-vision-*-r4.md
+      - .github/workflows/blueberry-vision-r4-research.yml
+permissions:
+  contents: read
+concurrency:
+  group: blueberry-vision-r4-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  r4-qualified-reference:
+    name: R4 offline qualification / exact head
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONHASHSEED: "0"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.14"
+          cache: pip
+          cache-dependency-path: research/blueberry_vision/requirements-r*.txt
+      - name: Install isolated pinned CPU dependencies
+        run: python -m pip install -r research/blueberry_vision/requirements-r4.txt
+      - name: Record actual head
+        run: git rev-parse HEAD
+      - name: Original634 regressions and R4 task/reference/ROI/evaluation tests
+        run: python -m pytest research/blueberry_vision/tests research/blueberry_vision/newtests research/blueberry_vision/r4tests -q --junitxml=/tmp/r4-tests.xml
+      - name: Ruff and strict mypy
+        run: |
+          ruff check research/blueberry_vision
+          ruff format --check research/blueberry_vision
+          mypy --explicit-package-bases research/blueberry_vision
+      - name: Frozen prediction recovery and honest no-GT acceptance
+        run: python -m research.blueberry_vision.r4.cli run-r4-acceptance --skip-tests --output /tmp/r4-ci
+      - name: Verify R4 compact artifact index and R2/R3 inheritance
+        run: |
+          python -m research.blueberry_vision.r4.cli verify-artifacts --manifest research/blueberry_vision/evidence/r4/artifact_manifest.json --root .
+          python -m research.blueberry_vision.r4.cli verify-artifacts --manifest /tmp/r4-ci/artifact_manifest.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r4-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            /tmp/r4-tests.xml
+            /tmp/r4-ci/
+          retention-days: 14
