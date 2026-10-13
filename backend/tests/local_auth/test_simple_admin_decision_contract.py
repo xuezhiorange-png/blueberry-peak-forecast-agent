@@ -7,6 +7,12 @@ from pathlib import Path
 from backend.tests.historical_source import historical_bytes
 
 ROOT = Path(__file__).resolve().parents[3]
+MERGED_D03 = "c35524174865785164fe4529f35067037ccddc2a"
+S2_REVISED_SOURCES = {
+    "backend/app/core/config.py",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py",
+    "backend/tests/local_auth/test_simple_admin_decision_contract.py",
+}
 
 
 def test_simple_admin_decision_preserves_history_and_runtime_boundaries():
@@ -27,7 +33,12 @@ def test_simple_admin_decision_preserves_history_and_runtime_boundaries():
     for relative, expected in value["source_evidence_sha256"].items():
         path = Path(relative)
         assert not path.is_absolute() and ".." not in path.parts
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+        source = (
+            historical_bytes(relative, MERGED_D03)
+            if relative in S2_REVISED_SOURCES
+            else (ROOT / path).read_bytes()
+        )
+        assert hashlib.sha256(source).hexdigest() == expected
     old_path = "docs/v0-18/s1/local-auth-runtime-r1.json"
     assert (ROOT / old_path).read_bytes() == historical_bytes(old_path, value["base_main_sha"])
     original = json.loads((ROOT / old_path).read_bytes())
