@@ -1,0 +1,216 @@
+{
+  "SYNTHETIC": true,
+  "coefficients": [
+    -0.21513473605968608,
+    -0.2720545490049153,
+    0.7660786396954247,
+    0.06196074413123407,
+    0.9076657788536421,
+    0.8764966196795153,
+    -0.06259605706638058,
+    0.4547797759450866,
+    0.4028782944433068,
+    0.6770898981612011
+  ],
+  "dependencies": {
+    "Pillow": "12.3.0",
+    "numpy": "2.4.6"
+  },
+  "feature_names": [
+    "red",
+    "green",
+    "blue",
+    "red_minus_green",
+    "blue_minus_green",
+    "blue_minus_red",
+    "red_times_green",
+    "green_times_blue",
+    "red_times_blue",
+    "channel_range"
+  ],
+  "feature_version": "normalized-rgb-polynomial/2.0.0",
+  "intercept": 0.09122075519182074,
+  "licenses": {
+    "Pillow": "MIT-CMU",
+    "numpy": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+  },
+  "limitations": [
+    "SYNTHETIC_ONLY_NOT_REAL_BLUEBERRY_ACCURACY",
+    "CONNECTED_PIXELS_CAN_MERGE_TOUCHING_FRUIT",
+    "PIXEL_PROBABILITIES_ARE_NOT_CALIBRATED_OBJECT_CONFIDENCE",
+    "VISIBLE_COUNT_IS_NOT_HARVEST_WEIGHT"
+  ],
+  "model_hash": "b0985cbc760e3158737382c3ed56cab65bf417b9aa9346068ff03aaedfd3381f",
+  "model_type": "numpy_logistic_regression_pixel_classifier",
+  "model_version": "numpy-logistic-pixel/2.0.0",
+  "scaler_mean": [
+    0.20253734827261016,
+    0.27570681605975017,
+    0.30628081232489296,
+    -0.0731694677871071,
+    0.0305739962651717,
+    0.10374346405229914,
+    0.06018357591402471,
+    0.08898961388477035,
+    0.06634658098533538,
+    0.2165016339869169
+  ],
+  "scaler_scale": [
+    0.08302425712296996,
+    0.08152011379526702,
+    0.1970729948233207,
+    0.06966533748454708,
+    0.19076551482092538,
+    0.19262460304682807,
+    0.04602407979009164,
+    0.07953710875356841,
+    0.06765710160584694,
+    0.10714870530141148
+  ],
+  "schema_version": "blueberry-vision-pixel-model/2.0.0",
+  "source_scope": "synthetic_train_only",
+  "target_class": "SYNTHETIC_BLUEBERRY_VISIBLE",
+  "training_config": {
+    "feature_version": "normalized-rgb-polynomial/2.0.0",
+    "iterations": 80,
+    "l2_penalty": 0.001,
+    "learning_rate": 0.15,
+    "maximum_input_pixels": 4000000,
+    "maximum_training_samples": 250000,
+    "samples_per_image": 1200,
+    "sampling": "balanced_per_image_without_replacement",
+    "seed": 20261013,
+    "source_scope": "synthetic_train_only",
+    "version": "numpy-logistic-pixel/2.0.0"
+  },
+  "training_config_hash": "b42cd6470b95dce4147e7a7172c847599ee88222c3dc17c6988d4da655cc7597",
+  "training_data_hash": "a92c8c9a9f8228ccd4273ccbd249fc68ce4e8d48eeed5783bca510ae57ec4edb",
+  "training_images": [
+    {
+      "asset_sha256": "261ae0f5e0dbdb7fa04782e8e23af040c74ef568840509b222993ee0e4fe98d1",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0000",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "fedcd606be6976eb33f1c46707030cc1d19120bd050b673364e581224e6fd38a",
+      "training_mask_sha256": "fb54670b8b3da7ab18a2c3b18eb686f56faa29cc2169c6a03f740fb375f96807"
+    },
+    {
+      "asset_sha256": "f8d2f728769da683aaadcaf60db6e396b116dbfaee6507c4fd7a5a9c9ba5f6ee",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0001",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "84cb0fba0ff26c44feb4b8a67935234286576c9c98d521e5fbd91f527883cbf7",
+      "training_mask_sha256": "c80cf3e9a81ded27e8f9ff25fee08c771807b1bf944d80532cf1f4f8ebad1d0e"
+    },
+    {
+      "asset_sha256": "90142df7033117ed84b663cb8f2d94da1a9ad071298f73fee287da59009647ec",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0002",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "07aba0d5e67dd2bd58b3ed8ae5c27b1051d806d8369233659bc2f5479e1137f0",
+      "training_mask_sha256": "d146440afa4daaafdf94e0fe197fe88a4819f797f9ea63a3ccb1dde0d6b54c0e"
+    },
+    {
+      "asset_sha256": "8270d36df7da648d3ffb8e24a98f3b5c659fd8eef30249bd31e8a79b0d519c2a",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0003",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "5c24752a2ae61b4f20835ac90a80f0114b7b814d6fac3541ae637e155bac59f8",
+      "training_mask_sha256": "5d09c13b5bbe1ec84dc219c033f2ff9e30ea40eaa1dcfe79769948fc708384f0"
+    },
+    {
+      "asset_sha256": "b9d1706db83f9e6f96f85d1abc0067d647835814d24bc8103d0ab3b3ed1b2b82",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0004",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "1bacc76f9f051ec771f647ab852cd933880b0c95c4055a1066ae4396998d2740",
+      "training_mask_sha256": "b7c8f6c45e059bc753986688285dd572f21078413ea6b5943dc772a94a294d26"
+    },
+    {
+      "asset_sha256": "5c6a8ad408096505fe984ba8d56a2680f09eda723c3f4903462275766b1eda91",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0005",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "b24b8721486b6e8ace2afc7dc942dc7f7c19ed84b5eafb419cd4c66bbf9a5e52",
+      "training_mask_sha256": "730a23ceb5ae9d278f1caaea19a470ef49844c684a72cc28b74bcd6ad9b595f7"
+    },
+    {
+      "asset_sha256": "7910e78aa0dcb393e84da4a396026c8b85b42e1037474f60da6d637c433916a3",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0006",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "6bbb3ec33156706436fa32291d664619c24717e0d435ecdd4052360bafb99130",
+      "training_mask_sha256": "292d278e14acd4807fcdfd4fa2c1c6546516e8cd085a864811770c9a663d5cff"
+    },
+    {
+      "asset_sha256": "a6c180ad62fc2e15594ea43a1c33d5476e535baa2d5c6035e436bc70d83c3268",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0007",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "8efc138eeeb992642caeeee57cb197c309c5e60c20546313fe9441d050b670c8",
+      "training_mask_sha256": "119d1f39bf9a092011f59d7667b447fb39b299fa8c834d2e57e21e5a115eefa5"
+    },
+    {
+      "asset_sha256": "4bb75191e54b3b469a9a759148484cad218f04e831ba6c5b91653024e218d4d7",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0008",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "2e3ba233ab3e979d1936006aef0f87f273ab212f4f749db576fcbe95ab37959f",
+      "training_mask_sha256": "8950b3bdd5632739f3fa3258d3f9d9473067beb517db7dda6411e92f95b5fb3a"
+    },
+    {
+      "asset_sha256": "7bb952c2fa62bf362cde0facfa56f99d1497fe0486bb747d6b76bf583e604ba3",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0009",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "ad87c93eacd62df0aee5ee0ef4f3456faf5323ecd8f9d3edbb96894a4c702e72",
+      "training_mask_sha256": "389cff081314969f363a3a43e6007b5f9949bdc31772594a4d9c414c089c2673"
+    },
+    {
+      "asset_sha256": "98aa5189afa967cbd411fcc0458b619c25c530f8b4624287ded590bb602842da",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0010",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "44f0affa7d89546cdb3720d3508ceed3414a11609948b04bd5b7871d14224156",
+      "training_mask_sha256": "db195d75b310ca0b912183b6040c8aa1672fa7399856961170a1d151ed9c4ec4"
+    },
+    {
+      "asset_sha256": "1dd3a043503a5d36536f03243b8e0a6c5a39a1e6c638652599ba7b28c2eb65cf",
+      "background_sample_count": 1200,
+      "foreground_sample_count": 0,
+      "image_id": "synthetic-r2-20261013-train-0011",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "3feefa9bf47d5ecbeddf18da31ddee098c8a0fd57b7b9120c0e3bc57337b655d",
+      "training_mask_sha256": "fec966e39bd2cb880399a71dc6687cd330bd399b1398709c3aa4a5c39bd7c911"
+    },
+    {
+      "asset_sha256": "bf9c15d48bed0ae31d8f9e62d88d41906bea93b63b0842950846023a7a7b9c94",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0012",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "81d2be341a3a79e8dafa32151e331e25c6ce18f69e4b08805701e1b9ff500942",
+      "training_mask_sha256": "e7e418651b24fe2dca2c547d4af9a3d77dbf73e75be8c932750230099da2622a"
+    },
+    {
+      "asset_sha256": "203e807548fc83c66e28ffe5edbb20ea1d3e35f431f8ec58bee2c1f29c2d250f",
+      "background_sample_count": 600,
+      "foreground_sample_count": 600,
+      "image_id": "synthetic-r2-20261013-train-0013",
+      "sample_count": 1200,
+      "selected_pixel_indices_hash": "3b9e2a3d663b08b0d0727eeda58108710ba69dbd06a377254b95e0057d4bbbdf",
+      "training_mask_sha256": "f108c109ba46df5c319c41850de38f79572dddebd603120fdb287c455f2fcb8d"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "SYNTHETIC": true,
+  "dependencies": {
+    "Pillow": "12.3.0",
+    "numpy": "2.4.6"
+  },
+  "feature_names": [
+    "red",
+    "green",
+    "blue",
+    "red_minus_green",
+    "blue_minus_green",
+    "blue_minus_red",
+    "red_times_green",
+    "green_times_blue",
+    "red_times_blue",
+    "channel_range"
+  ],
+  "licenses": {
+    "Pillow": "MIT-CMU",
+    "numpy": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+  },
+  "model_artifact_ref": "model.json",
+  "model_artifact_sha256": "b685ff32fac8542e3f50bbbb5f5a1b09d2319114ce14af17078de06ac9482b10",
+  "model_hash": "b0985cbc760e3158737382c3ed56cab65bf417b9aa9346068ff03aaedfd3381f",
+  "model_manifest_hash": "f0070759b1e17de8fe1e7e0e17cf640f92365a0c5ebff8ed58eae41a1f97d4e1",
+  "model_version": "numpy-logistic-pixel/2.0.0",
+  "train_image_count": 14,
+  "train_image_ids": [
+    "synthetic-r2-20261013-train-0000",
+    "synthetic-r2-20261013-train-0001",
+    "synthetic-r2-20261013-train-0002",
+    "synthetic-r2-20261013-train-0003",
+    "synthetic-r2-20261013-train-0004",
+    "synthetic-r2-20261013-train-0005",
+    "synthetic-r2-20261013-train-0006",
+    "synthetic-r2-20261013-train-0007",
+    "synthetic-r2-20261013-train-0008",
+    "synthetic-r2-20261013-train-0009",
+    "synthetic-r2-20261013-train-0010",
+    "synthetic-r2-20261013-train-0011",
+    "synthetic-r2-20261013-train-0012",
+    "synthetic-r2-20261013-train-0013"
+  ],
+  "training_config_hash": "b42cd6470b95dce4147e7a7172c847599ee88222c3dc17c6988d4da655cc7597",
+  "training_data_hash": "a92c8c9a9f8228ccd4273ccbd249fc68ce4e8d48eeed5783bca510ae57ec4edb",
+  "training_log_ref": "training_log.json",
+  "training_log_sha256": "64263c8251dff47b45cffbea7493036eaeb21cd025c0d856da7ab64e69cb666c"
+}

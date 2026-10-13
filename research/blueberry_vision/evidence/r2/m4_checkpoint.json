@@ -1,0 +1,72 @@
+{
+  "branch": "research/blueberry-vision-r2-offline-detection-counting",
+  "checkpoint_parent_sha": "71bfa4289f5301900c828339b20ad236e6bb3e79",
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "pytest",
+        "research/blueberry_vision/tests/test_r2_trainable.py",
+        "research/blueberry_vision/tests/test_r2_classical.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "..............................                                           [100%]\n30 passed in 0.32s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/trainable.py",
+        "research/blueberry_vision/tests/test_r2_trainable.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/trainable.py",
+        "research/blueberry_vision/tests/test_r2_trainable.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "2 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/trainable.py",
+        "research/blueberry_vision/tests/test_r2_trainable.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 2 source files\n"
+    }
+  ],
+  "facts": {
+    "actual_gradient_iterations": 80,
+    "license_metadata": "Read exact installed wheel SPDX expression rather than historical guessed license names.",
+    "model": "NumPy ten-feature polynomial RGB logistic regression",
+    "no_pretrained_weights": true,
+    "parameters_and_labels_change_actual_fitted_weights": true,
+    "reload_equal": true,
+    "train_image_count": 14,
+    "train_only_scaler": true,
+    "validation_inference_count": 14
+  },
+  "limitations": [
+    "Engineering synthetic checks only; no real orchard accuracy, kg calibration or production authorization."
+  ],
+  "milestone": "M4",
+  "recorded_at": "2026-10-13T03:02:08.309008+00:00",
+  "source_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE"
+}
