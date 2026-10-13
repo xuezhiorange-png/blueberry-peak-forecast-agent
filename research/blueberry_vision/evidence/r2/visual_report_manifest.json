@@ -1,5 +1,5 @@
 {
-  "artifact_manifest_hash": "b8dacf13aebdd4bd88c088299726423678efae2abcf1b27f564c73bb174f78bd",
+  "artifact_manifest_hash": "5546257422179cbf3552d6a6c38ef0eaa3152471ca11b6e3af84e72150c0f8d3",
   "artifacts": {
     "errors_collection/image-0001-model-0.png": "767965d014423842f08f72ea0a9be9e7864487926bf7ffb809d59178ba70ed3b",
     "errors_collection/image-0001-model-1.png": "0cdd9aa1809d927abbaad4f52f4c4d84447864bd64fc8efe709cf92b9fb71129",
@@ -139,7 +139,7 @@
     "prediction_overlays/image-0026-model-1.png": "ed49f32cbc8a7a82ea6accd205a9ff39d842056d7a4e6d86c7041117ebeb85c5",
     "prediction_overlays/image-0027-model-0.png": "33803579a649eeceaef701bfe8778f7732f4a1b993e05fef39aa1f98060de259",
     "prediction_overlays/image-0027-model-1.png": "17576786e87c3f11f3fb31b99592ba67e8eae932982f986d700e0ae9fdcdffa6",
-    "report.html": "dc2d5027afbf1c5dafba372f83231338908d528762bac7c5d615a7eb3a04fb85",
+    "report.html": "e3257d060183df2694afcc6be8a887c1e8b44d5faa8d0a176c5cb3ffae83aefd",
     "report.json": "41ae9c2fe5fa6350f733c771c37b018fed06708df6f55ef444a2603ad7a11a43",
     "report.md": "58b66dff67f169ee31b34fccd4b77dbb0ba80ffbc87b710a345ff626086cc348",
     "scene_collage.png": "3e8e1d5ae82df2910c757beb753886a7d690f484e731f63ce5658428ce89ba89"
