@@ -26,3 +26,11 @@ DCM license/publisher methodology; nine actual source-gate tests passed. No rest
 images/labels downloaded. Rights-holder request drafted, NOT SENT. BerryMachine is
 a genuine new CC BY4 candidate requiring method/species review, not admitted GT.
 Next M2: all8 full-frame A/B clean task packages, no model answers or source drafts.
+
+M1 commit7df4739ad1a0b2922adbed2ffd2ff373c678c98f pushed, remote verified.
+M2 current checkpoint: all8 full-frame scope registered;2 genuine-human task roles
+unassigned,1adjudicator unassigned. Clean R3 editor reused without model/source
+answers; full-resolution20MB views generated locally, compact308KBpublic preview
+explicitly not a valid annotation source. 25tests passed; actual Chromium draw/export
+passed with zero page errors (automated UI test is not human GT). No human completed.
+Next M3: strict task/snapshot QC and authentic human-reference approval gate.

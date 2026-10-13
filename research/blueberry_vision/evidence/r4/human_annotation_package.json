@@ -1,0 +1,233 @@
+{
+  "SYNTHETIC": false,
+  "annotation_view": "NORMALIZED_FULL_RESOLUTION_REQUIRED_PREVIEWS_NOT_REFERENCE",
+  "dataset_manifest_hash": "9f75e2a7c58c6e55187064ec33f4beb7bf4e26204fc64825f10c4081a1993096",
+  "exposure": "EXPOSED_EXTERNAL_EVALUATION_R3_PREDICTIONS_ALREADY_PUBLIC",
+  "images": [
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 2760,
+      "image_id": "public-commons-15928839",
+      "image_width": 3200,
+      "license_id": "CC0-1.0",
+      "original_asset_hash": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        3200,
+        2760
+      ],
+      "source_asset_hash": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "source_id": "commons-15928839"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 2301,
+      "image_id": "public-commons-4112477",
+      "image_width": 2043,
+      "license_id": "CC-BY-2.0",
+      "original_asset_hash": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        2043,
+        2301
+      ],
+      "source_asset_hash": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "source_id": "commons-4112477"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 1063,
+      "image_id": "public-commons-4112528",
+      "image_width": 1600,
+      "license_id": "CC-BY-2.0",
+      "original_asset_hash": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        1600,
+        1063
+      ],
+      "source_asset_hash": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "source_id": "commons-4112528"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 1024,
+      "image_id": "public-commons-81047629",
+      "image_width": 768,
+      "license_id": "CC-BY-SA-4.0",
+      "original_asset_hash": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        768,
+        1024
+      ],
+      "source_asset_hash": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "source_id": "commons-81047629"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 1000,
+      "image_id": "quality-1626757232",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "original_asset_hash": "1898595be6a3bf9a9c7983014be3d26724fcf030cb874bc7d4dca745d94cffdf",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        1500,
+        1000
+      ],
+      "source_asset_hash": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "source_id": "zenodo-22148787"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 1000,
+      "image_id": "quality-3127978079",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "original_asset_hash": "023792d124c5b9bd11958958e9a18ed74bd7ce4a899dfa55a8baafe908ddc889",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        1500,
+        1000
+      ],
+      "source_asset_hash": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "source_id": "zenodo-22148787"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 1000,
+      "image_id": "quality-3872104307",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "original_asset_hash": "e96f2543e286780b2072f472a45e9eba4f1d3e6b10c3d49f53bb9671e75de8c7",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        1500,
+        1000
+      ],
+      "source_asset_hash": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "source_id": "zenodo-22148787"
+    },
+    {
+      "coordinate_frame": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+      "gt_status": "HUMAN_ANNOTATION_PENDING",
+      "image_height": 1000,
+      "image_id": "quality-4195390806",
+      "image_width": 1500,
+      "license_id": "CC-BY-4.0",
+      "original_asset_hash": "e338ae9e178ee9c56ec7956397b3cbd6900fad9f947903d3c84d2222643fa2e2",
+      "reference_count": null,
+      "roi_scale_to_image": [
+        1,
+        1
+      ],
+      "roi_xyxy": [
+        0,
+        0,
+        1500,
+        1000
+      ],
+      "source_asset_hash": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "source_id": "zenodo-22148787"
+    }
+  ],
+  "label_rules": {
+    "bbox": "Tight visible extent, normalized full-resolution RGB, half-open xyxy.",
+    "completeness": "Inspect full-resolution image; explicit COMPLETE required, empty only after review.",
+    "cropped_edge": "Count identifiable visible portions at image edges; clip to image.",
+    "distractor": "NON_TARGET_DISTRACTOR / IGNORE; never a TARGET.",
+    "ignore": "UNRESOLVED_FRUIT_CLUSTER / IGNORE for regions not individually separable.",
+    "independence": "A/B work separately; no predictions, source candidate geometry or other reviewer answers.",
+    "occlusion": "Count only if a separate fruit is identifiable; no inferred hidden fruit.",
+    "roi_policy": "ALL_ADMITTED_FULL_FRAMES_NO_ERROR_BASED_SELECTION",
+    "scoring": "IoU .5; one-to-one; ignore overlap .5; raw predicted count includes ignored candidates (R3 protocol).",
+    "small_target": "No inferred target below 3 pixels of visible extent on either axis; mark uncertain region.",
+    "status": "PRE_REGISTERED_RESEARCH_CANDIDATE_NOT_BUSINESS_APPROVED",
+    "target": "One individually distinguishable visible blueberry, any candidate color.",
+    "touching": "Separate boxes only when distinct fruit boundaries are distinguishable.",
+    "unknown": "UNCERTAIN for ambiguous fruit identity; cannot establish zero from missing labels.",
+    "unresolved_counts": "Unresolved clusters or uncertain fruit counts block single-fruit count accuracy.",
+    "version": "r4-visible-single-berry-research/1.0.0"
+  },
+  "label_rules_hash": "cbde214990f6767fee9598b3f47dfb019ab6f278449d645c6d6e657eddeb3976",
+  "package_hash": "2e09c0c74e781b2940e6e344308160953b94d69fa70a2620024b11b479ac8cb0",
+  "production_vision_approved": false,
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "qualified_gt": false,
+  "schema_version": "blueberry-human-work-package/4.0.0",
+  "scope_hash": "3c82c398a005f621dfcb4489686539f4d564f3b8e54321016006db819b5c4f3a",
+  "snapshot_contract": "blueberry-vision-annotation-snapshot/3.0.0",
+  "tasks": {
+    "A": {
+      "assigned_human_id": null,
+      "identity_verified": false,
+      "role": "A",
+      "status": "UNASSIGNED",
+      "task_id": "4d0f54a2aa8321532eeeba06a38ab34bbb9f72c19eaa949cd85bc868c17badaa"
+    },
+    "ADJUDICATOR": {
+      "assigned_human_id": null,
+      "identity_verified": false,
+      "role": "ADJUDICATOR",
+      "status": "UNASSIGNED",
+      "task_id": "31bf724bdde3f2b866a2a1e0342eeaf847503173b0882482898453ab785708cb"
+    },
+    "B": {
+      "assigned_human_id": null,
+      "identity_verified": false,
+      "role": "B",
+      "status": "UNASSIGNED",
+      "task_id": "45d1c7049327332b310eba0c56a92104b78f9987a2fea20125786b0263d53d89"
+    }
+  }
+}
