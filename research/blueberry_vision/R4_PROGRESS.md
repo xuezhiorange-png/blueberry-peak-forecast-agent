@@ -41,3 +41,10 @@ implemented using unchanged R3 snapshots; additional owner-verified human eviden
 required.41tests passed. No actual human input or owner receipt, no adjudication,
 zero QUALIFIED_GT. annotation_review_status/reference_admission preserve nulls.
 Next M4: verify R3 original prediction freeze, lock same full-frame scoring scope.
+
+M3 commit96e3b93af9ef8bfd95595cbef147b60a29f623f3 pushed, remote verified.
+M4 current checkpoint: both original raw prediction files and canonical hashes
+verified against durable R3 receipt; original model/config/source hashes and all8
+actual raw/RGB/size records checked. Same full-frame/exposed score protocol locked.
+49tests passed; R3 test seal/ledger remain unchanged, GT still unavailable.
+Next M5: run strict admission and retain NOT_EVALUABLE/null real metrics per image.
