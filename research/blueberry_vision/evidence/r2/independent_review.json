@@ -1,0 +1,157 @@
+{
+  "artifact_security_policy": {
+    "authorization_authenticity_verified": false,
+    "file_types": "REGULAR_ONLY",
+    "max_directory_depth": 32,
+    "max_file_bytes": 64000000,
+    "max_files": 10000,
+    "max_manifest_bytes": 8000000,
+    "max_tree_entries": 20000,
+    "mutations": "REJECT_FSTAT_CHANGES_DURING_SAME_FD_READ",
+    "read_chunk_bytes": 65536,
+    "symlinks": "REJECT_ALL_COMPONENTS",
+    "writes": "ROOT_FD_RELATIVE_EXCLUSIVE_CREATE"
+  },
+  "current_season_actual_read": false,
+  "final_checks": [
+    {
+      "command": "/tmp/blueberry-vision-r2-venv/bin/python -m pytest research/blueberry_vision/tests -q",
+      "exit_code": 0,
+      "name": "pytest",
+      "stdout": "........................................................................ [ 26%]\n........................................................................ [ 53%]\n........................................................................ [ 79%]\n.......................................................                  [100%]\n271 passed in 8.48s\n"
+    },
+    {
+      "command": "/tmp/blueberry-vision-r2-venv/bin/ruff check research/blueberry_vision",
+      "exit_code": 0,
+      "name": "ruff",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": "/tmp/blueberry-vision-r2-venv/bin/ruff format --check research/blueberry_vision",
+      "exit_code": 0,
+      "name": "format",
+      "stdout": "25 files already formatted\n"
+    },
+    {
+      "command": "/tmp/blueberry-vision-r2-venv/bin/mypy --explicit-package-bases research/blueberry_vision",
+      "exit_code": 0,
+      "name": "mypy",
+      "stdout": "Success: no issues found in 25 source files\n"
+    }
+  ],
+  "git_operations_performed": false,
+  "independent_manual_goldens": {
+    "count_bias": 0,
+    "count_mae": 2,
+    "duplicate_detection": "TP=2; FP=1; FN=0; precision=2/3; recall=1; F1=0.8; AP50=5/6",
+    "iou_exact_threshold": "intersection=24; union=48; IoU=0.5",
+    "iou_one_third": "intersection=50; union=150; IoU=1/3",
+    "ranked_false_positive_then_three_true_positives": "VOC all-points envelope AP50=3/4",
+    "same_coordinates_different_images": "TP=0; FP=1; FN=1",
+    "signed_count_errors": [
+      -2,
+      3,
+      -1
+    ],
+    "total_overcount": 3,
+    "total_undercount": 3
+  },
+  "initial_reproductions": [
+    {
+      "data": "reviewer-generated synthetic text only",
+      "finding": "artifact creation followed an outside-root file symlink before later verifier rejection",
+      "observed": "creation included outside sentinel SHA256; verifier subsequently raised ARTIFACT_PATH_UNSAFE",
+      "resolution": "fd-relative enumeration/open; no-follow every path component; same fd streaming digest"
+    },
+    {
+      "data": "reviewer-generated four-image synthetic dataset; train RGB reencoded as a test PNG with alternate metadata",
+      "finding": "standalone training bypassed normalized RGB duplicate admission",
+      "observed": "load_dataset succeeded; validate_assets rejected duplicate RGB; train-synthetic exited 0 and created model",
+      "resolution": "all three standalone pixel commands require successful asset validation bound to the same manifest before fit/inference"
+    },
+    {
+      "finding": "COCO annotation integer IDs accepted bool/float; malformed arrays raised AttributeError",
+      "observed": "four invalid ID variants accepted; three malformed collection cases raised AttributeError",
+      "resolution": "strict ID and list/object guards implemented by annotation agent and reviewed through regression tests"
+    },
+    {
+      "finding": "fixed synthetic layouts had split-specific IDs without independent geometry",
+      "resolution": "actual seed-dependent ellipse/background/distractor parameters and geometry hash, tested per-scene; shared procedural families remain disclosed"
+    },
+    {
+      "finding": "report could combine stale metrics with new detections",
+      "resolution": "report checks source seals and independently recomputes evaluator, requiring exact report equality"
+    }
+  ],
+  "model_parameter_tuning_performed": false,
+  "official_evidence_arithmetic": {
+    "baseline": {
+      "count_bias": -3.7142857142857144,
+      "count_mae": 4.142857142857143,
+      "evaluated_images": 28,
+      "retained_failure_cases": 11
+    },
+    "loss_final": 0.10966382100196519,
+    "loss_initial": 0.6931471805599452,
+    "model_artifact_sha256": "b685ff32fac8542e3f50bbbb5f5a1b09d2319114ce14af17078de06ac9482b10",
+    "nonzero_fitted_weights": 10,
+    "statement": "Existing frozen synthetic outputs checked by independent arithmetic; neither parameters nor official outputs were changed.",
+    "train_only_image_count": 14,
+    "trained_candidate": {
+      "count_bias": -3.5,
+      "count_mae": 3.9285714285714284,
+      "evaluated_images": 28,
+      "retained_failure_cases": 12
+    }
+  },
+  "official_test_metric_values_changed": false,
+  "production_modules_executed": false,
+  "real_image_assets_read": false,
+  "remaining_limitations": [
+    "Synthetic engineering demonstration only; no real field accuracy, maturity grade or kg calibration.",
+    "Shared renderer/scene families and generic occluders are not independently held-out real-world template families.",
+    "Exact normalized-RGB duplicate checks are implemented; general visual near-duplicate/perceptual similarity detection is not.",
+    "Low-level pixel/model functions intentionally receive pixels or selected train masks; strict whole-dataset pixel admission is enforced at CLI orchestration.",
+    "Dataset QA may decode held-out synthetic asset and mask bytes, but their targets do not enter model fitting or inference.",
+    "Artifact seals are integrity checks and synthetic declarations, not signatures or proof of source authorization.",
+    "Internal review and safety corrections do not substitute for independent Owner review or authorize Ready/Merge/Release/Deploy."
+  ],
+  "reviewer_changed_files": [
+    "research/blueberry_vision/cli.py",
+    "research/blueberry_vision/tests/test_r2_cli.py",
+    "research/blueberry_vision/evidence/r2/independent_review.json"
+  ],
+  "scope": "INTERNAL_ENGINEERING_REVIEW_AND_AUTHORIZED_M7_CORRECTIONS_NOT_OWNER_APPROVAL",
+  "source_hashes": {
+    "research/blueberry_vision/annotations.py": "adaf8e3b6a2204d84c49ab2b0798967e29dacc337993d05847bbfaa2e32ae879",
+    "research/blueberry_vision/assets.py": "616a994c59677e0ab44633c97437fa1a7fc09f917650ea1a755589a433385c0b",
+    "research/blueberry_vision/classical.py": "7b4ccbd5a28ffb18cdb4f4f1d6018c27a7d03d671fb568a342f1898d00431604",
+    "research/blueberry_vision/cli.py": "f06c8c0971ffb536d8d31705f8f987ab798699fa35382d253c25ef16dcb825f2",
+    "research/blueberry_vision/evaluator.py": "289bf6e0c76a72ee6dec373949502aecf2ae5fb8cd6d0cc9bf0f7f85d044efbf",
+    "research/blueberry_vision/r2_contracts.py": "e5c27e25413799279e54a9176712f91d936685619619975d52d2fc779c1efc22",
+    "research/blueberry_vision/report.py": "919a0e994088eea65233770ee3923f38d6c991dc792fb383dbc00ade99705dca",
+    "research/blueberry_vision/review_ui.html": "5268aadea580b28d8033151664e75b21b0adf31dca77a663b48764ba4b05c33c",
+    "research/blueberry_vision/synthetic.py": "3e92f099fbb835d9ab431a198bc860e4f538fb6fd19dcf90be7bbce2c6a734ca",
+    "research/blueberry_vision/tests/test_r2_cli.py": "26f676b313568252f31666308e3738c03c41803426aa65c41c7bb2cfbe0be258",
+    "research/blueberry_vision/trainable.py": "884ed4e0d032ea24888c1d8901cdb895ba01abea502ef122c0df5d5657a25948"
+  },
+  "status": "PASS",
+  "synthetic_only": true,
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE",
+  "test_first_m7_correction": {
+    "after": "18 passed in 3.52s",
+    "before": "13 failed, 5 passed in 3.83s",
+    "command": "python -m pytest research/blueberry_vision/tests/test_r2_cli.py -q",
+    "meaningful_cases": [
+      "file/directory/manifest symlink rejection",
+      "bounded stream without Path.read_bytes",
+      "concurrent inode mutation retained as failure",
+      "sparse over-limit file and FIFO rejection",
+      "strict size/hash/path declarations and duplicate references",
+      "missing artifacts and nested manifest coverage",
+      "three actual standalone CLI commands reject cross-split identical RGB",
+      "scalar CLI summary while complete AP curves stay in metrics"
+    ],
+    "new_cases": 15
+  }
+}
