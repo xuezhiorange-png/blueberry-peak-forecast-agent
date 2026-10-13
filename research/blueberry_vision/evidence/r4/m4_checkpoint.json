@@ -1,0 +1,65 @@
+{
+  "asset_checks": [
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "public-commons-15928839",
+      "raw_hash": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "rgb_hash": "cfad27e5f028164f9916dfe3647e4fc503690df70f69fd02a1e6f7e7822c112a"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "public-commons-4112477",
+      "raw_hash": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "rgb_hash": "118b587869e1f2b47b9c03baaf9f25016fbf2d1b321cd95c1df28e97f5e82c18"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "public-commons-4112528",
+      "raw_hash": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "rgb_hash": "036da47032e5af000d8cd769d74e5a9663df1870a8fa577d31818a2d7947a60c"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "public-commons-81047629",
+      "raw_hash": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "rgb_hash": "33dc2db2e4d9a660222bab25e965dbb217d7b286c68b570cd659adf14ca2c93a"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "quality-1626757232",
+      "raw_hash": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "rgb_hash": "99082bf9ef72f6a849a6afcc337641c1c783215548afe2d8e52e12be72cf798a"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "quality-3127978079",
+      "raw_hash": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "rgb_hash": "09f80cc799ee78ffeded5832adbe9a67d10767b560fc6e18b2dc63e0407eba5a"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "quality-3872104307",
+      "raw_hash": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "rgb_hash": "bd1bad6b1bc73bab8601a407f9b6c0d4cab9b3822a7bf163fd8525dcfc3b9e32"
+    },
+    {
+      "bytes_and_dimensions_verified": true,
+      "image_id": "quality-4195390806",
+      "raw_hash": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "rgb_hash": "b5162bf8bb75467b57f6197b80db052565f988cb9fedae4e73a2cf0b51c01322"
+    }
+  ],
+  "exposure_ledger_file_sha256": "678d9c911d552a21da0717d706c420d1039c2e89c77b16472f2716a39678f17d",
+  "gt_qualified_images": 0,
+  "inference_rerun_or_tuned_on_gt": false,
+  "lock_hash": "799e0800be23b9b8645cee7e489c6e032937629f7e7b40f33ef54c66f587df30",
+  "original_models_configs_and_source_hashes_verified": true,
+  "original_prediction_raw_and_canonical_hashes_verified": true,
+  "original_test_seal_sha256": "52bf1d230df96db2925d68f47c4a2075d1040f83e7fd8932b667ca18fa310472",
+  "r3_test_seal_status": "NOT_EVALUABLE",
+  "scope": "EXPOSED_EXTERNAL_EVALUATION_FULL_FRAMES",
+  "tests": {
+    "command": "pytest research/blueberry_vision/r4tests -q",
+    "passed": 49
+  }
+}
