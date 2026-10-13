@@ -1,0 +1,63 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests/test_r3_sources.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "......................                                                   [100%]\n22 passed in 0.27s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/r3/sources.py",
+        "research/blueberry_vision/tests/test_r3_sources.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/r3/sources.py",
+        "research/blueberry_vision/tests/test_r3_sources.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "2 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/r3/sources.py",
+        "research/blueberry_vision/tests/test_r3_sources.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 2 source files\n"
+    }
+  ],
+  "facts": {
+    "GT_status": "MISSING",
+    "actual_download_bytes": 6371007,
+    "metadata_license_count_is_not_image_admission": "code-only/restricted/unknown scopes explicitly blocked",
+    "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+    "real_images": 4,
+    "source_catalog_count": 9
+  },
+  "milestone": "M1",
+  "parent_sha": "2772f6a68a3a3095c3e2883a70ae6de044ff989b",
+  "recorded_at": "2026-10-13T04:33:07.959681+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}
