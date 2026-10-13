@@ -23,6 +23,7 @@ class AppSettings(BaseSettings):
     local_auth_origin: str = ""
     local_auth_login_bucket_secret: SecretStr = Field(default=SecretStr(""))
     local_auth_publisher_boundaries_json: SecretStr = Field(default=SecretStr(""))
+    local_auth_simple_admin_catalog_json: SecretStr = Field(default=SecretStr(""))
     local_auth_organization_ids_json: str = ""
 
     postgres_host: str = "localhost"

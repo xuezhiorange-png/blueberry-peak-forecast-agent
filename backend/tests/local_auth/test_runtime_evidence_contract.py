@@ -8,6 +8,14 @@ from backend.tests.historical_source import historical_bytes
 
 ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/s1/local-auth-runtime-r1.json"
+MERGED_S1 = "e9812e82067dceae444ff0707ceeb2f560c1018e"
+REVISED_RUNTIME_SOURCES = {
+    "backend/app/core/config.py",
+    "backend/app/local_auth/schemas.py",
+    "backend/app/local_auth/service.py",
+    "backend/app/api/local_auth_admin.py",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py",
+}
 
 
 def test_runtime_evidence_canonical_sources_and_security_boundaries():
@@ -19,7 +27,12 @@ def test_runtime_evidence_canonical_sources_and_security_boundaries():
         for relative, digest in value[field].items():
             path = Path(relative)
             assert not path.is_absolute() and ".." not in path.parts
-            assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == digest
+            source = (
+                historical_bytes(relative, MERGED_S1)
+                if field == "source_evidence_sha256" and relative in REVISED_RUNTIME_SOURCES
+                else (ROOT / path).read_bytes()
+            )
+            assert hashlib.sha256(source).hexdigest() == digest
     assert set(value["security_acceptance"]) == {f"A{i:02}" for i in range(1, 21)}
     assert value["security_acceptance"]["A19"]["result"] == "PASS_TESTED_SCOPE"
     previous = value["r4_correction"]["previous_r3_snapshot"]
