@@ -1,0 +1,303 @@
+{
+  "$id": "urn:blueberry-vision:annotation-snapshot:3.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "gt_status": {
+            "const": "UNANNOTATED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ignore_count": {
+            "type": "null"
+          },
+          "objects": {
+            "type": "null"
+          },
+          "review_status": {
+            "const": "DRAFT"
+          },
+          "uncertain_count": {
+            "type": "null"
+          },
+          "visible_count": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "SYNTHETIC": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "purpose": {
+            "const": "SYNTHETIC_ENGINEERING"
+          },
+          "workflow_mode": {
+            "const": "SIMULATED_ENGINEERING"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "SYNTHETIC": {
+      "type": "boolean"
+    },
+    "adjudication": {
+      "type": "object"
+    },
+    "annotation_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "annotator_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "business_approved": {
+      "const": false
+    },
+    "count_unit": {
+      "const": "visible_fruit_per_image"
+    },
+    "gt_status": {
+      "enum": [
+        "COMPLETE",
+        "UNANNOTATED"
+      ]
+    },
+    "history": {
+      "items": {
+        "properties": {
+          "actor_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "identity_authenticated": {
+            "const": false
+          },
+          "operation": {
+            "enum": [
+              "CREATE_DRAFT",
+              "SUBMITTED",
+              "REVIEW_PENDING",
+              "ADJUDICATE",
+              "SEALED"
+            ]
+          },
+          "operation_time_status": {
+            "enum": [
+              "UNKNOWN",
+              "SELF_ASSERTED"
+            ]
+          },
+          "prior_snapshot_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "operation",
+          "actor_id",
+          "identity_authenticated",
+          "at",
+          "operation_time_status",
+          "prior_snapshot_hash"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "identity_authenticated": {
+      "const": false
+    },
+    "ignore_count": {
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "image_height": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "image_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "image_width": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "label_approval_status": {
+      "const": "CANDIDATE"
+    },
+    "label_definition_version": {
+      "const": "candidate-visible-blueberry/3.0.0"
+    },
+    "objects": {
+      "items": {
+        "properties": {
+          "bbox_xyxy": {
+            "items": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          },
+          "class_label": {
+            "enum": [
+              "CANDIDATE_VISIBLE_BLUEBERRY",
+              "UNRESOLVED_FRUIT_CLUSTER",
+              "NON_TARGET_DISTRACTOR"
+            ]
+          },
+          "disposition": {
+            "enum": [
+              "TARGET",
+              "IGNORE",
+              "UNCERTAIN"
+            ]
+          },
+          "object_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_id",
+          "class_label",
+          "bbox_xyxy",
+          "disposition"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "parent_snapshot_hashes": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "provenance": {
+      "type": "object"
+    },
+    "purpose": {
+      "enum": [
+        "AUTHORIZED_ORCHARD_PILOT",
+        "PUBLIC_EXTERNAL_BENCHMARK",
+        "SYNTHETIC_ENGINEERING"
+      ]
+    },
+    "review_status": {
+      "enum": [
+        "ADJUDICATED",
+        "DRAFT",
+        "REVIEW_PENDING",
+        "SEALED",
+        "SUBMITTED"
+      ]
+    },
+    "schema_version": {
+      "const": "blueberry-vision-annotation-snapshot/3.0.0"
+    },
+    "snapshot_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "source_asset_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "source_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "uncertain_count": {
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "visible_count": {
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "workflow_mode": {
+      "enum": [
+        "OFFLINE_SELF_ASSERTED",
+        "SIMULATED_ENGINEERING"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "image_id",
+    "source_id",
+    "source_asset_hash",
+    "snapshot_hash",
+    "image_width",
+    "image_height",
+    "purpose",
+    "SYNTHETIC",
+    "annotation_version",
+    "label_definition_version",
+    "label_approval_status",
+    "count_unit",
+    "visible_count",
+    "ignore_count",
+    "uncertain_count",
+    "gt_status",
+    "annotator_id",
+    "workflow_mode",
+    "review_status",
+    "identity_authenticated",
+    "business_approved",
+    "provenance",
+    "parent_snapshot_hashes",
+    "history",
+    "objects"
+  ],
+  "title": "R3 candidate annotation snapshot; offline identities are self asserted",
+  "type": "object"
+}

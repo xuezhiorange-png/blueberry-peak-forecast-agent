@@ -1,0 +1,891 @@
+{
+  "agreement": {
+    "SYNTHETIC": true,
+    "absolute_count_difference": 1,
+    "agreement_hash": "983eff3d9ef339aabade12c08f59fee7e76e33df460551006d8d4df169b99c99",
+    "business_approved": false,
+    "disagreement_target_count": 1,
+    "human_independence_verified": false,
+    "image_id": "synthetic-two-fruit-annotation-workflow",
+    "iou_threshold": 0.5,
+    "matched_target_count": 1,
+    "matched_target_ratio": 0.6666666666666666,
+    "matches": [
+      {
+        "gt_index": 0,
+        "iou": 0.8571428571428571,
+        "prediction_index": 0
+      }
+    ],
+    "mean_matched_bbox_iou": 0.8571428571428571,
+    "purpose": "SYNTHETIC_ENGINEERING",
+    "reason_codes": [],
+    "schema_version": "blueberry-vision-annotation-agreement/3.0.0",
+    "signed_count_difference": -1,
+    "snapshot_a_hash": "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456",
+    "snapshot_b_hash": "1ad5bd06a8a576f805052d4dbabeb3885d795df1e62d5d6c772e69c1ef523a20",
+    "status": "COMPUTED_OFFLINE_ASSERTED",
+    "uncertain_ratio": 0.0,
+    "unmatched_a_object_ids": [
+      "2"
+    ],
+    "unmatched_b_object_ids": []
+  },
+  "business_approved": false,
+  "exported_coco": {
+    "adapter_hash": "f80ce71d744bd680b2734ad089d5be9c5844aa97694b97e2fb3585ff540aa184",
+    "annotations": [
+      {
+        "area": 400,
+        "bbox": [
+          10,
+          10,
+          20,
+          20
+        ],
+        "category_id": 1,
+        "id": 1,
+        "image_id": 1,
+        "iscrowd": 0,
+        "research_object": {
+          "bbox_xyxy": [
+            10,
+            10,
+            30,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        }
+      },
+      {
+        "area": 400,
+        "bbox": [
+          45,
+          35,
+          20,
+          20
+        ],
+        "category_id": 1,
+        "id": 2,
+        "image_id": 1,
+        "iscrowd": 0,
+        "research_object": {
+          "bbox_xyxy": [
+            45,
+            35,
+            65,
+            55
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "2"
+        }
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "CANDIDATE_VISIBLE_BLUEBERRY"
+      }
+    ],
+    "images": [
+      {
+        "height": 80,
+        "id": 1,
+        "research_image_id": "synthetic-two-fruit-annotation-workflow",
+        "research_snapshot": {
+          "SYNTHETIC": true,
+          "adjudication": {
+            "adjudication_ratio": 0.3333333333333333,
+            "asserted_annotator_ids": [
+              "simulated-annotator-A",
+              "simulated-annotator-B"
+            ],
+            "comparison_hash": "983eff3d9ef339aabade12c08f59fee7e76e33df460551006d8d4df169b99c99",
+            "disagreement_target_count": 1,
+            "independent_human_review_verified": false,
+            "source_annotation_origins": [
+              "UNVERIFIED",
+              "UNVERIFIED"
+            ],
+            "source_snapshot_hashes": [
+              "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456",
+              "1ad5bd06a8a576f805052d4dbabeb3885d795df1e62d5d6c772e69c1ef523a20"
+            ],
+            "uncertain_ratio": 0.0
+          },
+          "annotation_version": "simulated-adjudicated-v1",
+          "annotator_id": "simulated-adjudicator-C",
+          "business_approved": false,
+          "count_unit": "visible_fruit_per_image",
+          "gt_status": "COMPLETE",
+          "history": [
+            {
+              "actor_id": "simulated-annotator-A",
+              "at": "2026-10-13T10:00:00Z",
+              "identity_authenticated": false,
+              "operation": "CREATE_DRAFT",
+              "operation_time_status": "SELF_ASSERTED",
+              "prior_snapshot_hash": null
+            },
+            {
+              "actor_id": "simulated-annotator-A",
+              "at": "2026-10-13T10:01:00Z",
+              "identity_authenticated": false,
+              "operation": "SUBMITTED",
+              "operation_time_status": "SELF_ASSERTED",
+              "prior_snapshot_hash": "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48"
+            },
+            {
+              "actor_id": "simulated-annotator-A",
+              "at": "2026-10-13T10:01:00Z",
+              "identity_authenticated": false,
+              "operation": "REVIEW_PENDING",
+              "operation_time_status": "SELF_ASSERTED",
+              "prior_snapshot_hash": "988408a1ef63addf1c27cbedb6d5401e55404c47039fdb797eea68a9817c8434"
+            },
+            {
+              "actor_id": "simulated-adjudicator-C",
+              "at": "2026-10-13T10:02:00Z",
+              "identity_authenticated": false,
+              "operation": "ADJUDICATE",
+              "operation_time_status": "SELF_ASSERTED",
+              "prior_snapshot_hash": "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456"
+            },
+            {
+              "actor_id": "simulated-adjudicator-C",
+              "at": "2026-10-13T10:03:00Z",
+              "identity_authenticated": false,
+              "operation": "SEALED",
+              "operation_time_status": "SELF_ASSERTED",
+              "prior_snapshot_hash": "3947656f2da16abf1d0a4979b20779b206251e48f8f5c63a7fc68d353d477d39"
+            }
+          ],
+          "identity_authenticated": false,
+          "ignore_count": 0,
+          "image_height": 80,
+          "image_id": "synthetic-two-fruit-annotation-workflow",
+          "image_width": 100,
+          "label_approval_status": "CANDIDATE",
+          "label_definition_version": "candidate-visible-blueberry/3.0.0",
+          "objects": [
+            {
+              "bbox_xyxy": [
+                10,
+                10,
+                30,
+                30
+              ],
+              "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+              "disposition": "TARGET",
+              "object_id": "1"
+            },
+            {
+              "bbox_xyxy": [
+                45,
+                35,
+                65,
+                55
+              ],
+              "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+              "disposition": "TARGET",
+              "object_id": "2"
+            }
+          ],
+          "parent_snapshot_hashes": [
+            "3947656f2da16abf1d0a4979b20779b206251e48f8f5c63a7fc68d353d477d39"
+          ],
+          "provenance": {
+            "annotation_origin": "UNVERIFIED",
+            "evidence_refs": [],
+            "evidence_status": "UNVERIFIED",
+            "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+          },
+          "purpose": "SYNTHETIC_ENGINEERING",
+          "review_status": "SEALED",
+          "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+          "snapshot_hash": "418cc731ec15b0f585599526eb7dafa44c47c5addb30e0372817fc36d3ac1cc4",
+          "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+          "source_id": "r3-engineering-fixture",
+          "uncertain_count": 0,
+          "visible_count": 2,
+          "workflow_mode": "SIMULATED_ENGINEERING"
+        },
+        "width": 100
+      }
+    ],
+    "research_provenance": {
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "identity_authenticated": false,
+      "label_approval_status": "CANDIDATE",
+      "schema_version": "blueberry-vision-coco-annotations/3.0.0"
+    }
+  },
+  "human_annotation_performed": false,
+  "identity_authenticated": false,
+  "limitations": [
+    "Mock independent IDs test state transitions; this is not real human agreement or real GT.",
+    "Commons photos remain unannotated."
+  ],
+  "real_images_qualified": 0,
+  "real_images_unannotated": 4,
+  "reference_eligibility": {
+    "business_approved": false,
+    "eligible": false,
+    "exposure_status": "OFFLINE_RESEARCH_REFERENCE",
+    "identity_authenticated": false,
+    "quality_basis": "UNVERIFIED_CANDIDATE",
+    "reason_codes": [
+      "SIMULATED_REVIEW_NOT_REAL_REFERENCE",
+      "REFERENCE_HUMAN_EVIDENCE_NOT_VERIFIED"
+    ]
+  },
+  "scope": "SIMULATED_ENGINEERING_WORKFLOW_ONLY",
+  "snapshots": [
+    {
+      "SYNTHETIC": true,
+      "annotation_version": "simulated-annotator-A-v1",
+      "annotator_id": "simulated-annotator-A",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            10,
+            10,
+            30,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        },
+        {
+          "bbox_xyxy": [
+            45,
+            35,
+            65,
+            55
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "2"
+        }
+      ],
+      "parent_snapshot_hashes": [],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "DRAFT",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 2,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "annotation_version": "simulated-annotator-A-v1",
+      "annotator_id": "simulated-annotator-A",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "SUBMITTED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48"
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            10,
+            10,
+            30,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        },
+        {
+          "bbox_xyxy": [
+            45,
+            35,
+            65,
+            55
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "2"
+        }
+      ],
+      "parent_snapshot_hashes": [
+        "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48"
+      ],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "SUBMITTED",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "988408a1ef63addf1c27cbedb6d5401e55404c47039fdb797eea68a9817c8434",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 2,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "annotation_version": "simulated-annotator-A-v1",
+      "annotator_id": "simulated-annotator-A",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "SUBMITTED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48"
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "REVIEW_PENDING",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "988408a1ef63addf1c27cbedb6d5401e55404c47039fdb797eea68a9817c8434"
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            10,
+            10,
+            30,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        },
+        {
+          "bbox_xyxy": [
+            45,
+            35,
+            65,
+            55
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "2"
+        }
+      ],
+      "parent_snapshot_hashes": [
+        "988408a1ef63addf1c27cbedb6d5401e55404c47039fdb797eea68a9817c8434"
+      ],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "REVIEW_PENDING",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 2,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "annotation_version": "simulated-annotator-B-v1",
+      "annotator_id": "simulated-annotator-B",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-B",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            12,
+            10,
+            31,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        }
+      ],
+      "parent_snapshot_hashes": [],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "DRAFT",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "991e9276ae9855e1c5ecda47b3bbeaf7c08d91bbcdb5eeca0e07d2b663df2627",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 1,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "annotation_version": "simulated-annotator-B-v1",
+      "annotator_id": "simulated-annotator-B",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-B",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        },
+        {
+          "actor_id": "simulated-annotator-B",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "SUBMITTED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "991e9276ae9855e1c5ecda47b3bbeaf7c08d91bbcdb5eeca0e07d2b663df2627"
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            12,
+            10,
+            31,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        }
+      ],
+      "parent_snapshot_hashes": [
+        "991e9276ae9855e1c5ecda47b3bbeaf7c08d91bbcdb5eeca0e07d2b663df2627"
+      ],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "SUBMITTED",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "1f5e37f3a819294d49ca8b5cdf0635c603f95054d54890ddc7b80d50d1c9e179",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 1,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "annotation_version": "simulated-annotator-B-v1",
+      "annotator_id": "simulated-annotator-B",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-B",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        },
+        {
+          "actor_id": "simulated-annotator-B",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "SUBMITTED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "991e9276ae9855e1c5ecda47b3bbeaf7c08d91bbcdb5eeca0e07d2b663df2627"
+        },
+        {
+          "actor_id": "simulated-annotator-B",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "REVIEW_PENDING",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "1f5e37f3a819294d49ca8b5cdf0635c603f95054d54890ddc7b80d50d1c9e179"
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            12,
+            10,
+            31,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        }
+      ],
+      "parent_snapshot_hashes": [
+        "1f5e37f3a819294d49ca8b5cdf0635c603f95054d54890ddc7b80d50d1c9e179"
+      ],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "REVIEW_PENDING",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "1ad5bd06a8a576f805052d4dbabeb3885d795df1e62d5d6c772e69c1ef523a20",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 1,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "adjudication": {
+        "adjudication_ratio": 0.3333333333333333,
+        "asserted_annotator_ids": [
+          "simulated-annotator-A",
+          "simulated-annotator-B"
+        ],
+        "comparison_hash": "983eff3d9ef339aabade12c08f59fee7e76e33df460551006d8d4df169b99c99",
+        "disagreement_target_count": 1,
+        "independent_human_review_verified": false,
+        "source_annotation_origins": [
+          "UNVERIFIED",
+          "UNVERIFIED"
+        ],
+        "source_snapshot_hashes": [
+          "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456",
+          "1ad5bd06a8a576f805052d4dbabeb3885d795df1e62d5d6c772e69c1ef523a20"
+        ],
+        "uncertain_ratio": 0.0
+      },
+      "annotation_version": "simulated-adjudicated-v1",
+      "annotator_id": "simulated-adjudicator-C",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "SUBMITTED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48"
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "REVIEW_PENDING",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "988408a1ef63addf1c27cbedb6d5401e55404c47039fdb797eea68a9817c8434"
+        },
+        {
+          "actor_id": "simulated-adjudicator-C",
+          "at": "2026-10-13T10:02:00Z",
+          "identity_authenticated": false,
+          "operation": "ADJUDICATE",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456"
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            10,
+            10,
+            30,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        },
+        {
+          "bbox_xyxy": [
+            45,
+            35,
+            65,
+            55
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "2"
+        }
+      ],
+      "parent_snapshot_hashes": [
+        "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456",
+        "1ad5bd06a8a576f805052d4dbabeb3885d795df1e62d5d6c772e69c1ef523a20"
+      ],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "ADJUDICATED",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "3947656f2da16abf1d0a4979b20779b206251e48f8f5c63a7fc68d353d477d39",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 2,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    },
+    {
+      "SYNTHETIC": true,
+      "adjudication": {
+        "adjudication_ratio": 0.3333333333333333,
+        "asserted_annotator_ids": [
+          "simulated-annotator-A",
+          "simulated-annotator-B"
+        ],
+        "comparison_hash": "983eff3d9ef339aabade12c08f59fee7e76e33df460551006d8d4df169b99c99",
+        "disagreement_target_count": 1,
+        "independent_human_review_verified": false,
+        "source_annotation_origins": [
+          "UNVERIFIED",
+          "UNVERIFIED"
+        ],
+        "source_snapshot_hashes": [
+          "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456",
+          "1ad5bd06a8a576f805052d4dbabeb3885d795df1e62d5d6c772e69c1ef523a20"
+        ],
+        "uncertain_ratio": 0.0
+      },
+      "annotation_version": "simulated-adjudicated-v1",
+      "annotator_id": "simulated-adjudicator-C",
+      "business_approved": false,
+      "count_unit": "visible_fruit_per_image",
+      "gt_status": "COMPLETE",
+      "history": [
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:00:00Z",
+          "identity_authenticated": false,
+          "operation": "CREATE_DRAFT",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": null
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "SUBMITTED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "0467bc08a062fd973d14fd766182bdfe22240fa3ffe1c3d540ec96abac22cf48"
+        },
+        {
+          "actor_id": "simulated-annotator-A",
+          "at": "2026-10-13T10:01:00Z",
+          "identity_authenticated": false,
+          "operation": "REVIEW_PENDING",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "988408a1ef63addf1c27cbedb6d5401e55404c47039fdb797eea68a9817c8434"
+        },
+        {
+          "actor_id": "simulated-adjudicator-C",
+          "at": "2026-10-13T10:02:00Z",
+          "identity_authenticated": false,
+          "operation": "ADJUDICATE",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "31fab6bc7e243df38bb7717d8d16a79998f1ab8a3f15a01d1218071911f72456"
+        },
+        {
+          "actor_id": "simulated-adjudicator-C",
+          "at": "2026-10-13T10:03:00Z",
+          "identity_authenticated": false,
+          "operation": "SEALED",
+          "operation_time_status": "SELF_ASSERTED",
+          "prior_snapshot_hash": "3947656f2da16abf1d0a4979b20779b206251e48f8f5c63a7fc68d353d477d39"
+        }
+      ],
+      "identity_authenticated": false,
+      "ignore_count": 0,
+      "image_height": 80,
+      "image_id": "synthetic-two-fruit-annotation-workflow",
+      "image_width": 100,
+      "label_approval_status": "CANDIDATE",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0",
+      "objects": [
+        {
+          "bbox_xyxy": [
+            10,
+            10,
+            30,
+            30
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "1"
+        },
+        {
+          "bbox_xyxy": [
+            45,
+            35,
+            65,
+            55
+          ],
+          "class_label": "CANDIDATE_VISIBLE_BLUEBERRY",
+          "disposition": "TARGET",
+          "object_id": "2"
+        }
+      ],
+      "parent_snapshot_hashes": [
+        "3947656f2da16abf1d0a4979b20779b206251e48f8f5c63a7fc68d353d477d39"
+      ],
+      "provenance": {
+        "annotation_origin": "UNVERIFIED",
+        "evidence_refs": [],
+        "evidence_status": "UNVERIFIED",
+        "kind": "SELF_ASSERTED_LOCAL_DRAFT"
+      },
+      "purpose": "SYNTHETIC_ENGINEERING",
+      "review_status": "SEALED",
+      "schema_version": "blueberry-vision-annotation-snapshot/3.0.0",
+      "snapshot_hash": "418cc731ec15b0f585599526eb7dafa44c47c5addb30e0372817fc36d3ac1cc4",
+      "source_asset_hash": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "source_id": "r3-engineering-fixture",
+      "uncertain_count": 0,
+      "visible_count": 2,
+      "workflow_mode": "SIMULATED_ENGINEERING"
+    }
+  ]
+}
