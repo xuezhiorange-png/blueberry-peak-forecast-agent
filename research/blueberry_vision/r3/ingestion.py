@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import io
 import os
 import stat
 from pathlib import Path
@@ -10,7 +12,7 @@ from typing import cast
 import numpy as np
 from PIL import Image
 
-from ..assets import AssetError, AssetPolicy, LoadedAsset, load_asset
+from ..assets import AssetError, AssetPolicy, LoadedAsset, _read_authorized, load_asset
 from ..r2_common import JSONDict, canonical_hash, read_json, seal, verify_seal, write_json_new
 from .contracts import (
     PURPOSES,
@@ -24,6 +26,7 @@ from .contracts import load_manifest as load_manifest
 
 MAX_IMAGES = 100
 MAX_TOTAL_BYTES = 500_000_000
+COORDINATE_FRAME = "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"
 
 
 def _guard_root(data_root: Path) -> None:
@@ -49,13 +52,43 @@ def secure_load_asset(
 ) -> LoadedAsset:
     _guard_root(data_root)
     try:
-        return load_asset(data_root, asset_ref, expected_hash, expected_size, policy)
+        active_policy = policy or AssetPolicy()
+        loaded = load_asset(data_root, asset_ref, expected_hash, expected_size, active_policy)
+        # R2's reader applies the same root-relative, O_NOFOLLOW and byte bounds.
+        # Verify identity before parsing headers again: a replacement cannot bind
+        # one image's pixels to another image's EXIF coordinate information.
+        content = _read_authorized(data_root, asset_ref, active_policy)
+        if hashlib.sha256(content).hexdigest() != loaded.metadata["asset_sha256"]:
+            raise DatasetError("IMAGE_METADATA_ASSET_CHANGED")
+        with Image.open(io.BytesIO(content)) as original:
+            orientation = original.getexif().get(274, 1)
+        if type(orientation) is not int or not 1 <= orientation <= 8:
+            raise DatasetError("IMAGE_EXIF_ORIENTATION_INVALID")
+        return LoadedAsset(
+            rgb=loaded.rgb,
+            metadata={
+                **loaded.metadata,
+                "exif_orientation": orientation,
+                "image_coordinate_frame": COORDINATE_FRAME,
+            },
+        )
     except AssetError as exc:
         raise DatasetError(exc.code) from exc
+    except (OSError, SyntaxError, ValueError) as exc:
+        if isinstance(exc, DatasetError):
+            raise
+        raise DatasetError("IMAGE_EXIF_METADATA_INVALID") from exc
 
 
 def _json(value: JSONDict | Path) -> JSONDict:
     return read_json(value) if isinstance(value, Path) else value
+
+
+def verify_coordinate_metadata(record: JSONDict, loaded: LoadedAsset) -> None:
+    """Check additive actual-frame bindings when present; legacy absence stays unknown."""
+    for key in ("original_width", "original_height", "exif_orientation", "image_coordinate_frame"):
+        if record.get(key) is not None and record[key] != loaded.metadata.get(key):
+            raise DatasetError("IMAGE_COORDINATE_METADATA_MISMATCH")
 
 
 def _sources(registry: JSONDict) -> dict[str, JSONDict]:
@@ -211,6 +244,8 @@ def import_images(
         record: JSONDict = {
             "image_id": image_id,
             "asset_ref": ref,
+            "original_asset_sha256": row.get("original_asset_sha256"),
+            "original_asset_ref": row.get("original_asset_ref"),
             "asset_size_bytes": size,
             **{
                 key: meta[key]
@@ -219,6 +254,10 @@ def import_images(
                     "rgb_sha256",
                     "image_width",
                     "image_height",
+                    "original_width",
+                    "original_height",
+                    "exif_orientation",
+                    "image_coordinate_frame",
                     "preprocessing_version",
                     "preprocessing_hash",
                 )
@@ -314,6 +353,13 @@ def _coco_index(coco: JSONDict, images: list[JSONDict]) -> JSONDict:
             raise DatasetError("COCO_IMAGE_ASSET_UNMATCHED")
         if row.get("width") != image["image_width"] or row.get("height") != image["image_height"]:
             raise DatasetError("COCO_IMAGE_SIZE_MISMATCH")
+        if image.get("exif_orientation") != 1 and not (
+            coco.get("coordinate_frame") == COORDINATE_FRAME
+            and coco.get("coordinate_frame_status") == "VERIFIED"
+            and isinstance(coco.get("coordinate_frame_evidence_ref"), str)
+            and bool(coco["coordinate_frame_evidence_ref"].strip())
+        ):
+            raise DatasetError("COCO_COORDINATE_FRAME_UNVERIFIED")
         mappings.append(
             {
                 "coco_image_id": row["id"],
@@ -332,6 +378,9 @@ def _coco_index(coco: JSONDict, images: list[JSONDict]) -> JSONDict:
         "source_annotation_hash": canonical_hash(coco),
         "images": mappings,
         "status": "INDEXED_NOT_GT_QUALITY_APPROVED",
+        "coordinate_frame": coco.get("coordinate_frame", COORDINATE_FRAME),
+        "coordinate_frame_status": coco.get("coordinate_frame_status", "IDENTITY_EXIF_ORIENTATION"),
+        "coordinate_frame_evidence_ref": coco.get("coordinate_frame_evidence_ref"),
     }
 
 
@@ -352,6 +401,7 @@ def audit_images(dataset: JSONDict, data_root: Path) -> JSONDict:
                 or loaded.metadata["rgb_sha256"] != row["rgb_sha256"]
             ):
                 raise DatasetError("PREPROCESSING_HASH_MISMATCH")
+            verify_coordinate_metadata(row, loaded)
             # QA is auxiliary. Bound its float workspace separately from source decoding.
             candidate = Image.fromarray(loaded.rgb)
             candidate.thumbnail((512, 512), Image.Resampling.LANCZOS)

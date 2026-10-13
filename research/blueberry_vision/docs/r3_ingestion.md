@@ -33,12 +33,37 @@ root-ancestor check and R2's per-component `O_NOFOLLOW` reads are not an
 authenticated multi-user storage service. Files remain root-relative local
 references; originals are never changed or uploaded.
 
+New imports also record actual `original_width`, `original_height`,
+`exif_orientation` and
+`image_coordinate_frame=EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY`. The R3 wrapper reads
+EXIF headers with R2's same bounded `O_NOFOLLOW` reader, and checks that the
+header bytes match the SHA256 of the decoded pixels before attaching metadata.
+Mirroring EXIF orientations can preserve dimensions while moving the fruit;
+matching dimensions alone is insufficient for annotation alignment. Plain COCO
+references for a nonidentity or unknown orientation are rejected unless they
+declare this normalized coordinate frame, `coordinate_frame_status=VERIFIED`
+and a nonempty `coordinate_frame_evidence_ref`. The importer does not silently
+transform or approve boxes. These fields are additive optional R3 schema fields
+so earlier unannotated M2 manifests remain valid; unknown frames cannot prove
+reliable reference alignment. Quality audit checks recorded EXIF metadata
+against actual bytes and detects falsely resealed orientation claims.
+
+Explicit `original_asset_sha256` and root-relative `original_asset_ref` values
+from an authorized source index are preserved separately from the decoded asset
+identity. They are provenance references, not instructions to read an additional
+file. Missing original lineage stays `null`; the importer does not guess a parent
+image ID or fabricate a raw hash. Split grouping can use the shared original hash
+namespace to keep raw originals and all known derivatives together, including
+when the original itself is outside the current batch.
+
 Capture time remains `null`/`UNKNOWN` when absent or lacking a verified timezone.
 File mtime is never a capture date. Source-provided unverified date text is
 preserved separately. An explicit timestamp requires timezone and a source or
 authorized capture status. Public photographs cannot acquire company canonical
 Base IDs. Unknown identity, variety, session, sampling unit, video and grouping
 values stay unresolved; an import batch is not asserted to be a capture batch.
+Association sentinels such as `UNKNOWN`, `UNRESOLVED`, `NONE`, `NULL` and `N/A`
+never create known duplicate-group edges.
 
 `audit_images(dataset, data_root)` reports resolution, aspect ratio, brightness,
 contrast, saturation and Laplacian-variance blur candidates. Float computations

@@ -129,6 +129,20 @@
           "title": "Capture Time Status",
           "type": "string"
         },
+        "exif_orientation": {
+          "anyOf": [
+            {
+              "maximum": 8,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exif Orientation"
+        },
         "frame_index": {
           "anyOf": [
             {
@@ -141,6 +155,19 @@
           ],
           "default": null,
           "title": "Frame Index"
+        },
+        "image_coordinate_frame": {
+          "anyOf": [
+            {
+              "const": "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Coordinate Frame"
         },
         "image_height": {
           "exclusiveMinimum": 0,
@@ -208,6 +235,61 @@
             }
           ],
           "title": "Observed At"
+        },
+        "original_asset_ref": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Asset Ref"
+        },
+        "original_asset_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Asset Sha256"
+        },
+        "original_height": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 8192,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Height"
+        },
+        "original_width": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 8192,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Width"
         },
         "parent_image_id": {
           "anyOf": [

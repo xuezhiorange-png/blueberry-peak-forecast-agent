@@ -14,6 +14,12 @@ video ID are conservatively grouped; a temporal window is unnecessary for this
 small research pilot. Import-operation batches do not establish a capture group.
 Unknown/null association values never connect all unknown images together.
 
+Explicit `original_asset_sha256` creates the same family namespace as the original
+record's raw `asset_sha256`. Thus an original file and its resized/cropped variants
+cannot be split apart, and variants sharing an original outside the pilot remain
+connected. Missing lineage is not guessed from filenames, and no unknown external
+parent is fabricated. Original lineage hashes are checked as SHA256 values.
+
 Pending perceptual duplicate candidates are also graph edges. The graph is closed
 transitively, so an intermediate unassigned image cannot bridge `TRAIN` and `TEST`.
 No connected component may occupy two assigned splits. Human rejection of a

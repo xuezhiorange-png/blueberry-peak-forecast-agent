@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from research.blueberry_vision.assets import AssetPolicy
 from research.blueberry_vision.r2_common import file_hash, seal
@@ -238,7 +238,7 @@ def test_secure_loader_reuses_original_pixel_binding(
 def test_coco_identity_linkage_and_missing_gt_remain_separate(
     pilot: tuple[Path, dict[str, Any], dict[str, Any]], tmp_path: Path
 ) -> None:
-    coco = {
+    coco: dict[str, Any] = {
         "images": [{"id": 7, "file_name": "fruit.png", "width": 24, "height": 16}],
         "annotations": [{"id": 1, "image_id": 7, "category_id": 1, "bbox": [1, 1, 5, 5]}],
         "categories": [{"id": 1, "name": "blueberry"}],
@@ -344,3 +344,121 @@ def test_schema_fixture_matches_model_and_rejects_mixed_domain(
     data["SYNTHETIC"] = True
     with pytest.raises(DatasetError, match="DATASET_PURPOSE_MISMATCH"):
         validate_manifest(seal(data, "manifest_hash"))
+
+
+@pytest.mark.parametrize("orientation", [2, 8])
+def test_exif_geometry_is_actual_and_raw_coco_is_rejected(
+    pilot: tuple[Path, dict[str, Any], dict[str, Any]], tmp_path: Path, orientation: int
+) -> None:
+    image = Image.new("RGB", (64, 48), (160, 100, 30))
+    ImageDraw.Draw(image).rectangle((10, 20, 19, 29), fill=(10, 20, 160))
+    exif = Image.Exif()
+    exif[274] = orientation
+    image.save(pilot[0] / "oriented.jpg", exif=exif, quality=100, subsampling=0)
+    row = pilot[1]["images"][0]
+    row.update(asset_ref="oriented.jpg", asset_sha256=file_hash(pilot[0] / "oriented.jpg"))
+    data = imported(pilot, tmp_path / "run")
+    imported_row = data["images"][0]
+    assert imported_row["original_width"] == 64 and imported_row["original_height"] == 48
+    assert imported_row["exif_orientation"] == orientation
+    assert imported_row["image_coordinate_frame"] == "EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"
+    expected_size = (64, 48) if orientation == 2 else (48, 64)
+    assert (imported_row["image_width"], imported_row["image_height"]) == expected_size
+    if orientation == 2:
+        normalized = secure_load_asset(pilot[0], "oriented.jpg").rgb
+        assert normalized[25, 48, 2] > normalized[25, 48, 0]
+        assert normalized[25, 15, 2] < normalized[25, 15, 0]
+    coco: dict[str, Any] = {
+        "images": [
+            {
+                "id": 1,
+                "file_name": "oriented.jpg",
+                "width": expected_size[0],
+                "height": expected_size[1],
+            }
+        ],
+        "annotations": [{"id": 1, "image_id": 1, "category_id": 1, "bbox": [10, 20, 10, 10]}],
+    }
+    with pytest.raises(DatasetError, match="COCO_COORDINATE_FRAME_UNVERIFIED"):
+        import_images(*pilot, tmp_path / "raw-coco", coco=coco)
+    coco.update(
+        coordinate_frame="EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY", coordinate_frame_status="VERIFIED"
+    )
+    with pytest.raises(DatasetError, match="COCO_COORDINATE_FRAME_UNVERIFIED"):
+        import_images(*pilot, tmp_path / "no-evidence", coco=coco)
+    coco["coordinate_frame_evidence_ref"] = "manual-reviewed-transform-v1"
+    normalized_dataset = import_images(*pilot, tmp_path / "normalized", coco=coco)
+    assert normalized_dataset["annotation_index"]["coordinate_frame"] == coco["coordinate_frame"]
+
+
+def test_secure_metadata_reads_are_bounded_and_bind_same_bytes(
+    pilot: tuple[Path, dict[str, Any], dict[str, Any]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from research.blueberry_vision.r3 import ingestion
+
+    loaded = secure_load_asset(pilot[0], "fruit.png")
+    assert loaded.metadata["exif_orientation"] == 1
+    assert loaded.metadata["original_width"] == 24
+    monkeypatch.setattr(ingestion, "_read_authorized", lambda *_args: b"changed after pixel decode")
+    with pytest.raises(DatasetError, match="IMAGE_METADATA_ASSET_CHANGED"):
+        secure_load_asset(pilot[0], "fruit.png")
+
+
+def test_old_unannotated_m2_manifest_remains_valid(
+    pilot: tuple[Path, dict[str, Any], dict[str, Any]], tmp_path: Path
+) -> None:
+    data = imported(pilot, tmp_path / "run")
+    for key in ("original_width", "original_height", "exif_orientation", "image_coordinate_frame"):
+        data["images"][0].pop(key)
+    data["images"][0] = seal(data["images"][0], "record_hash")
+    assert (
+        validate_manifest(seal(data, "manifest_hash"))["images"][0].get("exif_orientation") is None
+    )
+
+
+def test_quality_audit_rejects_resealed_false_exif_orientation(
+    pilot: tuple[Path, dict[str, Any], dict[str, Any]], tmp_path: Path
+) -> None:
+    data = imported(pilot, tmp_path / "run")
+    data["images"][0]["exif_orientation"] = 2
+    data["images"][0] = seal(data["images"][0], "record_hash")
+    report = audit_images(seal(data, "manifest_hash"), pilot[0])
+    assert report["images"][0]["reason_code"] == "IMAGE_COORDINATE_METADATA_MISMATCH"
+
+
+def test_explicit_original_lineage_is_preserved_without_guessed_parent(
+    pilot: tuple[Path, dict[str, Any], dict[str, Any]], tmp_path: Path
+) -> None:
+    pilot[1]["images"][0].update(
+        original_asset_sha256="d" * 64, original_asset_ref="originals/source-photo.jpg"
+    )
+    data = imported(pilot, tmp_path / "derived")
+    row = data["images"][0]
+    assert row["original_asset_sha256"] == "d" * 64
+    assert row["original_asset_ref"] == "originals/source-photo.jpg"
+    assert row["parent_image_id"] is None
+    del pilot[1]["images"][0]["original_asset_sha256"]
+    del pilot[1]["images"][0]["original_asset_ref"]
+    original = imported(pilot, tmp_path / "original")
+    assert original["images"][0]["original_asset_sha256"] is None
+    assert original["images"][0]["original_asset_ref"] is None
+
+
+@pytest.mark.parametrize(
+    "field,value,code",
+    [
+        ("original_asset_sha256", "not-a-hash", "DATASET_SCHEMA_INVALID"),
+        ("original_asset_ref", "../unapproved.jpg", "ORIGINAL_ASSET_REF_INVALID"),
+        ("original_asset_ref", "https://example.org/image.jpg", "ORIGINAL_ASSET_REF_INVALID"),
+    ],
+)
+def test_bad_original_lineage_rejected(
+    pilot: tuple[Path, dict[str, Any], dict[str, Any]],
+    tmp_path: Path,
+    field: str,
+    value: str,
+    code: str,
+) -> None:
+    pilot[1]["images"][0][field] = value
+    with pytest.raises(DatasetError, match=code):
+        imported(pilot, tmp_path / "run")

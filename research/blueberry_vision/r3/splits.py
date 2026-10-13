@@ -94,6 +94,18 @@ def _graph_edges(images: dict[str, JSONDict], duplicate_report: JSONDict | None)
         for members in groups.values():
             for member in members[1:]:
                 edges.append(_edge(members[0], member, field))
+    # An original and every declared derivative share one namespace. The original
+    # need not be inside this pilot; its known byte hash still groups its variants.
+    origin_families: dict[str, list[str]] = {}
+    for image_id, row in sorted(images.items()):
+        original_hash = row.get("original_asset_sha256")
+        if original_hash is not None and not _is_hash(original_hash):
+            raise SplitError("ORIGINAL_ASSET_HASH_INVALID")
+        family_hash = original_hash if original_hash is not None else row["asset_sha256"]
+        origin_families.setdefault(family_hash, []).append(image_id)
+    for members in origin_families.values():
+        for member in members[1:]:
+            edges.append(_edge(members[0], member, "original_asset_family_sha256"))
     for image_id, row in sorted(images.items()):
         parent = row.get("parent_image_id")
         if _known(parent):
@@ -125,9 +137,10 @@ def _graph_edges(images: dict[str, JSONDict], duplicate_report: JSONDict | None)
                 raise SplitError("DUPLICATE_REVIEW_STATUS_INVALID")
             if status == "REJECTED":
                 review = item.get("review", item)
-                if not isinstance(review, dict) or not all(
-                    _known(review.get(key))
-                    for key in ("reviewer_id", "reviewed_at", "review_reason")
+                if (
+                    not isinstance(review, dict)
+                    or not all(_known(review.get(key)) for key in ("reviewer_id", "reviewed_at"))
+                    or not _known(review.get("review_reason", review.get("reason")))
                 ):
                     raise SplitError("DUPLICATE_REJECTION_REVIEW_REQUIRED")
                 # Exact asset/RGB equality independently forms an unbreakable edge.
@@ -443,6 +456,11 @@ def _training_scope_reasons(dataset: JSONDict, split: JSONDict, freeze: JSONDict
     ):
         reasons.append("TRAINING_TEST_LEAKAGE")
     test_assets = {images[image_id]["asset_sha256"] for image_id in scope}
+    test_assets.update(
+        images[image_id]["original_asset_sha256"]
+        for image_id in scope
+        if _is_hash(images[image_id].get("original_asset_sha256"))
+    )
     if (
         isinstance(training_assets, list)
         and all(isinstance(value, str) for value in training_assets)

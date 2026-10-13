@@ -17,7 +17,7 @@ from urllib.parse import quote, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from ..assets import load_asset
-from ..r2_common import read_json, seal, write_json_new
+from ..r2_common import file_hash, read_json, seal, verify_seal, write_json_new
 
 JSONDict = dict[str, Any]
 ALLOWED_HOSTS = frozenset(
@@ -587,3 +587,461 @@ def download_public_pilot(
     )
     write_json_new(output_dir / "source_index.json", index)
     return index
+
+
+class BoundedRangeFile:
+    """Seekable public archive bytes, retrieving only requested HTTP 206 ranges.
+
+    No complete archive fetch, credentials, access bypass, or archive extraction.
+    Range responses are checked before bytes are read. The cache and every read
+    are bounded; cumulative network receipts are retained for pilot auditing.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        size: int,
+        *,
+        max_network_bytes: int = 100_000_000,
+        transport: Any = None,
+    ) -> None:
+        check_public_url(url)
+        if type(size) is not int or size <= 0:
+            raise SourceError("ZIP_ARCHIVE_SIZE_INVALID")
+        if type(max_network_bytes) is not int or not 1 <= max_network_bytes <= MAX_PILOT_BYTES:
+            raise SourceError("ZIP_NETWORK_BUDGET_INVALID")
+        self.url = url
+        self.size = size
+        self.position = 0
+        self.network_bytes = 0
+        self.max_network_bytes = max_network_bytes
+        self.transport = transport or fetch_public_range
+        self.cache: list[tuple[int, bytes]] = []
+        self.receipts: list[JSONDict] = []
+
+    def seekable(self) -> bool:
+        return True
+
+    def tell(self) -> int:
+        return self.position
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        if type(offset) is not int or whence not in (0, 1, 2):
+            raise SourceError("ZIP_RANGE_BOUNDS")
+        origin = (0, self.position, self.size)[whence]
+        position = origin + offset
+        if not 0 <= position <= self.size:
+            raise SourceError("ZIP_RANGE_BOUNDS")
+        self.position = position
+        return position
+
+    def read(self, size: int = -1) -> bytes:
+        if type(size) is not int:
+            raise SourceError("ZIP_READ_SIZE_LIMIT")
+        size = self.size - self.position if size < 0 else min(size, self.size - self.position)
+        if size > MAX_IMAGE_BYTES:
+            raise SourceError("ZIP_READ_SIZE_LIMIT")
+        if not size:
+            return b""
+        start, end = self.position, self.position + size - 1
+        for offset, data in self.cache:
+            if offset <= start and end < offset + len(data):
+                self.position += size
+                return data[start - offset : end - offset + 1]
+        end_fetch = min(self.size - 1, max(end, start + 4095))
+        if self.network_bytes + end_fetch - start + 1 > self.max_network_bytes:
+            raise SourceError("ZIP_NETWORK_BUDGET")
+        content: bytes = self.transport(self.url, start, end_fetch, self.size)
+        if len(content) != end_fetch - start + 1:
+            raise SourceError("ZIP_RANGE_LENGTH_MISMATCH")
+        self.network_bytes += len(content)
+        self.receipts.append(
+            {
+                "start": start,
+                "end": end_fetch,
+                "bytes": len(content),
+                "sha256": hashlib.sha256(content).hexdigest(),
+            }
+        )
+        self.cache.append((start, content))
+        # At most two 20 MB chunks retained; no unbounded remote-file cache.
+        self.cache = self.cache[-2:]
+        self.position += size
+        return content[:size]
+
+
+def fetch_public_range(url: str, start: int, end: int, total_size: int) -> bytes:
+    """Read only a verified standard byte range; stop if provider does not support it."""
+    check_public_url(url)
+    if not 0 <= start <= end < total_size or end - start + 1 > MAX_IMAGE_BYTES:
+        raise SourceError("ZIP_RANGE_BOUNDS")
+    request = Request(url, headers={"User-Agent": USER_AGENT, "Range": f"bytes={start}-{end}"})
+    with build_opener(_PublicRedirect()).open(request, timeout=30) as response:
+        check_public_url(response.geturl())
+        if response.status != 206:
+            raise SourceError("ZIP_RANGE_NOT_SUPPORTED")
+        expected = f"bytes {start}-{end}/{total_size}"
+        if response.headers.get("Content-Range") != expected:
+            raise SourceError("ZIP_RANGE_HEADER_MISMATCH")
+        content = response.read(end - start + 2)
+    if len(content) != end - start + 1:
+        raise SourceError("ZIP_RANGE_LENGTH_MISMATCH")
+    return cast(bytes, content)
+
+
+def read_archive_member(archive: Any, name: str) -> bytes:
+    """Bound an individual ZIP member and let zipfile verify its CRC, without extracting paths."""
+    from pathlib import PurePosixPath
+
+    path = PurePosixPath(name)
+    if path.is_absolute() or ".." in path.parts or "\\" in name or not path.parts:
+        raise SourceError("ZIP_MEMBER_PATH_UNSAFE")
+    info = archive.getinfo(name)
+    if info.flag_bits & 1:
+        raise SourceError("ZIP_ENCRYPTED_MEMBER_REJECTED")
+    if not 0 < info.file_size <= MAX_IMAGE_BYTES:
+        raise SourceError("ZIP_MEMBER_SIZE_LIMIT")
+    if (info.external_attr >> 16) & 0o170000 == 0o120000:
+        raise SourceError("ZIP_SYMLINK_MEMBER_REJECTED")
+    with archive.open(info) as stream:
+        content = stream.read(MAX_IMAGE_BYTES + 1)
+    if len(content) != info.file_size or len(content) > MAX_IMAGE_BYTES:
+        raise SourceError("ZIP_MEMBER_SIZE_MISMATCH")
+    return cast(bytes, content)
+
+
+def download_blueberry_quality_sample(output_dir: Path, *, image_count: int = 4) -> JSONDict:
+    """Reproduce a tiny CC-BY real photo + publisher-reference sample via public HTTP ranges.
+
+    The official version 2.0.0 has multiple representations of the same berry.
+    Select first N raw segmentation photos by sorted source filename, without
+    looking at model outputs. Original XML and COCO identities remain unchanged.
+    Full archive checksum is not claimed: selected member CRC + SHA256 are checked.
+    """
+    import zipfile
+
+    if type(image_count) is not int or not 1 <= image_count <= 20:
+        raise SourceError("PILOT_IMAGE_LIMIT")
+    record_bytes = fetch_public("https://zenodo.org/api/records/22148787")
+    record = json.loads(record_bytes)
+    if (
+        record.get("id") != 22148787
+        or record.get("metadata", {}).get("license", {}).get("id") != "cc-by-4.0"
+    ):
+        raise SourceError("LICENSE_NOT_ADMITTED")
+    license_bytes = fetch_public("https://creativecommons.org/licenses/by/4.0/")
+    files = {row["key"]: row for row in record["files"]}
+    source = files["blueberry-source-images-v2.0.0.zip"]
+    curated = files["blueberry-curated-data-v2.0.0.zip"]
+    readme_bytes = fetch_public(files["DATASET_README.md"]["links"]["self"], max_bytes=20_000)
+    if "Data licensing is CC BY 4.0" not in readme_bytes.decode("utf-8"):
+        raise SourceError("DATASET_LICENSE_SCOPE_UNVERIFIED")
+    curated_reader = BoundedRangeFile(curated["links"]["self"], curated["size"])
+    source_reader = BoundedRangeFile(
+        source["links"]["self"], source["size"], max_network_bytes=200_000_000
+    )
+    coco_member = (
+        "blueberry-paper-v2.0.0/data/processed_revision_segmentation_cv/train/annotations.json"
+    )
+    with zipfile.ZipFile(curated_reader) as archive:
+        coco_bytes = read_archive_member(archive, coco_member)
+    coco = json.loads(coco_bytes)
+    selected = sorted(coco["images"], key=lambda row: row["file_name"])[:image_count]
+    selected_ids = {row["id"] for row in selected}
+    subset = {
+        **coco,
+        "images": selected,
+        "annotations": [row for row in coco["annotations"] if row["image_id"] in selected_ids],
+    }
+    output_dir.mkdir(parents=True, exist_ok=False)
+    (output_dir / "DATASET_README.md").write_bytes(readme_bytes)
+    (output_dir / "publisher_annotations_full.json").write_bytes(coco_bytes)
+    write_json_new(output_dir / "publisher_annotations_subset.json", subset)
+    images: list[JSONDict] = []
+    with zipfile.ZipFile(source_reader) as archive:
+        for image in selected:
+            filename = Path(image["file_name"]).name
+            source_member = "blueberry-paper-v2.0.0/" + image["file_name"]
+            xml_member = (
+                "blueberry-paper-v2.0.0/data/raw/annotations/" + Path(filename).stem + ".xml"
+            )
+            image_bytes = read_archive_member(archive, source_member)
+            xml_bytes = read_archive_member(archive, xml_member)
+            (output_dir / filename).write_bytes(image_bytes)
+            (output_dir / (Path(filename).stem + ".xml")).write_bytes(xml_bytes)
+            derived, preprocessing = normalize_public_first_frame(image_bytes)
+            derived_filename = Path(filename).stem + ".first-frame-1500.png"
+            (output_dir / derived_filename).write_bytes(derived)
+            loaded = load_asset(output_dir, derived_filename)
+            if (preprocessing["source_width"], preprocessing["source_height"]) != (
+                image["width"],
+                image["height"],
+            ):
+                raise SourceError("PUBLISHER_IMAGE_GEOMETRY_MISMATCH")
+            image_annotations = [
+                row for row in subset["annotations"] if row["image_id"] == image["id"]
+            ]
+            images.append(
+                {
+                    "image_id": "quality-" + str(image["id"]),
+                    "publisher_image_id": image["id"],
+                    "asset_ref": derived_filename,
+                    "asset_sha256": loaded.metadata["asset_sha256"],
+                    "image_width": loaded.metadata["image_width"],
+                    "image_height": loaded.metadata["image_height"],
+                    "original_asset_ref": filename,
+                    "original_asset_sha256": hashlib.sha256(image_bytes).hexdigest(),
+                    "preprocessing": preprocessing,
+                    "source_id": "zenodo-22148787",
+                    "source_member": source_member,
+                    "annotation_source_member": xml_member,
+                    "annotation_sha256": hashlib.sha256(xml_bytes).hexdigest(),
+                    "reference_object_count": len(image_annotations),
+                    "annotation_quality_status": ("PUB_REFERENCE_PENDING_QUALITY"),
+                    "source_url": "https://zenodo.org/records/22148787",
+                    "license_id": "CC-BY-4.0",
+                    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+                    "license_status": "LICENSE_VERIFIED",
+                    "research_use": True,
+                    "commercial_use": True,
+                    "redistribution": True,
+                    "attribution_required": True,
+                    "creator": "Lando Maximilian Garbe",
+                    "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+                    "SYNTHETIC": False,
+                    "observed_at": None,
+                    "capture_time_status": "UNKNOWN_NO_VERIFIED_TIMEZONE",
+                    "base_identity": {"status": "UNRESOLVED"},
+                    "variety": None,
+                    "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+                    "bytes": len(image_bytes),
+                }
+            )
+    index = seal(
+        {
+            "dataset_id": "blueberry-quality-v2-small-publisher-reference-r3",
+            "dataset_version": "3.0.0",
+            "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+            "SYNTHETIC": False,
+            "image_count": len(images),
+            "total_image_bytes": sum(image["bytes"] for image in images),
+            "selection_rule": "FIRST_N_SORTED_RAW_COCO_IMAGE_FILENAME_NO_MODEL_OUTCOMES",
+            "image_selection_count": image_count,
+            "images": images,
+            "license_evidence": {
+                "official_record_sha256": hashlib.sha256(record_bytes).hexdigest(),
+                "official_license_terms_sha256": hashlib.sha256(license_bytes).hexdigest(),
+                "official_readme_sha256": hashlib.sha256(readme_bytes).hexdigest(),
+                "dataset_license_declaration": "Data licensing is CC BY 4.0.",
+            },
+            "publisher_coco_member": coco_member,
+            "publisher_coco_sha256": hashlib.sha256(coco_bytes).hexdigest(),
+            "publisher_coco_subset_sha256": file_hash(
+                output_dir / "publisher_annotations_subset.json"
+            ),
+            "reference_object_count": len(subset["annotations"]),
+            "reference_class_semantics": (
+                "Publisher categories identify source images; explicit candidate berry "
+                "union mapping required, never maturity labels."
+            ),
+            "reference_status": "PUB_REFERENCE_PENDING_QUALITY_NOT_EVALUABLE",
+            "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+            "locally_independent_human_review": False,
+            "network_bytes": source_reader.network_bytes
+            + curated_reader.network_bytes
+            + len(record_bytes)
+            + len(license_bytes)
+            + len(readme_bytes),
+            "range_receipts": {
+                "source_archive": source_reader.receipts,
+                "curated_archive": curated_reader.receipts,
+            },
+            "archive_integrity": (
+                "SELECTED_MEMBER_CRC_AND_SHA256_ONLY_FULL_ARCHIVE_CHECKSUM_NOT_VERIFIED"
+            ),
+            "retrieved_at": datetime.now(UTC).isoformat(),
+        },
+        "index_hash",
+    )
+    write_json_new(output_dir / "source_index.json", index)
+    return index
+
+
+def normalize_public_first_frame(
+    content: bytes, *, max_long_edge: int = 1500
+) -> tuple[bytes, JSONDict]:
+    """Explicit R3 adapter for public JPEG/MPO frame 0, preserving original bytes/hash.
+
+    This does not widen R2's PNG/JPEG loader. It creates a new bounded lossless PNG
+    derivative with recorded geometry scale. Publisher boxes remain original until
+    an annotation adapter applies that declared scale in a new reference version.
+    """
+    import io
+    import warnings
+
+    import PIL
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    if not content or len(content) > MAX_IMAGE_BYTES:
+        raise SourceError("PUBLIC_IMAGE_BYTES_LIMIT")
+    if type(max_long_edge) is not int or not 1 <= max_long_edge <= 2000:
+        raise SourceError("PUBLIC_IMAGE_RESIZE_POLICY_INVALID")
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(content)) as original:
+                if original.format not in {"JPEG", "MPO"}:
+                    raise SourceError("PUBLIC_IMAGE_FORMAT_UNSUPPORTED")
+                source_format = original.format
+                width, height = original.size
+                frames = getattr(original, "n_frames", 1)
+                if width * height > 25_000_000 or max(width, height) > 8192:
+                    raise SourceError("PUBLIC_IMAGE_PIXEL_LIMIT")
+                if not 1 <= frames <= 4:
+                    raise SourceError("PUBLIC_IMAGE_FRAME_LIMIT")
+                orientation = original.getexif().get(274, 1)
+                if orientation != 1:
+                    raise SourceError("PUBLIC_REFERENCE_ORIENTATION_REQUIRES_GEOMETRY_ADAPTER")
+                original.seek(0)
+                original.load()
+                rgb = ImageOps.exif_transpose(original).convert("RGB")
+                scale = min(1.0, max_long_edge / max(width, height))
+                output_width, output_height = (
+                    max(1, round(width * scale)),
+                    max(1, round(height * scale)),
+                )
+                if rgb.size != (output_width, output_height):
+                    rgb = rgb.resize(
+                        (output_width, output_height), resample=Image.Resampling.LANCZOS
+                    )
+                output = io.BytesIO()
+                rgb.save(output, format="PNG", optimize=False, compress_level=9)
+                derived = output.getvalue()
+    except (
+        UnidentifiedImageError,
+        OSError,
+        Image.DecompressionBombWarning,
+        Image.DecompressionBombError,
+    ) as exc:
+        raise SourceError("PUBLIC_IMAGE_DECODE_FAILED") from exc
+    if len(derived) > MAX_IMAGE_BYTES:
+        raise SourceError("PUBLIC_DERIVED_BYTES_LIMIT")
+    protocol = seal(
+        {
+            "preprocessing_version": "public-jpeg-mpo-first-frame-png-lanczos/3.0.0",
+            "original_asset_sha256": hashlib.sha256(content).hexdigest(),
+            "derived_asset_sha256": hashlib.sha256(derived).hexdigest(),
+            "source_format": source_format,
+            "source_frame_count": frames,
+            "selected_frame_index": 0,
+            "source_width": width,
+            "source_height": height,
+            "source_exif_orientation": orientation,
+            "image_width": output_width,
+            "image_height": output_height,
+            "geometry_scale_x": output_width / width,
+            "geometry_scale_y": output_height / height,
+            "pillow_version": PIL.__version__,
+            "output_encoding": {"format": "PNG", "optimize": False, "compress_level": 9},
+            "annotation_geometry_status": "ORIGINAL_PUBLISHER_REFERENCE_PENDING_SCALE_ADAPTER",
+        },
+        "preprocessing_hash",
+    )
+    return derived, protocol
+
+
+def make_quality_bbox_draft(output_dir: Path) -> JSONDict:
+    """Explicit scaled detection-only conversion of publisher candidates, never accepted GT."""
+    index = read_json(output_dir / "source_index.json")
+    original_path = output_dir / "publisher_annotations_subset.json"
+    if not verify_seal(index, "index_hash"):
+        raise SourceError("PUBLIC_SOURCE_INDEX_HASH_MISMATCH")
+    if file_hash(original_path) != index.get("publisher_coco_subset_sha256"):
+        raise SourceError("PUBLISHER_COCO_HASH_MISMATCH")
+    original = read_json(original_path)
+    category_names = {row["id"]: row["name"] for row in original["categories"]}
+    assets = {row["publisher_image_id"]: row for row in index["images"]}
+    image_ids = {old: position + 1 for position, old in enumerate(sorted(assets))}
+    images = []
+    for old_id, asset in sorted(assets.items()):
+        images.append(
+            {
+                "id": image_ids[old_id],
+                "file_name": asset["asset_ref"],
+                "width": asset["image_width"],
+                "height": asset["image_height"],
+                "asset_sha256": asset["asset_sha256"],
+            }
+        )
+    annotations = []
+    object_mapping = []
+    for position, item in enumerate(original["annotations"], start=1):
+        asset = assets[item["image_id"]]
+        scale_x = asset["preprocessing"]["geometry_scale_x"]
+        scale_y = asset["preprocessing"]["geometry_scale_y"]
+        x, y, width, height = item["bbox"]
+        annotations.append(
+            {
+                "id": position,
+                "image_id": image_ids[item["image_id"]],
+                "category_id": 1,
+                "bbox": [x * scale_x, y * scale_y, width * scale_x, height * scale_y],
+                "area": width * height * scale_x * scale_y,
+                "iscrowd": item.get("iscrowd", 0),
+            }
+        )
+        object_mapping.append(
+            {
+                "derived_object_id": position,
+                "publisher_object_id": item["id"],
+                "publisher_image_id": item["image_id"],
+                "publisher_category_id": item["category_id"],
+                "publisher_category_name": category_names[item["category_id"]],
+                "original_bbox_xywh": item["bbox"],
+                "polygon_retained_in_original_source_artifact": True,
+            }
+        )
+    result = seal(
+        {
+            "info": {
+                "description": "Explicit resized bbox-only publisher candidate draft; not GT",
+                "version": "quality-bbox-candidate-adapter/3.0.0",
+                "annotation_origin": "UNVERIFIED",
+                "evidence_status": "PENDING_QUALITY_REVIEW",
+                "annotation_quality_status": "DRAFT",
+                "label_approval": "CANDIDATE_ONLY",
+                "original_coco_sha256": index["publisher_coco_sha256"],
+                "original_coco_member": index["publisher_coco_member"],
+                "dataset_source_index_hash": index["index_hash"],
+            },
+            "licenses": [
+                {
+                    "id": 1,
+                    "name": "CC BY 4.0",
+                    "url": "https://creativecommons.org/licenses/by/4.0/",
+                }
+            ],
+            "images": images,
+            "annotations": annotations,
+            "categories": [
+                {"id": 1, "name": "CANDIDATE_VISIBLE_BLUEBERRY", "supercategory": "candidate"}
+            ],
+            "image_id_mapping": [
+                {
+                    "coco_image_id": image_ids[old],
+                    "publisher_image_id": old,
+                    "research_image_id": asset["image_id"],
+                }
+                for old, asset in sorted(assets.items())
+            ],
+            "object_provenance": object_mapping,
+            "annotation_geometry_transformation": (
+                "EXPLICIT_FRAME0_ORIENTATION1_LONG_EDGE1500_SCALE_XY"
+            ),
+            "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+            "accuracy_status": "NOT_EVALUABLE_GT_QUALITY_PENDING",
+        },
+        "conversion_hash",
+    )
+    write_json_new(output_dir / "publisher_bbox_candidate_draft.json", result)
+    return result

@@ -1,0 +1,92 @@
+{
+  "base_holdout": "UNVERIFIED",
+  "candidate_only_boxes": 100,
+  "date_holdout": "UNVERIFIED",
+  "known_675_original_xml_method": "SEMI_AUTO_ALL_NO_MANUAL_CONFIRMED",
+  "models": [
+    {
+      "coverage": {
+        "annotation_available_count": 0,
+        "dataset_image_count": 8,
+        "evaluated_count": 0,
+        "evaluation_scope_image_count": 8,
+        "excluded_count": 8,
+        "inference_success_count": 8,
+        "missing_prediction_count": 0,
+        "predicted_image_count": 8,
+        "qualified_reference_count": 0,
+        "reference_available_count": 0,
+        "unpredicted_count": 0
+      },
+      "failure_count": 8,
+      "metric_status": "NOT_EVALUABLE",
+      "metrics": {
+        "RESEARCH_AP50": null,
+        "count_bias": null,
+        "count_mae": null,
+        "count_unit": "visible_fruit_per_image",
+        "empty_image_false_positives": null,
+        "evaluated_count": 0,
+        "excluded_count": 8,
+        "f1": null,
+        "failed_count": 0,
+        "fn": null,
+        "fp": null,
+        "missing_count": 8,
+        "missing_prediction_count": 0,
+        "precision": null,
+        "reason_code": "NO_QUALIFIED_REFERENCE_IMAGES",
+        "recall": null,
+        "status": "NOT_EVALUABLE",
+        "total_overcount": null,
+        "total_undercount": null,
+        "tp": null
+      },
+      "model_key": "A"
+    },
+    {
+      "coverage": {
+        "annotation_available_count": 0,
+        "dataset_image_count": 8,
+        "evaluated_count": 0,
+        "evaluation_scope_image_count": 8,
+        "excluded_count": 8,
+        "inference_success_count": 8,
+        "missing_prediction_count": 0,
+        "predicted_image_count": 8,
+        "qualified_reference_count": 0,
+        "reference_available_count": 0,
+        "unpredicted_count": 0
+      },
+      "failure_count": 8,
+      "metric_status": "NOT_EVALUABLE",
+      "metrics": {
+        "RESEARCH_AP50": null,
+        "count_bias": null,
+        "count_mae": null,
+        "count_unit": "visible_fruit_per_image",
+        "empty_image_false_positives": null,
+        "evaluated_count": 0,
+        "excluded_count": 8,
+        "f1": null,
+        "failed_count": 0,
+        "fn": null,
+        "fp": null,
+        "missing_count": 8,
+        "missing_prediction_count": 0,
+        "precision": null,
+        "reason_code": "NO_QUALIFIED_REFERENCE_IMAGES",
+        "recall": null,
+        "status": "NOT_EVALUABLE",
+        "total_overcount": null,
+        "total_undercount": null,
+        "tp": null
+      },
+      "model_key": "B"
+    }
+  ],
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "reviewed_human_annotations": 0,
+  "scene_occlusion_lighting": "UNKNOWN_NOT_GUESSED",
+  "variety_holdout": "UNVERIFIED"
+}

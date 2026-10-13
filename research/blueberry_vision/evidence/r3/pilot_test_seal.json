@@ -1,0 +1,86 @@
+{
+  "SYNTHETIC": false,
+  "config_hash": "01c75bade2985a65208ad709cee2542a8f5251d3029eeee335fb91cc9312f67d",
+  "dataset_manifest_hash": "9f75e2a7c58c6e55187064ec33f4beb7bf4e26204fc64825f10c4081a1993096",
+  "evaluation_protocol_hash": "9065772533d672adca60c1e40f071dcd155d7b6e821ba0ccaa0f87cf874d000d",
+  "exposure_history": [],
+  "exposure_ledger_hash": null,
+  "freeze_hash": "6232ee35facd3660b0044b0f6767687136974359e5628bf1cb04cb9b82ae231f",
+  "independent_access_control": false,
+  "limitations": [
+    "Research artifact integrity and an append-only ledger are not a production custody system.",
+    "Public reference exposure prevents any previously-unseen blind-test claim."
+  ],
+  "model_hash": "b9cdb356002516139108e634e3a421461535f29a492a397930cd7e48dcddbf1c",
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "real_orchard_accuracy_approved": false,
+  "reason_codes": [
+    "GT_MISSING"
+  ],
+  "reviewer_identity_authenticated": false,
+  "schema_version": "blueberry-vision-test-seal/3.0.0",
+  "sealed_images": [
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "image_id": "public-commons-15928839",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "image_id": "public-commons-4112477",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "image_id": "public-commons-4112528",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": null,
+      "annotation_version": null,
+      "asset_sha256": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "image_id": "public-commons-81047629",
+      "label_definition_version": null
+    },
+    {
+      "annotation_hash": "b8f5ca841e61b0196a01e7e6a211538cb305b55b81bf9b537404b70367d7416c",
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "image_id": "quality-1626757232",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0"
+    },
+    {
+      "annotation_hash": "e6e9f6b3afc2082dcaf0d24cba495baf6f14ff0b671f334b83c8913375469d64",
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "image_id": "quality-3127978079",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0"
+    },
+    {
+      "annotation_hash": "855b8c02f124e5ad0c0e4cb19ed06143bf53134955413f0a2b0ea01ffcde716a",
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "image_id": "quality-3872104307",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0"
+    },
+    {
+      "annotation_hash": "44feed7c99a279e8192bf45341f84c3e32d67e772efb7000979d89cb68c9edd6",
+      "annotation_version": "publisher-semi-auto-pending-quality/3.0.0",
+      "asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "image_id": "quality-4195390806",
+      "label_definition_version": "candidate-visible-blueberry/3.0.0"
+    }
+  ],
+  "split_hash": "ce345b7a6bc08ea2ad9c31cb2b90df9752909980dfc1505c666128098d975132",
+  "status": "NOT_EVALUABLE",
+  "test_exposure": "EXPOSED_PUBLIC_BENCHMARK",
+  "test_seal_hash": "401dd630f5192857e2577b22ec55e191f9594776389ab70743e9fd5230a71780",
+  "train_validation_scope_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "training_data_hash": "a92c8c9a9f8228ccd4273ccbd249fc68ce4e8d48eeed5783bca510ae57ec4edb"
+}

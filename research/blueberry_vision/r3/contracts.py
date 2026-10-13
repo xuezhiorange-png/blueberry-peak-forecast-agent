@@ -37,9 +37,15 @@ class R3Image(BaseModel):
     image_id: Identifier
     asset_ref: Annotated[str, Field(min_length=1, max_length=512)]
     asset_sha256: Hash
+    original_asset_sha256: Hash | None = None
+    original_asset_ref: Annotated[str, Field(min_length=1, max_length=512)] | None = None
     rgb_sha256: Hash
     image_width: Annotated[int, Field(gt=0, le=8192)]
     image_height: Annotated[int, Field(gt=0, le=8192)]
+    original_width: Annotated[int, Field(gt=0, le=8192)] | None = None
+    original_height: Annotated[int, Field(gt=0, le=8192)] | None = None
+    exif_orientation: Annotated[int, Field(ge=1, le=8)] | None = None
+    image_coordinate_frame: Literal["EXIF_NORMALIZED_RGB_HALF_OPEN_XYXY"] | None = None
     asset_size_bytes: Annotated[int, Field(gt=0, le=20_000_000)]
     preprocessing_version: Identifier
     preprocessing_hash: Hash
@@ -153,6 +159,26 @@ def validate_manifest(dataset: JSONDict) -> JSONDict:
             raise DatasetError("SOURCE_ID_UNKNOWN")
         if row["purpose"] != parsed.purpose or row["SYNTHETIC"] is not parsed.SYNTHETIC:
             raise DatasetError("IMAGE_PURPOSE_MISMATCH")
+        original_ref = row.get("original_asset_ref")
+        if original_ref is not None and (
+            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./-]*", original_ref)
+            or any(part in {"", ".", ".."} for part in original_ref.split("/"))
+        ):
+            raise DatasetError("ORIGINAL_ASSET_REF_INVALID")
+        coordinate_keys = (
+            "original_width",
+            "original_height",
+            "exif_orientation",
+            "image_coordinate_frame",
+        )
+        if any(row.get(key) is not None for key in coordinate_keys):
+            if any(row.get(key) is None for key in coordinate_keys):
+                raise DatasetError("IMAGE_COORDINATE_METADATA_INCOMPLETE")
+            expected_dimensions = (row["original_width"], row["original_height"])
+            if row["exif_orientation"] in {5, 6, 7, 8}:
+                expected_dimensions = tuple(reversed(expected_dimensions))
+            if expected_dimensions != (row["image_width"], row["image_height"]):
+                raise DatasetError("IMAGE_COORDINATE_DIMENSIONS_MISMATCH")
         if any(row[key] != source[key] for key in ("license_id", "license_url", "license_status")):
             raise DatasetError("IMAGE_SOURCE_LICENSE_MISMATCH")
         if row["source_authority"] != {

@@ -1,0 +1,291 @@
+{
+  "SYNTHETIC": false,
+  "candidate_edges": [
+    {
+      "comparison": "FULL_DHASH",
+      "confirmation_basis": null,
+      "distance": 2,
+      "edge_id": "903808453c837a64b2e3ad0e",
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3872104307",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "comparison": "FULL_DHASH",
+      "confirmation_basis": null,
+      "distance": 5,
+      "edge_id": "19475ce9465099baa5d65462",
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-3872104307",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "comparison": "CENTER_CROP_DHASH",
+      "confirmation_basis": null,
+      "distance": 6,
+      "edge_id": "053c0b7322a10e3eaca17e61",
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-4195390806",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "comparison": "FULL_DHASH",
+      "confirmation_basis": null,
+      "distance": 5,
+      "edge_id": "1f693143aa6a6cfab56e1285",
+      "image_id_a": "quality-3872104307",
+      "image_id_b": "quality-4195390806",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    }
+  ],
+  "crop_policy": "center_75_percent_each_dimension",
+  "dataset_manifest_hash": "9f75e2a7c58c6e55187064ec33f4beb7bf4e26204fc64825f10c4081a1993096",
+  "dedup_version": "r3-dhash-candidate-graph/3.0.0",
+  "duplicate_hash": "c1b96875ffec29c1fe3daaa7f4bca1b6bfa7ab53e4ec94eea4bc5cd298b71f4d",
+  "edges": [
+    {
+      "comparison": "FULL_DHASH",
+      "confirmation_basis": null,
+      "distance": 2,
+      "edge_id": "903808453c837a64b2e3ad0e",
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3872104307",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "comparison": "FULL_DHASH",
+      "confirmation_basis": null,
+      "distance": 5,
+      "edge_id": "19475ce9465099baa5d65462",
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-3872104307",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "comparison": "CENTER_CROP_DHASH",
+      "confirmation_basis": null,
+      "distance": 6,
+      "edge_id": "053c0b7322a10e3eaca17e61",
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-4195390806",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "comparison": "FULL_DHASH",
+      "confirmation_basis": null,
+      "distance": 5,
+      "edge_id": "1f693143aa6a6cfab56e1285",
+      "image_id_a": "quality-3872104307",
+      "image_id_b": "quality-4195390806",
+      "relation": "PERCEPTUAL_SIMILARITY",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "PENDING"
+    },
+    {
+      "association_fields": [
+        "source_batch_id"
+      ],
+      "confirmation_basis": "DECLARED_METADATA_NOT_PHYSICAL_IDENTITY",
+      "edge_id": "c4e1f6bec6d95e8230b79ebc",
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3127978079",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "CONFIRMED"
+    },
+    {
+      "association_fields": [
+        "source_batch_id"
+      ],
+      "confirmation_basis": "DECLARED_METADATA_NOT_PHYSICAL_IDENTITY",
+      "edge_id": "eec5efc0c69e56beb2ad6fd9",
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-3872104307",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "CONFIRMED"
+    },
+    {
+      "association_fields": [
+        "source_batch_id"
+      ],
+      "confirmation_basis": "DECLARED_METADATA_NOT_PHYSICAL_IDENTITY",
+      "edge_id": "aa9fa353d3c0bd84138bfb59",
+      "image_id_a": "quality-1626757232",
+      "image_id_b": "quality-4195390806",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "CONFIRMED"
+    },
+    {
+      "association_fields": [
+        "source_batch_id"
+      ],
+      "confirmation_basis": "DECLARED_METADATA_NOT_PHYSICAL_IDENTITY",
+      "edge_id": "d6d065a554d9cfa72206d0b9",
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-3872104307",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "CONFIRMED"
+    },
+    {
+      "association_fields": [
+        "source_batch_id"
+      ],
+      "confirmation_basis": "DECLARED_METADATA_NOT_PHYSICAL_IDENTITY",
+      "edge_id": "72ced88128a105d2c89087b2",
+      "image_id_a": "quality-3127978079",
+      "image_id_b": "quality-4195390806",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "CONFIRMED"
+    },
+    {
+      "association_fields": [
+        "source_batch_id"
+      ],
+      "confirmation_basis": "DECLARED_METADATA_NOT_PHYSICAL_IDENTITY",
+      "edge_id": "e82ee6cd40695062234ca23d",
+      "image_id_a": "quality-3872104307",
+      "image_id_b": "quality-4195390806",
+      "relation": "DECLARED_GROUP_ASSOCIATION",
+      "review": null,
+      "same_business_fruit_identity_proven": false,
+      "status": "CONFIRMED"
+    }
+  ],
+  "hash_algorithm": "64bit_horizontal_dhash_Pillow_L_LANCZOS_9x8",
+  "images": [
+    {
+      "asset_sha256": "8d5e503e294a71fbda52d1a3aaedd1c0a87e0bb5179545efb8a3aba089dcac7f",
+      "center_crop_dhash": "e8d8c6f0b21796c8",
+      "dhash": "30f8ccf0b2d6e830",
+      "image_height": 2760,
+      "image_id": "public-commons-15928839",
+      "image_width": 3200,
+      "reason_code": null,
+      "rgb_sha256": "cfad27e5f028164f9916dfe3647e4fc503690df70f69fd02a1e6f7e7822c112a",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "7c92a9463f193fd7c9bdc0437ee43bcd571797f5c23deaceb819b29cd3888859",
+      "center_crop_dhash": "a1d0d02192643232",
+      "dhash": "85d3f123d1a590cc",
+      "image_height": 2301,
+      "image_id": "public-commons-4112477",
+      "image_width": 2043,
+      "reason_code": null,
+      "rgb_sha256": "118b587869e1f2b47b9c03baaf9f25016fbf2d1b321cd95c1df28e97f5e82c18",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "592a2a0074a430c8827b0877b62c7b8296b6f0e9d988e2a028a3da83b3bec2bc",
+      "center_crop_dhash": "a323484c4b91131a",
+      "dhash": "8fb2ca8ccad298d8",
+      "image_height": 1063,
+      "image_id": "public-commons-4112528",
+      "image_width": 1600,
+      "reason_code": null,
+      "rgb_sha256": "036da47032e5af000d8cd769d74e5a9663df1870a8fa577d31818a2d7947a60c",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "82338fc461b60854a3a48e0c3a0afc5a7818c839c42c753a67304c89dc1bbfd6",
+      "center_crop_dhash": "0331549aac66ecec",
+      "dhash": "85035bd93d2569e5",
+      "image_height": 1024,
+      "image_id": "public-commons-81047629",
+      "image_width": 768,
+      "reason_code": null,
+      "rgb_sha256": "33dc2db2e4d9a660222bab25e965dbb217d7b286c68b570cd659adf14ca2c93a",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "3425b439a9db3bd66c4b298ff81a8b8cbad4f2f69c8c3fb97ed52439aba94856",
+      "center_crop_dhash": "e8f0d4f0f0d0d8d8",
+      "dhash": "f0f8f0f0f0f0f0e0",
+      "image_height": 1000,
+      "image_id": "quality-1626757232",
+      "image_width": 1500,
+      "reason_code": null,
+      "rgb_sha256": "99082bf9ef72f6a849a6afcc337641c1c783215548afe2d8e52e12be72cf798a",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "0f82b81f222377e44c6f642e0dd3a4b17ec45180e37a93858d792454361afae1",
+      "center_crop_dhash": "b4b8b8f0b0d8f8d4",
+      "dhash": "f0d0d0f0f0d8f0d0",
+      "image_height": 1000,
+      "image_id": "quality-3127978079",
+      "image_width": 1500,
+      "reason_code": null,
+      "rgb_sha256": "09f80cc799ee78ffeded5832adbe9a67d10767b560fc6e18b2dc63e0407eba5a",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "1953d119c31a4a04c61a9f8ea396bc0eb1d74bceb72bb88dfbcba02434f4a163",
+      "center_crop_dhash": "e8f0d4f0f0d0d0d8",
+      "dhash": "f0f0f0f0f0f0f0c0",
+      "image_height": 1000,
+      "image_id": "quality-3872104307",
+      "image_width": 1500,
+      "reason_code": null,
+      "rgb_sha256": "bd1bad6b1bc73bab8601a407f9b6c0d4cab9b3822a7bf163fd8525dcfc3b9e32",
+      "status": "VALID"
+    },
+    {
+      "asset_sha256": "793fed94e1d4f114a792e7a6cb2c4e68b7376038848528468cd7f68d536ea611",
+      "center_crop_dhash": "d0f8d8f0f0c8f8d0",
+      "dhash": "f0f0f8f0f0e8f4d0",
+      "image_height": 1000,
+      "image_id": "quality-4195390806",
+      "image_width": 1500,
+      "reason_code": null,
+      "rgb_sha256": "b5162bf8bb75467b57f6197b80db052565f988cb9fedae4e73a2cf0b51c01322",
+      "status": "VALID"
+    }
+  ],
+  "limitations": [
+    "Perceptual similarity is candidate evidence with false positives and negatives.",
+    "Center crop is a hint; arbitrary crop, rotation and tracking are not solved.",
+    "PENDING links cannot cross independent splits; reviewer IDs are assertions.",
+    "Exact pixels do not prove the same business fruit or canonical identity."
+  ],
+  "purpose": "PUBLIC_EXTERNAL_BENCHMARK",
+  "summary": {
+    "candidate_pair_count": 4,
+    "exact_pair_count": 0,
+    "failed_count": 0,
+    "image_count": 8,
+    "metadata_link_count": 6
+  },
+  "threshold": 6
+}
