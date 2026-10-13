@@ -15,25 +15,25 @@ PARENT_PR=719 (unchanged OPEN_DRAFT)
 | M3 | COMPLETE_PUSHED | `f5ac493886f6c38c8db62cdf94f35bbe5ab06bdf` |
 | M4 | COMPLETE_PUSHED | `5d83ca8a0b89161578c0885d63ac87ded6208aff` |
 | M5 | COMPLETE_PUSHED | `37d26594e4b79007d8339de91d1102c429cc497c` |
-| M6 | COMPLETE_IN_CURRENT_CHECKPOINT | current checkpoint subject: `feat(vision-r3): add provenance aware annotation and model review` |
-| M7 | PENDING | pending own accepted checkpoint |
+| M6 | COMPLETE_PUSHED | `ff6f4818400fbea9924d2e0ceb73e5d3bc790c38` |
+| M7 | COMPLETE_IN_CURRENT_CHECKPOINT | current checkpoint subject: `test(vision-r3): finalize independent research acceptance and CI` |
 
-Current checkpoint parent `37d26594e4b79007d8339de91d1102c429cc497c`. Own SHA intentionally not self-embedded;
+Current checkpoint parent `ff6f4818400fbea9924d2e0ceb73e5d3bc790c38`. Own SHA intentionally not self-embedded;
 next checkpoint/remote log/final receipt supplies it. Completed prior stages were
 ordinary-pushed and remote HEAD verified; local parallel files are not milestones.
-Actual commands/exit/stdout/facts: evidence/r3/m6_checkpoint.json.
+Actual commands/exit/stdout/facts: evidence/r3/m7_checkpoint.json.
 R2 original271 fresh tests passed in M0, original232 artifact seal verified; all
 inherited research bytes checked unchanged before every checkpoint.
 
-Data status: 8 licensed public real photo previews/actual model outputs; 100 unreviewed candidate boxes separate; all real accuracy NOT_EVALUABLE..
-Known blockers: Real per-fruit human review missing; orchard data authority remains unavailable..
+Data status: Engineering PASS634tests.8licensed real photos/16frozenR2 inferences;100candidateboxes but0qualifiedGT; real accuracy NOT_EVALUABLE..
+Known blockers: Real reference quality and company orchard authority absent; no real model training or kilogram calibration..
 No company/private orchard/DB/current-season actual access, no production forecast/
 Harvest State/frozen model changes. Source purpose stays PUBLIC_EXTERNAL_BENCHMARK/
 AUTHORIZED_ORCHARD_PILOT/SYNTHETIC_ENGINEERING, unknown date/identity stays unknown.
 No automatic reviewed business labels, no count→kg, no real orchard approval.
 
-Next: M7 final CLI, whole R1/R2/R3 tests, schema/Golden, CPU acceptance, new research CI, artifact inventory, stacked Draft PR and exact-head CI..
-Stage artifact paths: research/blueberry_vision/r3/report.py, research/blueberry_vision/tests/test_r3_report.py, research/blueberry_vision/r3/review_ui.html, research/blueberry_vision/r3/docs/review.md, research/blueberry_vision/evidence/r3/browser_review_result.json, research/blueberry_vision/evidence/r3/browser_candidate_export.json, research/blueberry_vision/evidence/r3/browser_candidate_export_v2.json, research/blueberry_vision/evidence/r3/visual_report.md, research/blueberry_vision/evidence/r3/independent_review.json, research/blueberry_vision/examples/r3/real_review.html, research/blueberry_vision/examples/r3/real_review_browser.png, research/blueberry_vision/examples/r3/quality-1626757232-model-B-overlay.png, research/blueberry_vision/examples/r3/IMAGE_LICENSES.json, research/blueberry_vision/examples/r3/public-commons-4112528-model-B-overlay.png.
+Next: Verify remote final HEAD; create stacked Draft PR against R2 branch; inspect exact-head CI without changing PR719/Ready/Merge/Tag/Release/Deploy; final receipt then STOP..
+Stage artifact paths: research/blueberry_vision/r3/cli.py, research/blueberry_vision/r3/acceptance.py, research/blueberry_vision/r3/docs/cli.md, research/blueberry_vision/newtests/test_r3_cli.py, research/blueberry_vision/R3_README.md, research/blueberry_vision/evidence/r3/test_results.json, research/blueberry_vision/evidence/r3/final_acceptance.md, research/blueberry_vision/evidence/r3/known_limitations.md, research/blueberry_vision/evidence/r3/artifact_manifest.json, .github/workflows/blueberry-vision-r3-research.yml.
 R3 keeps compact indexes/metrics/evidence. M0 audits inherited42.67MB research tree;
 never delete/rewrite R2 history or add duplicated full AP curves/bulk private images.
 GitHub is durable; external data uses official source/license/hash indexes and

@@ -1,0 +1,441 @@
+{
+  "artifact_count": 86,
+  "artifact_manifest_hash": "b03ff5291587ea214175295d6a33ab966eedd0ba3ac2b522be70957b3952b4aa",
+  "artifacts": [
+    {
+      "path": ".github/workflows/blueberry-vision-r3-research.yml",
+      "sha256": "aa81d129960378a6f1f66d07504907b781f3a6159c7f26db99ff5e30f9bdf632",
+      "size_bytes": 3126
+    },
+    {
+      "path": "docs/research/blueberry-vision-real-image-source-review-r3.md",
+      "sha256": "69a95ca08bd51464e858f2cac20bb3ae3144cfeb523997a315f7905a534b06c7",
+      "size_bytes": 17329
+    },
+    {
+      "path": "research/blueberry_vision/R3_PROGRESS.md",
+      "sha256": "ad8c3ea7643d27719b51a8259e0e543717555323b0e600f8ab82595dadb92281",
+      "size_bytes": 3561
+    },
+    {
+      "path": "research/blueberry_vision/R3_README.md",
+      "sha256": "431eb8cd8bfef7b3e092f5ebe1d77da470b48014386f4b033e97352b2d8d6559",
+      "size_bytes": 7858
+    },
+    {
+      "path": "research/blueberry_vision/docs/r3_ingestion.md",
+      "sha256": "0c5a1df6611deb372ad2caae329e012703c5f07cdbe0163d245a1c67c5825432",
+      "size_bytes": 6074
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/.gitattributes",
+      "sha256": "c977f53288ef48e87d0023900dd56db262f59d58c2e892b98639352ddf6c5899",
+      "size_bytes": 123
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/annotation_quality.json",
+      "sha256": "6426a0ac062f79e6898c1768fe8d497769b43004be3ffe0447eb1cbf35a7717a",
+      "size_bytes": 30426
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/browser_candidate_export.json",
+      "sha256": "e83479c1ce9d7df04c44c2bc47831754f1c66faceaca33041e052bba1596c90f",
+      "size_bytes": 9474
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/browser_candidate_export_v2.json",
+      "sha256": "5358bfe92a2c96817a24376fa1294f462d24e9c5ba69c4debf8657e8db082d69",
+      "size_bytes": 9474
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/browser_review_result.json",
+      "sha256": "7cd740d0740e96d5d639e85a6424cf19bd476f0f3986a4fdbad61c9a53dcc97a",
+      "size_bytes": 579
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/config_freeze.json",
+      "sha256": "515c38b3ab8a1fc05092e99dc2f0ade5c242adf40b8dfdc3bb1137b4a293ccb3",
+      "size_bytes": 4832
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/data_source_registry.json",
+      "sha256": "0dc643c92593bc5d469bf8a8c685a89c3da517371c932fd9440d0f2ba5672678",
+      "size_bytes": 36442
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/dataset_admission.json",
+      "sha256": "bdddef46581379fbd063f3949616f9206dc97fb500f9445b2dd6a64a86ec0630",
+      "size_bytes": 18989
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/dependency_review.json",
+      "sha256": "4de19d9b6d9b07226cc04d648f6bcd57158a2643491410433d7157dd6f75ab33",
+      "size_bytes": 605
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/duplicate_review.json",
+      "sha256": "f582c6562ec4f7752575bd1c2a93d5101c972160f9c2683961803e7da31968e0",
+      "size_bytes": 2701
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/environment.json",
+      "sha256": "7451903c8e838bb5cc758f896e4901ca2dd3ea9e2ea6ae41d98c7ec6732e303d",
+      "size_bytes": 37419
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/evaluation_coverage.json",
+      "sha256": "077c68642e0b13cc0bbe55b18101a7312e446148143a940b606adcff94606a94",
+      "size_bytes": 2715
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/exposure_ledgers.json",
+      "sha256": "678d9c911d552a21da0717d706c420d1039c2e89c77b16472f2716a39678f17d",
+      "size_bytes": 5513
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/final_acceptance.md",
+      "sha256": "fa4df38cf70513b5d15fb85c6abb278901a7014973904c87bb3607f6788e6533",
+      "size_bytes": 2495
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/image_quality_report.json",
+      "sha256": "3d2ccb99fbc8fc42acc2ed782dd83e94974143f05a777e58418d9d76ff826b01",
+      "size_bytes": 2884
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/independent_review.json",
+      "sha256": "5a1e3ed7d1f5ad378d8ef07f0cebf503519e75d315815b03db025aee1db8e3e9",
+      "size_bytes": 8916
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/known_limitations.md",
+      "sha256": "50dd1047b0ffa56fa468a79c80f5faac7f284b463558001ab5d341a317571a65",
+      "size_bytes": 2408
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m1_checkpoint.json",
+      "sha256": "03b52ab5ed72771f3479432dd9c2432f6431b5da18760d15441989b8e97d8aa6",
+      "size_bytes": 1931
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m2_checkpoint.json",
+      "sha256": "43d9305fa3e665e60b8fbab8008267c666f6258481a8a9988edc0c5a65871eb7",
+      "size_bytes": 2504
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m3_checkpoint.json",
+      "sha256": "ec93a1def8d7754906674c1344e5afc99d1b7f21b60f464797c5e15ddfb50769",
+      "size_bytes": 1875
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m4_checkpoint.json",
+      "sha256": "92ef70be7c64474fc285082bdb313286ea63804afd7b6472d6bb2244d88dffe8",
+      "size_bytes": 1978
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m5_checkpoint.json",
+      "sha256": "13a5da1a3aa3132e4dcbd085c88869cb7193a51cf818f7827291005b7387a33e",
+      "size_bytes": 5310
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m6_checkpoint.json",
+      "sha256": "ab43149f8b06f57906a704e25095da787bbd5543a097ee11ca839c1c58570721",
+      "size_bytes": 1987
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/m7_checkpoint.json",
+      "sha256": "48da09477b6a367dd8b51c8439681836c26e3ec4cb4fcdaffaae3937c7dd2250",
+      "size_bytes": 3644
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/model_inference.json",
+      "sha256": "1ecb79c0b2013401ed0377b8ac0b6f4c6695c5cc3b233d44b5c380f1d7ef3ac2",
+      "size_bytes": 15215
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pilot_dataset_manifest.json",
+      "sha256": "7eeba3497c98984ff9233ecdec4d59135da3a0348674d621bc3d6c39f8906948",
+      "size_bytes": 34431
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pilot_duplicate_review.json",
+      "sha256": "bb4aaf9c24f08e879001080bc80fac8037d5835fbd6e1b66111438cae6d48f7e",
+      "size_bytes": 9955
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pilot_image_quality_report.json",
+      "sha256": "359b8e0255e2fdfb71aa5937d606329c967ba642cfdf61c07e4fd663c433bc25",
+      "size_bytes": 4941
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pilot_source_index.json",
+      "sha256": "13af6f1e7c440af5c97c435c1fea397a200c213d1fcdf216430a6703dbac6a42",
+      "size_bytes": 17770
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pilot_split_manifest.json",
+      "sha256": "234bede5d9bf7d326281d90aa61ce98feb92daf4afb7971cb198b1ba184998ae",
+      "size_bytes": 6484
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pilot_test_seal.json",
+      "sha256": "52bf1d230df96db2925d68f47c4a2075d1040f83e7fd8932b667ca18fa310472",
+      "size_bytes": 3987
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/public_pilot_source_index.json",
+      "sha256": "597a528cd61290b6264a9d614d01084a7d92c00c5455a2c5d2d671960d9b2484",
+      "size_bytes": 5497
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/public_quality_source_index.json",
+      "sha256": "008fcc4404d5c455fa6765be0da826867326fba9076010db1db596d7d8fd50bc",
+      "size_bytes": 16584
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/publisher_annotation_provenance_audit.json",
+      "sha256": "6327086735a7002d37ffbdd38495b0fd22431ec3dbda645c5d125d403bd7720f",
+      "size_bytes": 10991
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/publisher_candidate_annotations.json",
+      "sha256": "cb23004fe406ed16953fe4b44992f91117d96bbe3cf4cd69ac9510773541b630",
+      "size_bytes": 36070
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/pycocotools_license.txt",
+      "sha256": "bd8ef15597b3b292f3bb0feed9701c1ace5bcebe07f28fb5047ec8d3d89471b1",
+      "size_bytes": 1533
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/real_benchmark_metrics.json",
+      "sha256": "f27c56f33dbb6cbd7de01d402eb0c4c9f76127dc5f43ec7d24a7a123c8b6b4f1",
+      "size_bytes": 99261
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/source_registry.json",
+      "sha256": "7a7bb8b0fe9aa2bf93c3684ac565ce8a429e100cddd0961d9aac53f1a8e43fd3",
+      "size_bytes": 600
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/source_registry_supplement.json",
+      "sha256": "bd2d9de5bf07daf65c083833d1876d606eb1d9ba5df14c32b9dae7a7cc15b957",
+      "size_bytes": 19868
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/source_registry_supplement_v2.json",
+      "sha256": "9b3d339c45f0c9a6b60e0e69451b14ab9a028bc89c56cd48ac8d820906260594",
+      "size_bytes": 20102
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/split_manifest.json",
+      "sha256": "c4fd2a99d1bca94be48e530f4f42970a3aeb6705fdb58d2c878318086efd00f2",
+      "size_bytes": 2986
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/test_results.json",
+      "sha256": "fdf59fe9d3c4312c733ffe0113e6e3ead34ffdfacc452cb9128838a1e8ce1bb9",
+      "size_bytes": 3409
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/test_seal.json",
+      "sha256": "d872de8c38eb9a3b980cfcca763ac62fbbb2b8ecd64094980228c4b9c84065d0",
+      "size_bytes": 2186
+    },
+    {
+      "path": "research/blueberry_vision/evidence/r3/visual_report.md",
+      "sha256": "0ca697a0a61f4da505650a7d0c92777a27c8636aca4b07fd98933d9d9afa6f96",
+      "size_bytes": 2032
+    },
+    {
+      "path": "research/blueberry_vision/examples/r3/IMAGE_LICENSES.json",
+      "sha256": "105e4993e1683b1d1a8edccba92aa96c1e0082baf2f333dd9f55a6f63dd50b37",
+      "size_bytes": 1500
+    },
+    {
+      "path": "research/blueberry_vision/examples/r3/annotation_fixture.png",
+      "sha256": "1a14e78d526609caf623ee057365e6d2e7af85a95269502e322e9d7e8f5c68b2",
+      "size_bytes": 372
+    },
+    {
+      "path": "research/blueberry_vision/examples/r3/public-commons-4112528-model-B-overlay.png",
+      "sha256": "fd5b9f90cb91a30ee70f6fea688f2feb28b2a9897f6549df780764b3be32a89c",
+      "size_bytes": 393106
+    },
+    {
+      "path": "research/blueberry_vision/examples/r3/quality-1626757232-model-B-overlay.png",
+      "sha256": "e846877856e0e9c97ee8a926f10f3b058388a3c0691c1bc85ac12f31f25981d3",
+      "size_bytes": 294270
+    },
+    {
+      "path": "research/blueberry_vision/examples/r3/real_review.html",
+      "sha256": "77c62cf174259219cb0fa1a4b6754cb1b7de4f9de941370c86b89179e2aecedd",
+      "size_bytes": 1125539
+    },
+    {
+      "path": "research/blueberry_vision/examples/r3/real_review_browser.png",
+      "sha256": "fa8cbe12a10116072bbc24feaaf1dcec1dbf0f4f53f65c1921fe6e68703c44d3",
+      "size_bytes": 825370
+    },
+    {
+      "path": "research/blueberry_vision/newtests/test_r3_cli.py",
+      "sha256": "1ac5fca19f17c6f0ce397e300c0ea1805b20596bbad087d11400fb927c101d6d",
+      "size_bytes": 17505
+    },
+    {
+      "path": "research/blueberry_vision/newtests/test_r3_splits.py",
+      "sha256": "f83f47185d4fbb7214203d0d402508902862587c38622cca82c646fce1b676e6",
+      "size_bytes": 30014
+    },
+    {
+      "path": "research/blueberry_vision/r3/INTEGRATION.md",
+      "sha256": "a02454ac701c36644813dda18e21d771e4ac47db554e888f1be65052ef8742fe",
+      "size_bytes": 4505
+    },
+    {
+      "path": "research/blueberry_vision/r3/__init__.py",
+      "sha256": "e9145e8cd858a1e43333c5ec96260deaeec187ca4a3addc50e717345387d8f61",
+      "size_bytes": 80
+    },
+    {
+      "path": "research/blueberry_vision/r3/acceptance.py",
+      "sha256": "ac8412c09f968a1d9997d8ee99df88527078d00f198c21008b411dc257e6a07b",
+      "size_bytes": 23014
+    },
+    {
+      "path": "research/blueberry_vision/r3/annotation_snapshot.schema.json",
+      "sha256": "d06374c57dcd86f22e938828d9efcb513544fc54c3b54f44728c56a98b6b3af4",
+      "size_bytes": 6236
+    },
+    {
+      "path": "research/blueberry_vision/r3/annotations.py",
+      "sha256": "25d18756431ff2c64dd5078323adff3c824fc43bf29b90a000ce032088c92f85",
+      "size_bytes": 43163
+    },
+    {
+      "path": "research/blueberry_vision/r3/cli.py",
+      "sha256": "bd1daa78ec8bd09b9dbe3063f323b49e82bb4423b460448712120997c34593ab",
+      "size_bytes": 17833
+    },
+    {
+      "path": "research/blueberry_vision/r3/contracts.py",
+      "sha256": "67074aaef7d0d992a33d4e6cb9f2a05af7f668a50870e196d498dc2f4d67eb47",
+      "size_bytes": 10134
+    },
+    {
+      "path": "research/blueberry_vision/r3/dedup.py",
+      "sha256": "17c0c7c544f0b5ba4aefc29f66a927e6dd53d5714d40f082d9fff78282897b69",
+      "size_bytes": 10516
+    },
+    {
+      "path": "research/blueberry_vision/r3/docs/annotation_rules.md",
+      "sha256": "c1f444a851a0adaf54b095e0c571802ae1b0a31bb4e6cca154a2ff8b6c597151",
+      "size_bytes": 10189
+    },
+    {
+      "path": "research/blueberry_vision/r3/docs/cli.md",
+      "sha256": "8349668140fa31499f4c96dd424a508c4b72268e65ab60346e615e99c565a777",
+      "size_bytes": 12519
+    },
+    {
+      "path": "research/blueberry_vision/r3/docs/evaluation.md",
+      "sha256": "146090d6d30e5bc21190a153777d6adff5b43aa26057fc76fccb9cb6e903ae7d",
+      "size_bytes": 7858
+    },
+    {
+      "path": "research/blueberry_vision/r3/docs/review.md",
+      "sha256": "1c2cf2f99dde58e8684bbc1a7e4acf37f0277f43b9588ed6f646d1e08aff11f5",
+      "size_bytes": 9048
+    },
+    {
+      "path": "research/blueberry_vision/r3/docs/test_seal.md",
+      "sha256": "962e29f3ef52fea4847a28d666049b5c2c687ac66417fb65d6db18971597c169",
+      "size_bytes": 6779
+    },
+    {
+      "path": "research/blueberry_vision/r3/evaluation.py",
+      "sha256": "f2daa3109d9d107bde39b4c615058c4f4694f32082990cc2725e50ff39838b29",
+      "size_bytes": 39540
+    },
+    {
+      "path": "research/blueberry_vision/r3/ingestion.py",
+      "sha256": "b28c26842e249b678f961f4a05da637340e69680a6564fab03959543e5ac5188",
+      "size_bytes": 20592
+    },
+    {
+      "path": "research/blueberry_vision/r3/public_pilot.py",
+      "sha256": "15ec8e32a11d44326f0d6c94fd0bcf6732bc35051b0ea4cd537c37af15db3261",
+      "size_bytes": 16346
+    },
+    {
+      "path": "research/blueberry_vision/r3/report.py",
+      "sha256": "bbd392748ce5c45b276bb041950660af4dbafd825849636b6f7129d26ae2a2f5",
+      "size_bytes": 32414
+    },
+    {
+      "path": "research/blueberry_vision/r3/review_ui.html",
+      "sha256": "f02e06c3def633688ff7a60a31dc2225b60ec84befb57d8ffc8abeb7c78a97ec",
+      "size_bytes": 41840
+    },
+    {
+      "path": "research/blueberry_vision/r3/schema.json",
+      "sha256": "6d324e1e7df32974c2472b5b4f72765f6ed90040559dd8fba377829b7501cd4b",
+      "size_bytes": 12346
+    },
+    {
+      "path": "research/blueberry_vision/r3/sources.py",
+      "sha256": "bccd5ab9806841ec0529c2fe55409180867e6d7562a1f617cb96f40ba9928a70",
+      "size_bytes": 44984
+    },
+    {
+      "path": "research/blueberry_vision/r3/splits.py",
+      "sha256": "ee73536a92f93a00bc9fe4a54a47ea7a1bcdfd78282836a10a0f1c49d9b65c5c",
+      "size_bytes": 36361
+    },
+    {
+      "path": "research/blueberry_vision/requirements-r3.txt",
+      "sha256": "7ebcdda26e652c6c1795f86d902361157bc9b0b3e6f7b120cd8d4e821042e72b",
+      "size_bytes": 43
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_annotations.py",
+      "sha256": "b3165f2f0b9445d659119c3c1c5c3cfbaf271a94bce4e85dcd338300a1a1b618",
+      "size_bytes": 26374
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_dedup.py",
+      "sha256": "938d335faeefc1f930f552a5865bd31846ad52de80b16650a6d1e94b4546600d",
+      "size_bytes": 6639
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_evaluation.py",
+      "sha256": "ec5ea183eb8f05dade81473945fcccb6eee18a30392bf8ffe43ef6ad570c8327",
+      "size_bytes": 29595
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_ingestion.py",
+      "sha256": "ec15471ae97861faae80671553a937037421d851325310a308e77aafcee3105f",
+      "size_bytes": 18602
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_public_pilot.py",
+      "sha256": "208df8b8bbbd08fe0b2f54c5d89dd01aec42220fbae4a3529c10e4ab1dd74ff2",
+      "size_bytes": 13400
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_report.py",
+      "sha256": "d98f0878bb08aa8ab1945a9612506439ffd21afed22c653bf46727e8ae511c4b",
+      "size_bytes": 28187
+    },
+    {
+      "path": "research/blueberry_vision/tests/test_r3_sources.py",
+      "sha256": "bf427e2deadbd322f9afbdc533fe58495ea46161d26674a6ec3039ca4586f37e",
+      "size_bytes": 15629
+    }
+  ],
+  "image_domain_inherited_from_each_data_contract": true,
+  "inventory_mode": "EXPLICIT_DECLARED_FILE_SNAPSHOT",
+  "purpose": "ENGINEERING_ARTIFACT_INDEX",
+  "schema_version": "blueberry-vision-r3-artifact-index/3.0.0",
+  "total_bytes": 3779516
+}

@@ -1,0 +1,91 @@
+{
+  "business_approval": false,
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests",
+        "research/blueberry_vision/newtests",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "........................................................................ [ 11%]\n........................................................................ [ 22%]\n........................................................................ [ 34%]\n........................................................................ [ 45%]\n........................................................................ [ 56%]\n........................................................................ [ 68%]\n........................................................................ [ 79%]\n........................................................................ [ 90%]\n..........................................................               [100%]\n634 passed in 12.04s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "46 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 46 source files\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "research.blueberry_vision.cli",
+        "verify-artifacts",
+        "--manifest",
+        "research/blueberry_vision/artifact_manifest.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\"artifact_hash\": \"5e95bb731f6a428c3af250213466befa3253d0628164b1f558a13d793c61c941\", \"failures\": [], \"valid\": true, \"verified_count\": 232}\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "research.blueberry_vision.r3.cli",
+        "verify-artifacts",
+        "--manifest",
+        "/tmp/blueberry-r3-final-acceptance/artifact_manifest.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\"artifact_manifest_hash\": \"01a75a2ce9b09447ee0b0a070eb5549155bce3651ee431bb65434968feb8ad9f\", \"declared_count\": 52, \"failures\": [], \"scope\": \"DECLARED_FILES_ONLY\", \"valid\": true, \"verified_count\": 52}\n"
+    }
+  ],
+  "facts": {
+    "complete_research_passed": 634,
+    "default_acceptance_actual_full_regression": "271 + 363 PASS;13 engineering checks PASS",
+    "new_R3_tests": 363,
+    "original_R1_R2_tests": 271,
+    "pending_external_actions": "stacked Draft PR and exact-head CI after this ordinary push",
+    "public_real_images": 8,
+    "public_real_inference_runs": 16,
+    "real_accuracy_status": "NOT_EVALUABLE",
+    "research_ci": "new path-isolated exact-head workflow; offline fixture only; no private inputs",
+    "skipped": 0
+  },
+  "milestone": "M7",
+  "parent_sha": "ff6f4818400fbea9924d2e0ceb73e5d3bc790c38",
+  "recorded_at": "2026-10-13T05:05:23.228360+00:00",
+  "source_r2_head": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R3_REAL_IMAGE_PILOT_AND_VALIDATION"
+}
