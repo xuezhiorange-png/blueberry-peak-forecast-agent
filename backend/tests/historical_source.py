@@ -21,6 +21,10 @@ AUTHORIZED_HISTORY_PATHS = frozenset(
         "backend/app/models/__init__.py",
         "backend/app/api/forecast_intelligence_read.py",
         "backend/app/api/forecast_intelligence_decision.py",
+        # S3's authorized mutable transport evolves; its V0.17/V0.18 historical
+        # evidence still pins these independently verified PR #716 Git blobs.
+        "backend/app/mcp/forecast_intelligence_http.py",
+        "backend/app/mcp/forecast_intelligence_server.py",
         "pyproject.toml",
         "uv.lock",
         *(
