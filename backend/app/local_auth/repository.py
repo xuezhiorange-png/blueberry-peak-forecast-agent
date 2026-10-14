@@ -12,6 +12,9 @@ DECISIONS = frozenset(
     "/api/v1/decision-support/" + name
     for name in ("business-loss", "simulate-capacity", "compare-capacity-scenarios")
 )
+BUSINESS_ACCESS = frozenset(
+    "/api/v1/business-access/" + name for name in ("scope", "saved-runs", "selection")
+)
 
 
 class ControlledIngress:
@@ -29,6 +32,7 @@ class ControlledIngress:
         allowed = (
             path in READS
             or path in DECISIONS
+            or path in BUSINESS_ACCESS
             or path == "/health/live"
             or path
             in {

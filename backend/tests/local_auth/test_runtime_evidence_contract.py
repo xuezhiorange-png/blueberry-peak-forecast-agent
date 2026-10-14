@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/s1/local-auth-runtime-r1.json"
 MERGED_S1 = "e9812e82067dceae444ff0707ceeb2f560c1018e"
 REVISED_RUNTIME_SOURCES = {
+    "backend/app/main.py",
+    "backend/app/local_auth/repository.py",
     "backend/app/core/config.py",
     "backend/app/local_auth/schemas.py",
     "backend/app/local_auth/service.py",
