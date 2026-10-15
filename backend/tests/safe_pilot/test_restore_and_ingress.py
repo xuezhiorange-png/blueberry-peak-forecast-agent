@@ -37,6 +37,7 @@ from backend.tests.safe_pilot.operations import (
     isolated_environment,
     quarantine,
     restored_database,
+    row_digest,
     snapshot,
     tls_server,
 )
@@ -476,3 +477,14 @@ def test_backup_rejects_unsafe_targets_and_log_scanner_cannot_false_pass(monkeyp
     assert_redacted("safe action=DENY", ["SYNTHETIC_SECRET"])
     with pytest.raises(AssertionError, match="SENSITIVE_LOG_VALUE_FOUND"):
         assert_redacted("leaked=SYNTHETIC_SECRET", ["SYNTHETIC_SECRET"])
+
+
+@pytest.mark.unit
+@pytest.mark.contract
+def test_snapshot_preserves_numeric_lexemes_and_duplicate_rows():
+    first = '{"quantity":1000000000000.000000000001}'
+    second = '{"quantity":1000000000000.000000000002}'
+    assert json.loads(first) == json.loads(second)  # illustrates the old float collision
+    assert row_digest([first]) != row_digest([second])
+    assert row_digest([first, second]) == row_digest([second, first])
+    assert row_digest([first, first]) != row_digest([first])
