@@ -6,8 +6,8 @@ import { ForecastProvider, useForecast } from "../dashboard/context/ForecastCont
 import * as api from "../dashboard/api/client";
 import { forecastQuery, readSchemas } from "../dashboard/schemas/contracts";
 import fixture from "./fixtures/dashboard-synthetic.json";
+import { business, scope, listing, selection, auth, reply } from "./businessFixtures";
 
-// SYNTHETIC=true. Deliberately ignore AbortSignal when resolving old promises.
 const query = forecastQuery.parse(fixture.query);
 const curve = readSchemas.curve.parse(fixture.reads.curve);
 function deferred() {
@@ -39,20 +39,21 @@ function Harness() {
     </>
   );
 }
-function openAndFill() {
+const button = () =>
+  screen.getByRole<HTMLButtonElement>("button", { name: /核验并使用保存预测|正在核验…/ });
+async function open() {
   fireEvent.click(screen.getByText("Open selector"));
-  const dialog = screen.getByRole("dialog");
-  for (const [key, value] of Object.entries(query))
-    fireEvent.change(dialog.querySelector(`[name="${key}"]`)!, {
-      target: { value: String(value) },
-    });
-  return dialog;
+  await screen.findByRole("button", { name: "核验并使用保存预测" });
+  return screen.getByRole("dialog");
 }
-function submit() {
-  fireEvent.submit(screen.getByRole("dialog").querySelector("form")!);
-}
-function retryButton() {
-  return screen.getByRole("dialog").querySelector<HTMLButtonElement>('button[type="submit"]')!;
+function mount() {
+  return render(
+    <StrictMode>
+      <ForecastProvider>
+        <Harness />
+      </ForecastProvider>
+    </StrictMode>,
+  );
 }
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -63,89 +64,19 @@ beforeEach(() => {
     this.removeAttribute("open");
     this.dispatchEvent(new Event("close"));
   };
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const path = String(input).split("?")[0];
+    if (path.endsWith("/scope")) return reply(business(scope));
+    if (path.endsWith("/saved-runs")) return reply(business(listing));
+    if (path.endsWith("/selection")) return reply(business(selection));
+    if (path.endsWith("/csrf")) return reply(auth({ csrf_token: "SYNTHETIC", expires_in: 300 }));
+    throw new Error("Unexpected unit request");
+  });
 });
 afterEach(() => vi.restoreAllMocks());
 
-it("native dialog closure rejects a response even before its queued close event", async () => {
-  const pending = deferred();
-  vi.spyOn(api, "read").mockImplementationOnce(() => pending.promise);
-  render(
-    <StrictMode>
-      <ForecastProvider>
-        <Harness />
-      </ForecastProvider>
-    </StrictMode>,
-  );
-  fireEvent.click(screen.getByText("Seed valid A"));
-  const previous = screen.getByTestId("context").textContent;
-  const dialog = openAndFill();
-  submit();
-  // Browser dialog.close() clears open synchronously, then queues its close event.
-  dialog.removeAttribute("open");
-  await act(async () => {
-    pending.resolve(curve);
-    await pending.promise;
-  });
-  expect(screen.getByTestId("context").textContent).toBe(previous);
-  fireEvent(dialog, new Event("close"));
-  fireEvent.click(screen.getByText("Open selector"));
-  expect(retryButton().disabled).toBe(false);
-});
-
-it("resubmission invalidates old generation and ignores its completion after the new result", async () => {
-  const old = deferred(),
-    next = deferred();
-  const read = vi
-    .spyOn(api, "read")
-    .mockImplementationOnce(() => old.promise)
-    .mockImplementationOnce(() => next.promise);
-  render(
-    <StrictMode>
-      <ForecastProvider>
-        <Harness />
-      </ForecastProvider>
-    </StrictMode>,
-  );
-  const dialog = openAndFill();
-  submit();
-  // Synthetic reentrant submission exercises the handler, even when the UI button is busy.
-  fireEvent.submit(dialog.querySelector("form")!);
-  expect(read.mock.calls[0][2].aborted).toBe(true);
-  expect(read.mock.calls[1][2].aborted).toBe(false);
-  await act(async () => {
-    next.resolve(curve);
-    await next.promise;
-  });
-  const committed = screen.getByTestId("context").textContent;
-  await act(async () => {
-    old.reject(new api.DashboardError(409, "OLD_REQUEST"));
-    await old.promise.catch(() => {});
-  });
-  expect(screen.getByTestId("context").textContent).toBe(committed);
-  expect(screen.queryByRole("dialog")).toBeNull();
-});
-
-it("invalid run ID never queries or replaces a previously verified context", () => {
-  const read = vi.spyOn(api, "read");
-  render(
-    <StrictMode>
-      <ForecastProvider>
-        <Harness />
-      </ForecastProvider>
-    </StrictMode>,
-  );
-  fireEvent.click(screen.getByText("Seed valid A"));
-  const previous = screen.getByTestId("context").textContent;
-  const dialog = openAndFill();
-  fireEvent.change(dialog.querySelector('[name="run_id"]')!, { target: { value: "not-a-run" } });
-  submit();
-  expect(retryButton().disabled).toBe(false);
-  expect(read).not.toHaveBeenCalled();
-  expect(screen.getByTestId("context").textContent).toBe(previous);
-});
-
 it.each(["button", "escape", "native"] as const)(
-  "StrictMode %s close resets busy and allows unchanged retry",
+  "StrictMode %s close resets busy, preserves A and protects B from late A finally",
   async (way) => {
     const old = deferred(),
       next = deferred();
@@ -153,31 +84,28 @@ it.each(["button", "escape", "native"] as const)(
       .spyOn(api, "read")
       .mockImplementationOnce(() => old.promise)
       .mockImplementationOnce(() => next.promise);
-    render(
-      <StrictMode>
-        <ForecastProvider>
-          <Harness />
-        </ForecastProvider>
-      </StrictMode>,
-    );
-    const dialog = openAndFill();
-    submit();
-    expect(retryButton().disabled).toBe(true);
+    mount();
+    fireEvent.click(screen.getByText("Seed valid A"));
+    const previous = screen.getByTestId("context").textContent;
+    const dialog = await open();
+    fireEvent.click(button());
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    expect(button().disabled).toBe(true);
     if (way === "button") fireEvent.click(screen.getByText("关闭"));
     else if (way === "escape") fireEvent(dialog, new Event("cancel", { cancelable: true }));
     else act(() => (dialog as HTMLDialogElement).close());
     expect(read.mock.calls[0][2].aborted).toBe(true);
-    fireEvent.click(screen.getByText("Open selector"));
-    expect(retryButton().disabled).toBe(false);
-    expect(retryButton().textContent).toBe("核验并使用保存预测");
-    submit();
-    expect(retryButton().disabled).toBe(true);
+    expect(screen.getByTestId("context").textContent).toBe(previous);
+    await open();
+    expect(button().disabled).toBe(false);
+    fireEvent.click(button());
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
     await act(async () => {
       old.resolve(curve);
       await old.promise;
     });
-    expect(retryButton().disabled).toBe(true); // old finally must not finish request B
-    expect(screen.getByTestId("context").textContent).not.toContain("SYNTHETIC");
+    expect(button().disabled).toBe(true);
+    expect(screen.getByTestId("context").textContent).toBe(previous);
     await act(async () => {
       next.resolve(curve);
       await next.promise;
@@ -186,90 +114,54 @@ it.each(["button", "escape", "native"] as const)(
     expect(screen.getByTestId("context").textContent).toContain(query.entity_id);
   },
 );
-
 it.each(["resolve", "reject"] as const)(
-  "form cancellation rejects late %s and protects previous valid context/date",
+  "filter change cancels old %s and prevents invalid commit",
   async (settlement) => {
-    const old = deferred(),
-      next = deferred();
-    const read = vi
-      .spyOn(api, "read")
-      .mockImplementationOnce(() => old.promise)
-      .mockImplementationOnce(() => next.promise);
-    render(
-      <StrictMode>
-        <ForecastProvider>
-          <Harness />
-        </ForecastProvider>
-      </StrictMode>,
-    );
+    const old = deferred();
+    const read = vi.spyOn(api, "read").mockImplementationOnce(() => old.promise);
+    mount();
     fireEvent.click(screen.getByText("Seed valid A"));
     const previous = screen.getByTestId("context").textContent;
-    const dialog = openAndFill();
-    submit();
-    fireEvent.change(dialog.querySelector('[name="entity_id"]')!, {
-      target: { value: "SYNTHETIC_B" },
-    });
+    await open();
+    fireEvent.click(button());
+    await waitFor(() => expect(read).toHaveBeenCalled());
+    fireEvent.change(screen.getByLabelText("产季"), { target: { value: "2026-2027" } });
     expect(read.mock.calls[0][2].aborted).toBe(true);
-    expect(retryButton().disabled).toBe(false);
-    submit();
     await act(async () => {
       if (settlement === "resolve") old.resolve(curve);
-      else old.reject(new api.DashboardError(409, "AUTHORITY_MISMATCH"));
+      else old.reject(new api.DashboardError(409, "OLD"));
       await old.promise.catch(() => {});
     });
-    expect(retryButton().disabled).toBe(true);
     expect(screen.getByTestId("context").textContent).toBe(previous);
-    fireEvent.click(screen.getByText("关闭"));
-    await act(async () => {
-      next.resolve(curve);
-      await next.promise;
-    });
-    expect(screen.getByTestId("context").textContent).toBe(previous);
-  },
-);
-
-it.each([0, 409])(
-  "recovers from failure %s and repeated open/close without committing invalid input",
-  async (status) => {
-    const read = vi
-      .spyOn(api, "read")
-      .mockRejectedValueOnce(new api.DashboardError(status, "TEST_ONLY"))
-      .mockResolvedValueOnce(curve);
-    render(
-      <StrictMode>
-        <ForecastProvider>
-          <Harness />
-        </ForecastProvider>
-      </StrictMode>,
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "查询授权记录" }).disabled).toBe(
+      false,
     );
-    openAndFill();
-    submit();
-    await waitFor(() => expect(retryButton().disabled).toBe(false));
-    expect(screen.getByTestId("context").textContent).not.toContain(query.entity_id);
-    for (let i = 0; i < 3; i++) {
-      fireEvent.click(screen.getByText("关闭"));
-      fireEvent.click(screen.getByText("Open selector"));
-      expect(retryButton().disabled).toBe(false);
-    }
-    submit();
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(read).toHaveBeenCalledTimes(2);
   },
 );
-
-it("unmount aborts active request; ignored-abort completion cannot commit", async () => {
+it("native synchronous open removal rejects a result before the close event", async () => {
   const pending = deferred();
   const read = vi.spyOn(api, "read").mockImplementationOnce(() => pending.promise);
-  const view = render(
-    <StrictMode>
-      <ForecastProvider>
-        <Harness />
-      </ForecastProvider>
-    </StrictMode>,
-  );
-  openAndFill();
-  submit();
+  mount();
+  const dialog = await open();
+  fireEvent.click(button());
+  await waitFor(() => expect(read).toHaveBeenCalled());
+  dialog.removeAttribute("open");
+  await act(async () => {
+    pending.resolve(curve);
+    await pending.promise;
+  });
+  expect(screen.getByTestId("context").textContent).not.toContain(query.entity_id);
+  fireEvent(dialog, new Event("close"));
+  await open();
+  expect(button().disabled).toBe(false);
+});
+it("unmount aborts active request; ignored abort completion cannot commit", async () => {
+  const pending = deferred();
+  const read = vi.spyOn(api, "read").mockImplementationOnce(() => pending.promise);
+  const view = mount();
+  await open();
+  fireEvent.click(button());
+  await waitFor(() => expect(read).toHaveBeenCalled());
   view.unmount();
   expect(read.mock.calls[0][2].aborted).toBe(true);
   await act(async () => {
@@ -277,4 +169,36 @@ it("unmount aborts active request; ignored-abort completion cannot commit", asyn
     await pending.promise;
   });
   expect(screen.queryByTestId("context")).toBeNull();
+});
+it.each([0, 409])(
+  "failure %s never commits and repeated reopen permits a new verification",
+  async (status) => {
+    const read = vi
+      .spyOn(api, "read")
+      .mockRejectedValueOnce(new api.DashboardError(status, "SYNTHETIC"))
+      .mockResolvedValue(curve);
+    mount();
+    await open();
+    fireEvent.click(button());
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.getByTestId("context").textContent).not.toContain(query.entity_id),
+    );
+    if (screen.queryByRole("dialog")) fireEvent.click(screen.getByText("关闭"));
+    for (let i = 0; i < 3; i++) {
+      await open();
+      fireEvent.click(screen.getByText("关闭"));
+    }
+    await open();
+    fireEvent.click(button());
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByTestId("context").textContent).toContain(query.entity_id);
+  },
+);
+it("does not expose manual run/hash inputs or accept unknown identity fields", async () => {
+  mount();
+  await open();
+  expect(document.querySelector('[name="run_id"]')).toBeNull();
+  expect(document.querySelector('[name="expected_source_result_hash"]')).toBeNull();
+  expect(forecastQuery.safeParse({ ...query, actor: "administrator" }).success).toBe(false);
 });

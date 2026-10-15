@@ -27,6 +27,7 @@ import {
 } from "../dashboard/api/client";
 import { parseDraft } from "../dashboard/pages/CapacityPage";
 import fixture from "./fixtures/dashboard-synthetic.json";
+import { auth, user } from "./businessFixtures";
 
 const query = forecastQuery.parse(fixture.query);
 const reply = (value: unknown, status = 200) =>
@@ -35,6 +36,8 @@ function mockApi() {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
     const path = String(input).split("?")[0];
     const kind = path.split("/").pop()!;
+    if (kind === "me") return reply(auth(user));
+    if (kind === "csrf") return reply(auth({ csrf_token: "SYNTHETIC", expires_in: 300 }));
     if (kind === "quality")
       return reply(
         String(input).includes("CURRENT_PRODUCTION") ? fixture.current : fixture.quality,
@@ -236,7 +239,7 @@ describe("render and request state contracts", () => {
         </MemoryRouter>,
       );
       expect(
-        screen.getByRole("navigation", { name: "Dashboard 主导航" }).querySelectorAll("a"),
+        (await screen.findByRole("navigation", { name: "Dashboard 主导航" })).querySelectorAll("a"),
       ).toHaveLength(5);
       expect(screen.queryByText("当前仅开放 Trial 合同能力")).toBeNull();
       await waitFor(() => expect(screen.queryByText("正在读取已验证来源")).toBeNull());

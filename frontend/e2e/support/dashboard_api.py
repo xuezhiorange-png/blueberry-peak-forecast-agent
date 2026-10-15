@@ -44,6 +44,7 @@ from backend.app.forecast_quality.operational_peak_persistence import (
     OperationalPeakRunRepository,
     execution_hash,
 )
+from frontend.e2e.support.business_compat import install
 
 POINT = (
     "80",
@@ -233,6 +234,8 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 app.include_router(read_router, prefix="/api/v1/forecast-intelligence")
 app.include_router(decision_router, prefix="/api/v1/decision-support")
+
+install(app, STATE)
 
 
 @app.get("/__dashboard_test__/authority")
