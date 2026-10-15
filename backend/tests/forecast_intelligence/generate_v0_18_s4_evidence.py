@@ -70,7 +70,7 @@ def generate(artifacts):
             }
             target = screenshots
         else:
-            source_root = "visual-state-results"
+            source_root = "full-browser-results"
             entry = {
                 "state": path.name.removesuffix("-SYNTHETIC.png"),
                 "viewport": [390, 844] if project.endswith("mobile") else [1440, 900],
@@ -146,11 +146,12 @@ def generate(artifacts):
             "unbound_upper_attribution_contribution": "NOT_AVAILABLE",
         },
         "acceptance": {
-            "frontend_unit_passed": 129,
+            "frontend_unit_passed": 130,
             "backend_focused_passed": 1381,
             "backend_focused_existing_conditional_skips": 4,
             "historical_contract_passed": 103,
             "browser_full_suite_passed": 118,
+            "browser_full_suite_source_head": "1fd15da560c022038f80b964a6552d6a683d613a",
             "browser_additional_visual_cases_passed": 2,
             "https_postgres_cases_included": 26,
             "viewport_page_combinations": 30,
@@ -166,6 +167,16 @@ def generate(artifacts):
             "frontend_build": "PASS",
         },
         "ci": {"result": "PENDING_AT_COMMIT_EXACT_HEAD_RECEIPT_REQUIRED"},
+        "post_submission_correction": {
+            "previous_head": "1fd15da560c022038f80b964a6552d6a683d613a",
+            "superseded_ci_run": 38666863373,
+            "root_cause": "ACTIVE_LOGIN_CONTROLLER_NOT_ABORTED_ON_DASHBOARD_UNMOUNT",
+            "reproduction": "FAIL_EXPECTED_ABORTED_TRUE_ACTUAL_FALSE",
+            "secondary_test_failure": "UNRELEASED_FAILING_UNIT_PROMISE_QUEUE_CASCADE",
+            "runtime_unit_passed": 130,
+            "https_postgres_retest_passed": 26,
+            "final_ci_required_browser_cases": 120,
+        },
         "governance": {
             k: False
             for k in (

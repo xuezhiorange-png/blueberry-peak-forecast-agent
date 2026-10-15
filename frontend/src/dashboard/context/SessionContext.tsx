@@ -61,6 +61,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
       });
     return () => {
       controller.abort();
+      active.current?.abort();
       current.current++;
     };
   }, []);

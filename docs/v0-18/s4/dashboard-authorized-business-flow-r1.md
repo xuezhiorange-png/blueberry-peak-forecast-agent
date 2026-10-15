@@ -120,6 +120,20 @@ S4 base. Current code continues to execute current runtime regressions separatel
 
 ## Governance and limitations
 
+Post-submission self-audit reproduced an additional cancellation defect on initial
+HEAD `1fd15da560c022038f80b964a6552d6a683d613a`: leaving the Dashboard cancelled
+the initial me request, but not necessarily the active subsequent login. A real
+component regression deliberately ignores abort in its underlying Promise and
+proved the signal remained live. Cleanup now also aborts the active controller;
+the expanded 130-test unit suite passes. The reproduction's second failure was
+a test-queue cascade from the unreleased failing Promise, not a separate server
+defect; the regression now releases that Promise even when its assertion fails.
+All 26 HTTPS/PostgreSQL browser cases and screenshots were regenerated after this
+one-line correction. The earlier complete 118-case browser run remains preserved
+as a prior-head result; the final exact-head CI must run all 120 current cases.
+The prior CI run `38666863373` is superseded, not final-head acceptance evidence.
+No historical frozen document or approved stage evidence was modified.
+
 S4_FORMAL_COMPLETE=false; PRODUCTION_READINESS=NOT_READY. There are no real users,
 grants, current actuals, deployment, model experiments or production migrations.
 Real bootstrap/admin/organization provisioning and operational certificate/network
