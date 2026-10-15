@@ -1,0 +1,419 @@
+{
+  "artifacts": {
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/full-run/backend.xml": {
+      "raw_sha256": "e84df6224cf0377b9a99e308a76de7ed91db0b9c1123ddbdec70c467a960087e",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "e84df6224cf0377b9a99e308a76de7ed91db0b9c1123ddbdec70c467a960087e",
+      "source_path": "/private/tmp/SYNTHETIC-s5-cleanup-verified-final/backend.xml"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/full-run/browser.log": {
+      "raw_sha256": "766d80386e7e1e697894ca85737b609ace5e657723f3c8d95c10858c51a337e5",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "766d80386e7e1e697894ca85737b609ace5e657723f3c8d95c10858c51a337e5",
+      "source_path": "/private/tmp/SYNTHETIC-s5-cleanup-verified-final/browser.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/full-run/execution.log": {
+      "raw_sha256": "3bd52bb74007f954f4fb8adc449147bcd6bee013719dd2036b29d5254d7dae4b",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "5d9ded26da086843aa716f0cc19d79f985df037a6326e7e953e7e9aea6b93d30",
+      "source_path": "/private/tmp/SYNTHETIC-s5-cleanup-verified-final/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/full-run/owned-resources.json": {
+      "raw_sha256": "a9f8333eacf665b96efa65a77d5fea10a9904df3bfc042594c9d777c7b15ec16",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "a9f8333eacf665b96efa65a77d5fea10a9904df3bfc042594c9d777c7b15ec16",
+      "source_path": "/private/tmp/SYNTHETIC-s5-cleanup-verified-final/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/full-run/postgres.log": {
+      "raw_sha256": "75048b513dac57f585cdbd5d0e982fec1e4eb33981b3391ad679ac6e51080411",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "75048b513dac57f585cdbd5d0e982fec1e4eb33981b3391ad679ac6e51080411",
+      "source_path": "/private/tmp/SYNTHETIC-s5-cleanup-verified-final/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/executed-source.json": {
+      "raw_sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/executed-source.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/execution.log": {
+      "raw_sha256": "731da6eae2647064506c33dccba8790e3e5c1a02f78acb98aead7650fc415bf9",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "6eae71aa75107dc07eab8e45952b31f9f6d26573b112727edf0fd2dfcb033743",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/SYNTHETIC-owned/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/fixture-cleanup.json": {
+      "raw_sha256": "69686994995c59fb9184f0c98a7b97b0a9042bd482872f2552823d4714f9d96a",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "69686994995c59fb9184f0c98a7b97b0a9042bd482872f2552823d4714f9d96a",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/fixture-cleanup.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/owned-resources.json": {
+      "raw_sha256": "1090ac444ffc6aff27eb8aa4673b0e0b728e86af74a12cfa34408405ce23e89d",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "1090ac444ffc6aff27eb8aa4673b0e0b728e86af74a12cfa34408405ce23e89d",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/SYNTHETIC-owned/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/postgres.log": {
+      "raw_sha256": "c070b8ab071a2424e837314282895a2c5c52f20e4e8ebe7b282e7f73ec7eff84",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "c070b8ab071a2424e837314282895a2c5c52f20e4e8ebe7b282e7f73ec7eff84",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/SYNTHETIC-owned/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/runner.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/runner.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/executed-source.json": {
+      "raw_sha256": "41ba782d91b4135e0de6493e93474fdf592e2664b633b16a48116f3db2f26464",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "41ba782d91b4135e0de6493e93474fdf592e2664b633b16a48116f3db2f26464",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-6dgunf5k/0/executed-source.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/execution.log": {
+      "raw_sha256": "69a6d771a6082f8da73d042bc71b6a00b9ae13b439a631821c165e79e67a3450",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "69a6d771a6082f8da73d042bc71b6a00b9ae13b439a631821c165e79e67a3450",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-6dgunf5k/0/SYNTHETIC-owned/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/fixture-cleanup.json": {
+      "raw_sha256": "57c448bcfdfe67c55ad7b5a6214f589cddbc91fa357177e0e2696435ca72394e",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "57c448bcfdfe67c55ad7b5a6214f589cddbc91fa357177e0e2696435ca72394e",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-6dgunf5k/0/fixture-cleanup.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/owned-resources.json": {
+      "raw_sha256": "0cb9b13c734bd97fc1c9bc61ae0c8c0ba7a428001e17f9cb51dc38b2434e5447",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "0cb9b13c734bd97fc1c9bc61ae0c8c0ba7a428001e17f9cb51dc38b2434e5447",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-6dgunf5k/0/SYNTHETIC-owned/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/postgres.log": {
+      "raw_sha256": "57fee39dbb8c779acd46efee95f2a7894c7dd4e9cf5658b23179333fe3a93f8a",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "57fee39dbb8c779acd46efee95f2a7894c7dd4e9cf5658b23179333fe3a93f8a",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-6dgunf5k/0/SYNTHETIC-owned/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/runner.log": {
+      "raw_sha256": "7282768a869d81f31af1dbd3183f755d78d2e82095afbd1134c559afd1ece426",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "a864cfd572af8fa0bc03fc083be56983e869dced23746e82ecc507bdae2315be",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-6dgunf5k/0/runner.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_during_pg_ctl_start_cleans_postmaster/0/executed-source.json": {
+      "raw_sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-otego4od/0/executed-source.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_during_pg_ctl_start_cleans_postmaster/0/execution.log": {
+      "raw_sha256": "1ffd404f3988717f9c09d33bc43d5c98fba5376eb5e5069d36e16632aedb88a4",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "6d5dfb5e767ec2f276812d740abaab9cca387c63dacde875aece6ba854294f6a",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-otego4od/0/SYNTHETIC-owned/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_during_pg_ctl_start_cleans_postmaster/0/fixture-cleanup.json": {
+      "raw_sha256": "d4d1f0001997703de825cf314a9463b0001d6a705b3cd87ef3a87a9976e49779",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "d4d1f0001997703de825cf314a9463b0001d6a705b3cd87ef3a87a9976e49779",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-otego4od/0/fixture-cleanup.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_during_pg_ctl_start_cleans_postmaster/0/owned-resources.json": {
+      "raw_sha256": "616c998206188af6c421eed4204ecc52f7fa4c225735ed2937761d9e13fa3285",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "616c998206188af6c421eed4204ecc52f7fa4c225735ed2937761d9e13fa3285",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-otego4od/0/SYNTHETIC-owned/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_during_pg_ctl_start_cleans_postmaster/0/postgres.log": {
+      "raw_sha256": "3971e3d5a0d024d57dfa99b84616cb1772e039aae78b74c221b61d7e80c9233e",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "3971e3d5a0d024d57dfa99b84616cb1772e039aae78b74c221b61d7e80c9233e",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-otego4od/0/SYNTHETIC-owned/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_during_pg_ctl_start_cleans_postmaster/0/runner.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-otego4od/0/runner.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/executed-source.json": {
+      "raw_sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/0/executed-source.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/execution.log": {
+      "raw_sha256": "bd9ce9979697adebc66e7872d44698d20b40c67ddb4e9e82cd6a0bb63892aed6",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "0bf8c47f6c6ab80f01410141e3ee493a767d7bba2d0c5107e1965b14efadd612",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/0/SYNTHETIC-owned/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/fixture-cleanup.json": {
+      "raw_sha256": "cf190fb903530e124b80cba741ffb8549ea388a19efcbb4cc4cf723776e05367",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "cf190fb903530e124b80cba741ffb8549ea388a19efcbb4cc4cf723776e05367",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/0/fixture-cleanup.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/owned-resources.json": {
+      "raw_sha256": "152e2534389553184b0f6771c3abbd744158a92ed5a1ca1c480ca3c882701caa",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "152e2534389553184b0f6771c3abbd744158a92ed5a1ca1c480ca3c882701caa",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/0/SYNTHETIC-owned/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/postgres.log": {
+      "raw_sha256": "a8ffff6256180ae65660c9ec39169b49c0e05f493f04f4818336c2cc75b777ac",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "a8ffff6256180ae65660c9ec39169b49c0e05f493f04f4818336c2cc75b777ac",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/0/SYNTHETIC-owned/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/runner.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/0/runner.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/executed-source.json": {
+      "raw_sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/1/executed-source.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/execution.log": {
+      "raw_sha256": "0de22eb217eafbfa35d165bf13fa65018f1bc9ff6312ac1a36d69522ccf16406",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "83467ea5a8c57c573fe6f5e6a6424d12c092dc02ff3625346f3924a069b456ab",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/1/SYNTHETIC-owned/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/fixture-cleanup.json": {
+      "raw_sha256": "d4d1f0001997703de825cf314a9463b0001d6a705b3cd87ef3a87a9976e49779",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "d4d1f0001997703de825cf314a9463b0001d6a705b3cd87ef3a87a9976e49779",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/1/fixture-cleanup.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/owned-resources.json": {
+      "raw_sha256": "f10d5a677adce84697270f0c0991199b81bcc7d338bb3858009c46eca08a3e65",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "f10d5a677adce84697270f0c0991199b81bcc7d338bb3858009c46eca08a3e65",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/1/SYNTHETIC-owned/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/postgres.log": {
+      "raw_sha256": "719a5efd0d57e64e24ab1258cf5fe770ab47badf6f4667917933a6e0d939a14f",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "719a5efd0d57e64e24ab1258cf5fe770ab47badf6f4667917933a6e0d939a14f",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/1/SYNTHETIC-owned/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/runner.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-kqa0hjgj/1/runner.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_start_command_failure_after_postmaster_spawn_still_cleans/0/executed-source.json": {
+      "raw_sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "055f41f2fb546872e9853722c1632bd7d03288658eb318a9643b0a4fd92c7644",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-yoxhzkiw/0/executed-source.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_start_command_failure_after_postmaster_spawn_still_cleans/0/execution.log": {
+      "raw_sha256": "4eca5680d57a98915aff3f6c2bdd9c7a94d68a6858123e6977b96fb1431b8141",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "2f73252b0b13af9912cbce08efe122740bee3e0f7611df5865690c04ce3bf599",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-yoxhzkiw/0/SYNTHETIC-owned/execution.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_start_command_failure_after_postmaster_spawn_still_cleans/0/fixture-cleanup.json": {
+      "raw_sha256": "ffdd2858241f32637b7fd5cc49b71ae67e8a462526d36d160a4e4623688eb267",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "ffdd2858241f32637b7fd5cc49b71ae67e8a462526d36d160a4e4623688eb267",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-yoxhzkiw/0/fixture-cleanup.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_start_command_failure_after_postmaster_spawn_still_cleans/0/owned-resources.json": {
+      "raw_sha256": "3248b259db89343a5a9507af3f891dea59f9190387670205c72e84e8f7c30e6b",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "3248b259db89343a5a9507af3f891dea59f9190387670205c72e84e8f7c30e6b",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-yoxhzkiw/0/SYNTHETIC-owned/owned-resources.json"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_start_command_failure_after_postmaster_spawn_still_cleans/0/postgres.log": {
+      "raw_sha256": "429edcee1537e0dc9c09b4ba43c0b3b9b5705da90359a9e96124d3c72540ef00",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "429edcee1537e0dc9c09b4ba43c0b3b9b5705da90359a9e96124d3c72540ef00",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-yoxhzkiw/0/SYNTHETIC-owned/postgres.log"
+    },
+    "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1/test_start_command_failure_after_postmaster_spawn_still_cleans/0/runner.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redaction": "OPERATOR_HOME_AND_WORKTREE_ONLY",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/tmp/SYNTHETIC-s5-cancel-yoxhzkiw/0/runner.log"
+    }
+  },
+  "base_main_sha": "89641834ab7a0bd902a23f9243325da5c163d518",
+  "browser_passed": 26,
+  "case_matrix": [
+    {
+      "case": "test_sigterm_during_pg_ctl_start_cleans_postmaster",
+      "resources": [
+        {
+          "archive": "test_sigterm_during_pg_ctl_start_cleans_postmaster/0/",
+          "baseline_leak_observed": false,
+          "executed_source": {
+            "kind": "CURRENT_RUNTIME_SOURCE",
+            "sha256": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43"
+          },
+          "manifest_exit": 143,
+          "observed_process_exit": 143,
+          "post_fixture_postgres_status": 3
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "case": "test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster",
+      "resources": [
+        {
+          "archive": "test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/0/",
+          "baseline_leak_observed": false,
+          "executed_source": {
+            "kind": "CURRENT_RUNTIME_SOURCE",
+            "sha256": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43"
+          },
+          "manifest_exit": 0,
+          "observed_process_exit": 0,
+          "post_fixture_postgres_status": 3
+        },
+        {
+          "archive": "test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster/1/",
+          "baseline_leak_observed": false,
+          "executed_source": {
+            "kind": "CURRENT_RUNTIME_SOURCE",
+            "sha256": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43"
+          },
+          "manifest_exit": 143,
+          "observed_process_exit": 143,
+          "post_fixture_postgres_status": 3
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "case": "test_failed_test_exit_still_cleans_postgres_and_preserves_failure",
+      "resources": [
+        {
+          "archive": "test_failed_test_exit_still_cleans_postgres_and_preserves_failure/0/",
+          "baseline_leak_observed": false,
+          "executed_source": {
+            "kind": "CURRENT_RUNTIME_SOURCE",
+            "sha256": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43"
+          },
+          "manifest_exit": 7,
+          "observed_process_exit": 7,
+          "post_fixture_postgres_status": 3
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "case": "test_start_command_failure_after_postmaster_spawn_still_cleans",
+      "resources": [
+        {
+          "archive": "test_start_command_failure_after_postmaster_spawn_still_cleans/0/",
+          "baseline_leak_observed": false,
+          "executed_source": {
+            "kind": "CURRENT_RUNTIME_SOURCE",
+            "sha256": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43"
+          },
+          "manifest_exit": 1,
+          "observed_process_exit": 1,
+          "post_fixture_postgres_status": 3
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "case": "test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup",
+      "resources": [
+        {
+          "archive": "test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup/0/",
+          "baseline_leak_observed": true,
+          "executed_source": {
+            "commit": "97eb4417344f5950927cd65cf77ea3fdfa6f7d44",
+            "kind": "FIXED_GIT_BASELINE_REPRO_ONLY",
+            "old_runner_manifest_inventories_current_worktree_not_executed_blob": true,
+            "sha256": "923dfccf9ac2e212e969f94e702836f2b981ede59301f36427e749c29a2e4913"
+          },
+          "manifest_exit": 1,
+          "observed_process_exit": -2,
+          "post_fixture_postgres_status": 3
+        }
+      ],
+      "result": "PASS"
+    },
+    {
+      "case": "test_unverified_owned_resource_never_invokes_stop[directory]",
+      "resources": [],
+      "result": "PASS"
+    },
+    {
+      "case": "test_unverified_owned_resource_never_invokes_stop[pid_identity]",
+      "resources": [],
+      "result": "PASS"
+    },
+    {
+      "case": "test_reused_pid_cannot_stop_an_unrelated_process",
+      "resources": [],
+      "result": "PASS"
+    }
+  ],
+  "ci": {
+    "old_green_reused": false,
+    "status": "PENDING_AT_COMMIT_REQUIRE_NEW_EXACT_HEAD_RECEIPT"
+  },
+  "cleanup_contract": {
+    "business_process_group_cancelled": true,
+    "exclusive_directory_device_inode": true,
+    "global_or_port_based_process_killing": false,
+    "independent_cluster_untouched": true,
+    "pid_reuse_rejected": true,
+    "postmaster_pid_file_and_process_data_directory": true,
+    "private_evidence_preserved": true,
+    "process_pid_file_and_listener_verified_after_stop": true,
+    "repeated_sigterm_sigint_do_not_interrupt_cleanup": true,
+    "started_boolean_not_authoritative": true,
+    "startup_settled_before_directory_scoped_stop": true
+  },
+  "frozen_history_count": 260,
+  "governance": {
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "s5_formal_complete": false,
+    "s6_authorized": false
+  },
+  "historical_expected_hashes_changed": false,
+  "historical_original_source_sha256": "923dfccf9ac2e212e969f94e702836f2b981ede59301f36427e749c29a2e4913",
+  "historical_source_checkpoint": "97eb4417344f5950927cd65cf77ea3fdfa6f7d44",
+  "limitations": {
+    "platform": "LOCAL_MACOS_POSIX_PLUS_PENDING_LINUX_EXACT_HEAD_CI",
+    "production_code_changed": false,
+    "production_readiness": "NOT_READY",
+    "real_accounts_or_production_database_accessed": false,
+    "sigkill_power_loss_cleanup_guaranteed": false
+  },
+  "local_backend_passed": 237,
+  "pr_number": 726,
+  "previous_evidence_sha256": "21b59334f395871a5e36433cd93ad001e74fc540bc1737ae9722bda040cb97db",
+  "previous_pr_head": "97eb4417344f5950927cd65cf77ea3fdfa6f7d44",
+  "previous_s5_artifact_count": 93,
+  "source_evidence_sha256": {
+    "backend/tests/forecast_intelligence/test_v0_18_s5_cleanup_correction_contract.py": "93b5023c45b81607fc7503ad79d58d8407b738769e017a37f68c9e6cc860c95e",
+    "backend/tests/forecast_intelligence/test_v0_18_s5_safe_pilot_contract.py": "14bab0c58995c544adb61fa48e6d43f0318b039ba0cfe0ad6b1e1ef3b8420b10",
+    "backend/tests/safe_pilot/cleanup_evidence.py": "aba468d8adfd98c7b38ccc5092e59b1ce885b250223a54cd7c57ae7f776480bd",
+    "backend/tests/safe_pilot/evidence.py": "1cec6983dae8288a5990ce1432be62b0b2ecb03fc0806edb19e496846896dca9",
+    "backend/tests/safe_pilot/run.py": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43",
+    "backend/tests/safe_pilot/test_runner_cleanup.py": "7f45b2067844da5c2e91ce217d4a04d617f873264e9ae4d8c843686d0b368ad9",
+    "docs/v0-18/s5/sigterm-owned-postgres-cleanup-correction-r1.md": "7585c0dbc5dc30db042fb0b34b8b3b82355382139c78f7ca0859212d9ef6a06d"
+  },
+  "synthetic": true,
+  "task_id": "V0_18_S5_SIGTERM_OWNED_POSTGRES_CLEANUP_CORRECTION_R1"
+}

@@ -1,0 +1,6 @@
+{
+  "postgres_status_after_fixture_cleanup": 3,
+  "postmaster_absent_after_fixture_cleanup": true,
+  "postmaster_existed_before_fixture_cleanup": false,
+  "runner_process_exit": 0
+}
