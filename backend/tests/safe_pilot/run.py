@@ -9,11 +9,13 @@ import hashlib
 import json
 import os
 import secrets
+import shlex
 import shutil
 import signal
 import socket
 import subprocess
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -27,16 +29,180 @@ TESTS = [
 ]
 
 
-def command(arguments, environment, log, *, cwd=ROOT):
+class Cancellation:
+    """Signal handlers request cancellation; they never interrupt finalization."""
+
+    def __init__(self):
+        self.signum = None
+        self.count = 0
+        self.business_cancelled = False
+
+    def request(self, signum, frame):
+        del frame
+        if self.signum is None:
+            self.signum = signum
+        self.count += 1
+
+    @property
+    def exit_code(self):
+        return 128 + self.signum if self.signum is not None else 0
+
+
+class RunCancelled(Exception):
+    """Control flow only; cleanup determines the final observable exit code."""
+
+
+def command(arguments, environment, log, *, cwd=ROOT, cancellation=None, cancellable=True):
+    if cancellable and cancellation is not None and cancellation.signum is not None:
+        return cancellation.exit_code
     with log.open("ab") as output:
-        return subprocess.run(
+        with subprocess.Popen(
             arguments,
             cwd=cwd,
             env=environment,
             stdout=output,
             stderr=subprocess.STDOUT,
+            start_new_session=True,
+        ) as process:
+            terminated_at = None
+            while True:
+                if (
+                    cancellable
+                    and cancellation is not None
+                    and cancellation.signum is not None
+                    and terminated_at is None
+                ):
+                    # Only this command's newly created process group, never a
+                    # port/process-name search. PostgreSQL control is NOT cancelled:
+                    # settle startup first, then stop via verified data directory.
+                    cancellation.business_cancelled = True
+                    try:
+                        os.killpg(process.pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+                    terminated_at = time.monotonic()
+                try:
+                    result = process.wait(timeout=0.1)
+                    return cancellation.exit_code if terminated_at is not None else result
+                except subprocess.TimeoutExpired:
+                    if terminated_at is not None and time.monotonic() - terminated_at > 5:
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+
+
+class OwnedPostgres:
+    """Exclusive directory identity survives cancellation before pg_ctl returns."""
+
+    def __init__(self, root, data, port):
+        self.root, self.data, self.port = root.resolve(), data.resolve(), port
+        self.root_identity = self._identity(self.root)
+        self.data_identity = self._identity(self.data)
+        self.version = (self.data / "PG_VERSION").read_bytes()
+
+    @staticmethod
+    def _identity(directory):
+        if directory.is_symlink():
+            raise RuntimeError("OWNED_DIRECTORY_REPLACED")
+        info = directory.stat()
+        if not directory.is_dir() or info.st_uid != os.getuid():
+            raise RuntimeError("OWNED_DIRECTORY_INVALID")
+        return info.st_dev, info.st_ino
+
+    def verify(self):
+        if (
+            self._identity(self.root) != self.root_identity
+            or self._identity(self.data) != self.data_identity
+            or (self.data / "PG_VERSION").is_symlink()
+            or (self.data / "PG_VERSION").read_bytes() != self.version
+        ):
+            raise RuntimeError("OWNED_DIRECTORY_REPLACED")
+        pid_file = self.data / "postmaster.pid"
+        if pid_file.is_symlink():
+            raise RuntimeError("POSTMASTER_IDENTITY_INVALID")
+        if pid_file.exists():
+            lines = pid_file.read_text().splitlines()
+            if (
+                len(lines) < 2
+                or not lines[0].isdigit()
+                or int(lines[0]) <= 1
+                or Path(lines[1]).resolve() != self.data
+                # Startup appends listener/socket lines after the PID/directory.
+                # Their absence must not hide a verifiable owned postmaster.
+                or (len(lines) > 3 and lines[3] and lines[3] != str(self.port))
+                or (len(lines) > 4 and lines[4] and Path(lines[4]).resolve() != self.root)
+                or (len(lines) > 5 and lines[5] and lines[5] != "127.0.0.1")
+            ):
+                raise RuntimeError("POSTMASTER_IDENTITY_INVALID")
+            return int(lines[0])
+        return None
+
+    def verify_process(self, pid):
+        observed = subprocess.run(
+            ["ps", "-ww", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
             check=False,
-        ).returncode
+            start_new_session=True,
+        )
+        arguments = shlex.split(observed.stdout.strip())
+        # A stale PID file must never turn PID reuse into an unrelated stop.
+        if (
+            observed.returncode
+            or not arguments
+            or Path(arguments[0]).name not in {"postgres", "postmaster"}
+            or "-D" not in arguments
+            or arguments.index("-D") + 1 >= len(arguments)
+            or Path(arguments[arguments.index("-D") + 1]).resolve() != self.data
+        ):
+            raise RuntimeError("POSTMASTER_PROCESS_UNVERIFIED")
+
+    def cleanup(self, environment, log, cancellation):
+        pid = self.verify()
+        state = command(
+            ["pg_ctl", "-D", str(self.data), "status"],
+            environment,
+            log,
+            cancellation=cancellation,
+            cancellable=False,
+        )
+        if state not in (0, 3) or (state == 0 and pid is None):
+            raise RuntimeError("POSTMASTER_STATUS_UNVERIFIED")
+        stopped = 0
+        if pid is not None:
+            self.verify()  # do not trust a stale in-memory 'started' flag
+            self.verify_process(pid)
+            stopped = command(
+                ["pg_ctl", "-D", str(self.data), "-m", "fast", "-t", "60", "-w", "stop"],
+                environment,
+                log,
+                cancellation=cancellation,
+                cancellable=False,
+            )
+        self.verify()
+        remaining = command(
+            ["pg_ctl", "-D", str(self.data), "status"],
+            environment,
+            log,
+            cancellation=cancellation,
+            cancellable=False,
+        )
+        with socket.socket() as probe:
+            probe.settimeout(2)
+            closed = probe.connect_ex(("127.0.0.1", self.port)) != 0
+        absent = not (self.data / "postmaster.pid").exists() and remaining == 3
+        verified = stopped == 0 and absent and closed
+        return {
+            "state": "STOPPED" if verified else "FAILED",
+            "directory_identity_verified": True,
+            "root_device_inode": self.root_identity,
+            "data_device_inode": self.data_identity,
+            "postmaster_pid": pid,
+            "postmaster_absent": absent,
+            "listener_closed": closed,
+            "stop_exit": stopped,
+        }, 0 if verified else 1
 
 
 def main():
@@ -135,17 +301,21 @@ def main():
     }
     report["started_at_utc"] = datetime.now(UTC).isoformat()
     report["python"] = sys.version
+    owned = OwnedPostgres(root, data, port)
+    report["ownership"] = {
+        "root_device_inode": owned.root_identity,
+        "data_device_inode": owned.data_identity,
+        "pg_version_sha256": hashlib.sha256(owned.version).hexdigest(),
+    }
     # This manifest identifies exact owned resources before starting any listener.
     manifest = root / "owned-resources.json"
     manifest.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
-    started = False
+    cancellation = Cancellation()
     status = 1
-
-    def terminate(signum, frame):
-        del signum, frame
-        raise KeyboardInterrupt("SYNTHETIC_RUN_CANCELLED")
-
-    signal.signal(signal.SIGTERM, terminate)
+    old_handlers = {
+        number: signal.signal(number, cancellation.request)
+        for number in (signal.SIGTERM, signal.SIGINT)
+    }
     try:
         status = command(
             [
@@ -156,15 +326,22 @@ def main():
                 str(root / "postgres.log"),
                 "-o",
                 f"-h 127.0.0.1 -p {port} -k {root}",
+                "-t",
+                "60",
                 "-w",
                 "start",
             ],
             environment,
             log,
+            cancellation=cancellation,
+            cancellable=False,
         )
-        started = status == 0
-        if not started:
+        if status:
             raise RuntimeError("ISOLATED_POSTGRES_START_FAILED")
+        if cancellation.signum is not None:
+            status = cancellation.exit_code
+            raise RunCancelled
+        status = 1
         status = command(
             [
                 sys.executable,
@@ -177,6 +354,7 @@ def main():
             ],
             environment,
             log,
+            cancellation=cancellation,
         )
         report["backend_exit"] = status
         if status == 0 and args.browser:
@@ -193,24 +371,48 @@ def main():
                 environment,
                 root / "browser.log",
                 cwd=ROOT / "frontend",
+                cancellation=cancellation,
             )
             report["browser_exit"] = status
+    except RunCancelled:
+        status = cancellation.exit_code
+    except Exception as error:
+        report["run_error_type"] = type(error).__name__
+        status = 1
     finally:
-        if started:
-            stopped = command(
-                ["pg_ctl", "-D", str(data), "-m", "fast", "-w", "stop"], environment, log
-            )
-            report["shutdown_exit"] = stopped
-            if stopped:
-                status = stopped
-        report["execution_sha256"] = hashlib.sha256(log.read_bytes()).hexdigest()
-        report["exit"] = status
-        report["finished_at_utc"] = datetime.now(UTC).isoformat()
-        manifest.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
-        # Preserve private cluster/dump/log evidence. No recursive deletion.
-        from backend.tests.safe_pilot.operations import assert_redacted
+        try:
+            try:
+                report["cleanup"], stopped = owned.cleanup(environment, log, cancellation)
+                report["shutdown_exit"] = stopped
+                if stopped:
+                    status = stopped
+            except Exception as error:
+                # Persist the failure, never silently kill an unverified process.
+                report["cleanup"] = {"state": "FAILED", "error_type": type(error).__name__}
+                report["shutdown_exit"] = status = 1
+            if cancellation.signum is not None and report["shutdown_exit"] == 0:
+                status = cancellation.exit_code
+            report["cancel_signal"] = cancellation.signum
+            report["signal_count"] = cancellation.count
+            report["business_cancelled"] = cancellation.business_cancelled
+            # Redaction failure also gets an honest manifest/exit result, AFTER
+            # resource cleanup. Never remove logs to conceal a failed check.
+            from backend.tests.safe_pilot.operations import assert_redacted
 
-        assert_redacted(log.read_text(), [password])
+            try:
+                assert_redacted(log.read_text(), [password])
+                report["execution_secret_scan"] = "PASS"
+            except AssertionError:
+                report["execution_secret_scan"] = "FAIL"
+                status = 1
+            report["execution_sha256"] = hashlib.sha256(log.read_bytes()).hexdigest()
+            report["exit"] = status
+            report["finished_at_utc"] = datetime.now(UTC).isoformat()
+            manifest.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+            # Preserve private cluster/dump/log evidence. No recursive deletion.
+        finally:
+            for number, handler in old_handlers.items():
+                signal.signal(number, handler)
     raise SystemExit(status)
 
 

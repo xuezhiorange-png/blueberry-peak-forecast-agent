@@ -12,6 +12,8 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from backend.tests.historical_source import historical_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "89641834ab7a0bd902a23f9243325da5c163d518"
 # Only the offline publisher changed after the runtime run; its exact then-current
@@ -19,6 +21,18 @@ BASE = "89641834ab7a0bd902a23f9243325da5c163d518"
 PUBLISHER_CHECKPOINT = "23f2384517fc24badaa130a20d137b81260e7f7d"
 ARCHIVE = ROOT / "docs/v0-18/evidence/s5-safe-pilot-r1-r2"
 EVIDENCE = ROOT / "docs/v0-18/evidence/s5-isolated-synthetic-safe-pilot-r1.json"
+# R1 acceptance is immutable after the separately authorized cancellation fix.
+# Only these reviewed test/publisher sources may evolve; original documents and
+# artifacts still MUST match their current worktree bytes. New cleanup runtime
+# acceptance has its own evidence and never inherits this historical PASS.
+R1_CHECKPOINT = "97eb4417344f5950927cd65cf77ea3fdfa6f7d44"
+R1_EVOLVING_SOURCES = frozenset(
+    {
+        "backend/tests/safe_pilot/run.py",
+        "backend/tests/safe_pilot/evidence.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s5_safe_pilot_contract.py",
+    }
+)
 
 
 def sha(raw):
@@ -38,7 +52,20 @@ def junit(raw):
     }
 
 
-def sources():
+def source_bytes(relative, checkpoint):
+    if checkpoint is not None:
+        assert checkpoint == R1_CHECKPOINT, "UNREVIEWED_S5_SOURCE_CHECKPOINT"
+        if relative in R1_EVOLVING_SOURCES:
+            return historical_bytes(relative, checkpoint, root=ROOT)
+    return (ROOT / relative).read_bytes()
+
+
+def sources(checkpoint=None):
+    if checkpoint is not None:
+        assert checkpoint == R1_CHECKPOINT, "UNREVIEWED_S5_SOURCE_CHECKPOINT"
+        # Use exactly the original source set, not newly added correction tests.
+        previous = json.loads(historical_bytes(str(EVIDENCE.relative_to(ROOT)), checkpoint))
+        return {p: sha(source_bytes(p, checkpoint)) for p in previous["source_evidence_sha256"]}
     files = []
     for relative in ("backend/tests/safe_pilot", "docs/v0-18/s5"):
         files.extend(
@@ -48,7 +75,7 @@ def sources():
     return {str(p.relative_to(ROOT)): sha(p.read_bytes()) for p in sorted(files)}
 
 
-def generate(index):
+def generate(index, *, source_checkpoint=None):
     previous = json.loads(
         (ROOT / "docs/v0-18/evidence/s4-dashboard-authorized-business-flow-r1.json").read_text()
     )
@@ -78,7 +105,7 @@ def generate(index):
     assert any("revoke_during_canonical_read" in c for c in backend["cases"])
     manifest = json.loads((ARCHIVE / "owned-resources.json").read_text())
     for path, expected in manifest["source_sha256"].items():
-        assert sha((ROOT / path).read_bytes()) == expected, path
+        assert sha(source_bytes(path, source_checkpoint)) == expected, path
     assert (
         manifest["backend_exit"]
         == manifest["browser_exit"]
@@ -96,7 +123,7 @@ def generate(index):
             "owner_s5_implementation_authorized": True,
             "real_pilot_deploy_authorized": False,
         },
-        "source_evidence_sha256": sources(),
+        "source_evidence_sha256": sources(source_checkpoint),
         "offline_publisher_correction": {
             "first_publisher_source_checkpoint": PUBLISHER_CHECKPOINT,
             "final_runtime_source_matches_current_bytes": True,

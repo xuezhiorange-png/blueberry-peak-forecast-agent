@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.tests.safe_pilot.evidence import ARCHIVE, EVIDENCE, ROOT, generate
+from backend.tests.safe_pilot.evidence import ARCHIVE, EVIDENCE, R1_CHECKPOINT, ROOT, generate
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
@@ -16,7 +16,10 @@ def test_s5_canonical_sources_history_and_actual_artifact_bindings():
     value = json.loads(raw)
     assert raw == (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
     index = json.loads((ARCHIVE / "artifact-index.json").read_text())
-    assert value == generate(index)
+    # Original R1 source integrity is not current cancellation-fix acceptance.
+    # Only the three explicitly evolving test sources use the reviewed R1 blob;
+    # all frozen documents, artifacts and other runtime sources stay byte-bound.
+    assert value == generate(index, source_checkpoint=R1_CHECKPOINT)
     assert len(value["frozen_history_sha256"]) == 260
     assert value["local_backend"]["passed"] >= 16
     assert value["local_backend"]["failed"] == value["local_backend"]["skipped"] == 0
