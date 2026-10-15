@@ -1,0 +1,37 @@
+[WebServer] (node:58527) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 26 tests using 1 worker
+
+(node:58528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:123:1 › actual HTTPS Cookie CSRF login list selection canonical values and logout (2.3s)
+  ✓   2 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:193:3 › HTTPS actual canonical cancel/reopen button, late response and previous context (1.2s)
+  ✓   3 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:193:3 › HTTPS actual canonical cancel/reopen escape, late response and previous context (868ms)
+  ✓   4 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:193:3 › HTTPS actual canonical cancel/reopen native, late response and previous context (911ms)
+  ✓   5 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:225:1 › forced first password change and ADMIN no implicit grant (670ms)
+  ✓   6 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 1440x900 (1.1s)
+  ✓   7 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 1280x800 (1.1s)
+  ✓   8 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 1024x768 (1.0s)
+  ✓   9 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 834x1112 (1.0s)
+  ✓  10 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 390x844 (957ms)
+  ✓  11 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 360x800 (1.0s)
+  ✓  12 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:279:1 › real revoked PG session removes old sensitive DOM and refresh never restores selection (759ms)
+  ✓  13 [chromium-desktop] › e2e/dashboard-business-flow.spec.ts:298:1 › login error, authorized selector and keyboard large-text visual evidence (670ms)
+(node:58631) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  14 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:123:1 › actual HTTPS Cookie CSRF login list selection canonical values and logout (2.0s)
+  ✓  15 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:193:3 › HTTPS actual canonical cancel/reopen button, late response and previous context (1.0s)
+  ✓  16 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:193:3 › HTTPS actual canonical cancel/reopen escape, late response and previous context (882ms)
+  ✓  17 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:193:3 › HTTPS actual canonical cancel/reopen native, late response and previous context (896ms)
+  ✓  18 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:225:1 › forced first password change and ADMIN no implicit grant (671ms)
+  ✓  19 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 1440x900 (1.0s)
+  ✓  20 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 1280x800 (993ms)
+  ✓  21 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 1024x768 (992ms)
+  ✓  22 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 834x1112 (994ms)
+  ✓  23 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 390x844 (958ms)
+  ✓  24 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:251:3 › HTTPS five pages no overflow 360x800 (957ms)
+  ✓  25 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:279:1 › real revoked PG session removes old sensitive DOM and refresh never restores selection (726ms)
+  ✓  26 [chromium-mobile] › e2e/dashboard-business-flow.spec.ts:298:1 › login error, authorized selector and keyboard large-text visual evidence (636ms)
+
+  26 passed (49.3s)
