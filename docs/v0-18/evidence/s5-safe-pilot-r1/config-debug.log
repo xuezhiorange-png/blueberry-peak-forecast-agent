@@ -1,0 +1,85 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_untrusted_host_origin_proxy_and_missing_secrets _____________
+
+pg_auth = (<backend.app.local_auth.service.AuthService object at 0x1178678f0>, async_sessionmaker(class_='AsyncSession', bind=<s...ckend.app.local_auth.models.AuthAccount object at 0x1172b7ad0>, 'blueberry_test_auth_2181b096da624ae8b3cfcba6be89b487')
+tmp_path = PosixPath('<PRIVATE_TEST_TMP>')
+caplog = <_pytest.logging.LogCaptureFixture object at 0x117f6a0f0>
+
+    async def test_untrusted_host_origin_proxy_and_missing_secrets(pg_auth, tmp_path, caplog):
+        auth, factory, _, user, _ = pg_auth
+        selected, _ = await seed(factory, user)
+        async with tls_server(application(auth), tmp_path) as (origin, cert, _):
+            auth.settings.local_auth_origin = origin
+            async with httpx.AsyncClient(
+                base_url=origin, verify=ssl.create_default_context(cafile=str(cert))
+            ) as http:
+                transmitted = []
+    
+                async def capture(request):
+                    for name in ("cookie", "x-csrf-token"):
+                        if request.headers.get(name):
+                            transmitted.append(request.headers[name])
+    
+                http.event_hooks["request"].append(capture)
+                cookie = await sign_in(http)
+                for headers in (
+                    {"Host": "evil.invalid"},
+                    {"Origin": "https://evil.invalid"},
+                    {"X-Actor": "ADMIN"},
+                    {"X-Principal-Id": user.principal_id},
+                ):
+                    assert (await http.get("/api/v1/auth/me", headers=headers)).status_code == 403
+                http.cookies.clear()
+                assert (
+                    await http.get(
+                        "/api/v1/forecast-intelligence/curve",
+                        params=selected.model_dump(mode="json"),
+                        headers={"X-Forwarded-Proto": "https", "X-Forwarded-User": user.principal_id},
+                    )
+                ).status_code == 401
+                auth.settings.local_auth_login_bucket_secret = SecretStr("")
+                assert (await http.get("/api/v1/auth/csrf")).status_code == 503
+                auth.settings.local_auth_login_bucket_secret = SecretStr("SYNTHETIC_RESTORED_SECRET")
+                await sign_in(http)
+                auth.settings.local_auth_organization_ids_json = "NOT_JSON"
+                denied = await http.get(
+                    "/api/v1/forecast-intelligence/curve", params=selected.model_dump(mode="json")
+                )
+                assert denied.status_code == 503 and denied.json()["data"] is None
+                auth.settings.local_auth_organization_ids_json = '["SYNTHETIC_ORG"]'
+                auth.settings.business_access_signing_key = SecretStr("")
+                assert (await http.get("/api/v1/business-access/saved-runs")).status_code == 503
+                auth.settings.business_access_signing_key = SecretStr("SYNTHETIC_REPAIRED_SIGNING_" * 3)
+                assert (await http.get("/api/v1/business-access/saved-runs")).status_code == 200
+                csrf = (await http.get("/api/v1/auth/csrf")).json()["data"]["csrf_token"]
+                assert (
+                    await http.post(
+                        "/api/v1/auth/logout", json={}, headers={"Origin": origin, "X-CSRF-Token": csrf}
+                    )
+                ).status_code == 200
+                await sign_in(http, "synthetic-admin")
+                auth.settings.local_auth_simple_admin_catalog_json = SecretStr("NOT_JSON")
+                assert (await http.get("/api/v1/admin/users")).status_code == 503
+>               with pytest.raises(httpx.HTTPError):
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               Failed: DID NOT RAISE HTTPError
+
+backend/tests/safe_pilot/test_restore_and_ingress.py:423: Failed
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_untrusted_host_origin_proxy_and_missing_secrets
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_untrusted_host_origin_proxy_and_missing_secrets
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/safe_pilot/test_restore_and_ingress.py::test_untrusted_host_origin_proxy_and_missing_secrets
+1 failed, 14 warnings in 5.85s

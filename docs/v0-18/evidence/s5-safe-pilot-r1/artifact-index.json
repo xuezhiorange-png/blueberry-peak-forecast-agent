@@ -1,0 +1,611 @@
+{
+  "docs/v0-18/evidence/s5-safe-pilot-r1/backend.xml": {
+    "raw_source_sha256": "11ae10bf7712a87bbca853efbe7a06309e70fbc0143aad1b64b121f9839f20de",
+    "sha256": "11ae10bf7712a87bbca853efbe7a06309e70fbc0143aad1b64b121f9839f20de",
+    "source_path": "backend.xml",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser.log": {
+    "raw_source_sha256": "fbecc0e47afdf94903c887c830c41dc0faf7a12abcd81adaebdebc655e9e36b3",
+    "sha256": "fbecc0e47afdf94903c887c830c41dc0faf7a12abcd81adaebdebc655e9e36b3",
+    "source_path": "browser.log",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/产能模拟-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "bc270f5f5350db4fa0471f51ff857e3d8461f1715a85d058c1ea71410bad4ad3",
+    "sha256": "bc270f5f5350db4fa0471f51ff857e3d8461f1715a85d058c1ea71410bad4ad3",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/产能模拟-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/影响因素-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "0b46360c749385892c389b94b0f71a91ac915eb4263ce400dc8bfed280f6ef76",
+    "sha256": "0b46360c749385892c389b94b0f71a91ac915eb4263ce400dc8bfed280f6ef76",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/影响因素-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/总览-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "39c228bf224e06af8055d20abfbee3a5f3c5aef334fbd6896747eccb9218e90a",
+    "sha256": "39c228bf224e06af8055d20abfbee3a5f3c5aef334fbd6896747eccb9218e90a",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/总览-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "fe579bf525bd5e591ff24c8b49b61070e836f1672f2867f18236b2a3ef261f3c",
+    "sha256": "fe579bf525bd5e591ff24c8b49b61070e836f1672f2867f18236b2a3ef261f3c",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测质量-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "986020e39c15b0db01754107c56995d59d26d7351efbee55e5bd5ff85fbe5baf",
+    "sha256": "986020e39c15b0db01754107c56995d59d26d7351efbee55e5bd5ff85fbe5baf",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测质量-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/产能模拟-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "40bbc9244618bf35f152d395e2e8c38366bc842ca9fd1d3b687655f14d64e71c",
+    "sha256": "40bbc9244618bf35f152d395e2e8c38366bc842ca9fd1d3b687655f14d64e71c",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/产能模拟-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/影响因素-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "cf2a42e7ecb6cf6994a03b3152f01254448771bc94e3326ee97fdb64a73c6902",
+    "sha256": "cf2a42e7ecb6cf6994a03b3152f01254448771bc94e3326ee97fdb64a73c6902",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/影响因素-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/总览-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "f0d2c5a406a58a9a9130f84b0909cc875c1bfd7f1bdc919a90f044e1f86839a8",
+    "sha256": "f0d2c5a406a58a9a9130f84b0909cc875c1bfd7f1bdc919a90f044e1f86839a8",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/总览-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "31765a5eba906a7dd3ce08a35007eb1fd3fe3074b13de3fec3b87966e62c6e3e",
+    "sha256": "31765a5eba906a7dd3ce08a35007eb1fd3fe3074b13de3fec3b87966e62c6e3e",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测质量-834x1112-SYNTHETIC.png": {
+    "raw_source_sha256": "a5ceaa6d8c34b2c6048d65702a6818cfd42ba6b64ddcd0d4040ad83465b95f28",
+    "sha256": "a5ceaa6d8c34b2c6048d65702a6818cfd42ba6b64ddcd0d4040ad83465b95f28",
+    "source_path": "browser/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测质量-834x1112-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/产能模拟-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "53f4a17bb60233c0fbeae0e120ffc58f7534b5645809f66205a3339837f96285",
+    "sha256": "53f4a17bb60233c0fbeae0e120ffc58f7534b5645809f66205a3339837f96285",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/产能模拟-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/影响因素-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "13d772e42b7d38d84a2b444b68c5f4ba9bbc867f1c3da70682246a3de7cf1b3e",
+    "sha256": "13d772e42b7d38d84a2b444b68c5f4ba9bbc867f1c3da70682246a3de7cf1b3e",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/影响因素-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/总览-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "f0782536441e9e293c7bcf7d4894fd3f7fa6a9dfa0eaeda2677edd5604a177d3",
+    "sha256": "f0782536441e9e293c7bcf7d4894fd3f7fa6a9dfa0eaeda2677edd5604a177d3",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/总览-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "b73c134dfa3b0f48a7279d517e8ab2645421882bec2e80ea1dd0c0f24c575ed3",
+    "sha256": "b73c134dfa3b0f48a7279d517e8ab2645421882bec2e80ea1dd0c0f24c575ed3",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测质量-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "a270b923e326a8672f6e958fc392a7a6831f48dfe5a1cfb5102900d992369228",
+    "sha256": "a270b923e326a8672f6e958fc392a7a6831f48dfe5a1cfb5102900d992369228",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测质量-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/产能模拟-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "340ffce0ed1ab4ca3274cc2b3b02f5c07e2f10f9c386d1c1a59ddf8b9ba1f133",
+    "sha256": "340ffce0ed1ab4ca3274cc2b3b02f5c07e2f10f9c386d1c1a59ddf8b9ba1f133",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/产能模拟-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/影响因素-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "f7dc9c61c0b768f6b0cb7b69e49c46595b4dded2c62e6c88d75a6f94b42b728f",
+    "sha256": "f7dc9c61c0b768f6b0cb7b69e49c46595b4dded2c62e6c88d75a6f94b42b728f",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/影响因素-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/总览-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "8934eb441acaec79f53cc1d4e6b9829f8da576fd68098aa77e7ef4cb6769d25f",
+    "sha256": "8934eb441acaec79f53cc1d4e6b9829f8da576fd68098aa77e7ef4cb6769d25f",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/总览-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "1a3a8b91ac2a335a112e19550e53167f6dbb37729ff0b3ede7771a2fdf8dc321",
+    "sha256": "1a3a8b91ac2a335a112e19550e53167f6dbb37729ff0b3ede7771a2fdf8dc321",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测质量-1024x768-SYNTHETIC.png": {
+    "raw_source_sha256": "c7b35745312843cffef51f79d39e02ff9b4bf2fcd4538c90cbf74a56085f5379",
+    "sha256": "c7b35745312843cffef51f79d39e02ff9b4bf2fcd4538c90cbf74a56085f5379",
+    "source_path": "browser/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测质量-1024x768-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/产能模拟-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "cc6a582dd7ea36a305e9ca91229fbb6223ef74cc83c576854d78460b1144ae3d",
+    "sha256": "cc6a582dd7ea36a305e9ca91229fbb6223ef74cc83c576854d78460b1144ae3d",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/产能模拟-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/影响因素-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "f623736b3f1ca7a8d4cd7b2b75cbf705f64fc2dea944a04c17c13a1dd34f5f6a",
+    "sha256": "f623736b3f1ca7a8d4cd7b2b75cbf705f64fc2dea944a04c17c13a1dd34f5f6a",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/影响因素-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/总览-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "39b334273827777df1efa73444dc0a2ade444562495c7a879aad59dfca3c4518",
+    "sha256": "39b334273827777df1efa73444dc0a2ade444562495c7a879aad59dfca3c4518",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/总览-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "09a08f814291b45af5231a91f24c9833a09b19186a72a35c4d7e273a826306bb",
+    "sha256": "09a08f814291b45af5231a91f24c9833a09b19186a72a35c4d7e273a826306bb",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测质量-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "e5ea526fda2a72949c43ddfeaef234d965fe804f5c1cc72bb0434b36dcd8cb65",
+    "sha256": "e5ea526fda2a72949c43ddfeaef234d965fe804f5c1cc72bb0434b36dcd8cb65",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测质量-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/产能模拟-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "6e20a1885cdd12d40465649b646de87ba6f18ea7d39638f30bb1ca8e47d2f5a6",
+    "sha256": "6e20a1885cdd12d40465649b646de87ba6f18ea7d39638f30bb1ca8e47d2f5a6",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/产能模拟-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/影响因素-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "9d17878ce4203c68ae84f3fcd3bd81b5d3f8ac0b2de69459230b73d64e4fbb6e",
+    "sha256": "9d17878ce4203c68ae84f3fcd3bd81b5d3f8ac0b2de69459230b73d64e4fbb6e",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/影响因素-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/总览-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "e10d35853384e6726b1a0cfd8d25a2627f2983e4e26a0e0de15f335c343f6dfc",
+    "sha256": "e10d35853384e6726b1a0cfd8d25a2627f2983e4e26a0e0de15f335c343f6dfc",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/总览-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "855f3957de04209528b47e33ed13f2fbb01a3ee321b6697ed4e9eb1b57d0ee77",
+    "sha256": "855f3957de04209528b47e33ed13f2fbb01a3ee321b6697ed4e9eb1b57d0ee77",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测质量-1280x800-SYNTHETIC.png": {
+    "raw_source_sha256": "e100ce770e01edb3ab50a68cea345257bb397d412468f9767e2bd8ab4b0c79b8",
+    "sha256": "e100ce770e01edb3ab50a68cea345257bb397d412468f9767e2bd8ab4b0c79b8",
+    "source_path": "browser/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测质量-1280x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/产能模拟-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "192db73cbf250a3d546c3b399da3e6c289b2b372c0d2600e795227b43735c068",
+    "sha256": "192db73cbf250a3d546c3b399da3e6c289b2b372c0d2600e795227b43735c068",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/产能模拟-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/影响因素-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "4c6ef8317942c32d8855c405cfb9eb63e7e1843280649060f39703dde82a729c",
+    "sha256": "4c6ef8317942c32d8855c405cfb9eb63e7e1843280649060f39703dde82a729c",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/影响因素-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/总览-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "03caa07866d1aeae0ef240c92274e3dfc4e18e533dea41fef4c93a7e38ad29cb",
+    "sha256": "03caa07866d1aeae0ef240c92274e3dfc4e18e533dea41fef4c93a7e38ad29cb",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/总览-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "fee6d56b3dfd4813452144016161f220817e5e3560cb458f6f94d139721da3ce",
+    "sha256": "fee6d56b3dfd4813452144016161f220817e5e3560cb458f6f94d139721da3ce",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测质量-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "18e195327817bff3a2fbc7c586918602a1ac365a0f2f715517c1f2f13e2ab80b",
+    "sha256": "18e195327817bff3a2fbc7c586918602a1ac365a0f2f715517c1f2f13e2ab80b",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测质量-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/产能模拟-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "962220a2fa6014105d5d1c1fd79d3115c829b378b3f2668712380cc7d35b2a8d",
+    "sha256": "962220a2fa6014105d5d1c1fd79d3115c829b378b3f2668712380cc7d35b2a8d",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/产能模拟-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/影响因素-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "58a61acb4beb8f0ad5bfe813be65f87268047dae4522aecf9f3c8d81ea700008",
+    "sha256": "58a61acb4beb8f0ad5bfe813be65f87268047dae4522aecf9f3c8d81ea700008",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/影响因素-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/总览-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "4619049af2fde343b836fb6e2ca2a766432fe5c82d7d5c7897934727855a3d12",
+    "sha256": "4619049af2fde343b836fb6e2ca2a766432fe5c82d7d5c7897934727855a3d12",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/总览-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "81d30b9e55dda502d7415a08dd4acb2fe727a86178795d7e0ce37a67dc408143",
+    "sha256": "81d30b9e55dda502d7415a08dd4acb2fe727a86178795d7e0ce37a67dc408143",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测质量-1440x900-SYNTHETIC.png": {
+    "raw_source_sha256": "a6195915ba214ffaf37ea7727bb88cd4cd6ec36c226bd8a2382cdfb0bd30924d",
+    "sha256": "a6195915ba214ffaf37ea7727bb88cd4cd6ec36c226bd8a2382cdfb0bd30924d",
+    "source_path": "browser/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测质量-1440x900-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/产能模拟-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "92432e334fd088b1008a7f427822a479e2ea0001c72876a3ae5d0574946fafe0",
+    "sha256": "92432e334fd088b1008a7f427822a479e2ea0001c72876a3ae5d0574946fafe0",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/产能模拟-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/影响因素-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "5c6b5bf905b53e5c03902777a55c8865d1ef868c47cb68c5d33a99f8c59cc2f6",
+    "sha256": "5c6b5bf905b53e5c03902777a55c8865d1ef868c47cb68c5d33a99f8c59cc2f6",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/影响因素-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/总览-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "7b84b024088d3058fc8ff5a7e58dc4494cc2f45f5c871f7076625cdd5a03049c",
+    "sha256": "7b84b024088d3058fc8ff5a7e58dc4494cc2f45f5c871f7076625cdd5a03049c",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/总览-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "a1ffe48da390f427eee58ad030ac95bf16af8c399aa3afef8adc1349633a8adc",
+    "sha256": "a1ffe48da390f427eee58ad030ac95bf16af8c399aa3afef8adc1349633a8adc",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测质量-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "7f0a5d2aa79fcc1c0ccbf4b1aa056d223909547198c2a9bc511e696e754f6a11",
+    "sha256": "7f0a5d2aa79fcc1c0ccbf4b1aa056d223909547198c2a9bc511e696e754f6a11",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测质量-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/产能模拟-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "e07d54404787566be98dbd931ac965598b1f148fe65f05c948d23d1f5a136f43",
+    "sha256": "e07d54404787566be98dbd931ac965598b1f148fe65f05c948d23d1f5a136f43",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/产能模拟-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/影响因素-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "b696796dc0e0cb31861bbf8f927e9365d4e471bc1c3d47a31487b9199a55c1e2",
+    "sha256": "b696796dc0e0cb31861bbf8f927e9365d4e471bc1c3d47a31487b9199a55c1e2",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/影响因素-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/总览-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "21d69f6573fe8548a309887610a0bbcba142a666ec55421dd3c2dc963a0d5a6e",
+    "sha256": "21d69f6573fe8548a309887610a0bbcba142a666ec55421dd3c2dc963a0d5a6e",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/总览-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "cc64d5be3ad9a8c1387281026418327f7cde32ebf14eb0fab22b1743c73175a0",
+    "sha256": "cc64d5be3ad9a8c1387281026418327f7cde32ebf14eb0fab22b1743c73175a0",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测质量-360x800-SYNTHETIC.png": {
+    "raw_source_sha256": "1834af7f7bd8d5a635197f9dccf8d917e77341908280187829b723864ee991fe",
+    "sha256": "1834af7f7bd8d5a635197f9dccf8d917e77341908280187829b723864ee991fe",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测质量-360x800-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/产能模拟-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "4d918d14056dbdecb27ae7d5b4efc593def081c93287f0474ae85902c40dcb1a",
+    "sha256": "4d918d14056dbdecb27ae7d5b4efc593def081c93287f0474ae85902c40dcb1a",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/产能模拟-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/影响因素-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "893f7879eb2a28a9729631131361c63d4ba4c7ad228fdf3e1ac548e12b629a7c",
+    "sha256": "893f7879eb2a28a9729631131361c63d4ba4c7ad228fdf3e1ac548e12b629a7c",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/影响因素-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/总览-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "b0956ce47bdd805001729afe251cf3ed08e2713600cf2a7429272e5d08bcd0f3",
+    "sha256": "b0956ce47bdd805001729afe251cf3ed08e2713600cf2a7429272e5d08bcd0f3",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/总览-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "e1983498f6524551a13a0f603a89f566c7f86e23ce8a47a70e76c89d6c0b94b4",
+    "sha256": "e1983498f6524551a13a0f603a89f566c7f86e23ce8a47a70e76c89d6c0b94b4",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测质量-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "2b820294da65669a5c4f638aa3567ef9c7e231cda47d87d17be4139c0c7330f9",
+    "sha256": "2b820294da65669a5c4f638aa3567ef9c7e231cda47d87d17be4139c0c7330f9",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测质量-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/产能模拟-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "eeb0fae9bed0c2a8a0a69e5342d25696238f1ac358034344cf881cf5960b6915",
+    "sha256": "eeb0fae9bed0c2a8a0a69e5342d25696238f1ac358034344cf881cf5960b6915",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/产能模拟-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/影响因素-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "b44820b27a7752a062d19e4a5a03d4848f5b9825ba3b9532d3bbb7e823197ebd",
+    "sha256": "b44820b27a7752a062d19e4a5a03d4848f5b9825ba3b9532d3bbb7e823197ebd",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/影响因素-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/总览-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "ddaafaf65d9616e7f240ef5cebf80d3dbb516a1179fcbfea7688368461757855",
+    "sha256": "ddaafaf65d9616e7f240ef5cebf80d3dbb516a1179fcbfea7688368461757855",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/总览-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "8a54fae4e398050becc60616a91cf7ed6347f90c827d988bf67d853ed787bf68",
+    "sha256": "8a54fae4e398050becc60616a91cf7ed6347f90c827d988bf67d853ed787bf68",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测质量-390x844-SYNTHETIC.png": {
+    "raw_source_sha256": "c72a6dd0a43b3d0a699e7d9a45d16b9e168e40f8cec6edc00bc8ee0b7139a60c",
+    "sha256": "c72a6dd0a43b3d0a699e7d9a45d16b9e168e40f8cec6edc00bc8ee0b7139a60c",
+    "source_path": "browser/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测质量-390x844-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/authorized-selector-SYNTHETIC.png": {
+    "raw_source_sha256": "bb894ac0227f4bb02c7bfcbd36c9d708b2c80f445226067136ba95ab369a3f39",
+    "sha256": "bb894ac0227f4bb02c7bfcbd36c9d708b2c80f445226067136ba95ab369a3f39",
+    "source_path": "browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/authorized-selector-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-SYNTHETIC.png": {
+    "raw_source_sha256": "5e61eb8edd344155aac7b360a10a36357a06247b8e774363fe51b58f2faba407",
+    "sha256": "5e61eb8edd344155aac7b360a10a36357a06247b8e774363fe51b58f2faba407",
+    "source_path": "browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-error-SYNTHETIC.png": {
+    "raw_source_sha256": "afc7746768c62417c3db36cab106df16ef696c22e4ca8679c52e71a1898bbf25",
+    "sha256": "afc7746768c62417c3db36cab106df16ef696c22e4ca8679c52e71a1898bbf25",
+    "source_path": "browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-error-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/authorized-selector-SYNTHETIC.png": {
+    "raw_source_sha256": "0b4d867cd1a009fa2147a9d98a71a8c4d87027b7e32e663c328b29ef03ba7f9d",
+    "sha256": "0b4d867cd1a009fa2147a9d98a71a8c4d87027b7e32e663c328b29ef03ba7f9d",
+    "source_path": "browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/authorized-selector-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-SYNTHETIC.png": {
+    "raw_source_sha256": "e3ab310c34daff72583be46235fb379438049355e931e3a310c621bc6961ae7c",
+    "sha256": "e3ab310c34daff72583be46235fb379438049355e931e3a310c621bc6961ae7c",
+    "source_path": "browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-error-SYNTHETIC.png": {
+    "raw_source_sha256": "53f09b6f2c11b45961d6e6dd1510ece831d2f4f9b2767b346f46a44245d46965",
+    "sha256": "53f09b6f2c11b45961d6e6dd1510ece831d2f4f9b2767b346f46a44245d46965",
+    "source_path": "browser/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-error-SYNTHETIC.png",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/config-debug.log": {
+    "raw_source_sha256": "90c5472ba04f79be1438cbc6dd5ce8f101a07f5d58bf8ca6292178e465198982",
+    "sha256": "746d57741638c18f853dc74fa5c1bbcb02f80f1658700f476860b2f9b64cee28",
+    "source_path": "config-debug.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/config-retest.log": {
+    "raw_source_sha256": "69fee68acfa308f45e48506b652002b42fdc40124a06c6f1b4dcdd1848e91177",
+    "sha256": "065c66eb13941253afdf19d65aa0c5a8011b6e6c81050ee036b1551467df6134",
+    "source_path": "config-retest.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/execution.log": {
+    "raw_source_sha256": "b50bb17affa1f1bcae8f991bccce2d80e69d4bca828d577a907cb157c73bcb11",
+    "sha256": "7282426f13f0ed994d98b6ff2b32df64f0396e68306152e9c1c5cc0522149e19",
+    "source_path": "execution.log",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/format.log": {
+    "raw_source_sha256": "81570a081d9fdba587f2932ffc2f2b4f902d72f27dce841e223444f6491fd4d9",
+    "sha256": "81570a081d9fdba587f2932ffc2f2b4f902d72f27dce841e223444f6491fd4d9",
+    "source_path": "format.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/frontend-build.log": {
+    "raw_source_sha256": "d2b366609be178e39d9b290216e679ab5a4b4d127c3d77a1f4f21443612d4d55",
+    "sha256": "d2b366609be178e39d9b290216e679ab5a4b4d127c3d77a1f4f21443612d4d55",
+    "source_path": "frontend-build.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/frontend-format.log": {
+    "raw_source_sha256": "8ecfeddbbe26b5a1ed0db06edb2b6525613ae3a86e86020f031052ba2fe6d200",
+    "sha256": "8ecfeddbbe26b5a1ed0db06edb2b6525613ae3a86e86020f031052ba2fe6d200",
+    "source_path": "frontend-format.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/frontend-lint.log": {
+    "raw_source_sha256": "5ae56f682bc351ab8b78358373e3c21044983fa3a69ec07805232ca48b94a865",
+    "sha256": "5ae56f682bc351ab8b78358373e3c21044983fa3a69ec07805232ca48b94a865",
+    "source_path": "frontend-lint.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/mypy.log": {
+    "raw_source_sha256": "ffc005dfacf8b43100398df8d55c2b1bcbecffef38ef376e33250a5acbbc8f5b",
+    "sha256": "ffc005dfacf8b43100398df8d55c2b1bcbecffef38ef376e33250a5acbbc8f5b",
+    "source_path": "mypy.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/npm-audit-production.json": {
+    "raw_source_sha256": "7e987cb4ee73be382a03662b9fcf037a746ccafd11ad5a318e3a3e1a764c043f",
+    "sha256": "7e987cb4ee73be382a03662b9fcf037a746ccafd11ad5a318e3a3e1a764c043f",
+    "source_path": "npm-audit-production.json",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/npm-audit.json": {
+    "raw_source_sha256": "58df453fb5b0abf81ce95dc4bc6372f36a20c88af253d02f18d92860bd237859",
+    "sha256": "58df453fb5b0abf81ce95dc4bc6372f36a20c88af253d02f18d92860bd237859",
+    "source_path": "npm-audit.json",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/npm-paths.txt": {
+    "raw_source_sha256": "804ee20fb851ad58afce0284d9c1468c2ddaa8daadc4308132b77f1a6ae1c246",
+    "sha256": "804ee20fb851ad58afce0284d9c1468c2ddaa8daadc4308132b77f1a6ae1c246",
+    "source_path": "npm-paths.txt",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/npm-production-tree.json": {
+    "raw_source_sha256": "fc26d633ac7723da8c72aa7c9ab24f28a73735afb3666818e67baf4f16c7305f",
+    "sha256": "fc26d633ac7723da8c72aa7c9ab24f28a73735afb3666818e67baf4f16c7305f",
+    "source_path": "npm-production-tree.json",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/owned-resources.json": {
+    "raw_source_sha256": "5133ae7ccc3ee224c0c6418131c310f92f6c74234aa6c6358f35a77be755617e",
+    "sha256": "2744ff04e2941947e48fa6bf47cdcf59372884fafa79d3f98f64f213bcc1d885",
+    "source_path": "owned-resources.json",
+    "source_run": "S5_FINAL_ISOLATED_RUN",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/ruff.log": {
+    "raw_source_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "source_path": "ruff.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/s5-credential-final.log": {
+    "raw_source_sha256": "b1c394f3a3f4b83016e0f627447033a90106eeae619f5da6eeb07cfc0e7f3feb",
+    "sha256": "8b439e620f2b8314efec2628e56a3ec19ab8cf9f77067524e436bf811330661a",
+    "source_path": "s5-credential-final.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/s5-final.log": {
+    "raw_source_sha256": "cc37e7beb51c9fe61e616a78afa11d121254cbdc3a9ce5b9d343a47462411a43",
+    "sha256": "4a6f759e916ed62409a07f270f7e875364e515e7595020f8a421611ca635777c",
+    "source_path": "s5-final.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/s5-first.log": {
+    "raw_source_sha256": "af2a1745578f053404cf530acec9165b150727f6028c5bf4cdcb8e25907a1488",
+    "sha256": "38fef424c530b163063c989854f9fc5cc6abbc95b88268e17cc1d422a47b3c5f",
+    "source_path": "s5-first.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/typecheck.log": {
+    "raw_source_sha256": "1d9ed670ea7f4cccaa79f606366949f75c7c64f05bfd411de69af1e13d328da1",
+    "sha256": "1d9ed670ea7f4cccaa79f606366949f75c7c64f05bfd411de69af1e13d328da1",
+    "source_path": "typecheck.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1/unit.log": {
+    "raw_source_sha256": "f0ef0e88f8db6db5dd313bce9aa3a77bc4273aed85435bd7060afc33bdcd80ee",
+    "sha256": "62817b06b53fd8c53baf9b49eb8df10450ddfd3616bccbf394875e269aad9d31",
+    "source_path": "unit.log",
+    "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
+    "transform": "operator_temp_and_test_credential_redaction_only"
+  }
+}
