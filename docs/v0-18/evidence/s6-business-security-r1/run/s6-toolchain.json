@@ -1,0 +1,7 @@
+{
+  "node": "v22.22.3",
+  "pg_ctl": "pg_ctl (PostgreSQL) 15.18",
+  "pg_dump": "pg_dump (PostgreSQL) 15.18",
+  "pg_restore": "pg_restore (PostgreSQL) 15.18",
+  "python": "3.12.13 (main, May 10 2026, 19:20:41) [Clang 22.1.3 ]"
+}
