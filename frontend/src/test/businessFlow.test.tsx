@@ -129,6 +129,34 @@ it("late login/user response cannot overwrite a newer session boundary", async (
   resolve(reply(auth(user)));
   await expect(pending).rejects.toMatchObject({ name: "AbortError" });
 });
+
+it("leaving Dashboard aborts the active login, not only the initial me request", async () => {
+  let loginSignal: AbortSignal | undefined;
+  let finish!: (value: Response) => void;
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    if (String(input).endsWith("/me")) return reply({}, 401);
+    if (String(input).endsWith("/csrf"))
+      return reply(auth({ csrf_token: "SYNTHETIC", expires_in: 300 }));
+    loginSignal = init?.signal as AbortSignal;
+    return new Promise((done) => {
+      finish = done;
+    });
+  });
+  const view = mount();
+  fireEvent.change(await screen.findByLabelText("用户名"), { target: { value: "synthetic-user" } });
+  fireEvent.change(screen.getByLabelText("密码"), { target: { value: "SYNTHETIC-password-123" } });
+  fireEvent.click(screen.getByRole("button", { name: "登录" }));
+  await waitFor(() => expect(loginSignal).toBeDefined());
+  view.unmount();
+  try {
+    expect(loginSignal?.aborted).toBe(true);
+  } finally {
+    await act(async () => {
+      finish(reply(auth(user)));
+    });
+  }
+  expect(screen.queryByRole("navigation")).toBeNull();
+});
 it("S2 list retains all identity/hash bytes and rejects injected actor or unsafe run IDs", () => {
   expect(listSchema.parse(listing)).toEqual(listing);
   expect(
