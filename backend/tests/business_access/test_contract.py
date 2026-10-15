@@ -11,6 +11,11 @@ from backend.tests.historical_source import historical_bytes
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "9b894b66a018c78de11bf01de4cc1daa3408db40"
 EVIDENCE = ROOT / "docs/v0-18/evidence/s2-authorized-saved-run-discovery-r1.json"
+MERGED_S2 = "3410dd4426618a7a4b29c08cbf58aaef20196939"
+S3_REVISED_TEST_SOURCES = {
+    "backend/tests/local_auth/test_runtime_evidence_contract.py",
+    "backend/tests/business_access/test_contract.py",
+}
 
 
 def test_canonical_sources_frozen_history_and_governance():
@@ -22,7 +27,12 @@ def test_canonical_sources_frozen_history_and_governance():
     for relative, expected in value["source_evidence_sha256"].items():
         path = Path(relative)
         assert not path.is_absolute() and ".." not in path.parts
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+        source = (
+            historical_bytes(relative, MERGED_S2)
+            if relative in S3_REVISED_TEST_SOURCES
+            else (ROOT / path).read_bytes()
+        )
+        assert hashlib.sha256(source).hexdigest() == expected
     for relative, expected in value["frozen_sources_sha256"].items():
         source = (ROOT / relative).read_bytes()
         assert source == historical_bytes(relative, BASE)

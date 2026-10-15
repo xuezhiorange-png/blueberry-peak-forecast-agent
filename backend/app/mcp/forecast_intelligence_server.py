@@ -1,7 +1,7 @@
 """Trusted composition root; independent SDK registry, no legacy dispatcher."""
 
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from typing import Any
 
@@ -82,6 +82,8 @@ SAFE_CODES = frozenset(
 def create_server(
     account: ServiceAccount,
     session_factory: SessionFactory = database_session,
+    *,
+    policy_check: Callable[[], Awaitable[None]] | None = None,
 ) -> Server[Any]:
     """Only trusted server code supplies account/grants; never tool arguments."""
 
@@ -105,6 +107,8 @@ def create_server(
             if len(encoded(arguments).encode("utf-8")) > ARGUMENT_LIMIT:
                 return failure("RESOURCE_LIMIT_EXCEEDED")
             request = tool.request.model_validate(arguments)
+            if policy_check is not None:
+                await policy_check()
             if tool.method == "quality":
                 quality_query = QualityReadQuery.model_validate(request.model_dump())
                 authorize_quality(account, quality_query)
@@ -138,6 +142,8 @@ def create_server(
                     payload = response.model_dump(mode="json")
             if len(encoded(payload).encode("utf-8")) > RESPONSE_LIMIT:
                 return failure("RESOURCE_LIMIT_EXCEEDED")
+            if policy_check is not None:
+                await policy_check()
             return result(payload)
         except ValidationError:
             return failure("INVALID_REQUEST")
