@@ -9,6 +9,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      "/api/v1/auth": { target: trialApiProxyTarget, changeOrigin: false },
+      "/api/v1/business-access": { target: trialApiProxyTarget, changeOrigin: false },
       "/api/v1/trial": {
         target: trialApiProxyTarget,
         changeOrigin: false,

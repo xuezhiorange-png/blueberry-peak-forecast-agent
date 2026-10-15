@@ -70,7 +70,7 @@ const test = base.extend<
   ],
   page: async ({ page, authority }, use) => {
     // Forward to unchanged real HTTP services backed by isolated synthetic saved runs.
-    for (const surface of ["forecast-intelligence", "decision-support"])
+    for (const surface of ["auth", "business-access", "forecast-intelligence", "decision-support"])
       await page.route(`**/api/v1/${surface}/**`, async (route) => {
         const incoming = new URL(route.request().url());
         await route.continue({
@@ -86,12 +86,11 @@ const test = base.extend<
 async function select(page: Page, identity: Selection) {
   await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
   const dialog = page.getByRole("dialog");
-  for (const [key, value] of Object.entries(identity)) {
-    const field = dialog.locator(`[name="${key}"]`);
-    if (["source_kind", "hierarchy_level"].includes(key)) await field.selectOption(String(value));
-    else await field.fill(String(value));
-  }
-  await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
+  const selectedRow = dialog.locator(
+    `article[data-run-id="${identity.run_id}"][data-source-kind="${identity.source_kind}"]`,
+  );
+  await expect(selectedRow).toBeVisible();
+  await selectedRow.getByRole("button", { name: "核验并使用保存预测" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".d-context-title")).toContainText(String(identity.entity_id));
 }
@@ -445,15 +444,22 @@ test("hash mismatch never replaces validated context; keyboard dialog focus retu
   await select(page, authority.identities[0]);
   const opener = page.getByRole("button", { name: "选择已保存预测", exact: true }).first();
   await opener.click();
+  await page.route("**/business-access/selection", async (route) => {
+    await route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "ERROR", data: null }),
+    });
+  });
   await page
     .getByRole("dialog")
-    .locator('[name="expected_source_result_hash"]')
-    .fill("0".repeat(64));
-  await page.getByRole("button", { name: "核验并使用保存预测" }).click();
-  await expect(page.getByRole("dialog")).toContainText("来源身份不一致");
-  await page.keyboard.press("Escape");
+    .getByRole("button", { name: "核验并使用保存预测" })
+    .first()
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.locator(".d-context")).toContainText("旧结果已清除");
   await expect(opener).toBeFocused();
-  await expect(page.locator(".d-context-title")).toContainText("SYNTHETIC_BASE_1");
+  await expect(page.locator(".d-context-title")).toContainText("请选择已保存预测");
 });
 const viewports = [
   [1440, 900],
@@ -563,11 +569,11 @@ test("safe unavailable/error modules recover without losing validated context", 
     });
     await page.getByRole("link", { name: /预测$/ }).click();
     await page.getByRole("link", { name: /总览$/ }).click();
-    await expect(
-      page.locator(`[data-state="${code === 409 ? "AUTHORITY_MISMATCH" : "ERROR"}"]`).first(),
-    ).toBeVisible();
+    if (code === 401) await expect(page.getByLabel("用户名", { exact: true })).toBeVisible();
+    else if ([403, 409].includes(code))
+      await expect(page.locator(".d-context-title")).toContainText("请选择已保存预测");
+    else await expect(page.locator('[data-state="ERROR"]').first()).toBeVisible();
     await expect(page.locator("main")).not.toContainText("PRIVATE_SQL_TOKEN_PATH");
-    await expect(page.locator(".d-context-title")).toContainText("SYNTHETIC_BASE_1");
     if (process.env.DASHBOARD_CAPTURE_DIR && [409, 503].includes(code))
       await page.screenshot({
         path: resolve(process.env.DASHBOARD_CAPTURE_DIR, `state-${code}.jpg`),
@@ -576,6 +582,8 @@ test("safe unavailable/error modules recover without losing validated context", 
         fullPage: true,
       });
     await page.unroute("**/api/v1/forecast-intelligence/overview?**");
+    if (code === 401) await page.reload();
+    if ([401, 403, 409].includes(code)) await select(page, authority.identities[0]);
   }
   await page.locator('[data-state="ERROR"]').first().getByRole("button").click();
   await expect(page.locator(".d-kpis")).toContainText("1820");

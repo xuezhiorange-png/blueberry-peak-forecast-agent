@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { invalidateSecurity, requestBoundary } from "./security";
+import { authEnvelope } from "../schemas/business";
 import {
   comparisonRequest,
   costSelection,
@@ -28,7 +30,7 @@ export class DashboardError extends Error {
 }
 export const errorCopy: Record<number, string> = {
   0: "网络连接失败，请重试。",
-  401: "请通过可信上游完成认证。",
+  401: "登录已失效，请重新登录。",
   403: "当前身份没有读取权限。",
   404: "指定保存记录或合同不存在，请核对完整身份。",
   409: "来源身份不一致，已停止展示受影响结果，请重新核验。",
@@ -48,6 +50,13 @@ export function identityMatches(a: Record<string, unknown> | null, b: Record<str
     Object.entries(b).every(([k, v]) => a[k] === v)
   );
 }
+function authorityError(code: string) {
+  invalidateSecurity("access");
+  return new DashboardError(409, code);
+}
+function ensureActive(signal: AbortSignal) {
+  if (signal.aborted) throw new DOMException("Request cancelled", "AbortError");
+}
 export function assertIdentity(
   value: { forecast_identity: Record<string, unknown> | null; source_result_hash: string | null },
   query: ForecastReadQuery,
@@ -57,18 +66,76 @@ export function assertIdentity(
     !identityMatches(value.forecast_identity, identity) ||
     value.source_result_hash !== expected_source_result_hash
   )
-    throw new DashboardError(409, "AUTHORITY_MISMATCH");
+    throw authorityError("AUTHORITY_MISMATCH");
 }
 const paths = new Set([
+  ...["csrf", "login", "logout", "me", "change-password"].map((k) => `/api/v1/auth/${k}`),
+  ...["scope", "saved-runs", "selection"].map((k) => `/api/v1/business-access/${k}`),
   ...Object.keys(readSchemas).map((k) => `/api/v1/forecast-intelligence/${k}`),
   ...Object.keys(decisionSchemas).map((k) => `/api/v1/decision-support/${k}`),
 ]);
+// The CSRF endpoint rotates the synchronizer token. Serialize token acquisition
+// AND the associated write so concurrent simulation/login writes cannot race it.
+let writes: Promise<unknown> = Promise.resolve();
 export async function request<T>(
   path: string,
   schema: z.ZodType<T>,
   signal: AbortSignal,
   params?: Record<string, string | number>,
   body?: unknown,
+): Promise<T> {
+  if (!paths.has(path)) throw new DashboardError(422, "PATH_NOT_ALLOWED");
+  if (body !== undefined && new TextEncoder().encode(JSON.stringify(body)).length > 131072)
+    throw new DashboardError(413, "REQUEST_BODY_TOO_LARGE");
+  const boundary = requestBoundary(signal);
+  try {
+    const run = async () => {
+      if (!boundary.valid()) throw new DOMException("Request cancelled", "AbortError");
+      let csrf: string | undefined;
+      if (body !== undefined) {
+        const value = await wire(
+          "/api/v1/auth/csrf",
+          authEnvelope(z.object({ csrf_token: z.string().min(1), expires_in: z.number() })),
+          boundary.signal,
+        );
+        csrf = value.data.csrf_token;
+      }
+      const result = await wire(path, schema, boundary.signal, params, body, csrf);
+      if (!boundary.valid()) throw new DOMException("Stale response", "AbortError");
+      return result;
+    };
+    if (body === undefined) return await run();
+    const pending = writes.then(run, run);
+    writes = pending.then(
+      () => undefined,
+      () => undefined,
+    );
+    return await pending;
+  } catch (error) {
+    if (boundary.valid() && error instanceof DashboardError) {
+      if (error.status === 401 && path !== "/api/v1/auth/login") invalidateSecurity("session");
+      else if (
+        error.status === 409 ||
+        (error.status === 403 &&
+          (path === "/api/v1/business-access/selection" ||
+            (path.startsWith("/api/v1/forecast-intelligence/") && !path.endsWith("/quality")) ||
+            path.endsWith("simulate-capacity") ||
+            path.endsWith("compare-capacity-scenarios")))
+      )
+        invalidateSecurity("access");
+    }
+    throw error;
+  } finally {
+    boundary.release();
+  }
+}
+async function wire<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  signal: AbortSignal,
+  params?: Record<string, string | number>,
+  body?: unknown,
+  csrf?: string,
 ): Promise<T> {
   if (!paths.has(path)) throw new DashboardError(422, "PATH_NOT_ALLOWED");
   const encoded = body === undefined ? undefined : JSON.stringify(body);
@@ -84,11 +151,13 @@ export async function request<T>(
       headers: {
         Accept: "application/json",
         ...(encoded === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(csrf === undefined ? {} : { "X-CSRF-Token": csrf }),
       },
       body: encoded,
       signal,
       credentials: "same-origin",
       redirect: "error",
+      cache: "no-store",
     });
   } catch (error) {
     if (signal.aborted) throw error;
@@ -124,6 +193,7 @@ export async function read<K extends keyof typeof capabilities>(
     signal,
     query,
   );
+  ensureActive(signal);
   assertIdentity(result, query);
   if (
     result.source_kind !== query.source_kind ||
@@ -143,9 +213,8 @@ export async function read<K extends keyof typeof capabilities>(
       (result.authority_identity.source_policy_version !== query.policy_version ||
         result.authority_identity.source_baseline_id !== query.baseline_id))
   )
-    throw new DashboardError(409, "SOURCE_AUTHORITY_MISMATCH");
-  if (result.capability !== capabilities[kind])
-    throw new DashboardError(409, "CAPABILITY_MISMATCH");
+    throw authorityError("SOURCE_AUTHORITY_MISMATCH");
+  if (result.capability !== capabilities[kind]) throw authorityError("CAPABILITY_MISMATCH");
   if ("daily_rows" in (result.data ?? {})) {
     const rows = (
       result.data as { daily_rows: z.infer<typeof import("../schemas/contracts").dailyRow>[] }
@@ -161,7 +230,7 @@ export async function read<K extends keyof typeof capabilities>(
             row.lead_day <= rows[index - 1].lead_day),
       )
     )
-      throw new DashboardError(409, "CURVE_ORDER_MISMATCH");
+      throw authorityError("CURVE_ORDER_MISMATCH");
     for (const row of rows)
       if (
         row.source_result_hash !== query.expected_source_result_hash ||
@@ -170,7 +239,7 @@ export async function read<K extends keyof typeof capabilities>(
         row.origin_date !== query.origin_date ||
         row.hierarchy_level !== query.hierarchy_level
       )
-        throw new DashboardError(409, "ROW_AUTHORITY_MISMATCH");
+        throw authorityError("ROW_AUTHORITY_MISMATCH");
   }
   return result;
 }
@@ -184,11 +253,12 @@ export async function quality(signal: AbortSignal, current = false) {
       model_id: "V0_15_S5_M1_RIDGE",
     },
   );
+  ensureActive(signal);
   if (
     result.capability !== "GET_FORECAST_QUALITY" ||
     result.evidence_mode !== (current ? "NO_CURRENT_ACTUAL" : "RETROSPECTIVE_OBSERVATION")
   )
-    throw new DashboardError(409, "QUALITY_AUTHORITY_MISMATCH");
+    throw authorityError("QUALITY_AUTHORITY_MISMATCH");
   return result;
 }
 export async function cost(id: CostId, signal: AbortSignal) {
@@ -202,13 +272,14 @@ export async function cost(id: CostId, signal: AbortSignal) {
     signal,
     selected,
   );
+  ensureActive(signal);
   if (
     result.cost_contract_id !== id ||
     result.cost_contract_hash !== COSTS[id] ||
     result.data?.cost_contract.contract_hash !== COSTS[id] ||
     result.data.cost_contract.contract_id !== id
   )
-    throw new DashboardError(409, "COST_AUTHORITY_MISMATCH");
+    throw authorityError("COST_AUTHORITY_MISMATCH");
   return result;
 }
 export async function simulate(input: SimulationRequest, signal: AbortSignal) {
@@ -220,6 +291,7 @@ export async function simulate(input: SimulationRequest, signal: AbortSignal) {
     undefined,
     body,
   );
+  ensureActive(signal);
   verifyDecision(result, body);
   if (result.data) verifyScenario(result.data, body, result.adapter_saved_forecast_hash);
   if (
@@ -228,7 +300,7 @@ export async function simulate(input: SimulationRequest, signal: AbortSignal) {
       (result.data.scenario_id !== body.scenario_id ||
         result.data.result_hash !== result.engine_result_hash))
   )
-    throw new DashboardError(409, "RESULT_AUTHORITY_MISMATCH");
+    throw authorityError("RESULT_AUTHORITY_MISMATCH");
   return result;
 }
 export async function compare(input: ComparisonRequest, signal: AbortSignal) {
@@ -240,6 +312,7 @@ export async function compare(input: ComparisonRequest, signal: AbortSignal) {
     undefined,
     body,
   );
+  ensureActive(signal);
   verifyDecision(result, body);
   if (result.data) {
     const { scenario_results, comparison } = result.data;
@@ -249,10 +322,10 @@ export async function compare(input: ComparisonRequest, signal: AbortSignal) {
       new Set(scenario_results.map((r) => r.scenario_id)).size !== body.scenarios.length ||
       new Set(comparison.rankings.map((r) => r.scenario_id)).size !== body.scenarios.length
     )
-      throw new DashboardError(409, "COMPARISON_MEMBERS_MISMATCH");
+      throw authorityError("COMPARISON_MEMBERS_MISMATCH");
     for (const scenario of body.scenarios) {
       const output = scenario_results.find((r) => r.scenario_id === scenario.scenario_id);
-      if (!output) throw new DashboardError(409, "SCENARIO_MISSING");
+      if (!output) throw authorityError("SCENARIO_MISSING");
       verifyScenario(output, { ...body, ...scenario }, result.adapter_saved_forecast_hash);
     }
     for (const [index, rank] of comparison.rankings.entries()) {
@@ -263,14 +336,14 @@ export async function compare(input: ComparisonRequest, signal: AbortSignal) {
         rank.scenario_hash !== output.scenario_hash ||
         rank.scenario_rank !== index + 1
       )
-        throw new DashboardError(409, "RANK_AUTHORITY_MISMATCH");
+        throw authorityError("RANK_AUTHORITY_MISMATCH");
     }
   }
   if (
     result.capability !== "COMPARE_CAPACITY_SCENARIOS" ||
     (result.data && result.data.comparison.comparison_hash !== result.engine_result_hash)
   )
-    throw new DashboardError(409, "RESULT_AUTHORITY_MISMATCH");
+    throw authorityError("RESULT_AUTHORITY_MISMATCH");
   return result;
 }
 function verifyScenario(
@@ -291,7 +364,7 @@ function verifyScenario(
     JSON.stringify(result.dates) !== JSON.stringify(dates) ||
     JSON.stringify(result.daily_rows.map((r) => r.date)) !== JSON.stringify(dates)
   )
-    throw new DashboardError(409, "SCENARIO_AUTHORITY_MISMATCH");
+    throw authorityError("SCENARIO_AUTHORITY_MISMATCH");
 }
 function verifyDecision(
   result: {
@@ -312,5 +385,5 @@ function verifyDecision(
     result.cost_contract_id !== body.cost_contract_id ||
     result.cost_contract_hash !== body.expected_cost_contract_hash
   )
-    throw new DashboardError(409, "DECISION_AUTHORITY_MISMATCH");
+    throw authorityError("DECISION_AUTHORITY_MISMATCH");
 }
