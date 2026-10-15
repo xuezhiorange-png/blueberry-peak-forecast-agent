@@ -5,6 +5,7 @@ import { AuthorizedSavedRunSelector } from "../components/AuthorizedSavedRunSele
 import { OverviewPage, ForecastPage, AttributionPage, QualityPage } from "../pages/ReadPages";
 import { CapacityPage } from "../pages/CapacityPage";
 import "../styles/dashboard.css";
+import { SessionGate, useSession } from "../context/SessionContext";
 
 export const pages = [
   ["overview", "总览"],
@@ -39,13 +40,14 @@ export function PrimaryNavigation() {
   );
 }
 export function GlobalForecastContext() {
-  const { verified, openSelector } = useForecast();
+  const { verified, openSelector, notice } = useForecast();
+  const session = useSession();
   return (
     <header className="d-context">
       <div>
         <p className="d-eyebrow">已保存预测 · 已核验上下文</p>
         <div className="d-context-title">
-          {verified?.query.entity_id ?? "请选择已保存预测"}
+          {verified?.entityName ?? verified?.query.entity_id ?? "请选择已保存预测"}
           {verified && <span className="d-badge">{verified.query.hierarchy_level}</span>}
         </div>
         <p>
@@ -54,7 +56,21 @@ export function GlobalForecastContext() {
             : "暂无已核验保存记录 · 不自动选择最新"}
         </p>
       </div>
-      <button onClick={openSelector}>选择已保存预测</button>
+      <div className="d-actions">
+        {session && (
+          <>
+            <span title={session.user.principal_id}>
+              账号 {session.user.principal_id.slice(0, 8)} ·{" "}
+              {session.user.role === "ADMIN" ? "管理员" : "普通用户"}
+            </span>
+            <button onClick={session.logout}>退出登录</button>
+          </>
+        )}
+        <button data-open-saved-run onClick={openSelector}>
+          选择已保存预测
+        </button>
+        {notice && <p role="alert">{notice}</p>}
+      </div>
     </header>
   );
 }
@@ -99,7 +115,7 @@ export function AppShell() {
               产品化不等于生产验证。Point 不是已证明 P50；规划上界不是已证明 P80/P90
               分位数；历史覆盖率不保证未来覆盖。
               <br />
-              正常业务发现及生产多用户资源授权仍待解决。
+              仅显示服务器明确授权的记录；未授权区间、归因和子实体贡献不作推导。尚非生产部署批准。
             </footer>
           </main>
         </div>
@@ -110,10 +126,12 @@ export function AppShell() {
 }
 export function Dashboard() {
   return (
-    <ForecastProvider>
-      <Routes>
-        <Route path="/dashboard/*" element={<AppShell />} />
-      </Routes>
-    </ForecastProvider>
+    <SessionGate>
+      <ForecastProvider>
+        <Routes>
+          <Route path="/dashboard/*" element={<AppShell />} />
+        </Routes>
+      </ForecastProvider>
+    </SessionGate>
   );
 }

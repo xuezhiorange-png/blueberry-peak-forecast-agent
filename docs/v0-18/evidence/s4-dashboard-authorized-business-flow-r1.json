@@ -1,0 +1,1367 @@
+{
+  "acceptance": {
+    "backend_focused_existing_conditional_skips": 4,
+    "backend_focused_passed": 1381,
+    "browser_additional_visual_cases_passed": 2,
+    "browser_full_suite_passed": 118,
+    "certificate_scope": "SELF_SIGNED_LOOPBACK_TEST_BROWSER_ONLY",
+    "format": "PASS",
+    "frontend_build": "PASS",
+    "frontend_unit_passed": 129,
+    "historical_contract_passed": 103,
+    "https_postgres_cases_included": 26,
+    "mypy": "PASS",
+    "mypy_scope": "backend/app: 581 source files",
+    "real_ios_safari_validated": false,
+    "ruff": "PASS",
+    "screen_reader_validated": false,
+    "screenshot_count": 66,
+    "soft_keyboard_validated": false,
+    "viewport_page_combinations": 30
+  },
+  "base_main_sha": "08b185b4621bf517846c986841bb5579b6c37b35",
+  "ci": {
+    "result": "PENDING_AT_COMMIT_EXACT_HEAD_RECEIPT_REQUIRED"
+  },
+  "frozen_history_sha256": {
+    "docs/v0-16/evidence/business-loss-contract-r1/business-loss-policy-r1.json": "a0dc8c94444b190ee97349861825c83f58479736ffcf50f8870f6543074e20c0",
+    "docs/v0-16/evidence/business-loss-contract-r1/deterministic-replay-report-r1.json": "01ad20ebff4d6c998ef9282bf570f5735493909721eee1a1e95cbe524c4f99d8",
+    "docs/v0-16/evidence/business-loss-contract-r1/historical-synthetic-loss-summary-r1.json": "741c978a3c46b6de5243848dd9dd3a0bf883254d2b44cedb2bb0eaf201a91e7c",
+    "docs/v0-16/evidence/business-loss-contract-r1/manifest-r1.json": "a083661b6229a97c95ca4d0b058aca0cafb5d2e08e8683a74107b8201f8103c1",
+    "docs/v0-16/evidence/business-loss-contract-r1/privacy-scan-report-r1.json": "5cd7e58bfe791a7af91c74c666d3564c250dff054e1b5811e7562e12d6fe19be",
+    "docs/v0-16/evidence/business-loss-contract-r1/source-binding-r1.json": "7e122d0c862dc0a9af959fd3b1d9ca7a8a8f055b958bac7805645a5dc727b9f0",
+    "docs/v0-16/evidence/business-loss-contract-r1/synthetic-cost-contracts-r1.json": "2b2e477fe9735e0df56fb12ed770d4c121446a96c0c1c3397a6622747d99ac3f",
+    "docs/v0-16/evidence/business-loss-contract-r1/v0.16-s5-business-loss-contract-r1.json": "d55dde8af55ec63b4806607a901d291cacefa6852379e7775cea21c26d0f3d57",
+    "docs/v0-16/evidence/forecast-attribution-r1/attribution-policy-r1.json": "9ec2ae8f946ec5261e02f138dc2abf8d5659438a2d8e08fbd9a37d3bff361785",
+    "docs/v0-16/evidence/forecast-attribution-r1/business-semantic-group-summary-r1.json": "da34d9ff8a67f4f2b8560996c1f5b0b6363b816fa7e8ea9e3192fa96e3a8beb0",
+    "docs/v0-16/evidence/forecast-attribution-r1/deterministic-replay-report-r1.json": "22eadd03a3ef3e58334329157d6e90ffe6ddee4681a632ee0e01af8ea3e191e3",
+    "docs/v0-16/evidence/forecast-attribution-r1/family-group-summary-r1.json": "3a9854682dda489fb2e45e7de7a2d19ae34d2db8eadb5395fc20dfd7b578c502",
+    "docs/v0-16/evidence/forecast-attribution-r1/feature-contribution-summary-r1.json": "7c5789edf97bdca7fecbc9db21c402d5bd559e7dcd80a5568ada51ca28ede443",
+    "docs/v0-16/evidence/forecast-attribution-r1/horizon-contribution-summary-r1.json": "cfa4ecb35574643c6055e4a5008b9aa316e8d5bb5447e96962e38f1a61b379d2",
+    "docs/v0-16/evidence/forecast-attribution-r1/manifest-r1.json": "3d82606c7efdbea99a44fa4aa2c35793e9c1a48f6742df42ef43b5ab313c8a5c",
+    "docs/v0-16/evidence/forecast-attribution-r1/privacy-scan-report-r1.json": "fcff4adc8d464e6de26ea3f191e02987d012cd67e59c996744e6773368c3d655",
+    "docs/v0-16/evidence/forecast-attribution-r1/reconstruction-summary-r1.json": "083537e23d998a2fa0a8e907790f24f1e0ebf077832b05b7dfdd792a3eeb34f5",
+    "docs/v0-16/evidence/forecast-attribution-r1/source-binding-r1.json": "1d31d972149f020fc83acd14b7a7fcd3063506f307b4d65ba1a52ef3104b4182",
+    "docs/v0-16/evidence/forecast-attribution-r1/v0.16-s3-forecast-attribution-r1.json": "4a5918e0678d9cb3945b4f71612317754cf8f7fdc12b3412e468f029036815e8",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/completeness-summary-r1.json": "b2dfe776421719fa6a11b6595a04bdcbbbe78772fe6a14ec72e921b1f0fcb2b5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/deterministic-replay-report-r1.json": "a5ed64f82521dd32dce1002398a3c07f27fe0a47edae1f8790309e5f2a4e322b",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/integrity-summary-r1.json": "5ffad283db327cff25ea0a9371956381f7e61ce762816145a45a38b640632871",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/interval-quality-summary-r1.json": "7689b6e434dd1da8670468f6a86c0f1dc7fd46df84f0bdfba37737bf2f1b4497",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/issuance-coverage-summary-r1.json": "0c5d40c6fa9949a8b1c3e5d77e232a1af461466aacb4b1d53d947149806fa0ba",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/manifest-r1.json": "9a81af66ca0106031c579dd8648336ae2053dd4071076367725d8d92097fb8a5",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/monitoring-policy-r1.json": "7ec6d4c95cec9f2463dcff11053657825cb3164235e27e6dfdf3d4a504639170",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json": "ed59148e7fc01935a66f2341f0155a5facbf9fb9ee857396f4051ab0eeb19e9e",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/privacy-scan-report-r1.json": "f0fb6691796ba7d34442929d81fc2c499333e2fb6f4c7fd13399d3a4d03a17a9",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/runtime-observability-summary-r1.json": "ec3e4a8e0110d09f628b19987751bc5ab7c785d1d17dcfd2a0fa736b1c50f6e6",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/source-binding-r1.json": "95f6e219229d38db42c44e0b9a3a6c371d51893c29926d6105cf35b09eccd5e0",
+    "docs/v0-16/evidence/forecastops-monitoring-r1/v0.16-s4-forecastops-monitoring-r1.json": "3537c433ac56e65536105ecb550d506cd98d416fcb48e6bd61b880efb8268a9c",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/base-breadth-summary-r1.json": "84ee5a3393485aafb8d4f911a690a8e16ae13c14582ce767b11db591fd3c0eb3",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/conformal-policy-r1.json": "4d3d2635ddbd4fecd68e59c47d46ae3f35389e78ccacc960188944fa9f158a4d",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json": "1586144b596e315ef627ee1874a1104229337bae96a86fd4e26d066c55dadd17",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/deterministic-replay-report-r1.json": "48afd5c553c5c3cfddff809554895010d836e0ff057d1411f7ad45a353b2f658",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/lead-day-coverage-r1.json": "5dd0b3418bc0e8549644a6730f7aef9e42d3b2457424472ec0abdb87d3e28f30",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/manifest-r1.json": "b4b4ca6124f4aea081243ac477c01ff7c0dc0123eb846ee2cd23a2b2f9a773b1",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/privacy-scan-report-r1.json": "7ec3b1ac2d13ba9b52d503866f08e01b3e84158918678f441179f28dbf272b8c",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/source-binding-r1.json": "b345fefbe2aa59b0737859eae0f709f1e16a6cd3934b8d755bccbb431dd01ef7",
+    "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/v0.16-s2-uncertainty-and-conformal-calibration-r1.json": "7939b17ae74ff39996edc767e4a84c6c4da3011dc69b9e61fd4de52ba0f6fa04",
+    "docs/v0-16/evidence/v0.16-s1-hierarchical-forecast-reconciliation-r1.json": "376048ce5d12408ddd030c8b17bec2ca107ce3046ec8357b34e5682495fda9cf",
+    "docs/v0-16/evidence/v0.16.0-version-closeout-manifest-r1.json": "2520e4d7ba5ad6e2df34d0a03154565f4849a0168ebdb87feec7a214be124313",
+    "docs/v0-16/evidence/v0.16.0-version-closeout-r1.json": "abfcd8224dfe4731f61add2b0c2296ce10fec50efbc2e69ff9989c09ccea8333",
+    "docs/v0-16/evidence/v0.16.0-version-plan-and-scope-freeze-r1.json": "a9bfa820d6efe9f4c0e401681fdaabac177f1c615ed78ed62e6abb4d74b808c3",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/deterministic-replay-report-r1.json": "2b479efa9e563fe7a849cfb5693d2573cca22542c3203e41afd8472762c06203",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/manifest-r1.json": "beaea961d4a0c9e841947cb42a6b8b50df696ed764bb433cd1debba97b0df8d8",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/privacy-scan-report-r1.json": "723589ae80eff764f5146aa4073e5be3519200e01187c2b60e0531bd091b00ba",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/scenario-ranking-summary-r1.json": "55a06edce4c7299bcfaad487d017b2ae6f126a6f81edd1250b0bb7159fcd0038",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/source-binding-r1.json": "5d9f77bb5836836a69b2910ffa497dd5b87a07b1e656eef1cffdd995cba494b4",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-saved-forecast-r1.json": "191a661fa71f9d34759b21db1c3f7a6b5c79ab36a2f5186bed58eec5a32a8acd",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-scenario-results-r1.json": "069f4c9f6671ad5abc77e6b4ee777c6f4354420a3fb5bc61144e48abee5ef6da",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/synthetic-scenarios-r1.json": "104362fccf60f73877525ed2caca2d299551866900bc8d481e82293967cb6594",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/v0.16-s6-what-if-decision-simulator-r1.json": "fd375b5445b1fb7a928efeae1d0d8524f7e3b84b66b605cff24af9738f7487e7",
+    "docs/v0-16/evidence/what-if-decision-simulator-r1/what-if-policy-r1.json": "1c629293ff6ecd081dadd35b634e068ea7f8b341461853326effe34924e5c3e1",
+    "docs/v0-16/v0.16-s1-hierarchical-forecast-reconciliation-r1.md": "c0bcbf362ba5e855774a203bc054c2de221e3510447e3a42e2086c58bca747c4",
+    "docs/v0-16/v0.16-s2-uncertainty-and-conformal-calibration-r1.md": "90c1d4bc69157c1ce6cd8841930c13a338553e43b30b1b869af704cd17b07aa8",
+    "docs/v0-16/v0.16-s3-forecast-attribution-r1.md": "9065fabd8f1558d7146dcafcc9ff56b0b4a1bcec77c9d3ee11c8247a822a3366",
+    "docs/v0-16/v0.16-s4-forecastops-monitoring-r1.md": "669eda3a96cf55ddb463b209854b3a9276c0f047afe036dc8f2ea5eaf9a880e1",
+    "docs/v0-16/v0.16-s5-business-loss-contract-r1.md": "841d06290369e2ec2da1367a35576496d928591dfa77114e8ac0d7af95cab307",
+    "docs/v0-16/v0.16-s6-what-if-decision-simulator-r1.md": "f25641349fd4e229a23cb41dedcd76d4bd6b069b67e4354dc996ba7ac2203083",
+    "docs/v0-16/v0.16.0-closeout.md": "77d1bc082863b0af9436b460ee65d6c5429579e309b10348665256e17d729725",
+    "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md": "7eed60e8045903eb8229afa0c1c6b6f0a9e99e4ce2e9cda9ce212c4ce435f7de",
+    "docs/v0-17/design/s4/component-and-chart-contract-r1.md": "64cc7315857a5b69c22721d1fa52ecd76435cd5843cfc292b52f6af9d5f3e4ed",
+    "docs/v0-17/design/s4/dashboard-contract-r1.json": "5ab67eb3516398ef9390133955894bee4efa725b85f179ac823da4245e0d4a21",
+    "docs/v0-17/design/s4/dashboard-ux-freeze-r1.md": "01fbee9ff48117d060939e8921947a41f2e2d9c05ebfd7af39d602bf8f3beeb3",
+    "docs/v0-17/design/s4/design-tokens-r1.json": "51712a6a4c587361f687694fe187bdbc0cb5026de956f5ef45d6e1ac1c12b653",
+    "docs/v0-17/design/s4/five-page-information-architecture-r1.md": "980e89ae72c7ef1e7028d6026ce1e080275d77f933ae5db86f04ce7fd62c7836",
+    "docs/v0-17/design/s4/navigation-and-saved-run-flow-r1.md": "4993e5893bdb5e75da3bc14341acf05e4998d746b6164801b3a531070c2358f2",
+    "docs/v0-17/design/s4/prototype/index.html": "c6374adfd0e29d958e62081de2582e91b57f123aec3c91118fdc7da7f2bbb8d6",
+    "docs/v0-17/design/s4/prototype/prototype.js": "be412b40c6c3666415dd6571473792c6f7fe14e0dce5ff09a6a18fecc295ccdd",
+    "docs/v0-17/design/s4/prototype/styles.css": "2523e0341e5100ba92bc9121ea5d0fecc5e83afece3f33115f69292f4d66baaa",
+    "docs/v0-17/design/s4/responsive-and-accessibility-r1.md": "6c361722c6f6c38bc134f9accd276b458fd745e6e17b0d76d98af5842e18d11d",
+    "docs/v0-17/design/s4/s5-implementation-handoff-r1.md": "f71252c7d9442c6acf45a826d966eb02624a8feb37daeb58289089f1b1f0c4ca",
+    "docs/v0-17/design/s4/screenshots/attribution-1024x768.jpg": "3a5e58c9fcb8a72d08a6068c9850071a8cb692ad0b2a36d8cdf9b7e9a2a787d1",
+    "docs/v0-17/design/s4/screenshots/attribution-1280x800.jpg": "88fd45c0e790266afb9f231d553c5bc72c1b745f720344f3372788f69fdacaa5",
+    "docs/v0-17/design/s4/screenshots/attribution-1440x900.jpg": "9846fe8a002baf8e6e204124892ba9df0bd2fe95ec7498960f6114e6bf5648f9",
+    "docs/v0-17/design/s4/screenshots/attribution-360x800.jpg": "c434aad143d21d3771a5e73b131adc3ff877a1728e61971ee3f3d6d88b7a1383",
+    "docs/v0-17/design/s4/screenshots/attribution-390x844.jpg": "ae97ec265f9fab92376c43cf0455cbd20743f6da4185b9ff6ee82b189dcd7f94",
+    "docs/v0-17/design/s4/screenshots/attribution-834x1112.jpg": "dab3abb8edd7a995bdbd9b17b5ad5bd823a6a6c77370dd655b1f930126b4415b",
+    "docs/v0-17/design/s4/screenshots/capacity-1024x768.jpg": "cb4e892f06373844d8dcb140fee8e4abbd1b22f37446007cc4d1fa22f19a4c4e",
+    "docs/v0-17/design/s4/screenshots/capacity-1280x800.jpg": "c7c6a6889cee8ea93621390f23ae30c9db6b4915c1d160141a2f882f641e2150",
+    "docs/v0-17/design/s4/screenshots/capacity-1440x900.jpg": "055b9d4ce236f53244b29e700ed49a4ba1857f4de5f76fb310810e5b2b97ae60",
+    "docs/v0-17/design/s4/screenshots/capacity-360x800.jpg": "593f9c5537027724cf5bdb551148620791591a71e6b5d5730c648ea4448f846d",
+    "docs/v0-17/design/s4/screenshots/capacity-390x844.jpg": "1a0ac0b91a9e770eb246fbd78aa28433a3df093be7291f969847ec209896b70c",
+    "docs/v0-17/design/s4/screenshots/capacity-834x1112.jpg": "c52fc28821388eb52f0663ded5fae25be0e7e92058f1a5f7afe955c51e88d0d4",
+    "docs/v0-17/design/s4/screenshots/forecast-1024x768.jpg": "06c5e9e4a26c0f07439c4062788e376f5602586a6484c5c780a0262a856d6d2e",
+    "docs/v0-17/design/s4/screenshots/forecast-1280x800.jpg": "7c0be45087e5523088a6bf8bd0b50dfe5a86f93a7d6380f15a4138a8d6fa0b05",
+    "docs/v0-17/design/s4/screenshots/forecast-1440x900.jpg": "54b3859610f6361f86b6cf724379ca37942aa8a41752c2b4bde5fd13643081b7",
+    "docs/v0-17/design/s4/screenshots/forecast-360x800.jpg": "7a64011b2b2a2dbf8b7a0aba03c0b52575a78cdf05d2d76eeda7e17c02a4da09",
+    "docs/v0-17/design/s4/screenshots/forecast-390x844.jpg": "94cf27924aa72b30521865f5c019f1e8dc7de7ebfd4764bf002634706fac74a0",
+    "docs/v0-17/design/s4/screenshots/forecast-834x1112.jpg": "652888d20209a3b952520d3b6198878d05e9fcc2d084a69e6a55e4c44d4e78de",
+    "docs/v0-17/design/s4/screenshots/overview-1024x768.jpg": "1f112b0eb0cb0bc526ecc17f7b0165619ca57e4c4db2049bdada83309fffaa4b",
+    "docs/v0-17/design/s4/screenshots/overview-1280x800.jpg": "9e9b57e701a8d367fbf5e1e0321413e0291ea2d9595cb4301fd788caaeccde7f",
+    "docs/v0-17/design/s4/screenshots/overview-1440x900.jpg": "4e10329829ac6be12fdd52cea8afd094fbffa6dabbdf8a92d567dc2505927413",
+    "docs/v0-17/design/s4/screenshots/overview-360x800.jpg": "6392fc936a13fe1ba7433443e1dd9046ec95138314b2f410b88d0433c0de51db",
+    "docs/v0-17/design/s4/screenshots/overview-390x844.jpg": "418b069c8b5fe1987ad03475dffa0344e822bfb8db0ca7b0f3a87e4eb1b266a1",
+    "docs/v0-17/design/s4/screenshots/overview-834x1112.jpg": "2f925cd1865bc6778095bbc924448e2ada3ac2d0b1f06325d9db56b66570aba1",
+    "docs/v0-17/design/s4/screenshots/quality-1024x768.jpg": "8740866fac014ab41f2b7118bcccf16e6c6d62731ceeece658f7eba93b20ba95",
+    "docs/v0-17/design/s4/screenshots/quality-1280x800.jpg": "52e89f432713e5b8dcf401a1ab4718785df8afcc3635cb08ab96c61c1d2dc0cc",
+    "docs/v0-17/design/s4/screenshots/quality-1440x900.jpg": "c32df430ac6b669021181ed7ce42fca6ebfd09cdb270aefdff54381426926d8c",
+    "docs/v0-17/design/s4/screenshots/quality-360x800.jpg": "0dbf5d5d67b2e2a0a73a656f5a86ac0968eabf92b70c0facca20a17a7ecad01d",
+    "docs/v0-17/design/s4/screenshots/quality-390x844.jpg": "4067eada9d254b49d1a2a1810f01ced282b4dcb9841db771c2bdc0333fc41bcc",
+    "docs/v0-17/design/s4/screenshots/quality-834x1112.jpg": "26a6ddac188cae491950042abbe45336a52352631d6921dec9585c160869108c",
+    "docs/v0-17/design/s4/screenshots/saved-run-selector-390x844.jpg": "6571ee289181b5f0959539f4045d7c0f3a1ff1c212eaeb91d79fbd93a5095eb6",
+    "docs/v0-17/design/s4/screenshots/state-authority_mismatch-390x844.jpg": "a42a790fc85c0d9c7335f8e6914f2cb1bb02d64d49f96252fc480d7a5df6948c",
+    "docs/v0-17/design/s4/screenshots/state-empty-390x844.jpg": "4c6713e9c06f7a0c94647f93a70a061a22c693de99cc7dbf30fbfb2250a2be2a",
+    "docs/v0-17/design/s4/screenshots/state-error-390x844.jpg": "68ed8adb70c56923d09cb7206105dbfd4376964b47985e6ece69ffb9a49cf775",
+    "docs/v0-17/design/s4/screenshots/state-loading-390x844.jpg": "8a4f1c46bb3d4d6ff6f2c17b0e40b0a0c73e958ec98912ea34b116e498ddca77",
+    "docs/v0-17/design/s4/screenshots/state-no_current_actual-390x844.jpg": "822be6c010cf231263e32634fa85a882d309a8f873bac4afb62cebcccd0f2841",
+    "docs/v0-17/design/s4/screenshots/state-not_available-390x844.jpg": "8d7be1d3fa7127b85a5e16f2f43589a4b01680f68d52644b4b89ccaddbec8ab9",
+    "docs/v0-17/design/s4/screenshots/state-partial-390x844.jpg": "5b514a3fba355fee9510dccd22c821cbf2f7accc6e7d28a6e590f55483a05067",
+    "docs/v0-17/design/s4/screenshots/state-ready-390x844.jpg": "94cf27924aa72b30521865f5c019f1e8dc7de7ebfd4764bf002634706fac74a0",
+    "docs/v0-17/design/s4/screenshots/text-enlargement-390x844.jpg": "339c291bc82b8ea5ac60893e74399f43e9eb34763d0881f6f76c9db04e2618cf",
+    "docs/v0-17/design/s4/screenshots/workforce-stale-390x844.jpg": "81625162c0788a4322eef8f507d3b4f59346cd4001ead5adf63453eb36d61161",
+    "docs/v0-17/design/s4/visual-qa-report-r1.json": "cbdbdb2ae77860668e9ac24db42062fc3bd4996013bde8b3947c53be650ace10",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-1024x768.jpg": "28d94660f52b1a5ca042eab9f1ed3c411e99d44980f5e84744d74028adc34bff",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-1280x800.jpg": "0ecfcab150ab4b5074e5a299303c1cd62aa4af7d736a6abc7d55c7c51246d0e7",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-1440x900.jpg": "30b62101e2f1a3a941991a36c121a09d46c4b7f1fba97bfa1b00228593795cd7",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-360x800.jpg": "5b0ea74a9686b3f19d5269b2956809cd7c572cdf6a8f5a23ac89ade1aa1f9d49",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-390x844.jpg": "0afa84b99db23b8a62052d96eebc9908e9da6f4d413c452294d97d8d41fdf538",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/attribution-834x1112.jpg": "60b7dd772fc1ae2a604d057e56989139683beab91814b8fbdf745cebc4fb5cef",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-1024x768.jpg": "83b90d2197d0af5db76b643810720159ec209c821257cc711cae50097edcff09",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-1280x800.jpg": "dfb53b66dd3b7033d7f774fb83ef1bec7ce86c40b0a726c3badc54ba96d73404",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-1440x900.jpg": "42dc524cc726f66a99332ed5e243d6ee89c5947414eb2b4f096d125a1a3b8d7f",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-360x800.jpg": "53ae5651d2db3f58f716f8a47495184e896d66ede43276a5d93cf2c15986c7d0",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-390x844.jpg": "4356e15009ae6f8d25ac6957f9f976438ca855928abc48e0f2f30714905db697",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-834x1112.jpg": "8a62e657c4ce7aca9368faab00731776f153360613f793d72392cfe88035b8e7",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/capacity-abc-comparison.jpg": "7583c5b9e4b41ad56d9599723843ab9ee49c32cb6a3da0c04a3ef704269d8503",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-1024x768.jpg": "182cb7778577c41233a33fd2dc46feeacf7d414ab513cdcb95fdcb08a966694d",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-1280x800.jpg": "54d75244a32ce5703a89a7973ba04c253e1a6bdda7bcd4da01ca23572c180c17",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-1440x900.jpg": "9e4d58637bf1ea79bb625a9214a6efcc42ac6b5791201a62a9735b09b09c1a9d",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-360x800.jpg": "0d1b78d204a19158c571104b2852a09f8596c631bcf250a4e460a28838505487",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-390x844.jpg": "448e7bf2f56159231e5c52264dd1923b9d704a865902456d841428dbc7e46e11",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/forecast-834x1112.jpg": "7291e8ca3594e17a030a1079951a8ae993c1399e4c0adf020bf863168d3aca3b",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-1024x768.jpg": "31098ac64e782d6ccf73d7cfd57976b495f821250329ac86306899a143caea2c",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-1280x800.jpg": "8de356a431b71a00cef19a35712412f26146d009c60c61fd29a4e6df5e8fb500",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-1440x900.jpg": "bea60a6ac83e91632f696f7937172febc462ce213626268fb40d8e71619fa8af",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-360x800.jpg": "3b06d993352e314f66fb0e8fc805b1e0a0fd74df550ababc889f1d08bf1c6a0e",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-390x844.jpg": "a4f32edc2e1781bc72c49d6af1b0b717c10961057768f4c158c4c39944503887",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/overview-834x1112.jpg": "ce90f29b5d0bb8bdb1f39555cd51dabe5769adf7e9ca4ba2e1935a96d15fb195",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-1024x768.jpg": "5dbc393f6227ddfaf173315a2b1b7b6ceb0e61abb046c8285347356db55b1d8c",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-1280x800.jpg": "e66c0446aaec46bb47f691d74ca425b090333b7ead6b472f1afa33f29949835c",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-1440x900.jpg": "6d459e0e577d36c6ddc79e54aeba83a6fe30df8f7545ce85ffe6be93cd5c05a4",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-360x800.jpg": "484c42cdb0bbb5da05dc876c3f33be8a311e43d2746c142aa56824c6e6fcdb2b",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-390x844.jpg": "160a90ff724dd9d086cbb4a609fd228c58aec3b981b1f977c291b4478a01a516",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/quality-834x1112.jpg": "77f08be32237da6bc5eb70dce27969a87a7a2e8dbbf5fa2c52319397279ad615",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/state-409.jpg": "243e5b04752a88c3efe9b1a6fbdb82ee31ef5ed610132d2ff16dc42a0351e240",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/state-503.jpg": "ca3a047eac1682414d80c5778732ceaece349805f56bc6f762d633be5c427c9f",
+    "docs/v0-17/evidence/s5-dashboard-r1/screenshots/state-empty.jpg": "a0f0ee9dcbfd7e10cd36c0f20d676f982de814486bb2a0d00bed39574ea0faf7",
+    "docs/v0-17/evidence/s6-cross-surface-r2/accessibility-results.json": "8851a75c134d454295f457758c765a19cf5a0440431258ee62a2a932b2d7286c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/failure-state-matrix.json": "e219978879f8e6e3a4d4f7c3a79105e8dd6d1f060cca3c8922b3517c8a7141c9",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/backend/tests/e2e/test_v0_17_s6_cross_surface_parity.py": "6e25a29297de92e0475b886ea53324e2f192b8c287a89086730e3f4be4e3faf5",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-desktop.png": "07ab22c5137eb87d344c09e24960592e73cedc0ccc98a6dd053d171d014ce8ee",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/s6-cross-surface-r1/screenshots/cancel-reopen-mobile.png": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json": "f9a1c81678878a2881d618d42e252f658128975e5d58f86072f49c2da10a0a56",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r1.md": "3294ef1496388bb6ef57cc3bcd1f30f1d0619ca94bc011118ad6698cb35a8e03",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/frontend/e2e/dashboard-cross-surface.spec.ts": "4618826da58b841028c1eb1bad8fd61661994dcd9c4b79e38dce6a4bffd05bdb",
+    "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/frontend/e2e/support/s6_api.py": "4661701020a658df586c6bc86cee7980086e6ad1816d60339640670c0834309c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/parity-matrix.json": "58634da1b28681eae7b916ea45b48dcd73777316f3dfc9216d66885559624d65",
+    "docs/v0-17/evidence/s6-cross-surface-r2/parity-payloads.json": "b3018a970bad4924276d2ab8f9877c2a73e28bf1c8b30fe4911bf8182e74858d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshot-execution-report.json": "fb9baa9aa29b77293efc9da31ba8a3645b84d1b5e762d4201ae3f4587ee12056",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshot-provenance.json": "19baf0491e11f5d3ff483be7d4d2233c30f4fba1b8a85d9facb735cf9b78064b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-1024x768.jpg": "becb4428af1d68fa811a862ec574535684c59e09baa272d45bc9647fe3b88b29",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-1280x800.jpg": "9ceadca6366850ccfdca057f6608be2a48ec567cb1f0a3b4d0ac9f0945b7f9df",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-1440x900.jpg": "36ebdbe89fc1f1274f9bad41ac89289b1259116308fd5744a081ce55057f918d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-360x800.jpg": "7067a6169fb1bfc63e575e69cdab21156c9c8a1ae98a7c442d4f53fd278c437c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-390x844.jpg": "9d533046df658b9c9e02269a50a76ba359bc64695a8a055e730f4f5194b89e36",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/attribution-834x1112.jpg": "6ecac126571893c4852b1acc9964c273bf00e9bde22607ca4242815b06db8727",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-1024x768.jpg": "9e6cc3456b27f3e87d7afd74ad7119ff733318c48bc6c143cf17f6956b00c754",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-1280x800.jpg": "1493313cda1fa867184cef6f122d232629736412612598c6ac40c017b4be799c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-1440x900.jpg": "724781386872aed6710c304642f1264c21f94782c7224f9d14ae3cbc2e97d65e",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-360x800.jpg": "8e5751190d797bb59cfa78b9465e27df34102158218d15dd5e504a4f2e9b8bbe",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-390x844.jpg": "810212937f77056bd71fded9b2a71dde15ec562f8376809fd0c61825ff82dd39",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/capacity-834x1112.jpg": "95cb69649557017898b516e418df1cb71cb4b76e180381f2c34fe1ac04362baa",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-cancel-reopen-SYNTHETIC.png": "b2b798d6b820ee10de6c87624366551c7d1dbcb1f8dde640b5b7e7df1aa2cd3e",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-comparison-SYNTHETIC.png": "d34efbd14f7d1d98d58fc1de6eb07f14ef3e1ba1e38037c187c5ab83b701105b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-empty-SYNTHETIC.png": "01989f6d78f2495cea7203b339c95d11165af87cdde31450a982549655245565",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-error-409-SYNTHETIC.png": "5aa9e240626f9167771670837ed6e083890959653df5b47a4d23a1ed8d75fa08",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-error-503-SYNTHETIC.png": "132c8b6765cc3df4c088c38046b8734b020009b2343ffecd6d154a47c4da80be",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-incomplete-SYNTHETIC.png": "11bed7aa8ab1fdbe801f6b7ea565e7c2e2591b218b2b9543e37a1667a21aba4b",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/desktop-partial-SYNTHETIC.png": "996c5f5f4ed9946f70e9e8dab5f9ebb3a2e0c201ecbbd9e273c4203955feb1c2",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-1024x768.jpg": "343ffdf75985006e5d3c879b57d11a1deb4cd4fcb3f7f43b3235f9db14662743",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-1280x800.jpg": "1dd0877179996905f70c3707aedd8ca5aa547be66728ed3667542949b900321d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-1440x900.jpg": "93936bc8e91bfa2d2276a2c766107138e75060de0217212bc649558b5ad2267d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-360x800.jpg": "4cca251b4f618f857143e425b00741a9c103ae56a446c325f630995c5abf09fb",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-390x844.jpg": "f9421302617aa60bf45fb423d513654f1faf8e9b97b47dc35fa4a2ebd64bf4e5",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/forecast-834x1112.jpg": "6a8052cefdc64892ee56e872064561996a38c9db72c7d404c2d774b37dc460be",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-cancel-reopen-SYNTHETIC.png": "06c4e3f80dad9b385ea444b4236ebc089c8807e75037e04271050fa617381e6c",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-comparison-SYNTHETIC.png": "1c826987777a348517f2b461ddff4441f737e01524c36020e90e7598800e19e2",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-empty-SYNTHETIC.png": "7a49f7818ff015baf15257f3bb90b385409f4934a14cac6aa2d634eda07f62ba",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-error-409-SYNTHETIC.png": "a2ce25c100b22a65639154ef15493df63b6c77746345c0f4ae91d6a36c3d97fd",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-error-503-SYNTHETIC.png": "9f6d26f3b57597a5bec8774eda230bb1c5088dc20a9bf42de0379a9f259d249d",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-incomplete-SYNTHETIC.png": "66b47d3a9cf2f714e940df6a31c173ca0b7f8940e9f4e41cb9488c353a2e005f",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/mobile-partial-SYNTHETIC.png": "ddb1ed5f1d4f9e8aa21140557dec89bc252641a0f6e7bd018db3db64f1724501",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-1024x768.jpg": "7340aa5d0db5a4099eea6511f51910c21bb9b9727fdd5226b7ec5265d79a9477",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-1280x800.jpg": "6341ee5d6f1ec9764d75c420b3dd09dd33a4cf8d6205931354c5b905f01aaad3",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-1440x900.jpg": "add97f977a0ec9701661e08d9f2870f14028490d46a1b10e72f5d8ee7b118983",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-360x800.jpg": "5d6cc35c5626a1bb59809e675f2ec078174beae6cc51d4332f86102841857db1",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-390x844.jpg": "4fa0fd0321c7ebec929646a0e61fcab894119d7c7a46c3dc59bd67157aba74b0",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/overview-834x1112.jpg": "c53def7cfe127354b1d9bcbd2d4177370c7cb3169a0220447ac89ee981cecf68",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-1024x768.jpg": "f0c30f2a7a5760f72a401fedeb8517dd930ee42b062dd2e33138d603b3e44a64",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-1280x800.jpg": "575fa5304013c82f583bbca01245c8fdab81c44aa593a682f8da82105767e160",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-1440x900.jpg": "7b4aac0de7de8b4b3c74b8563e7108b498b894990671a0326d638bb81f8c769a",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-360x800.jpg": "1d521a07582184faf33e7923501c3b5e9cbbd9490ac54637a1a9fed3452e5530",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-390x844.jpg": "6983d90be4b5b05c6157217ba7a29fa6ad3baaeebbe1f5222c0ed2c0edafe1c6",
+    "docs/v0-17/evidence/s6-cross-surface-r2/screenshots/quality-834x1112.jpg": "7083576cea586348d265eb2ec96b9222efdf3a6c7538e2203b8ebd8c8d2e9289",
+    "docs/v0-17/evidence/s6-cross-surface-r2/test-results.json": "0addce0eb9dac2913ed320f5698fe35d5f007296531b158e9e65bdd6b92d1a03",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/dashboard-results.json": "8bca5708d3671fdec504da34b71208c613176b6d7dc8240b767ce131bbf1412a",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/dashboard.spec.ts.txt": "7713e7975e0cfeb6ca7464496a01b3e1b61f30208a9875968666edcd9da44c3d",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/historical-source/test_v0_17_s6_evidence_contract.py.txt": "c030be143f261d908b19bb8619b6d2c41427083a96e09b94788bc684db0c0624",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/original-failure-manifest.json": "83308c3b1b9a502a554ce8cac0908a987ee22e7f249a16720c71641d6bb0d68a",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r1/repeat-results.json": "79e980b6ffb878e3c828abde5b9001d593affd5204cf0277422e1311d7fc78ed",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/dashboard-cross-surface.spec.ts.txt": "30d80dc0caa3a0936817d46fdd33862956beb09b64870bb3581ed4d1020dcd85",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/selector-cancel-reopen.spec.ts.txt": "0442d70e2dcda7fd1252081145399e3798c0f4d8b32f80e03672ad3a4818fdbc",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_evidence_contract.py.txt": "2b77f5f535fb8eea7632a57f9e52348a5bb8679b68ed898570befbce8a4dbcd5",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/historical-source/test_v0_17_s6_route_lifecycle_contract.py.txt": "d1fce81fe1fdcb725a4802b9d6d3f9d530eb032171e09be7d460e51b287383b8",
+    "docs/v0-17/evidence/s6-postmerge-route-lifecycle-r2/original-failure-matrix.json": "c4a1449eaef5a20580d29d6b925a8d82f88380c022434d5a68ec6aecc7ab48c4",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/after-desktop.png": "cd22e497ad3e71bbe5de72ecd2ab7c2d8cbf4f7d479c564a7fbc9cbfaac3314d",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/after-mobile.png": "e18d6185cd49557ac88bb16f66cb04ac67f024185435450503edf3e61d967e1a",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/before-desktop.png": "99bd0c547fdd31dc58c237a9725aefcbd312d68eadd375e8215cb0f3816f9121",
+    "docs/v0-17/evidence/selector-cancel-reopen-correction-r1/before-mobile.png": "03ae1586d1b758c231ab4c22ccdb9e565f749ed7ea0c62b112d4a22f508c3869",
+    "docs/v0-17/evidence/v0.17-s1-forecast-intelligence-service-read-api-r1.json": "4158c6945ff88e1d30935f4eb06772efea3dceb6135860dfd966ab6718f5da34",
+    "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json": "115d5847d6f853fefda2063ce5b709eeaececf3be775639a4e5e0881491cb37c",
+    "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json": "fbcf81c98a26076b4f02c788659b0723bcb11a6ebbc239d4b83418bb4a8e2737",
+    "docs/v0-17/evidence/v0.17-s4-dashboard-design-freeze-r1.json": "d07b4b886e28e8a98468bb58bdbf6440798720797efcfb05e8385f987b62d253",
+    "docs/v0-17/evidence/v0.17-s5-dashboard-implementation-r1.json": "c143d2b63a0e3d1c85d346930507b7432e56a8f51c2e9a0d92fc79e2c5ff1897",
+    "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json": "31bf5cf4ed207450e346c204ea0b3d108e0a0d9511b06140e882df704742f3de",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json": "3e660bf04a1fbd0138e490ce3b4a4145b3dcbd52b6126c3a7fc46533e47200d9",
+    "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json": "98830150da51b913b982d331f7ad172224e465640d5c3837f1ebf202591409c3",
+    "docs/v0-17/evidence/v0.17-s6-selector-cancel-reopen-correction-r1.json": "20e4c09fd64a5647042adc463456ebfa1a01121dd99439b7e096898f0279a109",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-manifest-r1.json": "7034b70ca25fffdc6403fda3f3673d65abffb48fae39e3789581c40841dc7b54",
+    "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json": "8e5185a139ec106edb80393db2047de6398300e1035eeee2b7b85167ba017b14",
+    "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json": "c54d78642eae00ce3bb3c838fd5f117e9c6439d6e982bea4183f68bf15152181",
+    "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md": "5488ab62be37356fd5c2dabed6466df1d0c2d07eeb92388a0a484e9d07913a61",
+    "docs/v0-17/v0.17-s2-decision-support-api-r1.md": "5221f1565a84fef9575e88b09b3c43752e2378d222759566719add9ea45d05e6",
+    "docs/v0-17/v0.17-s3-mcp-productization-r1.md": "b16bf70194dd58839973c604e7591dd1176587cb3b0dcbeaabfce4b0639d2c6c",
+    "docs/v0-17/v0.17-s5-dashboard-implementation-r1.md": "98bbd78bfbbc6df4366cf7b00e1fef76131b04a3cbc5251bfce3cebf567f0286",
+    "docs/v0-17/v0.17-s6-cross-surface-product-acceptance-r2.md": "473ea0a41535c857a208d00da8b0e97b943dec91df4c710dad55935eb7d9270c",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r1.md": "21f4edcf68dd59a28c64eb9f6053c1da7d50e02cae20f3a1fe387978fee1c328",
+    "docs/v0-17/v0.17-s6-postmerge-route-lifecycle-correction-r2.md": "4fd701bac6905974e9d3d4ca2dd2a0b89d407af92038976227946aba23393220",
+    "docs/v0-17/v0.17-s6-selector-cancel-reopen-correction-r1.md": "4066c2cc81754ff982dab5051480b8a3d6ec6de90c8ebf816afced2bfe95db57",
+    "docs/v0-17/v0.17.0-closeout.md": "3355a1b3a68e7d144df821eb414bea3276bb96d9e7028d780f12058138778f4d",
+    "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3",
+    "docs/v0-18/evidence/forecast-quality-roadmap-r1.json": "0944268563ecfd8e343e9d22afcc17c9c3938d04a334a747427a10fb696d4007",
+    "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json": "eaf767b26e02e3495e9ac57bc61ee44c02229c25d82c79c5c49665ec3e796055",
+    "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json": "f4505dec93e3bdc5d5a8e41deabbbe8b6bd4a66b3134b10f2c0efdd37a4e026c",
+    "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json": "4834725e7683c7a6fe15f65dcf93140f71386c5dd11c7fed1fc8f1434d4a68ac",
+    "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json": "ec376c24146f98899c8e8c252f5cc34d88b2929607c0fd1bda21f3e0f601b4c4",
+    "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json": "a841afb40bb0f3e2eb1205350a7f60aa1a893483977c4b0e036f470c498f7203",
+    "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json": "c81e2cad07bf07ae7ae3f9590df03a60f17ba8d01c20822ca7aa981516c45545",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md": "96efd4fef39d509088a7c833b0715b40d18a38502366f30763f385ae21470b02",
+    "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md": "dcb515ab1c957b89a3dbd8cc4bd782105c5ff0ac856fe78ae6761fff7c95b58b",
+    "docs/v0-18/s1/local-auth-implementation-contract-r1.md": "079cc4cda5e2514fe8847b32cf8b16afeb798cde8f637adba99f9106a0fb0c81",
+    "docs/v0-18/s1/resource-grant-authority-review-r1.md": "0268b84441856b4a3cd83dcad3d8789f4469d12e74b3f2cf54608d035091e57a",
+    "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md": "4f37bdef1327b6aa71e7ca82dbcbd05337d153e7f1964e011b00c92566072b81",
+    "docs/v0-18/s1/simplified-local-auth-plan-r1.md": "e0980c2c3895be1b4c47fd5040cbe050b49af6bae01016dd40aa77d680e8331a",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-18/v0.18.0-architecture-and-stage-plan.md": "228cce31135e3e9feee0ab67b16dbcc8680b16d9e8a4ba9b169cd6fc9643740d",
+    "docs/v0-18/v0.18.0-business-usability-scope-freeze.md": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+  },
+  "governance": {
+    "current_actual_accessed": false,
+    "deploy_authorized": false,
+    "mcp_runtime_changed": false,
+    "merge_authorized": false,
+    "model_or_business_math_changed": false,
+    "production_backend_changed": false,
+    "production_database_changed": false,
+    "production_deployed": false,
+    "ready_authorized": false,
+    "real_accounts_or_grants_created": false,
+    "release_authorized": false,
+    "s4_formal_complete": false,
+    "s5_started": false,
+    "tag_authorized": false
+  },
+  "historical_source_bindings": {
+    "backend/tests/historical_source.py": {
+      "commit": "08b185b4621bf517846c986841bb5579b6c37b35",
+      "sha256": "2a97597a0f1d7218eb4fc996d7a61947dd59b4a247a0d341a98b05603dc855dc"
+    },
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": {
+      "commit": "08b185b4621bf517846c986841bb5579b6c37b35",
+      "sha256": "d5fdc2aa7c6f69cb14b07d7337f75ded20aa3f84cf536975ac7c56d1b896bed8"
+    },
+    "backend/tests/mcp/test_v0_18_s3_contract.py": {
+      "commit": "08b185b4621bf517846c986841bb5579b6c37b35",
+      "sha256": "4a0bee52b30d0c576ece1d2a80c81ba70ad131c534b8b67e82cc9f0ed20942b3"
+    },
+    "frontend/e2e/dashboard-cross-surface.spec.ts": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7"
+    },
+    "frontend/e2e/dashboard.spec.ts": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b"
+    },
+    "frontend/e2e/selector-cancel-reopen.spec.ts": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46"
+    },
+    "frontend/e2e/support/dashboard_api.py": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "3e8653f41c859173549be38d4ff726c9390ac431723a61632a2ca47521167bd6"
+    },
+    "frontend/e2e/support/s6_api.py": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "135595d63df1d1793436eab14647bda09131f361b9e3ecadc6f7be04e6079d3a"
+    },
+    "frontend/src/dashboard/api/client.ts": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3"
+    },
+    "frontend/src/dashboard/app/Dashboard.tsx": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "31ea60ee4cff4aa69ea516cfd30205fb841ec11d238b7b59b389a9884e006c94"
+    },
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "6d85a3910d611098769b6f95cb18a58f6c2ad8edd50b377085ca3d6a43437bac"
+    },
+    "frontend/src/dashboard/components/presentation.tsx": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "4c1bc944810a291f2bd6b8468b9e0af56dddc8debbefa902ae741a74a4e6fb67"
+    },
+    "frontend/src/dashboard/context/ForecastContext.tsx": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce"
+    },
+    "frontend/src/dashboard/styles/dashboard.css": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "764486e7f02822e6dde52a54dff6852cfe44145996f5aae39645076b1309598e"
+    },
+    "frontend/src/test/dashboardGovernance.test.ts": {
+      "commit": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "sha256": "897d55405d07ad109c58ec13ccccee37a6dcadb7ab6267b32c015d6dd762dcfa"
+    },
+    "frontend/src/test/selectorCancellation.test.tsx": {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "sha256": "c2d2ed8870e48a53c58e0810a2f052810646ae8c9577f4e7a1ade3519832f4a0"
+    }
+  },
+  "owner_s4_implementation_authorized": true,
+  "production_readiness": "NOT_READY",
+  "runtime": {
+    "abort_and_generation_guards": true,
+    "admin_no_implicit_data": true,
+    "atomic_canonical_selection": true,
+    "automatic_latest": false,
+    "client_business_math": false,
+    "csrf_all_posts": true,
+    "handoff_max_seconds": 300,
+    "handoff_memory_only": true,
+    "idle_session_poll_seconds": 60,
+    "physical_sensitive_context_clear": true,
+    "push_revocation": false,
+    "real_session": true,
+    "server_authorized_discovery": true,
+    "top_level_pages": [
+      "OVERVIEW",
+      "FORECAST",
+      "ATTRIBUTION",
+      "CAPACITY_SIMULATOR",
+      "QUALITY"
+    ],
+    "unbound_upper_attribution_contribution": "NOT_AVAILABLE"
+  },
+  "screenshots": {
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/产能模拟-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-desktop",
+      "sha256": "94e0a04141df72b6dba549b062347654894ee1e464069afd743fef2a81128fab",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/产能模拟-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/影响因素-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-desktop",
+      "sha256": "a7b6c6137314befa32023912c4834c82b227a79d89b1570408a822ea3c8a281a",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/影响因素-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/总览-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-desktop",
+      "sha256": "58d84d95a51498b3d062f3cb599d8d83f44ec781105fc92ee27b18befe712027",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/总览-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-desktop",
+      "sha256": "93c7f15046bc61ae7fdd848d5179427265329b759cfc397cd77076fde87e81c0",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测质量-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-desktop",
+      "sha256": "4f807642e7b9ed8cea954b434216d0ae70b92e847907b98087561239aca73e29",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-desktop/预测质量-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/产能模拟-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-mobile",
+      "sha256": "fae92beeac009e4f368776a162991257a72a806a082b91c622f5758be42b84c3",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/产能模拟-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/影响因素-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-mobile",
+      "sha256": "c063d48af409070b3f68a1fcf6001d6111cc3984b17f8b7267aa19a21668cb61",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/影响因素-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/总览-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-mobile",
+      "sha256": "6ff16f15d94293bccb7dd23404d5fb6d10b6df9c1f29d8b39d18066fa320ba99",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/总览-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-mobile",
+      "sha256": "ba2bc25e4d6eb54a8c5b1b3a6dfb4880960258e40021ae39cff6d366a8d7320d",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测质量-834x1112-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-mobile",
+      "sha256": "3f427b11f34002cc8cfc46ef1c1578746742ab13d18320a205b8703b62607d88",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-30514--pages-no-overflow-834x1112-chromium-mobile/预测质量-834x1112-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 834x1112",
+      "viewport": [
+        834,
+        1112
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/产能模拟-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-desktop",
+      "sha256": "786f69e3450999d14942fd7a923408533a37fb99a8b6234e55d19047c2a80407",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/产能模拟-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/影响因素-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-desktop",
+      "sha256": "378ffb50a065f760f00d295cc33471adfbb382fc31dd6367afb8aff0fcd45cc6",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/影响因素-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/总览-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-desktop",
+      "sha256": "d334a3846968e29d2962878caedc4674297c58e7aedfbeecebaf1a58b69f9eca",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/总览-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-desktop",
+      "sha256": "d38a67cf575c7e5507838b2de1b6d0f37366fe290e88d2c15d84701f7d8510b6",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测质量-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-desktop",
+      "sha256": "c609c4bc0d35237d2426d348bdc456271d816216d9b3f0f2b14386f2d5c25bbc",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-desktop/预测质量-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/产能模拟-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-mobile",
+      "sha256": "341c3928007b52cf2319b020f28a5b6e1e349f1cbfaf74b0533b28e56b6621ca",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/产能模拟-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/影响因素-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-mobile",
+      "sha256": "80fa0f3d0f9d301063002cb0a0c98dd72f5e1ec0d2ec2f0783855ec35cd8ef16",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/影响因素-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/总览-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-mobile",
+      "sha256": "ef95657bb72eb17d4e93836601dcae56fae797a36da60e9cd5d1ed60ad76cf62",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/总览-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-mobile",
+      "sha256": "64ef6a84c45c1e060c4418ee6cce8ead6e4082e621184f5329bc4b8152604467",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测质量-1024x768-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-mobile",
+      "sha256": "5d982a995629ff0e7d75f40e278ff7c97324a6d1eb24f689afe39bbb80d70507",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-7a7d4--pages-no-overflow-1024x768-chromium-mobile/预测质量-1024x768-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1024x768",
+      "viewport": [
+        1024,
+        768
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/产能模拟-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-desktop",
+      "sha256": "517ecd97719032b819d1f16e93cd7c3a180c726e187a204265232896faee53b3",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/产能模拟-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/影响因素-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-desktop",
+      "sha256": "a6c797423971bfe9fb908480051e4d643911a9314391d378f75f1d457a52de33",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/影响因素-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/总览-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-desktop",
+      "sha256": "161f60a13a7e0e68e43626cdf9a2f8aea5039da5f996006dcd9ce0136afcb12a",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/总览-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-desktop",
+      "sha256": "56228ca13b26dc24c20f47b1d1f2ac7a859ecb61d5422f3f3759d11b3acf0a14",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测质量-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-desktop",
+      "sha256": "574445ada812175c05556eb4135bdbda0429068efd80c70a35a4f268f8d4ab78",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-desktop/预测质量-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/产能模拟-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-mobile",
+      "sha256": "a2f81fef0b2168c6c5ed94a240900a29f7157d367dbb770ebbc5e31e55c2492a",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/产能模拟-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/影响因素-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-mobile",
+      "sha256": "0b19b459c4812966434d691b34e1d19ff4034f2dfd9c115819044d988163f87a",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/影响因素-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/总览-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-mobile",
+      "sha256": "35a6326112844dee3ffaf9167e09154a7e95523ad7720d6043308a0b1915e4d5",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/总览-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-mobile",
+      "sha256": "50bc5895d9adb6ea73126fdd81c018b5c7cdf2a99422fb2bbfc0900b9fec4895",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测质量-1280x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-mobile",
+      "sha256": "8d5d13b33aabfc95bec61593c3e3938b68c95421e23fb983a853e3b4be2b2954",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-a484e--pages-no-overflow-1280x800-chromium-mobile/预测质量-1280x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1280x800",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/产能模拟-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-desktop",
+      "sha256": "2b31987b809112500cf9052dd767278ebb2e383ed017d56bfe4cab07b9c13563",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/产能模拟-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/影响因素-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-desktop",
+      "sha256": "fbdc7b4feea4dab7baa2c6ed85fa844c2971fff0796b64be6a891e1c7a2f2807",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/影响因素-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/总览-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-desktop",
+      "sha256": "73cace416812639a0fb0429c0b4bdb020f5fcf6823d2b84f4e8605363b359fe1",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/总览-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-desktop",
+      "sha256": "7bc0d3d7e3da7956c647c7b925f98ff5ce1fc6cf4687096ab8b3b74104b2f145",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测质量-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-desktop",
+      "sha256": "296f852f819d9eb4acd0038fd2555f66f4f7d0d795050f8b33d7c2bddedc3fb6",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-desktop/预测质量-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/产能模拟-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-mobile",
+      "sha256": "028707f070486466b9c79d06fceba0ddf104cf5e1736c9412b45a154524c9747",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/产能模拟-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/影响因素-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-mobile",
+      "sha256": "a23e704fbb5a2251b06fc323087597434c3b3f624ac8dbec5d3c542d298deb4f",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/影响因素-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/总览-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-mobile",
+      "sha256": "8fd7adfccf17b04c9df62f77740ef6f0ad2fd204fc0f75552c25aa1fba79d8ac",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/总览-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-mobile",
+      "sha256": "e708ed344107022b63a469ed8eb3785c1c223fecad584b1f93015bc37d5337d8",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测质量-1440x900-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-mobile",
+      "sha256": "d2b9ae6b4517b2d0cb194ed0ad438d3c0b561e92fb81d0ec87cc4126a98c6478",
+      "source_path": "full-browser-results/dashboard-business-flow-HT-e52bf--pages-no-overflow-1440x900-chromium-mobile/预测质量-1440x900-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 1440x900",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/产能模拟-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-desktop",
+      "sha256": "27505cd596ded2c2ae8b075f37a300e6aa8380ccdff74091cb233657c0291172",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/产能模拟-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/影响因素-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-desktop",
+      "sha256": "b71d77399fbe50c7363bce230ddd4edf5c247cb6cc7bfbd09ca22ee6e7c188bc",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/影响因素-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/总览-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-desktop",
+      "sha256": "ec202bf5702be925fac0375d0af7f0158b122d3c7a9e0a5facd3d688b980e1e4",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/总览-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-desktop",
+      "sha256": "99856f06d9ab0981dbdda4a2ab7ccaf7a0b4fd0582276be4c556f43cb667e93a",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测质量-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-desktop",
+      "sha256": "18555f4feffdc340403098a8ad977519f14a9c73839871e17128ac194fc974fe",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-desktop/预测质量-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/产能模拟-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-mobile",
+      "sha256": "8cfc4762123c4bd2571cd5397a874e6c281065a05825950e10979b92fd57dae3",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/产能模拟-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/影响因素-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-mobile",
+      "sha256": "38ca60c270ee7b691ee5148aebe5c2f50c9c00db409de62c9ba49c1d07dbf8b8",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/影响因素-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/总览-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-mobile",
+      "sha256": "1f07f72643ab87f8c8db68955d1fca406726d518f00456c23cff805f827e4a5a",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/总览-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-mobile",
+      "sha256": "842bdc37fd7cdf00f637d8244ffcd89917b76ffda091d016f131354025e8f8ce",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测质量-360x800-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-mobile",
+      "sha256": "92c66202dd66ed0ec1068b64f3e63736f5634afde5c86e2970def7240e353b08",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-360x800-chromium-mobile/预测质量-360x800-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 360x800",
+      "viewport": [
+        360,
+        800
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/产能模拟-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-desktop",
+      "sha256": "1155036eacdb02f5ab7060315408d2e390cd3d9886c4d884c7d4f904dc852c2e",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/产能模拟-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/影响因素-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-desktop",
+      "sha256": "a567be5dea129297a2e8254120d0554bdb1f346ee0c532242aee219991653edb",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/影响因素-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/总览-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-desktop",
+      "sha256": "9b568c027891958dca7398aa19c29dd2328fdd5be1b1be0ea8d28d5437e74de8",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/总览-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-desktop",
+      "sha256": "338d27190b6824ae22ba0eecf9b29c81b4d7f61f7d86634ea30d554ae8121e16",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测质量-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-desktop",
+      "sha256": "e14b31af1a3adb4b3c1ebc7d7a44da22cb612929f4acaf48fb7856dba756961c",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-desktop/预测质量-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/产能模拟-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "CAPACITY_SIMULATOR",
+      "project": "chromium-mobile",
+      "sha256": "08834a3b17b73d988b517bf217183c7e0acaa3cf4a10e48c2cab17a9a7269829",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/产能模拟-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/影响因素-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "ATTRIBUTION",
+      "project": "chromium-mobile",
+      "sha256": "6186dd4e7e8cd22d3ee85318ba6292972130e613e0db7fec04299e8f1557672d",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/影响因素-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/总览-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "OVERVIEW",
+      "project": "chromium-mobile",
+      "sha256": "76a12f4fb204eafc3bc33920ea1c45744d9b52e5c6969dbbbb05fe1d59012129",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/总览-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "FORECAST",
+      "project": "chromium-mobile",
+      "sha256": "bea1eb1ca04292830bd55b9dfa9bbba41c8a01376e0394ec93c3e271fb97c06c",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测质量-390x844-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "page": "QUALITY",
+      "project": "chromium-mobile",
+      "sha256": "e071f41c0d7c14851ab5d0a4042e53bd7eda78028af5faa5b75b67abe32686d6",
+      "source_path": "full-browser-results/dashboard-business-flow-HTTPS-five-pages-no-overflow-390x844-chromium-mobile/预测质量-390x844-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "synthetic": true,
+      "test_case": "HTTPS five pages no overflow 390x844",
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  "source_evidence_count": 40,
+  "source_evidence_sha256": {
+    "backend/tests/forecast_intelligence/generate_v0_18_s4_evidence.py": "00c86ea0b52f7744ff2c6ea63cef89b857607eb8caff376564fcace792a771c9",
+    "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py": "006f0614adeeae90be03ba16b2cf64cb3dc204c75a2bb4e6ce68f7c370ef809c",
+    "backend/tests/historical_source.py": "245517ac71f58cc5dab4e7c5b4ceca5fde64dc75860cb6929354098d8b99eb96",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": "2aa78be90d8595b222027f860d9e134f025b4c0d025a3f77043f1a58d68de417",
+    "backend/tests/mcp/test_v0_18_s3_contract.py": "179a9b137e329916dbdfdb142360fc537fc27ef4ef00c0e304d4308769c47bd3",
+    "docs/v0-18/evidence/s4-business-flow-r1/local-backend-focused.log": "9746e119664ed732522ea6dfc61121f84a39dce2fcad162d0b93d9714bb4121a",
+    "docs/v0-18/evidence/s4-business-flow-r1/local-full-browser.log": "279599d270ed0cba21f660c7ff995012efea20c02d7b4a6d07ccb45d7e391e84",
+    "docs/v0-18/evidence/s4-business-flow-r1/local-unit.log": "ce687a020f7aa705396e97ad07d3cb4026bfcf44a158727d0da3855e299a4dab",
+    "docs/v0-18/evidence/s4-business-flow-r1/local-visual-states.log": "847a059300470ad532ff5f55a92f972dd6898073088c8617c670a3bcca7305ec",
+    "docs/v0-18/s4/dashboard-authorized-business-flow-r1.md": "27ecb5eaea763fd33f3f7203ee7253945eeaaacf2e1de0bf5a0b251c9f7ce71c",
+    "frontend/e2e/dashboard-business-flow.spec.ts": "6556d04e2a4d4a1b5e98f659eeb1525cc9405a5194a8cb168d81231245c43e88",
+    "frontend/e2e/dashboard-cross-surface.spec.ts": "d1918e374b915c44286fb39ebc739a2325a68086a22d87106301a8ad3c11351e",
+    "frontend/e2e/dashboard.spec.ts": "e52e3433cee3849783a1f795ea7ae2ffa53b8b020fa093054a6290343c7142df",
+    "frontend/e2e/selector-cancel-reopen.spec.ts": "d7c30e3dc6822439f027aa58933f8f75048c476dba397646e9abaeb4de0bd119",
+    "frontend/e2e/support/business_compat.py": "51d647a61a5105fccdb75b1bd1b58fa7933ded32e333aea661bc10905ebfbc20",
+    "frontend/e2e/support/business_pg.py": "8e762482611503b15200092761d6fb9f8a6822d477d5e769521a5fe5b9d7c902",
+    "frontend/e2e/support/dashboard_api.py": "fc444d129f11f057b8ce380776206a2bd8bf9023e726198eaa3b09cd3a9dfd1f",
+    "frontend/e2e/support/s6_api.py": "64d5d304f3c2fed143d6731d613ddd933f5fae2f72ccf7d9ab180e5a6fbac78a",
+    "frontend/src/dashboard/api/client.ts": "22e03d846899a00d52aaf1cb2d9df62f71329afa6f06ce7422d10eba71f51ba8",
+    "frontend/src/dashboard/api/security.ts": "c47f63a43d04bd7eaf0d6958d05e407af2d5fc82c13228b56eb4a9ca1f314572",
+    "frontend/src/dashboard/app/Dashboard.tsx": "1c0d243662875fc5323e7f501e1ceee4e309086b2d293bdd1d45a33e1d2b9592",
+    "frontend/src/dashboard/app/ProductEntry.tsx": "0156dc8e8ad1fd7ee4edeb2046bfb9853afc4202d8a18591b619246157c44926",
+    "frontend/src/dashboard/charts/Curves.tsx": "05086ee11e936bfe25242acc522e47734063a88d3455cdd3d50f3d511c73f1f2",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "c962bdffc8be0c5b19c3feeceadb4463616e884c0f019d2853c27cd862e9c9a0",
+    "frontend/src/dashboard/components/presentation.tsx": "9383425f2e50bb64453db14a273b0eb0273b4501648a60a54a2588478d49adb1",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "04471ad790e0e3c76e4a587197d426b37dd6a814a2ab7e3545a62622aa221760",
+    "frontend/src/dashboard/context/SessionContext.tsx": "f60769d8bec1e930630a3d89b131e7d51c8b36eefcf0ea470e7d4b50586e1cdf",
+    "frontend/src/dashboard/context/useResource.ts": "baf8d774b1dbf79ad297f88172ea6c63c0559f1c2d6f577e2eddccebf17bc3d7",
+    "frontend/src/dashboard/pages/CapacityPage.tsx": "c660d643af653c08c3d73d06a53f628e1b02977b2c878738947ec26e8e66b968",
+    "frontend/src/dashboard/pages/ReadPages.tsx": "eaf4f7fec98cdb3e5bd3c258baefa5c743612e5667ac42317b67327d1f4c4b91",
+    "frontend/src/dashboard/schemas/business.ts": "e57dc68ec04df412232dd3b8e43dbaafeb072dfa1ce9501b86e8d6a21ba07881",
+    "frontend/src/dashboard/schemas/contracts.ts": "095f3c145b6ba35ee78c614050284293677906f9d7abb9bef672b53f372c8a25",
+    "frontend/src/dashboard/styles/dashboard.css": "f01acc1b44823dd8bab53f8fca102b9eb1be3b4c51e02f4e044bf64874982bdf",
+    "frontend/src/dashboard/styles/tokens.ts": "cf918bed6b75322fb026383647f715cdf52cc222692f3a57df1af67f36d8c257",
+    "frontend/src/test/businessFixtures.ts": "9e7989dcd396457800b98930f638e0834ca2702e1626ff53db8f5343683da311",
+    "frontend/src/test/businessFlow.test.tsx": "ecb259f18b87ad9aba0298c623e650eb9abed8d04dff1403316398e6875403e2",
+    "frontend/src/test/dashboard.test.tsx": "77c35455c9582c64638c1d3e0733ef61b6caf8aebd87faf63d66fccc819280b2",
+    "frontend/src/test/dashboardGovernance.test.ts": "e6f0f6296ea96674822513ff74c6ffa9bb3ea5e722b825fd0d1f5802b0750289",
+    "frontend/src/test/selectorCancellation.test.tsx": "8291e150280c2f6320ae5ff8907a144914f086553bf850ecbb973da02e2ba7ed",
+    "frontend/vite.config.ts": "7736b1f4cbec3cf857fedafb786a919c4ac8ef1e525cc1135a6c38839cee171d"
+  },
+  "state_screenshots": {
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/authorized-selector-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "project": "chromium-desktop",
+      "sha256": "bb894ac0227f4bb02c7bfcbd36c9d708b2c80f445226067136ba95ab369a3f39",
+      "source_path": "visual-state-results/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/authorized-selector-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "state": "authorized-selector",
+      "synthetic": true,
+      "test_case": "login error, authorized selector and keyboard large-text visual evidence",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "project": "chromium-desktop",
+      "sha256": "5e61eb8edd344155aac7b360a10a36357a06247b8e774363fe51b58f2faba407",
+      "source_path": "visual-state-results/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "state": "login",
+      "synthetic": true,
+      "test_case": "login error, authorized selector and keyboard large-text visual evidence",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-error-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "project": "chromium-desktop",
+      "sha256": "afc7746768c62417c3db36cab106df16ef696c22e4ca8679c52e71a1898bbf25",
+      "source_path": "visual-state-results/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-desktop/login-error-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "state": "login-error",
+      "synthetic": true,
+      "test_case": "login error, authorized selector and keyboard large-text visual evidence",
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/authorized-selector-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "project": "chromium-mobile",
+      "sha256": "0b4d867cd1a009fa2147a9d98a71a8c4d87027b7e32e663c328b29ef03ba7f9d",
+      "source_path": "visual-state-results/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/authorized-selector-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "state": "authorized-selector",
+      "synthetic": true,
+      "test_case": "login error, authorized selector and keyboard large-text visual evidence",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "project": "chromium-mobile",
+      "sha256": "e3ab310c34daff72583be46235fb379438049355e931e3a310c621bc6961ae7c",
+      "source_path": "visual-state-results/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "state": "login",
+      "synthetic": true,
+      "test_case": "login error, authorized selector and keyboard large-text visual evidence",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "docs/v0-18/evidence/s4-business-flow-r1/screenshots/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-error-SYNTHETIC.png": {
+      "browser": "Chromium 151.0.7922.34",
+      "project": "chromium-mobile",
+      "sha256": "53f09b6f2c11b45961d6e6dd1510ece831d2f4f9b2767b346f46a44245d46965",
+      "source_path": "visual-state-results/dashboard-business-flow-lo-87e8b--large-text-visual-evidence-chromium-mobile/login-error-SYNTHETIC.png",
+      "spec": "dashboard-business-flow.spec.ts",
+      "state": "login-error",
+      "synthetic": true,
+      "test_case": "login error, authorized selector and keyboard large-text visual evidence",
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  "task_id": "V0_18_S4_DASHBOARD_AUTHORIZED_BUSINESS_FLOW_R1"
+}

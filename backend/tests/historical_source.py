@@ -27,6 +27,21 @@ AUTHORIZED_HISTORY_PATHS = frozenset(
         "backend/app/mcp/forecast_intelligence_server.py",
         "pyproject.toml",
         "uv.lock",
+        # S4 authorized business-flow UI replaces V0.17 technical identity entry.
+        # These V0.17/18 evidence digests were independently verified against
+        # this immutable PR #716 snapshot; current UI executes separate tests.
+        "frontend/src/dashboard/api/client.ts",
+        "frontend/src/dashboard/app/Dashboard.tsx",
+        "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx",
+        "frontend/src/dashboard/context/ForecastContext.tsx",
+        "frontend/src/dashboard/styles/dashboard.css",
+        "frontend/src/dashboard/components/presentation.tsx",
+        "frontend/src/test/selectorCancellation.test.tsx",
+        "frontend/e2e/dashboard.spec.ts",
+        "frontend/e2e/dashboard-cross-surface.spec.ts",
+        "frontend/e2e/selector-cancel-reopen.spec.ts",
+        "frontend/e2e/support/dashboard_api.py",
+        "frontend/e2e/support/s6_api.py",
         *(
             "backend/tests/forecast_intelligence/" + name + ".py"
             for name in (

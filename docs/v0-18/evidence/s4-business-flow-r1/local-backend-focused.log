@@ -1,0 +1,38 @@
+# Public copy: local workspace paths normalized; original raw log retained separately.
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................ss.............................................. [ 15%]
+........................................................................ [ 20%]
+........................................................................ [ 25%]
+........................................................................ [ 31%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 57%]
+........................................................................ [ 62%]
+........................................................................ [ 67%]
+........................................................................ [ 72%]
+....................s...........................................s....... [ 77%]
+........................................................................ [ 83%]
+........................................................................ [ 88%]
+........................................................................ [ 93%]
+........................................................................ [ 98%]
+.................                                                        [100%]
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py: 24 warnings
+backend/tests/forecast_intelligence/test_v0_17_s2_decision_api.py: 24 warnings
+  ${LOCKED_TEST_VENV}/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/mcp/test_v0_18_s3_postgres.py::test_real_tls_loopback_sdk_reads_canonical_postgres
+  ${LOCKED_TEST_VENV}/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+backend/tests/mcp/test_v0_18_s3_postgres.py::test_real_tls_loopback_sdk_reads_canonical_postgres
+  ${LOCKED_TEST_VENV}/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1381 passed, 4 skipped, 62 warnings in 409.60s (0:06:49)

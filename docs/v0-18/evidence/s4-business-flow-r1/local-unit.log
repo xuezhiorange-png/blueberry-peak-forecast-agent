@@ -1,0 +1,14 @@
+# Public copy: local workspace paths normalized; original raw log retained separately.
+
+> blueberry-peak-forecast-trial@0.2.0 test:unit
+> vitest --run
+
+
+ RUN  v4.1.10 ${ISOLATED_WORKSPACE}/frontend
+
+
+ Test Files  8 passed (8)
+      Tests  129 passed (129)
+   Start at  09:34:02
+   Duration  4.54s (transform 1.56s, setup 1.66s, import 2.37s, tests 5.57s, environment 11.06s)
+

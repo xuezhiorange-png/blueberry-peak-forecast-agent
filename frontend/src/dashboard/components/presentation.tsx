@@ -99,10 +99,10 @@ export function EmptyState() {
   const { openSelector } = useForecast();
   return (
     <Panel title="请选择已保存预测">
-      <p>正常业务发现尚未接入；不会自动猜测最新记录。</p>
+      <p>从当前账号的授权记录中显式选择；不会自动猜测最新记录。</p>
       <StatusPanel
         status="EMPTY"
-        reason="高级完整身份输入用于技术核验，不是访问授权。"
+        reason="身份、权限及结果来源均由服务器核验；选择记录不扩大数据权限。"
         retry={openSelector}
       />
     </Panel>

@@ -12,6 +12,7 @@ import {
 } from "../dashboard/schemas/contracts";
 import { compare, read, simulate } from "../dashboard/api/client";
 import fixture from "./fixtures/dashboard-synthetic.json";
+import { auth } from "./businessFixtures";
 
 const root = resolve(process.cwd(), "..");
 const load = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -185,13 +186,25 @@ describe("resource and authority boundaries", () => {
     try {
       const simulation = structuredClone(fixture.simulation);
       simulation.data.saved_forecast_hash = "0".repeat(64);
-      fetch.mockResolvedValue(reply(simulation));
+      fetch.mockImplementation(async (url) =>
+        reply(
+          String(url).endsWith("/csrf")
+            ? auth({ csrf_token: "SYNTHETIC", expires_in: 300 })
+            : simulation,
+        ),
+      );
       await expect(
         simulate(simulationRequest.parse(fixture.simulation_request), new AbortController().signal),
       ).rejects.toMatchObject({ status: 409 });
       const comparison = structuredClone(fixture.comparison);
       comparison.data.comparison.rankings[0].result_hash = "0".repeat(64);
-      fetch.mockResolvedValue(reply(comparison));
+      fetch.mockImplementation(async (url) =>
+        reply(
+          String(url).endsWith("/csrf")
+            ? auth({ csrf_token: "SYNTHETIC", expires_in: 300 })
+            : comparison,
+        ),
+      );
       await expect(
         compare(comparisonRequest.parse(fixture.comparison_request), new AbortController().signal),
       ).rejects.toMatchObject({ status: 409 });
