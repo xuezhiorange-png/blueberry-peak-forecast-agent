@@ -1,0 +1,45 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______ test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy _______
+
+pg_auth = (<backend.app.local_auth.service.AuthService object at 0x1180f41d0>, async_sessionmaker(class_='AsyncSession', bind=<s...ckend.app.local_auth.models.AuthAccount object at 0x11820be90>, 'blueberry_test_auth_7f4618a0451d4d4389a6ba518f8d7020')
+tmp_path = PosixPath('/private/var/folders/2p/fmk6_mt12l57gnwl95d8nt7c0000gn/T/pytest-of-charles/pytest-35/test_two_posix_sdk_workers_nev0')
+record_property = <function record_property.<locals>.append_property at 0x118099800>
+
+    async def test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy(
+        pg_auth,
+        tmp_path,
+        record_property,
+    ):
+        _, factory, _, user, _ = pg_auth
+        first_query, _ = await seed(factory, user)
+        async with factory() as db:
+            row = await db.scalar(
+                select(OperationalPeakForecastRun).where(
+                    OperationalPeakForecastRun.base_id == "SYNTHETIC_S5_OTHER_BASE"
+                )
+            )
+            other_query = first_query.model_copy(
+                update={
+>                   "run_id": row.run_id,
+                              ^^^^^^^^^^
+                    "entity_id": row.base_id,
+                    "expected_source_result_hash": row.result_hash,
+                }
+            )
+E           AttributeError: 'OperationalPeakForecastRun' object has no attribute 'run_id'
+
+backend/tests/safe_pilot/test_two_worker_accounts.py:95: AttributeError
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/safe_pilot/test_two_worker_accounts.py::test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy
+  backend/tests/safe_pilot/test_two_worker_accounts.py:80: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/safe_pilot/test_two_worker_accounts.py::test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy
+1 failed, 13 warnings in 4.43s

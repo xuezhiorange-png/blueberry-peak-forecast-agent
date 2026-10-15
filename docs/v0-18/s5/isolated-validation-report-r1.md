@@ -28,7 +28,8 @@
 
 ## 运行与证据层级
 
-- 新增 S5 运行案例 18 项。完整运行器还重跑 S1/S2/S3，不从前次阶段回执继承 PASS。
+- 新增 S5 运行案例 19 项：整套运行228项后端，另有1项真实双工作进程补充测试。
+  完整运行器还重跑 S1/S2/S3，不从前次阶段回执继承 PASS。
 - 实际 TLS 浏览器套件 26 项；五页 × 六视口 × 两 Chromium projects，66 张新 PNG。
 - 前端 unit 130 项；另行历史冻结合同子集 73 项；lint/typecheck/build、Ruff/format、
   mypy backend/app 都有实际日志。局部通过不等于全量 Canary。
@@ -65,6 +66,15 @@
 回归。仅修改 S5 新测试，不改业务 Decimal、ForecastIdentity、source/result hash。
 初始 HEAD `2769de5cddeffaf53ac3c28f1ec5ca29f998543f` 与 CI #38681553305
 及原 archive 保留，但不作为最终 HEAD 验收；新归档在 s5-safe-pilot-r1-r2。
+
+最终覆盖核对另补双 MCP 工作进程验收：两个独立 PID、同一 PostgreSQL 和私有
+FilePolicy，两账号分别在两个 TLS 端口并发访问自身记录并拒绝对方记录；合法读取
+开始前，两个进程的敏感 SQL 计数均为0。一次策略轮换后两个进程都拒绝旧 key，
+新 key 仍只可读取自身记录。进程与 socket 都由本用例关闭。仅新增测试文件，
+不是跨主机/NFS 验收。补充 JUnit 绑定了该测试源码 SHA256；原整套运行源字节不变。
+第一次补充测试误用 ORM 的 run_id 字段，实际主键为 id；修正测试字段后真实运行
+通过，不改生产模型。HEAD `d75918fe95f0cc54f19be3c46876ba10b6c74ecc` 及其 CI
+#38682829208 因补齐此验收而成为前序，不作最终 CI。最后以新 HEAD 完整 CI 为准。
 
 ## 风险和未验证项
 
