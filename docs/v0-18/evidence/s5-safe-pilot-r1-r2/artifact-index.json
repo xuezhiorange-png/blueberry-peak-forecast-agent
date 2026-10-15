@@ -601,6 +601,46 @@
     "source_run": "S5_LOCAL_CHECKS_AND_PRIOR_FAILURES",
     "transform": "operator_temp_and_test_credential_redaction_only"
   },
+  "docs/v0-18/evidence/s5-safe-pilot-r1-r2/two-worker/SYNTHETIC-worker-0.log": {
+    "raw_source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_path": "two-worker-verified-artifacts/test_two_posix_sdk_workers_nev0/SYNTHETIC-worker-0.log",
+    "source_run": "S5_TWO_ACTUAL_WORKER_SUPPLEMENT",
+    "test_source_sha256": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1-r2/two-worker/SYNTHETIC-worker-1.log": {
+    "raw_source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source_path": "two-worker-verified-artifacts/test_two_posix_sdk_workers_nev0/SYNTHETIC-worker-1.log",
+    "source_run": "S5_TWO_ACTUAL_WORKER_SUPPLEMENT",
+    "test_source_sha256": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
+    "transform": "NONE"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1-r2/two-worker/two-worker-before-orm-fix.log": {
+    "raw_source_sha256": "80bc468fe88ff4e4dd5f3d408dfaaeff98c301ff7d165227d19af47102c4b1f3",
+    "sha256": "535944319c647f2b7142b309107886957126e736df198f69861554a132fed927",
+    "source_path": "two-worker-before-orm-fix.log",
+    "source_run": "S5_TWO_ACTUAL_WORKER_SUPPLEMENT",
+    "test_source_sha256": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
+    "transform": "operator_directory_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1-r2/two-worker/two-worker-verified.log": {
+    "raw_source_sha256": "8555414b9828be45407de31fc865bb926b9027d3da60f30d81f3449a2a6ad900",
+    "sha256": "f809fd58658981bf3ac6b973862f3113ae8976bdef667cbd822a00ab9e8f000a",
+    "source_path": "two-worker-verified.log",
+    "source_run": "S5_TWO_ACTUAL_WORKER_SUPPLEMENT",
+    "test_source_sha256": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
+    "transform": "operator_directory_redaction_only"
+  },
+  "docs/v0-18/evidence/s5-safe-pilot-r1-r2/two-worker/two-worker-verified.xml": {
+    "raw_source_sha256": "dfe2e0cb3d1317cee60127b045c978d7eddba55edb262282c1e13420b288d35a",
+    "sha256": "dfe2e0cb3d1317cee60127b045c978d7eddba55edb262282c1e13420b288d35a",
+    "source_path": "two-worker-verified.xml",
+    "source_run": "S5_TWO_ACTUAL_WORKER_SUPPLEMENT",
+    "test_source_sha256": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
+    "transform": "NONE"
+  },
   "docs/v0-18/evidence/s5-safe-pilot-r1-r2/typecheck.log": {
     "raw_source_sha256": "1d9ed670ea7f4cccaa79f606366949f75c7c64f05bfd411de69af1e13d328da1",
     "sha256": "1d9ed670ea7f4cccaa79f606366949f75c7c64f05bfd411de69af1e13d328da1",
