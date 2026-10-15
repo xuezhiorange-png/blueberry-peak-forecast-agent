@@ -1,0 +1,13 @@
+
+> blueberry-peak-forecast-trial@0.2.0 test:unit
+> vitest --run
+
+
+ RUN  v4.1.10 <S5_WORKTREE>/frontend
+
+
+ Test Files  8 passed (8)
+      Tests  130 passed (130)
+   Start at  12:00:27
+   Duration  4.33s (transform 1.38s, setup 1.92s, import 2.05s, tests 6.16s, environment 12.30s)
+

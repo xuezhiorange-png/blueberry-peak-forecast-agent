@@ -1,0 +1,34 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "<S5_WORKTREE>/backend/tests/safe_pilot/test_runner_cleanup.py", line 385, in <module>
+    probe()
+  File "<S5_WORKTREE>/backend/tests/safe_pilot/test_runner_cleanup.py", line 83, in probe
+    run.main()
+  File "<S5_WORKTREE>/backend/tests/safe_pilot/run.py", line 150, in main
+    # A stale PID file must never turn PID reuse into an unrelated stop.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<S5_WORKTREE>/backend/tests/safe_pilot/test_runner_cleanup.py", line 79, in instrumented
+    return original(arguments, environment, log, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<S5_WORKTREE>/backend/tests/safe_pilot/run.py", line 32, in command
+    class Cancellation:
+                   ^^^^
+  File "<OPERATOR_HOME>/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<OPERATOR_HOME>/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 1201, in communicate
+    self.wait()
+  File "<OPERATOR_HOME>/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<OPERATOR_HOME>/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 2053, in _wait
+    (pid, sts) = self._try_wait(0)
+                 ^^^^^^^^^^^^^^^^^
+  File "<OPERATOR_HOME>/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 2011, in _try_wait
+    (pid, sts) = os.waitpid(self.pid, wait_flags)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<S5_WORKTREE>/backend/tests/safe_pilot/run.py", line 146, in terminate
+    check=False,
+^^^^^^^^^^^^^^^^^
+KeyboardInterrupt: SYNTHETIC_RUN_CANCELLED

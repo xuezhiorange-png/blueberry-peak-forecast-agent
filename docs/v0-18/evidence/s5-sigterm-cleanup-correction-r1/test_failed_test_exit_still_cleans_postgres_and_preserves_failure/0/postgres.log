@@ -1,0 +1,12 @@
+2026-10-15 06:46:22.931 UTC [86534] LOG:  starting PostgreSQL 15.18 on aarch64-apple-darwin20.0.0, compiled by clang version 20.1.8, 64-bit
+2026-10-15 06:46:22.934 UTC [86534] LOG:  listening on IPv4 address "127.0.0.1", port 50472
+2026-10-15 06:46:22.936 UTC [86534] LOG:  listening on Unix socket "/tmp/SYNTHETIC-s5-cancel-vj6tp92b/0/SYNTHETIC-owned/.s.PGSQL.50472"
+2026-10-15 06:46:22.944 UTC [86537] LOG:  database system was shut down at 2026-10-15 06:46:22 UTC
+2026-10-15 06:46:22.948 UTC [86534] LOG:  database system is ready to accept connections
+2026-10-15 06:46:23.641 UTC [86534] LOG:  received fast shutdown request
+2026-10-15 06:46:23.641 UTC [86534] LOG:  aborting any active transactions
+2026-10-15 06:46:23.643 UTC [86534] LOG:  background worker "logical replication launcher" (PID 86540) exited with exit code 1
+2026-10-15 06:46:23.644 UTC [86535] LOG:  shutting down
+2026-10-15 06:46:23.644 UTC [86535] LOG:  checkpoint starting: shutdown immediate
+2026-10-15 06:46:23.645 UTC [86535] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.002 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB
+2026-10-15 06:46:23.647 UTC [86534] LOG:  database system is shut down

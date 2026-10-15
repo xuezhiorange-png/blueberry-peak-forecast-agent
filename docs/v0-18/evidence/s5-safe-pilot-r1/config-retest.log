@@ -1,0 +1,16 @@
+.                                                                        [100%]
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_untrusted_host_origin_proxy_and_missing_secrets
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_untrusted_host_origin_proxy_and_missing_secrets
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 14 warnings in 8.49s

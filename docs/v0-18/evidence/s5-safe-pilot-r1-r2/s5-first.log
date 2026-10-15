@@ -1,0 +1,65 @@
+.......F......                                                           [100%]
+=================================== FAILURES ===================================
+_ test_real_network_legacy_denial_before_database[POST-/api/v1/actual-harvest/imports] _
+
+pg_auth = (<backend.app.local_auth.service.AuthService object at 0x11902c980>, async_sessionmaker(class_='AsyncSession', bind=<s...ckend.app.local_auth.models.AuthAccount object at 0x11901aea0>, 'blueberry_test_auth_92c395b7d0094eec8ad8cfcf61420a56')
+tmp_path = PosixPath('<PRIVATE_TEST_TMP>')
+method = 'POST', path = '/api/v1/actual-harvest/imports'
+
+    @pytest.mark.parametrize(
+        "method,path",
+        [
+            ("GET", "/api/v1/trial/forecast-runs"),
+            ("POST", "/api/v1/trial/forecast-runs"),
+            ("POST", "/api/v1/blueberry/v1/mcp"),
+            ("GET", "/api/v1/blueberry/v1/mcp/sse"),
+            ("GET", "/sse"),
+            ("GET", "/api/v1/operational-peak/runs"),
+            ("POST", "/api/v1/actual-harvest/imports"),
+            ("GET", "/api/v1/hierarchical-forecast/runs"),
+            ("GET", "/docs"),
+            ("GET", "/openapi.json"),
+            ("POST", "/unlisted/SYNTHETIC"),
+        ],
+    )
+    async def test_real_network_legacy_denial_before_database(pg_auth, tmp_path, method, path):
+        auth, factory, _, _, _ = pg_auth
+        statements = []
+    
+        def observe(*args):
+            statements.append(args[2])
+    
+        event.listen(factory.kw["bind"].sync_engine, "before_cursor_execute", observe)
+        try:
+            async with tls_server(application(auth), tmp_path) as (origin, cert, _):
+                auth.settings.local_auth_origin = origin
+                async with httpx.AsyncClient(
+                    base_url=origin, verify=ssl.create_default_context(cafile=str(cert))
+                ) as http:
+                    denied = await http.request(method, path, headers={"X-Actor": "ADMIN"})
+>                   assert denied.status_code == 403 and denied.json()["data"] is None
+E                   assert (415 == 403)
+E                    +  where 415 = <Response [415 Unsupported Media Type]>.status_code
+
+backend/tests/safe_pilot/test_restore_and_ingress.py:318: AssertionError
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback
+  backend/tests/safe_pilot/test_restore_and_ingress.py:108: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_full_backup_restore_reapproval_and_fail_closed_rollback(
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback
+  <OPERATOR_HOME>/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/safe_pilot/test_restore_and_ingress.py::test_real_network_legacy_denial_before_database[POST-/api/v1/actual-harvest/imports]
+1 failed, 13 passed, 15 warnings in 34.01s
