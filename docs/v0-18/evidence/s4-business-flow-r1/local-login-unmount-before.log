@@ -1,0 +1,67 @@
+# Public copy: local workspace paths normalized; original raw log retained separately.
+
+> blueberry-peak-forecast-trial@0.2.0 test:unit
+> vitest --run src/test/businessFlow.test.tsx
+
+
+ RUN  v4.1.10 ${ISOLATED_WORKSPACE}/frontend
+
+ ❯ src/test/businessFlow.test.tsx (9 tests | 2 failed) 1499ms
+   × leaving Dashboard aborts the active login, not only the initial me request 65ms
+   × serializes CSRF rotation together with each concurrent POST 1005ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/test/businessFlow.test.tsx > leaving Dashboard aborts the active login, not only the initial me request
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/test/businessFlow.test.tsx:148:32
+    146|   await waitFor(() => expect(loginSignal).toBeDefined());
+    147|   view.unmount();
+    148|   expect(loginSignal?.aborted).toBe(true);
+       |                                ^
+    149|   await act(async () => { finish(reply(auth(user))); });
+    150|   expect(screen.queryByRole("navigation")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/test/businessFlow.test.tsx > serializes CSRF rotation together with each concurrent POST
+AssertionError: expected +0 to be 1 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body />[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/test/businessFlow.test.tsx:197:37
+    195|     {},
+    196|   );
+    197|   await waitFor(() => expect(posts).toBe(1));
+       |                                     ^
+    198|   expect(calls).toEqual(["/api/v1/auth/csrf", "/api/v1/auth/logout"]);
+    199|   release();
+ ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+   Start at  09:42:38
+   Duration  2.59s (transform 155ms, setup 119ms, import 233ms, tests 1.50s, environment 594ms)
+

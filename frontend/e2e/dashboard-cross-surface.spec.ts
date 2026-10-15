@@ -102,7 +102,7 @@ const test = base.extend<
       });
     });
     // Browser owns cancellation. SDK parity is asserted in the awaited test path.
-    for (const surface of ["forecast-intelligence", "decision-support"])
+    for (const surface of ["auth", "business-access", "forecast-intelligence", "decision-support"])
       await page.route(`**/api/v1/${surface}/**`, async (route) => {
         const incoming = new URL(route.request().url());
         await route.continue({
@@ -147,11 +147,10 @@ test("cancelled saved-run validation can be retried after reopening", async ({
   await page.goto("/dashboard/overview");
   await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
   const dialog = page.getByRole("dialog");
-  for (const [key, value] of Object.entries(authority.identities[0])) {
-    const field = dialog.locator(`[name="${key}"]`);
-    if (["source_kind", "hierarchy_level"].includes(key)) await field.selectOption(String(value));
-    else await field.fill(String(value));
-  }
+  const selectedRow = dialog.locator(
+    `article[data-run-id="${authority.identities[0].run_id}"][data-source-kind="${authority.identities[0].source_kind}"]`,
+  );
+  await expect(selectedRow).toBeVisible();
   const gate = await startHeldCanonicalGet(authority.url);
   const pattern = "**/api/v1/forecast-intelligence/curve?**";
   const targetRun = String(authority.identities[0].run_id);
@@ -164,9 +163,9 @@ test("cancelled saved-run validation can be retried after reopening", async ({
     await route.continue({ url: gate.url + incoming.pathname + incoming.search });
   });
   try {
-    await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
+    await selectedRow.getByRole("button", { name: "核验并使用保存预测" }).click();
     await gate.started;
-    await expect(dialog.getByRole("button", { name: "正在核验…" })).toBeDisabled();
+    await expect(selectedRow.getByRole("button", { name: "正在核验…" })).toBeDisabled();
     await dialog.getByRole("button", { name: "关闭", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     gate.release();
@@ -176,16 +175,16 @@ test("cancelled saved-run validation can be retried after reopening", async ({
     await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
     await expect(dialog).toBeVisible();
     await expect(page.locator(".d-context-title")).toHaveText("请选择已保存预测");
-    await dialog.locator('button[type="submit"]').scrollIntoViewIfNeeded();
+    await dialog.getByRole("button", { name: "查询授权记录" }).scrollIntoViewIfNeeded();
     await page.evaluate(() => {
       const caption = document.createElement("p");
       caption.textContent =
         "SYNTHETIC S6 ACCEPTANCE — NOT PRODUCTION DATA · cancelled verification reopened";
       document.body.prepend(caption);
     });
-    await dialog.locator('button[type="submit"]').scrollIntoViewIfNeeded();
+    await dialog.getByRole("button", { name: "查询授权记录" }).scrollIntoViewIfNeeded();
     await capture(page, info, "cancel-reopen-SYNTHETIC.png");
-    await expect(dialog.locator('button[type="submit"]')).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "查询授权记录" })).toBeEnabled();
   } finally {
     gate.release();
     await gate.close();
@@ -196,12 +195,11 @@ test("cancelled saved-run validation can be retried after reopening", async ({
 async function select(page: Page, identity: Record<string, string | number>) {
   await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
   const dialog = page.getByRole("dialog");
-  for (const [key, value] of Object.entries(identity)) {
-    const field = dialog.locator(`[name="${key}"]`);
-    if (["source_kind", "hierarchy_level"].includes(key)) await field.selectOption(String(value));
-    else await field.fill(String(value));
-  }
-  await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
+  const selectedRow = dialog.locator(
+    `article[data-run-id="${identity.run_id}"][data-source-kind="${identity.source_kind}"]`,
+  );
+  await expect(selectedRow).toBeVisible();
+  await selectedRow.getByRole("button", { name: "核验并使用保存预测" }).click();
   await expect(dialog).not.toBeVisible();
 }
 
@@ -349,18 +347,16 @@ for (const scope of [4, 5, 6])
     if (scope === 6) {
       await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
       const dialog = page.getByRole("dialog");
-      for (const [key, value] of Object.entries(authority.identities[scope])) {
-        const field = dialog.locator(`[name="${key}"]`);
-        if (["source_kind", "hierarchy_level"].includes(key))
-          await field.selectOption(String(value));
-        else await field.fill(String(value));
-      }
-      await dialog.getByRole("button", { name: "核验并使用保存预测" }).click();
-      await expect(dialog.locator('[data-state="AUTHORITY_MISMATCH"]')).toBeVisible();
+      const selectedRow = dialog.locator(
+        `article[data-run-id="${authority.identities[scope].run_id}"][data-source-kind="${authority.identities[scope].source_kind}"]`,
+      );
+      await expect(selectedRow).toBeVisible();
+      await selectedRow.getByRole("button", { name: "核验并使用保存预测" }).click();
+      await expect(dialog).not.toBeVisible();
+      await expect(page.locator(".d-context")).toContainText("旧结果已清除");
       await capture(page, info, "incomplete-SYNTHETIC.png");
-      await dialog.getByRole("button", { name: "关闭", exact: true }).click();
-      await expect(page.locator(".d-context-title")).toContainText("SYNTHETIC_BASE_1");
-      await expect(page.locator(".d-kpi-value").nth(1)).toHaveAttribute("title", "1820.000000");
+      await expect(page.locator(".d-context-title")).toContainText("请选择已保存预测");
+      await expect(page.locator(".d-kpis")).toHaveCount(0);
     } else {
       await select(page, authority.identities[scope]);
       const query = new URLSearchParams(
@@ -401,13 +397,14 @@ test("diagnostic errors hide conflicted values and recover", async ({ page, auth
     });
     await page.getByRole("link", { name: /预测$/ }).click();
     await page.getByRole("link", { name: /总览$/ }).click();
-    await expect(
-      page.locator(`[data-state="${code === 409 ? "AUTHORITY_MISMATCH" : "ERROR"}"]`).first(),
-    ).toBeVisible();
+    if (code === 409)
+      await expect(page.locator(".d-context-title")).toContainText("请选择已保存预测");
+    else await expect(page.locator('[data-state="ERROR"]').first()).toBeVisible();
     await expect(page.locator(".d-kpis")).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("PRIVATE_SQL");
     await capture(page, info, `error-${code}-SYNTHETIC.png`);
     await page.unroute("**/api/v1/forecast-intelligence/overview?**");
+    if (code === 409) await select(page, authority.identities[0]);
   }
   await page.locator('[data-state="ERROR"]').first().getByRole("button").click();
   await expect(page.locator(".d-kpi-value").nth(1)).toHaveAttribute("title", "1820.000000");
@@ -504,8 +501,12 @@ test("late real HTTP validation cannot replace a newer verified run", async ({
   try {
     await page.getByRole("button", { name: "选择已保存预测", exact: true }).first().click();
     const dialog = page.getByRole("dialog");
-    await dialog.locator('[name="run_id"]').fill(oldRun);
-    await dialog.locator('button[type="submit"]').click();
+    await dialog
+      .locator(
+        `article[data-run-id="${oldRun}"][data-source-kind="${authority.identities[4].source_kind}"]`,
+      )
+      .getByRole("button", { name: "核验并使用保存预测" })
+      .click();
     await gate.started;
     await dialog.getByRole("button", { name: "关闭", exact: true }).click();
     await select(page, authority.identities[1]);

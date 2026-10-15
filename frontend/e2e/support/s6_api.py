@@ -21,6 +21,7 @@ from backend.app.forecast_intelligence.read_schemas import ForecastIdentity
 from backend.app.mcp.forecast_intelligence_auth import MCPServiceConfig
 from backend.app.mcp.forecast_intelligence_http import MCP_PATH, create_forecast_intelligence_app
 from frontend.e2e.support import s6_seed as seed
+from frontend.e2e.support.business_compat import install
 
 SYNTHETIC = True
 TEST_KEY = "SYNTHETIC_S6_SERVER_ONLY_CREDENTIAL"
@@ -85,6 +86,8 @@ async def sdk_call(sdk, name, arguments):
 
 
 app = FastAPI(lifespan=lifespan)
+
+install(app, seed.STATE)
 app.include_router(read_router, prefix="/api/v1/forecast-intelligence")
 app.include_router(decision_router, prefix="/api/v1/decision-support")
 
