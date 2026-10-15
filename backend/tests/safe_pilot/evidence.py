@@ -17,7 +17,7 @@ BASE = "89641834ab7a0bd902a23f9243325da5c163d518"
 # Only the offline publisher changed after the runtime run; its exact then-current
 # bytes were preserved in this local source checkpoint before the correction.
 PUBLISHER_CHECKPOINT = "23f2384517fc24badaa130a20d137b81260e7f7d"
-ARCHIVE = ROOT / "docs/v0-18/evidence/s5-safe-pilot-r1"
+ARCHIVE = ROOT / "docs/v0-18/evidence/s5-safe-pilot-r1-r2"
 EVIDENCE = ROOT / "docs/v0-18/evidence/s5-isolated-synthetic-safe-pilot-r1.json"
 
 
@@ -78,13 +78,7 @@ def generate(index):
     assert any("revoke_during_canonical_read" in c for c in backend["cases"])
     manifest = json.loads((ARCHIVE / "owned-resources.json").read_text())
     for path, expected in manifest["source_sha256"].items():
-        if path == "backend/tests/safe_pilot/evidence.py":
-            historical = subprocess.check_output(
-                ["git", "show", f"{PUBLISHER_CHECKPOINT}:{path}"], cwd=ROOT
-            )
-            assert sha(historical) == expected, path
-        else:
-            assert sha((ROOT / path).read_bytes()) == expected, path
+        assert sha((ROOT / path).read_bytes()) == expected, path
     assert (
         manifest["backend_exit"]
         == manifest["browser_exit"]
@@ -104,11 +98,18 @@ def generate(index):
         },
         "source_evidence_sha256": sources(),
         "offline_publisher_correction": {
-            "runtime_source_checkpoint": PUBLISHER_CHECKPOINT,
-            "only_post_run_source_change": "backend/tests/safe_pilot/evidence.py",
+            "first_publisher_source_checkpoint": PUBLISHER_CHECKPOINT,
+            "final_runtime_source_matches_current_bytes": True,
             "reason": "NUL-separated Git filenames preserve Chinese screenshot paths",
             "current_publisher_validation": "OFFLINE_CONTRACT_PLUS_PENDING_EXACT_HEAD_CI",
             "runtime_modules_replaced_with_old_git_bytes": False,
+        },
+        "superseded_s5_run": {
+            "head_sha": "2769de5cddeffaf53ac3c28f1ec5ca29f998543f",
+            "ci_run_id": 38681553305,
+            "ci_result_used_for_final_acceptance": False,
+            "archive_preserved": "docs/v0-18/evidence/s5-safe-pilot-r1",
+            "reason": "Row snapshot digest now preserves NUMERIC lexemes without float conversion",
         },
         "frozen_history_sha256": frozen,
         "v0_18_historical_evidence_sha256": bindings,

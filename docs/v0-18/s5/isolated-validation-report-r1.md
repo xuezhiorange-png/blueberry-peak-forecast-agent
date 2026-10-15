@@ -28,7 +28,7 @@
 
 ## 运行与证据层级
 
-- 新增 S5 运行案例 17 项。完整运行器还重跑 S1/S2/S3，不从前次阶段回执继承 PASS。
+- 新增 S5 运行案例 18 项。完整运行器还重跑 S1/S2/S3，不从前次阶段回执继承 PASS。
 - 实际 TLS 浏览器套件 26 项；五页 × 六视口 × 两 Chromium projects，66 张新 PNG。
 - 前端 unit 130 项；另行历史冻结合同子集 73 项；lint/typecheck/build、Ruff/format、
   mypy backend/app 都有实际日志。局部通过不等于全量 Canary。
@@ -55,11 +55,16 @@
 最终源版本证据。原始文件保留本地，公开脱敏副本与其原始 SHA256 同时归档。
 
 发布工具随后发现中文截图文件名的 Git 转义解析问题，已改为 NUL 分隔清单；
-运行时源快照保存在 `23f2384517fc24badaa130a20d137b81260e7f7d`。只有离线
-evidence.py 此后修正，该历史字节仍按原 Hash 验证；所有真正执行的运行模块必须
-匹配当前字节。当前发布工具由离线合同及新 HEAD CI 另验，不借旧源代替运行代码。
+首次发布工具源快照保存在 `23f2384517fc24badaa130a20d137b81260e7f7d`。
+最终运行重新捕获全部当前源字节，不借旧源代替运行代码或离线发布工具。
 离线文案测试还发现手册未写出等价 CLI 参数，已补充 `--no-proxy-headers`，
 没有修改实际 TLS 配置（运行时已为 proxy_headers=False）。
+
+提交后进一步自查发现表级 row JSON 解析可能把 NUMERIC 末位转换成浮点而丢失。
+新 Hash helper 直接保留 PostgreSQL row JSON 原文，新增末位差异、行顺序和重复行
+回归。仅修改 S5 新测试，不改业务 Decimal、ForecastIdentity、source/result hash。
+初始 HEAD `2769de5cddeffaf53ac3c28f1ec5ca29f998543f` 与 CI #38681553305
+及原 archive 保留，但不作为最终 HEAD 验收；新归档在 s5-safe-pilot-r1-r2。
 
 ## 风险和未验证项
 

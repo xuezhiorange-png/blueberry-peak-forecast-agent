@@ -79,17 +79,18 @@ async def snapshot(factory):
             rows = list(
                 (await db.scalars(text(f"SELECT row_to_json(t)::text FROM {table} t"))).all()
             )
-            canonical = json.dumps(
-                sorted((json.loads(r) for r in rows), key=lambda r: json.dumps(r, sort_keys=True)),
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-            )
             result[table] = {
                 "count": len(rows),
-                "sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+                "sha256": row_digest(rows),
             }
     return result
+
+
+def row_digest(rows):
+    # Keep PostgreSQL NUMERIC lexemes intact. json.loads defaults to binary float
+    # and could collapse two distinct 12-place quantities into the same value.
+    canonical = json.dumps(sorted(rows), ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 async def pg_command(arguments, database):

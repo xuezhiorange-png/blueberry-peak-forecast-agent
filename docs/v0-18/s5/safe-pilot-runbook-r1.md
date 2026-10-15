@@ -121,6 +121,25 @@ S5 独立回滚测试按顺序停止 admission → 撤销 sessions/grants → �
 失败。只发布经过核验的日志副本和 hash，私有 dump/凭据不发布。现有审计字段仍按
 原合同使用，恢复事件用既有 auth_audit_event，不引入平台。
 
+运行结束后，对本次私有 PostgreSQL、脚本及浏览器日志执行附加的自动扫描（不回显
+凭据或日志原文）；HTTP/MCP Cookie/CSRF 实际值另由运行时 caplog 断言检查：
+
+```sh
+python - "$S5_EVIDENCE_ROOT" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+from backend.tests.safe_pilot.operations import assert_redacted
+root = Path(sys.argv[1])
+needles = [root.joinpath('private-password').read_text().strip(),
+           'SYNTHETIC-password-123', '__Host-blueberry-session=', 'X-CSRF-Token:']
+for name in ('execution.log', 'postgres.log', 'browser.log'):
+    raw = root.joinpath(name).read_bytes()
+    assert_redacted(raw.decode(), needles)
+    print(json.dumps({'file': name, 'sha256': hashlib.sha256(raw).hexdigest(),
+                      'secret_scan': 'PASS'}))
+PY
+```
+
 依赖审计报告单列生产包、开发/构建依赖、漏洞触发条件和补丁候选；不做 audit fix
 或未经授权升级。CI 绿不消除告警，不可达判断仅适用于当前 SPA/static 部署形态，
 未来启用 RSC、公开 Vite/Vitest 或处理不可信构建输入必须重新审计。
