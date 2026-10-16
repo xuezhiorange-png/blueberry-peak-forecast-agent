@@ -71,9 +71,16 @@ def test_manifest_current_sources_and_frozen_git_bytes():
         assert sha(frozen) == binding["sha256"] == sha((ROOT / path).read_bytes()), path
     model_bindings = value["frozen_model_and_math_sha256"]
     models = git_blobs(ROOT, dict.fromkeys(model_bindings, RELEASE))
+    audited = git_blobs(ROOT, dict.fromkeys(model_bindings, BASE))
     for path, expected in model_bindings.items():
         assert sha(models[path]) == expected
-        assert sha((ROOT / path).read_bytes()) == expected
+        assert sha(audited[path]) == expected
+    assert value["historical_snapshot_policy"] == {
+        "pre_v018_documents": "V0_17_ANNOTATED_RELEASE_COMMIT",
+        "v018_documents": "FIRST_MAIN_APPEARANCE_WITHIN_AUDITED_CHAIN",
+        "backend_code": "IMMUTABLE_RELEASE_AND_AUDITED_BASE_GIT_BLOBS",
+        "not_a_permanent_freeze_of_all_future_backend_worktree_bytes": True,
+    }
 
 
 def test_complete_merge_chain_and_all_attempt_ci_binding():

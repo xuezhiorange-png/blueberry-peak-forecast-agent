@@ -2,8 +2,8 @@
   "base_main_sha": "2b890d8e68a47ca506e7cf6b04bd187472138b2d",
   "members": {
     "docs/v0-18/evidence/v0.18.0-closeout-github-snapshot-r1.json": "b16dc66e7ed2e72e711ecf7117b335db67a34a0ad1901bc7a248f751723c7c94",
-    "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json": "e3e400d3668a9f25340a364c8c471a99160b245d749f26b32b37401695d3e595",
-    "docs/v0-18/v0.18.0-closeout.md": "927dcdb900bdf1670bd8767896e7309153b1e0c9d4fc8ab51b6c53b37a5d2089"
+    "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json": "47074e70ba503988d7b424ae9a2c0af3d46b7553ba720b830840d4f1a4ff4513",
+    "docs/v0-18/v0.18.0-closeout.md": "ab782c0251efee31aea108aadb9a3a23de518210ae1145cd309c50fcec97585f"
   },
   "schema": "V0_18_VERSION_CLOSEOUT_MANIFEST_R1"
 }
