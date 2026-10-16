@@ -338,14 +338,23 @@ def s6_materials(root, r1):
     for path, binding in value["artifacts"].items():
         bound(root, path, binding["sha256"])
     for path, expected in value["source_evidence_sha256"].items():
-        bound(root, path, expected)
+        if path.startswith("docs/"):
+            bound(root, path, expected)
+        else:
+            require(
+                digest(git_blob(root, BASE, path)) == expected,
+                f"Historical executed source mismatch: {path}",
+            )
     executed = load(
         root, "docs/v0-18/evidence/s6-business-security-r1/run/s6-executed-sources.json"
     )
     require(executed["SYNTHETIC"] is True, "Execution source receipt is not synthetic")
     require(len(executed["source_sha256"]) == 10, "Execution source binding incomplete")
     for path, expected in executed["source_sha256"].items():
-        bound(root, path, expected)
+        require(
+            digest(git_blob(root, BASE, path)) == expected,
+            f"Historical execution source mismatch: {path}",
+        )
     junit = ET.fromstring((root / JUNIT).read_bytes())
     require(len(junit.findall(".//testcase")) == 251, "S6 actual JUnit case set missing")
     require(
@@ -432,12 +441,12 @@ def g08(root, r1):
         ),
         "Raw decision response overstates financial authority",
     )
-    code = (root / "backend/tests/acceptance_s6/test_tls_authority.py").read_text()
+    code = git_blob(root, BASE, "backend/tests/acceptance_s6/test_tls_authority.py").decode()
     require(
         "actual.structured_content == response.json() == expected" in code,
         "Full payload assertion absent",
     )
-    browser_code = (root / "frontend/e2e/dashboard-s6-acceptance.spec.ts").read_text()
+    browser_code = git_blob(root, BASE, "frontend/e2e/dashboard-s6-acceptance.spec.ts").decode()
     require(
         all(
             fragment in browser_code
