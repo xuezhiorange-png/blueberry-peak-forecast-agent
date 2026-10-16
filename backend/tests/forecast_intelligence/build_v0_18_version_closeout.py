@@ -398,7 +398,9 @@ def generate(root, snapshot, *, output_root=None):
     current = git_blobs(root, dict.fromkeys(sorted(frozen_paths), BASE))
     for path in sorted(frozen_paths):
         before, now = released[path], current[path]
-        assert before == now == (root / path).read_bytes(), path
+        # Historical audit binds the two immutable commits. Future authorized
+        # runtime changes must not make an old closeout falsely report tampering.
+        assert before == now, path
         frozen[path] = digest(now)
     changes = (
         command("git", "diff", "--name-status", "-z", RELEASE, BASE, root=root).decode().split("\0")
@@ -569,6 +571,12 @@ def generate(root, snapshot, *, output_root=None):
         "stage_chain": chain,
         "main_first_parent_chain": first_parent,
         "historical_git_sha256": history,
+        "historical_snapshot_policy": {
+            "pre_v018_documents": "V0_17_ANNOTATED_RELEASE_COMMIT",
+            "v018_documents": "FIRST_MAIN_APPEARANCE_WITHIN_AUDITED_CHAIN",
+            "backend_code": "IMMUTABLE_RELEASE_AND_AUDITED_BASE_GIT_BLOBS",
+            "not_a_permanent_freeze_of_all_future_backend_worktree_bytes": True,
+        },
         "frozen_model_and_math_sha256": frozen,
         "release_to_main_name_status_nul_fields": changes,
         "source_evidence_sha256": sources,

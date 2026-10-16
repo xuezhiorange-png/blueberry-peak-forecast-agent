@@ -4210,6 +4210,12 @@
       "sha256": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
     }
   },
+  "historical_snapshot_policy": {
+    "backend_code": "IMMUTABLE_RELEASE_AND_AUDITED_BASE_GIT_BLOBS",
+    "not_a_permanent_freeze_of_all_future_backend_worktree_bytes": true,
+    "pre_v018_documents": "V0_17_ANNOTATED_RELEASE_COMMIT",
+    "v018_documents": "FIRST_MAIN_APPEARANCE_WITHIN_AUDITED_CHAIN"
+  },
   "latest_formal_release": "v0.17.0",
   "main_first_parent_chain": [
     "52b5a80f89c59130917b29c9097d63076eab4acb",
@@ -5701,8 +5707,8 @@
     "backend/tests/business_access/test_release_and_sources.py": "9b4dd559dd6fc70fcfe43f8a23a0477d27533a203ec660c7ff0013b0a5f13131",
     "backend/tests/business_access/test_security.py": "31f4b574bdd779b5fcbe2b73f9745ac5401dcc2cc64fd163405caa3f1b48ce0f",
     "backend/tests/business_access/test_tokens.py": "1f6f42c756f44136bcfdfef6ea502e66804cdde0deb80b5a75f6769c3dd18e51",
-    "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py": "2479ec7932272b954e379c54b7468cfdc0ffb4049a1f4a066c99e50c1a1fdc18",
-    "backend/tests/forecast_intelligence/test_v0_18_version_closeout.py": "eee9709ef60e5397abc0473a029bbde883a33aeb8edc316e91b9b02eecb59c09",
+    "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py": "e580ae071ca0143dece21787ff759cc79b869b2ce4f7bfd6790670368eb2d397",
+    "backend/tests/forecast_intelligence/test_v0_18_version_closeout.py": "cfee7f729956f963e59144e7a562196041e703161514b1a3081416b5e54cc143",
     "backend/tests/local_auth/conftest.py": "94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d",
     "backend/tests/local_auth/fixtures/r4-dependency-audit.json": "0bdda25fc85fad1c670046b27fc24c891e683d344fd813e14b2e9113d965b230",
     "backend/tests/local_auth/run_frontend_legacy_acceptance.py": "9bd9bf90476d143901af1eb46a4c5fc48e92df0e40c4381ea27b28ccb76a2100",
@@ -5733,7 +5739,7 @@
     "backend/tests/safe_pilot/test_restore_and_ingress.py": "41da5921f25a3938a00d9dd8512fa26170dd851f98189ee66ddd5b7062d703e9",
     "backend/tests/safe_pilot/test_runner_cleanup.py": "7f45b2067844da5c2e91ce217d4a04d617f873264e9ae4d8c843686d0b368ad9",
     "backend/tests/safe_pilot/test_two_worker_accounts.py": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
-    "docs/v0-18/v0.18.0-closeout.md": "927dcdb900bdf1670bd8767896e7309153b1e0c9d4fc8ab51b6c53b37a5d2089",
+    "docs/v0-18/v0.18.0-closeout.md": "ab782c0251efee31aea108aadb9a3a23de518210ae1145cd309c50fcec97585f",
     "frontend/e2e/dashboard-business-flow.spec.ts": "6556d04e2a4d4a1b5e98f659eeb1525cc9405a5194a8cb168d81231245c43e88",
     "frontend/e2e/dashboard-s6-acceptance.spec.ts": "52552f89cce5216f3144eba90b59ad04bc37110a2afa6538d15c4ad10e3233ac",
     "frontend/src/dashboard/api/client.ts": "22e03d846899a00d52aaf1cb2d9df62f71329afa6f06ce7422d10eba71f51ba8",
