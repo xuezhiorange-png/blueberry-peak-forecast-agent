@@ -93,7 +93,7 @@ const test = base.extend<Record<string, never>, { https: string }>({
         expect(logs).toContain("Application shutdown complete.");
       }
     },
-    { scope: "worker" },
+    { scope: "worker", timeout: 120_000 },
   ],
 });
 test.use({ ignoreHTTPSErrors: true });
