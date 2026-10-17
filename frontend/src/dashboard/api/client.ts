@@ -2,6 +2,13 @@ import { z } from "zod";
 import { invalidateSecurity, requestBoundary } from "./security";
 import { authEnvelope } from "../schemas/business";
 import {
+  authority,
+  BindingError,
+  frozenDigest,
+  verifyDigest,
+  verifyInputCommitment,
+} from "./scenarioBinding";
+import {
   comparisonRequest,
   costSelection,
   decisionSchemas,
@@ -284,72 +291,123 @@ export async function cost(id: CostId, signal: AbortSignal) {
 }
 export async function simulate(input: SimulationRequest, signal: AbortSignal) {
   const body = simulationRequest.parse(input);
-  const result = await request(
-    "/api/v1/decision-support/simulate-capacity",
-    decisionSchemas["simulate-capacity"],
-    signal,
-    undefined,
-    body,
-  );
-  ensureActive(signal);
-  verifyDecision(result, body);
-  if (result.data) verifyScenario(result.data, body, result.adapter_saved_forecast_hash);
-  if (
-    result.capability !== "SIMULATE_CAPACITY" ||
-    (result.data &&
-      (result.data.scenario_id !== body.scenario_id ||
-        result.data.result_hash !== result.engine_result_hash))
-  )
-    throw authorityError("RESULT_AUTHORITY_MISMATCH");
-  return result;
+  return guardedDecision(signal, async (signal) => {
+    const result = await request(
+      "/api/v1/decision-support/simulate-capacity",
+      decisionSchemas["simulate-capacity"],
+      signal,
+      undefined,
+      body,
+    );
+    ensureActive(signal);
+    verifyDecision(result, body);
+    if (result.data)
+      await verifyScenario(
+        result.data,
+        body,
+        result.adapter_saved_forecast_hash,
+        result.engine_policy_versions,
+      );
+    ensureActive(signal);
+    if (
+      result.capability !== "SIMULATE_CAPACITY" ||
+      (result.data &&
+        (result.data.scenario_id !== body.scenario_id ||
+          result.data.result_hash !== result.engine_result_hash))
+    )
+      throw authorityError("RESULT_AUTHORITY_MISMATCH");
+    await verifyDigest(result, "projection_hash");
+    return result;
+  });
 }
 export async function compare(input: ComparisonRequest, signal: AbortSignal) {
   const body = comparisonRequest.parse(input);
-  const result = await request(
-    "/api/v1/decision-support/compare-capacity-scenarios",
-    decisionSchemas["compare-capacity-scenarios"],
-    signal,
-    undefined,
-    body,
-  );
-  ensureActive(signal);
-  verifyDecision(result, body);
-  if (result.data) {
-    const { scenario_results, comparison } = result.data;
-    if (
-      scenario_results.length !== body.scenarios.length ||
-      comparison.rankings.length !== body.scenarios.length ||
-      new Set(scenario_results.map((r) => r.scenario_id)).size !== body.scenarios.length ||
-      new Set(comparison.rankings.map((r) => r.scenario_id)).size !== body.scenarios.length
-    )
-      throw authorityError("COMPARISON_MEMBERS_MISMATCH");
-    for (const scenario of body.scenarios) {
-      const output = scenario_results.find((r) => r.scenario_id === scenario.scenario_id);
-      if (!output) throw authorityError("SCENARIO_MISSING");
-      verifyScenario(output, { ...body, ...scenario }, result.adapter_saved_forecast_hash);
-    }
-    for (const [index, rank] of comparison.rankings.entries()) {
-      const output = scenario_results.find((r) => r.scenario_id === rank.scenario_id);
+  return guardedDecision(signal, async (signal) => {
+    const result = await request(
+      "/api/v1/decision-support/compare-capacity-scenarios",
+      decisionSchemas["compare-capacity-scenarios"],
+      signal,
+      undefined,
+      body,
+    );
+    ensureActive(signal);
+    verifyDecision(result, body);
+    if (result.data) {
+      const { scenario_results, comparison } = result.data;
       if (
-        !output ||
-        rank.result_hash !== output.result_hash ||
-        rank.scenario_hash !== output.scenario_hash ||
-        rank.scenario_rank !== index + 1
+        scenario_results.length !== body.scenarios.length ||
+        comparison.rankings.length !== body.scenarios.length ||
+        new Set(scenario_results.map((r) => r.scenario_id)).size !== body.scenarios.length ||
+        new Set(comparison.rankings.map((r) => r.scenario_id)).size !== body.scenarios.length
       )
-        throw authorityError("RANK_AUTHORITY_MISMATCH");
+        throw authorityError("COMPARISON_MEMBERS_MISMATCH");
+      for (const scenario of body.scenarios) {
+        ensureActive(signal);
+        const output = scenario_results.find((r) => r.scenario_id === scenario.scenario_id);
+        if (!output) throw authorityError("SCENARIO_MISSING");
+        await verifyScenario(
+          output,
+          { ...body, ...scenario },
+          result.adapter_saved_forecast_hash,
+          result.engine_policy_versions,
+        );
+      }
+      ensureActive(signal);
+      for (const [index, rank] of comparison.rankings.entries()) {
+        const output = scenario_results.find((r) => r.scenario_id === rank.scenario_id);
+        if (
+          !output ||
+          rank.result_hash !== output.result_hash ||
+          rank.scenario_hash !== output.scenario_hash ||
+          rank.scenario_rank !== index + 1
+        )
+          throw authorityError("RANK_AUTHORITY_MISMATCH");
+      }
+      if (
+        result.engine_policy_versions.comparison !==
+          "V0_16_SAME_FORECAST_PLANNING_LEVEL_COST_CONTRACT_R1" ||
+        result.engine_policy_versions.ranking !== "V0_16_CONDITIONAL_SCENARIO_RANKING_R1" ||
+        comparison.comparison_authority_hash !==
+          (await frozenDigest(authority(scenario_results[0])))
+      )
+        throw new BindingError("COMPARISON_AUTHORITY_MISMATCH");
+      await verifyDigest(comparison, "comparison_hash");
     }
-  }
-  if (
-    result.capability !== "COMPARE_CAPACITY_SCENARIOS" ||
-    (result.data && result.data.comparison.comparison_hash !== result.engine_result_hash)
-  )
-    throw authorityError("RESULT_AUTHORITY_MISMATCH");
-  return result;
+    ensureActive(signal);
+    if (
+      result.capability !== "COMPARE_CAPACITY_SCENARIOS" ||
+      (result.data && result.data.comparison.comparison_hash !== result.engine_result_hash)
+    )
+      throw authorityError("RESULT_AUTHORITY_MISMATCH");
+    await verifyDigest(result, "projection_hash");
+    return result;
+  });
 }
-function verifyScenario(
+async function guardedDecision<T>(
+  signal: AbortSignal,
+  action: (signal: AbortSignal) => Promise<T>,
+) {
+  const boundary = requestBoundary(signal);
+  try {
+    const value = await action(boundary.signal);
+    ensureActive(boundary.signal);
+    return value;
+  } catch (error) {
+    // Preserve the established 409 contract when our own authority check has
+    // just invalidated the boundary. Never invalidate again for an old error.
+    if (error instanceof DashboardError) throw error;
+    if (!boundary.valid()) throw new DOMException("Stale response", "AbortError");
+    if (error instanceof BindingError) throw authorityError(error.message);
+    throw error;
+  } finally {
+    boundary.release();
+  }
+}
+async function verifyScenario(
   result: SimulationResult,
   body: SimulationRequest,
   savedHash: string | null,
+  enginePolicies: Record<string, string>,
 ) {
   const dates = body.capacity_rows.map((r) => r.date).sort();
   if (
@@ -365,6 +423,7 @@ function verifyScenario(
     JSON.stringify(result.daily_rows.map((r) => r.date)) !== JSON.stringify(dates)
   )
     throw authorityError("SCENARIO_AUTHORITY_MISMATCH");
+  await verifyInputCommitment(result, body, enginePolicies);
 }
 function verifyDecision(
   result: {
